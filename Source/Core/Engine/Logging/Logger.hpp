@@ -76,4 +76,15 @@ class Logger
 #define VK_TRACE(...) Logger::getInstance().log("vulkan", spdlog::level::trace, __VA_ARGS__);
 #define VK_CRITICAL(...) Logger::getInstance().log("vulkan", spdlog::level::critical, __VA_ARGS__);
 #define VK_DEBUG(x, ...) Logger::getInstance().debug("vulkan", x, __VA_ARGS__);
+
+#ifdef _DEBUG
+#	define ASSERT(expression) assert(expression)
+#else
+#	define ASSERT(expression)      \
+		if (!(##expression))        \
+		{                           \
+			LOG_ERROR(#expression); \
+			__debugbreak();         \
+		}
+#endif        // _DEBUG
 }        // namespace Ilum
