@@ -9,7 +9,7 @@ namespace Ilum
 class Timer : public TSubsystem<Timer>
 {
   public:
-	Timer(Context *context);
+	Timer(Context *context = nullptr);
 
 	~Timer() = default;
 
