@@ -1,4 +1,4 @@
-#include "Sink.h"
+#include "Sink.hpp"
 
 #include <spdlog/details/log_msg_buffer.h>
 
