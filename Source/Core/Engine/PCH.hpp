@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Platform.h"
+#include "Platform.hpp"
 
 #ifdef ILUM_PLATFORM_WINDOWS
 #	ifndef NOMINMAX
@@ -21,6 +21,6 @@
 #include <unordered_set>
 #include <vector>
 
-#include "Logging/Logger.h"
+#include "Logging/Logger.hpp"
 
-#include "Base.h"
+#include "Base.hpp"

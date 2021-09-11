@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Event.h"
+#include "Event.hpp"
 
 namespace Ilum
 {

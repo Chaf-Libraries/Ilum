@@ -1,5 +1,5 @@
-#include "Logger.h"
-#include "Sink.h"
+#include "Logger.hpp"
+#include "Sink.hpp"
 
 #include <fstream>
 

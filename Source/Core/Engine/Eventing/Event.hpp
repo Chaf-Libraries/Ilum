@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../PCH.h"
+#include "../PCH.hpp"
 
 namespace Ilum
 {

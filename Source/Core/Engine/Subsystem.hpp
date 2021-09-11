@@ -16,8 +16,8 @@ class Context;
 class ISubsystem
 {
   public:
-	ISubsystem(Context *context) :
-	    m_context(*context)
+	ISubsystem(Context *context = nullptr) :
+	    m_context(context)
 	{}
 
 	virtual ~ISubsystem() = default;
@@ -42,7 +42,21 @@ class ISubsystem
 	{}
 
   protected:
-	Context &m_context;
+	Context *m_context = nullptr;
+};
+
+template<typename T>
+struct TSubsystem: public ISubsystem
+{
+  public:
+	TSubsystem(Context *context = nullptr) :
+	    m_context(context)
+	{}
+
+	virtual std::type_index type() const override
+	{
+		return typeid(T);
+	}
 };
 
 struct Subsystem
