@@ -1,4 +1,4 @@
-#include "MemoryPool.h"
+#include "MemoryPool.hpp"
 
 namespace Ilum
 {
