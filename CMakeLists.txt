@@ -11,14 +11,22 @@ Init_Project()
 
 add_definitions(-DENGINE_VERSION="0.0.1")
 
+# SDL2
 find_package(SDL2 QUIET)
 if(NOT ${SDL2_FOUND})
     find_package(SDL2 REQUIRED PATHS ${PROJECT_SOURCE_DIR}/External/SDL2/cmake)
 endif()
 
+# spdlog
 find_package(spdlog QUIET)
 if(NOT ${spdlog_FOUND})
     find_package(spdlog REQUIRED PATHS ${PROJECT_SOURCE_DIR}/External/spdlog/lib/cmake/spdlog)
+endif()
+
+# volk
+find_package(volk QUIET)
+if(NOT ${volk_FOUND})
+    find_package(volk REQUIRED PATHS ${PROJECT_SOURCE_DIR}/External/volk/lib/cmake/volk)
 endif()
 
 add_subdirectory(Source)
