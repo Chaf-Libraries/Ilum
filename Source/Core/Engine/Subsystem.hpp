@@ -1,7 +1,7 @@
 #pragma once
 
-#include <typeindex>
 #include <memory>
+#include <typeindex>
 
 namespace Ilum
 {
@@ -45,8 +45,8 @@ class ISubsystem
 	Context *m_context = nullptr;
 };
 
-template<typename T>
-struct TSubsystem: public ISubsystem
+template <typename T>
+struct TSubsystem : public ISubsystem
 {
   public:
 	TSubsystem(Context *context = nullptr) :
@@ -57,6 +57,9 @@ struct TSubsystem: public ISubsystem
 	{
 		return typeid(T);
 	}
+
+  protected:
+	Context *m_context = nullptr;
 };
 
 struct Subsystem
@@ -70,4 +73,4 @@ struct Subsystem
 	std::unique_ptr<ISubsystem> ptr;
 	TickType                    tick_group;
 };
-}        // namespace Tools
+}        // namespace Ilum
