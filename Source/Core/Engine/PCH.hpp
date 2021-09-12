@@ -26,3 +26,5 @@
 #include "Logging/Logger.hpp"
 
 #include "Base.hpp"
+
+#include "Core/Utils/Hash.hpp"
