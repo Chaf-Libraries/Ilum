@@ -22,4 +22,4 @@ if(NOT ${spdlog_FOUND})
 endif()
 
 add_subdirectory(Source)
-# add_subdirectory(Test)
+add_subdirectory(Test)
