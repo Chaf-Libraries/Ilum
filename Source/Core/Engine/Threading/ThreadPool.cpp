@@ -1,4 +1,4 @@
-#include "ThreadPool.h"
+#include "ThreadPool.hpp"
 
 namespace Ilum
 {
@@ -19,7 +19,7 @@ ThreadPool::ThreadPool(Context *context) :
 	{
 		m_flags[i] = std::make_shared<std::atomic<bool>>(false);
 
-		std::shared_ptr<std::atomic<bool>> flag(m_flags[i]);
+		ref<std::atomic<bool>> flag(m_flags[i]);
 		auto                               f = [this, i, flag]() {
             std::atomic<bool> &             _flag = *flag;
             std::function<void(size_t id)> *_f;
@@ -28,7 +28,7 @@ ThreadPool::ThreadPool(Context *context) :
             {
                 while (is_pop)
                 {
-                    std::unique_ptr<std::function<void(size_t id)>> func(_f);
+                    scope<std::function<void(size_t id)>> func(_f);
                     (*_f)(i);
                     if (_flag)
                     {
@@ -49,10 +49,10 @@ ThreadPool::ThreadPool(Context *context) :
                 }
             }
 		};
-		m_threads[i].reset(new std::thread(f));
-		m_thread_names[m_threads[i]->get_id()] = "worker_" + std::to_string(i);
+		m_threads[i] = std::thread(f);
+		m_thread_names[m_threads[i].get_id()] = "worker_" + std::to_string(i);
 
-		LOG_INFO("Create thread [{}]: {}", i, m_thread_names[m_threads[i]->get_id()]);
+		LOG_INFO("Create thread [{}]: {}", i, m_thread_names[m_threads[i].get_id()]);
 	}
 	int a = 0;
 	LOG_INFO("{} threads have been created", m_thread_count);
@@ -69,8 +69,8 @@ ThreadPool::~ThreadPool()
 
 	for (uint32_t i = 0; i < m_threads.size(); i++)
 	{
-		if (m_threads[i]->joinable())
-			m_threads[i]->join();
+		if (m_threads[i].joinable())
+			m_threads[i].join();
 	}
 
 	clear();
@@ -90,7 +90,17 @@ size_t ThreadPool::idleCount() const
 
 std::thread &ThreadPool::getThread(size_t index)
 {
-	return *m_threads[index];
+	return m_threads[index];
+}
+
+const std::thread &ThreadPool::getThread(size_t index) const
+{
+	return m_threads[index];
+}
+
+const std::vector<std::thread> &ThreadPool::getThreads() const
+{
+	return m_threads;
 }
 
 void ThreadPool::clear()
@@ -106,7 +116,7 @@ std::function<void(size_t)> ThreadPool::pop()
 {
 	std::function<void(size_t id)> *_f = nullptr;
 	m_queue.pop(_f);
-	std::unique_ptr<std::function<void(size_t id)>> func(_f);
+	scope<std::function<void(size_t id)>> func(_f);
 	std::function<void(size_t)>                     f;
 	if (_f)
 	{
