@@ -17,4 +17,4 @@ void _assert(VkResult result)
 {
 	assert(result == VK_SUCCESS);
 }
-}
+}        // namespace Ilum::Vulkan

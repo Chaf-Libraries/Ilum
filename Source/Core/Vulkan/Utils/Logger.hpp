@@ -17,4 +17,4 @@ namespace Ilum::Vulkan
 {
 const bool check(VkResult result);
 void       _assert(VkResult result);
-}
+}        // namespace Ilum::Vulkan

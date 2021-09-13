@@ -22,4 +22,4 @@ class FunctionEXT
 	static PFN_vkCmdEndDebugUtilsLabelEXT              end_debug_utils_label;
 	static PFN_vkGetPhysicalDeviceMemoryProperties2KHR get_physical_device_memory_properties_2;
 };
-}        // namespace Ilum
+}        // namespace Ilum::Vulkan
