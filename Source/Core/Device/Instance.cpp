@@ -33,7 +33,7 @@ inline const std::vector<const char *> get_instance_extension_supported(const st
 			{
 				result.emplace_back(extension);
 				found = true;
-				VK_INFO("Found instance extension: {}", extension);
+				VK_INFO("Enable instance extension: {}", extension);
 				break;
 			}
 		}
@@ -120,6 +120,7 @@ Instance::Instance()
 		// Enable validation layer
 		if (check_layer_supported(m_validation_layers.front()))
 		{
+			VK_INFO("Enable validation layer: {}", m_validation_layers.front());
 			create_info.enabledLayerCount   = static_cast<uint32_t>(m_validation_layers.size());
 			create_info.ppEnabledLayerNames = m_validation_layers.data();
 			create_info.pNext               = &validation_features;
