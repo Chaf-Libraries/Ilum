@@ -28,3 +28,5 @@
 #include "Base.hpp"
 
 #include "Core/Utils/Hash.hpp"
+
+#include "Core/Engine/Vulkan/Vulkan.hpp"
