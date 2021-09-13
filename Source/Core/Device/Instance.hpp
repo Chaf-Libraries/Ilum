@@ -15,6 +15,8 @@ class Instance
 
 	operator const VkInstance &() const;
 
+	const VkInstance &getInstance() const;
+
   public:
 	// Extension functions
 	static PFN_vkCreateDebugUtilsMessengerEXT          createDebugUtilsMessengerEXT;

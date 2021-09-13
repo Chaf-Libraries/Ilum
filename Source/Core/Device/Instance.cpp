@@ -173,4 +173,9 @@ Instance::operator const VkInstance &() const
 {
 	return m_handle;
 }
+
+const VkInstance &Instance::getInstance() const
+{
+	return m_handle;
+}
 }        // namespace Ilum
