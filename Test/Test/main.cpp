@@ -5,29 +5,7 @@
 #include <Core/Engine/Pooling/MemoryPool.hpp>
 #include <Core/Engine/Timing/Timer.hpp>
 
-struct Test
-{
-	float x;
-	float y;
-	float z;
-};
-
-class TestClass
-{
-  public:
-	TestClass(float a, float b) :
-	    a(a), b(b)
-	{}
-
-	~TestClass()
-	{
-		std::cout << "Release";
-	}
-
-  private:
-	float a;
-	float b;
-};
+#include <Core/Device/Instance.hpp>
 
 int main()
 {
@@ -37,6 +15,10 @@ int main()
 	auto *timer  = engine.getContext().getSubsystem<Ilum::Timer>();
 
 	const std::string title  = window->getTitle();
+
+	{
+		Ilum::Instance instance;
+	}
 
 	while (!window->shouldClose())
 	{
