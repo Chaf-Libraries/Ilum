@@ -1,0 +1,28 @@
+name: Windows
+
+on:
+  pull_request:
+    types: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    name: "Build ${{ matrix.platform }} in ${{ matrix.build_type }}"
+    strategy:
+      matrix:
+        platform: [windows]
+        build_type: [Release]
+    env:
+      PARALLEL: -j 2
+    runs-on: "${{ matrix.platform }}-latest"
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
+
+      - name: Configure
+        run: cmake -H"." -B"build/${{ matrix.platform }}" -DBuild_Test_IlumEngine=OFF
+
+      - name: "Build ${{ matrix.platform }} in ${{ matrix.build_type }}"
+        run: cmake --build "build/${{ matrix.platform }}" --target App --config ${{ matrix.build_type }} ${{ env.PARALLEL }}
