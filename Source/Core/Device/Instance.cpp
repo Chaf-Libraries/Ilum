@@ -1,9 +1,19 @@
 #include "Core/Engine/PCH.hpp"
+#include "Core/Engine/Vulkan/VK_Debugger.h"
 
 #include "Instance.hpp"
 
 namespace Ilum
 {
+PFN_vkCreateDebugUtilsMessengerEXT          Instance::createDebugUtilsMessengerEXT          = nullptr;
+VkDebugUtilsMessengerEXT                    Instance::debugUtilsMessengerEXT                = nullptr;
+PFN_vkDestroyDebugUtilsMessengerEXT         Instance::destroyDebugUtilsMessengerEXT         = nullptr;
+PFN_vkSetDebugUtilsObjectTagEXT             Instance::setDebugUtilsObjectTagEXT             = nullptr;
+PFN_vkSetDebugUtilsObjectNameEXT            Instance::setDebugUtilsObjectNameEXT            = nullptr;
+PFN_vkCmdBeginDebugUtilsLabelEXT            Instance::cmdBeginDebugUtilsLabelEXT            = nullptr;
+PFN_vkCmdEndDebugUtilsLabelEXT              Instance::cmdEndDebugUtilsLabelEXT              = nullptr;
+PFN_vkGetPhysicalDeviceMemoryProperties2KHR Instance::getPhysicalDeviceMemoryProperties2KHR = nullptr;
+
 inline const std::vector<const char *> get_instance_extension_supported(const std::vector<const char *> &extensions)
 {
 	uint32_t extension_count = 0;
@@ -133,12 +143,18 @@ Instance::Instance()
 	}
 
 	// Initialize instance extension functions
-	Vulkan::FunctionEXT::initialzize(m_handle);
+	createDebugUtilsMessengerEXT          = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(m_handle, "vkCreateDebugUtilsMessengerEXT"));
+	destroyDebugUtilsMessengerEXT         = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(m_handle, "vkDestroyDebugUtilsMessengerEXT"));
+	setDebugUtilsObjectTagEXT             = reinterpret_cast<PFN_vkSetDebugUtilsObjectTagEXT>(vkGetInstanceProcAddr(m_handle, "vkSetDebugUtilsObjectTagEXT"));
+	setDebugUtilsObjectNameEXT            = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(m_handle, "vkSetDebugUtilsObjectNameEXT"));
+	cmdBeginDebugUtilsLabelEXT            = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(vkGetInstanceProcAddr(m_handle, "vkCmdBeginDebugUtilsLabelEXT"));
+	cmdEndDebugUtilsLabelEXT              = reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetInstanceProcAddr(m_handle, "vkCmdEndDebugUtilsLabelEXT"));
+	getPhysicalDeviceMemoryProperties2KHR = reinterpret_cast<PFN_vkGetPhysicalDeviceMemoryProperties2KHR>(vkGetInstanceProcAddr(m_handle, "vkGetPhysicalDeviceMemoryProperties2KHR"));
 
 	// Enable debugger
 	if (m_debug_enable)
 	{
-		Vulkan::Debugger::initialize(m_handle);
+		VK_Debugger::initialize(m_handle);
 	}
 }
 
@@ -146,14 +162,14 @@ Instance::~Instance()
 {
 	if (m_debug_enable)
 	{
-		Vulkan::Debugger::shutdown(m_handle);
+		VK_Debugger::shutdown(m_handle);
 	}
 
 	vkDestroyInstance(m_handle, nullptr);
 }
 
-bool Instance::isDebugEnable() const
+Instance::operator const VkInstance &() const
 {
-	return m_debug_enable;
+	return m_handle;
 }
 }        // namespace Ilum
