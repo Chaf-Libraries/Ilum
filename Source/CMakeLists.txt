@@ -10,6 +10,7 @@ SetTarget(
         ${PROJECT_SOURCE_DIR}/External/spdlog/include
         ${PROJECT_SOURCE_DIR}/External/volk/include
         ${PROJECT_SOURCE_DIR}/External/vulkan/include
+        ${PROJECT_SOURCE_DIR}/External/vma/include
     LIB
         SDL2::SDL2
         spdlog::spdlog
