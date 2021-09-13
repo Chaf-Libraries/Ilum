@@ -2,7 +2,7 @@
 
 #include <volk.h>
 
-namespace Ilum
+namespace Ilum::Vulkan
 {
 class FunctionEXT
 {
@@ -11,7 +11,7 @@ class FunctionEXT
 
 	~FunctionEXT() = default;
 
-	static void initialzize();
+	static void initialzize(VkInstance instance);
 
 	static PFN_vkCreateDebugUtilsMessengerEXT          create_debug_utils_messenger;
 	static VkDebugUtilsMessengerEXT                    debug_utils_messenger;
