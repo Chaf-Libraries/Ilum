@@ -14,6 +14,22 @@ PFN_vkCmdBeginDebugUtilsLabelEXT            Instance::cmdBeginDebugUtilsLabelEXT
 PFN_vkCmdEndDebugUtilsLabelEXT              Instance::cmdEndDebugUtilsLabelEXT              = nullptr;
 PFN_vkGetPhysicalDeviceMemoryProperties2KHR Instance::getPhysicalDeviceMemoryProperties2KHR = nullptr;
 
+#ifdef _DEBUG
+const std::vector<const char *>                 Instance::extensions            = {"VK_KHR_surface", "VK_KHR_win32_surface", "VK_EXT_debug_report", "VK_EXT_debug_utils"};
+const std::vector<const char *>                 Instance::validation_layers     = {"VK_LAYER_KHRONOS_validation"};
+const std::vector<VkValidationFeatureEnableEXT> Instance::validation_extensions = {
+    VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
+    VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+    VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
+    VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT};
+#else
+const std::vector<const char *>                 Instance::extensions            = {"VK_KHR_surface", "VK_KHR_win32_surface"};
+const std::vector<const char *>                 Instance::validation_layers     = {};
+const std::vector<VkValidationFeatureEnableEXT> Instance::validation_extensions = {};
+#endif        // _DEBUG
+
+
+
 inline const std::vector<const char *> get_instance_extension_supported(const std::vector<const char *> &extensions)
 {
 	uint32_t extension_count = 0;
@@ -100,7 +116,7 @@ Instance::Instance()
 	app_info.apiVersion         = std::min(sdk_version, api_version);
 
 	// Check out extensions support
-	std::vector<const char *> extensions_support = get_instance_extension_supported(m_extensions);
+	std::vector<const char *> extensions_support = get_instance_extension_supported(extensions);
 
 	// Config instance info
 	VkInstanceCreateInfo create_info{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
@@ -111,18 +127,18 @@ Instance::Instance()
 
 	// Validation features
 	VkValidationFeaturesEXT validation_features{VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT};
-	validation_features.enabledValidationFeatureCount = static_cast<uint32_t>(m_validation_extensions.size());
-	validation_features.pEnabledValidationFeatures    = m_validation_extensions.data();
+	validation_features.enabledValidationFeatureCount = static_cast<uint32_t>(validation_extensions.size());
+	validation_features.pEnabledValidationFeatures    = validation_extensions.data();
 
 	// Enable validation layers
 	if (m_debug_enable)
 	{
 		// Enable validation layer
-		if (check_layer_supported(m_validation_layers.front()))
+		if (check_layer_supported(validation_layers.front()))
 		{
-			VK_INFO("Enable validation layer: {}", m_validation_layers.front());
-			create_info.enabledLayerCount   = static_cast<uint32_t>(m_validation_layers.size());
-			create_info.ppEnabledLayerNames = m_validation_layers.data();
+			VK_INFO("Enable validation layer: {}", validation_layers.front());
+			create_info.enabledLayerCount   = static_cast<uint32_t>(validation_layers.size());
+			create_info.ppEnabledLayerNames = validation_layers.data();
 			create_info.pNext               = &validation_features;
 		}
 		else
