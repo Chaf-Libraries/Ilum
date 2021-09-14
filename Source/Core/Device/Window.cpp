@@ -49,7 +49,7 @@ Window::Window(Context *context):
 	    m_monitors[0].getHeight() / 4,
 	    m_monitors[0].getWidth() / 2,
 	    m_monitors[0].getHeight() / 2,
-	    SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE);
+	    SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_VULKAN);
 
 	if (!m_window)
 	{
