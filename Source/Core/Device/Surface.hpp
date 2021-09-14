@@ -2,6 +2,8 @@
 
 #include "Core/Engine/PCH.hpp"
 
+struct SDL_Window;
+
 namespace Ilum
 {
 class Instance;
@@ -10,17 +12,20 @@ class PhysicalDevice;
 class Surface
 {
   public:
-	Surface(const Instance& instance, const PhysicalDevice& physical_device, void *window_handle);
+	Surface(const Instance& instance, const PhysicalDevice& physical_device, SDL_Window *window_handle);
 
 	~Surface();
 
-	const VkSurfaceKHR operator&() const;
+	operator const VkSurfaceKHR &() const;
+
+	const VkSurfaceKHR &getSurface() const;
 
   private:
 	const Instance &m_instance;
 	const PhysicalDevice &m_physical_device;
 
 	VkSurfaceKHR m_handle = VK_NULL_HANDLE;
-
+	VkSurfaceCapabilitiesKHR m_capabilities = {};
+	VkSurfaceFormatKHR       m_format       = {};
 };
 }        // namespace Ilum
