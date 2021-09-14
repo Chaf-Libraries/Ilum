@@ -10,18 +10,19 @@
 
 #include <algorithm>
 #include <functional>
+#include <future>
 #include <iostream>
 #include <memory>
 #include <utility>
-#include <future>
 
 #include <array>
+#include <map>
+#include <queue>
 #include <sstream>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <queue>
 
 #include "Logging/Logger.hpp"
 
