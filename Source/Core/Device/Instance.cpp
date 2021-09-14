@@ -182,7 +182,10 @@ Instance::~Instance()
 		VK_Debugger::shutdown(m_handle);
 	}
 
-	vkDestroyInstance(m_handle, nullptr);
+	if (m_handle)
+	{
+		vkDestroyInstance(m_handle, nullptr);
+	}
 }
 
 Instance::operator const VkInstance &() const
