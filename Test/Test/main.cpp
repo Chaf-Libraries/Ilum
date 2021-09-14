@@ -14,7 +14,7 @@ int main()
 	auto *window = engine.getContext().getSubsystem<Ilum::Window>();
 	auto *timer  = engine.getContext().getSubsystem<Ilum::Timer>();
 
-	const std::string title  = window->getTitle();
+	const std::string title = window->getTitle();
 
 	{
 		Ilum::Instance instance;
@@ -24,7 +24,7 @@ int main()
 	{
 		engine.onTick();
 
-		std::this_thread::sleep_for(std::chrono::duration<double,std::milli>(16));
+		std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(16));
 
 		window->setTitle(title + " FPS: " + std::to_string(timer->getFPS()));
 	}
