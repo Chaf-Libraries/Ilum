@@ -25,12 +25,26 @@ Surface::Surface(const Instance &instance, const PhysicalDevice &physical_device
 
 	if (surface_format_count == 1 && surface_formats[0].format == VK_FORMAT_UNDEFINED)
 	{
-		m_format.format = VK_FORMAT_R8G8B8A8_UNORM;
+		m_format.format     = VK_FORMAT_R8G8B8A8_UNORM;
 		m_format.colorSpace = surface_formats[0].colorSpace;
 	}
 	else
 	{
+		bool has_R8G8B8A8_UNORM = false;
+		for (auto &surface_format : surface_formats)
+		{
+			if (surface_format.format == VK_FORMAT_R8G8B8A8_UNORM)
+			{
+				m_format           = surface_format;
+				has_R8G8B8A8_UNORM = true;
+				break;
+			}
+		}
 
+		if (!has_R8G8B8A8_UNORM)
+		{
+			m_format = surface_formats[0];
+		}
 	}
 }
 
