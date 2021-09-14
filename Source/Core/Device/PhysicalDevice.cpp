@@ -1,5 +1,6 @@
 #include "PhysicalDevice.hpp"
 #include "Instance.hpp"
+#include "LogicalDevice.hpp"
 
 #include "Core/Engine/PCH.hpp"
 
@@ -9,14 +10,95 @@ inline uint32_t score_physical_device(VkPhysicalDevice physical_device)
 {
 	uint32_t score = 0;
 
+	// Check extensions
 	uint32_t device_extension_properties_count = 0;
 	vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &device_extension_properties_count, nullptr);
 
-	std::vector<VkExtensionProperties> extension_properties;
+	std::vector<VkExtensionProperties> extension_properties(device_extension_properties_count);
 	vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &device_extension_properties_count, extension_properties.data());
 
+	for (auto &device_extension : LogicalDevice::extensions)
+	{
+		for (auto &support_extension : extension_properties)
+		{
+			if (std::strcmp(device_extension, support_extension.extensionName) == 0)
+			{
+				score += 100;
+				break;
+			}
+		}
+	}
 
+	VkPhysicalDeviceProperties       properties        = {};
+	VkPhysicalDeviceFeatures         features          = {};
+	VkPhysicalDeviceMemoryProperties memory_properties = {};
 
+	vkGetPhysicalDeviceProperties(physical_device, &properties);
+	vkGetPhysicalDeviceFeatures(physical_device, &features);
+	vkGetPhysicalDeviceMemoryProperties(physical_device, &memory_properties);
+
+	// Logging gpu
+	std::stringstream ss;
+	ss<<"\nFound physical device ["<<properties.deviceID<<"]\n";
+	ss<<"Name: "<<properties.deviceName<<"\n";
+	ss<<"Type: ";
+	switch (static_cast<int32_t>(properties.deviceType)) 
+	{
+	case 1:
+		ss << "Integrated\n";
+		break;
+	case 2:
+		ss << "Discrete\n";
+		break;
+	case 3:
+		ss << "Virtual\n";
+		break;
+	case 4:
+		ss << "CPU\n";
+		break;
+	default:
+		ss << "Other " << properties.deviceType <<"\n";
+	}
+
+		ss << "Vendor: ";
+	switch (properties.vendorID) 
+	{
+	case 0x8086:
+		ss << "Intel\n";
+		break;
+	case 0x10DE:
+		ss << "Nvidia\n";
+		break;
+	case 0x1002:
+		ss << "AMD\n";
+		break;
+	default:
+		ss << properties.vendorID << "\n";
+	}
+
+	uint32_t supportedVersion[3] = {
+		VK_VERSION_MAJOR(properties.apiVersion),
+		VK_VERSION_MINOR(properties.apiVersion),
+		VK_VERSION_PATCH(properties.apiVersion)
+	};
+
+	ss << "API Version: " << supportedVersion[0] << "." << supportedVersion[1] << "." << supportedVersion[2] << '\n';
+	
+	ss <<"Extensions: \n";
+	for (auto& extension : extension_properties)
+	{
+		ss<<"           "<<extension.extensionName<<"\n";
+	}
+
+	VK_INFO("{}", ss.str());
+
+	// Score discrete gpu
+	if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+	{
+		score += 1000;
+	}
+
+	score += properties.limits.maxImageDimension2D;
 	return score;
 }
 

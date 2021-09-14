@@ -6,6 +6,7 @@
 #include <Core/Engine/Timing/Timer.hpp>
 
 #include <Core/Device/Instance.hpp>
+#include <Core/Device/PhysicalDevice.hpp>
 
 int main()
 {
@@ -18,6 +19,7 @@ int main()
 
 	{
 		Ilum::Instance instance;
+		Ilum::PhysicalDevice physical_device(instance);
 	}
 
 	while (!window->shouldClose())
