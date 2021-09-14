@@ -31,7 +31,7 @@ class Window : public TSubsystem<Window>
 
 	void *getWindowHandle() const;
 
-	void *getSDLHandle() const;
+	SDL_Window *getSDLHandle() const;
 
 	void setSize(uint32_t width, uint32_t height);
 

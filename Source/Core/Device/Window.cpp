@@ -157,7 +157,7 @@ void *Window::getWindowHandle() const
 #endif        // WIN32
 }
 
-void *Window::getSDLHandle() const
+SDL_Window *Window::getSDLHandle() const
 {
 	return m_window;
 }
