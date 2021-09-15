@@ -20,6 +20,10 @@ class Surface
 
 	const VkSurfaceKHR &getSurface() const;
 
+	const VkSurfaceCapabilitiesKHR &getCapabilities() const;
+
+	const VkSurfaceFormatKHR &getFormat() const;
+
   private:
 	const Instance &m_instance;
 	const PhysicalDevice &m_physical_device;

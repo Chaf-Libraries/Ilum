@@ -15,7 +15,11 @@ Surface::Surface(const Instance &instance, const PhysicalDevice &physical_device
 	SDL_Vulkan_CreateSurface(window_handle, instance, &m_handle);
 
 	// Get surface capabilities
-	VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, m_handle, &m_capabilities));
+	if (!VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, m_handle, &m_capabilities)))
+	{
+		VK_ERROR("Failed to get physical device surface capabilities!");
+		return;
+	}
 
 	// Get surface format
 	uint32_t surface_format_count = 0;
@@ -64,5 +68,15 @@ Surface::operator const VkSurfaceKHR &() const
 const VkSurfaceKHR &Surface::getSurface() const
 {
 	return m_handle;
+}
+
+const VkSurfaceCapabilitiesKHR &Surface::getCapabilities() const
+{
+	return m_capabilities;
+}
+
+const VkSurfaceFormatKHR &Surface::getFormat() const
+{
+	return m_format;
 }
 }        // namespace Ilum
