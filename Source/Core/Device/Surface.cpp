@@ -60,6 +60,16 @@ Surface::~Surface()
 	}
 }
 
+const Instance &Surface::getInstance() const
+{
+	return m_instance;
+}
+
+const PhysicalDevice &Surface::getPhysicalDevice() const
+{
+	return m_physical_device;
+}
+
 Surface::operator const VkSurfaceKHR &() const
 {
 	return m_handle;

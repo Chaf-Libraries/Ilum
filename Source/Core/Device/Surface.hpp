@@ -16,6 +16,10 @@ class Surface
 
 	~Surface();
 
+	const Instance &getInstance() const;
+
+	const PhysicalDevice &getPhysicalDevice() const;
+
 	operator const VkSurfaceKHR &() const;
 
 	const VkSurfaceKHR &getSurface() const;
