@@ -7,12 +7,12 @@
 
 namespace Ilum
 {
-Surface::Surface(const Instance &instance, const PhysicalDevice &physical_device, SDL_Window *window_handle) :
-    m_instance(instance),
+Surface::Surface(const PhysicalDevice &physical_device, SDL_Window *window_handle) :
+    m_instance(physical_device.getInstance()),
     m_physical_device(physical_device)
 {
 	// Create surface handle
-	SDL_Vulkan_CreateSurface(window_handle, instance, &m_handle);
+	SDL_Vulkan_CreateSurface(window_handle, m_instance, &m_handle);
 
 	// Get surface capabilities
 	if (!VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, m_handle, &m_capabilities)))

@@ -12,7 +12,7 @@ class PhysicalDevice;
 class Surface
 {
   public:
-	Surface(const Instance& instance, const PhysicalDevice& physical_device, SDL_Window *window_handle);
+	Surface(const PhysicalDevice& physical_device, SDL_Window *window_handle);
 
 	~Surface();
 
