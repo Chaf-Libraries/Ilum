@@ -280,7 +280,7 @@ LogicalDevice::LogicalDevice(const Surface &surface) :
 	allocator_info.physicalDevice         = m_physical_device;
 	allocator_info.device                 = m_handle;
 	allocator_info.instance               = m_instance;
-	allocator_info.vulkanApiVersion       = VK_VERSION_1_2;
+	allocator_info.vulkanApiVersion       = VK_API_VERSION_1_2;
 	if (!VK_CHECK(vmaCreateAllocator(&allocator_info, &m_allocator)))
 	{
 		VK_ERROR("Failed to create vulkan memory allocator");
@@ -293,6 +293,21 @@ LogicalDevice::~LogicalDevice()
 	{
 		vkDestroyDevice(m_handle, nullptr);
 	}
+}
+
+const Instance &LogicalDevice::getInstance() const
+{
+	return m_instance;
+}
+
+const PhysicalDevice &LogicalDevice::getPhysicalDevice() const
+{
+	return m_physical_device;
+}
+
+const Surface &LogicalDevice::getSurface() const
+{
+	return m_surface;
 }
 
 LogicalDevice::operator const VkDevice &() const

@@ -15,6 +15,12 @@ class LogicalDevice
 
 	~LogicalDevice();
 
+	const Instance &getInstance() const;
+
+	const PhysicalDevice &getPhysicalDevice() const;
+
+	const Surface &getSurface() const;
+
 	operator const VkDevice &() const;
 
 	const VkDevice &getLogicalDevice() const;
