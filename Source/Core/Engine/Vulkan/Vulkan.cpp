@@ -11,13 +11,8 @@ namespace Ilum
 const bool vk_check(VkResult result)
 {
 	vk_assert(result);
-	if (result != VK_SUCCESS)
-	{
-		VK_ERROR("{}", std::to_string(result));
-		return false;
-	}
 
-	return true;
+	return result == VK_SUCCESS;
 }
 
 void vk_assert(VkResult result)

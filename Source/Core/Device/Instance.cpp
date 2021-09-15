@@ -151,6 +151,7 @@ Instance::Instance()
 	// Create instance
 	if (!VK_CHECK(vkCreateInstance(&create_info, nullptr, &m_handle)))
 	{
+		VK_ERROR("Failed to create vulkan instance!");
 		return;
 	}
 	else

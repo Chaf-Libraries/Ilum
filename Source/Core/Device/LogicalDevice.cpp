@@ -247,6 +247,7 @@ LogicalDevice::LogicalDevice(const Instance &instance, const PhysicalDevice &phy
 
 	if (!VK_CHECK(vkCreateDevice(m_physical_device, &device_create_info, nullptr, &m_handle)))
 	{
+		VK_ERROR("Failed to create logical device!");
 		return;
 	}
 
