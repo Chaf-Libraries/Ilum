@@ -55,7 +55,7 @@ inline const std::vector<const char *> get_instance_extension_supported(const st
 		}
 		if (!found)
 		{
-			VK_ERROR("Instance extension {} is not supported", extension);
+			VK_WARN("Instance extension {} is not supported", extension);
 		}
 	}
 
