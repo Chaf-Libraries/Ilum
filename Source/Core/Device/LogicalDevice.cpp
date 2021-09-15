@@ -87,9 +87,9 @@ inline std::optional<uint32_t> get_queue_family_index(const std::vector<VkQueueF
 	return std::optional<uint32_t>();
 }
 
-LogicalDevice::LogicalDevice(const Instance &instance, const PhysicalDevice &physical_device, const Surface &surface) :
-    m_instance(instance),
-    m_physical_device(physical_device),
+LogicalDevice::LogicalDevice(const Surface &surface) :
+    m_instance(surface.getInstance()),
+    m_physical_device(surface.getPhysicalDevice()),
     m_surface(surface)
 {
 	// Queue supporting
@@ -274,6 +274,17 @@ LogicalDevice::LogicalDevice(const Instance &instance, const PhysicalDevice &phy
 	{
 		vkGetDeviceQueue(m_handle, m_present_family, i, &m_present_queues[i]);
 	}
+
+	// Create Vma allocator
+	VmaAllocatorCreateInfo allocator_info = {};
+	allocator_info.physicalDevice         = m_physical_device;
+	allocator_info.device                 = m_handle;
+	allocator_info.instance               = m_instance;
+	allocator_info.vulkanApiVersion       = VK_VERSION_1_2;
+	if (!VK_CHECK(vmaCreateAllocator(&allocator_info, &m_allocator)))
+	{
+		VK_ERROR("Failed to create vulkan memory allocator");
+	}
 }
 
 LogicalDevice::~LogicalDevice()
@@ -297,6 +308,11 @@ const VkDevice &LogicalDevice::getLogicalDevice() const
 const VkPhysicalDeviceFeatures &LogicalDevice::getEnabledFeatures() const
 {
 	return m_enabled_features;
+}
+
+const VmaAllocator &LogicalDevice::getAllocator() const
+{
+	return m_allocator;
 }
 
 const uint32_t LogicalDevice::getGraphicsFamily() const

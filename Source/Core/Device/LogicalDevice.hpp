@@ -11,7 +11,7 @@ class Surface;
 class LogicalDevice
 {
   public:
-	LogicalDevice(const Instance &instance, const PhysicalDevice &physical_device, const Surface &surface);
+	LogicalDevice(const Surface &surface);
 
 	~LogicalDevice();
 
@@ -20,6 +20,8 @@ class LogicalDevice
 	const VkDevice &getLogicalDevice() const;
 
 	const VkPhysicalDeviceFeatures &getEnabledFeatures() const;
+
+	const VmaAllocator &getAllocator() const;
 
 	const uint32_t getGraphicsFamily() const;
 
@@ -48,6 +50,8 @@ class LogicalDevice
 
 	VkDevice                 m_handle           = VK_NULL_HANDLE;
 	VkPhysicalDeviceFeatures m_enabled_features = {};
+
+	VmaAllocator m_allocator = VK_NULL_HANDLE;
 
 	VkQueueFlags m_support_queues  = {};
 	uint32_t     m_graphics_family = 0;
