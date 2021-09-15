@@ -13,6 +13,7 @@
 #include <future>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <utility>
 
 #include <array>
