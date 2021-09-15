@@ -9,6 +9,7 @@ class Instance;
 class PhysicalDevice;
 class Surface;
 class LogicalDevice;
+class Swapchain;
 
 class GraphicsContext : public TSubsystem<GraphicsContext>
 {
@@ -16,10 +17,11 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	GraphicsContext(Context *context);
 
   private:
-	std::unique_ptr<Instance>       m_instance;
-	std::unique_ptr<PhysicalDevice> m_physical_device;
-	std::unique_ptr<Surface>        m_surface;
-	std::unique_ptr<LogicalDevice>  m_logical_device;
+	scope<Instance>       m_instance;
+	scope<PhysicalDevice> m_physical_device;
+	scope<Surface>        m_surface;
+	scope<LogicalDevice>  m_logical_device;
+	scope<Swapchain>      m_swapchain;
 
 	VkPipelineCache m_pipeline_cache = VK_NULL_HANDLE;
 };

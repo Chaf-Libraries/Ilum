@@ -20,13 +20,13 @@ int main()
 
 	const std::string title = window->getTitle();
 
-	{
-		Ilum::Instance       instance;
-		Ilum::PhysicalDevice physical_device(instance);
-		Ilum::Surface        surface(physical_device, window->getSDLHandle());
-		Ilum::LogicalDevice  logical_device(surface);
-		Ilum::Swapchain      swapchain(logical_device, {window->getWidth(), window->getHeight()}, nullptr);
-	}
+	//{
+	//	Ilum::Instance       instance;
+	//	Ilum::PhysicalDevice physical_device(instance);
+	//	Ilum::Surface        surface(physical_device, window->getSDLHandle());
+	//	Ilum::LogicalDevice  logical_device(surface);
+	//	Ilum::Swapchain      swapchain(logical_device, {window->getWidth(), window->getHeight()}, nullptr);
+	//}
 
 	while (!window->shouldClose())
 	{
