@@ -1,6 +1,7 @@
 # IlumEngine
 A graphics engine based on Vulkan
 
-## Dependencies
+## Build
 
-* SDL2
+* Download latest Vulkan SDK: [Link](https://vulkan.lunarg.com/sdk/home)
+
