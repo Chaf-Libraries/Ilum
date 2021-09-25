@@ -31,7 +31,7 @@ class CommandPool
 
 	const std::thread::id &getThreadID() const;
 
-	const VkQueue &getQueue(uint32_t index) const;
+	const VkQueue getQueue(uint32_t index) const;
 
   private:
 	const LogicalDevice &m_logical_device;

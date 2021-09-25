@@ -74,19 +74,20 @@ const std::thread::id &CommandPool::getThreadID() const
 	return m_thread_id;
 }
 
-const VkQueue &CommandPool::getQueue(uint32_t index) const
+const VkQueue CommandPool::getQueue(uint32_t index) const
 {
+	const std::vector<VkQueue> *queues = nullptr;
 	switch (m_usage)
 	{
 		case Ilum::CommandPool::Usage::Graphics:
-			auto &queues = m_logical_device.getGraphicsQueues();
-			return queues[index % queues.size()];
+			queues = &m_logical_device.getGraphicsQueues();
+			return queues->at(index % queues->size());
 		case Ilum::CommandPool::Usage::Compute:
-			auto &queues = m_logical_device.getComputeQueues();
-			return queues[index % queues.size()];
+			queues = &m_logical_device.getComputeQueues();
+			return queues->at(index % queues->size());
 		case Ilum::CommandPool::Usage::Transfer:
-			auto &queues = m_logical_device.getTransferQueues();
-			return queues[index % queues.size()];
+			queues = &m_logical_device.getTransferQueues();
+			return queues->at(index % queues->size());
 		default:
 			return VK_NULL_HANDLE;
 	}
