@@ -543,14 +543,14 @@ inline std::vector<Shader::Constant> read_shader_resource<Shader::Constant>(cons
 	return constants;
 }
 
-Shader::Shader(const LogicalDevice &logical_device) :
-    m_logical_device(logical_device)
+Shader::Shader(const LogicalDevice &logical_device, const std::string &filename) :
+    m_logical_device(logical_device), m_filename(filename), m_stage(getShaderStage(filename)), m_shader_type(getShaderFileType(filename))
 {
 }
 
 Shader::~Shader()
 {
-	for (auto &[stage, shader_module] : m_shader_module_cache)
+	for (auto &[id, shader_module] : m_cache)
 	{
 		if (shader_module != VK_NULL_HANDLE)
 		{
@@ -558,33 +558,26 @@ Shader::~Shader()
 		}
 	}
 
-	m_shader_module_cache.clear();
+	m_cache.clear();
 }
 
-VkShaderModule Shader::createShaderModule(const std::string &filename, const std::string &preamble)
+VkShaderModule Shader::createShaderModule(const Variant &variant)
 {
-	auto stage = getShaderStage(filename);
-	auto type  = getShaderFileType(filename);
-
-	if (m_stage & stage)
+	if (m_cache.find(variant.getID()) != m_cache.end())
 	{
-		VK_INFO("Shader module already exist");
-		return m_shader_module_cache[stage];
+		return m_cache.at(variant.getID());
 	}
 
-	m_stage |= stage;
-
-	std::vector<uint8_t> raw_data;
-	FileSystem::read(filename, raw_data, type == ShaderFileType::SPIRV);
+	auto raw_data = Shader::read(m_filename);
 
 	std::vector<uint32_t> spirv;
-	switch (type)
+	switch (m_shader_type)
 	{
 		case ShaderFileType::GLSL:
-			spirv = compileGLSL(raw_data, stage);
+			spirv = compileGLSL(raw_data, m_stage, variant);
 			break;
 		case ShaderFileType::HLSL:
-			spirv = compileHLSL(raw_data, stage);
+			spirv = compileHLSL(raw_data, m_stage, variant);
 			break;
 		case ShaderFileType::SPIRV:
 			spirv.resize(raw_data.size() / 4);
@@ -594,7 +587,7 @@ VkShaderModule Shader::createShaderModule(const std::string &filename, const std
 			break;
 	}
 
-	reflectSpirv(spirv, stage);
+	reflectSpirv(spirv, m_stage);
 
 	VkShaderModuleCreateInfo shader_module_create_info = {};
 	shader_module_create_info.sType                    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -608,7 +601,7 @@ VkShaderModule Shader::createShaderModule(const std::string &filename, const std
 		return VK_NULL_HANDLE;
 	}
 
-	m_shader_module_cache.emplace(stage, shader_module);
+	m_cache.emplace(variant.getID(), shader_module);
 
 	return shader_module;
 }
@@ -697,7 +690,16 @@ Shader::ShaderFileType Shader::getShaderFileType(const std::string &filename)
 	return ShaderFileType::GLSL;
 }
 
-std::vector<uint32_t> Shader::compileGLSL(const std::vector<uint8_t> &data, VkShaderStageFlags stage)
+std::vector<uint8_t> Shader::read(const std::string &filename)
+{
+	auto                 type = getShaderFileType(filename);
+	std::vector<uint8_t> data;
+	FileSystem::read(filename, data, type == ShaderFileType::SPIRV);
+
+	return data;
+}
+
+std::vector<uint32_t> Shader::compileGLSL(const std::vector<uint8_t> &data, VkShaderStageFlags stage, const Variant &variant)
 {
 	glslang::InitializeProcess();
 
@@ -715,6 +717,8 @@ std::vector<uint32_t> Shader::compileGLSL(const std::vector<uint8_t> &data, VkSh
 	shader.setEntryPoint("main");
 	shader.setSourceEntryPoint("main");
 	shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_4);
+	shader.setPreamble(variant.getPreamble().c_str());
+	shader.addProcesses(variant.getProcesses());
 
 	if (!shader.parse(&glslang::DefaultTBuiltInResource, 100, false, msgs))
 	{
@@ -770,7 +774,7 @@ std::vector<uint32_t> Shader::compileGLSL(const std::vector<uint8_t> &data, VkSh
 	return spirv;
 }
 
-std::vector<uint32_t> Shader::compileHLSL(const std::vector<uint8_t> &data, VkShaderStageFlags stage)
+std::vector<uint32_t> Shader::compileHLSL(const std::vector<uint8_t> &data, VkShaderStageFlags stage, const Variant &variant)
 {
 	// TODO:
 	return {};
@@ -785,36 +789,70 @@ void Shader::reflectSpirv(const std::vector<uint32_t> &spirv, VkShaderStageFlags
 
 	compiler.set_common_options(opts);
 
-	auto attributes        = read_shader_resource<Shader::Attribute>(compiler, stage);
-	auto input_attachments = read_shader_resource<Shader::InputAttachment>(compiler, stage);
-	auto images            = read_shader_resource<Shader::Image>(compiler, stage);
-	auto buffers           = read_shader_resource<Shader::Buffer>(compiler, stage);
-	auto constants         = read_shader_resource<Shader::Constant>(compiler, stage);
+	m_attributes        = read_shader_resource<Shader::Attribute>(compiler, stage);
+	m_input_attachments = read_shader_resource<Shader::InputAttachment>(compiler, stage);
+	m_images            = read_shader_resource<Shader::Image>(compiler, stage);
+	m_buffers           = read_shader_resource<Shader::Buffer>(compiler, stage);
+	m_constants         = read_shader_resource<Shader::Constant>(compiler, stage);
+}
 
-	m_attributes[stage] = attributes;
+size_t Shader::Variant::getID() const
+{
+	return m_id;
+}
 
-#define ADD_RESOURCE(resources, m_resources)  \
-	for (auto &resource : resources)          \
-	{                                         \
-		bool exist = false;                   \
-		for (auto &item : m_resources)        \
-		{                                     \
-			if (resource == item)             \
-			{                                 \
-				item.stage |= resource.stage; \
-				exist = true;                 \
-				break;                        \
-			}                                 \
-		}                                     \
-		if (!exist)                            \
-		{                                     \
-			m_resources.push_back(resource);  \
-		}                                     \
+void Shader::Variant::addDefinitions(const std::vector<std::string> &definitions)
+{
+	for (auto &definition : definitions)
+	{
+		addDefine(definition);
+	}
+}
+
+void Shader::Variant::addDefine(const std::string &def)
+{
+	m_processes.push_back("D" + def);
+
+	std::string tmp_def = def;
+
+	size_t pos_equal = tmp_def.find_first_of("=");
+	if (pos_equal != std::string::npos)
+	{
+		tmp_def[pos_equal] = ' ';
 	}
 
-	ADD_RESOURCE(input_attachments, m_input_attachments);
-	ADD_RESOURCE(images, m_images);
-	ADD_RESOURCE(buffers, m_buffers);
-	ADD_RESOURCE(constants, m_constants);
+	m_preamble.append("#define " + tmp_def + "\n");
+
+	updateID();
+}
+
+void Shader::Variant::addUndefine(const std::string &undef)
+{
+	m_processes.push_back("U" + undef);
+	m_preamble.append("#undef " + undef + "\n");
+	updateID();
+}
+
+const std::string &Shader::Variant::getPreamble() const
+{
+	return m_preamble;
+}
+
+const std::vector<std::string> &Shader::Variant::getProcesses() const
+{
+	return m_processes;
+}
+
+void Shader::Variant::clear()
+{
+	m_preamble.clear();
+	m_processes.clear();
+	updateID();
+}
+
+void Shader::Variant::updateID()
+{
+	std::hash<std::string> hasher{};
+	m_id = hasher(m_preamble);
 }
 }        // namespace Ilum

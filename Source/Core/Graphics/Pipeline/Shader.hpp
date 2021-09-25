@@ -34,6 +34,36 @@ class Shader
 		};
 	};
 
+	class Variant
+	{
+	  public:
+		Variant() = default;
+
+		~Variant() = default;
+
+		size_t getID() const;
+
+		void addDefinitions(const std::vector<std::string> &definitions);
+
+		void addDefine(const std::string &def);
+
+		void addUndefine(const std::string &undef);
+
+		const std::string &getPreamble() const;
+
+		const std::vector<std::string> &getProcesses() const;
+
+		void clear();
+
+	  private:
+		void updateID();
+
+	  private:
+		size_t                   m_id = 0;
+		std::string              m_preamble;
+		std::vector<std::string> m_processes;
+	};
+
 	struct Attribute
 	{
 		enum class Type
@@ -167,11 +197,11 @@ class Shader
 	};
 
   public:
-	Shader(const LogicalDevice &logical_device);
+	Shader(const LogicalDevice &logical_device, const std::string &filename);
 
 	~Shader();
 
-	VkShaderModule createShaderModule(const std::string &filename, const std::string &preamble = "");
+	VkShaderModule createShaderModule(const Variant &variant = {});
 
   public:
 	// Shader file naming: shader_name.shader_file_type.shader_stage
@@ -179,9 +209,11 @@ class Shader
 
 	static ShaderFileType getShaderFileType(const std::string &filename);
 
-	static std::vector<uint32_t> compileGLSL(const std::vector<uint8_t> &data, VkShaderStageFlags stage);
+	static std::vector<uint8_t> read(const std::string &filename);
 
-	static std::vector<uint32_t> compileHLSL(const std::vector<uint8_t> &data, VkShaderStageFlags stage);
+	static std::vector<uint32_t> compileGLSL(const std::vector<uint8_t> &data, VkShaderStageFlags stage, const Variant &variant = {});
+
+	static std::vector<uint32_t> compileHLSL(const std::vector<uint8_t> &data, VkShaderStageFlags stage, const Variant &variant = {});
 
   private:
 	void reflectSpirv(const std::vector<uint32_t> &spirv, VkShaderStageFlags stage);
@@ -193,16 +225,16 @@ class Shader
 
 	VkShaderStageFlags m_stage = 0;
 
-	std::vector<std::string> m_filenames;
+	const std::string m_filename;
 
 	// Shader Resources
-	std::unordered_map<VkShaderStageFlags, std::vector<Attribute>> m_attributes;
+	std::vector<Attribute>       m_attributes;
 	std::vector<InputAttachment> m_input_attachments;
 	std::vector<Image>           m_images;
 	std::vector<Buffer>          m_buffers;
 	std::vector<Constant>        m_constants;
 
-	ShaderCompileState                                     m_compile_state = ShaderCompileState::Idle;
-	std::unordered_map<VkShaderStageFlags, VkShaderModule> m_shader_module_cache;
+	ShaderCompileState          m_compile_state = ShaderCompileState::Idle;
+	std::unordered_map<size_t, VkShaderModule> m_cache;
 };
 }        // namespace Ilum
