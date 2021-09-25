@@ -54,7 +54,6 @@ ThreadPool::ThreadPool(Context *context) :
 
 		LOG_INFO("Create thread [{}]: {}", i, m_thread_names[m_threads[i].get_id()]);
 	}
-	int a = 0;
 	LOG_INFO("{} threads have been created", m_thread_count);
 }
 
