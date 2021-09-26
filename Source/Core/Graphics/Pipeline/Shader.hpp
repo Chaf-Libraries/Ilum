@@ -24,6 +24,13 @@ class Shader
 		Failed
 	};
 
+	enum class ShaderResourceMode
+	{
+		Static,
+		Dynamic,
+		UpdateAfterBind
+	};
+
 	struct ShaderResourceQualifiers
 	{
 		enum : uint32_t
@@ -62,6 +69,13 @@ class Shader
 		size_t                   m_id = 0;
 		std::string              m_preamble;
 		std::vector<std::string> m_processes;
+	};
+
+	struct ShaderDescription
+	{
+		std::unordered_map<uint32_t, std::vector<VkDescriptorSetLayoutBinding>>      m_descriptor_set_layout_bindings;
+		std::vector<VkDescriptorPoolSize>                                            m_descriptor_pool_sizes;
+		std::vector<VkVertexInputAttributeDescription>                               m_attribute_descriptions;
 	};
 
 	struct Attribute
@@ -119,7 +133,7 @@ class Shader
 		};
 
 		std::string        name       = "";
-		uint32_t           array_size = 0;
+		uint32_t           array_size = 0;        // When array_size = 0, enable descriptor indexing
 		uint32_t           set        = 0;
 		uint32_t           binding    = 0;
 		VkShaderStageFlags stage      = VK_SHADER_STAGE_ALL;
@@ -149,11 +163,12 @@ class Shader
 
 		std::string        name       = "";
 		uint32_t           size       = 0;
-		uint32_t           array_size = 0;
+		uint32_t           array_size = 0;        // When array_size = 0, enable descriptor indexing
 		uint32_t           set        = 0;
 		uint32_t           binding    = 0;
 		VkShaderStageFlags stage      = VK_SHADER_STAGE_ALL;
 		Type               type       = Type::None;
+		ShaderResourceMode mode       = ShaderResourceMode::Static;
 
 		// Qualifier only avaliable for storage image
 		uint32_t qualifiers = 0;
@@ -197,19 +212,30 @@ class Shader
 	};
 
   public:
-	Shader(const LogicalDevice &logical_device, const std::string &filename);
+	Shader(const LogicalDevice &logical_device);
 
 	~Shader();
 
-	VkShaderModule createShaderModule(const Variant &variant = {});
+	VkShaderModule createShaderModule(const std::string &filename, const Variant &variant = {});
+
+	ShaderDescription createShaderDescription();
+
+  public:
+	const std::unordered_map<VkShaderStageFlags, std::vector<Attribute>> &getAttributeReflection() const;
+
+	const std::vector<Image> &getImageReflection() const;
+
+	const std::vector<Buffer> &getBufferReflection() const;
+
+	const std::vector<Constant> &getConstantReflection() const;
+
+	void setBufferMode(uint32_t set, uint32_t binding, ShaderResourceMode mode);
 
   public:
 	// Shader file naming: shader_name.shader_file_type.shader_stage
 	static VkShaderStageFlags getShaderStage(const std::string &filename);
 
 	static ShaderFileType getShaderFileType(const std::string &filename);
-
-	static std::vector<uint8_t> read(const std::string &filename);
 
 	static std::vector<uint32_t> compileGLSL(const std::vector<uint8_t> &data, VkShaderStageFlags stage, const Variant &variant = {});
 
@@ -225,16 +251,14 @@ class Shader
 
 	VkShaderStageFlags m_stage = 0;
 
-	const std::string m_filename;
-
-	// Shader Resources
-	std::vector<Attribute>       m_attributes;
-	std::vector<InputAttachment> m_input_attachments;
-	std::vector<Image>           m_images;
-	std::vector<Buffer>          m_buffers;
-	std::vector<Constant>        m_constants;
+	// Shader resources descriptions
+	std::unordered_map<VkShaderStageFlags, std::vector<Attribute>> m_attributes;
+	std::vector<InputAttachment>                                   m_input_attachments;
+	std::vector<Image>                                             m_images;
+	std::vector<Buffer>                                            m_buffers;
+	std::vector<Constant>                                          m_constants;
 
 	ShaderCompileState          m_compile_state = ShaderCompileState::Idle;
-	std::unordered_map<size_t, VkShaderModule> m_cache;
+	std::vector<VkShaderModule> m_shader_module_cache;
 };
 }        // namespace Ilum

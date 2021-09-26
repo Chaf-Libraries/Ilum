@@ -1,6 +1,7 @@
 #include "Shader.hpp"
 
 #include "Core/Device/LogicalDevice.hpp"
+#include "Core/Device/PhysicalDevice.hpp"
 #include "Core/Engine/File/FileSystem.hpp"
 
 #include <glslang/Include/ResourceLimits.h>
@@ -121,6 +122,20 @@ const TBuiltInResource DefaultTBuiltInResource = {
 
 namespace Ilum
 {
+static const std::unordered_map<Shader::Image::Type, VkDescriptorType> image_to_descriptor = {
+    {Shader::Image::Type::Image, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE},
+    {Shader::Image::Type::ImageSampler, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER},
+    {Shader::Image::Type::ImageStorage, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE},
+    {Shader::Image::Type::Sampler, VK_DESCRIPTOR_TYPE_SAMPLER}};
+
+static const std::unordered_map<Shader::Buffer::Type, VkDescriptorType> buffer_to_descriptor = {
+    {Shader::Buffer::Type::Storage, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER},
+    {Shader::Buffer::Type::Uniform, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}};
+
+static const std::unordered_map<Shader::Buffer::Type, VkDescriptorType> buffer_to_descriptor_dynamic = {
+    {Shader::Buffer::Type::Storage, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC},
+    {Shader::Buffer::Type::Uniform, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC}};
+
 inline EShLanguage get_shader_language(VkShaderStageFlags stage)
 {
 	switch (stage)
@@ -473,7 +488,7 @@ inline std::vector<Shader::Buffer> read_shader_resource<Shader::Buffer>(const sp
 	for (auto &resource : storage_buffer)
 	{
 		Shader::Buffer buffer{};
-		buffer.type  = Shader::Buffer::Type::Uniform;
+		buffer.type  = Shader::Buffer::Type::Storage;
 		buffer.stage = stage;
 		buffer.name  = resource.name;
 
@@ -543,14 +558,14 @@ inline std::vector<Shader::Constant> read_shader_resource<Shader::Constant>(cons
 	return constants;
 }
 
-Shader::Shader(const LogicalDevice &logical_device, const std::string &filename) :
-    m_logical_device(logical_device), m_filename(filename), m_stage(getShaderStage(filename)), m_shader_type(getShaderFileType(filename))
+Shader::Shader(const LogicalDevice &logical_device) :
+    m_logical_device(logical_device)
 {
 }
 
 Shader::~Shader()
 {
-	for (auto &[id, shader_module] : m_cache)
+	for (auto &shader_module : m_shader_module_cache)
 	{
 		if (shader_module != VK_NULL_HANDLE)
 		{
@@ -558,26 +573,33 @@ Shader::~Shader()
 		}
 	}
 
-	m_cache.clear();
+	m_shader_module_cache.clear();
 }
 
-VkShaderModule Shader::createShaderModule(const Variant &variant)
+VkShaderModule Shader::createShaderModule(const std::string &filename, const Variant &variant)
 {
-	if (m_cache.find(variant.getID()) != m_cache.end())
+	auto stage = getShaderStage(filename);
+	auto type  = getShaderFileType(filename);
+
+	if (m_stage & stage)
 	{
-		return m_cache.at(variant.getID());
+		VK_INFO("Shader module already exist");
+		return m_shader_module_cache[stage];
 	}
 
-	auto raw_data = Shader::read(m_filename);
+	m_stage |= stage;
+
+	std::vector<uint8_t> raw_data;
+	FileSystem::read(filename, raw_data, type == ShaderFileType::SPIRV);
 
 	std::vector<uint32_t> spirv;
-	switch (m_shader_type)
+	switch (type)
 	{
 		case ShaderFileType::GLSL:
-			spirv = compileGLSL(raw_data, m_stage, variant);
+			spirv = compileGLSL(raw_data, stage, variant);
 			break;
 		case ShaderFileType::HLSL:
-			spirv = compileHLSL(raw_data, m_stage, variant);
+			spirv = compileHLSL(raw_data, stage, variant);
 			break;
 		case ShaderFileType::SPIRV:
 			spirv.resize(raw_data.size() / 4);
@@ -587,7 +609,7 @@ VkShaderModule Shader::createShaderModule(const Variant &variant)
 			break;
 	}
 
-	reflectSpirv(spirv, m_stage);
+	reflectSpirv(spirv, stage);
 
 	VkShaderModuleCreateInfo shader_module_create_info = {};
 	shader_module_create_info.sType                    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -601,9 +623,120 @@ VkShaderModule Shader::createShaderModule(const Variant &variant)
 		return VK_NULL_HANDLE;
 	}
 
-	m_cache.emplace(variant.getID(), shader_module);
+	m_shader_module_cache.push_back(shader_module);
 
 	return shader_module;
+}
+
+Shader::ShaderDescription Shader::createShaderDescription()
+{
+	ShaderDescription shader_desc;
+
+	// Descriptor pool sizes
+	std::unordered_map<VkDescriptorType, uint32_t> descriptor_types = {
+	    {VK_DESCRIPTOR_TYPE_SAMPLER, 0},
+	    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0},
+	    {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 0},
+	    {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 0},
+	    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0},
+	    {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0},
+	    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0},
+	    {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 0},
+	    {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0},
+	    // TODO:
+	    //{VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR , 0},
+	};
+
+	for (auto &image : m_images)
+	{
+		descriptor_types[image_to_descriptor.at(image.type)]++;
+	}
+
+	const std::unordered_map<Buffer::Type, VkDescriptorType> buffer_to_descriptor = {
+	    {Buffer::Type::Storage, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER},
+	    {Buffer::Type::Uniform, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}};
+
+	const std::unordered_map<Buffer::Type, VkDescriptorType> buffer_to_descriptor_dynamic = {
+	    {Buffer::Type::Storage, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC},
+	    {Buffer::Type::Uniform, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC}};
+
+	for (auto &buffer : m_buffers)
+	{
+		descriptor_types[buffer.mode == ShaderResourceMode::Dynamic ? buffer_to_descriptor_dynamic.at(buffer.type) : buffer_to_descriptor.at(buffer.type)]++;
+	}
+
+	for (auto &[descriptor_type, count] : descriptor_types)
+	{
+		if (count > 0)
+		{
+			shader_desc.m_descriptor_pool_sizes.push_back(VkDescriptorPoolSize{descriptor_type, count});
+		}
+	}
+
+	// Descriptor set layout binding
+	
+	for (auto& image : m_images)
+	{
+		if (shader_desc.m_descriptor_set_layout_bindings.find(image.set) == shader_desc.m_descriptor_set_layout_bindings.end())
+		{
+			shader_desc.m_descriptor_set_layout_bindings[image.set] = {};
+		}
+
+		shader_desc.m_descriptor_set_layout_bindings[image.set].push_back(VkDescriptorSetLayoutBinding{
+		    image.binding,
+		    image_to_descriptor.at(image.type),
+		    image.array_size == 0 ? 1024 : image.array_size,
+		    image.stage});
+	}
+
+	for (auto& buffer : m_buffers)
+	{
+		if (shader_desc.m_descriptor_set_layout_bindings.find(buffer.set) == shader_desc.m_descriptor_set_layout_bindings.end())
+		{
+			shader_desc.m_descriptor_set_layout_bindings[buffer.set] = {};
+		}
+
+		shader_desc.m_descriptor_set_layout_bindings[buffer.set].push_back(VkDescriptorSetLayoutBinding{
+		    buffer.binding,
+		    buffer.mode == ShaderResourceMode::Dynamic ? buffer_to_descriptor_dynamic.at(buffer.type) : buffer_to_descriptor.at(buffer.type),
+		    buffer.array_size == 0 ? 1024 : buffer.array_size,
+		    buffer.stage});
+	}
+
+	// TODO
+	return shader_desc;
+}
+
+const std::unordered_map<VkShaderStageFlags, std::vector<Shader::Attribute>> &Shader::getAttributeReflection() const
+{
+	return m_attributes;
+}
+
+const std::vector<Shader::Image> &Shader::getImageReflection() const
+{
+	return m_images;
+}
+
+const std::vector<Shader::Buffer> &Shader::getBufferReflection() const
+{
+	return m_buffers;
+}
+
+const std::vector<Shader::Constant> &Shader::getConstantReflection() const
+{
+	return m_constants;
+}
+
+void Shader::setBufferMode(uint32_t set, uint32_t binding, ShaderResourceMode mode)
+{
+	for (auto &buffer : m_buffers)
+	{
+		if (buffer.binding == binding && buffer.set == set)
+		{
+			buffer.mode = mode;
+			return;
+		}
+	}
 }
 
 VkShaderStageFlags Shader::getShaderStage(const std::string &filename)
@@ -688,15 +821,6 @@ Shader::ShaderFileType Shader::getShaderFileType(const std::string &filename)
 	}
 
 	return ShaderFileType::GLSL;
-}
-
-std::vector<uint8_t> Shader::read(const std::string &filename)
-{
-	auto                 type = getShaderFileType(filename);
-	std::vector<uint8_t> data;
-	FileSystem::read(filename, data, type == ShaderFileType::SPIRV);
-
-	return data;
 }
 
 std::vector<uint32_t> Shader::compileGLSL(const std::vector<uint8_t> &data, VkShaderStageFlags stage, const Variant &variant)
@@ -789,11 +913,50 @@ void Shader::reflectSpirv(const std::vector<uint32_t> &spirv, VkShaderStageFlags
 
 	compiler.set_common_options(opts);
 
-	m_attributes        = read_shader_resource<Shader::Attribute>(compiler, stage);
-	m_input_attachments = read_shader_resource<Shader::InputAttachment>(compiler, stage);
-	m_images            = read_shader_resource<Shader::Image>(compiler, stage);
-	m_buffers           = read_shader_resource<Shader::Buffer>(compiler, stage);
-	m_constants         = read_shader_resource<Shader::Constant>(compiler, stage);
+	auto attributes        = read_shader_resource<Shader::Attribute>(compiler, stage);
+	auto input_attachments = read_shader_resource<Shader::InputAttachment>(compiler, stage);
+	auto images            = read_shader_resource<Shader::Image>(compiler, stage);
+	auto buffers           = read_shader_resource<Shader::Buffer>(compiler, stage);
+	auto constants         = read_shader_resource<Shader::Constant>(compiler, stage);
+
+	m_attributes[stage] = attributes;
+
+#define ADD_RESOURCE(resources, m_resources)  \
+	for (auto &resource : resources)          \
+	{                                         \
+		bool exist = false;                   \
+		for (auto &item : m_resources)        \
+		{                                     \
+			if (resource == item)             \
+			{                                 \
+				item.stage |= resource.stage; \
+				exist = true;                 \
+				break;                        \
+			}                                 \
+		}                                     \
+		if (!exist)                           \
+		{                                     \
+			m_resources.push_back(resource);  \
+		}                                     \
+	}
+
+	ADD_RESOURCE(input_attachments, m_input_attachments);
+	ADD_RESOURCE(images, m_images);
+	ADD_RESOURCE(buffers, m_buffers);
+	ADD_RESOURCE(constants, m_constants);
+
+	// Check binding and set conflict
+	for (auto &image : m_images)
+	{
+		for (auto &buffer : m_buffers)
+		{
+			if (image.set == buffer.set && image.binding == buffer.binding)
+			{
+				VK_WARN("Set {}, Bind {} has image and buffer in the same time!");
+				return;
+			}
+		}
+	}
 }
 
 size_t Shader::Variant::getID() const
