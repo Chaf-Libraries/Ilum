@@ -8,6 +8,7 @@ class Instance;
 class PhysicalDevice;
 class Surface;
 
+// TODO: More extension or feature options
 class LogicalDevice
 {
   public:
