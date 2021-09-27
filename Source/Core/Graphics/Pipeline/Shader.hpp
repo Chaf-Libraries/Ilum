@@ -73,9 +73,10 @@ class Shader
 
 	struct ShaderDescription
 	{
-		std::unordered_map<uint32_t, std::vector<VkDescriptorSetLayoutBinding>>      m_descriptor_set_layout_bindings;
-		std::vector<VkDescriptorPoolSize>                                            m_descriptor_pool_sizes;
-		std::vector<VkVertexInputAttributeDescription>                               m_attribute_descriptions;
+		std::unordered_map<uint32_t, std::vector<VkDescriptorSetLayoutBinding>> m_descriptor_set_layout_bindings;
+		std::vector<VkDescriptorPoolSize>                                       m_descriptor_pool_sizes;
+		std::vector<VkVertexInputBindingDescription>                            m_vertex_input_binding_descriptions;
+		std::vector<VkVertexInputAttributeDescription>                          m_vertex_input_attribute_descriptions;
 	};
 
 	struct Attribute
@@ -94,6 +95,8 @@ class Shader
 		uint32_t           columns    = 0;
 		Type               type       = Type::None;
 		VkShaderStageFlags stage      = VK_SHADER_STAGE_ALL;
+		VkVertexInputRate  rate       = VK_VERTEX_INPUT_RATE_VERTEX;
+		uint32_t           base_type  = 0;
 
 		inline bool operator==(const Attribute &rhs)
 		{
@@ -231,6 +234,16 @@ class Shader
 
 	void setBufferMode(uint32_t set, uint32_t binding, ShaderResourceMode mode);
 
+	// Vertex input state:
+	// binding#0 - VK_VERTEX_INPUT_RATE_VERTEX
+	// binding#1 - VK_VERTEX_INPUT_RATE_INSTANCE
+	template <typename Vertex, typename Instance = void>
+	void setVertexInput()
+	{
+		m_vertex_stride   = (typeid(Vertex) == typeid(void) ? 0 : sizeof(Vertex));
+		m_instance_stride = (typeid(Instance) == typeid(void) ? 0 : sizeof(Instance));
+	}
+
   public:
 	// Shader file naming: shader_name.shader_file_type.shader_stage
 	static VkShaderStageFlags getShaderStage(const std::string &filename);
@@ -250,6 +263,10 @@ class Shader
 	ShaderFileType m_shader_type = ShaderFileType::GLSL;
 
 	VkShaderStageFlags m_stage = 0;
+
+	uint32_t m_vertex_stride = 0;
+
+	uint32_t m_instance_stride = 0;
 
 	// Shader resources descriptions
 	std::unordered_map<VkShaderStageFlags, std::vector<Attribute>> m_attributes;
