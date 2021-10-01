@@ -43,7 +43,7 @@ bool CommandBuffer::begin(VkCommandBufferUsageFlagBits usage)
 {
 	if (m_state == State::Recording)
 	{
-		VK_ERROR("Command buffer is already recording");
+		VK_WARN("Command buffer is already recording");
 		return false;
 	}
 
@@ -65,7 +65,7 @@ void CommandBuffer::end()
 {
 	if (m_state != State::Recording)
 	{
-		VK_ERROR("Command buffer is not recording!");
+		VK_WARN("Command buffer is not recording!");
 		return;
 	}
 
@@ -83,8 +83,7 @@ void CommandBuffer::submitIdle(uint32_t queue_index)
 {
 	if (m_state != State::Executable)
 	{
-		VK_ERROR("Command buffer is not executable!");
-		return;
+		end();
 	}
 
 	VkSubmitInfo submit_info       = {};
@@ -160,6 +159,49 @@ void CommandBuffer::submit(const VkSemaphore &wait_semaphore, const VkSemaphore 
 		VK_ERROR("Failed to submit queue!");
 		return;
 	}
+}
+
+void CommandBuffer::submit(const std::vector<VkSemaphore> &wait_semaphores, const std::vector<VkSemaphore> &signal_semaphores, VkFence fence, const std::vector<VkShaderStageFlags> &wait_stages, uint32_t queue_index)
+{
+	if (m_state != State::Executable)
+	{
+		VK_ERROR("Command buffer is not executable!");
+		return;
+	}
+
+	VkSubmitInfo submit_info       = {};
+	submit_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submit_info.commandBufferCount = 1;
+	submit_info.pCommandBuffers    = &m_handle;
+
+	if (!wait_semaphores.empty())
+	{
+		submit_info.pWaitDstStageMask  = wait_stages.data();
+		submit_info.waitSemaphoreCount = static_cast<uint32_t>(wait_semaphores.size());
+		submit_info.pWaitSemaphores    = wait_semaphores.data();
+	}
+
+	if (!signal_semaphores.empty())
+	{
+		submit_info.signalSemaphoreCount = static_cast<uint32_t>(signal_semaphores.size());
+		submit_info.pSignalSemaphores    = signal_semaphores.data();
+	}
+
+	if (fence != VK_NULL_HANDLE)
+	{
+		vkResetFences(m_logical_device, 1, &fence);
+	}
+
+	if (!VK_CHECK(vkQueueSubmit(m_command_pool.getQueue(queue_index), 1, &submit_info, fence)))
+	{
+		VK_ERROR("Failed to submit queue!");
+		return;
+	}
+}
+
+const CommandPool &CommandBuffer::getCommandPool() const
+{
+	return m_command_pool;
 }
 
 CommandBuffer::operator const VkCommandBuffer &() const

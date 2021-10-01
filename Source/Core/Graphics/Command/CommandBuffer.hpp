@@ -35,6 +35,8 @@ class CommandBuffer
 
 	void submit(const std::vector<VkSemaphore> &wait_semaphores = {}, const std::vector<VkSemaphore> &signal_semaphores = {}, VkFence fence = VK_NULL_HANDLE, const std::vector<VkShaderStageFlags> &wait_stages = {}, uint32_t queue_index = 0);
 
+	const CommandPool &getCommandPool() const;
+
 	operator const VkCommandBuffer &() const;
 
 	const VkCommandBuffer &getCommandBuffer() const;
