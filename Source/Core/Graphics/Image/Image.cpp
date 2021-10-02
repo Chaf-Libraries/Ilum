@@ -2,6 +2,7 @@
 
 #include "Core/Device/LogicalDevice.hpp"
 #include "Core/Device/PhysicalDevice.hpp"
+#include "Core/Device/Surface.hpp"
 #include "Core/Graphics/Command/CommandBuffer.hpp"
 #include "Core/Graphics/Command/CommandPool.hpp"
 
@@ -128,7 +129,7 @@ const VkSampler &Image::getSampler() const
 
 uint32_t Image::getMipLevels(const VkExtent3D &extent)
 {
-	return static_cast<uint32_t>(std::floorf(std::log2f(std::fmaxf(extent.width, std::fmaxf(extent.height, extent.depth)))) + 1);
+	return static_cast<uint32_t>(std::floorf(std::log2f(std::fmaxf(static_cast<float>(extent.width), std::fmaxf(static_cast<float>(extent.height), static_cast<float>(extent.depth))))) + 1);
 }
 
 bool Image::hasDepth(VkFormat format)
@@ -385,41 +386,31 @@ void Image::transitionImageLayout(
 	CommandBuffer command_buffer(command_pool);
 	command_buffer.begin();
 
-	VkImageMemoryBarrier barrier            = {};
-	barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	barrier.oldLayout                       = src_image_layout;
-	barrier.newLayout                       = dst_image_layout;
-	barrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-	barrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-	barrier.image                           = image;
-	barrier.subresourceRange.aspectMask     = image_aspect;
-	barrier.subresourceRange.baseMipLevel   = base_mip_level;
-	barrier.subresourceRange.levelCount     = mip_levels;
-	barrier.subresourceRange.baseArrayLayer = base_array_layer;
-	barrier.subresourceRange.layerCount     = layer_count;
+	VkAccessFlags src_access_mask = 0;
+	VkAccessFlags dst_access_mask = 0;
 
 	switch (src_image_layout)
 	{
 		case VK_IMAGE_LAYOUT_UNDEFINED:
-			barrier.srcAccessMask = 0;
+			src_access_mask = 0;
 			break;
 		case VK_IMAGE_LAYOUT_PREINITIALIZED:
-			barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+			src_access_mask = VK_ACCESS_HOST_WRITE_BIT;
 			break;
 		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-			barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			src_access_mask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 			break;
 		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-			barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			src_access_mask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 			break;
 		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-			barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+			src_access_mask = VK_ACCESS_TRANSFER_READ_BIT;
 			break;
 		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			src_access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
 			break;
 		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-			barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			src_access_mask = VK_ACCESS_SHADER_READ_BIT;
 			break;
 		default:
 			break;
@@ -428,29 +419,42 @@ void Image::transitionImageLayout(
 	switch (dst_image_layout)
 	{
 		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			dst_access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
 			break;
 		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-			barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+			dst_access_mask = VK_ACCESS_TRANSFER_READ_BIT;
 			break;
 		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-			barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			dst_access_mask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 			break;
 		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-			barrier.dstAccessMask = barrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			dst_access_mask = dst_access_mask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 			break;
 		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-			if (barrier.srcAccessMask == 0)
+			if (src_access_mask == 0)
 			{
-				barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+				src_access_mask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
 			}
-			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			dst_access_mask = VK_ACCESS_SHADER_READ_BIT;
 			break;
 		default:
 			break;
 	}
 
-	vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+	insertImageMemoryBarrier(
+	    command_buffer,
+	    image,
+	    src_access_mask,
+	    dst_access_mask,
+	    src_image_layout,
+	    dst_image_layout,
+	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+	    VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+	    image_aspect,
+	    mip_levels,
+	    base_mip_level,
+	    layer_count,
+	    base_array_layer);
 
 	command_buffer.end();
 	command_buffer.submitIdle();
@@ -473,7 +477,7 @@ void Image::insertImageMemoryBarrier(
 {
 	VkImageMemoryBarrier barrier            = {};
 	barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	barrier.srcAccessMask                   = src_access_mask;
+	src_access_mask                         = src_access_mask;
 	barrier.dstAccessMask                   = dst_access_mask;
 	barrier.oldLayout                       = old_image_layout;
 	barrier.newLayout                       = new_image_layout;
@@ -486,5 +490,113 @@ void Image::insertImageMemoryBarrier(
 	barrier.subresourceRange.baseArrayLayer = base_array_layer;
 	barrier.subresourceRange.layerCount     = layer_count;
 	vkCmdPipelineBarrier(command_buffer, src_stage_mask, dst_stage_mask, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+}
+
+void Image::copyBufferToImage(
+    const CommandPool &command_pool,
+    const VkBuffer &   buffer,
+    const VkImage &    image,
+    const VkExtent3D & extent,
+    uint32_t           layer_count,
+    uint32_t           base_array_layer)
+{
+	CommandBuffer command_buffer(command_pool);
+	command_buffer.begin();
+
+	VkBufferImageCopy region               = {};
+	region.bufferOffset                    = 0;
+	region.bufferRowLength                 = 0;
+	region.bufferImageHeight               = 0;
+	region.imageSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+	region.imageSubresource.mipLevel       = 0;
+	region.imageSubresource.baseArrayLayer = base_array_layer;
+	region.imageSubresource.layerCount     = layer_count;
+	region.imageOffset                     = {0, 0, 0};
+	region.imageExtent                     = extent;
+	vkCmdCopyBufferToImage(command_buffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+	command_buffer.end();
+	command_buffer.submitIdle();
+}
+
+void Image::copyImage(
+    const CommandPool &command_pool,
+    const VkImage &    src_image,
+    VkImage &          dst_image,
+    VmaAllocation &    dst_image_allocation,
+    VkFormat           src_format,
+    const VkExtent3D & extent,
+    VkImageLayout      src_image_layout,
+    uint32_t           mip_level,
+    uint32_t           array_layer)
+{
+	auto &physical_device = command_pool.getLogicalDevice().getPhysicalDevice();
+	auto &surface         = command_pool.getLogicalDevice().getSurface();
+
+	CommandBuffer command_buffer(command_pool);
+	command_buffer.begin();
+
+	auto               support_blit = true;
+	VkFormatProperties format_properties;
+
+	vkGetPhysicalDeviceFormatProperties(physical_device, surface.getFormat().format, &format_properties);
+
+	if (!(format_properties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT))
+	{
+		VK_WARN("Device doesn't support blitting from optimal tiled images, using copy instead of blit!");
+		support_blit = false;
+	}
+
+	vkGetPhysicalDeviceFormatProperties(physical_device, src_format, &format_properties);
+
+	if (!(format_properties.linearTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT))
+	{
+		VK_WARN("Device doesn't support blitting to linear tiled images, using copy instead of blit!");
+		support_blit = false;
+	}
+
+	createImage(command_pool.getLogicalDevice(), dst_image, dst_image_allocation, extent, VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 1, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_LINEAR,
+	            VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
+
+	if (support_blit)
+	{
+		VkOffset3D blit_size = {static_cast<int32_t>(extent.width), static_cast<int32_t>(extent.height), static_cast<int32_t>(extent.depth)};
+
+		VkImageBlit blit_region                   = {};
+		blit_region.srcSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+		blit_region.srcSubresource.mipLevel       = mip_level;
+		blit_region.srcSubresource.baseArrayLayer = array_layer;
+		blit_region.srcSubresource.layerCount     = 1;
+		blit_region.srcOffsets[1]                 = blit_size;
+		blit_region.dstSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+		blit_region.dstSubresource.mipLevel       = 0;
+		blit_region.dstSubresource.baseArrayLayer = 0;
+		blit_region.dstSubresource.layerCount     = 1;
+		blit_region.dstOffsets[1]                 = blit_size;
+		vkCmdBlitImage(command_buffer, src_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit_region, VK_FILTER_NEAREST);
+	}
+	else
+	{
+		VkImageCopy copy_region                   = {};
+		copy_region.srcSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+		copy_region.srcSubresource.mipLevel       = mip_level;
+		copy_region.srcSubresource.baseArrayLayer = array_layer;
+		copy_region.srcSubresource.layerCount     = 1;
+		copy_region.dstSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+		copy_region.dstSubresource.mipLevel       = 0;
+		copy_region.dstSubresource.baseArrayLayer = 0;
+		copy_region.dstSubresource.layerCount     = 1;
+		copy_region.extent                        = extent;
+		vkCmdCopyImage(command_buffer, src_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_region);
+	}
+
+	insertImageMemoryBarrier(command_buffer, dst_image, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_MEMORY_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL,
+	                         VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_IMAGE_ASPECT_COLOR_BIT, 1, 0, 1, 0);
+
+	insertImageMemoryBarrier(command_buffer, src_image, VK_ACCESS_TRANSFER_READ_BIT, VK_ACCESS_MEMORY_READ_BIT, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, src_image_layout,
+	                         VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_IMAGE_ASPECT_COLOR_BIT, 1, mip_level, 1, array_layer);
+
+	command_buffer.end();
+	command_buffer.submitIdle();
 }
 }        // namespace Ilum
