@@ -7,11 +7,19 @@ namespace Ilum
 class Bitmap
 {
   public:
+	struct Mipmap
+	{
+		uint32_t   level  = 0;
+		uint32_t   offset = 0;
+		VkExtent3D extent = {0, 0, 0};
+	};
+
+  public:
 	Bitmap() = default;
 
 	Bitmap(const std::string &path);
 
-	Bitmap(const uint32_t width, const uint32_t height, const uint32_t bytes_per_pixel = 4, std::unique_ptr<uint8_t[]> &&data = nullptr);
+	//Bitmap(std::vector<uint8_t> &&data = {}, std::vector<Mipmap> &&mipmaps = {{}});
 
 	~Bitmap() = default;
 
@@ -25,9 +33,11 @@ class Bitmap
 
 	const std::vector<uint8_t> &getData() const;
 
-	std::vector<uint8_t> &getData();
+	const std::vector<Mipmap> &getMipmaps() const;
 
-	void setData(std::vector<uint8_t> &&data);
+	const std::vector<std::vector<VkDeviceSize>> &getOffsets() const;
+
+	void setData(std::vector<uint8_t> &&data, std::vector<Mipmap> &&mipmaps);
 
 	const uint32_t getWidth() const;
 
@@ -38,11 +48,11 @@ class Bitmap
 	const uint32_t getBytesPerPixel() const;
 
   private:
-	const std::string    m_path = "";
-	std::vector<uint8_t> m_data;
-	uint32_t             m_width           = 0;
-	uint32_t             m_height          = 0;
-	uint32_t             m_channel         = 0;
-	uint32_t             m_bytes_per_pixel = 0;
+	const std::string                      m_path = "";
+	std::vector<uint8_t>                   m_data;
+	std::vector<Mipmap>                    m_mipmaps = {{}};
+	std::vector<std::vector<VkDeviceSize>> m_offsets = {};
+
+	uint32_t m_bytes_per_pixel = 1;
 };
 }        // namespace Ilum
