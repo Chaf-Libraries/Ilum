@@ -19,4 +19,5 @@ SetTarget(
         SPIRV
         spirv-cross-glsl
         Vulkan::Vulkan
+        stb
 )
