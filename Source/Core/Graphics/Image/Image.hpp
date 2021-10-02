@@ -97,7 +97,6 @@ class Image
 	    bool                 anisotropic,
 	    uint32_t             mip_levels);
 
-	// TODO:
 	static void createMipmaps(
 	    const CommandPool &command_pool,
 	    const VkImage &    image,
@@ -135,9 +134,24 @@ class Image
 	    uint32_t             layer_count,
 	    uint32_t             base_array_layer);
 
-	static bool copyBufferToImage();
+	static void copyBufferToImage(
+	    const CommandPool &command_pool,
+	    const VkBuffer &   buffer,
+	    const VkImage &    image,
+	    const VkExtent3D & extent,
+	    uint32_t           layer_count,
+	    uint32_t           base_array_layer);
 
-	static bool copyImage();
+	static void copyImage(
+	    const CommandPool &command_pool,
+	    const VkImage &    src_image,
+	    VkImage &    dst_image,
+	    VmaAllocation &    dst_image_allocation,
+	    VkFormat           src_format,
+	    const VkExtent3D & extent,
+	    VkImageLayout      src_image_layout,
+	    uint32_t           mip_level,
+	    uint32_t           array_layer);
 
   protected:
 	const LogicalDevice &m_logical_device;
