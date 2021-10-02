@@ -49,5 +49,9 @@ endif()
 # vulkan
 find_package(Vulkan REQUIRED)
 
+# stb
+add_library(stb INTERFACE)
+target_include_directories(stb INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/External/stb")
+
 add_subdirectory(Source)
 add_subdirectory(Test)

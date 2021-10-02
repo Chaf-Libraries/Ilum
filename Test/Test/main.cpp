@@ -14,6 +14,8 @@
 #include <Core/Graphics/Pipeline/Shader.hpp>
 #include <Core/Graphics/RenderPass/Swapchain.hpp>
 
+#include <Core/Resource/Bitmap/Bitmap.hpp>
+
 #include <Math/Vector3.h>
 #include <Math/Vector2.h>
 #include <Math/Vector4.h>
@@ -30,6 +32,8 @@ struct Vertex
 int main()
 {
 	Ilum::Engine engine;
+
+	Ilum::Bitmap bitmap("../Asset/Texture/613934.jpg");
 
 	auto *window = engine.getContext().getSubsystem<Ilum::Window>();
 	auto *timer  = engine.getContext().getSubsystem<Ilum::Timer>();
