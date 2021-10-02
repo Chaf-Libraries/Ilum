@@ -16,6 +16,16 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
   public:
 	GraphicsContext(Context *context);
 
+	const Instance &getInstance() const;
+
+	const PhysicalDevice &getPhysicalDevice() const;
+
+	const Surface &getSurface() const;
+
+	const LogicalDevice &getLogicalDevice() const;
+
+	const Swapchain &getSwapchain() const;
+
   private:
 	scope<Instance>       m_instance;
 	scope<PhysicalDevice> m_physical_device;

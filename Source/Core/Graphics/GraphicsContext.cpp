@@ -19,4 +19,29 @@ GraphicsContext::GraphicsContext(Context *context) :
     m_logical_device(createScope<LogicalDevice>(*m_surface))
 {
 }
+
+const Instance &GraphicsContext::getInstance() const
+{
+	return *m_instance;
+}
+
+const PhysicalDevice &GraphicsContext::getPhysicalDevice() const
+{
+	return *m_physical_device;
+}
+
+const Surface &GraphicsContext::getSurface() const
+{
+	return *m_surface;
+}
+
+const LogicalDevice &GraphicsContext::getLogicalDevice() const
+{
+	return *m_logical_device;
+}
+
+const Swapchain &GraphicsContext::getSwapchain() const
+{
+	return *m_swapchain;
+}
 }        // namespace Ilum
