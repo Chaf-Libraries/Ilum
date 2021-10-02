@@ -5,6 +5,8 @@
 namespace Ilum
 {
 class LogicalDevice;
+class CommandPool;
+class CommandBuffer;
 
 class Image
 {
@@ -52,6 +54,15 @@ class Image
 	const VkSampler &getSampler() const;
 
   public:
+	static uint32_t getMipLevels(const VkExtent3D &extent);
+
+	static bool hasDepth(VkFormat format);
+
+	static bool hasStencil(VkFormat format);
+
+	static VkFormat findSupportedFormat(const LogicalDevice &logical_device, const std::vector<VkFormat> &formats, VkImageTiling tiling, VkFormatFeatureFlags features);
+
+  public:
 	static bool createImage(
 	    const LogicalDevice & logical_device,
 	    VkImage &             image,
@@ -85,6 +96,48 @@ class Image
 	    VkSamplerAddressMode address_mode,
 	    bool                 anisotropic,
 	    uint32_t             mip_levels);
+
+	// TODO:
+	static void createMipmaps(
+	    const CommandPool &command_pool,
+	    const VkImage &    image,
+	    const VkExtent3D & extent,
+	    VkFormat           format,
+	    VkImageLayout      dst_image_layout,
+	    uint32_t           mip_levels,
+	    uint32_t           base_array_layer,
+	    uint32_t           layer_count);
+
+	static void transitionImageLayout(
+	    const CommandPool &command_pool,
+	    const VkImage &    image,
+	    VkFormat           format,
+	    VkImageLayout      src_image_layout,
+	    VkImageLayout      dst_image_layout,
+	    VkImageAspectFlags image_aspect,
+	    uint32_t           mip_levels,
+	    uint32_t           base_mip_level,
+	    uint32_t           layer_count,
+	    uint32_t           base_array_layer);
+
+	static void insertImageMemoryBarrier(
+	    const CommandBuffer &command_buffer,
+	    const VkImage &      image,
+	    VkAccessFlags        src_access_mask,
+	    VkAccessFlags        dst_access_mask,
+	    VkImageLayout        old_image_layout,
+	    VkImageLayout        new_image_layout,
+	    VkPipelineStageFlags src_stage_mask,
+	    VkPipelineStageFlags dst_stage_mask,
+	    VkImageAspectFlags   image_aspect,
+	    uint32_t             mip_levels,
+	    uint32_t             base_mip_level,
+	    uint32_t             layer_count,
+	    uint32_t             base_array_layer);
+
+	static bool copyBufferToImage();
+
+	static bool copyImage();
 
   protected:
 	const LogicalDevice &m_logical_device;

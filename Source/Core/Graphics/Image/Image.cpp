@@ -2,6 +2,8 @@
 
 #include "Core/Device/LogicalDevice.hpp"
 #include "Core/Device/PhysicalDevice.hpp"
+#include "Core/Graphics/Command/CommandBuffer.hpp"
+#include "Core/Graphics/Command/CommandPool.hpp"
 
 namespace Ilum
 {
@@ -124,6 +126,55 @@ const VkSampler &Image::getSampler() const
 	return m_sampler;
 }
 
+uint32_t Image::getMipLevels(const VkExtent3D &extent)
+{
+	return static_cast<uint32_t>(std::floorf(std::log2f(std::fmaxf(extent.width, std::fmaxf(extent.height, extent.depth)))) + 1);
+}
+
+bool Image::hasDepth(VkFormat format)
+{
+	const std::vector<VkFormat> depth_formats = {
+	    VK_FORMAT_D16_UNORM,
+	    VK_FORMAT_X8_D24_UNORM_PACK32,
+	    VK_FORMAT_D32_SFLOAT,
+	    VK_FORMAT_D16_UNORM_S8_UINT,
+	    VK_FORMAT_D24_UNORM_S8_UINT,
+	    VK_FORMAT_D32_SFLOAT_S8_UINT};
+
+	return std::find(depth_formats.begin(), depth_formats.end(), format) != depth_formats.end();
+}
+
+bool Image::hasStencil(VkFormat format)
+{
+	const std::vector<VkFormat> stencil_formats = {
+	    VK_FORMAT_S8_UINT,
+	    VK_FORMAT_D16_UNORM_S8_UINT,
+	    VK_FORMAT_D24_UNORM_S8_UINT,
+	    VK_FORMAT_D32_SFLOAT_S8_UINT};
+
+	return std::find(stencil_formats.begin(), stencil_formats.end(), format) != stencil_formats.end();
+}
+
+VkFormat Image::findSupportedFormat(const LogicalDevice &logical_device, const std::vector<VkFormat> &formats, VkImageTiling tiling, VkFormatFeatureFlags features)
+{
+	for (const auto &format : formats)
+	{
+		VkFormatProperties properties;
+		vkGetPhysicalDeviceFormatProperties(logical_device.getPhysicalDevice(), format, &properties);
+
+		if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features) == features)
+		{
+			return format;
+		}
+		if (tiling == VK_IMAGE_TILING_OPTIMAL && (properties.optimalTilingFeatures & features) == features)
+		{
+			return format;
+		}
+	}
+
+	return VK_FORMAT_UNDEFINED;
+}
+
 bool Image::createImage(
     const LogicalDevice & logical_device,
     VkImage &             image,
@@ -230,5 +281,210 @@ bool Image::createImageSampler(
 	}
 
 	return true;
+}
+
+void Image::createMipmaps(
+    const CommandPool &command_pool,
+    const VkImage &    image,
+    const VkExtent3D & extent,
+    VkFormat           format,
+    VkImageLayout      dst_image_layout,
+    uint32_t           mip_levels,
+    uint32_t           base_array_layer,
+    uint32_t           layer_count)
+{
+	VkFormatProperties format_properties;
+	vkGetPhysicalDeviceFormatProperties(command_pool.getLogicalDevice().getPhysicalDevice(), format, &format_properties);
+
+	// Check blit supporting
+	ASSERT(format_properties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT);
+	ASSERT(format_properties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT);
+
+	CommandBuffer command_buffer(command_pool);
+	command_buffer.begin();
+
+	VkImageMemoryBarrier barrier = {};
+
+	for (uint32_t i = 1; i < mip_levels; i++)
+	{
+		insertImageMemoryBarrier(
+		    command_buffer,
+		    image,
+		    VK_ACCESS_TRANSFER_WRITE_BIT,
+		    VK_ACCESS_TRANSFER_READ_BIT,
+		    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+		    VK_PIPELINE_STAGE_TRANSFER_BIT,
+		    VK_PIPELINE_STAGE_TRANSFER_BIT,
+		    VK_IMAGE_ASPECT_COLOR_BIT,
+		    1,
+		    i - 1,
+		    layer_count,
+		    base_array_layer);
+
+		VkImageBlit image_blit                   = {};
+		image_blit.srcOffsets[1]                 = {int32_t(extent.width >> (i - 1)), int32_t(extent.height >> (i - 1)), 1};
+		image_blit.srcSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+		image_blit.srcSubresource.mipLevel       = i - 1;
+		image_blit.srcSubresource.baseArrayLayer = base_array_layer;
+		image_blit.srcSubresource.layerCount     = layer_count;
+		image_blit.dstOffsets[1]                 = {int32_t(extent.width >> i), int32_t(extent.height >> i), 1};
+		image_blit.dstSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+		image_blit.dstSubresource.mipLevel       = i;
+		image_blit.dstSubresource.baseArrayLayer = base_array_layer;
+		image_blit.dstSubresource.layerCount     = layer_count;
+		vkCmdBlitImage(command_buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &image_blit, VK_FILTER_LINEAR);
+
+		insertImageMemoryBarrier(
+		    command_buffer,
+		    image,
+		    VK_ACCESS_TRANSFER_READ_BIT,
+		    VK_ACCESS_SHADER_READ_BIT,
+		    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+		    dst_image_layout,
+		    VK_PIPELINE_STAGE_TRANSFER_BIT,
+		    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+		    VK_IMAGE_ASPECT_COLOR_BIT,
+		    1,
+		    i - 1,
+		    layer_count,
+		    base_array_layer);
+	}
+
+	insertImageMemoryBarrier(
+	    command_buffer,
+	    image,
+	    VK_ACCESS_TRANSFER_WRITE_BIT,
+	    VK_ACCESS_SHADER_READ_BIT,
+	    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+	    dst_image_layout,
+	    VK_PIPELINE_STAGE_TRANSFER_BIT,
+	    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+	    VK_IMAGE_ASPECT_COLOR_BIT,
+	    1,
+	    mip_levels - 1,
+	    layer_count,
+	    base_array_layer);
+
+	command_buffer.end();
+	command_buffer.submitIdle();
+}
+
+void Image::transitionImageLayout(
+    const CommandPool &command_pool,
+    const VkImage &    image,
+    VkFormat           format,
+    VkImageLayout      src_image_layout,
+    VkImageLayout      dst_image_layout,
+    VkImageAspectFlags image_aspect,
+    uint32_t           mip_levels,
+    uint32_t           base_mip_level,
+    uint32_t           layer_count,
+    uint32_t           base_array_layer)
+{
+	CommandBuffer command_buffer(command_pool);
+	command_buffer.begin();
+
+	VkImageMemoryBarrier barrier            = {};
+	barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.oldLayout                       = src_image_layout;
+	barrier.newLayout                       = dst_image_layout;
+	barrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image                           = image;
+	barrier.subresourceRange.aspectMask     = image_aspect;
+	barrier.subresourceRange.baseMipLevel   = base_mip_level;
+	barrier.subresourceRange.levelCount     = mip_levels;
+	barrier.subresourceRange.baseArrayLayer = base_array_layer;
+	barrier.subresourceRange.layerCount     = layer_count;
+
+	switch (src_image_layout)
+	{
+		case VK_IMAGE_LAYOUT_UNDEFINED:
+			barrier.srcAccessMask = 0;
+			break;
+		case VK_IMAGE_LAYOUT_PREINITIALIZED:
+			barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+			barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+			barrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+			barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+			barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			break;
+		default:
+			break;
+	}
+
+	switch (dst_image_layout)
+	{
+		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+			barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+			barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+			barrier.dstAccessMask = barrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			break;
+		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+			if (barrier.srcAccessMask == 0)
+			{
+				barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+			}
+			barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+			break;
+		default:
+			break;
+	}
+
+	vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+
+	command_buffer.end();
+	command_buffer.submitIdle();
+}
+
+void Image::insertImageMemoryBarrier(
+    const CommandBuffer &command_buffer,
+    const VkImage &      image,
+    VkAccessFlags        src_access_mask,
+    VkAccessFlags        dst_access_mask,
+    VkImageLayout        old_image_layout,
+    VkImageLayout        new_image_layout,
+    VkPipelineStageFlags src_stage_mask,
+    VkPipelineStageFlags dst_stage_mask,
+    VkImageAspectFlags   image_aspect,
+    uint32_t             mip_levels,
+    uint32_t             base_mip_level,
+    uint32_t             layer_count,
+    uint32_t             base_array_layer)
+{
+	VkImageMemoryBarrier barrier            = {};
+	barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.srcAccessMask                   = src_access_mask;
+	barrier.dstAccessMask                   = dst_access_mask;
+	barrier.oldLayout                       = old_image_layout;
+	barrier.newLayout                       = new_image_layout;
+	barrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image                           = image;
+	barrier.subresourceRange.aspectMask     = image_aspect;
+	barrier.subresourceRange.baseMipLevel   = base_mip_level;
+	barrier.subresourceRange.levelCount     = mip_levels;
+	barrier.subresourceRange.baseArrayLayer = base_array_layer;
+	barrier.subresourceRange.layerCount     = layer_count;
+	vkCmdPipelineBarrier(command_buffer, src_stage_mask, dst_stage_mask, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 }        // namespace Ilum
