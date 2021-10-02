@@ -831,7 +831,7 @@ void Shader::setBufferMode(uint32_t set, uint32_t binding, ShaderResourceMode mo
 	}
 }
 
-VkShaderStageFlags Shader::getShaderStage(const std::string &filename)
+VkShaderStageFlagBits Shader::getShaderStage(const std::string &filename)
 {
 	auto extension = FileSystem::getFileExtension(filename);
 

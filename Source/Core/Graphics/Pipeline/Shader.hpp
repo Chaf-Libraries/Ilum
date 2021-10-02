@@ -246,7 +246,7 @@ class Shader
 
   public:
 	// Shader file naming: shader_name.shader_file_type.shader_stage
-	static VkShaderStageFlags getShaderStage(const std::string &filename);
+	static VkShaderStageFlagBits getShaderStage(const std::string &filename);
 
 	static ShaderFileType getShaderFileType(const std::string &filename);
 
