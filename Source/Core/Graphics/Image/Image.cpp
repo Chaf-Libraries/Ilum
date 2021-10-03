@@ -3,15 +3,17 @@
 #include "Core/Device/LogicalDevice.hpp"
 #include "Core/Device/PhysicalDevice.hpp"
 #include "Core/Device/Surface.hpp"
+#include "Core/Engine/Context.hpp"
+#include "Core/Engine/Engine.hpp"
 #include "Core/Graphics/Command/CommandBuffer.hpp"
 #include "Core/Graphics/Command/CommandPool.hpp"
+#include "Core/Graphics/GraphicsContext.hpp"
 
 namespace Ilum
 {
 static constexpr float ANISOTROPY = 16.f;
 
 Image::Image(
-    const LogicalDevice & logical_device,
     const VkExtent3D &    extent,
     VkFormat              format,
     VkImageUsageFlags     usage,
@@ -21,7 +23,6 @@ Image::Image(
     VkFilter              filter,
     VkSamplerAddressMode  address_mode,
     VkSampleCountFlagBits samples) :
-    m_logical_device(logical_device),
     m_extent(extent),
     m_format(format),
     m_usage(usage),
@@ -36,24 +37,26 @@ Image::Image(
 
 Image::~Image()
 {
+	auto graphics_context = Engine::instance()->getContext().getSubsystem<GraphicsContext>();
+
 	if (m_view)
 	{
-		vkDestroyImageView(m_logical_device, m_view, nullptr);
+		vkDestroyImageView(graphics_context->getLogicalDevice(), m_view, nullptr);
 	}
 
 	if (m_sampler)
 	{
-		vkDestroySampler(m_logical_device, m_sampler, nullptr);
+		vkDestroySampler(graphics_context->getLogicalDevice(), m_sampler, nullptr);
 	}
 
 	if (m_allocation)
 	{
-		vmaDestroyImage(m_logical_device.getAllocator(), m_image, m_allocation);
+		vmaDestroyImage(graphics_context->getLogicalDevice().getAllocator(), m_image, m_allocation);
 	}
 
 	if (m_image)
 	{
-		vkDestroyImage(m_logical_device, m_image, nullptr);
+		vkDestroyImage(graphics_context->getLogicalDevice(), m_image, nullptr);
 	}
 }
 
@@ -156,12 +159,12 @@ bool Image::hasStencil(VkFormat format)
 	return std::find(stencil_formats.begin(), stencil_formats.end(), format) != stencil_formats.end();
 }
 
-VkFormat Image::findSupportedFormat(const LogicalDevice &logical_device, const std::vector<VkFormat> &formats, VkImageTiling tiling, VkFormatFeatureFlags features)
+VkFormat Image::findSupportedFormat(const std::vector<VkFormat> &formats, VkImageTiling tiling, VkFormatFeatureFlags features)
 {
 	for (const auto &format : formats)
 	{
 		VkFormatProperties properties;
-		vkGetPhysicalDeviceFormatProperties(logical_device.getPhysicalDevice(), format, &properties);
+		vkGetPhysicalDeviceFormatProperties(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getPhysicalDevice(), format, &properties);
 
 		if (tiling == VK_IMAGE_TILING_LINEAR && (properties.linearTilingFeatures & features) == features)
 		{
@@ -177,7 +180,6 @@ VkFormat Image::findSupportedFormat(const LogicalDevice &logical_device, const s
 }
 
 bool Image::createImage(
-    const LogicalDevice & logical_device,
     VkImage &             image,
     VmaAllocation &       allocation,
     const VkExtent3D &    extent,
@@ -207,7 +209,7 @@ bool Image::createImage(
 	VmaAllocationCreateInfo allocation_create_info = {};
 	allocation_create_info.usage                   = memory_usage;
 
-	if (!VK_CHECK(vmaCreateImage(logical_device.getAllocator(), &image_create_info, &allocation_create_info, &image, &allocation, nullptr)))
+	if (!VK_CHECK(vmaCreateImage(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice().getAllocator(), &image_create_info, &allocation_create_info, &image, &allocation, nullptr)))
 	{
 		VK_ERROR("Failed to create image!");
 		return false;
@@ -217,16 +219,15 @@ bool Image::createImage(
 }
 
 bool Image::createImageView(
-    const LogicalDevice &logical_device,
-    const VkImage &      image,
-    VkImageView &        image_view,
-    VkImageViewType      type,
-    VkFormat             format,
-    uint32_t             mip_levels,
-    uint32_t             base_mip_level,
-    uint32_t             layer_count,
-    uint32_t             base_array_layer,
-    VkImageAspectFlags   image_aspect)
+    const VkImage &    image,
+    VkImageView &      image_view,
+    VkImageViewType    type,
+    VkFormat           format,
+    uint32_t           mip_levels,
+    uint32_t           base_mip_level,
+    uint32_t           layer_count,
+    uint32_t           base_array_layer,
+    VkImageAspectFlags image_aspect)
 {
 	VkImageViewCreateInfo image_view_create_info           = {};
 	image_view_create_info.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -240,7 +241,7 @@ bool Image::createImageView(
 	image_view_create_info.subresourceRange.baseArrayLayer = base_array_layer;
 	image_view_create_info.subresourceRange.layerCount     = layer_count;
 
-	if (!VK_CHECK(vkCreateImageView(logical_device, &image_view_create_info, nullptr, &image_view)))
+	if (!VK_CHECK(vkCreateImageView(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice(), &image_view_create_info, nullptr, &image_view)))
 	{
 		VK_ERROR("Failed to create image view!");
 		return false;
@@ -250,13 +251,14 @@ bool Image::createImageView(
 }
 
 bool Image::createImageSampler(
-    const LogicalDevice &logical_device,
     VkSampler &          sampler,
     VkFilter             filter,
     VkSamplerAddressMode address_mode,
     bool                 anisotropic,
     uint32_t             mip_levels)
 {
+	auto graphics_context = Engine::instance()->getContext().getSubsystem<GraphicsContext>();
+
 	VkSamplerCreateInfo sampler_create_info = {};
 	sampler_create_info.sType               = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 	sampler_create_info.magFilter           = filter;
@@ -267,7 +269,7 @@ bool Image::createImageSampler(
 	sampler_create_info.addressModeW        = address_mode;
 	sampler_create_info.mipLodBias          = 0.f;
 	sampler_create_info.maxAnisotropy =
-	    (anisotropic && logical_device.getEnabledFeatures().samplerAnisotropy) ? std::min(ANISOTROPY, logical_device.getPhysicalDevice().getProperties().limits.maxSamplerAnisotropy) : 1.f;
+	    (anisotropic && graphics_context->getLogicalDevice().getEnabledFeatures().samplerAnisotropy) ? std::min(ANISOTROPY, graphics_context->getPhysicalDevice().getProperties().limits.maxSamplerAnisotropy) : 1.f;
 	sampler_create_info.compareEnable           = VK_FALSE;
 	sampler_create_info.compareOp               = VK_COMPARE_OP_ALWAYS;
 	sampler_create_info.minLod                  = 0.f;
@@ -275,7 +277,7 @@ bool Image::createImageSampler(
 	sampler_create_info.borderColor             = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 	sampler_create_info.unnormalizedCoordinates = VK_FALSE;
 
-	if (!VK_CHECK(vkCreateSampler(logical_device, &sampler_create_info, nullptr, &sampler)))
+	if (!VK_CHECK(vkCreateSampler(graphics_context->getLogicalDevice(), &sampler_create_info, nullptr, &sampler)))
 	{
 		VK_ERROR("Failed to create sampler!");
 		return false;
@@ -285,23 +287,22 @@ bool Image::createImageSampler(
 }
 
 void Image::createMipmaps(
-    const CommandPool &command_pool,
-    const VkImage &    image,
-    const VkExtent3D & extent,
-    VkFormat           format,
-    VkImageLayout      dst_image_layout,
-    uint32_t           mip_levels,
-    uint32_t           base_array_layer,
-    uint32_t           layer_count)
+    const VkImage &   image,
+    const VkExtent3D &extent,
+    VkFormat          format,
+    VkImageLayout     dst_image_layout,
+    uint32_t          mip_levels,
+    uint32_t          base_array_layer,
+    uint32_t          layer_count)
 {
 	VkFormatProperties format_properties;
-	vkGetPhysicalDeviceFormatProperties(command_pool.getLogicalDevice().getPhysicalDevice(), format, &format_properties);
+	vkGetPhysicalDeviceFormatProperties(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getPhysicalDevice(), format, &format_properties);
 
 	// Check blit supporting
 	ASSERT(format_properties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT);
 	ASSERT(format_properties.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT);
 
-	CommandBuffer command_buffer(command_pool);
+	CommandBuffer command_buffer;
 	command_buffer.begin();
 
 	VkImageMemoryBarrier barrier = {};
@@ -372,7 +373,6 @@ void Image::createMipmaps(
 }
 
 void Image::transitionImageLayout(
-    const CommandPool &command_pool,
     const VkImage &    image,
     VkFormat           format,
     VkImageLayout      src_image_layout,
@@ -383,7 +383,7 @@ void Image::transitionImageLayout(
     uint32_t           layer_count,
     uint32_t           base_array_layer)
 {
-	CommandBuffer command_buffer(command_pool);
+	CommandBuffer command_buffer;
 	command_buffer.begin();
 
 	VkAccessFlags src_access_mask = 0;
@@ -493,14 +493,13 @@ void Image::insertImageMemoryBarrier(
 }
 
 void Image::copyBufferToImage(
-    const CommandPool &command_pool,
-    const VkBuffer &   buffer,
-    const VkImage &    image,
-    const VkExtent3D & extent,
-    uint32_t           layer_count,
-    uint32_t           base_array_layer)
+    const VkBuffer &  buffer,
+    const VkImage &   image,
+    const VkExtent3D &extent,
+    uint32_t          layer_count,
+    uint32_t          base_array_layer)
 {
-	CommandBuffer command_buffer(command_pool);
+	CommandBuffer command_buffer;
 	command_buffer.begin();
 
 	VkBufferImageCopy region               = {};
@@ -520,20 +519,19 @@ void Image::copyBufferToImage(
 }
 
 void Image::copyImage(
-    const CommandPool &command_pool,
-    const VkImage &    src_image,
-    VkImage &          dst_image,
-    VmaAllocation &    dst_image_allocation,
-    VkFormat           src_format,
-    const VkExtent3D & extent,
-    VkImageLayout      src_image_layout,
-    uint32_t           mip_level,
-    uint32_t           array_layer)
+    const VkImage &   src_image,
+    VkImage &         dst_image,
+    VmaAllocation &   dst_image_allocation,
+    VkFormat          src_format,
+    const VkExtent3D &extent,
+    VkImageLayout     src_image_layout,
+    uint32_t          mip_level,
+    uint32_t          array_layer)
 {
-	auto &physical_device = command_pool.getLogicalDevice().getPhysicalDevice();
-	auto &surface         = command_pool.getLogicalDevice().getSurface();
+	auto &physical_device = Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getPhysicalDevice();
+	auto &surface         = Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getSurface();
 
-	CommandBuffer command_buffer(command_pool);
+	CommandBuffer command_buffer;
 	command_buffer.begin();
 
 	auto               support_blit = true;
@@ -555,7 +553,7 @@ void Image::copyImage(
 		support_blit = false;
 	}
 
-	createImage(command_pool.getLogicalDevice(), dst_image, dst_image_allocation, extent, VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 1, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_LINEAR,
+	createImage(dst_image, dst_image_allocation, extent, VK_IMAGE_TYPE_2D, VK_FORMAT_R8G8B8A8_UNORM, 1, 1, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_LINEAR,
 	            VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_ONLY);
 
 	if (support_blit)

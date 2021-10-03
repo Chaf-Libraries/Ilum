@@ -11,7 +11,7 @@ class LogicalDevice;
 class Swapchain
 {
   public:
-	Swapchain(const LogicalDevice& logical_device, const VkExtent2D &extent, const Swapchain *old_swapchain = nullptr);
+	Swapchain(const PhysicalDevice& physical_device, const Surface& surface, const LogicalDevice& logical_device, const VkExtent2D &extent, const Swapchain *old_swapchain = nullptr);
 
 	~Swapchain();
 

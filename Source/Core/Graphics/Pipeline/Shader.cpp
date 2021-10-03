@@ -2,7 +2,10 @@
 
 #include "Core/Device/LogicalDevice.hpp"
 #include "Core/Device/PhysicalDevice.hpp"
+#include "Core/Engine/Context.hpp"
+#include "Core/Engine/Engine.hpp"
 #include "Core/Engine/File/FileSystem.hpp"
+#include "Core/Graphics/GraphicsContext.hpp"
 
 #include <glslang/Include/ResourceLimits.h>
 #include <glslang/SPIRV/GLSL.std.450.h>
@@ -583,18 +586,13 @@ inline std::vector<Shader::Constant> read_shader_resource<Shader::Constant>(cons
 	return constants;
 }
 
-Shader::Shader(const LogicalDevice &logical_device) :
-    m_logical_device(logical_device)
-{
-}
-
 Shader::~Shader()
 {
 	for (auto &shader_module : m_shader_module_cache)
 	{
 		if (shader_module != VK_NULL_HANDLE)
 		{
-			vkDestroyShaderModule(m_logical_device, shader_module, nullptr);
+			vkDestroyShaderModule(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice(), shader_module, nullptr);
 		}
 	}
 
@@ -642,7 +640,7 @@ VkShaderModule Shader::createShaderModule(const std::string &filename, const Var
 	shader_module_create_info.pCode                    = spirv.data();
 
 	VkShaderModule shader_module;
-	if (!VK_CHECK(vkCreateShaderModule(m_logical_device, &shader_module_create_info, nullptr, &shader_module)))
+	if (!VK_CHECK(vkCreateShaderModule(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice(), &shader_module_create_info, nullptr, &shader_module)))
 	{
 		VK_ERROR("Failed to create shader module");
 		return VK_NULL_HANDLE;

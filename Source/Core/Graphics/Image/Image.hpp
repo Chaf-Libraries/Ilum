@@ -12,7 +12,6 @@ class Image
 {
   public:
 	Image(
-	    const LogicalDevice & logical_device,
 	    const VkExtent3D &    extent,
 	    VkFormat              format,
 	    VkImageUsageFlags     usage,
@@ -60,11 +59,10 @@ class Image
 
 	static bool hasStencil(VkFormat format);
 
-	static VkFormat findSupportedFormat(const LogicalDevice &logical_device, const std::vector<VkFormat> &formats, VkImageTiling tiling, VkFormatFeatureFlags features);
+	static VkFormat findSupportedFormat(const std::vector<VkFormat> &formats, VkImageTiling tiling, VkFormatFeatureFlags features);
 
   public:
 	static bool createImage(
-	    const LogicalDevice & logical_device,
 	    VkImage &             image,
 	    VmaAllocation &       allocation,
 	    const VkExtent3D &    extent,
@@ -78,7 +76,6 @@ class Image
 	    VmaMemoryUsage        memory_usage);
 
 	static bool createImageView(
-	    const LogicalDevice &logical_device,
 	    const VkImage &      image,
 	    VkImageView &        image_view,
 	    VkImageViewType      type,
@@ -90,7 +87,6 @@ class Image
 	    VkImageAspectFlags   image_aspect);
 
 	static bool createImageSampler(
-	    const LogicalDevice &logical_device,
 	    VkSampler &          sampler,
 	    VkFilter             filter,
 	    VkSamplerAddressMode address_mode,
@@ -98,7 +94,6 @@ class Image
 	    uint32_t             mip_levels);
 
 	static void createMipmaps(
-	    const CommandPool &command_pool,
 	    const VkImage &    image,
 	    const VkExtent3D & extent,
 	    VkFormat           format,
@@ -108,7 +103,6 @@ class Image
 	    uint32_t           layer_count);
 
 	static void transitionImageLayout(
-	    const CommandPool &command_pool,
 	    const VkImage &    image,
 	    VkFormat           format,
 	    VkImageLayout      src_image_layout,
@@ -135,7 +129,6 @@ class Image
 	    uint32_t             base_array_layer);
 
 	static void copyBufferToImage(
-	    const CommandPool &command_pool,
 	    const VkBuffer &   buffer,
 	    const VkImage &    image,
 	    const VkExtent3D & extent,
@@ -143,7 +136,6 @@ class Image
 	    uint32_t           base_array_layer);
 
 	static void copyImage(
-	    const CommandPool &command_pool,
 	    const VkImage &    src_image,
 	    VkImage &    dst_image,
 	    VmaAllocation &    dst_image_allocation,
@@ -154,8 +146,6 @@ class Image
 	    uint32_t           array_layer);
 
   protected:
-	const LogicalDevice &m_logical_device;
-
 	VkExtent3D            m_extent;
 	VkSampleCountFlagBits m_samples;
 	VkImageUsageFlags     m_usage;

@@ -1,19 +1,22 @@
 #include "CommandBuffer.hpp"
 #include "CommandPool.hpp"
 
+#include "Core/Engine/Engine.hpp"
+#include "Core/Engine/Context.hpp"
+#include "Core/Graphics/GraphicsContext.hpp"
 #include "Core/Device/LogicalDevice.hpp"
 
 namespace Ilum
 {
-CommandBuffer::CommandBuffer(const CommandPool &command_pool, VkQueueFlagBits queue_type, VkCommandBufferLevel level) :
-    m_command_pool(command_pool), m_queue_type(queue_type), m_logical_device(command_pool.getLogicalDevice())
+CommandBuffer::CommandBuffer(VkQueueFlagBits queue_type, VkCommandBufferLevel level) :
+    m_command_pool(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getCommandPool(queue_type))
 {
 	VkCommandBufferAllocateInfo command_buffer_allocate_info = {};
 	command_buffer_allocate_info.sType                       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	command_buffer_allocate_info.commandPool                 = command_pool;
+	command_buffer_allocate_info.commandPool                 = m_command_pool;
 	command_buffer_allocate_info.level                       = level;
 	command_buffer_allocate_info.commandBufferCount          = 1;
-	if (!VK_CHECK(vkAllocateCommandBuffers(m_logical_device, &command_buffer_allocate_info, &m_handle)))
+	if (!VK_CHECK(vkAllocateCommandBuffers(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice(), &command_buffer_allocate_info, &m_handle)))
 	{
 		VK_ERROR("Failed to create command buffer!");
 		return;
@@ -24,7 +27,7 @@ CommandBuffer::~CommandBuffer()
 {
 	if (m_handle)
 	{
-		vkFreeCommandBuffers(m_logical_device, m_command_pool, 1, &m_handle);
+		vkFreeCommandBuffers(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice(), m_command_pool, 1, &m_handle);
 	}
 }
 
@@ -96,13 +99,14 @@ void CommandBuffer::submitIdle(uint32_t queue_index)
 
 	VkFence fence;
 
-	if (!VK_CHECK(vkCreateFence(m_logical_device, &fence_create_info, nullptr, &fence)))
+	auto logical_device = Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice();
+	if (!VK_CHECK(vkCreateFence(logical_device, &fence_create_info, nullptr, &fence)))
 	{
 		VK_ERROR("Failed to create fence!");
 		return;
 	}
 
-	if (!VK_CHECK(vkResetFences(m_logical_device, 1, &fence)))
+	if (!VK_CHECK(vkResetFences(logical_device, 1, &fence)))
 	{
 		VK_ERROR("Failed to reset fence!");
 		return;
@@ -114,13 +118,13 @@ void CommandBuffer::submitIdle(uint32_t queue_index)
 		return;
 	}
 
-	if (!VK_CHECK(vkWaitForFences(m_logical_device, 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max())))
+	if (!VK_CHECK(vkWaitForFences(logical_device, 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max())))
 	{
 		VK_ERROR("Failed to wait for fence!");
 		return;
 	}
 
-	vkDestroyFence(m_logical_device, fence, nullptr);
+	vkDestroyFence(logical_device, fence, nullptr);
 }
 
 void CommandBuffer::submit(const VkSemaphore &wait_semaphore, const VkSemaphore &signal_semaphore, VkFence fence, VkShaderStageFlags wait_stages, uint32_t queue_index)
@@ -151,7 +155,7 @@ void CommandBuffer::submit(const VkSemaphore &wait_semaphore, const VkSemaphore 
 
 	if (fence != VK_NULL_HANDLE)
 	{
-		vkResetFences(m_logical_device, 1, &fence);
+		vkResetFences(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice(), 1, &fence);
 	}
 
 	if (!VK_CHECK(vkQueueSubmit(m_command_pool.getQueue(queue_index), 1, &submit_info, fence)))
@@ -189,7 +193,7 @@ void CommandBuffer::submit(const std::vector<VkSemaphore> &wait_semaphores, cons
 
 	if (fence != VK_NULL_HANDLE)
 	{
-		vkResetFences(m_logical_device, 1, &fence);
+		vkResetFences(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice(), 1, &fence);
 	}
 
 	if (!VK_CHECK(vkQueueSubmit(m_command_pool.getQueue(queue_index), 1, &submit_info, fence)))

@@ -51,7 +51,14 @@ struct TSubsystem : public ISubsystem
   public:
 	TSubsystem(Context *context = nullptr) :
 	    m_context(context)
-	{}
+	{
+		s_instance = static_cast<T *>(this);
+	}
+
+	static T* instance()
+	{
+		return s_instance;
+	}
 
 	virtual std::type_index type() const override
 	{
@@ -60,6 +67,7 @@ struct TSubsystem : public ISubsystem
 
   protected:
 	Context *m_context = nullptr;
+	inline static T *s_instance = nullptr;
 };
 
 struct Subsystem

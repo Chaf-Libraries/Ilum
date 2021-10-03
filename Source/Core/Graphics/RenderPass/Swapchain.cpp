@@ -7,9 +7,9 @@
 
 namespace Ilum
 {
-Swapchain::Swapchain(const LogicalDevice &logical_device, const VkExtent2D &extent, const Swapchain *old_swapchain) :
-    m_surface(logical_device.getSurface()),
-    m_physical_device(logical_device.getPhysicalDevice()),
+Swapchain::Swapchain(const PhysicalDevice &physical_device, const Surface &surface, const LogicalDevice &logical_device, const VkExtent2D &extent, const Swapchain *old_swapchain) :
+    m_surface(surface),
+    m_physical_device(physical_device),
     m_logical_device(logical_device),
     m_extent(extent),
     m_present_mode(VK_PRESENT_MODE_FIFO_KHR),
@@ -127,7 +127,7 @@ Swapchain::Swapchain(const LogicalDevice &logical_device, const VkExtent2D &exte
 
 	for (uint32_t i = 0; i < m_image_count; i++)
 	{
-		Image::createImageView(m_logical_device, m_images[i], m_image_views[i], VK_IMAGE_VIEW_TYPE_2D, surface_format.format, 1, 0, 1, 0, VK_IMAGE_ASPECT_COLOR_BIT);
+		Image::createImageView(m_images[i], m_image_views[i], VK_IMAGE_VIEW_TYPE_2D, surface_format.format, 1, 0, 1, 0, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
 }
 

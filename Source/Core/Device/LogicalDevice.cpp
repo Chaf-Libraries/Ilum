@@ -288,6 +288,7 @@ LogicalDevice::~LogicalDevice()
 {
 	if (VK_CHECK(vkDeviceWaitIdle(m_handle)))
 	{
+		vmaDestroyAllocator(m_allocator);
 		vkDestroyDevice(m_handle, nullptr);
 	}
 }
@@ -350,5 +351,22 @@ const std::vector<VkQueue> &LogicalDevice::getTransferQueues() const
 const std::vector<VkQueue> &LogicalDevice::getPresentQueues() const
 {
 	return m_present_queues;
+}
+
+VkQueueFlagBits LogicalDevice::getPresentQueueFlag() const
+{
+	if (m_present_family == m_graphics_family)
+	{
+		return VK_QUEUE_GRAPHICS_BIT;
+	}
+	if (m_present_family == m_compute_family)
+	{
+		return VK_QUEUE_COMPUTE_BIT;
+	}
+	if (m_present_family == m_transfer_family)
+	{
+		return VK_QUEUE_TRANSFER_BIT;
+	}
+	return VK_QUEUE_GRAPHICS_BIT;
 }
 }        // namespace Ilum

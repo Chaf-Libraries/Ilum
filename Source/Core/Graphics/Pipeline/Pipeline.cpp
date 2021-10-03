@@ -9,7 +9,7 @@ namespace Ilum
 Pipeline::Pipeline(const LogicalDevice &logical_device) :
     m_logical_device(logical_device)
 {
-	m_shader = createScope<Shader>(logical_device);
+	m_shader = createScope<Shader>();
 }
 
 Pipeline::~Pipeline()

@@ -1,26 +1,32 @@
 #include "CommandPool.hpp"
 
 #include "Core/Device/LogicalDevice.hpp"
+#include "Core/Engine/Context.hpp"
+#include "Core/Engine/Engine.hpp"
+#include "Core/Graphics/GraphicsContext.hpp"
 
 namespace Ilum
 {
-CommandPool::CommandPool(const LogicalDevice &logical_device, CommandPool::Usage usage, const std::thread::id &thread_id) :
-    m_logical_device(logical_device), m_thread_id(thread_id), m_usage(usage)
+CommandPool::CommandPool(VkQueueFlagBits queue_type, const std::thread::id &thread_id) :
+    m_logical_device(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice()), m_thread_id(thread_id), m_queue_type(queue_type)
 {
 	uint32_t queue_family = 0;
-	switch (usage)
+
+	if (queue_type & VK_QUEUE_GRAPHICS_BIT)
 	{
-		case Ilum::CommandPool::Usage::Graphics:
-			queue_family = m_logical_device.getGraphicsFamily();
-			break;
-		case Ilum::CommandPool::Usage::Compute:
-			queue_family = m_logical_device.getComputeFamily();
-			break;
-		case Ilum::CommandPool::Usage::Transfer:
-			queue_family = m_logical_device.getTransferFamily();
-			break;
-		default:
-			break;
+		queue_family = m_logical_device.getGraphicsFamily();
+	}
+	else if (queue_type & VK_QUEUE_COMPUTE_BIT)
+	{
+		queue_family = m_logical_device.getGraphicsFamily();
+	}
+	else if (queue_type & VK_QUEUE_TRANSFER_BIT)
+	{
+		queue_family = m_logical_device.getTransferFamily();
+	}
+	else
+	{
+		queue_family = m_logical_device.getGraphicsFamily();
 	}
 
 	VkCommandPoolCreateInfo command_pool_create_info = {};
@@ -59,11 +65,6 @@ CommandPool::operator const VkCommandPool &() const
 	return m_handle;
 }
 
-const LogicalDevice &CommandPool::getLogicalDevice() const
-{
-	return m_logical_device;
-}
-
 const VkCommandPool &CommandPool::getCommandPool() const
 {
 	return m_handle;
@@ -76,21 +77,19 @@ const std::thread::id &CommandPool::getThreadID() const
 
 const VkQueue CommandPool::getQueue(uint32_t index) const
 {
-	const std::vector<VkQueue> *queues = nullptr;
-	switch (m_usage)
+	if (m_queue_type & VK_QUEUE_GRAPHICS_BIT)
 	{
-		case Ilum::CommandPool::Usage::Graphics:
-			queues = &m_logical_device.getGraphicsQueues();
-			return queues->at(index % queues->size());
-		case Ilum::CommandPool::Usage::Compute:
-			queues = &m_logical_device.getComputeQueues();
-			return queues->at(index % queues->size());
-		case Ilum::CommandPool::Usage::Transfer:
-			queues = &m_logical_device.getTransferQueues();
-			return queues->at(index % queues->size());
-		default:
-			return VK_NULL_HANDLE;
+		return m_logical_device.getGraphicsQueues().at(index % m_logical_device.getGraphicsQueues().size());
 	}
+	else if (m_queue_type & VK_QUEUE_COMPUTE_BIT)
+	{
+		return m_logical_device.getComputeQueues().at(index % m_logical_device.getComputeQueues().size());
+	}
+	else if (m_queue_type & VK_QUEUE_TRANSFER_BIT)
+	{
+		return m_logical_device.getTransferQueues().at(index % m_logical_device.getTransferQueues().size());
+	}
+
 	return VK_NULL_HANDLE;
 }
 }        // namespace Ilum

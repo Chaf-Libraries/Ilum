@@ -40,6 +40,8 @@ class LogicalDevice
 
 	const std::vector<VkQueue>& getPresentQueues() const;
 
+	VkQueueFlagBits getPresentQueueFlag() const;
+
   public:
 	// Extensions
 	static const std::vector<const char *> extensions;

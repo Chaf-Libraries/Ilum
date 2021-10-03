@@ -4,8 +4,8 @@
 
 namespace Ilum
 {
-class CommandPool;
 class LogicalDevice;
+class CommandPool;
 
 class CommandBuffer
 {
@@ -19,7 +19,7 @@ class CommandBuffer
 	};
 
   public:
-	CommandBuffer(const CommandPool &command_pool, VkQueueFlagBits queue_type = VK_QUEUE_GRAPHICS_BIT, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+	CommandBuffer(VkQueueFlagBits queue_type = VK_QUEUE_GRAPHICS_BIT, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
 	~CommandBuffer();
 
@@ -45,9 +45,7 @@ class CommandBuffer
 
   private:
 	const CommandPool &  m_command_pool;
-	const LogicalDevice &m_logical_device;
 	VkCommandBuffer      m_handle = VK_NULL_HANDLE;
-	VkQueueFlagBits      m_queue_type;
 	State                m_state = State::Initial;
 };
 }        // namespace Ilum

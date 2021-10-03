@@ -215,7 +215,7 @@ class Shader
 	};
 
   public:
-	Shader(const LogicalDevice &logical_device);
+	Shader() = default;
 
 	~Shader();
 
@@ -258,8 +258,6 @@ class Shader
 	void reflectSpirv(const std::vector<uint32_t> &spirv, VkShaderStageFlags stage);
 
   private:
-	const LogicalDevice &m_logical_device;
-
 	ShaderFileType m_shader_type = ShaderFileType::GLSL;
 
 	VkShaderStageFlags m_stage = 0;
