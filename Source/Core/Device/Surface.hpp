@@ -12,13 +12,9 @@ class PhysicalDevice;
 class Surface
 {
   public:
-	Surface(const PhysicalDevice& physical_device, SDL_Window *window_handle);
+	Surface(const Instance& instance, const PhysicalDevice& physical_device, SDL_Window *window_handle);
 
 	~Surface();
-
-	const Instance &getInstance() const;
-
-	const PhysicalDevice &getPhysicalDevice() const;
 
 	operator const VkSurfaceKHR &() const;
 

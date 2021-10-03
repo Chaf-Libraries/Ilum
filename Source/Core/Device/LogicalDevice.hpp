@@ -12,15 +12,9 @@ class Surface;
 class LogicalDevice
 {
   public:
-	LogicalDevice(const Surface &surface);
+	LogicalDevice(const Instance instance, const PhysicalDevice physical_device, const Surface &surface);
 
 	~LogicalDevice();
-
-	const Instance &getInstance() const;
-
-	const PhysicalDevice &getPhysicalDevice() const;
-
-	const Surface &getSurface() const;
 
 	operator const VkDevice &() const;
 

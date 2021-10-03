@@ -7,8 +7,8 @@
 
 namespace Ilum
 {
-Surface::Surface(const PhysicalDevice &physical_device, SDL_Window *window_handle) :
-    m_instance(physical_device.getInstance()),
+Surface::Surface(const Instance &instance, const PhysicalDevice &physical_device, SDL_Window *window_handle) :
+    m_instance(instance),
     m_physical_device(physical_device)
 {
 	// Create surface handle
@@ -58,16 +58,6 @@ Surface::~Surface()
 	{
 		vkDestroySurfaceKHR(m_instance, m_handle, nullptr);
 	}
-}
-
-const Instance &Surface::getInstance() const
-{
-	return m_instance;
-}
-
-const PhysicalDevice &Surface::getPhysicalDevice() const
-{
-	return m_physical_device;
 }
 
 Surface::operator const VkSurfaceKHR &() const

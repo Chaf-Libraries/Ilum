@@ -11,8 +11,6 @@ class PhysicalDevice
   public:
 	PhysicalDevice(const Instance &instance);
 
-	const Instance &getInstance() const;
-
 	operator const VkPhysicalDevice &() const;
 
 	const VkPhysicalDevice &                getPhysicalDevice() const;

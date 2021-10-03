@@ -173,11 +173,6 @@ PhysicalDevice::PhysicalDevice(const Instance &instance) :
 	vkGetPhysicalDeviceMemoryProperties(m_handle, &m_memory_properties);
 }
 
-const Instance &PhysicalDevice::getInstance() const
-{
-	return m_instance;
-}
-
 PhysicalDevice::operator const VkPhysicalDevice &() const
 {
 	return m_handle;

@@ -87,9 +87,9 @@ inline std::optional<uint32_t> get_queue_family_index(const std::vector<VkQueueF
 	return std::optional<uint32_t>();
 }
 
-LogicalDevice::LogicalDevice(const Surface &surface) :
-    m_instance(surface.getInstance()),
-    m_physical_device(surface.getPhysicalDevice()),
+LogicalDevice::LogicalDevice(const Instance instance, const PhysicalDevice physical_device, const Surface &surface) :
+    m_instance(instance),
+    m_physical_device(physical_device),
     m_surface(surface)
 {
 	// Queue supporting
@@ -293,21 +293,6 @@ LogicalDevice::~LogicalDevice()
 	{
 		vkDestroyDevice(m_handle, nullptr);
 	}
-}
-
-const Instance &LogicalDevice::getInstance() const
-{
-	return m_instance;
-}
-
-const PhysicalDevice &LogicalDevice::getPhysicalDevice() const
-{
-	return m_physical_device;
-}
-
-const Surface &LogicalDevice::getSurface() const
-{
-	return m_surface;
 }
 
 LogicalDevice::operator const VkDevice &() const
