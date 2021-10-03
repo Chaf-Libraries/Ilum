@@ -26,7 +26,6 @@ class Surface
 
   private:
 	const Instance &m_instance;
-	const PhysicalDevice &m_physical_device;
 
 	VkSurfaceKHR m_handle = VK_NULL_HANDLE;
 	VkSurfaceCapabilitiesKHR m_capabilities = {};

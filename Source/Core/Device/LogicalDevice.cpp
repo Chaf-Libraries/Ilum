@@ -87,16 +87,13 @@ inline std::optional<uint32_t> get_queue_family_index(const std::vector<VkQueueF
 	return std::optional<uint32_t>();
 }
 
-LogicalDevice::LogicalDevice(const Instance instance, const PhysicalDevice physical_device, const Surface &surface) :
-    m_instance(instance),
-    m_physical_device(physical_device),
-    m_surface(surface)
+LogicalDevice::LogicalDevice(const Instance& instance, const PhysicalDevice& physical_device, const Surface &surface)
 {
 	// Queue supporting
 	uint32_t queue_family_property_count = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(m_physical_device, &queue_family_property_count, nullptr);
+	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_property_count, nullptr);
 	std::vector<VkQueueFamilyProperties> queue_family_properties(queue_family_property_count);
-	vkGetPhysicalDeviceQueueFamilyProperties(m_physical_device, &queue_family_property_count, queue_family_properties.data());
+	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_property_count, queue_family_properties.data());
 
 	std::optional<uint32_t> graphics_family, compute_family, transfer_family, present_family;
 
@@ -108,7 +105,7 @@ LogicalDevice::LogicalDevice(const Instance instance, const PhysicalDevice physi
 	{
 		// Check for presentation support
 		VkBool32 present_support;
-		vkGetPhysicalDeviceSurfaceSupportKHR(m_physical_device, i, m_surface, &present_support);
+		vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &present_support);
 
 		if (queue_family_properties[i].queueCount > 0 && present_support)
 		{
@@ -199,7 +196,7 @@ LogicalDevice::LogicalDevice(const Instance instance, const PhysicalDevice physi
 	}
 
 	// Enable logical device features
-	auto &                   physical_device_features = m_physical_device.getFeatures();
+	auto &                   physical_device_features = physical_device.getFeatures();
 
 #define ENABLE_DEVICE_FEATURE(feature)                             \
 	if (physical_device_features.feature)                          \
@@ -229,7 +226,7 @@ LogicalDevice::LogicalDevice(const Instance instance, const PhysicalDevice physi
 	ENABLE_DEVICE_FEATURE(imageCubeArray);
 
 	// Get support extensions
-	auto support_extensions = get_device_extension_support(m_physical_device, extensions);
+	auto support_extensions = get_device_extension_support(physical_device, extensions);
 
 	// Create device
 	VkDeviceCreateInfo device_create_info   = {};
@@ -245,7 +242,7 @@ LogicalDevice::LogicalDevice(const Instance instance, const PhysicalDevice physi
 	device_create_info.ppEnabledExtensionNames = support_extensions.data();
 	device_create_info.pEnabledFeatures        = &m_enabled_features;
 
-	if (!VK_CHECK(vkCreateDevice(m_physical_device, &device_create_info, nullptr, &m_handle)))
+	if (!VK_CHECK(vkCreateDevice(physical_device, &device_create_info, nullptr, &m_handle)))
 	{
 		VK_ERROR("Failed to create logical device!");
 		return;
@@ -277,9 +274,9 @@ LogicalDevice::LogicalDevice(const Instance instance, const PhysicalDevice physi
 
 	// Create Vma allocator
 	VmaAllocatorCreateInfo allocator_info = {};
-	allocator_info.physicalDevice         = m_physical_device;
+	allocator_info.physicalDevice         = physical_device;
 	allocator_info.device                 = m_handle;
-	allocator_info.instance               = m_instance;
+	allocator_info.instance               = instance;
 	allocator_info.vulkanApiVersion       = VK_API_VERSION_1_2;
 	if (!VK_CHECK(vmaCreateAllocator(&allocator_info, &m_allocator)))
 	{

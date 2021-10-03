@@ -24,8 +24,6 @@ class PhysicalDevice
 	const VkSampleCountFlagBits &           getSampleCount() const;
 
   private:
-	const Instance &m_instance;
-
 	VkPhysicalDevice                 m_handle            = VK_NULL_HANDLE;
 	VkPhysicalDeviceProperties       m_properties        = {};
 	VkPhysicalDeviceFeatures         m_features          = {};

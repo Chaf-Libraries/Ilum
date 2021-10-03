@@ -146,8 +146,7 @@ inline VkSampleCountFlagBits get_max_sample_count(VkPhysicalDevice physical_devi
 	return VK_SAMPLE_COUNT_1_BIT;
 }
 
-PhysicalDevice::PhysicalDevice(const Instance &instance) :
-    m_instance(instance)
+PhysicalDevice::PhysicalDevice(const Instance &instance)
 {
 	// Get number of physical devices
 	uint32_t physical_device_count = 0;

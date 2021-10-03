@@ -12,7 +12,7 @@ class Surface;
 class LogicalDevice
 {
   public:
-	LogicalDevice(const Instance instance, const PhysicalDevice physical_device, const Surface &surface);
+	LogicalDevice(const Instance& instance, const PhysicalDevice& physical_device, const Surface &surface);
 
 	~LogicalDevice();
 
@@ -45,9 +45,9 @@ class LogicalDevice
 	static const std::vector<const char *> extensions;
 
   private:
-	const Instance &      m_instance;
-	const PhysicalDevice &m_physical_device;
-	const Surface &       m_surface;
+	//const Instance &      m_instance;
+	//const PhysicalDevice &m_physical_device;
+	//const Surface &       m_surface;
 
 	VkDevice                 m_handle           = VK_NULL_HANDLE;
 	VkPhysicalDeviceFeatures m_enabled_features = {};

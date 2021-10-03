@@ -8,8 +8,7 @@
 namespace Ilum
 {
 Surface::Surface(const Instance &instance, const PhysicalDevice &physical_device, SDL_Window *window_handle) :
-    m_instance(instance),
-    m_physical_device(physical_device)
+    m_instance(instance)
 {
 	// Create surface handle
 	SDL_Vulkan_CreateSurface(window_handle, m_instance, &m_handle);
