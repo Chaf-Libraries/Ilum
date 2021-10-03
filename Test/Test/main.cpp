@@ -16,8 +16,10 @@
 
 #include <Core/Resource/Bitmap/Bitmap.hpp>
 
-#include <Math/Vector3.h>
+#include <Core/Graphics/Buffer/Buffer.h>
+
 #include <Math/Vector2.h>
+#include <Math/Vector3.h>
 #include <Math/Vector4.h>
 
 struct Vertex
@@ -31,36 +33,37 @@ struct Vertex
 
 int main()
 {
-	Ilum::Engine engine;
+	auto engine = std::make_unique<Ilum::Engine>();
 
-	Ilum::Bitmap bitmap("../Asset/Texture/613934.jpg");
+	//Ilum::Bitmap bitmap("../Asset/Texture/613934.jpg");
 
-	auto *window = engine.getContext().getSubsystem<Ilum::Window>();
-	auto *timer  = engine.getContext().getSubsystem<Ilum::Timer>();
+	const std::string title = Ilum::Window::instance()->getTitle();
 
-	const std::string title = window->getTitle();
+	Vertex vert;
 
-	auto *graphics_context = engine.getContext().getSubsystem<Ilum::GraphicsContext>();
-
-	Ilum::Shader::Variant var;
-	var.addDefine("Fuck");
-	Ilum::Shader shader(graphics_context->getLogicalDevice());
-	shader.setVertexInput<Vertex, uint32_t>();
-
-	auto  vert_shader      = shader.createShaderModule("D:/Workspace/IlumEngine/Asset/Shader/GLSL/scene_indexing_tes.glsl.vert");
-	auto  tesc_shader      = shader.createShaderModule("D:/Workspace/IlumEngine/Asset/Shader/GLSL/scene_indexing_tes.glsl.tesc");
-	auto  tese_shader      = shader.createShaderModule("D:/Workspace/IlumEngine/Asset/Shader/GLSL/scene_indexing_tes.glsl.tese");
-	auto  frag_shader      = shader.createShaderModule("D:/Workspace/IlumEngine/Asset/Shader/GLSL/scene_indexing_tes.glsl.frag");
-
-	auto  shader_desc      = shader.createShaderDescription();
-
-	while (!window->shouldClose())
 	{
-		engine.onTick();
+		Ilum::Buffer buffer(sizeof(vert), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU, &vert);
+
+		Ilum::Shader::Variant var;
+		var.addDefine("Fuck");
+		Ilum::Shader shader;
+		shader.setVertexInput<Vertex, uint32_t>();
+
+		auto vert_shader = shader.createShaderModule("D:/Workspace/IlumEngine/Asset/Shader/GLSL/scene_indexing_tes.glsl.vert");
+		auto tesc_shader = shader.createShaderModule("D:/Workspace/IlumEngine/Asset/Shader/GLSL/scene_indexing_tes.glsl.tesc");
+		auto tese_shader = shader.createShaderModule("D:/Workspace/IlumEngine/Asset/Shader/GLSL/scene_indexing_tes.glsl.tese");
+		auto frag_shader = shader.createShaderModule("D:/Workspace/IlumEngine/Asset/Shader/GLSL/scene_indexing_tes.glsl.frag");
+
+		auto shader_desc = shader.createShaderDescription();
+	}
+
+	while (!Ilum::Window::instance()->shouldClose())
+	{
+		engine->onTick();
 
 		std::this_thread::sleep_for(std::chrono::duration<double, std::milli>(16));
 
-		window->setTitle(title + " FPS: " + std::to_string(timer->getFPS()));
+		Ilum::Window::instance()->setTitle(title + " FPS: " + std::to_string(Ilum::Timer::instance()->getFPS()));
 	}
 
 	return 0;
