@@ -2,19 +2,20 @@
 #include "Instance.hpp"
 #include "PhysicalDevice.hpp"
 
-#include <SDL.h>
-#include <SDL_vulkan.h>
+#include "Core/Device/Window.hpp"
+#include "Core/Graphics/GraphicsContext.hpp"
+
+#include "SDL_vulkan.h"
 
 namespace Ilum
 {
-Surface::Surface(const Instance &instance, const PhysicalDevice &physical_device, SDL_Window *window_handle) :
-    m_instance(instance)
+Surface::Surface()
 {
 	// Create surface handle
-	SDL_Vulkan_CreateSurface(window_handle, m_instance, &m_handle);
+	SDL_Vulkan_CreateSurface(Window::instance()->getSDLHandle(), GraphicsContext::instance()->getInstance(), &m_handle);
 
 	// Get surface capabilities
-	if (!VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physical_device, m_handle, &m_capabilities)))
+	if (!VK_CHECK(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(GraphicsContext::instance()->getPhysicalDevice(), m_handle, &m_capabilities)))
 	{
 		VK_ERROR("Failed to get physical device surface capabilities!");
 		return;
@@ -22,9 +23,9 @@ Surface::Surface(const Instance &instance, const PhysicalDevice &physical_device
 
 	// Get surface format
 	uint32_t surface_format_count = 0;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, m_handle, &surface_format_count, nullptr);
+	vkGetPhysicalDeviceSurfaceFormatsKHR(GraphicsContext::instance()->getPhysicalDevice(), m_handle, &surface_format_count, nullptr);
 	std::vector<VkSurfaceFormatKHR> surface_formats(surface_format_count);
-	vkGetPhysicalDeviceSurfaceFormatsKHR(physical_device, m_handle, &surface_format_count, surface_formats.data());
+	vkGetPhysicalDeviceSurfaceFormatsKHR(GraphicsContext::instance()->getPhysicalDevice(), m_handle, &surface_format_count, surface_formats.data());
 
 	if (surface_format_count == 1 && surface_formats[0].format == VK_FORMAT_UNDEFINED)
 	{
@@ -55,7 +56,7 @@ Surface::~Surface()
 {
 	if (m_handle)
 	{
-		vkDestroySurfaceKHR(m_instance, m_handle, nullptr);
+		vkDestroySurfaceKHR(GraphicsContext::instance()->getInstance(), m_handle, nullptr);
 	}
 }
 

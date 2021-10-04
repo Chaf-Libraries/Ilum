@@ -3,6 +3,8 @@
 #include "PhysicalDevice.hpp"
 #include "Surface.hpp"
 
+#include "Core/Graphics/GraphicsContext.hpp"
+
 namespace Ilum
 {
 const std::vector<const char *> LogicalDevice::extensions = {
@@ -87,13 +89,13 @@ inline std::optional<uint32_t> get_queue_family_index(const std::vector<VkQueueF
 	return std::optional<uint32_t>();
 }
 
-LogicalDevice::LogicalDevice(const Instance& instance, const PhysicalDevice& physical_device, const Surface &surface)
+LogicalDevice::LogicalDevice()
 {
 	// Queue supporting
 	uint32_t queue_family_property_count = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_property_count, nullptr);
+	vkGetPhysicalDeviceQueueFamilyProperties(GraphicsContext::instance()->getPhysicalDevice(), &queue_family_property_count, nullptr);
 	std::vector<VkQueueFamilyProperties> queue_family_properties(queue_family_property_count);
-	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_property_count, queue_family_properties.data());
+	vkGetPhysicalDeviceQueueFamilyProperties(GraphicsContext::instance()->getPhysicalDevice(), &queue_family_property_count, queue_family_properties.data());
 
 	std::optional<uint32_t> graphics_family, compute_family, transfer_family, present_family;
 
@@ -105,7 +107,7 @@ LogicalDevice::LogicalDevice(const Instance& instance, const PhysicalDevice& phy
 	{
 		// Check for presentation support
 		VkBool32 present_support;
-		vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &present_support);
+		vkGetPhysicalDeviceSurfaceSupportKHR(GraphicsContext::instance()->getPhysicalDevice(), i, GraphicsContext::instance()->getSurface(), &present_support);
 
 		if (queue_family_properties[i].queueCount > 0 && present_support)
 		{
@@ -196,12 +198,12 @@ LogicalDevice::LogicalDevice(const Instance& instance, const PhysicalDevice& phy
 	}
 
 	// Enable logical device features
-	auto &                   physical_device_features = physical_device.getFeatures();
+	auto &physical_device_features = GraphicsContext::instance()->getPhysicalDevice().getFeatures();
 
 #define ENABLE_DEVICE_FEATURE(feature)                             \
 	if (physical_device_features.feature)                          \
 	{                                                              \
-		m_enabled_features.feature = VK_TRUE;                        \
+		m_enabled_features.feature = VK_TRUE;                      \
 		VK_INFO("Physical device feature enable: {}", #feature)    \
 	}                                                              \
 	else                                                           \
@@ -226,7 +228,7 @@ LogicalDevice::LogicalDevice(const Instance& instance, const PhysicalDevice& phy
 	ENABLE_DEVICE_FEATURE(imageCubeArray);
 
 	// Get support extensions
-	auto support_extensions = get_device_extension_support(physical_device, extensions);
+	auto support_extensions = get_device_extension_support(GraphicsContext::instance()->getPhysicalDevice(), extensions);
 
 	// Create device
 	VkDeviceCreateInfo device_create_info   = {};
@@ -242,7 +244,7 @@ LogicalDevice::LogicalDevice(const Instance& instance, const PhysicalDevice& phy
 	device_create_info.ppEnabledExtensionNames = support_extensions.data();
 	device_create_info.pEnabledFeatures        = &m_enabled_features;
 
-	if (!VK_CHECK(vkCreateDevice(physical_device, &device_create_info, nullptr, &m_handle)))
+	if (!VK_CHECK(vkCreateDevice(GraphicsContext::instance()->getPhysicalDevice(), &device_create_info, nullptr, &m_handle)))
 	{
 		VK_ERROR("Failed to create logical device!");
 		return;
@@ -274,9 +276,9 @@ LogicalDevice::LogicalDevice(const Instance& instance, const PhysicalDevice& phy
 
 	// Create Vma allocator
 	VmaAllocatorCreateInfo allocator_info = {};
-	allocator_info.physicalDevice         = physical_device;
+	allocator_info.physicalDevice         = GraphicsContext::instance()->getPhysicalDevice();
 	allocator_info.device                 = m_handle;
-	allocator_info.instance               = instance;
+	allocator_info.instance               = GraphicsContext::instance()->getInstance();
 	allocator_info.vulkanApiVersion       = VK_API_VERSION_1_2;
 	if (!VK_CHECK(vmaCreateAllocator(&allocator_info, &m_allocator)))
 	{

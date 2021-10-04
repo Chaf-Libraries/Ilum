@@ -1,8 +1,10 @@
+#include "Core/Engine/PCH.hpp"
+
 #include "PhysicalDevice.hpp"
 #include "Instance.hpp"
 #include "LogicalDevice.hpp"
 
-#include "Core/Engine/PCH.hpp"
+#include "Core/Graphics/GraphicsContext.hpp"
 
 namespace Ilum
 {
@@ -146,15 +148,15 @@ inline VkSampleCountFlagBits get_max_sample_count(VkPhysicalDevice physical_devi
 	return VK_SAMPLE_COUNT_1_BIT;
 }
 
-PhysicalDevice::PhysicalDevice(const Instance &instance)
+PhysicalDevice::PhysicalDevice()
 {
 	// Get number of physical devices
 	uint32_t physical_device_count = 0;
-	vkEnumeratePhysicalDevices(instance, &physical_device_count, nullptr);
+	vkEnumeratePhysicalDevices(GraphicsContext::instance()->getInstance(), &physical_device_count, nullptr);
 
 	// Get all physical devices
 	std::vector<VkPhysicalDevice> physical_devices(physical_device_count);
-	vkEnumeratePhysicalDevices(instance, &physical_device_count, physical_devices.data());
+	vkEnumeratePhysicalDevices(GraphicsContext::instance()->getInstance(), &physical_device_count, physical_devices.data());
 
 	// Select suitable physical device
 	m_handle = select_physical_device(physical_devices);

@@ -2,17 +2,12 @@
 
 #include "Core/Engine/PCH.hpp"
 
-struct SDL_Window;
-
 namespace Ilum
 {
-class Instance;
-class PhysicalDevice;
-
 class Surface
 {
   public:
-	Surface(const Instance& instance, const PhysicalDevice& physical_device, SDL_Window *window_handle);
+	Surface();
 
 	~Surface();
 
@@ -25,8 +20,6 @@ class Surface
 	const VkSurfaceFormatKHR &getFormat() const;
 
   private:
-	const Instance &m_instance;
-
 	VkSurfaceKHR m_handle = VK_NULL_HANDLE;
 	VkSurfaceCapabilitiesKHR m_capabilities = {};
 	VkSurfaceFormatKHR       m_format       = {};

@@ -4,12 +4,10 @@
 
 namespace Ilum
 {
-class Instance;
-
 class PhysicalDevice
 {
   public:
-	PhysicalDevice(const Instance &instance);
+	PhysicalDevice();
 
 	operator const VkPhysicalDevice &() const;
 
