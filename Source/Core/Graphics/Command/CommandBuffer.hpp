@@ -35,8 +35,6 @@ class CommandBuffer
 
 	void submit(const std::vector<VkSemaphore> &wait_semaphores = {}, const std::vector<VkSemaphore> &signal_semaphores = {}, VkFence fence = VK_NULL_HANDLE, const std::vector<VkShaderStageFlags> &wait_stages = {}, uint32_t queue_index = 0);
 
-	const CommandPool &getCommandPool() const;
-
 	operator const VkCommandBuffer &() const;
 
 	const VkCommandBuffer &getCommandBuffer() const;
@@ -44,8 +42,8 @@ class CommandBuffer
 	const State &getState() const;
 
   private:
-	const CommandPool &  m_command_pool;
-	VkCommandBuffer      m_handle = VK_NULL_HANDLE;
-	State                m_state = State::Initial;
+	ref<CommandPool> m_command_pool = nullptr;
+	VkCommandBuffer  m_handle       = VK_NULL_HANDLE;
+	State            m_state        = State::Initial;
 };
 }        // namespace Ilum

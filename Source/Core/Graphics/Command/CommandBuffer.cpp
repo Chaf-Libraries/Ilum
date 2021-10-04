@@ -13,7 +13,7 @@ CommandBuffer::CommandBuffer(VkQueueFlagBits queue_type, VkCommandBufferLevel le
 {
 	VkCommandBufferAllocateInfo command_buffer_allocate_info = {};
 	command_buffer_allocate_info.sType                       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	command_buffer_allocate_info.commandPool                 = m_command_pool;
+	command_buffer_allocate_info.commandPool                 = *m_command_pool;
 	command_buffer_allocate_info.level                       = level;
 	command_buffer_allocate_info.commandBufferCount          = 1;
 	if (!VK_CHECK(vkAllocateCommandBuffers(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice(), &command_buffer_allocate_info, &m_handle)))
@@ -27,7 +27,7 @@ CommandBuffer::~CommandBuffer()
 {
 	if (m_handle)
 	{
-		vkFreeCommandBuffers(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice(), m_command_pool, 1, &m_handle);
+		vkFreeCommandBuffers(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice(), *m_command_pool, 1, &m_handle);
 	}
 }
 
@@ -112,7 +112,7 @@ void CommandBuffer::submitIdle(uint32_t queue_index)
 		return;
 	}
 
-	if (!VK_CHECK(vkQueueSubmit(m_command_pool.getQueue(queue_index), 1, &submit_info, fence)))
+	if (!VK_CHECK(vkQueueSubmit(m_command_pool->getQueue(queue_index), 1, &submit_info, fence)))
 	{
 		VK_ERROR("Failed to submit queue!");
 		return;
@@ -158,7 +158,7 @@ void CommandBuffer::submit(const VkSemaphore &wait_semaphore, const VkSemaphore 
 		vkResetFences(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice(), 1, &fence);
 	}
 
-	if (!VK_CHECK(vkQueueSubmit(m_command_pool.getQueue(queue_index), 1, &submit_info, fence)))
+	if (!VK_CHECK(vkQueueSubmit(m_command_pool->getQueue(queue_index), 1, &submit_info, fence)))
 	{
 		VK_ERROR("Failed to submit queue!");
 		return;
@@ -196,16 +196,11 @@ void CommandBuffer::submit(const std::vector<VkSemaphore> &wait_semaphores, cons
 		vkResetFences(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice(), 1, &fence);
 	}
 
-	if (!VK_CHECK(vkQueueSubmit(m_command_pool.getQueue(queue_index), 1, &submit_info, fence)))
+	if (!VK_CHECK(vkQueueSubmit(m_command_pool->getQueue(queue_index), 1, &submit_info, fence)))
 	{
 		VK_ERROR("Failed to submit queue!");
 		return;
 	}
-}
-
-const CommandPool &CommandBuffer::getCommandPool() const
-{
-	return m_command_pool;
 }
 
 CommandBuffer::operator const VkCommandBuffer &() const
