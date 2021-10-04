@@ -4,29 +4,27 @@
 #include "Core/Device/PhysicalDevice.hpp"
 #include "Core/Device/Surface.hpp"
 #include "Core/Graphics/Image/Image.hpp"
+#include "Core/Graphics/GraphicsContext.hpp"
 
 namespace Ilum
 {
-Swapchain::Swapchain(const PhysicalDevice &physical_device, const Surface &surface, const LogicalDevice &logical_device, const VkExtent2D &extent, const Swapchain *old_swapchain) :
-    m_surface(surface),
-    m_physical_device(physical_device),
-    m_logical_device(logical_device),
+Swapchain::Swapchain(const VkExtent2D &extent, const Swapchain *old_swapchain) :
     m_extent(extent),
     m_present_mode(VK_PRESENT_MODE_FIFO_KHR),
     m_pre_transform(VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR),
     m_composite_alpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR),
     m_active_image_index(std::numeric_limits<uint32_t>::max())
 {
-	auto &surface_format       = m_surface.getFormat();
-	auto &surface_capabilities = m_surface.getCapabilities();
-	auto  graphics_family      = m_logical_device.getGraphicsFamily();
-	auto  present_family       = m_logical_device.getPresentFamily();
+	auto &surface_format       = GraphicsContext::instance()->getSurface().getFormat();
+	auto &surface_capabilities = GraphicsContext::instance()->getSurface().getCapabilities();
+	auto  graphics_family      = GraphicsContext::instance()->getLogicalDevice().getGraphicsFamily();
+	auto  present_family       = GraphicsContext::instance()->getLogicalDevice().getPresentFamily();
 
 	// Get present mode
 	uint32_t present_mode_count;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(m_physical_device, m_surface, &present_mode_count, nullptr);
+	vkGetPhysicalDeviceSurfacePresentModesKHR(GraphicsContext::instance()->getPhysicalDevice(), GraphicsContext::instance()->getSurface(), &present_mode_count, nullptr);
 	std::vector<VkPresentModeKHR> present_modes(present_mode_count);
-	vkGetPhysicalDeviceSurfacePresentModesKHR(m_physical_device, m_surface, &present_mode_count, present_modes.data());
+	vkGetPhysicalDeviceSurfacePresentModesKHR(GraphicsContext::instance()->getPhysicalDevice(), GraphicsContext::instance()->getSurface(), &present_mode_count, present_modes.data());
 
 	for (const auto &present_mode : present_modes)
 	{
@@ -79,7 +77,7 @@ Swapchain::Swapchain(const PhysicalDevice &physical_device, const Surface &surfa
 	// Create swapchain
 	VkSwapchainCreateInfoKHR swapchain_create_info = {};
 	swapchain_create_info.sType                    = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	swapchain_create_info.surface                  = m_surface;
+	swapchain_create_info.surface                  = GraphicsContext::instance()->getSurface();
 	swapchain_create_info.minImageCount            = desired_image_count;
 	swapchain_create_info.imageFormat              = surface_format.format;
 	swapchain_create_info.imageColorSpace          = surface_format.colorSpace;
@@ -103,14 +101,14 @@ Swapchain::Swapchain(const PhysicalDevice &physical_device, const Surface &surfa
 		swapchain_create_info.pQueueFamilyIndices   = queue_family.data();
 	}
 
-	if (!VK_CHECK(vkCreateSwapchainKHR(m_logical_device, &swapchain_create_info, nullptr, &m_handle)))
+	if (!VK_CHECK(vkCreateSwapchainKHR(GraphicsContext::instance()->getLogicalDevice(), &swapchain_create_info, nullptr, &m_handle)))
 	{
 		VK_ERROR("Failed to create swapchain");
 		return;
 	}
 
 	// Get swapchain images
-	if (!VK_CHECK(vkGetSwapchainImagesKHR(m_logical_device, m_handle, &m_image_count, nullptr)))
+	if (!VK_CHECK(vkGetSwapchainImagesKHR(GraphicsContext::instance()->getLogicalDevice(), m_handle, &m_image_count, nullptr)))
 	{
 		VK_ERROR("Failed to get swapchain images");
 		return;
@@ -119,7 +117,7 @@ Swapchain::Swapchain(const PhysicalDevice &physical_device, const Surface &surfa
 	m_images.resize(m_image_count);
 	m_image_views.resize(m_image_count);
 
-	if (!VK_CHECK(vkGetSwapchainImagesKHR(m_logical_device, m_handle, &m_image_count, m_images.data())))
+	if (!VK_CHECK(vkGetSwapchainImagesKHR(GraphicsContext::instance()->getLogicalDevice(), m_handle, &m_image_count, m_images.data())))
 	{
 		VK_ERROR("Failed to get swapchain images");
 		return;
@@ -135,14 +133,14 @@ Swapchain::~Swapchain()
 {
 	if (m_handle)
 	{
-		vkDestroySwapchainKHR(m_logical_device, m_handle, nullptr);
+		vkDestroySwapchainKHR(GraphicsContext::instance()->getLogicalDevice(), m_handle, nullptr);
 	}
 
 	for (const auto &image_view : m_image_views)
 	{
 		if (image_view)
 		{
-			vkDestroyImageView(m_logical_device, image_view, nullptr);
+			vkDestroyImageView(GraphicsContext::instance()->getLogicalDevice(), image_view, nullptr);
 		}
 	}
 }
@@ -151,10 +149,10 @@ VkResult Swapchain::acquireNextImage(const VkSemaphore &present_complete_semapho
 {
 	if (fence != VK_NULL_HANDLE)
 	{
-		vkWaitForFences(m_logical_device, 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+		vkWaitForFences(GraphicsContext::instance()->getLogicalDevice(), 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max());
 	}
 
-	auto result = vkAcquireNextImageKHR(m_logical_device, m_handle, std::numeric_limits<uint64_t>::max(), present_complete_semaphore, VK_NULL_HANDLE, &m_active_image_index);
+	auto result = vkAcquireNextImageKHR(GraphicsContext::instance()->getLogicalDevice(), m_handle, std::numeric_limits<uint64_t>::max(), present_complete_semaphore, VK_NULL_HANDLE, &m_active_image_index);
 
 	if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR && result != VK_ERROR_OUT_OF_DATE_KHR)
 	{

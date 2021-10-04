@@ -11,7 +11,7 @@ class LogicalDevice;
 class Swapchain
 {
   public:
-	Swapchain(const PhysicalDevice& physical_device, const Surface& surface, const LogicalDevice& logical_device, const VkExtent2D &extent, const Swapchain *old_swapchain = nullptr);
+	Swapchain(const VkExtent2D &extent, const Swapchain *old_swapchain = nullptr);
 
 	~Swapchain();
 
@@ -46,9 +46,6 @@ class Swapchain
 	std::vector<VkImageView> m_image_views;
 
 	VkSwapchainKHR m_handle = VK_NULL_HANDLE;
-	const Surface &m_surface;
-	const PhysicalDevice &m_physical_device;
-	const LogicalDevice & m_logical_device;
 
 	uint32_t m_active_image_index = 0;
 };
