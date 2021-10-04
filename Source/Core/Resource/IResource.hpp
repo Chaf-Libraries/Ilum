@@ -10,11 +10,16 @@ namespace Ilum
 	  public:
 	    IResource() = default;
 
-		~IResource() = default;
+		virtual ~IResource() = 0;
 
 		std::type_index getType() const
 		{
 		    return typeid(T);
+		}
+
+		T* get()
+		{
+		    return static_cast<T *>(this);
 		}
 	};
 }
