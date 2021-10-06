@@ -6,7 +6,6 @@
 namespace Ilum
 {
 Image2D::Image2D(
-    const LogicalDevice & logical_device,
     const uint32_t        width,
     const uint32_t        height,
     VkFormat              format,
@@ -35,7 +34,6 @@ Image2D::Image2D(
 }
 
 Image2D::Image2D(
-    const LogicalDevice & logical_device,
     scope<Bitmap> &&      bitmap,
     VkFormat              format,
     VkImageLayout         layout,
@@ -62,7 +60,7 @@ Image2D::Image2D(
 	load(std::move(bitmap));
 }
 
-ref<Image2D> Image2D::create(const LogicalDevice &logical_device, const std::string &path, VkFilter filter, VkSamplerAddressMode address_mode, bool mipmap, bool anisotropic)
+ref<Image2D> Image2D::create(const std::string &path, VkFilter filter, VkSamplerAddressMode address_mode, bool mipmap, bool anisotropic)
 {
 	auto bitmap = Bitmap::create(path);
 
@@ -72,7 +70,6 @@ ref<Image2D> Image2D::create(const LogicalDevice &logical_device, const std::str
 	}
 
 	return createRef<Image2D>(
-	    logical_device,
 	    std::move(bitmap),
 	    bitmap->getBytesPerPixel() == 4 ? VK_FORMAT_R8G8B8A8_UNORM : VK_FORMAT_R32G32B32A32_SFLOAT,
 	    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -96,7 +93,7 @@ void Image2D::load(const scope<Bitmap> &bitmap)
 		return;
 	}
 
-	m_mip_levels = m_mipmap ? (bitmap->hasMipmaps() ? bitmap->getMipmaps().size() : getMipLevels(m_extent)) : 1;
+	m_mip_levels = m_mipmap ? getMipLevels(m_extent) : 1;
 
 	createImage(m_image, m_allocation, m_extent, VK_IMAGE_TYPE_2D, m_format, m_mip_levels, m_array_layers, m_samples, VK_IMAGE_TILING_OPTIMAL, m_usage, VMA_MEMORY_USAGE_GPU_ONLY);
 	createImageSampler(m_sampler, m_filter, m_address_mode, m_anisotropic, m_mip_levels);
@@ -110,8 +107,29 @@ void Image2D::load(const scope<Bitmap> &bitmap)
 	if (bitmap)
 	{
 		// Staging
+		//bitmap
 
+		Buffer staging_buffer(bitmap->getLength(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
+		uint8_t *data;
+		staging_buffer.map(reinterpret_cast<void **>(&data));
+		std::memcpy(data, bitmap->getData().get(), staging_buffer.getSize());
+		staging_buffer.unmap();
+
+		copyBufferToImage(staging_buffer.getBuffer(), m_image, m_extent, m_array_layers, 0);
+	}
+
+	if (m_mipmap)
+	{
+		createMipmaps(m_image, m_extent, m_format, m_layout, m_mip_levels, 0, m_array_layers);
+	}
+	else if (bitmap)
+	{
+		transitionImageLayout(m_image, m_format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, m_layout, VK_IMAGE_ASPECT_COLOR_BIT, m_mip_levels, 0, m_array_layers, 0);
+	}
+	else
+	{
+		transitionImageLayout(m_image, m_format, VK_IMAGE_LAYOUT_UNDEFINED, m_layout, VK_IMAGE_ASPECT_COLOR_BIT, m_mip_levels, 0, m_array_layers, 0);
 	}
 }
 }        // namespace Ilum

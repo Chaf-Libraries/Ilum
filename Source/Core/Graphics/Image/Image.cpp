@@ -53,11 +53,6 @@ Image::~Image()
 	{
 		vmaDestroyImage(graphics_context->getLogicalDevice().getAllocator(), m_image, m_allocation);
 	}
-
-	if (m_image)
-	{
-		vkDestroyImage(graphics_context->getLogicalDevice(), m_image, nullptr);
-	}
 }
 
 const VkExtent3D &Image::getExtent() const
@@ -305,10 +300,42 @@ void Image::createMipmaps(
 	CommandBuffer command_buffer;
 	command_buffer.begin();
 
-	VkImageMemoryBarrier barrier = {};
+	/*
+		vkb::insert_image_memory_barrier(
+	    copy_command,
+	    texture.image,
+	    VK_ACCESS_TRANSFER_WRITE_BIT,
+	    VK_ACCESS_TRANSFER_READ_BIT,
+	    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+	    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+	    VK_PIPELINE_STAGE_TRANSFER_BIT,
+	    VK_PIPELINE_STAGE_TRANSFER_BIT,
+	    {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
+	*/
 
 	for (uint32_t i = 1; i < mip_levels; i++)
 	{
+		VkImageBlit image_blit = {};
+
+		// Source
+		image_blit.srcSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+		image_blit.srcSubresource.mipLevel       = i - 1;
+		image_blit.srcSubresource.baseArrayLayer = base_array_layer;
+		image_blit.srcSubresource.layerCount     = layer_count;
+		image_blit.srcOffsets[1].x               = int32_t(extent.width >> (i - 1));
+		image_blit.srcOffsets[1].y               = int32_t(extent.height >> (i - 1));
+		image_blit.srcOffsets[1].z               = 1;
+
+		// Destination
+		image_blit.dstSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+		image_blit.dstSubresource.mipLevel       = i;
+		image_blit.dstSubresource.baseArrayLayer = base_array_layer;
+		image_blit.dstSubresource.layerCount     = layer_count;
+		image_blit.dstOffsets[1].x               = int32_t(extent.width >> i);
+		image_blit.dstOffsets[1].y               = int32_t(extent.height >> i);
+		image_blit.dstOffsets[1].z               = 1;
+
+		// TODO: Sync issue
 		insertImageMemoryBarrier(
 		    command_buffer,
 		    image,
@@ -324,18 +351,15 @@ void Image::createMipmaps(
 		    layer_count,
 		    base_array_layer);
 
-		VkImageBlit image_blit                   = {};
-		image_blit.srcOffsets[1]                 = {int32_t(extent.width >> (i - 1)), int32_t(extent.height >> (i - 1)), 1};
-		image_blit.srcSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-		image_blit.srcSubresource.mipLevel       = i - 1;
-		image_blit.srcSubresource.baseArrayLayer = base_array_layer;
-		image_blit.srcSubresource.layerCount     = layer_count;
-		image_blit.dstOffsets[1]                 = {int32_t(extent.width >> i), int32_t(extent.height >> i), 1};
-		image_blit.dstSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-		image_blit.dstSubresource.mipLevel       = i;
-		image_blit.dstSubresource.baseArrayLayer = base_array_layer;
-		image_blit.dstSubresource.layerCount     = layer_count;
-		vkCmdBlitImage(command_buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &image_blit, VK_FILTER_LINEAR);
+		vkCmdBlitImage(
+		    command_buffer,
+		    image,
+		    VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+		    image,
+		    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+		    1,
+		    &image_blit,
+		    VK_FILTER_LINEAR);
 
 		insertImageMemoryBarrier(
 		    command_buffer,
@@ -428,7 +452,7 @@ void Image::transitionImageLayout(
 			dst_access_mask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 			break;
 		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-			dst_access_mask = dst_access_mask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			dst_access_mask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 			break;
 		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
 			if (src_access_mask == 0)
@@ -477,7 +501,7 @@ void Image::insertImageMemoryBarrier(
 {
 	VkImageMemoryBarrier barrier            = {};
 	barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	src_access_mask                         = src_access_mask;
+	barrier.srcAccessMask                   = src_access_mask;
 	barrier.dstAccessMask                   = dst_access_mask;
 	barrier.oldLayout                       = old_image_layout;
 	barrier.newLayout                       = new_image_layout;

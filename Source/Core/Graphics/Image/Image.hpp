@@ -97,7 +97,7 @@ class Image
 	    const VkImage &    image,
 	    const VkExtent3D & extent,
 	    VkFormat           format,
-	    VkImageLayout      dst_image_layout,
+	    VkImageLayout     dst_image_layout,
 	    uint32_t           mip_levels,
 	    uint32_t           base_array_layer,
 	    uint32_t           layer_count);

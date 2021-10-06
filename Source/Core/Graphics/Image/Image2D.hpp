@@ -13,7 +13,6 @@ class Image2D : public Image, public IResource<Image2D>
   public:
 	// Create a 2D texture without any data
 	Image2D(
-	    const LogicalDevice &logical_device,
 	    const uint32_t       width,
 	    const uint32_t       height,
 	    VkFormat             format       = VK_FORMAT_R8G8B8A8_UNORM,
@@ -27,7 +26,6 @@ class Image2D : public Image, public IResource<Image2D>
 
 	// Create a 2D texture from bitmap
 	Image2D(
-	    const LogicalDevice &logical_device,
 	    scope<Bitmap> &&            bitmap,
 	    VkFormat             format       = VK_FORMAT_R8G8B8A8_UNORM,
 	    VkImageLayout        layout       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -38,10 +36,11 @@ class Image2D : public Image, public IResource<Image2D>
 	    bool                 anisotropic  = false,
 	    bool                 mipmap       = false);
 
+	~Image2D() = default;
+
   public:
 	// Create a 2D texture from file for sampling
 	static ref<Image2D> create(
-	    const LogicalDevice &logical_device,
 	    const std::string &  path,
 	    VkFilter             filter       = VK_FILTER_LINEAR,
 	    VkSamplerAddressMode address_mode = VK_SAMPLER_ADDRESS_MODE_REPEAT,
