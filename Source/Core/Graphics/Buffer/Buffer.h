@@ -21,6 +21,8 @@ class Buffer
 
 	const VkBuffer &getBuffer() const;
 
+	const VkDeviceSize getSize() const;
+
   public:
 	static void insertBufferMemoryBarrier(
 	    const CommandBuffer &command_buffer,

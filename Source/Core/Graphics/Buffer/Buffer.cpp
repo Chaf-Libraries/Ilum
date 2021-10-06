@@ -92,6 +92,11 @@ const VkBuffer &Buffer::getBuffer() const
 	return m_handle;
 }
 
+const VkDeviceSize Buffer::getSize() const
+{
+	return m_size;
+}
+
 void Buffer::insertBufferMemoryBarrier(
     const CommandBuffer &command_buffer,
     const VkBuffer &     buffer,
