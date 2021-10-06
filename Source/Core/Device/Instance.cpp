@@ -20,7 +20,6 @@ const std::vector<const char *>                 Instance::validation_layers     
 const std::vector<VkValidationFeatureEnableEXT> Instance::validation_extensions = {
     VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
     VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
-    VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
     VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT};
 #else
 const std::vector<const char *>                 Instance::extensions            = {"VK_KHR_surface", "VK_KHR_win32_surface"};
