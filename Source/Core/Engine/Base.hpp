@@ -10,6 +10,12 @@
 #	define ILUM_EXPORT
 #endif        // SHARED_LINK
 
+#define DISABLE_WARNINGS()\
+		__pragma(warning(push, 0))
+
+#define ENABLE_WARNINGS()\
+		__pragma(warning(pop))
+
 #define BIT(x) (1 << x)
 
 #define VAR_NAME(var) (#var)
