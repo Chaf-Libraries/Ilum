@@ -15,43 +15,42 @@ class Bitmap
 	};
 
   public:
-	Bitmap(std::vector<uint8_t> &&data = {}, std::vector<Mipmap> &&mipmaps = {{0u, 0u, {0u, 0u, 1u}}});
+	Bitmap(const uint32_t width, const uint32_t height, const uint32_t bytes_per_pixel = 4);
+
+	Bitmap(scope<uint8_t[]> &&data, const uint32_t width, const uint32_t height, const uint32_t bytes_per_pixel = 4);
 
 	Bitmap(const std::string &path);
 
 	~Bitmap() = default;
 
-	bool load(const std::string &path);
+	void load(const std::string &path);
 
 	bool write(const std::string &path);
 
 	operator bool() const noexcept;
 
-	bool hasMipmaps() const;
-
 	const std::string &getPath() const;
 
-	const std::vector<uint8_t> &getData() const;
+	const scope<uint8_t[]> &getData() const;
 
-	const std::vector<Mipmap> &getMipmaps() const;
-
-	void setData(std::vector<uint8_t> &&data, std::vector<Mipmap> &&mipmaps);
+	const void setData(scope<uint8_t[]> &&data);
 
 	const uint32_t getWidth() const;
 
 	const uint32_t getHeight() const;
 
-	const uint32_t getChannel() const;
-
 	const uint32_t getBytesPerPixel() const;
+
+	const uint32_t getLength() const;
 
   public:
 	static scope<Bitmap> create(const std::string &path);
 
   private:
-	const std::string    m_path = "";
-	std::vector<uint8_t> m_data;
-	std::vector<Mipmap>  m_mipmaps         = {{0u, 0u, {0u, 0u, 1u}}};
-	uint32_t             m_bytes_per_pixel = 1;
+	const std::string m_path            = "";
+	scope<uint8_t[]>    m_data            = nullptr;
+	uint32_t          m_width           = 0;
+	uint32_t          m_height          = 0;
+	uint32_t          m_bytes_per_pixel = 1;
 };
 }        // namespace Ilum

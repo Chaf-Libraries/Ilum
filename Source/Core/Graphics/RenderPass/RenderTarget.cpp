@@ -1,12 +1,18 @@
 #include "RenderTarget.hpp"
+#include "RenderPass.hpp"
+
+#include "Core/Graphics/Image/Image2D.hpp"
+#include "Core/Graphics/Image/ImageDepth.hpp"
 
 namespace Ilum
 {
-Attachment::Attachment(uint32_t binding, const std::string &name, VkFormat format, bool multisampled) :
+Attachment::Attachment(uint32_t binding, const std::string &name, Type type, VkFormat format, const Math::Rgba &clear_color, VkSampleCountFlagBits samples) :
     m_binding(binding),
     m_name(name),
+    m_type(type),
     m_format(format),
-    m_multisampled(multisampled)
+    m_clear_color(clear_color),
+    m_samples(samples)
 {
 }
 
@@ -20,9 +26,14 @@ const std::string &Attachment::getName() const
 	return m_name;
 }
 
-bool Attachment::isMultisampled() const
+Attachment::Type Attachment::getType() const
 {
-	return m_multisampled;
+	return m_type;
+}
+
+VkSampleCountFlagBits Attachment::getSamples() const
+{
+	return m_samples;
 }
 
 VkFormat Attachment::getFormat() const
@@ -70,7 +81,7 @@ void RenderArea::setOffset(const Math::Vector2 &offset)
 	m_offset = offset;
 }
 
-Subpass::Subpass(uint32_t binding, const std::vector<uint32_t> &attachment_bindings):
+Subpass::Subpass(uint32_t binding, const std::vector<uint32_t> &attachment_bindings) :
     m_binding(binding), m_attachment_bindings(attachment_bindings)
 {
 }
@@ -83,5 +94,54 @@ uint32_t Subpass::getBinding() const
 const std::vector<uint32_t> &Subpass::getAttachmentBindings() const
 {
 	return m_attachment_bindings;
+}
+
+RenderTarget::RenderTarget(const std::vector<Attachment> &attachments, const std::vector<Subpass> &subpasses, const RenderArea &render_area) :
+    m_attachments(attachments),
+    m_subpasses(subpasses),
+    m_render_area(render_area)
+{
+}
+
+const RenderArea &RenderTarget::getRenderArea() const
+{
+	return m_render_area;
+}
+
+const std::vector<Attachment> &RenderTarget::getAttachments() const
+{
+	return m_attachments;
+}
+
+std::optional<Attachment> RenderTarget::getAttachment(uint32_t binding) const
+{
+	auto it = std::find_if(m_attachments.begin(), m_attachments.end(), [binding](const Attachment &attachment) { return attachment.getBinding() == binding; });
+
+	if (it != m_attachments.end())
+	{
+		return *it;
+	}
+
+	return std::nullopt;
+}
+
+const std::vector<Subpass> &RenderTarget::getSubpasses() const
+{
+	return m_subpasses;
+}
+
+const ImageDepth *RenderTarget::getDepthStencil() const
+{
+	return m_depth_stencil.get();
+}
+
+const Image2D *RenderTarget::getColorAttachment(uint32_t idx) const
+{
+	if (m_color_attachments.size() >= idx)
+	{
+		return nullptr;
+	}
+
+	return m_color_attachments[idx].get();
 }
 }        // namespace Ilum

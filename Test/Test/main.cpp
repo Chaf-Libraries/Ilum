@@ -17,6 +17,8 @@
 #include <Core/Resource/Bitmap/Bitmap.hpp>
 
 #include <Core/Graphics/Buffer/Buffer.h>
+#include <Core/Graphics/Image/Image2D.hpp>
+#include <Core/Graphics/Image/ImageDepth.hpp>
 
 #include <Math/Vector2.h>
 #include <Math/Vector3.h>
@@ -35,7 +37,12 @@ int main()
 {
 	auto engine = std::make_unique<Ilum::Engine>();
 
-	//Ilum::Bitmap bitmap("../Asset/Texture/613934.jpg");
+	//auto bitmap = Ilum::Bitmap::create("../Asset/Texture/613934.jpg");
+	auto bitmap = Ilum::Bitmap::create("../Asset/Texture/hdr/circus_arena_4k.hdr");
+	bitmap->write("test.hdr");
+
+	auto image = Ilum::Image2D::create("../Asset/Texture/613934.jpg", VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, true);
+	auto depth = std::make_unique<Ilum::ImageDepth>(100, 100, VK_SAMPLE_COUNT_1_BIT);
 
 	const std::string title = Ilum::Window::instance()->getTitle();
 

@@ -10,7 +10,7 @@ namespace Ilum
 	  public:
 	    IResource() = default;
 
-		virtual ~IResource() = 0;
+		~IResource() = default;
 
 		std::type_index getType() const
 		{
