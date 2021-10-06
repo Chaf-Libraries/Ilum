@@ -99,7 +99,7 @@ void CommandBuffer::submitIdle(uint32_t queue_index)
 
 	VkFence fence;
 
-	auto logical_device = Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice();
+	auto& logical_device = Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice();
 	if (!VK_CHECK(vkCreateFence(logical_device, &fence_create_info, nullptr, &fence)))
 	{
 		VK_ERROR("Failed to create fence!");
