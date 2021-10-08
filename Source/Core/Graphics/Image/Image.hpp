@@ -52,6 +52,8 @@ class Image
 
 	const VkSampler &getSampler() const;
 
+	VkDescriptorImageInfo getDescriptor() const;
+
   public:
 	static uint32_t getMipLevels(const VkExtent3D &extent);
 
@@ -76,15 +78,15 @@ class Image
 	    VmaMemoryUsage        memory_usage);
 
 	static bool createImageView(
-	    const VkImage &      image,
-	    VkImageView &        image_view,
-	    VkImageViewType      type,
-	    VkFormat             format,
-	    uint32_t             mip_levels,
-	    uint32_t             base_mip_level,
-	    uint32_t             layer_count,
-	    uint32_t             base_array_layer,
-	    VkImageAspectFlags   image_aspect);
+	    const VkImage &    image,
+	    VkImageView &      image_view,
+	    VkImageViewType    type,
+	    VkFormat           format,
+	    uint32_t           mip_levels,
+	    uint32_t           base_mip_level,
+	    uint32_t           layer_count,
+	    uint32_t           base_array_layer,
+	    VkImageAspectFlags image_aspect);
 
 	static bool createImageSampler(
 	    VkSampler &          sampler,
@@ -94,13 +96,13 @@ class Image
 	    uint32_t             mip_levels);
 
 	static void createMipmaps(
-	    const VkImage &    image,
-	    const VkExtent3D & extent,
-	    VkFormat           format,
+	    const VkImage &   image,
+	    const VkExtent3D &extent,
+	    VkFormat          format,
 	    VkImageLayout     dst_image_layout,
-	    uint32_t           mip_levels,
-	    uint32_t           base_array_layer,
-	    uint32_t           layer_count);
+	    uint32_t          mip_levels,
+	    uint32_t          base_array_layer,
+	    uint32_t          layer_count);
 
 	static void transitionImageLayout(
 	    const VkImage &    image,
@@ -129,21 +131,24 @@ class Image
 	    uint32_t             base_array_layer);
 
 	static void copyBufferToImage(
-	    const VkBuffer &   buffer,
-	    const VkImage &    image,
-	    const VkExtent3D & extent,
-	    uint32_t           layer_count,
-	    uint32_t           base_array_layer);
+	    const VkBuffer &  buffer,
+	    const VkImage &   image,
+	    const VkExtent3D &extent,
+	    uint32_t          layer_count,
+	    uint32_t          base_array_layer);
 
 	static void copyImage(
-	    const VkImage &    src_image,
-	    VkImage &    dst_image,
-	    VmaAllocation &    dst_image_allocation,
-	    VkFormat           src_format,
-	    const VkExtent3D & extent,
-	    VkImageLayout      src_image_layout,
-	    uint32_t           mip_level,
-	    uint32_t           array_layer);
+	    const VkImage &   src_image,
+	    VkImage &         dst_image,
+	    VmaAllocation &   dst_image_allocation,
+	    VkFormat          src_format,
+	    const VkExtent3D &extent,
+	    VkImageLayout     src_image_layout,
+	    uint32_t          mip_level,
+	    uint32_t          array_layer);
+
+  protected:
+	void updateDescriptor();
 
   protected:
 	VkExtent3D            m_extent;
@@ -163,5 +168,7 @@ class Image
 	VkSampler   m_sampler = VK_NULL_HANDLE;
 
 	VmaAllocation m_allocation = VK_NULL_HANDLE;
+
+	VkDescriptorImageInfo m_descriptor = {};
 };
 }        // namespace Ilum

@@ -125,6 +125,11 @@ const VkSampler &Image::getSampler() const
 	return m_sampler;
 }
 
+VkDescriptorImageInfo Image::getDescriptor() const
+{
+	return m_descriptor;
+}
+
 uint32_t Image::getMipLevels(const VkExtent3D &extent)
 {
 	return static_cast<uint32_t>(std::floorf(std::log2f(std::fmaxf(static_cast<float>(extent.width), std::fmaxf(static_cast<float>(extent.height), static_cast<float>(extent.depth))))) + 1);
@@ -620,5 +625,12 @@ void Image::copyImage(
 
 	command_buffer.end();
 	command_buffer.submitIdle();
+}
+
+void Image::updateDescriptor()
+{
+	m_descriptor.imageLayout = m_layout;
+	m_descriptor.imageView   = m_view;
+	m_descriptor.sampler     = m_sampler;
 }
 }        // namespace Ilum
