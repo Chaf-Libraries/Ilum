@@ -131,5 +131,7 @@ void Image2D::load(const scope<Bitmap> &bitmap)
 	{
 		transitionImageLayout(m_image, m_format, VK_IMAGE_LAYOUT_UNDEFINED, m_layout, VK_IMAGE_ASPECT_COLOR_BIT, m_mip_levels, 0, m_array_layers, 0);
 	}
+
+	updateDescriptor();
 }
 }        // namespace Ilum
