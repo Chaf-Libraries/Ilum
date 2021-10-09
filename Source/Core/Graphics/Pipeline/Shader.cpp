@@ -139,29 +139,29 @@ inline static const std::unordered_map<Shader::Buffer::Type, VkDescriptorType> b
     {Shader::Buffer::Type::Storage, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC},
     {Shader::Buffer::Type::Uniform, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC}};
 
-inline static const std::unordered_map<uint32_t, std::vector<VkFormat>> attribute_format = {
-    {spirv_cross::SPIRType::BaseType::SByte, {VK_FORMAT_UNDEFINED, VK_FORMAT_R8_SINT, VK_FORMAT_R8G8_SINT, VK_FORMAT_R8G8B8_SINT, VK_FORMAT_R8G8B8A8_SINT}},
-    {spirv_cross::SPIRType::BaseType::UByte, {VK_FORMAT_UNDEFINED, VK_FORMAT_R8_UINT, VK_FORMAT_R8G8_UINT, VK_FORMAT_R8G8B8_UINT, VK_FORMAT_R8G8B8A8_UINT}},
-    {spirv_cross::SPIRType::BaseType::Short, {VK_FORMAT_UNDEFINED, VK_FORMAT_R16_SINT, VK_FORMAT_R16G16_SINT, VK_FORMAT_R16G16B16_SINT, VK_FORMAT_R16G16B16A16_SINT}},
-    {spirv_cross::SPIRType::BaseType::UShort, {VK_FORMAT_UNDEFINED, VK_FORMAT_R16_UINT, VK_FORMAT_R16G16_UINT, VK_FORMAT_R16G16B16_UINT, VK_FORMAT_R16G16B16A16_UINT}},
-    {spirv_cross::SPIRType::BaseType::Int, {VK_FORMAT_UNDEFINED, VK_FORMAT_R32_SINT, VK_FORMAT_R32G32_SINT, VK_FORMAT_R32G32B32_SINT, VK_FORMAT_R32G32B32A32_SINT}},
-    {spirv_cross::SPIRType::BaseType::UInt, {VK_FORMAT_UNDEFINED, VK_FORMAT_R32_UINT, VK_FORMAT_R32G32_UINT, VK_FORMAT_R32G32B32_UINT, VK_FORMAT_R32G32B32A32_UINT}},
-    {spirv_cross::SPIRType::BaseType::Int64, {VK_FORMAT_UNDEFINED, VK_FORMAT_R64_SINT, VK_FORMAT_R64G64_SINT, VK_FORMAT_R64G64B64_SINT, VK_FORMAT_R64G64B64A64_SINT}},
-    {spirv_cross::SPIRType::BaseType::UInt64, {VK_FORMAT_UNDEFINED, VK_FORMAT_R64_UINT, VK_FORMAT_R64G64_UINT, VK_FORMAT_R64G64B64_UINT, VK_FORMAT_R64G64B64A64_UINT}},
-    {spirv_cross::SPIRType::BaseType::Float, {VK_FORMAT_UNDEFINED, VK_FORMAT_R32_SFLOAT, VK_FORMAT_R32G32_SFLOAT, VK_FORMAT_R32G32B32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT}},
-    {spirv_cross::SPIRType::BaseType::Double, {VK_FORMAT_UNDEFINED, VK_FORMAT_R64_SFLOAT, VK_FORMAT_R64G64_SFLOAT, VK_FORMAT_R64G64B64_SFLOAT, VK_FORMAT_R64G64B64A64_SFLOAT}}};
+//inline static const std::unordered_map<uint32_t, std::vector<VkFormat>> attribute_format = {
+//    {spirv_cross::SPIRType::BaseType::SByte, {VK_FORMAT_UNDEFINED, VK_FORMAT_R8_SINT, VK_FORMAT_R8G8_SINT, VK_FORMAT_R8G8B8_SINT, VK_FORMAT_R8G8B8A8_SINT}},
+//    {spirv_cross::SPIRType::BaseType::UByte, {VK_FORMAT_UNDEFINED, VK_FORMAT_R8_UINT, VK_FORMAT_R8G8_UINT, VK_FORMAT_R8G8B8_UINT, VK_FORMAT_R8G8B8A8_UINT}},
+//    {spirv_cross::SPIRType::BaseType::Short, {VK_FORMAT_UNDEFINED, VK_FORMAT_R16_SINT, VK_FORMAT_R16G16_SINT, VK_FORMAT_R16G16B16_SINT, VK_FORMAT_R16G16B16A16_SINT}},
+//    {spirv_cross::SPIRType::BaseType::UShort, {VK_FORMAT_UNDEFINED, VK_FORMAT_R16_UINT, VK_FORMAT_R16G16_UINT, VK_FORMAT_R16G16B16_UINT, VK_FORMAT_R16G16B16A16_UINT}},
+//    {spirv_cross::SPIRType::BaseType::Int, {VK_FORMAT_UNDEFINED, VK_FORMAT_R32_SINT, VK_FORMAT_R32G32_SINT, VK_FORMAT_R32G32B32_SINT, VK_FORMAT_R32G32B32A32_SINT}},
+//    {spirv_cross::SPIRType::BaseType::UInt, {VK_FORMAT_UNDEFINED, VK_FORMAT_R32_UINT, VK_FORMAT_R32G32_UINT, VK_FORMAT_R32G32B32_UINT, VK_FORMAT_R32G32B32A32_UINT}},
+//    {spirv_cross::SPIRType::BaseType::Int64, {VK_FORMAT_UNDEFINED, VK_FORMAT_R64_SINT, VK_FORMAT_R64G64_SINT, VK_FORMAT_R64G64B64_SINT, VK_FORMAT_R64G64B64A64_SINT}},
+//    {spirv_cross::SPIRType::BaseType::UInt64, {VK_FORMAT_UNDEFINED, VK_FORMAT_R64_UINT, VK_FORMAT_R64G64_UINT, VK_FORMAT_R64G64B64_UINT, VK_FORMAT_R64G64B64A64_UINT}},
+//    {spirv_cross::SPIRType::BaseType::Float, {VK_FORMAT_UNDEFINED, VK_FORMAT_R32_SFLOAT, VK_FORMAT_R32G32_SFLOAT, VK_FORMAT_R32G32B32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT}},
+//    {spirv_cross::SPIRType::BaseType::Double, {VK_FORMAT_UNDEFINED, VK_FORMAT_R64_SFLOAT, VK_FORMAT_R64G64_SFLOAT, VK_FORMAT_R64G64B64_SFLOAT, VK_FORMAT_R64G64B64A64_SFLOAT}}};
 
-inline static const std::unordered_map<uint32_t, uint32_t> base_type_size = {
-    {spirv_cross::SPIRType::BaseType::SByte, 1},
-    {spirv_cross::SPIRType::BaseType::UByte, 1},
-    {spirv_cross::SPIRType::BaseType::Short, 2},
-    {spirv_cross::SPIRType::BaseType::UShort, 2},
-    {spirv_cross::SPIRType::BaseType::Int, 4},
-    {spirv_cross::SPIRType::BaseType::UInt, 4},
-    {spirv_cross::SPIRType::BaseType::Int64, 8},
-    {spirv_cross::SPIRType::BaseType::UInt64, 8},
-    {spirv_cross::SPIRType::BaseType::Float, 4},
-    {spirv_cross::SPIRType::BaseType::Double, 8}};
+//inline static const std::unordered_map<uint32_t, uint32_t> base_type_size = {
+//    {spirv_cross::SPIRType::BaseType::SByte, 1},
+//    {spirv_cross::SPIRType::BaseType::UByte, 1},
+//    {spirv_cross::SPIRType::BaseType::Short, 2},
+//    {spirv_cross::SPIRType::BaseType::UShort, 2},
+//    {spirv_cross::SPIRType::BaseType::Int, 4},
+//    {spirv_cross::SPIRType::BaseType::UInt, 4},
+//    {spirv_cross::SPIRType::BaseType::Int64, 8},
+//    {spirv_cross::SPIRType::BaseType::UInt64, 8},
+//    {spirv_cross::SPIRType::BaseType::Float, 4},
+//    {spirv_cross::SPIRType::BaseType::Double, 8}};
 
 inline EShLanguage get_shader_language(VkShaderStageFlags stage)
 {
@@ -220,6 +220,12 @@ inline void read_resource_decoration<spv::DecorationDescriptorSet, Shader::Image
 
 template <>
 inline void read_resource_decoration<spv::DecorationDescriptorSet, Shader::Buffer>(const spirv_cross::Compiler &compiler, const spirv_cross::Resource &resource, Shader::Buffer &descriptor)
+{
+	descriptor.set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+}
+
+template <>
+inline void read_resource_decoration<spv::DecorationDescriptorSet, Shader::InputAttachment>(const spirv_cross::Compiler &compiler, const spirv_cross::Resource &resource, Shader::InputAttachment &descriptor)
 {
 	descriptor.set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
 }
@@ -633,6 +639,7 @@ VkShaderModule Shader::createShaderModule(const std::string &filename, const Var
 	}
 
 	reflectSpirv(spirv, stage);
+	updateShaderDescription();
 
 	VkShaderModuleCreateInfo shader_module_create_info = {};
 	shader_module_create_info.sType                    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -648,153 +655,56 @@ VkShaderModule Shader::createShaderModule(const std::string &filename, const Var
 
 	m_shader_module_cache.push_back(shader_module);
 
+	// Update hash
+	for (auto &image : m_images)
+	{
+		hash_combine(m_hash, image.hash());
+	}
+
+	for (auto &buffer : m_buffers)
+	{
+		hash_combine(m_hash, buffer.hash());
+	}
+
+	for (auto &input_attachment : m_input_attachments)
+	{
+		hash_combine(m_hash, input_attachment.hash());
+	}
+
 	return shader_module;
 }
 
-Shader::ShaderDescription Shader::createShaderDescription()
+const Shader::ShaderDescription &Shader::getShaderDescription() const
 {
-	ShaderDescription shader_desc;
+	return m_shader_description;
+}
 
-	// Descriptor pool sizes
-	std::unordered_map<VkDescriptorType, uint32_t> descriptor_types = {
-	    {VK_DESCRIPTOR_TYPE_SAMPLER, 0},
-	    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0},
-	    {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 0},
-	    {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 0},
-	    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0},
-	    {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0},
-	    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0},
-	    {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 0},
-	    {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0},
-	    // TODO:
-	    //{VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR , 0},
-	};
+size_t Shader::hash() const
+{
+	return m_hash;
+}
 
-	for (auto &image : m_images)
+std::vector<VkPushConstantRange> Shader::getPushConstantRanges() const
+{
+	std::vector<VkPushConstantRange> push_constant_ranges;
+	for (auto &constant : m_constants)
 	{
-		descriptor_types[image_to_descriptor.at(image.type)]++;
-	}
-
-	const std::unordered_map<Buffer::Type, VkDescriptorType> buffer_to_descriptor = {
-	    {Buffer::Type::Storage, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER},
-	    {Buffer::Type::Uniform, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER}};
-
-	const std::unordered_map<Buffer::Type, VkDescriptorType> buffer_to_descriptor_dynamic = {
-	    {Buffer::Type::Storage, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC},
-	    {Buffer::Type::Uniform, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC}};
-
-	for (auto &buffer : m_buffers)
-	{
-		descriptor_types[buffer.mode == ShaderResourceMode::Dynamic ? buffer_to_descriptor_dynamic.at(buffer.type) : buffer_to_descriptor.at(buffer.type)]++;
-	}
-
-	for (auto &[descriptor_type, count] : descriptor_types)
-	{
-		if (count > 0)
+		if (constant.type == Constant::Type::Push)
 		{
-			shader_desc.m_descriptor_pool_sizes.push_back(VkDescriptorPoolSize{descriptor_type, count});
+			VkPushConstantRange push_constant_range = {};
+			push_constant_range.stageFlags          = constant.stage;
+			push_constant_range.size                = constant.size;
+			push_constant_range.offset              = constant.offset;
+			push_constant_ranges.push_back(push_constant_range);
 		}
 	}
 
-	// Descriptor set layout binding
-	for (auto &image : m_images)
-	{
-		if (shader_desc.m_descriptor_set_layout_bindings.find(image.set) == shader_desc.m_descriptor_set_layout_bindings.end())
-		{
-			shader_desc.m_descriptor_set_layout_bindings[image.set] = {};
-		}
+	return push_constant_ranges;
+}
 
-		shader_desc.m_descriptor_set_layout_bindings[image.set].push_back(VkDescriptorSetLayoutBinding{
-		    image.binding,
-		    image_to_descriptor.at(image.type),
-		    image.array_size == 0 ? 1024 : image.array_size,
-		    image.stage});
-	}
-
-	for (auto &buffer : m_buffers)
-	{
-		if (shader_desc.m_descriptor_set_layout_bindings.find(buffer.set) == shader_desc.m_descriptor_set_layout_bindings.end())
-		{
-			shader_desc.m_descriptor_set_layout_bindings[buffer.set] = {};
-		}
-
-		shader_desc.m_descriptor_set_layout_bindings[buffer.set].push_back(VkDescriptorSetLayoutBinding{
-		    buffer.binding,
-		    buffer.mode == ShaderResourceMode::Dynamic ? buffer_to_descriptor_dynamic.at(buffer.type) : buffer_to_descriptor.at(buffer.type),
-		    buffer.array_size == 0 ? 1024 : buffer.array_size,
-		    buffer.stage});
-	}
-
-	// Vertex input
-	if (m_attributes.find(VK_SHADER_STAGE_VERTEX_BIT) == m_attributes.end())
-	{
-		return shader_desc;
-	}
-
-	auto &attributes = m_attributes[VK_SHADER_STAGE_VERTEX_BIT];
-
-	std::vector<Attribute> input_attributes;
-
-	for (auto &attribute : attributes)
-	{
-		if (attribute.type == Attribute::Type::Input)
-		{
-			input_attributes.push_back(attribute);
-		}
-	}
-
-	std::sort(input_attributes.begin(), input_attributes.end(), [](const Attribute &lhs, const Attribute &rhs) { return lhs.location < rhs.location; });
-
-	if (m_vertex_stride > 0)
-	{
-		uint32_t rate_vertex    = 0;
-		uint32_t stride         = 0;
-		auto     attribute_iter = input_attributes.begin();
-
-		for (; attribute_iter != input_attributes.end(); attribute_iter++)
-		{
-			shader_desc.m_vertex_input_attribute_descriptions.push_back(VkVertexInputAttributeDescription{0, attribute_iter->location, attribute_format.at(attribute_iter->base_type).at(attribute_iter->vec_size)});
-			stride += attribute_iter->vec_size * base_type_size.at(attribute_iter->base_type);
-			if (stride == m_vertex_stride)
-			{
-				attribute_iter++;
-				break;
-			}
-		}
-
-		stride = 0;
-		for (; attribute_iter != input_attributes.end(); attribute_iter++)
-		{
-			shader_desc.m_vertex_input_attribute_descriptions.push_back(VkVertexInputAttributeDescription{1, attribute_iter->location, attribute_format.at(attribute_iter->base_type).at(attribute_iter->vec_size)});
-			stride += attribute_iter->vec_size * base_type_size.at(attribute_iter->base_type);
-		}
-
-		if (m_instance_stride > 0 && stride != m_instance_stride)
-		{
-			VK_ERROR("Vertex stride is not matched with shader reflection data!");
-			shader_desc.m_vertex_input_attribute_descriptions.clear();
-			return shader_desc;
-		}
-	}
-	else
-	{
-		uint32_t stride = 0;
-		for (auto &attribute : input_attributes)
-		{
-			shader_desc.m_vertex_input_attribute_descriptions.push_back(VkVertexInputAttributeDescription{0, attribute.location, attribute_format.at(attribute.base_type).at(attribute.vec_size)});
-			stride += attribute.vec_size * base_type_size.at(attribute.base_type);
-		}
-	}
-
-	shader_desc.m_vertex_input_binding_descriptions = {VkVertexInputBindingDescription{0, m_vertex_stride, VK_VERTEX_INPUT_RATE_VERTEX}};
-
-	if (m_instance_stride > 0)
-	{
-		shader_desc.m_vertex_input_binding_descriptions.push_back({VkVertexInputBindingDescription{1, m_instance_stride, VK_VERTEX_INPUT_RATE_INSTANCE}});
-	}
-
-	// TODO
-	return shader_desc;
+const std::unordered_set<uint32_t> &Shader::getSets() const
+{
+	return m_sets;
 }
 
 const std::unordered_map<VkShaderStageFlags, std::vector<Shader::Attribute>> &Shader::getAttributeReflection() const
@@ -815,6 +725,11 @@ const std::vector<Shader::Buffer> &Shader::getBufferReflection() const
 const std::vector<Shader::Constant> &Shader::getConstantReflection() const
 {
 	return m_constants;
+}
+
+const std::vector<Shader::InputAttachment> &Shader::getInputAttachmentReflection() const
+{
+	return m_input_attachments;
 }
 
 void Shader::setBufferMode(uint32_t set, uint32_t binding, ShaderResourceMode mode)
@@ -1036,6 +951,9 @@ void Shader::reflectSpirv(const std::vector<uint32_t> &spirv, VkShaderStageFlags
 	ADD_RESOURCE(constants, m_constants);
 
 	// Check binding and set conflict
+	std::for_each(m_images.begin(), m_images.end(), [this](const Shader::Image &image) { m_sets.insert(image.set); });
+	std::for_each(m_buffers.begin(), m_buffers.end(), [this](const Shader::Buffer &buffer) { m_sets.insert(buffer.set); });
+
 	for (auto &image : m_images)
 	{
 		for (auto &buffer : m_buffers)
@@ -1049,9 +967,146 @@ void Shader::reflectSpirv(const std::vector<uint32_t> &spirv, VkShaderStageFlags
 	}
 }
 
-size_t Shader::Variant::getID() const
+void Shader::updateShaderDescription()
 {
-	return m_id;
+	m_shader_description.clear();
+	// Descriptor pool sizes
+	std::unordered_map<VkDescriptorType, uint32_t> descriptor_types = {
+	    {VK_DESCRIPTOR_TYPE_SAMPLER, 0},
+	    {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0},
+	    {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 0},
+	    {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 0},
+	    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0},
+	    {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0},
+	    {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 0},
+	    {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 0},
+	    {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 0},
+	    // TODO:
+	    //{VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR , 0},
+	};
+
+	for (auto &image : m_images)
+	{
+		descriptor_types[image_to_descriptor.at(image.type)]++;
+	}
+
+	for (auto &buffer : m_buffers)
+	{
+		descriptor_types[buffer.mode == ShaderResourceMode::Dynamic ? buffer_to_descriptor_dynamic.at(buffer.type) : buffer_to_descriptor.at(buffer.type)]++;
+	}
+
+	for (auto &[descriptor_type, count] : descriptor_types)
+	{
+		if (count > 0)
+		{
+			m_shader_description.m_descriptor_pool_sizes.push_back(VkDescriptorPoolSize{descriptor_type, count});
+		}
+	}
+
+	// Descriptor set layout binding
+	for (auto &image : m_images)
+	{
+		if (m_shader_description.m_descriptor_set_layout_bindings.find(image.set) == m_shader_description.m_descriptor_set_layout_bindings.end())
+		{
+			m_shader_description.m_descriptor_set_layout_bindings[image.set] = {};
+		}
+
+		m_shader_description.m_descriptor_set_layout_bindings[image.set].push_back(VkDescriptorSetLayoutBinding{
+		    image.binding,
+		    image_to_descriptor.at(image.type),
+		    image.array_size == 0 ? 1024 : image.array_size,
+		    image.stage});
+	}
+
+	for (auto &buffer : m_buffers)
+	{
+		if (m_shader_description.m_descriptor_set_layout_bindings.find(buffer.set) == m_shader_description.m_descriptor_set_layout_bindings.end())
+		{
+			m_shader_description.m_descriptor_set_layout_bindings[buffer.set] = {};
+		}
+
+		auto descriptor_type = buffer.mode == ShaderResourceMode::Dynamic ? buffer_to_descriptor_dynamic.at(buffer.type) : buffer_to_descriptor.at(buffer.type);
+
+		m_shader_description.m_descriptor_set_layout_bindings[buffer.set].push_back(VkDescriptorSetLayoutBinding{
+		    buffer.binding,
+		    descriptor_type,
+		    buffer.array_size == 0 ? 1024 : buffer.array_size,
+		    buffer.stage});
+	}
+
+	// Vertex input
+	if (m_attributes.find(VK_SHADER_STAGE_VERTEX_BIT) == m_attributes.end())
+	{
+		return;
+	}
+
+	auto &attributes = m_attributes[VK_SHADER_STAGE_VERTEX_BIT];
+
+	std::vector<Attribute> input_attributes;
+
+	for (auto &attribute : attributes)
+	{
+		if (attribute.type == Attribute::Type::Input)
+		{
+			input_attributes.push_back(attribute);
+		}
+	}
+
+	std::sort(input_attributes.begin(), input_attributes.end(), [](const Attribute &lhs, const Attribute &rhs) { return lhs.location < rhs.location; });
+
+	if (m_vertex_stride > 0)
+	{
+		uint32_t rate_vertex    = 0;
+		uint32_t stride         = 0;
+		auto     attribute_iter = input_attributes.begin();
+
+		for (; attribute_iter != input_attributes.end(); attribute_iter++)
+		{
+			m_shader_description.m_vertex_input_attribute_descriptions.push_back(VkVertexInputAttributeDescription{0, attribute_iter->location, attribute_format.at(attribute_iter->base_type).at(attribute_iter->vec_size)});
+			stride += attribute_iter->vec_size * base_type_size.at(attribute_iter->base_type);
+			if (stride == m_vertex_stride)
+			{
+				attribute_iter++;
+				break;
+			}
+		}
+
+		stride = 0;
+		for (; attribute_iter != input_attributes.end(); attribute_iter++)
+		{
+			m_shader_description.m_vertex_input_attribute_descriptions.push_back(VkVertexInputAttributeDescription{1, attribute_iter->location, attribute_format.at(attribute_iter->base_type).at(attribute_iter->vec_size)});
+			stride += attribute_iter->vec_size * base_type_size.at(attribute_iter->base_type);
+		}
+
+		if (m_instance_stride > 0 && stride != m_instance_stride)
+		{
+			VK_ERROR("Vertex stride is not matched with shader reflection data!");
+			m_shader_description.m_vertex_input_attribute_descriptions.clear();
+			return;
+		}
+	}
+	else
+	{
+		uint32_t stride = 0;
+		for (auto &attribute : input_attributes)
+		{
+			m_shader_description.m_vertex_input_attribute_descriptions.push_back(VkVertexInputAttributeDescription{0, attribute.location, attribute_format.at(attribute.base_type).at(attribute.vec_size)});
+			stride += attribute.vec_size * base_type_size.at(attribute.base_type);
+		}
+	}
+
+	m_shader_description.m_vertex_input_binding_descriptions = {VkVertexInputBindingDescription{0, m_vertex_stride, VK_VERTEX_INPUT_RATE_VERTEX}};
+
+	if (m_instance_stride > 0)
+	{
+		m_shader_description.m_vertex_input_binding_descriptions.push_back({VkVertexInputBindingDescription{1, m_instance_stride, VK_VERTEX_INPUT_RATE_INSTANCE}});
+	}
+}
+
+size_t Shader::Variant::hash() const
+{
+	std::hash<std::string> hasher{};
+	return hasher(m_preamble);
 }
 
 void Shader::Variant::addDefinitions(const std::vector<std::string> &definitions)
@@ -1075,15 +1130,12 @@ void Shader::Variant::addDefine(const std::string &def)
 	}
 
 	m_preamble.append("#define " + tmp_def + "\n");
-
-	updateID();
 }
 
 void Shader::Variant::addUndefine(const std::string &undef)
 {
 	m_processes.push_back("U" + undef);
 	m_preamble.append("#undef " + undef + "\n");
-	updateID();
 }
 
 const std::string &Shader::Variant::getPreamble() const
@@ -1100,12 +1152,13 @@ void Shader::Variant::clear()
 {
 	m_preamble.clear();
 	m_processes.clear();
-	updateID();
 }
 
-void Shader::Variant::updateID()
+void Shader::ShaderDescription::clear()
 {
-	std::hash<std::string> hasher{};
-	m_id = hasher(m_preamble);
+	m_descriptor_set_layout_bindings.clear();
+	m_descriptor_pool_sizes.clear();
+	m_vertex_input_binding_descriptions.clear();
+	m_vertex_input_attribute_descriptions.clear();
 }
 }        // namespace Ilum

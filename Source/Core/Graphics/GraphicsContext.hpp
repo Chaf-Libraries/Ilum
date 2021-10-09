@@ -13,6 +13,7 @@ class LogicalDevice;
 class Swapchain;
 class CommandBuffer;
 class CommandPool;
+class DescriptorCache;
 
 class GraphicsContext : public TSubsystem<GraphicsContext>
 {
@@ -30,6 +31,10 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	const LogicalDevice &getLogicalDevice() const;
 
 	const Swapchain &getSwapchain() const;
+
+	DescriptorCache &getDescriptorCache();
+
+	const VkPipelineCache &getPipelineCache() const;
 
 	const ref<CommandPool> &getCommandPool(VkQueueFlagBits queue_type = VK_QUEUE_GRAPHICS_BIT, const std::thread::id &thread_id = std::this_thread::get_id());
 
@@ -58,6 +63,8 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	scope<Surface>        m_surface;
 	scope<LogicalDevice>  m_logical_device;
 	scope<Swapchain>      m_swapchain;
+
+	scope<DescriptorCache> m_descriptor_cache;
 
 	// Command pool per thread
 	std::unordered_map<std::thread::id, std::unordered_map<VkQueueFlagBits, ref<CommandPool>>> m_command_pools;

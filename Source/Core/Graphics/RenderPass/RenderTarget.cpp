@@ -1,6 +1,8 @@
 #include "RenderTarget.hpp"
+#include "Framebuffer.hpp"
 #include "RenderPass.hpp"
 
+#include "Core/Graphics/GraphicsContext.hpp"
 #include "Core/Graphics/Image/Image2D.hpp"
 #include "Core/Graphics/Image/ImageDepth.hpp"
 
@@ -46,64 +48,85 @@ const Math::Rgba &Attachment::getColor() const
 	return m_clear_color;
 }
 
-RenderArea::RenderArea(const Math::Vector2 &extent, const Math::Vector2 &offset) :
-    m_extent(extent), m_offset(offset)
+Subpass::Subpass(uint32_t index, std::vector<uint32_t> &&output_attachments, std::vector<uint32_t> &&input_attachments) :
+    m_index(index), m_output_attachments(std::move(output_attachments)), m_input_attachments(std::move(input_attachments))
 {
 }
 
-bool RenderArea::operator==(const RenderArea &rhs) const
+uint32_t Subpass::getIndex() const
 {
-	return m_extent == rhs.m_extent && m_offset == rhs.m_offset;
+	return m_index;
 }
 
-bool RenderArea::operator!=(const RenderArea &rhs) const
+const std::vector<uint32_t> &Subpass::getInputAttachments() const
 {
-	return !(*this == rhs);
+	return m_input_attachments;
 }
 
-const Math::Vector2 &RenderArea::getExtent() const
+const std::vector<uint32_t> &Subpass::getOutputAttachments() const
 {
-	return m_extent;
+	return m_output_attachments;
 }
 
-void RenderArea::setExtent(const Math::Vector2 &extent)
+RenderTarget::RenderTarget(std::vector<Attachment> &&attachments, std::vector<Subpass> &&subpasses, const VkRect2D &render_area) :
+    m_attachments(std::move(attachments)),
+    m_subpasses(std::move(subpasses)),
+    m_render_area(render_area),
+    m_subpass_attachment_counts(m_subpasses.size())
 {
-	m_extent = extent;
+	for (const auto &attachment : m_attachments)
+	{
+		VkClearValue clear_value = {};
+		switch (attachment.getType())
+		{
+			case Attachment::Type::Image:
+				clear_value.color = {{attachment.getColor().x, attachment.getColor().y, attachment.getColor().z, attachment.getColor().w}};
+				break;
+			case Attachment::Type::Depth:
+				clear_value.depthStencil = {1.0f, 0};
+				m_depth_attachment       = attachment;
+				break;
+			case Attachment::Type::Swapchain:
+				clear_value.color      = {{attachment.getColor().x, attachment.getColor().y, attachment.getColor().z, attachment.getColor().w}};
+				m_swapchain_attachment = attachment;
+				break;
+			default:
+				break;
+		}
+
+		m_clear_values.push_back(clear_value);
+
+		if (attachment.getType() == Attachment::Type::Depth)
+		{
+			continue;
+		}
+
+		for (const auto &subpass : m_subpasses)
+		{
+			auto &subpass_bindings = subpass.getOutputAttachments();
+			if (std::find(subpass_bindings.begin(), subpass_bindings.end(), attachment.getBinding()) != subpass_bindings.end())
+			{
+				m_subpass_attachment_counts[subpass.getIndex()]++;
+			}
+		}
+	}
+
+	build();
 }
 
-const Math::Vector2 &RenderArea::getOffset() const
+void RenderTarget::resize(const VkRect2D &render_area)
 {
-	return m_offset;
+	if (render_area.extent.width != m_render_area.extent.width ||
+	    render_area.extent.height != m_render_area.extent.height ||
+	    render_area.offset.x != m_render_area.offset.x ||
+	    render_area.offset.y != m_render_area.offset.y)
+	{
+		m_render_area = render_area;
+		build();
+	}
 }
 
-void RenderArea::setOffset(const Math::Vector2 &offset)
-{
-	m_offset = offset;
-}
-
-Subpass::Subpass(uint32_t binding, const std::vector<uint32_t> &attachment_bindings) :
-    m_binding(binding), m_attachment_bindings(attachment_bindings)
-{
-}
-
-uint32_t Subpass::getBinding() const
-{
-	return m_binding;
-}
-
-const std::vector<uint32_t> &Subpass::getAttachmentBindings() const
-{
-	return m_attachment_bindings;
-}
-
-RenderTarget::RenderTarget(const std::vector<Attachment> &attachments, const std::vector<Subpass> &subpasses, const RenderArea &render_area) :
-    m_attachments(attachments),
-    m_subpasses(subpasses),
-    m_render_area(render_area)
-{
-}
-
-const RenderArea &RenderTarget::getRenderArea() const
+const VkRect2D &RenderTarget::getRenderArea() const
 {
 	return m_render_area;
 }
@@ -137,11 +160,68 @@ const ImageDepth *RenderTarget::getDepthStencil() const
 
 const Image2D *RenderTarget::getColorAttachment(uint32_t idx) const
 {
-	if (m_color_attachments.size() >= idx)
+	if (m_color_attachments_mapping.find(idx) == m_color_attachments_mapping.end())
 	{
 		return nullptr;
 	}
 
-	return m_color_attachments[idx].get();
+	return m_color_attachments_mapping.at(idx);
+}
+
+const VkRenderPass &RenderTarget::getRenderPass() const
+{
+	return *m_render_pass;
+}
+
+const std::vector<uint32_t> &RenderTarget::getSubpassAttachmentCounts() const
+{
+	return m_subpass_attachment_counts;
+}
+
+bool RenderTarget::hasSwapchainAttachment() const
+{
+	return m_swapchain_attachment.has_value();
+}
+
+bool RenderTarget::hasDepthAttachment() const
+{
+	return m_depth_attachment.has_value();
+}
+
+void RenderTarget::build()
+{
+	if (m_depth_attachment)
+	{
+		m_depth_stencil = createScope<ImageDepth>(m_render_area.extent.width, m_render_area.extent.height, m_depth_attachment->getSamples());
+	}
+
+	m_color_attachments.clear();
+	m_color_attachments_mapping.clear();
+
+	for (auto &attachment : m_attachments)
+	{
+		if (attachment.getType() == Attachment::Type::Image)
+		{
+			// Is input attachment?
+			VkImageUsageFlags usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+			for (auto &subpass : m_subpasses)
+			{
+				if (std::find(subpass.getInputAttachments().begin(), subpass.getInputAttachments().end(), attachment.getBinding()) != subpass.getInputAttachments().end())
+				{
+					usage |= VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
+				}
+			}
+
+			m_color_attachments.emplace_back(createScope<Image2D>(m_render_area.extent.width, m_render_area.extent.height, attachment.getFormat(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, usage));
+			m_color_attachments_mapping.insert({attachment.getBinding(), m_color_attachments.back().get()});
+		}
+	}
+
+	if (!m_render_pass)
+	{
+		m_render_pass = createScope<RenderPass>(*this);
+	}
+
+	m_framebuffer = createScope<Framebuffer>(*this, *m_render_pass);
 }
 }        // namespace Ilum

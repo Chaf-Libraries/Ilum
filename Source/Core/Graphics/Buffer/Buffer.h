@@ -23,6 +23,8 @@ class Buffer
 
 	const VkDeviceSize getSize() const;
 
+	VkDescriptorBufferInfo getDescriptor() const;
+
   public:
 	static void insertBufferMemoryBarrier(
 	    const CommandBuffer &command_buffer,
@@ -35,12 +37,15 @@ class Buffer
 	    VkDeviceSize         size   = VK_WHOLE_SIZE);
 
   private:
+	void updateDescriptor();
+
+  private:
 	VkBuffer      m_handle     = VK_NULL_HANDLE;
 	VmaAllocation m_allocation = VK_NULL_HANDLE;
 
-	VkDeviceSize m_size     = 0;
+	VkDeviceSize m_size = 0;
 
-
+	VkDescriptorBufferInfo m_descriptor = {};
 	// TODO: Dynamic buffer
 };
 }        // namespace Ilum

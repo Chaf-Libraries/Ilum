@@ -9,6 +9,7 @@
 #include "Core/Engine/Context.hpp"
 #include "Core/Engine/Threading/ThreadPool.hpp"
 
+#include "Core/Graphics/Descriptor/DescriptorCache.hpp"
 #include "Core/Graphics/Command/CommandBuffer.hpp"
 #include "Core/Graphics/Command/CommandPool.hpp"
 
@@ -27,6 +28,8 @@ GraphicsContext::GraphicsContext(Context *context) :
 	VkPipelineCacheCreateInfo pipeline_cache_create_info = {};
 	pipeline_cache_create_info.sType                     = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
 	vkCreatePipelineCache(*m_logical_device, &pipeline_cache_create_info, nullptr, &m_pipeline_cache);
+
+	m_descriptor_cache = createScope<DescriptorCache>();
 }
 
 const Instance &GraphicsContext::getInstance() const
@@ -52,6 +55,16 @@ const LogicalDevice &GraphicsContext::getLogicalDevice() const
 const Swapchain &GraphicsContext::getSwapchain() const
 {
 	return *m_swapchain;
+}
+
+DescriptorCache &GraphicsContext::getDescriptorCache()
+{
+	return *m_descriptor_cache;
+}
+
+const VkPipelineCache &GraphicsContext::getPipelineCache() const
+{
+	return m_pipeline_cache;
 }
 
 const ref<CommandPool> &GraphicsContext::getCommandPool(VkQueueFlagBits queue_type, const std::thread::id &thread_id)

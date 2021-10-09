@@ -9,20 +9,26 @@
 
 namespace Ilum
 {
+struct VertexInputState;
+
 struct Vertex
 {
 	Math::Vector3 position;
 	Math::Vector3 normal;
 	Math::Vector2 uv;
 	Math::Vector3 tengent;
-
-	static Shader::VertexInput getVertexInput();
 };
 
 struct InstanceData
 {
 	uint32_t index;
-
-	static Shader::VertexInput getVertexInput();
 };
+
+template<typename... T>
+static VertexInputState getVertexInput()
+{
+	return {};
 }
+}
+
+#include "Vertex.inl"

@@ -2,6 +2,12 @@
 
 #include "Core/Engine/PCH.hpp"
 
+#include <glslang/Include/ResourceLimits.h>
+#include <glslang/SPIRV/GLSL.std.450.h>
+#include <glslang/SPIRV/GlslangToSpv.h>
+
+#include <spirv_glsl.hpp>
+
 namespace Ilum
 {
 class LogicalDevice;
@@ -48,7 +54,7 @@ class Shader
 
 		~Variant() = default;
 
-		size_t getID() const;
+		size_t hash() const;
 
 		void addDefinitions(const std::vector<std::string> &definitions);
 
@@ -63,20 +69,20 @@ class Shader
 		void clear();
 
 	  private:
-		void updateID();
-
-	  private:
-		size_t                   m_id = 0;
+		size_t                   m_hash = 0;
 		std::string              m_preamble;
 		std::vector<std::string> m_processes;
 	};
 
+	// TODO: Remove in the future
 	struct ShaderDescription
 	{
 		std::unordered_map<uint32_t, std::vector<VkDescriptorSetLayoutBinding>> m_descriptor_set_layout_bindings;
 		std::vector<VkDescriptorPoolSize>                                       m_descriptor_pool_sizes;
 		std::vector<VkVertexInputBindingDescription>                            m_vertex_input_binding_descriptions;
 		std::vector<VkVertexInputAttributeDescription>                          m_vertex_input_attribute_descriptions;
+
+		void clear();
 	};
 
 	struct Attribute
@@ -113,6 +119,7 @@ class Shader
 		std::string        name                   = "";
 		uint32_t           array_size             = 0;
 		uint32_t           input_attachment_index = 0;
+		uint32_t           set                    = 0;
 		uint32_t           binding                = 0;
 		VkShaderStageFlags stage                  = VK_SHADER_STAGE_FRAGMENT_BIT;
 
@@ -121,6 +128,19 @@ class Shader
 			return array_size == rhs.array_size &&
 			       input_attachment_index == rhs.input_attachment_index &&
 			       binding == rhs.binding;
+		}
+
+		inline size_t hash()
+		{
+			size_t seed = 0;
+			hash_combine(seed, name);
+			hash_combine(seed, array_size);
+			hash_combine(seed, input_attachment_index);
+			hash_combine(seed, set);
+			hash_combine(seed, binding);
+			hash_combine(seed, stage);
+
+			return seed;
 		}
 	};
 
@@ -152,6 +172,20 @@ class Shader
 			       set == rhs.set &&
 			       binding == rhs.binding &&
 			       (type == Type::ImageStorage ? qualifiers == rhs.qualifiers : true);
+		}
+
+		inline size_t hash()
+		{
+			size_t seed = 0;
+			hash_combine(seed, name);
+			hash_combine(seed, array_size);
+			hash_combine(seed, set);
+			hash_combine(seed, binding);
+			hash_combine(seed, stage);
+			hash_combine(seed, type);
+			hash_combine(seed, qualifiers);
+
+			return seed;
 		}
 	};
 
@@ -185,6 +219,22 @@ class Shader
 			       binding == rhs.binding &&
 			       (type == Type::Storage ? qualifiers == rhs.qualifiers : true);
 		}
+
+		inline size_t hash()
+		{
+			size_t seed = 0;
+			hash_combine(seed, name);
+			hash_combine(seed, size);
+			hash_combine(seed, array_size);
+			hash_combine(seed, set);
+			hash_combine(seed, binding);
+			hash_combine(seed, stage);
+			hash_combine(seed, type);
+			hash_combine(seed, mode);
+			hash_combine(seed, qualifiers);
+
+			return seed;
+		}
 	};
 
 	struct Constant
@@ -214,6 +264,31 @@ class Shader
 		}
 	};
 
+  private:
+	inline static const std::unordered_map<uint32_t, uint32_t> base_type_size = {
+	    {spirv_cross::SPIRType::BaseType::SByte, 1},
+	    {spirv_cross::SPIRType::BaseType::UByte, 1},
+	    {spirv_cross::SPIRType::BaseType::Short, 2},
+	    {spirv_cross::SPIRType::BaseType::UShort, 2},
+	    {spirv_cross::SPIRType::BaseType::Int, 4},
+	    {spirv_cross::SPIRType::BaseType::UInt, 4},
+	    {spirv_cross::SPIRType::BaseType::Int64, 8},
+	    {spirv_cross::SPIRType::BaseType::UInt64, 8},
+	    {spirv_cross::SPIRType::BaseType::Float, 4},
+	    {spirv_cross::SPIRType::BaseType::Double, 8}};
+
+	inline static const std::unordered_map<uint32_t, std::vector<VkFormat>> attribute_format = {
+	    {spirv_cross::SPIRType::BaseType::SByte, {VK_FORMAT_UNDEFINED, VK_FORMAT_R8_SINT, VK_FORMAT_R8G8_SINT, VK_FORMAT_R8G8B8_SINT, VK_FORMAT_R8G8B8A8_SINT}},
+	    {spirv_cross::SPIRType::BaseType::UByte, {VK_FORMAT_UNDEFINED, VK_FORMAT_R8_UINT, VK_FORMAT_R8G8_UINT, VK_FORMAT_R8G8B8_UINT, VK_FORMAT_R8G8B8A8_UINT}},
+	    {spirv_cross::SPIRType::BaseType::Short, {VK_FORMAT_UNDEFINED, VK_FORMAT_R16_SINT, VK_FORMAT_R16G16_SINT, VK_FORMAT_R16G16B16_SINT, VK_FORMAT_R16G16B16A16_SINT}},
+	    {spirv_cross::SPIRType::BaseType::UShort, {VK_FORMAT_UNDEFINED, VK_FORMAT_R16_UINT, VK_FORMAT_R16G16_UINT, VK_FORMAT_R16G16B16_UINT, VK_FORMAT_R16G16B16A16_UINT}},
+	    {spirv_cross::SPIRType::BaseType::Int, {VK_FORMAT_UNDEFINED, VK_FORMAT_R32_SINT, VK_FORMAT_R32G32_SINT, VK_FORMAT_R32G32B32_SINT, VK_FORMAT_R32G32B32A32_SINT}},
+	    {spirv_cross::SPIRType::BaseType::UInt, {VK_FORMAT_UNDEFINED, VK_FORMAT_R32_UINT, VK_FORMAT_R32G32_UINT, VK_FORMAT_R32G32B32_UINT, VK_FORMAT_R32G32B32A32_UINT}},
+	    {spirv_cross::SPIRType::BaseType::Int64, {VK_FORMAT_UNDEFINED, VK_FORMAT_R64_SINT, VK_FORMAT_R64G64_SINT, VK_FORMAT_R64G64B64_SINT, VK_FORMAT_R64G64B64A64_SINT}},
+	    {spirv_cross::SPIRType::BaseType::UInt64, {VK_FORMAT_UNDEFINED, VK_FORMAT_R64_UINT, VK_FORMAT_R64G64_UINT, VK_FORMAT_R64G64B64_UINT, VK_FORMAT_R64G64B64A64_UINT}},
+	    {spirv_cross::SPIRType::BaseType::Float, {VK_FORMAT_UNDEFINED, VK_FORMAT_R32_SFLOAT, VK_FORMAT_R32G32_SFLOAT, VK_FORMAT_R32G32B32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT}},
+	    {spirv_cross::SPIRType::BaseType::Double, {VK_FORMAT_UNDEFINED, VK_FORMAT_R64_SFLOAT, VK_FORMAT_R64G64_SFLOAT, VK_FORMAT_R64G64B64_SFLOAT, VK_FORMAT_R64G64B64A64_SFLOAT}}};
+
   public:
 	Shader() = default;
 
@@ -221,9 +296,15 @@ class Shader
 
 	VkShaderModule createShaderModule(const std::string &filename, const Variant &variant = {});
 
-	ShaderDescription createShaderDescription();
+	const ShaderDescription &getShaderDescription() const;
+
+	size_t hash() const;
+
+	std::vector<VkPushConstantRange> getPushConstantRanges() const;
 
   public:
+	const std::unordered_set<uint32_t> &getSets() const;
+
 	const std::unordered_map<VkShaderStageFlags, std::vector<Attribute>> &getAttributeReflection() const;
 
 	const std::vector<Image> &getImageReflection() const;
@@ -231,6 +312,8 @@ class Shader
 	const std::vector<Buffer> &getBufferReflection() const;
 
 	const std::vector<Constant> &getConstantReflection() const;
+
+	const std::vector<InputAttachment> &getInputAttachmentReflection() const;
 
 	void setBufferMode(uint32_t set, uint32_t binding, ShaderResourceMode mode);
 
@@ -257,6 +340,8 @@ class Shader
   private:
 	void reflectSpirv(const std::vector<uint32_t> &spirv, VkShaderStageFlags stage);
 
+	void updateShaderDescription();
+
   private:
 	ShaderFileType m_shader_type = ShaderFileType::GLSL;
 
@@ -273,7 +358,14 @@ class Shader
 	std::vector<Buffer>                                            m_buffers;
 	std::vector<Constant>                                          m_constants;
 
+	// Descriptor set index
+	std::unordered_set<uint32_t> m_sets;
+
 	ShaderCompileState          m_compile_state = ShaderCompileState::Idle;
 	std::vector<VkShaderModule> m_shader_module_cache;
+
+	ShaderDescription m_shader_description;
+
+	size_t m_hash = 0;
 };
 }        // namespace Ilum

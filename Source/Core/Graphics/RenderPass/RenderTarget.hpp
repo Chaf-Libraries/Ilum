@@ -10,6 +10,7 @@ namespace Ilum
 class RenderPass;
 class ImageDepth;
 class Image2D;
+class Framebuffer;
 
 class Attachment
 {
@@ -39,60 +40,41 @@ class Attachment
 	const Math::Rgba &getColor() const;
 
   private:
-	uint32_t           m_binding     = 0;
-	std::string        m_name        = "";
-	Type               m_type        = {};
+	uint32_t              m_binding     = 0;
+	std::string           m_name        = "";
+	Type                  m_type        = {};
 	VkSampleCountFlagBits m_samples     = VK_SAMPLE_COUNT_1_BIT;
-	VkFormat           m_format      = {};
-	Math::Rgba         m_clear_color = {};
-};
-
-class RenderArea
-{
-  public:
-	RenderArea(const Math::Vector2 &extent = {}, const Math::Vector2 &offset = {});
-
-	~RenderArea() = default;
-
-	bool operator==(const RenderArea &rhs) const;
-
-	bool operator!=(const RenderArea &rhs) const;
-
-	const Math::Vector2 &getExtent() const;
-
-	void setExtent(const Math::Vector2 &extent);
-
-	const Math::Vector2 &getOffset() const;
-
-	void setOffset(const Math::Vector2 &offset);
-
-  private:
-	Math::Vector2 m_extent = {};
-	Math::Vector2 m_offset = {};
+	VkFormat              m_format      = {};
+	Math::Rgba            m_clear_color = {};
 };
 
 class Subpass
 {
   public:
-	Subpass(uint32_t binding, const std::vector<uint32_t> &attachment_bindings);
+	Subpass(uint32_t index, std::vector<uint32_t> &&output_attachments, std::vector<uint32_t> &&input_attachments = {});
 
 	~Subpass() = default;
 
-	uint32_t getBinding() const;
+	uint32_t getIndex() const;
 
-	const std::vector<uint32_t> &getAttachmentBindings() const;
+	const std::vector<uint32_t> &getInputAttachments() const;
+
+	const std::vector<uint32_t> &getOutputAttachments() const;
 
   private:
-	uint32_t              m_binding;
-	std::vector<uint32_t> m_attachment_bindings;
+	uint32_t              m_index;
+	std::vector<uint32_t> m_input_attachments;
+	std::vector<uint32_t> m_output_attachments;
 };
 
 class RenderTarget
 {
   public:
-	RenderTarget(const std::vector<Attachment> &attachments = {}, const std::vector<Subpass> &subpasses = {}, const RenderArea &render_area = {});
+	RenderTarget(std::vector<Attachment> &&attachments = {}, std::vector<Subpass> &&subpasses = {}, const VkRect2D &render_area = {});
 
-	const RenderArea &getRenderArea() const;
+	void resize(const VkRect2D &render_area);
+
+	const VkRect2D &getRenderArea() const;
 
 	const std::vector<Attachment> &getAttachments() const;
 
@@ -104,14 +86,35 @@ class RenderTarget
 
 	const Image2D *getColorAttachment(uint32_t idx) const;
 
+	const VkRenderPass &getRenderPass() const;
+
+	const std::vector<uint32_t> &getSubpassAttachmentCounts() const;
+
+	bool hasSwapchainAttachment() const;
+
+	bool hasDepthAttachment() const;
+
+  private:
+	void build();
+
   private:
 	std::vector<Attachment> m_attachments;
 	std::vector<Subpass>    m_subpasses;
 
+	std::optional<Attachment> m_swapchain_attachment;
+	std::optional<Attachment> m_depth_attachment;
+
 	scope<RenderPass>           m_render_pass   = nullptr;
+	scope<Framebuffer>          m_framebuffer   = nullptr;
 	scope<ImageDepth>           m_depth_stencil = nullptr;
 	std::vector<scope<Image2D>> m_color_attachments;
 
-	RenderArea m_render_area;
+	// Binding - Color attachment image
+	std::unordered_map<uint32_t, Image2D *> m_color_attachments_mapping;
+
+	std::vector<VkClearValue> m_clear_values;
+	std::vector<uint32_t>     m_subpass_attachment_counts;
+
+	VkRect2D m_render_area;
 };
 }        // namespace Ilum

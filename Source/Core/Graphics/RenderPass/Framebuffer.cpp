@@ -14,10 +14,10 @@ Framebuffer::Framebuffer(const RenderTarget &render_target, const RenderPass &re
 {
 	m_framebuffers.resize(GraphicsContext::instance()->getSwapchain().getImageCount());
 
-	std::vector<VkImageView> attachments;
-
 	for (uint32_t i = 0; i < m_framebuffers.size(); i++)
 	{
+		std::vector<VkImageView> attachments;
+
 		for (const auto &attachment : render_target.getAttachments())
 		{
 			switch (attachment.getType())
@@ -41,8 +41,8 @@ Framebuffer::Framebuffer(const RenderTarget &render_target, const RenderPass &re
 		frame_buffer_create_info.renderPass              = render_pass;
 		frame_buffer_create_info.attachmentCount         = static_cast<uint32_t>(attachments.size());
 		frame_buffer_create_info.pAttachments            = attachments.data();
-		frame_buffer_create_info.width                   = static_cast<uint32_t>(render_target.getRenderArea().getExtent().x);
-		frame_buffer_create_info.height                  = static_cast<uint32_t>(render_target.getRenderArea().getExtent().y);
+		frame_buffer_create_info.width                   = static_cast<uint32_t>(render_target.getRenderArea().extent.width);
+		frame_buffer_create_info.height                  = static_cast<uint32_t>(render_target.getRenderArea().extent.height);
 		frame_buffer_create_info.layers                  = 1;
 		vkCreateFramebuffer(GraphicsContext::instance()->getLogicalDevice(), &frame_buffer_create_info, nullptr, &m_framebuffers[i]);
 	}

@@ -64,6 +64,8 @@ Buffer::Buffer(VkDeviceSize size, VkBufferUsageFlags buffer_usage, VmaMemoryUsag
 			VK_ERROR("Could not create avaliable buffer. You need to create a CPU side buffer in VMA_MEMORY_USAGE_CPU_ONLY and make a transfer!");
 		}
 	}
+
+	updateDescriptor();
 }
 
 Buffer::~Buffer()
@@ -97,6 +99,11 @@ const VkDeviceSize Buffer::getSize() const
 	return m_size;
 }
 
+VkDescriptorBufferInfo Buffer::getDescriptor() const
+{
+	return m_descriptor;
+}
+
 void Buffer::insertBufferMemoryBarrier(
     const CommandBuffer &command_buffer,
     const VkBuffer &     buffer,
@@ -117,5 +124,12 @@ void Buffer::insertBufferMemoryBarrier(
 	barrier.offset                = offset;
 	barrier.size                  = size;
 	vkCmdPipelineBarrier(command_buffer, src_stage_mask, dst_stage_mask, 0, 0, nullptr, 1, &barrier, 0, nullptr);
+}
+
+void Buffer::updateDescriptor()
+{
+	m_descriptor.buffer = m_handle;
+	m_descriptor.offset = 0;
+	m_descriptor.range  = m_size;
 }
 }        // namespace Ilum

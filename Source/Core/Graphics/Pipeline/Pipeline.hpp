@@ -7,19 +7,16 @@ namespace Ilum
 class CommandBuffer;
 class LogicalDevice;
 class Shader;
+class DescriptorLayout;
 
 class Pipeline
 {
   public:
-	Pipeline(const LogicalDevice &logical_device);
+	Pipeline();
 
 	~Pipeline();
 
 	void bind(const CommandBuffer &command_buffer);
-
-	const VkDescriptorSetLayout &getDescriptorSetLayout() const;
-
-	const VkDescriptorPool &getDescriptorPool() const;
 
 	const VkPipeline &getPipeline() const;
 
@@ -30,14 +27,15 @@ class Pipeline
 	const Shader &getShader() const;
 
   protected:
-	const LogicalDevice &m_logical_device;
+	void createPipelineLayout();
 
+  protected:
 	scope<Shader> m_shader = nullptr;
 
-	VkDescriptorSetLayout m_descriptor_set_layout = VK_NULL_HANDLE;
-	VkDescriptorPool      m_descriptor_pool       = VK_NULL_HANDLE;
-	VkPipeline            m_pipeline              = VK_NULL_HANDLE;
-	VkPipelineLayout      m_pipeline_layout       = VK_NULL_HANDLE;
-	VkPipelineBindPoint   m_pipeline_bind_point   = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	VkPipeline          m_pipeline            = VK_NULL_HANDLE;
+	VkPipelineLayout    m_pipeline_layout     = VK_NULL_HANDLE;
+	VkPipelineBindPoint m_pipeline_bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS;
+
+	std::map<VkShaderStageFlagBits, VkSpecializationInfo> m_specialization_infos;
 };
 }        // namespace Ilum
