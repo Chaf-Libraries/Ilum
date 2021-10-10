@@ -67,7 +67,7 @@ Window::~Window()
 	SDL_Quit();
 }
 
-void Window::onTick(float delta_time)
+void Window::onPreTick()
 {
 	SDL_Event sdl_event;
 

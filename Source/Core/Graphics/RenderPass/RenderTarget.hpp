@@ -80,15 +80,23 @@ class RenderTarget
 
 	std::optional<Attachment> getAttachment(uint32_t binding) const;
 
+	std::optional<Attachment> getAttachment(const std::string &name) const;
+
 	const std::vector<Subpass> &getSubpasses() const;
 
 	const ImageDepth *getDepthStencil() const;
 
-	const Image2D *getColorAttachment(uint32_t idx) const;
+	const Image2D *getColorAttachment(uint32_t binding) const;
+
+	const Image2D *getColorAttachment(const std::string &name) const;
 
 	const VkRenderPass &getRenderPass() const;
 
 	const std::vector<uint32_t> &getSubpassAttachmentCounts() const;
+
+	const std::vector<VkClearValue> &getClearValue() const;
+
+	const VkFramebuffer &getCurrentFramebuffer() const;
 
 	bool hasSwapchainAttachment() const;
 

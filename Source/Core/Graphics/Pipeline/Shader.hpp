@@ -74,17 +74,6 @@ class Shader
 		std::vector<std::string> m_processes;
 	};
 
-	// TODO: Remove in the future
-	struct ShaderDescription
-	{
-		std::unordered_map<uint32_t, std::vector<VkDescriptorSetLayoutBinding>> m_descriptor_set_layout_bindings;
-		std::vector<VkDescriptorPoolSize>                                       m_descriptor_pool_sizes;
-		std::vector<VkVertexInputBindingDescription>                            m_vertex_input_binding_descriptions;
-		std::vector<VkVertexInputAttributeDescription>                          m_vertex_input_attribute_descriptions;
-
-		void clear();
-	};
-
 	struct Attribute
 	{
 		enum class Type
@@ -296,8 +285,6 @@ class Shader
 
 	VkShaderModule createShaderModule(const std::string &filename, const Variant &variant = {});
 
-	const ShaderDescription &getShaderDescription() const;
-
 	size_t hash() const;
 
 	std::vector<VkPushConstantRange> getPushConstantRanges() const;
@@ -340,8 +327,6 @@ class Shader
   private:
 	void reflectSpirv(const std::vector<uint32_t> &spirv, VkShaderStageFlags stage);
 
-	void updateShaderDescription();
-
   private:
 	ShaderFileType m_shader_type = ShaderFileType::GLSL;
 
@@ -363,8 +348,6 @@ class Shader
 
 	ShaderCompileState          m_compile_state = ShaderCompileState::Idle;
 	std::vector<VkShaderModule> m_shader_module_cache;
-
-	ShaderDescription m_shader_description;
 
 	size_t m_hash = 0;
 };

@@ -31,6 +31,7 @@ CommandPool::CommandPool(VkQueueFlagBits queue_type, const std::thread::id &thre
 
 	VkCommandPoolCreateInfo command_pool_create_info = {};
 	command_pool_create_info.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	command_pool_create_info.flags                   = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 	command_pool_create_info.queueFamilyIndex        = queue_family;
 
 	if (!VK_CHECK(vkCreateCommandPool(m_logical_device, &command_pool_create_info, nullptr, &m_handle)))

@@ -9,9 +9,12 @@
 #include "Core/Engine/Context.hpp"
 #include "Core/Engine/Threading/ThreadPool.hpp"
 
-#include "Core/Graphics/Descriptor/DescriptorCache.hpp"
 #include "Core/Graphics/Command/CommandBuffer.hpp"
 #include "Core/Graphics/Command/CommandPool.hpp"
+#include "Core/Graphics/Descriptor/DescriptorCache.hpp"
+#include "Core/Graphics/ImGui/ImGuiContext.hpp"
+#include "Core/Graphics/ImGui/Impl/imgui_impl_sdl.h"
+#include "Core/Graphics/ImGui/Impl/imgui_impl_vulkan.h"
 
 #include "RenderPass/Swapchain.hpp"
 
@@ -22,14 +25,13 @@ GraphicsContext::GraphicsContext(Context *context) :
     m_instance(createScope<Instance>()),
     m_physical_device(createScope<PhysicalDevice>()),
     m_surface(createScope<Surface>()),
-    m_logical_device(createScope<LogicalDevice>())
+    m_logical_device(createScope<LogicalDevice>()),
+    m_descriptor_cache(createScope<DescriptorCache>())
 {
 	// Create pipeline cache
 	VkPipelineCacheCreateInfo pipeline_cache_create_info = {};
 	pipeline_cache_create_info.sType                     = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
 	vkCreatePipelineCache(*m_logical_device, &pipeline_cache_create_info, nullptr, &m_pipeline_cache);
-
-	m_descriptor_cache = createScope<DescriptorCache>();
 }
 
 const Instance &GraphicsContext::getInstance() const
@@ -90,7 +92,43 @@ const ref<CommandPool> &GraphicsContext::getCommandPool(VkQueueFlagBits queue_ty
 bool GraphicsContext::onInitialize()
 {
 	createSwapchain();
+	ImGui::CreateContext();
+
+	ImGuiIO &io = ImGui::GetIO();
+	(void) io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;        // Enable Keyboard Controls
+	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;          // Enable Docking
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;        // Enable Multi-Viewport / Platform Windows
+	//io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoTaskBarIcons;
+	//io.ConfigFlags |= ImGuiConfigFlags_ViewportsNoMerge;
+
+	// Setup Dear ImGui style
+	ImGui::StyleColorsDark();
+	//ImGui::StyleColorsClassic();
+
+	io.Fonts->AddFontFromFileTTF((std::string(PROJECT_SOURCE_DIR) + "/Asset/Font/arialbd.ttf").c_str(), 15.0f);
+
+	// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+	ImGuiStyle &style = ImGui::GetStyle();
+	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+	{
+		style.WindowRounding              = 0.0f;
+		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+	}
+
+	m_imgui_context = createScope<ImGuiContext>();
+
 	return true;
+}
+
+void GraphicsContext::onPreTick()
+{
+	newFrame();
+
+	ImGui_ImplVulkan_NewFrame();
+	ImGui_ImplSDL2_NewFrame();
+	ImGui::NewFrame();
 }
 
 void GraphicsContext::onTick(float delta_time)
@@ -99,8 +137,6 @@ void GraphicsContext::onTick(float delta_time)
 	{
 		return;
 	}
-
-	m_current_frame = (m_current_frame + 1) % m_swapchain->getImageCount();
 
 	// Erase unused command pools
 	if (m_stopwatch.elapsedSecond() > 10.0)
@@ -125,10 +161,31 @@ void GraphicsContext::onTick(float delta_time)
 			subpool++;
 		}
 	}
+
+	draw();
+
+	m_frame_count++;
+}
+
+void GraphicsContext::onPostTick()
+{
+	ImGui::EndFrame();
+
+	if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+	{
+		ImGui::UpdatePlatformWindows();
+		ImGui::RenderPlatformWindowsDefault();
+	}
+
+	submitFrame();
 }
 
 void GraphicsContext::onShutdown()
 {
+	ImGui_ImplVulkan_Shutdown();
+	ImGui_ImplSDL2_Shutdown();
+	ImGui::DestroyContext();
+
 	for (uint32_t i = 0; i < m_flight_fences.size(); i++)
 	{
 		vkDestroyFence(*m_logical_device, m_flight_fences[i], nullptr);
@@ -187,7 +244,7 @@ void GraphicsContext::createCommandBuffer()
 	}
 }
 
-void GraphicsContext::prepareFrame()
+void GraphicsContext::newFrame()
 {
 	auto acquire_result = m_swapchain->acquireNextImage(m_present_complete[m_current_frame], m_flight_fences[m_current_frame]);
 	if (acquire_result == VK_ERROR_OUT_OF_DATE_KHR)
@@ -222,14 +279,26 @@ void GraphicsContext::submitFrame()
 	}
 
 	vkQueueWaitIdle(queue);
+
+	m_current_frame = (m_current_frame + 1) % m_swapchain->getImageCount();
 }
 
 void GraphicsContext::draw()
 {
-	prepareFrame();
+	ImGui::ShowDemoWindow();
 
 	// Draw call
+	m_command_buffers[m_current_frame]->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
+	m_imgui_context->render(*m_command_buffers[m_current_frame]);
+	m_command_buffers[m_current_frame]->end();
 
-	submitFrame();
+	VkPipelineStageFlags submit_pipeline_stages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+	m_command_buffers[m_current_frame]->submit(
+	    m_present_complete[m_current_frame],
+	    m_render_complete[m_current_frame],
+	    VK_NULL_HANDLE,
+	    {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT},
+	    m_current_frame % m_logical_device->getGraphicsQueues().size());
 }
 }        // namespace Ilum

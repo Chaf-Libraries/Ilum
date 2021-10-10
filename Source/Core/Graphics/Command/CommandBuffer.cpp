@@ -1,10 +1,11 @@
 #include "CommandBuffer.hpp"
 #include "CommandPool.hpp"
 
-#include "Core/Engine/Engine.hpp"
-#include "Core/Engine/Context.hpp"
-#include "Core/Graphics/GraphicsContext.hpp"
 #include "Core/Device/LogicalDevice.hpp"
+#include "Core/Engine/Context.hpp"
+#include "Core/Engine/Engine.hpp"
+#include "Core/Graphics/GraphicsContext.hpp"
+#include "Core/Graphics/RenderPass/RenderTarget.hpp"
 
 namespace Ilum
 {
@@ -64,6 +65,23 @@ bool CommandBuffer::begin(VkCommandBufferUsageFlagBits usage)
 	return true;
 }
 
+void CommandBuffer::beginRenderPass(const RenderTarget &render_target) const
+{
+	VkRenderPassBeginInfo begin_info = {};
+	begin_info.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	begin_info.renderArea            = render_target.getRenderArea();
+	begin_info.renderPass            = render_target.getRenderPass();
+	begin_info.framebuffer           = render_target.getCurrentFramebuffer();
+	begin_info.clearValueCount       = static_cast<uint32_t>(render_target.getClearValue().size());
+	begin_info.pClearValues          = render_target.getClearValue().data();
+	vkCmdBeginRenderPass(*this, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
+}
+
+void CommandBuffer::endRenderPass() const
+{
+	vkCmdEndRenderPass(*this);
+}
+
 void CommandBuffer::end()
 {
 	if (m_state != State::Recording)
@@ -99,7 +117,7 @@ void CommandBuffer::submitIdle(uint32_t queue_index)
 
 	VkFence fence;
 
-	auto& logical_device = Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice();
+	auto &logical_device = Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice();
 	if (!VK_CHECK(vkCreateFence(logical_device, &fence_create_info, nullptr, &fence)))
 	{
 		VK_ERROR("Failed to create fence!");

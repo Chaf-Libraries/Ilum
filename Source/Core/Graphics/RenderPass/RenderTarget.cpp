@@ -5,6 +5,7 @@
 #include "Core/Graphics/GraphicsContext.hpp"
 #include "Core/Graphics/Image/Image2D.hpp"
 #include "Core/Graphics/Image/ImageDepth.hpp"
+#include "Core/Graphics/RenderPass/Swapchain.hpp"
 
 namespace Ilum
 {
@@ -148,6 +149,18 @@ std::optional<Attachment> RenderTarget::getAttachment(uint32_t binding) const
 	return std::nullopt;
 }
 
+std::optional<Attachment> RenderTarget::getAttachment(const std::string &name) const
+{
+	auto it = std::find_if(m_attachments.begin(), m_attachments.end(), [name](const Attachment &attachment) { return attachment.getName() == name; });
+
+	if (it != m_attachments.end())
+	{
+		return *it;
+	}
+
+	return std::nullopt;
+}
+
 const std::vector<Subpass> &RenderTarget::getSubpasses() const
 {
 	return m_subpasses;
@@ -168,6 +181,19 @@ const Image2D *RenderTarget::getColorAttachment(uint32_t idx) const
 	return m_color_attachments_mapping.at(idx);
 }
 
+const Image2D *RenderTarget::getColorAttachment(const std::string &name) const
+{
+	for (auto& attachment : m_attachments)
+	{
+		if (attachment.getName() == name && attachment.getType() == Attachment::Type::Image)
+		{
+			return m_color_attachments.at(attachment.getBinding()).get();
+		}
+	}
+
+	return nullptr;
+}
+
 const VkRenderPass &RenderTarget::getRenderPass() const
 {
 	return *m_render_pass;
@@ -176,6 +202,16 @@ const VkRenderPass &RenderTarget::getRenderPass() const
 const std::vector<uint32_t> &RenderTarget::getSubpassAttachmentCounts() const
 {
 	return m_subpass_attachment_counts;
+}
+
+const std::vector<VkClearValue> &RenderTarget::getClearValue() const
+{
+	return m_clear_values;
+}
+
+const VkFramebuffer &RenderTarget::getCurrentFramebuffer() const
+{
+	return m_framebuffer->getFramebuffers()[GraphicsContext::instance()->getSwapchain().getActiveImageIndex()];
 }
 
 bool RenderTarget::hasSwapchainAttachment() const

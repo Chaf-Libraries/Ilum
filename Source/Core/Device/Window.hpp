@@ -17,7 +17,7 @@ class Window : public TSubsystem<Window>
 
 	~Window();
 
-	virtual void onTick(float delta_time) override;
+	virtual void onPreTick() override;
 
 	uint32_t getWidth() const;
 

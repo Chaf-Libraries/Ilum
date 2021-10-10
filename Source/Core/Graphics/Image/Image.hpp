@@ -8,8 +8,33 @@ class LogicalDevice;
 class CommandPool;
 class CommandBuffer;
 
+struct ImageSubresource
+{
+	VkImage image;
+	VkImageSubresource subresource;
+};
+
 class Image
 {
+  public:
+	struct FreeState
+	{
+		VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
+	};
+
+	struct UsingState
+	{
+		VkQueue queue = VK_NULL_HANDLE;
+		VkPipelineStageFlags stages = 0;
+		VkAccessFlags        access = 0;
+		VkImageLayout        layout = VK_IMAGE_LAYOUT_UNDEFINED;
+	};
+
+	struct ReleaseState
+	{
+
+	};
+
   public:
 	Image(
 	    const VkExtent3D &    extent,

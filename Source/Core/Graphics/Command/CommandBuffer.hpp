@@ -6,6 +6,7 @@ namespace Ilum
 {
 class LogicalDevice;
 class CommandPool;
+class RenderTarget;
 
 class CommandBuffer
 {
@@ -26,6 +27,10 @@ class CommandBuffer
 	void reset();
 
 	bool begin(VkCommandBufferUsageFlagBits usage = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+
+	void beginRenderPass(const RenderTarget &render_target) const;
+
+	void endRenderPass() const;
 
 	void end();
 

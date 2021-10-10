@@ -14,6 +14,7 @@ class Swapchain;
 class CommandBuffer;
 class CommandPool;
 class DescriptorCache;
+class ImGuiContext;
 
 class GraphicsContext : public TSubsystem<GraphicsContext>
 {
@@ -41,7 +42,11 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
   public:
 	virtual bool onInitialize() override;
 
+	virtual void onPreTick() override;
+
 	virtual void onTick(float delta_time) override;
+
+	virtual void onPostTick() override;
 
 	virtual void onShutdown() override;
 
@@ -51,20 +56,21 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	void createCommandBuffer();
 
   private:
-	void prepareFrame();
+	void newFrame();
 
 	void submitFrame();
 
 	void draw();
 
   private:
-	scope<Instance>       m_instance;
-	scope<PhysicalDevice> m_physical_device;
-	scope<Surface>        m_surface;
-	scope<LogicalDevice>  m_logical_device;
-	scope<Swapchain>      m_swapchain;
+	scope<Instance>       m_instance        = nullptr;
+	scope<PhysicalDevice> m_physical_device = nullptr;
+	scope<Surface>        m_surface         = nullptr;
+	scope<LogicalDevice>  m_logical_device  = nullptr;
+	scope<Swapchain>      m_swapchain       = nullptr;
+	scope<ImGuiContext>   m_imgui_context   = nullptr;
 
-	scope<DescriptorCache> m_descriptor_cache;
+	scope<DescriptorCache> m_descriptor_cache = nullptr;
 
 	// Command pool per thread
 	std::unordered_map<std::thread::id, std::unordered_map<VkQueueFlagBits, ref<CommandPool>>> m_command_pools;
@@ -80,5 +86,7 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	VkPipelineCache m_pipeline_cache = VK_NULL_HANDLE;
 
 	Stopwatch m_stopwatch;
+
+	uint64_t m_frame_count = 0;
 };
 }        // namespace Ilum
