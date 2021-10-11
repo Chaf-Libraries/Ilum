@@ -13,4 +13,4 @@ class ExecutableGroup
 class Executor
 {
 };
-}        // namespace Ilum::RG
+}        // namespace RG

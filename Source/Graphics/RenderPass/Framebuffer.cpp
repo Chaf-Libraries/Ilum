@@ -6,6 +6,7 @@
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Image/Image2D.hpp"
 #include "Graphics/Image/ImageDepth.hpp"
+
 #include "Device/LogicalDevice.hpp"
 
 namespace Ilum

@@ -6,7 +6,7 @@
 
 #pragma once
 
-namespace Math
+namespace Ilum
 {
 class Vector2
 {
@@ -48,4 +48,4 @@ class Vector2
 	static Vector2 lerp(const Vector2 &start, const Vector2 &end, float alpha);
 	static float   angle(const Vector2 &from, const Vector2 &to);
 };
-}        // namespace Math
+}        // namespace Ilum

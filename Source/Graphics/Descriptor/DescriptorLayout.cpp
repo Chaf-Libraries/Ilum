@@ -1,6 +1,7 @@
 #include "DescriptorLayout.hpp"
 
 #include "Device/LogicalDevice.hpp"
+
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Pipeline/Shader.hpp"
 
@@ -10,15 +11,15 @@ inline VkDescriptorType find_descriptor_type(Shader::Image::Type type)
 {
 	switch (type)
 	{
-		case Ilum::Shader::Image::Type::None:
+		case Shader::Image::Type::None:
 			break;
-		case Ilum::Shader::Image::Type::ImageSampler:
+		case Shader::Image::Type::ImageSampler:
 			return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		case Ilum::Shader::Image::Type::Image:
+		case Shader::Image::Type::Image:
 			return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-		case Ilum::Shader::Image::Type::ImageStorage:
+		case Shader::Image::Type::ImageStorage:
 			return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-		case Ilum::Shader::Image::Type::Sampler:
+		case Shader::Image::Type::Sampler:
 			return VK_DESCRIPTOR_TYPE_SAMPLER;
 		default:
 			break;
@@ -31,11 +32,11 @@ inline VkDescriptorType find_descriptor_type(Shader::Buffer::Type type, bool dyn
 {
 	switch (type)
 	{
-		case Ilum::Shader::Buffer::Type::None:
+		case Shader::Buffer::Type::None:
 			break;
-		case Ilum::Shader::Buffer::Type::Uniform:
+		case Shader::Buffer::Type::Uniform:
 			return dynamic ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		case Ilum::Shader::Buffer::Type::Storage:
+		case Shader::Buffer::Type::Storage:
 			return dynamic ? VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		default:
 			break;

@@ -1,7 +1,6 @@
 #include "ImGuiContext.hpp"
 
 #include "Impl/imgui_impl_sdl.h"
-
 #include "Impl/imgui_impl_vulkan.h"
 
 #include "Device/Instance.hpp"
@@ -9,6 +8,7 @@
 #include "Device/PhysicalDevice.hpp"
 #include "Device/Surface.hpp"
 #include "Device/Window.hpp"
+
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/Command/CommandPool.hpp"
 #include "Graphics/GraphicsContext.hpp"

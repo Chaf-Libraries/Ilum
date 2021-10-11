@@ -7,7 +7,7 @@
 #include "Vector2.h"
 #include "Utility.h"
 
-namespace Math
+namespace Ilum
 {
 Vector2::Vector2(float x, float y) :
     x(x), y(y)
@@ -145,4 +145,4 @@ float Vector2::angle(const Vector2 &from, const Vector2 &to)
 {
 	return acosf(from.dot(to) / (from.norm() * to.norm()));
 }
-}        // namespace Math
+}        // namespace Ilum

@@ -1,6 +1,7 @@
 #include "Image2D.hpp"
 
 #include "Device/LogicalDevice.hpp"
+
 #include "Graphics/Buffer/Buffer.h"
 
 namespace Ilum

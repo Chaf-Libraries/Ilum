@@ -11,7 +11,7 @@
 #include "Vector4.h"
 #include "Utility.h"
 
-namespace Math
+namespace Ilum
 {
 Quaternion::Quaternion(float x, float y, float z, float w) :
     x(x), y(y), z(z), w(w)
@@ -23,7 +23,7 @@ Quaternion Quaternion::operator-() const
 	return {-x, -y, -z, -w};
 }
 
-Quaternion::Quaternion(const Math::Matrix4 &m)
+Quaternion::Quaternion(const Matrix4 &m)
 {
 	float half;
 
@@ -99,7 +99,7 @@ Quaternion Quaternion::operator-(const Quaternion &q) const
 	return *this + (-q);
 }
 
-Quaternion::Quaternion(const Math::Matrix3 &m)
+Quaternion::Quaternion(const Matrix3 &m)
 {
 	float trace = m[0] + m[4] + m[8];
 	if (trace > 0.0f)
@@ -144,11 +144,11 @@ Quaternion Quaternion::operator*(float t) const
 	return {t * x, t * y, t * z, t * w};
 }
 
-Quaternion::Quaternion(const Math::Vector3 &euler)
+Quaternion::Quaternion(const Vector3 &euler)
 {
-	float yaw   = Math::degree_to_radians(euler.z) * 0.5f;
-	float pitch = Math::degree_to_radians(euler.y) * 0.5f;
-	float roll  = Math::degree_to_radians(euler.x) * 0.5f;
+	float yaw   = degree_to_radians(euler.z) * 0.5f;
+	float pitch = degree_to_radians(euler.y) * 0.5f;
+	float roll  = degree_to_radians(euler.x) * 0.5f;
 
 	float cy = std::cos(yaw);
 	float sy = std::sin(yaw);
@@ -351,7 +351,7 @@ Vector3 Quaternion::eulerAngles() const
 	float cosy_cosp = 1.f - 2.f * (y * y + z * z);
 	float yaw       = atan2f(siny_cosp, cosy_cosp);
 
-	return Vector3(Math::radians_to_degree(roll), Math::radians_to_degree(pitch), Math::radians_to_degree(yaw));
+	return Vector3(radians_to_degree(roll), radians_to_degree(pitch), radians_to_degree(yaw));
 }
 
 Matrix3 Quaternion::toMatrix3() const
@@ -476,4 +476,4 @@ Quaternion Quaternion::nlerp(const Quaternion &start, const Quaternion &end, flo
 {
 	return lerp(start, end, alpha).normalize();
 }
-}        // namespace Math
+}        // namespace Ilum

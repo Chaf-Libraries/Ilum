@@ -8,7 +8,7 @@
 #include "Matrix4.h"
 #include "Utility.h"
 
-namespace Math
+namespace Ilum
 {
 Vector4::Vector4(float x, float y, float z, float w) :
     x(x), y(y), z(z), w(w)
@@ -176,4 +176,4 @@ float Vector4::angle(const Vector4 &from, const Vector4 &to)
 
 	return 0.0f;
 }
-}        // namespace Math
+}        // namespace Ilum

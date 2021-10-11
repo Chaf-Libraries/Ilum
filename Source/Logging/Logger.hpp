@@ -64,19 +64,19 @@ class Logger
 };
 }        // namespace Ilum
 
-#define LOG_INFO(...) Ilum::Logger::getInstance().log("logger", spdlog::level::info, __VA_ARGS__);
-#define LOG_WARN(...) Ilum::Logger::getInstance().log("logger", spdlog::level::warn, __VA_ARGS__);
-#define LOG_ERROR(...) Ilum::Logger::getInstance().log("logger", spdlog::level::err, __VA_ARGS__);
-#define LOG_TRACE(...) Ilum::Logger::getInstance().log("logger", spdlog::level::trace, __VA_ARGS__);
-#define LOG_CRITICAL(...) Ilum::Logger::getInstance().log("logger", spdlog::level::critical, __VA_ARGS__);
-#define LOG_DEBUG(x, ...) Ilum::Logger::getInstance().debug("logger", x, __VA_ARGS__);
+#define LOG_INFO(...) Logger::getInstance().log("logger", spdlog::level::info, __VA_ARGS__);
+#define LOG_WARN(...) Logger::getInstance().log("logger", spdlog::level::warn, __VA_ARGS__);
+#define LOG_ERROR(...) Logger::getInstance().log("logger", spdlog::level::err, __VA_ARGS__);
+#define LOG_TRACE(...) Logger::getInstance().log("logger", spdlog::level::trace, __VA_ARGS__);
+#define LOG_CRITICAL(...) Logger::getInstance().log("logger", spdlog::level::critical, __VA_ARGS__);
+#define LOG_DEBUG(x, ...) Logger::getInstance().debug("logger", x, __VA_ARGS__);
 
-#define VK_INFO(...) Ilum::Logger::getInstance().log("vulkan", spdlog::level::info, __VA_ARGS__);
-#define VK_WARN(...) Ilum::Logger::getInstance().log("vulkan", spdlog::level::warn, __VA_ARGS__);
-#define VK_ERROR(...) Ilum::Logger::getInstance().log("vulkan", spdlog::level::err, __VA_ARGS__);
-#define VK_TRACE(...) Ilum::Logger::getInstance().log("vulkan", spdlog::level::trace, __VA_ARGS__);
-#define VK_CRITICAL(...) Ilum::Logger::getInstance().log("vulkan", spdlog::level::critical, __VA_ARGS__);
-#define VK_DEBUG(x, ...) Ilum::Logger::getInstance().debug("vulkan", x, __VA_ARGS__);
+#define VK_INFO(...) Logger::getInstance().log("vulkan", spdlog::level::info, __VA_ARGS__);
+#define VK_WARN(...) Logger::getInstance().log("vulkan", spdlog::level::warn, __VA_ARGS__);
+#define VK_ERROR(...) Logger::getInstance().log("vulkan", spdlog::level::err, __VA_ARGS__);
+#define VK_TRACE(...) Logger::getInstance().log("vulkan", spdlog::level::trace, __VA_ARGS__);
+#define VK_CRITICAL(...) Logger::getInstance().log("vulkan", spdlog::level::critical, __VA_ARGS__);
+#define VK_DEBUG(x, ...) Logger::getInstance().debug("vulkan", x, __VA_ARGS__);
 
 #ifdef _DEBUG
 #	define ASSERT(expression) assert(expression)

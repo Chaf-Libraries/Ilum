@@ -9,7 +9,7 @@
 
 namespace Ilum
 {
-Attachment::Attachment(uint32_t binding, const std::string &name, Type type, VkFormat format, const Math::Rgba &clear_color, VkSampleCountFlagBits samples) :
+Attachment::Attachment(uint32_t binding, const std::string &name, Type type, VkFormat format, const Rgba &clear_color, VkSampleCountFlagBits samples) :
     m_binding(binding),
     m_name(name),
     m_type(type),
@@ -44,7 +44,7 @@ VkFormat Attachment::getFormat() const
 	return m_format;
 }
 
-const Math::Rgba &Attachment::getColor() const
+const Rgba &Attachment::getColor() const
 {
 	return m_clear_color;
 }

@@ -8,7 +8,7 @@
 #include "Matrix3.h"
 #include "Vector4.h"
 
-namespace Math
+namespace Ilum
 {
 Matrix4 Matrix4::Identity = {
     1.f, 0.f, 0.f, 0.f,
@@ -250,4 +250,4 @@ std::ostream &operator<<(std::ostream &output, const Matrix4 &m)
 
 	return output;
 }
-}        // namespace Math
+}        // namespace Ilum

@@ -15,7 +15,7 @@
 #include <limits>
 #include <random>
 
-namespace Math
+namespace Ilum
 {
 static const float PI        = 3.141592653589793238f;
 static const float EPSILON   = std::numeric_limits<float>::epsilon();
@@ -39,4 +39,4 @@ inline T random(T start = static_cast<T>(0), T end = static_cast<T>(1))
 	std::uniform_real_distribution<T> distr(start, end);
 	retirm                            distr(eng);
 }
-}        // namespace Math
+}        // namespace Ilum

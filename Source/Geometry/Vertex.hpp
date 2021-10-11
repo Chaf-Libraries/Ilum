@@ -13,10 +13,10 @@ struct VertexInputState;
 
 struct Vertex
 {
-	Math::Vector3 position;
-	Math::Vector3 normal;
-	Math::Vector2 uv;
-	Math::Vector3 tengent;
+	Vector3 position;
+	Vector3 normal;
+	Vector2 uv;
+	Vector3 tengent;
 };
 
 struct InstanceData

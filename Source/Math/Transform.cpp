@@ -7,7 +7,7 @@
 #include "Transform.h"
 #include "Utility.h"
 
-namespace Math
+namespace Ilum
 {
 Matrix3 Transform::translate(const Vector2 &translation)
 {
@@ -140,18 +140,18 @@ Matrix4 Transform::lookAt(const Vector3 &eye, const Vector3 &target, const Vecto
 	    0, 0, 0, 1};
 }
 
-std::tuple<Math::Vector3, Math::Quaternion, Math::Vector3> Transform::decompose(const Math::Matrix4 &transform)
+std::tuple<Vector3, Quaternion, Vector3> Transform::decompose(const Matrix4 &transform)
 {
 	// Get translation
-	Math::Vector3 translation = Math::Vector3(transform(0, 3), transform(1, 3), transform(2, 3));
+	Vector3 translation = Vector3(transform(0, 3), transform(1, 3), transform(2, 3));
 
-	Math::Vector3 columns[3] = {
+	Vector3 columns[3] = {
 	    {transform(0, 0), transform(1, 0), transform(2, 0)},
 	    {transform(0, 1), transform(1, 1), transform(2, 1)},
 	    {transform(0, 2), transform(1, 2), transform(2, 2)}};
 
 	// Get scale
-	Math::Vector3 scale;
+	Vector3 scale;
 	scale.x = columns[0].norm();
 	scale.y = columns[1].norm();
 	scale.z = columns[2].norm();
@@ -161,13 +161,13 @@ std::tuple<Math::Vector3, Math::Quaternion, Math::Vector3> Transform::decompose(
 	columns[2] /= scale.y ? scale.y : 1.f;
 
 	// Get rotation
-	Math::Matrix3 rotation_matrix = {
+	Matrix3 rotation_matrix = {
 	    columns[0].x, columns[1].x, columns[2].x,
 	    columns[0].y, columns[1].y, columns[2].y,
 	    columns[0].z, columns[1].z, columns[2].z};
 
-	Math::Quaternion rotation = Math::Quaternion(rotation_matrix);
+	Quaternion rotation = Quaternion(rotation_matrix);
 
 	return std::make_tuple(translation, rotation, scale);
 }
-}        // namespace Math
+}        // namespace Ilum

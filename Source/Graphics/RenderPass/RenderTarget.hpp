@@ -23,7 +23,7 @@ class Attachment
 	};
 
   public:
-	Attachment(uint32_t binding, const std::string &name, Type type, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM, const Math::Rgba &clear_color = {0, 0, 0, 0}, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
+	Attachment(uint32_t binding, const std::string &name, Type type, VkFormat format = VK_FORMAT_R8G8B8A8_UNORM, const Rgba &clear_color = {0, 0, 0, 0}, VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
 
 	Attachment() = default;
 
@@ -37,7 +37,7 @@ class Attachment
 
 	VkFormat getFormat() const;
 
-	const Math::Rgba &getColor() const;
+	const Rgba &getColor() const;
 
   private:
 	uint32_t              m_binding     = 0;
@@ -45,7 +45,7 @@ class Attachment
 	Type                  m_type        = {};
 	VkSampleCountFlagBits m_samples     = VK_SAMPLE_COUNT_1_BIT;
 	VkFormat              m_format      = {};
-	Math::Rgba            m_clear_color = {};
+	Rgba            m_clear_color = {};
 };
 
 class Subpass

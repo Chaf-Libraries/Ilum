@@ -7,6 +7,7 @@
 #include "Device/Window.hpp"
 
 #include "Engine/Context.hpp"
+
 #include "Threading/ThreadPool.hpp"
 
 #include "Graphics/Command/CommandBuffer.hpp"
@@ -15,8 +16,6 @@
 #include "Graphics/ImGui/ImGuiContext.hpp"
 #include "Graphics/Image/Image2D.hpp"
 #include "Graphics/RenderPass/Swapchain.hpp"
-
-#include "ImGui/imgui.h"
 
 namespace Ilum
 {
@@ -265,8 +264,6 @@ void GraphicsContext::submitFrame()
 
 void GraphicsContext::draw()
 {
-	ImGui::ShowDemoWindow();
-
 	// Draw call
 	m_command_buffers[m_current_frame]->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 	//ImGuiContext::instance()->render(*m_command_buffers[m_current_frame]);

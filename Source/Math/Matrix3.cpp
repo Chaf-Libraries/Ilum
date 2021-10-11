@@ -7,7 +7,7 @@
 #include "Matrix3.h"
 #include "Vector3.h"
 
-namespace Math
+namespace Ilum
 {
 Matrix3::Matrix3(
     float a11, float a12, float a13,
@@ -235,4 +235,4 @@ std::ostream &operator<<(std::ostream &output, const Matrix3 &m)
 
 	return output;
 }
-}        // namespace Math
+}        // namespace Ilum

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Utils/PCH.hpp"
+
 #include "Resource/Bitmap/Bitmap.hpp"
 #include "Resource/IResource.hpp"
 

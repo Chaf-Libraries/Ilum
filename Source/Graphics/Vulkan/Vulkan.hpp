@@ -5,8 +5,8 @@
 
 #include <string>
 
-#define VK_CHECK(result) Ilum::vk_check(result)
-#define VK_ASSERT(result) Ilum::vk_assert(result)
+#define VK_CHECK(result) vk_check(result)
+#define VK_ASSERT(result) vk_assert(result)
 
 namespace Ilum
 {

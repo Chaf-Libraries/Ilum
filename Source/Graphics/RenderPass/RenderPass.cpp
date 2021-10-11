@@ -3,6 +3,7 @@
 
 #include "Device/LogicalDevice.hpp"
 #include "Device/Surface.hpp"
+
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Image/ImageDepth.hpp"
 

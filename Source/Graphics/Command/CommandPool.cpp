@@ -1,8 +1,10 @@
 #include "CommandPool.hpp"
 
 #include "Device/LogicalDevice.hpp"
+
 #include "Engine/Context.hpp"
 #include "Engine/Engine.hpp"
+
 #include "Graphics/GraphicsContext.hpp"
 
 namespace Ilum
