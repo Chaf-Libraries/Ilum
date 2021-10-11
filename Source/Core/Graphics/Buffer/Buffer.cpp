@@ -99,7 +99,7 @@ const VkDeviceSize Buffer::getSize() const
 	return m_size;
 }
 
-VkDescriptorBufferInfo Buffer::getDescriptor() const
+const VkDescriptorBufferInfo &Buffer::getDescriptor() const
 {
 	return m_descriptor;
 }

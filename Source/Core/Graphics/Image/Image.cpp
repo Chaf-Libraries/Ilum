@@ -125,7 +125,7 @@ const VkSampler &Image::getSampler() const
 	return m_sampler;
 }
 
-VkDescriptorImageInfo Image::getDescriptor() const
+const VkDescriptorImageInfo& Image::getDescriptor() const
 {
 	return m_descriptor;
 }

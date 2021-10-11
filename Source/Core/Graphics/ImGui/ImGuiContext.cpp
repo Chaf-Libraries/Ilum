@@ -25,17 +25,7 @@ inline VkDescriptorPool createDescriptorPool()
 {
 	VkDescriptorPoolSize pool_sizes[] =
 	    {
-	        {VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
-	        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
-	        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000},
-	        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000},
-	        {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000},
-	        {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000},
-	        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
-	        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
-	        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
-	        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
-	        {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}};
+	        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000}};
 	VkDescriptorPoolCreateInfo pool_info = {};
 	pool_info.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	pool_info.flags                      = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
@@ -48,42 +38,27 @@ inline VkDescriptorPool createDescriptorPool()
 	return handle;
 }
 
-inline VkRenderPass createRenderPass(VkFormat format, VkSampleCountFlagBits samples)
+ImGuiContext::ImGuiContext(Context *context) :
+    TSubsystem<ImGuiContext>(context)
 {
-	VkAttachmentDescription attachment = {};
-	attachment.format                  = format;
-	attachment.samples                 = samples;
-	attachment.loadOp                  = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	attachment.storeOp                 = VK_ATTACHMENT_STORE_OP_STORE;
-	attachment.stencilLoadOp           = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	attachment.stencilStoreOp          = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	attachment.initialLayout           = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	attachment.finalLayout             = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	// Event poll
+	Window::instance()->Event_SDL += [](const SDL_Event &e) { ImGui_ImplSDL2_ProcessEvent(&e); };
 
-	VkAttachmentReference attachment_reference = {};
-	attachment_reference.attachment            = 0;
-	attachment_reference.layout                = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	VkSubpassDescription subpass = {};
-	subpass.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = 1;
-	subpass.pColorAttachments    = &attachment_reference;
-
-	VkRenderPassCreateInfo create_info = {};
-	create_info.sType                  = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	create_info.attachmentCount        = 1;
-	create_info.pAttachments           = &attachment;
-	create_info.subpassCount           = 1;
-	create_info.pSubpasses             = &subpass;
-
-	VkRenderPass handle = VK_NULL_HANDLE;
-	vkCreateRenderPass(GraphicsContext::instance()->getLogicalDevice(), &create_info, nullptr, &handle);
-
-	return handle;
+	// Recreate everything when rebuild swapchain
+	GraphicsContext::instance()->Swapchain_Rebuild_Event += [this]() { onShutdown(); onInitialize(); };
 }
 
-ImGuiContext::ImGuiContext()
+ImGuiContext::~ImGuiContext()
 {
+}
+
+bool ImGuiContext::onInitialize()
+{
+	ImGui::CreateContext();
+
+	// Config style
+	config();
+
 	std::vector<Attachment> attachments = {{0, "back_buffer", Attachment::Type::Swapchain, GraphicsContext::instance()->getSurface().getFormat().format}};
 	std::vector<Subpass>    subpasses   = {{0, {0}}};
 	VkRect2D                render_area = {};
@@ -92,6 +67,17 @@ ImGuiContext::ImGuiContext()
 	m_render_target = createScope<RenderTarget>(std::move(attachments), std::move(subpasses), render_area);
 
 	m_descriptor_pool = createDescriptorPool();
+	for (auto &command_buffer : m_command_buffers)
+	{
+		command_buffer = createScope<CommandBuffer>();
+	}
+
+	VkSemaphoreCreateInfo create_info = {};
+	create_info.sType                 = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	for (auto &semaphore : m_render_complete)
+	{
+		vkCreateSemaphore(GraphicsContext::instance()->getLogicalDevice(), &create_info, nullptr, &semaphore);
+	}
 
 	ImGui_ImplVulkan_InitInfo init_info = {};
 	init_info.Instance                  = GraphicsContext::instance()->getInstance();
@@ -108,21 +94,87 @@ ImGuiContext::ImGuiContext()
 	ImGui_ImplVulkan_Init(&init_info, m_render_target->getRenderPass());
 
 	// Upload fonts
-	CommandBuffer command_buffer;
-	command_buffer.begin();
-	ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
-	command_buffer.end();
-	command_buffer.submitIdle();
-	ImGui_ImplVulkan_DestroyFontUploadObjects();
+	uploadFontsData();
 
-	// Event poll
-	Window::instance()->Event_SDL += [](const SDL_Event &e) { ImGui_ImplSDL2_ProcessEvent(&e); };
+	return true;
 }
 
-ImGuiContext::~ImGuiContext()
+void ImGuiContext::onPreTick()
 {
-	//vkDestroyRenderPass(GraphicsContext::instance()->getLogicalDevice(), m_render_pass, nullptr);
+	ImGui_ImplVulkan_NewFrame();
+	ImGui_ImplSDL2_NewFrame();
+	ImGui::NewFrame();
+
+	// Begin docking space
+	ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+	window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+	window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+	ImGuiViewport *viewport = ImGui::GetMainViewport();
+	ImGui::SetNextWindowPos(viewport->WorkPos);
+	ImGui::SetNextWindowSize(viewport->WorkSize);
+	ImGui::SetNextWindowViewport(viewport->ID);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+	ImGui::Begin("DockSpace", (bool *) 1, window_flags);
+	ImGui::PopStyleVar();
+	ImGui::PopStyleVar(2);
+
+	ImGuiIO &io = ImGui::GetIO();
+	if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
+	{
+		ImGuiID dockspace_id = ImGui::GetID("DockSpace");
+		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+	}
+}
+
+void ImGuiContext::onPostTick()
+{
+	// End docking space
+	ImGui::End();
+
+	ImGuiIO &io    = ImGui::GetIO();
+	io.DisplaySize = ImVec2(static_cast<float>(Window::instance()->getWidth()), static_cast<float>(Window::instance()->getHeight()));
+
+	// Render UI
+	auto &command_buffer = m_command_buffers[GraphicsContext::instance()->getSwapchain().getActiveImageIndex()];
+	command_buffer->begin();
+	command_buffer->beginRenderPass(*m_render_target);
+	ImGui::Render();
+	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), *command_buffer);
+	command_buffer->endRenderPass();
+	command_buffer->end();
+
+	// Submit command buffer
+	command_buffer->submit(
+	    GraphicsContext::instance()->getRenderCompleteSemaphore(),
+	    m_render_complete[GraphicsContext::instance()->getFrameIndex()],
+	    VK_NULL_HANDLE,
+	    {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT},
+	    0);
+
+	ImGui::EndFrame();
+
+	if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+	{
+		ImGui::UpdatePlatformWindows();
+		ImGui::RenderPlatformWindowsDefault();
+	}
+}
+
+void ImGuiContext::onShutdown()
+{
+	vkQueueWaitIdle(GraphicsContext::instance()->getLogicalDevice().getGraphicsQueues()[GraphicsContext::instance()->getFrameIndex() % GraphicsContext::instance()->getLogicalDevice().getGraphicsQueues().size()]);
+	ImGui_ImplVulkan_Shutdown();
+	ImGui_ImplSDL2_Shutdown();
+	ImGui::DestroyContext();
+
+	// Release resource
 	vkDestroyDescriptorPool(GraphicsContext::instance()->getLogicalDevice(), m_descriptor_pool, nullptr);
+	for (auto &semaphore : m_render_complete)
+	{
+		vkDestroySemaphore(GraphicsContext::instance()->getLogicalDevice(), semaphore, nullptr);
+	}
 }
 
 void ImGuiContext::render(const CommandBuffer &command_buffer)
@@ -133,5 +185,54 @@ void ImGuiContext::render(const CommandBuffer &command_buffer)
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);
 
 	command_buffer.endRenderPass();
+}
+
+const VkSemaphore &ImGuiContext::getRenderCompleteSemaphore() const
+{
+	return m_render_complete[GraphicsContext::instance()->getFrameIndex()];
+}
+
+void *ImGuiContext::textureID(const Image2D *image)
+{
+	if (m_texture_id_mapping.find(&image->getDescriptor()) != m_texture_id_mapping.end())
+	{
+		return (ImTextureID) m_texture_id_mapping.at(&image->getDescriptor());
+	}
+
+	return (ImTextureID) ImGui_ImplVulkan_AddTexture(image->getSampler(), image->getView(), image->getImageLayout());
+}
+
+void ImGuiContext::config()
+{
+	ImGuiIO &io = ImGui::GetIO();
+	(void) io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;        // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;         // Enable Gamepad Controls
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;            // Enable Docking
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;          // Enable Multi-Viewport / Platform Windows
+
+	// Setup Dear ImGui style
+	ImGui::StyleColorsDark();
+
+	// Set a better fonts
+	io.Fonts->AddFontFromFileTTF((std::string(PROJECT_SOURCE_DIR) + "/Asset/Font/arialbd.ttf").c_str(), 15.0f);
+
+	// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+	ImGuiStyle &style = ImGui::GetStyle();
+	if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+	{
+		style.WindowRounding              = 0.0f;
+		style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+	}
+}
+
+void ImGuiContext::uploadFontsData()
+{
+	CommandBuffer command_buffer;
+	command_buffer.begin();
+	ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
+	command_buffer.end();
+	command_buffer.submitIdle();
+	ImGui_ImplVulkan_DestroyFontUploadObjects();
 }
 }        // namespace Ilum

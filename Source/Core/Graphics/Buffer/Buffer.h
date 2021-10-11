@@ -23,7 +23,7 @@ class Buffer
 
 	const VkDeviceSize getSize() const;
 
-	VkDescriptorBufferInfo getDescriptor() const;
+	const VkDescriptorBufferInfo& getDescriptor() const;
 
   public:
 	static void insertBufferMemoryBarrier(

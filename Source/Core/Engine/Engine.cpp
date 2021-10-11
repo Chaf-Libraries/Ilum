@@ -6,6 +6,7 @@
 #include "Core/Engine/Threading/ThreadPool.hpp"
 #include "Core/Engine/Timing/Timer.hpp"
 #include "Core/Graphics/GraphicsContext.hpp"
+#include "Core/Graphics/ImGui/ImGuiContext.hpp"
 
 namespace Ilum
 {
@@ -22,6 +23,7 @@ Engine::Engine()
 	m_context->addSubsystem<Window>();
 	m_context->addSubsystem<Input>();
 	m_context->addSubsystem<GraphicsContext>();
+	m_context->addSubsystem<ImGuiContext>();
 
 	m_context->onInitialize();
 }

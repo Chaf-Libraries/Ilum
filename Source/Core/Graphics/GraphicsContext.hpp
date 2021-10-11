@@ -3,6 +3,7 @@
 #include "Core/Engine/PCH.hpp"
 #include "Core/Engine/Subsystem.hpp"
 #include "Core/Engine/Timing/Stopwatch.hpp"
+#include "Core/Engine/Eventing/Event.hpp"
 
 namespace Ilum
 {
@@ -39,6 +40,12 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 
 	const ref<CommandPool> &getCommandPool(VkQueueFlagBits queue_type = VK_QUEUE_GRAPHICS_BIT, const std::thread::id &thread_id = std::this_thread::get_id());
 
+	uint32_t getFrameIndex() const;
+
+	const VkSemaphore &getPresentCompleteSemaphore() const;
+
+	const VkSemaphore &getRenderCompleteSemaphore() const;
+
   public:
 	virtual bool onInitialize() override;
 
@@ -68,7 +75,6 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	scope<Surface>        m_surface         = nullptr;
 	scope<LogicalDevice>  m_logical_device  = nullptr;
 	scope<Swapchain>      m_swapchain       = nullptr;
-	scope<ImGuiContext>   m_imgui_context   = nullptr;
 
 	scope<DescriptorCache> m_descriptor_cache = nullptr;
 
@@ -88,5 +94,8 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	Stopwatch m_stopwatch;
 
 	uint64_t m_frame_count = 0;
+
+  public:
+	Event<> Swapchain_Rebuild_Event;
 };
 }        // namespace Ilum

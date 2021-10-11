@@ -17,25 +17,6 @@ struct ImageSubresource
 class Image
 {
   public:
-	struct FreeState
-	{
-		VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
-	};
-
-	struct UsingState
-	{
-		VkQueue queue = VK_NULL_HANDLE;
-		VkPipelineStageFlags stages = 0;
-		VkAccessFlags        access = 0;
-		VkImageLayout        layout = VK_IMAGE_LAYOUT_UNDEFINED;
-	};
-
-	struct ReleaseState
-	{
-
-	};
-
-  public:
 	Image(
 	    const VkExtent3D &    extent,
 	    VkFormat              format,
@@ -77,7 +58,7 @@ class Image
 
 	const VkSampler &getSampler() const;
 
-	VkDescriptorImageInfo getDescriptor() const;
+	const VkDescriptorImageInfo& getDescriptor() const;
 
   public:
 	static uint32_t getMipLevels(const VkExtent3D &extent);
