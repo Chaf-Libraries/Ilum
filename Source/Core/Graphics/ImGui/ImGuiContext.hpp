@@ -14,7 +14,7 @@ class ImGuiContext : public TSubsystem<ImGuiContext>
   public:
 	ImGuiContext(Context *context = nullptr);
 
-	~ImGuiContext();
+	~ImGuiContext() = default;
 
 	virtual bool onInitialize() override;
 
@@ -28,7 +28,9 @@ class ImGuiContext : public TSubsystem<ImGuiContext>
 
 	const VkSemaphore &getRenderCompleteSemaphore() const;
 
-	void* textureID(const Image2D* image);
+	void *textureID(const Image2D *image);
+
+	void setDockingSpace(bool enable);
 
   private:
 	void config();
@@ -36,10 +38,11 @@ class ImGuiContext : public TSubsystem<ImGuiContext>
 	void uploadFontsData();
 
   private:
-	scope<RenderTarget>                                          m_render_target;
-	VkDescriptorPool                                             m_descriptor_pool = VK_NULL_HANDLE;
-	std::array<VkSemaphore, 3>                                   m_render_complete;
-	std::array<scope<CommandBuffer>, 3>                          m_command_buffers;
+	scope<RenderTarget>                                                m_render_target;
+	VkDescriptorPool                                                   m_descriptor_pool = VK_NULL_HANDLE;
+	std::array<VkSemaphore, 3>                                         m_render_complete;
+	std::array<scope<CommandBuffer>, 3>                                m_command_buffers;
 	std::unordered_map<const VkDescriptorImageInfo *, VkDescriptorSet> m_texture_id_mapping;
+	bool                                                               m_dockspace_enable = true;
 };
 }        // namespace Ilum
