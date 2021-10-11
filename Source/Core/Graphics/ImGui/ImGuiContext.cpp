@@ -25,17 +25,9 @@ inline VkDescriptorPool createDescriptorPool()
 {
 	VkDescriptorPoolSize pool_sizes[] =
 	    {
-	        {VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
+
 	        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
-	        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000},
-	        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000},
-	        {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000},
-	        {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000},
-	        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
-	        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
-	        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
-	        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
-	        {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}};
+};
 	VkDescriptorPoolCreateInfo pool_info = {};
 	pool_info.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	pool_info.flags                      = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
@@ -90,6 +82,54 @@ ImGuiContext::ImGuiContext()
 	render_area.extent                  = GraphicsContext::instance()->getSwapchain().getExtent();
 
 	m_render_target = createScope<RenderTarget>(std::move(attachments), std::move(subpasses), render_area);
+
+	/*PipelineState pso;
+
+	pso.vertex_input_state.binding_descriptions   = {VkVertexInputBindingDescription{0, sizeof(ImDrawVert), VK_VERTEX_INPUT_RATE_VERTEX}};
+	pso.vertex_input_state.attribute_descriptions = {
+	    VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(ImDrawVert, pos)},
+	    VkVertexInputAttributeDescription{1, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(ImDrawVert, uv)},
+	    VkVertexInputAttributeDescription{2, 0, VK_FORMAT_R8G8B8A8_UNORM, offsetof(ImDrawVert, col)}};
+	pso.rasterization_state.cull_mode = VK_CULL_MODE_NONE;
+
+	m_pipeline = createScope<PipelineGraphics>(
+	    std::vector<std::string>{std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/imgui.glsl.vert", std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/imgui.glsl.frag"},
+	    *m_render_target,
+	    pso);
+
+	ImGui_ImplSDL2_InitForVulkan(Window::instance()->getSDLHandle());
+	//ImGui_ImplVulkan_Init(&init_info, m_render_target->getRenderPass());
+
+	ImGuiIO &io = ImGui::GetIO();
+
+	unsigned char *pixels;
+	int            width, height;
+	io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+	size_t upload_size = width * height * 4 * sizeof(char);
+
+	scope<uint8_t[]> pixel_data = scope<uint8_t[]>(new uint8_t[upload_size]);
+	std::memcpy(pixel_data.get(), pixels, upload_size);
+
+	auto bitmap = createScope<Bitmap>(std::move(pixel_data), width, height);
+
+	m_font_image = createScope<Image2D>(
+	    std::move(bitmap),
+	    VK_FORMAT_R8G8B8A8_UNORM,
+	    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+	    VK_IMAGE_USAGE_SAMPLED_BIT);
+
+	m_font_descriptor_set = createScope<DescriptorSet>(m_pipeline.get());
+
+	VkWriteDescriptorSet write_desc = {};
+	write_desc.sType                = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	write_desc.dstSet               = *m_font_descriptor_set;
+	write_desc.descriptorCount      = 1;
+	write_desc.descriptorType       = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	write_desc.pImageInfo           = &m_font_image->getDescriptor();
+
+	m_font_descriptor_set->update({write_desc});
+
+	io.Fonts->SetTexID((ImTextureID)(intptr_t) m_font_descriptor_set->getDescriptorSet());*/
 
 	m_descriptor_pool = createDescriptorPool();
 

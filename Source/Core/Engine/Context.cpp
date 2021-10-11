@@ -53,7 +53,7 @@ void Context::onTick(TickType tick_group, float delta_time)
 
 void Context::onPostTick()
 {
-	for (uint32_t i = 0; i < static_cast<uint32_t>(m_subsystems.size()); i++)
+	for (int32_t i = static_cast<int32_t>(m_subsystems.size()) - 1; i >= 0; i--)
 	{
 		m_subsystems[i].ptr->onPostTick();
 	}
@@ -61,7 +61,7 @@ void Context::onPostTick()
 
 void Context::onShutdown()
 {
-	for (size_t i = static_cast<uint32_t>(m_subsystems.size()) - 1; i > 0; i--)
+	for (int32_t i = static_cast<int32_t>(m_subsystems.size()) - 1; i >= 0; i--)
 	{
 		m_subsystems[i].ptr->onShutdown();
 	}

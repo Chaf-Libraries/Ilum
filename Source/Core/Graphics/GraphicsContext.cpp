@@ -15,8 +15,11 @@
 #include "Core/Graphics/ImGui/ImGuiContext.hpp"
 #include "Core/Graphics/ImGui/Impl/imgui_impl_sdl.h"
 #include "Core/Graphics/ImGui/Impl/imgui_impl_vulkan.h"
+#include "Core/Graphics/Image/Image2D.hpp"
 
 #include "RenderPass/Swapchain.hpp"
+
+#include "Core/Graphics/ImGui/Impl/imgui_impl_vulkan.h"
 
 namespace Ilum
 {
@@ -285,14 +288,18 @@ void GraphicsContext::submitFrame()
 
 void GraphicsContext::draw()
 {
+	//static auto img = Image2D::create("../Asset/Texture/613934.jpg");
+
+	ImGui::Begin("Image");
+	//ImGui::Image(ImGui_ImplVulkan_AddTexture(img->getSampler(), img->getView(), img->getImageLayout()), {100, 100}, ImVec2(0, 1), ImVec2(1, 0));
+	ImGui::End();
+
 	ImGui::ShowDemoWindow();
 
 	// Draw call
 	m_command_buffers[m_current_frame]->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
 	m_imgui_context->render(*m_command_buffers[m_current_frame]);
 	m_command_buffers[m_current_frame]->end();
-
-	VkPipelineStageFlags submit_pipeline_stages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
 	m_command_buffers[m_current_frame]->submit(
 	    m_present_complete[m_current_frame],
