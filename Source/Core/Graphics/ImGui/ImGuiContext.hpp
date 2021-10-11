@@ -43,6 +43,6 @@ class ImGuiContext : public TSubsystem<ImGuiContext>
 	std::array<VkSemaphore, 3>                                         m_render_complete;
 	std::array<scope<CommandBuffer>, 3>                                m_command_buffers;
 	std::unordered_map<const VkDescriptorImageInfo *, VkDescriptorSet> m_texture_id_mapping;
-	bool                                                               m_dockspace_enable = true;
+	bool                                                               m_dockspace_enable = false;
 };
 }        // namespace Ilum
