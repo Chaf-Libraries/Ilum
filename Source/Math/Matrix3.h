@@ -8,7 +8,7 @@
 
 #include "Utility.h"
 
-namespace Math
+namespace Ilum
 {
 class Vector3;
 
@@ -63,4 +63,4 @@ class Matrix3
   private:
 	float data[9] = {0.f};
 };
-}        // namespace Math
+}        // namespace Ilum

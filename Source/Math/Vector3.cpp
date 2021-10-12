@@ -8,7 +8,7 @@
 #include "Matrix3.h"
 #include "Utility.h"
 
-namespace Math
+namespace Ilum
 {
 Vector3 Vector3::One     = {1.f, 1.f, 1.f};
 Vector3 Vector3::Zero    = {0.f, 0.f, 0.f};
@@ -182,4 +182,4 @@ float Vector3::angle(const Vector3 &from, const Vector3 &to)
 
 	return 0.0f;
 }
-}        // namespace Math
+}        // namespace Ilum

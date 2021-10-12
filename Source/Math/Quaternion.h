@@ -6,7 +6,7 @@
 
 #pragma once
 
-namespace Math
+namespace Ilum
 {
 class Matrix3;
 class Matrix4;
@@ -26,12 +26,12 @@ class Quaternion
 
 	Quaternion(float x, float y, float z, float w);
 
-	Quaternion(const Math::Matrix4 &m);
+	Quaternion(const Matrix4 &m);
 
-	Quaternion(const Math::Matrix3 &m);
+	Quaternion(const Matrix3 &m);
 
 	// Degree
-	Quaternion(const Math::Vector3 &euler);
+	Quaternion(const Vector3 &euler);
 
 	static Quaternion identity();
 
@@ -77,4 +77,4 @@ class Quaternion
 	static Quaternion slerp(const Quaternion &start, const Quaternion &end, float alpha);
 	static Quaternion nlerp(const Quaternion &start, const Quaternion &end, float alpha);
 };
-}        // namespace Math
+}        // namespace Ilum

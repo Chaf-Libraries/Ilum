@@ -13,7 +13,7 @@
 #include "Vector4.h"
 #include "Quaternion.h"
 
-namespace Math
+namespace Ilum
 {
 class Transform
 {
@@ -47,6 +47,6 @@ class Transform
 	static Matrix4 lookAt(const Vector3 &eye, const Vector3 &target, const Vector3 &up);
 
 	// Decompose from transform to translation + rotation + scale
-	static std::tuple<Math::Vector3, Math::Quaternion, Math::Vector3> decompose(const Math::Matrix4 &transform);
+	static std::tuple<Vector3, Quaternion, Vector3> decompose(const Matrix4 &transform);
 };
-}        // namespace Math
+}        // namespace Ilum

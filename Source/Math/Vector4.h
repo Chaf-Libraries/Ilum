@@ -6,7 +6,7 @@
 
 #pragma once
 
-namespace Math
+namespace Ilum
 {
 class Matrix4;
 
@@ -56,4 +56,4 @@ class Vector4
 };
 
 using Rgba = Vector4;
-}        // namespace Math
+}        // namespace Ilum
