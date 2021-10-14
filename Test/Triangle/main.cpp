@@ -3,6 +3,8 @@
 
 #include "Timing/Timer.hpp"
 
+#include "Device/Surface.hpp"
+#include "Device/Swapchain.hpp"
 #include "Device/Window.hpp"
 #include <Device/Input.hpp>
 
@@ -10,17 +12,13 @@
 #include "Renderer/RenderPass/ImGuiPass.hpp"
 #include "Renderer/Renderer.hpp"
 
-#include "Device/Surface.hpp"
-
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Pipeline/PipelineState.hpp"
-#include "Graphics/RenderPass/Swapchain.hpp"
 
 #include "Math/Vector2.h"
 #include "Math/Vector3.h"
 
 #include <Editor/Editor.hpp>
-
 
 using namespace Ilum;
 
@@ -73,8 +71,8 @@ class TrianglePass : public TRenderPass<TrianglePass>
 
 		auto &extent = GraphicsContext::instance()->getSwapchain().getExtent();
 
-		VkViewport viewport = {0, 0, (float) extent.width, (float) extent.height, 0, 1};
-		VkRect2D   scissor  = {0, 0, (float) extent.width, (float) extent.height};
+		VkViewport viewport = {0, 0, static_cast<float>(extent.width), static_cast<float>(extent.height), 0, 1};
+		VkRect2D   scissor  = {0, 0, extent.width, extent.height};
 
 		vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
 		vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
@@ -82,7 +80,7 @@ class TrianglePass : public TRenderPass<TrianglePass>
 		VkDeviceSize offsets[1] = {0};
 		vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &vertex_buffer->getBuffer(), offsets);
 		vkCmdBindIndexBuffer(cmd_buffer, index_buffer->getBuffer(), 0, VK_INDEX_TYPE_UINT16);
-		vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(indices.size()),1,0,0,0);
+		vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 	};
 
   private:
@@ -115,9 +113,9 @@ int main()
 	builder.reset();
 
 	Renderer::instance()->buildRenderGraph = [](RenderGraphBuilder &builder) {
-	builder.addRenderPass("TrianglePass", std::make_unique<TrianglePass>()).setOutput("output");
+		builder.addRenderPass("TrianglePass", std::make_unique<TrianglePass>()).setOutput("output");
 
-	builder.addRenderPass("ImGuiPass", std::make_unique<ImGuiPass>("output",AttachmentState::Load_Color)).setOutput("output"); 
+		builder.addRenderPass("ImGuiPass", std::make_unique<ImGuiPass>("output", AttachmentState::Load_Color)).setOutput("output");
 	};
 
 	Renderer::instance()->rebuild();
