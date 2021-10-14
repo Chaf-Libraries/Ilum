@@ -4,18 +4,6 @@
 
 namespace Ilum
 {
-//PipelineState::PipelineState() :
-//    input_assembly_state({}),
-//    rasterization_state({}),
-//    depth_stencil_state({}),
-//    viewport_state({}),
-//    multisample_state({}),
-//    dynamic_state({}),
-//    vertex_input_state(getVertexInput<Vertex>())
-//{
-//
-//}
-
 PipelineState &PipelineState::addOutputAttachment(const std::string &name, VkClearColorValue clear, uint32_t layer)
 {
 	m_output_attachments.push_back(OutputAttachment{

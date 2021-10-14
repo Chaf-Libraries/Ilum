@@ -8,11 +8,11 @@
 #include "Device/PhysicalDevice.hpp"
 #include "Device/Surface.hpp"
 #include "Device/Window.hpp"
+#include "Device/Swapchain.hpp"
 
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/Command/CommandPool.hpp"
 #include "Graphics/GraphicsContext.hpp"
-#include "Graphics/RenderPass/Swapchain.hpp"
 
 #include "Renderer/RenderGraph/RenderGraph.hpp"
 #include "Renderer/RenderPass/ImGuiPass.hpp"

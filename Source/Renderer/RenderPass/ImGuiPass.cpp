@@ -5,6 +5,7 @@
 #include "Device/PhysicalDevice.hpp"
 #include "Device/Surface.hpp"
 #include "Device/Window.hpp"
+#include "Device/Swapchain.hpp"
 
 #include "Graphics/Descriptor/DescriptorCache.hpp"
 #include "Graphics/Descriptor/DescriptorPool.hpp"
@@ -12,7 +13,6 @@
 #include "Graphics/ImGui/Impl/imgui_impl_sdl.h"
 #include "Graphics/ImGui/Impl/imgui_impl_vulkan.h"
 #include "Graphics/Pipeline/PipelineState.hpp"
-#include "Graphics/RenderPass/Swapchain.hpp"
 
 namespace Ilum
 {

@@ -6,8 +6,8 @@
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Image/Image.hpp"
 #include "Graphics/Pipeline/PipelineState.hpp"
-#include "Graphics/RenderPass/Swapchain.hpp"
 
+#include "Device/Swapchain.hpp"
 #include "Device/LogicalDevice.hpp"
 
 #include "RenderGraph.hpp"

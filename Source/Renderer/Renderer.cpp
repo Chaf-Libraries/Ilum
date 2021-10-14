@@ -4,9 +4,9 @@
 #include "Renderer/RenderPass/ImGuiPass.hpp"
 
 #include "Device/Window.hpp"
+#include "Device/Swapchain.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
-#include "Graphics/RenderPass/Swapchain.hpp"
 
 #include "Graphics/ImGui/imgui.h"
 
