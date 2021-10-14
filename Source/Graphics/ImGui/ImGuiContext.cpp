@@ -46,8 +46,6 @@ ImGuiContext::ImGuiContext()
 
 	// Recreate everything when rebuild swapchain
 	GraphicsContext::instance()->Swapchain_Rebuild_Event += [this]() { releaseResource(); createResouce(); };
-
-	LOG_INFO("Create imgui context");
 }
 
 void ImGuiContext::createResouce()
