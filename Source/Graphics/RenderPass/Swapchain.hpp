@@ -2,6 +2,8 @@
 
 #include "Utils/PCH.hpp"
 
+#include "Graphics/Image/Image.hpp"
+
 namespace Ilum
 {
 class Surface;
@@ -25,11 +27,11 @@ class Swapchain
 
 	uint32_t getImageCount() const;
 
-	const std::vector<VkImage> &getImages() const;
+	const std::vector<Image> &getImages() const;
 
 	const VkImage &getActiveImage() const;
 
-	const std::vector<VkImageView> &getImageViews() const;
+	const std::vector<ImageReference> &getImageViews() const;
 
 	const VkSwapchainKHR &getSwapchain() const;
 
@@ -42,8 +44,7 @@ class Swapchain
 	VkCompositeAlphaFlagBitsKHR m_composite_alpha = {};
 
 	uint32_t                 m_image_count = 0;
-	std::vector<VkImage>     m_images;
-	std::vector<VkImageView> m_image_views;
+	std::vector<Image>       m_images;
 
 	VkSwapchainKHR m_handle = VK_NULL_HANDLE;
 

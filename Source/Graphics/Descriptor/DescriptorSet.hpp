@@ -6,26 +6,25 @@ namespace Ilum
 {
 class Pipeline;
 class CommandBuffer;
+class Shader;
 
 class DescriptorSet
 {
   public:
-	DescriptorSet(const Pipeline *pipeline, uint32_t set_index = 0);
+	DescriptorSet(const Shader &shader, uint32_t set_index = 0);
 
 	~DescriptorSet();
 
-	void update(const std::vector<VkWriteDescriptorSet> &write_descriptor_sets);
+	void update(const std::vector<VkWriteDescriptorSet> &write_descriptor_sets) const;
 
 	const VkDescriptorSet &getDescriptorSet() const;
 
 	operator const VkDescriptorSet &() const;
 
-	void bind(const CommandBuffer &command_buffer);
+	uint32_t index() const;
 
   private:
 	VkDescriptorSet     m_handle = VK_NULL_HANDLE;
-	VkPipelineLayout    m_pipeline_layout;
-	VkPipelineBindPoint m_pipeline_bind_point;
 	uint32_t            m_set_index = 0;
 };
 }        // namespace Ilum

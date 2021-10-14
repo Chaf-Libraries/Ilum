@@ -12,12 +12,11 @@
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/Command/CommandPool.hpp"
 #include "Graphics/GraphicsContext.hpp"
-#include "Graphics/Image/Image2D.hpp"
-#include "Graphics/Image/ImageDepth.hpp"
-#include "Graphics/RenderPass/Framebuffer.hpp"
-#include "Graphics/RenderPass/RenderPass.hpp"
-#include "Graphics/RenderPass/RenderTarget.hpp"
 #include "Graphics/RenderPass/Swapchain.hpp"
+
+#include "Renderer/RenderGraph/RenderGraph.hpp"
+#include "Renderer/RenderPass/ImGuiPass.hpp"
+#include "Renderer/Renderer.hpp"
 
 namespace Ilum
 {
@@ -55,24 +54,10 @@ bool ImGuiContext::onInitialize()
 	// Config style
 	config();
 
-	std::vector<Attachment> attachments = {{0, "back_buffer", Attachment::Type::Swapchain, GraphicsContext::instance()->getSurface().getFormat().format}};
-	std::vector<Subpass>    subpasses   = {{0, {0}}};
-	VkRect2D                render_area = {};
-	render_area.extent                  = GraphicsContext::instance()->getSwapchain().getExtent();
-
-	m_render_target = createScope<RenderTarget>(std::move(attachments), std::move(subpasses), render_area);
-
 	m_descriptor_pool = createDescriptorPool();
 	for (auto &command_buffer : m_command_buffers)
 	{
 		command_buffer = createScope<CommandBuffer>();
-	}
-
-	VkSemaphoreCreateInfo create_info = {};
-	create_info.sType                 = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-	for (auto &semaphore : m_render_complete)
-	{
-		vkCreateSemaphore(GraphicsContext::instance()->getLogicalDevice(), &create_info, nullptr, &semaphore);
 	}
 
 	ImGui_ImplVulkan_InitInfo init_info = {};
@@ -87,7 +72,7 @@ bool ImGuiContext::onInitialize()
 	init_info.ImageCount                = GraphicsContext::instance()->getSwapchain().getImageCount();
 
 	ImGui_ImplSDL2_InitForVulkan(Window::instance()->getSDLHandle());
-	ImGui_ImplVulkan_Init(&init_info, m_render_target->getRenderPass());
+	ImGui_ImplVulkan_Init(&init_info, Renderer::instance()->getRenderGraph().getNode("ImGuiPass").pass_native.render_pass);
 
 	// Upload fonts
 	uploadFontsData();
@@ -100,62 +85,10 @@ void ImGuiContext::onPreTick()
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplSDL2_NewFrame();
 	ImGui::NewFrame();
-
-	// Begin docking space
-	if (!m_dockspace_enable)
-	{
-		return;
-	}
-	ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-	window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
-	window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
-	ImGuiViewport *viewport = ImGui::GetMainViewport();
-	ImGui::SetNextWindowPos(viewport->WorkPos);
-	ImGui::SetNextWindowSize(viewport->WorkSize);
-	ImGui::SetNextWindowViewport(viewport->ID);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-	ImGui::Begin("DockSpace", (bool *) 1, window_flags);
-	ImGui::PopStyleVar();
-	ImGui::PopStyleVar(2);
-
-	ImGuiIO &io = ImGui::GetIO();
-	if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
-	{
-		ImGuiID dockspace_id = ImGui::GetID("DockSpace");
-		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
-	}
 }
 
 void ImGuiContext::onPostTick()
 {
-	// End docking space
-	if (m_dockspace_enable)
-	{
-		ImGui::End();
-
-		ImGuiIO &io    = ImGui::GetIO();
-		io.DisplaySize = ImVec2(static_cast<float>(Window::instance()->getWidth()), static_cast<float>(Window::instance()->getHeight()));
-	}
-
-	// Render UI
-	auto &command_buffer = m_command_buffers[GraphicsContext::instance()->getSwapchain().getActiveImageIndex()];
-	command_buffer->begin();
-	command_buffer->beginRenderPass(*m_render_target);
-	ImGui::Render();
-	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), *command_buffer);
-	command_buffer->endRenderPass();
-	command_buffer->end();
-
-	// Submit command buffer
-	command_buffer->submit(
-	    GraphicsContext::instance()->getRenderCompleteSemaphore(),
-	    m_render_complete[GraphicsContext::instance()->getFrameIndex()],
-	    VK_NULL_HANDLE,
-	    {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT},
-	    0);
-
 	ImGui::EndFrame();
 
 	if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
@@ -174,35 +107,19 @@ void ImGuiContext::onShutdown()
 
 	// Release resource
 	vkDestroyDescriptorPool(GraphicsContext::instance()->getLogicalDevice(), m_descriptor_pool, nullptr);
-	for (auto &semaphore : m_render_complete)
+}
+
+void *ImGuiContext::textureID(const Image &image, const Sampler &sampler)
+{
+	size_t hash = 0;
+	hash_combine(hash, image.getView());
+	hash_combine(hash, sampler.getSampler());
+
+	if (m_texture_id_mapping.find(hash) == m_texture_id_mapping.end())
 	{
-		vkDestroySemaphore(GraphicsContext::instance()->getLogicalDevice(), semaphore, nullptr);
+		m_texture_id_mapping.emplace(hash, (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(sampler, image.getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
 	}
-}
-
-void ImGuiContext::render(const CommandBuffer &command_buffer)
-{
-	command_buffer.beginRenderPass(*m_render_target);
-
-	ImGui::Render();
-	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);
-
-	command_buffer.endRenderPass();
-}
-
-const VkSemaphore &ImGuiContext::getRenderCompleteSemaphore() const
-{
-	return m_render_complete[GraphicsContext::instance()->getFrameIndex()];
-}
-
-void *ImGuiContext::textureID(const Image2D *image)
-{
-	if (m_texture_id_mapping.find(&image->getDescriptor()) != m_texture_id_mapping.end())
-	{
-		return (ImTextureID) m_texture_id_mapping.at(&image->getDescriptor());
-	}
-
-	return (ImTextureID) ImGui_ImplVulkan_AddTexture(image->getSampler(), image->getView(), image->getImageLayout());
+	return (ImTextureID) m_texture_id_mapping.at(hash);
 }
 
 void ImGuiContext::setDockingSpace(bool enable)

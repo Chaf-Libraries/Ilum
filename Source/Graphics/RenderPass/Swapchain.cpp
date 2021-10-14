@@ -115,18 +115,19 @@ Swapchain::Swapchain(const VkExtent2D &extent, const Swapchain *old_swapchain) :
 		return;
 	}
 
-	m_images.resize(m_image_count);
-	m_image_views.resize(m_image_count);
+	m_images.reserve(m_image_count);
+	std::vector<VkImage> swapchain_images(m_image_count);
+	//m_image_views.resize(m_image_count);
 
-	if (!VK_CHECK(vkGetSwapchainImagesKHR(GraphicsContext::instance()->getLogicalDevice(), m_handle, &m_image_count, m_images.data())))
+	if (!VK_CHECK(vkGetSwapchainImagesKHR(GraphicsContext::instance()->getLogicalDevice(), m_handle, &m_image_count, swapchain_images.data())))
 	{
 		VK_ERROR("Failed to get swapchain images");
 		return;
 	}
 
-	for (uint32_t i = 0; i < m_image_count; i++)
+	for (auto& image_handle : swapchain_images)
 	{
-		Image::createImageView(m_images[i], m_image_views[i], VK_IMAGE_VIEW_TYPE_2D, surface_format.format, 1, 0, 1, 0, VK_IMAGE_ASPECT_COLOR_BIT);
+		m_images.push_back(Image(image_handle, m_extent.width, m_extent.height, surface_format.format));
 	}
 }
 
@@ -135,14 +136,6 @@ Swapchain::~Swapchain()
 	if (m_handle)
 	{
 		vkDestroySwapchainKHR(GraphicsContext::instance()->getLogicalDevice(), m_handle, nullptr);
-	}
-
-	for (const auto &image_view : m_image_views)
-	{
-		if (image_view)
-		{
-			vkDestroyImageView(GraphicsContext::instance()->getLogicalDevice(), image_view, nullptr);
-		}
 	}
 }
 
@@ -191,7 +184,7 @@ uint32_t Swapchain::getImageCount() const
 	return m_image_count;
 }
 
-const std::vector<VkImage> &Swapchain::getImages() const
+const std::vector<Image> &Swapchain::getImages() const
 {
 	return m_images;
 }
@@ -199,11 +192,6 @@ const std::vector<VkImage> &Swapchain::getImages() const
 const VkImage &Swapchain::getActiveImage() const
 {
 	return m_images[m_active_image_index];
-}
-
-const std::vector<VkImageView> &Swapchain::getImageViews() const
-{
-	return m_image_views;
 }
 
 const VkSwapchainKHR &Swapchain::getSwapchain() const

@@ -14,7 +14,6 @@
 #include "Graphics/Command/CommandPool.hpp"
 #include "Graphics/Descriptor/DescriptorCache.hpp"
 #include "Graphics/ImGui/ImGuiContext.hpp"
-#include "Graphics/Image/Image2D.hpp"
 #include "Graphics/RenderPass/Swapchain.hpp"
 
 #include "ImGui/imgui.h"
@@ -105,6 +104,11 @@ const VkSemaphore &GraphicsContext::getRenderCompleteSemaphore() const
 	return m_render_complete[m_current_frame];
 }
 
+const CommandBuffer &GraphicsContext::getCurrentCommandBuffer() const
+{
+	return *m_command_buffers[m_current_frame];
+}
+
 bool GraphicsContext::onInitialize()
 {
 	createSwapchain();
@@ -148,13 +152,12 @@ void GraphicsContext::onTick(float delta_time)
 		}
 	}
 
-	draw();
-
 	m_frame_count++;
 }
 
 void GraphicsContext::onPostTick()
 {
+	m_command_buffers[m_current_frame]->end();
 	submitFrame();
 }
 
@@ -240,12 +243,15 @@ void GraphicsContext::newFrame()
 		VK_ERROR("Failed to acquire swapchain image!");
 		return;
 	}
+
+	m_command_buffers[m_current_frame]->begin();
 }
 
 void GraphicsContext::submitFrame()
 {
-	VkSemaphore wait_semaphore = m_context->hasSubsystem<ImGuiContext>() ? ImGuiContext::instance()->getRenderCompleteSemaphore() : m_render_complete[m_current_frame];
-	auto        present_result = m_swapchain->present(m_logical_device->getPresentQueues()[m_current_frame % m_logical_device->getPresentQueues().size()], wait_semaphore);
+	m_command_buffers[m_current_frame]->submit(m_present_complete[m_current_frame], m_render_complete[m_current_frame]);
+
+	auto present_result = m_swapchain->present(m_logical_device->getPresentQueues()[0], m_render_complete[m_current_frame]);
 
 	if (present_result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
@@ -262,21 +268,5 @@ void GraphicsContext::submitFrame()
 	vkQueueWaitIdle(m_logical_device->getPresentQueues()[0]);
 
 	m_current_frame = (m_current_frame + 1) % m_swapchain->getImageCount();
-}
-
-void GraphicsContext::draw()
-{
-	ImGui::ShowDemoWindow();
-	// Draw call
-	m_command_buffers[m_current_frame]->begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT);
-	//ImGuiContext::instance()->render(*m_command_buffers[m_current_frame]);
-	m_command_buffers[m_current_frame]->end();
-
-	m_command_buffers[m_current_frame]->submit(
-	    m_present_complete[m_current_frame],
-	    m_render_complete[m_current_frame],
-	    VK_NULL_HANDLE,
-	    {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT},
-	    0);
 }
 }        // namespace Ilum

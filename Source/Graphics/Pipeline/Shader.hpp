@@ -289,6 +289,10 @@ class Shader
 
 	std::vector<VkPushConstantRange> getPushConstantRanges() const;
 
+	VkPipelineBindPoint getBindPoint() const;
+
+	const std::unordered_map<VkShaderStageFlagBits, VkShaderModule> &getShaders() const;
+
   public:
 	const std::unordered_set<uint32_t> &getSets() const;
 
@@ -347,7 +351,7 @@ class Shader
 	std::unordered_set<uint32_t> m_sets;
 
 	ShaderCompileState          m_compile_state = ShaderCompileState::Idle;
-	std::vector<VkShaderModule> m_shader_module_cache;
+	std::unordered_map<VkShaderStageFlagBits, VkShaderModule> m_shader_module_cache;
 
 	size_t m_hash = 0;
 };

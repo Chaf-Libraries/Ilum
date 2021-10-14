@@ -6,9 +6,9 @@
 
 namespace Ilum
 {
-class RenderTarget;
 class CommandBuffer;
-class Image2D;
+class Image;
+class Sampler;
 
 class ImGuiContext : public TSubsystem<ImGuiContext>
 {
@@ -25,11 +25,7 @@ class ImGuiContext : public TSubsystem<ImGuiContext>
 
 	virtual void onShutdown() override;
 
-	void render(const CommandBuffer &command_buffer);
-
-	const VkSemaphore &getRenderCompleteSemaphore() const;
-
-	void *textureID(const Image2D *image);
+	void *textureID(const Image& image, const Sampler& sampler);
 
 	void setDockingSpace(bool enable);
 
@@ -39,11 +35,10 @@ class ImGuiContext : public TSubsystem<ImGuiContext>
 	void uploadFontsData();
 
   private:
-	scope<RenderTarget>                                                m_render_target;
 	VkDescriptorPool                                                   m_descriptor_pool = VK_NULL_HANDLE;
 	std::array<VkSemaphore, 3>                                         m_render_complete;
 	std::array<scope<CommandBuffer>, 3>                                m_command_buffers;
-	std::unordered_map<const VkDescriptorImageInfo *, VkDescriptorSet> m_texture_id_mapping;
-	bool                                                               m_dockspace_enable = false;
+	std::unordered_map<size_t, VkDescriptorSet> m_texture_id_mapping;
+	bool                                                               m_dockspace_enable = true;
 };
 }        // namespace Ilum

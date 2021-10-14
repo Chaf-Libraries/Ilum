@@ -559,7 +559,7 @@ inline std::vector<Shader::Constant> read_shader_resource<Shader::Constant>(cons
 
 Shader::~Shader()
 {
-	for (auto &shader_module : m_shader_module_cache)
+	for (auto &[stage, shader_module] : m_shader_module_cache)
 	{
 		if (shader_module != VK_NULL_HANDLE)
 		{
@@ -617,7 +617,7 @@ VkShaderModule Shader::createShaderModule(const std::string &filename, const Var
 		return VK_NULL_HANDLE;
 	}
 
-	m_shader_module_cache.push_back(shader_module);
+	m_shader_module_cache.emplace(stage, shader_module);
 
 	// Update hash
 	for (auto &image : m_images)
@@ -659,6 +659,25 @@ std::vector<VkPushConstantRange> Shader::getPushConstantRanges() const
 	}
 
 	return push_constant_ranges;
+}
+
+VkPipelineBindPoint Shader::getBindPoint() const
+{
+	if (m_stage & VK_SHADER_STAGE_COMPUTE_BIT)
+	{
+		return VK_PIPELINE_BIND_POINT_COMPUTE;
+	}
+	else if ((m_stage & VK_SHADER_STAGE_VERTEX_BIT) && (m_stage & VK_SHADER_STAGE_FRAGMENT_BIT))
+	{
+		return VK_PIPELINE_BIND_POINT_GRAPHICS;
+	}
+
+	return VK_PIPELINE_BIND_POINT_MAX_ENUM;
+}
+
+const std::unordered_map<VkShaderStageFlagBits, VkShaderModule> &Shader::getShaders() const
+{
+	return m_shader_module_cache;
 }
 
 const std::unordered_set<uint32_t> &Shader::getSets() const

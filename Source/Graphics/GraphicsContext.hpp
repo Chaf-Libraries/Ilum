@@ -46,6 +46,8 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 
 	const VkSemaphore &getRenderCompleteSemaphore() const;
 
+	const CommandBuffer &getCurrentCommandBuffer() const;
+
   public:
 	virtual bool onInitialize() override;
 
@@ -66,8 +68,6 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	void newFrame();
 
 	void submitFrame();
-
-	void draw();
 
   private:
 	scope<Instance>       m_instance        = nullptr;
