@@ -36,6 +36,22 @@ class RenderGraph
 
 	void present(const CommandBuffer &command_buffer, const Image &present_image);
 
+	template <typename T>
+	const RenderGraphNode &getNode() const
+	{
+		auto iter = std::find_if(m_nodes.begin(), m_nodes.end(), [](const RenderGraphNode &node) { return node.pass->type() == typeid(T); });
+		ASSERT(iter != m_nodes.end());
+		return *iter;
+	}
+
+	template <typename T>
+	RenderGraphNode &getNode()
+	{
+		auto iter = std::find_if(m_nodes.begin(), m_nodes.end(), [](const RenderGraphNode &node) { return node.pass->type() == typeid(T); });
+		ASSERT(iter != m_nodes.end());
+		return *iter;
+	}
+
 	const RenderGraphNode &getNode(const std::string &name) const;
 
 	RenderGraphNode &getNode(const std::string &name);

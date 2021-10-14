@@ -7,7 +7,7 @@
 
 namespace Ilum
 {
-class ImGuiPass : public RenderPass
+class ImGuiPass : public TRenderPass<ImGuiPass>
 {
   public:
 	ImGuiPass(const std::string &output_name, AttachmentState state = AttachmentState::Clear_Color);

@@ -42,8 +42,18 @@ class RenderPass
 
 	virtual void resolveResources(ResolveState &resolve){};
 
-	virtual void initialize(RenderPassState &state){};
-
 	virtual void render(RenderPassState &state){};
+
+	virtual std::type_index type() const = 0;
+};
+
+template <typename T>
+class TRenderPass : public RenderPass
+{
+  public:
+	virtual std::type_index type() const override
+	{
+		return typeid(T);
+	}
 };
 }        // namespace Ilum

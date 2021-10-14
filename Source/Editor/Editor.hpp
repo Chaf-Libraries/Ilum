@@ -6,18 +6,21 @@
 
 namespace Ilum
 {
-	class Editor: public TSubsystem<Editor>
-	{
-	  public:
-	    Editor(Context *context);
+class Editor : public TSubsystem<Editor>
+{
+  public:
+	Editor(Context *context);
 
-		~Editor() = default;
+	~Editor() = default;
 
-		virtual void onPreTick() override;
+	virtual bool onInitialize() override;
 
-		virtual void onTick(float delta_time) override;
+	virtual void onPreTick() override;
 
-		virtual void onPostTick() override;
+	virtual void onTick(float delta_time) override;
 
-	};
-}
+	virtual void onPostTick() override;
+
+	virtual void onShutdown() override;
+};
+}        // namespace Ilum

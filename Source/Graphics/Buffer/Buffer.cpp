@@ -192,7 +192,7 @@ bool Buffer::isMapped() const
 
 uint8_t *Buffer::map()
 {
-	if (isMapped())
+	if (!isMapped())
 	{
 		vmaMapMemory(GraphicsContext::instance()->getLogicalDevice().getAllocator(), m_allocation, reinterpret_cast<void **>(&m_mapping));
 	}

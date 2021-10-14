@@ -65,21 +65,6 @@ struct ColorBlendAttachmentState
 	VkColorComponentFlags color_write_mask       = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 };
 
-//struct PipelineState
-//{
-//	InputAssemblyState input_assembly_state;
-//	RasterizationState rasterization_state;
-//	DepthStencilState  depth_stencil_state;
-//	ViewportState      viewport_state;
-//	MultisampleState   multisample_state;
-//	DynamicState       dynamic_state;
-//	VertexInputState   vertex_input_state;
-//
-//	PipelineState();
-//
-//	~PipelineState() = default;
-//};
-
 enum class AttachmentState
 {
 	Discard_Color,

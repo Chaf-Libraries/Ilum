@@ -180,6 +180,8 @@ void GraphicsContext::createSwapchain()
 {
 	vkDeviceWaitIdle(*m_logical_device);
 
+	m_current_frame = 0;
+
 	VkExtent2D display_extent = {Window::instance()->getWidth(), Window::instance()->getHeight()};
 
 	bool need_rebuild = m_swapchain != nullptr;
@@ -249,7 +251,7 @@ void GraphicsContext::newFrame()
 
 void GraphicsContext::submitFrame()
 {
-	m_command_buffers[m_current_frame]->submit(m_present_complete[m_current_frame], m_render_complete[m_current_frame]);
+	m_command_buffers[m_current_frame]->submit(m_present_complete[m_current_frame], m_render_complete[m_current_frame]); 
 
 	auto present_result = m_swapchain->present(m_logical_device->getPresentQueues()[0], m_render_complete[m_current_frame]);
 

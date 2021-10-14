@@ -15,6 +15,7 @@
 #include <memory>
 #include <optional>
 #include <utility>
+#include <typeindex>
 
 #include <array>
 #include <map>

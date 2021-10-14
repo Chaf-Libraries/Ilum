@@ -26,7 +26,6 @@ Engine::Engine()
 	m_context->addSubsystem<Input>();
 	m_context->addSubsystem<GraphicsContext>();
 	m_context->addSubsystem<Renderer>();
-	//m_context->addSubsystem<ImGuiContext>();
 	m_context->addSubsystem<Editor>();
 
 

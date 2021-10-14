@@ -2,14 +2,14 @@
 
 #include "Utils/PCH.hpp"
 
-#include "Engine/Subsystem.hpp"
 #include "Engine/Context.hpp"
+#include "Engine/Subsystem.hpp"
 
 #include "RenderGraph/RenderGraphBuilder.hpp"
 
 namespace Ilum
 {
-class Renderer: public TSubsystem<Renderer>
+class Renderer : public TSubsystem<Renderer>
 {
   public:
 	Renderer(Context *context = nullptr);
@@ -18,13 +18,19 @@ class Renderer: public TSubsystem<Renderer>
 
 	virtual bool onInitialize() override;
 
-	virtual void onTick(float) override;
+	virtual void onPostTick() override;
 
 	RenderGraphBuilder &getRenderGraphBuilder();
 
 	const RenderGraph &getRenderGraph() const;
 
 	void rebuild();
+
+  public:
+	std::function<void(RenderGraphBuilder &)> buildRenderGraph = nullptr;
+
+  private:
+	std::function<void(RenderGraphBuilder &)> defaultBuilder;
 
   private:
 	RenderGraphBuilder m_rg_builder;
