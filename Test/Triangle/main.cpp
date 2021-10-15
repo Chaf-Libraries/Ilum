@@ -18,6 +18,8 @@
 #include "Math/Vector2.h"
 #include "Math/Vector3.h"
 
+#include "Loader/ImageLoader/ImageLoader.hpp"
+
 #include <Editor/Editor.hpp>
 
 using namespace Ilum;
