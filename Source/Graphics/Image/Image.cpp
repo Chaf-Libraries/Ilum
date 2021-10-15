@@ -22,7 +22,7 @@ inline VkImageViewType get_image_view_type(const Image &image)
 	}
 }
 
-inline VkImageAspectFlags Image::format_to_aspect(VkFormat format)
+VkImageAspectFlags Image::format_to_aspect(VkFormat format)
 {
 	switch (format)
 	{
