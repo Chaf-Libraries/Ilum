@@ -1,10 +1,10 @@
 #include "Editor.hpp"
 
-#include "Graphics/ImGui/imgui.h"
+#include <imgui.h>
 
 #include "Device/Window.hpp"
 
-#include <Graphics/ImGui/ImGuiContext.hpp>
+#include "ImGui/ImGuiContext.hpp"
 
 namespace Ilum
 {

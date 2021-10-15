@@ -11,8 +11,8 @@
 #include "Graphics/GraphicsContext.hpp"
 
 #include <glslang/Include/ResourceLimits.h>
-#include <glslang/SPIRV/GLSL.std.450.h>
-#include <glslang/SPIRV/GlslangToSpv.h>
+#include <SPIRV/GLSL.std.450.h>
+#include <SPIRV/GlslangToSpv.h>
 
 #include <spirv_glsl.hpp>
 
