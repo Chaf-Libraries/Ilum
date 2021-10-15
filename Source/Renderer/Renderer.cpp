@@ -8,7 +8,7 @@
 
 #include "Graphics/GraphicsContext.hpp"
 
-#include "Graphics/ImGui/imgui.h"
+#include <imgui.h>
 
 namespace Ilum
 {

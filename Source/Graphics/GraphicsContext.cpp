@@ -14,9 +14,10 @@
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/Command/CommandPool.hpp"
 #include "Graphics/Descriptor/DescriptorCache.hpp"
-#include "Graphics/ImGui/ImGuiContext.hpp"
 
-#include "ImGui/imgui.h"
+#include "ImGui/ImGuiContext.hpp"
+
+#include <imgui.h>
 
 namespace Ilum
 {

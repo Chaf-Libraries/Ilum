@@ -3,11 +3,17 @@
 
 #include "Device/Input.hpp"
 #include "Device/Window.hpp"
+
 #include "Threading/ThreadPool.hpp"
+
 #include "Timing/Timer.hpp"
+
 #include "Graphics/GraphicsContext.hpp"
-#include "Graphics/ImGui/ImGuiContext.hpp"
+
+#include "ImGui/ImGuiContext.hpp"
+
 #include "Renderer/Renderer.hpp"
+
 #include "Editor/Editor.hpp"
 
 namespace Ilum
