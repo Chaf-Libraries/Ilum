@@ -1,7 +1,7 @@
 #include "ImGuiContext.hpp"
 
-#include "Impl/imgui_impl_sdl.h"
-#include "Impl/imgui_impl_vulkan.h"
+#include <imgui_impl_sdl.h>
+#include "imgui_impl_vulkan.h"
 
 #include "Device/Instance.hpp"
 #include "Device/LogicalDevice.hpp"
