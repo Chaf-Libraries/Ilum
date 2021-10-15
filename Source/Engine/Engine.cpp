@@ -7,6 +7,8 @@
 #include "Timing/Timer.hpp"
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/ImGui/ImGuiContext.hpp"
+#include "Renderer/Renderer.hpp"
+#include "Editor/Editor.hpp"
 
 namespace Ilum
 {
@@ -23,7 +25,9 @@ Engine::Engine()
 	m_context->addSubsystem<Window>();
 	m_context->addSubsystem<Input>();
 	m_context->addSubsystem<GraphicsContext>();
-	m_context->addSubsystem<ImGuiContext>();
+	m_context->addSubsystem<Renderer>();
+	m_context->addSubsystem<Editor>();
+
 
 	m_context->onInitialize();
 }

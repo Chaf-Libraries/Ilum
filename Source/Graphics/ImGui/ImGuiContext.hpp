@@ -6,44 +6,51 @@
 
 namespace Ilum
 {
-class RenderTarget;
 class CommandBuffer;
-class Image2D;
+class Image;
+class Sampler;
 
-class ImGuiContext : public TSubsystem<ImGuiContext>
+class ImGuiContext
 {
   public:
-	ImGuiContext(Context *context = nullptr);
+	enum class StyleType
+	{
+		DarkMode
+	};
+
+  public:
+	ImGuiContext();
 
 	~ImGuiContext() = default;
 
-	virtual bool onInitialize() override;
+	static void initialize();
 
-	virtual void onPreTick() override;
+	static void destroy();
 
-	virtual void onPostTick() override;
+	static void createResouce();
 
-	virtual void onShutdown() override;
+	static void releaseResource();
 
-	void render(const CommandBuffer &command_buffer);
+	static void begin();
 
-	const VkSemaphore &getRenderCompleteSemaphore() const;
+	static void render(const CommandBuffer &command_buffer);
 
-	void *textureID(const Image2D *image);
+	static void end();
 
-	void setDockingSpace(bool enable);
+	static void beginDockingSpace();
+
+	static void endDockingSpace();
+
+	void *textureID(const Image &image, const Sampler &sampler);
 
   private:
-	void config();
-
-	void uploadFontsData();
+	static void setDarkMode();
 
   private:
-	scope<RenderTarget>                                                m_render_target;
-	VkDescriptorPool                                                   m_descriptor_pool = VK_NULL_HANDLE;
-	std::array<VkSemaphore, 3>                                         m_render_complete;
-	std::array<scope<CommandBuffer>, 3>                                m_command_buffers;
-	std::unordered_map<const VkDescriptorImageInfo *, VkDescriptorSet> m_texture_id_mapping;
-	bool                                                               m_dockspace_enable = false;
+	static scope<ImGuiContext> s_instance;
+
+	VkDescriptorPool m_descriptor_pool = VK_NULL_HANDLE;
+
+	std::unordered_map<size_t, VkDescriptorSet> m_texture_id_mapping;
 };
 }        // namespace Ilum

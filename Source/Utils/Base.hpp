@@ -20,12 +20,30 @@
 
 #define VAR_NAME(var) (#var)
 
+#define ENUMCLASS_RELOAD_INLINE(_Ty)\
+_Ty operator|(const _Ty &lhs, const _Ty &rhs)\
+{\
+	return (_Ty)((uint32_t) lhs | (uint32_t) rhs);\
+}\
+_Ty operator&(const _Ty &lhs, const _Ty &rhs)\
+{\
+	return (_Ty)((uint32_t) lhs & (uint32_t) rhs);\
+}\
+bool operator==(const _Ty &lhs, const _Ty &rhs)\
+{\
+	return (uint32_t) lhs == (uint32_t) rhs;\
+}\
+bool operator!=(const _Ty &lhs, const _Ty &rhs)\
+{\
+	return (uint32_t) lhs != (uint32_t) rhs;\
+}
+
 namespace Ilum
 {
 template <typename T>
 using scope = std::unique_ptr<T>;
 template <typename T, typename... Args>
-constexpr scope<T> createScope(Args &&...args)
+scope<T> createScope(Args &&...args)
 {
 	return std::make_unique<T>(std::forward<Args>(args)...);
 }
@@ -33,7 +51,7 @@ constexpr scope<T> createScope(Args &&...args)
 template <typename T>
 using ref = std::shared_ptr<T>;
 template <typename T, typename... Args>
-constexpr ref<T> createRef(Args &&...args)
+ref<T> createRef(Args &&...args)
 {
 	return std::make_shared<T>(std::forward<Args>(args)...);
 }

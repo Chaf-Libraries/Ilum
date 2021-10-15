@@ -2,37 +2,65 @@
 
 #include "Utils/PCH.hpp"
 
+#include "Graphics/Buffer/Buffer.h"
+#include "Graphics/Image/Image.hpp"
+#include "Renderer/RenderGraph/RenderPass.hpp"
+
 namespace Ilum
 {
 class LogicalDevice;
 class CommandPool;
-class RenderTarget;
+struct PassNative;
+
+struct ImageInfo
+{
+	ImageReference       resource;
+	VkImageUsageFlagBits usage     = VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM;
+	uint32_t             mip_level = 0;
+	uint32_t             layer     = 0;
+};
+
+struct BufferInfo
+{
+	BufferReference resource;
+	uint32_t        offset = 0;
+};
 
 class CommandBuffer
 {
-  public:
-	enum class State
-	{
-		Initial,
-		Recording,
-		Executable,
-		Invalid
-	};
-
   public:
 	CommandBuffer(VkQueueFlagBits queue_type = VK_QUEUE_GRAPHICS_BIT, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
 	~CommandBuffer();
 
-	void reset();
+	void reset() const;
 
-	bool begin(VkCommandBufferUsageFlagBits usage = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+	bool begin(VkCommandBufferUsageFlagBits usage = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT) const;
 
-	void beginRenderPass(const RenderTarget &render_target) const;
+	void beginRenderPass(const PassNative& pass) const;
 
 	void endRenderPass() const;
 
-	void end();
+	void end() const;
+
+	// Copy
+	void copyImage(const ImageInfo &src, const ImageInfo &dst) const;
+
+	void copyBufferToImage(const BufferInfo &src, const ImageInfo &dst) const;
+
+	void copyImageToBuffer(const ImageInfo &src, const BufferInfo &dst) const;
+
+	void copyBuffer(const BufferInfo &src, const BufferInfo &dst, VkDeviceSize size) const;
+
+	// Mipmap generate
+	void blitImage(const Image &src, VkImageUsageFlagBits src_usage, const Image &dst, VkImageUsageFlagBits dst_usage, VkFilter filter) const;
+
+	void generateMipmaps(const Image &image, VkImageUsageFlagBits initial_usage, VkFilter filter) const;
+
+	// Transfer layout
+	void transferLayout(const Image &image, VkImageUsageFlagBits old_usage, VkImageUsageFlagBits new_usage) const;
+
+	void transferLayout(const std::vector<ImageReference> &images, VkImageUsageFlagBits old_usage, VkImageUsageFlagBits new_usage) const;
 
 	void submitIdle(uint32_t queue_index = 0);
 
@@ -44,11 +72,8 @@ class CommandBuffer
 
 	const VkCommandBuffer &getCommandBuffer() const;
 
-	const State &getState() const;
-
   private:
 	ref<CommandPool> m_command_pool = nullptr;
 	VkCommandBuffer  m_handle       = VK_NULL_HANDLE;
-	State            m_state        = State::Initial;
 };
 }        // namespace Ilum
