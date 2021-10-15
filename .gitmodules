@@ -1,0 +1,36 @@
+[submodule "External/SDL"]
+	path = External/SDL
+	url = https://github.com/libsdl-org/SDL
+[submodule "External/glslang"]
+	path = External/glslang
+	url = https://github.com/KhronosGroup/glslang
+[submodule "External/spdlog"]
+	path = External/spdlog
+	url = https://github.com/gabime/spdlog
+[submodule "External/spirv_cross"]
+	path = External/spirv_cross
+	url = https://github.com/KhronosGroup/SPIRV-Cross
+[submodule "External/stb"]
+	path = External/stb
+	url = https://github.com/nothings/stb
+[submodule "External/volk"]
+	path = External/volk
+	url = https://github.com/zeux/volk
+[submodule "External/vulkan"]
+	path = External/vulkan
+	url = https://github.com/KhronosGroup/Vulkan-Headers
+[submodule "External/vma"]
+	path = External/vma
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
+[submodule "External/entt"]
+	path = External/entt
+	url = https://github.com/skypjack/entt
+[submodule "External/assimp"]
+	path = External/assimp
+	url = https://github.com/assimp/assimp
+[submodule "External/imgui"]
+	path = External/imgui
+	url = https://github.com/ocornut/imgui
+[submodule "External/yaml-cpp"]
+	path = External/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp
