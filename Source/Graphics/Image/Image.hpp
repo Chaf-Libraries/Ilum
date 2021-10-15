@@ -18,11 +18,19 @@ enum class ImageViewType
 class Image
 {
   public:
+	Image() = default;
+
 	Image(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags usage, VmaMemoryUsage memory_usage, bool mip_level = false, uint32_t layer_count = 1);
 
 	Image(VkImage image, uint32_t width, uint32_t height, VkFormat format);
 
+	Image(const Image &) = delete;
+
+	Image &operator=(const Image &other) = delete;
+
 	Image(Image &&other);
+
+	Image &operator=(Image &&other);
 
 	~Image();
 
@@ -63,6 +71,10 @@ class Image
 
   private:
 	void createImageViews();
+
+	void create();
+
+	void destroy();
 
   private:
 	struct ImageViews

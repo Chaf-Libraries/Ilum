@@ -72,7 +72,7 @@ void CommandBuffer::beginRenderPass(const PassNative &pass) const
 	{
 		vkCmdBindPipeline(*this, pass.bind_point, pass.pipeline);
 	}
-	for (auto& descriptor_set : pass.descriptor_sets)
+	for (auto &descriptor_set : pass.descriptor_sets)
 	{
 		vkCmdBindDescriptorSets(*this, pass.bind_point, pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
 	}
@@ -104,6 +104,7 @@ void CommandBuffer::copyImage(const ImageInfo &src, const ImageInfo &dst) const
 	if (src.usage != VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
 	{
 		auto &src_barrier               = barriers[barrier_count++];
+		src_barrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		src_barrier.srcAccessMask       = Image::usage_to_access(src.usage);
 		src_barrier.dstAccessMask       = VK_ACCESS_TRANSFER_READ_BIT;
 		src_barrier.oldLayout           = Image::usage_to_layout(src.usage);
@@ -116,6 +117,7 @@ void CommandBuffer::copyImage(const ImageInfo &src, const ImageInfo &dst) const
 	if (dst.usage != VK_IMAGE_USAGE_TRANSFER_DST_BIT)
 	{
 		auto &dst_barrier               = barriers[barrier_count++];
+		dst_barrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		dst_barrier.srcAccessMask       = Image::usage_to_access(dst.usage);
 		dst_barrier.dstAccessMask       = VK_ACCESS_TRANSFER_WRITE_BIT;
 		dst_barrier.oldLayout           = Image::usage_to_layout(dst.usage);
@@ -151,6 +153,7 @@ void CommandBuffer::copyBufferToImage(const BufferInfo &src, const ImageInfo &ds
 	{
 		auto                 dst_range = dst.resource.get().getSubresourceRange();
 		VkImageMemoryBarrier barrier   = {};
+		barrier.sType                  = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		barrier.srcAccessMask          = Image::usage_to_access(dst.usage);
 		barrier.dstAccessMask          = VK_ACCESS_TRANSFER_WRITE_BIT;
 		barrier.oldLayout              = Image::usage_to_layout(dst.usage);
@@ -183,6 +186,7 @@ void CommandBuffer::copyImageToBuffer(const ImageInfo &src, const BufferInfo &ds
 	{
 		auto                 src_range = src.resource.get().getSubresourceRange();
 		VkImageMemoryBarrier barrier   = {};
+		barrier.sType                  = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		barrier.srcAccessMask          = Image::usage_to_access(src.usage);
 		barrier.dstAccessMask          = VK_ACCESS_TRANSFER_READ_BIT;
 		barrier.oldLayout              = Image::usage_to_layout(src.usage);
@@ -247,7 +251,7 @@ void CommandBuffer::blitImage(const Image &src, VkImageUsageFlagBits src_usage, 
 	if (dst_usage != VK_IMAGE_USAGE_TRANSFER_DST_BIT)
 	{
 		auto &dst_barrier               = barriers[barrier_count++];
-		dst_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		dst_barrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		dst_barrier.srcAccessMask       = Image::usage_to_access(dst_usage);
 		dst_barrier.dstAccessMask       = VK_ACCESS_TRANSFER_WRITE_BIT;
 		dst_barrier.oldLayout           = Image::usage_to_layout(dst_usage);
@@ -311,7 +315,7 @@ void CommandBuffer::generateMipmaps(const Image &image, VkImageUsageFlagBits ini
 		dst_range.baseMipLevel = i;
 		dst_range.levelCount   = 1;
 
-		std::array<VkImageMemoryBarrier, 2> barriers;
+		std::array<VkImageMemoryBarrier, 2> barriers = {};
 		// Transfer source
 		barriers[0].sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		barriers[0].srcAccessMask       = Image::usage_to_access(src_usage);
@@ -323,7 +327,7 @@ void CommandBuffer::generateMipmaps(const Image &image, VkImageUsageFlagBits ini
 		barriers[0].image               = image;
 		barriers[0].subresourceRange    = src_range;
 		// Transfer destination
-		barriers[1].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		barriers[1].sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		barriers[1].srcAccessMask       = 0;
 		barriers[1].dstAccessMask       = Image::usage_to_access(VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 		barriers[1].oldLayout           = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -333,7 +337,7 @@ void CommandBuffer::generateMipmaps(const Image &image, VkImageUsageFlagBits ini
 		barriers[1].image               = image;
 		barriers[1].subresourceRange    = dst_range;
 
-		vkCmdPipelineBarrier(*this, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 2, barriers.data());
+		vkCmdPipelineBarrier(*this, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, static_cast<uint32_t>(barriers.size()), barriers.data());
 
 		src_usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
@@ -348,13 +352,27 @@ void CommandBuffer::generateMipmaps(const Image &image, VkImageUsageFlagBits ini
 		vkCmdBlitImage(*this, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit_info, filter);
 	}
 
-	auto mip_level_range = image.getSubresourceRange();
+	auto mip_level_range         = image.getSubresourceRange();
+	mip_level_range.levelCount   = mip_level_range.levelCount - 1;
+	VkImageMemoryBarrier barrier = {};
+	barrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.srcAccessMask        = VK_ACCESS_TRANSFER_READ_BIT;
+	barrier.dstAccessMask        = VK_ACCESS_TRANSFER_WRITE_BIT;
+	barrier.oldLayout            = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	barrier.newLayout            = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+	barrier.srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image                = image;
+	barrier.subresourceRange     = mip_level_range;
+
+	vkCmdPipelineBarrier(*this, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
 void CommandBuffer::transferLayout(const Image &image, VkImageUsageFlagBits old_usage, VkImageUsageFlagBits new_usage) const
 {
 	auto                 subresource_range = image.getSubresourceRange();
 	VkImageMemoryBarrier barrier           = {};
+	barrier.sType                          = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 	barrier.srcAccessMask                  = Image::usage_to_access(old_usage);
 	barrier.dstAccessMask                  = Image::usage_to_access(new_usage);
 	barrier.oldLayout                      = Image::usage_to_layout(old_usage);
@@ -376,6 +394,7 @@ void CommandBuffer::transferLayout(const std::vector<ImageReference> &images, Vk
 		auto subresource_range = image.get().getSubresourceRange();
 
 		VkImageMemoryBarrier barrier = {};
+		barrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		barrier.srcAccessMask        = Image::usage_to_access(old_usage);
 		barrier.dstAccessMask        = Image::usage_to_access(new_usage);
 		barrier.oldLayout            = Image::usage_to_layout(old_usage);

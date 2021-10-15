@@ -167,38 +167,27 @@ Image::Image(Image &&other) :
 	other.m_handle = VK_NULL_HANDLE;
 }
 
+Image &Image::operator=(Image &&other)
+{
+	destroy();
+
+	m_handle          = other.m_handle;
+	m_views           = other.m_views;
+	m_layer_views     = std ::move(other.m_layer_views);
+	m_extent          = other.m_extent;
+	m_mip_level_count = other.m_mip_level_count;
+	m_layer_count     = other.m_layer_count;
+	m_format          = other.m_format;
+	m_allocation      = other.m_allocation;
+
+	other.m_handle = VK_NULL_HANDLE;
+
+	return *this;
+}
+
 Image::~Image()
 {
-	if (m_handle)
-	{
-		if (m_allocation)
-		{
-			vmaDestroyImage(GraphicsContext::instance()->getLogicalDevice().getAllocator(), m_handle, m_allocation);
-		}
-
-		vkDestroyImageView(GraphicsContext::instance()->getLogicalDevice(), m_views.native, nullptr);
-		if (m_views.depth)
-		{
-			vkDestroyImageView(GraphicsContext::instance()->getLogicalDevice(), m_views.depth, nullptr);
-		}
-		if (m_views.stencil)
-		{
-			vkDestroyImageView(GraphicsContext::instance()->getLogicalDevice(), m_views.stencil, nullptr);
-		}
-
-		for (auto &views : m_layer_views)
-		{
-			vkDestroyImageView(GraphicsContext::instance()->getLogicalDevice(), views.native, nullptr);
-			if (views.depth)
-			{
-				vkDestroyImageView(GraphicsContext::instance()->getLogicalDevice(), views.depth, nullptr);
-			}
-			if (views.stencil)
-			{
-				vkDestroyImageView(GraphicsContext::instance()->getLogicalDevice(), views.stencil, nullptr);
-			}
-		}
-	}
+	destroy();
 }
 
 const VkImageView &Image::getView(ImageViewType type) const
@@ -381,6 +370,44 @@ void Image::createImageViews()
 		}
 
 		layer++;
+	}
+}
+
+void Image::create()
+{
+}
+
+void Image::destroy()
+{
+	if (m_handle)
+	{
+		if (m_allocation)
+		{
+			vmaDestroyImage(GraphicsContext::instance()->getLogicalDevice().getAllocator(), m_handle, m_allocation);
+		}
+
+		vkDestroyImageView(GraphicsContext::instance()->getLogicalDevice(), m_views.native, nullptr);
+		if (m_views.depth)
+		{
+			vkDestroyImageView(GraphicsContext::instance()->getLogicalDevice(), m_views.depth, nullptr);
+		}
+		if (m_views.stencil)
+		{
+			vkDestroyImageView(GraphicsContext::instance()->getLogicalDevice(), m_views.stencil, nullptr);
+		}
+
+		for (auto &views : m_layer_views)
+		{
+			vkDestroyImageView(GraphicsContext::instance()->getLogicalDevice(), views.native, nullptr);
+			if (views.depth)
+			{
+				vkDestroyImageView(GraphicsContext::instance()->getLogicalDevice(), views.depth, nullptr);
+			}
+			if (views.stencil)
+			{
+				vkDestroyImageView(GraphicsContext::instance()->getLogicalDevice(), views.stencil, nullptr);
+			}
+		}
 	}
 }
 }        // namespace Ilum
