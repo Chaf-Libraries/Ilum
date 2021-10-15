@@ -101,6 +101,7 @@ endif()
 add_subdirectory(spirv_cross)
 
 #assimp
+option(ASSIMP_BUILD_TESTS OFF)
 add_subdirectory(assimp)
 
 #entt
