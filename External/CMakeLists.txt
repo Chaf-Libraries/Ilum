@@ -115,3 +115,6 @@ target_include_directories(stb INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/stb")
 # yaml-cpp
 add_subdirectory(yaml-cpp)
 
+# glm
+add_library(glm INTERFACE)
+target_include_directories(glm INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/glm")
