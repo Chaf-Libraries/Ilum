@@ -40,3 +40,6 @@
 [submodule "External/imgui_node_editor"]
 	path = External/imgui_node_editor
 	url = https://github.com/thedmd/imgui-node-editor
+[submodule "External/imgui"]
+	path = External/imgui
+	url = https://github.com/Chaf-Libraries/imgui

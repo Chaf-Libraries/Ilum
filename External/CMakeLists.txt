@@ -61,11 +61,13 @@ set(IMGUI_FILES
     "${IMGUI_DIR}/imstb_rectpack.h"
     "${IMGUI_DIR}/imstb_textedit.h"
     "${IMGUI_DIR}/imstb_truetype.h"
+    "${IMGUI_DIR}/backends/imgui_impl_vulkan.h"
+    "${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp"
     "${IMGUI_DIR}/backends/imgui_impl_sdl.h"
     "${IMGUI_DIR}/backends/imgui_impl_sdl.cpp")
 add_library(imgui STATIC ${IMGUI_FILES})
 target_include_directories(imgui PUBLIC ${IMGUI_DIR} ${IMGUI_DIR}/backends)
-target_link_libraries(imgui SDL2)
+target_link_libraries(imgui SDL2 volk)
 
 # glslang
 option(ENABLE_SPVREMAPPER OFF)
@@ -118,3 +120,41 @@ add_subdirectory(yaml-cpp)
 # glm
 add_library(glm INTERFACE)
 target_include_directories(glm INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/glm")
+
+# ImGuizmo
+set(IMGUIZMO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ImGuizmo")
+set(IMGUIZMO_FILES
+    "${IMGUIZMO_DIR}/GraphEditor.cpp"
+    "${IMGUIZMO_DIR}/GraphEditor.h"
+    "${IMGUIZMO_DIR}/ImCurveEdit.cpp"
+    "${IMGUIZMO_DIR}/ImCurveEdit.h"
+    "${IMGUIZMO_DIR}/ImGradient.cpp"
+    "${IMGUIZMO_DIR}/ImGradient.h"
+    "${IMGUIZMO_DIR}/ImGuizmo.cpp"
+    "${IMGUIZMO_DIR}/ImGuizmo.h"
+    "${IMGUIZMO_DIR}/ImSequencer.cpp"
+    "${IMGUIZMO_DIR}/ImSequencer.h"
+    "${IMGUIZMO_DIR}/ImZoomSlider.h")
+add_library(ImGuizmo STATIC ${IMGUIZMO_FILES})
+target_include_directories(ImGuizmo PUBLIC ${IMGUIZMO_DIR})
+target_link_libraries(ImGuizmo imgui)
+
+# imgui-node-editor
+set(IMGUINODEEDITOR_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui_node_editor")
+set(IMGUINODEEDITOR_FILES
+    "${IMGUINODEEDITOR_DIR}/crude_json.cpp"
+    "${IMGUINODEEDITOR_DIR}/crude_json.h"
+    "${IMGUINODEEDITOR_DIR}/imgui_bezier_math.inl"
+    "${IMGUINODEEDITOR_DIR}/imgui_bezier_math.h"
+    "${IMGUINODEEDITOR_DIR}/imgui_canvas.cpp"
+    "${IMGUINODEEDITOR_DIR}/imgui_canvas.h"
+    "${IMGUINODEEDITOR_DIR}/imgui_extra_math.h"
+    "${IMGUINODEEDITOR_DIR}/imgui_extra_math.inl"
+    "${IMGUINODEEDITOR_DIR}/imgui_node_editor.cpp"
+    "${IMGUINODEEDITOR_DIR}/imgui_node_editor.h"
+    "${IMGUINODEEDITOR_DIR}/imgui_node_editor_api.cpp"
+    "${IMGUINODEEDITOR_DIR}/imgui_node_editor_internal.h"
+    "${IMGUINODEEDITOR_DIR}/imgui_node_editor_internal.inl")
+add_library(imgui-node-editor STATIC ${IMGUINODEEDITOR_FILES})
+target_include_directories(imgui-node-editor PUBLIC ${IMGUINODEEDITOR_DIR})
+target_link_libraries(imgui-node-editor imgui)
