@@ -17,6 +17,6 @@ class ResourceCache
 
   private:
 	std::vector<Image>                              m_image_cache;
-	std::unordered_map<std::string, uint32_t> m_image_map;
+	std::unordered_map<std::string, size_t> m_image_map;
 };
 }        // namespace Ilum

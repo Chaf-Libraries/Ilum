@@ -22,6 +22,8 @@ namespace Ilum::panel
 {
 RenderGraphViewer::RenderGraphViewer()
 {
+	m_name = "Render Graph Viewer";
+
 	ed::Config config;
 	config.SettingsFile = "Simple.json";
 	m_editor_context    = ed::CreateEditor(&config);
@@ -31,6 +33,8 @@ RenderGraphViewer::RenderGraphViewer()
 	Renderer::instance()->Event_RenderGraph_Rebuild += [this]() { build(); };
 
 	ed::SetCurrentEditor(m_editor_context);
+
+	build();
 }
 
 RenderGraphViewer::~RenderGraphViewer()
@@ -142,7 +146,7 @@ void RenderGraphViewer::clear()
 
 void RenderGraphViewer::draw()
 {
-	ImGui::Begin("Render Graph Visualization");
+	ImGui::Begin("Render Graph Visualization", &active);
 	ed::Begin("Render Graph Visualization", ImVec2(0.0, 0.0f));
 
 	auto &bg           = Renderer::instance()->getResourceCache().loadImage(std::string(PROJECT_SOURCE_DIR) + "Asset/Texture/node_editor_bg.png");

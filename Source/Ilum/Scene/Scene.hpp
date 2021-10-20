@@ -4,12 +4,13 @@
 
 #include "Engine/Subsystem.hpp"
 
-#include "EntityManager.hpp"
-#include "SystemManager.hpp"
+#include <entt.hpp>
 
 namespace Ilum
 {
 class Entity;
+class EntityManager;
+class SystemManager;
 
 class Scene : public TSubsystem<Scene>
 {
@@ -18,17 +19,22 @@ class Scene : public TSubsystem<Scene>
 
 	~Scene() = default;
 
+	virtual void onTick(float delta_time) override;
+
 	void load(const std::string &filepath);
 
 	void clear();
 
+	entt::registry &getRegistry();
 
-	
+	Entity createEntity();
+
+	Entity createEntity(const std::string &name);
 
   private:
 	std::string m_name = "untitled_scene";
 
-	EntityManager m_entity_manager;
-	SystemManager m_system_manager;
+	scope<EntityManager> m_entity_manager;
+	scope<SystemManager> m_system_manager;
 };
 }        // namespace Ilum

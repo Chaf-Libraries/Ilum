@@ -11,6 +11,7 @@
 #include "Renderer/Renderer.hpp"
 
 #include "Panels/RenderGraphViewer.hpp"
+#include "Panels/Inspector.hpp"
 
 
 namespace Ilum
@@ -40,6 +41,7 @@ bool Editor::onInitialize()
 	ImGuiContext::initialize();
 
 	m_panels.emplace_back(createScope<panel::RenderGraphViewer>());
+	m_panels.emplace_back(createScope<panel::Inspector>());
 
 	return true;
 }
@@ -47,21 +49,39 @@ bool Editor::onInitialize()
 void Editor::onPreTick()
 {
 	ImGuiContext::begin();
-	//ImGuiContext::beginDockingSpace();
 }
 
 void Editor::onTick(float delta_time)
 {
-	ImGui::ShowDemoWindow();
+	static bool open = true;
+	ImGui::ShowDemoWindow(&open);
+
+	if (ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::BeginMenu("Panel"))
+		{
+			for (auto& panel : m_panels)
+			{
+				ImGui::MenuItem(panel->name().c_str(), nullptr,&panel->active);
+			}
+			ImGui::EndMenu();
+		}
+
+
+		ImGui::EndMainMenuBar();
+	}
+
 	for (auto& panel : m_panels)
 	{
-		panel->draw();
+		if (panel->active)
+		{
+			panel->draw();
+		}
 	}
 }
 
 void Editor::onPostTick()
 {
-	//ImGuiContext::endDockingSpace();
 	ImGuiContext::end();
 }
 
@@ -69,6 +89,16 @@ void Editor::onShutdown()
 {
 	ImGuiContext::destroy();
 
+}
+
+void Editor::select(Entity entity)
+{
+	m_select_entity = entity;
+}
+
+Entity Editor::getSelect()
+{
+	return m_select_entity;
 }
 
 }        // namespace Ilum
