@@ -2,7 +2,7 @@
 
 #include <entt.hpp>
 
-namespace Ilum::Cmpt
+namespace Ilum::cmpt
 {
 struct Hierarchy
 {

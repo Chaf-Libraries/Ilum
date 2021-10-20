@@ -62,6 +62,11 @@ void RenderGraph::present(const CommandBuffer &command_buffer, const Image &pres
 	onPresent(command_buffer, m_attachments.at(m_output), present_image);
 }
 
+const std::vector<RenderGraphNode> &RenderGraph::getNodes() const
+{
+	return m_nodes;
+}
+
 const RenderGraphNode &RenderGraph::getNode(const std::string &name) const
 {
 	auto iter = std::find_if(m_nodes.begin(), m_nodes.end(), [&name](const RenderGraphNode &node) { return node.name == name; });
@@ -79,6 +84,16 @@ RenderGraphNode &RenderGraph::getNode(const std::string &name)
 const Image &RenderGraph::getAttachment(const std::string &name) const
 {
 	return m_attachments.at(name);
+}
+
+bool RenderGraph::hasAttachment(const std::string &name) const
+{
+	return m_attachments.find(name)!=m_attachments.end();
+}
+
+Image &RenderGraph::getAttachment(const std::string &name)
+{
+	return m_attachments[name];
 }
 
 bool RenderGraph::hasRenderPass(const std::string &name) const
@@ -122,8 +137,10 @@ void RenderGraph::executeNode(RenderGraphNode &node, const CommandBuffer &comman
 	// Insert pipeline barrier
 	node.pipeline_barrier_callback(command_buffer, resolve);
 	
-	command_buffer.beginRenderPass(state.pass);
-	node.pass->render(state);
-	command_buffer.endRenderPass();
+	if (command_buffer.beginRenderPass(state.pass))
+	{
+		node.pass->render(state);
+		command_buffer.endRenderPass();
+	}
 }
 }        // namespace Ilum

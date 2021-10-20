@@ -10,9 +10,10 @@
 #include "Graphics/Descriptor/DescriptorCache.hpp"
 #include "Graphics/Descriptor/DescriptorPool.hpp"
 #include "Graphics/GraphicsContext.hpp"
-#include <imgui_impl_sdl.h>
-#include "ImGui/imgui_impl_vulkan.h"
 #include "Graphics/Pipeline/PipelineState.hpp"
+
+#include <imgui_impl_sdl.h>
+#include <imgui_impl_vulkan.h>
 
 namespace Ilum
 {

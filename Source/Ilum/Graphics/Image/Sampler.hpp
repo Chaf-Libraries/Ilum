@@ -13,6 +13,14 @@ class Sampler
 
 	~Sampler();
 
+	Sampler(Sampler &&other);
+
+	Sampler &operator=(Sampler &&other);
+
+	Sampler(const Sampler &) = delete;
+
+	Sampler &operator=(const Sampler &other) = delete;
+
 	const VkSampler &getSampler() const;
 
 	operator const VkSampler &() const;

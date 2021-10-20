@@ -1,7 +1,7 @@
 #include "ImGuiContext.hpp"
 
 #include <imgui_impl_sdl.h>
-#include "imgui_impl_vulkan.h"
+#include <imgui_impl_vulkan.h>
 
 #include "Device/Instance.hpp"
 #include "Device/LogicalDevice.hpp"
@@ -52,6 +52,8 @@ void ImGuiContext::createResouce()
 {
 	ImGui::CreateContext();
 
+	s_instance->m_texture_id_mapping.clear();
+
 	// Config style
 	setDarkMode();
 
@@ -97,11 +99,11 @@ void *ImGuiContext::textureID(const Image &image, const Sampler &sampler)
 	hash_combine(hash, image.getView());
 	hash_combine(hash, sampler.getSampler());
 
-	if (m_texture_id_mapping.find(hash) == m_texture_id_mapping.end())
+	if (s_instance->m_texture_id_mapping.find(hash) == s_instance->m_texture_id_mapping.end())
 	{
-		m_texture_id_mapping.emplace(hash, (VkDescriptorSet)ImGui_ImplVulkan_AddTexture(sampler, image.getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
+		s_instance->m_texture_id_mapping.emplace(hash, (VkDescriptorSet) ImGui_ImplVulkan_AddTexture(sampler, image.getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
 	}
-	return (ImTextureID) m_texture_id_mapping.at(hash);
+	return (ImTextureID) s_instance->m_texture_id_mapping.at(hash);
 }
 
 void ImGuiContext::setDarkMode()

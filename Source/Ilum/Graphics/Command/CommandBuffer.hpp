@@ -37,7 +37,7 @@ class CommandBuffer
 
 	bool begin(VkCommandBufferUsageFlagBits usage = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT) const;
 
-	void beginRenderPass(const PassNative& pass) const;
+	bool beginRenderPass(const PassNative& pass) const;
 
 	void endRenderPass() const;
 

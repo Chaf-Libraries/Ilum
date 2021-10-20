@@ -15,8 +15,6 @@ class Engine
 
 	static Engine* instance();
 
-	void onInitialize();
-
 	void onTick();
 
 	Context &getContext();

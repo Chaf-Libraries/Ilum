@@ -154,7 +154,13 @@ set(IMGUINODEEDITOR_FILES
     "${IMGUINODEEDITOR_DIR}/imgui_node_editor.h"
     "${IMGUINODEEDITOR_DIR}/imgui_node_editor_api.cpp"
     "${IMGUINODEEDITOR_DIR}/imgui_node_editor_internal.h"
-    "${IMGUINODEEDITOR_DIR}/imgui_node_editor_internal.inl")
+    "${IMGUINODEEDITOR_DIR}/imgui_node_editor_internal.inl"
+    "${IMGUINODEEDITOR_DIR}/examples/blueprints-example/utilities/builders.h"
+    "${IMGUINODEEDITOR_DIR}/examples/blueprints-example/utilities/builders.cpp"
+    "${IMGUINODEEDITOR_DIR}/examples/blueprints-example/utilities/drawing.h"
+    "${IMGUINODEEDITOR_DIR}/examples/blueprints-example/utilities/drawing.cpp"
+    "${IMGUINODEEDITOR_DIR}/examples/blueprints-example/utilities/widgets.h"
+    "${IMGUINODEEDITOR_DIR}/examples/blueprints-example/utilities/widgets.cpp")
 add_library(imgui-node-editor STATIC ${IMGUINODEEDITOR_FILES})
-target_include_directories(imgui-node-editor PUBLIC ${IMGUINODEEDITOR_DIR})
+target_include_directories(imgui-node-editor PUBLIC ${IMGUINODEEDITOR_DIR} ${IMGUINODEEDITOR_DIR}/examples/blueprints-example/utilities)
 target_link_libraries(imgui-node-editor imgui)

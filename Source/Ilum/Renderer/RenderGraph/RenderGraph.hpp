@@ -56,11 +56,17 @@ class RenderGraph
 		return *iter;
 	}
 
+	const std::vector<RenderGraphNode> &getNodes() const;
+
 	const RenderGraphNode &getNode(const std::string &name) const;
 
 	RenderGraphNode &getNode(const std::string &name);
 
 	const Image &getAttachment(const std::string &name) const;
+
+	bool hasAttachment(const std::string &name) const;
+
+	Image &getAttachment(const std::string &name);
 
 	bool hasRenderPass(const std::string &name) const;
 

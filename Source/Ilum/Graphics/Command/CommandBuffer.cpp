@@ -56,8 +56,13 @@ bool CommandBuffer::begin(VkCommandBufferUsageFlagBits usage) const
 	return true;
 }
 
-void CommandBuffer::beginRenderPass(const PassNative &pass) const
+bool CommandBuffer::beginRenderPass(const PassNative &pass) const
 {
+	if (!pass.render_pass)
+	{
+		return false;
+	}
+
 	VkRenderPassBeginInfo begin_info = {};
 	begin_info.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	begin_info.renderPass            = pass.render_pass;
@@ -76,6 +81,8 @@ void CommandBuffer::beginRenderPass(const PassNative &pass) const
 	{
 		vkCmdBindDescriptorSets(*this, pass.bind_point, pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
 	}
+
+	return true;
 }
 
 void CommandBuffer::endRenderPass() const

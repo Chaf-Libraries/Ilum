@@ -7,10 +7,6 @@ int main()
 {
 	Ilum::Engine engine;
 
-	engine.getContext().addSubsystem<Ilum::Editor>();
-
-	engine.onInitialize();
-
 	while (!Ilum::Window::instance()->shouldClose())
 	{
 		engine.onTick();

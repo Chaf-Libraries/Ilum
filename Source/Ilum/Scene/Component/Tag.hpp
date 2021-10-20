@@ -2,7 +2,7 @@
 
 #include <string>
 
-namespace Ilum::Cmpt
+namespace Ilum::cmpt
 {
 struct Tag
 {

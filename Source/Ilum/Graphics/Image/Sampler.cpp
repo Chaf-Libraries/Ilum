@@ -19,7 +19,7 @@ Sampler::Sampler(VkFilter min_filter, VkFilter mag_filter, VkSamplerAddressMode 
 	create_info.minLod              = 0;
 	create_info.maxLod              = 1000;
 
-	vkCreateSampler(GraphicsContext::instance()->getLogicalDevice(), &create_info, nullptr, &m_handle);
+	auto result = vkCreateSampler(GraphicsContext::instance()->getLogicalDevice(), &create_info, nullptr, &m_handle);
 }
 
 Sampler::~Sampler()
@@ -28,6 +28,20 @@ Sampler::~Sampler()
 	{
 		vkDestroySampler(GraphicsContext::instance()->getLogicalDevice(), m_handle, nullptr);
 	}
+}
+
+Sampler::Sampler(Sampler &&other):
+    m_handle(other.m_handle)
+{
+	other.m_handle = VK_NULL_HANDLE;
+}
+
+Sampler &Sampler::operator=(Sampler &&other)
+{
+	m_handle       = other.m_handle;
+	other.m_handle = VK_NULL_HANDLE;
+
+	return *this;
 }
 
 const VkSampler &Sampler::getSampler() const

@@ -165,6 +165,7 @@ Image::Image(Image &&other) :
     m_allocation(other.m_allocation)
 {
 	other.m_handle = VK_NULL_HANDLE;
+	other.m_allocation = VK_NULL_HANDLE;
 }
 
 Image &Image::operator=(Image &&other)
@@ -181,6 +182,7 @@ Image &Image::operator=(Image &&other)
 	m_allocation      = other.m_allocation;
 
 	other.m_handle = VK_NULL_HANDLE;
+	other.m_allocation = VK_NULL_HANDLE;
 
 	return *this;
 }

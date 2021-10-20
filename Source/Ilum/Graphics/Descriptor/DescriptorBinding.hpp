@@ -39,7 +39,6 @@ enum class ResolveOption
 class DescriptorBinding
 {
   public:
-  private:
 	struct DescriptorWriteInfo
 	{
 		VkDescriptorType type;
@@ -87,6 +86,7 @@ class DescriptorBinding
 		VkBufferUsageFlagBits usage;
 	};
 
+  private:
 	std::map<uint32_t, std::vector<DescriptorWriteInfo>> m_descriptor_writes;
 	std::map<uint32_t, std::vector<BufferWriteInfo>>     m_buffer_writes;
 	std::map<uint32_t, std::vector<ImageWriteInfo>>      m_image_writes;

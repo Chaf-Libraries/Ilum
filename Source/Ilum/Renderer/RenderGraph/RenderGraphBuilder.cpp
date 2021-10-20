@@ -408,6 +408,9 @@ RenderGraphBuilder &RenderGraphBuilder::setOutput(const std::string &name)
 
 scope<RenderGraph> RenderGraphBuilder::build()
 {
+	Stopwatch stopwatch;
+	stopwatch.start();
+
 	if (m_render_pass_references.empty())
 	{
 		return createScope<RenderGraph>();
@@ -417,8 +420,14 @@ scope<RenderGraph> RenderGraphBuilder::build()
 	// Prepare:
 	// - Create pipeline states
 	auto pipeline_states = createPipelineStates();
+	auto t               = stopwatch.elapsedMillisecond();
+	LOG_INFO("Create pipeline states in: {}ms", stopwatch.elapsedMillisecond());
+
 	// - Resolve resource transitions
 	auto resource_transitions = resolveResourceTransitions(pipeline_states);
+
+	LOG_INFO("Resolve resource transitions in: {}ms", stopwatch.elapsedMillisecond()-t);
+	t = stopwatch.elapsedMillisecond();
 	// - Setup output image
 	if (!m_output.empty())
 	{
@@ -426,7 +435,8 @@ scope<RenderGraph> RenderGraphBuilder::build()
 	}
 	// - Allocate attachments
 	auto attachments = allocateAttachments(pipeline_states, resource_transitions);
-
+	LOG_INFO("Allocate attachments in: {}ms", stopwatch.elapsedMillisecond()-t);
+	t = stopwatch.elapsedMillisecond();
 	// Build render pass
 	std::vector<RenderGraphNode> nodes;
 
@@ -442,7 +452,9 @@ scope<RenderGraph> RenderGraphBuilder::build()
 		    createPipelineBarrierCallback(render_pass_reference.name, pipeline_states.at(render_pass_reference.name), resource_transitions),
 		    pipeline_states.at(render_pass_reference.name).descriptor_bindings});
 	}
+	LOG_INFO("Build render pass in: {}ms", stopwatch.elapsedMillisecond()-t);
 
+	LOG_INFO("Building RenderGraph in: {}ms\n", stopwatch.elapsedMillisecond());
 	return createScope<RenderGraph>(
 	    std::move(nodes),
 	    std::move(attachments),
@@ -580,7 +592,7 @@ RenderGraphBuilder::AttachmentMap RenderGraphBuilder::allocateAttachments(const 
 			                                         attachment.width == 0 ? surface_width : attachment.width,
 			                                         attachment.height == 0 ? surface_height : attachment.height,
 			                                         attachment.format,
-			                                         attachment_usage,
+			                                         attachment_usage | VK_IMAGE_USAGE_SAMPLED_BIT,
 			                                         VMA_MEMORY_USAGE_GPU_ONLY,
 			                                         attachment.mipmaps,
 			                                         attachment.layers));

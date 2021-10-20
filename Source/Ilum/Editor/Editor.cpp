@@ -10,11 +10,15 @@
 #include "Renderer/RenderPass/ImGuiPass.hpp"
 #include "Renderer/Renderer.hpp"
 
+#include "Panels/RenderGraphViewer.hpp"
+
+
 namespace Ilum
 {
 Editor::Editor(Context *context) :
     TSubsystem<Editor>(context)
 {
+
 }
 
 bool Editor::onInitialize()
@@ -34,29 +38,37 @@ bool Editor::onInitialize()
 	}
 
 	ImGuiContext::initialize();
+
+	m_panels.emplace_back(createScope<panel::RenderGraphViewer>());
+
 	return true;
 }
 
 void Editor::onPreTick()
 {
 	ImGuiContext::begin();
-	ImGuiContext::beginDockingSpace();
+	//ImGuiContext::beginDockingSpace();
 }
 
 void Editor::onTick(float delta_time)
 {
 	ImGui::ShowDemoWindow();
+	for (auto& panel : m_panels)
+	{
+		panel->draw();
+	}
 }
 
 void Editor::onPostTick()
 {
-	ImGuiContext::endDockingSpace();
+	//ImGuiContext::endDockingSpace();
 	ImGuiContext::end();
 }
 
 void Editor::onShutdown()
 {
 	ImGuiContext::destroy();
+
 }
 
 }        // namespace Ilum

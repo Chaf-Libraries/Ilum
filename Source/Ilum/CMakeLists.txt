@@ -21,4 +21,6 @@ SetTarget(
         imgui
         yaml-cpp
         glm
+        ImGuizmo
+        imgui-node-editor
 )

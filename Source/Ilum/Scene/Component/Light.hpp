@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Graphics/Image/Image.hpp"
-#include "Math/Vector3.h"
+#include <glm/glm.hpp>
 
-namespace Ilum::Cmpt
+namespace Ilum::cmpt
 {
 enum class LightType
 {

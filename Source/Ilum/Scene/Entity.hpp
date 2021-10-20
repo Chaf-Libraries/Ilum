@@ -2,6 +2,8 @@
 
 #include <entt.hpp>
 
+#include "Eventing/Event.hpp"
+
 namespace Ilum
 {
 class Entity
@@ -73,5 +75,8 @@ class Entity
 
   private:
 	entt::entity m_handle = entt::null;
+
+  public:
+	static Event<> Event_Add;
 };
 }        // namespace Ilum

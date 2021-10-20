@@ -4,6 +4,8 @@
 
 #include "Engine/Subsystem.hpp"
 
+#include "Panel.hpp"
+
 namespace Ilum
 {
 class Editor : public TSubsystem<Editor>
@@ -22,5 +24,8 @@ class Editor : public TSubsystem<Editor>
 	virtual void onPostTick() override;
 
 	virtual void onShutdown() override;
+
+  private:
+	std::vector<scope<Panel>> m_panels;
 };
 }        // namespace Ilum

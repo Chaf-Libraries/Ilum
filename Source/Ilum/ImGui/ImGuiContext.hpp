@@ -41,7 +41,7 @@ class ImGuiContext
 
 	static void endDockingSpace();
 
-	void *textureID(const Image &image, const Sampler &sampler);
+	static void *textureID(const Image &image, const Sampler &sampler);
 
   private:
 	static void setDarkMode();

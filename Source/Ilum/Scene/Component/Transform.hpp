@@ -1,6 +1,6 @@
 #pragma once
 
-namespace Ilum::Cmpt
+namespace Ilum::cmpt
 {
 	struct Transform
 	{

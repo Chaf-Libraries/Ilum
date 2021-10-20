@@ -7,6 +7,7 @@
 #include "Renderer/Renderer.hpp"
 #include "Threading/ThreadPool.hpp"
 #include "Timing/Timer.hpp"
+#include "Editor/Editor.hpp"
 
 namespace Ilum
 {
@@ -24,6 +25,9 @@ Engine::Engine()
 	m_context->addSubsystem<Input>();
 	m_context->addSubsystem<GraphicsContext>();
 	m_context->addSubsystem<Renderer>();
+	m_context->addSubsystem<Editor>();
+
+	m_context->onInitialize();
 }
 
 Engine::~Engine()
@@ -34,11 +38,6 @@ Engine::~Engine()
 Engine *Engine::instance()
 {
 	return s_instance;
-}
-
-void Engine::onInitialize()
-{
-	m_context->onInitialize();
 }
 
 void Engine::onTick()
