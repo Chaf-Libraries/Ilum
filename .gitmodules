@@ -28,9 +28,18 @@
 [submodule "External/assimp"]
 	path = External/assimp
 	url = https://github.com/assimp/assimp
-[submodule "External/imgui"]
-	path = External/imgui
-	url = https://github.com/ocornut/imgui
 [submodule "External/yaml-cpp"]
 	path = External/yaml-cpp
 	url = https://github.com/jbeder/yaml-cpp
+[submodule "External/glm"]
+	path = External/glm
+	url = https://github.com/g-truc/glm
+[submodule "External/ImGuizmo"]
+	path = External/ImGuizmo
+	url = https://github.com/CedricGuillemet/ImGuizmo
+[submodule "External/imgui_node_editor"]
+	path = External/imgui_node_editor
+	url = https://github.com/thedmd/imgui-node-editor
+[submodule "External/imgui"]
+	path = External/imgui
+	url = https://github.com/Chaf-Libraries/imgui

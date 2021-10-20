@@ -15,8 +15,7 @@
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Pipeline/PipelineState.hpp"
 
-#include "Math/Vector2.h"
-#include "Math/Vector3.h"
+#include <glm/glm.hpp>
 
 #include "Loader/ImageLoader/ImageLoader.hpp"
 
@@ -43,8 +42,8 @@ class TrianglePass : public TRenderPass<TrianglePass>
 
 	virtual void setupPipeline(PipelineState &state)
 	{
-		state.shader.createShaderModule(std::string(PROJECT_SOURCE_DIR) + "Test/Triangle/triangle.glsl.vert");
-		state.shader.createShaderModule(std::string(PROJECT_SOURCE_DIR) + "Test/Triangle/triangle.glsl.frag");
+		state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Test/Triangle/triangle.glsl.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
+		state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Test/Triangle/triangle.glsl.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
 
 		state.dynamic_state.dynamic_states = {
 		    VK_DYNAMIC_STATE_VIEWPORT,
@@ -88,9 +87,9 @@ class TrianglePass : public TRenderPass<TrianglePass>
   private:
 	struct Vertex
 	{
-		Vector2 pos;
-		Vector2 uv;
-		Vector3 color;
+		glm::vec2 pos;
+		glm::vec2 uv;
+		glm::vec3 color;
 	};
 
 	const std::vector<Vertex> vertices = {
@@ -111,12 +110,10 @@ int main()
 
 	auto title = Window::instance()->getTitle();
 
-	auto &builder = Renderer::instance()->getRenderGraphBuilder();
-	builder.reset();
+	Renderer::instance()->resetBuilder();
 
 	Renderer::instance()->buildRenderGraph = [](RenderGraphBuilder &builder) {
 		builder.addRenderPass("TrianglePass", std::make_unique<TrianglePass>()).setOutput("output");
-
 		builder.addRenderPass("ImGuiPass", std::make_unique<ImGuiPass>("output", AttachmentState::Load_Color)).setOutput("output");
 	};
 

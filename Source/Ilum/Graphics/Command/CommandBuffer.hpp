@@ -1,0 +1,79 @@
+#pragma once
+
+#include "Utils/PCH.hpp"
+
+#include "Graphics/Buffer/Buffer.h"
+#include "Graphics/Image/Image.hpp"
+#include "Renderer/RenderGraph/RenderPass.hpp"
+
+namespace Ilum
+{
+class LogicalDevice;
+class CommandPool;
+struct PassNative;
+
+struct ImageInfo
+{
+	ImageReference       resource;
+	VkImageUsageFlagBits usage     = VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM;
+	uint32_t             mip_level = 0;
+	uint32_t             layer     = 0;
+};
+
+struct BufferInfo
+{
+	BufferReference resource;
+	uint32_t        offset = 0;
+};
+
+class CommandBuffer
+{
+  public:
+	CommandBuffer(VkQueueFlagBits queue_type = VK_QUEUE_GRAPHICS_BIT, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+
+	~CommandBuffer();
+
+	void reset() const;
+
+	bool begin(VkCommandBufferUsageFlagBits usage = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT) const;
+
+	bool beginRenderPass(const PassNative& pass) const;
+
+	void endRenderPass() const;
+
+	void end() const;
+
+	// Copy
+	void copyImage(const ImageInfo &src, const ImageInfo &dst) const;
+
+	void copyBufferToImage(const BufferInfo &src, const ImageInfo &dst) const;
+
+	void copyImageToBuffer(const ImageInfo &src, const BufferInfo &dst) const;
+
+	void copyBuffer(const BufferInfo &src, const BufferInfo &dst, VkDeviceSize size) const;
+
+	// Mipmap generate
+	void blitImage(const Image &src, VkImageUsageFlagBits src_usage, const Image &dst, VkImageUsageFlagBits dst_usage, VkFilter filter) const;
+
+	void generateMipmaps(const Image &image, VkImageUsageFlagBits initial_usage, VkFilter filter) const;
+
+	// Transfer layout
+	void transferLayout(const Image &image, VkImageUsageFlagBits old_usage, VkImageUsageFlagBits new_usage) const;
+
+	void transferLayout(const std::vector<ImageReference> &images, VkImageUsageFlagBits old_usage, VkImageUsageFlagBits new_usage) const;
+
+	void submitIdle(uint32_t queue_index = 0);
+
+	void submit(const VkSemaphore &wait_semaphore = VK_NULL_HANDLE, const VkSemaphore &signal_semaphore = VK_NULL_HANDLE, VkFence fence = VK_NULL_HANDLE, VkShaderStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, uint32_t queue_index = 0);
+
+	void submit(const std::vector<VkSemaphore> &wait_semaphores = {}, const std::vector<VkSemaphore> &signal_semaphores = {}, VkFence fence = VK_NULL_HANDLE, const std::vector<VkShaderStageFlags> &wait_stages = {}, uint32_t queue_index = 0);
+
+	operator const VkCommandBuffer &() const;
+
+	const VkCommandBuffer &getCommandBuffer() const;
+
+  private:
+	ref<CommandPool> m_command_pool = nullptr;
+	VkCommandBuffer  m_handle       = VK_NULL_HANDLE;
+};
+}        // namespace Ilum
