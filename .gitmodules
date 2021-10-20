@@ -37,9 +37,9 @@
 [submodule "External/ImGuizmo"]
 	path = External/ImGuizmo
 	url = https://github.com/CedricGuillemet/ImGuizmo
-[submodule "External/imgui_node_editor"]
-	path = External/imgui_node_editor
-	url = https://github.com/thedmd/imgui-node-editor
 [submodule "External/imgui"]
 	path = External/imgui
 	url = https://github.com/Chaf-Libraries/imgui
+[submodule "External/imgui_node_editor"]
+	path = External/imgui_node_editor
+	url = https://github.com/Chaf-Libraries/imgui-node-editor
