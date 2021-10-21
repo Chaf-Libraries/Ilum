@@ -1,6 +1,7 @@
 #include "Renderer.hpp"
 #include "RenderGraph/RenderGraph.hpp"
 
+#include "Renderer/RenderPass/DebugPass.hpp"
 #include "Renderer/RenderPass/ImGuiPass.hpp"
 
 #include "Device/Swapchain.hpp"
@@ -47,6 +48,7 @@ void Renderer::onPreTick()
 {
 	if (m_resize)
 	{
+		m_render_graph.reset();
 		rebuild();
 		m_resize = false;
 	}
@@ -68,9 +70,9 @@ void Renderer::onShutdown()
 	m_samplers.clear();
 }
 
-const RenderGraph &Renderer::getRenderGraph() const
+const RenderGraph *Renderer::getRenderGraph() const
 {
-	return *m_render_graph;
+	return m_render_graph.get();
 }
 
 ResourceCache &Renderer::getResourceCache()
@@ -87,17 +89,25 @@ void Renderer::rebuild()
 {
 	m_rg_builder.reset();
 
-	if (buildRenderGraph)
+	buildRenderGraph(m_rg_builder);
+
+	if (m_debug)
 	{
-		buildRenderGraph(m_rg_builder);
-	}
-	else
-	{
-		defaultBuilder(m_rg_builder);
+		m_rg_builder.addRenderPass("DebugPass", createScope<pass::DebugPass>());
 	}
 
 	m_render_graph = m_rg_builder.build();
 	Event_RenderGraph_Rebuild.invoke();
+}
+
+bool Renderer::isDebug() const
+{
+	return m_debug;
+}
+
+void Renderer::setDebug(bool enable)
+{
+	m_debug = enable;
 }
 
 const Sampler &Renderer::getSampler(SamplerType type) const

@@ -71,7 +71,7 @@ void ImGuiContext::createResouce()
 	init_info.ImageCount                = GraphicsContext::instance()->getSwapchain().getImageCount();
 
 	ImGui_ImplSDL2_InitForVulkan(Window::instance()->getSDLHandle());
-	ImGui_ImplVulkan_Init(&init_info, Renderer::instance()->getRenderGraph().getNode<ImGuiPass>().pass_native.render_pass);
+	ImGui_ImplVulkan_Init(&init_info, Renderer::instance()->getRenderGraph()->getNode<pass::ImGuiPass>().pass_native.render_pass);
 
 	// Upload fonts
 	CommandBuffer command_buffer;

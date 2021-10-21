@@ -53,13 +53,17 @@ class Renderer : public TSubsystem<Renderer>
 
 	virtual void onShutdown() override;
 
-	const RenderGraph &getRenderGraph() const;
+	const RenderGraph *getRenderGraph() const;
 
 	ResourceCache &getResourceCache();
 
 	void resetBuilder();
 
 	void rebuild();
+
+	bool isDebug() const;
+
+	void setDebug(bool enable);
 
 	const Sampler &getSampler(SamplerType type) const;
 
@@ -81,6 +85,12 @@ class Renderer : public TSubsystem<Renderer>
 	std::unordered_map<SamplerType, Sampler> m_samplers;
 
 	bool m_resize = false;
+
+#ifdef _DEBUG
+	bool m_debug = true;
+#else
+	bool m_debug = false;
+#endif        // _DEBUG
 
   public:
 	Event<> Event_RenderGraph_Rebuild;

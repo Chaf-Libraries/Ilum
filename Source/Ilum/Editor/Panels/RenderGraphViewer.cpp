@@ -46,25 +46,26 @@ void RenderGraphViewer::build()
 {
 	clear();
 
-	auto &render_graph = Renderer::instance()->getRenderGraph();
+	auto *render_graph = Renderer::instance()->getRenderGraph();
 
 	int unique_id = 0;
 
-	for (auto &node : render_graph.getNodes())
+	// Pass Node
+	for (auto &node : render_graph->getNodes())
 	{
-		m_nodes.emplace_back(unique_id++, node.name, ImColor(255, 128, 128));
+		m_passes.emplace_back(unique_id++, node.name, ImColor(255, 128, 128));
 
-		// Input - Buffer
+		// Descriptor binding
 		for (auto &[set, buffers] : node.descriptors.getBoundBuffers())
 		{
 			for (auto &buffer : buffers)
 			{
-				m_nodes.back().inputs.emplace_back(unique_id++, buffer.name, ed::PinKind::Input);
-				m_nodes.back().inputs.back().node = &m_nodes.back();
-				m_nodes.back().inputs.back().infos.emplace_back("type", "buffer");
-				m_nodes.back().inputs.back().infos.emplace_back("name", buffer.name);
-				m_nodes.back().inputs.back().infos.emplace_back("set", std::to_string(set));
-				m_nodes.back().inputs.back().infos.emplace_back("binding", std::to_string(buffer.binding));
+				std::vector<std::string> buffer_infos;
+				buffer_infos.push_back("type: buffer\n");
+				buffer_infos.push_back("name: " + buffer.name + "\n");
+				buffer_infos.push_back("set: " + std::to_string(set) + "\n");
+				buffer_infos.push_back("bind: " + std::to_string(buffer.binding));
+				m_passes.back().infos.emplace_back(buffer_infos);
 			}
 		}
 
@@ -73,65 +74,68 @@ void RenderGraphViewer::build()
 		{
 			for (auto &image : images)
 			{
-				m_nodes.back().inputs.emplace_back(unique_id++, image.name, ed::PinKind::Input);
-				m_nodes.back().inputs.back().node = &m_nodes.back();
-				m_nodes.back().inputs.back().infos.emplace_back("type", "image");
-				m_nodes.back().inputs.back().infos.emplace_back("name", image.name);
-				m_nodes.back().inputs.back().infos.emplace_back("set", std::to_string(set));
-				m_nodes.back().inputs.back().infos.emplace_back("binding", std::to_string(image.binding));
+				std::vector<std::string> image_infos;
+				image_infos.push_back("type: image\n");
+				image_infos.push_back("name: " + image.name + "\n");
+				image_infos.push_back("set: " + std::to_string(set) + "\n");
+				image_infos.push_back("bind: " + std::to_string(image.binding));
+				m_passes.back().infos.emplace_back(image_infos);
+
+				if (std::find_if(render_graph->getAttachments().begin(), render_graph->getAttachments().end(), [&image](const std::pair<const std::string, Image> &iter) { return iter.first == image.name; }) != render_graph->getAttachments().end())
+				{
+					m_passes.back().inputs.emplace_back(unique_id++, image.name, ed::PinKind::Input);
+					m_passes.back().inputs.back().node = &m_passes.back();
+				}
 			}
 		}
 
 		// Output - image
 		for (auto &output : node.attachments)
 		{
-			m_nodes.back().outputs.emplace_back(unique_id++, output, ed::PinKind::Output);
-			m_nodes.back().outputs.back().node = &m_nodes.back();
+			m_passes.back().outputs.emplace_back(unique_id++, output, ed::PinKind::Output);
+			m_passes.back().outputs.back().node = &m_passes.back();
 		}
 	}
 
-	// Back buffer
-	m_nodes.emplace_back(unique_id++, "Back Buffer", ImColor(128, 255, 128));
-	m_nodes.back().inputs.emplace_back(unique_id++, render_graph.output(), ed::PinKind::Input);
-	m_nodes.back().inputs.back().node = &m_nodes.back();
-
-	// External resource
-	m_nodes.emplace_back(unique_id++, "External Resource", ImColor(128, 128, 255));
-	m_nodes.back().outputs.emplace_back(unique_id++, "", ed::PinKind::Output);
-	m_nodes.back().outputs.back().node = &m_nodes.back();
-
-	// Setting Links
-	std::unordered_set<std::string> has_input;
-	for (auto &start : m_nodes)
+	// Attachment node
+	for (auto &[name, image] : render_graph->getAttachments())
 	{
-		for (auto &end : m_nodes)
+		m_attachments.emplace_back(unique_id++, Pin(unique_id++, "", ed::PinKind::Input), name, ImColor(128, 128, 255));
+		for (auto &pass : m_passes)
 		{
-			if (start.id == end.id)
+			for (auto &input : pass.inputs)
 			{
-				continue;
-			}
-
-			for (auto &output : start.outputs)
-			{
-				for (auto &input : end.inputs)
+				if (input.name == name)
 				{
-					if (input.name == output.name)
-					{
-						m_links.emplace_back(unique_id++, output.id, input.id);
-						has_input.insert(input.name);
-					}
+					m_attachments.back().output = Pin(unique_id++, "", ed::PinKind::Output);
 				}
 			}
 		}
+
+		if (!m_attachments.back().output)
+		{
+			m_attachments.back().color = ImColor(128, 255, 128);
+		}
 	}
 
-	for (auto &node : m_nodes)
+	// Setting Links
+	for (auto &pass : m_passes)
 	{
-		for (auto &input : node.inputs)
+		for (auto &attachment : m_attachments)
 		{
-			if (has_input.find(input.name) == has_input.end())
+			for (auto &input : pass.inputs)
 			{
-				m_links.emplace_back(unique_id++, m_nodes.back().outputs[0].id, input.id);
+				if (input.name == attachment.name)
+				{
+					m_links.emplace_back(unique_id++, attachment.output.value().id, input.id);
+				}
+			}
+			for (auto &output : pass.outputs)
+			{
+				if (output.name == attachment.name)
+				{
+					m_links.emplace_back(unique_id++, output.id, attachment.input.id);
+				}
 			}
 		}
 	}
@@ -140,8 +144,9 @@ void RenderGraphViewer::build()
 void RenderGraphViewer::clear()
 {
 	m_links.clear();
-	m_nodes.clear();
+	m_passes.clear();
 	m_pins.clear();
+	m_attachments.clear();
 }
 
 void RenderGraphViewer::draw()
@@ -151,11 +156,12 @@ void RenderGraphViewer::draw()
 
 	auto &bg           = Renderer::instance()->getResourceCache().loadImage(std::string(PROJECT_SOURCE_DIR) + "Asset/Texture/node_editor_bg.png");
 	auto &sampler      = Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp);
-	auto &render_graph = Renderer::instance()->getRenderGraph();
+	auto *render_graph = Renderer::instance()->getRenderGraph();
 
 	ed::Utilities::BlueprintNodeBuilder builder(ImGuiContext::textureID(bg, sampler), static_cast<int>(bg.get().getWidth()), static_cast<int>(bg.get().getHeight()));
 
-	for (auto &node : m_nodes)
+	// Draw render pass
+	for (auto &node : m_passes)
 	{
 		bool hasOutputDelegates = false;
 
@@ -198,15 +204,6 @@ void RenderGraphViewer::draw()
 				ImGui::Spring(0);
 				ImGui::TextUnformatted(output.name.c_str());
 			}
-			else
-			{
-				ImGui::BeginVertical(output.id.AsPointer());
-				for (auto &image : Renderer::instance()->getResourceCache().getImages())
-				{
-					ImGui::Image(ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {200.f, static_cast<float>(image.getHeight()) * 200.f / static_cast<float>(image.getWidth())});
-				}
-				ImGui::EndVertical();
-			}
 			ImGui::Spring(0);
 			ax::Widgets::Icon(ImVec2(24, 24), ax::Drawing::IconType::Flow, isPinLink(output.id), ImColor(255, 255, 255), ImColor(32, 32, 32, (int) (alpha * 255)));
 			ImGui::PopStyleVar();
@@ -216,6 +213,80 @@ void RenderGraphViewer::draw()
 		builder.End();
 	}
 
+	// Draw attachment
+	for (auto &attachment : m_attachments)
+	{
+		bool hasOutputDelegates = false;
+
+		builder.Begin(attachment.id);
+		{
+			builder.Header(attachment.color);
+			ImGui::Spring(0);
+			ImGui::TextUnformatted(attachment.name.c_str());
+			ImGui::Spring(1);
+			ImGui::Dummy(ImVec2(0, 28));
+			ImGui::Spring(0);
+			builder.EndHeader();
+		}
+
+		//for (auto &input : node.inputs)
+		{
+			auto alpha = ImGui::GetStyle().Alpha;
+
+			builder.Input(attachment.input.id);
+			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+			ax::Widgets::Icon(ImVec2(12, 12), ax::Drawing::IconType::Flow, isPinLink(attachment.input.id), ImColor(255, 255, 255), ImColor(32, 32, 32, (int) (alpha * 255)));
+			ImGui::Spring(0);
+			if (Renderer::instance()->isDebug())
+			{
+				auto &image = render_graph->getAttachment(attachment.name);
+				ImGui::Image(ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {200.f, static_cast<float>(image.getHeight()) * 200.f / static_cast<float>(image.getWidth())});
+			}
+			ImGui::PopStyleVar();
+			builder.EndInput();
+		}
+
+		if (attachment.output)
+		{
+			auto alpha = ImGui::GetStyle().Alpha;
+
+			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
+			builder.Output(attachment.output.value().id);
+			//ImGui::Spring(0);
+			ax::Widgets::Icon(ImVec2(12, 12), ax::Drawing::IconType::Flow, isPinLink(attachment.output.value().id), ImColor(255, 255, 255), ImColor(32, 32, 32, (int) (alpha * 255)));
+			ImGui::PopStyleVar();
+			builder.EndOutput();
+		}
+
+		builder.End();
+	}
+
+	/*for (auto& attachment : m_attachments)
+	{
+		ed::BeginNode(attachment.id);
+		ImGui::Text(attachment.name.c_str());
+		ed::BeginPin(attachment.input.id, ed::PinKind::Input);
+		ImGui::Text("-> In");
+		ed::EndPin();
+
+		if (Renderer::instance()->isDebug())
+		{
+			auto &image = render_graph->getAttachment(attachment.name);
+			ImGui::Image(ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {200.f, static_cast<float>(image.getHeight()) * 200.f / static_cast<float>(image.getWidth())});
+		}
+
+		ImGui::SameLine();
+		if (attachment.output)
+		{
+			ed::BeginPin(attachment.output.value().id, ed::PinKind::Output);
+			ImGui::Text("Out ->");
+
+			ed::EndPin();
+		}
+
+		ed::EndNode();
+	}*/
+
 	// Linking and flowing
 	for (auto &link : m_links)
 	{
@@ -224,54 +295,60 @@ void RenderGraphViewer::draw()
 	}
 
 	// Handle popup
-	ed::Suspend();
-	if (ed::ShowPinContextMenu(&m_select_pin))
-	{
-		ImGui::OpenPopup("Pin Context Menu");
-	}
-	ed::Resume();
+	//ed::Suspend();
+	//if (ed::ShowPinContextMenu(&m_select_pin))
+	//{
+	//	ImGui::OpenPopup("Pin Context Menu");
+	//}
+	//ed::Resume();
 
-	ed::Suspend();
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
-	if (ImGui::BeginPopup("Pin Context Menu"))
-	{
-		auto *pin = findPin(m_select_pin);
-		ImGui::TextUnformatted("Pin Context Menu");
-		ImGui::Separator();
-		if (pin)
-		{
-			for (auto& [key, info] : pin->infos)
-			{
-				ImGui::Text("%s: %s", key.c_str(), info.c_str());
-			}
+	//ed::Suspend();
+	//ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
+	//if (ImGui::BeginPopup("Pin Context Menu"))
+	//{
+	//	auto *pin = findPin(m_select_pin);
+	//	ImGui::TextUnformatted("Pin Context Menu");
+	//	ImGui::Separator();
+	//	if (pin)
+	//	{
+	//		//for (auto &[key, info] : pin->infos)
+	//		{
+	//			//ImGui::Text("%s: %s", key.c_str(), info.c_str());
+	//		}
 
-			if (pin->name != render_graph.output() && render_graph.hasAttachment(pin->name))
-			{
-				for (auto& node : m_nodes)
-				{
-					bool found = false;
-					for (auto& intput : node.inputs)
-					{
-						if (pin->name == intput.name)
-						{
-							auto &image = render_graph.getAttachment(pin->name);
-							ImGui::Image(ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {400.f, static_cast<float>(image.getHeight()) * 400.f / static_cast<float>(image.getWidth())});
-							found = true;
-							break;
-						}
+	//		for (auto &[name, output] : render_graph->getAttachments())
+	//		{
+	//			//if (name != render_graph->output())
+	//			//ImGui::Image(ImGuiContext::textureID(output, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {400.f, static_cast<float>(output.getHeight()) * 400.f / static_cast<float>(output.getWidth())});
+	//		}
 
-						if (found)
-						{
-							break;
-						}
-					}
-				}
-			}
-		}
-		ImGui::EndPopup();
-	}
-	ImGui::PopStyleVar();
-	ed::Resume();
+	//		//if (pin->name != render_graph->output() && render_graph->hasAttachment(pin->name))
+	//		//{
+	//		//	for (auto& node : m_nodes)
+	//		//	{
+	//		//		bool found = false;
+	//		//		for (auto& intput : node.outputs)
+	//		//		{
+	//		//			//if (pin->name == intput.name)
+	//		//			{
+	//		//				auto &image = render_graph->getAttachment(pin->name);
+	//		//				ImGui::Image(ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {400.f, static_cast<float>(image.getHeight()) * 400.f / static_cast<float>(image.getWidth())});
+	//		//				found = true;
+	//		//				//break;
+	//		//			}
+
+	//		//			if (found)
+	//		//			{
+	//		//				//break;
+	//		//			}
+	//		//		}
+	//		//	}
+	//		//}
+	//	}
+	//	ImGui::EndPopup();
+	//}
+	//ImGui::PopStyleVar();
+	//ed::Resume();
 
 	ed::End();
 	ImGui::End();
@@ -291,9 +368,9 @@ bool RenderGraphViewer::isPinLink(ax::NodeEditor::PinId id)
 
 RenderGraphViewer::Pin *RenderGraphViewer::findPin(ax::NodeEditor::PinId id)
 {
-	for (auto& node : m_nodes)
+	for (auto &node : m_passes)
 	{
-		for (auto& input : node.inputs)
+		for (auto &input : node.inputs)
 		{
 			if (input.id == id)
 			{

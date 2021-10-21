@@ -10,6 +10,7 @@
 
 #include "Renderer/RenderGraph/RenderPass.hpp"
 #include "Renderer/RenderPass/ImGuiPass.hpp"
+#include "Renderer/RenderPass/DebugPass.hpp"
 #include "Renderer/Renderer.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
@@ -151,7 +152,6 @@ class TestPass : public TRenderPass<TestPass>
 
 	virtual void resolveResources(ResolveState &resolve)
 	{
-
 	}
 
 	virtual void render(RenderPassState &state)
@@ -205,7 +205,7 @@ int main()
 	Renderer::instance()->buildRenderGraph = [](RenderGraphBuilder &builder) {
 		builder.addRenderPass("TrianglePass", std::make_unique<TrianglePass>());
 		builder.addRenderPass("TestPass", std::make_unique<TestPass>());
-		builder.addRenderPass("ImGuiPass", std::make_unique<ImGuiPass>("result", AttachmentState::Load_Color)).setOutput("result");
+		builder.addRenderPass("ImGuiPass", std::make_unique<pass::ImGuiPass>("result", AttachmentState::Load_Color)).setOutput("result");
 	};
 
 	Renderer::instance()->rebuild();

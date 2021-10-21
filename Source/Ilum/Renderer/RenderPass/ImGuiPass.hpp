@@ -5,7 +5,7 @@
 #include "Graphics/Pipeline/PipelineState.hpp"
 #include "Renderer/RenderGraph/RenderPass.hpp"
 
-namespace Ilum
+namespace Ilum::pass
 {
 class ImGuiPass : public TRenderPass<ImGuiPass>
 {

@@ -24,15 +24,15 @@ Editor::Editor(Context *context) :
 
 bool Editor::onInitialize()
 {
-	auto &rg = Renderer::instance()->getRenderGraph();
-	if (!rg.hasRenderPass<ImGuiPass>())
+	auto *rg = Renderer::instance()->getRenderGraph();
+	if (!rg->hasRenderPass<pass::ImGuiPass>())
 	{
-		auto output = Renderer::instance()->getRenderGraph().output();
+		auto output = Renderer::instance()->getRenderGraph()->output();
 
 		auto current_build                     = Renderer::instance()->buildRenderGraph;
 		Renderer::instance()->buildRenderGraph = [current_build, output, &rg](RenderGraphBuilder &builder) {
 			current_build(builder);
-			builder.addRenderPass("ImGuiPass", createScope<ImGuiPass>(output, rg.empty() ? AttachmentState::Clear_Color : AttachmentState::Load_Color)).setOutput(output);
+			builder.addRenderPass("ImGuiPass", createScope<pass::ImGuiPass>(output, rg->empty() ? AttachmentState::Clear_Color : AttachmentState::Load_Color)).setOutput(output);
 		};
 
 		Renderer::instance()->rebuild();

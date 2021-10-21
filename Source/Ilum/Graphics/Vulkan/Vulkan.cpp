@@ -20,7 +20,10 @@ void vk_assert(VkResult result)
 #ifdef _DEBUG
 	assert(result == VK_SUCCESS);
 #else
-	VK_ERROR("{}", std::to_string(result));
+	if (result != VK_SUCCESS)
+	{
+		VK_ERROR("{}", std::to_string(result));
+	}
 #endif        // _DEBUG
 }
 }        // namespace Ilum

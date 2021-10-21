@@ -86,14 +86,14 @@ const Image &RenderGraph::getAttachment(const std::string &name) const
 	return m_attachments.at(name);
 }
 
+const std::unordered_map<std::string, Image> &RenderGraph::getAttachments() const
+{
+	return m_attachments;
+}
+
 bool RenderGraph::hasAttachment(const std::string &name) const
 {
 	return m_attachments.find(name)!=m_attachments.end();
-}
-
-Image &RenderGraph::getAttachment(const std::string &name)
-{
-	return m_attachments[name];
 }
 
 bool RenderGraph::hasRenderPass(const std::string &name) const
