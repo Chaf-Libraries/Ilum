@@ -9,6 +9,8 @@
 
 #include "Graphics/GraphicsContext.hpp"
 
+#include "ImGui/ImGuiContext.hpp"
+
 #include <imgui.h>
 
 namespace Ilum
@@ -91,9 +93,14 @@ void Renderer::rebuild()
 
 	buildRenderGraph(m_rg_builder);
 
-	if (m_debug)
+	if (m_debug && !m_rg_builder.empty())
 	{
 		m_rg_builder.addRenderPass("DebugPass", createScope<pass::DebugPass>());
+	}
+
+	if (m_imgui)
+	{
+		m_rg_builder.addRenderPass("ImGuiPass", createScope<pass::ImGuiPass>(m_rg_builder.output(), m_rg_builder.empty() ? AttachmentState::Clear_Color : AttachmentState::Load_Color));
 	}
 
 	m_render_graph = m_rg_builder.build();
@@ -107,7 +114,26 @@ bool Renderer::isDebug() const
 
 void Renderer::setDebug(bool enable)
 {
-	m_debug = enable;
+	if (m_debug != enable)
+	{
+		m_debug = enable;
+		rebuild();
+	}
+}
+
+bool Renderer::hasImGui() const
+{
+	return m_imgui;
+}
+
+void Renderer::setImGui(bool enable)
+{
+	if (m_imgui != enable)
+	{
+		m_imgui = enable;
+		rebuild();
+		enable ? ImGuiContext::initialize() : ImGuiContext::destroy();
+	}
 }
 
 const Sampler &Renderer::getSampler(SamplerType type) const

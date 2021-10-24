@@ -16,7 +16,10 @@ void DebugPass::setupPipeline(PipelineState &state)
 
 	for (auto &[name, output] : rg->getAttachments())
 	{
-		state.addDependency(name, VK_IMAGE_USAGE_SAMPLED_BIT);
+		if (name != rg->output())
+		{
+			state.addDependency(name, VK_IMAGE_USAGE_SAMPLED_BIT);
+		}
 	}
 }
 }        // namespace Ilum::pass

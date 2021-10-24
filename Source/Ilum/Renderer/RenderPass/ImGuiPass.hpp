@@ -10,7 +10,7 @@ namespace Ilum::pass
 class ImGuiPass : public TRenderPass<ImGuiPass>
 {
   public:
-	ImGuiPass(const std::string &output_name, AttachmentState state = AttachmentState::Clear_Color);
+	ImGuiPass(const std::string &output_name, AttachmentState state = AttachmentState::Load_Color);
 
 	virtual void setupPipeline(PipelineState &state) override;
 

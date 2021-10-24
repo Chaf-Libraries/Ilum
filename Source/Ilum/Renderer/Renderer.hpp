@@ -65,6 +65,10 @@ class Renderer : public TSubsystem<Renderer>
 
 	void setDebug(bool enable);
 
+	bool hasImGui() const;
+
+	void setImGui(bool enable);
+
 	const Sampler &getSampler(SamplerType type) const;
 
   public:
@@ -86,11 +90,9 @@ class Renderer : public TSubsystem<Renderer>
 
 	bool m_resize = false;
 
-#ifdef _DEBUG
+	bool m_imgui = true;
+
 	bool m_debug = true;
-#else
-	bool m_debug = false;
-#endif        // _DEBUG
 
   public:
 	Event<> Event_RenderGraph_Rebuild;
