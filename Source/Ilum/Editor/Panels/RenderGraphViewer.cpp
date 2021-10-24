@@ -151,8 +151,8 @@ void RenderGraphViewer::clear()
 
 void RenderGraphViewer::draw()
 {
-	ImGui::Begin("Render Graph Visualization", &active);
-	ed::Begin("Render Graph Visualization", ImVec2(0.0, 0.0f));
+	ImGui::Begin("Render Graph Viewer", &active);
+	ed::Begin("Render Graph Viewer", ImVec2(0.0, 0.0f));
 
 	auto &bg           = Renderer::instance()->getResourceCache().loadImage(std::string(PROJECT_SOURCE_DIR) + "Asset/Texture/node_editor_bg.png");
 	auto &sampler      = Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp);
@@ -237,7 +237,7 @@ void RenderGraphViewer::draw()
 			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
 			ax::Widgets::Icon(ImVec2(12, 12), ax::Drawing::IconType::Flow, isPinLink(attachment.input.id), ImColor(255, 255, 255), ImColor(32, 32, 32, (int) (alpha * 255)));
 			ImGui::Spring(0);
-			if (Renderer::instance()->isDebug())
+			if (attachment.name!=render_graph->output())
 			{
 				auto &image = render_graph->getAttachment(attachment.name);
 				ImGui::Image(ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {200.f, static_cast<float>(image.getHeight()) * 200.f / static_cast<float>(image.getWidth())});
@@ -252,7 +252,6 @@ void RenderGraphViewer::draw()
 
 			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
 			builder.Output(attachment.output.value().id);
-			//ImGui::Spring(0);
 			ax::Widgets::Icon(ImVec2(12, 12), ax::Drawing::IconType::Flow, isPinLink(attachment.output.value().id), ImColor(255, 255, 255), ImColor(32, 32, 32, (int) (alpha * 255)));
 			ImGui::PopStyleVar();
 			builder.EndOutput();
@@ -260,32 +259,6 @@ void RenderGraphViewer::draw()
 
 		builder.End();
 	}
-
-	/*for (auto& attachment : m_attachments)
-	{
-		ed::BeginNode(attachment.id);
-		ImGui::Text(attachment.name.c_str());
-		ed::BeginPin(attachment.input.id, ed::PinKind::Input);
-		ImGui::Text("-> In");
-		ed::EndPin();
-
-		if (Renderer::instance()->isDebug())
-		{
-			auto &image = render_graph->getAttachment(attachment.name);
-			ImGui::Image(ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {200.f, static_cast<float>(image.getHeight()) * 200.f / static_cast<float>(image.getWidth())});
-		}
-
-		ImGui::SameLine();
-		if (attachment.output)
-		{
-			ed::BeginPin(attachment.output.value().id, ed::PinKind::Output);
-			ImGui::Text("Out ->");
-
-			ed::EndPin();
-		}
-
-		ed::EndNode();
-	}*/
 
 	// Linking and flowing
 	for (auto &link : m_links)
@@ -295,60 +268,51 @@ void RenderGraphViewer::draw()
 	}
 
 	// Handle popup
-	//ed::Suspend();
-	//if (ed::ShowPinContextMenu(&m_select_pin))
-	//{
-	//	ImGui::OpenPopup("Pin Context Menu");
-	//}
-	//ed::Resume();
+	ed::Suspend();
+	if (ed::ShowNodeContextMenu(&m_select_node))
+	{
+		ImGui::OpenPopup("Node Context Menu");
+	}
+	ed::Resume();
 
-	//ed::Suspend();
-	//ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
-	//if (ImGui::BeginPopup("Pin Context Menu"))
-	//{
-	//	auto *pin = findPin(m_select_pin);
-	//	ImGui::TextUnformatted("Pin Context Menu");
-	//	ImGui::Separator();
-	//	if (pin)
-	//	{
-	//		//for (auto &[key, info] : pin->infos)
-	//		{
-	//			//ImGui::Text("%s: %s", key.c_str(), info.c_str());
-	//		}
+	ed::Suspend();
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
+	if (ImGui::BeginPopup("Node Context Menu"))
+	{
+		auto *pass = findPassNode(m_select_node);
+		auto *attachment = findAttachmentNode(m_select_node);
 
-	//		for (auto &[name, output] : render_graph->getAttachments())
-	//		{
-	//			//if (name != render_graph->output())
-	//			//ImGui::Image(ImGuiContext::textureID(output, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {400.f, static_cast<float>(output.getHeight()) * 400.f / static_cast<float>(output.getWidth())});
-	//		}
+		ImGui::TextUnformatted(pass?pass->name.c_str():attachment->name.c_str());
+		ImGui::Separator();
 
-	//		//if (pin->name != render_graph->output() && render_graph->hasAttachment(pin->name))
-	//		//{
-	//		//	for (auto& node : m_nodes)
-	//		//	{
-	//		//		bool found = false;
-	//		//		for (auto& intput : node.outputs)
-	//		//		{
-	//		//			//if (pin->name == intput.name)
-	//		//			{
-	//		//				auto &image = render_graph->getAttachment(pin->name);
-	//		//				ImGui::Image(ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {400.f, static_cast<float>(image.getHeight()) * 400.f / static_cast<float>(image.getWidth())});
-	//		//				found = true;
-	//		//				//break;
-	//		//			}
+		if (pass)
+		{
+			uint32_t index = 0;
+			for (const auto &infos : pass->infos)
+			{
+				ImGui::Text("Descriptor#%d", index++);
+				for (const auto &info : infos)
+				{
+					ImGui::Text("%s", info.c_str());
+				}
+				ImGui::Separator();
+			}
+		}
 
-	//		//			if (found)
-	//		//			{
-	//		//				//break;
-	//		//			}
-	//		//		}
-	//		//	}
-	//		//}
-	//	}
-	//	ImGui::EndPopup();
-	//}
-	//ImGui::PopStyleVar();
-	//ed::Resume();
+		if (attachment)
+		{
+			auto &image = render_graph->getAttachment(attachment->name);
+			ImGui::Text("format: %s", std::to_string(image.getFormat()).c_str());
+			ImGui::Text("width: %d", image.getWidth());
+			ImGui::Text("height: %d", image.getHeight());
+			ImGui::Text("mip levels: %d", image.getMipLevelCount());
+			ImGui::Text("layers: %d", image.getLayerCount());
+		}
+
+		ImGui::EndPopup();
+	}
+	ImGui::PopStyleVar();
+	ed::Resume();
 
 	ed::End();
 	ImGui::End();
@@ -366,23 +330,26 @@ bool RenderGraphViewer::isPinLink(ax::NodeEditor::PinId id)
 	return false;
 }
 
-RenderGraphViewer::Pin *RenderGraphViewer::findPin(ax::NodeEditor::PinId id)
+RenderGraphViewer::PassNode *RenderGraphViewer::findPassNode(ax::NodeEditor::NodeId id)
 {
 	for (auto &node : m_passes)
 	{
-		for (auto &input : node.inputs)
+		if (node.id == id)
 		{
-			if (input.id == id)
-			{
-				return &input;
-			}
+			return &node;
 		}
-		for (auto &output : node.outputs)
+	}
+
+	return nullptr;
+}
+
+RenderGraphViewer::AttachmentNode *RenderGraphViewer::findAttachmentNode(ax::NodeEditor::NodeId id)
+{
+	for (auto &attachment : m_attachments)
+	{
+		if (attachment.id == id)
 		{
-			if (output.id == id)
-			{
-				return &output;
-			}
+			return &attachment;
 		}
 	}
 

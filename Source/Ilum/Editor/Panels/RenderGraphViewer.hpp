@@ -88,7 +88,9 @@ class RenderGraphViewer : public Panel
   private:
 	bool isPinLink(ax::NodeEditor::PinId id);
 
-	Pin *findPin(ax::NodeEditor::PinId id);
+	PassNode *findPassNode(ax::NodeEditor::NodeId id);
+
+	AttachmentNode *findAttachmentNode(ax::NodeEditor::NodeId id);
 
   private:
 	ax::NodeEditor::EditorContext *m_editor_context = nullptr;
@@ -97,7 +99,7 @@ class RenderGraphViewer : public Panel
 	std::vector<AttachmentNode>    m_attachments;
 	std::vector<Link>              m_links;
 
-	ax::NodeEditor::PinId m_select_pin;
+	ax::NodeEditor::NodeId m_select_node;
 
 	ImTextureID m_background_id;
 };
