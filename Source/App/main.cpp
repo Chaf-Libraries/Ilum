@@ -23,6 +23,12 @@ int main()
 	auto entity = Ilum::Scene::instance()->createEntity("test" + std::to_string(10));
 	auto view = Ilum::Scene::instance()->getRegistry().view<Ilum::cmpt::Tag>();
 
+	glm::vec3 a = {1.f, 3.f, 6.f};
+	glm::vec3 b = {2.f, 1.f, 7.f};
+	auto      c = glm::max(a, b);
+
+	LOG_INFO("{}, {}, {}", c.x, c.y, c.z);
+
 	//for (auto& iter : view)
 	//{
 	//	LOG_INFO(iter.getComponent<Ilum::cmpt::Tag>().name);
