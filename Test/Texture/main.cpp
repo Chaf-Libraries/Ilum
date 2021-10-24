@@ -9,8 +9,8 @@
 #include <Device/Input.hpp>
 
 #include "Renderer/RenderGraph/RenderPass.hpp"
-#include "Renderer/RenderPass/ImGuiPass.hpp"
 #include "Renderer/RenderPass/DebugPass.hpp"
+#include "Renderer/RenderPass/ImGuiPass.hpp"
 #include "Renderer/Renderer.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
@@ -193,6 +193,15 @@ class TestPass : public TRenderPass<TestPass>
 	scope<Buffer> index_buffer  = nullptr;
 };
 
+class DebugPass : public TRenderPass<TestPass>
+{
+  public:
+	virtual void setupPipeline(PipelineState &state)
+	{
+		state.addDependency("output", VK_IMAGE_USAGE_SAMPLED_BIT);
+	}
+};
+
 int main()
 {
 	Engine engine;
@@ -202,10 +211,13 @@ int main()
 
 	auto title = Window::instance()->getTitle();
 
+	Renderer::instance()->setDebug(true);
+	//Renderer::instance()->setImGui(false);
+
 	Renderer::instance()->buildRenderGraph = [](RenderGraphBuilder &builder) {
-		builder.addRenderPass("TrianglePass", std::make_unique<TrianglePass>());
-		builder.addRenderPass("TestPass", std::make_unique<TestPass>());
-		builder.addRenderPass("ImGuiPass", std::make_unique<pass::ImGuiPass>("result", AttachmentState::Load_Color)).setOutput("result");
+		builder.addRenderPass("TrianglePass", std::make_unique<TrianglePass>())
+		    .addRenderPass("TestPass", std::make_unique<TestPass>())
+		    .setOutput("result");
 	};
 
 	Renderer::instance()->rebuild();

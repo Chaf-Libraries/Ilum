@@ -2,7 +2,9 @@
 #include <Ilum/Editor/Editor.hpp>
 #include <Ilum/Engine/Context.hpp>
 #include <Ilum/Engine/Engine.hpp>
+#include <Ilum/Renderer/Renderer.hpp>
 #include <Ilum/Scene/Component/Camera.hpp>
+#include <Ilum/Scene/Component/Hierarchy.hpp>
 #include <Ilum/Scene/Component/Tag.hpp>
 #include <Ilum/Scene/Component/Transform.hpp>
 #include <Ilum/Scene/Scene.hpp>
@@ -13,13 +15,12 @@ int main()
 {
 	Ilum::Engine engine;
 
-	for (auto i = 0; i < 10000; i++)
+	for (auto i = 0; i < 10; i++)
 	{
-		Ilum::Scene::instance()->createEntity("test"+std::to_string(i)).addComponent<Ilum::cmpt::Transform>();
-
+		auto entity = Ilum::Scene::instance()->createEntity("test" + std::to_string(i));
 	}
-	Ilum::Editor::instance()->select(Ilum::Scene::instance()->createEntity("test" + std::to_string(11111111)));
-	Ilum::Editor::instance()->getSelect().addComponent<Ilum::cmpt::Transform>();
+
+	auto entity = Ilum::Scene::instance()->createEntity("test" + std::to_string(10));
 	auto view = Ilum::Scene::instance()->getRegistry().view<Ilum::cmpt::Tag>();
 
 	//for (auto& iter : view)

@@ -6,10 +6,9 @@
 
 namespace Ilum
 {
-Entity::Entity(entt::entity handle):
+Entity::Entity(entt::entity handle) :
     m_handle(handle)
 {
-
 }
 
 bool Entity::active() const
@@ -34,7 +33,17 @@ Entity::operator uint32_t() const
 
 Entity::operator bool() const
 {
-	return m_handle != entt::null;
+	return m_handle != entt::null && Scene::instance()->getRegistry().valid(m_handle);
+}
+
+bool Entity::operator==(const Entity &rhs) const
+{
+	return m_handle == rhs.m_handle;
+}
+
+bool Entity::operator==(entt::entity rhs) const
+{
+	return m_handle == rhs;
 }
 
 entt::entity Entity::getHandle() const
@@ -44,7 +53,10 @@ entt::entity Entity::getHandle() const
 
 void Entity::destroy()
 {
-	Scene::instance()->getRegistry().destroy(m_handle);
+	if (valid())
+	{
+		Scene::instance()->getRegistry().destroy(m_handle);
+	}
 }
 
 bool Entity::valid()

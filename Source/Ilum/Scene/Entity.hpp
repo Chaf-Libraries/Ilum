@@ -49,6 +49,10 @@ class Entity
 
 	operator bool() const;
 
+	bool operator==(const Entity &rhs) const;
+
+	bool operator==(entt::entity rhs) const;
+
 	entt::entity getHandle() const;
 
 	void destroy();

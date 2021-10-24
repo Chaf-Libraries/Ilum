@@ -43,6 +43,8 @@ class ImGuiContext
 
 	static void *textureID(const Image &image, const Sampler &sampler);
 
+	bool enable() const;
+
   private:
 	static void setDarkMode();
 
@@ -52,5 +54,7 @@ class ImGuiContext
 	VkDescriptorPool m_descriptor_pool = VK_NULL_HANDLE;
 
 	std::unordered_map<size_t, VkDescriptorSet> m_texture_id_mapping;
+
+	static bool s_enable;
 };
 }        // namespace Ilum

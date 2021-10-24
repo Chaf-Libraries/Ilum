@@ -104,9 +104,7 @@ class EntityManager
 
 	~EntityManager();
 
-	Entity create();
-
-	Entity create(const std::string &name);
+	Entity create(const std::string &name = "Untitled Entity");
 
 	void clear();
 
