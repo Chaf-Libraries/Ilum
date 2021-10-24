@@ -12,6 +12,7 @@
 
 #include "Panels/RenderGraphViewer.hpp"
 #include "Panels/Inspector.hpp"
+#include "Panels/Hierarchy.hpp"
 
 
 namespace Ilum
@@ -42,6 +43,7 @@ bool Editor::onInitialize()
 
 	m_panels.emplace_back(createScope<panel::RenderGraphViewer>());
 	m_panels.emplace_back(createScope<panel::Inspector>());
+	m_panels.emplace_back(createScope<panel::Hierarchy>());
 
 	return true;
 }
@@ -53,6 +55,11 @@ void Editor::onPreTick()
 
 void Editor::onTick(float delta_time)
 {
+	if (!Renderer::instance()->hasImGui())
+	{
+		return;
+	}
+
 	static bool open = true;
 	ImGui::ShowDemoWindow(&open);
 
