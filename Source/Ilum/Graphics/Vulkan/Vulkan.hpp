@@ -18,4 +18,6 @@ void vk_assert(VkResult result);
 namespace std
 {
 std::string to_string(VkResult result);
+
+std::string to_string(VkFormat format);
 }
