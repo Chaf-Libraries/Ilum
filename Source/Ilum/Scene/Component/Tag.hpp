@@ -6,7 +6,7 @@ namespace Ilum::cmpt
 {
 struct Tag
 {
-	std::string name;
-	bool        active;
+	std::string name   = "Untitled Entity";
+	bool        active = true;
 };
 }        // namespace Ilum::Cmpt

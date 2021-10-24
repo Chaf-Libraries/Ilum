@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 namespace Ilum
 {
 class Panel
@@ -11,7 +13,15 @@ class Panel
 
 	virtual void draw() = 0;
 
+	const std::string &name() const
+	{
+		return m_name;
+	}
+
+  public:
+	bool active = true;
+
   protected:
-	bool m_active = true;
+	std::string m_name;
 };
 }        // namespace Ilum

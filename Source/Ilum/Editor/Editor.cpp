@@ -11,6 +11,8 @@
 #include "Renderer/Renderer.hpp"
 
 #include "Panels/RenderGraphViewer.hpp"
+#include "Panels/Inspector.hpp"
+#include "Panels/Hierarchy.hpp"
 
 
 namespace Ilum
@@ -23,15 +25,15 @@ Editor::Editor(Context *context) :
 
 bool Editor::onInitialize()
 {
-	auto &rg = Renderer::instance()->getRenderGraph();
-	if (!rg.hasRenderPass<ImGuiPass>())
+	auto *rg = Renderer::instance()->getRenderGraph();
+	if (!rg->hasRenderPass<pass::ImGuiPass>())
 	{
-		auto output = Renderer::instance()->getRenderGraph().output();
+		auto output = Renderer::instance()->getRenderGraph()->output();
 
 		auto current_build                     = Renderer::instance()->buildRenderGraph;
 		Renderer::instance()->buildRenderGraph = [current_build, output, &rg](RenderGraphBuilder &builder) {
 			current_build(builder);
-			builder.addRenderPass("ImGuiPass", createScope<ImGuiPass>(output, rg.empty() ? AttachmentState::Clear_Color : AttachmentState::Load_Color)).setOutput(output);
+			builder.addRenderPass("ImGuiPass", createScope<pass::ImGuiPass>(output, rg->empty() ? AttachmentState::Clear_Color : AttachmentState::Load_Color)).setOutput(output);
 		};
 
 		Renderer::instance()->rebuild();
@@ -40,6 +42,8 @@ bool Editor::onInitialize()
 	ImGuiContext::initialize();
 
 	m_panels.emplace_back(createScope<panel::RenderGraphViewer>());
+	m_panels.emplace_back(createScope<panel::Inspector>());
+	m_panels.emplace_back(createScope<panel::Hierarchy>());
 
 	return true;
 }
@@ -47,21 +51,44 @@ bool Editor::onInitialize()
 void Editor::onPreTick()
 {
 	ImGuiContext::begin();
-	//ImGuiContext::beginDockingSpace();
 }
 
 void Editor::onTick(float delta_time)
 {
-	ImGui::ShowDemoWindow();
+	if (!Renderer::instance()->hasImGui())
+	{
+		return;
+	}
+
+	static bool open = true;
+	ImGui::ShowDemoWindow(&open);
+
+	if (ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::BeginMenu("Panel"))
+		{
+			for (auto& panel : m_panels)
+			{
+				ImGui::MenuItem(panel->name().c_str(), nullptr,&panel->active);
+			}
+			ImGui::EndMenu();
+		}
+
+
+		ImGui::EndMainMenuBar();
+	}
+
 	for (auto& panel : m_panels)
 	{
-		panel->draw();
+		if (panel->active)
+		{
+			panel->draw();
+		}
 	}
 }
 
 void Editor::onPostTick()
 {
-	//ImGuiContext::endDockingSpace();
 	ImGuiContext::end();
 }
 
@@ -69,6 +96,16 @@ void Editor::onShutdown()
 {
 	ImGuiContext::destroy();
 
+}
+
+void Editor::select(Entity entity)
+{
+	m_select_entity = entity;
+}
+
+Entity Editor::getSelect()
+{
+	return m_select_entity;
 }
 
 }        // namespace Ilum

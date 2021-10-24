@@ -24,16 +24,14 @@ class RenderGraphViewer : public Panel
 	virtual void draw() override;
 
   private:
-	struct Node;
+	struct PassNode;
 
 	struct Pin
 	{
 		ax::NodeEditor::PinId   id;
 		std::string             name;
-		Node *                  node = nullptr;
+		PassNode *              node = nullptr;
 		ax::NodeEditor::PinKind kind;
-
-		std::vector<std::pair<std::string, std::string>> infos;
 
 		Pin(int id, const std::string &name, ax::NodeEditor::PinKind kind) :
 		    id(id), name(name), kind(kind)
@@ -41,17 +39,33 @@ class RenderGraphViewer : public Panel
 		}
 	};
 
-	struct Node
+	struct PassNode
+	{
+		ax::NodeEditor::NodeId                id;
+		std::string                           name;
+		std::vector<Pin>                      inputs;
+		std::vector<Pin>                      outputs;
+		std::vector<std::vector<std::string>> infos;
+		ImColor                               color;
+		ImVec2                                size;
+
+		PassNode(int id, const std::string &name, ImColor color = ImColor(255, 255, 255)) :
+		    id(id), name(name), color(color), size(0, 0)
+		{
+		}
+	};
+
+	struct AttachmentNode
 	{
 		ax::NodeEditor::NodeId id;
 		std::string            name;
-		std::vector<Pin>       inputs;
-		std::vector<Pin>       outputs;
+		Pin                    input;
+		std::optional<Pin>     output;
 		ImColor                color;
 		ImVec2                 size;
 
-		Node(int id, const std::string& name, ImColor color = ImColor(255, 255, 255)) :
-		    id(id), name(name), color(color), size(0, 0)
+		AttachmentNode(int id, Pin input, const std::string &name, ImColor color = ImColor(255, 255, 255)) :
+		    id(id), input(input), name(name), color(color), size(0, 0)
 		{
 		}
 	};
@@ -71,18 +85,21 @@ class RenderGraphViewer : public Panel
 		}
 	};
 
-	private:
+  private:
 	bool isPinLink(ax::NodeEditor::PinId id);
 
-	Pin *findPin(ax::NodeEditor::PinId id);
+	PassNode *findPassNode(ax::NodeEditor::NodeId id);
+
+	AttachmentNode *findAttachmentNode(ax::NodeEditor::NodeId id);
 
   private:
 	ax::NodeEditor::EditorContext *m_editor_context = nullptr;
 	std::vector<Pin>               m_pins;
-	std::vector<Node>              m_nodes;
+	std::vector<PassNode>          m_passes;
+	std::vector<AttachmentNode>    m_attachments;
 	std::vector<Link>              m_links;
 
-	ax::NodeEditor::PinId m_select_pin;
+	ax::NodeEditor::NodeId m_select_node;
 
 	ImTextureID m_background_id;
 };

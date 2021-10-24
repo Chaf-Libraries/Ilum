@@ -8,6 +8,7 @@
 #include "Threading/ThreadPool.hpp"
 #include "Timing/Timer.hpp"
 #include "Editor/Editor.hpp"
+#include "Scene/Scene.hpp"
 
 namespace Ilum
 {
@@ -24,6 +25,7 @@ Engine::Engine()
 	m_context->addSubsystem<Window>();
 	m_context->addSubsystem<Input>();
 	m_context->addSubsystem<GraphicsContext>();
+	m_context->addSubsystem<Scene>();
 	m_context->addSubsystem<Renderer>();
 	m_context->addSubsystem<Editor>();
 

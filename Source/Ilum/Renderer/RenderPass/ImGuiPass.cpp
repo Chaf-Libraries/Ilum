@@ -15,7 +15,7 @@
 #include <imgui_impl_sdl.h>
 #include <imgui_impl_vulkan.h>
 
-namespace Ilum
+namespace Ilum::pass
 {
 ImGuiPass::ImGuiPass(const std::string &output_name, AttachmentState state) :
     m_output(output_name), m_attachment_state(state)

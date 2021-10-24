@@ -64,9 +64,9 @@ class RenderGraph
 
 	const Image &getAttachment(const std::string &name) const;
 
-	bool hasAttachment(const std::string &name) const;
+	const std::unordered_map<std::string, Image> &getAttachments() const;
 
-	Image &getAttachment(const std::string &name);
+	bool hasAttachment(const std::string &name) const;
 
 	bool hasRenderPass(const std::string &name) const;
 

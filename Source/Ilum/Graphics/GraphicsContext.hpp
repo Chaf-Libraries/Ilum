@@ -15,6 +15,7 @@ class Swapchain;
 class CommandBuffer;
 class CommandPool;
 class DescriptorCache;
+class ShaderCache;
 class ImGuiContext;
 
 class GraphicsContext : public TSubsystem<GraphicsContext>
@@ -35,6 +36,8 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	const Swapchain &getSwapchain() const;
 
 	DescriptorCache &getDescriptorCache();
+
+	ShaderCache &getShaderCache();
 
 	const VkPipelineCache &getPipelineCache() const;
 
@@ -77,6 +80,7 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	scope<Swapchain>      m_swapchain       = nullptr;
 
 	scope<DescriptorCache> m_descriptor_cache = nullptr;
+	scope<ShaderCache>     m_shader_cache     = nullptr;
 
 	// Command pool per thread
 	std::unordered_map<std::thread::id, std::unordered_map<VkQueueFlagBits, ref<CommandPool>>> m_command_pools;

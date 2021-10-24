@@ -30,7 +30,7 @@ class Entity
 	template <typename T>
 	T *tryGetComponent();
 
-	template <typename T>
+	template <typename T, typename... Args>
 	bool hasComponent();
 
 	template <typename T>
@@ -43,29 +43,15 @@ class Entity
 
 	void setActive(bool is_active);
 
-	const std::string &getName() const;
-
-	void setName(const std::string &name);
-
-	bool hasParent() const;
-
-	bool hasChildren() const;
-
-	Entity getParent() const;
-
-	std::vector<Entity> getChildren() const;
-
-	void setParent(Entity entity) const;
-
-	void clearChildren(Entity entity);
-
-	void addChildren(Entity entity);
-
 	operator const entt::entity &() const;
 
 	operator uint32_t() const;
 
 	operator bool() const;
+
+	bool operator==(const Entity &rhs) const;
+
+	bool operator==(entt::entity rhs) const;
 
 	entt::entity getHandle() const;
 
@@ -75,8 +61,11 @@ class Entity
 
   private:
 	entt::entity m_handle = entt::null;
+	bool         m_active = true;
 
   public:
 	static Event<> Event_Add;
 };
 }        // namespace Ilum
+
+#include "Entity.inl"

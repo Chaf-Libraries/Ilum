@@ -21,7 +21,7 @@ class Shader
   public:
 	Shader() = default;
 
-	~Shader();
+	~Shader() = default;
 
 	Shader &load(const std::string &filename, VkShaderStageFlagBits stage, Type type);
 
@@ -38,6 +38,6 @@ class Shader
 
 	ReflectionData m_relection_data;
 
-	std::unordered_map<VkShaderStageFlagBits, VkShaderModule> m_shader_module_cache;
+	std::unordered_map<VkShaderStageFlagBits, VkShaderModule> m_shader_modules;
 };
 }        // namespace Ilum

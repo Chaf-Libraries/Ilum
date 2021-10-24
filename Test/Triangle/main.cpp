@@ -114,7 +114,7 @@ int main()
 
 	Renderer::instance()->buildRenderGraph = [](RenderGraphBuilder &builder) {
 		builder.addRenderPass("TrianglePass", std::make_unique<TrianglePass>()).setOutput("output");
-		builder.addRenderPass("ImGuiPass", std::make_unique<ImGuiPass>("output", AttachmentState::Load_Color)).setOutput("output");
+		builder.addRenderPass("ImGuiPass", std::make_unique<pass::ImGuiPass>("output", AttachmentState::Load_Color)).setOutput("output");
 	};
 
 	Renderer::instance()->rebuild();

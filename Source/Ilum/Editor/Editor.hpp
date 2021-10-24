@@ -6,6 +6,8 @@
 
 #include "Panel.hpp"
 
+#include "Scene/Entity.hpp"
+
 namespace Ilum
 {
 class Editor : public TSubsystem<Editor>
@@ -25,7 +27,13 @@ class Editor : public TSubsystem<Editor>
 
 	virtual void onShutdown() override;
 
+	void select(Entity entity);
+
+	Entity getSelect();
+
   private:
 	std::vector<scope<Panel>> m_panels;
+
+	Entity m_select_entity;
 };
 }        // namespace Ilum

@@ -1,12 +1,15 @@
 #include "Renderer.hpp"
 #include "RenderGraph/RenderGraph.hpp"
 
+#include "Renderer/RenderPass/DebugPass.hpp"
 #include "Renderer/RenderPass/ImGuiPass.hpp"
 
 #include "Device/Swapchain.hpp"
 #include "Device/Window.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
+
+#include "ImGui/ImGuiContext.hpp"
 
 #include <imgui.h>
 
@@ -47,6 +50,7 @@ void Renderer::onPreTick()
 {
 	if (m_resize)
 	{
+		m_render_graph.reset();
 		rebuild();
 		m_resize = false;
 	}
@@ -68,9 +72,9 @@ void Renderer::onShutdown()
 	m_samplers.clear();
 }
 
-const RenderGraph &Renderer::getRenderGraph() const
+const RenderGraph *Renderer::getRenderGraph() const
 {
-	return *m_render_graph;
+	return m_render_graph.get();
 }
 
 ResourceCache &Renderer::getResourceCache()
@@ -87,17 +91,49 @@ void Renderer::rebuild()
 {
 	m_rg_builder.reset();
 
-	if (buildRenderGraph)
+	buildRenderGraph(m_rg_builder);
+
+	if (m_debug && !m_rg_builder.empty())
 	{
-		buildRenderGraph(m_rg_builder);
+		m_rg_builder.addRenderPass("DebugPass", createScope<pass::DebugPass>());
 	}
-	else
+
+	if (m_imgui)
 	{
-		defaultBuilder(m_rg_builder);
+		m_rg_builder.addRenderPass("ImGuiPass", createScope<pass::ImGuiPass>(m_rg_builder.output(), m_rg_builder.empty() ? AttachmentState::Clear_Color : AttachmentState::Load_Color));
 	}
 
 	m_render_graph = m_rg_builder.build();
 	Event_RenderGraph_Rebuild.invoke();
+}
+
+bool Renderer::isDebug() const
+{
+	return m_debug;
+}
+
+void Renderer::setDebug(bool enable)
+{
+	if (m_debug != enable)
+	{
+		m_debug = enable;
+		rebuild();
+	}
+}
+
+bool Renderer::hasImGui() const
+{
+	return m_imgui;
+}
+
+void Renderer::setImGui(bool enable)
+{
+	if (m_imgui != enable)
+	{
+		m_imgui = enable;
+		rebuild();
+		enable ? ImGuiContext::initialize() : ImGuiContext::destroy();
+	}
 }
 
 const Sampler &Renderer::getSampler(SamplerType type) const

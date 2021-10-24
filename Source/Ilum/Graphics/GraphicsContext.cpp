@@ -14,6 +14,7 @@
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/Command/CommandPool.hpp"
 #include "Graphics/Descriptor/DescriptorCache.hpp"
+#include "Graphics/Pipeline/ShaderCache.hpp"
 
 #include "ImGui/ImGuiContext.hpp"
 
@@ -27,7 +28,8 @@ GraphicsContext::GraphicsContext(Context *context) :
     m_physical_device(createScope<PhysicalDevice>()),
     m_surface(createScope<Surface>()),
     m_logical_device(createScope<LogicalDevice>()),
-    m_descriptor_cache(createScope<DescriptorCache>())
+    m_descriptor_cache(createScope<DescriptorCache>()),
+    m_shader_cache(createScope<ShaderCache>())
 {
 	// Create pipeline cache
 	VkPipelineCacheCreateInfo pipeline_cache_create_info = {};
@@ -63,6 +65,11 @@ const Swapchain &GraphicsContext::getSwapchain() const
 DescriptorCache &GraphicsContext::getDescriptorCache()
 {
 	return *m_descriptor_cache;
+}
+
+ShaderCache &GraphicsContext::getShaderCache()
+{
+	return *m_shader_cache;
 }
 
 const VkPipelineCache &GraphicsContext::getPipelineCache() const

@@ -18,44 +18,20 @@
 
 #include "ShaderCompiler.hpp"
 #include "ShaderReflection.hpp"
+#include "ShaderCache.hpp"
 
 namespace Ilum
 {
-Shader::~Shader()
-{
-	for (auto &[stage, shader_module] : m_shader_module_cache)
-	{
-		if (shader_module != VK_NULL_HANDLE)
-		{
-			vkDestroyShaderModule(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice(), shader_module, nullptr);
-		}
-	}
-
-	m_shader_module_cache.clear();
-}
-
 Shader &Shader::load(const std::string &filename, VkShaderStageFlagBits stage, Type type)
 {
-	std::vector<uint8_t> raw_data;
-	FileSystem::read(filename, raw_data, type == Type::SPIRV);
-
-	auto spirv = ShaderCompiler::compile(raw_data, stage, type);
-
-	m_relection_data += ShaderReflection::reflect(spirv, stage);
-
-	VkShaderModuleCreateInfo shader_module_create_info = {};
-	shader_module_create_info.sType                    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	shader_module_create_info.codeSize                 = spirv.size() * sizeof(uint32_t);
-	shader_module_create_info.pCode                    = spirv.data();
-
-	VkShaderModule shader_module;
-	if (!VK_CHECK(vkCreateShaderModule(GraphicsContext::instance()->getLogicalDevice(), &shader_module_create_info, nullptr, &shader_module)))
+	const auto shader_module = GraphicsContext::instance()->getShaderCache().load(filename, stage, type);
+	if (!shader_module)
 	{
-		VK_ERROR("Failed to create shader module");
-		return *this;
+		VK_ERROR("Failed to load shader: {}", filename);
 	}
 
-	m_shader_module_cache.emplace(stage, shader_module);
+	m_shader_modules.emplace(stage, shader_module);
+	m_relection_data += GraphicsContext::instance()->getShaderCache().reflect(shader_module);
 	m_stage |= stage;
 
 	return *this;
@@ -101,6 +77,6 @@ VkPipelineBindPoint Shader::getBindPoint() const
 
 const std::unordered_map<VkShaderStageFlagBits, VkShaderModule> &Shader::getShaders() const
 {
-	return m_shader_module_cache;
+	return m_shader_modules;
 }
 }        // namespace Ilum
