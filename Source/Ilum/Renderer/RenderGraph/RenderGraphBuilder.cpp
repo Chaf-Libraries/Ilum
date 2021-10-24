@@ -408,9 +408,6 @@ RenderGraphBuilder &RenderGraphBuilder::setOutput(const std::string &name)
 
 scope<RenderGraph> RenderGraphBuilder::build()
 {
-	Stopwatch stopwatch;
-	stopwatch.start();
-
 	if (m_render_pass_references.empty())
 	{
 		return createScope<RenderGraph>();
@@ -420,14 +417,10 @@ scope<RenderGraph> RenderGraphBuilder::build()
 	// Prepare:
 	// - Create pipeline states
 	auto pipeline_states = createPipelineStates();
-	auto t               = stopwatch.elapsedMillisecond();
-	LOG_INFO("Create pipeline states in: {}ms", stopwatch.elapsedMillisecond());
 
 	// - Resolve resource transitions
 	auto resource_transitions = resolveResourceTransitions(pipeline_states);
 
-	LOG_INFO("Resolve resource transitions in: {}ms", stopwatch.elapsedMillisecond()-t);
-	t = stopwatch.elapsedMillisecond();
 	// - Setup output image
 	if (!m_output.empty())
 	{
@@ -435,8 +428,7 @@ scope<RenderGraph> RenderGraphBuilder::build()
 	}
 	// - Allocate attachments
 	auto attachments = allocateAttachments(pipeline_states, resource_transitions);
-	LOG_INFO("Allocate attachments in: {}ms", stopwatch.elapsedMillisecond()-t);
-	t = stopwatch.elapsedMillisecond();
+
 	// Build render pass
 	std::vector<RenderGraphNode> nodes;
 
@@ -452,9 +444,8 @@ scope<RenderGraph> RenderGraphBuilder::build()
 		    createPipelineBarrierCallback(render_pass_reference.name, pipeline_states.at(render_pass_reference.name), resource_transitions),
 		    pipeline_states.at(render_pass_reference.name).descriptor_bindings});
 	}
-	LOG_INFO("Build render pass in: {}ms", stopwatch.elapsedMillisecond()-t);
+	topologicalSort(nodes, pipeline_states);
 
-	LOG_INFO("Building RenderGraph in: {}ms\n", stopwatch.elapsedMillisecond());
 	return createScope<RenderGraph>(
 	    std::move(nodes),
 	    std::move(attachments),
@@ -463,10 +454,85 @@ scope<RenderGraph> RenderGraphBuilder::build()
 	    createOnCreateCallback(pipeline_states, resource_transitions, attachments));
 }
 
+const std::string &RenderGraphBuilder::output() const
+{
+	return m_output;
+}
+
 void RenderGraphBuilder::reset()
 {
-	m_output.clear();
+	m_output = "output";
 	m_render_pass_references.clear();
+}
+
+bool RenderGraphBuilder::empty() const
+{
+	return m_render_pass_references.empty();
+}
+
+void RenderGraphBuilder::topologicalSort(std::vector<RenderGraphNode> &nodes, const PipelineMap &pipeline_states)
+{
+	std::vector<RenderGraphNode>    tmp = std::move(nodes);
+	std::unordered_set<std::string> attachments;
+	for (auto &node : tmp)
+	{
+		attachments.insert(node.attachments.begin(), node.attachments.end());
+	}
+
+	while (!tmp.empty())
+	{
+		for (auto it = tmp.begin(); !tmp.empty() && it != tmp.end(); it++)
+		{
+			bool found = false;
+
+			if (pipeline_states.at(it->name).getImageDependencies().empty())
+			{
+				nodes.emplace_back(std::move(*it));
+				tmp.erase(it);
+				break;
+			}
+
+			for (auto &[name,  usage] : pipeline_states.at(it->name).getImageDependencies())
+			{
+				if (std::find(attachments.begin(), attachments.end(), name) == attachments.end())
+				{
+					for (auto &attachment : it->attachments)
+					{
+						if (attachments.find(attachment) != attachments.end())
+						{
+							attachments.erase(attachment);
+						}
+					}
+					nodes.emplace_back(std::move(*it));
+					tmp.erase(it);
+					found = true;
+					break;
+				}
+			}
+			if (found)
+			{
+				break;
+			}
+		}
+	}
+
+	// Move all output to the end
+	std::vector<RenderGraphNode> ends;
+	auto                         iter = nodes.begin();
+	while (iter != nodes.end())
+	{
+		if (std::find(iter->attachments.begin(), iter->attachments.end(), m_output) != iter->attachments.end())
+		{
+			ends.emplace_back(std::move(*iter));
+			iter = nodes.erase(iter);
+		}
+		else
+		{
+			iter++;
+		}
+	}
+
+	nodes.insert(nodes.end(), std::make_move_iterator(ends.begin()), std::make_move_iterator(ends.end()));
 }
 
 RenderGraphBuilder::PipelineMap RenderGraphBuilder::createPipelineStates()

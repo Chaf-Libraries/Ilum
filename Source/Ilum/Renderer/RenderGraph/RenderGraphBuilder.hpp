@@ -6,6 +6,7 @@ namespace Ilum
 {
 class RenderPass;
 class RenderGraph;
+struct RenderGraphNode;
 class Image;
 class Buffer;
 class PipelineState;
@@ -38,7 +39,11 @@ class RenderGraphBuilder
 
 	scope<RenderGraph> build();
 
+	const std::string &output() const;
+
 	void reset();
+
+	bool empty() const;
 
   private:
 	struct RenderPassReference
@@ -72,6 +77,8 @@ class RenderGraphBuilder
 	using CreateCallback          = std::function<void(const CommandBuffer &)>;
 
   private:
+	void topologicalSort(std::vector<RenderGraphNode> &nodes, const PipelineMap &pipeline_states);
+
 	PipelineMap createPipelineStates();
 
 	ResourceTransitions resolveResourceTransitions(const PipelineMap &pipeline_states);
