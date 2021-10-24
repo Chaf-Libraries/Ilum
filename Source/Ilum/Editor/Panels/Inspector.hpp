@@ -7,7 +7,7 @@ namespace Ilum::panel
 class Inspector : public Panel
 {
   public:
-	Inspector() = default;
+	Inspector();
 
 	~Inspector() = default;
 
