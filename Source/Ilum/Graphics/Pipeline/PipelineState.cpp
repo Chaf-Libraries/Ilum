@@ -1,7 +1,5 @@
 #include "PipelineState.hpp"
 
-#include "Geometry/Vertex.hpp"
-
 namespace Ilum
 {
 PipelineState &PipelineState::addOutputAttachment(const std::string &name, VkClearColorValue clear, uint32_t layer)
