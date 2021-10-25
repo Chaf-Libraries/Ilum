@@ -29,16 +29,32 @@ class TrianglePass : public TRenderPass<TrianglePass>
   public:
 	TrianglePass()
 	{
-		vertex_buffer = createScope<Buffer>(vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-		index_buffer  = createScope<Buffer>(indices.size() * sizeof(uint16_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+		vertex_buffer = Buffer(vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+		index_buffer  = Buffer(indices.size() * sizeof(uint16_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-		auto *vertex_data = vertex_buffer->map();
-		std::memcpy(vertex_data, vertices.data(), vertex_buffer->getSize());
-		vertex_buffer->unmap();
+		{
+			Buffer staging_buffer(sizeof(Vertex) * vertices.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			auto * data = staging_buffer.map();
+			std::memcpy(data, vertices.data(), sizeof(Vertex) * vertices.size());
+			staging_buffer.unmap();
+			CommandBuffer command_buffer;
+			command_buffer.begin();
+			command_buffer.copyBuffer(BufferInfo{staging_buffer}, BufferInfo{vertex_buffer}, sizeof(Vertex) * vertices.size());
+			command_buffer.end();
+			command_buffer.submitIdle();
+		}
 
-		auto *index_data = index_buffer->map();
-		std::memcpy(index_data, indices.data(), index_buffer->getSize());
-		index_buffer->unmap();
+		{
+			Buffer staging_buffer(sizeof(uint16_t) * indices.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			auto * data = staging_buffer.map();
+			std::memcpy(data, indices.data(), sizeof(uint16_t) * indices.size());
+			staging_buffer.unmap();
+			CommandBuffer command_buffer;
+			command_buffer.begin();
+			command_buffer.copyBuffer(BufferInfo{staging_buffer}, BufferInfo{index_buffer}, sizeof(uint16_t) * indices.size());
+			command_buffer.end();
+			command_buffer.submitIdle();
+		}
 	}
 
 	virtual void setupPipeline(PipelineState &state)
@@ -83,8 +99,8 @@ class TrianglePass : public TRenderPass<TrianglePass>
 		vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
 		VkDeviceSize offsets[1] = {0};
-		vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &vertex_buffer->getBuffer(), offsets);
-		vkCmdBindIndexBuffer(cmd_buffer, index_buffer->getBuffer(), 0, VK_INDEX_TYPE_UINT16);
+		vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &vertex_buffer.getBuffer(), offsets);
+		vkCmdBindIndexBuffer(cmd_buffer, index_buffer.getBuffer(), 0, VK_INDEX_TYPE_UINT16);
 		vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 	};
 
@@ -105,8 +121,8 @@ class TrianglePass : public TRenderPass<TrianglePass>
 	const std::vector<uint16_t> indices = {
 	    0, 1, 3, 3, 1, 2};
 
-	scope<Buffer> vertex_buffer = nullptr;
-	scope<Buffer> index_buffer  = nullptr;
+	Buffer vertex_buffer;
+	Buffer index_buffer;
 };
 
 class TestPass : public TRenderPass<TestPass>
