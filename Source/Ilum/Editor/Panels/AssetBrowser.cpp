@@ -63,7 +63,6 @@ inline void draw_texture_asset(float height, float space)
 			ImGui::Text("height: %s", std::to_string(image.get().getHeight()).c_str());
 			ImGui::Text("mip levels: %s", std::to_string(image.get().getMipLevelCount()).c_str());
 			ImGui::Text("layers: %s", std::to_string(image.get().getLayerCount()).c_str());
-
 			ImGui::End();
 		}
 
@@ -113,7 +112,6 @@ inline void draw_model_asset(const Image &image, float height, float space)
 				ImGui::BulletText("indices count: %d", model.get().getSubMeshes()[i].getIndexCount());
 				ImGui::BulletText("index offset: %d", model.get().getSubMeshes()[i].getIndexOffset());
 			}
-
 			ImGui::End();
 		}
 
@@ -157,51 +155,143 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 			ImGui::Text(name.c_str());
 			ImGui::Separator();
 
-			ImGui::Text("Attribute");
-			if (ImGui::BeginTable("shader attribute", 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
+			if (!shader_data.attributes.empty())
 			{
-				ImGui::TableSetupColumn("name");
-				ImGui::TableSetupColumn("location");
-				ImGui::TableSetupColumn("vec_size");
-				ImGui::TableSetupColumn("array_size");
-				ImGui::TableSetupColumn("columns");
-				ImGui::TableSetupColumn("type");
-				ImGui::TableSetupColumn("stage");
-				ImGui::TableHeadersRow();
-
-				for (auto &attribute : shader_data.attributes)
+				ImGui::Text("Attribute");
+				if (ImGui::BeginTable("shader attribute", 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
 				{
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::Text("%s", attribute.name.c_str());
-					ImGui::TableSetColumnIndex(1);
-					ImGui::Text("%s", std::to_string(attribute.location).c_str());
-					ImGui::TableSetColumnIndex(2);
-					ImGui::Text("%s", std::to_string(attribute.vec_size).c_str());
-					ImGui::TableSetColumnIndex(3);
-					ImGui::Text("%s", std::to_string(attribute.array_size).c_str());
-					ImGui::TableSetColumnIndex(4);
-					ImGui::Text("%s", std::to_string(attribute.columns).c_str());
-					ImGui::TableSetColumnIndex(5);
-					switch (attribute.type)
+					ImGui::TableSetupColumn("name");
+					ImGui::TableSetupColumn("location");
+					ImGui::TableSetupColumn("vec_size");
+					ImGui::TableSetupColumn("array_size");
+					ImGui::TableSetupColumn("columns");
+					ImGui::TableSetupColumn("type");
+					ImGui::TableSetupColumn("stage");
+					ImGui::TableHeadersRow();
+
+					for (auto &attribute : shader_data.attributes)
 					{
-						case ReflectionData::Attribute::Type::Input:
-							ImGui::Text("Input");
-							break;
-						case ReflectionData::Attribute::Type::Output:
-							ImGui::Text("Output");
-							break;
-						case ReflectionData::Attribute::Type::None:
-							ImGui::Text("None");
-							break;
-						default:
-							break;
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::Text("%s", attribute.name.c_str());
+						ImGui::TableSetColumnIndex(1);
+						ImGui::Text("%s", std::to_string(attribute.location).c_str());
+						ImGui::TableSetColumnIndex(2);
+						ImGui::Text("%s", std::to_string(attribute.vec_size).c_str());
+						ImGui::TableSetColumnIndex(3);
+						ImGui::Text("%s", std::to_string(attribute.array_size).c_str());
+						ImGui::TableSetColumnIndex(4);
+						ImGui::Text("%s", std::to_string(attribute.columns).c_str());
+						ImGui::TableSetColumnIndex(5);
+						switch (attribute.type)
+						{
+							case ReflectionData::Attribute::Type::Input:
+								ImGui::Text("Input");
+								break;
+							case ReflectionData::Attribute::Type::Output:
+								ImGui::Text("Output");
+								break;
+							case ReflectionData::Attribute::Type::None:
+								ImGui::Text("None");
+								break;
+							default:
+								break;
+						}
+						ImGui::TableSetColumnIndex(6);
+						ImGui::Text("%s", std::to_string(attribute.stage).c_str());
 					}
-					ImGui::TableSetColumnIndex(6);
-					ImGui::Text("%s", std::to_string(attribute.stage).c_str());
+					ImGui::EndTable();
 				}
-				ImGui::EndTable();
 			}
+
+			if (!shader_data.input_attachments.empty())
+			{
+				ImGui::Text("Input Attachment");
+				if (ImGui::BeginTable("input attachment", 6, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
+				{
+					ImGui::TableSetupColumn("name");
+					ImGui::TableSetupColumn("set");
+					ImGui::TableSetupColumn("binding");
+					ImGui::TableSetupColumn("index");
+					ImGui::TableSetupColumn("array_size");
+					ImGui::TableSetupColumn("stage");
+					ImGui::TableHeadersRow();
+
+					for (auto &input_attachment : shader_data.input_attachments)
+					{
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::Text("%s", input_attachment.name.c_str());
+						ImGui::TableSetColumnIndex(1);
+						ImGui::Text("%s", std::to_string(input_attachment.set).c_str());
+						ImGui::TableSetColumnIndex(2);
+						ImGui::Text("%s", std::to_string(input_attachment.binding).c_str());
+						ImGui::TableSetColumnIndex(3);
+						ImGui::Text("%s", std::to_string(input_attachment.input_attachment_index).c_str());
+						ImGui::TableSetColumnIndex(4);
+						ImGui::Text("%s", std::to_string(input_attachment.array_size).c_str());
+						ImGui::TableSetColumnIndex(5);
+						ImGui::Text("%s", std::to_string(input_attachment.stage).c_str());
+					}
+					ImGui::EndTable();
+				}
+			}
+
+			if (!shader_data.constants.empty())
+			{
+				ImGui::Text("Constants");
+				if (ImGui::BeginTable("shader constants", 6, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
+				{
+					ImGui::TableSetupColumn("name");
+					ImGui::TableSetupColumn("size");
+					ImGui::TableSetupColumn("offset");
+					ImGui::TableSetupColumn("id");
+					ImGui::TableSetupColumn("type");
+					ImGui::TableSetupColumn("stage");
+					ImGui::TableHeadersRow();
+
+					for (auto &constant : shader_data.constants)
+					{
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::Text("%s", constant.name.c_str());
+						ImGui::TableSetColumnIndex(1);
+						ImGui::Text("%s", std::to_string(constant.size).c_str());
+						ImGui::TableSetColumnIndex(2);
+						ImGui::Text("%s", std::to_string(constant.offset).c_str());
+
+						ImGui::TableSetColumnIndex(3);
+						if (constant.type ==ReflectionData::Constant::Type::Specialization )
+						{
+							ImGui::Text("%s", std::to_string(constant.constant_id).c_str());	
+						}
+
+						ImGui::TableSetColumnIndex(4);
+						switch (constant.type)
+						{
+							case ReflectionData::Constant::Type::None:
+								ImGui::Text("None");
+								break;
+							case ReflectionData::Constant::Type::Push:
+								ImGui::Text("Push");
+								break;
+							case ReflectionData::Constant::Type::Specialization:
+								ImGui::Text("Specialization");
+								break;
+							default:
+								break;
+						}
+						ImGui::TableSetColumnIndex(5);
+						ImGui::Text("%s", std::to_string(constant.stage).c_str());
+					}
+					ImGui::EndTable();
+				}
+			}
+
+
+
+
+
 
 			ImGui::End();
 		}

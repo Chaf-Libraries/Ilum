@@ -11,6 +11,9 @@
 #include <Ilum/Scene/System.hpp>
 #include <Ilum/Timing/Timer.hpp>
 #include <Ilum/Loader/ModelLoader/ModelLoader.hpp>
+#include <Ilum/Graphics/GraphicsContext.hpp>
+#include <Ilum/Graphics/Pipeline/ShaderCache.hpp>
+#include <Ilum/Graphics/Pipeline/Shader.hpp>
 
 int main()
 {
@@ -30,7 +33,8 @@ int main()
 
 	auto model = Ilum::Renderer::instance()->getResourceCache().loadModel("../Asset/Model/head.obj");
 
-	Ilum::Renderer::instance()->getResourceCache().loadImage("../Asset/Texture/613934.jpg");
+	Ilum::GraphicsContext::instance()->getShaderCache().load("../Asset/Shader/GLSL/uber.glsl.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Ilum::Shader::Type::GLSL);
+
 	Ilum::Renderer::instance()->getResourceCache().loadImage("../Asset/Texture/bricks2.jpg");
 	Ilum::Renderer::instance()->getResourceCache().loadImage("../Asset/Texture/bricks2_disp.jpg");
 	Ilum::Renderer::instance()->getResourceCache().loadImage("../Asset/Texture/bricks2_normal.jpg");
