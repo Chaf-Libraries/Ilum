@@ -30,9 +30,10 @@ class Bound
 
 	virtual void transform(const glm::mat4 &matrix) = 0;
 
-	void set(Type type);
+	virtual void reset() = 0;
 
-  public:
+	void set(Type type);
+	
   private:
 	Type m_type = Type::AABB;
 	scope<Bound> m_ptr  = nullptr;
