@@ -9,7 +9,7 @@ namespace Ilum::panel
 	  public:
 	    Hierarchy();
 
-		~Hierarchy() = default;
+		virtual ~Hierarchy() = default;
 
 		virtual void draw() override;
 	};

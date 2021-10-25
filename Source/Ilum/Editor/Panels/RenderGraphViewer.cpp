@@ -28,7 +28,7 @@ RenderGraphViewer::RenderGraphViewer()
 	config.SettingsFile = "Simple.json";
 	m_editor_context    = ed::CreateEditor(&config);
 
-	m_background_id = ImGuiContext::textureID(Renderer::instance()->getResourceCache().loadImage(std::string(PROJECT_SOURCE_DIR) + "Asset/Texture/node_editor_bg.png"), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp));
+	ImageLoader::loadImageFromFile(m_bg, std::string(PROJECT_SOURCE_DIR) + "Asset/Texture/node_editor_bg.png");
 
 	Renderer::instance()->Event_RenderGraph_Rebuild += [this]() { build(); };
 
@@ -154,11 +154,10 @@ void RenderGraphViewer::draw()
 	ImGui::Begin("Render Graph Viewer", &active);
 	ed::Begin("Render Graph Viewer", ImVec2(0.0, 0.0f));
 
-	auto &bg           = Renderer::instance()->getResourceCache().loadImage(std::string(PROJECT_SOURCE_DIR) + "Asset/Texture/node_editor_bg.png");
 	auto &sampler      = Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp);
 	auto *render_graph = Renderer::instance()->getRenderGraph();
 
-	ed::Utilities::BlueprintNodeBuilder builder(ImGuiContext::textureID(bg, sampler), static_cast<int>(bg.get().getWidth()), static_cast<int>(bg.get().getHeight()));
+	ed::Utilities::BlueprintNodeBuilder builder(ImGuiContext::textureID(m_bg, sampler), static_cast<int>(m_bg.getWidth()), static_cast<int>(m_bg.getHeight()));
 
 	// Draw render pass
 	for (auto &node : m_passes)
@@ -237,7 +236,7 @@ void RenderGraphViewer::draw()
 			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
 			ax::Widgets::Icon(ImVec2(12, 12), ax::Drawing::IconType::Flow, isPinLink(attachment.input.id), ImColor(255, 255, 255), ImColor(32, 32, 32, (int) (alpha * 255)));
 			ImGui::Spring(0);
-			if (attachment.name!=render_graph->output())
+			if (attachment.name != render_graph->output())
 			{
 				auto &image = render_graph->getAttachment(attachment.name);
 				ImGui::Image(ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {200.f, static_cast<float>(image.getHeight()) * 200.f / static_cast<float>(image.getWidth())});
@@ -279,10 +278,10 @@ void RenderGraphViewer::draw()
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8, 8));
 	if (ImGui::BeginPopup("Node Context Menu"))
 	{
-		auto *pass = findPassNode(m_select_node);
+		auto *pass       = findPassNode(m_select_node);
 		auto *attachment = findAttachmentNode(m_select_node);
 
-		ImGui::TextUnformatted(pass?pass->name.c_str():attachment->name.c_str());
+		ImGui::TextUnformatted(pass ? pass->name.c_str() : attachment->name.c_str());
 		ImGui::Separator();
 
 		if (pass)

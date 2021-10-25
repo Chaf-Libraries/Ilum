@@ -54,9 +54,24 @@ VkShaderModule ShaderCache::load(const std::string &filename, VkShaderStageFlagB
 	return shader_module;
 }
 
+VkShaderModule ShaderCache::getShader(const std::string &filename)
+{
+	if (m_lookup.find(filename) != m_lookup.end())
+	{
+		return m_shader_modules.at(m_lookup[filename]);
+	}
+
+	return VK_NULL_HANDLE;
+}
+
 const ReflectionData &ShaderCache::reflect(VkShaderModule shader)
 {
 	ASSERT(m_mapping.find(shader) != m_mapping.end());
 	return m_reflection_data.at(m_mapping.at(shader));
+}
+
+const std::unordered_map<std::string, size_t> &ShaderCache::getShaders() const
+{
+	return m_lookup;
 }
 }        // namespace Ilum

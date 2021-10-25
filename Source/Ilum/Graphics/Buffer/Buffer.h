@@ -9,11 +9,21 @@ class CommandBuffer;
 class Buffer
 {
   public:
+	Buffer() = default;
+
 	Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memory_usage);
 
 	~Buffer();
 
-	const VkBuffer& getBuffer() const;
+	Buffer(const Buffer &) = delete;
+
+	Buffer &operator=(const Buffer &) = delete;
+
+	Buffer(Buffer &&other);
+
+	Buffer &operator=(Buffer &&other);
+
+	const VkBuffer &getBuffer() const;
 
 	operator const VkBuffer &() const;
 
@@ -32,6 +42,9 @@ class Buffer
 	void copy(const uint8_t *data, VkDeviceSize size, VkDeviceSize offset);
 
 	void copyFlush(const uint8_t *data, VkDeviceSize size, VkDeviceSize offset);
+
+  private:
+	void destroy();
 
   private:
 	VkBuffer      m_handle     = VK_NULL_HANDLE;

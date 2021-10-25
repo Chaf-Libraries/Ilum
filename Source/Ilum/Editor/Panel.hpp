@@ -9,7 +9,7 @@ class Panel
   public:
 	Panel() = default;
 
-	~Panel() = default;
+	virtual ~Panel() = default;
 
 	virtual void draw() = 0;
 

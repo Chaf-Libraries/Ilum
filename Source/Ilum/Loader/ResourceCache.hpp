@@ -1,6 +1,9 @@
 #pragma once
 
 #include "Graphics/Image/Image.hpp"
+#include "Graphics/Model/Model.hpp"
+#include "Graphics/Pipeline/Shader.hpp"
+#include "Graphics/Pipeline/ShaderReflection.hpp"
 
 namespace Ilum
 {
@@ -13,10 +16,23 @@ class ResourceCache
 
 	ImageReference loadImage(const std::string &filepath);
 
-	const std::vector<Image> &getImages() const;
+	bool hasImage(const std::string &filepath);
+
+	const std::unordered_map<std::string, size_t> &getImages() const;
+
+	ModelReference loadModel(const std::string &filepath);
+
+	bool hasModel(const std::string &filepath);
+
+	const std::unordered_map<std::string, size_t> &getModels() const;
 
   private:
-	std::vector<Image>                              m_image_cache;
+	// Cache image
+	std::vector<Image>                      m_image_cache;
 	std::unordered_map<std::string, size_t> m_image_map;
+
+	// Cache model
+	std::vector<Model>                      m_model_cache;
+	std::unordered_map<std::string, size_t> m_model_map;
 };
 }        // namespace Ilum

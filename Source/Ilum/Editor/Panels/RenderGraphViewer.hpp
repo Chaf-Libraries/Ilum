@@ -101,6 +101,6 @@ class RenderGraphViewer : public Panel
 
 	ax::NodeEditor::NodeId m_select_node;
 
-	ImTextureID m_background_id;
+	Image m_bg;
 };
 }        // namespace Ilum::panel
