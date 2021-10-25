@@ -9,7 +9,7 @@ class Inspector : public Panel
   public:
 	Inspector();
 
-	~Inspector() = default;
+	virtual ~Inspector() = default;
 
 	virtual void draw() override;
 };

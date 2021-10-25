@@ -13,6 +13,7 @@
 #include "Panels/RenderGraphViewer.hpp"
 #include "Panels/Inspector.hpp"
 #include "Panels/Hierarchy.hpp"
+#include "Panels/AssetBrowser.hpp"
 
 
 namespace Ilum
@@ -44,6 +45,7 @@ bool Editor::onInitialize()
 	m_panels.emplace_back(createScope<panel::RenderGraphViewer>());
 	m_panels.emplace_back(createScope<panel::Inspector>());
 	m_panels.emplace_back(createScope<panel::Hierarchy>());
+	m_panels.emplace_back(createScope<panel::AssetBrowser>());
 
 	return true;
 }
@@ -96,6 +98,7 @@ void Editor::onShutdown()
 {
 	ImGuiContext::destroy();
 
+	m_panels.clear();
 }
 
 void Editor::select(Entity entity)

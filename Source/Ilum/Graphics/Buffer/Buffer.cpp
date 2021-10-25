@@ -24,14 +24,32 @@ Buffer::Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memor
 
 Buffer::~Buffer()
 {
-	if (m_handle)
-	{
-		if (m_mapping != nullptr)
-		{
-			unmap();
-		}
-		vmaDestroyBuffer(GraphicsContext::instance()->getLogicalDevice().getAllocator(), m_handle, m_allocation);
-	}
+	destroy();
+}
+
+Buffer::Buffer(Buffer &&other) :
+    m_allocation(other.m_allocation),
+    m_handle(other.m_handle),
+    m_mapping(other.m_mapping),
+    m_size(other.m_size)
+{
+	other.m_allocation = VK_NULL_HANDLE;
+	other.m_handle     = VK_NULL_HANDLE;
+}
+
+Buffer &Buffer::operator=(Buffer &&other)
+{
+	destroy();
+
+	m_allocation = other.m_allocation;
+	m_handle     = other.m_handle;
+	m_mapping    = other.m_mapping;
+	m_size       = other.m_size;
+
+	other.m_allocation = VK_NULL_HANDLE;
+	other.m_handle     = VK_NULL_HANDLE;
+
+	return *this;
 }
 
 const VkBuffer &Buffer::getBuffer() const
@@ -105,7 +123,19 @@ void Buffer::copyFlush(const uint8_t *data, VkDeviceSize size, VkDeviceSize offs
 	copy(data, size, offset);
 	if (m_mapping)
 	{
-		flush(size, offset);	
+		flush(size, offset);
+	}
+}
+
+void Buffer::destroy()
+{
+	if (m_handle)
+	{
+		if (m_mapping != nullptr)
+		{
+			unmap();
+		}
+		vmaDestroyBuffer(GraphicsContext::instance()->getLogicalDevice().getAllocator(), m_handle, m_allocation);
 	}
 }
 }        // namespace Ilum

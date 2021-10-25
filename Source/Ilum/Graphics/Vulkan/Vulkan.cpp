@@ -384,3 +384,47 @@ std::string std::to_string(VkFormat format)
 			return "VK_FORMAT_INVALID";
 	}
 }
+
+std::string std::to_string(VkShaderStageFlagBits stage)
+{
+	switch (stage)
+	{
+		case VK_SHADER_STAGE_VERTEX_BIT:
+			return "VERTEX";
+		case VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT:
+			return "TESSELLATION_CONTROL";
+		case VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT:
+			return "TESSELLATION_EVALUATION";
+		case VK_SHADER_STAGE_GEOMETRY_BIT:
+			return "GEOMETRY";
+		case VK_SHADER_STAGE_FRAGMENT_BIT:
+			return "FRAGMENT";
+		case VK_SHADER_STAGE_COMPUTE_BIT:
+			return "COMPUTE";
+		case VK_SHADER_STAGE_ALL_GRAPHICS:
+			return "ALL_GRAPHICS";
+		case VK_SHADER_STAGE_ALL:
+			return "ALL";
+		case VK_SHADER_STAGE_RAYGEN_BIT_KHR:
+			return "RAYGEN";
+		case VK_SHADER_STAGE_ANY_HIT_BIT_KHR:
+			return "ANY_HIT";
+		case VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR:
+			return "CLOSEST_HIT";
+		case VK_SHADER_STAGE_MISS_BIT_KHR:
+			return "MISS";
+		case VK_SHADER_STAGE_INTERSECTION_BIT_KHR:
+			return "INTERSECTION";
+		case VK_SHADER_STAGE_CALLABLE_BIT_KHR:
+			return "CALLABLE";
+		case VK_SHADER_STAGE_TASK_BIT_NV:
+			return "TASK";
+		case VK_SHADER_STAGE_MESH_BIT_NV:
+			return "MESH";
+		case VK_SHADER_STAGE_SUBPASS_SHADING_BIT_HUAWEI:
+			return "SUBPASS_SHADING";
+		default:
+			break;
+	}
+	return "Unknown shader stage";
+}

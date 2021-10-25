@@ -16,7 +16,11 @@ class ShaderCache
 
 	VkShaderModule load(const std::string &filename, VkShaderStageFlagBits stage, Shader::Type type = Shader::Type::GLSL);
 
+	VkShaderModule getShader(const std::string &filename);
+
 	const ReflectionData &reflect(VkShaderModule shader);
+
+	const std::unordered_map<std::string, size_t> &getShaders() const;
 
   private:
 	std::vector<VkShaderModule> m_shader_modules;

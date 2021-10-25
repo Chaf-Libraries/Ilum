@@ -127,7 +127,7 @@ Swapchain::Swapchain(const VkExtent2D &extent, const Swapchain *old_swapchain) :
 
 	for (auto& image_handle : swapchain_images)
 	{
-		m_images.push_back(Image(image_handle, m_extent.width, m_extent.height, surface_format.format));
+		m_images.emplace_back(image_handle, m_extent.width, m_extent.height, surface_format.format);
 	}
 }
 

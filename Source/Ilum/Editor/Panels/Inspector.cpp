@@ -172,7 +172,7 @@ inline void draw_component<cmpt::Tag>(Entity entity)
 		char  buffer[64];
 		memset(buffer, 0, sizeof(buffer));
 		std::memcpy(buffer, tag.data(), sizeof(buffer));
-		ImGui::PushItemWidth(100.f);
+		ImGui::PushItemWidth(150.f);
 		if (ImGui::InputText("##Tag", buffer, sizeof(buffer)))
 		{
 			tag = std::string(buffer);
@@ -209,11 +209,43 @@ inline void draw_component<cmpt::Hierarchy>(Entity entity)
 }
 
 template <>
+inline void draw_component<cmpt::MeshRenderer>(Entity entity)
+{
+	draw_component<cmpt::MeshRenderer>(
+	    "MeshRenderer", entity, [](cmpt::MeshRenderer &component) {
+		    ImGui::Text("Model: ");
+		    ImGui::SameLine();
+		    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.f, 0.f));
+			if (ImGui::Button(component.model.c_str(), ImVec2(250.f, 0.f)))
+			{
+			    component.model = "";
+			}
+		    ImGui::PopStyleVar();
+		    if (ImGui::BeginDragDropTarget())
+		    {
+			    if (const auto *pay_load = ImGui::AcceptDragDropPayload("Model"))
+			    {
+				    ASSERT(pay_load->DataSize == sizeof(std::string));
+				    std::string new_model = *static_cast<std::string *>(pay_load->Data);
+				    if (component.model != new_model)
+				    {
+					    component.model = new_model;
+					    // TODO: Reset materials
+				    }
+			    }
+			    ImGui::EndDragDropTarget();
+		    }
+
+		    ImGui::Text("Materials: ");
+	    });
+}
+
+template <>
 inline void draw_component<cmpt::Camera>(Entity entity)
 {
 	draw_component<cmpt::Camera>(
 	    "Camera", entity, [](auto &component) {
-		   
+
 	    });
 }
 
@@ -257,12 +289,12 @@ void Inspector::draw()
 
 	if (ImGui::BeginPopup("AddComponent"))
 	{
-		add_component<cmpt::Tag, cmpt::Camera, cmpt::Light, cmpt::Hierarchy, cmpt::Transform>();
+		add_component<cmpt::MeshRenderer, cmpt::Camera, cmpt::Light>();
 		ImGui::EndPopup();
 	}
 	ImGui::PopItemWidth();
 
-	draw_component<cmpt::Transform, cmpt::Hierarchy, cmpt::Camera, cmpt::Light>(entity);
+	draw_component<cmpt::Transform, cmpt::Hierarchy, cmpt::MeshRenderer, cmpt::Camera, cmpt::Light>(entity);
 
 	ImGui::End();
 }
