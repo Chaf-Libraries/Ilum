@@ -20,4 +20,6 @@ namespace std
 std::string to_string(VkResult result);
 
 std::string to_string(VkFormat format);
+
+std::string to_string(VkShaderStageFlagBits stage);
 }
