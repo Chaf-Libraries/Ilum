@@ -1,11 +1,10 @@
 #pragma once
 
-#include "Geometry/Vertex.hpp"
-
 #include <vector>
 
 namespace Ilum
 {
+template <typename Vertex>
 struct TriMesh
 {
 	std::vector<Vertex>   vertices;
@@ -26,7 +25,7 @@ struct TriMesh
 	bool empty() const;
 
 	void set(std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices);
-
-
 };
 }        // namespace Ilum
+
+#include "TriMesh.inl"
