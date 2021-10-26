@@ -6,6 +6,7 @@
 
 #include "Device/Swapchain.hpp"
 #include "Device/Window.hpp"
+#include "Device/LogicalDevice.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
 
@@ -21,7 +22,7 @@ namespace Ilum
 Renderer::Renderer(Context *context) :
     TSubsystem<Renderer>(context)
 {
-	GraphicsContext::instance()->Swapchain_Rebuild_Event += [this]() { m_resize = true; };
+	GraphicsContext::instance()->Swapchain_Rebuild_Event += [this]() { m_update = true; };
 
 	defaultBuilder = [this](RenderGraphBuilder &builder) {
 
@@ -51,11 +52,11 @@ bool Renderer::onInitialize()
 
 void Renderer::onPreTick()
 {
-	if (m_resize)
+	if (m_update)
 	{
 		m_render_graph.reset();
 		rebuild();
-		m_resize = false;
+		m_update = false;
 	}
 }
 
@@ -154,7 +155,7 @@ void Renderer::resizeRenderTarget(VkExtent2D extent)
 	if (m_render_target_extent.height != extent.height || m_render_target_extent.width != extent.width)
 	{
 		m_render_target_extent = extent;
-		m_resize               = true;
+		m_update               = true;
 	}
 }
 

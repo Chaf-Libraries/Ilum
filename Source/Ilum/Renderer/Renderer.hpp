@@ -90,7 +90,7 @@ class Renderer : public TSubsystem<Renderer>
 
 	Image m_default_texture;
 
-	bool m_resize = false;
+	bool m_update = false;
 
 	bool m_imgui = true;
 

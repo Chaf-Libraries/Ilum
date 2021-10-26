@@ -477,6 +477,7 @@ const std::string &RenderGraphBuilder::view() const
 void RenderGraphBuilder::reset()
 {
 	m_output = "output";
+	m_view   = "view";
 	m_render_pass_references.clear();
 }
 

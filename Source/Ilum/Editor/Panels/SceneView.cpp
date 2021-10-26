@@ -27,6 +27,7 @@ void SceneView::draw()
 	if (render_graph->hasAttachment(render_graph->view()))
 	{
 		ImGui::Image(ImGuiContext::textureID(render_graph->getAttachment(render_graph->view()), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), region);
+		LOG_TRACE("View: {}", render_graph->view());
 	}
 
 	ImGui::End();

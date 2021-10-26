@@ -38,8 +38,14 @@ void GeometryPass::setupPipeline(PipelineState &state)
 	state.color_blend_attachment_states.resize(2);
 
 	state.declareAttachment("gbuffer - normal", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	LOG_INFO("gbuffer - normal");
 	state.declareAttachment("gbuffer - position", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	LOG_INFO("gbuffer - position");
 	state.declareAttachment("geometry - depth_stencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	LOG_INFO("gbuffer - depth_stencil");
+
+
+	LOG_INFO("========");
 
 	state.addOutputAttachment("gbuffer - normal", AttachmentState::Clear_Color);
 	state.addOutputAttachment("gbuffer - position", AttachmentState::Clear_Color);
