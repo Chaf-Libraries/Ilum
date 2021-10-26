@@ -250,6 +250,8 @@ void ImGuiContext::begin()
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplSDL2_NewFrame();
 	ImGui::NewFrame();
+
+	beginDockingSpace();
 }
 
 void ImGuiContext::render(const CommandBuffer &command_buffer)
@@ -265,12 +267,14 @@ void ImGuiContext::end()
 		return;
 	}
 
+	endDockingSpace();
+
 	ImGui::EndFrame();
 }
 
 void ImGuiContext::beginDockingSpace()
 {
-	ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
+	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking;
 	window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
 	window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
 	ImGuiViewport *viewport = ImGui::GetMainViewport();
