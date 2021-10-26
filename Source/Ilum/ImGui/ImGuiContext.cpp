@@ -31,7 +31,7 @@ inline VkDescriptorPool createDescriptorPool()
 	VkDescriptorPoolCreateInfo pool_info = {};
 	pool_info.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	pool_info.flags                      = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-	pool_info.maxSets                    = 1000 * IM_ARRAYSIZE(pool_sizes);
+	pool_info.maxSets                    = 2000 * IM_ARRAYSIZE(pool_sizes);
 	pool_info.poolSizeCount              = (uint32_t) IM_ARRAYSIZE(pool_sizes);
 	pool_info.pPoolSizes                 = pool_sizes;
 	VkDescriptorPool handle;
@@ -56,6 +56,11 @@ ImGuiContext::ImGuiContext()
 
 void ImGuiContext::createResouce()
 {
+	if (!s_enable)
+	{
+		return;
+	}
+
 	ImGui::CreateContext();
 
 	s_instance->m_texture_id_mapping.clear();
@@ -101,6 +106,7 @@ void ImGuiContext::releaseResource()
 
 		// Release resource
 		vkDestroyDescriptorPool(GraphicsContext::instance()->getLogicalDevice(), s_instance->m_descriptor_pool, nullptr);
+		s_instance->m_texture_id_mapping.clear();
 
 		s_enable = false;
 	}
@@ -250,6 +256,12 @@ void ImGuiContext::begin()
 	if (!Renderer::instance()->hasImGui())
 	{
 		return;
+	}
+	LOG_INFO("{}", s_instance->m_texture_id_mapping.size());
+	if (s_instance->m_texture_id_mapping.size() > 1998)
+	{
+		releaseResource();
+		createResouce();
 	}
 
 	ImGui_ImplVulkan_NewFrame();
