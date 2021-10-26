@@ -34,6 +34,16 @@ const std::vector<SubMesh> &Model::getSubMeshes() const
 	return m_submeshes;
 }
 
+BufferReference Model::getVertexBuffer() const
+{
+	return m_vertex_buffer;
+}
+
+BufferReference Model::getIndexBuffer() const
+{
+	return m_index_buffer;
+}
+
 void Model::createBuffer()
 {
 	if (m_submeshes.empty())

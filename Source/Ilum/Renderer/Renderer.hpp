@@ -67,6 +67,8 @@ class Renderer : public TSubsystem<Renderer>
 
 	void resizeRenderTarget(VkExtent2D extent);
 
+	const ImageReference getDefaultTexture() const;
+
   public:
 	std::function<void(RenderGraphBuilder &)> buildRenderGraph = nullptr;
 
@@ -85,6 +87,8 @@ class Renderer : public TSubsystem<Renderer>
 	std::unordered_map<SamplerType, Sampler> m_samplers;
 
 	VkExtent2D m_render_target_extent;
+
+	Image m_default_texture;
 
 	bool m_resize = false;
 

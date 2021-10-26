@@ -163,8 +163,8 @@ void ModelLoader::parseNode(aiMatrix4x4 &transform, aiNode *node, const aiScene 
 		std::vector<uint32_t> indices;
 		aiMesh *              mesh = scene->mMeshes[node->mMeshes[i]];
 		parseMesh(transform, mesh, scene, vertices, indices);
-		index_offset += static_cast<uint32_t>(indices.size());
 		meshes.emplace_back(std::move(vertices), std::move(indices), index_offset);
+		index_offset += static_cast<uint32_t>(indices.size());
 	}
 
 	for (uint32_t i = 0; i < node->mNumChildren; i++)

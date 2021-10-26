@@ -154,7 +154,6 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 			ImGui::Begin(name.c_str(), NULL, ImGuiWindowFlags_Tooltip | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar);
 			ImGui::Text(name.c_str());
 			ImGui::Separator();
-
 			if (!shader_data.attributes.empty())
 			{
 				ImGui::Text("Attribute");
@@ -261,9 +260,9 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 						ImGui::Text("%s", std::to_string(constant.offset).c_str());
 
 						ImGui::TableSetColumnIndex(3);
-						if (constant.type ==ReflectionData::Constant::Type::Specialization )
+						if (constant.type == ReflectionData::Constant::Type::Specialization)
 						{
-							ImGui::Text("%s", std::to_string(constant.constant_id).c_str());	
+							ImGui::Text("%s", std::to_string(constant.constant_id).c_str());
 						}
 
 						ImGui::TableSetColumnIndex(4);
@@ -288,10 +287,106 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 				}
 			}
 
+			if (!shader_data.buffers.empty())
+			{
+				ImGui::Text("Buffer");
+				if (ImGui::BeginTable("shader buffer", 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
+				{
+					ImGui::TableSetupColumn("name");
+					ImGui::TableSetupColumn("set");
+					ImGui::TableSetupColumn("binding");
+					ImGui::TableSetupColumn("size");
+					ImGui::TableSetupColumn("array_size");
+					ImGui::TableSetupColumn("type");
+					ImGui::TableSetupColumn("stage");
+					ImGui::TableHeadersRow();
 
+					for (auto &buffer : shader_data.buffers)
+					{
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::Text("%s", buffer.name.c_str());
+						ImGui::TableSetColumnIndex(1);
+						ImGui::Text("%s", std::to_string(buffer.set).c_str());
+						ImGui::TableSetColumnIndex(2);
+						ImGui::Text("%s", std::to_string(buffer.binding).c_str());
+						ImGui::TableSetColumnIndex(3);
+						ImGui::Text("%s", std::to_string(buffer.size).c_str());
+						ImGui::TableSetColumnIndex(4);
+						ImGui::Text("%s", std::to_string(buffer.array_size).c_str());
+						ImGui::TableSetColumnIndex(5);
+						switch (buffer.type)
+						{
+							case ReflectionData::Buffer::Type::None:
+								ImGui::Text("None");
+								break;
+							case ReflectionData::Buffer::Type::Uniform:
+								ImGui::Text("Uniform");
+								break;
+							case ReflectionData::Buffer::Type::Storage:
+								ImGui::Text("Storage");
+								break;
+							default:
+								break;
+						}
+						ImGui::TableSetColumnIndex(6);
+						ImGui::Text("%s", shader_stage_to_string(buffer.stage).c_str());
+					}
+					ImGui::EndTable();
+				}
+			}
 
+			if (!shader_data.images.empty())
+			{
+				ImGui::Text("Image");
+				if (ImGui::BeginTable("shader image", 6, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
+				{
+					ImGui::TableSetupColumn("name");
+					ImGui::TableSetupColumn("set");
+					ImGui::TableSetupColumn("binding");
+					ImGui::TableSetupColumn("array_size");
+					ImGui::TableSetupColumn("type");
+					ImGui::TableSetupColumn("stage");
+					ImGui::TableHeadersRow();
 
-
+					for (auto &image : shader_data.images)
+					{
+						ImGui::TableNextRow();
+						ImGui::TableSetColumnIndex(0);
+						ImGui::Text("%s", image.name.c_str());
+						ImGui::TableSetColumnIndex(1);
+						ImGui::Text("%s", std::to_string(image.set).c_str());
+						ImGui::TableSetColumnIndex(2);
+						ImGui::Text("%s", std::to_string(image.binding).c_str());
+						ImGui::TableSetColumnIndex(3);
+						ImGui::Text("%s", std::to_string(image.array_size).c_str());
+						ImGui::TableSetColumnIndex(4);
+						switch (image.type)
+						{
+							case ReflectionData::Image::Type::None:
+								ImGui::Text("None");
+								break;
+							case ReflectionData::Image::Type::Image:
+								ImGui::Text("Image");
+								break;
+							case ReflectionData::Image::Type::Sampler:
+								ImGui::Text("Sampler");
+								break;
+							case ReflectionData::Image::Type::ImageSampler:
+								ImGui::Text("ImageSampler");
+								break;
+							case ReflectionData::Image::Type::ImageStorage:
+								ImGui::Text("ImageStorage");
+								break;
+							default:
+								break;
+						}
+						ImGui::TableSetColumnIndex(5);
+						ImGui::Text("%s", shader_stage_to_string(image.stage).c_str());
+					}
+					ImGui::EndTable();
+				}
+			}
 
 			ImGui::End();
 		}
@@ -322,6 +417,11 @@ void AssetBrowser::draw()
 	static int         current_item = 0;
 
 	ImGui::Combo("Assets", &current_item, ASSET_TYPE, 3);
+	ImGui::SameLine();
+	if (ImGui::Button("Import"))
+	{
+		LOG_INFO("Test");
+	}
 
 	if (current_item == 0)
 	{

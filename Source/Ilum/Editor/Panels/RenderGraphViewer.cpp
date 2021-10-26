@@ -101,6 +101,7 @@ void RenderGraphViewer::build()
 	for (auto &[name, image] : render_graph->getAttachments())
 	{
 		m_attachments.emplace_back(unique_id++, Pin(unique_id++, "", ed::PinKind::Input), name, ImColor(128, 128, 255));
+
 		for (auto &pass : m_passes)
 		{
 			for (auto &input : pass.inputs)
@@ -228,7 +229,6 @@ void RenderGraphViewer::draw()
 			builder.EndHeader();
 		}
 
-		//for (auto &input : node.inputs)
 		{
 			auto alpha = ImGui::GetStyle().Alpha;
 
@@ -236,10 +236,22 @@ void RenderGraphViewer::draw()
 			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
 			ax::Widgets::Icon(ImVec2(12, 12), ax::Drawing::IconType::Flow, isPinLink(attachment.input.id), ImColor(255, 255, 255), ImColor(32, 32, 32, (int) (alpha * 255)));
 			ImGui::Spring(0);
-			if (attachment.name != render_graph->output())
+			if (Renderer::instance()->isDebug() && attachment.name != render_graph->output())
 			{
 				auto &image = render_graph->getAttachment(attachment.name);
-				ImGui::Image(ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {200.f, static_cast<float>(image.getHeight()) * 200.f / static_cast<float>(image.getWidth())});
+
+				if (image.isDepth())
+				{
+					ImGui::Image(ImGuiContext::textureID(image.getView(ImageViewType::Depth_Only), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {200.f, static_cast<float>(image.getHeight()) * 200.f / static_cast<float>(image.getWidth())});
+				}
+				else
+				{
+					ImGui::Image(ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {200.f, static_cast<float>(image.getHeight()) * 200.f / static_cast<float>(image.getWidth())});
+				}
+				if (image.isStencil())
+				{
+					ImGui::Image(ImGuiContext::textureID(image.getView(ImageViewType::Stencil_Only), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {200.f, static_cast<float>(image.getHeight()) * 200.f / static_cast<float>(image.getWidth())});
+				}
 			}
 			ImGui::PopStyleVar();
 			builder.EndInput();

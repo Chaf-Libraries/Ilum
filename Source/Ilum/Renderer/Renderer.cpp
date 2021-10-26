@@ -11,6 +11,9 @@
 
 #include "ImGui/ImGuiContext.hpp"
 
+#include "Loader/ImageLoader/ImageLoader.hpp"
+#include "Loader/ImageLoader/Bitmap.hpp"
+
 #include <imgui.h>
 
 namespace Ilum
@@ -28,6 +31,7 @@ Renderer::Renderer(Context *context) :
 
 	m_resource_cache = createScope<ResourceCache>();
 	createSamplers();
+	ImageLoader::loadImage(m_default_texture, Bitmap{{0, 0, 0, 255}, VK_FORMAT_R8G8B8A8_UNORM, 1, 1}, false);
 }
 
 Renderer::~Renderer()
@@ -152,6 +156,11 @@ void Renderer::resizeRenderTarget(VkExtent2D extent)
 		m_render_target_extent = extent;
 		m_resize               = true;
 	}
+}
+
+const ImageReference Renderer::getDefaultTexture() const
+{
+	return m_default_texture;
 }
 
 void Renderer::createSamplers()

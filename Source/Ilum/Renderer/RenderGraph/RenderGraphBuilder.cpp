@@ -193,23 +193,26 @@ inline void createGraphicsPipeline(const PipelineState &pipeline_state, PassNati
 	rasterization_state_create_info.lineWidth                              = 1.0f;
 
 	// Color Blend Attachment State
-	VkPipelineColorBlendAttachmentState color_blend_attachment_state;
+	std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachment_states(pipeline_state.color_blend_attachment_states.size());
 
-	color_blend_attachment_state.blendEnable         = pipeline_state.color_blend_attachment_state.blend_enable;
-	color_blend_attachment_state.srcColorBlendFactor = pipeline_state.color_blend_attachment_state.src_color_blend_factor;
-	color_blend_attachment_state.dstColorBlendFactor = pipeline_state.color_blend_attachment_state.dst_color_blend_factor;
-	color_blend_attachment_state.colorBlendOp        = pipeline_state.color_blend_attachment_state.color_blend_op;
-	color_blend_attachment_state.srcAlphaBlendFactor = pipeline_state.color_blend_attachment_state.src_alpha_blend_factor;
-	color_blend_attachment_state.dstAlphaBlendFactor = pipeline_state.color_blend_attachment_state.dst_alpha_blend_factor;
-	color_blend_attachment_state.alphaBlendOp        = pipeline_state.color_blend_attachment_state.alpha_blend_op;
-	color_blend_attachment_state.colorWriteMask      = pipeline_state.color_blend_attachment_state.color_write_mask;
+	for (uint32_t i = 0; i < color_blend_attachment_states.size(); i++)
+	{
+		color_blend_attachment_states[i].blendEnable         = pipeline_state.color_blend_attachment_states[i].blend_enable;
+		color_blend_attachment_states[i].srcColorBlendFactor = pipeline_state.color_blend_attachment_states[i].src_color_blend_factor;
+		color_blend_attachment_states[i].dstColorBlendFactor = pipeline_state.color_blend_attachment_states[i].dst_color_blend_factor;
+		color_blend_attachment_states[i].colorBlendOp        = pipeline_state.color_blend_attachment_states[i].color_blend_op;
+		color_blend_attachment_states[i].srcAlphaBlendFactor = pipeline_state.color_blend_attachment_states[i].src_alpha_blend_factor;
+		color_blend_attachment_states[i].dstAlphaBlendFactor = pipeline_state.color_blend_attachment_states[i].dst_alpha_blend_factor;
+		color_blend_attachment_states[i].alphaBlendOp        = pipeline_state.color_blend_attachment_states[i].alpha_blend_op;
+		color_blend_attachment_states[i].colorWriteMask      = pipeline_state.color_blend_attachment_states[i].color_write_mask;
+	}
 
 	VkPipelineColorBlendStateCreateInfo color_blend_state_create_info = {};
 	color_blend_state_create_info.sType                               = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 	color_blend_state_create_info.logicOpEnable                       = VK_FALSE;
 	color_blend_state_create_info.logicOp                             = VK_LOGIC_OP_COPY;
-	color_blend_state_create_info.attachmentCount                     = 1;
-	color_blend_state_create_info.pAttachments                        = &color_blend_attachment_state;
+	color_blend_state_create_info.attachmentCount                     = static_cast<uint32_t>(color_blend_attachment_states.size());
+	color_blend_state_create_info.pAttachments                        = color_blend_attachment_states.data();
 	color_blend_state_create_info.blendConstants[0]                   = 0.0f;
 	color_blend_state_create_info.blendConstants[1]                   = 0.0f;
 	color_blend_state_create_info.blendConstants[2]                   = 0.0f;

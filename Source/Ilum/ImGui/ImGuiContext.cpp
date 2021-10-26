@@ -108,13 +108,18 @@ void ImGuiContext::releaseResource()
 
 void *ImGuiContext::textureID(const Image &image, const Sampler &sampler)
 {
+	return textureID(image.getView(), sampler);
+}
+
+void *ImGuiContext::textureID(const VkImageView &view, const Sampler &sampler)
+{
 	size_t hash = 0;
-	hash_combine(hash, image.getView());
+	hash_combine(hash, view);
 	hash_combine(hash, sampler.getSampler());
 
 	if (s_instance->m_texture_id_mapping.find(hash) == s_instance->m_texture_id_mapping.end())
 	{
-		s_instance->m_texture_id_mapping.emplace(hash, (VkDescriptorSet) ImGui_ImplVulkan_AddTexture(sampler, image.getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
+		s_instance->m_texture_id_mapping.emplace(hash, (VkDescriptorSet) ImGui_ImplVulkan_AddTexture(sampler, view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
 	}
 	return (ImTextureID) s_instance->m_texture_id_mapping.at(hash);
 }
