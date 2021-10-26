@@ -77,8 +77,10 @@ class TexturePass : public TRenderPass<TexturePass>
 		state.descriptor_bindings.bind(0, 0, "tex", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
 		state.declareAttachment("output", GraphicsContext::instance()->getSurface().getFormat().format);
+		state.declareAttachment("depth_stencil", VK_FORMAT_D32_SFLOAT_S8_UINT);
 
 		state.addOutputAttachment("output", AttachmentState::Clear_Color);
+		state.addOutputAttachment("depth_stencil", AttachmentState::Clear_Depth_Stencil);
 	}
 
 	virtual void resolveResources(ResolveState &resolve)
