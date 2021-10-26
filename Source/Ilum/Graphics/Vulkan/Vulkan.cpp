@@ -26,6 +26,45 @@ void vk_assert(VkResult result)
 	}
 #endif        // _DEBUG
 }
+
+std::string shader_stage_to_string(VkShaderStageFlags stage)
+{
+	std::string result = "";
+#define ADD_SHADER_STAGE(vk_shader_stage)          \
+	if (stage & vk_shader_stage)                   \
+	{                                              \
+		if (!result.empty())                       \
+		{                                          \
+			result += " | ";                       \
+		}                                          \
+		result += std::to_string(vk_shader_stage); \
+	}
+
+	ADD_SHADER_STAGE(VK_SHADER_STAGE_VERTEX_BIT);
+	ADD_SHADER_STAGE(VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT);
+	ADD_SHADER_STAGE(VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT);
+	ADD_SHADER_STAGE(VK_SHADER_STAGE_GEOMETRY_BIT);
+	ADD_SHADER_STAGE(VK_SHADER_STAGE_FRAGMENT_BIT);
+	ADD_SHADER_STAGE(VK_SHADER_STAGE_COMPUTE_BIT);
+	ADD_SHADER_STAGE(VK_SHADER_STAGE_RAYGEN_BIT_KHR);
+	ADD_SHADER_STAGE(VK_SHADER_STAGE_ANY_HIT_BIT_KHR);
+	ADD_SHADER_STAGE(VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
+	ADD_SHADER_STAGE(VK_SHADER_STAGE_MISS_BIT_KHR);
+	ADD_SHADER_STAGE(VK_SHADER_STAGE_INTERSECTION_BIT_KHR);
+	ADD_SHADER_STAGE(VK_SHADER_STAGE_CALLABLE_BIT_KHR);
+	ADD_SHADER_STAGE(VK_SHADER_STAGE_TASK_BIT_NV);
+	ADD_SHADER_STAGE(VK_SHADER_STAGE_MESH_BIT_NV);
+	ADD_SHADER_STAGE(VK_SHADER_STAGE_SUBPASS_SHADING_BIT_HUAWEI);
+
+	if (result.empty())
+	{
+		ADD_SHADER_STAGE(VK_SHADER_STAGE_ALL_GRAPHICS);
+		ADD_SHADER_STAGE(VK_SHADER_STAGE_ALL);
+	}
+
+	return result;
+}
+
 }        // namespace Ilum
 
 std::string std::to_string(VkResult result)

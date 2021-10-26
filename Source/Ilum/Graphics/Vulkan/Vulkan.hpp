@@ -13,6 +13,8 @@ namespace Ilum
 const bool vk_check(VkResult result);
 
 void vk_assert(VkResult result);
+
+std::string shader_stage_to_string(VkShaderStageFlags stage);
 }
 
 namespace std
