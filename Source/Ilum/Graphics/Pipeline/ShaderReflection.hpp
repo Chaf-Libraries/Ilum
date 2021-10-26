@@ -51,7 +51,7 @@ struct ReflectionData
 		uint32_t           array_size = 0;        // When array_size = 0, enable descriptor indexing
 		uint32_t           set        = 0;
 		uint32_t           binding    = 0;
-		VkShaderStageFlags stage      = VK_SHADER_STAGE_ALL;
+		VkShaderStageFlags stage      = 0;
 		Type               type       = Type::None;
 
 		size_t hash() const;
@@ -71,7 +71,7 @@ struct ReflectionData
 		uint32_t           array_size = 0;        // When array_size = 0, enable descriptor indexing
 		uint32_t           set        = 0;
 		uint32_t           binding    = 0;
-		VkShaderStageFlags stage      = VK_SHADER_STAGE_ALL;
+		VkShaderStageFlags stage      = 0;
 		Type               type       = Type::None;
 
 		size_t hash() const;
