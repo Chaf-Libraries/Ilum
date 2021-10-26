@@ -24,13 +24,13 @@
 
 using namespace Ilum;
 
-class TrianglePass : public TRenderPass<TrianglePass>
+class TexturePass : public TRenderPass<TexturePass>
 {
   public:
-	TrianglePass()
+	TexturePass()
 	{
-		vertex_buffer = Buffer(vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-		index_buffer  = Buffer(indices.size() * sizeof(uint16_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+		vertex_buffer = Buffer(vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+		index_buffer  = Buffer(indices.size() * sizeof(uint16_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 		{
 			Buffer staging_buffer(sizeof(Vertex) * vertices.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
@@ -125,115 +125,17 @@ class TrianglePass : public TRenderPass<TrianglePass>
 	Buffer index_buffer;
 };
 
-class TestPass : public TRenderPass<TestPass>
-{
-  public:
-	TestPass()
-	{
-		vertex_buffer = createScope<Buffer>(vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-		index_buffer  = createScope<Buffer>(indices.size() * sizeof(uint16_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-
-		auto *vertex_data = vertex_buffer->map();
-		std::memcpy(vertex_data, vertices.data(), vertex_buffer->getSize());
-		vertex_buffer->unmap();
-
-		auto *index_data = index_buffer->map();
-		std::memcpy(index_data, indices.data(), index_buffer->getSize());
-		index_buffer->unmap();
-	}
-
-	virtual void setupPipeline(PipelineState &state)
-	{
-		state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Test/Texture/texture.glsl.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-		state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Test/Texture/texture.glsl.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
-
-		state.dynamic_state.dynamic_states = {
-		    VK_DYNAMIC_STATE_VIEWPORT,
-		    VK_DYNAMIC_STATE_SCISSOR};
-
-		state.vertex_input_state.attribute_descriptions = {
-		    VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, pos)},
-		    VkVertexInputAttributeDescription{1, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv)},
-		    VkVertexInputAttributeDescription{2, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, color)}};
-
-		state.vertex_input_state.binding_descriptions = {
-		    VkVertexInputBindingDescription{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX}};
-
-		state.descriptor_bindings.bind(0, 0, "output", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-
-		state.declareAttachment("result", GraphicsContext::instance()->getSurface().getFormat().format);
-
-		state.addOutputAttachment("result", AttachmentState::Clear_Color);
-	}
-
-	virtual void resolveResources(ResolveState &resolve)
-	{
-	}
-
-	virtual void render(RenderPassState &state)
-	{
-		auto &cmd_buffer = state.command_buffer;
-
-		auto &extent = GraphicsContext::instance()->getSwapchain().getExtent();
-
-		VkViewport viewport = {0, 0, static_cast<float>(extent.width), static_cast<float>(extent.height), 0, 1};
-		VkRect2D   scissor  = {0, 0, extent.width, extent.height};
-
-		vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
-		vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
-
-		VkDeviceSize offsets[1] = {0};
-		vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &vertex_buffer->getBuffer(), offsets);
-		vkCmdBindIndexBuffer(cmd_buffer, index_buffer->getBuffer(), 0, VK_INDEX_TYPE_UINT16);
-		vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
-	}
-
-  private:
-	struct Vertex
-	{
-		glm::vec2 pos;
-		glm::vec2 uv;
-		glm::vec3 color;
-	};
-
-	const std::vector<Vertex> vertices = {
-	    {{-1.f, 1.f}, {0.f, 1.f}, {1.0f, 0.0f, 0.0f}},
-	    {{1.f, 1.f}, {1.f, 1.f}, {0.0f, 1.0f, 0.0f}},
-	    {{1.f, -1.f}, {1.f, 0.f}, {0.0f, 0.0f, 1.0f}},
-	    {{-1.f, -1.f}, {0.f, 0.f}, {0.0f, 0.0f, 1.0f}}};
-
-	const std::vector<uint16_t> indices = {
-	    0, 1, 3, 3, 1, 2};
-
-	scope<Buffer> vertex_buffer = nullptr;
-	scope<Buffer> index_buffer  = nullptr;
-};
-
-class DebugPass : public TRenderPass<TestPass>
-{
-  public:
-	virtual void setupPipeline(PipelineState &state)
-	{
-		state.addDependency("output", VK_IMAGE_USAGE_SAMPLED_BIT);
-	}
-};
-
 int main()
 {
 	Engine engine;
 
-	//Image image;
-	//ImageLoader::loadImageFromFile(image, "../Test/Texture/texture.jpg", true);
-
 	auto title = Window::instance()->getTitle();
 
-	Renderer::instance()->setDebug(true);
-	//Renderer::instance()->setImGui(false);
+	Renderer::instance()->setDebug(false);
+	Renderer::instance()->setImGui(false);
 
 	Renderer::instance()->buildRenderGraph = [](RenderGraphBuilder &builder) {
-		builder.addRenderPass("TrianglePass", std::make_unique<TrianglePass>())
-		    .addRenderPass("TestPass", std::make_unique<TestPass>())
-		    .setOutput("result");
+		builder.addRenderPass("TexturePass", std::make_unique<TexturePass>()).setView("output").setOutput("output");
 	};
 
 	Renderer::instance()->rebuild();

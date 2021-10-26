@@ -112,9 +112,11 @@ int main()
 
 	Renderer::instance()->resetBuilder();
 
+	Renderer::instance()->setDebug(false);
+	Renderer::instance()->setImGui(false);
+
 	Renderer::instance()->buildRenderGraph = [](RenderGraphBuilder &builder) {
-		builder.addRenderPass("TrianglePass", std::make_unique<TrianglePass>()).setOutput("output");
-		builder.addRenderPass("ImGuiPass", std::make_unique<pass::ImGuiPass>("output", AttachmentState::Load_Color)).setOutput("output");
+		builder.addRenderPass("TrianglePass", std::make_unique<TrianglePass>()).setView("output");
 	};
 
 	Renderer::instance()->rebuild();
