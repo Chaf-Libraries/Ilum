@@ -15,8 +15,6 @@
 
 namespace Ilum
 {
-VkExtent2D Renderer::RenderTargetSize = {0, 0};
-
 Renderer::Renderer(Context *context) :
     TSubsystem<Renderer>(context)
 {
@@ -27,6 +25,7 @@ Renderer::Renderer(Context *context) :
 	};
 
 	buildRenderGraph = defaultBuilder;
+
 	m_resource_cache = createScope<ResourceCache>();
 	createSamplers();
 }
@@ -37,7 +36,7 @@ Renderer::~Renderer()
 
 bool Renderer::onInitialize()
 {
-	RenderTargetSize = GraphicsContext::instance()->getSwapchain().getExtent();
+	m_render_target_extent = GraphicsContext::instance()->getSwapchain().getExtent();
 
 	defaultBuilder(m_rg_builder);
 
@@ -100,7 +99,7 @@ void Renderer::rebuild()
 
 	if (m_imgui)
 	{
-		m_rg_builder.addRenderPass("ImGuiPass", createScope<pass::ImGuiPass>(m_rg_builder.output(), m_rg_builder.empty() ? AttachmentState::Clear_Color : AttachmentState::Load_Color));
+		m_rg_builder.addRenderPass("ImGuiPass", createScope<pass::ImGuiPass>("imgui_output", m_rg_builder.view(), AttachmentState::Clear_Color)).setOutput("imgui_output");
 	}
 
 	m_render_graph = m_rg_builder.build();
@@ -139,6 +138,20 @@ void Renderer::setImGui(bool enable)
 const Sampler &Renderer::getSampler(SamplerType type) const
 {
 	return m_samplers.at(type);
+}
+
+const VkExtent2D &Renderer::getRenderTargetExtent() const
+{
+	return m_render_target_extent;
+}
+
+void Renderer::resizeRenderTarget(VkExtent2D extent)
+{
+	if (m_render_target_extent.height != extent.height || m_render_target_extent.width != extent.width)
+	{
+		m_render_target_extent = extent;
+		m_resize               = true;
+	}
 }
 
 void Renderer::createSamplers()

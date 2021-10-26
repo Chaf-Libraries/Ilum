@@ -19,14 +19,6 @@ namespace Ilum
 class Renderer : public TSubsystem<Renderer>
 {
   public:
-	static VkExtent2D RenderTargetSize;
-
-	struct ImageData
-	{
-		ImageReference image;
-		uint32_t       texID;
-	};
-
 	enum class SamplerType
 	{
 		Compare_Depth,
@@ -71,6 +63,10 @@ class Renderer : public TSubsystem<Renderer>
 
 	const Sampler &getSampler(SamplerType type) const;
 
+	const VkExtent2D &getRenderTargetExtent() const;
+
+	void resizeRenderTarget(VkExtent2D extent);
+
   public:
 	std::function<void(RenderGraphBuilder &)> buildRenderGraph = nullptr;
 
@@ -87,6 +83,8 @@ class Renderer : public TSubsystem<Renderer>
 	scope<ResourceCache> m_resource_cache = nullptr;
 
 	std::unordered_map<SamplerType, Sampler> m_samplers;
+
+	VkExtent2D m_render_target_extent;
 
 	bool m_resize = false;
 
