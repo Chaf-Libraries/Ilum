@@ -28,7 +28,7 @@ class RenderGraph
   public:
 	RenderGraph() = default;
 
-	RenderGraph(std::vector<RenderGraphNode> &&nodes, std::unordered_map<std::string, Image> &&attachments, const std::string &output_name, PresentCallback on_present, CreateCallback on_create);
+	RenderGraph(std::vector<RenderGraphNode> &&nodes, std::unordered_map<std::string, Image> &&attachments, const std::string &output_name, const std::string &view_name, PresentCallback on_present, CreateCallback on_create);
 
 	~RenderGraph();
 
@@ -97,6 +97,8 @@ class RenderGraph
 
 	const std::string &output() const;
 
+	const std::string &view() const;
+
   private:
 	void initialize(const CommandBuffer &command_buffer);
 
@@ -106,6 +108,7 @@ class RenderGraph
 	std::vector<RenderGraphNode>           m_nodes;
 	std::unordered_map<std::string, Image> m_attachments;
 	std::string                            m_output      = "output";
+	std::string                            m_view      = "view";
 	bool                                   m_initialized = false;
 	PresentCallback                        onPresent;
 	CreateCallback                         onCreate;

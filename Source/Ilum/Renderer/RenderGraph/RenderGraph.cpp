@@ -5,8 +5,8 @@
 
 namespace Ilum
 {
-RenderGraph::RenderGraph(std::vector<RenderGraphNode> &&nodes, std::unordered_map<std::string, Image> &&attachments, const std::string &output_name, PresentCallback on_present, CreateCallback on_create):
-    m_nodes(std::move(nodes)), m_attachments(std::move(attachments)), m_output(output_name), onPresent(on_present), onCreate(on_create)
+RenderGraph::RenderGraph(std::vector<RenderGraphNode> &&nodes, std::unordered_map<std::string, Image> &&attachments, const std::string &output_name, const std::string &view_name, PresentCallback on_present, CreateCallback on_create) :
+    m_nodes(std::move(nodes)), m_attachments(std::move(attachments)), m_output(output_name), m_view(view_name), onPresent(on_present), onCreate(on_create)
 {
 }
 
@@ -115,6 +115,11 @@ void RenderGraph::reset()
 const std::string &RenderGraph::output() const
 {
 	return m_output;
+}
+
+const std::string &RenderGraph::view() const
+{
+	return m_view;
 }
 
 void RenderGraph::initialize(const CommandBuffer &command_buffer)

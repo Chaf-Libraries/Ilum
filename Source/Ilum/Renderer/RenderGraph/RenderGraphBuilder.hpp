@@ -37,9 +37,13 @@ class RenderGraphBuilder
 
 	RenderGraphBuilder &setOutput(const std::string &name);
 
+	RenderGraphBuilder &setView(const std::string &name);
+
 	scope<RenderGraph> build();
 
 	const std::string &output() const;
+
+	const std::string &view() const;
 
 	void reset();
 
@@ -48,7 +52,7 @@ class RenderGraphBuilder
   private:
 	struct RenderPassReference
 	{
-		std::string       name;
+		std::string                 name;
 		std::unique_ptr<RenderPass> pass;
 	};
 
@@ -83,7 +87,7 @@ class RenderGraphBuilder
 
 	ResourceTransitions resolveResourceTransitions(const PipelineMap &pipeline_states);
 
-	void setOutputImage(ResourceTransitions& resource_transitions, const std ::string &name);
+	void setOutputImage(ResourceTransitions &resource_transitions, const std ::string &name);
 
 	AttachmentMap allocateAttachments(const PipelineMap &pipeline_states, const ResourceTransitions &resource_transitions);
 
@@ -100,5 +104,6 @@ class RenderGraphBuilder
   private:
 	std::vector<RenderPassReference> m_render_pass_references;
 	std::string                      m_output = "output";
+	std::string                      m_view   = "view";
 };
 }        // namespace Ilum

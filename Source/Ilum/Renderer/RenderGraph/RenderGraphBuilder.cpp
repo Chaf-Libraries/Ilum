@@ -406,6 +406,12 @@ RenderGraphBuilder &RenderGraphBuilder::setOutput(const std::string &name)
 	return *this;
 }
 
+RenderGraphBuilder &RenderGraphBuilder::setView(const std::string &name)
+{
+	m_view = name;
+	return *this;
+}
+
 scope<RenderGraph> RenderGraphBuilder::build()
 {
 	if (m_render_pass_references.empty())
@@ -450,6 +456,7 @@ scope<RenderGraph> RenderGraphBuilder::build()
 	    std::move(nodes),
 	    std::move(attachments),
 	    m_output,
+		m_view,
 	    m_output.empty() ? [](const CommandBuffer &, const Image &, const Image &) {} : createOnPresentCallback(m_output, resource_transitions),
 	    createOnCreateCallback(pipeline_states, resource_transitions, attachments));
 }
@@ -457,6 +464,11 @@ scope<RenderGraph> RenderGraphBuilder::build()
 const std::string &RenderGraphBuilder::output() const
 {
 	return m_output;
+}
+
+const std::string &RenderGraphBuilder::view() const
+{
+	return m_view;
 }
 
 void RenderGraphBuilder::reset()
@@ -481,14 +493,14 @@ void RenderGraphBuilder::topologicalSort(std::vector<RenderGraphNode> &nodes, co
 
 	while (!tmp.empty())
 	{
+		bool found = false;
 		for (auto it = tmp.begin(); !tmp.empty() && it != tmp.end(); it++)
 		{
-			bool found = false;
-
 			if (pipeline_states.at(it->name).getImageDependencies().empty())
 			{
 				nodes.emplace_back(std::move(*it));
 				tmp.erase(it);
+				found = false;
 				break;
 			}
 
@@ -513,6 +525,11 @@ void RenderGraphBuilder::topologicalSort(std::vector<RenderGraphNode> &nodes, co
 			{
 				break;
 			}
+		}
+		if (!found)
+		{
+			nodes.insert(nodes.end(), std::make_move_iterator(tmp.begin()), std::make_move_iterator(tmp.end()));
+			break;
 		}
 	}
 
