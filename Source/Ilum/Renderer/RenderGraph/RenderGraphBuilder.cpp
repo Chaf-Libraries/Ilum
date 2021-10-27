@@ -453,7 +453,7 @@ scope<RenderGraph> RenderGraphBuilder::build()
 		    createPipelineBarrierCallback(render_pass_reference.name, pipeline_states.at(render_pass_reference.name), resource_transitions),
 		    pipeline_states.at(render_pass_reference.name).descriptor_bindings});
 	}
-	topologicalSort(nodes, pipeline_states);
+	//topologicalSort(nodes, pipeline_states);
 
 	return createScope<RenderGraph>(
 	    std::move(nodes),
@@ -675,14 +675,14 @@ RenderGraphBuilder::AttachmentMap RenderGraphBuilder::allocateAttachments(const 
 		for (const auto &attachment : pipeline_state.getAttachmentDeclarations())
 		{
 			auto attachment_usage = resource_transitions.images.total_usages.at(attachment.name);
-			attachments.emplace(attachment.name, Image(
+			attachments.emplace(attachment.name, std::move(Image(
 			                                         attachment.width == 0 ? surface_width : attachment.width,
 			                                         attachment.height == 0 ? surface_height : attachment.height,
 			                                         attachment.format,
 			                                         attachment_usage | VK_IMAGE_USAGE_SAMPLED_BIT,
 			                                         VMA_MEMORY_USAGE_GPU_ONLY,
 			                                         attachment.mipmaps,
-			                                         attachment.layers));
+			                                         attachment.layers)));
 		}
 	}
 	return attachments;
