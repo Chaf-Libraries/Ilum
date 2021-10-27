@@ -49,22 +49,13 @@ int main()
 
 	Ilum::Renderer::instance()->rebuild();
 
-
-	//for (auto& iter : view)
-	//{
-	//	LOG_INFO(iter.getComponent<Ilum::cmpt::Tag>().name);
-	//}
-
-	//std::for_each(std::execution::par_unseq, view.begin(), view.end(), [&view](auto entity) {
-	//	std::cout << std::this_thread::get_id() << std::endl;
-	//});
 	int i = 0;
 	//auto t = entity.hasComponent<Ilum::cmpt::Tag>();
 	auto title = Ilum::Window::instance()->getTitle();
 	while (!Ilum::Window::instance()->shouldClose())
 	{
 		engine.onTick();
-		if (i++ == 10000)
+		if (i++ == 1000)
 		{
 			Ilum::Renderer::instance()->getResourceCache().loadModelAsync("../Asset/Model/head.obj");
 
