@@ -25,6 +25,10 @@ class Model
 
 	const std::vector<SubMesh> &getSubMeshes() const;
 
+	BufferReference getVertexBuffer() const;
+
+	BufferReference getIndexBuffer() const;
+
   private:
 	void createBuffer();
 

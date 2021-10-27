@@ -165,7 +165,6 @@ void GraphicsContext::onTick(float delta_time)
 
 void GraphicsContext::onPostTick()
 {
-	m_command_buffers[m_current_frame]->end();
 	submitFrame();
 }
 
@@ -259,6 +258,8 @@ void GraphicsContext::newFrame()
 
 void GraphicsContext::submitFrame()
 {
+	m_command_buffers[m_current_frame]->end();
+
 	m_command_buffers[m_current_frame]->submit(m_present_complete[m_current_frame], m_render_complete[m_current_frame]); 
 
 	auto present_result = m_swapchain->present(m_logical_device->getPresentQueues()[0], m_render_complete[m_current_frame]);

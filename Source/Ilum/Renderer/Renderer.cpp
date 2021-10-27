@@ -6,29 +6,33 @@
 
 #include "Device/Swapchain.hpp"
 #include "Device/Window.hpp"
+#include "Device/LogicalDevice.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
 
 #include "ImGui/ImGuiContext.hpp"
 
+#include "Loader/ImageLoader/ImageLoader.hpp"
+#include "Loader/ImageLoader/Bitmap.hpp"
+
 #include <imgui.h>
 
 namespace Ilum
 {
-VkExtent2D Renderer::RenderTargetSize = {0, 0};
-
 Renderer::Renderer(Context *context) :
     TSubsystem<Renderer>(context)
 {
-	GraphicsContext::instance()->Swapchain_Rebuild_Event += [this]() { m_resize = true; };
+	GraphicsContext::instance()->Swapchain_Rebuild_Event += [this]() { m_update = true; };
 
 	defaultBuilder = [this](RenderGraphBuilder &builder) {
 
 	};
 
 	buildRenderGraph = defaultBuilder;
+
 	m_resource_cache = createScope<ResourceCache>();
 	createSamplers();
+	ImageLoader::loadImage(m_default_texture, Bitmap{{0, 0, 0, 255}, VK_FORMAT_R8G8B8A8_UNORM, 1, 1}, false);
 }
 
 Renderer::~Renderer()
@@ -37,7 +41,7 @@ Renderer::~Renderer()
 
 bool Renderer::onInitialize()
 {
-	RenderTargetSize = GraphicsContext::instance()->getSwapchain().getExtent();
+	m_render_target_extent = GraphicsContext::instance()->getSwapchain().getExtent();
 
 	defaultBuilder(m_rg_builder);
 
@@ -48,11 +52,14 @@ bool Renderer::onInitialize()
 
 void Renderer::onPreTick()
 {
-	if (m_resize)
+	m_resource_cache->flush();
+
+	if (m_update)
 	{
 		m_render_graph.reset();
+		m_render_graph = nullptr;
 		rebuild();
-		m_resize = false;
+		m_update = false;
 	}
 }
 
@@ -89,18 +96,23 @@ void Renderer::resetBuilder()
 
 void Renderer::rebuild()
 {
+	m_render_graph.reset();
+	m_render_graph = nullptr;
+
 	m_rg_builder.reset();
 
 	buildRenderGraph(m_rg_builder);
 
-	if (m_debug && !m_rg_builder.empty())
-	{
-		m_rg_builder.addRenderPass("DebugPass", createScope<pass::DebugPass>());
-	}
-
 	if (m_imgui)
 	{
-		m_rg_builder.addRenderPass("ImGuiPass", createScope<pass::ImGuiPass>(m_rg_builder.output(), m_rg_builder.empty() ? AttachmentState::Clear_Color : AttachmentState::Load_Color));
+		ImGuiContext::flush();
+
+		if (m_debug && !m_rg_builder.empty())
+		{
+			m_rg_builder.addRenderPass("DebugPass", createScope<pass::DebugPass>());
+		}
+
+		m_rg_builder.addRenderPass("ImGuiPass", createScope<pass::ImGuiPass>("imgui_output", m_rg_builder.view(), AttachmentState::Clear_Color)).setOutput("imgui_output");
 	}
 
 	m_render_graph = m_rg_builder.build();
@@ -139,6 +151,25 @@ void Renderer::setImGui(bool enable)
 const Sampler &Renderer::getSampler(SamplerType type) const
 {
 	return m_samplers.at(type);
+}
+
+const VkExtent2D &Renderer::getRenderTargetExtent() const
+{
+	return m_render_target_extent;
+}
+
+void Renderer::resizeRenderTarget(VkExtent2D extent)
+{
+	if (m_render_target_extent.height != extent.height || m_render_target_extent.width != extent.width)
+	{
+		m_render_target_extent = extent;
+		m_update               = true;
+	}
+}
+
+const ImageReference Renderer::getDefaultTexture() const
+{
+	return m_default_texture;
 }
 
 void Renderer::createSamplers()

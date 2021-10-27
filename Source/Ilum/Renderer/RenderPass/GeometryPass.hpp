@@ -1,16 +1,15 @@
 #pragma once
 
-#include "Utils/PCH.hpp"
-
 #include "Graphics/Pipeline/PipelineState.hpp"
+
 #include "Renderer/RenderGraph/RenderPass.hpp"
 
 namespace Ilum::pass
 {
-class ImGuiPass : public TRenderPass<ImGuiPass>
+class GeometryPass : public TRenderPass<GeometryPass>
 {
   public:
-	ImGuiPass(const std::string &output_name, const std::string &view_name, AttachmentState state = AttachmentState::Load_Color);
+	GeometryPass(const std::string &output);
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -19,8 +18,8 @@ class ImGuiPass : public TRenderPass<ImGuiPass>
 	virtual void render(RenderPassState &state) override;
 
   private:
-	std::string     m_output;
-	std::string     m_view;
-	AttachmentState m_attachment_state;
+	std::string m_output;
 };
-}        // namespace Ilum
+
+// TODO: Bindless Geometry Pass
+}        // namespace Ilum::pass

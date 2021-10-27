@@ -31,8 +31,6 @@ class Swapchain
 
 	const VkImage &getActiveImage() const;
 
-	const std::vector<ImageReference> &getImageViews() const;
-
 	const VkSwapchainKHR &getSwapchain() const;
 
 	uint32_t getActiveImageIndex() const;

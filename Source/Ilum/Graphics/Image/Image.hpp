@@ -60,6 +60,10 @@ class Image
 
 	VkImageSubresourceRange getSubresourceRange() const;
 
+	bool isDepth() const;
+
+	bool isStencil() const;
+
   public:
 	static VkImageAspectFlags format_to_aspect(VkFormat format);
 

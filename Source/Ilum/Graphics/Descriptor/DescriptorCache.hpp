@@ -20,6 +20,8 @@ class DescriptorCache
 
 	VkDescriptorSet allocateDescriptorSet(const Shader &shader, uint32_t set_index);
 
+	VkDescriptorSet allocateDescriptorSet(const VkDescriptorSetLayout &descriptor_layout);
+
 	void free(const VkDescriptorSet &descriptor_set);
 
   private:

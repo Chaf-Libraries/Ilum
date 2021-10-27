@@ -12,13 +12,15 @@
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Pipeline/PipelineState.hpp"
 
+#include "ImGui/ImGuiContext.hpp"
+
 #include <imgui_impl_sdl.h>
 #include <imgui_impl_vulkan.h>
 
 namespace Ilum::pass
 {
-ImGuiPass::ImGuiPass(const std::string &output_name, AttachmentState state) :
-    m_output(output_name), m_attachment_state(state)
+ImGuiPass::ImGuiPass(const std::string &output_name, const std::string &view_name, AttachmentState state) :
+    m_output(output_name), m_view(view_name), m_attachment_state(state)
 {
 }
 
@@ -26,6 +28,7 @@ void ImGuiPass::setupPipeline(PipelineState &state)
 {
 	state.addOutputAttachment(m_output, m_attachment_state);
 	state.declareAttachment(m_output, GraphicsContext::instance()->getSurface().getFormat().format);
+	state.addDependency(m_view, VK_IMAGE_USAGE_SAMPLED_BIT);
 }
 
 void ImGuiPass::resolveResources(ResolveState &resolve)
@@ -34,13 +37,6 @@ void ImGuiPass::resolveResources(ResolveState &resolve)
 
 void ImGuiPass::render(RenderPassState &state)
 {
-	ImGui::Render();
-	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), state.command_buffer);
-
-	if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-	{
-		ImGui::UpdatePlatformWindows();
-		ImGui::RenderPlatformWindowsDefault();
-	}
+	ImGuiContext::render(state.command_buffer);
 }
 }        // namespace Ilum

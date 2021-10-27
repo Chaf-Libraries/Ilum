@@ -164,3 +164,13 @@ set(IMGUINODEEDITOR_FILES
 add_library(imgui-node-editor STATIC ${IMGUINODEEDITOR_FILES})
 target_include_directories(imgui-node-editor PUBLIC ${IMGUINODEEDITOR_DIR} ${IMGUINODEEDITOR_DIR}/examples/blueprints-example/utilities)
 target_link_libraries(imgui-node-editor imgui)
+
+# ImFileDialog
+set(IMFILEDIALOG_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ImFileDialog")
+set(IMFILEDIALOG_FILES
+    "${IMFILEDIALOG_DIR}/ImFileDialog.cpp"
+    "${IMFILEDIALOG_DIR}/ImFileDialog.h")
+add_library(ImFileDialog STATIC ${IMFILEDIALOG_FILES})
+target_include_directories(ImFileDialog PUBLIC ${IMFILEDIALOG_DIR})
+target_include_directories(ImFileDialog PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(ImFileDialog imgui stb)

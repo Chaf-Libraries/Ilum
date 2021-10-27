@@ -54,7 +54,7 @@ VkImageLayout Image::usage_to_layout(VkImageUsageFlagBits usage)
 		case VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT:
 			return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 		case VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT:
-			return VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL;
+			return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		case VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT:
 			return VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
 		case VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR:
@@ -291,6 +291,16 @@ VkImageSubresourceRange Image::getSubresourceRange() const
 	    /*levelCount*/ m_mip_level_count,
 	    /*baseArrayLayer*/ 0,
 	    /*layerCount*/ m_layer_count};
+}
+
+bool Image::isDepth() const
+{
+	return m_format == VK_FORMAT_D32_SFLOAT || m_format == VK_FORMAT_D32_SFLOAT_S8_UINT;
+}
+
+bool Image::isStencil() const
+{
+	return m_format == VK_FORMAT_D32_SFLOAT_S8_UINT;
 }
 
 void Image::createImageViews()

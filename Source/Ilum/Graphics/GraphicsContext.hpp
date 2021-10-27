@@ -62,7 +62,7 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 
 	virtual void onShutdown() override;
 
-  private:
+  public:
 	void createSwapchain();
 
 	void createCommandBuffer();

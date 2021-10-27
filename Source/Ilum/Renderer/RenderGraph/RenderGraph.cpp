@@ -1,18 +1,18 @@
 #include "RenderGraph.hpp"
 
-#include "Graphics/GraphicsContext.hpp"
 #include "Device/LogicalDevice.hpp"
+#include "Graphics/GraphicsContext.hpp"
 
 namespace Ilum
 {
-RenderGraph::RenderGraph(std::vector<RenderGraphNode> &&nodes, std::unordered_map<std::string, Image> &&attachments, const std::string &output_name, PresentCallback on_present, CreateCallback on_create):
-    m_nodes(std::move(nodes)), m_attachments(std::move(attachments)), m_output(output_name), onPresent(on_present), onCreate(on_create)
+RenderGraph::RenderGraph(std::vector<RenderGraphNode> &&nodes, std::unordered_map<std::string, Image> &&attachments, const std::string &output_name, const std::string &view_name, PresentCallback on_present, CreateCallback on_create) :
+    m_nodes(std::move(nodes)), m_attachments(std::move(attachments)), m_output(output_name), m_view(view_name), onPresent(on_present), onCreate(on_create)
 {
 }
 
 RenderGraph::~RenderGraph()
 {
-	for (auto& node : m_nodes)
+	for (auto &node : m_nodes)
 	{
 		if (node.pass_native.frame_buffer)
 		{
@@ -44,14 +44,13 @@ void RenderGraph::execute(const CommandBuffer &command_buffer)
 {
 	initialize(command_buffer);
 
-
 	ResolveInfo resolve;
-	for (const auto& [name, attachment] : m_attachments)
+	for (const auto &[name, attachment] : m_attachments)
 	{
 		resolve.resolve(name, attachment);
 	}
 
-	for (auto& node : m_nodes)
+	for (auto &node : m_nodes)
 	{
 		executeNode(node, command_buffer, resolve);
 	}
@@ -93,7 +92,7 @@ const std::unordered_map<std::string, Image> &RenderGraph::getAttachments() cons
 
 bool RenderGraph::hasAttachment(const std::string &name) const
 {
-	return m_attachments.find(name)!=m_attachments.end();
+	return m_attachments.find(name) != m_attachments.end();
 }
 
 bool RenderGraph::hasRenderPass(const std::string &name) const
@@ -106,7 +105,7 @@ void RenderGraph::reset()
 {
 	m_nodes.clear();
 	m_attachments.clear();
-	m_output = "";
+	m_output      = "";
 	m_initialized = false;
 	onPresent     = {};
 	onCreate      = {};
@@ -115,6 +114,11 @@ void RenderGraph::reset()
 const std::string &RenderGraph::output() const
 {
 	return m_output;
+}
+
+const std::string &RenderGraph::view() const
+{
+	return m_view;
 }
 
 void RenderGraph::initialize(const CommandBuffer &command_buffer)
@@ -136,7 +140,7 @@ void RenderGraph::executeNode(RenderGraphNode &node, const CommandBuffer &comman
 
 	// Insert pipeline barrier
 	node.pipeline_barrier_callback(command_buffer, resolve);
-	
+
 	if (command_buffer.beginRenderPass(state.pass))
 	{
 		node.pass->render(state);

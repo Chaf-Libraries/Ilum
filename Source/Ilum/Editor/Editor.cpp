@@ -10,33 +10,24 @@
 #include "Renderer/RenderPass/ImGuiPass.hpp"
 #include "Renderer/Renderer.hpp"
 
-#include "Panels/RenderGraphViewer.hpp"
-#include "Panels/Inspector.hpp"
-#include "Panels/Hierarchy.hpp"
 #include "Panels/AssetBrowser.hpp"
-
+#include "Panels/Hierarchy.hpp"
+#include "Panels/Inspector.hpp"
+#include "Panels/RenderGraphViewer.hpp"
+#include "Panels/SceneView.hpp"
 
 namespace Ilum
 {
 Editor::Editor(Context *context) :
     TSubsystem<Editor>(context)
 {
-
 }
 
 bool Editor::onInitialize()
 {
-	auto *rg = Renderer::instance()->getRenderGraph();
-	if (!rg->hasRenderPass<pass::ImGuiPass>())
+	if (!Renderer::instance()->hasImGui())
 	{
-		auto output = Renderer::instance()->getRenderGraph()->output();
-
-		auto current_build                     = Renderer::instance()->buildRenderGraph;
-		Renderer::instance()->buildRenderGraph = [current_build, output, &rg](RenderGraphBuilder &builder) {
-			current_build(builder);
-			builder.addRenderPass("ImGuiPass", createScope<pass::ImGuiPass>(output, rg->empty() ? AttachmentState::Clear_Color : AttachmentState::Load_Color)).setOutput(output);
-		};
-
+		Renderer::instance()->setImGui(true);
 		Renderer::instance()->rebuild();
 	}
 
@@ -46,6 +37,7 @@ bool Editor::onInitialize()
 	m_panels.emplace_back(createScope<panel::Inspector>());
 	m_panels.emplace_back(createScope<panel::Hierarchy>());
 	m_panels.emplace_back(createScope<panel::AssetBrowser>());
+	m_panels.emplace_back(createScope<panel::SceneView>());
 
 	return true;
 }
@@ -69,18 +61,16 @@ void Editor::onTick(float delta_time)
 	{
 		if (ImGui::BeginMenu("Panel"))
 		{
-			for (auto& panel : m_panels)
+			for (auto &panel : m_panels)
 			{
-				ImGui::MenuItem(panel->name().c_str(), nullptr,&panel->active);
+				ImGui::MenuItem(panel->name().c_str(), nullptr, &panel->active);
 			}
 			ImGui::EndMenu();
 		}
-
-
 		ImGui::EndMainMenuBar();
 	}
 
-	for (auto& panel : m_panels)
+	for (auto &panel : m_panels)
 	{
 		if (panel->active)
 		{

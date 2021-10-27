@@ -102,6 +102,18 @@ const std::vector<std::thread> &ThreadPool::getThreads() const
 	return m_threads;
 }
 
+uint32_t ThreadPool::threadIndex(const std::thread::id &thread_id)
+{
+	for (uint32_t i = 0; i < m_threads.size(); i++)
+	{
+		if (thread_id == m_threads[i].get_id())
+		{
+			return i;
+		}
+	}
+	return std::numeric_limits<uint32_t>::max();
+}
+
 void ThreadPool::clear()
 {
 	std::function<void(size_t id)> *_f;

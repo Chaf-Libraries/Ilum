@@ -143,7 +143,7 @@ class PipelineState
 
 	VertexInputState vertex_input_state = {};
 
-	ColorBlendAttachmentState color_blend_attachment_state = {};
+	std::vector<ColorBlendAttachmentState> color_blend_attachment_states = {{}};
 
 	DescriptorBinding descriptor_bindings;
 

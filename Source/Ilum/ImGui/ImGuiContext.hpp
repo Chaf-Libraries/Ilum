@@ -4,10 +4,11 @@
 
 #include "Engine/Subsystem.hpp"
 
+#include "Graphics/Image/Image.hpp"
+
 namespace Ilum
 {
 class CommandBuffer;
-class Image;
 class Sampler;
 
 class ImGuiContext
@@ -43,6 +44,10 @@ class ImGuiContext
 
 	static void *textureID(const Image &image, const Sampler &sampler);
 
+	static void *textureID(const VkImageView &view, const Sampler &sampler);
+
+	static void flush();
+
 	bool enable() const;
 
   private:
@@ -54,6 +59,10 @@ class ImGuiContext
 	VkDescriptorPool m_descriptor_pool = VK_NULL_HANDLE;
 
 	std::unordered_map<size_t, VkDescriptorSet> m_texture_id_mapping;
+
+	// File dialog
+	std::unordered_map<VkDescriptorSet, Image> m_filedialog_image_cache;
+	std::vector<VkDescriptorSet>               m_deprecated_descriptor_sets;
 
 	static bool s_enable;
 };
