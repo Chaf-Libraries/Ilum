@@ -17,14 +17,17 @@ const bool vk_check(VkResult result)
 
 void vk_assert(VkResult result)
 {
-#ifdef _DEBUG
+//#ifdef _DEBUG
 	assert(result == VK_SUCCESS);
-#else
+//#else
 	if (result != VK_SUCCESS)
 	{
 		VK_ERROR("{}", std::to_string(result));
+
+		throw std::runtime_error(std::to_string(result));
+
 	}
-#endif        // _DEBUG
+//#endif        // _DEBUG
 }
 
 std::string shader_stage_to_string(VkShaderStageFlags stage)

@@ -38,14 +38,8 @@ void GeometryPass::setupPipeline(PipelineState &state)
 	state.color_blend_attachment_states.resize(2);
 
 	state.declareAttachment("gbuffer - normal", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	LOG_INFO("gbuffer - normal");
 	state.declareAttachment("gbuffer - position", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	LOG_INFO("gbuffer - position");
 	state.declareAttachment("geometry - depth_stencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	LOG_INFO("gbuffer - depth_stencil");
-
-
-	LOG_INFO("========");
 
 	state.addOutputAttachment("gbuffer - normal", AttachmentState::Clear_Color);
 	state.addOutputAttachment("gbuffer - position", AttachmentState::Clear_Color);
@@ -69,8 +63,8 @@ void GeometryPass::render(RenderPassState &state)
 	vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
 	auto view = Scene::instance()->getRegistry().view<cmpt::MeshRenderer>();
-		
-	view.each([&](cmpt::MeshRenderer& mesh_renderer) {
+
+	view.each([&](cmpt::MeshRenderer &mesh_renderer) {
 		if (Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model))
 		{
 			auto &       model      = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);

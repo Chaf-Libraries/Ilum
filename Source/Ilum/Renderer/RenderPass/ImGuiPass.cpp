@@ -12,6 +12,8 @@
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Pipeline/PipelineState.hpp"
 
+#include "ImGui/ImGuiContext.hpp"
+
 #include <imgui_impl_sdl.h>
 #include <imgui_impl_vulkan.h>
 
@@ -35,13 +37,6 @@ void ImGuiPass::resolveResources(ResolveState &resolve)
 
 void ImGuiPass::render(RenderPassState &state)
 {
-	ImGui::Render();
-	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), state.command_buffer);
-
-	if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-	{
-		ImGui::UpdatePlatformWindows();
-		ImGui::RenderPlatformWindowsDefault();
-	}
+	ImGuiContext::render(state.command_buffer);
 }
 }        // namespace Ilum

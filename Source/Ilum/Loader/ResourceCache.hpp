@@ -16,11 +16,15 @@ class ResourceCache
 
 	ImageReference loadImage(const std::string &filepath);
 
+	void loadImageAsync(const std::string &filepath);
+
 	bool hasImage(const std::string &filepath);
 
 	const std::unordered_map<std::string, size_t> &getImages() const;
 
 	ModelReference loadModel(const std::string &filepath);
+
+	void loadModelAsync(const std::string &filepath);
 
 	bool hasModel(const std::string &filepath);
 
@@ -34,5 +38,8 @@ class ResourceCache
 	// Cache model
 	std::vector<Model>                      m_model_cache;
 	std::unordered_map<std::string, size_t> m_model_map;
+
+	std::mutex m_image_mutex;
+	std::mutex m_model_mutex;
 };
 }        // namespace Ilum

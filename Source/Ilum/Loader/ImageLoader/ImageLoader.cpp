@@ -7,6 +7,8 @@
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/Image/Image.hpp"
 
+#include "Threading/ThreadPool.hpp"
+
 namespace Ilum
 {
 inline Bitmap STBLoad(const std::string &filepath)
@@ -207,7 +209,7 @@ void ImageLoader::loadImage(Image &image, const Bitmap &bitmap, bool mipmaps)
 
 	command_buffer.transferLayout(image, VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
 	command_buffer.end();
-	command_buffer.submitIdle();
+	command_buffer.submitIdle(ThreadPool::instance()->threadIndex(std::this_thread::get_id()));
 }
 
 void ImageLoader::loadCubemap(Image &image, const Cubemap &cubemap)
