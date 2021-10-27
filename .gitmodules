@@ -43,6 +43,3 @@
 [submodule "External/imgui_node_editor"]
 	path = External/imgui_node_editor
 	url = https://github.com/Chaf-Libraries/imgui-node-editor
-[submodule "External/ImFileDialog"]
-	path = External/ImFileDialog
-	url = https://github.com/Chaf-Libraries/ImFileDialog
