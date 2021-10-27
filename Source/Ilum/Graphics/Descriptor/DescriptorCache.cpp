@@ -27,8 +27,11 @@ VkDescriptorSetLayout DescriptorCache::getDescriptorLayout(const Shader &shader,
 
 VkDescriptorSet DescriptorCache::allocateDescriptorSet(const Shader &shader, uint32_t set_index)
 {
-	auto descriptor_layout = getDescriptorLayout(shader, set_index);
+	return allocateDescriptorSet(getDescriptorLayout(shader, set_index));
+}
 
+VkDescriptorSet DescriptorCache::allocateDescriptorSet(const VkDescriptorSetLayout &descriptor_layout)
+{
 	if (m_descriptor_pool_table.find(descriptor_layout) == m_descriptor_pool_table.end())
 	{
 		// Create new descriptor pool
