@@ -45,6 +45,8 @@ class ImGuiContext
 
 	static void *textureID(const VkImageView &view, const Sampler &sampler);
 
+	static void flush();
+
 	bool enable() const;
 
   private:

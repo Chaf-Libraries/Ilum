@@ -55,6 +55,7 @@ void Renderer::onPreTick()
 	if (m_update)
 	{
 		m_render_graph.reset();
+		m_render_graph = nullptr;
 		rebuild();
 		m_update = false;
 	}
@@ -93,17 +94,22 @@ void Renderer::resetBuilder()
 
 void Renderer::rebuild()
 {
+	m_render_graph.reset();
+	m_render_graph = nullptr;
+
 	m_rg_builder.reset();
 
 	buildRenderGraph(m_rg_builder);
 
-	if (m_debug && !m_rg_builder.empty())
-	{
-		m_rg_builder.addRenderPass("DebugPass", createScope<pass::DebugPass>());
-	}
-
 	if (m_imgui)
 	{
+		ImGuiContext::flush();
+
+		if (m_debug && !m_rg_builder.empty())
+		{
+			m_rg_builder.addRenderPass("DebugPass", createScope<pass::DebugPass>());
+		}
+
 		m_rg_builder.addRenderPass("ImGuiPass", createScope<pass::ImGuiPass>("imgui_output", m_rg_builder.view(), AttachmentState::Clear_Color)).setOutput("imgui_output");
 	}
 

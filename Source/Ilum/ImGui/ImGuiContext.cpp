@@ -27,11 +27,11 @@ inline VkDescriptorPool createDescriptorPool()
 {
 	VkDescriptorPoolSize pool_sizes[] =
 	    {
-	        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000}};
+	        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1}};
 	VkDescriptorPoolCreateInfo pool_info = {};
 	pool_info.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	pool_info.flags                      = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-	pool_info.maxSets                    = 2000 * IM_ARRAYSIZE(pool_sizes);
+	pool_info.maxSets                    = 4096 * IM_ARRAYSIZE(pool_sizes);
 	pool_info.poolSizeCount              = (uint32_t) IM_ARRAYSIZE(pool_sizes);
 	pool_info.pPoolSizes                 = pool_sizes;
 	VkDescriptorPool handle;
@@ -43,12 +43,12 @@ inline VkDescriptorPool createDescriptorPool()
 ImGuiContext::ImGuiContext()
 {
 	// Event poll
-	Window::instance()->Event_SDL += [](const SDL_Event &e) {
-		if (!Renderer::instance()->hasImGui())
+	Window::instance()->Event_SDL += [this](const SDL_Event &e) {
+		if (Renderer::instance()->hasImGui() && s_enable)
 		{
-			return;
+			ImGui_ImplSDL2_ProcessEvent(&e);
 		}
-		ImGui_ImplSDL2_ProcessEvent(&e); };
+	};
 
 	// Recreate everything when rebuild swapchain
 	GraphicsContext::instance()->Swapchain_Rebuild_Event += [this]() { releaseResource(); createResouce(); };
@@ -56,7 +56,7 @@ ImGuiContext::ImGuiContext()
 
 void ImGuiContext::createResouce()
 {
-	if (!s_enable)
+	if (!Renderer::instance()->hasImGui())
 	{
 		return;
 	}
@@ -120,14 +120,30 @@ void *ImGuiContext::textureID(const Image &image, const Sampler &sampler)
 void *ImGuiContext::textureID(const VkImageView &view, const Sampler &sampler)
 {
 	size_t hash = 0;
-	hash_combine(hash, view);
-	hash_combine(hash, sampler.getSampler());
+	hash_combine(hash, (uint64_t) view);
+	hash_combine(hash, (uint64_t) sampler.getSampler());
 
 	if (s_instance->m_texture_id_mapping.find(hash) == s_instance->m_texture_id_mapping.end())
 	{
 		s_instance->m_texture_id_mapping.emplace(hash, (VkDescriptorSet) ImGui_ImplVulkan_AddTexture(sampler, view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
 	}
+
 	return (ImTextureID) s_instance->m_texture_id_mapping.at(hash);
+}
+
+void ImGuiContext::flush()
+{
+	if (s_instance && !s_instance->m_texture_id_mapping.empty())
+	{
+		std::vector<VkDescriptorSet> descriptor_sets;
+		descriptor_sets.reserve(s_instance->m_texture_id_mapping.size());
+		for (auto &[idx, set] : s_instance->m_texture_id_mapping)
+		{
+			descriptor_sets.push_back(set);
+		}
+		vkFreeDescriptorSets(GraphicsContext::instance()->getLogicalDevice(), s_instance->m_descriptor_pool, static_cast<uint32_t>(descriptor_sets.size()), descriptor_sets.data());
+		s_instance->m_texture_id_mapping.clear();
+	}
 }
 
 bool ImGuiContext::enable() const
@@ -257,11 +273,10 @@ void ImGuiContext::begin()
 	{
 		return;
 	}
-	LOG_INFO("{}", s_instance->m_texture_id_mapping.size());
-	if (s_instance->m_texture_id_mapping.size() > 1998)
+
+	if (s_instance->m_texture_id_mapping.size() > 4000)
 	{
-		releaseResource();
-		createResouce();
+		flush();
 	}
 
 	ImGui_ImplVulkan_NewFrame();
@@ -275,6 +290,12 @@ void ImGuiContext::render(const CommandBuffer &command_buffer)
 {
 	ImGui::Render();
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);
+
+	if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+	{
+		ImGui::UpdatePlatformWindows();
+		ImGui::RenderPlatformWindowsDefault();
+	}
 }
 
 void ImGuiContext::end()
