@@ -171,7 +171,6 @@ set(IMFILEDIALOG_FILES
     "${IMFILEDIALOG_DIR}/ImFileDialog.cpp"
     "${IMFILEDIALOG_DIR}/ImFileDialog.h")
 add_library(ImFileDialog STATIC ${IMFILEDIALOG_FILES})
-target_compile_definitions(ImFileDialog PUBLIC -USTB_IMAGE_IMPLEMENTATION)
 target_include_directories(ImFileDialog PUBLIC ${IMFILEDIALOG_DIR})
 target_include_directories(ImFileDialog PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ImFileDialog imgui stb)
