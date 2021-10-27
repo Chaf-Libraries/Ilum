@@ -37,6 +37,8 @@ class ThreadPool : public TSubsystem<ThreadPool>
 
 	const std::vector<std::thread> &getThreads() const;
 
+	uint32_t threadIndex(const std::thread::id &thread_id);
+
 	// Clear queue
 	void clear();
 
