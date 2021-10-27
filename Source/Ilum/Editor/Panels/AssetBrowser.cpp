@@ -9,6 +9,12 @@
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Pipeline/ShaderCache.hpp"
 
+#include "Scene/Component/MeshRenderer.hpp"
+#include "Scene/Entity.hpp"
+#include "Scene/Scene.hpp"
+
+#include "ImFileDialog.h"
+
 #include <imgui.h>
 
 namespace Ilum::panel
@@ -19,9 +25,9 @@ inline void draw_texture_asset(float height, float space)
 
 	float width = 0.f;
 
-	ImGuiStyle &style       = ImGui::GetStyle();
-	style.ItemSpacing       = ImVec2(10.f, 10.f);
-	float window_visible_x2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
+	ImGuiStyle &style                          = ImGui::GetStyle();
+	style.ItemSpacing                          = ImVec2(10.f, 10.f);
+	float                    window_visible_x2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
 
 	for (auto &[name, index] : image_cache)
 	{
@@ -47,11 +53,20 @@ inline void draw_texture_asset(float height, float space)
 			{
 				ImGui::SetDragDropPayload("TextureArray", &name, sizeof(std::string));
 			}
+			LOG_INFO("{}", name);
 			ImGui::EndDragDropSource();
 		}
 
 		// Image Hint
-		if (ImGui::IsItemHovered() && ImGui::IsWindowFocused())
+		if (ImGui::BeginPopupContextItem(name.c_str()))
+		{
+			if (ImGui::MenuItem("Delete"))
+			{
+				Renderer::instance()->getResourceCache().removeImage(name);
+			}
+			ImGui::EndPopup();
+		}
+		else if (ImGui::IsItemHovered() && ImGui::IsWindowFocused())
 		{
 			ImVec2 pos = ImGui::GetIO().MousePos;
 			ImGui::SetNextWindowPos(ImVec2(pos.x + 10.f, pos.y + 10.f));
@@ -85,6 +100,7 @@ inline void draw_model_asset(const Image &image, float height, float space)
 
 	for (auto &[name, index] : model_cache)
 	{
+		ImGui::PushID(name.c_str());
 		ImGui::ImageButton(
 		    ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
 		    {height / static_cast<float>(image.getHeight()) * static_cast<float>(image.getWidth()), height});
@@ -96,8 +112,27 @@ inline void draw_model_asset(const Image &image, float height, float space)
 			ImGui::EndDragDropSource();
 		}
 
+		ImGui::PopID();
+
 		// Image Hint
-		if (ImGui::IsItemHovered() && ImGui::IsWindowFocused())
+		if (ImGui::BeginPopupContextItem(name.c_str()))
+		{
+			if (ImGui::MenuItem("Delete"))
+			{
+				auto view = Scene::instance()->getRegistry().view<cmpt::MeshRenderer>();
+				for (auto &entity : view)
+				{
+					auto &mesh_renderer = view.get<cmpt::MeshRenderer>(entity);
+					if (mesh_renderer.model == name)
+					{
+						mesh_renderer.model = "";
+					}
+				}
+				Renderer::instance()->getResourceCache().removeModel(name);
+			}
+			ImGui::EndPopup();
+		}
+		else if (ImGui::IsItemHovered() && ImGui::IsWindowFocused())
 		{
 			auto   model = Renderer::instance()->getResourceCache().loadModel(name);
 			ImVec2 pos   = ImGui::GetIO().MousePos;
@@ -417,18 +452,45 @@ void AssetBrowser::draw()
 	static int         current_item = 0;
 
 	ImGui::Combo("Assets", &current_item, ASSET_TYPE, 3);
-	ImGui::SameLine();
-	if (ImGui::Button("Import"))
-	{
-		LOG_INFO("Test");
-	}
 
 	if (current_item == 0)
 	{
+		ImGui::SameLine();
+		if (ImGui::Button("Import"))
+		{
+			ifd::FileDialog::Instance().Open("TextureOpenDialog", "Import Texture", "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga;*.hdr){.png,.jpg,.jpeg,.bmp,.tga,.hdr},.*");
+		}
+
+		if (ifd::FileDialog::Instance().IsDone("TextureOpenDialog"))
+		{
+			if (ifd::FileDialog::Instance().HasResult())
+			{
+				std::string path = ifd::FileDialog::Instance().GetResult().u8string();
+				Renderer::instance()->getResourceCache().loadImageAsync(path);
+			}
+			ifd::FileDialog::Instance().Close();
+		}
+
 		draw_texture_asset(100.f, 0.f);
 	}
 	else if (current_item == 1)
 	{
+		ImGui::SameLine();
+		if (ImGui::Button("Import"))
+		{
+			ifd::FileDialog::Instance().Open("ModelOpenDialog", "Import Model", "Model file (*.obj;*.fbx;*.gltf){.obj,.fbx,.gltf},.*");
+		}
+
+		if (ifd::FileDialog::Instance().IsDone("ModelOpenDialog"))
+		{
+			if (ifd::FileDialog::Instance().HasResult())
+			{
+				std::string path = ifd::FileDialog::Instance().GetResult().u8string();
+				Renderer::instance()->getResourceCache().loadModelAsync(path);
+			}
+			ifd::FileDialog::Instance().Close();
+		}
+
 		draw_model_asset(m_model_icon, 100.f, 0.f);
 	}
 	else if (current_item == 2)

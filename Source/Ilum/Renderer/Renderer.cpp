@@ -52,6 +52,8 @@ bool Renderer::onInitialize()
 
 void Renderer::onPreTick()
 {
+	m_resource_cache->flush();
+
 	if (m_update)
 	{
 		m_render_graph.reset();

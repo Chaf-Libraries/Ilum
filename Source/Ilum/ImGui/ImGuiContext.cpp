@@ -13,10 +13,16 @@
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/Command/CommandPool.hpp"
 #include "Graphics/GraphicsContext.hpp"
+#include "Graphics/Vulkan/VK_Debugger.h"
 
 #include "Renderer/RenderGraph/RenderGraph.hpp"
 #include "Renderer/RenderPass/ImGuiPass.hpp"
 #include "Renderer/Renderer.hpp"
+
+#include "Loader/ImageLoader/Bitmap.hpp"
+#include "Loader/ImageLoader/ImageLoader.hpp"
+
+#include <ImFileDialog.h>
 
 namespace Ilum
 {
@@ -70,6 +76,31 @@ void ImGuiContext::createResouce()
 
 	s_instance->m_descriptor_pool = createDescriptorPool();
 
+	// Setting file dialog
+	ifd::FileDialog::Instance().CreateTexture = [](uint8_t *data, int w, int h, char fmt) -> void * {
+		Bitmap bitmap;
+		Image  image;
+
+		bitmap.data.resize(static_cast<size_t>(w) * static_cast<size_t>(h) * 4ull);
+		bitmap.format = fmt == 1 ? VK_FORMAT_R8G8B8A8_UNORM : VK_FORMAT_B8G8R8A8_UNORM;
+		bitmap.width  = static_cast<uint32_t>(w);
+		bitmap.height = static_cast<uint32_t>(h);
+
+		std::memcpy(bitmap.data.data(), data, static_cast<size_t>(w) * static_cast<size_t>(h) * 4ull);
+		ImageLoader::loadImage(image, bitmap, true);
+
+		auto texure_id = (VkDescriptorSet) ImGui_ImplVulkan_AddTexture(Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), image.getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		s_instance->m_filedialog_image_cache.emplace((VkDescriptorSet) texure_id, std::move(image));
+		static int i = 0;
+		VK_Debugger::setName(GraphicsContext::instance()->getLogicalDevice(), (VkDescriptorSet) texure_id, std::to_string(i++).c_str());
+
+		return texure_id;
+	};
+
+	ifd::FileDialog::Instance().DeleteTexture = [](void *tex) {
+		s_instance->m_deprecated_descriptor_sets.push_back((VkDescriptorSet) tex);
+	};
+
 	ImGui_ImplVulkan_InitInfo init_info = {};
 	init_info.Instance                  = GraphicsContext::instance()->getInstance();
 	init_info.PhysicalDevice            = GraphicsContext::instance()->getPhysicalDevice();
@@ -107,6 +138,8 @@ void ImGuiContext::releaseResource()
 		// Release resource
 		vkDestroyDescriptorPool(GraphicsContext::instance()->getLogicalDevice(), s_instance->m_descriptor_pool, nullptr);
 		s_instance->m_texture_id_mapping.clear();
+		s_instance->m_filedialog_image_cache.clear();
+		s_instance->m_deprecated_descriptor_sets.clear();
 
 		s_enable = false;
 	}
@@ -143,6 +176,17 @@ void ImGuiContext::flush()
 		}
 		vkFreeDescriptorSets(GraphicsContext::instance()->getLogicalDevice(), s_instance->m_descriptor_pool, static_cast<uint32_t>(descriptor_sets.size()), descriptor_sets.data());
 		s_instance->m_texture_id_mapping.clear();
+		s_instance->m_filedialog_image_cache.clear();
+	}
+
+	if (s_instance  && !s_instance->m_deprecated_descriptor_sets.empty())
+	{
+		for (auto &set : s_instance->m_deprecated_descriptor_sets)
+		{
+			s_instance->m_filedialog_image_cache.erase(set);
+		}
+		vkFreeDescriptorSets(GraphicsContext::instance()->getLogicalDevice(), s_instance->m_descriptor_pool, static_cast<uint32_t>(s_instance->m_deprecated_descriptor_sets.size()), s_instance->m_deprecated_descriptor_sets.data());
+		s_instance->m_deprecated_descriptor_sets.clear();
 	}
 }
 
@@ -274,7 +318,7 @@ void ImGuiContext::begin()
 		return;
 	}
 
-	if (s_instance->m_texture_id_mapping.size() > 4000)
+	if (s_instance->m_texture_id_mapping.size() + s_instance->m_filedialog_image_cache.size() > 4000)
 	{
 		flush();
 	}
