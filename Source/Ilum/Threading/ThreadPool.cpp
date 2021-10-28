@@ -59,18 +59,7 @@ ThreadPool::ThreadPool(Context *context) :
 
 ThreadPool::~ThreadPool()
 {
-	m_done = true;
-
-	{
-		std::unique_lock<std::mutex> lock(m_mutex);
-		m_condition.notify_all();
-	}
-
-	for (uint32_t i = 0; i < m_threads.size(); i++)
-	{
-		if (m_threads[i].joinable())
-			m_threads[i].join();
-	}
+	waitAll();
 
 	clear();
 	m_threads.clear();
@@ -134,5 +123,23 @@ std::function<void(size_t)> ThreadPool::pop()
 		f = *_f;
 	}
 	return f;
+}
+
+void ThreadPool::waitAll()
+{
+	m_done = true;
+
+	{
+		std::unique_lock<std::mutex> lock(m_mutex);
+		m_condition.notify_all();
+	}
+
+	for (uint32_t i = 0; i < m_threads.size(); i++)
+	{
+		if (m_threads[i].joinable())
+		{
+			m_threads[i].join();
+		}
+	}
 }
 }        // namespace Ilum
