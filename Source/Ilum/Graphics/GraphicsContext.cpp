@@ -37,6 +37,11 @@ GraphicsContext::GraphicsContext(Context *context) :
 	vkCreatePipelineCache(*m_logical_device, &pipeline_cache_create_info, nullptr, &m_pipeline_cache);
 }
 
+GraphicsContext::~GraphicsContext()
+{
+	ThreadPool::instance()->waitAll();
+}
+
 const Instance &GraphicsContext::getInstance() const
 {
 	return *m_instance;
