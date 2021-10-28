@@ -37,6 +37,8 @@ void GeometryPass::setupPipeline(PipelineState &state)
 
 	state.color_blend_attachment_states.resize(2);
 
+	state.descriptor_bindings.bind(0, 0, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+
 	state.declareAttachment("gbuffer - normal", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("gbuffer - position", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("geometry - depth_stencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
@@ -48,6 +50,7 @@ void GeometryPass::setupPipeline(PipelineState &state)
 
 void GeometryPass::resolveResources(ResolveState &resolve)
 {
+	resolve.resolve("textureArray", Renderer::instance()->getResourceCache().getImageReferences());
 }
 
 void GeometryPass::render(RenderPassState &state)
