@@ -11,6 +11,7 @@
 #include "Renderer/Renderer.hpp"
 
 #include "Panels/AssetBrowser.hpp"
+#include "Panels/Console.hpp"
 #include "Panels/Hierarchy.hpp"
 #include "Panels/Inspector.hpp"
 #include "Panels/RenderGraphViewer.hpp"
@@ -38,6 +39,7 @@ bool Editor::onInitialize()
 	m_panels.emplace_back(createScope<panel::Hierarchy>());
 	m_panels.emplace_back(createScope<panel::AssetBrowser>());
 	m_panels.emplace_back(createScope<panel::SceneView>());
+	m_panels.emplace_back(createScope<panel::Console>());
 
 	return true;
 }
