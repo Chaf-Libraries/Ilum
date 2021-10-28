@@ -18,6 +18,7 @@
 #include <Ilum/Renderer/Renderer.hpp>
 #include <Ilum/Renderer/RenderPass/GeometryPass.hpp>
 
+
 int main()
 {
 	Ilum::Engine engine;
@@ -49,8 +50,6 @@ int main()
 
 	Ilum::Renderer::instance()->rebuild();
 
-	int i = 0;
-	//auto t = entity.hasComponent<Ilum::cmpt::Tag>();
 	auto title = Ilum::Window::instance()->getTitle();
 	while (!Ilum::Window::instance()->shouldClose())
 	{
