@@ -54,11 +54,6 @@ int main()
 	while (!Ilum::Window::instance()->shouldClose())
 	{
 		engine.onTick();
-		if (i++ == 1000)
-		{
-			Ilum::Renderer::instance()->getResourceCache().loadModelAsync("../Asset/Model/head.obj");
-
-		}
 
 		Ilum::Window::instance()->setTitle(title + " FPS: " + std::to_string(Ilum::Timer::instance()->getFPS()));
 	}
