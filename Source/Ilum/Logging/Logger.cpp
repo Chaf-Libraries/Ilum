@@ -1,5 +1,4 @@
 #include "Logger.hpp"
-#include "Sink.hpp"
 
 #include <fstream>
 
@@ -23,7 +22,7 @@ Logger::~Logger()
 	m_loggers.clear();
 }
 
-const std::deque<std::string> Logger::getLogs(const std::string &name)
+const std::deque<Sink::LogMsg> Logger::getLogs(const std::string &name)
 {
 	if (!valid(name))
 	{
@@ -35,7 +34,7 @@ const std::deque<std::string> Logger::getLogs(const std::string &name)
 	return sink->getLogs();
 }
 
-const std::vector<std::string> Logger::copyLogs(const std::string &name)
+const std::vector<Sink::LogMsg> Logger::copyLogs(const std::string &name)
 {
 	if (!valid(name))
 	{
@@ -85,7 +84,7 @@ void Logger::save(const std::string &name)
 	}
 	for (const auto &log : logs)
 	{
-		oft << log.c_str();
+		oft << log.msg.c_str();
 	}
 	oft.close();
 }
