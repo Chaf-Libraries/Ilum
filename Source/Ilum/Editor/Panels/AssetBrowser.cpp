@@ -25,9 +25,9 @@ inline void draw_texture_asset(float height, float space)
 
 	float width = 0.f;
 
-	ImGuiStyle &style                          = ImGui::GetStyle();
-	style.ItemSpacing                          = ImVec2(10.f, 10.f);
-	float                    window_visible_x2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
+	ImGuiStyle &style       = ImGui::GetStyle();
+	style.ItemSpacing       = ImVec2(10.f, 10.f);
+	float window_visible_x2 = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
 
 	for (auto &[name, index] : image_cache)
 	{
@@ -53,7 +53,6 @@ inline void draw_texture_asset(float height, float space)
 			{
 				ImGui::SetDragDropPayload("TextureArray", &name, sizeof(std::string));
 			}
-			LOG_INFO("{}", name);
 			ImGui::EndDragDropSource();
 		}
 
@@ -241,13 +240,14 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 			if (!shader_data.input_attachments.empty())
 			{
 				ImGui::Text("Input Attachment");
-				if (ImGui::BeginTable("input attachment", 6, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
+				if (ImGui::BeginTable("input attachment", 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
 				{
 					ImGui::TableSetupColumn("name");
 					ImGui::TableSetupColumn("set");
 					ImGui::TableSetupColumn("binding");
 					ImGui::TableSetupColumn("index");
 					ImGui::TableSetupColumn("array_size");
+					ImGui::TableSetupColumn("bindless");
 					ImGui::TableSetupColumn("stage");
 					ImGui::TableHeadersRow();
 
@@ -265,6 +265,8 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 						ImGui::TableSetColumnIndex(4);
 						ImGui::Text("%s", std::to_string(input_attachment.array_size).c_str());
 						ImGui::TableSetColumnIndex(5);
+						ImGui::Text("%s", input_attachment.bindless ? "true" : "false");
+						ImGui::TableSetColumnIndex(6);
 						ImGui::Text("%s", std::to_string(input_attachment.stage).c_str());
 					}
 					ImGui::EndTable();
@@ -325,13 +327,14 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 			if (!shader_data.buffers.empty())
 			{
 				ImGui::Text("Buffer");
-				if (ImGui::BeginTable("shader buffer", 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
+				if (ImGui::BeginTable("shader buffer", 8, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
 				{
 					ImGui::TableSetupColumn("name");
 					ImGui::TableSetupColumn("set");
 					ImGui::TableSetupColumn("binding");
 					ImGui::TableSetupColumn("size");
 					ImGui::TableSetupColumn("array_size");
+					ImGui::TableSetupColumn("bindless");
 					ImGui::TableSetupColumn("type");
 					ImGui::TableSetupColumn("stage");
 					ImGui::TableHeadersRow();
@@ -350,6 +353,8 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 						ImGui::TableSetColumnIndex(4);
 						ImGui::Text("%s", std::to_string(buffer.array_size).c_str());
 						ImGui::TableSetColumnIndex(5);
+						ImGui::Text("%s", buffer.bindless ? "true" : "false");
+						ImGui::TableSetColumnIndex(6);
 						switch (buffer.type)
 						{
 							case ReflectionData::Buffer::Type::None:
@@ -364,7 +369,7 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 							default:
 								break;
 						}
-						ImGui::TableSetColumnIndex(6);
+						ImGui::TableSetColumnIndex(7);
 						ImGui::Text("%s", shader_stage_to_string(buffer.stage).c_str());
 					}
 					ImGui::EndTable();
@@ -374,12 +379,13 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 			if (!shader_data.images.empty())
 			{
 				ImGui::Text("Image");
-				if (ImGui::BeginTable("shader image", 6, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
+				if (ImGui::BeginTable("shader image", 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
 				{
 					ImGui::TableSetupColumn("name");
 					ImGui::TableSetupColumn("set");
 					ImGui::TableSetupColumn("binding");
 					ImGui::TableSetupColumn("array_size");
+					ImGui::TableSetupColumn("bindless");
 					ImGui::TableSetupColumn("type");
 					ImGui::TableSetupColumn("stage");
 					ImGui::TableHeadersRow();
@@ -396,6 +402,8 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 						ImGui::TableSetColumnIndex(3);
 						ImGui::Text("%s", std::to_string(image.array_size).c_str());
 						ImGui::TableSetColumnIndex(4);
+						ImGui::Text("%s", image.bindless ? "true" : "false");
+						ImGui::TableSetColumnIndex(5);
 						switch (image.type)
 						{
 							case ReflectionData::Image::Type::None:
@@ -416,7 +424,7 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 							default:
 								break;
 						}
-						ImGui::TableSetColumnIndex(5);
+						ImGui::TableSetColumnIndex(6);
 						ImGui::Text("%s", shader_stage_to_string(image.stage).c_str());
 					}
 					ImGui::EndTable();
