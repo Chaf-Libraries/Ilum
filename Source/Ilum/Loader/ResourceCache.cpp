@@ -24,6 +24,8 @@ ImageReference ResourceCache::loadImage(const std::string &filepath)
 	m_image_cache.emplace_back(Image());
 	ImageLoader::loadImageFromFile(m_image_cache.back(), filepath);
 
+	LOG_INFO("Import Image: {}", filepath);
+
 	return m_image_cache.back();
 }
 
@@ -32,6 +34,8 @@ void ResourceCache::loadImageAsync(const std::string &filepath)
 	ThreadPool::instance()->addTask([this, filepath](size_t) {
 		if (m_image_map.find(filepath) == m_image_map.end())
 		{
+			LOG_INFO("Import Image: {} using thread {}", filepath, ThreadPool::instance()->threadIndex());
+
 			Image image;
 			ImageLoader::loadImageFromFile(image, filepath);
 
@@ -64,6 +68,19 @@ const std::unordered_map<std::string, size_t> &ResourceCache::getImages() const
 	return m_image_map;
 }
 
+const std::vector<ImageReference> ResourceCache::getImageReferences() const
+{
+	std::vector<ImageReference> references;
+	references.reserve(m_image_cache.size());
+
+	for (auto& image : m_image_cache)
+	{
+		references.push_back(image);
+	}
+
+	return references;
+}
+
 ModelReference ResourceCache::loadModel(const std::string &filepath)
 {
 	if (m_model_map.find(filepath) != m_model_map.end())
@@ -75,6 +92,8 @@ ModelReference ResourceCache::loadModel(const std::string &filepath)
 	m_model_cache.emplace_back(Model());
 	ModelLoader::load(m_model_cache.back(), filepath);
 
+	LOG_INFO("Import Model: {}", filepath);
+
 	return m_model_cache.back();
 }
 
@@ -83,6 +102,8 @@ void ResourceCache::loadModelAsync(const std::string &filepath)
 	ThreadPool::instance()->addTask([this, filepath](size_t) {
 		if (m_model_map.find(filepath) == m_model_map.end())
 		{
+			LOG_INFO("Import Image: {} using thread #{}", filepath, ThreadPool::instance()->threadIndex());
+
 			Model model;
 			ModelLoader::load(model, filepath);
 
@@ -131,6 +152,7 @@ void ResourceCache::flush()
 		}
 		m_image_cache.erase(m_image_cache.begin() + index);
 		m_image_map.erase(name);
+		LOG_INFO("Release Image: {}", name);
 	}
 	m_deprecated_image.clear();
 
@@ -148,6 +170,7 @@ void ResourceCache::flush()
 		}
 		m_model_cache.erase(m_model_cache.begin() + m_model_cache.size() - 1);
 		m_model_map.erase(name);
+		LOG_INFO("Release Model: {}", name);
 	}
 	m_deprecated_model.clear();
 }

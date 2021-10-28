@@ -24,6 +24,8 @@ class ResourceCache
 
 	const std::unordered_map<std::string, size_t> &getImages() const;
 
+	const std::vector<ImageReference> getImageReferences() const;
+
 	ModelReference loadModel(const std::string &filepath);
 
 	void loadModelAsync(const std::string &filepath);
