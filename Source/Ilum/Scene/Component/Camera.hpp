@@ -2,6 +2,9 @@
 
 #include "Eventing/Event.hpp"
 
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+
 #undef far
 #undef near
 
@@ -22,11 +25,8 @@ struct Camera
 	float far    = 100.f;
 	float near   = 0.01f;
 
-	Event<> Event_Detach;
+	glm::mat4 view_projection;
 
-	~Camera()
-	{
-		Event_Detach.invoke();
-	}
+	// TODO: Frustum
 };
 }        // namespace Ilum::Cmpt

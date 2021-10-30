@@ -13,7 +13,7 @@ class AssetBrowser : public Panel
 
 	~AssetBrowser() = default;
 
-	virtual void draw() override;
+	virtual void draw(float delta_time) override;
 
   private:
 	Image m_model_icon;

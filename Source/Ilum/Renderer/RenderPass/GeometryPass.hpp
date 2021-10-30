@@ -19,6 +19,7 @@ class GeometryPass : public TRenderPass<GeometryPass>
 
   private:
 	std::string m_output;
+	Buffer      m_uniform_buffer;
 };
 
 // TODO: Bindless Geometry Pass

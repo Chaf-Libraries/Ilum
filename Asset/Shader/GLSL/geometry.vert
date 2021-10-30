@@ -13,9 +13,14 @@ layout(location = 3) out vec3 outTangent;
 layout(location = 4) out vec3 outBiTangent;
 layout(location = 5) out vec4 outScreenPos;
 
+layout (set = 0, binding = 0) uniform MainCamera
+{
+    mat4 view_projection;
+}main_camera;
+
+
 void main() {
-    // flip Y
-    gl_Position = vec4(inPos.xy, (inPos.z+1.0)/10, 1.0);
+    gl_Position = main_camera.view_projection*vec4(inPos, 1.0);
     outScreenPos = gl_Position;
 
     outPos = vec3(inPos);

@@ -21,7 +21,7 @@ class RenderGraphViewer : public Panel
 
 	void clear();
 
-	virtual void draw() override;
+	virtual void draw(float delta_time) override;
 
   private:
 	struct PassNode;

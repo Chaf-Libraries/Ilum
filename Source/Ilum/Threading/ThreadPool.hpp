@@ -37,7 +37,7 @@ class ThreadPool : public TSubsystem<ThreadPool>
 
 	const std::vector<std::thread> &getThreads() const;
 
-	uint32_t threadIndex(const std::thread::id &thread_id);
+	uint32_t threadIndex(const std::thread::id &thread_id = std::this_thread::get_id());
 
 	// Clear queue
 	void clear();
@@ -49,6 +49,8 @@ class ThreadPool : public TSubsystem<ThreadPool>
 
 	template <typename F>
 	auto addTask(F &&f) -> std::future<decltype(f(0))>;
+
+	void waitAll();
 
   private:
 	size_t m_thread_count           = 0;

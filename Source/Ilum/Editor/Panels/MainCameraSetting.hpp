@@ -4,12 +4,12 @@
 
 namespace Ilum::panel
 {
-class Inspector : public Panel
+class MainCameraSetting : public Panel
 {
   public:
-	Inspector();
+	MainCameraSetting();
 
-	virtual ~Inspector() = default;
+	~MainCameraSetting() = default;
 
 	virtual void draw(float delta_time) override;
 };

@@ -14,6 +14,10 @@
 
 #include "Loader/ResourceCache.hpp"
 
+#include "Scene/Component/Camera.hpp"
+
+#include <glm/glm.hpp>
+
 namespace Ilum
 {
 class Renderer : public TSubsystem<Renderer>
@@ -95,6 +99,27 @@ class Renderer : public TSubsystem<Renderer>
 	bool m_imgui = true;
 
 	bool m_debug = true;
+
+  public:
+	struct
+	{
+		cmpt::Camera camera;
+
+		glm::vec3 position = {0.f, 0.f, 0.f};
+
+		float pitch = 0.f;
+		float yaw   = 0.f;
+
+		glm::vec3 front = {1.f, 0.f, 0.f};
+		glm::vec3 right = {0.f, 0.f, 1.f};
+		glm::vec3 up    = {0.f, 1.f, 0.f};
+
+		glm::mat4 view       = glm::mat4(1.f);
+		glm::mat4 projection = glm::perspective(glm::radians(camera.fov), camera.aspect, camera.near, camera.far);
+
+		float speed       = 10.f;
+		float sensitivity = 0.5f;
+	} Main_Camera;
 
   public:
 	Event<> Event_RenderGraph_Rebuild;

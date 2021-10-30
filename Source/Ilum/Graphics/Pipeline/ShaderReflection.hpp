@@ -26,11 +26,12 @@ struct ReflectionData
 
 	struct InputAttachment
 	{
-		std::string                 name                   = "";
-		uint32_t                    array_size             = 0;
-		uint32_t                    input_attachment_index = 0;
-		uint32_t                    set                    = 0;
-		uint32_t                    binding                = 0;
+		std::string           name                   = "";
+		uint32_t              array_size             = 0;
+		uint32_t              input_attachment_index = 0;
+		uint32_t              set                    = 0;
+		uint32_t              binding                = 0;
+		bool                  bindless               = false;
 		VkShaderStageFlagBits stage                  = VK_SHADER_STAGE_FRAGMENT_BIT;
 
 		size_t hash() const;
@@ -51,6 +52,7 @@ struct ReflectionData
 		uint32_t           array_size = 0;        // When array_size = 0, enable descriptor indexing
 		uint32_t           set        = 0;
 		uint32_t           binding    = 0;
+		bool               bindless   = false;
 		VkShaderStageFlags stage      = 0;
 		Type               type       = Type::None;
 
@@ -71,6 +73,7 @@ struct ReflectionData
 		uint32_t           array_size = 0;        // When array_size = 0, enable descriptor indexing
 		uint32_t           set        = 0;
 		uint32_t           binding    = 0;
+		bool               bindless   = false;
 		VkShaderStageFlags stage      = 0;
 		Type               type       = Type::None;
 

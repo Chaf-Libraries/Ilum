@@ -227,6 +227,14 @@ LogicalDevice::LogicalDevice()
 	ENABLE_DEVICE_FEATURE(multiViewport);
 	ENABLE_DEVICE_FEATURE(imageCubeArray);
 
+	// Enable descriptor indexing features
+	VkPhysicalDeviceDescriptorIndexingFeatures descriptor_indexing_features{};
+	descriptor_indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+	descriptor_indexing_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+	descriptor_indexing_features.runtimeDescriptorArray                    = VK_TRUE;
+	descriptor_indexing_features.descriptorBindingVariableDescriptorCount  = VK_TRUE;
+	descriptor_indexing_features.descriptorBindingPartiallyBound           = VK_TRUE;
+	
 	// Get support extensions
 	auto support_extensions = get_device_extension_support(GraphicsContext::instance()->getPhysicalDevice(), extensions);
 
@@ -243,6 +251,7 @@ LogicalDevice::LogicalDevice()
 	device_create_info.enabledExtensionCount   = static_cast<uint32_t>(support_extensions.size());
 	device_create_info.ppEnabledExtensionNames = support_extensions.data();
 	device_create_info.pEnabledFeatures        = &m_enabled_features;
+	device_create_info.pNext                   = &descriptor_indexing_features;
 
 	if (!VK_CHECK(vkCreateDevice(GraphicsContext::instance()->getPhysicalDevice(), &device_create_info, nullptr, &m_handle)))
 	{

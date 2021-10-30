@@ -263,7 +263,7 @@ Inspector::Inspector()
 	m_name = "Inspector";
 }
 
-void Inspector::draw()
+void Inspector::draw(float delta_time)
 {
 	ImGui::Begin("Inspector", &active);
 

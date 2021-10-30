@@ -52,6 +52,9 @@ DescriptorLayout::DescriptorLayout(const Shader &shader, const uint32_t set_inde
 	auto &buffers           = shader.getReflectionData().buffers;
 	auto &images            = shader.getReflectionData().images;
 	auto &input_attachments = shader.getReflectionData().input_attachments;
+	bool  bindless          = false;
+
+	std::vector<VkDescriptorBindingFlags> descriptor_binding_flags = {};
 
 	// Buffer descriptor
 	for (const auto &buffer : buffers)
@@ -67,8 +70,11 @@ DescriptorLayout::DescriptorLayout(const Shader &shader, const uint32_t set_inde
 		layout_binding.binding                      = buffer.binding;
 		layout_binding.descriptorType               = type;
 		layout_binding.stageFlags                   = buffer.stage;
-		layout_binding.descriptorCount              = buffer.array_size == 0 ? 1024 : buffer.array_size;
+		layout_binding.descriptorCount              = buffer.bindless ? 1024 : buffer.array_size;
 		m_bindings.push_back(layout_binding);
+
+		bindless |= buffer.bindless;
+		descriptor_binding_flags.push_back(buffer.bindless ? VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT : 0);
 	}
 
 	// Image descriptor
@@ -86,8 +92,11 @@ DescriptorLayout::DescriptorLayout(const Shader &shader, const uint32_t set_inde
 		layout_binding.binding                      = image.binding;
 		layout_binding.descriptorType               = type;
 		layout_binding.stageFlags                   = image.stage;
-		layout_binding.descriptorCount              = image.array_size == 0 ? 1024 : image.array_size;
+		layout_binding.descriptorCount              = image.bindless ? 1024 : image.array_size;
 		m_bindings.push_back(layout_binding);
+
+		bindless |= image.bindless;
+		descriptor_binding_flags.push_back(image.bindless ? VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT : 0);
 	}
 
 	// Input attachment descriptor
@@ -104,8 +113,11 @@ DescriptorLayout::DescriptorLayout(const Shader &shader, const uint32_t set_inde
 		layout_binding.binding                      = input_attachment.binding;
 		layout_binding.descriptorType               = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
 		layout_binding.stageFlags                   = input_attachment.stage;
-		layout_binding.descriptorCount              = input_attachment.array_size == 0 ? 1024 : input_attachment.array_size;
+		layout_binding.descriptorCount              = input_attachment.bindless ? 1024 : input_attachment.array_size;
 		m_bindings.push_back(layout_binding);
+
+		bindless |= input_attachment.bindless;
+		descriptor_binding_flags.push_back(input_attachment.bindless ? VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT : 0);
 	}
 
 	// Create descriptor set layout
@@ -114,8 +126,14 @@ DescriptorLayout::DescriptorLayout(const Shader &shader, const uint32_t set_inde
 	descriptor_set_layout_create_info.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	descriptor_set_layout_create_info.bindingCount = static_cast<uint32_t>(m_bindings.size());
 	descriptor_set_layout_create_info.pBindings    = m_bindings.data();
-	// TODO: push descriptors?
-	descriptor_set_layout_create_info.flags = std::find(m_binding_flags.begin(), m_binding_flags.end(), VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT) != m_binding_flags.end() ? VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT : 0;
+	descriptor_set_layout_create_info.flags        = std::find(m_binding_flags.begin(), m_binding_flags.end(), VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT) != m_binding_flags.end() ? VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT : 0;
+
+	VkDescriptorSetLayoutBindingFlagsCreateInfo descriptor_set_layout_binding_flag_create_info = {};
+	descriptor_set_layout_binding_flag_create_info.sType                                       = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+	
+	descriptor_set_layout_binding_flag_create_info.bindingCount  = static_cast<uint32_t>(descriptor_binding_flags.size());
+	descriptor_set_layout_binding_flag_create_info.pBindingFlags = descriptor_binding_flags.data();
+	descriptor_set_layout_create_info.pNext                      = bindless ? &descriptor_set_layout_binding_flag_create_info : nullptr;
 
 	vkCreateDescriptorSetLayout(GraphicsContext::instance()->getLogicalDevice(), &descriptor_set_layout_create_info, nullptr, &m_handle);
 }

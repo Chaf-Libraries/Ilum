@@ -18,6 +18,7 @@
 #include <Ilum/Renderer/Renderer.hpp>
 #include <Ilum/Renderer/RenderPass/GeometryPass.hpp>
 
+
 int main()
 {
 	Ilum::Engine engine;
@@ -49,17 +50,10 @@ int main()
 
 	Ilum::Renderer::instance()->rebuild();
 
-	int i = 0;
-	//auto t = entity.hasComponent<Ilum::cmpt::Tag>();
 	auto title = Ilum::Window::instance()->getTitle();
 	while (!Ilum::Window::instance()->shouldClose())
 	{
 		engine.onTick();
-		if (i++ == 1000)
-		{
-			Ilum::Renderer::instance()->getResourceCache().loadModelAsync("../Asset/Model/head.obj");
-
-		}
 
 		Ilum::Window::instance()->setTitle(title + " FPS: " + std::to_string(Ilum::Timer::instance()->getFPS()));
 	}

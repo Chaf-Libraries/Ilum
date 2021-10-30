@@ -4,17 +4,25 @@
 
 #include <deque>
 #include <mutex>
+#include <string>
 
 namespace Ilum
 {
 class Sink : public spdlog::sinks::base_sink<std::mutex>
 {
   public:
+	struct LogMsg
+	{
+		spdlog::level::level_enum level;
+		std::string msg;
+	};
+
+  public:
 	// Thread unsafe
-	const std::deque<std::string> &getLogs() const;
+	const std::deque<LogMsg> &getLogs() const;
 
 	// Thread safe
-	std::vector<std::string> copyLogs() const;
+	std::vector<LogMsg> copyLogs() const;
 
 	void clear();
 
@@ -23,6 +31,6 @@ class Sink : public spdlog::sinks::base_sink<std::mutex>
 	virtual void flush_() override;
 
   private:
-	std::deque<std::string> m_logs;
+	std::deque<LogMsg> m_log_msgs;
 };
 }        // namespace Ilum

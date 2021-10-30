@@ -12,6 +12,7 @@ size_t ReflectionData::InputAttachment::hash() const
 	hash_combine(seed, input_attachment_index);
 	hash_combine(seed, set);
 	hash_combine(seed, binding);
+	hash_combine(seed, bindless);
 	hash_combine(seed, stage);
 	return seed;
 }
@@ -23,6 +24,7 @@ size_t ReflectionData::Image::hash() const
 	hash_combine(seed, array_size);
 	hash_combine(seed, set);
 	hash_combine(seed, binding);
+	hash_combine(seed, bindless);
 	hash_combine(seed, stage);
 	hash_combine(seed, type);
 	return seed;
@@ -36,6 +38,7 @@ size_t ReflectionData::Buffer::hash() const
 	hash_combine(seed, array_size);
 	hash_combine(seed, set);
 	hash_combine(seed, binding);
+	hash_combine(seed, bindless);
 	hash_combine(seed, stage);
 	return seed;
 }
@@ -163,6 +166,7 @@ inline void read_resource_array_size(const spirv_cross::Compiler &compiler, cons
 {
 	const auto &spirv_type = compiler.get_type_from_variable(resource.id);
 
+	descriptor.bindless = spirv_type.array_size_literal.size() ? spirv_type.array_size_literal[0] : false;
 	descriptor.array_size = spirv_type.array.size() ? spirv_type.array[0] : 1;
 }
 
@@ -170,6 +174,7 @@ inline void read_resource_array_size(const spirv_cross::Compiler &compiler, cons
 {
 	const auto &spirv_type = compiler.get_type_from_variable(resource.id);
 
+	descriptor.bindless   = spirv_type.array_size_literal.size() ? spirv_type.array_size_literal[0] : false;
 	descriptor.array_size = spirv_type.array.size() ? spirv_type.array[0] : 1;
 }
 
@@ -177,6 +182,7 @@ inline void read_resource_array_size(const spirv_cross::Compiler &compiler, cons
 {
 	const auto &spirv_type = compiler.get_type_from_variable(resource.id);
 
+	descriptor.bindless = spirv_type.array_size_literal.size() ? spirv_type.array_size_literal[0] : false;
 	descriptor.array_size = spirv_type.array.size() ? spirv_type.array[0] : 1;
 }
 

@@ -86,14 +86,6 @@ inline uint32_t score_physical_device(VkPhysicalDevice physical_device)
 
 	ss << "API Version: " << supportedVersion[0] << "." << supportedVersion[1] << "." << supportedVersion[2] << '\n';
 	
-	ss <<"Extensions: \n";
-	for (auto& extension : extension_properties)
-	{
-		ss<<"           "<<extension.extensionName<<"\n";
-	}
-
-	VK_INFO("{}", ss.str());
-
 	// Score discrete gpu
 	if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 	{

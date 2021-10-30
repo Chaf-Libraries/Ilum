@@ -136,30 +136,6 @@ void GraphicsContext::onTick(float delta_time)
 		return;
 	}
 
-	// Erase unused command pools
-	if (m_stopwatch.elapsedSecond() > 10.0)
-	{
-		for (auto &subpool = m_command_pools.begin(); subpool != m_command_pools.end();)
-		{
-			for (auto &it = subpool->second.begin(); it != subpool->second.end();)
-			{
-				if ((*it).second.use_count() <= 1)
-				{
-					it = subpool->second.erase(it);
-					continue;
-				}
-				it++;
-			}
-
-			if (subpool->second.empty())
-			{
-				subpool = m_command_pools.erase(subpool);
-				continue;
-			}
-			subpool++;
-		}
-	}
-
 	m_frame_count++;
 }
 
@@ -170,6 +146,8 @@ void GraphicsContext::onPostTick()
 
 void GraphicsContext::onShutdown()
 {
+	ThreadPool::instance()->waitAll();
+
 	for (uint32_t i = 0; i < m_flight_fences.size(); i++)
 	{
 		vkDestroyFence(*m_logical_device, m_flight_fences[i], nullptr);
@@ -177,8 +155,8 @@ void GraphicsContext::onShutdown()
 		vkDestroySemaphore(*m_logical_device, m_present_complete[i], nullptr);
 	}
 
-	m_command_buffers.clear();
 	m_command_pools.clear();
+	m_command_buffers.clear();
 
 	vkDestroyPipelineCache(*m_logical_device, m_pipeline_cache, nullptr);
 }

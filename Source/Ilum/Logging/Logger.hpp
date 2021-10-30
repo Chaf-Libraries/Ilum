@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Sink.hpp"
+
 #define SPDLOG_WCHAR_FILENAMES
 
 #include <spdlog/spdlog.h>
@@ -16,10 +18,10 @@ class Logger
 	~Logger();
 
 	// Thread unsafe
-	const std::deque<std::string> getLogs(const std::string &name);
+	const std::deque<Sink::LogMsg> getLogs(const std::string &name);
 
 	// Thread safe
-	const std::vector<std::string> copyLogs(const std::string &name);
+	const std::vector<Sink::LogMsg> copyLogs(const std::string &name);
 
 	void clear(const std::string &name);
 
@@ -50,7 +52,7 @@ class Logger
 		if (!x)
 		{
 			auto &logger = m_loggers.at(name);
-			logger->log(spdlog::level::err, fmt, args...);
+			logger->log(spdlog::level::debug, fmt, args...);
 #ifdef _DEBUG
 			__debugbreak();
 #endif        // _DEBUG
@@ -64,12 +66,12 @@ class Logger
 };
 }        // namespace Ilum
 
-#define LOG_INFO(...) Ilum::Logger::getInstance().log("logger", spdlog::level::info, __VA_ARGS__);
-#define LOG_WARN(...) Ilum::Logger::getInstance().log("logger", spdlog::level::warn, __VA_ARGS__);
-#define LOG_ERROR(...) Ilum::Logger::getInstance().log("logger", spdlog::level::err, __VA_ARGS__);
-#define LOG_TRACE(...) Ilum::Logger::getInstance().log("logger", spdlog::level::trace, __VA_ARGS__);
-#define LOG_CRITICAL(...) Ilum::Logger::getInstance().log("logger", spdlog::level::critical, __VA_ARGS__);
-#define LOG_DEBUG(x, ...) Ilum::Logger::getInstance().debug("logger", x, __VA_ARGS__);
+#define LOG_INFO(...) Ilum::Logger::getInstance().log("engine", spdlog::level::info, __VA_ARGS__);
+#define LOG_WARN(...) Ilum::Logger::getInstance().log("engine", spdlog::level::warn, __VA_ARGS__);
+#define LOG_ERROR(...) Ilum::Logger::getInstance().log("engine", spdlog::level::err, __VA_ARGS__);
+#define LOG_TRACE(...) Ilum::Logger::getInstance().log("engine", spdlog::level::trace, __VA_ARGS__);
+#define LOG_CRITICAL(...) Ilum::Logger::getInstance().log("engine", spdlog::level::critical, __VA_ARGS__);
+#define LOG_DEBUG(x, ...) Ilum::Logger::getInstance().debug("engine", x, __VA_ARGS__);
 
 #define VK_INFO(...) Ilum::Logger::getInstance().log("vulkan", spdlog::level::info, __VA_ARGS__);
 #define VK_WARN(...) Ilum::Logger::getInstance().log("vulkan", spdlog::level::warn, __VA_ARGS__);

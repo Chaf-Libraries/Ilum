@@ -192,6 +192,11 @@ void Window::setIcon(const std::string &filepath)
 	}
 }
 
+void Window::setCursor(bool enable)
+{
+	SDL_ShowCursor(enable);
+}
+
 void Window::minimize()
 {
 	SDL_MinimizeWindow(m_window);

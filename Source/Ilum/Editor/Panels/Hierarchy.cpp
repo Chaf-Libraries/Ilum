@@ -203,7 +203,7 @@ Hierarchy::Hierarchy()
 	m_name = "Hierarchy";
 }
 
-void Hierarchy::draw()
+void Hierarchy::draw(float delta_time)
 {
 	ImGui::Begin("Scene Hierarchy", &active);
 

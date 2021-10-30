@@ -16,33 +16,26 @@ class Context;
 class ISubsystem
 {
   public:
-	ISubsystem(Context *context = nullptr) :
-	    m_context(context)
-	{}
+	ISubsystem(Context *context = nullptr);
 
 	virtual ~ISubsystem() = default;
 
 	virtual std::type_index type() const = 0;
 
-	virtual bool onInitialize()
-	{
-		return true;
-	}
+	virtual bool onInitialize();
 
-	virtual void onPreTick()
-	{}
+	virtual void onPreTick();
 
-	virtual void onTick(float delta_time)
-	{}
+	virtual void onTick(float delta_time);
 
-	virtual void onPostTick()
-	{}
+	virtual void onPostTick();
 
-	virtual void onShutdown()
-	{}
+	virtual void onShutdown();
 
   protected:
 	Context *m_context = nullptr;
+
+	static bool s_enable;
 };
 
 template <typename T>
