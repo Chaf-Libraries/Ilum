@@ -32,18 +32,6 @@ int main()
 	//entity.addComponent<Ilum::cmpt::MeshRenderer>().model = "../Asset/Model/head.obj";
 	auto view   = Ilum::Scene::instance()->getRegistry().view<Ilum::cmpt::Tag>();
 
-
-	Ilum::Renderer::instance()->getResourceCache().loadImageAsync("../Asset/Texture/bricks2.jpg");
-	Ilum::Renderer::instance()->getResourceCache().loadImageAsync("../Asset/Texture/bricks2_disp.jpg");
-	Ilum::Renderer::instance()->getResourceCache().loadImageAsync("../Asset/Texture/bricks2_normal.jpg");
-	Ilum::Renderer::instance()->getResourceCache().loadImageAsync("../Asset/Texture/brickwall.jpg");
-	Ilum::Renderer::instance()->getResourceCache().loadImageAsync("../Asset/Texture/brickwall_normal.jpg");
-	Ilum::Renderer::instance()->getResourceCache().loadImageAsync("../Asset/Texture/cg_displacementmap.jpg");
-	Ilum::Renderer::instance()->getResourceCache().loadImageAsync("../Asset/Texture/cg_displacementmap__.jpg");
-	Ilum::Renderer::instance()->getResourceCache().loadImageAsync("../Asset/Texture/cg_normalmap.jpg");
-	Ilum::Renderer::instance()->getResourceCache().loadImageAsync("../Asset/Texture/cg_normalmap__.jpg");
-	Ilum::Renderer::instance()->getResourceCache().loadImageAsync("../Asset/Texture/face.png");
-
 	Ilum::Renderer::instance()->buildRenderGraph = [](Ilum::RenderGraphBuilder &builder) {
 		builder.addRenderPass("GeometryPass", std::make_unique<Ilum::pass::GeometryPass>("gbuffer - normal")).setView("gbuffer - normal").setOutput("gbuffer - normal");
 	};

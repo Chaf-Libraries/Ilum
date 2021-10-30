@@ -135,6 +135,11 @@ void DescriptorBinding::resolve(const ResolveInfo &resolve_info)
 	{
 		for (const auto &image_to_resolve : image_to_resolves)
 		{
+			if (resolve_info.getImages().find(image_to_resolve.name) == resolve_info.getImages().end())
+			{
+				continue;
+			}
+
 			auto   images = resolve_info.getImages().at(image_to_resolve.name);
 			size_t index  = 0;
 			if (image_to_resolve.sampler_handle->getSampler())
