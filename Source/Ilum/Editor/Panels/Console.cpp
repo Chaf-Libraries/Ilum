@@ -22,7 +22,7 @@ Console::Console()
 	ImageLoader::loadImageFromFile(m_icons[5], std::string(PROJECT_SOURCE_DIR) + "Asset/Texture/Icon/critical.png");
 }
 
-void Console::draw()
+void Console::draw(float delta_time)
 {
 	ImGui::Begin("Console", &active);
 

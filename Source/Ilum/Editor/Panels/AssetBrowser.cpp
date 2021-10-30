@@ -450,7 +450,7 @@ AssetBrowser::AssetBrowser()
 	ImageLoader::loadImageFromFile(m_shader_icon, std::string(PROJECT_SOURCE_DIR) + "Asset/Texture/Icon/shader.png");
 }
 
-void AssetBrowser::draw()
+void AssetBrowser::draw(float delta_time)
 {
 	ImGui::Begin("Asset Browser", &active);
 

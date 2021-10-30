@@ -2,6 +2,8 @@
 
 namespace Ilum
 {
+bool ISubsystem::s_enable = false;
+
 ISubsystem::ISubsystem(Context *context) :
     m_context(context)
 {

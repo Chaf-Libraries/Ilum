@@ -21,10 +21,10 @@ Engine::Engine()
 	m_context = createScope<Context>();
 
 	m_context->addSubsystem<Timer>();
-	m_context->addSubsystem<ThreadPool>();
 	m_context->addSubsystem<Window>();
 	m_context->addSubsystem<Input>();
 	m_context->addSubsystem<GraphicsContext>();
+	m_context->addSubsystem<ThreadPool>();
 	m_context->addSubsystem<Scene>();
 	m_context->addSubsystem<Renderer>();
 	m_context->addSubsystem<Editor>();

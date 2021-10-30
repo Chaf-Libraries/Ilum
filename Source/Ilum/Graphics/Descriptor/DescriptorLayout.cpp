@@ -54,6 +54,8 @@ DescriptorLayout::DescriptorLayout(const Shader &shader, const uint32_t set_inde
 	auto &input_attachments = shader.getReflectionData().input_attachments;
 	bool  bindless          = false;
 
+	std::vector<VkDescriptorBindingFlags> descriptor_binding_flags = {};
+
 	// Buffer descriptor
 	for (const auto &buffer : buffers)
 	{
@@ -72,6 +74,7 @@ DescriptorLayout::DescriptorLayout(const Shader &shader, const uint32_t set_inde
 		m_bindings.push_back(layout_binding);
 
 		bindless |= buffer.bindless;
+		descriptor_binding_flags.push_back(buffer.bindless ? VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT : 0);
 	}
 
 	// Image descriptor
@@ -93,6 +96,7 @@ DescriptorLayout::DescriptorLayout(const Shader &shader, const uint32_t set_inde
 		m_bindings.push_back(layout_binding);
 
 		bindless |= image.bindless;
+		descriptor_binding_flags.push_back(image.bindless ? VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT : 0);
 	}
 
 	// Input attachment descriptor
@@ -113,6 +117,7 @@ DescriptorLayout::DescriptorLayout(const Shader &shader, const uint32_t set_inde
 		m_bindings.push_back(layout_binding);
 
 		bindless |= input_attachment.bindless;
+		descriptor_binding_flags.push_back(input_attachment.bindless ? VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT : 0);
 	}
 
 	// Create descriptor set layout
@@ -125,8 +130,7 @@ DescriptorLayout::DescriptorLayout(const Shader &shader, const uint32_t set_inde
 
 	VkDescriptorSetLayoutBindingFlagsCreateInfo descriptor_set_layout_binding_flag_create_info = {};
 	descriptor_set_layout_binding_flag_create_info.sType                                       = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
-	std::vector<VkDescriptorBindingFlags> descriptor_binding_flags                             = {
-        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT};
+	
 	descriptor_set_layout_binding_flag_create_info.bindingCount  = static_cast<uint32_t>(descriptor_binding_flags.size());
 	descriptor_set_layout_binding_flag_create_info.pBindingFlags = descriptor_binding_flags.data();
 	descriptor_set_layout_create_info.pNext                      = bindless ? &descriptor_set_layout_binding_flag_create_info : nullptr;

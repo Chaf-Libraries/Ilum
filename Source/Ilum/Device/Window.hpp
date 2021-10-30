@@ -41,6 +41,8 @@ class Window : public TSubsystem<Window>
 
 	void setIcon(const std::string &filepath);
 
+	void setCursor(bool enable);
+
 	void minimize();
 
 	void maximize();

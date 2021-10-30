@@ -150,7 +150,7 @@ void RenderGraphViewer::clear()
 	m_attachments.clear();
 }
 
-void RenderGraphViewer::draw()
+void RenderGraphViewer::draw(float delta_time)
 {
 	ImGui::Begin("Render Graph Viewer", &active);
 	ed::Begin("Render Graph Viewer", ImVec2(0.0, 0.0f));

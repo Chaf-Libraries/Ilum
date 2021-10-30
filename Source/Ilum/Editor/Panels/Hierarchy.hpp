@@ -11,6 +11,6 @@ namespace Ilum::panel
 
 		virtual ~Hierarchy() = default;
 
-		virtual void draw() override;
+		virtual void draw(float delta_time) override;
 	};
 }

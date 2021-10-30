@@ -11,7 +11,7 @@ class Panel
 
 	virtual ~Panel() = default;
 
-	virtual void draw() = 0;
+	virtual void draw(float delta_time) = 0;
 
 	const std::string &name() const
 	{

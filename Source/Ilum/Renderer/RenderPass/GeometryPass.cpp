@@ -9,11 +9,14 @@
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
+#include <glm/gtc/type_ptr.hpp>
+
 namespace Ilum::pass
 {
 GeometryPass::GeometryPass(const std::string &output) :
     m_output(output)
 {
+	m_uniform_buffer = Buffer(sizeof(glm::mat4), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 }
 
 void GeometryPass::setupPipeline(PipelineState &state)
@@ -37,7 +40,8 @@ void GeometryPass::setupPipeline(PipelineState &state)
 
 	state.color_blend_attachment_states.resize(2);
 
-	state.descriptor_bindings.bind(0, 0, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 0, "mainCamera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	state.descriptor_bindings.bind(0, 1, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
 	state.declareAttachment("gbuffer - normal", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("gbuffer - position", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
@@ -51,15 +55,20 @@ void GeometryPass::setupPipeline(PipelineState &state)
 void GeometryPass::resolveResources(ResolveState &resolve)
 {
 	resolve.resolve("textureArray", Renderer::instance()->getResourceCache().getImageReferences());
+	resolve.resolve("mainCamera", m_uniform_buffer);
 }
 
 void GeometryPass::render(RenderPassState &state)
 {
+	// Update camera buffer
+	auto *data = m_uniform_buffer.map();
+	std::memcpy(data, glm::value_ptr(Renderer::instance()->Main_Camera.camera.view_projection), sizeof(float) * 16);
+
 	auto &cmd_buffer = state.command_buffer;
 
 	auto &extent = Renderer::instance()->getRenderTargetExtent();
 
-	VkViewport viewport = {0, 0, static_cast<float>(extent.width), static_cast<float>(extent.height), 0, 1};
+	VkViewport viewport = {0, static_cast<float>(extent.height), static_cast<float>(extent.width), -static_cast<float>(extent.height), 0, 1};
 	VkRect2D   scissor  = {0, 0, extent.width, extent.height};
 
 	vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);

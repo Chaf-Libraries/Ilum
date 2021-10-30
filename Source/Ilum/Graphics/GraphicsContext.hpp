@@ -23,7 +23,7 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
   public:
 	GraphicsContext(Context *context);
 
-	~GraphicsContext();
+	~GraphicsContext() = default;
 
 	const Instance &getInstance() const;
 

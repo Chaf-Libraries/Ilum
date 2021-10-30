@@ -15,7 +15,7 @@ class Console : public Panel
 
 	~Console() = default;
 
-	virtual void draw() override;
+	virtual void draw(float delta_time) override;
 
   private:
 	ImGuiTextFilter m_filter;
