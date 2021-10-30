@@ -84,6 +84,11 @@ const RenderGraph *Renderer::getRenderGraph() const
 	return m_render_graph.get();
 }
 
+RenderGraph *Renderer::getRenderGraph()
+{
+	return m_render_graph.get();
+}
+
 ResourceCache &Renderer::getResourceCache()
 {
 	return *m_resource_cache;

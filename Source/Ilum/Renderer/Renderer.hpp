@@ -51,6 +51,8 @@ class Renderer : public TSubsystem<Renderer>
 
 	const RenderGraph *getRenderGraph() const;
 
+	RenderGraph *getRenderGraph();
+
 	ResourceCache &getResourceCache();
 
 	void resetBuilder();
