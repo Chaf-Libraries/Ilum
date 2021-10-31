@@ -58,6 +58,8 @@ class RenderGraph
 
 	const std::vector<RenderGraphNode> &getNodes() const;
 
+	std::vector<RenderGraphNode> &getNodes();
+
 	const RenderGraphNode &getNode(const std::string &name) const;
 
 	RenderGraphNode &getNode(const std::string &name);

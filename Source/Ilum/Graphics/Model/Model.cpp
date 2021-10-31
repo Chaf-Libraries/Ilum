@@ -1,6 +1,9 @@
 #include "Model.hpp"
 
 #include "Graphics/Command/CommandBuffer.hpp"
+#include "Graphics/GraphicsContext.hpp"
+#include "Graphics/Synchronization/QueueSystem.hpp"
+#include "Graphics/Synchronization/Queue.hpp"
 
 #include "Threading/ThreadPool.hpp"
 
@@ -76,7 +79,8 @@ void Model::createBuffer()
 		command_buffer.begin();
 		command_buffer.copyBuffer(BufferInfo{staging_buffer}, BufferInfo{m_vertex_buffer}, sizeof(Vertex) * vertices.size());
 		command_buffer.end();
-		command_buffer.submitIdle(ThreadPool::instance()->threadIndex(std::this_thread::get_id()));
+		GraphicsContext::instance()->getQueueSystem().acquire(QueueUsage::Transfer)->submitIdle(command_buffer);
+		//command_buffer.submitIdle(ThreadPool::instance()->threadIndex(std::this_thread::get_id()));
 	}
 
 	// Staging index buffer
@@ -89,7 +93,8 @@ void Model::createBuffer()
 		command_buffer.begin();
 		command_buffer.copyBuffer(BufferInfo{staging_buffer}, BufferInfo{m_index_buffer}, sizeof(uint32_t) * indices.size());
 		command_buffer.end();
-		command_buffer.submitIdle(ThreadPool::instance()->threadIndex(std::this_thread::get_id()));
+		GraphicsContext::instance()->getQueueSystem().acquire(QueueUsage::Transfer)->submitIdle(command_buffer);
+		//command_buffer.submitIdle(ThreadPool::instance()->threadIndex(std::this_thread::get_id()));
 	}
 }
 }        // namespace Ilum

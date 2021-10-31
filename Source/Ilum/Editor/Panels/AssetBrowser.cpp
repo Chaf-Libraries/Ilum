@@ -1,6 +1,7 @@
 #include "AssetBrowser.hpp"
 
 #include "Renderer/Renderer.hpp"
+#include "Renderer/RenderGraph/RenderGraph.hpp"
 
 #include "ImGui/ImGuiContext.hpp"
 

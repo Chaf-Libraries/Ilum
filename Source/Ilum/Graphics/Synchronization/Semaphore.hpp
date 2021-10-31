@@ -7,14 +7,6 @@ namespace Ilum
 class Semaphore
 {
   public:
-	enum class State
-	{
-		Idle,
-		Submitted,
-		Signaled
-	};
-
-  public:
 	Semaphore(bool timeline = false);
 
 	~Semaphore();
@@ -28,8 +20,6 @@ class Semaphore
 	// Only when is timeline
 	uint64_t count() const;
 
-	State getState() const;
-
 	const VkSemaphore &getSemaphore() const;
 
 	operator const VkSemaphore &() const;
@@ -37,6 +27,5 @@ class Semaphore
   private:
 	VkSemaphore m_handle   = VK_NULL_HANDLE;
 	bool        m_timeline = false;
-	State       m_state    = State::Idle;
 };
 }        // namespace Ilum

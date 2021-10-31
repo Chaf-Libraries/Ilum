@@ -52,7 +52,19 @@ bool Renderer::onInitialize()
 
 void Renderer::onPreTick()
 {
+	// Flush resource cache
 	m_resource_cache->flush();
+
+	// Check out images update
+	if (m_texture_count != m_resource_cache->getImages().size())
+	{
+		m_texture_count = static_cast<uint32_t>(m_resource_cache->getImages().size());
+		for (auto& node : m_render_graph->getNodes())
+		{
+			// Update bindless texture
+			node.descriptors.setOption(ResolveOption::Once);
+		}
+	}
 
 	if (m_update)
 	{
@@ -80,6 +92,11 @@ void Renderer::onShutdown()
 }
 
 const RenderGraph *Renderer::getRenderGraph() const
+{
+	return m_render_graph.get();
+}
+
+RenderGraph *Renderer::getRenderGraph()
 {
 	return m_render_graph.get();
 }

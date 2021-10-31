@@ -66,6 +66,11 @@ const std::vector<RenderGraphNode> &RenderGraph::getNodes() const
 	return m_nodes;
 }
 
+std::vector<RenderGraphNode> &RenderGraph::getNodes()
+{
+	return m_nodes;
+}
+
 const RenderGraphNode &RenderGraph::getNode(const std::string &name) const
 {
 	auto iter = std::find_if(m_nodes.begin(), m_nodes.end(), [&name](const RenderGraphNode &node) { return node.name == name; });

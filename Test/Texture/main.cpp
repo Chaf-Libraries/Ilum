@@ -15,6 +15,8 @@
 
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Pipeline/PipelineState.hpp"
+#include "Graphics/Synchronization/Queue.hpp"
+#include "Graphics/Synchronization/QueueSystem.hpp"
 
 #include "Loader/ImageLoader/ImageLoader.hpp"
 
@@ -37,10 +39,11 @@ class TexturePass : public TRenderPass<TexturePass>
 			auto * data = staging_buffer.map();
 			std::memcpy(data, vertices.data(), sizeof(Vertex) * vertices.size());
 			staging_buffer.unmap();
-			CommandBuffer command_buffer;
+			CommandBuffer command_buffer(QueueUsage::Transfer);
 			command_buffer.begin();
 			command_buffer.copyBuffer(BufferInfo{staging_buffer}, BufferInfo{vertex_buffer}, sizeof(Vertex) * vertices.size());
 			command_buffer.end();
+			/*GraphicsContext::instance()->getQueueSystem().acquire(QueueUsage::Transfer)->submitIdle(command_buffer);*/
 			command_buffer.submitIdle();
 		}
 
@@ -49,10 +52,11 @@ class TexturePass : public TRenderPass<TexturePass>
 			auto * data = staging_buffer.map();
 			std::memcpy(data, indices.data(), sizeof(uint16_t) * indices.size());
 			staging_buffer.unmap();
-			CommandBuffer command_buffer;
+			CommandBuffer command_buffer(QueueUsage::Transfer);
 			command_buffer.begin();
 			command_buffer.copyBuffer(BufferInfo{staging_buffer}, BufferInfo{index_buffer}, sizeof(uint16_t) * indices.size());
 			command_buffer.end();
+			//GraphicsContext::instance()->getQueueSystem().acquire(QueueUsage::Transfer)->submitIdle(command_buffer);
 			command_buffer.submitIdle();
 		}
 	}

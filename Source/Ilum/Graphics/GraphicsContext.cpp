@@ -15,6 +15,7 @@
 #include "Graphics/Command/CommandPool.hpp"
 #include "Graphics/Descriptor/DescriptorCache.hpp"
 #include "Graphics/Pipeline/ShaderCache.hpp"
+#include "Graphics/Synchronization/Queue.hpp"
 
 #include "ImGui/ImGuiContext.hpp"
 
@@ -29,7 +30,8 @@ GraphicsContext::GraphicsContext(Context *context) :
     m_surface(createScope<Surface>()),
     m_logical_device(createScope<LogicalDevice>()),
     m_descriptor_cache(createScope<DescriptorCache>()),
-    m_shader_cache(createScope<ShaderCache>())
+    m_shader_cache(createScope<ShaderCache>()),
+    m_queue_system(createScope<QueueSystem>())
 {
 	// Create pipeline cache
 	VkPipelineCacheCreateInfo pipeline_cache_create_info = {};
@@ -72,29 +74,29 @@ ShaderCache &GraphicsContext::getShaderCache()
 	return *m_shader_cache;
 }
 
+QueueSystem &GraphicsContext::getQueueSystem()
+{
+	return *m_queue_system;
+}
+
 const VkPipelineCache &GraphicsContext::getPipelineCache() const
 {
 	return m_pipeline_cache;
 }
 
-const ref<CommandPool> &GraphicsContext::getCommandPool(VkQueueFlagBits queue_type, const std::thread::id &thread_id)
+const ref<CommandPool> &GraphicsContext::getCommandPool(QueueUsage usage, const std::thread::id &thread_id)
 {
-	auto select_type = queue_type & VK_QUEUE_GRAPHICS_BIT ? VK_QUEUE_GRAPHICS_BIT :
-                                                            (queue_type & VK_QUEUE_COMPUTE_BIT ? VK_QUEUE_COMPUTE_BIT :
-                                                                                                 (queue_type & VK_QUEUE_TRANSFER_BIT ? VK_QUEUE_TRANSFER_BIT :
-                                                                                                                                       VK_QUEUE_GRAPHICS_BIT));
-
 	if (m_command_pools.find(thread_id) == m_command_pools.end())
 	{
 		m_command_pools[thread_id] = {};
 	}
 
-	if (m_command_pools[thread_id].find(select_type) == m_command_pools[thread_id].end())
+	if (m_command_pools[thread_id].find(usage) == m_command_pools[thread_id].end())
 	{
-		return m_command_pools[thread_id].emplace(select_type, createRef<CommandPool>(select_type, thread_id)).first->second;
+		return m_command_pools[thread_id].emplace(usage, createRef<CommandPool>(usage, thread_id)).first->second;
 	}
 
-	return m_command_pools[thread_id][select_type];
+	return m_command_pools[thread_id][usage];
 }
 
 uint32_t GraphicsContext::getFrameIndex() const
@@ -212,7 +214,7 @@ void GraphicsContext::createCommandBuffer()
 		vkCreateSemaphore(*m_logical_device, &semaphore_create_info, nullptr, &m_present_complete[i]);
 		vkCreateSemaphore(*m_logical_device, &semaphore_create_info, nullptr, &m_render_complete[i]);
 		vkCreateFence(*m_logical_device, &fence_create_info, nullptr, &m_flight_fences[i]);
-		m_command_buffers[i] = createScope<CommandBuffer>(m_logical_device->getPresentQueueFlag());
+		m_command_buffers[i] = createScope<CommandBuffer>(QueueUsage::Present);
 	}
 }
 
@@ -238,9 +240,11 @@ void GraphicsContext::submitFrame()
 {
 	m_command_buffers[m_current_frame]->end();
 
-	m_command_buffers[m_current_frame]->submit(m_present_complete[m_current_frame], m_render_complete[m_current_frame]); 
+	m_queue_system->acquire()->submit(*m_command_buffers[m_current_frame], m_render_complete[m_current_frame], m_present_complete[m_current_frame]);
 
-	auto present_result = m_swapchain->present(m_logical_device->getPresentQueues()[0], m_render_complete[m_current_frame]);
+	//m_command_buffers[m_current_frame]->submit(m_present_complete[m_current_frame], m_render_complete[m_current_frame]); 
+
+	auto present_result = m_swapchain->present(*m_queue_system->acquire(QueueUsage::Present), m_render_complete[m_current_frame]);
 
 	if (present_result == VK_ERROR_OUT_OF_DATE_KHR)
 	{

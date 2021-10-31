@@ -51,6 +51,8 @@ class Renderer : public TSubsystem<Renderer>
 
 	const RenderGraph *getRenderGraph() const;
 
+	RenderGraph *getRenderGraph();
+
 	ResourceCache &getResourceCache();
 
 	void resetBuilder();
@@ -99,6 +101,8 @@ class Renderer : public TSubsystem<Renderer>
 	bool m_imgui = true;
 
 	bool m_debug = true;
+
+	uint32_t m_texture_count = 0;
 
   public:
 	struct

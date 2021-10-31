@@ -1,9 +1,10 @@
 #pragma once
 
-#include "Utils/PCH.hpp"
 #include "Engine/Subsystem.hpp"
-#include "Timing/Stopwatch.hpp"
 #include "Eventing/Event.hpp"
+#include "Graphics/Synchronization/QueueSystem.hpp"
+#include "Timing/Stopwatch.hpp"
+#include "Utils/PCH.hpp"
 
 namespace Ilum
 {
@@ -39,9 +40,11 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 
 	ShaderCache &getShaderCache();
 
+	QueueSystem &getQueueSystem();
+
 	const VkPipelineCache &getPipelineCache() const;
 
-	const ref<CommandPool> &getCommandPool(VkQueueFlagBits queue_type = VK_QUEUE_GRAPHICS_BIT, const std::thread::id &thread_id = std::this_thread::get_id());
+	const ref<CommandPool> &getCommandPool(QueueUsage usage = QueueUsage::Graphics, const std::thread::id &thread_id = std::this_thread::get_id());
 
 	uint32_t getFrameIndex() const;
 
@@ -78,12 +81,13 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	scope<Surface>        m_surface         = nullptr;
 	scope<LogicalDevice>  m_logical_device  = nullptr;
 	scope<Swapchain>      m_swapchain       = nullptr;
+	scope<QueueSystem>    m_queue_system    = nullptr;
 
 	scope<DescriptorCache> m_descriptor_cache = nullptr;
 	scope<ShaderCache>     m_shader_cache     = nullptr;
 
 	// Command pool per thread
-	std::unordered_map<std::thread::id, std::unordered_map<VkQueueFlagBits, ref<CommandPool>>> m_command_pools;
+	std::unordered_map<std::thread::id, std::unordered_map<QueueUsage, ref<CommandPool>>> m_command_pools;
 
 	// Present resource
 	std::vector<scope<CommandBuffer>> m_command_buffers;
