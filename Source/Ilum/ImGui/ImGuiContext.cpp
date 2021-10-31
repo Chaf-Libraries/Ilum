@@ -118,7 +118,7 @@ void ImGuiContext::createResouce()
 	ImGui_ImplVulkan_Init(&init_info, Renderer::instance()->getRenderGraph()->getNode<pass::ImGuiPass>().pass_native.render_pass);
 
 	// Upload fonts
-	CommandBuffer command_buffer(QueueUsage::Transfer);
+	CommandBuffer command_buffer;
 	command_buffer.begin();
 	ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
 	command_buffer.end();
