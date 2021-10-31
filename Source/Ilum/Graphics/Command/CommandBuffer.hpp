@@ -4,7 +4,7 @@
 
 #include "Graphics/Buffer/Buffer.h"
 #include "Graphics/Image/Image.hpp"
-#include "Graphics/Synchronization/Semaphore.hpp"
+#include "Graphics/Synchronization/QueueSystem.hpp"
 
 #include "Renderer/RenderGraph/RenderPass.hpp"
 
@@ -31,7 +31,7 @@ struct BufferInfo
 class CommandBuffer
 {
   public:
-	CommandBuffer(VkQueueFlagBits queue_type = VK_QUEUE_GRAPHICS_BIT, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+	CommandBuffer(QueueUsage usage = QueueUsage::Graphics, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
 	~CommandBuffer();
 
@@ -64,11 +64,11 @@ class CommandBuffer
 
 	void transferLayout(const std::vector<ImageReference> &images, VkImageUsageFlagBits old_usage, VkImageUsageFlagBits new_usage) const;
 
-	/*void submitIdle(uint32_t queue_index = 0);
+	void submitIdle();
 
-	void submit(const VkSemaphore &wait_semaphore = VK_NULL_HANDLE, const VkSemaphore &signal_semaphore = VK_NULL_HANDLE, VkFence fence = VK_NULL_HANDLE, VkShaderStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, uint32_t queue_index = 0);
+	void submit(const VkSemaphore &wait_semaphore = VK_NULL_HANDLE, const VkSemaphore &signal_semaphore = VK_NULL_HANDLE, VkFence fence = VK_NULL_HANDLE, VkShaderStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 
-	void submit(const std::vector<VkSemaphore> &wait_semaphores = {}, const std::vector<VkSemaphore> &signal_semaphores = {}, VkFence fence = VK_NULL_HANDLE, const std::vector<VkShaderStageFlags> &wait_stages = {}, uint32_t queue_index = 0);*/
+	void submit(const std::vector<VkSemaphore> &wait_semaphores = {}, const std::vector<VkSemaphore> &signal_semaphores = {}, VkFence fence = VK_NULL_HANDLE, VkShaderStageFlags wait_stages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 
 	operator const VkCommandBuffer &() const;
 

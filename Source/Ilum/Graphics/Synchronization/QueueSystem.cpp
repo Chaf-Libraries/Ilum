@@ -91,21 +91,8 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 		auto *queue = !m_transfer_queues.empty() ? m_transfer_queues[index] : m_graphics_queues[index];
 		while (queue->isBusy())
 		{
-			if (index < m_transfer_queues.size() - 1)
-			{
-				queue = m_transfer_queues[++index];
-				continue;
-			}
-			else if (index < m_transfer_queues.size() + m_graphics_queues.size() - 1)
-			{
-				queue = m_graphics_queues[++index - m_transfer_queues.size()];
-				continue;
-			}
-			else
-			{
-				index = 0;
-				queue = m_transfer_queues[index];
-			}
+			index = (index + 1ull) % m_transfer_queues.size();
+			queue = m_transfer_queues[index];
 		}
 		return queue;
 	}
@@ -116,21 +103,8 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 		auto *queue = !m_compute_queues.empty() ? m_compute_queues[index] : m_graphics_queues[index];
 		while (queue->isBusy())
 		{
-			if (index < m_compute_queues.size() - 1)
-			{
-				queue = m_compute_queues[++index];
-				continue;
-			}
-			else if (index < m_compute_queues.size() + m_graphics_queues.size() - 1)
-			{
-				queue = m_graphics_queues[++index - m_compute_queues.size()];
-				continue;
-			}
-			else
-			{
-				index = 0;
-				queue = m_compute_queues[index];
-			}
+			index = (index + 1ull) % m_compute_queues.size();
+			queue = m_compute_queues[index];
 		}
 		return queue;
 	}

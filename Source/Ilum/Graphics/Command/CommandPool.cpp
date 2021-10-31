@@ -9,26 +9,27 @@
 
 namespace Ilum
 {
-CommandPool::CommandPool(VkQueueFlagBits queue_type, const std::thread::id &thread_id) :
-    m_thread_id(thread_id), m_queue_type(queue_type)
+CommandPool::CommandPool(QueueUsage usage, const std::thread::id &thread_id) :
+    m_thread_id(thread_id), m_queue_usage(usage)
 {
 	uint32_t queue_family = 0;
 
-	if (queue_type & VK_QUEUE_GRAPHICS_BIT)
+	switch (m_queue_usage)
 	{
-		queue_family = GraphicsContext::instance()->getLogicalDevice().getGraphicsFamily();
-	}
-	else if (queue_type & VK_QUEUE_COMPUTE_BIT)
-	{
-		queue_family = GraphicsContext::instance()->getLogicalDevice().getGraphicsFamily();
-	}
-	else if (queue_type & VK_QUEUE_TRANSFER_BIT)
-	{
-		queue_family = GraphicsContext::instance()->getLogicalDevice().getTransferFamily();
-	}
-	else
-	{
-		queue_family = GraphicsContext::instance()->getLogicalDevice().getGraphicsFamily();
+		case Ilum::QueueUsage::Graphics:
+			queue_family = GraphicsContext::instance()->getLogicalDevice().getGraphicsFamily();
+			break;
+		case Ilum::QueueUsage::Compute:
+			queue_family = GraphicsContext::instance()->getLogicalDevice().getComputeFamily();
+			break;
+		case Ilum::QueueUsage::Transfer:
+			queue_family = GraphicsContext::instance()->getLogicalDevice().getTransferFamily();
+			break;
+		case Ilum::QueueUsage::Present:
+			queue_family = GraphicsContext::instance()->getLogicalDevice().getPresentFamily();
+			break;
+		default:
+			break;
 	}
 
 	VkCommandPoolCreateInfo command_pool_create_info = {};
@@ -78,21 +79,8 @@ const std::thread::id &CommandPool::getThreadID() const
 	return m_thread_id;
 }
 
-const VkQueue CommandPool::getQueue(uint32_t index) const
+QueueUsage CommandPool::getUsage() const
 {
-	if (m_queue_type & VK_QUEUE_GRAPHICS_BIT)
-	{
-		return GraphicsContext::instance()->getLogicalDevice().getGraphicsQueues().at(index % GraphicsContext::instance()->getLogicalDevice().getGraphicsQueues().size());
-	}
-	else if (m_queue_type & VK_QUEUE_COMPUTE_BIT)
-	{
-		return GraphicsContext::instance()->getLogicalDevice().getComputeQueues().at(index % GraphicsContext::instance()->getLogicalDevice().getComputeQueues().size());
-	}
-	else if (m_queue_type & VK_QUEUE_TRANSFER_BIT)
-	{
-		return GraphicsContext::instance()->getLogicalDevice().getTransferQueues().at(index % GraphicsContext::instance()->getLogicalDevice().getTransferQueues().size());
-	}
-
-	return VK_NULL_HANDLE;
+	return m_queue_usage;
 }
 }        // namespace Ilum

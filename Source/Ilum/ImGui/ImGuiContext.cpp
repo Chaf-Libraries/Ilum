@@ -118,12 +118,12 @@ void ImGuiContext::createResouce()
 	ImGui_ImplVulkan_Init(&init_info, Renderer::instance()->getRenderGraph()->getNode<pass::ImGuiPass>().pass_native.render_pass);
 
 	// Upload fonts
-	CommandBuffer command_buffer;
+	CommandBuffer command_buffer(QueueUsage::Transfer);
 	command_buffer.begin();
 	ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
 	command_buffer.end();
-	GraphicsContext::instance()->getQueueSystem().acquire(QueueUsage::Transfer)->submitIdle(command_buffer);
-	//command_buffer.submitIdle();
+	//GraphicsContext::instance()->getQueueSystem().acquire(QueueUsage::Transfer)->submitIdle(command_buffer);
+	command_buffer.submitIdle();
 	ImGui_ImplVulkan_DestroyFontUploadObjects();
 
 	s_enable = true;
