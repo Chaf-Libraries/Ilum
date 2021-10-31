@@ -102,7 +102,7 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 
 	if (usage == QueueUsage::Transfer)
 	{
-		auto *queue = !m_transfer_queues.empty() ? m_transfer_queues[index] : m_graphics_queues[index];
+		auto *queue =m_transfer_queues[index];
 		while (queue->isBusy())
 		{
 			index = (index + 1ull) % m_transfer_queues.size();
