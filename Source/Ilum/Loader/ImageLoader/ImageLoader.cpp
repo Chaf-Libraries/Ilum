@@ -5,7 +5,10 @@
 
 #include "Graphics/Buffer/Buffer.h"
 #include "Graphics/Command/CommandBuffer.hpp"
+#include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Image/Image.hpp"
+#include "Graphics/Synchronization/Queue.hpp"
+#include "Graphics/Synchronization/QueueSystem.hpp"
 
 #include "Threading/ThreadPool.hpp"
 
@@ -173,7 +176,7 @@ void ImageLoader::loadImage(Image &image, const Bitmap &bitmap, bool mipmaps)
 
 	Buffer staging_buffer(bitmap.data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-	uint32_t   offset = 0;
+	uint32_t offset = 0;
 	uint8_t *data   = staging_buffer.map();
 	std::memcpy(data, bitmap.data.data(), bitmap.data.size());
 	staging_buffer.unmap();
@@ -209,7 +212,8 @@ void ImageLoader::loadImage(Image &image, const Bitmap &bitmap, bool mipmaps)
 
 	command_buffer.transferLayout(image, VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
 	command_buffer.end();
-	command_buffer.submitIdle(ThreadPool::instance()->threadIndex(std::this_thread::get_id()));
+	GraphicsContext::instance()->getQueueSystem().acquire(QueueUsage::Transfer)->submitIdle(command_buffer);
+	//command_buffer.submitIdle(ThreadPool::instance()->threadIndex(std::this_thread::get_id()));
 }
 
 void ImageLoader::loadCubemap(Image &image, const Cubemap &cubemap)

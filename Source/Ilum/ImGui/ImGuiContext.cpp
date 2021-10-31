@@ -13,6 +13,8 @@
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/Command/CommandPool.hpp"
 #include "Graphics/GraphicsContext.hpp"
+#include "Graphics/Synchronization/Queue.hpp"
+#include "Graphics/Synchronization/QueueSystem.hpp"
 #include "Graphics/Vulkan/VK_Debugger.h"
 
 #include "Renderer/RenderGraph/RenderGraph.hpp"
@@ -120,7 +122,8 @@ void ImGuiContext::createResouce()
 	command_buffer.begin();
 	ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
 	command_buffer.end();
-	command_buffer.submitIdle();
+	GraphicsContext::instance()->getQueueSystem().acquire(QueueUsage::Transfer)->submitIdle(command_buffer);
+	//command_buffer.submitIdle();
 	ImGui_ImplVulkan_DestroyFontUploadObjects();
 
 	s_enable = true;
@@ -179,7 +182,7 @@ void ImGuiContext::flush()
 		s_instance->m_filedialog_image_cache.clear();
 	}
 
-	if (s_instance  && !s_instance->m_deprecated_descriptor_sets.empty())
+	if (s_instance && !s_instance->m_deprecated_descriptor_sets.empty())
 	{
 		for (auto &set : s_instance->m_deprecated_descriptor_sets)
 		{

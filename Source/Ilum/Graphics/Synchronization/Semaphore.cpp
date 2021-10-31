@@ -72,11 +72,6 @@ uint64_t Semaphore::count() const
 	return value;
 }
 
-Semaphore::State Semaphore::getState() const
-{
-	return m_state;
-}
-
 const VkSemaphore &Semaphore::getSemaphore() const
 {
 	return m_handle;
