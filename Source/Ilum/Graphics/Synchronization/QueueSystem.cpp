@@ -68,7 +68,6 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 {
 	size_t index = 0;
 
-	// All you can use are present queues
 	if (usage == QueueUsage::Present)
 	{
 		if (m_present_queues.empty())
@@ -85,7 +84,22 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 		return queue;
 	}
 
-	// You can use both transfer queues and graphics queues
+	if (usage == QueueUsage::Graphics)
+	{
+		if (m_graphics_queues.empty())
+		{
+			return nullptr;
+		}
+
+		auto *queue = m_graphics_queues[index];
+		while (queue->isBusy())
+		{
+			index = (index + 1ull) % m_graphics_queues.size();
+			queue = m_graphics_queues[index];
+		}
+		return queue;
+	}
+
 	if (usage == QueueUsage::Transfer)
 	{
 		auto *queue = !m_transfer_queues.empty() ? m_transfer_queues[index] : m_graphics_queues[index];
@@ -97,7 +111,6 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 		return queue;
 	}
 
-	// You can use both compute queues and graphics queues
 	if (usage == QueueUsage::Compute)
 	{
 		auto *queue = !m_compute_queues.empty() ? m_compute_queues[index] : m_graphics_queues[index];

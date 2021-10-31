@@ -181,7 +181,7 @@ void ImageLoader::loadImage(Image &image, const Bitmap &bitmap, bool mipmaps)
 	std::memcpy(data, bitmap.data.data(), bitmap.data.size());
 	staging_buffer.unmap();
 
-	CommandBuffer command_buffer(QueueUsage::Transfer);
+	CommandBuffer command_buffer;
 	command_buffer.begin();
 	command_buffer.copyBufferToImage(BufferInfo{staging_buffer, offset}, ImageInfo{std::ref(image)});
 
@@ -212,7 +212,7 @@ void ImageLoader::loadImage(Image &image, const Bitmap &bitmap, bool mipmaps)
 
 	command_buffer.transferLayout(image, VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
 	command_buffer.end();
-	//GraphicsContext::instance()->getQueueSystem().acquire(QueueUsage::Transfer)->submitIdle(command_buffer);
+	//GraphicsContext::instance()->getQueueSystem().acquire->submitIdle(command_buffer);
 	command_buffer.submitIdle();
 }
 
