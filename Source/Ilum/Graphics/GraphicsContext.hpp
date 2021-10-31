@@ -1,9 +1,9 @@
 #pragma once
 
-#include "Utils/PCH.hpp"
 #include "Engine/Subsystem.hpp"
-#include "Timing/Stopwatch.hpp"
 #include "Eventing/Event.hpp"
+#include "Timing/Stopwatch.hpp"
+#include "Utils/PCH.hpp"
 
 namespace Ilum
 {
@@ -17,6 +17,7 @@ class CommandPool;
 class DescriptorCache;
 class ShaderCache;
 class ImGuiContext;
+class QueueSystem;
 
 class GraphicsContext : public TSubsystem<GraphicsContext>
 {
@@ -38,6 +39,8 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	DescriptorCache &getDescriptorCache();
 
 	ShaderCache &getShaderCache();
+
+	QueueSystem &getQueueSystem();
 
 	const VkPipelineCache &getPipelineCache() const;
 
@@ -78,6 +81,7 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	scope<Surface>        m_surface         = nullptr;
 	scope<LogicalDevice>  m_logical_device  = nullptr;
 	scope<Swapchain>      m_swapchain       = nullptr;
+	scope<QueueSystem>    m_queue_system    = nullptr;
 
 	scope<DescriptorCache> m_descriptor_cache = nullptr;
 	scope<ShaderCache>     m_shader_cache     = nullptr;

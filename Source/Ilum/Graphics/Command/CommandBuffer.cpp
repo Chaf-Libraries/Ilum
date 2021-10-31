@@ -417,109 +417,109 @@ void CommandBuffer::transferLayout(const std::vector<ImageReference> &images, Vk
 	vkCmdPipelineBarrier(*this, Image::usage_to_stage(old_usage), Image::usage_to_stage(new_usage), 0, 0, nullptr, 0, nullptr, static_cast<uint32_t>(barriers.size()), barriers.data());
 }
 
-void CommandBuffer::submitIdle(uint32_t queue_index)
-{
-	VkSubmitInfo submit_info       = {};
-	submit_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submit_info.commandBufferCount = 1;
-	submit_info.pCommandBuffers    = &m_handle;
-
-	VkFenceCreateInfo fence_create_info = {};
-	fence_create_info.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-
-	VkFence fence;
-
-	auto &logical_device = Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice();
-	if (!VK_CHECK(vkCreateFence(logical_device, &fence_create_info, nullptr, &fence)))
-	{
-		VK_ERROR("Failed to create fence!");
-		return;
-	}
-
-	if (!VK_CHECK(vkResetFences(logical_device, 1, &fence)))
-	{
-		VK_ERROR("Failed to reset fence!");
-		return;
-	}
-
-	if (!VK_CHECK(vkQueueSubmit(m_command_pool->getQueue(queue_index), 1, &submit_info, fence)))
-	{
-		VK_ERROR("Failed to submit queue!");
-		return;
-	}
-
-	if (!VK_CHECK(vkWaitForFences(logical_device, 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max())))
-	{
-		VK_ERROR("Failed to wait for fence!");
-		return;
-	}
-
-	vkDestroyFence(logical_device, fence, nullptr);
-}
-
-void CommandBuffer::submit(const VkSemaphore &wait_semaphore, const VkSemaphore &signal_semaphore, VkFence fence, VkShaderStageFlags wait_stages, uint32_t queue_index)
-{
-	VkSubmitInfo submit_info       = {};
-	submit_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submit_info.commandBufferCount = 1;
-	submit_info.pCommandBuffers    = &m_handle;
-
-	if (wait_semaphore != VK_NULL_HANDLE)
-	{
-		submit_info.pWaitDstStageMask  = &wait_stages;
-		submit_info.waitSemaphoreCount = 1;
-		submit_info.pWaitSemaphores    = &wait_semaphore;
-	}
-
-	if (signal_semaphore != VK_NULL_HANDLE)
-	{
-		submit_info.signalSemaphoreCount = 1;
-		submit_info.pSignalSemaphores    = &signal_semaphore;
-	}
-
-	if (fence != VK_NULL_HANDLE)
-	{
-		vkResetFences(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice(), 1, &fence);
-	}
-
-	if (!VK_CHECK(vkQueueSubmit(m_command_pool->getQueue(queue_index), 1, &submit_info, fence)))
-	{
-		VK_ERROR("Failed to submit queue!");
-		return;
-	}
-}
-
-void CommandBuffer::submit(const std::vector<VkSemaphore> &wait_semaphores, const std::vector<VkSemaphore> &signal_semaphores, VkFence fence, const std::vector<VkShaderStageFlags> &wait_stages, uint32_t queue_index)
-{
-	VkSubmitInfo submit_info       = {};
-	submit_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submit_info.commandBufferCount = 1;
-	submit_info.pCommandBuffers    = &m_handle;
-
-	if (!wait_semaphores.empty())
-	{
-		submit_info.pWaitDstStageMask  = wait_stages.data();
-		submit_info.waitSemaphoreCount = static_cast<uint32_t>(wait_semaphores.size());
-		submit_info.pWaitSemaphores    = wait_semaphores.data();
-	}
-
-	if (!signal_semaphores.empty())
-	{
-		submit_info.signalSemaphoreCount = static_cast<uint32_t>(signal_semaphores.size());
-		submit_info.pSignalSemaphores    = signal_semaphores.data();
-	}
-
-	if (fence != VK_NULL_HANDLE)
-	{
-		vkResetFences(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice(), 1, &fence);
-	}
-
-	if (!VK_CHECK(vkQueueSubmit(m_command_pool->getQueue(queue_index), 1, &submit_info, fence)))
-	{
-		VK_ERROR("Failed to submit queue!");
-		return;
-	}
-}
+//void CommandBuffer::submitIdle(uint32_t queue_index)
+//{
+//	VkSubmitInfo submit_info       = {};
+//	submit_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+//	submit_info.commandBufferCount = 1;
+//	submit_info.pCommandBuffers    = &m_handle;
+//
+//	VkFenceCreateInfo fence_create_info = {};
+//	fence_create_info.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+//
+//	VkFence fence;
+//
+//	auto &logical_device = Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice();
+//	if (!VK_CHECK(vkCreateFence(logical_device, &fence_create_info, nullptr, &fence)))
+//	{
+//		VK_ERROR("Failed to create fence!");
+//		return;
+//	}
+//
+//	if (!VK_CHECK(vkResetFences(logical_device, 1, &fence)))
+//	{
+//		VK_ERROR("Failed to reset fence!");
+//		return;
+//	}
+//
+//	if (!VK_CHECK(vkQueueSubmit(m_command_pool->getQueue(queue_index), 1, &submit_info, fence)))
+//	{
+//		VK_ERROR("Failed to submit queue!");
+//		return;
+//	}
+//
+//	if (!VK_CHECK(vkWaitForFences(logical_device, 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max())))
+//	{
+//		VK_ERROR("Failed to wait for fence!");
+//		return;
+//	}
+//
+//	vkDestroyFence(logical_device, fence, nullptr);
+//}
+//
+//void CommandBuffer::submit(const VkSemaphore &wait_semaphore, const VkSemaphore &signal_semaphore, VkFence fence, VkShaderStageFlags wait_stages, uint32_t queue_index)
+//{
+//	VkSubmitInfo submit_info       = {};
+//	submit_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+//	submit_info.commandBufferCount = 1;
+//	submit_info.pCommandBuffers    = &m_handle;
+//
+//	if (wait_semaphore != VK_NULL_HANDLE)
+//	{
+//		submit_info.pWaitDstStageMask  = &wait_stages;
+//		submit_info.waitSemaphoreCount = 1;
+//		submit_info.pWaitSemaphores    = &wait_semaphore;
+//	}
+//
+//	if (signal_semaphore != VK_NULL_HANDLE)
+//	{
+//		submit_info.signalSemaphoreCount = 1;
+//		submit_info.pSignalSemaphores    = &signal_semaphore;
+//	}
+//
+//	if (fence != VK_NULL_HANDLE)
+//	{
+//		vkResetFences(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice(), 1, &fence);
+//	}
+//
+//	if (!VK_CHECK(vkQueueSubmit(m_command_pool->getQueue(queue_index), 1, &submit_info, fence)))
+//	{
+//		VK_ERROR("Failed to submit queue!");
+//		return;
+//	}
+//}
+//
+//void CommandBuffer::submit(const std::vector<VkSemaphore> &wait_semaphores, const std::vector<VkSemaphore> &signal_semaphores, VkFence fence, const std::vector<VkShaderStageFlags> &wait_stages, uint32_t queue_index)
+//{
+//	VkSubmitInfo submit_info       = {};
+//	submit_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+//	submit_info.commandBufferCount = 1;
+//	submit_info.pCommandBuffers    = &m_handle;
+//
+//	if (!wait_semaphores.empty())
+//	{
+//		submit_info.pWaitDstStageMask  = wait_stages.data();
+//		submit_info.waitSemaphoreCount = static_cast<uint32_t>(wait_semaphores.size());
+//		submit_info.pWaitSemaphores    = wait_semaphores.data();
+//	}
+//
+//	if (!signal_semaphores.empty())
+//	{
+//		submit_info.signalSemaphoreCount = static_cast<uint32_t>(signal_semaphores.size());
+//		submit_info.pSignalSemaphores    = signal_semaphores.data();
+//	}
+//
+//	if (fence != VK_NULL_HANDLE)
+//	{
+//		vkResetFences(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice(), 1, &fence);
+//	}
+//
+//	if (!VK_CHECK(vkQueueSubmit(m_command_pool->getQueue(queue_index), 1, &submit_info, fence)))
+//	{
+//		VK_ERROR("Failed to submit queue!");
+//		return;
+//	}
+//}
 
 CommandBuffer::operator const VkCommandBuffer &() const
 {

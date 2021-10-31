@@ -15,6 +15,8 @@
 #include "Graphics/Command/CommandPool.hpp"
 #include "Graphics/Descriptor/DescriptorCache.hpp"
 #include "Graphics/Pipeline/ShaderCache.hpp"
+#include "Graphics/Synchronization/QueueSystem.hpp"
+#include "Graphics/Synchronization/Queue.hpp"
 
 #include "ImGui/ImGuiContext.hpp"
 
@@ -29,7 +31,8 @@ GraphicsContext::GraphicsContext(Context *context) :
     m_surface(createScope<Surface>()),
     m_logical_device(createScope<LogicalDevice>()),
     m_descriptor_cache(createScope<DescriptorCache>()),
-    m_shader_cache(createScope<ShaderCache>())
+    m_shader_cache(createScope<ShaderCache>()),
+    m_queue_system(createScope<QueueSystem>())
 {
 	// Create pipeline cache
 	VkPipelineCacheCreateInfo pipeline_cache_create_info = {};
@@ -70,6 +73,11 @@ DescriptorCache &GraphicsContext::getDescriptorCache()
 ShaderCache &GraphicsContext::getShaderCache()
 {
 	return *m_shader_cache;
+}
+
+QueueSystem &GraphicsContext::getQueueSystem()
+{
+	return *m_queue_system;
 }
 
 const VkPipelineCache &GraphicsContext::getPipelineCache() const
@@ -238,9 +246,11 @@ void GraphicsContext::submitFrame()
 {
 	m_command_buffers[m_current_frame]->end();
 
-	m_command_buffers[m_current_frame]->submit(m_present_complete[m_current_frame], m_render_complete[m_current_frame]); 
+	m_queue_system->acquire()->submit(*m_command_buffers[m_current_frame], m_render_complete[m_current_frame], m_present_complete[m_current_frame]);
 
-	auto present_result = m_swapchain->present(m_logical_device->getPresentQueues()[0], m_render_complete[m_current_frame]);
+	//m_command_buffers[m_current_frame]->submit(m_present_complete[m_current_frame], m_render_complete[m_current_frame]); 
+
+	auto present_result = m_swapchain->present(*m_queue_system->acquire(QueueUsage::Present), m_render_complete[m_current_frame]);
 
 	if (present_result == VK_ERROR_OUT_OF_DATE_KHR)
 	{

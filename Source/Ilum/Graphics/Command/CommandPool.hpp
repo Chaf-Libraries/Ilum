@@ -24,7 +24,6 @@ class CommandPool
 	const VkQueue getQueue(uint32_t index) const;
 
   private:
-	const LogicalDevice &m_logical_device;
 	VkCommandPool        m_handle = VK_NULL_HANDLE;
 	std::thread::id      m_thread_id;
 	VkQueueFlagBits      m_queue_type = VK_QUEUE_GRAPHICS_BIT;
