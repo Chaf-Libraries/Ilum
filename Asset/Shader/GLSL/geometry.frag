@@ -21,9 +21,9 @@ void main() {
     vec3 T = normalize(inTangent);
     vec3 B = cross(N, T);
     mat3 TBN = mat3(T, B, N);
-    // Normal = texture(textureArray[nonuniformEXT(0)], inUV);
+    Normal = texture(textureArray[nonuniformEXT(0)], inUV);
 
-    Normal =  vec4(inNormal, 1.0);
+    // Normal =  vec4(inNormal, 1.0);
     Position_Depth.w=1;
     // Position_Depth.w = 1.0;
     // Position_Depth=vec4(1.0);
