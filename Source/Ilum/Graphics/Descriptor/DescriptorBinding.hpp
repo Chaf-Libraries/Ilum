@@ -94,7 +94,7 @@ class DescriptorBinding
 	std::map<uint32_t, std::vector<SamplerToResolve>>    m_sampler_to_resolves;
 	std::map<uint32_t, std::vector<BufferToResolve>>     m_buffer_to_resolves;
 
-	ResolveOption m_options = ResolveOption::Each_Frame;
+	ResolveOption m_options = ResolveOption::Once;
 
 	size_t allocate(uint32_t set, const Buffer &buffer, VkDescriptorType type);
 	size_t allocate(uint32_t set, const Image &image, ImageViewType view, VkDescriptorType type);

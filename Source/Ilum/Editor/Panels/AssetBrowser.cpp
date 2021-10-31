@@ -476,11 +476,6 @@ void AssetBrowser::draw(float delta_time)
 			{
 				std::string path = ifd::FileDialog::Instance().GetResult().u8string();
 				Renderer::instance()->getResourceCache().loadImageAsync(path);
-
-				for (auto& node : Renderer::instance()->getRenderGraph()->getNodes())
-				{
-					node.descriptors.setOption(ResolveOption::Once);
-				}
 			}
 			ifd::FileDialog::Instance().Close();
 		}

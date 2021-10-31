@@ -15,7 +15,7 @@ namespace Ilum
 {
 ImageReference ResourceCache::loadImage(const std::string &filepath)
 {
-	if (m_image_map.find(filepath) != m_image_map.end())
+	if (m_image_cache.size() == m_image_map.size() && m_image_map.find(filepath) != m_image_map.end())
 	{
 		return m_image_cache.at(m_image_map.at(filepath));
 	}
@@ -83,7 +83,7 @@ const std::vector<ImageReference> ResourceCache::getImageReferences() const
 
 ModelReference ResourceCache::loadModel(const std::string &filepath)
 {
-	if (m_model_map.find(filepath) != m_model_map.end())
+	if (m_model_cache.size() == m_model_map.size() && m_model_map.find(filepath) != m_model_map.end())
 	{
 		return m_model_cache.at(m_model_map.at(filepath));
 	}
