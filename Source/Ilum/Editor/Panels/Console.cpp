@@ -33,7 +33,7 @@ void Console::draw(float delta_time)
 	static int current_item = 0;
 
 	// 0-trace, 1-debug, 2 - info, 3 - warn, 4 - err, 5 - critical
-	static bool enable[6] = {true, true, true, true, true, true};
+	static bool   enable[6] = {true, true, true, true, true, true};
 	static ImVec4 color[6]  = {
         ImVec4{0.f, 1.f, 1.f, 0.75f},
         ImVec4{1.f, 0.f, 1.f, 0.75f},
@@ -41,7 +41,7 @@ void Console::draw(float delta_time)
         ImVec4{1.f, 1.f, 0.f, 0.75f},
         ImVec4{1.f, 0.f, 0.f, 0.75f},
         ImVec4{0.f, 0.f, 1.f, 0.75f},
-	};
+    };
 
 	ImGui::Combo("Logging", &current_item, ASSET_TYPE, 2);
 	m_filter.Draw("Filter");
@@ -88,6 +88,9 @@ void Console::draw(float delta_time)
 			ImGui::TextColored(color[log.level], log.msg.c_str());
 		}
 	}
+
+	if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+		ImGui::SetScrollHereY(1.0f);
 
 	ImGui::EndChild();
 	ImGui::End();
