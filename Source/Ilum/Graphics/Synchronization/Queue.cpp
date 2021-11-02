@@ -52,7 +52,7 @@ void Queue::submit(const CommandBuffer &command_buffer,
 	m_busy = false;
 }
 
-void Queue::submit(const std::vector<CommandBuffer> &command_buffers,
+void Queue::submit(const CommandBuffer& command_buffer,
                    const std::vector<VkSemaphore> &  signal_semaphores,
                    const std::vector<VkSemaphore> &  wait_semaphores,
                    const VkFence &                   fence,
@@ -62,18 +62,10 @@ void Queue::submit(const std::vector<CommandBuffer> &command_buffers,
 
 	m_busy = true;
 
-	std::vector<VkCommandBuffer> cmd_buffers;
-	cmd_buffers.reserve(command_buffers.size());
-
-	for (auto &cmd_buffer : command_buffers)
-	{
-		cmd_buffers.push_back(cmd_buffer);
-	}
-
 	VkSubmitInfo submit_info       = {};
 	submit_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submit_info.commandBufferCount = static_cast<uint32_t>(cmd_buffers.size());
-	submit_info.pCommandBuffers    = cmd_buffers.data();
+	submit_info.commandBufferCount = 1;
+	submit_info.pCommandBuffers    = &command_buffer.getCommandBuffer();
 
 	submit_info.pWaitDstStageMask = &wait_stages;
 
@@ -100,7 +92,7 @@ void Queue::submit(const std::vector<CommandBuffer> &command_buffers,
 
 void Queue::submit(const CommandBuffer &command_buffer, const SubmitInfo &submit_info)
 {
-	submit({command_buffer}, {submit_info.signal_semaphore}, submit_info.wait_semaphores, submit_info.fence, submit_info.stage);
+	submit(command_buffer, {submit_info.signal_semaphore}, submit_info.wait_semaphores, submit_info.fence, submit_info.stage);
 }
 
 void Queue::submitIdle(const CommandBuffer &command_buffer)
@@ -113,44 +105,6 @@ void Queue::submitIdle(const CommandBuffer &command_buffer)
 	submit_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submit_info.commandBufferCount = 1;
 	submit_info.pCommandBuffers    = &command_buffer.getCommandBuffer();
-
-	VkFenceCreateInfo fence_create_info = {};
-	fence_create_info.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-
-	Fence fence;
-
-	fence.reset();
-
-	if (!VK_CHECK(vkQueueSubmit(m_handle, 1, &submit_info, fence)))
-	{
-		VK_ERROR("Failed to submit queue!");
-		m_busy = false;
-		return;
-	}
-
-	fence.wait();
-
-	m_busy = false;
-}
-
-void Queue::submitIdle(const std::vector<CommandBuffer> &command_buffers)
-{
-	std::lock_guard<std::mutex> lock(m_mutex);
-
-	m_busy = true;
-
-	std::vector<VkCommandBuffer> cmd_buffers;
-	cmd_buffers.reserve(command_buffers.size());
-
-	for (auto &cmd_buffer : command_buffers)
-	{
-		cmd_buffers.push_back(cmd_buffer);
-	}
-
-	VkSubmitInfo submit_info       = {};
-	submit_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submit_info.commandBufferCount = static_cast<uint32_t>(cmd_buffers.size());
-	submit_info.pCommandBuffers    = cmd_buffers.data();
 
 	VkFenceCreateInfo fence_create_info = {};
 	fence_create_info.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;

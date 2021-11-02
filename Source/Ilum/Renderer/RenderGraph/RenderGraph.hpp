@@ -105,7 +105,7 @@ class RenderGraph
 	const std::string &view() const;
 
   private:
-	void initialize(const CommandBuffer &command_buffer);
+	void initialize();
 
 	void executeNode(RenderGraphNode &node, const CommandBuffer &command_buffer, ResolveInfo &resolve);
 

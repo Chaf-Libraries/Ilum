@@ -90,7 +90,9 @@ void Console::draw(float delta_time)
 	}
 
 	if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+	{
 		ImGui::SetScrollHereY(1.0f);
+	}
 
 	ImGui::EndChild();
 	ImGui::End();

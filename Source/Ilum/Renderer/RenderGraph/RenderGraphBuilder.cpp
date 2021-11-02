@@ -382,7 +382,7 @@ inline void insertPipelineBarrier(const CommandBuffer &command_buffer, const Res
 		src_pipeline_flags |= Image::usage_to_stage(image_transition.initial_usage);
 		dst_pipeline_flags |= Image::usage_to_stage(image_transition.final_usage);
 
-		const auto& images = resolve_info.getImages().at(image_name);
+		const auto &images = resolve_info.getImages().at(image_name);
 		for (const auto &image : images)
 		{
 			image_barriers.push_back(createImageMemoryBarrier(image.get().getImage(), image_transition.initial_usage, image_transition.final_usage, image.get().getFormat(), image.get().getMipLevelCount(), image.get().getLayerCount()));
@@ -448,12 +448,13 @@ scope<RenderGraph> RenderGraphBuilder::build()
 		auto render_pass = buildRenderPass(render_pass_reference, pipeline_states, attachments, resource_transitions);
 
 		nodes.push_back(RenderGraphNode{
-		    render_pass_reference.name,
-		    render_pass,
-		    std::move(render_pass_reference.pass),
-		    getRenderPassAttachmentNames(render_pass_reference.name, pipeline_states),
-		    createPipelineBarrierCallback(render_pass_reference.name, pipeline_states.at(render_pass_reference.name), resource_transitions),
-		    pipeline_states.at(render_pass_reference.name).descriptor_bindings});
+		                    render_pass_reference.name,
+		                    render_pass,
+		                    std::move(render_pass_reference.pass),
+		                    getRenderPassAttachmentNames(render_pass_reference.name, pipeline_states),
+		                    createPipelineBarrierCallback(render_pass_reference.name, pipeline_states.at(render_pass_reference.name), resource_transitions),
+		                    pipeline_states.at(render_pass_reference.name).descriptor_bindings,
+							synchronize_dependency.at(render_pass_reference.name)});
 	}
 
 	return createScope<RenderGraph>(
@@ -645,7 +646,7 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 
 		vkCreateSemaphore(GraphicsContext::instance()->getLogicalDevice(), &create_info, nullptr, &signal_semaphore);
 
-		VkFence fence = VK_NULL_HANDLE;
+		VkFence           fence             = VK_NULL_HANDLE;
 		VkFenceCreateInfo fence_create_info = {};
 		fence_create_info.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		fence_create_info.flags             = 0;
@@ -654,7 +655,7 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 
 		SubmitInfo submit_info;
 		submit_info.signal_semaphore = signal_semaphore;
-		submit_info.fence  = fence;
+		submit_info.fence            = fence;
 
 		switch (pipeline_state.shader.getBindPoint())
 		{
