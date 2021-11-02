@@ -31,7 +31,7 @@ CommandBuffer::~CommandBuffer()
 {
 	if (m_handle)
 	{
-		vkFreeCommandBuffers(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice(), *m_command_pool, 1, &m_handle);
+		vkFreeCommandBuffers(GraphicsContext::instance()->getLogicalDevice(), *m_command_pool, 1, &m_handle);
 	}
 }
 

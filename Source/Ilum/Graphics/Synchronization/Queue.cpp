@@ -2,6 +2,7 @@
 
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/GraphicsContext.hpp"
+#include "Graphics/Synchronization/Fence.hpp"
 
 #include "Device/LogicalDevice.hpp"
 
@@ -16,7 +17,7 @@ void Queue::submit(const CommandBuffer &command_buffer,
                    const VkSemaphore &  signal_semaphore,
                    const VkSemaphore &  wait_semaphore,
                    const VkFence &      fence,
-                   VkShaderStageFlags   wait_stages)
+                   VkPipelineStageFlags wait_stages)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -55,7 +56,7 @@ void Queue::submit(const std::vector<CommandBuffer> &command_buffers,
                    const std::vector<VkSemaphore> &  signal_semaphores,
                    const std::vector<VkSemaphore> &  wait_semaphores,
                    const VkFence &                   fence,
-                   VkShaderStageFlags                wait_stages)
+                   VkPipelineStageFlags              wait_stages)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -64,7 +65,7 @@ void Queue::submit(const std::vector<CommandBuffer> &command_buffers,
 	std::vector<VkCommandBuffer> cmd_buffers;
 	cmd_buffers.reserve(command_buffers.size());
 
-	for (auto& cmd_buffer : command_buffers)
+	for (auto &cmd_buffer : command_buffers)
 	{
 		cmd_buffers.push_back(cmd_buffer);
 	}
@@ -95,6 +96,11 @@ void Queue::submit(const std::vector<CommandBuffer> &command_buffers,
 		return;
 	}
 	m_busy = false;
+}
+
+void Queue::submit(const CommandBuffer &command_buffer, const SubmitInfo &submit_info)
+{
+	submit({command_buffer}, {submit_info.signal_semaphore}, submit_info.wait_semaphores, submit_info.fence, submit_info.stage);
 }
 
 void Queue::submitIdle(const CommandBuffer &command_buffer)

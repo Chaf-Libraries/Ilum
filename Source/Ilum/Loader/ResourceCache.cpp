@@ -15,6 +15,8 @@ namespace Ilum
 {
 ImageReference ResourceCache::loadImage(const std::string &filepath)
 {
+	std::lock_guard<std::mutex> lock(m_image_mutex);
+
 	if (m_image_cache.size() == m_image_map.size() && m_image_map.find(filepath) != m_image_map.end())
 	{
 		return m_image_cache.at(m_image_map.at(filepath));
@@ -83,6 +85,8 @@ const std::vector<ImageReference> ResourceCache::getImageReferences() const
 
 ModelReference ResourceCache::loadModel(const std::string &filepath)
 {
+	std::lock_guard<std::mutex> lock(m_model_mutex);
+
 	if (m_model_cache.size() == m_model_map.size() && m_model_map.find(filepath) != m_model_map.end())
 	{
 		return m_model_cache.at(m_model_map.at(filepath));
@@ -138,40 +142,46 @@ const std::unordered_map<std::string, size_t> &ResourceCache::getModels() const
 
 void ResourceCache::flush()
 {
-	// Remove deprecated image
-	for (auto& name: m_deprecated_image)
 	{
-		size_t index = m_image_map.at(name);
-		std::swap(m_image_cache.begin() + index, m_image_cache.begin() + m_image_cache.size() - 1);
-		for (auto &[name, idx] : m_image_map)
+		std::lock_guard<std::mutex> lock(m_model_mutex);
+		// Remove deprecated model
+		for (auto &name : m_deprecated_model)
 		{
-			if (idx == m_image_cache.size() - 1)
+			size_t index = m_model_map.at(name);
+			std::swap(m_model_cache.begin() + index, m_model_cache.begin() + m_model_cache.size() - 1);
+			for (auto &[name, idx] : m_model_map)
 			{
-				idx = index;
+				if (idx == m_model_cache.size() - 1)
+				{
+					idx = index;
+				}
 			}
+			m_model_cache.erase(m_model_cache.begin() + m_model_cache.size() - 1);
+			m_model_map.erase(name);
+			LOG_INFO("Release Model: {}", name);
 		}
-		m_image_cache.erase(m_image_cache.begin() + index);
-		m_image_map.erase(name);
-		LOG_INFO("Release Image: {}", name);
+		m_deprecated_model.clear();
 	}
-	m_deprecated_image.clear();
 
-	// Remove deprecated model
-	for (auto& name : m_deprecated_model)
 	{
-		size_t index = m_model_map.at(name);
-		std::swap(m_model_cache.begin() + index, m_model_cache.begin() + m_model_cache.size() - 1);
-		for (auto& [name, idx] : m_model_map)
+		std::lock_guard<std::mutex> lock(m_image_mutex);
+		// Remove deprecated image
+		for (auto &name : m_deprecated_image)
 		{
-			if (idx == m_model_cache.size() - 1)
+			size_t index = m_image_map.at(name);
+			std::swap(m_image_cache.begin() + index, m_image_cache.begin() + m_image_cache.size() - 1);
+			for (auto &[name, idx] : m_image_map)
 			{
-				idx = index;
+				if (idx == m_image_cache.size() - 1)
+				{
+					idx = index;
+				}
 			}
+			m_image_cache.erase(m_image_cache.begin() + index);
+			m_image_map.erase(name);
+			LOG_INFO("Release Image: {}", name);
 		}
-		m_model_cache.erase(m_model_cache.begin() + m_model_cache.size() - 1);
-		m_model_map.erase(name);
-		LOG_INFO("Release Model: {}", name);
-	}
-	m_deprecated_model.clear();
+		m_deprecated_image.clear();
+	}	
 }
 }        // namespace Ilum

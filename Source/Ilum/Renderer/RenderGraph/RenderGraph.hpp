@@ -4,9 +4,11 @@
 
 #include "RenderPass.hpp"
 
+#include "Graphics/Command/CommandBuffer.hpp"
+#include "Graphics/Synchronization/Queue.hpp"
+
 namespace Ilum
 {
-class CommandBuffer;
 class Image;
 
 struct RenderGraphNode
@@ -17,6 +19,7 @@ struct RenderGraphNode
 	std::vector<std::string>                                        attachments;
 	std::function<void(const CommandBuffer &, const ResolveInfo &)> pipeline_barrier_callback;
 	DescriptorBinding                                               descriptors;
+	SubmitInfo                                                      submit_info;
 };
 
 class RenderGraph
@@ -72,7 +75,7 @@ class RenderGraph
 
 	bool hasRenderPass(const std::string &name) const;
 
-	template<typename T>
+	template <typename T>
 	bool hasRenderPass() const
 	{
 		auto iter = std::find_if(m_nodes.begin(), m_nodes.end(), [](const RenderGraphNode &node) { return node.pass->type() == typeid(T); });
@@ -110,7 +113,7 @@ class RenderGraph
 	std::vector<RenderGraphNode>           m_nodes;
 	std::unordered_map<std::string, Image> m_attachments;
 	std::string                            m_output      = "output";
-	std::string                            m_view      = "view";
+	std::string                            m_view        = "view";
 	bool                                   m_initialized = false;
 	PresentCallback                        onPresent;
 	CreateCallback                         onCreate;

@@ -6,31 +6,21 @@
 #include <Ilum/Graphics/Pipeline/Shader.hpp>
 #include <Ilum/Graphics/Pipeline/ShaderCache.hpp>
 #include <Ilum/Loader/ModelLoader/ModelLoader.hpp>
+#include <Ilum/Renderer/RenderPass/GeometryPass.hpp>
 #include <Ilum/Renderer/Renderer.hpp>
 #include <Ilum/Scene/Component/Camera.hpp>
 #include <Ilum/Scene/Component/Hierarchy.hpp>
+#include <Ilum/Scene/Component/MeshRenderer.hpp>
 #include <Ilum/Scene/Component/Tag.hpp>
 #include <Ilum/Scene/Component/Transform.hpp>
-#include <Ilum/Scene/Component/MeshRenderer.hpp>
 #include <Ilum/Scene/Scene.hpp>
 #include <Ilum/Scene/System.hpp>
+#include <Ilum/Threading/ThreadPool.hpp>
 #include <Ilum/Timing/Timer.hpp>
-#include <Ilum/Renderer/Renderer.hpp>
-#include <Ilum/Renderer/RenderPass/GeometryPass.hpp>
-
 
 int main()
 {
 	Ilum::Engine engine;
-
-	for (auto i = 0; i < 10; i++)
-	{
-		auto entity = Ilum::Scene::instance()->createEntity("test" + std::to_string(i));
-	}
-
-	auto entity = Ilum::Scene::instance()->createEntity("test" + std::to_string(10));
-	//entity.addComponent<Ilum::cmpt::MeshRenderer>().model = "../Asset/Model/head.obj";
-	auto view   = Ilum::Scene::instance()->getRegistry().view<Ilum::cmpt::Tag>();
 
 	Ilum::Renderer::instance()->buildRenderGraph = [](Ilum::RenderGraphBuilder &builder) {
 		builder.addRenderPass("GeometryPass", std::make_unique<Ilum::pass::GeometryPass>("gbuffer - normal")).setView("gbuffer - normal").setOutput("gbuffer - normal");

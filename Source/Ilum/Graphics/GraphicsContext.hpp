@@ -54,6 +54,8 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 
 	const CommandBuffer &getCurrentCommandBuffer() const;
 
+	const CommandBuffer &acquireCommandBuffer(QueueUsage usage = QueueUsage::Graphics);
+
   public:
 	virtual bool onInitialize() override;
 
@@ -89,8 +91,10 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	// Command pool per thread
 	std::unordered_map<std::thread::id, std::unordered_map<QueueUsage, ref<CommandPool>>> m_command_pools;
 
+	std::unordered_map<std::thread::id, std::unordered_map<QueueUsage, std::vector<scope<CommandBuffer>>>> m_command_buffers;
+
 	// Present resource
-	std::vector<scope<CommandBuffer>> m_command_buffers;
+	std::vector<scope<CommandBuffer>> m_main_command_buffers;
 	std::vector<VkSemaphore>          m_present_complete;
 	std::vector<VkSemaphore>          m_render_complete;
 	std::vector<VkFence>              m_flight_fences;
@@ -102,6 +106,9 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	Stopwatch m_stopwatch;
 
 	uint64_t m_frame_count = 0;
+
+	std::mutex m_command_pool_mutex;
+	std::mutex m_command_buffer_mutex;
 
   public:
 	Event<> Swapchain_Rebuild_Event;

@@ -2,6 +2,8 @@
 
 #include "Utils/PCH.hpp"
 
+#include "Graphics/Synchronization/Queue.hpp"
+
 namespace Ilum
 {
 class RenderPass;
@@ -74,6 +76,7 @@ class RenderGraphBuilder
 
 	// TODO: Semaphore?
 
+	using SynchronizeMap           = std::unordered_map<std::string, SubmitInfo>;
 	using AttachmentMap           = std::unordered_map<std::string, Image>;
 	using PipelineMap             = std::unordered_map<std::string, PipelineState>;
 	using PipelineBarrierCallback = std::function<void(const CommandBuffer &, const ResolveInfo &)>;
@@ -81,11 +84,11 @@ class RenderGraphBuilder
 	using CreateCallback          = std::function<void(const CommandBuffer &)>;
 
   private:
-	void topologicalSort(std::vector<RenderGraphNode> &nodes, const PipelineMap &pipeline_states);
-
 	PipelineMap createPipelineStates();
 
 	ResourceTransitions resolveResourceTransitions(const PipelineMap &pipeline_states);
+
+	SynchronizeMap createSynchronizeDependency(const PipelineMap &pipeline_states);
 
 	void setOutputImage(ResourceTransitions &resource_transitions, const std ::string &name);
 

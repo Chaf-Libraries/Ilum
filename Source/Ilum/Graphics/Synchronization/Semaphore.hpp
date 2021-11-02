@@ -11,6 +11,14 @@ class Semaphore
 
 	~Semaphore();
 
+	Semaphore(const Semaphore &) = delete;
+
+	Semaphore &operator=(const Semaphore &) = delete;
+
+	Semaphore(Semaphore &&other) noexcept;
+
+	Semaphore &operator=(Semaphore &&other) noexcept;
+
 	bool wait(const uint64_t value, const uint64_t timeout = std::numeric_limits<uint64_t>::max()) const;
 
 	bool signal(const uint64_t value) const;

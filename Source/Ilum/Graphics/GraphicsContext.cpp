@@ -87,13 +87,9 @@ const VkPipelineCache &GraphicsContext::getPipelineCache() const
 
 const ref<CommandPool> &GraphicsContext::getCommandPool(QueueUsage usage, const std::thread::id &thread_id)
 {
-	if (m_command_pools.find(thread_id) == m_command_pools.end())
-	{
-		m_command_pools[thread_id] = {};
-	}
-
 	if (m_command_pools[thread_id].find(usage) == m_command_pools[thread_id].end())
 	{
+		std::lock_guard<std::mutex> lock(m_command_pool_mutex);
 		return m_command_pools[thread_id].emplace(usage, createRef<CommandPool>(usage, thread_id)).first->second;
 	}
 
@@ -117,7 +113,18 @@ const VkSemaphore &GraphicsContext::getRenderCompleteSemaphore() const
 
 const CommandBuffer &GraphicsContext::getCurrentCommandBuffer() const
 {
-	return *m_command_buffers[m_current_frame];
+	return *m_main_command_buffers[m_current_frame];
+}
+
+const CommandBuffer &GraphicsContext::acquireCommandBuffer(QueueUsage usage)
+{
+	while (m_command_buffers.find(std::this_thread::get_id()) == m_command_buffers.end() || m_command_buffers[std::this_thread::get_id()][usage].size() <= m_current_frame)
+	{
+		std::lock_guard<std::mutex> lock(m_command_buffer_mutex);
+		m_command_buffers[std::this_thread::get_id()][usage].emplace_back(createScope<CommandBuffer>(usage));
+	}
+
+	return *m_command_buffers[std::this_thread::get_id()][usage][m_current_frame];
 }
 
 bool GraphicsContext::onInitialize()
@@ -159,7 +166,7 @@ void GraphicsContext::onShutdown()
 	}
 
 	m_command_pools.clear();
-	m_command_buffers.clear();
+	m_main_command_buffers.clear();
 
 	vkDestroyPipelineCache(*m_logical_device, m_pipeline_cache, nullptr);
 }
@@ -206,7 +213,7 @@ void GraphicsContext::createCommandBuffer()
 	m_flight_fences.resize(m_swapchain->getImageCount());
 	m_render_complete.resize(m_swapchain->getImageCount());
 	m_present_complete.resize(m_swapchain->getImageCount());
-	m_command_buffers.resize(m_swapchain->getImageCount());
+	m_main_command_buffers.resize(m_swapchain->getImageCount());
 
 	VkSemaphoreCreateInfo semaphore_create_info = {};
 	semaphore_create_info.sType                 = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -220,8 +227,8 @@ void GraphicsContext::createCommandBuffer()
 		vkCreateSemaphore(*m_logical_device, &semaphore_create_info, nullptr, &m_present_complete[i]);
 		vkCreateSemaphore(*m_logical_device, &semaphore_create_info, nullptr, &m_render_complete[i]);
 		vkCreateFence(*m_logical_device, &fence_create_info, nullptr, &m_flight_fences[i]);
-		m_command_buffers[i] = createScope<CommandBuffer>(QueueUsage::Present);
-		VK_Debugger::setName(*m_command_buffers[i], ("main command buffer " + std::to_string(i)).c_str());
+		m_main_command_buffers[i] = createScope<CommandBuffer>(QueueUsage::Present);
+		VK_Debugger::setName(*m_main_command_buffers[i], ("main command buffer " + std::to_string(i)).c_str());
 	}
 }
 
@@ -243,14 +250,14 @@ void GraphicsContext::newFrame()
 	vkWaitForFences(GraphicsContext::instance()->getLogicalDevice(), 1, &m_flight_fences[m_current_frame], VK_TRUE, std::numeric_limits<uint64_t>::max());
 	vkResetFences(GraphicsContext::instance()->getLogicalDevice(), 1, &m_flight_fences[m_current_frame]);
 
-	m_command_buffers[m_current_frame]->begin();
+	m_main_command_buffers[m_current_frame]->begin();
 }
 
 void GraphicsContext::submitFrame()
 {
-	m_command_buffers[m_current_frame]->end();
+	m_main_command_buffers[m_current_frame]->end();
 
-	m_queue_system->acquire()->submit(*m_command_buffers[m_current_frame], m_render_complete[m_current_frame], m_present_complete[m_current_frame], m_flight_fences[m_current_frame]);
+	m_queue_system->acquire()->submit(*m_main_command_buffers[m_current_frame], m_render_complete[m_current_frame], m_present_complete[m_current_frame], m_flight_fences[m_current_frame]);
 
 	//m_command_buffers[m_current_frame]->submit(m_present_complete[m_current_frame], m_render_complete[m_current_frame]);
 

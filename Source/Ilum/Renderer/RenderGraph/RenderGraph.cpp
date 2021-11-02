@@ -1,6 +1,9 @@
 #include "RenderGraph.hpp"
 
 #include "Device/LogicalDevice.hpp"
+
+#include "Threading/ThreadPool.hpp"
+
 #include "Graphics/GraphicsContext.hpp"
 
 namespace Ilum
@@ -44,15 +47,18 @@ void RenderGraph::execute(const CommandBuffer &command_buffer)
 {
 	initialize(command_buffer);
 
-	ResolveInfo resolve;
+	std::unordered_map<std::string, ResolveInfo> resolves;
 	for (const auto &[name, attachment] : m_attachments)
 	{
-		resolve.resolve(name, attachment);
+		for (auto& node : m_nodes)
+		{
+			resolves[node.name].resolve(name, attachment);
+		}
 	}
 
 	for (auto &node : m_nodes)
 	{
-		executeNode(node, command_buffer, resolve);
+		executeNode(node, command_buffer, resolves[node.name]);
 	}
 }
 
@@ -144,6 +150,29 @@ void RenderGraph::executeNode(RenderGraphNode &node, const CommandBuffer &comman
 	node.descriptors.write(node.pass_native.descriptor_sets);
 
 	// Insert pipeline barrier
+	
+	/*ThreadPool::instance()->addTask([&node, &resolve, this](size_t) {
+	
+		QueueUsage usage = node.pass_native.bind_point == VK_PIPELINE_BIND_POINT_COMPUTE ? QueueUsage::Compute : QueueUsage::Graphics;
+		
+		auto &          command_buffer = GraphicsContext::instance()->acquireCommandBuffer(usage);
+		RenderPassState state{*this, command_buffer, node.pass_native};
+
+		node.pass->resolveResources(resolve);
+		node.descriptors.resolve(resolve);
+		node.descriptors.write(node.pass_native.descriptor_sets);
+		
+		command_buffer.begin();
+		node.pipeline_barrier_callback(command_buffer, resolve);
+		if (command_buffer.beginRenderPass(state.pass))
+		{
+			node.pass->render(state);
+			command_buffer.endRenderPass();
+		}
+		command_buffer.end();
+		GraphicsContext::instance()->getQueueSystem().acquire(usage)->submit(command_buffer, node.submit_info);
+	});*/
+
 	node.pipeline_barrier_callback(command_buffer, resolve);
 
 	if (command_buffer.beginRenderPass(state.pass))

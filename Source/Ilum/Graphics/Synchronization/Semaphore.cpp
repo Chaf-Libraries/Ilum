@@ -31,6 +31,20 @@ Semaphore::~Semaphore()
 	}
 }
 
+Semaphore::Semaphore(Semaphore &&other) noexcept :
+    m_handle(other.m_handle)
+{
+	other.m_handle = VK_NULL_HANDLE;
+}
+
+Semaphore &Semaphore::operator=(Semaphore &&other) noexcept
+{
+	m_handle = other.m_handle;
+	m_handle = VK_NULL_HANDLE;
+
+	return *this;
+}
+
 bool Semaphore::wait(const uint64_t value, const uint64_t timeout) const
 {
 	assert(m_timeline);

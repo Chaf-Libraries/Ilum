@@ -23,6 +23,20 @@ Fence::~Fence()
 	}
 }
 
+Fence::Fence(Fence &&other) noexcept:
+    m_handle(other.m_handle)
+{
+	m_handle = VK_NULL_HANDLE;
+}
+
+Fence &Fence::operator=(Fence &&other) noexcept
+{
+	m_handle = other.m_handle;
+	m_handle = VK_NULL_HANDLE;
+
+	return *this;
+}
+
 void Fence::wait() const
 {
 	vkWaitForFences(GraphicsContext::instance()->getLogicalDevice(), 1, &m_handle, VK_TRUE, std::numeric_limits<uint64_t>::max());

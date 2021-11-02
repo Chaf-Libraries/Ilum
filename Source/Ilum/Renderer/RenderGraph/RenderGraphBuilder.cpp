@@ -382,7 +382,7 @@ inline void insertPipelineBarrier(const CommandBuffer &command_buffer, const Res
 		src_pipeline_flags |= Image::usage_to_stage(image_transition.initial_usage);
 		dst_pipeline_flags |= Image::usage_to_stage(image_transition.final_usage);
 
-		auto images = resolve_info.getImages().at(image_name);
+		const auto& images = resolve_info.getImages().at(image_name);
 		for (const auto &image : images)
 		{
 			image_barriers.push_back(createImageMemoryBarrier(image.get().getImage(), image_transition.initial_usage, image_transition.final_usage, image.get().getFormat(), image.get().getMipLevelCount(), image.get().getLayerCount()));
@@ -421,11 +421,13 @@ scope<RenderGraph> RenderGraphBuilder::build()
 	{
 		return createScope<RenderGraph>();
 	}
-	// Topological Sorting
-	// 	   TODO:
+
 	// Prepare:
 	// - Create pipeline states
 	auto pipeline_states = createPipelineStates();
+
+	// - Create synchronize dependency
+	auto synchronize_dependency = createSynchronizeDependency(pipeline_states);
 
 	// - Resolve resource transitions
 	auto resource_transitions = resolveResourceTransitions(pipeline_states);
@@ -453,13 +455,12 @@ scope<RenderGraph> RenderGraphBuilder::build()
 		    createPipelineBarrierCallback(render_pass_reference.name, pipeline_states.at(render_pass_reference.name), resource_transitions),
 		    pipeline_states.at(render_pass_reference.name).descriptor_bindings});
 	}
-	//topologicalSort(nodes, pipeline_states);
 
 	return createScope<RenderGraph>(
 	    std::move(nodes),
 	    std::move(attachments),
 	    m_output,
-		m_view,
+	    m_view,
 	    m_output.empty() ? [](const CommandBuffer &, const Image &, const Image &) {} : createOnPresentCallback(m_output, resource_transitions),
 	    createOnCreateCallback(pipeline_states, resource_transitions, attachments));
 }
@@ -484,76 +485,6 @@ void RenderGraphBuilder::reset()
 bool RenderGraphBuilder::empty() const
 {
 	return m_render_pass_references.empty();
-}
-
-void RenderGraphBuilder::topologicalSort(std::vector<RenderGraphNode> &nodes, const PipelineMap &pipeline_states)
-{
-	std::vector<RenderGraphNode>    tmp = std::move(nodes);
-	std::unordered_set<std::string> attachments;
-	for (auto &node : tmp)
-	{
-		attachments.insert(node.attachments.begin(), node.attachments.end());
-	}
-
-	while (!tmp.empty())
-	{
-		bool found = false;
-		for (auto it = tmp.begin(); !tmp.empty() && it != tmp.end(); it++)
-		{
-			if (pipeline_states.at(it->name).getImageDependencies().empty())
-			{
-				nodes.emplace_back(std::move(*it));
-				tmp.erase(it);
-				found = false;
-				break;
-			}
-
-			for (auto &[name,  usage] : pipeline_states.at(it->name).getImageDependencies())
-			{
-				if (std::find(attachments.begin(), attachments.end(), name) == attachments.end())
-				{
-					for (auto &attachment : it->attachments)
-					{
-						if (attachments.find(attachment) != attachments.end())
-						{
-							attachments.erase(attachment);
-						}
-					}
-					nodes.emplace_back(std::move(*it));
-					tmp.erase(it);
-					found = true;
-					break;
-				}
-			}
-			if (found)
-			{
-				break;
-			}
-		}
-		if (!found)
-		{
-			nodes.insert(nodes.end(), std::make_move_iterator(tmp.begin()), std::make_move_iterator(tmp.end()));
-			break;
-		}
-	}
-
-	// Move all output to the end
-	std::vector<RenderGraphNode> ends;
-	auto                         iter = nodes.begin();
-	while (iter != nodes.end())
-	{
-		if (std::find(iter->attachments.begin(), iter->attachments.end(), m_output) != iter->attachments.end())
-		{
-			ends.emplace_back(std::move(*iter));
-			iter = nodes.erase(iter);
-		}
-		else
-		{
-			iter++;
-		}
-	}
-
-	nodes.insert(nodes.end(), std::make_move_iterator(ends.begin()), std::make_move_iterator(ends.end()));
 }
 
 RenderGraphBuilder::PipelineMap RenderGraphBuilder::createPipelineStates()
@@ -657,6 +588,263 @@ RenderGraphBuilder::ResourceTransitions RenderGraphBuilder::resolveResourceTrans
 	}
 
 	return resource_transitions;
+}
+
+RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependency(const PipelineMap &pipeline_states)
+{
+	SynchronizeMap                            synchronize_map;
+	std::unordered_map<std::string, uint32_t> pass_order;
+	for (uint32_t i = 0; i < m_render_pass_references.size(); i++)
+	{
+		pass_order[m_render_pass_references[i].name] = i;
+	}
+
+	std::unordered_map<std::string, std::vector<std::string>> read_image_map;
+	std::unordered_map<std::string, std::vector<std::string>> read_buffer_map;
+	std::unordered_map<std::string, std::vector<std::string>> write_image_map;
+	std::unordered_map<std::string, std::vector<std::string>> write_buffer_map;
+
+	for (auto &[pass_name, pipeline_state] : pipeline_states)
+	{
+		// Handle buffer
+		for (auto &buffer_dependency : pipeline_state.getBufferDependencies())
+		{
+			if (hasBufferWriteDependency(buffer_dependency.usage))
+			{
+				write_buffer_map[buffer_dependency.name].push_back(pass_name);
+			}
+			else
+			{
+				read_buffer_map[buffer_dependency.name].push_back(pass_name);
+			}
+		}
+
+		// Handle image
+		for (auto &image_dependency : pipeline_state.getImageDependencies())
+		{
+			if (hasImageWriteDependency(image_dependency.usage))
+			{
+				write_image_map[image_dependency.name].push_back(pass_name);
+			}
+			else
+			{
+				read_image_map[image_dependency.name].push_back(pass_name);
+			}
+		}
+
+		// Handle attachment
+		for (auto &attachment_dependency : pipeline_state.getOutputAttachments())
+		{
+			write_image_map[attachment_dependency.name].push_back(pass_name);
+		}
+
+		VkSemaphore           signal_semaphore = VK_NULL_HANDLE;
+		VkSemaphoreCreateInfo create_info{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+		create_info.pNext = nullptr;
+		create_info.flags = 0;
+
+		vkCreateSemaphore(GraphicsContext::instance()->getLogicalDevice(), &create_info, nullptr, &signal_semaphore);
+
+		VkFence fence = VK_NULL_HANDLE;
+		VkFenceCreateInfo fence_create_info = {};
+		fence_create_info.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fence_create_info.flags             = 0;
+
+		vkCreateFence(GraphicsContext::instance()->getLogicalDevice(), &fence_create_info, nullptr, &fence);
+
+		SubmitInfo submit_info;
+		submit_info.signal_semaphore = signal_semaphore;
+		submit_info.fence  = fence;
+
+		switch (pipeline_state.shader.getBindPoint())
+		{
+			case VK_PIPELINE_BIND_POINT_GRAPHICS:
+				submit_info.stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+				break;
+			case VK_PIPELINE_BIND_POINT_COMPUTE:
+				submit_info.stage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+				break;
+			case VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR:
+				submit_info.stage = VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
+				break;
+			default:
+				break;
+		}
+
+		synchronize_map.insert({pass_name, submit_info});
+	}
+
+	for (auto &[pass_name, pipeline_state] : pipeline_states)
+	{
+		// Handle buffer
+		for (auto &buffer_dependency : pipeline_state.getBufferDependencies())
+		{
+			if (hasBufferWriteDependency(buffer_dependency.usage))
+			{
+				if (read_buffer_map.find(buffer_dependency.name) == read_buffer_map.end())
+				{
+					continue;
+				}
+
+				for (auto &pass : read_buffer_map[buffer_dependency.name])
+				{
+					if (pass_order.at(pass) < pass_order.at(pass_name))
+					{
+						bool found = false;
+						for (auto &semaphore : synchronize_map[pass_name].wait_semaphores)
+						{
+							if (semaphore == synchronize_map[pass].signal_semaphore)
+							{
+								found = true;
+							}
+						}
+
+						if (!found)
+						{
+							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
+						}
+					}
+				}
+			}
+			else
+			{
+				if (write_buffer_map.find(buffer_dependency.name) == write_buffer_map.end())
+				{
+					continue;
+				}
+
+				for (auto &pass : write_buffer_map[buffer_dependency.name])
+				{
+					if (pass_order.at(pass) < pass_order.at(pass_name))
+					{
+						bool found = false;
+						for (auto &semaphore : synchronize_map[pass_name].wait_semaphores)
+						{
+							if (semaphore == synchronize_map[pass].signal_semaphore)
+							{
+								found = true;
+							}
+						}
+
+						if (!found)
+						{
+							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
+						}
+					}
+				}
+			}
+		}
+
+		// Handle image
+		for (auto &image_dependency : pipeline_state.getImageDependencies())
+		{
+			if (hasImageWriteDependency(image_dependency.usage))
+			{
+				if (read_image_map.find(image_dependency.name) == read_image_map.end())
+				{
+					continue;
+				}
+
+				// Only one pass can write into it at the same time
+				for (auto &pass : read_image_map[image_dependency.name])
+				{
+					if (pass_order.at(pass) < pass_order.at(pass_name))
+					{
+						bool found = false;
+						for (auto &semaphore : synchronize_map[pass_name].wait_semaphores)
+						{
+							if (semaphore == synchronize_map[pass].signal_semaphore)
+							{
+								found = true;
+							}
+						}
+
+						if (!found)
+						{
+							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
+						}
+					}
+				}
+				for (auto &pass : write_image_map[image_dependency.name])
+				{
+					if (pass_order.at(pass) < pass_order.at(pass_name))
+					{
+						bool found = false;
+						for (auto &semaphore : synchronize_map[pass_name].wait_semaphores)
+						{
+							if (semaphore == synchronize_map[pass].signal_semaphore)
+							{
+								found = true;
+							}
+						}
+
+						if (!found)
+						{
+							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
+						}
+					}
+				}
+			}
+			else
+			{
+				if (write_image_map.find(image_dependency.name) == write_image_map.end())
+				{
+					continue;
+				}
+
+				for (auto &pass : write_image_map[image_dependency.name])
+				{
+					if (pass_order.at(pass) < pass_order.at(pass_name))
+					{
+						bool found = false;
+						for (auto &semaphore : synchronize_map[pass_name].wait_semaphores)
+						{
+							if (semaphore == synchronize_map[pass].signal_semaphore)
+							{
+								found = true;
+							}
+						}
+
+						if (!found)
+						{
+							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
+						}
+					}
+				}
+			}
+		}
+
+		// Handle attachment
+		for (auto &attachment_dependency : pipeline_state.getOutputAttachments())
+		{
+			if (read_image_map.find(attachment_dependency.name) == read_image_map.end())
+			{
+				continue;
+			}
+
+			for (auto &pass : read_image_map[attachment_dependency.name])
+			{
+				if (pass_order.at(pass) < pass_order.at(pass_name))
+				{
+					bool found = false;
+					for (auto &semaphore : synchronize_map[pass_name].wait_semaphores)
+					{
+						if (semaphore == synchronize_map[pass].signal_semaphore)
+						{
+							found = true;
+						}
+					}
+
+					if (!found)
+					{
+						synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
+					}
+				}
+			}
+		}
+	}
+
+	return synchronize_map;
 }
 
 void RenderGraphBuilder::setOutputImage(ResourceTransitions &resource_transitions, const std::string &name)

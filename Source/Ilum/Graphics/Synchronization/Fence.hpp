@@ -11,6 +11,14 @@ class Fence
 
 	~Fence();
 
+	Fence(const Fence &) = delete;
+
+	Fence &operator=(const Fence &) = delete;
+
+	Fence(Fence &&other) noexcept;
+
+	Fence &operator=(Fence &&other) noexcept;
+
 	void wait() const;
 
 	void reset() const;
