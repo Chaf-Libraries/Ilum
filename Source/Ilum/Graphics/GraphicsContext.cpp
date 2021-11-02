@@ -4,8 +4,8 @@
 #include "Device/LogicalDevice.hpp"
 #include "Device/PhysicalDevice.hpp"
 #include "Device/Surface.hpp"
-#include "Device/Window.hpp"
 #include "Device/Swapchain.hpp"
+#include "Device/Window.hpp"
 
 #include "Engine/Context.hpp"
 
@@ -16,6 +16,7 @@
 #include "Graphics/Descriptor/DescriptorCache.hpp"
 #include "Graphics/Pipeline/ShaderCache.hpp"
 #include "Graphics/Synchronization/Queue.hpp"
+#include "Graphics/Vulkan/VK_Debugger.h"
 
 #include "ImGui/ImGuiContext.hpp"
 
@@ -171,6 +172,11 @@ void GraphicsContext::createSwapchain()
 
 	VkExtent2D display_extent = {Window::instance()->getWidth(), Window::instance()->getHeight()};
 
+	while (Window::instance()->isMinimized())
+	{
+		Window::instance()->pollEvent();
+	}
+
 	bool need_rebuild = m_swapchain != nullptr;
 
 	if (need_rebuild)
@@ -215,12 +221,13 @@ void GraphicsContext::createCommandBuffer()
 		vkCreateSemaphore(*m_logical_device, &semaphore_create_info, nullptr, &m_render_complete[i]);
 		vkCreateFence(*m_logical_device, &fence_create_info, nullptr, &m_flight_fences[i]);
 		m_command_buffers[i] = createScope<CommandBuffer>(QueueUsage::Present);
+		VK_Debugger::setName(*m_command_buffers[i], ("main command buffer " + std::to_string(i)).c_str());
 	}
 }
 
 void GraphicsContext::newFrame()
 {
-	auto acquire_result = m_swapchain->acquireNextImage(m_present_complete[m_current_frame], m_flight_fences[m_current_frame]);
+	auto acquire_result = m_swapchain->acquireNextImage(m_present_complete[m_current_frame]);
 	if (acquire_result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
 		createSwapchain();
@@ -233,6 +240,9 @@ void GraphicsContext::newFrame()
 		return;
 	}
 
+	vkWaitForFences(GraphicsContext::instance()->getLogicalDevice(), 1, &m_flight_fences[m_current_frame], VK_TRUE, std::numeric_limits<uint64_t>::max());
+	vkResetFences(GraphicsContext::instance()->getLogicalDevice(), 1, &m_flight_fences[m_current_frame]);
+
 	m_command_buffers[m_current_frame]->begin();
 }
 
@@ -240,9 +250,9 @@ void GraphicsContext::submitFrame()
 {
 	m_command_buffers[m_current_frame]->end();
 
-	m_queue_system->acquire()->submit(*m_command_buffers[m_current_frame], m_render_complete[m_current_frame], m_present_complete[m_current_frame]);
+	m_queue_system->acquire()->submit(*m_command_buffers[m_current_frame], m_render_complete[m_current_frame], m_present_complete[m_current_frame], m_flight_fences[m_current_frame]);
 
-	//m_command_buffers[m_current_frame]->submit(m_present_complete[m_current_frame], m_render_complete[m_current_frame]); 
+	//m_command_buffers[m_current_frame]->submit(m_present_complete[m_current_frame], m_render_complete[m_current_frame]);
 
 	auto present_result = m_swapchain->present(*m_queue_system->acquire(QueueUsage::Present), m_render_complete[m_current_frame]);
 

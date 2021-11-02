@@ -69,44 +69,7 @@ Window::~Window()
 
 void Window::onPreTick()
 {
-	SDL_Event sdl_event;
-
-	while (SDL_PollEvent(&sdl_event))
-	{
-		if (sdl_event.type == SDL_WINDOWEVENT)
-		{
-			if (sdl_event.window.event == SDL_WINDOWEVENT_CLOSE)
-			{
-				Event_Close.invoke();
-				m_close = true;
-			}
-			if (sdl_event.window.event == SDL_WINDOWEVENT_RESIZED)
-			{
-				Event_Resize.invoke(getWidth(), getHeight());
-			}
-			if (sdl_event.window.event == SDL_WINDOWEVENT_MOVED)
-			{
-				Event_Move.invoke(getWidth(), getHeight());
-			}
-			if (sdl_event.window.event == SDL_WINDOWEVENT_MINIMIZED)
-			{
-				Event_Minimize.invoke();
-			}
-			if (sdl_event.window.event == SDL_WINDOWEVENT_MAXIMIZED)
-			{
-				Event_Maximize.invoke();
-			}
-			if (sdl_event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
-			{
-				Event_GainFocus.invoke();
-			}
-			if (sdl_event.window.event == SDL_WINDOWEVENT_FOCUS_LOST)
-			{
-				Event_LostFocus.invoke();
-			}
-		}
-		Event_SDL.invoke(sdl_event);
-	}
+	pollEvent();
 }
 
 uint32_t Window::getWidth() const
@@ -270,5 +233,47 @@ bool Window::isFullscreen() const
 bool Window::isFullscreenBorderless() const
 {
 	return SDL_GetWindowFlags(m_window) & SDL_WINDOW_FULLSCREEN_DESKTOP;
+}
+
+void Window::pollEvent()
+{
+	SDL_Event sdl_event;
+
+	while (SDL_PollEvent(&sdl_event))
+	{
+		if (sdl_event.type == SDL_WINDOWEVENT)
+		{
+			if (sdl_event.window.event == SDL_WINDOWEVENT_CLOSE)
+			{
+				Event_Close.invoke();
+				m_close = true;
+			}
+			if (sdl_event.window.event == SDL_WINDOWEVENT_RESIZED)
+			{
+				Event_Resize.invoke(getWidth(), getHeight());
+			}
+			if (sdl_event.window.event == SDL_WINDOWEVENT_MOVED)
+			{
+				Event_Move.invoke(getWidth(), getHeight());
+			}
+			if (sdl_event.window.event == SDL_WINDOWEVENT_MINIMIZED)
+			{
+				Event_Minimize.invoke();
+			}
+			if (sdl_event.window.event == SDL_WINDOWEVENT_MAXIMIZED)
+			{
+				Event_Maximize.invoke();
+			}
+			if (sdl_event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
+			{
+				Event_GainFocus.invoke();
+			}
+			if (sdl_event.window.event == SDL_WINDOWEVENT_FOCUS_LOST)
+			{
+				Event_LostFocus.invoke();
+			}
+		}
+		Event_SDL.invoke(sdl_event);
+	}
 }
 }        // namespace Ilum

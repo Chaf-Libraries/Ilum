@@ -73,6 +73,8 @@ class Window : public TSubsystem<Window>
 
 	bool isFullscreenBorderless() const;
 
+	void pollEvent();
+
   private:
 	SDL_Window *m_window = nullptr;
 	std::vector<Monitor> m_monitors;

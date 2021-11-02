@@ -38,7 +38,7 @@ class ModelLoader
 	static void load(Model &model, const std::string &file_path);
 
   private:
-	static void parseNode(aiMatrix4x4 &transform, aiNode *node, const aiScene *scene, std::vector<SubMesh> &meshes);
-	static void parseMesh(aiMatrix4x4 &transform, aiMesh *mesh, const aiScene *scene, std::vector<Vertex> &vertices, std::vector<uint32_t> &indices);
+	static void parseNode(aiMatrix4x4 transform, aiNode *node, const aiScene *scene, std::vector<SubMesh> &meshes);
+	static void parseMesh(aiMatrix4x4 transform, aiMesh *mesh, const aiScene *scene, std::vector<Vertex> &vertices, std::vector<uint32_t> &indices);
 };
 }        // namespace Ilum

@@ -77,7 +77,7 @@ void Renderer::onPreTick()
 
 void Renderer::onPostTick()
 {
-	if (!m_render_graph)
+	if (!m_render_graph || Window::instance()->isMinimized())
 	{
 		return;
 	}

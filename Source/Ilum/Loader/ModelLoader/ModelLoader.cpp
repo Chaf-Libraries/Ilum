@@ -124,7 +124,6 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 	std::vector<std::string> materials;
 
 	const auto importer_flag =
-	    aiProcess_MakeLeftHanded |
 	    aiProcess_FlipUVs |
 	    aiProcess_FlipWindingOrder |
 	    aiProcess_CalcTangentSpace |
@@ -151,20 +150,23 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 	model = Model(std::move(meshes));
 }
 
-void ModelLoader::parseNode(aiMatrix4x4 &transform, aiNode *node, const aiScene *scene, std::vector<SubMesh> &meshes)
+void ModelLoader::parseNode(aiMatrix4x4 transform, aiNode *node, const aiScene *scene, std::vector<SubMesh> &meshes)
 {
-	aiMatrix4x4 node_transform = transform * node->mTransformation;
-
-	uint32_t index_offset = 0;
+	transform = transform * node->mTransformation;
 
 	for (uint32_t i = 0; i < node->mNumMeshes; i++)
 	{
 		std::vector<Vertex>   vertices;
 		std::vector<uint32_t> indices;
-		aiMesh *              mesh = scene->mMeshes[node->mMeshes[i]];
+		uint32_t              index_offset = 0;
+		aiMesh *              mesh         = scene->mMeshes[node->mMeshes[i]];
 		parseMesh(transform, mesh, scene, vertices, indices);
+
+		for (auto &submesh : meshes)
+		{
+			index_offset += submesh.getIndexCount();
+		}
 		meshes.emplace_back(std::move(vertices), std::move(indices), index_offset);
-		index_offset += static_cast<uint32_t>(indices.size());
 	}
 
 	for (uint32_t i = 0; i < node->mNumChildren; i++)
@@ -173,7 +175,7 @@ void ModelLoader::parseNode(aiMatrix4x4 &transform, aiNode *node, const aiScene 
 	}
 }
 
-void ModelLoader::parseMesh(aiMatrix4x4 &transform, aiMesh *mesh, const aiScene *scene, std::vector<Vertex> &vertices, std::vector<uint32_t> &indices)
+void ModelLoader::parseMesh(aiMatrix4x4 transform, aiMesh *mesh, const aiScene *scene, std::vector<Vertex> &vertices, std::vector<uint32_t> &indices)
 {
 	for (uint32_t i = 0; i < mesh->mNumVertices; i++)
 	{

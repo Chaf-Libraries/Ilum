@@ -1,5 +1,7 @@
 #include "Model.hpp"
 
+#include "Device/LogicalDevice.hpp"
+
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Synchronization/QueueSystem.hpp"
@@ -75,12 +77,11 @@ void Model::createBuffer()
 		auto * data = staging_buffer.map();
 		std::memcpy(data, vertices.data(), sizeof(Vertex) * vertices.size());
 		staging_buffer.unmap();
-		CommandBuffer command_buffer;
+		CommandBuffer command_buffer(QueueUsage::Transfer);
 		command_buffer.begin();
 		command_buffer.copyBuffer(BufferInfo{staging_buffer}, BufferInfo{m_vertex_buffer}, sizeof(Vertex) * vertices.size());
 		command_buffer.end();
-		GraphicsContext::instance()->getQueueSystem().acquire(QueueUsage::Transfer)->submitIdle(command_buffer);
-		//command_buffer.submitIdle(ThreadPool::instance()->threadIndex(std::this_thread::get_id()));
+		command_buffer.submitIdle();
 	}
 
 	// Staging index buffer
@@ -89,12 +90,11 @@ void Model::createBuffer()
 		auto * data = staging_buffer.map();
 		std::memcpy(data, indices.data(), sizeof(uint32_t) * indices.size());
 		staging_buffer.unmap();
-		CommandBuffer command_buffer;
+		CommandBuffer command_buffer(QueueUsage::Transfer);
 		command_buffer.begin();
 		command_buffer.copyBuffer(BufferInfo{staging_buffer}, BufferInfo{m_index_buffer}, sizeof(uint32_t) * indices.size());
 		command_buffer.end();
-		GraphicsContext::instance()->getQueueSystem().acquire(QueueUsage::Transfer)->submitIdle(command_buffer);
-		//command_buffer.submitIdle(ThreadPool::instance()->threadIndex(std::this_thread::get_id()));
+		command_buffer.submitIdle();
 	}
 }
 }        // namespace Ilum

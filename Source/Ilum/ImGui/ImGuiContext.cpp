@@ -93,8 +93,6 @@ void ImGuiContext::createResouce()
 
 		auto texure_id = (VkDescriptorSet) ImGui_ImplVulkan_AddTexture(Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), image.getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		s_instance->m_filedialog_image_cache.emplace((VkDescriptorSet) texure_id, std::move(image));
-		static int i = 0;
-		VK_Debugger::setName(GraphicsContext::instance()->getLogicalDevice(), (VkDescriptorSet) texure_id, std::to_string(i++).c_str());
 
 		return texure_id;
 	};

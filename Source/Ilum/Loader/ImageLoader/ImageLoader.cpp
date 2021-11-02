@@ -3,6 +3,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#include "Device/LogicalDevice.hpp"
+
 #include "Graphics/Buffer/Buffer.h"
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/GraphicsContext.hpp"
@@ -11,6 +13,8 @@
 #include "Graphics/Synchronization/QueueSystem.hpp"
 
 #include "Threading/ThreadPool.hpp"
+
+#include "Graphics/Vulkan/VK_Debugger.h"
 
 namespace Ilum
 {
@@ -182,6 +186,7 @@ void ImageLoader::loadImage(Image &image, const Bitmap &bitmap, bool mipmaps)
 	staging_buffer.unmap();
 
 	CommandBuffer command_buffer;
+	VK_Debugger::setName(command_buffer, "transfer image data");
 	command_buffer.begin();
 	command_buffer.copyBufferToImage(BufferInfo{staging_buffer, offset}, ImageInfo{std::ref(image)});
 
@@ -212,7 +217,6 @@ void ImageLoader::loadImage(Image &image, const Bitmap &bitmap, bool mipmaps)
 
 	command_buffer.transferLayout(image, VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
 	command_buffer.end();
-	//GraphicsContext::instance()->getQueueSystem().acquire->submitIdle(command_buffer);
 	command_buffer.submitIdle();
 }
 
