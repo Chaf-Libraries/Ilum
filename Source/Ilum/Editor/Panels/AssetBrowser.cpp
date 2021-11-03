@@ -487,7 +487,7 @@ void AssetBrowser::draw(float delta_time)
 		ImGui::SameLine();
 		if (ImGui::Button("Import"))
 		{
-			ifd::FileDialog::Instance().Open("ModelOpenDialog", "Import Model", "Model file (*.obj;*.fbx;*.gltf){.obj,.fbx,.gltf},.*");
+			ifd::FileDialog::Instance().Open("ModelOpenDialog", "Import Model", "Model file (*.obj;*.fbx;*.gltf;*.ply){.obj,.fbx,.gltf,.ply},.*");
 		}
 
 		if (ifd::FileDialog::Instance().IsDone("ModelOpenDialog"))

@@ -17,6 +17,7 @@
 #include <Ilum/Scene/System.hpp>
 #include <Ilum/Threading/ThreadPool.hpp>
 #include <Ilum/Timing/Timer.hpp>
+#include <Ilum/Device/PhysicalDevice.hpp>
 
 int main()
 {

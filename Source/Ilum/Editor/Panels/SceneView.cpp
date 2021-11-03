@@ -22,6 +22,15 @@ namespace Ilum::panel
 SceneView::SceneView()
 {
 	m_name = "SceneView";
+
+	auto &main_camera                  = Renderer::instance()->Main_Camera;
+	main_camera.view                   = glm::lookAt(main_camera.position, main_camera.front + main_camera.position, main_camera.up);
+	main_camera.camera.view_projection = main_camera.projection * main_camera.view;
+	main_camera.camera.aspect             = static_cast<float>(Window::instance()->getWidth()) / static_cast<float>(Window::instance()->getHeight());
+	main_camera.projection             = glm::perspective(glm::radians(main_camera.camera.fov),
+                                              main_camera.camera.aspect,
+                                              main_camera.camera.near,
+                                              main_camera.camera.far);
 }
 
 void SceneView::draw(float delta_time)

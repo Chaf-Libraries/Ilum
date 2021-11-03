@@ -6,6 +6,7 @@
 #include "Renderer/Renderer.hpp"
 
 #include "Scene/Component/MeshRenderer.hpp"
+#include "Scene/Component/Transform.hpp"
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
@@ -74,15 +75,18 @@ void GeometryPass::render(RenderPassState &state)
 	vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
 	vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
-	auto view = Scene::instance()->getRegistry().view<cmpt::MeshRenderer>();
+	auto view = Scene::instance()->getRegistry().view<cmpt::MeshRenderer, cmpt::Transform>();
 
-	view.each([&](cmpt::MeshRenderer &mesh_renderer) {
+	view.each([&](cmpt::MeshRenderer &mesh_renderer, cmpt::Transform&transform) {
 		if (Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model))
 		{
 			auto &       model      = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
 			VkDeviceSize offsets[1] = {0};
 			vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &model.get().getVertexBuffer().get().getBuffer(), offsets);
 			vkCmdBindIndexBuffer(cmd_buffer, model.get().getIndexBuffer().get().getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+
+			// Model transform push constants
+			vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), glm::value_ptr(transform.world_transform));
 
 			for (auto &submesh : model.get().getSubMeshes())
 			{

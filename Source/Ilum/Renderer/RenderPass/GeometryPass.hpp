@@ -21,6 +21,4 @@ class GeometryPass : public TRenderPass<GeometryPass>
 	std::string m_output;
 	Buffer      m_uniform_buffer;
 };
-
-// TODO: Bindless Geometry Pass
 }        // namespace Ilum::pass

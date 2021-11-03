@@ -237,6 +237,7 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 		    }
 
 		    ImGui::Text("Materials: ");
+
 	    });
 }
 

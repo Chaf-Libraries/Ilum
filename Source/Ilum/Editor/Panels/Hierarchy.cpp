@@ -2,6 +2,7 @@
 
 #include "Scene/Component/Hierarchy.hpp"
 #include "Scene/Component/Tag.hpp"
+#include "Scene/Component/Transform.hpp"
 #include "Scene/Entity.hpp"
 
 #include "Editor/Editor.hpp"
@@ -149,6 +150,8 @@ inline void draw_node(Entity entity)
 		{
 			ASSERT(pay_load->DataSize == sizeof(Entity));
 			set_as_son(entity, *static_cast<Entity *>(pay_load->Data));
+			entity.getComponent<cmpt::Transform>().update                                 = true;
+			static_cast<Entity *>(pay_load->Data)->getComponent<cmpt::Transform>().update = true;
 		}
 		ImGui::EndDragDropTarget();
 	}
@@ -213,6 +216,7 @@ void Hierarchy::draw(float delta_time)
 		{
 			ASSERT(pay_load->DataSize == sizeof(Entity));
 			set_as_son(Entity(), *static_cast<Entity *>(pay_load->Data));
+			static_cast<Entity *>(pay_load->Data)->getComponent<cmpt::Transform>().update = true;
 		}
 	}
 

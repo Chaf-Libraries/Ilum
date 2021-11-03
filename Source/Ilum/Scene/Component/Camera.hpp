@@ -21,8 +21,8 @@ struct Camera
 	CameraType type = CameraType::Perspective;
 
 	float aspect = 1.f;
-	float fov    = 60.f;
-	float far    = 100.f;
+	float fov    = 30.f;
+	float far    = 10000.f;
 	float near   = 0.01f;
 
 	glm::mat4 view_projection;
