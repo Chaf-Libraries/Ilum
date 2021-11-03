@@ -5,6 +5,7 @@
 #include "Graphics/Buffer/Buffer.h"
 #include "Graphics/Image/Image.hpp"
 #include "Graphics/Synchronization/QueueSystem.hpp"
+#include "Graphics/Synchronization/Queue.hpp"
 
 #include "Renderer/RenderGraph/RenderPass.hpp"
 
@@ -68,7 +69,7 @@ class CommandBuffer
 
 	void submit(const VkSemaphore &wait_semaphore = VK_NULL_HANDLE, const VkSemaphore &signal_semaphore = VK_NULL_HANDLE, VkFence fence = VK_NULL_HANDLE, VkShaderStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 
-	void submit(const std::vector<VkSemaphore> &wait_semaphores = {}, const std::vector<VkSemaphore> &signal_semaphores = {}, VkFence fence = VK_NULL_HANDLE, VkShaderStageFlags wait_stages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+	void submit(const SubmitInfo &submit_info) const;
 
 	operator const VkCommandBuffer &() const;
 

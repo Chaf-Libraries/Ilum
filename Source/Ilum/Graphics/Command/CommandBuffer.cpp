@@ -429,9 +429,9 @@ void CommandBuffer::submit(const VkSemaphore &wait_semaphore, const VkSemaphore 
 	GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool->getUsage())->submit(*this, signal_semaphore, wait_semaphore, fence, wait_stages);
 }
 
-void CommandBuffer::submit(const std::vector<VkSemaphore> &wait_semaphores, const std::vector<VkSemaphore> &signal_semaphores, VkFence fence, VkShaderStageFlags wait_stages)
+void CommandBuffer::submit(const SubmitInfo &submit_info) const
 {
-	GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool->getUsage())->submit({*this}, signal_semaphores, wait_semaphores, fence, wait_stages);
+	GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool->getUsage())->submit(*this, submit_info);
 }
 
 CommandBuffer::operator const VkCommandBuffer &() const

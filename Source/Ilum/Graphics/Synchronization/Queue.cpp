@@ -52,11 +52,11 @@ void Queue::submit(const CommandBuffer &command_buffer,
 	m_busy = false;
 }
 
-void Queue::submit(const CommandBuffer& command_buffer,
-                   const std::vector<VkSemaphore> &  signal_semaphores,
-                   const std::vector<VkSemaphore> &  wait_semaphores,
-                   const VkFence &                   fence,
-                   VkPipelineStageFlags              wait_stages)
+void Queue::submit(const CommandBuffer &                    command_buffer,
+                   const std::vector<VkSemaphore> &         signal_semaphores,
+                   const std::vector<VkSemaphore> &         wait_semaphores,
+                   const VkFence &                          fence,
+                   const std::vector<VkPipelineStageFlags> &wait_stages)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -67,7 +67,7 @@ void Queue::submit(const CommandBuffer& command_buffer,
 	submit_info.commandBufferCount = 1;
 	submit_info.pCommandBuffers    = &command_buffer.getCommandBuffer();
 
-	submit_info.pWaitDstStageMask = &wait_stages;
+	submit_info.pWaitDstStageMask = wait_stages.data();
 
 	if (!wait_semaphores.empty())
 	{
@@ -92,7 +92,7 @@ void Queue::submit(const CommandBuffer& command_buffer,
 
 void Queue::submit(const CommandBuffer &command_buffer, const SubmitInfo &submit_info)
 {
-	submit(command_buffer, {submit_info.signal_semaphore}, submit_info.wait_semaphores, submit_info.fence, submit_info.stage);
+	submit(command_buffer, {submit_info.signal_semaphore}, submit_info.wait_semaphores, submit_info.fence, submit_info.wait_stages);
 }
 
 void Queue::submitIdle(const CommandBuffer &command_buffer)

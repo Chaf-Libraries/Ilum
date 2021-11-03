@@ -427,7 +427,8 @@ scope<RenderGraph> RenderGraphBuilder::build()
 	auto pipeline_states = createPipelineStates();
 
 	// - Create synchronize dependency
-	auto synchronize_dependency = createSynchronizeDependency(pipeline_states);
+	// TODO: Fixing multi-threading rendering
+	//auto synchronize_dependency = createSynchronizeDependency(pipeline_states);
 
 	// - Resolve resource transitions
 	auto resource_transitions = resolveResourceTransitions(pipeline_states);
@@ -453,8 +454,7 @@ scope<RenderGraph> RenderGraphBuilder::build()
 		                    std::move(render_pass_reference.pass),
 		                    getRenderPassAttachmentNames(render_pass_reference.name, pipeline_states),
 		                    createPipelineBarrierCallback(render_pass_reference.name, pipeline_states.at(render_pass_reference.name), resource_transitions),
-		                    pipeline_states.at(render_pass_reference.name).descriptor_bindings,
-							synchronize_dependency.at(render_pass_reference.name)});
+		                    pipeline_states.at(render_pass_reference.name).descriptor_bindings});
 	}
 
 	return createScope<RenderGraph>(
@@ -657,21 +657,6 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 		submit_info.signal_semaphore = signal_semaphore;
 		submit_info.fence            = fence;
 
-		switch (pipeline_state.shader.getBindPoint())
-		{
-			case VK_PIPELINE_BIND_POINT_GRAPHICS:
-				submit_info.stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-				break;
-			case VK_PIPELINE_BIND_POINT_COMPUTE:
-				submit_info.stage = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-				break;
-			case VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR:
-				submit_info.stage = VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
-				break;
-			default:
-				break;
-		}
-
 		synchronize_map.insert({pass_name, submit_info});
 	}
 
@@ -703,6 +688,7 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 						if (!found)
 						{
 							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
+							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 						}
 					}
 				}
@@ -730,6 +716,7 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 						if (!found)
 						{
 							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
+							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 						}
 					}
 				}
@@ -763,6 +750,7 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 						if (!found)
 						{
 							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
+							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 						}
 					}
 				}
@@ -782,6 +770,7 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 						if (!found)
 						{
 							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
+							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 						}
 					}
 				}
@@ -809,6 +798,7 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 						if (!found)
 						{
 							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
+							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 						}
 					}
 				}
@@ -839,6 +829,7 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 					if (!found)
 					{
 						synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
+						synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 					}
 				}
 			}

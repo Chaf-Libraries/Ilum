@@ -8,10 +8,10 @@ class CommandBuffer;
 
 struct SubmitInfo
 {
-	VkSemaphore              signal_semaphore;
-	std::vector<VkSemaphore> wait_semaphores;
-	VkFence                  fence;
-	VkPipelineStageFlags    stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	VkSemaphore                       signal_semaphore;
+	std::vector<VkSemaphore>          wait_semaphores;
+	VkFence                           fence;
+	std::vector<VkPipelineStageFlags> wait_stages;
 };
 
 class Queue
@@ -25,13 +25,13 @@ class Queue
 	            const VkSemaphore &  signal_semaphore = VK_NULL_HANDLE,
 	            const VkSemaphore &  wait_semaphore   = VK_NULL_HANDLE,
 	            const VkFence &      fence            = VK_NULL_HANDLE,
-	            VkPipelineStageFlags wait_stages      = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+	            VkPipelineStageFlags wait_stages      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 
-	void submit(const CommandBuffer &command_buffers,
-	            const std::vector<VkSemaphore> &  signal_semaphores = {},
-	            const std::vector<VkSemaphore> &  wait_semaphores   = {},
-	            const VkFence &                   fence             = VK_NULL_HANDLE,
-	            VkPipelineStageFlags                wait_stages       = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
+	void submit(const CommandBuffer &                    command_buffers,
+	            const std::vector<VkSemaphore> &         signal_semaphores = {},
+	            const std::vector<VkSemaphore> &         wait_semaphores   = {},
+	            const VkFence &                          fence             = VK_NULL_HANDLE,
+	            const std::vector<VkPipelineStageFlags> &wait_stages       = {});
 
 	void submit(const CommandBuffer &command_buffer, const SubmitInfo &submit_info);
 
