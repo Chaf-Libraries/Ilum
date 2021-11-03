@@ -121,7 +121,7 @@ class Renderer : public TSubsystem<Renderer>
 		glm::mat4 view       = glm::mat4(1.f);
 		glm::mat4 projection = glm::perspective(glm::radians(camera.fov), camera.aspect, camera.near, camera.far);
 
-		float speed       = 10.f;
+		float speed       = 5.f;
 		float sensitivity = 0.5f;
 	} Main_Camera;
 

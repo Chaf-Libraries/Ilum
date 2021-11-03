@@ -10,6 +10,29 @@
 
 namespace Ilum::sym
 {
+inline void transform_recrusive(entt::entity entity)
+{
+	if (entity == entt::null)
+	{
+		return;
+	}
+
+	auto &transform = Entity(entity).getComponent<cmpt::Transform>();
+	auto &hierarchy = Entity(entity).getComponent<cmpt::Hierarchy>();
+	if (hierarchy.parent != entt::null)
+	{
+		transform.world_transform = Entity(hierarchy.parent).getComponent<cmpt::Transform>().world_transform * transform.local_transform;
+	}
+
+	auto child = hierarchy.first;
+
+	while (child != entt::null)
+	{
+		transform_recrusive(child);
+		child = Entity(child).getComponent<cmpt::Hierarchy>().next;
+	}
+}
+
 void TransformUpdate::run()
 {
 	bool need_update = false;
@@ -24,46 +47,25 @@ void TransformUpdate::run()
 		}
 	});
 
-	//auto                      group = Scene::instance()->getRegistry().group<cmpt::Transform, cmpt::Hierarchy>();
-	//std::vector<entt::entity> roots;
-	//if (need_update)
-	//{
-	//	// Find roots
-	//	for (auto &entity : group)
-	//	{
-	//		auto &[hierarchy, transform] = group.get<cmpt::Hierarchy, cmpt::Transform>(entity);
+	auto                      group = Scene::instance()->getRegistry().group<cmpt::Transform, cmpt::Hierarchy>();
+	std::vector<entt::entity> roots;
+	if (need_update)
+	{
+		// Find roots
+		for (auto &entity : group)
+		{
+			auto &[hierarchy, transform] = group.get<cmpt::Hierarchy, cmpt::Transform>(entity);
 
-	//		if (hierarchy.parent == entt::null)
-	//		{
-	//			transform.world_transform = transform.local_transform;
-	//			roots.emplace_back(entity);
-	//		}
-	//	}
+			if (hierarchy.parent == entt::null)
+			{
+				transform.world_transform = transform.local_transform;
+				roots.emplace_back(entity);
+			}
+		}
 
-	//	std::for_each(std::execution::par_unseq, roots.begin(), roots.end(), [&group](auto entity) {
-	//		while (entity != entt::null)
-	//		{
-	//			auto &hierarchy = Entity(entity).getComponent<cmpt::Hierarchy>();
-	//			auto  next      = Entity(hierarchy.next);
-	//			auto  parent    = next.getComponent<cmpt::Hierarchy>().parent;
-
-	//			auto &transform = next.getComponent<cmpt::Transform>();
-	//			transform.world_transform = transform.local_transform;
-	//			
-	//			if (parent != entt::null && Entity(parent).hasComponent<cmpt::Transform>())
-	//			{
-	//				auto& transform = next.getComponent<cmpt::Transform>();
-	//				transform.world_transform = Entity(parent).getComponent<cmpt::Transform>().world_transform * transform.world_transform;
-	//			}
-	//			
-	//			entity = hierarchy.next;
-	//		}
-	//	});
-	//}
-
-	//for (auto entity : view)
-	//{
-	//	auto &transform = Entity(entity).getComponent<cmpt::Transform>();
-	//}
+		std::for_each(std::execution::par_unseq, roots.begin(), roots.end(), [&group](auto entity) {
+			transform_recrusive(entity);
+		});
+	}
 }
 }        // namespace Ilum::sym
