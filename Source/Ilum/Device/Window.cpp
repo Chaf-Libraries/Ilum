@@ -5,7 +5,7 @@
 
 namespace Ilum
 {
-Window::Window(Context *context):
+Window::Window(Context *context) :
     TSubsystem<Window>(context)
 {
 	// Initialize video subsystem
@@ -35,8 +35,8 @@ Window::Window(Context *context):
 		SDL_GetCurrentDisplayMode(i, &display_mode);
 
 		VideoMode mode;
-		mode.width = display_mode.w;
-		mode.height = display_mode.h;
+		mode.width        = display_mode.w;
+		mode.height       = display_mode.h;
 		mode.refresh_rate = display_mode.refresh_rate;
 		mode.red_bits = mode.green_bits = mode.blue_bits = SDL_BITSPERPIXEL(display_mode.format) / 3;
 		m_monitors.push_back(Monitor(mode));
@@ -45,10 +45,10 @@ Window::Window(Context *context):
 	// Create SDL window
 	m_window = SDL_CreateWindow(
 	    ("IlumEngine v" + std::string(ENGINE_VERSION)).c_str(),
-	    m_monitors[0].getWidth() / 4,
-	    m_monitors[0].getHeight() / 4,
-	    m_monitors[0].getWidth() / 2,
-	    m_monitors[0].getHeight() / 2,
+	    m_monitors[0].getWidth() / 8,
+	    m_monitors[0].getHeight() / 8,
+	    m_monitors[0].getWidth() * 6 / 8,
+	    m_monitors[0].getHeight() * 6 / 8,
 	    SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_VULKAN);
 
 	if (!m_window)
