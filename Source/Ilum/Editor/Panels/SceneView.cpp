@@ -26,7 +26,7 @@ SceneView::SceneView()
 	auto &main_camera                  = Renderer::instance()->Main_Camera;
 	main_camera.view                   = glm::lookAt(main_camera.position, main_camera.front + main_camera.position, main_camera.up);
 	main_camera.camera.view_projection = main_camera.projection * main_camera.view;
-	main_camera.camera.aspect             = static_cast<float>(Window::instance()->getWidth()) / static_cast<float>(Window::instance()->getHeight());
+	main_camera.camera.aspect          = static_cast<float>(Window::instance()->getWidth()) / static_cast<float>(Window::instance()->getHeight());
 	main_camera.projection             = glm::perspective(glm::radians(main_camera.camera.fov),
                                               main_camera.camera.aspect,
                                               main_camera.camera.near,
@@ -54,8 +54,10 @@ void SceneView::draw(float delta_time)
 		if (const auto *pay_load = ImGui::AcceptDragDropPayload("Model"))
 		{
 			ASSERT(pay_load->DataSize == sizeof(std::string));
-			auto entity                                     = Scene::instance()->createEntity("New Model");
-			entity.addComponent<cmpt::MeshRenderer>().model = *static_cast<std::string *>(pay_load->Data);
+			auto  entity        = Scene::instance()->createEntity("New Model");
+			auto &mesh_renderer = entity.addComponent<cmpt::MeshRenderer>();
+			mesh_renderer.model = *static_cast<std::string *>(pay_load->Data);
+			mesh_renderer.materials.resize(Renderer::instance()->getResourceCache().loadModel(*static_cast<std::string *>(pay_load->Data)).get().getSubMeshes().size());
 		}
 		ImGui::EndDragDropTarget();
 	}

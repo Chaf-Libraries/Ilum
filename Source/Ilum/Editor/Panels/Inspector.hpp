@@ -2,6 +2,8 @@
 
 #include "Editor/Panel.hpp"
 
+#include "Graphics/Image/Image.hpp"
+
 namespace Ilum::panel
 {
 class Inspector : public Panel

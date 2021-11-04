@@ -9,7 +9,21 @@
 #include "Scene/Component/Tag.hpp"
 #include "Scene/Component/Transform.hpp"
 
+#include "Material/BlinnPhong.h"
+#include "Material/Material.h"
+
+#include "Renderer/Renderer.hpp"
+
+#include "Loader/ImageLoader/ImageLoader.hpp"
+#include "Loader/ResourceCache.hpp"
+
+#include "ImGui/ImGuiContext.hpp"
+
+#include "File/FileSystem.hpp"
+
 #include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -93,6 +107,22 @@ inline bool draw_vec3_control(const std::string &label, glm::vec3 &values, float
 	return update;
 }
 
+template <typename T>
+void select_material(scope<IMaterial> &material)
+{
+	if ((!material || (material && material->type() != typeid(T))) && ImGui::MenuItem(typeid(T).name()))
+	{
+		material = createScope<T>();
+	}
+}
+
+template <typename T1, typename T2, typename... Tn>
+inline void select_material()
+{
+	select_material<T1>();
+	select_material<T2, Tn...>();
+}
+
 template <typename T, typename Callback>
 inline void draw_component(const std::string &name, Entity entity, Callback callback, bool static_mode = false)
 {
@@ -129,6 +159,90 @@ inline void draw_component(const std::string &name, Entity entity, Callback call
 			entity.removeComponent<T>();
 		}
 	}
+}
+
+template <typename T>
+inline void draw_material(T &material)
+{
+	ASSERT(false);
+}
+
+void draw_texture(std::string &texture, uint32_t &texture_id)
+{
+	if (ImGui::ImageButton(Renderer::instance()->getResourceCache().hasImage(texture) ?
+                               ImGuiContext::textureID(Renderer::instance()->getResourceCache().loadImage(texture), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)) :
+                               ImGuiContext::textureID(Renderer::instance()->getDefaultTexture(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
+	                       ImVec2{100.f, 100.f}))
+	{
+		texture = "";
+	}
+
+	if (ImGui::BeginDragDropTarget())
+	{
+		if (const auto *pay_load = ImGui::AcceptDragDropPayload("Texture2D"))
+		{
+			ASSERT(pay_load->DataSize == sizeof(std::string));
+			if (texture != *static_cast<std::string *>(pay_load->Data))
+			{
+				texture    = *static_cast<std::string *>(pay_load->Data);
+				texture_id = Renderer::instance()->getResourceCache().getImages().at(texture);
+			}
+		}
+		ImGui::EndDragDropTarget();
+	}
+}
+
+template <>
+inline void draw_material<material::BlinnPhong>(material::BlinnPhong &material)
+{
+	ImGui::ColorEdit4("Base Color", glm::value_ptr(material.material_data.base_color));
+	ImGui::ColorEdit3("Specular", glm::value_ptr(material.material_data.specular));
+	ImGui::ColorEdit3("Emissive", glm::value_ptr(material.material_data.emissive));
+	ImGui::DragFloat("Emissive Intensity", &material.material_data.emissive_intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	ImGui::DragFloat("Displacement Scale", &material.material_data.displacement_scale, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	ImGui::DragFloat("Shininess", &material.material_data.shininess, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	ImGui::DragFloat("Reflectivity", &material.material_data.reflectivity, 0.01f, 0.f, 1.f, "%.3f");
+	ImGui::Checkbox("Word Space Normal", &material.material_data.normal_type);
+	ImGui::SameLine();
+	ImGui::Checkbox("Flat Shading", &material.material_data.flat_shading);
+
+	ImGui::Text("Diffuse Map");
+	draw_texture(material.diffuse_map_path, material.material_data.diffuse_map);
+
+	ImGui::Text("Normal Map");
+	draw_texture(material.normal_map_path, material.material_data.normal_map);
+
+	ImGui::Text("Specular Map");
+	draw_texture(material.specular_map_path, material.material_data.specular_map);
+
+	ImGui::Text("Displacement Map");
+	draw_texture(material.displacement_map_path, material.material_data.displacement_map);
+}
+
+template <typename T>
+inline void draw_material(scope<IMaterial> &material)
+{
+	if (material->type() == typeid(T))
+	{
+		draw_material<T>(*static_cast<T *>(material.get()));
+	}
+}
+
+template <typename T1, typename T2, typename... Tn>
+inline void draw_material(scope<IMaterial> &material)
+{
+	draw_material<T1>(material);
+	draw_material<T2, Tn...>(material);
+}
+
+inline void draw_material(scope<IMaterial> &material)
+{
+	if (!material)
+	{
+		return;
+	}
+
+	draw_material<material::BlinnPhong>(material);
 }
 
 template <typename T>
@@ -188,10 +302,9 @@ inline void draw_component<cmpt::Transform>(Entity entity)
 {
 	draw_component<cmpt::Transform>(
 	    "Transform", entity, [](auto &component) {
-		    component.update =
-		        draw_vec3_control("Scale", component.scale, 1.f) |
-		        draw_vec3_control("Translation", component.translation, 0.f) |
-		        draw_vec3_control("Rotation", component.rotation, 0.f);
+		    component.update = draw_vec3_control("Translation", component.translation, 0.f);
+		    component.update |= draw_vec3_control("Rotation", component.rotation, 0.f);
+		    component.update |= draw_vec3_control("Scale", component.scale, 1.f);
 	    },
 	    true);
 }
@@ -216,10 +329,11 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 		    ImGui::Text("Model: ");
 		    ImGui::SameLine();
 		    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.f, 0.f));
-			if (ImGui::Button(component.model.c_str(), ImVec2(250.f, 0.f)))
-			{
+		    if (ImGui::Button(component.model.c_str(), component.model.empty() ? ImVec2(250.f, 0.f) : ImVec2(0.f, 0.f)))
+		    {
 			    component.model = "";
-			}
+			    component.materials.clear();
+		    }
 		    ImGui::PopStyleVar();
 		    if (ImGui::BeginDragDropTarget())
 		    {
@@ -230,14 +344,56 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 				    if (component.model != new_model)
 				    {
 					    component.model = new_model;
-					    // TODO: Reset materials
+					    component.materials.resize(Renderer::instance()->getResourceCache().loadModel(new_model).get().getSubMeshes().size());
 				    }
 			    }
 			    ImGui::EndDragDropTarget();
 		    }
 
-		    ImGui::Text("Materials: ");
+		    if (Renderer::instance()->getResourceCache().hasModel(component.model))
+		    {
+			    auto &model = Renderer::instance()->getResourceCache().loadModel(component.model);
 
+			    for (uint32_t i = 0; i < model.get().getSubMeshes().size(); i++)
+			    {
+				    auto &submesh  = model.get().getSubMeshes()[i];
+				    auto &material = component.materials[i];
+
+				    if (ImGui::TreeNode((std::string("Submesh #") + std::to_string(i)).c_str()))
+				    {
+					    // Submesh attributes
+					    if (ImGui::TreeNode("Mesh Attributes"))
+					    {
+						    ImGui::Text("vertices count: %d", submesh.getVertexCount());
+						    ImGui::Text("indices count: %d", submesh.getIndexCount());
+						    ImGui::Text("index offset: %d", submesh.getIndexOffset());
+						    ImGui::TreePop();
+					    }
+
+					    // Material attributes
+					    if (ImGui::TreeNode("Material Attributes"))
+					    {
+						    // Switch material type
+						    if (ImGui::Button(material ? material->type().name() : "Select Material"))
+						    {
+							    ImGui::OpenPopup("Material Type");
+						    }
+
+						    if (ImGui::BeginPopup("Material Type"))
+						    {
+							    select_material<material::BlinnPhong>(material);
+							    ImGui::EndPopup();
+						    }
+
+						    draw_material(material);
+
+						    ImGui::TreePop();
+					    }
+
+					    ImGui::TreePop();
+				    }
+			    }
+		    }
 	    });
 }
 
