@@ -15,13 +15,25 @@ layout(location = 1) out vec4 Position_Depth;
 
 layout (set = 0, binding = 1) uniform sampler2D textureArray[];
 
+layout(push_constant) uniform pushConstant{
+    layout(offset = 64) uint test;
+}test;
+
+
 void main() {
     Position_Depth.xyz = inPos;
     vec3 N = normalize(inNormal);
     vec3 T = normalize(inTangent);
     vec3 B = cross(N, T);
     mat3 TBN = mat3(T, B, N);
-    Normal = texture(textureArray[nonuniformEXT(0)], inUV);
+    if(test.test<1024)
+    {
+        Normal = texture(textureArray[nonuniformEXT(test.test)], inUV);
+    }
+    else
+    {
+        Normal = vec4(0.0);
+    }
 
     // Normal =  vec4(inNormal, 1.0);
     Position_Depth.w=1;

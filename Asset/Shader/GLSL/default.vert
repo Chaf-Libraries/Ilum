@@ -11,11 +11,11 @@ layout(location = 1) out vec2 outUV;
 layout(location = 2) out vec3 outNormal;
 layout(location = 3) out vec3 outTangent;
 layout(location = 4) out vec3 outBiTangent;
-layout(location = 5) out vec4 outScreenPos;
 
 layout (set = 0, binding = 0) uniform MainCamera
 {
     mat4 view_projection;
+    vec3 position;
 }main_camera;
 
 layout(push_constant) uniform Model{
@@ -26,11 +26,9 @@ layout(push_constant) uniform Model{
 
 void main() {
     gl_Position = main_camera.view_projection*model.model*vec4(inPos, 1.0);
-    outScreenPos = gl_Position;
-
-    outPos = vec3(inPos);
+    outPos = vec3(model.model*vec4(inPos, 1.0));
     outUV = inUV;
-    outNormal = normalize(inNormal);
-    outTangent = normalize(inTangent);
-    outBiTangent = normalize(inBiTangent);
+    outNormal = inNormal;
+    outTangent = inTangent;
+    outBiTangent = inBiTangent;
 }
