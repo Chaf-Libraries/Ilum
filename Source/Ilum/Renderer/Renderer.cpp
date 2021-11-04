@@ -32,6 +32,7 @@ Renderer::Renderer(Context *context) :
 
 	m_resource_cache = createScope<ResourceCache>();
 	createSamplers();
+	createBuffers();
 	ImageLoader::loadImage(m_default_texture, Bitmap{{0, 0, 0, 255}, VK_FORMAT_R8G8B8A8_UNORM, 1, 1}, false);
 }
 
@@ -54,6 +55,9 @@ void Renderer::onPreTick()
 {
 	// Flush resource cache
 	m_resource_cache->flush();
+
+	// Update uniform buffers
+	updateBuffers();
 
 	// Check out images update
 	if (m_texture_count != m_resource_cache->getImages().size())
@@ -170,6 +174,11 @@ const Sampler &Renderer::getSampler(SamplerType type) const
 	return m_samplers.at(type);
 }
 
+const BufferReference Renderer::getBuffer(BufferType type) const
+{
+	return m_buffers.at(type);
+}
+
 const VkExtent2D &Renderer::getRenderTargetExtent() const
 {
 	return m_render_target_extent;
@@ -200,5 +209,20 @@ void Renderer::createSamplers()
 	m_samplers[SamplerType::Trilinear_Wrap]    = Sampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_FILTER_LINEAR);
 	m_samplers[SamplerType::Anisptropic_Clamp] = Sampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_LINEAR);
 	m_samplers[SamplerType::Anisptropic_Wrap]  = Sampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_FILTER_LINEAR);
+}
+
+void Renderer::updateBuffers()
+{
+	// Update Main Camera
+	auto *camera_buffer = reinterpret_cast<CameraBuffer *>(m_buffers[BufferType::MainCamera].map());
+	camera_buffer->position = Main_Camera.position;
+	camera_buffer->view_projection = Main_Camera.camera.view_projection;
+	m_buffers[BufferType::MainCamera].unmap();
+
+}
+
+void Renderer::createBuffers()
+{
+	m_buffers[BufferType::MainCamera] = Buffer(sizeof(CameraBuffer), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 }
 }        // namespace Ilum

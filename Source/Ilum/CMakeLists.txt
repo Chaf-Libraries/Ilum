@@ -24,5 +24,4 @@ SetTarget(
         ImGuizmo
         imgui-node-editor
         ImFileDialog
-        RTTR::Core
 )

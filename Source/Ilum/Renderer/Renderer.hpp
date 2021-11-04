@@ -36,6 +36,11 @@ class Renderer : public TSubsystem<Renderer>
 		Anisptropic_Wrap
 	};
 
+	enum class BufferType
+	{
+		MainCamera
+	};
+
   public:
 	Renderer(Context *context = nullptr);
 
@@ -69,6 +74,8 @@ class Renderer : public TSubsystem<Renderer>
 
 	const Sampler &getSampler(SamplerType type) const;
 
+	const BufferReference getBuffer(BufferType type) const;
+
 	const VkExtent2D &getRenderTargetExtent() const;
 
 	void resizeRenderTarget(VkExtent2D extent);
@@ -81,6 +88,10 @@ class Renderer : public TSubsystem<Renderer>
   private:
 	void createSamplers();
 
+	void createBuffers();
+
+	void updateBuffers();
+
   private:
 	std::function<void(RenderGraphBuilder &)> defaultBuilder;
 
@@ -91,6 +102,7 @@ class Renderer : public TSubsystem<Renderer>
 	scope<ResourceCache> m_resource_cache = nullptr;
 
 	std::unordered_map<SamplerType, Sampler> m_samplers;
+	std::unordered_map<BufferType, Buffer>   m_buffers;
 
 	VkExtent2D m_render_target_extent;
 
@@ -124,6 +136,14 @@ class Renderer : public TSubsystem<Renderer>
 		float speed       = 5.f;
 		float sensitivity = 0.5f;
 	} Main_Camera;
+
+	struct CameraBuffer
+	{
+		glm::mat4 view_projection;
+		glm::vec3 position;
+
+		// TODO: Last info
+	};
 
   public:
 	Event<> Event_RenderGraph_Rebuild;

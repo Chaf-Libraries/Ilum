@@ -21,8 +21,6 @@ class Scene : public TSubsystem<Scene>
 
 	virtual void onTick(float delta_time) override;
 
-	void load(const std::string &filepath);
-
 	void clear();
 
 	entt::registry &getRegistry();

@@ -21,10 +21,6 @@ void Scene::onTick(float delta_time)
 	m_system_manager->run();
 }
 
-void Scene::load(const std::string &filepath)
-{
-}
-
 void Scene::clear()
 {
 	m_entity_manager->clear();
