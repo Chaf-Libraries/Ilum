@@ -1,13 +1,16 @@
-#include "GeometryPass.hpp"
+#include "DefaultPass.hpp"
 
 #include "Graphics/Model/Model.hpp"
 #include "Graphics/Model/Vertex.hpp"
+#include "Graphics/GraphicsContext.hpp"
+
+#include "Device/Surface.hpp"
 
 #include "Renderer/Renderer.hpp"
 
 #include "Scene/Component/MeshRenderer.hpp"
-#include "Scene/Component/Transform.hpp"
 #include "Scene/Component/Tag.hpp"
+#include "Scene/Component/Transform.hpp"
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
@@ -17,10 +20,15 @@
 
 namespace Ilum::pass
 {
-void GeometryPass::setupPipeline(PipelineState &state)
+DefaultPass::DefaultPass(const std::string &output) :
+    m_output(output)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/geometry.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/geometry.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
+}
+
+void DefaultPass::setupPipeline(PipelineState &state)
+{
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/default.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/default.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,
@@ -36,27 +44,22 @@ void GeometryPass::setupPipeline(PipelineState &state)
 	state.vertex_input_state.binding_descriptions = {
 	    VkVertexInputBindingDescription{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX}};
 
-	state.color_blend_attachment_states.resize(2);
+	state.rasterization_state.polygon_mode = VK_POLYGON_MODE_LINE;
+	state.rasterization_state.cull_mode = VK_CULL_MODE_NONE;
 
-	state.descriptor_bindings.bind(0, 0, "mainCamera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-	state.descriptor_bindings.bind(0, 1, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 0, "DefaultPass - mainCamera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
-	state.declareAttachment("gbuffer - normal", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	state.declareAttachment("gbuffer - position", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	state.declareAttachment("geometry - depth_stencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment(m_output, VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 
-	state.addOutputAttachment("gbuffer - normal", AttachmentState::Clear_Color);
-	state.addOutputAttachment("gbuffer - position", AttachmentState::Clear_Color);
-	state.addOutputAttachment("geometry - depth_stencil", VkClearDepthStencilValue{1.f, 0u});
+	state.addOutputAttachment(m_output, AttachmentState::Clear_Color);
 }
 
-void GeometryPass::resolveResources(ResolveState &resolve)
+void DefaultPass::resolveResources(ResolveState &resolve)
 {
-	resolve.resolve("textureArray", Renderer::instance()->getResourceCache().getImageReferences());
-	resolve.resolve("mainCamera", Renderer::instance()->getBuffer(Renderer::BufferType::MainCamera));
+	resolve.resolve("DefaultPass - mainCamera", Renderer::instance()->getBuffer(Renderer::BufferType::MainCamera));
 }
 
-void GeometryPass::render(RenderPassState &state)
+void DefaultPass::render(RenderPassState &state)
 {
 	auto &cmd_buffer = state.command_buffer;
 
@@ -70,10 +73,10 @@ void GeometryPass::render(RenderPassState &state)
 
 	auto view = Scene::instance()->getRegistry().view<cmpt::MeshRenderer, cmpt::Transform, cmpt::Tag>();
 
-	view.each([&](cmpt::MeshRenderer &mesh_renderer, cmpt::Transform&transform, cmpt::Tag& tag) {
+	view.each([&](cmpt::MeshRenderer &mesh_renderer, cmpt::Transform &transform, cmpt::Tag &tag) {
 		if (Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model) && tag.active)
 		{
-			auto &       model      = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
+			auto &model = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
 
 			VkDeviceSize offsets[1] = {0};
 			vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &model.get().getVertexBuffer().get().getBuffer(), offsets);
@@ -84,7 +87,7 @@ void GeometryPass::render(RenderPassState &state)
 
 			for (uint32_t i = 0; i < model.get().getSubMeshes().size(); i++)
 			{
-				if (mesh_renderer.materials[i] && mesh_renderer.materials[i]->type() == typeid(material::BlinnPhong))
+				if (!mesh_renderer.materials[i])
 				{
 					const auto &submesh = model.get().getSubMeshes()[i];
 					vkCmdDrawIndexed(cmd_buffer, submesh.getIndexCount(), 1, submesh.getIndexOffset(), 0, 0);
