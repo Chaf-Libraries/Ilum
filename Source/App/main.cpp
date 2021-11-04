@@ -37,21 +37,6 @@ int main()
 		//    .setOutput("gbuffer - normal");
 	};
 
-
-	std::unordered_map<std::string, uint32_t> test_map;
-	auto                                      t = test_map["a"];
-	LOG_INFO("t = {}", t);
-
-	test_map.emplace("a", 10);
-
-	for (auto& [key, val] : test_map)
-	{
-		LOG_INFO("Key: {}, Val: {}", key, val);
-	}
-
-
-
-
 	Ilum::Renderer::instance()->rebuild();
 
 	auto title = Ilum::Window::instance()->getTitle();
