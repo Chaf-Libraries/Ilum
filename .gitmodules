@@ -46,6 +46,3 @@
 [submodule "External/ImFileDialog"]
 	path = External/ImFileDialog
 	url = https://github.com/Chaf-Libraries/ImFileDialog
-[submodule "External/rttr"]
-	path = External/rttr
-	url = https://github.com/rttrorg/rttr

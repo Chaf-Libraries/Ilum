@@ -175,10 +175,3 @@ target_include_directories(ImFileDialog PUBLIC ${IMFILEDIALOG_DIR})
 target_include_directories(ImFileDialog PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ImFileDialog imgui stb)
 
-# RTTR
-option(BUILD_DOCUMENTATION OFF)
-option(BUILD_UNIT_TESTS OFF)
-option(BUILD_STATIC ON)
-option(CUSTOM_DOXYGEN_STYLE OFF)
-option(BUILD_EXAMPLES OFF)
-add_subdirectory(rttr)
