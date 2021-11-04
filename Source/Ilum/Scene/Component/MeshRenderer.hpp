@@ -2,12 +2,14 @@
 
 #include "Graphics/Model/Model.hpp"
 
+#include "Material/Material.h"
+
 namespace Ilum::cmpt
 {
 struct MeshRenderer
 {
 	std::string model;
 
-	// Material
+	std::vector<scope<IMaterial>> materials;
 };
 }        // namespace Ilum::Cmpt
