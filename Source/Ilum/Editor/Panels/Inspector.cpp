@@ -185,7 +185,7 @@ void draw_texture(std::string &texture, uint32_t &texture_id)
 			if (texture != *static_cast<std::string *>(pay_load->Data))
 			{
 				texture    = *static_cast<std::string *>(pay_load->Data);
-				texture_id = Renderer::instance()->getResourceCache().getImages().at(texture);
+				texture_id = static_cast<uint32_t>(Renderer::instance()->getResourceCache().getImages().at(texture));
 			}
 		}
 		ImGui::EndDragDropTarget();
