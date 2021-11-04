@@ -157,6 +157,16 @@ const std::string FileSystem::getFileExtension(const std::string &path)
 	return "";
 }
 
+const std::string FileSystem::getRelativePath(const std::string &path)
+{
+	if (!isExist(path))
+	{
+		return "";
+	}
+
+	return std::filesystem::relative(path, std::filesystem::current_path()).u8string();
+}
+
 bool FileSystem::save(const std::string &path, const std::vector<uint8_t> &data, bool binary)
 {
 	std::ofstream output(path, binary ? std::ofstream::binary : 2);

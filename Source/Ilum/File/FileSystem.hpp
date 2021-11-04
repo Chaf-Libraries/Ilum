@@ -17,6 +17,7 @@ class FileSystem
 	static const std::string getFileName(const std::string &path, bool has_extension = true);
 	static const std::string getFileDirectory(const std::string &path);
 	static const std::string getFileExtension(const std::string &path);
+	static const std::string getRelativePath(const std::string &path);
 
 	static bool save(const std::string &path, const std::vector<uint8_t> &data, bool binary = false);
 	static bool read(const std::string &path, std::vector<uint8_t> &data, bool binary = false, uint32_t begin = 0, uint32_t end = 0);
