@@ -9,7 +9,11 @@ namespace Ilum
 {
 VkDescriptorSetLayout DescriptorCache::getDescriptorLayout(const Shader &shader, uint32_t set_index)
 {
-	size_t hash = shader.getReflectionData().hash();
+	size_t hash = 0;
+	for (auto& [stage, shader_module] : shader.getShaders())
+	{
+		hash_combine(hash, shader_module);
+	}
 	hash_combine(hash, set_index);
 
 	if (m_hash_layout_mapping.find(hash) != m_hash_layout_mapping.end())
@@ -36,7 +40,7 @@ VkDescriptorSet DescriptorCache::allocateDescriptorSet(const VkDescriptorSetLayo
 	{
 		// Create new descriptor pool
 		m_descriptor_pools.emplace_back(m_descriptor_layouts[m_descriptor_pool_table[descriptor_layout]]);
-		m_descriptor_pool_table.emplace(descriptor_layout, m_descriptor_pools.size() - 1);
+		m_descriptor_pool_table[descriptor_layout] = m_descriptor_pools.size() - 1;
 	}
 
 	return m_descriptor_pools[m_descriptor_pool_table[descriptor_layout]].allocate(m_descriptor_layouts[m_descriptor_pool_table[descriptor_layout]]);

@@ -13,13 +13,21 @@ class DescriptorLayout
 
 	~DescriptorLayout();
 
+	DescriptorLayout(const DescriptorLayout &) = delete;
+
+	DescriptorLayout &operator=(const DescriptorLayout &) = delete;
+
+	DescriptorLayout(DescriptorLayout &&other);
+
+	DescriptorLayout &operator=(DescriptorLayout &&other);
+
 	const VkDescriptorSetLayout &getDescriptorSetLayout() const;
 
 	operator const VkDescriptorSetLayout &() const;
 
 	const std::vector<VkDescriptorSetLayoutBinding> &getBindings() const;
 
-	const std::vector<VkDescriptorBindingFlags>& getBindingFlags() const;
+	const std::vector<VkDescriptorBindingFlags> &getBindingFlags() const;
 
   private:
 	VkDescriptorSetLayout m_handle = VK_NULL_HANDLE;

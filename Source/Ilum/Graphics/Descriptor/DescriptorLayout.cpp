@@ -5,6 +5,8 @@
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Pipeline/Shader.hpp"
 
+#include "Graphics/Vulkan/VK_Debugger.h"
+
 namespace Ilum
 {
 // TODO: Dynamic buffer?
@@ -130,7 +132,7 @@ DescriptorLayout::DescriptorLayout(const Shader &shader, const uint32_t set_inde
 
 	VkDescriptorSetLayoutBindingFlagsCreateInfo descriptor_set_layout_binding_flag_create_info = {};
 	descriptor_set_layout_binding_flag_create_info.sType                                       = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
-	
+
 	descriptor_set_layout_binding_flag_create_info.bindingCount  = static_cast<uint32_t>(descriptor_binding_flags.size());
 	descriptor_set_layout_binding_flag_create_info.pBindingFlags = descriptor_binding_flags.data();
 	descriptor_set_layout_create_info.pNext                      = bindless ? &descriptor_set_layout_binding_flag_create_info : nullptr;
@@ -143,7 +145,27 @@ DescriptorLayout::~DescriptorLayout()
 	if (m_handle)
 	{
 		vkDestroyDescriptorSetLayout(GraphicsContext::instance()->getLogicalDevice(), m_handle, nullptr);
+		m_handle = VK_NULL_HANDLE;
 	}
+}
+
+DescriptorLayout::DescriptorLayout(DescriptorLayout &&other) :
+    m_handle(other.m_handle),
+    m_set_index(other.m_set_index),
+    m_bindings(std::move(other.m_bindings)),
+    m_binding_flags(std::move(other.m_binding_flags))
+{
+	other.m_handle = VK_NULL_HANDLE;
+}
+
+DescriptorLayout &DescriptorLayout::operator=(DescriptorLayout &&other)
+{
+	m_handle        = other.m_handle;
+	m_set_index     = other.m_set_index;
+	m_bindings      = std::move(other.m_bindings);
+	m_binding_flags = std::move(other.m_binding_flags);
+	other.m_handle  = VK_NULL_HANDLE;
+	return *this;
 }
 
 const VkDescriptorSetLayout &DescriptorLayout::getDescriptorSetLayout() const

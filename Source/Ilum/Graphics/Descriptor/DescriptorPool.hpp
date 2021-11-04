@@ -17,6 +17,14 @@ class DescriptorPool
 
 	~DescriptorPool();
 
+	DescriptorPool(const DescriptorPool &) = delete;
+
+	DescriptorPool &operator=(const DescriptorPool &) = delete;
+
+	DescriptorPool(DescriptorPool &&other) noexcept;
+
+	DescriptorPool &operator=(DescriptorPool &&other) noexcept;
+
 	void reset();
 
 	bool has(VkDescriptorSet descriptor_set);

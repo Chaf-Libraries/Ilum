@@ -41,6 +41,28 @@ DescriptorPool::~DescriptorPool()
 	}
 }
 
+DescriptorPool::DescriptorPool(DescriptorPool &&other) noexcept :
+    m_pool_index(other.m_pool_index),
+    m_pool_max_sets(other.m_pool_max_sets),
+    m_pool_sizes(std::move(other.m_pool_sizes)),
+    m_descriptor_pools(std::move(other.m_descriptor_pools)),
+    m_pool_sets_count(std::move(other.m_pool_sets_count)),
+    m_set_pool_mapping(std::move(other.m_set_pool_mapping))
+{
+}
+
+DescriptorPool &DescriptorPool::operator=(DescriptorPool &&other) noexcept
+{
+	m_pool_index       = other.m_pool_index;
+	m_pool_max_sets    = other.m_pool_max_sets;
+	m_pool_sizes       = std::move(other.m_pool_sizes),
+	m_descriptor_pools = std::move(other.m_descriptor_pools);
+	m_pool_sets_count  = std::move(other.m_pool_sets_count);
+	m_set_pool_mapping = std::move(other.m_set_pool_mapping);
+
+	return *this;
+}
+
 void DescriptorPool::reset()
 {
 	for (auto &pool : m_descriptor_pools)
@@ -119,7 +141,7 @@ uint32_t DescriptorPool::find_avaliable_pool(const DescriptorLayout &descriptor_
 		descriptor_pool_create_info.flags                      = 0;
 
 		auto &binding_flags = descriptor_layout.getBindingFlags();
-		for (auto& binding_flag : binding_flags)
+		for (auto &binding_flag : binding_flags)
 		{
 			if (binding_flag & VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT)
 			{
