@@ -1,5 +1,7 @@
 #include "AABB.hpp"
 
+#include <algorithm>
+
 namespace Ilum
 {
 bool AABB::valid() const
@@ -23,23 +25,6 @@ void AABB::add(const std::vector<glm::vec3> &points, const std::vector<uint32_t>
 	{
 		std::for_each(indices.begin(), indices.end(), [this, &points](const uint32_t index) { add(points[index]); });
 	}
-}
-
-void AABB::transform(const glm::mat4 &matrix)
-{
-	glm::vec3 min_ = m_min;
-	glm::vec3 max_ = m_max;
-
-	reset();
-
-	add(matrix * glm::vec4(min_.x, min_.y, max_.z, 1.0f));
-	add(matrix * glm::vec4(min_.x, max_.y, min_.z, 1.0f));
-	add(matrix * glm::vec4(min_.x, max_.y, max_.z, 1.0f));
-	add(matrix * glm::vec4(max_.x, min_.y, min_.z, 1.0f));
-	add(matrix * glm::vec4(max_.x, min_.y, max_.z, 1.0f));
-	add(matrix * glm::vec4(max_.x, max_.y, min_.z, 1.0f));
-	add(matrix * glm::vec4(max_, 1.0f));
-	add(matrix * glm::vec4(min_, 1.0f));
 }
 
 void AABB::reset()

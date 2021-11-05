@@ -1,25 +1,25 @@
 #pragma once
 
-#include "Bound.hpp"
+#include <glm/glm.hpp>
+
+#include <vector>
 
 namespace Ilum
 {
-class AABB : public Bound
+class AABB
 {
   public:
 	AABB() = default;
 
 	~AABB() = default;
 
-	virtual bool valid() const override;
+	virtual bool valid() const;
 
-	virtual void add(const glm::vec3 &point) override;
+	virtual void add(const glm::vec3 &point);
 
-	virtual void add(const std::vector<glm::vec3> &points, const std::vector<uint32_t> &indices = {}) override;
+	virtual void add(const std::vector<glm::vec3> &points, const std::vector<uint32_t> &indices = {});
 
-	virtual void transform(const glm::mat4 &matrix) override;
-
-	virtual void reset() override;
+	virtual void reset();
 
 	const glm::vec3 &min() const;
 
