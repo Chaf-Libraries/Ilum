@@ -167,7 +167,7 @@ inline VkPipelineStageFlags buffer_usage_to_stage(VkBufferUsageFlagBits usage)
 		case VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR:
 			return VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 		case VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM:
-			return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		default:
 			return VK_PIPELINE_STAGE_FLAG_BITS_MAX_ENUM;
 	}
@@ -440,7 +440,7 @@ scope<RenderGraph> RenderGraphBuilder::build()
 
 	// - Create synchronize dependency
 	// TODO: Fixing multi-threading rendering
-	//auto synchronize_dependency = createSynchronizeDependency(pipeline_states);
+	auto synchronize_dependency = createSynchronizeDependency(pipeline_states);
 
 	// - Resolve resource transitions
 	auto resource_transitions = resolveResourceTransitions(pipeline_states);
@@ -466,8 +466,8 @@ scope<RenderGraph> RenderGraphBuilder::build()
 		    std::move(render_pass_reference.pass),
 		    getRenderPassAttachmentNames(render_pass_reference.name, pipeline_states),
 		    createPipelineBarrierCallback(render_pass_reference.name, pipeline_states.at(render_pass_reference.name), resource_transitions),
-		    pipeline_states.at(render_pass_reference.name).descriptor_bindings//,
-		    /*synchronize_dependency.at(render_pass_reference.name)*/});
+		    pipeline_states.at(render_pass_reference.name).descriptor_bindings,
+		    synchronize_dependency.at(render_pass_reference.name)});
 	}
 
 	return createScope<RenderGraph>(
@@ -700,7 +700,7 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 							}
 
 							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
-							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 						}
 					}
 				}
@@ -732,7 +732,7 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 								synchronize_map[pass].signal_semaphore = createSemaphore();
 							}
 							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
-							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 						}
 					}
 				}
@@ -770,7 +770,7 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 								synchronize_map[pass].signal_semaphore = createSemaphore();
 							}
 							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
-							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 						}
 					}
 				}
@@ -794,7 +794,7 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 								synchronize_map[pass].signal_semaphore = createSemaphore();
 							}
 							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
-							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 						}
 					}
 				}
@@ -826,7 +826,7 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 								synchronize_map[pass].signal_semaphore = createSemaphore();
 							}
 							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
-							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 						}
 					}
 				}
@@ -861,7 +861,7 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 							synchronize_map[pass].signal_semaphore = createSemaphore();
 						}
 						synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
-						synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+						synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 					}
 				}
 			}

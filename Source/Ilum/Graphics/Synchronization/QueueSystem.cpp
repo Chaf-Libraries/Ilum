@@ -5,6 +5,8 @@
 
 #include "Device/LogicalDevice.hpp"
 
+#include "Graphics/Vulkan/VK_Debugger.h"
+
 namespace Ilum
 {
 QueueSystem::QueueSystem()
@@ -42,9 +44,11 @@ QueueSystem::QueueSystem()
 	{
 		m_present_queues.push_back(lut[queue]);
 	}
+	uint32_t i = 0;
 	for (auto &queue : GraphicsContext::instance()->getLogicalDevice().getGraphicsQueues())
 	{
 		m_graphics_queues.push_back(lut[queue]);
+		VK_Debugger::setName(*lut[queue], std::to_string(i++).c_str());
 	}
 	for (auto &queue : GraphicsContext::instance()->getLogicalDevice().getTransferQueues())
 	{
@@ -54,8 +58,6 @@ QueueSystem::QueueSystem()
 	{
 		m_compute_queues.push_back(lut[queue]);
 	}
-
-	m_present_index = static_cast<uint32_t>(m_present_queues.size()) - 1;
 }
 
 void QueueSystem::waitAll() const
@@ -68,6 +70,8 @@ void QueueSystem::waitAll() const
 
 Queue *QueueSystem::acquire(QueueUsage usage)
 {
+	std::lock_guard<std::mutex> lock(m_mutex);
+
 	if (usage == QueueUsage::Present)
 	{
 		if (m_present_queues.empty())
@@ -76,15 +80,9 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 		}
 
 		auto *queue = m_present_queues[m_present_index];
-		if (m_present_index > 0)
-		{
-			m_present_index--;
-		}
-		else
-		{
-			m_present_index = static_cast<uint32_t>(m_present_queues.size()) - 1;
-		}
-		vkQueueWaitIdle(*queue);
+		//LOG_INFO("Present Index - {}", m_present_index);
+		m_present_index = (m_present_index + 1ull) % m_present_queues.size();
+		queue->waitIdle();
 		return queue;
 	}
 
@@ -96,8 +94,9 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 		}
 
 		auto *queue     = m_graphics_queues[m_graphics_index];
+		//LOG_INFO("Graphics Index - {}", m_graphics_index);
 		m_graphics_index = (m_graphics_index + 1ull) % m_graphics_queues.size();
-		vkQueueWaitIdle(*queue);
+		queue->waitIdle();
 		return queue;
 	}
 
@@ -109,8 +108,9 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 		}
 
 		auto *queue      = m_transfer_queues[m_transfer_index];
+		//LOG_INFO("Transfer Index - {}", m_transfer_index);
 		m_transfer_index = (m_transfer_index + 1ull) % m_transfer_queues.size();
-		vkQueueWaitIdle(*queue);
+		queue->waitIdle();
 		return queue;
 	}
 
@@ -122,8 +122,9 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 		}
 
 		auto *queue      = m_compute_queues[m_compute_index];
+		//LOG_INFO("Compute Index - {}", m_compute_index);
 		m_compute_index = (m_compute_index + 1ull) % m_compute_queues.size();
-		vkQueueWaitIdle(*queue);
+		queue->waitIdle();
 		return queue;
 	}
 

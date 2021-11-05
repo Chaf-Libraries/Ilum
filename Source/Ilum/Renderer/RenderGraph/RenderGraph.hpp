@@ -119,5 +119,6 @@ class RenderGraph
 	bool                                   m_initialized = false;
 	PresentCallback                        onPresent;
 	CreateCallback                         onCreate;
+	std::vector<Queue *>                   m_queues;
 };
 }        // namespace Ilum

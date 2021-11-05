@@ -4,6 +4,7 @@ SetTarget(
     DEFINE
         PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}/"
         NOMINMAX
+        ENTT_USE_ATOMIC
     INC
         ${PROJECT_SOURCE_DIR}/Source/Ilum
     LIB

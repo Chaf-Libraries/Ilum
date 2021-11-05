@@ -39,5 +39,7 @@ class QueueSystem
 	uint32_t m_present_index = 0;
 	uint32_t m_compute_index = 0;
 	uint32_t m_transfer_index = 0;
+
+	std::mutex m_mutex;
 };
 }        // namespace Ilum

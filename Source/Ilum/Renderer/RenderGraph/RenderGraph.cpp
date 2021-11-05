@@ -57,9 +57,36 @@ void RenderGraph::execute(const CommandBuffer &command_buffer)
 		resolve.resolve(name, attachment);
 	}
 
+	//for (auto &node : m_nodes)
+	//{
+	//	executeNode(node, command_buffer, resolve);
+	//}
+
+	std::vector<std::future<VkSubmitInfo>> futures;
+	std::vector<VkSubmitInfo> submit_infos;
+
 	for (auto &node : m_nodes)
 	{
-		executeNode(node, command_buffer, resolve);
+		futures.push_back(ThreadPool::instance()->addTask([this, &node](size_t) { 
+			ResolveInfo resolve;
+			for (const auto &[name, attachment] : m_attachments)
+			{
+				resolve.resolve(name, attachment);
+			}
+			return executeNode(node, resolve); }));
+	}
+
+	for (auto& queue : m_queues)
+	{
+		queue->waitIdle();
+	}
+	m_queues.clear();
+	for (auto& future : futures)
+	{
+		m_queues.push_back(GraphicsContext::instance()->getQueueSystem().acquire(QueueUsage::Graphics));
+		vkQueueSubmit(*m_queues.back(), 1, &future.get(), VK_NULL_HANDLE);
+		
+		//future.get();
 	}
 }
 
@@ -202,7 +229,11 @@ VkSubmitInfo RenderGraph::executeNode(RenderGraphNode &node, ResolveInfo &resolv
 	submit_info.pSignalSemaphores    = &node.submit_info.signal_semaphore;
 	submit_info.waitSemaphoreCount   = static_cast<uint32_t>(node.submit_info.wait_semaphores.size());
 	submit_info.pWaitSemaphores      = node.submit_info.wait_semaphores.empty() ? nullptr : node.submit_info.wait_semaphores.data();
-	submit_info.pWaitDstStageMask    = node.submit_info.wait_stages.data();
+	submit_info.pWaitDstStageMask    = node.submit_info.wait_stages.empty() ? nullptr : node.submit_info.wait_stages.data();
+
+	auto *queue = GraphicsContext::instance()->getQueueSystem().acquire(QueueUsage::Graphics);
+
+	//vkQueueSubmit(*queue, 1, &submit_info, VK_NULL_HANDLE);
 
 	return submit_info;
 }
