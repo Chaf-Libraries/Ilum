@@ -8,7 +8,7 @@ class CommandBuffer;
 
 struct SubmitInfo
 {
-	VkSemaphore                       signal_semaphore;
+	VkSemaphore                       signal_semaphore = VK_NULL_HANDLE;
 	std::vector<VkSemaphore>          wait_semaphores;
 	VkFence                           fence;
 	std::vector<VkPipelineStageFlags> wait_stages;
