@@ -236,7 +236,7 @@ void RenderGraphViewer::draw(float delta_time)
 			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
 			ax::Widgets::Icon(ImVec2(12, 12), ax::Drawing::IconType::Flow, isPinLink(attachment.input.id), ImColor(255, 255, 255), ImColor(32, 32, 32, (int) (alpha * 255)));
 			ImGui::Spring(0);
-			if (Renderer::instance()->isDebug() && attachment.name != render_graph->output())
+			if (attachment.name != render_graph->output())
 			{
 				auto &image = render_graph->getAttachment(attachment.name);
 

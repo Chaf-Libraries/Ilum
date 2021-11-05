@@ -61,7 +61,7 @@ inline bool draw_vec3_control(const std::string &label, glm::vec3 &values, float
 	ImGui::PopStyleColor(3);
 
 	ImGui::SameLine();
-	update = update | ImGui::DragFloat("##X", &values.x, 0.1f, 0.0f, 0.0f, "%.2f");
+	update = update | ImGui::DragFloat("##X", &values.x, 0.1f, 0.0f, 0.0f, "%.3f");
 	ImGui::PopItemWidth();
 	ImGui::SameLine();
 
@@ -78,7 +78,7 @@ inline bool draw_vec3_control(const std::string &label, glm::vec3 &values, float
 	ImGui::PopStyleColor(3);
 
 	ImGui::SameLine();
-	update = update | ImGui::DragFloat("##Y", &values.y, 0.1f, 0.0f, 0.0f, "%.2f");
+	update = update | ImGui::DragFloat("##Y", &values.y, 0.1f, 0.0f, 0.0f, "%.3f");
 	ImGui::PopItemWidth();
 	ImGui::SameLine();
 
@@ -95,7 +95,7 @@ inline bool draw_vec3_control(const std::string &label, glm::vec3 &values, float
 	ImGui::PopStyleColor(3);
 
 	ImGui::SameLine();
-	update = update | ImGui::DragFloat("##Z", &values.z, 0.1f, 0.0f, 0.0f, "%.2f");
+	update = update | ImGui::DragFloat("##Z", &values.z, 0.1f, 0.0f, 0.0f, "%.3f");
 	ImGui::PopItemWidth();
 
 	ImGui::PopStyleVar();
@@ -367,6 +367,9 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 						    ImGui::Text("vertices count: %d", submesh.getVertexCount());
 						    ImGui::Text("indices count: %d", submesh.getIndexCount());
 						    ImGui::Text("index offset: %d", submesh.getIndexOffset());
+						    ImGui::Text("AABB bounding box:");
+						    ImGui::BulletText("min (%f, %f, %f)", submesh.getAABB().min().x, submesh.getAABB().min().y, submesh.getAABB().min().z);
+						    ImGui::BulletText("max (%f, %f, %f)", submesh.getAABB().max().x, submesh.getAABB().max().y, submesh.getAABB().max().z);
 						    ImGui::TreePop();
 					    }
 
