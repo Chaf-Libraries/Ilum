@@ -44,14 +44,13 @@ void DefaultPass::setupPipeline(PipelineState &state)
 	state.vertex_input_state.binding_descriptions = {
 	    VkVertexInputBindingDescription{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX}};
 
-	state.rasterization_state.polygon_mode = VK_POLYGON_MODE_LINE;
-	state.rasterization_state.cull_mode = VK_CULL_MODE_NONE;
-
 	state.descriptor_bindings.bind(0, 0, "DefaultPass - mainCamera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
 	state.declareAttachment(m_output, VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("depth_stencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 
 	state.addOutputAttachment(m_output, AttachmentState::Clear_Color);
+	state.addOutputAttachment("depth_stencil", VkClearDepthStencilValue{1.f, 0u});
 }
 
 void DefaultPass::resolveResources(ResolveState &resolve)
@@ -71,9 +70,9 @@ void DefaultPass::render(RenderPassState &state)
 	vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
 	vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
-	auto view = Scene::instance()->getRegistry().view<cmpt::MeshRenderer, cmpt::Transform, cmpt::Tag>();
+	const auto view = Scene::instance()->getRegistry().view<cmpt::MeshRenderer, cmpt::Transform, cmpt::Tag>();
 
-	view.each([&](cmpt::MeshRenderer &mesh_renderer, cmpt::Transform &transform, cmpt::Tag &tag) {
+	view.each([&](const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform, const cmpt::Tag &tag) {
 		if (Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model) && tag.active)
 		{
 			auto &model = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
