@@ -397,6 +397,18 @@ inline void insertPipelineBarrier(const CommandBuffer &command_buffer, const Res
 	vkCmdPipelineBarrier(command_buffer, src_pipeline_flags, dst_pipeline_flags, 0, 0, nullptr, static_cast<uint32_t>(buffer_barriers.size()), buffer_barriers.data(), static_cast<uint32_t>(image_barriers.size()), image_barriers.data());
 }
 
+inline VkSemaphore createSemaphore()
+{
+	VkSemaphore           semaphore = VK_NULL_HANDLE;
+	VkSemaphoreCreateInfo create_info{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+	create_info.pNext = nullptr;
+	create_info.flags = 0;
+
+	vkCreateSemaphore(GraphicsContext::instance()->getLogicalDevice(), &create_info, nullptr, &semaphore);
+
+	return semaphore;
+}
+
 RenderGraphBuilder &RenderGraphBuilder::addRenderPass(const std::string &name, std::unique_ptr<RenderPass> render_pass)
 {
 	m_render_pass_references.push_back({name, std::move(render_pass)});
@@ -449,12 +461,13 @@ scope<RenderGraph> RenderGraphBuilder::build()
 		auto render_pass = buildRenderPass(render_pass_reference, pipeline_states, attachments, resource_transitions);
 
 		nodes.push_back(RenderGraphNode{
-		                    render_pass_reference.name,
-		                    render_pass,
-		                    std::move(render_pass_reference.pass),
-		                    getRenderPassAttachmentNames(render_pass_reference.name, pipeline_states),
-		                    createPipelineBarrierCallback(render_pass_reference.name, pipeline_states.at(render_pass_reference.name), resource_transitions),
-		                    pipeline_states.at(render_pass_reference.name).descriptor_bindings});
+		    render_pass_reference.name,
+		    render_pass,
+		    std::move(render_pass_reference.pass),
+		    getRenderPassAttachmentNames(render_pass_reference.name, pipeline_states),
+		    createPipelineBarrierCallback(render_pass_reference.name, pipeline_states.at(render_pass_reference.name), resource_transitions),
+		    pipeline_states.at(render_pass_reference.name).descriptor_bindings//,
+		    /*synchronize_dependency.at(render_pass_reference.name)*/});
 	}
 
 	return createScope<RenderGraph>(
@@ -639,12 +652,7 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 			write_image_map[attachment_dependency.name].push_back(pass_name);
 		}
 
-		VkSemaphore           signal_semaphore = VK_NULL_HANDLE;
-		VkSemaphoreCreateInfo create_info{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-		create_info.pNext = nullptr;
-		create_info.flags = 0;
 
-		vkCreateSemaphore(GraphicsContext::instance()->getLogicalDevice(), &create_info, nullptr, &signal_semaphore);
 
 		VkFence           fence             = VK_NULL_HANDLE;
 		VkFenceCreateInfo fence_create_info = {};
@@ -654,7 +662,6 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 		vkCreateFence(GraphicsContext::instance()->getLogicalDevice(), &fence_create_info, nullptr, &fence);
 
 		SubmitInfo submit_info;
-		submit_info.signal_semaphore = signal_semaphore;
 		submit_info.fence            = fence;
 
 		synchronize_map.insert({pass_name, submit_info});
@@ -687,6 +694,11 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 
 						if (!found)
 						{
+							if (!synchronize_map[pass].signal_semaphore)
+							{
+								synchronize_map[pass].signal_semaphore = createSemaphore();
+							}
+
 							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
 							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 						}
@@ -715,6 +727,10 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 
 						if (!found)
 						{
+							if (!synchronize_map[pass].signal_semaphore)
+							{
+								synchronize_map[pass].signal_semaphore = createSemaphore();
+							}
 							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
 							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 						}
@@ -749,6 +765,10 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 
 						if (!found)
 						{
+							if (!synchronize_map[pass].signal_semaphore)
+							{
+								synchronize_map[pass].signal_semaphore = createSemaphore();
+							}
 							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
 							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 						}
@@ -769,6 +789,10 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 
 						if (!found)
 						{
+							if (!synchronize_map[pass].signal_semaphore)
+							{
+								synchronize_map[pass].signal_semaphore = createSemaphore();
+							}
 							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
 							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 						}
@@ -797,6 +821,10 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 
 						if (!found)
 						{
+							if (!synchronize_map[pass].signal_semaphore)
+							{
+								synchronize_map[pass].signal_semaphore = createSemaphore();
+							}
 							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
 							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 						}
@@ -828,6 +856,10 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 
 					if (!found)
 					{
+						if (!synchronize_map[pass].signal_semaphore)
+						{
+							synchronize_map[pass].signal_semaphore = createSemaphore();
+						}
 						synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
 						synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 					}

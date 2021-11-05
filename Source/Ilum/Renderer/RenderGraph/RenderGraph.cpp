@@ -1,6 +1,7 @@
 #include "RenderGraph.hpp"
 
 #include "Device/LogicalDevice.hpp"
+#include "Device/Swapchain.hpp"
 
 #include "Threading/ThreadPool.hpp"
 
@@ -16,6 +17,8 @@ RenderGraph::RenderGraph(std::vector<RenderGraphNode> &&nodes, std::unordered_ma
 
 RenderGraph::~RenderGraph()
 {
+	vkDeviceWaitIdle(GraphicsContext::instance()->getLogicalDevice());
+
 	for (auto &node : m_nodes)
 	{
 		if (node.pass_native.frame_buffer)
@@ -159,5 +162,48 @@ void RenderGraph::executeNode(RenderGraphNode &node, const CommandBuffer &comman
 		node.pass->render(state);
 		command_buffer.endRenderPass();
 	}
+}
+
+VkSubmitInfo RenderGraph::executeNode(RenderGraphNode &node, ResolveInfo &resolve)
+{
+	// TODO: Multi thread rendering
+	//vkWaitForFences(GraphicsContext::instance()->getLogicalDevice(), 1, &node.submit_info.fence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+	//vkResetFences(GraphicsContext::instance()->getLogicalDevice(), 1, &node.submit_info.fence);
+
+	auto &command_buffer = GraphicsContext::instance()->acquireCommandBuffer(node.pass_native.bind_point == VK_PIPELINE_BIND_POINT_COMPUTE ? QueueUsage::Compute : QueueUsage::Graphics);
+	command_buffer.begin();
+	VK_Debugger::setName(command_buffer, ("Command Buffer - " + node.name).c_str());
+	if (node.submit_info.signal_semaphore)
+	{
+		VK_Debugger::setName(node.submit_info.signal_semaphore, ("Semaphore - " + node.name).c_str());
+	}
+	RenderPassState state{*this, command_buffer, node.pass_native};
+
+	node.pass->resolveResources(resolve);
+	node.descriptors.resolve(resolve);
+	node.descriptors.write(node.pass_native.descriptor_sets);
+
+	// Insert pipeline barrier
+	node.pipeline_barrier_callback(command_buffer, resolve);
+
+	if (command_buffer.beginRenderPass(state.pass))
+	{
+		node.pass->render(state);
+		command_buffer.endRenderPass();
+	}
+
+	command_buffer.end();
+
+	VkSubmitInfo submit_info         = {};
+	submit_info.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submit_info.commandBufferCount   = 1;
+	submit_info.pCommandBuffers      = &command_buffer.getCommandBuffer();
+	submit_info.signalSemaphoreCount = node.submit_info.signal_semaphore ? 1 : 0;
+	submit_info.pSignalSemaphores    = &node.submit_info.signal_semaphore;
+	submit_info.waitSemaphoreCount   = static_cast<uint32_t>(node.submit_info.wait_semaphores.size());
+	submit_info.pWaitSemaphores      = node.submit_info.wait_semaphores.empty() ? nullptr : node.submit_info.wait_semaphores.data();
+	submit_info.pWaitDstStageMask    = node.submit_info.wait_stages.data();
+
+	return submit_info;
 }
 }        // namespace Ilum
