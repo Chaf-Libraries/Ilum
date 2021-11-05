@@ -47,10 +47,11 @@ void TransformUpdate::run()
 		}
 	});
 
-	auto                      group = Scene::instance()->getRegistry().group<cmpt::Transform, cmpt::Hierarchy>();
-	std::vector<entt::entity> roots;
 	if (need_update)
 	{
+		auto                      group = Scene::instance()->getRegistry().group<cmpt::Transform, cmpt::Hierarchy>();
+		std::vector<entt::entity> roots;
+
 		// Find roots
 		for (auto &entity : group)
 		{
