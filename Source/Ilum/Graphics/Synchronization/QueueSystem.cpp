@@ -54,6 +54,8 @@ QueueSystem::QueueSystem()
 	{
 		m_compute_queues.push_back(lut[queue]);
 	}
+
+	m_present_index = static_cast<uint32_t>(m_present_queues.size()) - 1;
 }
 
 void QueueSystem::waitAll() const
@@ -66,8 +68,6 @@ void QueueSystem::waitAll() const
 
 Queue *QueueSystem::acquire(QueueUsage usage)
 {
-	size_t index = 0;
-
 	if (usage == QueueUsage::Present)
 	{
 		if (m_present_queues.empty())
@@ -75,12 +75,16 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 			return nullptr;
 		}
 
-		auto *queue = m_present_queues[index];
-		while (queue->isBusy())
+		auto *queue = m_present_queues[m_present_index];
+		if (m_present_index > 0)
 		{
-			index = (index + 1ull) % m_present_queues.size();
-			queue = m_present_queues[index];
+			m_present_index--;
 		}
+		else
+		{
+			m_present_index = static_cast<uint32_t>(m_present_queues.size()) - 1;
+		}
+		vkQueueWaitIdle(*queue);
 		return queue;
 	}
 
@@ -91,34 +95,35 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 			return nullptr;
 		}
 
-		auto *queue = m_graphics_queues[index];
-		while (queue->isBusy())
-		{
-			index = (index + 1ull) % m_graphics_queues.size();
-			queue = m_graphics_queues[index];
-		}
+		auto *queue     = m_graphics_queues[m_graphics_index];
+		m_graphics_index = (m_graphics_index + 1ull) % m_graphics_queues.size();
+		vkQueueWaitIdle(*queue);
 		return queue;
 	}
 
 	if (usage == QueueUsage::Transfer)
 	{
-		auto *queue =m_transfer_queues[index];
-		while (queue->isBusy())
+		if (m_transfer_queues.empty())
 		{
-			index = (index + 1ull) % m_transfer_queues.size();
-			queue = m_transfer_queues[index];
+			return nullptr;
 		}
+
+		auto *queue      = m_transfer_queues[m_transfer_index];
+		m_transfer_index = (m_transfer_index + 1ull) % m_transfer_queues.size();
+		vkQueueWaitIdle(*queue);
 		return queue;
 	}
 
 	if (usage == QueueUsage::Compute)
 	{
-		auto *queue = !m_compute_queues.empty() ? m_compute_queues[index] : m_graphics_queues[index];
-		while (queue->isBusy())
+		if (m_compute_queues.empty())
 		{
-			index = (index + 1ull) % m_compute_queues.size();
-			queue = m_compute_queues[index];
+			return nullptr;
 		}
+
+		auto *queue      = m_compute_queues[m_compute_index];
+		m_compute_index = (m_compute_index + 1ull) % m_compute_queues.size();
+		vkQueueWaitIdle(*queue);
 		return queue;
 	}
 

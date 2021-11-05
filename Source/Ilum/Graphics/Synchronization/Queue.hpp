@@ -39,8 +39,6 @@ class Queue
 
 	void waitIdle();
 
-	bool isBusy() const;
-
 	const VkQueue &getQueue() const;
 
 	operator const VkQueue &() const;
@@ -48,6 +46,5 @@ class Queue
   private:
 	VkQueue    m_handle = VK_NULL_HANDLE;
 	std::mutex m_mutex;
-	bool       m_busy = false;
 };
 }        // namespace Ilum

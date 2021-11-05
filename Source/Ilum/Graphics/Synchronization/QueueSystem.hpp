@@ -34,5 +34,10 @@ class QueueSystem
 	std::vector<Queue *>      m_present_queues;
 	std::vector<Queue *>      m_compute_queues;
 	std::vector<Queue *>      m_transfer_queues;
+
+	uint32_t m_graphics_index = 0;
+	uint32_t m_present_index = 0;
+	uint32_t m_compute_index = 0;
+	uint32_t m_transfer_index = 0;
 };
 }        // namespace Ilum
