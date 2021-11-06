@@ -4,6 +4,8 @@
 
 #include "Editor/Panel.hpp"
 
+#include "Graphics/Image/Image.hpp"
+
 namespace Ilum::panel
 {
 class SceneView : public Panel
@@ -18,10 +20,17 @@ class SceneView : public Panel
   private:
 	void updateMainCamera(float delta_time);
 
-  private:
 	void onResize(VkExtent2D extent);
 
-	bool m_cursor_hidden = false;
+	void showToolBar();
+
+  private:
+	bool                        m_cursor_hidden = false;
 	std::pair<int32_t, int32_t> m_last_position;
+
+	uint32_t m_guizmo_operation = 0;
+	bool     m_grid             = true;
+
+	std::unordered_map<std::string, Image> m_icons;
 };
 }        // namespace Ilum::panel

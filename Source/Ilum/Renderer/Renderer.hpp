@@ -115,10 +115,10 @@ class Renderer : public TSubsystem<Renderer>
 	{
 		cmpt::Camera camera;
 
-		glm::vec3 position = {0.f, 0.f, 0.f};
+		glm::vec3 position = {-10.f, 10.f, -10.f};
 
-		float pitch = 0.f;
-		float yaw   = 0.f;
+		float pitch = -glm::radians(45.f);
+		float yaw   = glm::radians(45.f);
 
 		glm::vec3 front = {1.f, 0.f, 0.f};
 		glm::vec3 right = {0.f, 0.f, 1.f};
