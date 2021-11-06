@@ -150,12 +150,6 @@ void SceneView::draw(float delta_time)
 			auto &main_camera                      = Renderer::instance()->Main_Camera;
 			main_camera.view  = view;
 
-			// Decompose view matrix
-			//main_camera.right    = glm::vec3(main_camera.view[0][0], main_camera.view[1][0], main_camera.view[2][0]);
-			//main_camera.up       = glm::vec3(main_camera.view[0][1], main_camera.view[1][1], main_camera.view[2][1]);
-			//main_camera.front    = glm::vec3(main_camera.view[0][2], main_camera.view[1][2], main_camera.view[2][2]);
-			//main_camera.position = glm::inverse(main_camera.view) * glm::vec4(0.f, 0.f, -1.f, 0.f);
-
 			main_camera.yaw   = std::atan2f(main_camera.view[2][2], main_camera.view[0][2]);
 			if (main_camera.yaw < 0.f)
 			{
@@ -163,8 +157,6 @@ void SceneView::draw(float delta_time)
 			}
 
 			main_camera.pitch = std::asinf(-main_camera.view[1][2]);
-
-			LOG_INFO("Yaw: {}", glm::degrees(main_camera.yaw));
 
 			main_camera.front.x = std::cosf(main_camera.pitch) * std::cosf(main_camera.yaw);
 			main_camera.front.y = std::sinf(main_camera.pitch);
@@ -218,8 +210,11 @@ void SceneView::updateMainCamera(float delta_time)
 		if (delta_y != 0)
 		{
 			main_camera.pitch -= main_camera.sensitivity * delta_time * static_cast<float>(delta_y);
+			main_camera.pitch = glm::clamp(main_camera.pitch, glm::radians(-90.f), glm::radians(90.f));
 			update = true;
 		}
+
+		LOG_INFO("Yaw: {}, Pitch: {}", main_camera.yaw, main_camera.pitch);
 
 		if (update)
 		{
