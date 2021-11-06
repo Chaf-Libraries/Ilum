@@ -51,17 +51,27 @@ ReflectionData &ReflectionData::operator+=(const ReflectionData &rhs)
 
 	for (auto &image : rhs.images)
 	{
-		if (std::find_if(images.begin(), images.end(), [image](const Image &img) { return image.binding == img.binding && image.set == img.set; }) == images.end())
+		auto iter = std::find_if(images.begin(), images.end(), [image](const Image &img) { return image.binding == img.binding && image.set == img.set; });
+		if (iter == images.end())
 		{
 			images.push_back(image);
+		}
+		else
+		{
+			iter->stage |= image.stage;
 		}
 	}
 
 	for (auto &buffer : rhs.buffers)
 	{
-		if (std::find_if(buffers.begin(), buffers.end(), [buffer](const Buffer &buf) { return buffer.binding == buf.binding && buffer.set == buf.set; }) == buffers.end())
+		auto iter = std::find_if(buffers.begin(), buffers.end(), [buffer](const Buffer &buf) { return buffer.binding == buf.binding && buffer.set == buf.set; });
+		if (iter == buffers.end())
 		{
 			buffers.push_back(buffer);
+		}
+		else
+		{
+			iter->stage |= buffer.stage;
 		}
 	}
 

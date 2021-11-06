@@ -6,8 +6,8 @@
 #include "Renderer/Renderer.hpp"
 
 #include "Scene/Component/MeshRenderer.hpp"
-#include "Scene/Component/Transform.hpp"
 #include "Scene/Component/Tag.hpp"
+#include "Scene/Component/Transform.hpp"
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
@@ -68,12 +68,14 @@ void GeometryPass::render(RenderPassState &state)
 	vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
 	vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
-	auto view = Scene::instance()->getRegistry().view<cmpt::MeshRenderer, cmpt::Transform, cmpt::Tag>();
+	Scene::instance()->getRegistry().each([](entt::entity) {});
 
-	view.each([&](cmpt::MeshRenderer &mesh_renderer, cmpt::Transform&transform, cmpt::Tag& tag) {
+	const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform, cmpt::Tag>);
+
+	group.each([&](const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform, const cmpt::Tag &tag) {
 		if (Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model) && tag.active)
 		{
-			auto &       model      = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
+			auto &model = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
 
 			VkDeviceSize offsets[1] = {0};
 			vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &model.get().getVertexBuffer().get().getBuffer(), offsets);

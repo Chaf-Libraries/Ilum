@@ -21,8 +21,6 @@ void Queue::submit(const CommandBuffer &command_buffer,
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
-	m_busy = true;
-
 	VkSubmitInfo submit_info       = {};
 	submit_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submit_info.commandBufferCount = 1;
@@ -45,11 +43,8 @@ void Queue::submit(const CommandBuffer &command_buffer,
 	if (!VK_CHECK(vkQueueSubmit(m_handle, 1, &submit_info, fence)))
 	{
 		VK_ERROR("Failed to submit queue!");
-		m_busy = false;
 		return;
 	}
-
-	m_busy = false;
 }
 
 void Queue::submit(const CommandBuffer &                    command_buffer,
@@ -59,8 +54,6 @@ void Queue::submit(const CommandBuffer &                    command_buffer,
                    const std::vector<VkPipelineStageFlags> &wait_stages)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
-
-	m_busy = true;
 
 	VkSubmitInfo submit_info       = {};
 	submit_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -84,10 +77,8 @@ void Queue::submit(const CommandBuffer &                    command_buffer,
 	if (!VK_CHECK(vkQueueSubmit(m_handle, 1, &submit_info, fence)))
 	{
 		VK_ERROR("Failed to submit queue!");
-		m_busy = false;
 		return;
 	}
-	m_busy = false;
 }
 
 void Queue::submit(const CommandBuffer &command_buffer, const SubmitInfo &submit_info)
@@ -98,8 +89,6 @@ void Queue::submit(const CommandBuffer &command_buffer, const SubmitInfo &submit
 void Queue::submitIdle(const CommandBuffer &command_buffer)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
-
-	m_busy = true;
 
 	VkSubmitInfo submit_info       = {};
 	submit_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -116,13 +105,10 @@ void Queue::submitIdle(const CommandBuffer &command_buffer)
 	if (!VK_CHECK(vkQueueSubmit(m_handle, 1, &submit_info, fence)))
 	{
 		VK_ERROR("Failed to submit queue!");
-		m_busy = false;
 		return;
 	}
 
 	fence.wait();
-
-	m_busy = false;
 }
 
 void Queue::waitIdle()
@@ -130,11 +116,6 @@ void Queue::waitIdle()
 	std::lock_guard<std::mutex> lock(m_mutex);
 
 	vkQueueWaitIdle(m_handle);
-}
-
-bool Queue::isBusy() const
-{
-	return m_busy;
 }
 
 const VkQueue &Queue::getQueue() const

@@ -7,6 +7,10 @@ SubMesh::SubMesh(std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices
     m_indices(std::move(indices)),
     m_index_offset(index_offset)
 {
+	for (auto& vertex : m_vertices)
+	{
+		m_aabb.add(vertex.position);
+	}
 }
 
 uint32_t SubMesh::getVertexCount() const
@@ -32,7 +36,8 @@ const std::vector<Vertex> &SubMesh::getVertices() const
 SubMesh::SubMesh(SubMesh &&other) noexcept :
     m_vertices(std::move(other.m_vertices)),
     m_indices(std::move(other.m_indices)),
-    m_index_offset(other.m_index_offset)
+    m_index_offset(other.m_index_offset),
+    m_aabb(other.m_aabb)
 {
 	other.m_vertices.clear();
 	other.m_indices.clear();
@@ -44,6 +49,7 @@ SubMesh &SubMesh::operator=(SubMesh &&other) noexcept
 	m_vertices       = std::move(other.m_vertices);
 	m_indices        = std::move(other.m_indices);
 	m_index_offset   = other.m_index_offset;
+	m_aabb           = other.m_aabb;
 
 	other.m_vertices.clear();
 	other.m_indices.clear();
@@ -55,5 +61,10 @@ SubMesh &SubMesh::operator=(SubMesh &&other) noexcept
 const std::vector<uint32_t> &SubMesh::getIndices() const
 {
 	return m_indices;
+}
+
+const AABB &SubMesh::getAABB() const
+{
+	return m_aabb;
 }
 }        // namespace Ilum

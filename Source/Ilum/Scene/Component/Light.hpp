@@ -19,6 +19,8 @@ struct Light
 	Image                shadow_map;
 	std::array<Image, 6> shadow_cube;
 
+
+
 	// Light type
 	LightType type = LightType::Directional;
 };

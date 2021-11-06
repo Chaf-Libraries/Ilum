@@ -109,6 +109,8 @@ class RenderGraph
 
 	void executeNode(RenderGraphNode &node, const CommandBuffer &command_buffer, ResolveInfo &resolve);
 
+	VkSubmitInfo executeNode(RenderGraphNode &node, ResolveInfo &resolve);
+
   private:
 	std::vector<RenderGraphNode>           m_nodes;
 	std::unordered_map<std::string, Image> m_attachments;
@@ -117,5 +119,6 @@ class RenderGraph
 	bool                                   m_initialized = false;
 	PresentCallback                        onPresent;
 	CreateCallback                         onCreate;
+	std::vector<Queue *>                   m_queues;
 };
 }        // namespace Ilum

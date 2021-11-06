@@ -9,7 +9,6 @@
 #include <Device/Input.hpp>
 
 #include "Renderer/RenderGraph/RenderPass.hpp"
-#include "Renderer/RenderPass/DebugPass.hpp"
 #include "Renderer/RenderPass/ImGuiPass.hpp"
 #include "Renderer/Renderer.hpp"
 
@@ -78,13 +77,15 @@ class TexturePass : public TRenderPass<TexturePass>
 		state.vertex_input_state.binding_descriptions = {
 		    VkVertexInputBindingDescription{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX}};
 
+		state.rasterization_state.cull_mode = VK_CULL_MODE_NONE;
+
 		state.descriptor_bindings.bind(0, 0, "tex", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
-		state.declareAttachment("output", GraphicsContext::instance()->getSurface().getFormat().format);
-		state.declareAttachment("depth_stencil", VK_FORMAT_D32_SFLOAT_S8_UINT);
+		state.declareAttachment("TexturePass - output", GraphicsContext::instance()->getSurface().getFormat().format);
+		state.declareAttachment("TexturePass - depth_stencil", VK_FORMAT_D32_SFLOAT_S8_UINT);
 
-		state.addOutputAttachment("output", AttachmentState::Clear_Color);
-		state.addOutputAttachment("depth_stencil", AttachmentState::Clear_Depth_Stencil);
+		state.addOutputAttachment("TexturePass - output", AttachmentState::Clear_Color);
+		state.addOutputAttachment("TexturePass - depth_stencil", AttachmentState::Clear_Depth_Stencil);
 	}
 
 	virtual void resolveResources(ResolveState &resolve)
@@ -137,11 +138,10 @@ int main()
 
 	auto title = Window::instance()->getTitle();
 
-	Renderer::instance()->setDebug(false);
 	Renderer::instance()->setImGui(false);
 
 	Renderer::instance()->buildRenderGraph = [](RenderGraphBuilder &builder) {
-		builder.addRenderPass("TexturePass", std::make_unique<TexturePass>()).setView("output").setOutput("output");
+		builder.addRenderPass("TexturePass", std::make_unique<TexturePass>()).setView("TexturePass - output").setOutput("TexturePass - output");
 	};
 
 	Renderer::instance()->rebuild();

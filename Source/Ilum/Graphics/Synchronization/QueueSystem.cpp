@@ -5,6 +5,8 @@
 
 #include "Device/LogicalDevice.hpp"
 
+#include "Graphics/Vulkan/VK_Debugger.h"
+
 namespace Ilum
 {
 QueueSystem::QueueSystem()
@@ -42,9 +44,11 @@ QueueSystem::QueueSystem()
 	{
 		m_present_queues.push_back(lut[queue]);
 	}
+	uint32_t i = 0;
 	for (auto &queue : GraphicsContext::instance()->getLogicalDevice().getGraphicsQueues())
 	{
 		m_graphics_queues.push_back(lut[queue]);
+		VK_Debugger::setName(*lut[queue], std::to_string(i++).c_str());
 	}
 	for (auto &queue : GraphicsContext::instance()->getLogicalDevice().getTransferQueues())
 	{
@@ -66,7 +70,7 @@ void QueueSystem::waitAll() const
 
 Queue *QueueSystem::acquire(QueueUsage usage)
 {
-	size_t index = 0;
+	std::lock_guard<std::mutex> lock(m_mutex);
 
 	if (usage == QueueUsage::Present)
 	{
@@ -75,12 +79,10 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 			return nullptr;
 		}
 
-		auto *queue = m_present_queues[index];
-		while (queue->isBusy())
-		{
-			index = (index + 1ull) % m_present_queues.size();
-			queue = m_present_queues[index];
-		}
+		auto *queue = m_present_queues[m_present_index];
+		//LOG_INFO("Present Index - {}", m_present_index);
+		m_present_index = (m_present_index + 1ull) % m_present_queues.size();
+		queue->waitIdle();
 		return queue;
 	}
 
@@ -91,34 +93,38 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 			return nullptr;
 		}
 
-		auto *queue = m_graphics_queues[index];
-		while (queue->isBusy())
-		{
-			index = (index + 1ull) % m_graphics_queues.size();
-			queue = m_graphics_queues[index];
-		}
+		auto *queue     = m_graphics_queues[m_graphics_index];
+		//LOG_INFO("Graphics Index - {}", m_graphics_index);
+		m_graphics_index = (m_graphics_index + 1ull) % m_graphics_queues.size();
+		queue->waitIdle();
 		return queue;
 	}
 
 	if (usage == QueueUsage::Transfer)
 	{
-		auto *queue =m_transfer_queues[index];
-		while (queue->isBusy())
+		if (m_transfer_queues.empty())
 		{
-			index = (index + 1ull) % m_transfer_queues.size();
-			queue = m_transfer_queues[index];
+			return nullptr;
 		}
+
+		auto *queue      = m_transfer_queues[m_transfer_index];
+		//LOG_INFO("Transfer Index - {}", m_transfer_index);
+		m_transfer_index = (m_transfer_index + 1ull) % m_transfer_queues.size();
+		queue->waitIdle();
 		return queue;
 	}
 
 	if (usage == QueueUsage::Compute)
 	{
-		auto *queue = !m_compute_queues.empty() ? m_compute_queues[index] : m_graphics_queues[index];
-		while (queue->isBusy())
+		if (m_compute_queues.empty())
 		{
-			index = (index + 1ull) % m_compute_queues.size();
-			queue = m_compute_queues[index];
+			return nullptr;
 		}
+
+		auto *queue      = m_compute_queues[m_compute_index];
+		//LOG_INFO("Compute Index - {}", m_compute_index);
+		m_compute_index = (m_compute_index + 1ull) % m_compute_queues.size();
+		queue->waitIdle();
 		return queue;
 	}
 

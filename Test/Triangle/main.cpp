@@ -49,6 +49,8 @@ class TrianglePass : public TRenderPass<TrianglePass>
 		    VK_DYNAMIC_STATE_VIEWPORT,
 		    VK_DYNAMIC_STATE_SCISSOR};
 
+		state.rasterization_state.cull_mode = VK_CULL_MODE_NONE;
+
 		state.vertex_input_state.attribute_descriptions = {
 		    VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, pos)},
 		    VkVertexInputAttributeDescription{1, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, uv)},
@@ -112,11 +114,10 @@ int main()
 
 	Renderer::instance()->resetBuilder();
 
-	Renderer::instance()->setDebug(false);
 	Renderer::instance()->setImGui(false);
 
 	Renderer::instance()->buildRenderGraph = [](RenderGraphBuilder &builder) {
-		builder.addRenderPass("TrianglePass", std::make_unique<TrianglePass>()).setView("output");
+		builder.addRenderPass("TrianglePass", std::make_unique<TrianglePass>()).setView("output").setOutput("output");
 	};
 
 	Renderer::instance()->rebuild();

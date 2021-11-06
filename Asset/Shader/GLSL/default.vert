@@ -28,7 +28,7 @@ void main() {
     gl_Position = main_camera.view_projection*model.model*vec4(inPos, 1.0);
     outPos = vec3(model.model*vec4(inPos, 1.0));
     outUV = inUV;
-    outNormal = inNormal;
-    outTangent = inTangent;
-    outBiTangent = inBiTangent;
+    outNormal = mat3(transpose(inverse(model.model)))*inNormal;
+    outTangent = mat3(transpose(inverse(model.model)))*inTangent;
+    outBiTangent = mat3(transpose(inverse(model.model)))*inBiTangent;
 }

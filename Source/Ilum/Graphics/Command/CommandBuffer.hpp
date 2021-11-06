@@ -36,6 +36,10 @@ class CommandBuffer
 
 	~CommandBuffer();
 
+	CommandBuffer(const CommandBuffer &) = delete;
+
+	CommandBuffer &operator=(const CommandBuffer &) = delete;
+
 	void reset() const;
 
 	bool begin(VkCommandBufferUsageFlagBits usage = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT) const;

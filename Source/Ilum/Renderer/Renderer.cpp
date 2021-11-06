@@ -1,7 +1,6 @@
 #include "Renderer.hpp"
 #include "RenderGraph/RenderGraph.hpp"
 
-#include "Renderer/RenderPass/DebugPass.hpp"
 #include "Renderer/RenderPass/ImGuiPass.hpp"
 
 #include "Device/Swapchain.hpp"
@@ -38,6 +37,7 @@ Renderer::Renderer(Context *context) :
 
 Renderer::~Renderer()
 {
+
 }
 
 bool Renderer::onInitialize()
@@ -92,7 +92,9 @@ void Renderer::onPostTick()
 
 void Renderer::onShutdown()
 {
+	vkDeviceWaitIdle(GraphicsContext::instance()->getLogicalDevice());
 	m_samplers.clear();
+	m_buffers.clear();
 }
 
 const RenderGraph *Renderer::getRenderGraph() const
@@ -128,30 +130,11 @@ void Renderer::rebuild()
 	{
 		ImGuiContext::flush();
 
-		if (m_debug && !m_rg_builder.empty())
-		{
-			m_rg_builder.addRenderPass("DebugPass", createScope<pass::DebugPass>());
-		}
-
 		m_rg_builder.addRenderPass("ImGuiPass", createScope<pass::ImGuiPass>("imgui_output", m_rg_builder.view(), AttachmentState::Clear_Color)).setOutput("imgui_output");
 	}
 
 	m_render_graph = m_rg_builder.build();
 	Event_RenderGraph_Rebuild.invoke();
-}
-
-bool Renderer::isDebug() const
-{
-	return m_debug;
-}
-
-void Renderer::setDebug(bool enable)
-{
-	if (m_debug != enable)
-	{
-		m_debug = enable;
-		rebuild();
-	}
 }
 
 bool Renderer::hasImGui() const
