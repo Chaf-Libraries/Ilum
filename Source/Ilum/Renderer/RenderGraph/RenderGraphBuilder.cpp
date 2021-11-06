@@ -440,7 +440,7 @@ scope<RenderGraph> RenderGraphBuilder::build()
 
 	// - Create synchronize dependency
 	// TODO: Fixing multi-threading rendering
-	auto synchronize_dependency = createSynchronizeDependency(pipeline_states);
+	//auto synchronize_dependency = createSynchronizeDependency(pipeline_states);
 
 	// - Resolve resource transitions
 	auto resource_transitions = resolveResourceTransitions(pipeline_states);
@@ -466,8 +466,8 @@ scope<RenderGraph> RenderGraphBuilder::build()
 		    std::move(render_pass_reference.pass),
 		    getRenderPassAttachmentNames(render_pass_reference.name, pipeline_states),
 		    createPipelineBarrierCallback(render_pass_reference.name, pipeline_states.at(render_pass_reference.name), resource_transitions),
-		    pipeline_states.at(render_pass_reference.name).descriptor_bindings,
-		    synchronize_dependency.at(render_pass_reference.name)});
+		    pipeline_states.at(render_pass_reference.name).descriptor_bindings/*,
+		    synchronize_dependency.at(render_pass_reference.name)*/});
 	}
 
 	return createScope<RenderGraph>(

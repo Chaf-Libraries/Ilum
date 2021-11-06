@@ -57,12 +57,13 @@ void RenderGraph::execute(const CommandBuffer &command_buffer)
 		resolve.resolve(name, attachment);
 	}
 
-	//for (auto &node : m_nodes)
-	//{
-	//	executeNode(node, command_buffer, resolve);
-	//}
+	for (auto &node : m_nodes)
+	{
+		executeNode(node, command_buffer, resolve);
+	}
 
-	std::vector<std::future<VkSubmitInfo>> futures;
+	// TODO: Multi-threading not working
+	/*std::vector<std::future<VkSubmitInfo>> futures;
 	std::vector<VkSubmitInfo> submit_infos;
 
 	for (auto &node : m_nodes)
@@ -85,9 +86,7 @@ void RenderGraph::execute(const CommandBuffer &command_buffer)
 	{
 		m_queues.push_back(GraphicsContext::instance()->getQueueSystem().acquire(QueueUsage::Graphics));
 		vkQueueSubmit(*m_queues.back(), 1, &future.get(), VK_NULL_HANDLE);
-		
-		//future.get();
-	}
+	}*/
 }
 
 void RenderGraph::present(const CommandBuffer &command_buffer, const Image &present_image)

@@ -72,29 +72,29 @@ void DefaultPass::render(RenderPassState &state)
 
 	Scene::instance()->getRegistry().each([](entt::entity) {});
 
-	//const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform, cmpt::Tag>);
+	const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform, cmpt::Tag>);
 
-	//group.each([&](const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform, const cmpt::Tag &tag) {
-	//	if (Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model) && tag.active)
-	//	{
-	//		auto &model = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
+	group.each([&](const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform, const cmpt::Tag &tag) {
+		if (Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model) && tag.active)
+		{
+			auto &model = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
 
-	//		VkDeviceSize offsets[1] = {0};
-	//		vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &model.get().getVertexBuffer().get().getBuffer(), offsets);
-	//		vkCmdBindIndexBuffer(cmd_buffer, model.get().getIndexBuffer().get().getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+			VkDeviceSize offsets[1] = {0};
+			vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &model.get().getVertexBuffer().get().getBuffer(), offsets);
+			vkCmdBindIndexBuffer(cmd_buffer, model.get().getIndexBuffer().get().getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-	//		// Model transform push constants
-	//		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), glm::value_ptr(transform.world_transform));
+			// Model transform push constants
+			vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), glm::value_ptr(transform.world_transform));
 
-	//		for (uint32_t i = 0; i < model.get().getSubMeshes().size(); i++)
-	//		{
-	//			if (!mesh_renderer.materials[i])
-	//			{
-	//				const auto &submesh = model.get().getSubMeshes()[i];
-	//				vkCmdDrawIndexed(cmd_buffer, submesh.getIndexCount(), 1, submesh.getIndexOffset(), 0, 0);
-	//			}
-	//		}
-	//	}
-	//});
+			for (uint32_t i = 0; i < model.get().getSubMeshes().size(); i++)
+			{
+				if (!mesh_renderer.materials[i])
+				{
+					const auto &submesh = model.get().getSubMeshes()[i];
+					vkCmdDrawIndexed(cmd_buffer, submesh.getIndexCount(), 1, submesh.getIndexOffset(), 0, 0);
+				}
+			}
+		}
+	});
 }
 }        // namespace Ilum::pass

@@ -19,7 +19,7 @@ void main()
     float ambient = 0.1;
 
     vec3 norm = normalize(inNormal);
-    vec3 light_dir = normalize(vec3(0.0)-inPos);
+    vec3 light_dir = normalize(vec3(-1,-1,-1));
 
     vec3 diffuse = vec3(max(dot(norm, light_dir), 0.0));
 
