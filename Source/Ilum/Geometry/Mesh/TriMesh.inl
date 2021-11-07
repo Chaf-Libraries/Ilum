@@ -1,6 +1,6 @@
 #include "TriMesh.hpp"
 
-namespace Ilum
+namespace Ilum::geometry
 {
 template <typename Vertex>
 TriMesh<Vertex>::TriMesh(std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices) :
