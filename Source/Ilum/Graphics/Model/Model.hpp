@@ -13,7 +13,7 @@ class Model
 
 	Model(std::vector<SubMesh> &&submeshes);
 
-	~Model() = default;
+	~Model();
 
 	Model(const Model &) = delete;
 

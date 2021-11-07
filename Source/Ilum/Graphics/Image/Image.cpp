@@ -391,6 +391,8 @@ void Image::create()
 
 void Image::destroy()
 {
+	GraphicsContext::instance()->getQueueSystem().waitAll();
+
 	if (m_handle)
 	{
 		if (m_allocation)

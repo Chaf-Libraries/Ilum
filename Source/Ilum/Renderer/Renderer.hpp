@@ -2,6 +2,8 @@
 
 #include "Utils/PCH.hpp"
 
+#include "Camera.hpp"
+
 #include "Engine/Context.hpp"
 #include "Engine/Subsystem.hpp"
 
@@ -13,8 +15,6 @@
 #include "RenderGraph/RenderGraphBuilder.hpp"
 
 #include "Loader/ResourceCache.hpp"
-
-#include "Scene/Component/Camera.hpp"
 
 #include <glm/glm.hpp>
 
@@ -111,25 +111,7 @@ class Renderer : public TSubsystem<Renderer>
 	uint32_t m_texture_count = 0;
 
   public:
-	struct
-	{
-		cmpt::Camera camera;
-
-		glm::vec3 position = {-10.f, 10.f, -10.f};
-
-		float pitch = -glm::radians(45.f);
-		float yaw   = glm::radians(45.f);
-
-		glm::vec3 front = {1.f, 0.f, 0.f};
-		glm::vec3 right = {0.f, 0.f, 1.f};
-		glm::vec3 up    = {0.f, 1.f, 0.f};
-
-		glm::mat4 view       = glm::mat4(1.f);
-		glm::mat4 projection = glm::perspective(glm::radians(camera.fov), camera.aspect, camera.near, camera.far);
-
-		float speed       = 5.f;
-		float sensitivity = 0.5f;
-	} Main_Camera;
+	Camera Main_Camera;
 
 	struct CameraBuffer
 	{

@@ -60,12 +60,11 @@ QueueSystem::QueueSystem()
 	}
 }
 
-void QueueSystem::waitAll() const
+void QueueSystem::waitAll()
 {
-	for (auto &queue : m_queues)
-	{
-		queue->waitIdle();
-	}
+	std::lock_guard<std::mutex> lock(m_mutex);
+
+	vkDeviceWaitIdle(GraphicsContext::instance()->getLogicalDevice());
 }
 
 Queue *QueueSystem::acquire(QueueUsage usage)

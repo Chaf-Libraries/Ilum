@@ -4,8 +4,8 @@
 
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/GraphicsContext.hpp"
-#include "Graphics/Synchronization/QueueSystem.hpp"
 #include "Graphics/Synchronization/Queue.hpp"
+#include "Graphics/Synchronization/QueueSystem.hpp"
 
 #include "Threading/ThreadPool.hpp"
 
@@ -17,21 +17,26 @@ Model::Model(std::vector<SubMesh> &&submeshes) :
 	createBuffer();
 }
 
+Model ::~Model()
+{
+	GraphicsContext::instance()->getQueueSystem().waitAll();
+}
+
 Model::Model(Model &&other) noexcept :
-    m_submeshes(std::move(other.m_submeshes))
+    m_submeshes(std::move(other.m_submeshes)),
+    m_vertex_buffer(std::move(other.m_vertex_buffer)),
+    m_index_buffer(std::move(other.m_index_buffer))
 {
 	other.m_submeshes.clear();
-
-	createBuffer();
 }
 
 Model &Model::operator=(Model &&other) noexcept
 {
-	m_submeshes = std::move(other.m_submeshes);
+	m_submeshes     = std::move(other.m_submeshes);
+	m_vertex_buffer = std::move(other.m_vertex_buffer);
+	m_index_buffer  = std::move(other.m_index_buffer);
 
 	other.m_submeshes.clear();
-
-	createBuffer();
 
 	return *this;
 }

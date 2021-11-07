@@ -131,7 +131,7 @@ void ImGuiContext::releaseResource()
 {
 	if (s_enable)
 	{
-		vkDeviceWaitIdle(GraphicsContext::instance()->getLogicalDevice());
+		GraphicsContext::instance()->getQueueSystem().waitAll();
 		ImGui_ImplVulkan_Shutdown();
 		ImGui_ImplSDL2_Shutdown();
 		ImGui::DestroyContext();

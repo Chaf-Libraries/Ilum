@@ -11,7 +11,6 @@
 #include <Ilum/Renderer/RenderPass/DefaultPass.hpp>
 #include <Ilum/Renderer/RenderPass/GeometryPass.hpp>
 #include <Ilum/Renderer/Renderer.hpp>
-#include <Ilum/Scene/Component/Camera.hpp>
 #include <Ilum/Scene/Component/Hierarchy.hpp>
 #include <Ilum/Scene/Component/MeshRenderer.hpp>
 #include <Ilum/Scene/Component/Tag.hpp>

@@ -33,28 +33,14 @@ SceneView::SceneView()
 {
 	m_name = "SceneView";
 
-	// First update
-	auto &main_camera                  = Renderer::instance()->Main_Camera;
-	main_camera.front.x                = std::cosf(main_camera.pitch) * std::cosf(main_camera.yaw);
-	main_camera.front.y                = std::sinf(main_camera.pitch);
-	main_camera.front.z                = std::cosf(main_camera.pitch) * std::sinf(main_camera.yaw);
-	main_camera.front                  = glm::normalize(main_camera.front);
-	main_camera.right                  = glm::normalize(glm::cross(main_camera.front, glm::vec3{0.f, 1.f, 0.f}));
-	main_camera.up                     = glm::normalize(glm::cross(main_camera.right, main_camera.front));
-	main_camera.view                   = glm::lookAt(main_camera.position, main_camera.front + main_camera.position, main_camera.up);
-	main_camera.camera.aspect          = static_cast<float>(Window::instance()->getWidth()) / static_cast<float>(Window::instance()->getHeight());
-	main_camera.projection             = glm::perspective(glm::radians(main_camera.camera.fov),
-                                              main_camera.camera.aspect,
-                                              main_camera.camera.near,
-                                              main_camera.camera.far);
-	main_camera.camera.view_projection = main_camera.projection * main_camera.view;
-
 	ImageLoader::loadImageFromFile(m_icons["translate"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/translate.png"));
 	ImageLoader::loadImageFromFile(m_icons["rotate"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/rotate.png"));
 	ImageLoader::loadImageFromFile(m_icons["scale"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/scale.png"));
 	ImageLoader::loadImageFromFile(m_icons["select"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/select.png"));
 	ImageLoader::loadImageFromFile(m_icons["grid"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/grid.png"));
 	ImageLoader::loadImageFromFile(m_icons["transform"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/transform.png"));
+	ImageLoader::loadImageFromFile(m_icons["camera"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/camera.png"));
+	ImageLoader::loadImageFromFile(m_icons["viewport"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/viewport.png"));
 }
 
 void SceneView::draw(float delta_time)
@@ -88,10 +74,11 @@ void SceneView::draw(float delta_time)
 	}
 
 	// Display main scene
-	if (render_graph->hasAttachment(render_graph->view()))
+	if (m_display_attachment.empty())
 	{
-		ImGui::Image(ImGuiContext::textureID(render_graph->getAttachment(render_graph->view()), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), scene_view_size);
+		m_display_attachment = render_graph->view();
 	}
+	ImGui::Image(ImGuiContext::textureID(render_graph->getAttachment(m_display_attachment), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), scene_view_size);
 
 	// Drag new model
 	if (ImGui::BeginDragDropTarget())
@@ -147,35 +134,18 @@ void SceneView::draw(float delta_time)
 	{
 		if (view != Renderer::instance()->Main_Camera.view)
 		{
-			auto &main_camera                      = Renderer::instance()->Main_Camera;
+			auto &main_camera = Renderer::instance()->Main_Camera;
 			main_camera.view  = view;
 
-			// Decompose view matrix
-			//main_camera.right    = glm::vec3(main_camera.view[0][0], main_camera.view[1][0], main_camera.view[2][0]);
-			//main_camera.up       = glm::vec3(main_camera.view[0][1], main_camera.view[1][1], main_camera.view[2][1]);
-			//main_camera.front    = glm::vec3(main_camera.view[0][2], main_camera.view[1][2], main_camera.view[2][2]);
-			//main_camera.position = glm::inverse(main_camera.view) * glm::vec4(0.f, 0.f, -1.f, 0.f);
+			float yaw   = std::atan2f(-main_camera.view[2][2], -main_camera.view[0][2]);
+			float pitch = std::asinf(-main_camera.view[1][2]);
 
-			main_camera.yaw   = std::atan2f(main_camera.view[2][2], main_camera.view[0][2]);
-			if (main_camera.yaw < 0.f)
-			{
-				main_camera.yaw += glm::pi<float>();
-			}
+			main_camera.forward.x = std::cosf(pitch) * std::cosf(yaw);
+			main_camera.forward.y = std::sinf(pitch);
+			main_camera.forward.z = std::cosf(pitch) * std::sinf(yaw);
+			main_camera.forward   = glm::normalize(main_camera.forward);
 
-			main_camera.pitch = std::asinf(-main_camera.view[1][2]);
-
-			LOG_INFO("Yaw: {}", glm::degrees(main_camera.yaw));
-
-			main_camera.front.x = std::cosf(main_camera.pitch) * std::cosf(main_camera.yaw);
-			main_camera.front.y = std::sinf(main_camera.pitch);
-			main_camera.front.z = std::cosf(main_camera.pitch) * std::sinf(main_camera.yaw);
-			main_camera.front   = glm::normalize(main_camera.front);
-
-			main_camera.right = glm::normalize(glm::cross(main_camera.front, glm::vec3{0.f, 1.f, 0.f}));
-			main_camera.up    = glm::normalize(glm::cross(main_camera.right, main_camera.front));
-
-			main_camera.view                   = glm::lookAt(main_camera.position, main_camera.front + main_camera.position, main_camera.up);
-			main_camera.camera.view_projection = main_camera.projection * main_camera.view;
+			main_camera.update = true;
 		}
 	}
 
@@ -186,6 +156,7 @@ void SceneView::draw(float delta_time)
 
 void SceneView::updateMainCamera(float delta_time)
 {
+	// TODO: Better camera movement, Model view camera, Ortho camera
 	if (!ImGui::IsWindowFocused())
 	{
 		return;
@@ -209,66 +180,60 @@ void SceneView::updateMainCamera(float delta_time)
 
 		bool update = false;
 
+		float yaw   = std::atan2f(main_camera.forward.z, main_camera.forward.x);
+		float pitch = std::asinf(main_camera.forward.y);
+
 		if (delta_x != 0)
 		{
-			main_camera.yaw += main_camera.sensitivity * delta_time * static_cast<float>(delta_x);
+			yaw += m_camera_sensitivity * delta_time * static_cast<float>(delta_x);
 			update = true;
 		}
 
 		if (delta_y != 0)
 		{
-			main_camera.pitch -= main_camera.sensitivity * delta_time * static_cast<float>(delta_y);
+			pitch -= m_camera_sensitivity * delta_time * static_cast<float>(delta_y);
+			pitch  = glm::clamp(pitch, glm::radians(-90.f), glm::radians(90.f));
 			update = true;
 		}
 
-		if (update)
-		{
-			main_camera.front.x = std::cosf(main_camera.pitch) * std::cosf(main_camera.yaw);
-			main_camera.front.y = std::sinf(main_camera.pitch);
-			main_camera.front.z = std::cosf(main_camera.pitch) * std::sinf(main_camera.yaw);
-			main_camera.front   = glm::normalize(main_camera.front);
+		main_camera.forward.x = std::cosf(pitch) * std::cosf(yaw);
+		main_camera.forward.y = std::sinf(pitch);
+		main_camera.forward.z = std::cosf(pitch) * std::sinf(yaw);
+		main_camera.forward   = glm::normalize(main_camera.forward);
 
-			main_camera.right = glm::normalize(glm::cross(main_camera.front, glm::vec3{0.f, 1.f, 0.f}));
-			main_camera.up    = glm::normalize(glm::cross(main_camera.right, main_camera.front));
-		}
+		glm::vec3 right = glm::normalize(glm::cross(main_camera.forward, glm::vec3{0.f, 1.f, 0.f}));
+		glm::vec3 up    = glm::normalize(glm::cross(right, main_camera.forward));
+
+		glm::vec3 direction = glm::vec3(0.f);
 
 		if (Input::instance()->getKey(KeyCode::W))
 		{
-			main_camera.position += main_camera.front * main_camera.speed * delta_time;
-			update = true;
+			direction += main_camera.forward;
 		}
 		if (Input::instance()->getKey(KeyCode::S))
 		{
-			main_camera.position -= main_camera.front * main_camera.speed * delta_time;
-			update = true;
+			direction -= main_camera.forward;
 		}
-
 		if (Input::instance()->getKey(KeyCode::D))
 		{
-			main_camera.position += main_camera.right * main_camera.speed * delta_time;
-			update = true;
+			direction += right;
 		}
 		if (Input::instance()->getKey(KeyCode::A))
 		{
-			main_camera.position -= main_camera.right * main_camera.speed * delta_time;
-			update = true;
+			direction -= right;
 		}
 		if (Input::instance()->getKey(KeyCode::Q))
 		{
-			main_camera.position = main_camera.position + main_camera.up * main_camera.speed * delta_time;
-			update               = true;
+			direction += up;
 		}
 		if (Input::instance()->getKey(KeyCode::E))
 		{
-			main_camera.position -= main_camera.up * main_camera.speed * delta_time;
-			update = true;
+			direction -= up;
 		}
 
-		if (update)
-		{
-			main_camera.view                   = glm::lookAt(main_camera.position, main_camera.front + main_camera.position, main_camera.up);
-			main_camera.camera.view_projection = main_camera.projection * main_camera.view;
-		}
+		main_camera.position += direction * delta_time * m_camera_speed;
+
+		main_camera.update = true;
 	}
 	else if (m_cursor_hidden)
 	{
@@ -290,6 +255,7 @@ void SceneView::showToolBar()
 	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
 	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.f);
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.f, 0.f));
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.f, 5.f));
 
 	ImVec4 select_color = ImVec4(0.5f, 0.5f, 0.5f, 1.f);
 
@@ -365,7 +331,90 @@ void SceneView::showToolBar()
 	}
 	SHOW_TIPS("Grid")
 
+	ImGui::SameLine();
+	if (ImGui::ImageButton(ImGuiContext::textureID(m_icons["camera"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
+	                       ImVec2(20.f, 20.f),
+	                       ImVec2(0.f, 0.f),
+	                       ImVec2(1.f, 1.f),
+	                       -1,
+	                       ImVec4(0.f, 0.f, 0.f, 0.f)))
+	{
+		ImGui::OpenPopup("CameraSettingPopup");
+	}
+	if (ImGui::BeginPopup("CameraSettingPopup"))
+	{
+		// Camera setting
+		auto &main_camera = Renderer::instance()->Main_Camera;
+
+		static const char *const camera_type[] = {"Perspective", "Orthographic"};
+		static int               select_type   = 0;
+
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2.f, 2.f));
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.f, 5.f));
+		if (ImGui::Combo("Type", &select_type, camera_type, 2))
+		{
+			if (main_camera.type != static_cast<Camera::Type>(select_type))
+			{
+				main_camera.type   = static_cast<Camera::Type>(select_type);
+				main_camera.update = true;
+			}
+		}
+
+		main_camera.update |= ImGui::DragFloat("Speed", &m_camera_speed, 0.01f, 0.0f, 100.f, "%.2f");
+		main_camera.update |= ImGui::DragFloat("Sensitivity", &m_camera_sensitivity, 0.01f, 0.0f, 100.f, "%.2f");
+		main_camera.update |= ImGui::DragFloat("Near Plane", &main_camera.near_plane, 1.f, 0.0f, std::numeric_limits<float>::infinity(), "%.2f");
+		main_camera.update |= ImGui::DragFloat("Far Plane", &main_camera.far_plane, 1.f, 0.0f, std::numeric_limits<float>::infinity(), "%.2f");
+		main_camera.update |= ImGui::DragFloat("Fov", &main_camera.fov, 0.1f, 0.0f, 180.f, "%.2f");
+
+		ImGui::PopStyleVar();
+		ImGui::PopStyleVar();
+
+		ImGui::EndPopup();
+	}
+
+	SHOW_TIPS("Camera")
+
+	ImGui::SameLine();
+	if (ImGui::ImageButton(ImGuiContext::textureID(m_icons["viewport"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
+	                       ImVec2(20.f, 20.f),
+	                       ImVec2(0.f, 0.f),
+	                       ImVec2(1.f, 1.f),
+	                       -1,
+	                       ImVec4(0.f, 0.f, 0.f, 0.f)))
+	{
+		ImGui::OpenPopup("ViewportPopup");
+	}
+
+	if (ImGui::BeginPopup("ViewportPopup"))
+	{
+		auto *rg = Renderer::instance()->getRenderGraph();
+
+		std::unordered_map<std::string, bool> select_display;
+		for (auto &[name, image] : rg->getAttachments())
+		{
+			if (name != rg->output())
+			{
+				select_display[name] = name == m_display_attachment;
+			}
+		}
+
+		for (auto &[name, select] : select_display)
+		{
+			if (ImGui::MenuItem(name.c_str(), NULL, &select))
+			{
+				if (select)
+				{
+					select_display[m_display_attachment] = false;
+					m_display_attachment                 = name;
+				}
+			}
+		}
+		
+		ImGui::EndPopup();
+	}
+
 	ImGui::PopStyleColor();
+	ImGui::PopStyleVar();
 	ImGui::PopStyleVar();
 	ImGui::PopStyleVar();
 
@@ -381,31 +430,10 @@ void SceneView::onResize(VkExtent2D extent)
 
 		// Reset camera aspect
 		auto &main_camera = Renderer::instance()->Main_Camera;
-		if (main_camera.camera.aspect != static_cast<float>(extent.width) / static_cast<float>(extent.height))
+		if (main_camera.aspect != static_cast<float>(extent.width) / static_cast<float>(extent.height))
 		{
-			main_camera.camera.aspect = static_cast<float>(extent.width) / static_cast<float>(extent.height);
-
-			switch (main_camera.camera.type)
-			{
-				case cmpt::CameraType::Orthographic:
-					main_camera.projection = glm::ortho(-glm::radians(main_camera.camera.fov),
-					                                    glm::radians(main_camera.camera.fov),
-					                                    -glm::radians(main_camera.camera.fov) / main_camera.camera.aspect,
-					                                    glm::radians(main_camera.camera.fov) / main_camera.camera.aspect,
-					                                    main_camera.camera.near,
-					                                    main_camera.camera.far);
-					break;
-				case cmpt::CameraType::Perspective:
-					main_camera.projection = glm::perspective(glm::radians(main_camera.camera.fov),
-					                                          main_camera.camera.aspect,
-					                                          main_camera.camera.near,
-					                                          main_camera.camera.far);
-					break;
-				default:
-					break;
-			}
-
-			main_camera.camera.view_projection = main_camera.projection * main_camera.view;
+			main_camera.aspect = static_cast<float>(extent.width) / static_cast<float>(extent.height);
+			main_camera.update = true;
 		}
 	}
 }

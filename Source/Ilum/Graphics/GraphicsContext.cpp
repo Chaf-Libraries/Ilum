@@ -158,7 +158,7 @@ void GraphicsContext::onShutdown()
 {
 	ThreadPool::instance()->waitAll();
 
-	vkDeviceWaitIdle(*m_logical_device);
+	GraphicsContext::instance()->getQueueSystem().waitAll();
 
 	for (uint32_t i = 0; i < m_flight_fences.size(); i++)
 	{
@@ -170,12 +170,14 @@ void GraphicsContext::onShutdown()
 	m_command_pools.clear();
 	m_main_command_buffers.clear();
 
+	m_swapchain.reset();
+
 	vkDestroyPipelineCache(*m_logical_device, m_pipeline_cache, nullptr);
 }
 
 void GraphicsContext::createSwapchain()
 {
-	vkDeviceWaitIdle(*m_logical_device);
+	GraphicsContext::instance()->getQueueSystem().waitAll();
 
 	m_current_frame = 0;
 
@@ -261,9 +263,9 @@ void GraphicsContext::submitFrame()
 
 	m_queue_system->acquire()->submit(*m_main_command_buffers[m_current_frame], m_render_complete[m_current_frame], m_present_complete[m_current_frame], m_flight_fences[m_current_frame]);
 
-	auto &present_queue  = *m_queue_system->acquire(QueueUsage::Present);
+	auto &present_queue = *m_queue_system->acquire(QueueUsage::Present);
 	present_queue.waitIdle();
-	auto  present_result = m_swapchain->present(present_queue, m_render_complete[m_current_frame]);
+	auto present_result = m_swapchain->present(present_queue, m_render_complete[m_current_frame]);
 
 	if (present_result == VK_ERROR_OUT_OF_DATE_KHR)
 	{

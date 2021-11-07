@@ -22,7 +22,7 @@ class QueueSystem
 
 	~QueueSystem() = default;
 
-	void waitAll() const;
+	void waitAll();
 
 	Queue *acquire(QueueUsage usage = QueueUsage::Graphics);
 

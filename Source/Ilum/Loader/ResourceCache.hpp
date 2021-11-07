@@ -20,11 +20,13 @@ class ResourceCache
 
 	void removeImage(const std::string &filepath);
 
-	bool hasImage(const std::string &filepath);
+	bool hasImage(const std::string &filepath) const;
 
 	const std::unordered_map<std::string, size_t> &getImages() const;
 
 	const std::vector<ImageReference> getImageReferences() const;
+
+	uint32_t imageID(const std::string &filepath) const;
 
 	ModelReference loadModel(const std::string &filepath);
 

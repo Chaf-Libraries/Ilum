@@ -2,7 +2,7 @@
 
 #include <vector>
 
-namespace Ilum
+namespace Ilum::geometry
 {
 template <typename Vertex>
 struct TriMesh

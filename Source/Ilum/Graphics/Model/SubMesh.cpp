@@ -9,7 +9,7 @@ SubMesh::SubMesh(std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices
 {
 	for (auto& vertex : m_vertices)
 	{
-		m_aabb.add(vertex.position);
+		m_bounding_box.merge(vertex.position);
 	}
 }
 
@@ -37,7 +37,7 @@ SubMesh::SubMesh(SubMesh &&other) noexcept :
     m_vertices(std::move(other.m_vertices)),
     m_indices(std::move(other.m_indices)),
     m_index_offset(other.m_index_offset),
-    m_aabb(other.m_aabb)
+    m_bounding_box(other.m_bounding_box)
 {
 	other.m_vertices.clear();
 	other.m_indices.clear();
@@ -49,7 +49,7 @@ SubMesh &SubMesh::operator=(SubMesh &&other) noexcept
 	m_vertices       = std::move(other.m_vertices);
 	m_indices        = std::move(other.m_indices);
 	m_index_offset   = other.m_index_offset;
-	m_aabb           = other.m_aabb;
+	m_bounding_box           = other.m_bounding_box;
 
 	other.m_vertices.clear();
 	other.m_indices.clear();
@@ -63,8 +63,8 @@ const std::vector<uint32_t> &SubMesh::getIndices() const
 	return m_indices;
 }
 
-const AABB &SubMesh::getAABB() const
+const geometry::BoundingBox &SubMesh::getBoundingBox() const
 {
-	return m_aabb;
+	return m_bounding_box;
 }
 }        // namespace Ilum
