@@ -2,7 +2,6 @@
 
 #include "Editor/Editor.hpp"
 
-#include "Scene/Component/Camera.hpp"
 #include "Scene/Component/Hierarchy.hpp"
 #include "Scene/Component/Light.hpp"
 #include "Scene/Component/MeshRenderer.hpp"
@@ -368,8 +367,8 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 						    ImGui::Text("indices count: %d", submesh.getIndexCount());
 						    ImGui::Text("index offset: %d", submesh.getIndexOffset());
 						    ImGui::Text("AABB bounding box:");
-						    ImGui::BulletText("min (%f, %f, %f)", submesh.getAABB().min().x, submesh.getAABB().min().y, submesh.getAABB().min().z);
-						    ImGui::BulletText("max (%f, %f, %f)", submesh.getAABB().max().x, submesh.getAABB().max().y, submesh.getAABB().max().z);
+						    ImGui::BulletText("min (%f, %f, %f)", submesh.getBoundingBox().min().x, submesh.getBoundingBox().min().y, submesh.getBoundingBox().min().z);
+						    ImGui::BulletText("max (%f, %f, %f)", submesh.getBoundingBox().max().x, submesh.getBoundingBox().max().y, submesh.getBoundingBox().max().z);
 						    ImGui::TreePop();
 					    }
 
@@ -397,15 +396,6 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 				    }
 			    }
 		    }
-	    });
-}
-
-template <>
-inline void draw_component<cmpt::Camera>(Entity entity)
-{
-	draw_component<cmpt::Camera>(
-	    "Camera", entity, [](auto &component) {
-
 	    });
 }
 
@@ -449,12 +439,12 @@ void Inspector::draw(float delta_time)
 
 	if (ImGui::BeginPopup("AddComponent"))
 	{
-		add_component<cmpt::MeshRenderer, cmpt::Camera, cmpt::Light>();
+		add_component<cmpt::MeshRenderer, cmpt::Light>();
 		ImGui::EndPopup();
 	}
 	ImGui::PopItemWidth();
 
-	draw_component<cmpt::Transform, cmpt::Hierarchy, cmpt::MeshRenderer, cmpt::Camera, cmpt::Light>(entity);
+	draw_component<cmpt::Transform, cmpt::Hierarchy, cmpt::MeshRenderer, cmpt::Light>(entity);
 
 	ImGui::End();
 }

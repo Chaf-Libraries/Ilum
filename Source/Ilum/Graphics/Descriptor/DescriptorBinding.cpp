@@ -1,5 +1,9 @@
 #include "DescriptorBinding.hpp"
 
+#include "Device/LogicalDevice.hpp"
+
+#include "Graphics/GraphicsContext.hpp"
+
 namespace Ilum
 {
 inline VkImageUsageFlagBits type_to_image_usage(VkDescriptorType type)
@@ -209,6 +213,8 @@ void DescriptorBinding::write(const DescriptorSet &descriptor_set)
 	{
 		m_options = ResolveOption::None;
 	}
+
+	GraphicsContext::instance()->getQueueSystem().waitAll();
 
 	std::vector<VkWriteDescriptorSet>   write_descriptor_sets;
 	std::vector<VkDescriptorBufferInfo> descriptor_buffer_infos;

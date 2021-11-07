@@ -88,6 +88,9 @@ void GeometryPass::render(RenderPassState &state)
 			{
 				if (mesh_renderer.materials[i] && mesh_renderer.materials[i]->type() == typeid(material::BlinnPhong))
 				{
+					auto *material = static_cast<material::BlinnPhong *>(mesh_renderer.materials[i].get());
+					uint32_t idx = Renderer::instance()->getResourceCache().imageID(material->diffuse_map_path);
+					vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::mat4), sizeof(uint32_t), &idx);
 					const auto &submesh = model.get().getSubMeshes()[i];
 					vkCmdDrawIndexed(cmd_buffer, submesh.getIndexCount(), 1, submesh.getIndexOffset(), 0, 0);
 				}

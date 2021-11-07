@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Geometry/Bound/AABB.hpp"
+#include "Geometry/BoundingBox.hpp"
 #include "Geometry/Mesh/TriMesh.hpp"
 #include "Vertex.hpp"
 
@@ -31,7 +31,7 @@ struct SubMesh
 
 	const std::vector<uint32_t> &getIndices() const;
 
-	const AABB &getAABB() const;
+	const geometry::BoundingBox &getBoundingBox() const;
 
   private:
 	uint32_t m_index_offset   = 0;
@@ -39,6 +39,6 @@ struct SubMesh
 	std::vector<Vertex>   m_vertices;
 	std::vector<uint32_t> m_indices;
 
-	AABB m_aabb;
+	geometry::BoundingBox m_bounding_box;
 };
 }        // namespace Ilum

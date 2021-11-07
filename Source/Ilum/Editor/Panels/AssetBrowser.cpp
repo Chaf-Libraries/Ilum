@@ -479,8 +479,9 @@ void AssetBrowser::draw(float delta_time)
 			}
 			ifd::FileDialog::Instance().Close();
 		}
-
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.f, 0.f));
 		draw_texture_asset(100.f, 0.f);
+		ImGui::PopStyleVar();
 	}
 	else if (current_item == 1)
 	{

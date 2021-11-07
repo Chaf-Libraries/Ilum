@@ -14,7 +14,6 @@
 #include "Panels/Console.hpp"
 #include "Panels/Hierarchy.hpp"
 #include "Panels/Inspector.hpp"
-#include "Panels/MainCameraSetting.hpp"
 #include "Panels/RenderGraphViewer.hpp"
 #include "Panels/SceneView.hpp"
 
@@ -41,7 +40,6 @@ bool Editor::onInitialize()
 	m_panels.emplace_back(createScope<panel::AssetBrowser>());
 	m_panels.emplace_back(createScope<panel::SceneView>());
 	m_panels.emplace_back(createScope<panel::Console>());
-	m_panels.emplace_back(createScope<panel::MainCameraSetting>());
 
 	return true;
 }

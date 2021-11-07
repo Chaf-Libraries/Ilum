@@ -17,7 +17,7 @@ RenderGraph::RenderGraph(std::vector<RenderGraphNode> &&nodes, std::unordered_ma
 
 RenderGraph::~RenderGraph()
 {
-	vkDeviceWaitIdle(GraphicsContext::instance()->getLogicalDevice());
+	GraphicsContext::instance()->getQueueSystem().waitAll();
 
 	for (auto &node : m_nodes)
 	{

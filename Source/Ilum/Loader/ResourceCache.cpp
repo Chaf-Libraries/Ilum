@@ -60,7 +60,7 @@ void ResourceCache::removeImage(const std::string &filepath)
 	m_deprecated_image.push_back(filepath);
 }
 
-bool ResourceCache::hasImage(const std::string &filepath)
+bool ResourceCache::hasImage(const std::string &filepath) const
 {
 	return m_image_map.find(filepath) != m_image_map.end();
 }
@@ -81,6 +81,16 @@ const std::vector<ImageReference> ResourceCache::getImageReferences() const
 	}
 
 	return references;
+}
+
+uint32_t ResourceCache::imageID(const std::string &filepath) const
+{
+	if (!hasImage(filepath))
+	{
+		return std::numeric_limits<uint32_t>::max();
+	}
+
+	return static_cast<uint32_t>(m_image_map.at(filepath));
 }
 
 ModelReference ResourceCache::loadModel(const std::string &filepath)
@@ -142,6 +152,15 @@ const std::unordered_map<std::string, size_t> &ResourceCache::getModels() const
 
 void ResourceCache::flush()
 {
+	if (m_deprecated_model.empty() && m_deprecated_image.empty())
+	{
+		return;
+	}
+	else
+	{
+		GraphicsContext::instance()->getQueueSystem().waitAll();
+	}
+
 	{
 		std::lock_guard<std::mutex> lock(m_model_mutex);
 		// Remove deprecated model

@@ -130,7 +130,6 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 	    aiProcess_GenSmoothNormals |
 	    aiProcess_JoinIdenticalVertices |
 	    aiProcess_ImproveCacheLocality |
-	    aiProcess_SplitLargeMeshes |
 	    aiProcess_Triangulate |
 	    aiProcess_GenUVCoords |
 	    aiProcess_SortByPType |

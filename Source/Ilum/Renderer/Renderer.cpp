@@ -59,15 +59,14 @@ void Renderer::onPreTick()
 	// Update uniform buffers
 	updateBuffers();
 
+	// Update camera
+	Main_Camera.onUpdate();
+
 	// Check out images update
 	if (m_texture_count != m_resource_cache->getImages().size())
 	{
+		m_update        = true;
 		m_texture_count = static_cast<uint32_t>(m_resource_cache->getImages().size());
-		for (auto& node : m_render_graph->getNodes())
-		{
-			// Update bindless texture
-			node.descriptors.setOption(ResolveOption::Once);
-		}
 	}
 
 	if (m_update)
@@ -92,7 +91,7 @@ void Renderer::onPostTick()
 
 void Renderer::onShutdown()
 {
-	vkDeviceWaitIdle(GraphicsContext::instance()->getLogicalDevice());
+	GraphicsContext::instance()->getQueueSystem().waitAll();
 	m_samplers.clear();
 	m_buffers.clear();
 }
@@ -199,9 +198,8 @@ void Renderer::updateBuffers()
 	// Update Main Camera
 	auto *camera_buffer = reinterpret_cast<CameraBuffer *>(m_buffers[BufferType::MainCamera].map());
 	camera_buffer->position = Main_Camera.position;
-	camera_buffer->view_projection = Main_Camera.camera.view_projection;
+	camera_buffer->view_projection = Main_Camera.view_projection;
 	m_buffers[BufferType::MainCamera].unmap();
-
 }
 
 void Renderer::createBuffers()
