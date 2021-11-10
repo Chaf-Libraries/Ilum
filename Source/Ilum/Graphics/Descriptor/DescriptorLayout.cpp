@@ -3,7 +3,7 @@
 #include "Device/LogicalDevice.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
-#include "Graphics/Pipeline/Shader.hpp"
+#include "Graphics/Shader/Shader.hpp"
 
 #include "Graphics/Vulkan/VK_Debugger.h"
 

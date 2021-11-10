@@ -5,7 +5,7 @@
 
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/GraphicsContext.hpp"
-#include "Graphics/Pipeline/Shader.hpp"
+#include "Graphics/Shader/Shader.hpp"
 
 namespace Ilum
 {

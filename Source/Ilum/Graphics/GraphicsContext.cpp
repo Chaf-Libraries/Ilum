@@ -14,7 +14,7 @@
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/Command/CommandPool.hpp"
 #include "Graphics/Descriptor/DescriptorCache.hpp"
-#include "Graphics/Pipeline/ShaderCache.hpp"
+#include "Graphics/Shader/ShaderCache.hpp"
 #include "Graphics/Synchronization/Queue.hpp"
 #include "Graphics/Vulkan/VK_Debugger.h"
 
