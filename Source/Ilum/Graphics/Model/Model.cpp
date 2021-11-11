@@ -14,6 +14,11 @@ namespace Ilum
 Model::Model(std::vector<SubMesh> &&submeshes) :
     m_submeshes(std::move(submeshes))
 {
+	for (auto& submesh : m_submeshes)
+	{
+		m_bounding_box.merge(submesh.getBoundingBox());
+	}
+
 	createBuffer();
 }
 
@@ -25,7 +30,8 @@ Model ::~Model()
 Model::Model(Model &&other) noexcept :
     m_submeshes(std::move(other.m_submeshes)),
     m_vertex_buffer(std::move(other.m_vertex_buffer)),
-    m_index_buffer(std::move(other.m_index_buffer))
+    m_index_buffer(std::move(other.m_index_buffer)),
+    m_bounding_box(other.m_bounding_box)
 {
 	other.m_submeshes.clear();
 }
@@ -35,6 +41,7 @@ Model &Model::operator=(Model &&other) noexcept
 	m_submeshes     = std::move(other.m_submeshes);
 	m_vertex_buffer = std::move(other.m_vertex_buffer);
 	m_index_buffer  = std::move(other.m_index_buffer);
+	m_bounding_box  = other.m_bounding_box;
 
 	other.m_submeshes.clear();
 
@@ -54,6 +61,11 @@ BufferReference Model::getVertexBuffer() const
 BufferReference Model::getIndexBuffer() const
 {
 	return m_index_buffer;
+}
+
+const geometry::BoundingBox &Model::getBoundingBox() const
+{
+	return m_bounding_box;
 }
 
 void Model::createBuffer()

@@ -226,7 +226,8 @@ LogicalDevice::LogicalDevice()
 	ENABLE_DEVICE_FEATURE(tessellationShader);
 	ENABLE_DEVICE_FEATURE(multiViewport);
 	ENABLE_DEVICE_FEATURE(imageCubeArray);
-
+	ENABLE_DEVICE_FEATURE(robustBufferAccess);
+	
 	// Enable descriptor indexing features
 	VkPhysicalDeviceDescriptorIndexingFeatures descriptor_indexing_features{};
 	descriptor_indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;

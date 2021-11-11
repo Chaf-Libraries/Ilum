@@ -264,7 +264,7 @@ void GraphicsContext::submitFrame()
 	m_queue_system->acquire()->submit(*m_main_command_buffers[m_current_frame], m_render_complete[m_current_frame], m_present_complete[m_current_frame], m_flight_fences[m_current_frame]);
 
 	auto &present_queue = *m_queue_system->acquire(QueueUsage::Present);
-	present_queue.waitIdle();
+
 	auto present_result = m_swapchain->present(present_queue, m_render_complete[m_current_frame]);
 
 	if (present_result == VK_ERROR_OUT_OF_DATE_KHR)

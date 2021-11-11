@@ -8,7 +8,7 @@
 #include "Scene/Component/Tag.hpp"
 #include "Scene/Component/Transform.hpp"
 
-#include "Material/BlinnPhong.h"
+#include "Material/DisneyPBR.h"
 #include "Material/Material.h"
 
 #include "Renderer/Renderer.hpp"
@@ -166,7 +166,7 @@ inline void draw_material(T &material)
 	ASSERT(false);
 }
 
-void draw_texture(std::string &texture, uint32_t &texture_id)
+void draw_texture(std::string &texture)
 {
 	if (ImGui::ImageButton(Renderer::instance()->getResourceCache().hasImage(texture) ?
                                ImGuiContext::textureID(Renderer::instance()->getResourceCache().loadImage(texture), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)) :
@@ -183,8 +183,7 @@ void draw_texture(std::string &texture, uint32_t &texture_id)
 			ASSERT(pay_load->DataSize == sizeof(std::string));
 			if (texture != *static_cast<std::string *>(pay_load->Data))
 			{
-				texture    = *static_cast<std::string *>(pay_load->Data);
-				texture_id = static_cast<uint32_t>(Renderer::instance()->getResourceCache().getImages().at(texture));
+				texture = *static_cast<std::string *>(pay_load->Data);
 			}
 		}
 		ImGui::EndDragDropTarget();
@@ -192,30 +191,27 @@ void draw_texture(std::string &texture, uint32_t &texture_id)
 }
 
 template <>
-inline void draw_material<material::BlinnPhong>(material::BlinnPhong &material)
+inline void draw_material<material::DisneyPBR>(material::DisneyPBR &material)
 {
-	ImGui::ColorEdit4("Base Color", glm::value_ptr(material.material_data.base_color));
-	ImGui::ColorEdit3("Specular", glm::value_ptr(material.material_data.specular));
-	ImGui::ColorEdit3("Emissive", glm::value_ptr(material.material_data.emissive));
-	ImGui::DragFloat("Emissive Intensity", &material.material_data.emissive_intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-	ImGui::DragFloat("Displacement Scale", &material.material_data.displacement_scale, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-	ImGui::DragFloat("Shininess", &material.material_data.shininess, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-	ImGui::DragFloat("Reflectivity", &material.material_data.reflectivity, 0.01f, 0.f, 1.f, "%.3f");
-	ImGui::Checkbox("Word Space Normal", &material.material_data.normal_type);
-	ImGui::SameLine();
-	ImGui::Checkbox("Flat Shading", &material.material_data.flat_shading);
-
-	ImGui::Text("Diffuse Map");
-	draw_texture(material.diffuse_map_path, material.material_data.diffuse_map);
+	ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color));
+	ImGui::DragFloat("Metallic Factor", &material.metallic_factor, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	ImGui::DragFloat("Roughness Factor", &material.roughness_factor, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	ImGui::DragFloat("Height Factor", &material.displacement_height, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	
+	ImGui::Text("Albedo Map");
+	draw_texture(material.albedo_map);
 
 	ImGui::Text("Normal Map");
-	draw_texture(material.normal_map_path, material.material_data.normal_map);
+	draw_texture(material.normal_map);
 
-	ImGui::Text("Specular Map");
-	draw_texture(material.specular_map_path, material.material_data.specular_map);
+	ImGui::Text("Metallic Map");
+	draw_texture(material.metallic_map);
+
+	ImGui::Text("Roughness Map");
+	draw_texture(material.roughness_map);
 
 	ImGui::Text("Displacement Map");
-	draw_texture(material.displacement_map_path, material.material_data.displacement_map);
+	draw_texture(material.displacement_map);
 }
 
 template <typename T>
@@ -241,7 +237,7 @@ inline void draw_material(scope<IMaterial> &material)
 		return;
 	}
 
-	draw_material<material::BlinnPhong>(material);
+	draw_material<material::DisneyPBR>(material);
 }
 
 template <typename T>
@@ -367,8 +363,8 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 						    ImGui::Text("indices count: %d", submesh.getIndexCount());
 						    ImGui::Text("index offset: %d", submesh.getIndexOffset());
 						    ImGui::Text("AABB bounding box:");
-						    ImGui::BulletText("min (%f, %f, %f)", submesh.getBoundingBox().min().x, submesh.getBoundingBox().min().y, submesh.getBoundingBox().min().z);
-						    ImGui::BulletText("max (%f, %f, %f)", submesh.getBoundingBox().max().x, submesh.getBoundingBox().max().y, submesh.getBoundingBox().max().z);
+						    ImGui::BulletText("min (%f, %f, %f)", submesh.getBoundingBox().min_.x, submesh.getBoundingBox().min_.y, submesh.getBoundingBox().min_.z);
+						    ImGui::BulletText("max (%f, %f, %f)", submesh.getBoundingBox().max_.x, submesh.getBoundingBox().max_.y, submesh.getBoundingBox().max_.z);
 						    ImGui::TreePop();
 					    }
 
@@ -383,7 +379,7 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 
 						    if (ImGui::BeginPopup("Material Type"))
 						    {
-							    select_material<material::BlinnPhong>(material);
+							    select_material<material::DisneyPBR>(material);
 							    ImGui::EndPopup();
 						    }
 

@@ -242,15 +242,15 @@ void RenderGraphViewer::draw(float delta_time)
 
 				if (image.isDepth())
 				{
-					ImGui::Image(ImGuiContext::textureID(image.getView(ImageViewType::Depth_Only), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {200.f, static_cast<float>(image.getHeight()) * 200.f / static_cast<float>(image.getWidth())});
+					ImGui::Image(ImGuiContext::textureID(image.getView(ImageViewType::Depth_Only), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {400.f, static_cast<float>(image.getHeight()) * 400.f / static_cast<float>(image.getWidth())});
 				}
 				else
 				{
-					ImGui::Image(ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {200.f, static_cast<float>(image.getHeight()) * 200.f / static_cast<float>(image.getWidth())});
+					ImGui::Image(ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {400.f, static_cast<float>(image.getHeight()) * 400.f / static_cast<float>(image.getWidth())});
 				}
 				if (image.isStencil())
 				{
-					ImGui::Image(ImGuiContext::textureID(image.getView(ImageViewType::Stencil_Only), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {200.f, static_cast<float>(image.getHeight()) * 200.f / static_cast<float>(image.getWidth())});
+					ImGui::Image(ImGuiContext::textureID(image.getView(ImageViewType::Stencil_Only), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {400.f, static_cast<float>(image.getHeight()) * 400.f / static_cast<float>(image.getWidth())});
 				}
 			}
 			ImGui::PopStyleVar();

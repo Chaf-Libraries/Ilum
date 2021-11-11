@@ -67,4 +67,9 @@ const geometry::BoundingBox &SubMesh::getBoundingBox() const
 {
 	return m_bounding_box;
 }
+
+bool SubMesh::isVisible() const
+{
+	return m_visible;
+}
 }        // namespace Ilum

@@ -8,7 +8,7 @@
 #include "Loader/ImageLoader/ImageLoader.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
-#include "Graphics/Pipeline/ShaderCache.hpp"
+#include "Graphics/Shader/ShaderCache.hpp"
 
 #include "Scene/Component/MeshRenderer.hpp"
 #include "Scene/Entity.hpp"

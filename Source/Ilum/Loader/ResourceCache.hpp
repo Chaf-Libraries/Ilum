@@ -2,8 +2,8 @@
 
 #include "Graphics/Image/Image.hpp"
 #include "Graphics/Model/Model.hpp"
-#include "Graphics/Pipeline/Shader.hpp"
-#include "Graphics/Pipeline/ShaderReflection.hpp"
+#include "Graphics/Shader/Shader.hpp"
+#include "Graphics/Shader/ShaderReflection.hpp"
 
 namespace Ilum
 {

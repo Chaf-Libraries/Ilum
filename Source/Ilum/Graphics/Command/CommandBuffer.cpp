@@ -421,7 +421,9 @@ void CommandBuffer::transferLayout(const std::vector<ImageReference> &images, Vk
 
 void CommandBuffer::submitIdle()
 {
-	GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool->getUsage())->submitIdle(*this);
+	auto *queue = GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool->getUsage());
+	queue->waitIdle();
+	queue->submitIdle(*this);
 }
 
 void CommandBuffer::submit(const VkSemaphore &wait_semaphore, const VkSemaphore &signal_semaphore, VkFence fence, VkShaderStageFlags wait_stages)

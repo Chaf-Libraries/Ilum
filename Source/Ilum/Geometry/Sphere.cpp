@@ -12,7 +12,7 @@ Sphere::Sphere(const glm::vec3 &center, float radius) :
 void Sphere::merge(const glm::vec3 &point)
 {
 	glm::vec3 offset = center - point;
-	constexpr float dist = offset.length();
+	float dist = glm::length(offset);
 
 	if (dist > radius)
 	{

@@ -33,6 +33,8 @@ struct SubMesh
 
 	const geometry::BoundingBox &getBoundingBox() const;
 
+	bool isVisible() const;
+
   private:
 	uint32_t m_index_offset   = 0;
 
@@ -40,5 +42,7 @@ struct SubMesh
 	std::vector<uint32_t> m_indices;
 
 	geometry::BoundingBox m_bounding_box;
+
+	bool m_visible = true;
 };
 }        // namespace Ilum

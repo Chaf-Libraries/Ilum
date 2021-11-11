@@ -14,8 +14,6 @@
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
-#include "Material/BlinnPhong.h"
-
 #include <glm/gtc/type_ptr.hpp>
 
 namespace Ilum::pass
@@ -50,7 +48,7 @@ void DefaultPass::setupPipeline(PipelineState &state)
 	state.declareAttachment("depth_stencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 
 	state.addOutputAttachment(m_output, AttachmentState::Clear_Color);
-	state.addOutputAttachment("depth_stencil", VkClearDepthStencilValue{1.f, 0u});
+	state.addOutputAttachment("depth_stencil", AttachmentState::Load_Depth_Stencil);
 }
 
 void DefaultPass::resolveResources(ResolveState &resolve)
@@ -61,6 +59,23 @@ void DefaultPass::resolveResources(ResolveState &resolve)
 void DefaultPass::render(RenderPassState &state)
 {
 	auto &cmd_buffer = state.command_buffer;
+
+	VkRenderPassBeginInfo begin_info = {};
+	begin_info.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	begin_info.renderPass            = state.pass.render_pass;
+	begin_info.renderArea            = state.pass.render_area;
+	begin_info.framebuffer           = state.pass.frame_buffer;
+	begin_info.clearValueCount       = static_cast<uint32_t>(state.pass.clear_values.size());
+	begin_info.pClearValues          = state.pass.clear_values.data();
+
+	vkCmdBeginRenderPass(cmd_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
+
+	vkCmdBindPipeline(cmd_buffer, state.pass.bind_point, state.pass.pipeline);
+
+	for (auto &descriptor_set : state.pass.descriptor_sets)
+	{
+		vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
+	}
 
 	auto &extent = Renderer::instance()->getRenderTargetExtent();
 
@@ -96,5 +111,7 @@ void DefaultPass::render(RenderPassState &state)
 			}
 		}
 	});
+
+	vkCmdEndRenderPass(cmd_buffer);
 }
 }        // namespace Ilum::pass

@@ -4,10 +4,7 @@
 #include <Ilum/Engine/Context.hpp>
 #include <Ilum/Engine/Engine.hpp>
 #include <Ilum/Graphics/GraphicsContext.hpp>
-#include <Ilum/Graphics/Pipeline/Shader.hpp>
-#include <Ilum/Graphics/Pipeline/ShaderCache.hpp>
 #include <Ilum/Loader/ModelLoader/ModelLoader.hpp>
-#include <Ilum/Material/BlinnPhong.h>
 #include <Ilum/Renderer/RenderPass/DefaultPass.hpp>
 #include <Ilum/Renderer/RenderPass/GeometryPass.hpp>
 #include <Ilum/Renderer/Renderer.hpp>

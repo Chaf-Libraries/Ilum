@@ -5,7 +5,7 @@
 
 #include "Device/LogicalDevice.hpp"
 #include "Graphics/GraphicsContext.hpp"
-#include "Graphics/Pipeline/ShaderCompiler.hpp"
+#include "Graphics/Shader/ShaderCompiler.hpp"
 
 #include "File/FileSystem.hpp"
 

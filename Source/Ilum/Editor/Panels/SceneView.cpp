@@ -78,7 +78,9 @@ void SceneView::draw(float delta_time)
 	{
 		m_display_attachment = render_graph->view();
 	}
-	ImGui::Image(ImGuiContext::textureID(render_graph->getAttachment(m_display_attachment), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), scene_view_size);
+	auto &attachment = render_graph->getAttachment(m_display_attachment);
+
+	ImGui::Image(ImGuiContext::textureID(attachment.isDepth() ? attachment.getView(ImageViewType::Depth_Only) : attachment.getView(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), scene_view_size);
 
 	// Drag new model
 	if (ImGui::BeginDragDropTarget())
@@ -149,6 +151,43 @@ void SceneView::draw(float delta_time)
 		}
 	}
 
+	// Mouse picking
+	if (ImGui::IsWindowFocused() && ImGui::IsWindowHovered() && Input::instance()->getKey(KeyCode::Click_Left))
+	{
+		auto [mouse_x, mouse_y] = Input::instance()->getMousePosition();
+		auto click_pos          = ImVec2(static_cast<float>(mouse_x) - scene_view_position.x, static_cast<float>(mouse_y) - scene_view_position.y);
+
+		auto &main_camera = Renderer::instance()->Main_Camera;
+
+		float x = (click_pos.x / scene_view_size.x) * 2.f - 1.f;
+		float y = (click_pos.y / scene_view_size.y) * 2.f - 1.f;
+
+		glm::mat4 inv = glm::inverse(main_camera.view_projection);
+		
+		glm::vec4 test = main_camera.view_projection * glm::vec4(main_camera.position + 10.1f * main_camera.forward, 1.f);
+		LOG_INFO("test {}, {}, {}, {}", test.x, test.y, test.z, test.w);
+
+		glm::vec3 near_point = inv * glm::vec4(x, y, 0.f, 10.f) * main_camera.near_plane;
+		glm::vec3 far_point  = inv * glm::vec4(x, y, 1.f, 1.f) * main_camera.far_plane;
+
+		geometry::Ray ray;
+
+		ray.origin    = near_point;
+		ray.direction = glm::normalize(glm::vec3(far_point) - ray.origin);
+
+		LOG_INFO("{}, {}", x, y);
+		LOG_INFO("near({}, {}, {}), far({}, {}, {}), length: {}", near_point.x, near_point.y, near_point.z, far_point.x, far_point.y, far_point.z, glm::length(far_point-near_point));
+		//auto       ray         = main_camera.genRay(click_pos.x / scene_view_size.x, click_pos.y / scene_view_size.y);
+		//LOG_INFO("origin: ({}, {}, {}), direction: ({}, {}, {})", ray.origin.x, ray.origin.y, ray.origin.z, ray.direction.x, ray.direction.y, ray.direction.z);
+
+		const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform>);
+		group.each([&](const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform) {
+			auto &model = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
+			auto  bbox  = model.get().getBoundingBox().transform(transform.world_transform);
+			LOG_INFO(ray.hit(bbox));
+		});
+	}
+
 	ImGui::End();
 
 	ImGui::PopStyleVar();
@@ -157,7 +196,7 @@ void SceneView::draw(float delta_time)
 void SceneView::updateMainCamera(float delta_time)
 {
 	// TODO: Better camera movement, Model view camera, Ortho camera
-	if (!ImGui::IsWindowFocused())
+	if (!ImGui::IsWindowFocused() || !ImGui::IsWindowHovered())
 	{
 		return;
 	}
@@ -192,7 +231,7 @@ void SceneView::updateMainCamera(float delta_time)
 		if (delta_y != 0)
 		{
 			pitch -= m_camera_sensitivity * delta_time * static_cast<float>(delta_y);
-			pitch  = glm::clamp(pitch, glm::radians(-90.f), glm::radians(90.f));
+			pitch  = glm::clamp(pitch, glm::radians(-89.f), glm::radians(89.f));
 			update = true;
 		}
 
@@ -409,7 +448,7 @@ void SceneView::showToolBar()
 				}
 			}
 		}
-		
+
 		ImGui::EndPopup();
 	}
 

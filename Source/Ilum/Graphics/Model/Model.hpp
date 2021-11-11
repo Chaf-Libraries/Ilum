@@ -4,6 +4,8 @@
 
 #include "Graphics/Buffer/Buffer.h"
 
+#include "Geometry/BoundingBox.hpp"
+
 namespace Ilum
 {
 class Model
@@ -29,6 +31,8 @@ class Model
 
 	BufferReference getIndexBuffer() const;
 
+	const geometry::BoundingBox &getBoundingBox() const;
+
   private:
 	void createBuffer();
 
@@ -37,6 +41,8 @@ class Model
 
 	Buffer m_vertex_buffer;
 	Buffer m_index_buffer;
+
+	geometry::BoundingBox m_bounding_box;
 };
 
 using ModelReference = std::reference_wrapper<const Model>;

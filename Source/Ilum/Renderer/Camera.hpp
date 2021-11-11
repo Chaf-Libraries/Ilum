@@ -3,6 +3,7 @@
 #include <glm/glm.hpp>
 
 #include "Geometry/Frustum.hpp"
+#include "Geometry/Ray.hpp"
 
 namespace Ilum
 {
@@ -17,7 +18,7 @@ struct Camera
 	// Internal parameter
 	float aspect = 1.f;
 	float fov    = 30.f;
-	float far_plane    = 10000.f;
+	float far_plane    = 500.f;
 	float near_plane   = 0.01f;
 
 	glm::vec3 forward = glm::normalize(glm::vec3(-10.f, -10.f, -10.f));

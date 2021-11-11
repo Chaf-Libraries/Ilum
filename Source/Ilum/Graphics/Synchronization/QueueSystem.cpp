@@ -78,11 +78,7 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 			return nullptr;
 		}
 
-		auto *queue = m_present_queues[m_present_index];
-		//LOG_INFO("Present Index - {}", m_present_index);
-		m_present_index = (m_present_index + 1ull) % m_present_queues.size();
-		queue->waitIdle();
-		return queue;
+		return m_present_queues[0];
 	}
 
 	if (usage == QueueUsage::Graphics)
@@ -92,11 +88,7 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 			return nullptr;
 		}
 
-		auto *queue     = m_graphics_queues[m_graphics_index];
-		//LOG_INFO("Graphics Index - {}", m_graphics_index);
-		m_graphics_index = (m_graphics_index + 1ull) % m_graphics_queues.size();
-		queue->waitIdle();
-		return queue;
+		return m_graphics_queues[0];
 	}
 
 	if (usage == QueueUsage::Transfer)
@@ -106,11 +98,7 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 			return nullptr;
 		}
 
-		auto *queue      = m_transfer_queues[m_transfer_index];
-		//LOG_INFO("Transfer Index - {}", m_transfer_index);
-		m_transfer_index = (m_transfer_index + 1ull) % m_transfer_queues.size();
-		queue->waitIdle();
-		return queue;
+		return m_transfer_queues[0];
 	}
 
 	if (usage == QueueUsage::Compute)
@@ -120,11 +108,7 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 			return nullptr;
 		}
 
-		auto *queue      = m_compute_queues[m_compute_index];
-		//LOG_INFO("Compute Index - {}", m_compute_index);
-		m_compute_index = (m_compute_index + 1ull) % m_compute_queues.size();
-		queue->waitIdle();
-		return queue;
+		return m_compute_queues[0];
 	}
 
 	return nullptr;
