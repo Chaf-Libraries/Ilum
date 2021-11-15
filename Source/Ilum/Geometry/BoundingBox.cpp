@@ -64,6 +64,6 @@ bool BoundingBox::isInside(const glm::vec3 &point) const
 
 bool BoundingBox::valid() const
 {
-	return min_.x < max_.x && min_.y < max_.y && min_.z < max_.z;
+	return min_.x <= max_.x && min_.y <= max_.y && min_.z <= max_.z;
 }
 }        // namespace Ilum::geometry
