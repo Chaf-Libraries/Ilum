@@ -24,7 +24,7 @@ Model::Model(std::vector<SubMesh> &&submeshes) :
 
 Model ::~Model()
 {
-	GraphicsContext::instance()->getQueueSystem().waitAll();
+
 }
 
 Model::Model(Model &&other) noexcept :

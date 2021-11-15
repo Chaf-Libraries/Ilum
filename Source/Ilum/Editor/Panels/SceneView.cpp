@@ -132,7 +132,7 @@ void SceneView::draw(float delta_time)
 	}
 
 	// We don't want camera moving while handling object transform or window is not focused
-	if (ImGui::IsWindowFocused() && !is_on_guizmo)
+	if (ImGui::IsWindowFocused() && !ImGuizmo::IsUsing())
 	{
 		if (view != Renderer::instance()->Main_Camera.view)
 		{
@@ -151,8 +151,8 @@ void SceneView::draw(float delta_time)
 		}
 	}
 
-	// Mouse picking
-	if (ImGui::IsWindowFocused() && ImGui::IsWindowHovered() && Input::instance()->getKey(KeyCode::Click_Left))
+	// Mouse picking via ray casting
+	if (ImGui::IsWindowFocused() && ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGuizmo::IsOver() && !ImGuizmo::IsUsing())
 	{
 		auto [mouse_x, mouse_y] = Input::instance()->getMousePosition();
 		auto click_pos          = ImVec2(static_cast<float>(mouse_x) - scene_view_position.x, static_cast<float>(mouse_y) - scene_view_position.y);
@@ -160,31 +160,30 @@ void SceneView::draw(float delta_time)
 		auto &main_camera = Renderer::instance()->Main_Camera;
 
 		float x = (click_pos.x / scene_view_size.x) * 2.f - 1.f;
-		float y = (click_pos.y / scene_view_size.y) * 2.f - 1.f;
+		float y = -((click_pos.y / scene_view_size.y) * 2.f - 1.f);
 
 		glm::mat4 inv = glm::inverse(main_camera.view_projection);
-		
-		glm::vec4 test = main_camera.view_projection * glm::vec4(main_camera.position + 10.1f * main_camera.forward, 1.f);
-		LOG_INFO("test {}, {}, {}, {}", test.x, test.y, test.z, test.w);
 
-		glm::vec3 near_point = inv * glm::vec4(x, y, 0.f, 10.f) * main_camera.near_plane;
-		glm::vec3 far_point  = inv * glm::vec4(x, y, 1.f, 1.f) * main_camera.far_plane;
+		glm::vec4 near_point = inv * glm::vec4(x, y, 0.f, 1.f);
+		near_point /= near_point.w;
+		glm::vec4 far_point  = inv * glm::vec4(x, y, 1.f, 1.f);
+		far_point /= far_point.w;
 
 		geometry::Ray ray;
+		ray.origin    = main_camera.position;
+		ray.direction = glm::normalize(glm::vec3(far_point - near_point));
 
-		ray.origin    = near_point;
-		ray.direction = glm::normalize(glm::vec3(far_point) - ray.origin);
-
-		LOG_INFO("{}, {}", x, y);
-		LOG_INFO("near({}, {}, {}), far({}, {}, {}), length: {}", near_point.x, near_point.y, near_point.z, far_point.x, far_point.y, far_point.z, glm::length(far_point-near_point));
-		//auto       ray         = main_camera.genRay(click_pos.x / scene_view_size.x, click_pos.y / scene_view_size.y);
-		//LOG_INFO("origin: ({}, {}, {}), direction: ({}, {}, {})", ray.origin.x, ray.origin.y, ray.origin.z, ray.direction.x, ray.direction.y, ray.direction.z);
-
+		Editor::instance()->select(Entity());
+		float      distance = std::numeric_limits<float>::infinity();
 		const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform>);
-		group.each([&](const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform) {
+		group.each([&](const entt::entity& entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform) {
 			auto &model = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
-			auto  bbox  = model.get().getBoundingBox().transform(transform.world_transform);
-			LOG_INFO(ray.hit(bbox));
+			float hit_distance = ray.hit(model.get().getBoundingBox().transform(transform.world_transform));
+			if (distance > hit_distance)
+			{
+				distance = hit_distance;
+				Editor::instance()->select(Entity(entity));
+			}
 		});
 	}
 
