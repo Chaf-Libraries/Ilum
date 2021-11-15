@@ -28,6 +28,7 @@ layout(push_constant) uniform PushBlock{
     uint normal_map;
     uint metallic_map;
     uint roughness_map;
+    float entity_id;
 }material;
 
 
@@ -59,7 +60,4 @@ void main() {
         vec4(TBN * normalize(texture(textureArray[nonuniformEXT(material.normal_map)], inUV).xyz * 2.0 - vec3(1.0)), 1.0) : 
         vec4(N, 1.0);
     
-    // Position_Depth.w = 1.0;
-    // Position_Depth=vec4(1.0);
-   // Normal=vec4(1.0);
 }
