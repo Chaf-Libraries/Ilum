@@ -35,6 +35,8 @@ int main()
 
 	Ilum::Renderer::instance()->rebuild();
 
+	Ilum::Window::instance()->setIcon(std::string(PROJECT_SOURCE_DIR) + "Asset/Texture/Icon/logo.bmp");
+
 	auto title = Ilum::Window::instance()->getTitle();
 	while (!Ilum::Window::instance()->shouldClose())
 	{
