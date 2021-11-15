@@ -6,18 +6,13 @@
 
 namespace Ilum::pass
 {
-class DefaultPass : public TRenderPass<DefaultPass>
+class DirectionalLightPass : public TRenderPass<DirectionalLightPass>
 {
   public:
-	DefaultPass(const std::string &output);
-
 	virtual void setupPipeline(PipelineState &state) override;
 
 	virtual void resolveResources(ResolveState &resolve) override;
 
 	virtual void render(RenderPassState &state) override;
-
-  private:
-	std::string m_output;
 };
 }        // namespace Ilum::pass

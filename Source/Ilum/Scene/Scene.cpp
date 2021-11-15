@@ -1,6 +1,7 @@
 #include "Scene.hpp"
 
 #include "System/TransformUpdate.hpp"
+#include "System/LightUpdate.hpp"
 
 #include "EntityManager.hpp"
 #include "SystemManager.hpp"
@@ -14,6 +15,7 @@ Scene::Scene(Context *context):
 	m_entity_manager = createScope<EntityManager>();
 
 	m_system_manager->add<sym::TransformUpdate>();
+	m_system_manager->add<sym::LightUpdate>();
 }
 
 void Scene::onTick(float delta_time)

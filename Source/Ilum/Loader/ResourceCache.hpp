@@ -28,7 +28,7 @@ class ResourceCache
 
 	uint32_t imageID(const std::string &filepath) const;
 
-	ModelReference loadModel(const std::string &filepath);
+	ModelReference loadModel(const std::string &name);
 
 	void loadModelAsync(const std::string &filepath);
 

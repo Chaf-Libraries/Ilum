@@ -2,6 +2,8 @@
 
 #include "File/FileSystem.hpp"
 
+#include "Material/DisneyPBR.h"
+
 #include <assimp/DefaultLogger.hpp>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -158,13 +160,17 @@ void ModelLoader::parseNode(aiMatrix4x4 transform, aiNode *node, const aiScene *
 		std::vector<uint32_t> indices;
 		uint32_t              index_offset = 0;
 		aiMesh *              mesh         = scene->mMeshes[node->mMeshes[i]];
+
+		
+
 		parseMesh(transform, mesh, scene, vertices, indices);
 
 		for (auto &submesh : meshes)
 		{
-			index_offset += submesh.getIndexCount();
+			index_offset += static_cast<uint32_t>(submesh.indices.size());
 		}
-		meshes.emplace_back(std::move(vertices), std::move(indices), index_offset);
+
+		meshes.emplace_back(std::move(vertices), std::move(indices), index_offset, createScope<material::DisneyPBR>());
 	}
 
 	for (uint32_t i = 0; i < node->mNumChildren; i++)

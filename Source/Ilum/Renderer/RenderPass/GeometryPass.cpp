@@ -44,6 +44,9 @@ void GeometryPass::setupPipeline(PipelineState &state)
 		color_blend_attachment_state.blend_enable = false;
 	}
 
+	//state.rasterization_state.polygon_mode = VK_POLYGON_MODE_LINE;
+	//state.rasterization_state.cull_mode    = VK_CULL_MODE_NONE;
+
 	state.descriptor_bindings.bind(0, 0, "mainCamera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	state.descriptor_bindings.bind(0, 1, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
@@ -103,23 +106,23 @@ void GeometryPass::render(RenderPassState &state)
 
 	const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform, cmpt::Tag>);
 
-	group.each([&](const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform, const cmpt::Tag &tag) {
+	group.each([&](const entt::entity& entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform, const cmpt::Tag &tag) {
 		if (Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model) && tag.active)
 		{
 			auto &model = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
 
 			VkDeviceSize offsets[1] = {0};
-			vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &model.get().getVertexBuffer().get().getBuffer(), offsets);
-			vkCmdBindIndexBuffer(cmd_buffer, model.get().getIndexBuffer().get().getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &model.get().vertex_buffer.getBuffer(), offsets);
+			vkCmdBindIndexBuffer(cmd_buffer, model.get().index_buffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
 			// Model transform push constants
 			vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), glm::value_ptr(transform.world_transform));
 
-			for (uint32_t i = 0; i < model.get().getSubMeshes().size(); i++)
+			for (auto &submesh : model.get().submeshes)
 			{
-				if (mesh_renderer.materials[i] && mesh_renderer.materials[i]->type() == typeid(material::DisneyPBR))
+				if (submesh.material && submesh.material->type() == typeid(material::DisneyPBR))
 				{
-					auto *   material = static_cast<material::DisneyPBR *>(mesh_renderer.materials[i].get());
+					auto *material = static_cast<material::DisneyPBR *>(submesh.material.get());
 
 					struct
 					{
@@ -142,6 +145,7 @@ void GeometryPass::render(RenderPassState &state)
 						uint32_t normal_map;
 						uint32_t metallic_map;
 						uint32_t roughness_map;
+						float    id;
 					} material_data;
 
 					material_data.base_color = material->base_color;
@@ -151,11 +155,11 @@ void GeometryPass::render(RenderPassState &state)
 					material_data.normal_map          = Renderer::instance()->getResourceCache().imageID(material->normal_map);
 					material_data.metallic_map        = Renderer::instance()->getResourceCache().imageID(material->metallic_map);
 					material_data.roughness_map       = Renderer::instance()->getResourceCache().imageID(material->roughness_map);
+					material_data.id                  = static_cast<float>(entity);
 
 					vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 80, sizeof(material_data), &material_data);
 
-					const auto &submesh = model.get().getSubMeshes()[i];
-					vkCmdDrawIndexed(cmd_buffer, submesh.getIndexCount(), 1, submesh.getIndexOffset(), 0, 0);
+					vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(submesh.indices.size()), 1, submesh.index_offset, 0, 0);
 				}
 			}
 		}

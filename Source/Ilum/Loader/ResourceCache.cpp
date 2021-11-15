@@ -93,20 +93,20 @@ uint32_t ResourceCache::imageID(const std::string &filepath) const
 	return static_cast<uint32_t>(m_image_map.at(filepath));
 }
 
-ModelReference ResourceCache::loadModel(const std::string &filepath)
+ModelReference ResourceCache::loadModel(const std::string &name)
 {
 	std::lock_guard<std::mutex> lock(m_model_mutex);
 
-	if (m_model_cache.size() == m_model_map.size() && m_model_map.find(filepath) != m_model_map.end())
+	if (m_model_cache.size() == m_model_map.size() && m_model_map.find(name) != m_model_map.end())
 	{
-		return m_model_cache.at(m_model_map.at(filepath));
+		return m_model_cache.at(m_model_map.at(name));
 	}
 
-	m_model_map[filepath] = m_model_cache.size();
+	m_model_map[name] = m_model_cache.size();
 	m_model_cache.emplace_back(Model());
-	ModelLoader::load(m_model_cache.back(), filepath);
+	ModelLoader::load(m_model_cache.back(), name);
 
-	LOG_INFO("Import Model: {}", filepath);
+	LOG_INFO("Import Model: {}", name);
 
 	return m_model_cache.back();
 }
@@ -114,18 +114,21 @@ ModelReference ResourceCache::loadModel(const std::string &filepath)
 void ResourceCache::loadModelAsync(const std::string &filepath)
 {
 	ThreadPool::instance()->addTask([this, filepath](size_t) {
-		if (m_model_map.find(filepath) == m_model_map.end())
+		std::string name = filepath;
+		while (m_model_map.find(name) != m_model_map.end())
 		{
-			LOG_INFO("Import Image: {} using thread #{}", filepath, ThreadPool::instance()->threadIndex());
+			name += "#";
+		}
 
-			Model model;
-			ModelLoader::load(model, filepath);
+		LOG_INFO("Import Image: {} using thread #{}", filepath, ThreadPool::instance()->threadIndex());
 
-			{
-				std::lock_guard<std::mutex> lock(m_model_mutex);
-				m_model_map[filepath] = m_model_cache.size();
-				m_model_cache.emplace_back(std::move(model));
-			}
+		Model model;
+		ModelLoader::load(model, filepath);
+
+		{
+			std::lock_guard<std::mutex> lock(m_model_mutex);
+			m_model_map[name] = m_model_cache.size();
+			m_model_cache.emplace_back(std::move(model));
 		}
 	});
 }

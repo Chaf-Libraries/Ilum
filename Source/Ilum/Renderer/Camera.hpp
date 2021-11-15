@@ -17,7 +17,7 @@ struct Camera
 
 	// Internal parameter
 	float aspect = 1.f;
-	float fov    = 30.f;
+	float fov    = 45.f;
 	float far_plane    = 500.f;
 	float near_plane   = 0.01f;
 

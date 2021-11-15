@@ -12,65 +12,40 @@
 namespace Ilum
 {
 Model::Model(std::vector<SubMesh> &&submeshes) :
-    m_submeshes(std::move(submeshes))
+    submeshes(std::move(submeshes))
 {
-	for (auto& submesh : m_submeshes)
+	for (auto& submesh : this->submeshes)
 	{
-		m_bounding_box.merge(submesh.getBoundingBox());
+		bounding_box.merge(submesh.bounding_box);
 	}
 
 	createBuffer();
 }
 
-Model ::~Model()
-{
-
-}
-
 Model::Model(Model &&other) noexcept :
-    m_submeshes(std::move(other.m_submeshes)),
-    m_vertex_buffer(std::move(other.m_vertex_buffer)),
-    m_index_buffer(std::move(other.m_index_buffer)),
-    m_bounding_box(other.m_bounding_box)
+    submeshes(std::move(other.submeshes)),
+    vertex_buffer(std::move(other.vertex_buffer)),
+    index_buffer(std::move(other.index_buffer)),
+    bounding_box(other.bounding_box)
 {
-	other.m_submeshes.clear();
+	other.submeshes.clear();
 }
 
 Model &Model::operator=(Model &&other) noexcept
 {
-	m_submeshes     = std::move(other.m_submeshes);
-	m_vertex_buffer = std::move(other.m_vertex_buffer);
-	m_index_buffer  = std::move(other.m_index_buffer);
-	m_bounding_box  = other.m_bounding_box;
+	submeshes     = std::move(other.submeshes);
+	vertex_buffer = std::move(other.vertex_buffer);
+	index_buffer  = std::move(other.index_buffer);
+	bounding_box  = other.bounding_box;
 
-	other.m_submeshes.clear();
+	other.submeshes.clear();
 
 	return *this;
 }
 
-const std::vector<SubMesh> &Model::getSubMeshes() const
-{
-	return m_submeshes;
-}
-
-BufferReference Model::getVertexBuffer() const
-{
-	return m_vertex_buffer;
-}
-
-BufferReference Model::getIndexBuffer() const
-{
-	return m_index_buffer;
-}
-
-const geometry::BoundingBox &Model::getBoundingBox() const
-{
-	return m_bounding_box;
-}
-
 void Model::createBuffer()
 {
-	if (m_submeshes.empty())
+	if (submeshes.empty())
 	{
 		return;
 	}
@@ -78,15 +53,15 @@ void Model::createBuffer()
 	std::vector<Vertex>   vertices;
 	std::vector<uint32_t> indices;
 
-	for (const auto &submesh : m_submeshes)
+	for (const auto &submesh : submeshes)
 	{
 		uint32_t offset = static_cast<uint32_t>(vertices.size());
-		vertices.insert(vertices.end(), submesh.getVertices().begin(), submesh.getVertices().end());
-		std::for_each(submesh.getIndices().begin(), submesh.getIndices().end(), [&indices, offset](uint32_t index) { indices.push_back(offset + index); });
+		vertices.insert(vertices.end(), submesh.vertices.begin(), submesh.vertices.end());
+		std::for_each(submesh.indices.begin(), submesh.indices.end(), [&indices, offset](uint32_t index) { indices.push_back(offset + index); });
 	}
 
-	m_vertex_buffer = Buffer(sizeof(Vertex) * vertices.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-	m_index_buffer  = Buffer(sizeof(uint32_t) * indices.size(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	vertex_buffer = Buffer(sizeof(Vertex) * vertices.size(), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	index_buffer  = Buffer(sizeof(uint32_t) * indices.size(), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
 	// Staging vertex buffer
 	{
@@ -96,7 +71,7 @@ void Model::createBuffer()
 		staging_buffer.unmap();
 		CommandBuffer command_buffer(QueueUsage::Transfer);
 		command_buffer.begin();
-		command_buffer.copyBuffer(BufferInfo{staging_buffer}, BufferInfo{m_vertex_buffer}, sizeof(Vertex) * vertices.size());
+		command_buffer.copyBuffer(BufferInfo{staging_buffer}, BufferInfo{vertex_buffer}, sizeof(Vertex) * vertices.size());
 		command_buffer.end();
 		command_buffer.submitIdle();
 	}
@@ -109,7 +84,7 @@ void Model::createBuffer()
 		staging_buffer.unmap();
 		CommandBuffer command_buffer(QueueUsage::Transfer);
 		command_buffer.begin();
-		command_buffer.copyBuffer(BufferInfo{staging_buffer}, BufferInfo{m_index_buffer}, sizeof(uint32_t) * indices.size());
+		command_buffer.copyBuffer(BufferInfo{staging_buffer}, BufferInfo{index_buffer}, sizeof(uint32_t) * indices.size());
 		command_buffer.end();
 		command_buffer.submitIdle();
 	}

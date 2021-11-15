@@ -1,7 +1,7 @@
 #include "AssetBrowser.hpp"
 
-#include "Renderer/Renderer.hpp"
 #include "Renderer/RenderGraph/RenderGraph.hpp"
+#include "Renderer/Renderer.hpp"
 
 #include "ImGui/ImGuiContext.hpp"
 
@@ -140,12 +140,13 @@ inline void draw_model_asset(const Image &image, float height, float space)
 			ImGui::Begin(name.c_str(), NULL, ImGuiWindowFlags_Tooltip | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar);
 			ImGui::Text(name.c_str());
 			ImGui::Separator();
-			for (uint32_t i = 0; i < model.get().getSubMeshes().size(); i++)
+			uint32_t idx = 0;
+			for (auto &submesh : model.get().submeshes)
 			{
-				ImGui::Text("SubMesh #%d", i);
-				ImGui::BulletText("vertices count: %d", model.get().getSubMeshes()[i].getVertexCount());
-				ImGui::BulletText("indices count: %d", model.get().getSubMeshes()[i].getIndexCount());
-				ImGui::BulletText("index offset: %d", model.get().getSubMeshes()[i].getIndexOffset());
+				ImGui::Text("SubMesh #%d", idx++);
+				ImGui::BulletText("vertices count: %d", submesh.vertices.size());
+				ImGui::BulletText("indices count: %d", submesh.indices.size());
+				ImGui::BulletText("index offset: %d", submesh.index_offset);
 			}
 			ImGui::End();
 		}

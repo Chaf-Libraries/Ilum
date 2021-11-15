@@ -8,14 +8,21 @@
 
 namespace Ilum
 {
-class Model
+struct Model
 {
   public:
+	std::vector<SubMesh> submeshes;
+
+	Buffer vertex_buffer;
+	Buffer index_buffer;
+
+	geometry::BoundingBox bounding_box;
+
 	Model() = default;
 
 	Model(std::vector<SubMesh> &&submeshes);
 
-	~Model();
+	~Model() = default;
 
 	Model(const Model &) = delete;
 
@@ -25,25 +32,9 @@ class Model
 
 	Model &operator=(Model &&other) noexcept;
 
-	const std::vector<SubMesh> &getSubMeshes() const;
-
-	BufferReference getVertexBuffer() const;
-
-	BufferReference getIndexBuffer() const;
-
-	const geometry::BoundingBox &getBoundingBox() const;
-
   private:
 	void createBuffer();
-
-  private:
-	std::vector<SubMesh> m_submeshes;
-
-	Buffer m_vertex_buffer;
-	Buffer m_index_buffer;
-
-	geometry::BoundingBox m_bounding_box;
 };
 
-using ModelReference = std::reference_wrapper<const Model>;
+using ModelReference = std::reference_wrapper<Model>;
 }        // namespace Ilum

@@ -91,7 +91,6 @@ void SceneView::draw(float delta_time)
 			auto  entity        = Scene::instance()->createEntity("New Model");
 			auto &mesh_renderer = entity.addComponent<cmpt::MeshRenderer>();
 			mesh_renderer.model = *static_cast<std::string *>(pay_load->Data);
-			mesh_renderer.materials.resize(Renderer::instance()->getResourceCache().loadModel(*static_cast<std::string *>(pay_load->Data)).get().getSubMeshes().size());
 		}
 		ImGui::EndDragDropTarget();
 	}
@@ -178,7 +177,7 @@ void SceneView::draw(float delta_time)
 		const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform>);
 		group.each([&](const entt::entity& entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform) {
 			auto &model = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
-			float hit_distance = ray.hit(model.get().getBoundingBox().transform(transform.world_transform));
+			float hit_distance = ray.hit(model.get().bounding_box.transform(transform.world_transform));
 			if (distance > hit_distance)
 			{
 				distance = hit_distance;

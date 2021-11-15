@@ -4,6 +4,7 @@
 
 #include "Scene/Component/Hierarchy.hpp"
 #include "Scene/Component/Light.hpp"
+#include "Scene/Component/DirectionalLight.hpp"
 #include "Scene/Component/MeshRenderer.hpp"
 #include "Scene/Component/Tag.hpp"
 #include "Scene/Component/Transform.hpp"
@@ -327,7 +328,6 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 		    if (ImGui::Button(component.model.c_str(), component.model.empty() ? ImVec2(250.f, 0.f) : ImVec2(0.f, 0.f)))
 		    {
 			    component.model = "";
-			    component.materials.clear();
 		    }
 		    ImGui::PopStyleVar();
 		    if (ImGui::BeginDragDropTarget())
@@ -339,7 +339,6 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 				    if (component.model != new_model)
 				    {
 					    component.model = new_model;
-					    component.materials.resize(Renderer::instance()->getResourceCache().loadModel(new_model).get().getSubMeshes().size());
 				    }
 			    }
 			    ImGui::EndDragDropTarget();
@@ -349,22 +348,22 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 		    {
 			    auto &model = Renderer::instance()->getResourceCache().loadModel(component.model);
 
-			    for (uint32_t i = 0; i < model.get().getSubMeshes().size(); i++)
+				uint32_t idx = 0;
+				for (auto &submesh : model.get().submeshes)
 			    {
-				    auto &submesh  = model.get().getSubMeshes()[i];
-				    auto &material = component.materials[i];
+				    auto &material = submesh.material;
 
-				    if (ImGui::TreeNode((std::string("Submesh #") + std::to_string(i)).c_str()))
+				    if (ImGui::TreeNode((std::string("Submesh #") + std::to_string(idx++)).c_str()))
 				    {
 					    // Submesh attributes
 					    if (ImGui::TreeNode("Mesh Attributes"))
 					    {
-						    ImGui::Text("vertices count: %d", submesh.getVertexCount());
-						    ImGui::Text("indices count: %d", submesh.getIndexCount());
-						    ImGui::Text("index offset: %d", submesh.getIndexOffset());
+						    ImGui::Text("vertices count: %d", submesh.vertices.size());
+						    ImGui::Text("indices count: %d", submesh.indices.size());
+						    ImGui::Text("index offset: %d", submesh.index_offset);
 						    ImGui::Text("AABB bounding box:");
-						    ImGui::BulletText("min (%f, %f, %f)", submesh.getBoundingBox().min_.x, submesh.getBoundingBox().min_.y, submesh.getBoundingBox().min_.z);
-						    ImGui::BulletText("max (%f, %f, %f)", submesh.getBoundingBox().max_.x, submesh.getBoundingBox().max_.y, submesh.getBoundingBox().max_.z);
+						    ImGui::BulletText("min (%f, %f, %f)", submesh.bounding_box.min_.x, submesh.bounding_box.min_.y, submesh.bounding_box.min_.z);
+						    ImGui::BulletText("max (%f, %f, %f)", submesh.bounding_box.max_.x, submesh.bounding_box.max_.y, submesh.bounding_box.max_.z);
 						    ImGui::TreePop();
 					    }
 
@@ -399,8 +398,32 @@ template <>
 inline void draw_component<cmpt::Light>(Entity entity)
 {
 	draw_component<cmpt::Light>(
-	    "Light", entity, [](auto &component) {
+	    "Light", entity, [](cmpt::Light &component) {
+		    const char *const LightNames[] = {"None", "Directional", "Point", "Spot"};
+		    int               current      = static_cast<int>(component.type);
+		    ImGui::Combo("Type", &current, LightNames, 4);
 
+			if (component.type == cmpt::LightType::Directional)
+			{
+			    auto light = static_cast<cmpt::DirectionalLight*>(component.impl.get());
+			    ImGui::DragFloat("Intensity", &light->intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+			    ImGui::ColorEdit3("Color", glm::value_ptr(light->color));
+			    ImGui::DragFloat3("Direction", glm::value_ptr(light->direction), 0.1f, 0.0f, 0.0f, "%.3f");
+			}
+		    else if (component.type == cmpt::LightType::Spot)
+		    {
+			    ImGui::Text("Spot");
+		    }
+		    else if (component.type == cmpt::LightType::Point)
+		    {
+			    ImGui::Text("Point");
+		    }
+		    else if (component.type == cmpt::LightType::Area)
+		    {
+			    ImGui::Text("Area");
+		    }
+
+		    component.type = static_cast<cmpt::LightType>(current);
 	    });
 }
 
