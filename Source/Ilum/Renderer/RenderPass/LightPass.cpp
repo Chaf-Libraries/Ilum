@@ -1,4 +1,4 @@
-#include "DirectionalLightPass.hpp"
+#include "LightPass.hpp"
 
 #include "Renderer/Renderer.hpp"
 
@@ -13,7 +13,7 @@
 
 namespace Ilum::pass
 {
-void DirectionalLightPass::setupPipeline(PipelineState &state)
+void LightPass::setupPipeline(PipelineState &state)
 {
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/directional_light.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/directional_light.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
@@ -28,16 +28,20 @@ void DirectionalLightPass::setupPipeline(PipelineState &state)
 	state.descriptor_bindings.bind(0, 3, "gbuffer - depth", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 4, "gbuffer - metallic", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 5, "gbuffer - roughness", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 6, "directional_light_buffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 7, "point_light_buffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
 	state.declareAttachment("back_buffer", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.addOutputAttachment("back_buffer", AttachmentState::Clear_Color);
 }
 
-void DirectionalLightPass::resolveResources(ResolveState &resolve)
+void LightPass::resolveResources(ResolveState &resolve)
 {
+	resolve.resolve("directional_light_buffer", Renderer::instance()->getBuffer(Renderer::BufferType::DirectionalLight));
+	resolve.resolve("point_light_buffer", Renderer::instance()->getBuffer(Renderer::BufferType::PointLight));
 }
 
-void DirectionalLightPass::render(RenderPassState &state)
+void LightPass::render(RenderPassState &state)
 {
 	auto &cmd_buffer = state.command_buffer;
 
@@ -66,20 +70,35 @@ void DirectionalLightPass::render(RenderPassState &state)
 	vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
 	vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
+	uint32_t   directional_light_count = 0, spot_light_count = 0, point_light_count = 0;
 	const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::Light, cmpt::Tag>);
-
 	group.each([&](const entt::entity &entity, const cmpt::Light &light, const cmpt::Tag &tag) {
-		if (!tag.active || light.type != cmpt::LightType::Directional || !light.impl)
+		if (!tag.active || !light.impl)
 		{
 			return;
 		}
 
-		auto directional_light = static_cast<cmpt::DirectionalLight *>(light.impl.get());
-
-		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(cmpt::DirectionalLight), directional_light);
-		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(cmpt::DirectionalLight), sizeof(glm::vec3), glm::value_ptr(Renderer::instance()->Main_Camera.position));
-		vkCmdDraw(cmd_buffer, 10, 1, 0, 0);
+		switch (light.type)
+		{
+			case cmpt::LightType::Directional:
+				directional_light_count++;
+				break;
+			case cmpt::LightType::Spot:
+				spot_light_count++;
+				break;
+			case cmpt::LightType::Point:
+				point_light_count++;
+				break;
+			default:
+				break;
+		}
 	});
+
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &directional_light_count);
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(uint32_t), sizeof(uint32_t), &spot_light_count);
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 2 * sizeof(uint32_t), sizeof(uint32_t), &point_light_count);
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 3 * sizeof(uint32_t), sizeof(glm::vec3), glm::value_ptr(Renderer::instance()->Main_Camera.position));
+	vkCmdDraw(cmd_buffer, 10, 1, 0, 0);
 
 	vkCmdEndRenderPass(cmd_buffer);
 }

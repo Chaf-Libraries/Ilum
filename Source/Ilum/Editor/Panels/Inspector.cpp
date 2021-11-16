@@ -5,6 +5,8 @@
 #include "Scene/Component/Hierarchy.hpp"
 #include "Scene/Component/Light.hpp"
 #include "Scene/Component/DirectionalLight.hpp"
+#include "Scene/Component/PointLight.hpp"
+#include "Scene/Component/SpotLight.hpp"
 #include "Scene/Component/MeshRenderer.hpp"
 #include "Scene/Component/Tag.hpp"
 #include "Scene/Component/Transform.hpp"
@@ -406,17 +408,23 @@ inline void draw_component<cmpt::Light>(Entity entity)
 			if (component.type == cmpt::LightType::Directional)
 			{
 			    auto light = static_cast<cmpt::DirectionalLight*>(component.impl.get());
-			    ImGui::DragFloat("Intensity", &light->intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-			    ImGui::ColorEdit3("Color", glm::value_ptr(light->color));
-			    ImGui::DragFloat3("Direction", glm::value_ptr(light->direction), 0.1f, 0.0f, 0.0f, "%.3f");
+			    ImGui::DragFloat("Intensity", &light->data.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+			    ImGui::ColorEdit3("Color", glm::value_ptr(light->data.color));
+			    ImGui::DragFloat3("Direction", glm::value_ptr(light->data.direction), 0.1f, 0.0f, 0.0f, "%.3f");
 			}
 		    else if (component.type == cmpt::LightType::Spot)
 		    {
+
 			    ImGui::Text("Spot");
 		    }
 		    else if (component.type == cmpt::LightType::Point)
 		    {
-			    ImGui::Text("Point");
+			    auto light = static_cast<cmpt::PointLight *>(component.impl.get());
+			    ImGui::DragFloat("Intensity", &light->data.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+			    ImGui::ColorEdit3("Color", glm::value_ptr(light->data.color));
+			    ImGui::DragFloat("Constant", &light->data.constant, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
+			    ImGui::DragFloat("Linear", &light->data.linear, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
+			    ImGui::DragFloat("Quadratic", &light->data.quadratic, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
 		    }
 		    else if (component.type == cmpt::LightType::Area)
 		    {

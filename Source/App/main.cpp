@@ -5,7 +5,7 @@
 #include <Ilum/Engine/Engine.hpp>
 #include <Ilum/Graphics/GraphicsContext.hpp>
 #include <Ilum/Renderer/RenderPass/GeometryPass.hpp>
-#include <Ilum/Renderer/RenderPass/DirectionalLightPass.hpp>
+#include <Ilum/Renderer/RenderPass/LightPass.hpp>
 #include <Ilum/Renderer/Renderer.hpp>
 #include <Ilum/Scene/Component/Hierarchy.hpp>
 #include <Ilum/Scene/Component/MeshRenderer.hpp>
@@ -23,7 +23,7 @@ int main()
 	Ilum::Renderer::instance()->buildRenderGraph = [](Ilum::RenderGraphBuilder &builder) {
 		builder
 		    .addRenderPass("GeometryPass", std::make_unique<Ilum::pass::GeometryPass>())
-		    .addRenderPass("DirectionalLightPass", std::make_unique<Ilum::pass::DirectionalLightPass>())
+		    .addRenderPass("LightPass", std::make_unique<Ilum::pass::LightPass>())
 
 		    .setView("gbuffer - normal")
 		    .setOutput("gbuffer - normal");

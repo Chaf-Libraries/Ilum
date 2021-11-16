@@ -6,7 +6,7 @@
 
 namespace Ilum::pass
 {
-class DirectionalLightPass : public TRenderPass<DirectionalLightPass>
+class LightPass : public TRenderPass<LightPass>
 {
   public:
 	virtual void setupPipeline(PipelineState &state) override;

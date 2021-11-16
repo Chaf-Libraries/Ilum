@@ -165,7 +165,7 @@ void SceneView::draw(float delta_time)
 
 		glm::vec4 near_point = inv * glm::vec4(x, y, 0.f, 1.f);
 		near_point /= near_point.w;
-		glm::vec4 far_point  = inv * glm::vec4(x, y, 1.f, 1.f);
+		glm::vec4 far_point = inv * glm::vec4(x, y, 1.f, 1.f);
 		far_point /= far_point.w;
 
 		geometry::Ray ray;
@@ -174,9 +174,9 @@ void SceneView::draw(float delta_time)
 
 		Editor::instance()->select(Entity());
 		float      distance = std::numeric_limits<float>::infinity();
-		const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform>);
-		group.each([&](const entt::entity& entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform) {
-			auto &model = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
+		const auto group    = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform>);
+		group.each([&](const entt::entity &entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform) {
+			auto &model        = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
 			float hit_distance = ray.hit(model.get().bounding_box.transform(transform.world_transform));
 			if (distance > hit_distance)
 			{

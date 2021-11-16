@@ -38,7 +38,10 @@ class Renderer : public TSubsystem<Renderer>
 
 	enum class BufferType
 	{
-		MainCamera
+		MainCamera,
+		DirectionalLight,
+		PointLight,
+		SpotLight
 	};
 
   public:
