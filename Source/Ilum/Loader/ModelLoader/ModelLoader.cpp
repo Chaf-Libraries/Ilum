@@ -161,8 +161,6 @@ void ModelLoader::parseNode(aiMatrix4x4 transform, aiNode *node, const aiScene *
 		uint32_t              index_offset = 0;
 		aiMesh *              mesh         = scene->mMeshes[node->mMeshes[i]];
 
-		
-
 		parseMesh(transform, mesh, scene, vertices, indices);
 
 		for (auto &submesh : meshes)

@@ -18,7 +18,8 @@ SubMesh::SubMesh(SubMesh &&other) noexcept :
     vertices(std::move(other.vertices)),
     indices(std::move(other.indices)),
     index_offset(other.index_offset),
-    bounding_box(other.bounding_box)
+    bounding_box(other.bounding_box),
+    material(std::move(other.material))
 {
 	other.vertices.clear();
 	other.indices.clear();
@@ -31,6 +32,7 @@ SubMesh &SubMesh::operator=(SubMesh &&other) noexcept
 	indices        = std::move(other.indices);
 	index_offset   = other.index_offset;
 	bounding_box           = other.bounding_box;
+	material       = std::move(other.material);
 
 	other.vertices.clear();
 	other.indices.clear();

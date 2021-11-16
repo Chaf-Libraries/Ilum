@@ -211,8 +211,8 @@ void Renderer::updateBuffers()
 
 	// Update lights
 	std::vector<cmpt::DirectionalLight::Data> directional_lights;
-	std::vector<cmpt::SpotLight>              spot_lights;
-	std::vector<cmpt::PointLight>             point_lights;
+	std::vector<cmpt::SpotLight::Data>              spot_lights;
+	std::vector<cmpt::PointLight::Data>       point_lights;
 
 	//// Gather light infos
 	const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::Light, cmpt::Tag>);
@@ -228,41 +228,42 @@ void Renderer::updateBuffers()
 				directional_lights.push_back(static_cast<cmpt::DirectionalLight *>(light.impl.get())->data);
 				break;
 			case cmpt::LightType::Spot:
-				spot_lights.push_back(*static_cast<cmpt::SpotLight *>(light.impl.get()));
+				spot_lights.push_back(static_cast<cmpt::SpotLight *>(light.impl.get())->data);
+				spot_lights.back().position = Entity(entity).getComponent<cmpt::Transform>().translation;
 				break;
 			case cmpt::LightType::Point:
-				point_lights.push_back(*static_cast<cmpt::PointLight *>(light.impl.get()));
-				point_lights.back().data.position = Entity(entity).getComponent<cmpt::Transform>().translation;
-					break;
+				point_lights.push_back(static_cast<cmpt::PointLight *>(light.impl.get())->data);
+				point_lights.back().position = Entity(entity).getComponent<cmpt::Transform>().translation;
+				break;
 			default:
 				break;
 		}
 	});
 
 	//// Enlarge buffer
-	size_t directional_lights_count = m_buffers[BufferType::DirectionalLight].getSize() / sizeof(cmpt::DirectionalLight);
+	size_t directional_lights_count = m_buffers[BufferType::DirectionalLight].getSize() / sizeof(cmpt::DirectionalLight::Data);
 	if (directional_lights_count < directional_lights.size())
 	{
 		GraphicsContext::instance()->getQueueSystem().waitAll();
-		m_buffers[BufferType::DirectionalLight] = Buffer(2 * directional_lights_count * sizeof(cmpt::DirectionalLight), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+		m_buffers[BufferType::DirectionalLight] = Buffer(2 * directional_lights_count * sizeof(cmpt::DirectionalLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 		m_update = true;
 	}
 
-	size_t spot_lights_count = m_buffers[BufferType::SpotLight].getSize() / sizeof(cmpt::SpotLight);
+	size_t spot_lights_count = m_buffers[BufferType::SpotLight].getSize() / sizeof(cmpt::SpotLight::Data);
 	if (spot_lights_count < spot_lights.size())
 	{
 		GraphicsContext::instance()->getQueueSystem().waitAll();
-		m_buffers[BufferType::SpotLight] = Buffer(2 * spot_lights_count * sizeof(cmpt::SpotLight), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+		m_buffers[BufferType::SpotLight] = Buffer(2 * spot_lights_count * sizeof(cmpt::SpotLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 		m_update = true;
 	}
 
-	size_t point_lights_count = m_buffers[BufferType::PointLight].getSize() / sizeof(cmpt::PointLight);
+	size_t point_lights_count = m_buffers[BufferType::PointLight].getSize() / sizeof(cmpt::PointLight::Data);
 	if (point_lights_count < point_lights.size())
 	{
 		GraphicsContext::instance()->getQueueSystem().waitAll();
-		m_buffers[BufferType::PointLight] = Buffer(2 * point_lights_count * sizeof(cmpt::PointLight), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+		m_buffers[BufferType::PointLight] = Buffer(2 * point_lights_count * sizeof(cmpt::PointLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 		m_update = true;
 	}
@@ -275,12 +276,12 @@ void Renderer::updateBuffers()
 	}
 	if (!spot_lights.empty())
 	{
-		std::memcpy(m_buffers[BufferType::SpotLight].map(), spot_lights.data(), spot_lights.size() * sizeof(cmpt::SpotLight));
+		std::memcpy(m_buffers[BufferType::SpotLight].map(), spot_lights.data(), spot_lights.size() * sizeof(cmpt::SpotLight::Data));
 		m_buffers[BufferType::SpotLight].unmap();
 	}
 	if (!point_lights.empty())
 	{
-		std::memcpy(m_buffers[BufferType::PointLight].map(), point_lights.data(), point_lights.size() * sizeof(cmpt::PointLight));
+		std::memcpy(m_buffers[BufferType::PointLight].map(), point_lights.data(), point_lights.size() * sizeof(cmpt::PointLight::Data));
 		m_buffers[BufferType::PointLight].unmap();
 	}
 }
@@ -288,8 +289,8 @@ void Renderer::updateBuffers()
 void Renderer::createBuffers()
 {
 	m_buffers[BufferType::MainCamera]       = Buffer(sizeof(CameraBuffer), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	m_buffers[BufferType::DirectionalLight] = Buffer(2 * sizeof(cmpt::DirectionalLight), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	m_buffers[BufferType::SpotLight]        = Buffer(2 * sizeof(cmpt::SpotLight), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	m_buffers[BufferType::PointLight]       = Buffer(2 * sizeof(cmpt::PointLight), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	m_buffers[BufferType::DirectionalLight] = Buffer(2 * sizeof(cmpt::DirectionalLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	m_buffers[BufferType::SpotLight]        = Buffer(2 * sizeof(cmpt::SpotLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	m_buffers[BufferType::PointLight]       = Buffer(2 * sizeof(cmpt::PointLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 }
 }        // namespace Ilum

@@ -30,15 +30,17 @@ void LightPass::setupPipeline(PipelineState &state)
 	state.descriptor_bindings.bind(0, 5, "gbuffer - roughness", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 6, "directional_light_buffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 7, "point_light_buffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 8, "spot_light_buffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
-	state.declareAttachment("back_buffer", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	state.addOutputAttachment("back_buffer", AttachmentState::Clear_Color);
+	state.declareAttachment("lighting_result", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.addOutputAttachment("lighting_result", AttachmentState::Clear_Color);
 }
 
 void LightPass::resolveResources(ResolveState &resolve)
 {
 	resolve.resolve("directional_light_buffer", Renderer::instance()->getBuffer(Renderer::BufferType::DirectionalLight));
 	resolve.resolve("point_light_buffer", Renderer::instance()->getBuffer(Renderer::BufferType::PointLight));
+	resolve.resolve("spot_light_buffer", Renderer::instance()->getBuffer(Renderer::BufferType::SpotLight));
 }
 
 void LightPass::render(RenderPassState &state)
@@ -98,7 +100,7 @@ void LightPass::render(RenderPassState &state)
 	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(uint32_t), sizeof(uint32_t), &spot_light_count);
 	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 2 * sizeof(uint32_t), sizeof(uint32_t), &point_light_count);
 	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 3 * sizeof(uint32_t), sizeof(glm::vec3), glm::value_ptr(Renderer::instance()->Main_Camera.position));
-	vkCmdDraw(cmd_buffer, 10, 1, 0, 0);
+	vkCmdDraw(cmd_buffer, 3, 1, 0, 0);
 
 	vkCmdEndRenderPass(cmd_buffer);
 }

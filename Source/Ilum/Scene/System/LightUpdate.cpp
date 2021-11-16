@@ -25,7 +25,7 @@ void LightUpdate::run()
 					light.impl = createScope<cmpt::PointLight>();
 					break;
 				case cmpt::LightType::Spot:
-
+					light.impl = createScope<cmpt::SpotLight>();
 					break;
 				case cmpt::LightType::Area:
 

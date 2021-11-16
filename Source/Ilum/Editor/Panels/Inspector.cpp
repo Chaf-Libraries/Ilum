@@ -414,8 +414,12 @@ inline void draw_component<cmpt::Light>(Entity entity)
 			}
 		    else if (component.type == cmpt::LightType::Spot)
 		    {
-
-			    ImGui::Text("Spot");
+			    auto light = static_cast<cmpt::SpotLight *>(component.impl.get());
+			    ImGui::DragFloat("Intensity", &light->data.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+			    ImGui::ColorEdit3("Color", glm::value_ptr(light->data.color));
+			    ImGui::DragFloat3("Direction", glm::value_ptr(light->data.direction), 0.1f, 0.0f, 0.0f, "%.3f");
+			    ImGui::DragFloat("Cut off", &light->data.cut_off, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
+			    ImGui::DragFloat("Outer cut off", &light->data.outer_cut_off, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
 		    }
 		    else if (component.type == cmpt::LightType::Point)
 		    {
