@@ -75,7 +75,7 @@ void Console::draw(float delta_time)
 	ImGui::Separator();
 	ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
-	auto &logs = current_item == 0 ? Logger::getInstance().getLogs("engine") : Logger::getInstance().getLogs("vulkan");
+	auto &logs = current_item == 0 ? Logger::getInstance().copyLogs("engine") : Logger::getInstance().copyLogs("vulkan");
 	for (auto &log : logs)
 	{
 		if (!enable[log.level])

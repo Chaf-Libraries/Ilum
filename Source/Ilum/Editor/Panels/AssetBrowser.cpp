@@ -481,7 +481,10 @@ void AssetBrowser::draw(float delta_time)
 			ifd::FileDialog::Instance().Close();
 		}
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.f, 0.f));
+		ImGui::Separator();
+		ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 		draw_texture_asset(100.f, 0.f);
+		ImGui::EndChild();
 		ImGui::PopStyleVar();
 	}
 	else if (current_item == 1)
@@ -501,12 +504,17 @@ void AssetBrowser::draw(float delta_time)
 			}
 			ifd::FileDialog::Instance().Close();
 		}
-
+		ImGui::Separator();
+		ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 		draw_model_asset(m_model_icon, 100.f, 0.f);
+		ImGui::EndChild();
 	}
 	else if (current_item == 2)
 	{
+		ImGui::Separator();
+		ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 		draw_shader_asset(m_shader_icon, 100.f, 0.f);
+		ImGui::EndChild();
 	}
 
 	ImGui::End();

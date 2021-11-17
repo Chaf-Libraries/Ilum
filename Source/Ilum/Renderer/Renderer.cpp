@@ -126,6 +126,8 @@ void Renderer::resetBuilder()
 
 void Renderer::rebuild()
 {
+	GraphicsContext::instance()->getQueueSystem().waitAll();
+
 	m_render_graph.reset();
 	m_render_graph = nullptr;
 

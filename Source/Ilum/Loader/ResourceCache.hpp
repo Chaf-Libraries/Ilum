@@ -22,11 +22,11 @@ class ResourceCache
 
 	bool hasImage(const std::string &filepath) const;
 
-	const std::unordered_map<std::string, size_t> &getImages() const;
+	const std::unordered_map<std::string, size_t> &getImages();
 
-	const std::vector<ImageReference> getImageReferences() const;
+	const std::vector<ImageReference> getImageReferences();
 
-	uint32_t imageID(const std::string &filepath) const;
+	uint32_t imageID(const std::string &filepath);
 
 	ModelReference loadModel(const std::string &name);
 
@@ -36,7 +36,7 @@ class ResourceCache
 
 	bool hasModel(const std::string &filepath);
 
-	const std::unordered_map<std::string, size_t> &getModels() const;
+	const std::unordered_map<std::string, size_t> &getModels();
 
 	void flush();
 
@@ -45,11 +45,14 @@ class ResourceCache
 	std::vector<Image>                      m_image_cache;
 	std::unordered_map<std::string, size_t> m_image_map;
 	std::vector<std::string>                m_deprecated_image;
+	std::unordered_map<std::string, size_t> m_new_image;
+
 
 	// Cache model
 	std::vector<Model>                      m_model_cache;
 	std::unordered_map<std::string, size_t> m_model_map;
 	std::vector<std::string>                m_deprecated_model;
+	std::unordered_map<std::string, size_t> m_new_model;
 
 	std::mutex m_image_mutex;
 	std::mutex m_model_mutex;

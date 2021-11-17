@@ -64,10 +64,13 @@ void QueueSystem::waitAll()
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
-	vkDeviceWaitIdle(GraphicsContext::instance()->getLogicalDevice());
+	for (auto& queue : m_queues)
+	{
+		queue->waitIdle();
+	}
 }
 
-Queue *QueueSystem::acquire(QueueUsage usage)
+Queue *QueueSystem::acquire(QueueUsage usage, uint32_t index)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -78,7 +81,7 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 			return nullptr;
 		}
 
-		return m_present_queues[0];
+		return m_present_queues[index];
 	}
 
 	if (usage == QueueUsage::Graphics)
@@ -88,7 +91,7 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 			return nullptr;
 		}
 
-		return m_graphics_queues[0];
+		return m_graphics_queues[index];
 	}
 
 	if (usage == QueueUsage::Transfer)
@@ -98,7 +101,7 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 			return nullptr;
 		}
 
-		return m_transfer_queues[0];
+		return m_transfer_queues[index];
 	}
 
 	if (usage == QueueUsage::Compute)
@@ -108,7 +111,7 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 			return nullptr;
 		}
 
-		return m_compute_queues[0];
+		return m_compute_queues[index];
 	}
 
 	return nullptr;

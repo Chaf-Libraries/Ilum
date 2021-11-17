@@ -15,18 +15,21 @@ namespace Ilum
 {
 ImageReference ResourceCache::loadImage(const std::string &filepath)
 {
-	std::lock_guard<std::mutex> lock(m_image_mutex);
-
 	if (m_image_cache.size() == m_image_map.size() && m_image_map.find(filepath) != m_image_map.end())
 	{
 		return m_image_cache.at(m_image_map.at(filepath));
 	}
 
-	m_image_map[filepath] = m_image_cache.size();
-	m_image_cache.emplace_back(Image());
-	ImageLoader::loadImageFromFile(m_image_cache.back(), filepath);
-
 	LOG_INFO("Import Image: {}", filepath);
+
+	Image image;
+	ImageLoader::loadImageFromFile(image, filepath);
+
+	{
+		std::lock_guard<std::mutex> lock(m_image_mutex);
+		m_new_image[filepath] = m_image_cache.size();
+		m_image_cache.emplace_back(std::move(image));
+	}
 
 	return m_image_cache.back();
 }
@@ -43,7 +46,7 @@ void ResourceCache::loadImageAsync(const std::string &filepath)
 
 			{
 				std::lock_guard<std::mutex> lock(m_image_mutex);
-				m_image_map[filepath] = m_image_cache.size();
+				m_new_image[filepath] = m_image_cache.size();
 				m_image_cache.emplace_back(std::move(image));
 			}
 		}
@@ -65,17 +68,19 @@ bool ResourceCache::hasImage(const std::string &filepath) const
 	return m_image_map.find(filepath) != m_image_map.end();
 }
 
-const std::unordered_map<std::string, size_t> &ResourceCache::getImages() const
+const std::unordered_map<std::string, size_t> &ResourceCache::getImages()
 {
+	std::lock_guard<std::mutex> lock(m_image_mutex);
 	return m_image_map;
 }
 
-const std::vector<ImageReference> ResourceCache::getImageReferences() const
+const std::vector<ImageReference> ResourceCache::getImageReferences()
 {
+	std::lock_guard<std::mutex> lock(m_image_mutex);
 	std::vector<ImageReference> references;
 	references.reserve(m_image_cache.size());
 
-	for (auto& image : m_image_cache)
+	for (auto &image : m_image_cache)
 	{
 		references.push_back(image);
 	}
@@ -83,8 +88,10 @@ const std::vector<ImageReference> ResourceCache::getImageReferences() const
 	return references;
 }
 
-uint32_t ResourceCache::imageID(const std::string &filepath) const
+uint32_t ResourceCache::imageID(const std::string &filepath)
 {
+	std::lock_guard<std::mutex> lock(m_image_mutex);
+
 	if (!hasImage(filepath))
 	{
 		return std::numeric_limits<uint32_t>::max();
@@ -102,7 +109,7 @@ ModelReference ResourceCache::loadModel(const std::string &name)
 		return m_model_cache.at(m_model_map.at(name));
 	}
 
-	m_model_map[name] = m_model_cache.size();
+	m_new_model[name] = m_model_cache.size();
 	m_model_cache.emplace_back(Model());
 	ModelLoader::load(m_model_cache.back(), name);
 
@@ -127,7 +134,7 @@ void ResourceCache::loadModelAsync(const std::string &filepath)
 
 		{
 			std::lock_guard<std::mutex> lock(m_model_mutex);
-			m_model_map[name] = m_model_cache.size();
+			m_new_model[name] = m_model_cache.size();
 			m_model_cache.emplace_back(std::move(model));
 		}
 	});
@@ -148,14 +155,15 @@ bool ResourceCache::hasModel(const std::string &filepath)
 	return m_model_map.find(filepath) != m_model_map.end();
 }
 
-const std::unordered_map<std::string, size_t> &ResourceCache::getModels() const
+const std::unordered_map<std::string, size_t> &ResourceCache::getModels()
 {
+	std::lock_guard<std::mutex> lock(m_model_mutex);
 	return m_model_map;
 }
 
 void ResourceCache::flush()
 {
-	if (m_deprecated_model.empty() && m_deprecated_image.empty())
+	if (m_deprecated_model.empty() && m_deprecated_image.empty() && m_new_image.empty() && m_new_model.empty())
 	{
 		return;
 	}
@@ -166,6 +174,13 @@ void ResourceCache::flush()
 
 	{
 		std::lock_guard<std::mutex> lock(m_model_mutex);
+
+		// Add new model
+		for (auto &[name, idx] : m_new_model)
+		{
+			m_model_map[name] = idx;
+		}
+
 		// Remove deprecated model
 		for (auto &name : m_deprecated_model)
 		{
@@ -187,6 +202,13 @@ void ResourceCache::flush()
 
 	{
 		std::lock_guard<std::mutex> lock(m_image_mutex);
+
+		// Add new model
+		for (auto &[name, idx] : m_new_image)
+		{
+			m_image_map[name] = idx;
+		}
+
 		// Remove deprecated image
 		for (auto &name : m_deprecated_image)
 		{
@@ -204,6 +226,6 @@ void ResourceCache::flush()
 			LOG_INFO("Release Image: {}", name);
 		}
 		m_deprecated_image.clear();
-	}	
+	}
 }
 }        // namespace Ilum

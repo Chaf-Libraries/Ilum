@@ -24,7 +24,7 @@ class QueueSystem
 
 	void waitAll();
 
-	Queue *acquire(QueueUsage usage = QueueUsage::Graphics);
+	Queue *acquire(QueueUsage usage = QueueUsage::Graphics, uint32_t index = 0);
 
 	const std::vector<scope<Queue>> &getQueues() const;
 

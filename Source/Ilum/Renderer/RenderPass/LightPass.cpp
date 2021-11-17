@@ -15,12 +15,14 @@ namespace Ilum::pass
 {
 void LightPass::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/directional_light.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/directional_light.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/lighting.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/lighting.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,
 	    VK_DYNAMIC_STATE_SCISSOR};
+
+	state.color_blend_attachment_states[0].blend_enable = false;
 
 	state.descriptor_bindings.bind(0, 0, "gbuffer - albedo", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 1, "gbuffer - normal", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
@@ -28,9 +30,11 @@ void LightPass::setupPipeline(PipelineState &state)
 	state.descriptor_bindings.bind(0, 3, "gbuffer - depth", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 4, "gbuffer - metallic", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 5, "gbuffer - roughness", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	state.descriptor_bindings.bind(0, 6, "directional_light_buffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 7, "point_light_buffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 8, "spot_light_buffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 6, "gbuffer - emissive", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 7, "gbuffer - ao", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 8, "directional_light_buffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 9, "point_light_buffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 10, "spot_light_buffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
 	state.declareAttachment("lighting_result", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.addOutputAttachment("lighting_result", AttachmentState::Clear_Color);
@@ -72,7 +76,16 @@ void LightPass::render(RenderPassState &state)
 	vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
 	vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
-	uint32_t   directional_light_count = 0, spot_light_count = 0, point_light_count = 0;
+	struct
+	{
+		glm::vec3 camera_position;
+		uint32_t directional_light_count = 0;
+		uint32_t spot_light_count        = 0;
+		uint32_t point_light_count       = 0;
+	}push_block;
+
+	push_block.camera_position = Renderer::instance()->Main_Camera.position;
+
 	const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::Light, cmpt::Tag>);
 	group.each([&](const entt::entity &entity, const cmpt::Light &light, const cmpt::Tag &tag) {
 		if (!tag.active || !light.impl)
@@ -83,23 +96,20 @@ void LightPass::render(RenderPassState &state)
 		switch (light.type)
 		{
 			case cmpt::LightType::Directional:
-				directional_light_count++;
+				push_block.directional_light_count++;
 				break;
 			case cmpt::LightType::Spot:
-				spot_light_count++;
+				push_block.spot_light_count++;
 				break;
 			case cmpt::LightType::Point:
-				point_light_count++;
+				push_block.point_light_count++;
 				break;
 			default:
 				break;
 		}
 	});
 
-	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &directional_light_count);
-	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(uint32_t), sizeof(uint32_t), &spot_light_count);
-	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 2 * sizeof(uint32_t), sizeof(uint32_t), &point_light_count);
-	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 3 * sizeof(uint32_t), sizeof(glm::vec3), glm::value_ptr(Renderer::instance()->Main_Camera.position));
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_block), &push_block);
 	vkCmdDraw(cmd_buffer, 3, 1, 0, 0);
 
 	vkCmdEndRenderPass(cmd_buffer);

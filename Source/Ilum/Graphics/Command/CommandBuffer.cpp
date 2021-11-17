@@ -421,13 +421,14 @@ void CommandBuffer::transferLayout(const std::vector<ImageReference> &images, Vk
 
 void CommandBuffer::submitIdle()
 {
-	auto *queue = GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool->getUsage());
-	queue->waitIdle();
+	std::lock_guard<std::mutex> lock(m_mutex);
+	auto *queue = GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool->getUsage(), 1);
 	queue->submitIdle(*this);
 }
 
 void CommandBuffer::submit(const VkSemaphore &wait_semaphore, const VkSemaphore &signal_semaphore, VkFence fence, VkShaderStageFlags wait_stages)
 {
+	std::lock_guard<std::mutex> lock(m_mutex);
 	GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool->getUsage())->submit(*this, signal_semaphore, wait_semaphore, fence, wait_stages);
 }
 

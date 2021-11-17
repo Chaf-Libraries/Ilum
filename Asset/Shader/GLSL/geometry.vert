@@ -33,14 +33,9 @@ void main() {
     float height=model.displacement_map < 1024?
         max(textureLod(textureArray[nonuniformEXT(model.displacement_map)], inUV, 0.0).r, 0.0) * model.displacement_height:
         0.0;
-    vec4 pos = model.model*vec4(inPos+height*inNormal, 1.0);
+    outPos = model.model*vec4(inPos+height*inNormal, 1.0);
 
-    gl_Position = main_camera.view_projection* (pos);
-
-    // World position
-    outPos.xyz = (pos / pos.w).xyz;
-    // Depth
-    outPos.w = gl_Position.z;
+    gl_Position = main_camera.view_projection * outPos;
 
     outUV = inUV;
 

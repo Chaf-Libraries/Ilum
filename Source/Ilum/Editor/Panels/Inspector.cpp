@@ -2,12 +2,12 @@
 
 #include "Editor/Editor.hpp"
 
+#include "Scene/Component/DirectionalLight.hpp"
 #include "Scene/Component/Hierarchy.hpp"
 #include "Scene/Component/Light.hpp"
-#include "Scene/Component/DirectionalLight.hpp"
+#include "Scene/Component/MeshRenderer.hpp"
 #include "Scene/Component/PointLight.hpp"
 #include "Scene/Component/SpotLight.hpp"
-#include "Scene/Component/MeshRenderer.hpp"
 #include "Scene/Component/Tag.hpp"
 #include "Scene/Component/Transform.hpp"
 
@@ -197,10 +197,12 @@ template <>
 inline void draw_material<material::DisneyPBR>(material::DisneyPBR &material)
 {
 	ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color));
-	ImGui::DragFloat("Metallic Factor", &material.metallic_factor, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-	ImGui::DragFloat("Roughness Factor", &material.roughness_factor, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	ImGui::ColorEdit3("Emissive Color", glm::value_ptr(material.emissive_color));
+	ImGui::DragFloat("Metallic Factor", &material.metallic_factor, 0.01f, 0.f, 1.f, "%.3f");
+	ImGui::DragFloat("Emissive Intensity", &material.emissive_intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	ImGui::DragFloat("Roughness Factor", &material.roughness_factor, 0.01f, 0.f, 1.f, "%.3f");
 	ImGui::DragFloat("Height Factor", &material.displacement_height, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-	
+
 	ImGui::Text("Albedo Map");
 	draw_texture(material.albedo_map);
 
@@ -212,6 +214,12 @@ inline void draw_material<material::DisneyPBR>(material::DisneyPBR &material)
 
 	ImGui::Text("Roughness Map");
 	draw_texture(material.roughness_map);
+
+	ImGui::Text("Emissive Map");
+	draw_texture(material.emissive_map);
+
+	ImGui::Text("AO Map");
+	draw_texture(material.ao_map);
 
 	ImGui::Text("Displacement Map");
 	draw_texture(material.displacement_map);
@@ -350,8 +358,8 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 		    {
 			    auto &model = Renderer::instance()->getResourceCache().loadModel(component.model);
 
-				uint32_t idx = 0;
-				for (auto &submesh : model.get().submeshes)
+			    uint32_t idx = 0;
+			    for (auto &submesh : model.get().submeshes)
 			    {
 				    auto &material = submesh.material;
 
@@ -405,13 +413,18 @@ inline void draw_component<cmpt::Light>(Entity entity)
 		    int               current      = static_cast<int>(component.type);
 		    ImGui::Combo("Type", &current, LightNames, 4);
 
-			if (component.type == cmpt::LightType::Directional)
-			{
-			    auto light = static_cast<cmpt::DirectionalLight*>(component.impl.get());
+		    if (!component.impl)
+		    {
+			    return;
+		    }
+
+		    if (component.type == cmpt::LightType::Directional)
+		    {
+			    auto light = static_cast<cmpt::DirectionalLight *>(component.impl.get());
 			    ImGui::DragFloat("Intensity", &light->data.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 			    ImGui::ColorEdit3("Color", glm::value_ptr(light->data.color));
 			    ImGui::DragFloat3("Direction", glm::value_ptr(light->data.direction), 0.1f, 0.0f, 0.0f, "%.3f");
-			}
+		    }
 		    else if (component.type == cmpt::LightType::Spot)
 		    {
 			    auto light = static_cast<cmpt::SpotLight *>(component.impl.get());

@@ -82,5 +82,6 @@ class CommandBuffer
   private:
 	ref<CommandPool> m_command_pool = nullptr;
 	VkCommandBuffer  m_handle       = VK_NULL_HANDLE;
+	std::mutex       m_mutex;
 };
 }        // namespace Ilum

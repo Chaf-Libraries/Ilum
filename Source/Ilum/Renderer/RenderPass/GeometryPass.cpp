@@ -36,19 +36,16 @@ void GeometryPass::setupPipeline(PipelineState &state)
 	state.vertex_input_state.binding_descriptions = {
 	    VkVertexInputBindingDescription{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX}};
 
-	state.color_blend_attachment_states.resize(6);
+	state.color_blend_attachment_states.resize(8);
 
 	// Disable blending
-	for (auto& color_blend_attachment_state : state.color_blend_attachment_states)
+	for (auto &color_blend_attachment_state : state.color_blend_attachment_states)
 	{
 		color_blend_attachment_state.blend_enable = false;
 	}
 
-	//state.rasterization_state.polygon_mode = VK_POLYGON_MODE_LINE;
-	//state.rasterization_state.cull_mode    = VK_CULL_MODE_NONE;
-
 	state.descriptor_bindings.bind(0, 0, "mainCamera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-	state.descriptor_bindings.bind(0, 1, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 1, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Wrap), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
 	state.declareAttachment("gbuffer - albedo", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("gbuffer - normal", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
@@ -56,6 +53,8 @@ void GeometryPass::setupPipeline(PipelineState &state)
 	state.declareAttachment("gbuffer - depth", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("gbuffer - metallic", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("gbuffer - roughness", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("gbuffer - emissive", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("gbuffer - ao", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("depth_stencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 
 	state.addOutputAttachment("gbuffer - albedo", AttachmentState::Clear_Color);
@@ -64,6 +63,9 @@ void GeometryPass::setupPipeline(PipelineState &state)
 	state.addOutputAttachment("gbuffer - depth", AttachmentState::Clear_Color);
 	state.addOutputAttachment("gbuffer - metallic", AttachmentState::Clear_Color);
 	state.addOutputAttachment("gbuffer - roughness", AttachmentState::Clear_Color);
+	state.addOutputAttachment("gbuffer - emissive", AttachmentState::Clear_Color);
+	state.addOutputAttachment("gbuffer - ao", AttachmentState::Clear_Color);
+
 	state.addOutputAttachment("depth_stencil", VkClearDepthStencilValue{1.f, 0u});
 }
 
@@ -106,7 +108,7 @@ void GeometryPass::render(RenderPassState &state)
 
 	const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform, cmpt::Tag>);
 
-	group.each([&](const entt::entity& entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform, const cmpt::Tag &tag) {
+	group.each([&](const entt::entity &entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform, const cmpt::Tag &tag) {
 		if (Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model) && tag.active)
 		{
 			auto &model = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
@@ -126,9 +128,9 @@ void GeometryPass::render(RenderPassState &state)
 
 					struct
 					{
-						float displacement_height;
+						float    displacement_height;
 						uint32_t displacement_map;
-					}displacement;
+					} displacement;
 
 					displacement.displacement_height = material->displacement_height;
 					displacement.displacement_map    = Renderer::instance()->getResourceCache().imageID(material->displacement_map);
@@ -137,25 +139,33 @@ void GeometryPass::render(RenderPassState &state)
 
 					struct
 					{
-						glm::vec4 base_color;
-						float metallic_factor;
-						float roughness_factor;
+						glm::vec4 base_color         = {};
+						glm::vec3 emissive_color     = {0.f, 0.f, 0.f};
+						float     metallic_factor    = 0.f;
+						float     roughness_factor   = 0.f;
+						float     emissive_intensity = 0.f;
 
-						uint32_t albedo_map;
-						uint32_t normal_map;
-						uint32_t metallic_map;
-						uint32_t roughness_map;
-						float    id;
+						uint32_t albedo_map    = 0;
+						uint32_t normal_map    = 0;
+						uint32_t metallic_map  = 0;
+						uint32_t roughness_map = 0;
+						uint32_t emissive_map  = 0;
+						uint32_t ao_map        = 0;
+						float    id            = 0.f;
 					} material_data;
 
-					material_data.base_color = material->base_color;
-					material_data.metallic_factor = material->metallic_factor;
-					material_data.roughness_factor = material->roughness_factor;
-					material_data.albedo_map          = Renderer::instance()->getResourceCache().imageID(material->albedo_map);
-					material_data.normal_map          = Renderer::instance()->getResourceCache().imageID(material->normal_map);
-					material_data.metallic_map        = Renderer::instance()->getResourceCache().imageID(material->metallic_map);
-					material_data.roughness_map       = Renderer::instance()->getResourceCache().imageID(material->roughness_map);
-					material_data.id                  = static_cast<float>(entity);
+					material_data.base_color         = material->base_color;
+					material_data.metallic_factor    = material->metallic_factor;
+					material_data.roughness_factor   = material->roughness_factor;
+					material_data.emissive_color     = material->emissive_color;
+					material_data.emissive_intensity = material->emissive_intensity;
+					material_data.albedo_map         = Renderer::instance()->getResourceCache().imageID(material->albedo_map);
+					material_data.normal_map         = Renderer::instance()->getResourceCache().imageID(material->normal_map);
+					material_data.metallic_map       = Renderer::instance()->getResourceCache().imageID(material->metallic_map);
+					material_data.roughness_map      = Renderer::instance()->getResourceCache().imageID(material->roughness_map);
+					material_data.emissive_map       = Renderer::instance()->getResourceCache().imageID(material->emissive_map);
+					material_data.ao_map             = Renderer::instance()->getResourceCache().imageID(material->ao_map);
+					material_data.id                 = static_cast<float>(entity);
 
 					vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 80, sizeof(material_data), &material_data);
 
