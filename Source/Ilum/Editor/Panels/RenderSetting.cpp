@@ -25,6 +25,11 @@ inline void drawNode(const std::string &name, Callback callback)
 	}
 }
 
+RenderSetting::RenderSetting()
+{
+	m_name = "Render Setting";
+}
+
 void RenderSetting::draw(float delta_time)
 {
 	ImGui::Begin("Render Setting", &active);
