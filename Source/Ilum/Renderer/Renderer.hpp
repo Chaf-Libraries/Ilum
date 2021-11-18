@@ -116,13 +116,19 @@ class Renderer : public TSubsystem<Renderer>
   public:
 	Camera Main_Camera;
 
-	struct CameraBuffer
+	struct
 	{
-		glm::mat4 view_projection;
-		glm::vec3 position;
+		float exposure = 4.5f;
+		float gamma    = 2.2f;
+	} Color_Correction;
 
-		// TODO: Last info
-	};
+	struct
+	{
+		float threshold = 0.75f;
+		float scale = 3.f;
+		float strength = 0.13f;
+		uint32_t enable    = 0;
+	} Bloom;
 
   public:
 	Event<> Event_RenderGraph_Rebuild;

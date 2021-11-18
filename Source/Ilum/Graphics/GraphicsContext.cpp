@@ -87,9 +87,9 @@ const VkPipelineCache &GraphicsContext::getPipelineCache() const
 
 const ref<CommandPool> &GraphicsContext::getCommandPool(QueueUsage usage, const std::thread::id &thread_id)
 {
+	std::lock_guard<std::mutex> lock(m_command_pool_mutex);
 	if (m_command_pools[thread_id].find(usage) == m_command_pools[thread_id].end())
 	{
-		std::lock_guard<std::mutex> lock(m_command_pool_mutex);
 		return m_command_pools[thread_id].emplace(usage, createRef<CommandPool>(usage, thread_id)).first->second;
 	}
 

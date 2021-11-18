@@ -236,12 +236,6 @@ void DescriptorBinding::write(const DescriptorSet &descriptor_set)
 	// Write images
 	for (const auto &image_info : m_image_writes[descriptor_set.index()])
 	{
-		// TODO: Fix sync IO for now, what about seperate sampler&image
-		if (!image_info.handle || !image_info.handle->getView(image_info.view))
-		{
-			return;
-		}
-
 		descriptor_image_infos.push_back(VkDescriptorImageInfo{
 		    image_info.sampler_handle != nullptr ? image_info.sampler_handle->getSampler() : VK_NULL_HANDLE,
 		    image_info.handle != nullptr ? image_info.handle->getView(image_info.view) : VK_NULL_HANDLE,

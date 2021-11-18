@@ -36,8 +36,8 @@ void LightPass::setupPipeline(PipelineState &state)
 	state.descriptor_bindings.bind(0, 9, "point_light_buffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 10, "spot_light_buffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
-	state.declareAttachment("lighting_result", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	state.addOutputAttachment("lighting_result", AttachmentState::Clear_Color);
+	state.declareAttachment("lighting", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.addOutputAttachment("lighting", AttachmentState::Clear_Color);
 }
 
 void LightPass::resolveResources(ResolveState &resolve)

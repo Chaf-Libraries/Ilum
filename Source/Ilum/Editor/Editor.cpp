@@ -15,6 +15,7 @@
 #include "Panels/Hierarchy.hpp"
 #include "Panels/Inspector.hpp"
 #include "Panels/RenderGraphViewer.hpp"
+#include "Panels/RenderSetting.hpp"
 #include "Panels/SceneView.hpp"
 
 #include "Scene/Component/DirectionalLight.hpp"
@@ -46,6 +47,7 @@ bool Editor::onInitialize()
 	m_panels.emplace_back(createScope<panel::AssetBrowser>());
 	m_panels.emplace_back(createScope<panel::SceneView>());
 	m_panels.emplace_back(createScope<panel::Console>());
+	m_panels.emplace_back(createScope<panel::RenderSetting>());
 
 	return true;
 }

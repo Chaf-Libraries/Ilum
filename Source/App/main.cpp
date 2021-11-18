@@ -6,6 +6,8 @@
 #include <Ilum/Graphics/GraphicsContext.hpp>
 #include <Ilum/Renderer/RenderPass/GeometryPass.hpp>
 #include <Ilum/Renderer/RenderPass/LightPass.hpp>
+#include <Ilum/Renderer/RenderPass/BloomPass.hpp>
+#include <Ilum/Renderer/RenderPass/TonemappingPass.hpp>
 #include <Ilum/Renderer/Renderer.hpp>
 #include <Ilum/Scene/Component/Hierarchy.hpp>
 #include <Ilum/Scene/Component/MeshRenderer.hpp>
@@ -24,6 +26,8 @@ int main()
 		builder
 		    .addRenderPass("GeometryPass", std::make_unique<Ilum::pass::GeometryPass>())
 		    .addRenderPass("LightPass", std::make_unique<Ilum::pass::LightPass>())
+		    .addRenderPass("BloomPass", std::make_unique<Ilum::pass::BloomPass>())
+		    .addRenderPass("Tonemapping", std::make_unique<Ilum::pass::TonemappingPass>("blooming"))
 
 		    .setView("gbuffer - normal")
 		    .setOutput("gbuffer - normal");

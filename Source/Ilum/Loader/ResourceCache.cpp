@@ -11,6 +11,8 @@
 
 #include "Threading/ThreadPool.hpp"
 
+#include "Graphics/Vulkan/VK_Debugger.h"
+
 namespace Ilum
 {
 ImageReference ResourceCache::loadImage(const std::string &filepath)
@@ -27,8 +29,8 @@ ImageReference ResourceCache::loadImage(const std::string &filepath)
 
 	{
 		std::lock_guard<std::mutex> lock(m_image_mutex);
-		m_new_image[filepath] = m_image_cache.size();
 		m_image_cache.emplace_back(std::move(image));
+		m_image_map[filepath] = m_image_cache.size() - 1;
 	}
 
 	return m_image_cache.back();
@@ -43,11 +45,12 @@ void ResourceCache::loadImageAsync(const std::string &filepath)
 
 			Image image;
 			ImageLoader::loadImageFromFile(image, filepath);
+			VK_Debugger::setName(image.getView(), filepath.c_str());
 
 			{
 				std::lock_guard<std::mutex> lock(m_image_mutex);
-				m_new_image[filepath] = m_image_cache.size();
 				m_image_cache.emplace_back(std::move(image));
+				m_image_map[filepath] = m_image_cache.size() - 1;
 			}
 		}
 	});
@@ -78,11 +81,15 @@ const std::vector<ImageReference> ResourceCache::getImageReferences()
 {
 	std::lock_guard<std::mutex> lock(m_image_mutex);
 	std::vector<ImageReference> references;
-	references.reserve(m_image_cache.size());
+	references.reserve(m_image_map.size());
 
 	for (auto &image : m_image_cache)
 	{
 		references.push_back(image);
+		if (references.size() == m_image_map.size())
+		{
+			break;
+		}
 	}
 
 	return references;
@@ -109,9 +116,9 @@ ModelReference ResourceCache::loadModel(const std::string &name)
 		return m_model_cache.at(m_model_map.at(name));
 	}
 
-	m_new_model[name] = m_model_cache.size();
 	m_model_cache.emplace_back(Model());
 	ModelLoader::load(m_model_cache.back(), name);
+	m_model_map[name] = m_model_cache.size() - 1;
 
 	LOG_INFO("Import Model: {}", name);
 
@@ -134,8 +141,8 @@ void ResourceCache::loadModelAsync(const std::string &filepath)
 
 		{
 			std::lock_guard<std::mutex> lock(m_model_mutex);
-			m_new_model[name] = m_model_cache.size();
 			m_model_cache.emplace_back(std::move(model));
+			m_model_map[name] = m_model_cache.size() - 1;
 		}
 	});
 }
@@ -163,7 +170,7 @@ const std::unordered_map<std::string, size_t> &ResourceCache::getModels()
 
 void ResourceCache::flush()
 {
-	if (m_deprecated_model.empty() && m_deprecated_image.empty() && m_new_image.empty() && m_new_model.empty())
+	if (m_deprecated_model.empty() && m_deprecated_image.empty())
 	{
 		return;
 	}
@@ -174,12 +181,6 @@ void ResourceCache::flush()
 
 	{
 		std::lock_guard<std::mutex> lock(m_model_mutex);
-
-		// Add new model
-		for (auto &[name, idx] : m_new_model)
-		{
-			m_model_map[name] = idx;
-		}
 
 		// Remove deprecated model
 		for (auto &name : m_deprecated_model)
@@ -202,12 +203,6 @@ void ResourceCache::flush()
 
 	{
 		std::lock_guard<std::mutex> lock(m_image_mutex);
-
-		// Add new model
-		for (auto &[name, idx] : m_new_image)
-		{
-			m_image_map[name] = idx;
-		}
 
 		// Remove deprecated image
 		for (auto &name : m_deprecated_image)

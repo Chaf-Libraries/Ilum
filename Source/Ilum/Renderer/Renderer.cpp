@@ -206,6 +206,11 @@ void Renderer::createSamplers()
 void Renderer::updateBuffers()
 {
 	// Update main camera
+	struct CameraBuffer
+	{
+		glm::mat4 view_projection;
+		glm::vec3 position;
+	};
 	auto *camera_buffer            = reinterpret_cast<CameraBuffer *>(m_buffers[BufferType::MainCamera].map());
 	camera_buffer->position        = Main_Camera.position;
 	camera_buffer->view_projection = Main_Camera.view_projection;
@@ -290,7 +295,7 @@ void Renderer::updateBuffers()
 
 void Renderer::createBuffers()
 {
-	m_buffers[BufferType::MainCamera]       = Buffer(sizeof(CameraBuffer), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	m_buffers[BufferType::MainCamera]       = Buffer(sizeof(glm::mat4)+sizeof(glm::vec3), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 	m_buffers[BufferType::DirectionalLight] = Buffer(2 * sizeof(cmpt::DirectionalLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 	m_buffers[BufferType::SpotLight]        = Buffer(2 * sizeof(cmpt::SpotLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 	m_buffers[BufferType::PointLight]       = Buffer(2 * sizeof(cmpt::PointLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
