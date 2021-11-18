@@ -11,12 +11,19 @@
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
+#include "Threading/ThreadPool.hpp"
+
 #include "Material/DisneyPBR.h"
 
 #include <glm/gtc/type_ptr.hpp>
 
 namespace Ilum::pass
 {
+GeometryPass::GeometryPass()
+{
+
+}
+
 void GeometryPass::setupPipeline(PipelineState &state)
 {
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/geometry.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
@@ -103,8 +110,6 @@ void GeometryPass::render(RenderPassState &state)
 
 	vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
 	vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
-
-	Scene::instance()->getRegistry().each([](entt::entity) {});
 
 	const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform, cmpt::Tag>);
 

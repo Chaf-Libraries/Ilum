@@ -56,10 +56,12 @@ void RenderGraph::execute(const CommandBuffer &command_buffer)
 	{
 		resolve.resolve(name, attachment);
 	}
-
+	Stopwatch stopwatch;
 	for (auto &node : m_nodes)
 	{
+		stopwatch.start();
 		executeNode(node, command_buffer, resolve);
+		LOG_INFO("{} - {} ms", node.name, stopwatch.elapsedMillisecond());
 	}
 }
 
