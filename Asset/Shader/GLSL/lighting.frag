@@ -57,9 +57,23 @@ layout(push_constant) uniform PushBlock{
     uint directional_light_count;
     uint spot_light_count;
     uint point_light_count;
+    float exposure;
+    float gamma;
 }push_data;
 
 const float PI = 3.14159265359;
+
+// From http://filmicgames.com/archives/75
+vec3 uncharted2Tonemap(vec3 x)
+{
+	float A = 0.15;
+	float B = 0.50;
+	float C = 0.10;
+	float D = 0.20;
+	float E = 0.02;
+	float F = 0.30;
+	return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
+}
 
 // Normal Distribution function
 float D_GGX(float NoH, float roughness)
@@ -113,6 +127,7 @@ void main()
 {
     vec3 albedo = pow(texture(Albedo, inUV).rgb, vec3(2.2));
     vec3 normal = texture(Normal, inUV).rgb;
+    vec3 emissive = texture(Emissive, inUV).rgb;
     vec3 frag_pos = texture(Position, inUV).rgb;
     float metallic = texture(Metallic, inUV).r;
     float roughness = texture(Roughness, inUV).r;
@@ -154,10 +169,7 @@ void main()
         Lo += specularContribution(L, V, N, F0, metallic, roughness, albedo.rgb, radiance);
     }
 
-    vec3 color = Lo;
-
-    color=color/(color+vec3(1.0));
-    color=pow(color,vec3(1.0/2.2));
+    vec3 color = Lo + emissive;
 
     outColor = vec4(color, 1.0);
 }
