@@ -53,7 +53,7 @@ macro(Init_Project)
     
     if(CMAKE_CONFIGURATION_TYPES)
         message("Multi-configuration generator")
-        set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "My multi config types" FORCE)
+        set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo;MinSizeRel" CACHE STRING "My multi config types" FORCE)
     else()
         message("Single-configuration generator")
     endif()
