@@ -391,8 +391,6 @@ void Image::create()
 
 void Image::destroy()
 {
-	GraphicsContext::instance()->getQueueSystem().waitAll();
-
 	if (m_handle)
 	{
 		if (m_allocation)
@@ -423,5 +421,12 @@ void Image::destroy()
 			}
 		}
 	}
+
+	m_handle = VK_NULL_HANDLE;
+	m_allocation = VK_NULL_HANDLE;
+	m_views.native = VK_NULL_HANDLE;
+	m_views.depth  = VK_NULL_HANDLE;
+	m_views.stencil = VK_NULL_HANDLE;
+	m_layer_views.clear();
 }
 }        // namespace Ilum

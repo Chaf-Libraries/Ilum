@@ -2,13 +2,16 @@
 
 #include "Editor/Editor.hpp"
 
+#include "Scene/Component/DirectionalLight.hpp"
 #include "Scene/Component/Hierarchy.hpp"
 #include "Scene/Component/Light.hpp"
 #include "Scene/Component/MeshRenderer.hpp"
+#include "Scene/Component/PointLight.hpp"
+#include "Scene/Component/SpotLight.hpp"
 #include "Scene/Component/Tag.hpp"
 #include "Scene/Component/Transform.hpp"
 
-#include "Material/BlinnPhong.h"
+#include "Material/DisneyPBR.h"
 #include "Material/Material.h"
 
 #include "Renderer/Renderer.hpp"
@@ -166,7 +169,7 @@ inline void draw_material(T &material)
 	ASSERT(false);
 }
 
-void draw_texture(std::string &texture, uint32_t &texture_id)
+void draw_texture(std::string &texture)
 {
 	if (ImGui::ImageButton(Renderer::instance()->getResourceCache().hasImage(texture) ?
                                ImGuiContext::textureID(Renderer::instance()->getResourceCache().loadImage(texture), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)) :
@@ -183,8 +186,7 @@ void draw_texture(std::string &texture, uint32_t &texture_id)
 			ASSERT(pay_load->DataSize == sizeof(std::string));
 			if (texture != *static_cast<std::string *>(pay_load->Data))
 			{
-				texture    = *static_cast<std::string *>(pay_load->Data);
-				texture_id = static_cast<uint32_t>(Renderer::instance()->getResourceCache().getImages().at(texture));
+				texture = *static_cast<std::string *>(pay_load->Data);
 			}
 		}
 		ImGui::EndDragDropTarget();
@@ -192,30 +194,35 @@ void draw_texture(std::string &texture, uint32_t &texture_id)
 }
 
 template <>
-inline void draw_material<material::BlinnPhong>(material::BlinnPhong &material)
+inline void draw_material<material::DisneyPBR>(material::DisneyPBR &material)
 {
-	ImGui::ColorEdit4("Base Color", glm::value_ptr(material.material_data.base_color));
-	ImGui::ColorEdit3("Specular", glm::value_ptr(material.material_data.specular));
-	ImGui::ColorEdit3("Emissive", glm::value_ptr(material.material_data.emissive));
-	ImGui::DragFloat("Emissive Intensity", &material.material_data.emissive_intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-	ImGui::DragFloat("Displacement Scale", &material.material_data.displacement_scale, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-	ImGui::DragFloat("Shininess", &material.material_data.shininess, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-	ImGui::DragFloat("Reflectivity", &material.material_data.reflectivity, 0.01f, 0.f, 1.f, "%.3f");
-	ImGui::Checkbox("Word Space Normal", &material.material_data.normal_type);
-	ImGui::SameLine();
-	ImGui::Checkbox("Flat Shading", &material.material_data.flat_shading);
+	ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color));
+	ImGui::ColorEdit3("Emissive Color", glm::value_ptr(material.emissive_color));
+	ImGui::DragFloat("Metallic Factor", &material.metallic_factor, 0.01f, 0.f, 1.f, "%.3f");
+	ImGui::DragFloat("Emissive Intensity", &material.emissive_intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	ImGui::DragFloat("Roughness Factor", &material.roughness_factor, 0.01f, 0.f, 1.f, "%.3f");
+	ImGui::DragFloat("Height Factor", &material.displacement_height, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 
-	ImGui::Text("Diffuse Map");
-	draw_texture(material.diffuse_map_path, material.material_data.diffuse_map);
+	ImGui::Text("Albedo Map");
+	draw_texture(material.albedo_map);
 
 	ImGui::Text("Normal Map");
-	draw_texture(material.normal_map_path, material.material_data.normal_map);
+	draw_texture(material.normal_map);
 
-	ImGui::Text("Specular Map");
-	draw_texture(material.specular_map_path, material.material_data.specular_map);
+	ImGui::Text("Metallic Map");
+	draw_texture(material.metallic_map);
+
+	ImGui::Text("Roughness Map");
+	draw_texture(material.roughness_map);
+
+	ImGui::Text("Emissive Map");
+	draw_texture(material.emissive_map);
+
+	ImGui::Text("AO Map");
+	draw_texture(material.ao_map);
 
 	ImGui::Text("Displacement Map");
-	draw_texture(material.displacement_map_path, material.material_data.displacement_map);
+	draw_texture(material.displacement_map);
 }
 
 template <typename T>
@@ -241,7 +248,7 @@ inline void draw_material(scope<IMaterial> &material)
 		return;
 	}
 
-	draw_material<material::BlinnPhong>(material);
+	draw_material<material::DisneyPBR>(material);
 }
 
 template <typename T>
@@ -331,7 +338,6 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 		    if (ImGui::Button(component.model.c_str(), component.model.empty() ? ImVec2(250.f, 0.f) : ImVec2(0.f, 0.f)))
 		    {
 			    component.model = "";
-			    component.materials.clear();
 		    }
 		    ImGui::PopStyleVar();
 		    if (ImGui::BeginDragDropTarget())
@@ -343,7 +349,6 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 				    if (component.model != new_model)
 				    {
 					    component.model = new_model;
-					    component.materials.resize(Renderer::instance()->getResourceCache().loadModel(new_model).get().getSubMeshes().size());
 				    }
 			    }
 			    ImGui::EndDragDropTarget();
@@ -353,22 +358,22 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 		    {
 			    auto &model = Renderer::instance()->getResourceCache().loadModel(component.model);
 
-			    for (uint32_t i = 0; i < model.get().getSubMeshes().size(); i++)
+			    uint32_t idx = 0;
+			    for (auto &submesh : model.get().submeshes)
 			    {
-				    auto &submesh  = model.get().getSubMeshes()[i];
-				    auto &material = component.materials[i];
+				    auto &material = submesh.material;
 
-				    if (ImGui::TreeNode((std::string("Submesh #") + std::to_string(i)).c_str()))
+				    if (ImGui::TreeNode((std::string("Submesh #") + std::to_string(idx++)).c_str()))
 				    {
 					    // Submesh attributes
 					    if (ImGui::TreeNode("Mesh Attributes"))
 					    {
-						    ImGui::Text("vertices count: %d", submesh.getVertexCount());
-						    ImGui::Text("indices count: %d", submesh.getIndexCount());
-						    ImGui::Text("index offset: %d", submesh.getIndexOffset());
+						    ImGui::Text("vertices count: %d", submesh.vertices.size());
+						    ImGui::Text("indices count: %d", submesh.indices.size());
+						    ImGui::Text("index offset: %d", submesh.index_offset);
 						    ImGui::Text("AABB bounding box:");
-						    ImGui::BulletText("min (%f, %f, %f)", submesh.getBoundingBox().min().x, submesh.getBoundingBox().min().y, submesh.getBoundingBox().min().z);
-						    ImGui::BulletText("max (%f, %f, %f)", submesh.getBoundingBox().max().x, submesh.getBoundingBox().max().y, submesh.getBoundingBox().max().z);
+						    ImGui::BulletText("min (%f, %f, %f)", submesh.bounding_box.min_.x, submesh.bounding_box.min_.y, submesh.bounding_box.min_.z);
+						    ImGui::BulletText("max (%f, %f, %f)", submesh.bounding_box.max_.x, submesh.bounding_box.max_.y, submesh.bounding_box.max_.z);
 						    ImGui::TreePop();
 					    }
 
@@ -383,7 +388,7 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 
 						    if (ImGui::BeginPopup("Material Type"))
 						    {
-							    select_material<material::BlinnPhong>(material);
+							    select_material<material::DisneyPBR>(material);
 							    ImGui::EndPopup();
 						    }
 
@@ -403,8 +408,47 @@ template <>
 inline void draw_component<cmpt::Light>(Entity entity)
 {
 	draw_component<cmpt::Light>(
-	    "Light", entity, [](auto &component) {
+	    "Light", entity, [](cmpt::Light &component) {
+		    const char *const LightNames[] = {"None", "Directional", "Point", "Spot"};
+		    int               current      = static_cast<int>(component.type);
+		    ImGui::Combo("Type", &current, LightNames, 4);
 
+		    if (!component.impl)
+		    {
+			    return;
+		    }
+
+		    if (component.type == cmpt::LightType::Directional)
+		    {
+			    auto light = static_cast<cmpt::DirectionalLight *>(component.impl.get());
+			    ImGui::DragFloat("Intensity", &light->data.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+			    ImGui::ColorEdit3("Color", glm::value_ptr(light->data.color));
+			    ImGui::DragFloat3("Direction", glm::value_ptr(light->data.direction), 0.1f, 0.0f, 0.0f, "%.3f");
+		    }
+		    else if (component.type == cmpt::LightType::Spot)
+		    {
+			    auto light = static_cast<cmpt::SpotLight *>(component.impl.get());
+			    ImGui::DragFloat("Intensity", &light->data.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+			    ImGui::ColorEdit3("Color", glm::value_ptr(light->data.color));
+			    ImGui::DragFloat3("Direction", glm::value_ptr(light->data.direction), 0.1f, 0.0f, 0.0f, "%.3f");
+			    ImGui::DragFloat("Cut off", &light->data.cut_off, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
+			    ImGui::DragFloat("Outer cut off", &light->data.outer_cut_off, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
+		    }
+		    else if (component.type == cmpt::LightType::Point)
+		    {
+			    auto light = static_cast<cmpt::PointLight *>(component.impl.get());
+			    ImGui::DragFloat("Intensity", &light->data.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+			    ImGui::ColorEdit3("Color", glm::value_ptr(light->data.color));
+			    ImGui::DragFloat("Constant", &light->data.constant, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
+			    ImGui::DragFloat("Linear", &light->data.linear, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
+			    ImGui::DragFloat("Quadratic", &light->data.quadratic, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
+		    }
+		    else if (component.type == cmpt::LightType::Area)
+		    {
+			    ImGui::Text("Area");
+		    }
+
+		    component.type = static_cast<cmpt::LightType>(current);
 	    });
 }
 

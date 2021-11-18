@@ -39,6 +39,8 @@ class Queue
 
 	void waitIdle();
 
+	std::lock_guard<std::mutex>&& lock();
+
 	const VkQueue &getQueue() const;
 
 	operator const VkQueue &() const;

@@ -3,7 +3,7 @@
 #include "Utils/PCH.hpp"
 
 #include "Graphics/Descriptor/DescriptorBinding.hpp"
-#include "Graphics/Pipeline/Shader.hpp"
+#include "Graphics/Shader/Shader.hpp"
 
 namespace Ilum
 {

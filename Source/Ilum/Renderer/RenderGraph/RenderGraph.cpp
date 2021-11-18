@@ -56,37 +56,13 @@ void RenderGraph::execute(const CommandBuffer &command_buffer)
 	{
 		resolve.resolve(name, attachment);
 	}
-
+	Stopwatch stopwatch;
 	for (auto &node : m_nodes)
 	{
+		stopwatch.start();
 		executeNode(node, command_buffer, resolve);
+		LOG_INFO("{} - {} ms", node.name, stopwatch.elapsedMillisecond());
 	}
-
-	// TODO: Multi-threading not working
-	/*std::vector<std::future<VkSubmitInfo>> futures;
-	std::vector<VkSubmitInfo> submit_infos;
-
-	for (auto &node : m_nodes)
-	{
-		futures.push_back(ThreadPool::instance()->addTask([this, &node](size_t) { 
-			ResolveInfo resolve;
-			for (const auto &[name, attachment] : m_attachments)
-			{
-				resolve.resolve(name, attachment);
-			}
-			return executeNode(node, resolve); }));
-	}
-
-	for (auto& queue : m_queues)
-	{
-		queue->waitIdle();
-	}
-	m_queues.clear();
-	for (auto& future : futures)
-	{
-		m_queues.push_back(GraphicsContext::instance()->getQueueSystem().acquire(QueueUsage::Graphics));
-		vkQueueSubmit(*m_queues.back(), 1, &future.get(), VK_NULL_HANDLE);
-	}*/
 }
 
 void RenderGraph::present(const CommandBuffer &command_buffer, const Image &present_image)
@@ -183,57 +159,6 @@ void RenderGraph::executeNode(RenderGraphNode &node, const CommandBuffer &comman
 	// Insert pipeline barrier
 	node.pipeline_barrier_callback(command_buffer, resolve);
 
-	if (command_buffer.beginRenderPass(state.pass))
-	{
-		node.pass->render(state);
-		command_buffer.endRenderPass();
-	}
-}
-
-VkSubmitInfo RenderGraph::executeNode(RenderGraphNode &node, ResolveInfo &resolve)
-{
-	// TODO: Multi thread rendering
-	//vkWaitForFences(GraphicsContext::instance()->getLogicalDevice(), 1, &node.submit_info.fence, VK_TRUE, std::numeric_limits<uint64_t>::max());
-	//vkResetFences(GraphicsContext::instance()->getLogicalDevice(), 1, &node.submit_info.fence);
-
-	auto &command_buffer = GraphicsContext::instance()->acquireCommandBuffer(node.pass_native.bind_point == VK_PIPELINE_BIND_POINT_COMPUTE ? QueueUsage::Compute : QueueUsage::Graphics);
-	command_buffer.begin();
-	VK_Debugger::setName(command_buffer, ("Command Buffer - " + node.name).c_str());
-	if (node.submit_info.signal_semaphore)
-	{
-		VK_Debugger::setName(node.submit_info.signal_semaphore, ("Semaphore - " + node.name).c_str());
-	}
-	RenderPassState state{*this, command_buffer, node.pass_native};
-
-	node.pass->resolveResources(resolve);
-	node.descriptors.resolve(resolve);
-	node.descriptors.write(node.pass_native.descriptor_sets);
-
-	// Insert pipeline barrier
-	node.pipeline_barrier_callback(command_buffer, resolve);
-
-	if (command_buffer.beginRenderPass(state.pass))
-	{
-		node.pass->render(state);
-		command_buffer.endRenderPass();
-	}
-
-	command_buffer.end();
-
-	VkSubmitInfo submit_info         = {};
-	submit_info.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submit_info.commandBufferCount   = 1;
-	submit_info.pCommandBuffers      = &command_buffer.getCommandBuffer();
-	submit_info.signalSemaphoreCount = node.submit_info.signal_semaphore ? 1 : 0;
-	submit_info.pSignalSemaphores    = &node.submit_info.signal_semaphore;
-	submit_info.waitSemaphoreCount   = static_cast<uint32_t>(node.submit_info.wait_semaphores.size());
-	submit_info.pWaitSemaphores      = node.submit_info.wait_semaphores.empty() ? nullptr : node.submit_info.wait_semaphores.data();
-	submit_info.pWaitDstStageMask    = node.submit_info.wait_stages.empty() ? nullptr : node.submit_info.wait_stages.data();
-
-	auto *queue = GraphicsContext::instance()->getQueueSystem().acquire(QueueUsage::Graphics);
-
-	//vkQueueSubmit(*queue, 1, &submit_info, VK_NULL_HANDLE);
-
-	return submit_info;
+	node.pass->render(state);
 }
 }        // namespace Ilum

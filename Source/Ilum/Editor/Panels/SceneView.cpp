@@ -78,7 +78,9 @@ void SceneView::draw(float delta_time)
 	{
 		m_display_attachment = render_graph->view();
 	}
-	ImGui::Image(ImGuiContext::textureID(render_graph->getAttachment(m_display_attachment), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), scene_view_size);
+	auto &attachment = render_graph->getAttachment(m_display_attachment);
+
+	ImGui::Image(ImGuiContext::textureID(attachment.isDepth() ? attachment.getView(ImageViewType::Depth_Only) : attachment.getView(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), scene_view_size);
 
 	// Drag new model
 	if (ImGui::BeginDragDropTarget())
@@ -89,7 +91,6 @@ void SceneView::draw(float delta_time)
 			auto  entity        = Scene::instance()->createEntity("New Model");
 			auto &mesh_renderer = entity.addComponent<cmpt::MeshRenderer>();
 			mesh_renderer.model = *static_cast<std::string *>(pay_load->Data);
-			mesh_renderer.materials.resize(Renderer::instance()->getResourceCache().loadModel(*static_cast<std::string *>(pay_load->Data)).get().getSubMeshes().size());
 		}
 		ImGui::EndDragDropTarget();
 	}
@@ -130,7 +131,7 @@ void SceneView::draw(float delta_time)
 	}
 
 	// We don't want camera moving while handling object transform or window is not focused
-	if (ImGui::IsWindowFocused() && !is_on_guizmo)
+	if (ImGui::IsWindowFocused() && !ImGuizmo::IsUsing())
 	{
 		if (view != Renderer::instance()->Main_Camera.view)
 		{
@@ -149,6 +150,42 @@ void SceneView::draw(float delta_time)
 		}
 	}
 
+	// Mouse picking via ray casting
+	if (ImGui::IsWindowFocused() && ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGuizmo::IsOver() && !ImGuizmo::IsUsing())
+	{
+		auto [mouse_x, mouse_y] = Input::instance()->getMousePosition();
+		auto click_pos          = ImVec2(static_cast<float>(mouse_x) - scene_view_position.x, static_cast<float>(mouse_y) - scene_view_position.y);
+
+		auto &main_camera = Renderer::instance()->Main_Camera;
+
+		float x = (click_pos.x / scene_view_size.x) * 2.f - 1.f;
+		float y = -((click_pos.y / scene_view_size.y) * 2.f - 1.f);
+
+		glm::mat4 inv = glm::inverse(main_camera.view_projection);
+
+		glm::vec4 near_point = inv * glm::vec4(x, y, 0.f, 1.f);
+		near_point /= near_point.w;
+		glm::vec4 far_point = inv * glm::vec4(x, y, 1.f, 1.f);
+		far_point /= far_point.w;
+
+		geometry::Ray ray;
+		ray.origin    = main_camera.position;
+		ray.direction = glm::normalize(glm::vec3(far_point - near_point));
+
+		Editor::instance()->select(Entity());
+		float      distance = std::numeric_limits<float>::infinity();
+		const auto group    = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform>);
+		group.each([&](const entt::entity &entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform) {
+			auto &model        = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
+			float hit_distance = ray.hit(model.get().bounding_box.transform(transform.world_transform));
+			if (distance > hit_distance)
+			{
+				distance = hit_distance;
+				Editor::instance()->select(Entity(entity));
+			}
+		});
+	}
+
 	ImGui::End();
 
 	ImGui::PopStyleVar();
@@ -157,7 +194,7 @@ void SceneView::draw(float delta_time)
 void SceneView::updateMainCamera(float delta_time)
 {
 	// TODO: Better camera movement, Model view camera, Ortho camera
-	if (!ImGui::IsWindowFocused())
+	if (!ImGui::IsWindowFocused() || !ImGui::IsWindowHovered())
 	{
 		return;
 	}
@@ -192,7 +229,7 @@ void SceneView::updateMainCamera(float delta_time)
 		if (delta_y != 0)
 		{
 			pitch -= m_camera_sensitivity * delta_time * static_cast<float>(delta_y);
-			pitch  = glm::clamp(pitch, glm::radians(-90.f), glm::radians(90.f));
+			pitch  = glm::clamp(pitch, glm::radians(-89.f), glm::radians(89.f));
 			update = true;
 		}
 
@@ -409,7 +446,7 @@ void SceneView::showToolBar()
 				}
 			}
 		}
-		
+
 		ImGui::EndPopup();
 	}
 

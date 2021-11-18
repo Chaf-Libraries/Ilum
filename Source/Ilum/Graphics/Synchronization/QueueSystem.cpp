@@ -64,10 +64,13 @@ void QueueSystem::waitAll()
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
-	vkDeviceWaitIdle(GraphicsContext::instance()->getLogicalDevice());
+	for (auto& queue : m_queues)
+	{
+		queue->waitIdle();
+	}
 }
 
-Queue *QueueSystem::acquire(QueueUsage usage)
+Queue *QueueSystem::acquire(QueueUsage usage, uint32_t index)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -78,11 +81,7 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 			return nullptr;
 		}
 
-		auto *queue = m_present_queues[m_present_index];
-		//LOG_INFO("Present Index - {}", m_present_index);
-		m_present_index = (m_present_index + 1ull) % m_present_queues.size();
-		queue->waitIdle();
-		return queue;
+		return m_present_queues[index];
 	}
 
 	if (usage == QueueUsage::Graphics)
@@ -92,11 +91,7 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 			return nullptr;
 		}
 
-		auto *queue     = m_graphics_queues[m_graphics_index];
-		//LOG_INFO("Graphics Index - {}", m_graphics_index);
-		m_graphics_index = (m_graphics_index + 1ull) % m_graphics_queues.size();
-		queue->waitIdle();
-		return queue;
+		return m_graphics_queues[index];
 	}
 
 	if (usage == QueueUsage::Transfer)
@@ -106,11 +101,7 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 			return nullptr;
 		}
 
-		auto *queue      = m_transfer_queues[m_transfer_index];
-		//LOG_INFO("Transfer Index - {}", m_transfer_index);
-		m_transfer_index = (m_transfer_index + 1ull) % m_transfer_queues.size();
-		queue->waitIdle();
-		return queue;
+		return m_transfer_queues[index];
 	}
 
 	if (usage == QueueUsage::Compute)
@@ -120,11 +111,7 @@ Queue *QueueSystem::acquire(QueueUsage usage)
 			return nullptr;
 		}
 
-		auto *queue      = m_compute_queues[m_compute_index];
-		//LOG_INFO("Compute Index - {}", m_compute_index);
-		m_compute_index = (m_compute_index + 1ull) % m_compute_queues.size();
-		queue->waitIdle();
-		return queue;
+		return m_compute_queues[index];
 	}
 
 	return nullptr;

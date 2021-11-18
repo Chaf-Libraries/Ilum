@@ -3,7 +3,7 @@
 #include "DescriptorPool.hpp"
 #include "DescriptorSet.hpp"
 
-#include "Graphics/Pipeline/Shader.hpp"
+#include "Graphics/Shader/Shader.hpp"
 
 namespace Ilum
 {

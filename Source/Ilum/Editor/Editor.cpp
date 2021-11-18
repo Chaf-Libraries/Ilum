@@ -15,7 +15,14 @@
 #include "Panels/Hierarchy.hpp"
 #include "Panels/Inspector.hpp"
 #include "Panels/RenderGraphViewer.hpp"
+#include "Panels/RenderSetting.hpp"
 #include "Panels/SceneView.hpp"
+
+#include "Scene/Component/DirectionalLight.hpp"
+#include "Scene/Component/Light.hpp"
+#include "Scene/Component/MeshRenderer.hpp"
+#include "Scene/Component/PointLight.hpp"
+#include "Scene/Component/SpotLight.hpp"
 
 namespace Ilum
 {
@@ -40,6 +47,7 @@ bool Editor::onInitialize()
 	m_panels.emplace_back(createScope<panel::AssetBrowser>());
 	m_panels.emplace_back(createScope<panel::SceneView>());
 	m_panels.emplace_back(createScope<panel::Console>());
+	m_panels.emplace_back(createScope<panel::RenderSetting>());
 
 	return true;
 }
@@ -61,6 +69,11 @@ void Editor::onTick(float delta_time)
 
 	if (ImGui::BeginMainMenuBar())
 	{
+		if (ImGui::BeginMenu("File"))
+		{
+			ImGui::EndMenu();
+		}
+
 		if (ImGui::BeginMenu("Panel"))
 		{
 			for (auto &panel : m_panels)
@@ -69,6 +82,54 @@ void Editor::onTick(float delta_time)
 			}
 			ImGui::EndMenu();
 		}
+
+		if (ImGui::BeginMenu("Entity"))
+		{
+			if (ImGui::MenuItem("Create Empty Entity"))
+			{
+				auto entity     = Scene::instance()->createEntity();
+				m_select_entity = entity;
+			}
+			if (ImGui::BeginMenu("Light"))
+			{
+				if (ImGui::MenuItem("Directional Light"))
+				{
+					auto entity     = Scene::instance()->createEntity("Directional Light");
+					m_select_entity = entity;
+
+					entity.addComponent<cmpt::Light>().type = cmpt::LightType::Directional;
+				}
+				if (ImGui::MenuItem("Point Light"))
+				{
+					auto entity     = Scene::instance()->createEntity("Point Light");
+					m_select_entity = entity;
+
+					entity.addComponent<cmpt::Light>().type = cmpt::LightType::Point;
+				}
+				if (ImGui::MenuItem("Spot Light"))
+				{
+					auto entity     = Scene::instance()->createEntity("Spot Light");
+					m_select_entity = entity;
+
+					entity.addComponent<cmpt::Light>().type = cmpt::LightType::Spot;
+				}
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("Model"))
+			{
+				if (ImGui::MenuItem("Plane"))
+				{
+					auto entity                                     = Scene::instance()->createEntity("Plane");
+					entity.addComponent<cmpt::MeshRenderer>().model = std::string(PROJECT_SOURCE_DIR) + "Asset/Model/plane.obj";
+					Renderer::instance()->getResourceCache().loadModelAsync(std::string(PROJECT_SOURCE_DIR) + "Asset/Model/plane.obj");
+					m_select_entity = entity;
+				}
+				ImGui::EndMenu();
+			}
+
+			ImGui::EndMenu();
+		}
+
 		ImGui::EndMainMenuBar();
 	}
 

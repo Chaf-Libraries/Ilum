@@ -4,8 +4,8 @@
 
 #include "Graphics/Buffer/Buffer.h"
 #include "Graphics/Image/Image.hpp"
-#include "Graphics/Synchronization/QueueSystem.hpp"
 #include "Graphics/Synchronization/Queue.hpp"
+#include "Graphics/Synchronization/QueueSystem.hpp"
 
 #include "Renderer/RenderGraph/RenderPass.hpp"
 
@@ -42,7 +42,7 @@ class CommandBuffer
 
 	void reset() const;
 
-	bool begin(VkCommandBufferUsageFlagBits usage = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT) const;
+	bool begin(VkCommandBufferUsageFlagBits usage = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, VkCommandBufferInheritanceInfo *inheritanceInfo = nullptr) const;
 
 	bool beginRenderPass(const PassNative &pass) const;
 
@@ -82,5 +82,6 @@ class CommandBuffer
   private:
 	ref<CommandPool> m_command_pool = nullptr;
 	VkCommandBuffer  m_handle       = VK_NULL_HANDLE;
+	std::mutex       m_mutex;
 };
 }        // namespace Ilum

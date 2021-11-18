@@ -21,17 +21,19 @@ struct BoundingBox
 
 	void merge(const std::vector<glm::vec3> &points);
 
+	void merge(const BoundingBox &bounding_box);
+
 	BoundingBox transform(const glm::mat4 &trans) const;
-
-	const glm::vec3 &min() const;
-
-	const glm::vec3 &max() const;
 
 	const glm::vec3 center() const;
 
 	const glm::vec3 scale() const;
 
-	glm::vec3 m_min = glm::vec3(std::numeric_limits<float>::infinity());
-	glm::vec3 m_max = glm::vec3(-std::numeric_limits<float>::infinity());
+	bool isInside(const glm::vec3 &point) const;
+
+	bool valid() const;
+
+	glm::vec3 min_ = glm::vec3(std::numeric_limits<float>::infinity());
+	glm::vec3 max_ = glm::vec3(-std::numeric_limits<float>::infinity());
 };
 }        // namespace Ilum::geometry

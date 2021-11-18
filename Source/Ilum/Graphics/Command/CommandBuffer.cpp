@@ -7,8 +7,8 @@
 #include "Engine/Engine.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
-#include "Graphics/Synchronization/QueueSystem.hpp"
 #include "Graphics/Synchronization/Queue.hpp"
+#include "Graphics/Synchronization/QueueSystem.hpp"
 
 namespace Ilum
 {
@@ -44,11 +44,12 @@ void CommandBuffer::reset() const
 	}
 }
 
-bool CommandBuffer::begin(VkCommandBufferUsageFlagBits usage) const
+bool CommandBuffer::begin(VkCommandBufferUsageFlagBits usage, VkCommandBufferInheritanceInfo *inheritanceInfo) const
 {
 	VkCommandBufferBeginInfo command_buffer_begin_info = {};
 	command_buffer_begin_info.sType                    = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	command_buffer_begin_info.flags                    = usage;
+	command_buffer_begin_info.pInheritanceInfo         = inheritanceInfo;
 
 	if (!VK_CHECK(vkBeginCommandBuffer(m_handle, &command_buffer_begin_info)))
 	{
@@ -421,11 +422,14 @@ void CommandBuffer::transferLayout(const std::vector<ImageReference> &images, Vk
 
 void CommandBuffer::submitIdle()
 {
-	GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool->getUsage())->submitIdle(*this);
+	std::lock_guard<std::mutex> lock(m_mutex);
+	auto *                      queue = GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool->getUsage(), 1);
+	queue->submitIdle(*this);
 }
 
 void CommandBuffer::submit(const VkSemaphore &wait_semaphore, const VkSemaphore &signal_semaphore, VkFence fence, VkShaderStageFlags wait_stages)
 {
+	std::lock_guard<std::mutex> lock(m_mutex);
 	GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool->getUsage())->submit(*this, signal_semaphore, wait_semaphore, fence, wait_stages);
 }
 

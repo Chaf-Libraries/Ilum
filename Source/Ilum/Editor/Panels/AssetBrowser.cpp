@@ -1,14 +1,14 @@
 #include "AssetBrowser.hpp"
 
-#include "Renderer/Renderer.hpp"
 #include "Renderer/RenderGraph/RenderGraph.hpp"
+#include "Renderer/Renderer.hpp"
 
 #include "ImGui/ImGuiContext.hpp"
 
 #include "Loader/ImageLoader/ImageLoader.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
-#include "Graphics/Pipeline/ShaderCache.hpp"
+#include "Graphics/Shader/ShaderCache.hpp"
 
 #include "Scene/Component/MeshRenderer.hpp"
 #include "Scene/Entity.hpp"
@@ -140,12 +140,13 @@ inline void draw_model_asset(const Image &image, float height, float space)
 			ImGui::Begin(name.c_str(), NULL, ImGuiWindowFlags_Tooltip | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar);
 			ImGui::Text(name.c_str());
 			ImGui::Separator();
-			for (uint32_t i = 0; i < model.get().getSubMeshes().size(); i++)
+			uint32_t idx = 0;
+			for (auto &submesh : model.get().submeshes)
 			{
-				ImGui::Text("SubMesh #%d", i);
-				ImGui::BulletText("vertices count: %d", model.get().getSubMeshes()[i].getVertexCount());
-				ImGui::BulletText("indices count: %d", model.get().getSubMeshes()[i].getIndexCount());
-				ImGui::BulletText("index offset: %d", model.get().getSubMeshes()[i].getIndexOffset());
+				ImGui::Text("SubMesh #%d", idx++);
+				ImGui::BulletText("vertices count: %d", submesh.vertices.size());
+				ImGui::BulletText("indices count: %d", submesh.indices.size());
+				ImGui::BulletText("index offset: %d", submesh.index_offset);
 			}
 			ImGui::End();
 		}
@@ -480,7 +481,10 @@ void AssetBrowser::draw(float delta_time)
 			ifd::FileDialog::Instance().Close();
 		}
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.f, 0.f));
+		ImGui::Separator();
+		ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 		draw_texture_asset(100.f, 0.f);
+		ImGui::EndChild();
 		ImGui::PopStyleVar();
 	}
 	else if (current_item == 1)
@@ -500,12 +504,17 @@ void AssetBrowser::draw(float delta_time)
 			}
 			ifd::FileDialog::Instance().Close();
 		}
-
+		ImGui::Separator();
+		ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 		draw_model_asset(m_model_icon, 100.f, 0.f);
+		ImGui::EndChild();
 	}
 	else if (current_item == 2)
 	{
+		ImGui::Separator();
+		ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 		draw_shader_asset(m_shader_icon, 100.f, 0.f);
+		ImGui::EndChild();
 	}
 
 	ImGui::End();

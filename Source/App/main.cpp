@@ -4,12 +4,10 @@
 #include <Ilum/Engine/Context.hpp>
 #include <Ilum/Engine/Engine.hpp>
 #include <Ilum/Graphics/GraphicsContext.hpp>
-#include <Ilum/Graphics/Pipeline/Shader.hpp>
-#include <Ilum/Graphics/Pipeline/ShaderCache.hpp>
-#include <Ilum/Loader/ModelLoader/ModelLoader.hpp>
-#include <Ilum/Material/BlinnPhong.h>
-#include <Ilum/Renderer/RenderPass/DefaultPass.hpp>
 #include <Ilum/Renderer/RenderPass/GeometryPass.hpp>
+#include <Ilum/Renderer/RenderPass/LightPass.hpp>
+#include <Ilum/Renderer/RenderPass/BloomPass.hpp>
+#include <Ilum/Renderer/RenderPass/TonemappingPass.hpp>
 #include <Ilum/Renderer/Renderer.hpp>
 #include <Ilum/Scene/Component/Hierarchy.hpp>
 #include <Ilum/Scene/Component/MeshRenderer.hpp>
@@ -27,16 +25,17 @@ int main()
 	Ilum::Renderer::instance()->buildRenderGraph = [](Ilum::RenderGraphBuilder &builder) {
 		builder
 		    .addRenderPass("GeometryPass", std::make_unique<Ilum::pass::GeometryPass>())
+		    .addRenderPass("LightPass", std::make_unique<Ilum::pass::LightPass>())
+		    .addRenderPass("BloomPass", std::make_unique<Ilum::pass::BloomPass>())
+		    .addRenderPass("Tonemapping", std::make_unique<Ilum::pass::TonemappingPass>("blooming"))
 
-		    .addRenderPass("DefaultPass", std::make_unique<Ilum::pass::DefaultPass>("result"))
-		    .setView("result")
-		    .setOutput("result");
-
-		//.setView("gbuffer - normal")
-		//    .setOutput("gbuffer - normal");
+		    .setView("gbuffer - normal")
+		    .setOutput("gbuffer - normal");
 	};
 
 	Ilum::Renderer::instance()->rebuild();
+
+	Ilum::Window::instance()->setIcon(std::string(PROJECT_SOURCE_DIR) + "Asset/Texture/Icon/logo.bmp");
 
 	auto title = Ilum::Window::instance()->getTitle();
 	while (!Ilum::Window::instance()->shouldClose())

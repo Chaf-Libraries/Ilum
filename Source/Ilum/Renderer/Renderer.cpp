@@ -3,16 +3,25 @@
 
 #include "Renderer/RenderPass/ImGuiPass.hpp"
 
+#include "Device/LogicalDevice.hpp"
 #include "Device/Swapchain.hpp"
 #include "Device/Window.hpp"
-#include "Device/LogicalDevice.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
 
 #include "ImGui/ImGuiContext.hpp"
 
-#include "Loader/ImageLoader/ImageLoader.hpp"
 #include "Loader/ImageLoader/Bitmap.hpp"
+#include "Loader/ImageLoader/ImageLoader.hpp"
+
+#include "Scene/Component/DirectionalLight.hpp"
+#include "Scene/Component/Light.hpp"
+#include "Scene/Component/PointLight.hpp"
+#include "Scene/Component/SpotLight.hpp"
+#include "Scene/Component/Tag.hpp"
+#include "Scene/Component/Transform.hpp"
+#include "Scene/Entity.hpp"
+#include "Scene/Scene.hpp"
 
 #include <imgui.h>
 
@@ -37,7 +46,6 @@ Renderer::Renderer(Context *context) :
 
 Renderer::~Renderer()
 {
-
 }
 
 bool Renderer::onInitialize()
@@ -118,6 +126,8 @@ void Renderer::resetBuilder()
 
 void Renderer::rebuild()
 {
+	GraphicsContext::instance()->getQueueSystem().waitAll();
+
 	m_render_graph.reset();
 	m_render_graph = nullptr;
 
@@ -195,15 +205,99 @@ void Renderer::createSamplers()
 
 void Renderer::updateBuffers()
 {
-	// Update Main Camera
-	auto *camera_buffer = reinterpret_cast<CameraBuffer *>(m_buffers[BufferType::MainCamera].map());
-	camera_buffer->position = Main_Camera.position;
+	// Update main camera
+	struct CameraBuffer
+	{
+		glm::mat4 view_projection;
+		glm::vec3 position;
+	};
+	auto *camera_buffer            = reinterpret_cast<CameraBuffer *>(m_buffers[BufferType::MainCamera].map());
+	camera_buffer->position        = Main_Camera.position;
 	camera_buffer->view_projection = Main_Camera.view_projection;
 	m_buffers[BufferType::MainCamera].unmap();
+
+	// Update lights
+	std::vector<cmpt::DirectionalLight::Data> directional_lights;
+	std::vector<cmpt::SpotLight::Data>              spot_lights;
+	std::vector<cmpt::PointLight::Data>       point_lights;
+
+	//// Gather light infos
+	const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::Light, cmpt::Tag>);
+	group.each([&](const entt::entity &entity, const cmpt::Light &light, const cmpt::Tag &tag) {
+		if (!tag.active || !light.impl)
+		{
+			return;
+		}
+
+		switch (light.type)
+		{
+			case cmpt::LightType::Directional:
+				directional_lights.push_back(static_cast<cmpt::DirectionalLight *>(light.impl.get())->data);
+				break;
+			case cmpt::LightType::Spot:
+				spot_lights.push_back(static_cast<cmpt::SpotLight *>(light.impl.get())->data);
+				spot_lights.back().position = Entity(entity).getComponent<cmpt::Transform>().translation;
+				break;
+			case cmpt::LightType::Point:
+				point_lights.push_back(static_cast<cmpt::PointLight *>(light.impl.get())->data);
+				point_lights.back().position = Entity(entity).getComponent<cmpt::Transform>().translation;
+				break;
+			default:
+				break;
+		}
+	});
+
+	//// Enlarge buffer
+	size_t directional_lights_count = m_buffers[BufferType::DirectionalLight].getSize() / sizeof(cmpt::DirectionalLight::Data);
+	if (directional_lights_count < directional_lights.size())
+	{
+		GraphicsContext::instance()->getQueueSystem().waitAll();
+		m_buffers[BufferType::DirectionalLight] = Buffer(2 * directional_lights_count * sizeof(cmpt::DirectionalLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+		m_update = true;
+	}
+
+	size_t spot_lights_count = m_buffers[BufferType::SpotLight].getSize() / sizeof(cmpt::SpotLight::Data);
+	if (spot_lights_count < spot_lights.size())
+	{
+		GraphicsContext::instance()->getQueueSystem().waitAll();
+		m_buffers[BufferType::SpotLight] = Buffer(2 * spot_lights_count * sizeof(cmpt::SpotLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+		m_update = true;
+	}
+
+	size_t point_lights_count = m_buffers[BufferType::PointLight].getSize() / sizeof(cmpt::PointLight::Data);
+	if (point_lights_count < point_lights.size())
+	{
+		GraphicsContext::instance()->getQueueSystem().waitAll();
+		m_buffers[BufferType::PointLight] = Buffer(2 * point_lights_count * sizeof(cmpt::PointLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+		m_update = true;
+	}
+
+	//// Copy buffer
+	if (!directional_lights.empty())
+	{
+		std::memcpy(m_buffers[BufferType::DirectionalLight].map(), directional_lights.data(), directional_lights.size() * sizeof(cmpt::DirectionalLight::Data));
+		m_buffers[BufferType::DirectionalLight].unmap();
+	}
+	if (!spot_lights.empty())
+	{
+		std::memcpy(m_buffers[BufferType::SpotLight].map(), spot_lights.data(), spot_lights.size() * sizeof(cmpt::SpotLight::Data));
+		m_buffers[BufferType::SpotLight].unmap();
+	}
+	if (!point_lights.empty())
+	{
+		std::memcpy(m_buffers[BufferType::PointLight].map(), point_lights.data(), point_lights.size() * sizeof(cmpt::PointLight::Data));
+		m_buffers[BufferType::PointLight].unmap();
+	}
 }
 
 void Renderer::createBuffers()
 {
-	m_buffers[BufferType::MainCamera] = Buffer(sizeof(CameraBuffer), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	m_buffers[BufferType::MainCamera]       = Buffer(sizeof(glm::mat4)+sizeof(glm::vec3), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	m_buffers[BufferType::DirectionalLight] = Buffer(2 * sizeof(cmpt::DirectionalLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	m_buffers[BufferType::SpotLight]        = Buffer(2 * sizeof(cmpt::SpotLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	m_buffers[BufferType::PointLight]       = Buffer(2 * sizeof(cmpt::PointLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 }
 }        // namespace Ilum

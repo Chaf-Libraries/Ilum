@@ -409,8 +409,6 @@ inline std::vector<ReflectionData::Buffer> read_shader_resource<ReflectionData::
 
 		read_resource_size(compiler, resource, buffer);
 		read_resource_array_size(compiler, resource, buffer);
-		read_resource_decoration<spv::DecorationNonReadable>(compiler, resource, buffer);
-		read_resource_decoration<spv::DecorationNonWritable>(compiler, resource, buffer);
 		read_resource_decoration<spv::DecorationDescriptorSet>(compiler, resource, buffer);
 		read_resource_decoration<spv::DecorationBinding>(compiler, resource, buffer);
 

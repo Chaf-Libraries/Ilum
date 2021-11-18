@@ -44,7 +44,7 @@ Frustum::Frustum(const glm::mat4 &view_projection)
 
 	for (auto& plane : planes)
 	{
-		float length = plane.normal.length();
+		float length = glm::length(plane.normal);
 		plane.normal /= length;
 		plane.constant /= length;
 	}

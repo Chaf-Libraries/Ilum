@@ -2,15 +2,21 @@
 
 #include "File/FileSystem.hpp"
 
+#include "Renderer/Renderer.hpp"
+
 #include <assimp/DefaultLogger.hpp>
 #include <assimp/Importer.hpp>
+#include <assimp/pbrmaterial.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace Ilum
 {
+static std::unordered_set<std::string> loaded_textures;
+
 inline glm::mat4 to_matrix(const aiMatrix4x4 &matrix)
 {
 	return glm::mat4(
@@ -128,7 +134,8 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 	    aiProcess_FlipWindingOrder |
 	    aiProcess_CalcTangentSpace |
 	    aiProcess_GenSmoothNormals |
-	    aiProcess_JoinIdenticalVertices |
+	    aiProcess_Triangulate;
+	aiProcess_JoinIdenticalVertices |
 	    aiProcess_ImproveCacheLocality |
 	    aiProcess_Triangulate |
 	    aiProcess_GenUVCoords |
@@ -140,15 +147,21 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 	// TODO: Animation
 	if (const aiScene *scene = importer.ReadFile(file_path, importer_flag))
 	{
+		loaded_textures.clear();
 		// Merge all meshes into one big mesh
 		aiMatrix4x4 identity;
-		parseNode(identity, scene->mRootNode, scene, meshes);
+		parseNode(file_path, identity, scene->mRootNode, scene, meshes);
+
+		for (auto& tex : loaded_textures)
+		{
+			Renderer::instance()->getResourceCache().loadImageAsync(tex);
+		}
 	}
 
 	model = Model(std::move(meshes));
 }
 
-void ModelLoader::parseNode(aiMatrix4x4 transform, aiNode *node, const aiScene *scene, std::vector<SubMesh> &meshes)
+void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform, aiNode *node, const aiScene *scene, std::vector<SubMesh> &meshes)
 {
 	transform = transform * node->mTransformation;
 
@@ -156,20 +169,26 @@ void ModelLoader::parseNode(aiMatrix4x4 transform, aiNode *node, const aiScene *
 	{
 		std::vector<Vertex>   vertices;
 		std::vector<uint32_t> indices;
-		uint32_t              index_offset = 0;
-		aiMesh *              mesh         = scene->mMeshes[node->mMeshes[i]];
+
+		auto pbr = createScope<material::DisneyPBR>();
+
+		uint32_t    index_offset = 0;
+		aiMesh *    mesh         = scene->mMeshes[node->mMeshes[i]];
+		aiMaterial *material     = scene->mMaterials[mesh->mMaterialIndex];
 		parseMesh(transform, mesh, scene, vertices, indices);
+		parseMaterial(file_path, material, pbr);
 
 		for (auto &submesh : meshes)
 		{
-			index_offset += submesh.getIndexCount();
+			index_offset += static_cast<uint32_t>(submesh.indices.size());
 		}
-		meshes.emplace_back(std::move(vertices), std::move(indices), index_offset);
+
+		meshes.emplace_back(std::move(vertices), std::move(indices), index_offset, std::move(pbr));
 	}
 
 	for (uint32_t i = 0; i < node->mNumChildren; i++)
 	{
-		parseNode(transform, node->mChildren[i], scene, meshes);
+		parseNode(file_path, transform, node->mChildren[i], scene, meshes);
 	}
 }
 
@@ -192,6 +211,81 @@ void ModelLoader::parseMesh(aiMatrix4x4 transform, aiMesh *mesh, const aiScene *
 		{
 			indices.push_back(mesh->mFaces[i].mIndices[j]);
 		}
+	}
+}
+
+void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_material, scope<material::DisneyPBR> &material)
+{
+	std::string dictionary = FileSystem::getFileDirectory(file_path);
+
+	aiString path;
+
+	// gltf metal-roughness texture
+	aiGetMaterialFloat(mesh_material, AI_MATKEY_METALLIC_FACTOR, &material->metallic_factor);
+	aiGetMaterialFloat(mesh_material, AI_MATKEY_ROUGHNESS_FACTOR, &material->roughness_factor);
+	aiGetMaterialFloat(mesh_material, AI_MATKEY_BASE_COLOR, glm::value_ptr(material->base_color));
+	aiGetMaterialFloat(mesh_material, AI_MATKEY_EMISSIVE_INTENSITY, &material->emissive_intensity);
+
+	if (aiGetMaterialTexture(mesh_material, AI_MATKEY_BASE_COLOR_TEXTURE, &path) != aiReturn_FAILURE)
+	{
+		material->albedo_map = dictionary + path.C_Str();
+		loaded_textures.insert(dictionary + path.C_Str());
+		//Renderer::instance()->getResourceCache().loadImage(dictionary + path.C_Str());
+	}
+	path.Clear();
+
+	if (aiGetMaterialTexture(mesh_material, aiTextureType_NORMALS, 0, &path) != aiReturn_FAILURE)
+	{
+		material->normal_map = dictionary + path.C_Str();
+		loaded_textures.insert(dictionary + path.C_Str());
+		//Renderer::instance()->getResourceCache().loadImage(dictionary + path.C_Str());
+	}
+	path.Clear();
+
+	if (aiGetMaterialTexture(mesh_material, AI_MATKEY_METALLIC_TEXTURE, &path) != aiReturn_FAILURE)
+	{
+		material->metallic_map = dictionary + path.C_Str();
+		loaded_textures.insert(dictionary + path.C_Str());
+		//Renderer::instance()->getResourceCache().loadImage(dictionary + path.C_Str());
+	}
+	path.Clear();
+
+	if (aiGetMaterialTexture(mesh_material, AI_MATKEY_ROUGHNESS_TEXTURE, &path) != aiReturn_FAILURE)
+	{
+		material->roughness_map = dictionary + path.C_Str();
+		loaded_textures.insert(dictionary + path.C_Str());
+		//Renderer::instance()->getResourceCache().loadImage(dictionary + path.C_Str());
+	}
+	path.Clear();
+
+	if (aiGetMaterialTexture(mesh_material, aiTextureType_EMISSIVE, 0, &path) != aiReturn_FAILURE)
+	{
+		material->emissive_map = dictionary + path.C_Str();
+		loaded_textures.insert(dictionary + path.C_Str());
+		//Renderer::instance()->getResourceCache().loadImage(dictionary + path.C_Str());
+	}
+	path.Clear();
+
+	if (aiGetMaterialTexture(mesh_material, aiTextureType_AMBIENT_OCCLUSION, 0, &path) != aiReturn_FAILURE)
+	{
+		material->ao_map = dictionary + path.C_Str();
+		loaded_textures.insert(dictionary + path.C_Str());
+		//Renderer::instance()->getResourceCache().loadImage(dictionary + path.C_Str());
+	}
+	path.Clear();
+
+	if (FileSystem::getFileExtension(file_path) == ".gltf")
+	{
+		// For gltf, unknown for roughness & metallic
+		if (aiGetMaterialTexture(mesh_material, aiTextureType_UNKNOWN, 0, &path) != aiReturn_FAILURE)
+		{
+			material->roughness_map = dictionary + path.C_Str();
+			material->metallic_map  = dictionary + path.C_Str();
+			loaded_textures.insert(dictionary + path.C_Str());
+			//Renderer::instance()->getResourceCache().loadImage(dictionary + path.C_Str());
+		}
+
+		path.Clear();
 	}
 }
 }        // namespace Ilum

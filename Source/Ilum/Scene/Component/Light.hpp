@@ -7,21 +7,32 @@ namespace Ilum::cmpt
 {
 enum class LightType
 {
+	None,
 	Directional,
 	Point,
-	Spot
-	// TODO: LTC
+	Spot,
+	Area
+};
+
+struct ILight
+{
+	virtual LightType type() = 0;
+};
+
+template <LightType Type>
+struct TLight : public ILight
+{
+	virtual LightType type() override
+	{
+		return Type;
+	}
 };
 
 struct Light
 {
-	// Shadow mapping
-	Image                shadow_map;
-	std::array<Image, 6> shadow_cube;
-
-
-
 	// Light type
-	LightType type = LightType::Directional;
+	LightType type = LightType::None;
+
+	scope<ILight> impl = nullptr;
 };
 }        // namespace Ilum::Cmpt
