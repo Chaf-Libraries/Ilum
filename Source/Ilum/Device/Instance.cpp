@@ -27,8 +27,6 @@ const std::vector<const char *>                 Instance::validation_layers     
 const std::vector<VkValidationFeatureEnableEXT> Instance::validation_extensions = {};
 #endif        // _DEBUG
 
-
-
 inline const std::vector<const char *> get_instance_extension_supported(const std::vector<const char *> &extensions)
 {
 	uint32_t extension_count = 0;
