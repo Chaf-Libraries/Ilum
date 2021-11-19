@@ -45,12 +45,14 @@ class ResourceCache
 	std::vector<Image>                      m_image_cache;
 	std::unordered_map<std::string, size_t> m_image_map;
 	std::vector<std::string>                m_deprecated_image;
+	std::unordered_map<std::string, Image>  m_new_image;
 
 
 	// Cache model
 	std::vector<Model>                      m_model_cache;
 	std::unordered_map<std::string, size_t> m_model_map;
 	std::vector<std::string>                m_deprecated_model;
+	std::unordered_map<std::string, Model>  m_new_model;
 
 	std::mutex m_image_mutex;
 	std::mutex m_model_mutex;

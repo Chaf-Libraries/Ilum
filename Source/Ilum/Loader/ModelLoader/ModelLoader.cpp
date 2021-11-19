@@ -4,6 +4,8 @@
 
 #include "Renderer/Renderer.hpp"
 
+#include "Threading/ThreadPool.hpp"
+
 #include <assimp/DefaultLogger.hpp>
 #include <assimp/Importer.hpp>
 #include <assimp/pbrmaterial.h>
@@ -152,9 +154,16 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 		aiMatrix4x4 identity;
 		parseNode(file_path, identity, scene->mRootNode, scene, meshes);
 
+		std::vector<std::future<void>> futures;
 		for (auto& tex : loaded_textures)
 		{
-			Renderer::instance()->getResourceCache().loadImageAsync(tex);
+			futures.push_back(ThreadPool::instance()->addTask([tex](size_t) {
+				Renderer::instance()->getResourceCache().loadImage(tex);
+			}));
+		}
+		for (auto& future : futures)
+		{
+			future.get();
 		}
 	}
 

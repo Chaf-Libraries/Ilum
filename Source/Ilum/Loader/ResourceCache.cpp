@@ -29,8 +29,9 @@ ImageReference ResourceCache::loadImage(const std::string &filepath)
 
 	{
 		std::lock_guard<std::mutex> lock(m_image_mutex);
-		m_image_cache.emplace_back(std::move(image));
-		m_image_map[filepath] = m_image_cache.size() - 1;
+		m_new_image[filepath] = std::move(image);
+		//m_image_cache.emplace_back(std::move(image));
+		//m_image_map[filepath] = m_image_cache.size() - 1;
 	}
 
 	return m_image_cache.back();
@@ -49,8 +50,9 @@ void ResourceCache::loadImageAsync(const std::string &filepath)
 
 			{
 				std::lock_guard<std::mutex> lock(m_image_mutex);
-				m_image_cache.emplace_back(std::move(image));
-				m_image_map[filepath] = m_image_cache.size() - 1;
+				m_new_image[filepath] = std::move(image);
+				/*m_image_cache.emplace_back(std::move(image));
+				m_image_map[filepath] = m_image_cache.size() - 1;*/
 			}
 		}
 	});
@@ -73,23 +75,17 @@ bool ResourceCache::hasImage(const std::string &filepath) const
 
 const std::unordered_map<std::string, size_t> &ResourceCache::getImages()
 {
-	std::lock_guard<std::mutex> lock(m_image_mutex);
 	return m_image_map;
 }
 
 const std::vector<ImageReference> ResourceCache::getImageReferences()
 {
-	std::lock_guard<std::mutex> lock(m_image_mutex);
 	std::vector<ImageReference> references;
 	references.reserve(m_image_map.size());
 
 	for (auto &image : m_image_cache)
 	{
 		references.push_back(image);
-		if (references.size() == m_image_map.size())
-		{
-			break;
-		}
 	}
 
 	return references;
@@ -97,8 +93,6 @@ const std::vector<ImageReference> ResourceCache::getImageReferences()
 
 uint32_t ResourceCache::imageID(const std::string &filepath)
 {
-	std::lock_guard<std::mutex> lock(m_image_mutex);
-
 	if (!hasImage(filepath))
 	{
 		return std::numeric_limits<uint32_t>::max();
@@ -109,16 +103,19 @@ uint32_t ResourceCache::imageID(const std::string &filepath)
 
 ModelReference ResourceCache::loadModel(const std::string &name)
 {
-	std::lock_guard<std::mutex> lock(m_model_mutex);
-
 	if (m_model_cache.size() == m_model_map.size() && m_model_map.find(name) != m_model_map.end())
 	{
 		return m_model_cache.at(m_model_map.at(name));
 	}
 
-	m_model_cache.emplace_back(Model());
-	ModelLoader::load(m_model_cache.back(), name);
-	m_model_map[name] = m_model_cache.size() - 1;
+	Model model;
+	ModelLoader::load(model, name);
+
+	std::lock_guard<std::mutex> lock(m_model_mutex);
+	m_new_model[name] = std::move(model);
+
+	//m_model_cache.emplace_back(std::move(model));
+	//m_model_map[name] = m_model_cache.size() - 1;
 
 	LOG_INFO("Import Model: {}", name);
 
@@ -129,7 +126,9 @@ void ResourceCache::loadModelAsync(const std::string &filepath)
 {
 	ThreadPool::instance()->addTask([this, filepath](size_t) {
 		std::string name = filepath;
-		while (m_model_map.find(name) != m_model_map.end())
+
+		std::lock_guard<std::mutex> lock(m_model_mutex);
+		while (m_model_map.find(name) != m_model_map.end() || m_new_model.find(name) != m_new_model.end())
 		{
 			name += "#";
 		}
@@ -139,11 +138,9 @@ void ResourceCache::loadModelAsync(const std::string &filepath)
 		Model model;
 		ModelLoader::load(model, filepath);
 
-		{
-			std::lock_guard<std::mutex> lock(m_model_mutex);
-			m_model_cache.emplace_back(std::move(model));
-			m_model_map[name] = m_model_cache.size() - 1;
-		}
+		m_new_model[name] = std::move(model);
+		//m_model_cache.emplace_back(std::move(model));
+		//m_model_map[name] = m_model_cache.size() - 1;
 	});
 }
 
@@ -164,13 +161,12 @@ bool ResourceCache::hasModel(const std::string &filepath)
 
 const std::unordered_map<std::string, size_t> &ResourceCache::getModels()
 {
-	std::lock_guard<std::mutex> lock(m_model_mutex);
 	return m_model_map;
 }
 
 void ResourceCache::flush()
 {
-	if (m_deprecated_model.empty() && m_deprecated_image.empty())
+	if (m_deprecated_model.empty() && m_deprecated_image.empty() && m_new_image.empty() && m_new_model.empty())
 	{
 		return;
 	}
@@ -199,6 +195,14 @@ void ResourceCache::flush()
 			LOG_INFO("Release Model: {}", name);
 		}
 		m_deprecated_model.clear();
+
+		// Add new model
+		for (auto &[name, model] : m_new_model)
+		{
+			m_model_map[name] = m_model_cache.size();
+			m_model_cache.push_back(std::move(model));
+		}
+		m_new_model.clear();
 	}
 
 	{
@@ -221,6 +225,14 @@ void ResourceCache::flush()
 			LOG_INFO("Release Image: {}", name);
 		}
 		m_deprecated_image.clear();
+
+		// Add new model
+		for (auto &[name, image] : m_new_image)
+		{
+			m_image_map[name] = m_image_cache.size();
+			m_image_cache.push_back(std::move(image));
+		}
+		m_new_image.clear();
 	}
 }
 }        // namespace Ilum
