@@ -18,6 +18,8 @@
 
 #include "Loader/ImageLoader/ImageLoader.hpp"
 
+#include "File/FileSystem.hpp"
+
 #include <SDL.h>
 
 #include <glm/gtc/type_ptr.hpp>
@@ -88,9 +90,16 @@ void SceneView::draw(float delta_time)
 		if (const auto *pay_load = ImGui::AcceptDragDropPayload("Model"))
 		{
 			ASSERT(pay_load->DataSize == sizeof(std::string));
-			auto  entity        = Scene::instance()->createEntity("New Model");
+			auto  entity        = Scene::instance()->createEntity(FileSystem::getFileName(*static_cast<std::string *>(pay_load->Data),false));
 			auto &mesh_renderer = entity.addComponent<cmpt::MeshRenderer>();
 			mesh_renderer.model = *static_cast<std::string *>(pay_load->Data);
+			// Setting default material
+			auto &model = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
+			for (auto& submesh : model.get().submeshes)
+			{
+				mesh_renderer.materials.emplace_back(createScope<material::DisneyPBR>());
+				*static_cast<material::DisneyPBR *>(mesh_renderer.materials.back().get()) = submesh.material;
+			}
 		}
 		ImGui::EndDragDropTarget();
 	}

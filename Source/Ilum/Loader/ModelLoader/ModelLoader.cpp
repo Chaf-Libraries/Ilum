@@ -4,8 +4,6 @@
 
 #include "Renderer/Renderer.hpp"
 
-#include "Threading/ThreadPool.hpp"
-
 #include <assimp/DefaultLogger.hpp>
 #include <assimp/Importer.hpp>
 #include <assimp/pbrmaterial.h>
@@ -17,8 +15,6 @@
 
 namespace Ilum
 {
-static std::unordered_set<std::string> loaded_textures;
-
 inline glm::mat4 to_matrix(const aiMatrix4x4 &matrix)
 {
 	return glm::mat4(
@@ -126,8 +122,7 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 	}
 
 	Assimp::Importer importer;
-	Assimp::DefaultLogger::set(new AssimpLogger());
-
+	
 	std::vector<SubMesh>     meshes;
 	std::vector<std::string> materials;
 
@@ -136,8 +131,8 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 	    aiProcess_FlipWindingOrder |
 	    aiProcess_CalcTangentSpace |
 	    aiProcess_GenSmoothNormals |
-	    aiProcess_Triangulate;
-	aiProcess_JoinIdenticalVertices |
+	    aiProcess_Triangulate |
+	    aiProcess_JoinIdenticalVertices |
 	    aiProcess_ImproveCacheLocality |
 	    aiProcess_Triangulate |
 	    aiProcess_GenUVCoords |
@@ -149,28 +144,24 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 	// TODO: Animation
 	if (const aiScene *scene = importer.ReadFile(file_path, importer_flag))
 	{
-		loaded_textures.clear();
+		LOG_INFO("Model {} preprocess finish", file_path);
+		std::unordered_set<std::string> loaded_textures;
 		// Merge all meshes into one big mesh
 		aiMatrix4x4 identity;
-		parseNode(file_path, identity, scene->mRootNode, scene, meshes);
+		parseNode(file_path, identity, scene->mRootNode, scene, meshes, loaded_textures);
 
-		std::vector<std::future<void>> futures;
-		for (auto& tex : loaded_textures)
+		for (auto &tex : loaded_textures)
 		{
-			futures.push_back(ThreadPool::instance()->addTask([tex](size_t) {
-				Renderer::instance()->getResourceCache().loadImage(tex);
-			}));
-		}
-		for (auto& future : futures)
-		{
-			future.get();
+			Renderer::instance()->getResourceCache().loadImageAsync(tex);
 		}
 	}
 
 	model = Model(std::move(meshes));
+
+	LOG_INFO("Model {} loaded!", file_path);
 }
 
-void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform, aiNode *node, const aiScene *scene, std::vector<SubMesh> &meshes)
+void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform, aiNode *node, const aiScene *scene, std::vector<SubMesh> &meshes, std::unordered_set<std::string> &loaded_textures)
 {
 	transform = transform * node->mTransformation;
 
@@ -185,7 +176,7 @@ void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform,
 		aiMesh *    mesh         = scene->mMeshes[node->mMeshes[i]];
 		aiMaterial *material     = scene->mMaterials[mesh->mMaterialIndex];
 		parseMesh(transform, mesh, scene, vertices, indices);
-		parseMaterial(file_path, material, pbr);
+		parseMaterial(file_path, material, pbr, loaded_textures);
 
 		for (auto &submesh : meshes)
 		{
@@ -197,7 +188,7 @@ void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform,
 
 	for (uint32_t i = 0; i < node->mNumChildren; i++)
 	{
-		parseNode(file_path, transform, node->mChildren[i], scene, meshes);
+		parseNode(file_path, transform, node->mChildren[i], scene, meshes, loaded_textures);
 	}
 }
 
@@ -223,7 +214,7 @@ void ModelLoader::parseMesh(aiMatrix4x4 transform, aiMesh *mesh, const aiScene *
 	}
 }
 
-void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_material, scope<material::DisneyPBR> &material)
+void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_material, scope<material::DisneyPBR> &material, std::unordered_set<std::string> &loaded_textures)
 {
 	std::string dictionary = FileSystem::getFileDirectory(file_path);
 
@@ -239,7 +230,6 @@ void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_m
 	{
 		material->albedo_map = dictionary + path.C_Str();
 		loaded_textures.insert(dictionary + path.C_Str());
-		//Renderer::instance()->getResourceCache().loadImage(dictionary + path.C_Str());
 	}
 	path.Clear();
 
@@ -247,7 +237,6 @@ void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_m
 	{
 		material->normal_map = dictionary + path.C_Str();
 		loaded_textures.insert(dictionary + path.C_Str());
-		//Renderer::instance()->getResourceCache().loadImage(dictionary + path.C_Str());
 	}
 	path.Clear();
 
@@ -255,7 +244,6 @@ void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_m
 	{
 		material->metallic_map = dictionary + path.C_Str();
 		loaded_textures.insert(dictionary + path.C_Str());
-		//Renderer::instance()->getResourceCache().loadImage(dictionary + path.C_Str());
 	}
 	path.Clear();
 
@@ -263,7 +251,6 @@ void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_m
 	{
 		material->roughness_map = dictionary + path.C_Str();
 		loaded_textures.insert(dictionary + path.C_Str());
-		//Renderer::instance()->getResourceCache().loadImage(dictionary + path.C_Str());
 	}
 	path.Clear();
 
@@ -271,7 +258,6 @@ void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_m
 	{
 		material->emissive_map = dictionary + path.C_Str();
 		loaded_textures.insert(dictionary + path.C_Str());
-		//Renderer::instance()->getResourceCache().loadImage(dictionary + path.C_Str());
 	}
 	path.Clear();
 
@@ -279,7 +265,6 @@ void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_m
 	{
 		material->ao_map = dictionary + path.C_Str();
 		loaded_textures.insert(dictionary + path.C_Str());
-		//Renderer::instance()->getResourceCache().loadImage(dictionary + path.C_Str());
 	}
 	path.Clear();
 
@@ -291,7 +276,6 @@ void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_m
 			material->roughness_map = dictionary + path.C_Str();
 			material->metallic_map  = dictionary + path.C_Str();
 			loaded_textures.insert(dictionary + path.C_Str());
-			//Renderer::instance()->getResourceCache().loadImage(dictionary + path.C_Str());
 		}
 
 		path.Clear();

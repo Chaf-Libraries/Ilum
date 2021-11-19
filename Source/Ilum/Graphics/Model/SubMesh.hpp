@@ -4,7 +4,7 @@
 #include "Geometry/Mesh/TriMesh.hpp"
 #include "Vertex.hpp"
 
-#include "Material/Material.h"
+#include "Material/DisneyPBR.h"
 
 namespace Ilum
 {
@@ -15,13 +15,13 @@ struct SubMesh
 
 	std::vector<Vertex>   vertices;
 	std::vector<uint32_t> indices;
-	scope<IMaterial>      material;
+	material::DisneyPBR             material;
 
 	geometry::BoundingBox bounding_box;
 
 	bool visible = true;
 
-	SubMesh(std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices, uint32_t index_offset, scope<IMaterial> &&material = nullptr);
+	SubMesh(std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices, uint32_t index_offset, scope<material::DisneyPBR> &&material = nullptr);
 
 	~SubMesh() = default;
 

@@ -338,6 +338,7 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 		    if (ImGui::Button(component.model.c_str(), component.model.empty() ? ImVec2(250.f, 0.f) : ImVec2(0.f, 0.f)))
 		    {
 			    component.model = "";
+			    component.materials.clear();
 		    }
 		    ImGui::PopStyleVar();
 		    if (ImGui::BeginDragDropTarget())
@@ -349,6 +350,12 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 				    if (component.model != new_model)
 				    {
 					    component.model = new_model;
+					    auto &model     = Renderer::instance()->getResourceCache().loadModel(component.model);
+					    for (auto &submesh : model.get().submeshes)
+					    {
+						    component.materials.emplace_back(createScope<material::DisneyPBR>());
+						    *static_cast<material::DisneyPBR*>(component.materials.back().get()) = submesh.material;
+					    }
 				    }
 			    }
 			    ImGui::EndDragDropTarget();
@@ -359,9 +366,10 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 			    auto &model = Renderer::instance()->getResourceCache().loadModel(component.model);
 
 			    uint32_t idx = 0;
-			    for (auto &submesh : model.get().submeshes)
+			    for (uint32_t i = 0; i < model.get().submeshes.size();i++)
 			    {
-				    auto &material = submesh.material;
+				    auto &submesh  = model.get().submeshes[i];
+				    auto &material = component.materials[i];
 
 				    if (ImGui::TreeNode((std::string("Submesh #") + std::to_string(idx++)).c_str()))
 				    {
@@ -413,7 +421,7 @@ inline void draw_component<cmpt::Light>(Entity entity)
 		    int               current      = static_cast<int>(component.type);
 		    ImGui::Combo("Type", &current, LightNames, 4);
 
-		    if (!component.impl)
+		    if (component.type !=cmpt::LightType::None && !component.impl)
 		    {
 			    return;
 		    }

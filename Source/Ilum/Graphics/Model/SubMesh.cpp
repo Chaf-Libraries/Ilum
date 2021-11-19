@@ -2,11 +2,11 @@
 
 namespace Ilum
 {
-SubMesh::SubMesh(std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices, uint32_t index_offset, scope<IMaterial> &&material) :
+SubMesh::SubMesh(std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices, uint32_t index_offset, scope<material::DisneyPBR> &&material) :
     vertices(std::move(vertices)),
     indices(std::move(indices)),
     index_offset(index_offset),
-    material(std::move(material))
+    material(*material)
 {
 	for (auto& vertex : this->vertices)
 	{

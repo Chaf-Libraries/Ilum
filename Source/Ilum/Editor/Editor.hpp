@@ -35,5 +35,7 @@ class Editor : public TSubsystem<Editor>
 	std::vector<scope<Panel>> m_panels;
 
 	Entity m_select_entity;
+
+	std::string m_scene_path = "";
 };
 }        // namespace Ilum
