@@ -4,9 +4,9 @@
 #include <Ilum/Engine/Context.hpp>
 #include <Ilum/Engine/Engine.hpp>
 #include <Ilum/Graphics/GraphicsContext.hpp>
+#include <Ilum/Renderer/RenderPass/BloomPass.hpp>
 #include <Ilum/Renderer/RenderPass/GeometryPass.hpp>
 #include <Ilum/Renderer/RenderPass/LightPass.hpp>
-#include <Ilum/Renderer/RenderPass/BloomPass.hpp>
 #include <Ilum/Renderer/RenderPass/TonemappingPass.hpp>
 #include <Ilum/Renderer/Renderer.hpp>
 #include <Ilum/Scene/Component/Hierarchy.hpp>
@@ -37,12 +37,11 @@ int main()
 
 	Ilum::Window::instance()->setIcon(std::string(PROJECT_SOURCE_DIR) + "Asset/Texture/Icon/logo.bmp");
 
-	auto title = Ilum::Window::instance()->getTitle();
 	while (!Ilum::Window::instance()->shouldClose())
 	{
 		engine.onTick();
 
-		Ilum::Window::instance()->setTitle(title + " FPS: " + std::to_string(Ilum::Timer::instance()->getFPS()));
+		Ilum::Window::instance()->setTitle((Ilum::Scene::instance()->name.empty() ? "IlumEngine" : Ilum::Scene::instance()->name) + " FPS: " + std::to_string(Ilum::Timer::instance()->getFPS()));
 	}
 
 	return 0;

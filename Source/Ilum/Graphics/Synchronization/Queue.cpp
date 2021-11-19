@@ -90,6 +90,8 @@ void Queue::submitIdle(const CommandBuffer &command_buffer)
 {
 	waitIdle();
 
+	std::lock_guard<std::mutex> lock(m_mutex);
+
 	VkSubmitInfo submit_info       = {};
 	submit_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submit_info.commandBufferCount = 1;
@@ -102,13 +104,10 @@ void Queue::submitIdle(const CommandBuffer &command_buffer)
 
 	fence.reset();
 
+	if (!VK_CHECK(vkQueueSubmit(m_handle, 1, &submit_info, fence)))
 	{
-		std::lock_guard<std::mutex> lock(m_mutex);
-		if (!VK_CHECK(vkQueueSubmit(m_handle, 1, &submit_info, fence)))
-		{
-			VK_ERROR("Failed to submit queue!");
-			return;
-		}
+		VK_ERROR("Failed to submit queue!");
+		return;
 	}
 
 	fence.wait();

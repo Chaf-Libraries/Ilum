@@ -18,6 +18,7 @@ class CommandPool;
 class DescriptorCache;
 class ShaderCache;
 class ImGuiContext;
+class Profiler;
 
 class GraphicsContext : public TSubsystem<GraphicsContext>
 {
@@ -41,6 +42,8 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	ShaderCache &getShaderCache();
 
 	QueueSystem &getQueueSystem();
+
+	Profiler &getProfiler();
 
 	const VkPipelineCache &getPipelineCache() const;
 
@@ -86,6 +89,7 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 
 	scope<DescriptorCache> m_descriptor_cache = nullptr;
 	scope<ShaderCache>     m_shader_cache     = nullptr;
+	scope<Profiler>        m_profiler         = nullptr;
 
 	// Command pool per thread
 	std::unordered_map<std::thread::id, std::unordered_map<QueueUsage, ref<CommandPool>>> m_command_pools;
@@ -101,8 +105,6 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	bool                              m_resized       = false;
 
 	VkPipelineCache m_pipeline_cache = VK_NULL_HANDLE;
-
-	Stopwatch m_stopwatch;
 
 	uint64_t m_frame_count = 0;
 

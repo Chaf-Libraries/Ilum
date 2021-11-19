@@ -29,9 +29,10 @@ class Scene : public TSubsystem<Scene>
 
 	Entity createEntity(const std::string &name);
 
-  private:
-	std::string m_name = "untitled_scene";
+  public:
+	std::string name = "";
 
+  private:
 	scope<EntityManager> m_entity_manager;
 	scope<SystemManager> m_system_manager;
 };

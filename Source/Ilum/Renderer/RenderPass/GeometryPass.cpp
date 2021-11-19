@@ -125,11 +125,13 @@ void GeometryPass::render(RenderPassState &state)
 			// Model transform push constants
 			vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), glm::value_ptr(transform.world_transform));
 
-			for (auto &submesh : model.get().submeshes)
+			for (uint32_t i = 0; i < mesh_renderer.materials.size(); i++)
 			{
-				if (submesh.material && submesh.material->type() == typeid(material::DisneyPBR))
+				auto &submesh = model.get().submeshes[i];
+				auto &material_ptr = mesh_renderer.materials[i];
+				if (material_ptr->type() == typeid(material::DisneyPBR))
 				{
-					auto *material = static_cast<material::DisneyPBR *>(submesh.material.get());
+					auto *material = static_cast<material::DisneyPBR *>(material_ptr.get());
 
 					struct
 					{

@@ -26,6 +26,7 @@ void Scene::onTick(float delta_time)
 void Scene::clear()
 {
 	m_entity_manager->clear();
+	name = "";
 }
 
 entt::registry &Scene::getRegistry()

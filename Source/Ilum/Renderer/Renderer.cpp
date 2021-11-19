@@ -75,10 +75,12 @@ void Renderer::onPreTick()
 	{
 		m_update        = true;
 		m_texture_count = static_cast<uint32_t>(m_resource_cache->getImages().size());
+		m_resource_cache->updateImageReferences();
 	}
 
 	if (m_update)
 	{
+		GraphicsContext::instance()->getQueueSystem().waitAll();
 		m_render_graph.reset();
 		m_render_graph = nullptr;
 		rebuild();

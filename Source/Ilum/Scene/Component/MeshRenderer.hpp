@@ -9,5 +9,7 @@ namespace Ilum::cmpt
 struct MeshRenderer
 {
 	std::string model;
+
+	std::vector<scope<IMaterial>> materials;
 };
 }        // namespace Ilum::Cmpt

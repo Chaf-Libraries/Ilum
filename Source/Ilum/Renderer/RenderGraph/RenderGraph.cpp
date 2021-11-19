@@ -6,6 +6,7 @@
 #include "Threading/ThreadPool.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
+#include "Graphics/Profiler.hpp"
 #include "Graphics/Vulkan/VK_Debugger.h"
 
 namespace Ilum
@@ -56,12 +57,12 @@ void RenderGraph::execute(const CommandBuffer &command_buffer)
 	{
 		resolve.resolve(name, attachment);
 	}
-	Stopwatch stopwatch;
+
 	for (auto &node : m_nodes)
 	{
-		stopwatch.start();
+		GraphicsContext::instance()->getProfiler().beginSample(node.name, command_buffer);
 		executeNode(node, command_buffer, resolve);
-		LOG_INFO("{} - {} ms", node.name, stopwatch.elapsedMillisecond());
+		GraphicsContext::instance()->getProfiler().endSample(node.name, command_buffer);
 	}
 }
 

@@ -6,6 +6,8 @@
 
 #include "ImGui/ImGuiContext.hpp"
 
+#include "File/FileSystem.hpp"
+
 #include "Renderer/RenderGraph/RenderGraph.hpp"
 #include "Renderer/RenderPass/ImGuiPass.hpp"
 #include "Renderer/Renderer.hpp"
@@ -14,6 +16,7 @@
 #include "Panels/Console.hpp"
 #include "Panels/Hierarchy.hpp"
 #include "Panels/Inspector.hpp"
+#include "Panels/ProfilerMonitor.hpp"
 #include "Panels/RenderGraphViewer.hpp"
 #include "Panels/RenderSetting.hpp"
 #include "Panels/SceneView.hpp"
@@ -23,6 +26,9 @@
 #include "Scene/Component/MeshRenderer.hpp"
 #include "Scene/Component/PointLight.hpp"
 #include "Scene/Component/SpotLight.hpp"
+#include "Scene/SceneSerializer.hpp"
+
+#include "ImFileDialog.h"
 
 namespace Ilum
 {
@@ -48,6 +54,7 @@ bool Editor::onInitialize()
 	m_panels.emplace_back(createScope<panel::SceneView>());
 	m_panels.emplace_back(createScope<panel::Console>());
 	m_panels.emplace_back(createScope<panel::RenderSetting>());
+	m_panels.emplace_back(createScope<panel::ProfilerMonitor>());
 
 	return true;
 }
@@ -71,6 +78,39 @@ void Editor::onTick(float delta_time)
 	{
 		if (ImGui::BeginMenu("File"))
 		{
+			if (ImGui::MenuItem("New Scene"))
+			{
+				Scene::instance()->clear();
+				Renderer::instance()->getResourceCache().clear();
+				m_scene_path.clear();
+				LOG_INFO("Create new scene");
+			}
+
+			if (ImGui::MenuItem("Open Scene"))
+			{
+				ifd::FileDialog::Instance().Open("OpenSceneDialog", "Open Scene", "Scene file (*.scene){.scene}");
+			}
+
+			if (ImGui::MenuItem("Save Scene"))
+			{
+				if (m_scene_path.empty())
+				{
+					ifd::FileDialog::Instance().Save("SaveSceneDialog", "Save Scene", "Scene file (*.scene){.scene}");
+				}
+				else
+				{
+					SceneSerializer serializer;
+					serializer.serialize(m_scene_path.c_str());
+					Scene::instance()->name = FileSystem::getFileName(m_scene_path, false);
+					LOG_INFO("Save scene to {}", m_scene_path);
+				}
+			}
+
+			if (ImGui::MenuItem("Save as ..."))
+			{
+				ifd::FileDialog::Instance().Save("SaveSceneDialog", "Save Scene", "Scene file (*.scene){.scene}");
+			}
+
 			ImGui::EndMenu();
 		}
 
@@ -128,6 +168,30 @@ void Editor::onTick(float delta_time)
 			}
 
 			ImGui::EndMenu();
+		}
+
+		if (ifd::FileDialog::Instance().IsDone("OpenSceneDialog"))
+		{
+			if (ifd::FileDialog::Instance().HasResult())
+			{
+				m_scene_path = ifd::FileDialog::Instance().GetResult().u8string();
+				SceneSerializer serializer;
+				serializer.deserialize(m_scene_path.c_str());
+			}
+			ifd::FileDialog::Instance().Close();
+		}
+
+		if (ifd::FileDialog::Instance().IsDone("SaveSceneDialog"))
+		{
+			if (ifd::FileDialog::Instance().HasResult())
+			{
+				m_scene_path = ifd::FileDialog::Instance().GetResult().u8string();
+				Scene::instance()->name = FileSystem::getFileName(m_scene_path, false);
+				SceneSerializer serializer;
+				serializer.serialize(m_scene_path.c_str());
+				LOG_INFO("Save scene to {}", m_scene_path);
+			}
+			ifd::FileDialog::Instance().Close();
 		}
 
 		ImGui::EndMainMenuBar();

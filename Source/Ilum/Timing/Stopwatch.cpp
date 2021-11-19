@@ -14,7 +14,7 @@ void Stopwatch::start()
 
 float Stopwatch::elapsedSecond() const
 {
-	return static_cast<float>(std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - m_start).count() / 1000.f);
+	return static_cast<float>(std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - m_start).count() / 1000.0);
 }
 
 float Stopwatch::elapsedMillisecond() const

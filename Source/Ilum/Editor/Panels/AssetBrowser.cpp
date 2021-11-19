@@ -123,10 +123,6 @@ inline void draw_model_asset(const Image &image, float height, float space)
 				for (auto &entity : view)
 				{
 					auto &mesh_renderer = view.get<cmpt::MeshRenderer>(entity);
-					if (mesh_renderer.model == name)
-					{
-						mesh_renderer.model = "";
-					}
 				}
 				Renderer::instance()->getResourceCache().removeModel(name);
 			}
@@ -468,15 +464,22 @@ void AssetBrowser::draw(float delta_time)
 		ImGui::SameLine();
 		if (ImGui::Button("Import"))
 		{
-			ifd::FileDialog::Instance().Open("TextureOpenDialog", "Import Texture", "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga;*.hdr){.png,.jpg,.jpeg,.bmp,.tga,.hdr},.*");
+			ifd::FileDialog::Instance().Open("TextureOpenDialog", "Import Texture", "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga;*.hdr){.png,.jpg,.jpeg,.bmp,.tga,.hdr}", true);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Clear"))
+		{
+			Renderer::instance()->getResourceCache().clearImages();
 		}
 
 		if (ifd::FileDialog::Instance().IsDone("TextureOpenDialog"))
 		{
 			if (ifd::FileDialog::Instance().HasResult())
 			{
-				std::string path = ifd::FileDialog::Instance().GetResult().u8string();
-				Renderer::instance()->getResourceCache().loadImageAsync(path);
+				for (auto& path : ifd::FileDialog::Instance().GetResults())
+				{
+					Renderer::instance()->getResourceCache().loadImageAsync(path.u8string());
+				}
 			}
 			ifd::FileDialog::Instance().Close();
 		}
@@ -492,15 +495,22 @@ void AssetBrowser::draw(float delta_time)
 		ImGui::SameLine();
 		if (ImGui::Button("Import"))
 		{
-			ifd::FileDialog::Instance().Open("ModelOpenDialog", "Import Model", "Model file (*.obj;*.fbx;*.gltf;*.ply){.obj,.fbx,.gltf,.ply},.*");
+			ifd::FileDialog::Instance().Open("ModelOpenDialog", "Import Model", "Model file (*.obj;*.fbx;*.gltf;*.ply){.obj,.fbx,.gltf,.ply}", true);
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Clear"))
+		{
+			Renderer::instance()->getResourceCache().clearModels();
 		}
 
 		if (ifd::FileDialog::Instance().IsDone("ModelOpenDialog"))
 		{
 			if (ifd::FileDialog::Instance().HasResult())
 			{
-				std::string path = ifd::FileDialog::Instance().GetResult().u8string();
-				Renderer::instance()->getResourceCache().loadModelAsync(path);
+				for (auto &path : ifd::FileDialog::Instance().GetResults())
+				{
+					Renderer::instance()->getResourceCache().loadModelAsync(path.u8string());
+				}
 			}
 			ifd::FileDialog::Instance().Close();
 		}

@@ -14,6 +14,7 @@
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/Command/CommandPool.hpp"
 #include "Graphics/Descriptor/DescriptorCache.hpp"
+#include "Graphics/Profiler.hpp"
 #include "Graphics/Shader/ShaderCache.hpp"
 #include "Graphics/Synchronization/Queue.hpp"
 #include "Graphics/Vulkan/VK_Debugger.h"
@@ -80,6 +81,11 @@ QueueSystem &GraphicsContext::getQueueSystem()
 	return *m_queue_system;
 }
 
+Profiler &GraphicsContext::getProfiler()
+{
+	return *m_profiler;
+}
+
 const VkPipelineCache &GraphicsContext::getPipelineCache() const
 {
 	return m_pipeline_cache;
@@ -130,6 +136,8 @@ const CommandBuffer &GraphicsContext::acquireCommandBuffer(QueueUsage usage)
 bool GraphicsContext::onInitialize()
 {
 	createSwapchain();
+
+	m_profiler = createScope<Profiler>();
 
 	return true;
 }
@@ -255,6 +263,8 @@ void GraphicsContext::newFrame()
 	vkResetFences(GraphicsContext::instance()->getLogicalDevice(), 1, &m_flight_fences[m_current_frame]);
 
 	m_main_command_buffers[m_current_frame]->begin();
+
+	m_profiler->beginFrame(*m_main_command_buffers[m_current_frame]);
 }
 
 void GraphicsContext::submitFrame()
@@ -262,9 +272,7 @@ void GraphicsContext::submitFrame()
 	m_main_command_buffers[m_current_frame]->end();
 
 	m_queue_system->acquire()->submit(*m_main_command_buffers[m_current_frame], m_render_complete[m_current_frame], m_present_complete[m_current_frame], m_flight_fences[m_current_frame]);
-
-	auto &present_queue = *m_queue_system->acquire(QueueUsage::Present);
-
+	auto &present_queue = *m_queue_system->acquire(QueueUsage::Present, 1);
 	auto present_result = m_swapchain->present(present_queue, m_render_complete[m_current_frame]);
 
 	if (present_result == VK_ERROR_OUT_OF_DATE_KHR)

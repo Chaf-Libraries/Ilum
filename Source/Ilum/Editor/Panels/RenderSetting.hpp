@@ -9,7 +9,7 @@ namespace Ilum::panel
 	class RenderSetting:public Panel
 	{
 	  public:
-	    RenderSetting() = default;
+	    RenderSetting();
 
 		~RenderSetting() = default;
 
