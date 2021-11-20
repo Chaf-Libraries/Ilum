@@ -354,7 +354,7 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 					    for (auto &submesh : model.get().submeshes)
 					    {
 						    component.materials.emplace_back(createScope<material::DisneyPBR>());
-						    *static_cast<material::DisneyPBR*>(component.materials.back().get()) = submesh.material;
+						    *static_cast<material::DisneyPBR *>(component.materials.back().get()) = submesh.material;
 					    }
 				    }
 			    }
@@ -366,9 +366,13 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 			    auto &model = Renderer::instance()->getResourceCache().loadModel(component.model);
 
 			    uint32_t idx = 0;
-			    for (uint32_t i = 0; i < model.get().submeshes.size();i++)
+			    for (uint32_t i = 0; i < model.get().submeshes.size(); i++)
 			    {
 				    auto &submesh  = model.get().submeshes[i];
+					if (component.materials.size() <= i)
+					{
+					    component.materials.emplace_back(createScope<material::DisneyPBR>());
+					}
 				    auto &material = component.materials[i];
 
 				    if (ImGui::TreeNode((std::string("Submesh #") + std::to_string(idx++)).c_str()))
@@ -421,7 +425,7 @@ inline void draw_component<cmpt::Light>(Entity entity)
 		    int               current      = static_cast<int>(component.type);
 		    ImGui::Combo("Type", &current, LightNames, 4);
 
-		    if (component.type !=cmpt::LightType::None && !component.impl)
+		    if (component.type != cmpt::LightType::None && !component.impl)
 		    {
 			    return;
 		    }

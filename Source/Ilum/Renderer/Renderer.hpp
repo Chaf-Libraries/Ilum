@@ -81,6 +81,8 @@ class Renderer : public TSubsystem<Renderer>
 
 	const ImageReference getDefaultTexture() const;
 
+	void update();
+
   public:
 	std::function<void(RenderGraphBuilder &)> buildRenderGraph = nullptr;
 

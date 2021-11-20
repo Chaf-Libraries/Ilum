@@ -185,6 +185,10 @@ void SceneView::draw(float delta_time)
 		float      distance = std::numeric_limits<float>::infinity();
 		const auto group    = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform>);
 		group.each([&](const entt::entity &entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform) {
+			if (!Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model))
+			{
+				return;
+			}
 			auto &model        = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
 			float hit_distance = ray.hit(model.get().bounding_box.transform(transform.world_transform));
 			if (distance > hit_distance)
