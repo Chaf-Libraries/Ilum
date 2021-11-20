@@ -10,9 +10,10 @@
 namespace Ilum
 {
 DescriptorSet::DescriptorSet(const Shader &shader, uint32_t set_index) :
-    m_set_index(set_index)
+    m_set_index(set_index),
+    m_handle(GraphicsContext::instance()->getDescriptorCache().allocateDescriptorSet(shader, set_index))
 {
-	m_handle = GraphicsContext::instance()->getDescriptorCache().allocateDescriptorSet(shader, set_index);
+
 }
 
 DescriptorSet::~DescriptorSet()

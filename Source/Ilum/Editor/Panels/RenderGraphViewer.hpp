@@ -64,7 +64,7 @@ class RenderGraphViewer : public Panel
 		ImColor                color;
 		ImVec2                 size;
 
-		AttachmentNode(int id, Pin input, const std::string &name, ImColor color = ImColor(255, 255, 255)) :
+		AttachmentNode(int id, Pin& input, const std::string &name, ImColor color = ImColor(255, 255, 255)) :
 		    id(id), input(input), name(name), color(color), size(0, 0)
 		{
 		}

@@ -1,19 +1,18 @@
 #include "Scene.hpp"
 
-#include "System/TransformUpdate.hpp"
 #include "System/LightUpdate.hpp"
+#include "System/TransformUpdate.hpp"
 
 #include "EntityManager.hpp"
 #include "SystemManager.hpp"
 
 namespace Ilum
 {
-Scene::Scene(Context *context):
-    TSubsystem<Scene>(context)
+Scene::Scene(Context *context) :
+    TSubsystem<Scene>(context),
+    m_system_manager(createScope<SystemManager>()),
+    m_entity_manager(createScope<EntityManager>())
 {
-	m_system_manager = createScope<SystemManager>();
-	m_entity_manager = createScope<EntityManager>();
-
 	m_system_manager->add<sym::TransformUpdate>();
 	m_system_manager->add<sym::LightUpdate>();
 }

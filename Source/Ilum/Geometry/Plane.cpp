@@ -2,13 +2,11 @@
 
 namespace Ilum::geometry
 {
-Plane::Plane(const glm::vec3 &p0, const glm::vec3 &p1, const glm::vec3 &p2)
+Plane::Plane(const glm::vec3 &p0, const glm::vec3 &p1, const glm::vec3 &p2):
+    normal(glm::normalize(glm::cross(p1 - p0, p2 - p0))),
+    constant(-glm::dot(normal, p0))
 {
-	glm::vec3 dist1 = p1 - p0;
-	glm::vec3 dist2 = p2 - p0;
 
-	normal = glm::normalize(glm::cross(dist1, dist2));
-	constant = -glm::dot(normal, p0);
 }
 
 Plane::Plane(const glm::vec3 &normal, const glm::vec3 &point)

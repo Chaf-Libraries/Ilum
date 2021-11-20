@@ -3,10 +3,10 @@
 namespace Ilum
 {
 Timer::Timer(Context *context) :
-    TSubsystem<Timer>(context)
+    TSubsystem<Timer>(context),
+    m_start(std::chrono::high_resolution_clock::now()),
+    m_tick_end(std::chrono::high_resolution_clock::now())
 {
-	m_start    = std::chrono::high_resolution_clock::now();
-	m_tick_end = std::chrono::high_resolution_clock::now();
 }
 
 void Timer::onTick(float delta_time)
@@ -67,4 +67,4 @@ double Timer::getDeltaTimeSecondSmoothed() const
 {
 	return m_delta_time_smoothed / 1000.0;
 }
-}
+}        // namespace Ilum

@@ -26,13 +26,13 @@ Fence::~Fence()
 Fence::Fence(Fence &&other) noexcept:
     m_handle(other.m_handle)
 {
-	m_handle = VK_NULL_HANDLE;
+	other.m_handle = VK_NULL_HANDLE;
 }
 
 Fence &Fence::operator=(Fence &&other) noexcept
 {
 	m_handle = other.m_handle;
-	m_handle = VK_NULL_HANDLE;
+	other.m_handle = VK_NULL_HANDLE;
 
 	return *this;
 }

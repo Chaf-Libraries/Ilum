@@ -11,7 +11,7 @@ class Entity
   public:
 	Entity() = default;
 
-	Entity(entt::entity handle);
+	explicit Entity(entt::entity handle);
 
 	~Entity() = default;
 

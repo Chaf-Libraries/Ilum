@@ -59,7 +59,6 @@ struct TSubsystem : public ISubsystem
 	}
 
   protected:
-	Context *m_context = nullptr;
 	inline static T *s_instance = nullptr;
 };
 
