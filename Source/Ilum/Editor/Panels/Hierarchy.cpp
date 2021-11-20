@@ -167,7 +167,7 @@ inline void draw_node(Entity entity)
 				draw_node(child);
 				if (child)
 				{
-					child = child.getComponent<cmpt::Hierarchy>().next;
+					child = Entity(child.getComponent<cmpt::Hierarchy>().next);
 				}
 			}
 		}

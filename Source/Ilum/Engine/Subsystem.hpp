@@ -43,7 +43,7 @@ struct TSubsystem : public ISubsystem
 {
   public:
 	TSubsystem(Context *context = nullptr) :
-	    m_context(context)
+	    ISubsystem(context)
 	{
 		s_instance = static_cast<T *>(this);
 	}
