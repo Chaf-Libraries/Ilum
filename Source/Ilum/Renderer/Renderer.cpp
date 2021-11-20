@@ -192,6 +192,11 @@ const ImageReference Renderer::getDefaultTexture() const
 	return m_default_texture;
 }
 
+void Renderer::update()
+{
+	m_update = true;
+}
+
 void Renderer::createSamplers()
 {
 	m_samplers[SamplerType::Compare_Depth]     = Sampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_NEAREST);

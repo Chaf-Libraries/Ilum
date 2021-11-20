@@ -71,9 +71,6 @@ void Editor::onTick(float delta_time)
 		return;
 	}
 
-	static bool open = true;
-	ImGui::ShowDemoWindow(&open);
-
 	if (ImGui::BeginMainMenuBar())
 	{
 		if (ImGui::BeginMenu("File"))

@@ -43,22 +43,6 @@ void ResourceCache::loadImageAsync(const std::string &filepath)
 	{
 		m_new_image.insert(filepath);
 	}
-
-	//return ThreadPool::instance()->addTask([this, filepath](size_t) {
-	//	if (m_image_map.find(filepath) == m_image_map.end())
-	//	{
-	//		//LOG_INFO("Import Image: {} using thread {}", filepath, ThreadPool::instance()->threadIndex());
-
-	//		//Image image;
-	//		//ImageLoader::loadImageFromFile(image, filepath);
-	//		//VK_Debugger::setName(image.getView(), filepath.c_str());
-
-	//		{
-	//			std::lock_guard<std::mutex> lock(m_image_mutex);
-	//			m_new_image.insert(filepath);
-	//		}
-	//	}
-	//});
 }
 
 void ResourceCache::removeImage(const std::string &filepath)
@@ -141,18 +125,6 @@ void ResourceCache::loadModelAsync(const std::string &filepath)
 	{
 		m_new_model.insert(filepath);
 	}
-
-	//return ThreadPool::instance()->addTask([this, filepath](size_t) {
-	//	std::string name = filepath;
-
-	//	LOG_INFO("Import Image: {} using thread #{}", filepath, ThreadPool::instance()->threadIndex());
-
-	//	Model model;
-	//	ModelLoader::load(model, filepath);
-
-	//	std::lock_guard<std::mutex> lock(m_model_mutex);
-	//	m_new_model[name] = std::move(model);
-	//});
 }
 
 void ResourceCache::removeModel(const std::string &filepath)

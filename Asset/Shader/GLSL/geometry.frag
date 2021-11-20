@@ -62,6 +62,8 @@ void main() {
         vec4(vec3(texture(textureArray[nonuniformEXT(material.roughness_map)], inUV).g * material.roughness_factor), 1.0) : 
         vec4(vec3(material.roughness_factor), 1.0);
 
+    Roughness = Roughness.r == 0.0 ? vec4(6.274e-5, 6.274e-5, 6.274e-5, 1.0) : Roughness;
+
     Normal =  material.normal_map < 1024?
         vec4(TBN * normalize(texture(textureArray[nonuniformEXT(material.normal_map)], inUV).xyz * 2.0 - vec3(1.0)), 1.0) : 
         vec4(N, 1.0);    
