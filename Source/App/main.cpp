@@ -4,7 +4,10 @@
 #include <Ilum/Engine/Context.hpp>
 #include <Ilum/Engine/Engine.hpp>
 #include <Ilum/Graphics/GraphicsContext.hpp>
+#include <Ilum/Renderer/RenderPass/BlendPass.hpp>
 #include <Ilum/Renderer/RenderPass/BloomPass.hpp>
+#include <Ilum/Renderer/RenderPass/BlurPass.hpp>
+#include <Ilum/Renderer/RenderPass/BrightPass.hpp>
 #include <Ilum/Renderer/RenderPass/GeometryPass.hpp>
 #include <Ilum/Renderer/RenderPass/LightPass.hpp>
 #include <Ilum/Renderer/RenderPass/TonemappingPass.hpp>
@@ -26,8 +29,11 @@ int main()
 		builder
 		    .addRenderPass("GeometryPass", std::make_unique<Ilum::pass::GeometryPass>())
 		    .addRenderPass("LightPass", std::make_unique<Ilum::pass::LightPass>())
-		    .addRenderPass("BloomPass", std::make_unique<Ilum::pass::BloomPass>())
-		    .addRenderPass("Tonemapping", std::make_unique<Ilum::pass::TonemappingPass>("blooming"))
+		    //.addRenderPass("BrightPass", std::make_unique<Ilum::pass::BrightPass>("lighting"))
+		    //.addRenderPass("Blur1", std::make_unique<Ilum::pass::BlurPass>("bright", "blur1"))
+		    //.addRenderPass("Blur2", std::make_unique<Ilum::pass::BlurPass>("blur1", "blur2", true))
+		    //.addRenderPass("Blend", std::make_unique<Ilum::pass::BlendPass>("blur2", "lighting", "blooming"))
+		    .addRenderPass("Tonemapping", std::make_unique<Ilum::pass::TonemappingPass>("lighting"))
 
 		    .setView("gbuffer - normal")
 		    .setOutput("gbuffer - normal");
