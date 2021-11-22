@@ -291,7 +291,7 @@ inline void createGraphicsPipeline(const PipelineState &pipeline_state, PassNati
 
 inline void createComputePipeline(const PipelineState &pipeline_state, PassNative &pass_native)
 {
-	VkPipelineShaderStageCreateInfo shader_stage_create_info;
+	VkPipelineShaderStageCreateInfo shader_stage_create_info = {};
 	shader_stage_create_info.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shader_stage_create_info.stage  = VK_SHADER_STAGE_COMPUTE_BIT;
 	shader_stage_create_info.pName  = "main";
