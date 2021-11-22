@@ -143,6 +143,7 @@ inline void draw_model_asset(const Image &image, float height, float space)
 				ImGui::BulletText("vertices count: %d", submesh.vertices.size());
 				ImGui::BulletText("indices count: %d", submesh.indices.size());
 				ImGui::BulletText("index offset: %d", submesh.index_offset);
+				ImGui::BulletText("vertex offset: %d", submesh.vertex_offset);
 			}
 			ImGui::End();
 		}
@@ -515,6 +516,7 @@ void AssetBrowser::draw(float delta_time)
 			ifd::FileDialog::Instance().Close();
 		}
 		ImGui::Separator();
+		ImGui::Text("vertices count: %d indices count: %d", Renderer::instance()->getResourceCache().getVerticesCount(), Renderer::instance()->getResourceCache().getIndicesCount());
 		ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 		draw_model_asset(m_model_icon, 100.f, 0.f);
 		ImGui::EndChild();

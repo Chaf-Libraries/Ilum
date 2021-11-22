@@ -39,7 +39,10 @@ class Renderer : public TSubsystem<Renderer>
 	enum class BufferType
 	{
 		MainCamera,
-		Entity,
+		Vertex,
+		Index,
+		Instance,
+		IndirectCommand,
 		DirectionalLight,
 		PointLight,
 		SpotLight
@@ -83,6 +86,8 @@ class Renderer : public TSubsystem<Renderer>
 	const ImageReference getDefaultTexture() const;
 
 	void update();
+
+	void updateGeometry();
 
   public:
 	std::function<void(RenderGraphBuilder &)> buildRenderGraph = nullptr;

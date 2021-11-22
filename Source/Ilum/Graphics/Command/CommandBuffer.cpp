@@ -423,7 +423,7 @@ void CommandBuffer::transferLayout(const std::vector<ImageReference> &images, Vk
 void CommandBuffer::submitIdle()
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
-	auto *                      queue = GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool->getUsage(), 1);
+	auto *                      queue = GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool->getUsage(), 0);
 	queue->submitIdle(*this);
 }
 

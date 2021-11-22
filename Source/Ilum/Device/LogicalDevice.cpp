@@ -11,7 +11,8 @@ const std::vector<const char *> LogicalDevice::extensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
     VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-    VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME};
+    VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+	VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME};
 
 inline const std::vector<const char *> get_device_extension_support(const PhysicalDevice &physical_device, const std::vector<const char *> &extensions)
 {
@@ -227,6 +228,8 @@ LogicalDevice::LogicalDevice()
 	ENABLE_DEVICE_FEATURE(multiViewport);
 	ENABLE_DEVICE_FEATURE(imageCubeArray);
 	ENABLE_DEVICE_FEATURE(robustBufferAccess);
+	ENABLE_DEVICE_FEATURE(multiDrawIndirect);
+	ENABLE_DEVICE_FEATURE(drawIndirectFirstInstance);
 	
 	// Enable descriptor indexing features
 	VkPhysicalDeviceDescriptorIndexingFeatures descriptor_indexing_features{};

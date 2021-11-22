@@ -368,11 +368,11 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 			    uint32_t idx = 0;
 			    for (uint32_t i = 0; i < model.get().submeshes.size(); i++)
 			    {
-				    auto &submesh  = model.get().submeshes[i];
-					if (component.materials.size() <= i)
-					{
+				    auto &submesh = model.get().submeshes[i];
+				    if (component.materials.size() <= i)
+				    {
 					    component.materials.emplace_back(createScope<material::DisneyPBR>());
-					}
+				    }
 				    auto &material = component.materials[i];
 
 				    if (ImGui::TreeNode((std::string("Submesh #") + std::to_string(idx++)).c_str()))

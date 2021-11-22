@@ -172,7 +172,8 @@ inline std::vector<uint32_t> compileGLSL(const std::vector<uint8_t> &data, VkSha
 	shader.setStringsWithLengthsAndNames(&shader_source, nullptr, file_name_list, 1);
 	shader.setEntryPoint("main");
 	shader.setSourceEntryPoint("main");
-	shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_4);
+	shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_5);
+	shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_2);
 
 	if (!shader.parse(&glslang::DefaultTBuiltInResource, 100, false, msgs))
 	{

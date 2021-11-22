@@ -13,6 +13,8 @@
 
 #include "Graphics/Vulkan/VK_Debugger.h"
 
+#include "Renderer/Renderer.hpp"
+
 namespace Ilum
 {
 ImageReference ResourceCache::loadImage(const std::string &filepath)
@@ -99,6 +101,11 @@ void ResourceCache::clearImages()
 	}
 }
 
+bool ResourceCache::isLoadingImage() const
+{
+	return !m_image_futures.empty();
+}
+
 ModelReference ResourceCache::loadModel(const std::string &name)
 {
 	if (m_model_cache.size() == m_model_map.size() && m_model_map.find(name) != m_model_map.end())
@@ -112,6 +119,9 @@ ModelReference ResourceCache::loadModel(const std::string &name)
 	std::lock_guard<std::mutex> lock(m_model_mutex);
 	m_model_cache.emplace_back(std::move(model));
 	m_model_map[name] = m_model_cache.size() - 1;
+
+	m_vertices_count += m_model_cache.back().vertices_count;
+	m_indices_count += m_model_cache.back().indices_count;
 
 	LOG_INFO("Import Model: {}", name);
 
@@ -147,12 +157,27 @@ const std::unordered_map<std::string, size_t> &ResourceCache::getModels()
 	return m_model_map;
 }
 
+bool ResourceCache::isLoadingModel() const
+{
+	return !m_model_futures.empty();
+}
+
 void ResourceCache::clearModels()
 {
 	for (auto &[name, idx] : m_model_map)
 	{
 		m_deprecated_model.push_back(name);
 	}
+}
+
+const uint32_t ResourceCache::getVerticesCount() const
+{
+	return m_vertices_count;
+}
+
+const uint32_t ResourceCache::getIndicesCount() const
+{
+	return m_indices_count;
 }
 
 void ResourceCache::clear()
@@ -177,11 +202,13 @@ void ResourceCache::flush()
 	{
 		std::lock_guard<std::mutex> lock(m_model_mutex);
 
+		bool update = false;
+
 		// Remove deprecated model
 		for (auto &name : m_deprecated_model)
 		{
 			size_t index = m_model_map.at(name);
-			std::swap(m_model_cache.begin() + index, m_model_cache.begin() + m_model_cache.size() - 1);
+			std::iter_swap(m_model_cache.begin() + index, m_model_cache.begin() + m_model_cache.size() - 1);
 			for (auto &[name, idx] : m_model_map)
 			{
 				if (idx == m_model_cache.size() - 1)
@@ -189,9 +216,15 @@ void ResourceCache::flush()
 					idx = index;
 				}
 			}
-			m_model_cache.erase(m_model_cache.begin() + m_model_cache.size() - 1);
+
+			auto &model = m_model_cache.begin() + m_model_cache.size() - 1;
+			m_vertices_count -= model->vertices_count;
+			m_indices_count -= model->indices_count;
+
+			m_model_cache.erase(model);
 			m_model_map.erase(name);
 			LOG_INFO("Release Model: {}", name);
+			update = true;
 		}
 		m_deprecated_model.clear();
 
@@ -208,7 +241,9 @@ void ResourceCache::flush()
 				});
 			}
 		}
+		m_new_model.clear();
 
+		// Get sync models
 		for (auto iter = m_model_futures.begin(); iter != m_model_futures.end();)
 		{
 			auto &[name, future] = *iter;
@@ -216,7 +251,10 @@ void ResourceCache::flush()
 			{
 				m_model_map[name] = m_model_cache.size();
 				m_model_cache.push_back(std::move(future.get()));
+				m_vertices_count += m_model_cache.back().vertices_count;
+				m_indices_count += m_model_cache.back().indices_count;
 				iter = m_model_futures.erase(iter);
+				update = true;
 			}
 			else
 			{
@@ -224,7 +262,29 @@ void ResourceCache::flush()
 			}
 		}
 
-		m_new_model.clear();
+		// Update model vertex offset
+		{
+			uint32_t vertex_offset = 0;
+			uint32_t index_offset = 0;
+			for (auto& [name, idx] : m_model_map)
+			{
+				auto &model = m_model_cache[idx];
+				for (auto& submesh : model.submeshes)
+				{
+					submesh.vertex_offset = vertex_offset;
+					submesh.index_offset  = index_offset;
+					submesh.indirect_cmd.firstIndex  = index_offset;
+					submesh.indirect_cmd.vertexOffset = vertex_offset;
+					vertex_offset += static_cast<uint32_t>(submesh.vertices.size());
+					index_offset += static_cast<uint32_t>(submesh.indices.size());
+				}
+			}
+		}
+
+		if (update)
+		{
+			Renderer::instance()->updateGeometry();
+		}
 	}
 
 	{
@@ -251,7 +311,7 @@ void ResourceCache::flush()
 		// Add new image
 		for (auto &filepath : m_new_image)
 		{
-			if (m_image_futures.find(filepath) == m_image_futures.end() && m_image_map.find(filepath)==m_image_map.end())
+			if (m_image_futures.find(filepath) == m_image_futures.end() && m_image_map.find(filepath) == m_image_map.end())
 			{
 				m_image_futures[filepath] = ThreadPool::instance()->addTask([filepath](size_t id) {
 					Image image;

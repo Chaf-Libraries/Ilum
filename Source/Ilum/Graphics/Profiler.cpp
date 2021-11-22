@@ -56,6 +56,20 @@ void Profiler::beginSample(const std::string &name, const CommandBuffer &cmd_buf
 	start_sample.cpu_time     = std::chrono::high_resolution_clock::now();
 	start_sample.index        = m_current_index++;
 	vkCmdWriteTimestamp(cmd_buffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_query_pools[idx], start_sample.index);
+	m_samples[idx][name].has_gpu = true;
+}
+
+void Profiler::beginSample(const std::string &name)
+{
+	uint32_t idx = GraphicsContext::instance()->getFrameIndex();
+	if (m_samples[idx].find(name) == m_samples[idx].end())
+	{
+		m_samples[idx][name] = Sample();
+	}
+	m_samples[idx][name].name = name;
+	auto &start_sample        = m_samples[idx][name].start;
+	start_sample.cpu_time     = std::chrono::high_resolution_clock::now();
+	start_sample.index        = m_current_index++;
 }
 
 void Profiler::endSample(const std::string &name, const CommandBuffer &cmd_buffer)
@@ -72,6 +86,19 @@ void Profiler::endSample(const std::string &name, const CommandBuffer &cmd_buffe
 	vkCmdWriteTimestamp(cmd_buffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_query_pools[idx], end_sample.index);
 }
 
+void Profiler::endSample(const std::string &name)
+{
+	uint32_t idx = GraphicsContext::instance()->getFrameIndex();
+	if (m_samples[idx].find(name) == m_samples[idx].end())
+	{
+		m_samples[idx][name] = Sample();
+	}
+
+	auto &end_sample    = m_samples[idx][name].end;
+	end_sample.cpu_time = std::chrono::high_resolution_clock::now();
+	end_sample.index    = m_current_index++;
+}
+
 std::unordered_map<std::string, std::pair<float, float>> Profiler::getResult() const
 {
 	uint32_t idx = GraphicsContext::instance()->getFrameIndex();
@@ -81,8 +108,11 @@ std::unordered_map<std::string, std::pair<float, float>> Profiler::getResult() c
 	for (auto &[name, sample] : m_samples[idx])
 	{
 		uint64_t start = 0, end = 0;
-		vkGetQueryPoolResults(GraphicsContext::instance()->getLogicalDevice(), m_query_pools[idx], sample.start.index, 1, sizeof(uint64_t), &start, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
-		vkGetQueryPoolResults(GraphicsContext::instance()->getLogicalDevice(), m_query_pools[idx], sample.end.index, 1, sizeof(uint64_t), &end, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
+		if (sample.has_gpu)
+		{
+			vkGetQueryPoolResults(GraphicsContext::instance()->getLogicalDevice(), m_query_pools[idx], sample.start.index, 1, sizeof(uint64_t), &start, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
+			vkGetQueryPoolResults(GraphicsContext::instance()->getLogicalDevice(), m_query_pools[idx], sample.end.index, 1, sizeof(uint64_t), &end, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
+		}
 		result[sample.name] = std::make_pair(
 		    static_cast<float>(std::chrono::duration<double, std::milli>(sample.end.cpu_time - sample.start.cpu_time).count()),
 		    static_cast<float>(end - start) / 1000000.f);

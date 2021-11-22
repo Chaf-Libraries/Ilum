@@ -15,11 +15,11 @@ class Profiler
 	struct Sample
 	{
 		std::string name = "";
+		bool        has_gpu = false;
 
 		struct Data
 		{
-			uint32_t index = 0;
-
+			uint32_t index   = 0;
 			std::chrono::time_point<std::chrono::high_resolution_clock> cpu_time;
 		};
 
@@ -36,7 +36,11 @@ class Profiler
 
 	void beginSample(const std::string &name, const CommandBuffer &cmd_buffer);
 
+	void beginSample(const std::string &name);
+
 	void endSample(const std::string &name, const CommandBuffer &cmd_buffer);
+
+	void endSample(const std::string &name);
 
 	// name - [cpu, gpu]
 	std::unordered_map<std::string, std::pair<float, float>> getResult() const;

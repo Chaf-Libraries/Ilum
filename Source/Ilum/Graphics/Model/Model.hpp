@@ -13,8 +13,8 @@ struct Model
   public:
 	std::vector<SubMesh> submeshes;
 
-	Buffer vertex_buffer;
-	Buffer index_buffer;
+	uint32_t vertices_count = 0;
+	uint32_t indices_count = 0;
 
 	geometry::BoundingBox bounding_box;
 
@@ -31,9 +31,6 @@ struct Model
 	Model(Model &&other) noexcept;
 
 	Model &operator=(Model &&other) noexcept;
-
-  private:
-	void createBuffer();
 };
 
 using ModelReference = std::reference_wrapper<Model>;

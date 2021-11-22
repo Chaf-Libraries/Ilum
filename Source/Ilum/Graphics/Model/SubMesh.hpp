@@ -8,16 +8,22 @@
 
 namespace Ilum
 {
+class CommandBuffer;
+
 struct SubMesh
 {
   public:
-	uint32_t index_offset = 0;
+	uint32_t index_offset  = 0;
+	uint32_t vertex_offset = 0;
 
 	std::vector<Vertex>   vertices;
 	std::vector<uint32_t> indices;
-	material::DisneyPBR             material;
+
+	material::DisneyPBR material;
 
 	geometry::BoundingBox bounding_box;
+
+	VkDrawIndexedIndirectCommand indirect_cmd;
 
 	bool visible = true;
 

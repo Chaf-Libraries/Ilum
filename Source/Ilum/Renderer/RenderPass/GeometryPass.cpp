@@ -21,7 +21,6 @@ namespace Ilum::pass
 {
 GeometryPass::GeometryPass()
 {
-
 }
 
 void GeometryPass::setupPipeline(PipelineState &state)
@@ -53,6 +52,7 @@ void GeometryPass::setupPipeline(PipelineState &state)
 
 	state.descriptor_bindings.bind(0, 0, "mainCamera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	state.descriptor_bindings.bind(0, 1, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Wrap), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 2, "InstanceData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
 	state.declareAttachment("gbuffer - albedo", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("gbuffer - normal", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
@@ -80,6 +80,7 @@ void GeometryPass::resolveResources(ResolveState &resolve)
 {
 	resolve.resolve("textureArray", Renderer::instance()->getResourceCache().getImageReferences());
 	resolve.resolve("mainCamera", Renderer::instance()->getBuffer(Renderer::BufferType::MainCamera));
+	resolve.resolve("InstanceData", Renderer::instance()->getBuffer(Renderer::BufferType::Instance));
 }
 
 void GeometryPass::render(RenderPassState &state)
@@ -113,74 +114,93 @@ void GeometryPass::render(RenderPassState &state)
 
 	const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform, cmpt::Tag>);
 
-	group.each([&](const entt::entity &entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform, const cmpt::Tag &tag) {
-		if (Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model) && tag.active)
+	auto &vertex_buffer = Renderer::instance()->getBuffer(Renderer::BufferType::Vertex);
+	auto &index_buffer  = Renderer::instance()->getBuffer(Renderer::BufferType::Index);
+
+	if (vertex_buffer.get().getSize() > 0 && index_buffer.get().getSize() > 0)
+	{
+		VkDeviceSize offsets[1] = {0};
+		vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &vertex_buffer.get().getBuffer(), offsets);
+		vkCmdBindIndexBuffer(cmd_buffer, index_buffer.get().getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+	}
+
+	auto &draw_buffer = Renderer::instance()->getBuffer(Renderer::BufferType::IndirectCommand);
+
+	if (draw_buffer.get().getSize() > 0)
+	{
+		/*for (auto j = 0; j < draw_buffer.get().getSize() / sizeof(VkDrawIndexedIndirectCommand); j++)
 		{
-			auto &model = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
+			vkCmdDrawIndexedIndirect(cmd_buffer, draw_buffer.get(), j * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
+		}*/
+		vkCmdDrawIndexedIndirect(cmd_buffer, draw_buffer.get(), 0, static_cast<uint32_t>(draw_buffer.get().getSize() / sizeof(VkDrawIndexedIndirectCommand)), sizeof(VkDrawIndexedIndirectCommand));
+	}
 
-			VkDeviceSize offsets[1] = {0};
-			vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &model.get().vertex_buffer.getBuffer(), offsets);
-			vkCmdBindIndexBuffer(cmd_buffer, model.get().index_buffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-			// Model transform push constants
-			vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), glm::value_ptr(transform.world_transform));
+	//group.each([&](const entt::entity &entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform, const cmpt::Tag &tag) {
+	//	if (Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model) && tag.active)
+	//	{
+	//		auto &model = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
 
-			for (uint32_t i = 0; i < mesh_renderer.materials.size(); i++)
-			{
-				auto &submesh = model.get().submeshes[i];
-				auto &material_ptr = mesh_renderer.materials[i];
-				if (material_ptr->type() == typeid(material::DisneyPBR))
-				{
-					auto *material = static_cast<material::DisneyPBR *>(material_ptr.get());
+	//		VkDeviceSize offsets[1] = {0};
 
-					struct
-					{
-						float    displacement_height;
-						uint32_t displacement_map;
-					} displacement;
+	//		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), glm::value_ptr(transform.world_transform));
 
-					displacement.displacement_height = material->displacement_height;
-					displacement.displacement_map    = Renderer::instance()->getResourceCache().imageID(material->displacement_map);
+	//		for (uint32_t i = 0; i < mesh_renderer.materials.size(); i++)
+	//		{
+	//			auto &submesh      = model.get().submeshes[i];
+	//			auto &material_ptr = mesh_renderer.materials[i];
+	//			if (material_ptr->type() == typeid(material::DisneyPBR))
+	//			{
+	//				auto *material = static_cast<material::DisneyPBR *>(material_ptr.get());
 
-					vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 64, sizeof(displacement), &displacement);
+	//				struct
+	//				{
+	//					float    displacement_height;
+	//					uint32_t displacement_map;
+	//				} displacement;
 
-					struct
-					{
-						glm::vec4 base_color         = {};
-						glm::vec3 emissive_color     = {0.f, 0.f, 0.f};
-						float     metallic_factor    = 0.f;
-						float     roughness_factor   = 0.f;
-						float     emissive_intensity = 0.f;
+	//				displacement.displacement_height = material->displacement_height;
+	//				displacement.displacement_map    = Renderer::instance()->getResourceCache().imageID(material->displacement_map);
 
-						uint32_t albedo_map    = 0;
-						uint32_t normal_map    = 0;
-						uint32_t metallic_map  = 0;
-						uint32_t roughness_map = 0;
-						uint32_t emissive_map  = 0;
-						uint32_t ao_map        = 0;
-						float    id            = 0.f;
-					} material_data;
+	//				vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 64, sizeof(displacement), &displacement);
 
-					material_data.base_color         = material->base_color;
-					material_data.metallic_factor    = material->metallic_factor;
-					material_data.roughness_factor   = material->roughness_factor;
-					material_data.emissive_color     = material->emissive_color;
-					material_data.emissive_intensity = material->emissive_intensity;
-					material_data.albedo_map         = Renderer::instance()->getResourceCache().imageID(material->albedo_map);
-					material_data.normal_map         = Renderer::instance()->getResourceCache().imageID(material->normal_map);
-					material_data.metallic_map       = Renderer::instance()->getResourceCache().imageID(material->metallic_map);
-					material_data.roughness_map      = Renderer::instance()->getResourceCache().imageID(material->roughness_map);
-					material_data.emissive_map       = Renderer::instance()->getResourceCache().imageID(material->emissive_map);
-					material_data.ao_map             = Renderer::instance()->getResourceCache().imageID(material->ao_map);
-					material_data.id                 = static_cast<float>(entity);
+	//				struct
+	//				{
+	//					glm::vec4 base_color         = {};
+	//					glm::vec3 emissive_color     = {0.f, 0.f, 0.f};
+	//					float     metallic_factor    = 0.f;
+	//					float     roughness_factor   = 0.f;
+	//					float     emissive_intensity = 0.f;
 
-					vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 80, sizeof(material_data), &material_data);
+	//					uint32_t albedo_map    = 0;
+	//					uint32_t normal_map    = 0;
+	//					uint32_t metallic_map  = 0;
+	//					uint32_t roughness_map = 0;
+	//					uint32_t emissive_map  = 0;
+	//					uint32_t ao_map        = 0;
+	//					float    id            = 0.f;
+	//				} material_data;
 
-					vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(submesh.indices.size()), 1, submesh.index_offset, 0, 0);
-				}
-			}
-		}
-	});
+	//				material_data.base_color         = material->base_color;
+	//				material_data.metallic_factor    = material->metallic_factor;
+	//				material_data.roughness_factor   = material->roughness_factor;
+	//				material_data.emissive_color     = material->emissive_color;
+	//				material_data.emissive_intensity = material->emissive_intensity;
+	//				material_data.albedo_map         = Renderer::instance()->getResourceCache().imageID(material->albedo_map);
+	//				material_data.normal_map         = Renderer::instance()->getResourceCache().imageID(material->normal_map);
+	//				material_data.metallic_map       = Renderer::instance()->getResourceCache().imageID(material->metallic_map);
+	//				material_data.roughness_map      = Renderer::instance()->getResourceCache().imageID(material->roughness_map);
+	//				material_data.emissive_map       = Renderer::instance()->getResourceCache().imageID(material->emissive_map);
+	//				material_data.ao_map             = Renderer::instance()->getResourceCache().imageID(material->ao_map);
+	//				material_data.id                 = static_cast<float>(entity);
+
+	//				vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 80, sizeof(material_data), &material_data);
+
+	//				//vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(submesh.indices.size()), 1, submesh.index_offset, submesh.vertex_offset, 0);
+	//			}
+	//		}
+	//	}
+	//});
 
 	vkCmdEndRenderPass(cmd_buffer);
 }
