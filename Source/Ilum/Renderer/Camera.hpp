@@ -3,7 +3,6 @@
 #include <glm/glm.hpp>
 
 #include "Geometry/Frustum.hpp"
-#include "Geometry/Ray.hpp"
 
 namespace Ilum
 {
@@ -27,6 +26,8 @@ struct Camera
 	glm::mat4 view = {};
 	glm::mat4 projection = {};
 	glm::mat4 view_projection = {};
+
+	geometry::Frustum frustum;
 
 	bool update = true;
 

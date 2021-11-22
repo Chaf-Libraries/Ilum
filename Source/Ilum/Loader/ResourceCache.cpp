@@ -235,8 +235,8 @@ void ResourceCache::flush()
 			{
 				m_model_futures[filepath] = ThreadPool::instance()->addTask([filepath](size_t id) {
 					Model model;
-					ModelLoader::load(model, filepath);
 					LOG_INFO("Loading model {}, using thread {}", filepath, id);
+					ModelLoader::load(model, filepath);
 					return model;
 				});
 			}

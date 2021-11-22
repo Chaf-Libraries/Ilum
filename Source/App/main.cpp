@@ -8,6 +8,7 @@
 #include <Ilum/Renderer/RenderPass/BloomPass.hpp>
 #include <Ilum/Renderer/RenderPass/BlurPass.hpp>
 #include <Ilum/Renderer/RenderPass/BrightPass.hpp>
+#include <Ilum/Renderer/RenderPass/CullingPass.hpp>
 #include <Ilum/Renderer/RenderPass/GeometryPass.hpp>
 #include <Ilum/Renderer/RenderPass/LightPass.hpp>
 #include <Ilum/Renderer/RenderPass/TonemappingPass.hpp>
@@ -27,6 +28,7 @@ int main()
 
 	Ilum::Renderer::instance()->buildRenderGraph = [](Ilum::RenderGraphBuilder &builder) {
 		builder
+		    .addRenderPass("CullingPass", std::make_unique<Ilum::pass::CullingPass>())
 		    .addRenderPass("GeometryPass", std::make_unique<Ilum::pass::GeometryPass>())
 		    .addRenderPass("LightPass", std::make_unique<Ilum::pass::LightPass>())
 		    //.addRenderPass("BrightPass", std::make_unique<Ilum::pass::BrightPass>("lighting"))

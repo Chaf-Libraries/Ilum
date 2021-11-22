@@ -33,7 +33,7 @@ struct BoundingBox
 
 	bool valid() const;
 
-	glm::vec3 min_ = glm::vec3(std::numeric_limits<float>::infinity());
-	glm::vec3 max_ = glm::vec3(-std::numeric_limits<float>::infinity());
+	glm::vec3 min_ = glm::vec3(std::numeric_limits<float>::max());
+	glm::vec3 max_ = glm::vec3(-std::numeric_limits<float>::min());
 };
 }        // namespace Ilum::geometry

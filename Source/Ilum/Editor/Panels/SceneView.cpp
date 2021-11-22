@@ -13,6 +13,8 @@
 
 #include "Editor/Editor.hpp"
 
+#include "Geometry/Ray.hpp"
+
 #include "ImGui/ImGuiContext.hpp"
 #include "ImGui/ImGuiTool.hpp"
 

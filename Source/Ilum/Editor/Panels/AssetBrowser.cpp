@@ -136,15 +136,12 @@ inline void draw_model_asset(const Image &image, float height, float space)
 			ImGui::Begin(name.c_str(), NULL, ImGuiWindowFlags_Tooltip | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar);
 			ImGui::Text(name.c_str());
 			ImGui::Separator();
-			uint32_t idx = 0;
-			for (auto &submesh : model.get().submeshes)
-			{
-				ImGui::Text("SubMesh #%d", idx++);
-				ImGui::BulletText("vertices count: %d", submesh.vertices.size());
-				ImGui::BulletText("indices count: %d", submesh.indices.size());
-				ImGui::BulletText("index offset: %d", submesh.index_offset);
-				ImGui::BulletText("vertex offset: %d", submesh.vertex_offset);
-			}
+			ImGui::Text("submesh count: %d", model.get().submeshes.size());
+			ImGui::BulletText("vertices count: %d", model.get().vertices_count);
+			ImGui::BulletText("indices count: %d", model.get().indices_count);
+			ImGui::BulletText("bounding box: min(%d, %d, %d), max(%d, %d, %d)",
+			                  model.get().bounding_box.min_.x, model.get().bounding_box.min_.y, model.get().bounding_box.min_.z,
+			                  model.get().bounding_box.max_.x, model.get().bounding_box.max_.y, model.get().bounding_box.max_.z);
 			ImGui::End();
 		}
 
@@ -477,7 +474,7 @@ void AssetBrowser::draw(float delta_time)
 		{
 			if (ifd::FileDialog::Instance().HasResult())
 			{
-				for (auto& path : ifd::FileDialog::Instance().GetResults())
+				for (auto &path : ifd::FileDialog::Instance().GetResults())
 				{
 					Renderer::instance()->getResourceCache().loadImageAsync(path.u8string());
 				}

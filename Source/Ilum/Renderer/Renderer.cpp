@@ -263,14 +263,25 @@ void Renderer::updateBuffers()
 
 	// Update main camera
 	{
-		struct CameraBuffer
+		struct
 		{
 			glm::mat4 view_projection;
-			glm::vec3 position;
-		};
-		auto *camera_buffer            = reinterpret_cast<CameraBuffer *>(m_buffers[BufferType::MainCamera].map());
-		camera_buffer->position        = Main_Camera.position;
-		camera_buffer->view_projection = Main_Camera.view_projection;
+			glm::vec4 frustum[6];
+			alignas(16) glm::vec3 position;
+		} camera_buffer;
+
+		if (m_buffers[BufferType::MainCamera].getSize() == 0)
+		{
+			m_buffers[BufferType::MainCamera] = Buffer(sizeof(camera_buffer), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+		}
+		camera_buffer.position        = Main_Camera.position;
+		camera_buffer.view_projection = Main_Camera.view_projection;
+		for (uint32_t i = 0; i < 6; i++)
+		{
+			const auto &plane        = Main_Camera.frustum.planes[i];
+			camera_buffer.frustum[i] = glm::vec4(plane.normal, plane.constant);
+		}
+		std::memcpy(m_buffers[BufferType::MainCamera].map(), &camera_buffer, sizeof(camera_buffer));
 		m_buffers[BufferType::MainCamera].unmap();
 	}
 
@@ -356,10 +367,8 @@ void Renderer::updateBuffers()
 	{
 		// Collect data
 
-		struct InstanceData
+		struct MaterialData
 		{
-			glm::mat4 transform = glm::mat4(1.f);
-
 			glm::vec4 base_color      = {};
 			glm::vec3 emissive_color  = {0.f, 0.f, 0.f};
 			float     metallic_factor = 0.f;
@@ -379,12 +388,19 @@ void Renderer::updateBuffers()
 			uint32_t id                           = 0;
 		};
 
+		struct AABB
+		{
+			alignas(16) glm::vec3 min_;
+			alignas(16) glm::vec3 max_;
+		};
+
 		std::vector<VkDrawIndexedIndirectCommand> indirect_commands;
-		std::vector<InstanceData>                 instance_data;
+		std::vector<MaterialData>                 material_data;
+		std::vector<glm::mat4>                    transform_data;
+		std::vector<AABB>                         aabb_data;
 
-
-		uint32_t instance_idx = 0;
-		const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Tag, cmpt::Transform>);
+		uint32_t   instance_idx = 0;
+		const auto group        = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Tag, cmpt::Transform>);
 		group.each([&](const entt::entity &entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Tag &tag, const cmpt::Transform &transform) {
 			if (!m_resource_cache->hasModel(mesh_renderer.model))
 			{
@@ -402,9 +418,11 @@ void Renderer::updateBuffers()
 
 					submesh.indirect_cmd.firstInstance = instance_idx++;
 					indirect_commands.push_back(submesh.indirect_cmd);
+					transform_data.push_back(transform.world_transform);
+					AABB aabb = {submesh.bounding_box.min_, submesh.bounding_box.max_};
+					aabb_data.push_back(aabb);
 
-					InstanceData data;
-					data.transform           = transform.world_transform;
+					MaterialData data;
 					data.base_color          = material->base_color;
 					data.metallic_factor     = material->metallic_factor;
 					data.roughness_factor    = material->roughness_factor;
@@ -419,25 +437,44 @@ void Renderer::updateBuffers()
 					data.displacement_height = material->displacement_height;
 					data.displacement_map    = Renderer::instance()->getResourceCache().imageID(material->displacement_map);
 					data.id                  = static_cast<uint32_t>(entity);
-					instance_data.push_back(data);
+					material_data.push_back(data);
 				}
 			}
 		});
 
+		Instance_Count = instance_idx;
+
 		// Enlarge buffer
-		if (m_buffers[BufferType::IndirectCommand].getSize() != indirect_commands.size() * sizeof(VkDrawIndexedIndirectCommand))
+		if (m_buffers[BufferType::IndirectCommand].getSize() == 0)
+		{
+			m_buffers[BufferType::Material]        = Buffer(sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			m_buffers[BufferType::Transform]       = Buffer(sizeof(glm::mat4), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			m_buffers[BufferType::BoundingBox]     = Buffer(sizeof(AABB), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			m_buffers[BufferType::IndirectCommand] = Buffer(sizeof(VkDrawIndexedIndirectCommand), VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+		}
+
+		if (m_buffers[BufferType::IndirectCommand].getSize() < indirect_commands.size() * sizeof(VkDrawIndexedIndirectCommand))
 		{
 			GraphicsContext::instance()->getQueueSystem().waitAll();
-			m_buffers[BufferType::IndirectCommand] = Buffer(indirect_commands.size() * sizeof(VkDrawIndexedIndirectCommand), VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-			m_buffers[BufferType::Instance]        = Buffer(instance_data.empty() ? 1 : instance_data.size() * sizeof(InstanceData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-			m_update                               = true;
+			m_buffers[BufferType::IndirectCommand] = Buffer(indirect_commands.size() * sizeof(VkDrawIndexedIndirectCommand), VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			m_buffers[BufferType::Material]        = Buffer(material_data.size() * sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			m_buffers[BufferType::Transform]       = Buffer(transform_data.size() * sizeof(glm::mat4), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			m_buffers[BufferType::BoundingBox]     = Buffer(aabb_data.size() * sizeof(AABB), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+			m_update = true;
 		}
 
 		// Copy buffer
-		if (!instance_data.empty())
+		if (!material_data.empty())
 		{
-			std::memcpy(m_buffers[BufferType::Instance].map(), instance_data.data(), m_buffers[BufferType::Instance].getSize());
-			std::memcpy(m_buffers[BufferType::IndirectCommand].map(), indirect_commands.data(), m_buffers[BufferType::IndirectCommand].getSize());
+			std::memcpy(m_buffers[BufferType::Material].map(), material_data.data(), material_data.size() * sizeof(MaterialData));
+			std::memcpy(m_buffers[BufferType::IndirectCommand].map(), indirect_commands.data(), indirect_commands.size() * sizeof(VkDrawIndexedIndirectCommand));
+			std::memcpy(m_buffers[BufferType::Transform].map(), transform_data.data(), transform_data.size() * sizeof(glm::mat4));
+			std::memcpy(m_buffers[BufferType::BoundingBox].map(), aabb_data.data(), aabb_data.size() * sizeof(AABB));
+			m_buffers[BufferType::Material].unmap();
+			m_buffers[BufferType::IndirectCommand].unmap();
+			m_buffers[BufferType::Transform].unmap();
+			m_buffers[BufferType::BoundingBox].unmap();
 		}
 	}
 
@@ -446,12 +483,13 @@ void Renderer::updateBuffers()
 
 void Renderer::createBuffers()
 {
-	m_buffers[BufferType::MainCamera]       = Buffer(sizeof(glm::mat4) + sizeof(glm::vec3), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	m_buffers[BufferType::MainCamera]       = Buffer(0, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 	m_buffers[BufferType::DirectionalLight] = Buffer(2 * sizeof(cmpt::DirectionalLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 	m_buffers[BufferType::SpotLight]        = Buffer(2 * sizeof(cmpt::SpotLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 	m_buffers[BufferType::PointLight]       = Buffer(2 * sizeof(cmpt::PointLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	m_buffers[BufferType::Instance]         = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	m_buffers[BufferType::IndirectCommand]  = Buffer(0, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	m_buffers[BufferType::Material]         = Buffer(0, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	m_buffers[BufferType::Transform]        = Buffer(0, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	m_buffers[BufferType::IndirectCommand]  = Buffer(0, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 	m_buffers[BufferType::Vertex]           = Buffer(0, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 	m_buffers[BufferType::Index]            = Buffer(0, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 }

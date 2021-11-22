@@ -47,12 +47,15 @@ void GeometryPass::setupPipeline(PipelineState &state)
 	// Disable blending
 	for (auto &color_blend_attachment_state : state.color_blend_attachment_states)
 	{
-		color_blend_attachment_state.blend_enable = false;
+		//color_blend_attachment_state.blend_enable = false;
 	}
 
-	state.descriptor_bindings.bind(0, 0, "mainCamera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	state.descriptor_bindings.bind(0, 0, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	state.descriptor_bindings.bind(0, 1, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Wrap), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	state.descriptor_bindings.bind(0, 2, "InstanceData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 2, "MaterialData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 3, "TransformData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+
+	state.addDependency("IndirectDrawCommand", VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT);
 
 	state.declareAttachment("gbuffer - albedo", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("gbuffer - normal", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
@@ -78,9 +81,10 @@ void GeometryPass::setupPipeline(PipelineState &state)
 
 void GeometryPass::resolveResources(ResolveState &resolve)
 {
+	resolve.resolve("Camera", Renderer::instance()->getBuffer(Renderer::BufferType::MainCamera));
 	resolve.resolve("textureArray", Renderer::instance()->getResourceCache().getImageReferences());
-	resolve.resolve("mainCamera", Renderer::instance()->getBuffer(Renderer::BufferType::MainCamera));
-	resolve.resolve("InstanceData", Renderer::instance()->getBuffer(Renderer::BufferType::Instance));
+	resolve.resolve("MaterialData", Renderer::instance()->getBuffer(Renderer::BufferType::Material));
+	resolve.resolve("TransformData", Renderer::instance()->getBuffer(Renderer::BufferType::Transform));
 }
 
 void GeometryPass::render(RenderPassState &state)
@@ -117,22 +121,14 @@ void GeometryPass::render(RenderPassState &state)
 	auto &vertex_buffer = Renderer::instance()->getBuffer(Renderer::BufferType::Vertex);
 	auto &index_buffer  = Renderer::instance()->getBuffer(Renderer::BufferType::Index);
 
-	if (vertex_buffer.get().getSize() > 0 && index_buffer.get().getSize() > 0)
+	if (Renderer::instance()->Instance_Count > 0)
 	{
 		VkDeviceSize offsets[1] = {0};
 		vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &vertex_buffer.get().getBuffer(), offsets);
 		vkCmdBindIndexBuffer(cmd_buffer, index_buffer.get().getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-	}
 
-	auto &draw_buffer = Renderer::instance()->getBuffer(Renderer::BufferType::IndirectCommand);
-
-	if (draw_buffer.get().getSize() > 0)
-	{
-		/*for (auto j = 0; j < draw_buffer.get().getSize() / sizeof(VkDrawIndexedIndirectCommand); j++)
-		{
-			vkCmdDrawIndexedIndirect(cmd_buffer, draw_buffer.get(), j * sizeof(VkDrawIndexedIndirectCommand), 1, sizeof(VkDrawIndexedIndirectCommand));
-		}*/
-		vkCmdDrawIndexedIndirect(cmd_buffer, draw_buffer.get(), 0, static_cast<uint32_t>(draw_buffer.get().getSize() / sizeof(VkDrawIndexedIndirectCommand)), sizeof(VkDrawIndexedIndirectCommand));
+		auto &draw_buffer = Renderer::instance()->getBuffer(Renderer::BufferType::IndirectCommand);
+		vkCmdDrawIndexedIndirect(cmd_buffer, draw_buffer.get(), 0, Renderer::instance()->Instance_Count, sizeof(VkDrawIndexedIndirectCommand));
 	}
 
 

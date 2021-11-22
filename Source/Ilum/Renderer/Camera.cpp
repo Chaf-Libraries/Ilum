@@ -26,6 +26,8 @@ void Camera::onUpdate()
 
 	view_projection = projection * view;
 
+	frustum = geometry::Frustum(view_projection);
+
 	update = false;
 }
 }        // namespace Ilum

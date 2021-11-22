@@ -281,19 +281,16 @@ const std::map<uint32_t, std::vector<DescriptorBinding::ImageToResolve>> &Descri
 
 void ResolveInfo::resolve(const std::string &name, const Buffer &buffer)
 {
-	ASSERT(m_buffer_resolves.find(name) == m_buffer_resolves.end());
 	m_buffer_resolves[name] = {buffer};
 }
 
 void ResolveInfo::resolve(const std::string &name, const Image &image)
 {
-	ASSERT(m_image_resolves.find(name) == m_image_resolves.end());
 	m_image_resolves[name] = {image};
 }
 
 void ResolveInfo::resolve(const std::string &name, const std::vector<BufferReference> &buffers)
 {
-	ASSERT(m_buffer_resolves.find(name) == m_buffer_resolves.end());
 	for (const auto &buffer : buffers)
 	{
 		m_buffer_resolves[name].push_back(buffer);
@@ -302,7 +299,6 @@ void ResolveInfo::resolve(const std::string &name, const std::vector<BufferRefer
 
 void ResolveInfo::resolve(const std::string &name, const std::vector<ImageReference> &images)
 {
-	ASSERT(m_image_resolves.find(name) == m_image_resolves.end());
 	for (const auto &image : images)
 	{
 		m_image_resolves[name].push_back(image);

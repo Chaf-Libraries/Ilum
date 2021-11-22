@@ -41,7 +41,9 @@ class Renderer : public TSubsystem<Renderer>
 		MainCamera,
 		Vertex,
 		Index,
-		Instance,
+		Material,
+		Transform,
+		BoundingBox,
 		IndirectCommand,
 		DirectionalLight,
 		PointLight,
@@ -123,6 +125,8 @@ class Renderer : public TSubsystem<Renderer>
 
   public:
 	Camera Main_Camera;
+
+	uint32_t Instance_Count = 0;
 
 	struct
 	{
