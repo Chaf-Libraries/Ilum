@@ -16,10 +16,8 @@ layout(location = 3) out vec3 outTangent;
 layout(location = 4) out vec3 outBiTangent;
 layout(location = 5) out uint outIndex;
 
-struct InstanceData
+struct MaterialData
 {
-    mat4 transform;
-
     vec4 base_color;
     vec3 emissive_color;
     float metallic_factor;
@@ -42,6 +40,8 @@ struct InstanceData
 layout (set = 0, binding = 0) uniform MainCamera
 {
     mat4 view_projection;
+    vec4 frustum[6];
+    vec3 position;
 }main_camera;
 
 
@@ -49,21 +49,27 @@ layout (set = 0, binding = 1) uniform sampler2D textureArray[];
 
 layout (set = 0, binding = 2) buffer InstanceBuffer
 {
-    InstanceData instance_data[];
+    MaterialData instance_data[];
 };
+
+layout (set = 0, binding = 3) buffer TransformBuffer
+{
+    mat4 transform[];
+};
+
 
 void main() {
     float height=instance_data[gl_DrawIDARB].displacement_map < 1024?
         max(textureLod(textureArray[nonuniformEXT(instance_data[gl_DrawIDARB].displacement_map)], inUV, 0.0).r, 0.0) * instance_data[gl_DrawIDARB].displacement_height:
         0.0;
-    outPos = instance_data[gl_DrawIDARB].transform*vec4(inPos+height*inNormal, 1.0);
+    outPos = transform[gl_DrawIDARB]*vec4(inPos+height*inNormal, 1.0);
 
     gl_Position = main_camera.view_projection * outPos;
 
     outUV = inUV;
 
     // World normal
-    mat3 mNormal = transpose(inverse(mat3(instance_data[gl_DrawIDARB].transform)));
+    mat3 mNormal = transpose(inverse(mat3(transform[gl_DrawIDARB])));
     outNormal = mNormal * normalize(inNormal);
     outTangent = mNormal * normalize(inTangent);
     outBiTangent = mNormal * normalize(inBiTangent);

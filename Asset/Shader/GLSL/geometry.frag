@@ -18,10 +18,8 @@ layout(location = 5) out vec4 Roughness;
 layout(location = 6) out vec4 Emissive;
 layout(location = 7) out vec4 AO;
 
-struct InstanceData
+struct MaterialData
 {
-    mat4 transform;
-
     vec4 base_color;
     vec3 emissive_color;
     float metallic_factor;
@@ -45,7 +43,7 @@ layout (set = 0, binding = 1) uniform sampler2D textureArray[];
 
 layout (set = 0, binding = 2) buffer InstanceBuffer
 {
-    InstanceData instance_data[];
+    MaterialData instance_data[];
 };
 
 void main() {
