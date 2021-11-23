@@ -188,6 +188,8 @@ void ResourceCache::clear()
 
 void ResourceCache::flush()
 {
+	update = false;
+
 	if (m_deprecated_model.empty() && m_deprecated_image.empty() &&
 	    m_new_image.empty() && m_new_model.empty() &&
 	    m_image_futures.empty() && m_model_futures.empty())
@@ -201,8 +203,6 @@ void ResourceCache::flush()
 
 	{
 		std::lock_guard<std::mutex> lock(m_model_mutex);
-
-		bool update = false;
 
 		// Remove deprecated model
 		for (auto &name : m_deprecated_model)
@@ -307,6 +307,7 @@ void ResourceCache::flush()
 			m_image_cache.erase(m_image_cache.begin() + index);
 			m_image_map.erase(name);
 			LOG_INFO("Release Image: {}", name);
+			update = true;
 		}
 		m_deprecated_image.clear();
 
@@ -332,6 +333,7 @@ void ResourceCache::flush()
 				m_image_map[name] = m_image_cache.size();
 				m_image_cache.push_back(std::move(future.get()));
 				iter = m_image_futures.erase(iter);
+				update = true;
 			}
 			else
 			{

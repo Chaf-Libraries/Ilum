@@ -252,42 +252,42 @@ void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_m
 	if (aiGetMaterialTexture(mesh_material, AI_MATKEY_BASE_COLOR_TEXTURE, &path) != aiReturn_FAILURE)
 	{
 		material->albedo_map = dictionary + path.C_Str();
-		Renderer::instance()->getResourceCache().loadImageAsync(dictionary + path.C_Str());
+		Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
 	}
 	path.Clear();
 
 	if (aiGetMaterialTexture(mesh_material, aiTextureType_NORMALS, 0, &path) != aiReturn_FAILURE)
 	{
 		material->normal_map = dictionary + path.C_Str();
-		Renderer::instance()->getResourceCache().loadImageAsync(dictionary + path.C_Str());
+		Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
 	}
 	path.Clear();
 
 	if (aiGetMaterialTexture(mesh_material, AI_MATKEY_METALLIC_TEXTURE, &path) != aiReturn_FAILURE)
 	{
 		material->metallic_map = dictionary + path.C_Str();
-		Renderer::instance()->getResourceCache().loadImageAsync(dictionary + path.C_Str());
+		Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
 	}
 	path.Clear();
 
 	if (aiGetMaterialTexture(mesh_material, AI_MATKEY_ROUGHNESS_TEXTURE, &path) != aiReturn_FAILURE)
 	{
 		material->roughness_map = dictionary + path.C_Str();
-		Renderer::instance()->getResourceCache().loadImageAsync(dictionary + path.C_Str());
+		Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
 	}
 	path.Clear();
 
 	if (aiGetMaterialTexture(mesh_material, aiTextureType_EMISSIVE, 0, &path) != aiReturn_FAILURE)
 	{
 		material->emissive_map = dictionary + path.C_Str();
-		Renderer::instance()->getResourceCache().loadImageAsync(dictionary + path.C_Str());
+		Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
 	}
 	path.Clear();
 
 	if (aiGetMaterialTexture(mesh_material, aiTextureType_AMBIENT_OCCLUSION, 0, &path) != aiReturn_FAILURE)
 	{
 		material->ao_map = dictionary + path.C_Str();
-		Renderer::instance()->getResourceCache().loadImageAsync(dictionary + path.C_Str());
+		Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
 	}
 	path.Clear();
 
@@ -298,7 +298,7 @@ void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_m
 		{
 			material->roughness_map = dictionary + path.C_Str();
 			material->metallic_map  = dictionary + path.C_Str();
-			Renderer::instance()->getResourceCache().loadImageAsync(dictionary + path.C_Str());
+			Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
 		}
 
 		path.Clear();

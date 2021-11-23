@@ -392,7 +392,7 @@ void Renderer::updateBuffers()
 		});
 	});
 
-	if (instance_count != Instance_Count || cmpt::Transform::update)
+	if (instance_count != Instance_Count || cmpt::Transform::update || ResourceCache::update)
 	{
 		// Collect data
 		struct MaterialData

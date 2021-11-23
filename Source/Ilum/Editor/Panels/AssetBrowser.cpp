@@ -14,6 +14,8 @@
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
+#include "File/FileSystem.hpp"
+
 #include "ImFileDialog.h"
 
 #include <imgui.h>
@@ -478,7 +480,7 @@ void AssetBrowser::draw(float delta_time)
 			{
 				for (auto &path : ifd::FileDialog::Instance().GetResults())
 				{
-					Renderer::instance()->getResourceCache().loadImageAsync(path.u8string());
+					Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(path.u8string()));
 				}
 			}
 			ifd::FileDialog::Instance().Close();

@@ -275,6 +275,7 @@ void deserialize_main_camera(const YAML::Node &data)
 	Renderer::instance()->Main_Camera.view            = data["view"].as<glm::mat4>();
 	Renderer::instance()->Main_Camera.projection      = data["projection"].as<glm::mat4>();
 	Renderer::instance()->Main_Camera.view_projection = data["view_projection"].as<glm::mat4>();
+	Renderer::instance()->Main_Camera.update          = true;
 }
 
 void deserialize_color_correction(const YAML::Node &data)
@@ -411,15 +412,15 @@ void deserialize_component<cmpt::PointLight>(Entity entity, const YAML::Node &da
 template <>
 void deserialize_component<cmpt::SpotLight>(Entity entity, const YAML::Node &data)
 {
-	auto &light                       = entity.getComponent<cmpt::Light>();
-	light.impl                        = createScope<cmpt::SpotLight>();
-	auto *spot_light           = static_cast<cmpt::SpotLight *>(light.impl.get());
-	spot_light->data.color            = data["color"].as<glm::vec3>();
-	spot_light->data.intensity        = data["intensity"].as<float>();
-	spot_light->data.direction        = data["direction"].as<glm::vec3>();
-	spot_light->data.position        = data["direction"].as<glm::vec3>();
-	spot_light->data.cut_off          = data["direction"].as<float>();
-	spot_light->data.outer_cut_off    = data["direction"].as<float>();
+	auto &light                    = entity.getComponent<cmpt::Light>();
+	light.impl                     = createScope<cmpt::SpotLight>();
+	auto *spot_light               = static_cast<cmpt::SpotLight *>(light.impl.get());
+	spot_light->data.color         = data["color"].as<glm::vec3>();
+	spot_light->data.intensity     = data["intensity"].as<float>();
+	spot_light->data.direction     = data["direction"].as<glm::vec3>();
+	spot_light->data.position      = data["direction"].as<glm::vec3>();
+	spot_light->data.cut_off       = data["direction"].as<float>();
+	spot_light->data.outer_cut_off = data["direction"].as<float>();
 }
 
 template <>
