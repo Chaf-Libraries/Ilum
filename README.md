@@ -26,18 +26,20 @@ cmake --build ./ --target ALL_BUILD --config Release
   * Entity Component System
   * Asynchronous Resource Loading
   * Scene Loading/Saving
-
 * Rendering Optimization
   * Multi-Draw Indirect
   * Bindless Texture
   * Vertex/Index Buffer Packing
   * GPU Frustum Culling
-
 * Rendering Feature
   * PBR Material
-
 * Post Processing
   * Blooming
+
+## Upcoming Feature
+
+* Skybox
+* Image Based Lighting
 
 
 ## Screenshot
