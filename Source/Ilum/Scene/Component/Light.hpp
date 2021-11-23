@@ -34,5 +34,7 @@ struct Light
 	LightType type = LightType::None;
 
 	scope<ILight> impl = nullptr;
+
+	inline static std::atomic<bool> update = false;
 };
 }        // namespace Ilum::Cmpt

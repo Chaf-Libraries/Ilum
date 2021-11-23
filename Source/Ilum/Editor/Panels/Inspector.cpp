@@ -309,8 +309,8 @@ inline void draw_component<cmpt::Transform>(Entity entity)
 	draw_component<cmpt::Transform>(
 	    "Transform", entity, [](auto &component) {
 		    component.update = draw_vec3_control("Translation", component.translation, 0.f);
-		    component.update |= draw_vec3_control("Rotation", component.rotation, 0.f);
-		    component.update |= draw_vec3_control("Scale", component.scale, 1.f);
+		    component.update = component.update | draw_vec3_control("Rotation", component.rotation, 0.f);
+		    component.update = component.update | draw_vec3_control("Scale", component.scale, 1.f);
 	    },
 	    true);
 }
@@ -351,7 +351,7 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 				    {
 					    component.model = new_model;
 					    component.materials.clear();
-					    auto &model     = Renderer::instance()->getResourceCache().loadModel(component.model);
+					    auto &model = Renderer::instance()->getResourceCache().loadModel(component.model);
 					    for (auto &submesh : model.get().submeshes)
 					    {
 						    component.materials.emplace_back(createScope<material::DisneyPBR>());

@@ -13,6 +13,6 @@ namespace Ilum::cmpt
 		glm::mat4 local_transform = glm::mat4(1.f);
 	    glm::mat4 world_transform = glm::mat4(1.f);
 
-		bool update;
+		inline static std::atomic<bool> update = false;
 	};
 }

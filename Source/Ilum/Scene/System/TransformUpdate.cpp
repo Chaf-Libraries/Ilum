@@ -21,6 +21,7 @@ inline void transform_recrusive(entt::entity entity)
 	auto &hierarchy = Entity(entity).getComponent<cmpt::Hierarchy>();
 	if (hierarchy.parent != entt::null)
 	{
+		transform.local_transform = glm::scale(glm::translate(glm::mat4(1.f), transform.translation) * glm::mat4_cast(glm::qua<float>(glm::radians(transform.rotation))), transform.scale);
 		transform.world_transform = Entity(hierarchy.parent).getComponent<cmpt::Transform>().world_transform * transform.local_transform;
 	}
 
@@ -35,21 +36,11 @@ inline void transform_recrusive(entt::entity entity)
 
 void TransformUpdate::run()
 {
-	bool need_update = false;
-	auto view        = Scene::instance()->getRegistry().view<cmpt::Transform>();
-	std::for_each(std::execution::par_unseq, view.begin(), view.end(), [&view, &need_update](auto entity) {
-		auto &transform = Entity(entity).getComponent<cmpt::Transform>();
-		if (transform.update)
-		{
-			transform.local_transform = glm::scale(glm::translate(glm::mat4(1.f), transform.translation) * glm::mat4_cast(glm::qua<float>(glm::radians(transform.rotation))), transform.scale);
-			transform.update          = false;
-			need_update               = true;
-		}
-	});
-
-	if (need_update)
+	if (cmpt::Transform::update)
 	{
-		auto                      group = Scene::instance()->getRegistry().group<cmpt::Transform, cmpt::Hierarchy>();
+		cmpt::Transform::update = false;
+		auto group              = Scene::instance()->getRegistry().group<>(entt::get<cmpt::Transform, cmpt::Hierarchy>);
+
 		std::vector<entt::entity> roots;
 
 		// Find roots
