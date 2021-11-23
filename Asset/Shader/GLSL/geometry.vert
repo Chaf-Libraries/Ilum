@@ -37,6 +37,12 @@ struct MaterialData
     uint id;
 };
 
+struct TransformData
+{
+    mat4 world_transform;
+    mat4 pre_transform;
+};
+
 layout (set = 0, binding = 0) uniform MainCamera
 {
     mat4 view_projection;
@@ -54,7 +60,7 @@ layout (set = 0, binding = 2) buffer InstanceBuffer
 
 layout (set = 0, binding = 3) buffer TransformBuffer
 {
-    mat4 transform[];
+    TransformData transform[];
 };
 
 
@@ -62,22 +68,25 @@ void main() {
     float height=instance_data[gl_DrawIDARB].displacement_map < 1024?
         max(textureLod(textureArray[nonuniformEXT(instance_data[gl_DrawIDARB].displacement_map)], inUV, 0.0).r, 0.0) * instance_data[gl_DrawIDARB].displacement_height:
         0.0;
-    outPos = transform[gl_DrawIDARB]*vec4(inPos+height*inNormal, 1.0);
+    
+    mat4 trans = transform[gl_DrawIDARB].world_transform*transform[gl_DrawIDARB].pre_transform;
+
+    // World normal
+    mat3 mNormal = transpose(inverse(mat3(trans)));
+    outNormal = mNormal * normalize(inNormal);
+    outTangent = mNormal * normalize(inTangent);
+    outBiTangent = mNormal * normalize(inBiTangent);
+
+    outPos = trans * vec4(inPos, 1.0);
+
+    outPos.xyz += instance_data[gl_DrawIDARB].displacement_map < 1024?
+        normalize(outNormal) * (max(textureLod(textureArray[nonuniformEXT(instance_data[gl_DrawIDARB].displacement_map)], inUV, 0.0).r, 0.0) * instance_data[gl_DrawIDARB].displacement_height):
+        vec3(0.0);
 
     gl_Position = main_camera.view_projection * outPos;
 
     outUV = inUV;
 
-    // World normal
-    mat3 mNormal = transpose(inverse(mat3(transform[gl_DrawIDARB])));
-    outNormal = mNormal * normalize(inNormal);
-    outTangent = mNormal * normalize(inTangent);
-    outBiTangent = mNormal * normalize(inBiTangent);
-
-    // displacement
-    gl_Position.xyz += instance_data[gl_DrawIDARB].displacement_map < 1024?
-        normalize(inNormal) * (max(textureLod(textureArray[nonuniformEXT(instance_data[gl_DrawIDARB].displacement_map)], inUV, 0.0).r, 0.0) * instance_data[gl_DrawIDARB].displacement_height):
-        vec3(0.0);
 
     outIndex = gl_DrawIDARB;
 }

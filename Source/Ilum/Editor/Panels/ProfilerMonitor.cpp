@@ -25,7 +25,7 @@ void ProfilerMonitor::draw(float delta_time)
 
 		if (Timer::instance()->getFPS() != 0.0)
 		{
-			if (m_frame_times.size() < 30)
+			if (m_frame_times.size() < 50)
 			{
 				m_frame_times.push_back(1000.0f / static_cast<float>(Timer::instance()->getFPS()));
 			}

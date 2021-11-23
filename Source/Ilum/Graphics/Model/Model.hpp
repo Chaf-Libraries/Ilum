@@ -14,13 +14,17 @@ struct Model
 	std::vector<SubMesh> submeshes;
 
 	uint32_t vertices_count = 0;
-	uint32_t indices_count = 0;
+	uint32_t indices_count  = 0;
+
+	uint32_t vertices_offset = 0;
+	uint32_t indices_offset  = 0;
+
+	std::vector<Vertex>   vertices;
+	std::vector<uint32_t> indices;
 
 	geometry::BoundingBox bounding_box;
 
 	Model() = default;
-
-	Model(std::vector<SubMesh> &&submeshes);
 
 	~Model() = default;
 

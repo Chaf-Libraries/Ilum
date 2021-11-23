@@ -350,6 +350,7 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 				    if (component.model != new_model)
 				    {
 					    component.model = new_model;
+					    component.materials.clear();
 					    auto &model     = Renderer::instance()->getResourceCache().loadModel(component.model);
 					    for (auto &submesh : model.get().submeshes)
 					    {
@@ -380,9 +381,10 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 					    // Submesh attributes
 					    if (ImGui::TreeNode("Mesh Attributes"))
 					    {
-						    ImGui::Text("vertices count: %d", submesh.vertices.size());
-						    ImGui::Text("indices count: %d", submesh.indices.size());
-						    ImGui::Text("index offset: %d", submesh.index_offset);
+						    ImGui::Text("vertices count: %d", submesh.vertices_count);
+						    ImGui::Text("vertices offset: %d", submesh.vertices_offset);
+						    ImGui::Text("indices count: %d", submesh.indices_count);
+						    ImGui::Text("indices offset: %d", submesh.indices_offset);
 						    ImGui::Text("AABB bounding box:");
 						    ImGui::BulletText("min (%f, %f, %f)", submesh.bounding_box.min_.x, submesh.bounding_box.min_.y, submesh.bounding_box.min_.z);
 						    ImGui::BulletText("max (%f, %f, %f)", submesh.bounding_box.max_.x, submesh.bounding_box.max_.y, submesh.bounding_box.max_.z);

@@ -224,11 +224,9 @@ void Renderer::updateGeometry()
 		for (auto &[name, index] : m_resource_cache->getModels())
 		{
 			auto &model = m_resource_cache->loadModel(name);
-			for (auto &submesh : model.get().submeshes)
-			{
-				std::memcpy(vertex_data + submesh.vertex_offset * sizeof(Ilum::Vertex), submesh.vertices.data(), sizeof(Ilum::Vertex) * submesh.vertices.size());
-				std::memcpy(index_data + submesh.index_offset * sizeof(uint32_t), submesh.indices.data(), sizeof(uint32_t) * submesh.indices.size());
-			}
+
+			std::memcpy(vertex_data + model.get().vertices_offset * sizeof(Ilum::Vertex), model.get().vertices.data(), sizeof(Ilum::Vertex) * model.get().vertices_count);
+			std::memcpy(index_data + model.get().indices_offset * sizeof(uint32_t), model.get().indices.data(), sizeof(uint32_t) * model.get().indices_count);
 		}
 
 		staging_vertex_buffer.unmap();
@@ -394,9 +392,15 @@ void Renderer::updateBuffers()
 			alignas(16) glm::vec3 max_;
 		};
 
+		struct TransformData
+		{
+			glm::mat4 world_transform;
+			glm::mat4 pre_transform;
+		};
+
 		std::vector<VkDrawIndexedIndirectCommand> indirect_commands;
 		std::vector<MaterialData>                 material_data;
-		std::vector<glm::mat4>                    transform_data;
+		std::vector<TransformData>                transform_data;
 		std::vector<AABB>                         aabb_data;
 
 		uint32_t   instance_idx = 0;
@@ -418,7 +422,12 @@ void Renderer::updateBuffers()
 
 					submesh.indirect_cmd.firstInstance = instance_idx++;
 					indirect_commands.push_back(submesh.indirect_cmd);
-					transform_data.push_back(transform.world_transform);
+
+					TransformData trans;
+					trans.world_transform = transform.world_transform;
+					trans.pre_transform   = submesh.pre_transform;
+					transform_data.push_back(trans);
+
 					AABB aabb = {submesh.bounding_box.min_, submesh.bounding_box.max_};
 					aabb_data.push_back(aabb);
 
@@ -447,8 +456,9 @@ void Renderer::updateBuffers()
 		// Enlarge buffer
 		if (m_buffers[BufferType::IndirectCommand].getSize() == 0)
 		{
+			GraphicsContext::instance()->getQueueSystem().waitAll();
 			m_buffers[BufferType::Material]        = Buffer(sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-			m_buffers[BufferType::Transform]       = Buffer(sizeof(glm::mat4), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			m_buffers[BufferType::Transform]       = Buffer(sizeof(TransformData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			m_buffers[BufferType::BoundingBox]     = Buffer(sizeof(AABB), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			m_buffers[BufferType::IndirectCommand] = Buffer(sizeof(VkDrawIndexedIndirectCommand), VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 		}
@@ -458,7 +468,7 @@ void Renderer::updateBuffers()
 			GraphicsContext::instance()->getQueueSystem().waitAll();
 			m_buffers[BufferType::IndirectCommand] = Buffer(indirect_commands.size() * sizeof(VkDrawIndexedIndirectCommand), VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			m_buffers[BufferType::Material]        = Buffer(material_data.size() * sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-			m_buffers[BufferType::Transform]       = Buffer(transform_data.size() * sizeof(glm::mat4), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			m_buffers[BufferType::Transform]       = Buffer(transform_data.size() * sizeof(TransformData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			m_buffers[BufferType::BoundingBox]     = Buffer(aabb_data.size() * sizeof(AABB), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 			m_update = true;
@@ -469,7 +479,7 @@ void Renderer::updateBuffers()
 		{
 			std::memcpy(m_buffers[BufferType::Material].map(), material_data.data(), material_data.size() * sizeof(MaterialData));
 			std::memcpy(m_buffers[BufferType::IndirectCommand].map(), indirect_commands.data(), indirect_commands.size() * sizeof(VkDrawIndexedIndirectCommand));
-			std::memcpy(m_buffers[BufferType::Transform].map(), transform_data.data(), transform_data.size() * sizeof(glm::mat4));
+			std::memcpy(m_buffers[BufferType::Transform].map(), transform_data.data(), transform_data.size() * sizeof(TransformData));
 			std::memcpy(m_buffers[BufferType::BoundingBox].map(), aabb_data.data(), aabb_data.size() * sizeof(AABB));
 			m_buffers[BufferType::Material].unmap();
 			m_buffers[BufferType::IndirectCommand].unmap();

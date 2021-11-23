@@ -41,8 +41,7 @@ class ModelLoader
 	static void load(Model &model, const std::string &file_path);
 
   private:
-	static void parseNode(const std::string &file_path, aiMatrix4x4 transform, aiNode *node, const aiScene *scene, std::vector<SubMesh> &meshes, std::unordered_set<std::string> &loaded_textures);
-	static void parseMesh(aiMatrix4x4 transform, aiMesh *mesh, const aiScene *scene, std::vector<Vertex> &vertices, std::vector<uint32_t> &indices);
-	static void parseMaterial(const std::string &file_path, aiMaterial *mesh_material, scope<material::DisneyPBR> &material, std::unordered_set<std::string> &loaded_textures);
+	static void parseNode(const std::string &file_path, aiMatrix4x4 transform, aiNode *node, const aiScene *scene, Model &model);
+	static void parseMaterial(const std::string &file_path, aiMaterial *mesh_material, scope<material::DisneyPBR> &material);
 };
 }        // namespace Ilum

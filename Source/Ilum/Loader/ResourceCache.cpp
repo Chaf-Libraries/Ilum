@@ -253,7 +253,7 @@ void ResourceCache::flush()
 				m_model_cache.push_back(std::move(future.get()));
 				m_vertices_count += m_model_cache.back().vertices_count;
 				m_indices_count += m_model_cache.back().indices_count;
-				iter = m_model_futures.erase(iter);
+				iter   = m_model_futures.erase(iter);
 				update = true;
 			}
 			else
@@ -264,19 +264,21 @@ void ResourceCache::flush()
 
 		// Update model vertex offset
 		{
-			uint32_t vertex_offset = 0;
-			uint32_t index_offset = 0;
-			for (auto& [name, idx] : m_model_map)
+			uint32_t vertices_offset = 0;
+			uint32_t indices_offset  = 0;
+			for (auto &[name, idx] : m_model_map)
 			{
 				auto &model = m_model_cache[idx];
-				for (auto& submesh : model.submeshes)
+
+				model.vertices_offset = vertices_offset;
+				model.indices_offset  = indices_offset;
+
+				vertices_offset += model.vertices_count;
+				indices_offset += model.indices_count;
+				for (auto &submesh : model.submeshes)
 				{
-					submesh.vertex_offset = vertex_offset;
-					submesh.index_offset  = index_offset;
-					submesh.indirect_cmd.firstIndex  = index_offset;
-					submesh.indirect_cmd.vertexOffset = vertex_offset;
-					vertex_offset += static_cast<uint32_t>(submesh.vertices.size());
-					index_offset += static_cast<uint32_t>(submesh.indices.size());
+					submesh.indirect_cmd.vertexOffset = model.vertices_offset + submesh.vertices_offset;
+					submesh.indirect_cmd.firstIndex   = model.indices_offset + submesh.indices_offset;
 				}
 			}
 		}

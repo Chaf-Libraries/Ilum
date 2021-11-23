@@ -136,9 +136,11 @@ inline void draw_model_asset(const Image &image, float height, float space)
 			ImGui::Begin(name.c_str(), NULL, ImGuiWindowFlags_Tooltip | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar);
 			ImGui::Text(name.c_str());
 			ImGui::Separator();
-			ImGui::Text("submesh count: %d", model.get().submeshes.size());
+			ImGui::BulletText("submesh count: %d", model.get().submeshes.size());
 			ImGui::BulletText("vertices count: %d", model.get().vertices_count);
+			ImGui::BulletText("vertices offset: %d", model.get().vertices_offset);
 			ImGui::BulletText("indices count: %d", model.get().indices_count);
+			ImGui::BulletText("indices offset: %d", model.get().indices_offset);
 			ImGui::BulletText("bounding box: min(%d, %d, %d), max(%d, %d, %d)",
 			                  model.get().bounding_box.min_.x, model.get().bounding_box.min_.y, model.get().bounding_box.min_.z,
 			                  model.get().bounding_box.max_.x, model.get().bounding_box.max_.y, model.get().bounding_box.max_.z);

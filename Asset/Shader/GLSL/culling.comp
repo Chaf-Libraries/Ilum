@@ -20,6 +20,12 @@ struct DrawIndexedIndirectCommand
 	uint firstInstance;
 };
 
+struct TransformData
+{
+    mat4 world_transform;
+    mat4 pre_transform;
+};
+
 layout (binding = 0) buffer BoundingBox 
 {
    AABB boundingbox[ ];
@@ -32,7 +38,7 @@ layout (binding = 1, std430) buffer IndirectDraws
 
 layout (binding = 2) buffer Transform
 {
-    mat4 transform[];
+    TransformData transform[];
 };
 
 layout (binding = 3) uniform Camera 
@@ -120,7 +126,7 @@ void main()
 	uint idx = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x;
 
     AABB aabb = boundingbox[indirectDraws[idx].firstInstance];
-    mat4 trans = transform[indirectDraws[idx].firstInstance];
+    mat4 trans = transform[indirectDraws[idx].firstInstance].world_transform * transform[indirectDraws[idx].firstInstance].pre_transform;
 
     if (checkAABB(boundingBoxTransform(aabb, trans)))
     {

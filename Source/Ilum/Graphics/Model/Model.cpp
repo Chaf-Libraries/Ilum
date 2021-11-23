@@ -11,36 +11,25 @@
 
 namespace Ilum
 {
-Model::Model(std::vector<SubMesh> &&submeshes) :
-    submeshes(std::move(submeshes))
-{
-	for (auto &submesh : this->submeshes)
-	{
-		bounding_box.merge(submesh.bounding_box);
-	}
-
-	for (auto &submesh : this->submeshes)
-	{
-		vertices_count += static_cast<uint32_t>(submesh.vertices.size());
-		indices_count += static_cast<uint32_t>(submesh.indices.size());
-	}
-}
-
 Model::Model(Model &&other) noexcept :
     submeshes(std::move(other.submeshes)),
     bounding_box(other.bounding_box),
     vertices_count(other.vertices_count),
-    indices_count(other.indices_count)
+    indices_count(other.indices_count),
+    vertices(std::move(other.vertices)),
+    indices(std::move(other.indices))
 {
 	other.submeshes.clear();
 }
 
 Model &Model::operator=(Model &&other) noexcept
 {
-	submeshes     = std::move(other.submeshes);
-	bounding_box  = other.bounding_box;
+	submeshes      = std::move(other.submeshes);
+	bounding_box   = other.bounding_box;
 	vertices_count = other.vertices_count;
 	indices_count  = other.indices_count;
+	vertices       = std::move(other.vertices);
+	indices       = std::move(other.indices);
 
 	other.submeshes.clear();
 

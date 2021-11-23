@@ -13,21 +13,23 @@ class CommandBuffer;
 struct SubMesh
 {
   public:
-	uint32_t index_offset  = 0;
-	uint32_t vertex_offset = 0;
+	uint32_t index = 0;
 
-	std::vector<Vertex>   vertices;
-	std::vector<uint32_t> indices;
+	glm::mat4 pre_transform = glm::mat4(1.f);
+
+	uint32_t vertices_count = 0;
+	uint32_t indices_count  = 0;
+
+	uint32_t vertices_offset = 0;
+	uint32_t indices_offset  = 0;
 
 	material::DisneyPBR material;
 
 	geometry::BoundingBox bounding_box;
 
-	VkDrawIndexedIndirectCommand indirect_cmd;
+	VkDrawIndexedIndirectCommand indirect_cmd = {};
 
-	bool visible = true;
-
-	SubMesh(std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices, uint32_t index_offset, scope<material::DisneyPBR> &&material = nullptr);
+	SubMesh() = default;
 
 	~SubMesh() = default;
 

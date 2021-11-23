@@ -18,18 +18,18 @@ namespace Ilum
 inline glm::mat4 to_matrix(const aiMatrix4x4 &matrix)
 {
 	return glm::mat4(
-	    matrix.a1, matrix.a2, matrix.a3, matrix.a4,
-	    matrix.b1, matrix.b2, matrix.b3, matrix.b4,
-	    matrix.c1, matrix.c2, matrix.c3, matrix.c4,
-	    matrix.d1, matrix.d2, matrix.d3, matrix.d4);
+	    matrix.a1, matrix.b1, matrix.c1, matrix.d1,
+	    matrix.a2, matrix.b2, matrix.c2, matrix.d2,
+	    matrix.a3, matrix.b3, matrix.c3, matrix.d3,
+	    matrix.a4, matrix.b4, matrix.c4, matrix.d4);
 }
 
 inline glm::mat3 to_matrix(const aiMatrix3x3 &matrix)
 {
 	return glm::mat3(
-	    matrix.a1, matrix.a2, matrix.a3,
-	    matrix.b1, matrix.b2, matrix.b3,
-	    matrix.c1, matrix.c2, matrix.c3);
+	    matrix.a1, matrix.b1, matrix.c1,
+	    matrix.a2, matrix.b2, matrix.c2,
+	    matrix.a3, matrix.b3, matrix.c3);
 }
 
 inline glm::vec2 to_vector(const aiVector2D &vec)
@@ -122,7 +122,7 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 	}
 
 	Assimp::Importer importer;
-	
+
 	std::vector<SubMesh>     meshes;
 	std::vector<std::string> materials;
 
@@ -132,8 +132,10 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 	    aiProcess_CalcTangentSpace |
 	    aiProcess_GenSmoothNormals |
 	    aiProcess_Triangulate |
+	    aiProcess_SplitLargeMeshes |
 	    aiProcess_JoinIdenticalVertices |
 	    aiProcess_ImproveCacheLocality |
+	    aiProcess_GenBoundingBoxes |
 	    aiProcess_Triangulate |
 	    aiProcess_GenUVCoords |
 	    aiProcess_SortByPType |
@@ -146,22 +148,44 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 	{
 		LOG_INFO("Model {} preprocess finish", file_path);
 		std::unordered_set<std::string> loaded_textures;
-		// Merge all meshes into one big mesh
-		aiMatrix4x4 identity;
-		parseNode(file_path, identity, scene->mRootNode, scene, meshes, loaded_textures);
 
-		for (auto &tex : loaded_textures)
+		model.vertices.clear();
+		model.indices.clear();
+
+		for (uint32_t i = 0; i < scene->mNumMeshes; i++)
 		{
-			Renderer::instance()->getResourceCache().loadImageAsync(tex);
-		}
-	}
+			auto *mesh = scene->mMeshes[i];
+			for (uint32_t j = 0; j < mesh->mNumVertices; j++)
+			{
+				aiVector3D position  = mesh->mVertices[j];
+				aiVector3D normal    = mesh->mNormals ? mesh->mNormals[j] : aiVector3D(0.f, 0.f, 0.f);
+				aiVector2D texcoords = mesh->mTextureCoords[0] ? aiVector2D(mesh->mTextureCoords[0][j].x, mesh->mTextureCoords[0][j].y) : aiVector2D(0.f, 0.f);
+				aiVector3D tangent   = mesh->mTangents ? mesh->mTangents[j] : aiVector3D(0.f, 0.f, 0.f);
+				aiVector3D bitangent = mesh->mBitangents ? mesh->mBitangents[j] : aiVector3D(0.f, 0.f, 0.f);
 
-	model = Model(std::move(meshes));
+				model.vertices.emplace_back(to_vector(position), to_vector(texcoords), to_vector(normal), to_vector(tangent), to_vector(bitangent));
+			}
+
+			for (uint32_t j = 0; j < mesh->mNumFaces; j++)
+			{
+				for (uint32_t k = 0; k < 3; k++)
+				{
+					model.indices.push_back(mesh->mFaces[j].mIndices[k]);
+				}
+			}
+		}
+
+		model.vertices_count = static_cast<uint32_t>(model.vertices.size());
+		model.indices_count  = static_cast<uint32_t>(model.indices.size());
+
+		aiMatrix4x4 identity;
+		parseNode(file_path, identity, scene->mRootNode, scene, model);
+	}
 
 	LOG_INFO("Model {} loaded!", file_path);
 }
 
-void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform, aiNode *node, const aiScene *scene, std::vector<SubMesh> &meshes, std::unordered_set<std::string> &loaded_textures)
+void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform, aiNode *node, const aiScene *scene, Model &model)
 {
 	transform = transform * node->mTransformation;
 
@@ -175,46 +199,45 @@ void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform,
 		uint32_t    index_offset = 0;
 		aiMesh *    mesh         = scene->mMeshes[node->mMeshes[i]];
 		aiMaterial *material     = scene->mMaterials[mesh->mMaterialIndex];
-		parseMesh(transform, mesh, scene, vertices, indices);
-		parseMaterial(file_path, material, pbr, loaded_textures);
 
-		for (auto &submesh : meshes)
+		parseMaterial(file_path, material, pbr);
+
+		SubMesh submesh;
+		submesh.index         = node->mMeshes[i];
+		submesh.material      = *pbr;
+		submesh.pre_transform = to_matrix(transform);
+		submesh.bounding_box  = geometry::BoundingBox(to_vector(mesh->mAABB.mMin), to_vector(mesh->mAABB.mMax));
+		model.bounding_box.merge(submesh.bounding_box);
+
+		submesh.vertices_count = mesh->mNumVertices;
+		submesh.indices_count  = mesh->mNumFaces * 3;
+
+		uint32_t vertices_offset = 0;
+		uint32_t indices_offset  = 0;
+		for (uint32_t j = 0; j < node->mMeshes[i]; j++)
 		{
-			index_offset += static_cast<uint32_t>(submesh.indices.size());
+			vertices_offset += scene->mMeshes[j]->mNumVertices;
+			indices_offset += scene->mMeshes[j]->mNumFaces * 3;
 		}
+		submesh.vertices_offset = vertices_offset;
+		submesh.indices_offset  = indices_offset;
 
-		meshes.emplace_back(std::move(vertices), std::move(indices), index_offset, std::move(pbr));
+		submesh.indirect_cmd.firstIndex    = submesh.indices_offset;
+		submesh.indirect_cmd.vertexOffset  = submesh.vertices_offset;
+		submesh.indirect_cmd.instanceCount = 1;
+		submesh.indirect_cmd.firstInstance = 0;
+		submesh.indirect_cmd.indexCount    = submesh.indices_count;
+
+		model.submeshes.emplace_back(std::move(submesh));
 	}
 
 	for (uint32_t i = 0; i < node->mNumChildren; i++)
 	{
-		parseNode(file_path, transform, node->mChildren[i], scene, meshes, loaded_textures);
+		parseNode(file_path, transform, node->mChildren[i], scene, model);
 	}
 }
 
-void ModelLoader::parseMesh(aiMatrix4x4 transform, aiMesh *mesh, const aiScene *scene, std::vector<Vertex> &vertices, std::vector<uint32_t> &indices)
-{
-	for (uint32_t i = 0; i < mesh->mNumVertices; i++)
-	{
-		aiVector3D position  = transform * mesh->mVertices[i];
-		aiVector3D normal    = mesh->mNormals ? transform * mesh->mNormals[i] : aiVector3D(0.f, 0.f, 0.f);
-		aiVector2D texcoords = mesh->mTextureCoords[0] ? aiVector2D(mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y) : aiVector2D(0.f, 0.f);
-		aiVector3D tangent   = mesh->mTangents ? transform * mesh->mTangents[i] : aiVector3D(0.f, 0.f, 0.f);
-		aiVector3D bitangent = mesh->mBitangents ? transform * mesh->mBitangents[i] : aiVector3D(0.f, 0.f, 0.f);
-
-		vertices.emplace_back(to_vector(position), to_vector(texcoords), to_vector(normal), to_vector(tangent), to_vector(bitangent));
-	}
-
-	for (uint32_t i = 0; i < mesh->mNumFaces; i++)
-	{
-		for (uint32_t j = 0; j < 3; j++)
-		{
-			indices.push_back(mesh->mFaces[i].mIndices[j]);
-		}
-	}
-}
-
-void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_material, scope<material::DisneyPBR> &material, std::unordered_set<std::string> &loaded_textures)
+void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_material, scope<material::DisneyPBR> &material)
 {
 	std::string dictionary = FileSystem::getFileDirectory(file_path);
 
@@ -229,42 +252,42 @@ void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_m
 	if (aiGetMaterialTexture(mesh_material, AI_MATKEY_BASE_COLOR_TEXTURE, &path) != aiReturn_FAILURE)
 	{
 		material->albedo_map = dictionary + path.C_Str();
-		loaded_textures.insert(dictionary + path.C_Str());
+		Renderer::instance()->getResourceCache().loadImageAsync(dictionary + path.C_Str());
 	}
 	path.Clear();
 
 	if (aiGetMaterialTexture(mesh_material, aiTextureType_NORMALS, 0, &path) != aiReturn_FAILURE)
 	{
 		material->normal_map = dictionary + path.C_Str();
-		loaded_textures.insert(dictionary + path.C_Str());
+		Renderer::instance()->getResourceCache().loadImageAsync(dictionary + path.C_Str());
 	}
 	path.Clear();
 
 	if (aiGetMaterialTexture(mesh_material, AI_MATKEY_METALLIC_TEXTURE, &path) != aiReturn_FAILURE)
 	{
 		material->metallic_map = dictionary + path.C_Str();
-		loaded_textures.insert(dictionary + path.C_Str());
+		Renderer::instance()->getResourceCache().loadImageAsync(dictionary + path.C_Str());
 	}
 	path.Clear();
 
 	if (aiGetMaterialTexture(mesh_material, AI_MATKEY_ROUGHNESS_TEXTURE, &path) != aiReturn_FAILURE)
 	{
 		material->roughness_map = dictionary + path.C_Str();
-		loaded_textures.insert(dictionary + path.C_Str());
+		Renderer::instance()->getResourceCache().loadImageAsync(dictionary + path.C_Str());
 	}
 	path.Clear();
 
 	if (aiGetMaterialTexture(mesh_material, aiTextureType_EMISSIVE, 0, &path) != aiReturn_FAILURE)
 	{
 		material->emissive_map = dictionary + path.C_Str();
-		loaded_textures.insert(dictionary + path.C_Str());
+		Renderer::instance()->getResourceCache().loadImageAsync(dictionary + path.C_Str());
 	}
 	path.Clear();
 
 	if (aiGetMaterialTexture(mesh_material, aiTextureType_AMBIENT_OCCLUSION, 0, &path) != aiReturn_FAILURE)
 	{
 		material->ao_map = dictionary + path.C_Str();
-		loaded_textures.insert(dictionary + path.C_Str());
+		Renderer::instance()->getResourceCache().loadImageAsync(dictionary + path.C_Str());
 	}
 	path.Clear();
 
@@ -275,7 +298,7 @@ void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_m
 		{
 			material->roughness_map = dictionary + path.C_Str();
 			material->metallic_map  = dictionary + path.C_Str();
-			loaded_textures.insert(dictionary + path.C_Str());
+			Renderer::instance()->getResourceCache().loadImageAsync(dictionary + path.C_Str());
 		}
 
 		path.Clear();
