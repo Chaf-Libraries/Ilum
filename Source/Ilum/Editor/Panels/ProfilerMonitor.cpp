@@ -51,15 +51,30 @@ void ProfilerMonitor::draw(float delta_time)
 	std::vector<float> cpu_times;
 	std::vector<float> gpu_times;
 
-	uint32_t idx = 0;
-	for (auto &[name, res] : m_profile_result)
+	if (ImGui::BeginTable("CPU&GPU Time", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
 	{
-		auto [cpu_time, gpu_time] = res;
+		ImGui::TableSetupColumn("Pass");
+		ImGui::TableSetupColumn("CPU Time (ms)");
+		ImGui::TableSetupColumn("GPU Time (ms)");
+		ImGui::TableHeadersRow();
 
-		cpu_times.push_back(cpu_time);
-		gpu_times.push_back(gpu_time);
+		for (auto &[name, res] : m_profile_result)
+		{
+			auto [cpu_time, gpu_time] = res;
 
-		ImGui::Text("%d - %s: CPU time: %.3f ms, GPU time: %.3f ms", idx++, name.c_str(), cpu_time, gpu_time);
+			cpu_times.push_back(cpu_time);
+			gpu_times.push_back(gpu_time);
+
+			ImGui::TableNextRow();
+			ImGui::TableSetColumnIndex(0);
+			ImGui::Text("%s", name.c_str());
+			ImGui::TableSetColumnIndex(1);
+			ImGui::Text("%f", cpu_time);
+			ImGui::TableSetColumnIndex(2);
+			ImGui::Text("%f", gpu_time);
+		}
+
+		ImGui::EndTable();
 	}
 
 	if (!m_profile_result.empty())

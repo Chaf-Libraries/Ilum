@@ -26,6 +26,8 @@
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
+#include "Threading/ThreadPool.hpp"
+
 #include <imgui.h>
 
 namespace Ilum
@@ -257,7 +259,7 @@ void Renderer::createSamplers()
 
 void Renderer::updateBuffers()
 {
-	GraphicsContext::instance()->getProfiler().beginSample("Buffer Update");
+	GraphicsContext::instance()->getProfiler().beginSample("Camera Update");
 	// Update main camera
 	if (Main_Camera.update)
 	{
@@ -285,8 +287,10 @@ void Renderer::updateBuffers()
 		std::memcpy(m_buffers[BufferType::MainCamera].map(), &camera_buffer, sizeof(camera_buffer));
 		m_buffers[BufferType::MainCamera].unmap();
 	}
+	GraphicsContext::instance()->getProfiler().endSample("Camera Update");
 
 	// Update lights
+	GraphicsContext::instance()->getProfiler().beginSample("Light Update");
 	{
 		std::vector<cmpt::DirectionalLight::Data> directional_lights;
 		std::vector<cmpt::SpotLight::Data>        spot_lights;
@@ -363,8 +367,11 @@ void Renderer::updateBuffers()
 			m_buffers[BufferType::PointLight].unmap();
 		}
 	}
+	GraphicsContext::instance()->getProfiler().endSample("Light Update");
 
 	// Update instance
+	GraphicsContext::instance()->getProfiler().beginSample("Instance Update");
+
 	std::atomic<uint32_t> instance_count = 0;
 
 	auto group = Scene::instance()->getRegistry().group<cmpt::MeshRenderer, cmpt::Tag, cmpt::Transform>();
@@ -376,15 +383,13 @@ void Renderer::updateBuffers()
 		}
 
 		auto &model = m_resource_cache->loadModel(mesh_renderer.model);
-		for (uint32_t i = 0; i < mesh_renderer.materials.size(); i++)
-		{
-			auto &submesh      = model.get().submeshes[i];
-			auto &material_ptr = mesh_renderer.materials[i];
-			if (material_ptr->type() == typeid(material::DisneyPBR))
+
+		std::for_each(std::execution::par_unseq, mesh_renderer.materials.begin(), mesh_renderer.materials.end(), [&instance_count](scope<IMaterial> &material) {
+			if (material->type() == typeid(material::DisneyPBR))
 			{
-				instance_count++;
+				instance_count.fetch_add(1, std::memory_order_relaxed);
 			}
-		}
+		});
 	});
 
 	if (instance_count != Instance_Count || cmpt::Transform::update)
@@ -513,7 +518,7 @@ void Renderer::updateBuffers()
 		}
 	}
 
-	GraphicsContext::instance()->getProfiler().endSample("Buffer Update");
+	GraphicsContext::instance()->getProfiler().endSample("Instance Update");
 }
 
 void Renderer::createBuffers()

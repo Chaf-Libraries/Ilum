@@ -10,10 +10,16 @@ layout(push_constant) uniform PushBlock{
 	float scale;
 	float strength;
 	uint horizental;
+    uint enable;
 }push_data;
 
 void main()
 {
+    if(push_data.enable == 0)
+    {
+        discard;
+    }
+
     float weights[5];
     weights[0] = 0.227027;
     weights[1] = 0.1945946;

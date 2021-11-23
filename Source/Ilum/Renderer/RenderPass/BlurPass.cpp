@@ -62,6 +62,8 @@ void BlurPass::render(RenderPassState &state)
 	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float), sizeof(float), &Renderer::instance()->Bloom.strength);
 	uint32_t horizental = static_cast<uint32_t>(m_horizental);
 	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 2 * sizeof(float), sizeof(float), &horizental);
+	uint32_t enable = static_cast<uint32_t>(Renderer::instance()->Bloom.enable);
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 3 * sizeof(float), sizeof(uint32_t), &enable);
 	vkCmdDraw(cmd_buffer, 3, 1, 0, 0);
 
 	vkCmdEndRenderPass(cmd_buffer);
