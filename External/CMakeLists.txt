@@ -175,3 +175,5 @@ target_include_directories(ImFileDialog PUBLIC ${IMFILEDIALOG_DIR})
 target_include_directories(ImFileDialog PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(ImFileDialog imgui stb)
 
+# mesh optimizer
+add_subdirectory(meshoptimizer)
