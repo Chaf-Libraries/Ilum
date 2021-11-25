@@ -61,7 +61,7 @@ void main() {
         texture(textureArray[nonuniformEXT(material_data[inIndex].albedo_map)], inUV) * material_data[inIndex].base_color : 
         material_data[inIndex].base_color;
     
-    //Albedo = vec4(inColor, 1.0);
+    Albedo = vec4(inColor, 1.0);
     
     // Metallic G-Buffer
     Metallic = material_data[inIndex].metallic_map < 1024?

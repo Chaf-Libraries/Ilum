@@ -56,12 +56,7 @@ layout (binding = 4) buffer Meshlet
     uint meshlet[];
 };
 
-layout (binding = 5) buffer MeshletCount
-{
-    uint count[];
-};
-
-layout (local_size_x = 64) in;
+layout (local_size_x = 1024) in;
 
 bool checkBound(Bound bound)
 {
@@ -114,11 +109,9 @@ void main()
     if (dot(normalize(camera.position - bound.cone_apex), bound.cone_axis) < bound.cone_cutoff && checkBound(bound))
     {
         indirectDraws[idx].instanceCount = 1;
-        count[indirectDraws[idx].firstInstance]=1;
     }
     else
     {
         indirectDraws[idx].instanceCount = 0;
-        count[indirectDraws[idx].firstInstance]=0;
     }
 }
