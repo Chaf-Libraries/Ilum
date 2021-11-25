@@ -275,11 +275,6 @@ void ResourceCache::flush()
 
 				vertices_offset += model.vertices_count;
 				indices_offset += model.indices_count;
-				for (auto &submesh : model.submeshes)
-				{
-					submesh.indirect_cmd.vertexOffset = model.vertices_offset + submesh.vertices_offset;
-					submesh.indirect_cmd.firstIndex   = model.indices_offset + submesh.indices_offset;
-				}
 			}
 		}
 

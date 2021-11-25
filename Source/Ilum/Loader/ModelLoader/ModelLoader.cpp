@@ -13,6 +13,8 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <meshoptimizer.h>
+
 namespace Ilum
 {
 inline glm::mat4 to_matrix(const aiMatrix4x4 &matrix)
@@ -151,9 +153,20 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 
 		model.vertices.clear();
 		model.indices.clear();
+		model.meshlets.clear();
+
+		const size_t max_vertices  = 64;
+		const size_t max_triangles = 128;
+		const float  cone_weight   = 0.3f;
+
+		std::vector<uint32_t> meshlet_offsets;
+		std::vector<uint32_t> meshlet_counts;
 
 		for (uint32_t i = 0; i < scene->mNumMeshes; i++)
 		{
+			std::vector<Vertex>   vertices;
+			std::vector<uint32_t> indices;
+
 			auto *mesh = scene->mMeshes[i];
 			for (uint32_t j = 0; j < mesh->mNumVertices; j++)
 			{
@@ -163,29 +176,78 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 				aiVector3D tangent   = mesh->mTangents ? mesh->mTangents[j] : aiVector3D(0.f, 0.f, 0.f);
 				aiVector3D bitangent = mesh->mBitangents ? mesh->mBitangents[j] : aiVector3D(0.f, 0.f, 0.f);
 
-				model.vertices.emplace_back(to_vector(position), to_vector(texcoords), to_vector(normal), to_vector(tangent), to_vector(bitangent));
+				vertices.emplace_back(to_vector(position), to_vector(texcoords), to_vector(normal), to_vector(tangent), to_vector(bitangent));
 			}
 
 			for (uint32_t j = 0; j < mesh->mNumFaces; j++)
 			{
 				for (uint32_t k = 0; k < 3; k++)
 				{
-					model.indices.push_back(mesh->mFaces[j].mIndices[k]);
+					indices.push_back(mesh->mFaces[j].mIndices[k]);
 				}
 			}
+
+			// Optimize mesh
+			meshopt_optimizeVertexCache(indices.data(), indices.data(), indices.size(), vertices.size());
+			meshopt_optimizeOverdraw(indices.data(), indices.data(), indices.size(), &vertices[0].position.x, vertices.size(), sizeof(glm::vec3), 1.05f);
+			meshopt_optimizeVertexFetch(vertices.data(), indices.data(), indices.size(), vertices.data(), vertices.size(), sizeof(Vertex));
+
+			// Generate meshlets
+			size_t                       max_meshlets = meshopt_buildMeshletsBound(indices.size(), max_vertices, max_triangles);
+			std::vector<meshopt_Meshlet> meshlets(max_meshlets);
+			std::vector<uint32_t>        meshlet_vertices(max_meshlets * max_vertices);
+			std::vector<uint8_t>         meshlet_triangles(max_meshlets * max_triangles * 3);
+			size_t                       meshlet_count = meshopt_buildMeshlets(meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(), indices.data(),
+                                                         indices.size(), &vertices[0].position.x, vertices.size(), sizeof(Vertex), max_vertices, max_triangles, cone_weight);
+
+			// Merge meshlets
+			const meshopt_Meshlet &last = meshlets[meshlet_count - 1];
+			meshlet_vertices.resize(last.vertex_offset + last.vertex_count);
+			meshlet_triangles.resize(last.triangle_offset + ((last.triangle_count * 3 + 3) & ~3));
+			meshlets.resize(meshlet_count);
+
+			meshlet_offsets.push_back(meshlet_offsets.empty() ? 0 : meshlet_offsets.back() + meshlet_counts.back());
+			meshlet_counts.push_back(static_cast<uint32_t>(meshlet_count));
+
+			// Process meshlets
+			std::vector<uint32_t> meshlet_indices;
+			meshlet_indices.reserve(meshlet_triangles.size());
+
+			std::vector<meshopt_Bounds> meshlet_bounds;
+			uint32_t                    meshlet_indices_offset = 0;
+
+			for (auto &meshlet : meshlets)
+			{
+				Meshlet tmp_meshlet;
+				tmp_meshlet.indices_offset = meshlet_indices_offset;
+				tmp_meshlet.indices_count  = static_cast<uint32_t>(meshlet.triangle_count * 3);
+				meshlet_indices_offset += tmp_meshlet.indices_count;
+
+				for (uint32_t j = 0; j < meshlet.triangle_count * 3; j++)
+				{
+					meshlet_indices.push_back(meshlet_vertices[meshlet.vertex_offset + meshlet_triangles[meshlet.triangle_offset + j]]);
+				}
+
+				tmp_meshlet.bounds = meshopt_computeMeshletBounds(&meshlet_vertices[meshlet.vertex_offset], &meshlet_triangles[meshlet.triangle_offset],
+				                                                  meshlet.triangle_count, &vertices[0].position.x, vertices.size(), sizeof(glm::vec3));
+				model.meshlets.emplace_back(std::move(tmp_meshlet));
+			}
+
+			model.vertices.insert(model.vertices.end(), std::make_move_iterator(vertices.begin()), std::make_move_iterator(vertices.end()));
+			model.indices.insert(model.indices.end(), std::make_move_iterator(meshlet_indices.begin()), std::make_move_iterator(meshlet_indices.end()));
 		}
 
 		model.vertices_count = static_cast<uint32_t>(model.vertices.size());
 		model.indices_count  = static_cast<uint32_t>(model.indices.size());
 
 		aiMatrix4x4 identity;
-		parseNode(file_path, identity, scene->mRootNode, scene, model);
+		parseNode(file_path, identity, scene->mRootNode, scene, model, meshlet_offsets, meshlet_counts);
 	}
 
 	LOG_INFO("Model {} loaded!", file_path);
 }
 
-void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform, aiNode *node, const aiScene *scene, Model &model)
+void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform, aiNode *node, const aiScene *scene, Model &model, std::vector<uint32_t> &meshlet_offsets, std::vector<uint32_t> &meshlet_counts)
 {
 	transform = transform * node->mTransformation;
 
@@ -221,19 +283,15 @@ void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform,
 		}
 		submesh.vertices_offset = vertices_offset;
 		submesh.indices_offset  = indices_offset;
-
-		submesh.indirect_cmd.firstIndex    = submesh.indices_offset;
-		submesh.indirect_cmd.vertexOffset  = submesh.vertices_offset;
-		submesh.indirect_cmd.instanceCount = 1;
-		submesh.indirect_cmd.firstInstance = 0;
-		submesh.indirect_cmd.indexCount    = submesh.indices_count;
+		submesh.meshlet_count=meshlet_counts[node->mMeshes[i]];
+		submesh.meshlet_offset=meshlet_offsets[node->mMeshes[i]];
 
 		model.submeshes.emplace_back(std::move(submesh));
 	}
 
 	for (uint32_t i = 0; i < node->mNumChildren; i++)
 	{
-		parseNode(file_path, transform, node->mChildren[i], scene, model);
+		parseNode(file_path, transform, node->mChildren[i], scene, model, meshlet_offsets, meshlet_counts);
 	}
 }
 

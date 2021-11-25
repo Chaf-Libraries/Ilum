@@ -102,6 +102,7 @@ void SceneView::draw(float delta_time)
 				mesh_renderer.materials.emplace_back(createScope<material::DisneyPBR>());
 				*static_cast<material::DisneyPBR *>(mesh_renderer.materials.back().get()) = submesh.material;
 			}
+			cmpt::MeshRenderer::update = true;
 		}
 		ImGui::EndDragDropTarget();
 	}

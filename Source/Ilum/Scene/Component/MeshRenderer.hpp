@@ -11,5 +11,7 @@ struct MeshRenderer
 	std::string model;
 
 	std::vector<scope<IMaterial>> materials;
+
+	inline static bool update = false;
 };
 }        // namespace Ilum::Cmpt

@@ -44,6 +44,7 @@ class Renderer : public TSubsystem<Renderer>
 		Material,
 		Transform,
 		BoundingBox,
+		Meshlet,
 		IndirectCommand,
 		DirectionalLight,
 		PointLight,
@@ -100,6 +101,12 @@ class Renderer : public TSubsystem<Renderer>
 	void createBuffers();
 
 	void updateBuffers();
+
+	void updateLightBuffer();
+
+	void updateCameraBuffer();
+
+	void updateInstanceBuffer();
 
   private:
 	std::function<void(RenderGraphBuilder &)> defaultBuilder;

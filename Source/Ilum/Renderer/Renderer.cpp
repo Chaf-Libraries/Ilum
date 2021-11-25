@@ -13,6 +13,8 @@
 
 #include "ImGui/ImGuiContext.hpp"
 
+#include "File/FileSystem.hpp"
+
 #include "Loader/ImageLoader/Bitmap.hpp"
 #include "Loader/ImageLoader/ImageLoader.hpp"
 
@@ -259,44 +261,22 @@ void Renderer::createSamplers()
 
 void Renderer::updateBuffers()
 {
-	GraphicsContext::instance()->getProfiler().beginSample("Camera Update");
-	// Update main camera
-	if (Main_Camera.update)
-	{
-		Main_Camera.onUpdate();
+	updateCameraBuffer();
 
-		struct
-		{
-			glm::mat4 view_projection;
-			glm::vec4 frustum[6];
-			alignas(16) glm::vec3 position;
-		} camera_buffer;
+	updateLightBuffer();
 
-		if (m_buffers[BufferType::MainCamera].getSize() != sizeof(camera_buffer))
-		{
-			GraphicsContext::instance()->getQueueSystem().waitAll();
-			m_buffers[BufferType::MainCamera] = Buffer(sizeof(camera_buffer), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-		}
-		camera_buffer.position        = Main_Camera.position;
-		camera_buffer.view_projection = Main_Camera.view_projection;
-		for (uint32_t i = 0; i < 6; i++)
-		{
-			const auto &plane        = Main_Camera.frustum.planes[i];
-			camera_buffer.frustum[i] = glm::vec4(plane.normal, plane.constant);
-		}
-		std::memcpy(m_buffers[BufferType::MainCamera].map(), &camera_buffer, sizeof(camera_buffer));
-		m_buffers[BufferType::MainCamera].unmap();
-	}
-	GraphicsContext::instance()->getProfiler().endSample("Camera Update");
+	updateInstanceBuffer();
+}
 
-	// Update lights
+void Renderer::updateLightBuffer()
+{
 	GraphicsContext::instance()->getProfiler().beginSample("Light Update");
 	{
 		std::vector<cmpt::DirectionalLight::Data> directional_lights;
 		std::vector<cmpt::SpotLight::Data>        spot_lights;
 		std::vector<cmpt::PointLight::Data>       point_lights;
 
-		//// Gather light infos
+		// Gather light infos
 		const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::Light, cmpt::Tag>);
 		group.each([&](const entt::entity &entity, const cmpt::Light &light, const cmpt::Tag &tag) {
 			if (!tag.active || !light.impl)
@@ -368,8 +348,44 @@ void Renderer::updateBuffers()
 		}
 	}
 	GraphicsContext::instance()->getProfiler().endSample("Light Update");
+}
 
-	// Update instance
+void Renderer::updateCameraBuffer()
+{
+	GraphicsContext::instance()->getProfiler().beginSample("Camera Update");
+	// Update main camera
+	if (Main_Camera.update)
+	{
+		Main_Camera.onUpdate();
+
+		struct
+		{
+			glm::mat4 view_projection;
+			glm::vec4 frustum[6];
+			alignas(16) glm::vec3 position;
+		} camera_buffer;
+
+		if (m_buffers[BufferType::MainCamera].getSize() != sizeof(camera_buffer))
+		{
+			GraphicsContext::instance()->getQueueSystem().waitAll();
+			m_buffers[BufferType::MainCamera] = Buffer(sizeof(camera_buffer), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+		}
+		camera_buffer.position        = Main_Camera.position;
+		camera_buffer.view_projection = Main_Camera.view_projection;
+		for (uint32_t i = 0; i < 6; i++)
+		{
+			const auto &plane        = Main_Camera.frustum.planes[i];
+			camera_buffer.frustum[i] = glm::vec4(plane.normal, plane.constant);
+		}
+		std::memcpy(m_buffers[BufferType::MainCamera].map(), &camera_buffer, sizeof(camera_buffer));
+		m_buffers[BufferType::MainCamera].unmap();
+	}
+
+	GraphicsContext::instance()->getProfiler().endSample("Camera Update");
+}
+
+void Renderer::updateInstanceBuffer()
+{
 	GraphicsContext::instance()->getProfiler().beginSample("Instance Update");
 
 	std::atomic<uint32_t> instance_count = 0;
@@ -392,8 +408,10 @@ void Renderer::updateBuffers()
 		});
 	});
 
-	if (instance_count != Instance_Count || cmpt::Transform::update || ResourceCache::update)
+	if (instance_count != Instance_Count || cmpt::Transform::update || ResourceCache::update || cmpt::MeshRenderer::update)
 	{
+		cmpt::MeshRenderer::update = false;
+
 		// Collect data
 		struct MaterialData
 		{
@@ -450,8 +468,14 @@ void Renderer::updateBuffers()
 				{
 					auto *material = static_cast<material::DisneyPBR *>(material_ptr.get());
 
-					submesh.indirect_cmd.firstInstance = instance_idx++;
-					indirect_commands.push_back(submesh.indirect_cmd);
+					VkDrawIndexedIndirectCommand indirect_cmd;
+					indirect_cmd.firstInstance = instance_idx++;
+					indirect_cmd.firstIndex    = model.get().indices_offset + submesh.indices_offset;
+					indirect_cmd.vertexOffset  = model.get().vertices_offset + submesh.vertices_offset;
+					indirect_cmd.instanceCount = 1;
+					indirect_cmd.indexCount    = submesh.indices_count;
+
+					indirect_commands.push_back(indirect_cmd);
 
 					TransformData trans;
 					trans.world_transform = transform.world_transform;
@@ -467,14 +491,14 @@ void Renderer::updateBuffers()
 					data.roughness_factor    = material->roughness_factor;
 					data.emissive_color      = material->emissive_color;
 					data.emissive_intensity  = material->emissive_intensity;
-					data.albedo_map          = Renderer::instance()->getResourceCache().imageID(material->albedo_map);
-					data.normal_map          = Renderer::instance()->getResourceCache().imageID(material->normal_map);
-					data.metallic_map        = Renderer::instance()->getResourceCache().imageID(material->metallic_map);
-					data.roughness_map       = Renderer::instance()->getResourceCache().imageID(material->roughness_map);
-					data.emissive_map        = Renderer::instance()->getResourceCache().imageID(material->emissive_map);
-					data.ao_map              = Renderer::instance()->getResourceCache().imageID(material->ao_map);
+					data.albedo_map          = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->albedo_map));
+					data.normal_map          = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->normal_map));
+					data.metallic_map        = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->metallic_map));
+					data.roughness_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->roughness_map));
+					data.emissive_map        = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->emissive_map));
+					data.ao_map              = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->ao_map));
 					data.displacement_height = material->displacement_height;
-					data.displacement_map    = Renderer::instance()->getResourceCache().imageID(material->displacement_map);
+					data.displacement_map    = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->displacement_map));
 					data.id                  = static_cast<uint32_t>(entity);
 					material_data.push_back(data);
 				}
@@ -531,6 +555,7 @@ void Renderer::createBuffers()
 	m_buffers[BufferType::Transform]        = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 	m_buffers[BufferType::IndirectCommand]  = Buffer(1, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 	m_buffers[BufferType::BoundingBox]      = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	m_buffers[BufferType::Meshlet]          = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 	m_buffers[BufferType::Vertex]           = Buffer(0, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 	m_buffers[BufferType::Index]            = Buffer(0, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 }

@@ -339,6 +339,7 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 		    {
 			    component.model = "";
 			    component.materials.clear();
+			    cmpt::MeshRenderer::update = true;
 		    }
 		    ImGui::PopStyleVar();
 		    if (ImGui::BeginDragDropTarget())
@@ -351,6 +352,7 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 				    {
 					    component.model = new_model;
 					    component.materials.clear();
+					    cmpt::MeshRenderer::update = true;
 					    auto &model = Renderer::instance()->getResourceCache().loadModel(component.model);
 					    for (auto &submesh : model.get().submeshes)
 					    {
