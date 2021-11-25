@@ -171,8 +171,8 @@ inline void draw_material(T &material)
 
 void draw_texture(std::string &texture)
 {
-	if (ImGui::ImageButton(Renderer::instance()->getResourceCache().hasImage(texture) ?
-                               ImGuiContext::textureID(Renderer::instance()->getResourceCache().loadImage(texture), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)) :
+	if (ImGui::ImageButton(Renderer::instance()->getResourceCache().hasImage(FileSystem::getRelativePath(texture)) ?
+                               ImGuiContext::textureID(Renderer::instance()->getResourceCache().loadImage(FileSystem::getRelativePath(texture)), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)) :
                                ImGuiContext::textureID(Renderer::instance()->getDefaultTexture(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
 	                       ImVec2{100.f, 100.f}))
 	{
@@ -307,10 +307,10 @@ template <>
 inline void draw_component<cmpt::Transform>(Entity entity)
 {
 	draw_component<cmpt::Transform>(
-	    "Transform", entity, [](auto &component) {
-		    component.update = draw_vec3_control("Translation", component.translation, 0.f);
-		    component.update = component.update | draw_vec3_control("Rotation", component.rotation, 0.f);
-		    component.update = component.update | draw_vec3_control("Scale", component.scale, 1.f);
+	    "Transform", entity, [](cmpt::Transform &component) {
+		    cmpt::Transform::update = draw_vec3_control("Translation", component.translation, 0.f);
+		    cmpt::Transform::update = cmpt::Transform::update | draw_vec3_control("Rotation", component.rotation, 0.f);
+		    cmpt::Transform::update = cmpt::Transform::update | draw_vec3_control("Scale", component.scale, 1.f);
 	    },
 	    true);
 }
@@ -353,7 +353,7 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 					    component.model = new_model;
 					    component.materials.clear();
 					    cmpt::MeshRenderer::update = true;
-					    auto &model = Renderer::instance()->getResourceCache().loadModel(component.model);
+					    auto &model                = Renderer::instance()->getResourceCache().loadModel(component.model);
 					    for (auto &submesh : model.get().submeshes)
 					    {
 						    component.materials.emplace_back(createScope<material::DisneyPBR>());

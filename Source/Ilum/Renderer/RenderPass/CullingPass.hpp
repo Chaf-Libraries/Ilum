@@ -9,10 +9,15 @@ namespace Ilum::pass
 class CullingPass : public TRenderPass<CullingPass>
 {
   public:
+	CullingPass();
+
 	virtual void setupPipeline(PipelineState &state) override;
 
 	virtual void resolveResources(ResolveState &resolve) override;
 
 	virtual void render(RenderPassState &state) override;
+
+  private:
+	scope<Buffer> m_buffer;
 };
 }        // namespace Ilum::pass

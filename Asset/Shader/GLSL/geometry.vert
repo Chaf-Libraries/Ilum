@@ -15,6 +15,7 @@ layout(location = 2) out vec3 outNormal;
 layout(location = 3) out vec3 outTangent;
 layout(location = 4) out vec3 outBiTangent;
 layout(location = 5) out uint outIndex;
+layout(location = 6) out vec3 outColor;
 
 struct MaterialData
 {
@@ -53,9 +54,9 @@ layout (set = 0, binding = 0) uniform MainCamera
 
 layout (set = 0, binding = 1) uniform sampler2D textureArray[];
 
-layout (set = 0, binding = 2) buffer InstanceBuffer
+layout (set = 0, binding = 2) buffer MaterialBuffer
 {
-    MaterialData instance_data[];
+    MaterialData material_data[];
 };
 
 layout (set = 0, binding = 3) buffer TransformBuffer
@@ -63,13 +64,18 @@ layout (set = 0, binding = 3) buffer TransformBuffer
     TransformData transform[];
 };
 
+layout (set = 0, binding = 4) buffer MeshletBuffer
+{
+    uint meshlets[];
+};
+
 
 void main() {
-    float height=instance_data[gl_DrawIDARB].displacement_map < 1024?
-        max(textureLod(textureArray[nonuniformEXT(instance_data[gl_DrawIDARB].displacement_map)], inUV, 0.0).r, 0.0) * instance_data[gl_DrawIDARB].displacement_height:
+    float height=material_data[meshlets[gl_DrawIDARB]].displacement_map < 1024?
+        max(textureLod(textureArray[nonuniformEXT(material_data[meshlets[gl_DrawIDARB]].displacement_map)], inUV, 0.0).r, 0.0) * material_data[meshlets[gl_DrawIDARB]].displacement_height:
         0.0;
     
-    mat4 trans = transform[gl_DrawIDARB].world_transform*transform[gl_DrawIDARB].pre_transform;
+    mat4 trans = transform[meshlets[gl_DrawIDARB]].world_transform*transform[meshlets[gl_DrawIDARB]].pre_transform;
 
     // World normal
     mat3 mNormal = transpose(inverse(mat3(trans)));
@@ -79,8 +85,8 @@ void main() {
 
     outPos = trans * vec4(inPos, 1.0);
 
-    outPos.xyz += instance_data[gl_DrawIDARB].displacement_map < 1024?
-        normalize(outNormal) * (max(textureLod(textureArray[nonuniformEXT(instance_data[gl_DrawIDARB].displacement_map)], inUV, 0.0).r, 0.0) * instance_data[gl_DrawIDARB].displacement_height):
+    outPos.xyz += material_data[meshlets[gl_DrawIDARB]].displacement_map < 1024?
+        normalize(outNormal) * (max(textureLod(textureArray[nonuniformEXT(material_data[meshlets[gl_DrawIDARB]].displacement_map)], inUV, 0.0).r, 0.0) * material_data[meshlets[gl_DrawIDARB]].displacement_height):
         vec3(0.0);
 
     gl_Position = main_camera.view_projection * outPos;
@@ -88,5 +94,7 @@ void main() {
     outUV = inUV;
 
 
-    outIndex = gl_DrawIDARB;
+    outIndex = meshlets[gl_DrawIDARB];
+
+    outColor = vec3(float(gl_DrawIDARB%12)/12,float((gl_DrawIDARB+4)%12)/12,float((gl_DrawIDARB+4)%12)/12);
 }

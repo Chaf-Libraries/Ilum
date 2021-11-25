@@ -134,6 +134,7 @@ class Renderer : public TSubsystem<Renderer>
 	Camera Main_Camera;
 
 	uint32_t Instance_Count = 0;
+	uint32_t Meshlet_Count  = 0;
 
 	struct
 	{

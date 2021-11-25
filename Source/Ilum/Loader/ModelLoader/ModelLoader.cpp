@@ -157,10 +157,11 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 
 		const size_t max_vertices  = 64;
 		const size_t max_triangles = 128;
-		const float  cone_weight   = 0.3f;
+		const float  cone_weight   = 1.f;
 
 		std::vector<uint32_t> meshlet_offsets;
 		std::vector<uint32_t> meshlet_counts;
+		uint32_t              meshlet_indices_offset = 0;
 
 		for (uint32_t i = 0; i < scene->mNumMeshes; i++)
 		{
@@ -189,7 +190,7 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 
 			// Optimize mesh
 			meshopt_optimizeVertexCache(indices.data(), indices.data(), indices.size(), vertices.size());
-			meshopt_optimizeOverdraw(indices.data(), indices.data(), indices.size(), &vertices[0].position.x, vertices.size(), sizeof(glm::vec3), 1.05f);
+			meshopt_optimizeOverdraw(indices.data(), indices.data(), indices.size(), &vertices[0].position.x, vertices.size(), sizeof(Vertex), 1.05f);
 			meshopt_optimizeVertexFetch(vertices.data(), indices.data(), indices.size(), vertices.data(), vertices.size(), sizeof(Vertex));
 
 			// Generate meshlets
@@ -214,11 +215,11 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 			meshlet_indices.reserve(meshlet_triangles.size());
 
 			std::vector<meshopt_Bounds> meshlet_bounds;
-			uint32_t                    meshlet_indices_offset = 0;
 
 			for (auto &meshlet : meshlets)
 			{
 				Meshlet tmp_meshlet;
+				tmp_meshlet.vertices_offset = static_cast<uint32_t>(model.vertices.size());
 				tmp_meshlet.indices_offset = meshlet_indices_offset;
 				tmp_meshlet.indices_count  = static_cast<uint32_t>(meshlet.triangle_count * 3);
 				meshlet_indices_offset += tmp_meshlet.indices_count;
@@ -229,7 +230,7 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 				}
 
 				tmp_meshlet.bounds = meshopt_computeMeshletBounds(&meshlet_vertices[meshlet.vertex_offset], &meshlet_triangles[meshlet.triangle_offset],
-				                                                  meshlet.triangle_count, &vertices[0].position.x, vertices.size(), sizeof(glm::vec3));
+				                                                  meshlet.triangle_count, &vertices[0].position.x, vertices.size(), sizeof(Vertex));
 				model.meshlets.emplace_back(std::move(tmp_meshlet));
 			}
 
@@ -283,8 +284,8 @@ void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform,
 		}
 		submesh.vertices_offset = vertices_offset;
 		submesh.indices_offset  = indices_offset;
-		submesh.meshlet_count=meshlet_counts[node->mMeshes[i]];
-		submesh.meshlet_offset=meshlet_offsets[node->mMeshes[i]];
+		submesh.meshlet_count   = meshlet_counts[node->mMeshes[i]];
+		submesh.meshlet_offset  = meshlet_offsets[node->mMeshes[i]];
 
 		model.submeshes.emplace_back(std::move(submesh));
 	}

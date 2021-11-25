@@ -15,6 +15,7 @@ struct Meshlet
 	meshopt_Bounds bounds;
 	uint32_t       indices_offset;
 	uint32_t       indices_count;
+	uint32_t       vertices_offset;
 };
 
 struct Model
@@ -33,7 +34,6 @@ struct Model
 	std::vector<uint32_t> indices;
 
 	// Meshlet, for mesh shading & cluster culling
-	std::vector<uint32_t> meshlet_indices;
 	std::vector<Meshlet>  meshlets;
 	//std::vector<meshopt_Meshlet> meshlets;
 	//std::vector<meshopt_Bounds>  meshlet_bounds;
