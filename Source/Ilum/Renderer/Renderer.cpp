@@ -13,6 +13,8 @@
 
 #include "ImGui/ImGuiContext.hpp"
 
+#include "File/FileSystem.hpp"
+
 #include "Loader/ImageLoader/Bitmap.hpp"
 #include "Loader/ImageLoader/ImageLoader.hpp"
 
@@ -259,44 +261,22 @@ void Renderer::createSamplers()
 
 void Renderer::updateBuffers()
 {
-	GraphicsContext::instance()->getProfiler().beginSample("Camera Update");
-	// Update main camera
-	if (Main_Camera.update)
-	{
-		Main_Camera.onUpdate();
+	updateCameraBuffer();
 
-		struct
-		{
-			glm::mat4 view_projection;
-			glm::vec4 frustum[6];
-			alignas(16) glm::vec3 position;
-		} camera_buffer;
+	updateLightBuffer();
 
-		if (m_buffers[BufferType::MainCamera].getSize() != sizeof(camera_buffer))
-		{
-			GraphicsContext::instance()->getQueueSystem().waitAll();
-			m_buffers[BufferType::MainCamera] = Buffer(sizeof(camera_buffer), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-		}
-		camera_buffer.position        = Main_Camera.position;
-		camera_buffer.view_projection = Main_Camera.view_projection;
-		for (uint32_t i = 0; i < 6; i++)
-		{
-			const auto &plane        = Main_Camera.frustum.planes[i];
-			camera_buffer.frustum[i] = glm::vec4(plane.normal, plane.constant);
-		}
-		std::memcpy(m_buffers[BufferType::MainCamera].map(), &camera_buffer, sizeof(camera_buffer));
-		m_buffers[BufferType::MainCamera].unmap();
-	}
-	GraphicsContext::instance()->getProfiler().endSample("Camera Update");
+	updateInstanceBuffer();
+}
 
-	// Update lights
+void Renderer::updateLightBuffer()
+{
 	GraphicsContext::instance()->getProfiler().beginSample("Light Update");
 	{
 		std::vector<cmpt::DirectionalLight::Data> directional_lights;
 		std::vector<cmpt::SpotLight::Data>        spot_lights;
 		std::vector<cmpt::PointLight::Data>       point_lights;
 
-		//// Gather light infos
+		// Gather light infos
 		const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::Light, cmpt::Tag>);
 		group.each([&](const entt::entity &entity, const cmpt::Light &light, const cmpt::Tag &tag) {
 			if (!tag.active || !light.impl)
@@ -368,9 +348,82 @@ void Renderer::updateBuffers()
 		}
 	}
 	GraphicsContext::instance()->getProfiler().endSample("Light Update");
+}
 
-	// Update instance
+void Renderer::updateCameraBuffer()
+{
+	GraphicsContext::instance()->getProfiler().beginSample("Camera Update");
+	// Update main camera
+	if (Main_Camera.update)
+	{
+		Main_Camera.onUpdate();
+
+		struct
+		{
+			glm::mat4 view_projection;
+			glm::vec4 frustum[6];
+			alignas(16) glm::vec3 position;
+		} camera_buffer;
+
+		if (m_buffers[BufferType::MainCamera].getSize() != sizeof(camera_buffer))
+		{
+			GraphicsContext::instance()->getQueueSystem().waitAll();
+			m_buffers[BufferType::MainCamera] = Buffer(sizeof(camera_buffer), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+		}
+		camera_buffer.position        = Main_Camera.position;
+		camera_buffer.view_projection = Main_Camera.view_projection;
+		for (uint32_t i = 0; i < 6; i++)
+		{
+			const auto &plane        = Main_Camera.frustum.planes[i];
+			camera_buffer.frustum[i] = glm::vec4(plane.normal, plane.constant);
+		}
+		std::memcpy(m_buffers[BufferType::MainCamera].map(), &camera_buffer, sizeof(camera_buffer));
+		m_buffers[BufferType::MainCamera].unmap();
+	}
+
+	GraphicsContext::instance()->getProfiler().endSample("Camera Update");
+}
+
+void Renderer::updateInstanceBuffer()
+{
 	GraphicsContext::instance()->getProfiler().beginSample("Instance Update");
+
+	struct MaterialData
+	{
+		glm::vec4 base_color      = {};
+		glm::vec3 emissive_color  = {0.f, 0.f, 0.f};
+		float     metallic_factor = 0.f;
+
+		float    roughness_factor   = 0.f;
+		float    emissive_intensity = 0.f;
+		uint32_t albedo_map         = 0;
+		uint32_t normal_map         = 0;
+
+		uint32_t metallic_map  = 0;
+		uint32_t roughness_map = 0;
+		uint32_t emissive_map  = 0;
+		uint32_t ao_map        = 0;
+
+		alignas(16) float displacement_height = 0.f;
+		uint32_t displacement_map             = 0;
+		uint32_t id                           = 0;
+	};
+
+	struct Bound
+	{
+		glm::vec3 center = {};
+		float     radius = 0.f;
+
+		glm::vec3 cone_apex             = {};
+		float     cone_cutoff           = 0.f;
+		alignas(16) glm::vec3 cone_axis = {};
+	};
+
+	struct TransformData
+	{
+		glm::mat4 world_transform;
+		glm::mat4 pre_transform;
+	};
 
 	std::atomic<uint32_t> instance_count = 0;
 
@@ -392,48 +445,19 @@ void Renderer::updateBuffers()
 		});
 	});
 
-	if (instance_count != Instance_Count || cmpt::Transform::update || ResourceCache::update)
+	if (instance_count != Instance_Count || ResourceCache::update || cmpt::MeshRenderer::update)
 	{
+		cmpt::MeshRenderer::update = false;
+
 		// Collect data
-		struct MaterialData
-		{
-			glm::vec4 base_color      = {};
-			glm::vec3 emissive_color  = {0.f, 0.f, 0.f};
-			float     metallic_factor = 0.f;
-
-			float    roughness_factor   = 0.f;
-			float    emissive_intensity = 0.f;
-			uint32_t albedo_map         = 0;
-			uint32_t normal_map         = 0;
-
-			uint32_t metallic_map  = 0;
-			uint32_t roughness_map = 0;
-			uint32_t emissive_map  = 0;
-			uint32_t ao_map        = 0;
-
-			alignas(16) float displacement_height = 0.f;
-			uint32_t displacement_map             = 0;
-			uint32_t id                           = 0;
-		};
-
-		struct AABB
-		{
-			alignas(16) glm::vec3 min_;
-			alignas(16) glm::vec3 max_;
-		};
-
-		struct TransformData
-		{
-			glm::mat4 world_transform;
-			glm::mat4 pre_transform;
-		};
-
 		std::vector<VkDrawIndexedIndirectCommand> indirect_commands;
 		std::vector<MaterialData>                 material_data;
 		std::vector<TransformData>                transform_data;
-		std::vector<AABB>                         aabb_data;
+		std::vector<Bound>                        bound_data;
+		std::vector<uint32_t>                     meshlet_data;        //	Which submesh the meshlet belong
 
 		uint32_t   instance_idx = 0;
+		uint32_t   meshlet_idx  = 0;
 		const auto group        = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Tag, cmpt::Transform>);
 		group.each([&](const entt::entity &entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Tag &tag, const cmpt::Transform &transform) {
 			if (!m_resource_cache->hasModel(mesh_renderer.model))
@@ -450,16 +474,34 @@ void Renderer::updateBuffers()
 				{
 					auto *material = static_cast<material::DisneyPBR *>(material_ptr.get());
 
-					submesh.indirect_cmd.firstInstance = instance_idx++;
-					indirect_commands.push_back(submesh.indirect_cmd);
+					for (uint32_t j = submesh.meshlet_offset; j < submesh.meshlet_offset + submesh.meshlet_count; j++)
+					{
+						const auto &meshlet = model.get().meshlets[j];
+
+						meshlet_data.push_back(instance_idx);
+
+						VkDrawIndexedIndirectCommand indirect_cmd;
+						indirect_cmd.firstInstance = meshlet_idx++;
+						indirect_cmd.firstIndex    = model.get().indices_offset + meshlet.indices_offset;
+						indirect_cmd.vertexOffset  = model.get().vertices_offset + meshlet.vertices_offset;
+						indirect_cmd.instanceCount = 1;
+						indirect_cmd.indexCount    = meshlet.indices_count;
+						indirect_commands.push_back(indirect_cmd);
+
+						Bound bound;
+						bound.center      = glm::vec3(meshlet.bounds.center[0], meshlet.bounds.center[1], meshlet.bounds.center[2]);
+						bound.radius      = meshlet.bounds.radius;
+						bound.cone_apex   = glm::vec3(meshlet.bounds.cone_apex[0], meshlet.bounds.cone_apex[1], meshlet.bounds.cone_apex[2]);
+						bound.cone_axis   = glm::vec3(meshlet.bounds.cone_axis[0], meshlet.bounds.cone_axis[1], meshlet.bounds.cone_axis[2]);
+						bound.cone_cutoff = meshlet.bounds.cone_cutoff;
+
+						bound_data.push_back(bound);
+					}
 
 					TransformData trans;
 					trans.world_transform = transform.world_transform;
 					trans.pre_transform   = submesh.pre_transform;
 					transform_data.push_back(trans);
-
-					AABB aabb = {submesh.bounding_box.min_, submesh.bounding_box.max_};
-					aabb_data.push_back(aabb);
 
 					MaterialData data;
 					data.base_color          = material->base_color;
@@ -467,21 +509,24 @@ void Renderer::updateBuffers()
 					data.roughness_factor    = material->roughness_factor;
 					data.emissive_color      = material->emissive_color;
 					data.emissive_intensity  = material->emissive_intensity;
-					data.albedo_map          = Renderer::instance()->getResourceCache().imageID(material->albedo_map);
-					data.normal_map          = Renderer::instance()->getResourceCache().imageID(material->normal_map);
-					data.metallic_map        = Renderer::instance()->getResourceCache().imageID(material->metallic_map);
-					data.roughness_map       = Renderer::instance()->getResourceCache().imageID(material->roughness_map);
-					data.emissive_map        = Renderer::instance()->getResourceCache().imageID(material->emissive_map);
-					data.ao_map              = Renderer::instance()->getResourceCache().imageID(material->ao_map);
+					data.albedo_map          = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->albedo_map));
+					data.normal_map          = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->normal_map));
+					data.metallic_map        = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->metallic_map));
+					data.roughness_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->roughness_map));
+					data.emissive_map        = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->emissive_map));
+					data.ao_map              = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->ao_map));
 					data.displacement_height = material->displacement_height;
-					data.displacement_map    = Renderer::instance()->getResourceCache().imageID(material->displacement_map);
+					data.displacement_map    = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->displacement_map));
 					data.id                  = static_cast<uint32_t>(entity);
 					material_data.push_back(data);
+
+					instance_idx++;
 				}
 			}
 		});
 
 		Instance_Count = instance_idx;
+		Meshlet_Count  = meshlet_idx;
 
 		// Enlarge buffer
 		if (m_buffers[BufferType::IndirectCommand].getSize() == 0)
@@ -489,7 +534,8 @@ void Renderer::updateBuffers()
 			GraphicsContext::instance()->getQueueSystem().waitAll();
 			m_buffers[BufferType::Material]        = Buffer(sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			m_buffers[BufferType::Transform]       = Buffer(sizeof(TransformData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-			m_buffers[BufferType::BoundingBox]     = Buffer(sizeof(AABB), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			m_buffers[BufferType::Meshlet]         = Buffer(sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			m_buffers[BufferType::BoundingBox]     = Buffer(sizeof(Bound), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			m_buffers[BufferType::IndirectCommand] = Buffer(sizeof(VkDrawIndexedIndirectCommand), VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 		}
 
@@ -499,7 +545,8 @@ void Renderer::updateBuffers()
 			m_buffers[BufferType::IndirectCommand] = Buffer(indirect_commands.size() * sizeof(VkDrawIndexedIndirectCommand), VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			m_buffers[BufferType::Material]        = Buffer(material_data.size() * sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			m_buffers[BufferType::Transform]       = Buffer(transform_data.size() * sizeof(TransformData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-			m_buffers[BufferType::BoundingBox]     = Buffer(aabb_data.size() * sizeof(AABB), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			m_buffers[BufferType::BoundingBox]     = Buffer(bound_data.size() * sizeof(Bound), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			m_buffers[BufferType::Meshlet]         = Buffer(meshlet_data.size() * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 			m_update = true;
 		}
@@ -510,12 +557,44 @@ void Renderer::updateBuffers()
 			std::memcpy(m_buffers[BufferType::Material].map(), material_data.data(), material_data.size() * sizeof(MaterialData));
 			std::memcpy(m_buffers[BufferType::IndirectCommand].map(), indirect_commands.data(), indirect_commands.size() * sizeof(VkDrawIndexedIndirectCommand));
 			std::memcpy(m_buffers[BufferType::Transform].map(), transform_data.data(), transform_data.size() * sizeof(TransformData));
-			std::memcpy(m_buffers[BufferType::BoundingBox].map(), aabb_data.data(), aabb_data.size() * sizeof(AABB));
+			std::memcpy(m_buffers[BufferType::BoundingBox].map(), bound_data.data(), bound_data.size() * sizeof(Bound));
+			std::memcpy(m_buffers[BufferType::Meshlet].map(), meshlet_data.data(), meshlet_data.size() * sizeof(uint32_t));
 			m_buffers[BufferType::Material].unmap();
 			m_buffers[BufferType::IndirectCommand].unmap();
 			m_buffers[BufferType::Transform].unmap();
 			m_buffers[BufferType::BoundingBox].unmap();
+			m_buffers[BufferType::Meshlet].unmap();
 		}
+	}
+	else if (cmpt::Transform::update)
+	{
+		std::vector<TransformData> transform_data;
+
+		const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Tag, cmpt::Transform>);
+		group.each([&](const entt::entity &entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Tag &tag, const cmpt::Transform &transform) {
+			if (!m_resource_cache->hasModel(mesh_renderer.model))
+			{
+				return;
+			}
+
+			auto &model = m_resource_cache->loadModel(mesh_renderer.model);
+			for (uint32_t i = 0; i < mesh_renderer.materials.size(); i++)
+			{
+				auto &submesh      = model.get().submeshes[i];
+				auto &material_ptr = mesh_renderer.materials[i];
+				if (material_ptr->type() == typeid(material::DisneyPBR))
+				{
+					TransformData trans;
+					trans.world_transform = transform.world_transform;
+					trans.pre_transform   = submesh.pre_transform;
+					transform_data.push_back(trans);
+				}
+			}
+		});
+
+		// Copy buffer
+		std::memcpy(m_buffers[BufferType::Transform].map(), transform_data.data(), transform_data.size() * sizeof(TransformData));
+		m_buffers[BufferType::Transform].unmap();
 	}
 
 	GraphicsContext::instance()->getProfiler().endSample("Instance Update");
@@ -531,6 +610,7 @@ void Renderer::createBuffers()
 	m_buffers[BufferType::Transform]        = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 	m_buffers[BufferType::IndirectCommand]  = Buffer(1, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 	m_buffers[BufferType::BoundingBox]      = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	m_buffers[BufferType::Meshlet]          = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 	m_buffers[BufferType::Vertex]           = Buffer(0, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 	m_buffers[BufferType::Index]            = Buffer(0, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 }

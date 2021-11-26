@@ -50,6 +50,7 @@ void TransformUpdate::run()
 
 			if (hierarchy.parent == entt::null)
 			{
+				transform.local_transform = glm::scale(glm::translate(glm::mat4(1.f), transform.translation) * glm::mat4_cast(glm::qua<float>(glm::radians(transform.rotation))), transform.scale);
 				transform.world_transform = transform.local_transform;
 				roots.emplace_back(entity);
 			}

@@ -54,6 +54,7 @@ void GeometryPass::setupPipeline(PipelineState &state)
 	state.descriptor_bindings.bind(0, 1, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Wrap), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 2, "MaterialData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 3, "TransformData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 4, "MeshletData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
 	state.addDependency("IndirectDrawCommand", VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT);
 
@@ -85,6 +86,7 @@ void GeometryPass::resolveResources(ResolveState &resolve)
 	resolve.resolve("textureArray", Renderer::instance()->getResourceCache().getImageReferences());
 	resolve.resolve("MaterialData", Renderer::instance()->getBuffer(Renderer::BufferType::Material));
 	resolve.resolve("TransformData", Renderer::instance()->getBuffer(Renderer::BufferType::Transform));
+	resolve.resolve("MeshletData", Renderer::instance()->getBuffer(Renderer::BufferType::Meshlet));
 }
 
 void GeometryPass::render(RenderPassState &state)
@@ -121,14 +123,14 @@ void GeometryPass::render(RenderPassState &state)
 	auto &vertex_buffer = Renderer::instance()->getBuffer(Renderer::BufferType::Vertex);
 	auto &index_buffer  = Renderer::instance()->getBuffer(Renderer::BufferType::Index);
 
-	if (Renderer::instance()->Instance_Count > 0)
+	if (Renderer::instance()->Meshlet_Count > 0)
 	{
 		VkDeviceSize offsets[1] = {0};
 		vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &vertex_buffer.get().getBuffer(), offsets);
 		vkCmdBindIndexBuffer(cmd_buffer, index_buffer.get().getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
 		auto &draw_buffer = Renderer::instance()->getBuffer(Renderer::BufferType::IndirectCommand);
-		vkCmdDrawIndexedIndirect(cmd_buffer, draw_buffer.get(), 0, Renderer::instance()->Instance_Count, sizeof(VkDrawIndexedIndirectCommand));
+		vkCmdDrawIndexedIndirect(cmd_buffer, draw_buffer.get(), 0, Renderer::instance()->Meshlet_Count, sizeof(VkDrawIndexedIndirectCommand));
 	}
 
 	vkCmdEndRenderPass(cmd_buffer);

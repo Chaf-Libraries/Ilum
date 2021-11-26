@@ -46,3 +46,6 @@
 [submodule "External/ImFileDialog"]
 	path = External/ImFileDialog
 	url = https://github.com/Chaf-Libraries/ImFileDialog
+[submodule "External/meshoptimizer"]
+	path = External/meshoptimizer
+	url = https://github.com/zeux/meshoptimizer

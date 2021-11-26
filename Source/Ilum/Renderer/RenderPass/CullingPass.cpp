@@ -14,6 +14,7 @@ void CullingPass::setupPipeline(PipelineState &state)
 	state.descriptor_bindings.bind(0, 1, "IndirectDrawCommand", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 2, "TransformData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 3, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	state.descriptor_bindings.bind(0, 4, "Meshlet", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 }
 
 void CullingPass::resolveResources(ResolveState &resolve)
@@ -22,6 +23,7 @@ void CullingPass::resolveResources(ResolveState &resolve)
 	resolve.resolve("IndirectDrawCommand", Renderer::instance()->getBuffer(Renderer::BufferType::IndirectCommand));
 	resolve.resolve("TransformData", Renderer::instance()->getBuffer(Renderer::BufferType::Transform));
 	resolve.resolve("Camera", Renderer::instance()->getBuffer(Renderer::BufferType::MainCamera));
+	resolve.resolve("Meshlet", Renderer::instance()->getBuffer(Renderer::BufferType::Meshlet));
 }
 
 void CullingPass::render(RenderPassState &state)
@@ -35,6 +37,6 @@ void CullingPass::render(RenderPassState &state)
 		vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
 	}
 
-	vkCmdDispatch(cmd_buffer, Renderer::instance()->Instance_Count / 16 + 1, 1, 1);
+	vkCmdDispatch(cmd_buffer, (Renderer::instance()->Meshlet_Count + 1024 - 1) / 1024, 1, 1);
 }
 }        // namespace Ilum::pass

@@ -25,4 +25,5 @@ SetTarget(
         ImGuizmo
         imgui-node-editor
         ImFileDialog
+        meshoptimizer
 )

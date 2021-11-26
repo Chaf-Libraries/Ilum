@@ -17,7 +17,8 @@ Model::Model(Model &&other) noexcept :
     vertices_count(other.vertices_count),
     indices_count(other.indices_count),
     vertices(std::move(other.vertices)),
-    indices(std::move(other.indices))
+    indices(std::move(other.indices)),
+    meshlets(std::move(other.meshlets))
 {
 	other.submeshes.clear();
 }
@@ -30,6 +31,7 @@ Model &Model::operator=(Model &&other) noexcept
 	indices_count  = other.indices_count;
 	vertices       = std::move(other.vertices);
 	indices       = std::move(other.indices);
+	meshlets       = std::move(other.meshlets);
 
 	other.submeshes.clear();
 
