@@ -385,6 +385,8 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 						    ImGui::Text("vertices offset: %d", submesh.vertices_offset);
 						    ImGui::Text("indices count: %d", submesh.indices_count);
 						    ImGui::Text("indices offset: %d", submesh.indices_offset);
+						    ImGui::Text("meshlets count: %d", submesh.meshlet_count);
+						    ImGui::Text("meshlets offset: %d", submesh.meshlet_offset);
 						    ImGui::Text("AABB bounding box:");
 						    ImGui::BulletText("min (%f, %f, %f)", submesh.bounding_box.min_.x, submesh.bounding_box.min_.y, submesh.bounding_box.min_.z);
 						    ImGui::BulletText("max (%f, %f, %f)", submesh.bounding_box.max_.x, submesh.bounding_box.max_.y, submesh.bounding_box.max_.z);

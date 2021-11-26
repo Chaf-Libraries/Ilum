@@ -56,7 +56,7 @@ layout (binding = 4) buffer Meshlet
     uint meshlet[];
 };
 
-layout (local_size_x = 1024) in;
+layout (local_size_x = 256) in;
 
 bool checkBound(Bound bound)
 {
@@ -75,10 +75,10 @@ bool checkBound(Bound bound)
 
 void main()
 {
-	uint idx = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x;
+	uint idx = gl_GlobalInvocationID.x;
 
-    Bound bound = bounds[indirectDraws[idx].firstInstance];
-    mat4 trans = transform[meshlet[indirectDraws[idx].firstInstance]].world_transform * transform[meshlet[indirectDraws[idx].firstInstance]].pre_transform;
+    Bound bound = bounds[idx];
+    mat4 trans = transform[meshlet[idx]].world_transform * transform[meshlet[idx]].pre_transform;
 
     bound.center = (trans * vec4(bound.center, 1.0)).xyz;
     vec3 edge = vec3(1.0) * sqrt(bound.radius * bound.radius / 3.0);
@@ -99,9 +99,6 @@ void main()
         trans[1].xyz/scale.y,
         trans[2].xyz/scale.z
     );
-
-    mat3 T=mat3(1);
-
 
     bound.cone_apex = (trans * vec4(bound.cone_apex, 1.0)).xyz;
     bound.cone_axis = rotation * bound.cone_axis;

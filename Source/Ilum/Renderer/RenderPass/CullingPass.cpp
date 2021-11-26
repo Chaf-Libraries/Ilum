@@ -4,6 +4,10 @@
 
 #include "Renderer/Renderer.hpp"
 
+#include "Graphics/GraphicsContext.hpp"
+
+#include "Device/PhysicalDevice.hpp"
+
 namespace Ilum::pass
 {
 void CullingPass::setupPipeline(PipelineState &state)
@@ -37,6 +41,7 @@ void CullingPass::render(RenderPassState &state)
 		vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
 	}
 
-	vkCmdDispatch(cmd_buffer, (Renderer::instance()->Meshlet_Count + 1024 - 1) / 1024, 1, 1);
+	uint32_t group_count = Renderer::instance()->Meshlet_Count / 256 + 1;
+	vkCmdDispatch(cmd_buffer, group_count, 1, 1);
 }
 }        // namespace Ilum::pass
