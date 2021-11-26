@@ -50,9 +50,11 @@ void ProfilerMonitor::draw(float delta_time)
 
 	std::vector<float> cpu_times;
 	std::vector<float> gpu_times;
+	uint32_t           index = 0;
 
-	if (ImGui::BeginTable("CPU&GPU Time", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
+	if (ImGui::BeginTable("CPU&GPU Time", 4, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
 	{
+		ImGui::TableSetupColumn("Index");
 		ImGui::TableSetupColumn("Pass");
 		ImGui::TableSetupColumn("CPU Time (ms)");
 		ImGui::TableSetupColumn("GPU Time (ms)");
@@ -67,10 +69,12 @@ void ProfilerMonitor::draw(float delta_time)
 
 			ImGui::TableNextRow();
 			ImGui::TableSetColumnIndex(0);
-			ImGui::Text("%s", name.c_str());
+			ImGui::Text("%d", index++);
 			ImGui::TableSetColumnIndex(1);
-			ImGui::Text("%f", cpu_time);
+			ImGui::Text("%s", name.c_str());
 			ImGui::TableSetColumnIndex(2);
+			ImGui::Text("%f", cpu_time);
+			ImGui::TableSetColumnIndex(3);
 			ImGui::Text("%f", gpu_time);
 		}
 

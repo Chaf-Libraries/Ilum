@@ -35,10 +35,6 @@ struct Model
 
 	// Meshlet, for mesh shading & cluster culling
 	std::vector<Meshlet>  meshlets;
-	//std::vector<meshopt_Meshlet> meshlets;
-	//std::vector<meshopt_Bounds>  meshlet_bounds;
-	//std::vector<uint32_t>    meshlet_vertices;
-	//std::vector<uint8_t>   meshlet_triangles;
 
 	geometry::BoundingBox bounding_box;
 

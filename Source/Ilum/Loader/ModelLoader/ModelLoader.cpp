@@ -156,7 +156,7 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 		model.meshlets.clear();
 
 		const size_t max_vertices  = 64;
-		const size_t max_triangles = 128;
+		const size_t max_triangles = 124;
 		const float  cone_weight   = 1.f;
 
 		std::vector<uint32_t> meshlet_offsets;
