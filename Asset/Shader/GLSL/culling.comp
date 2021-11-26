@@ -5,10 +5,13 @@
 #define DBL_MAX 1.7976931348623158e+308
 #define DBL_MIN 2.2250738585072014e-308
 
-struct AABB 
+struct Bound 
 {
-	vec3 min_;
-    vec3 max_;
+	vec3 center;
+    float radius;
+    vec3 cone_apex;
+    float cone_cutoff;
+    vec3 cone_axis;
 };
 
 struct DrawIndexedIndirectCommand 
@@ -26,9 +29,9 @@ struct TransformData
     mat4 pre_transform;
 };
 
-layout (binding = 0) buffer BoundingBox 
+layout (binding = 0) buffer Bounding
 {
-   AABB boundingbox[ ];
+   Bound bounds[ ];
 };
 
 layout (binding = 1, std430) buffer IndirectDraws
@@ -48,13 +51,20 @@ layout (binding = 3) uniform Camera
     vec3 position;
 } camera;
 
-layout (local_size_x = 16) in;
-
-bool checkSphere(vec3 pos, float radius)
+layout (binding = 4) buffer Meshlet
 {
+    uint meshlet[];
+};
+
+layout (local_size_x = 1024) in;
+
+bool checkBound(Bound bound)
+{
+
+
     for (uint i = 0; i < 6; i++)
     {
-        if (dot(camera.frustum[i], vec4(pos, 1)) + radius < 0.0)
+        if (dot(camera.frustum[i], vec4(bound.center, 1)) + length(bound.radius) < 0.0)
         {
             return false;
         }
@@ -62,73 +72,41 @@ bool checkSphere(vec3 pos, float radius)
     return true;
 }
 
-AABB boundingBoxTransform(AABB aabb, mat4 trans)
-{
-    vec3 center = (aabb.min_ + aabb.max_) / 2.0;
-    vec3 new_center = (trans * vec4(center, 1.0)).xyz;
-    vec3 old_edge = (aabb.max_ - aabb.min_) / 2.0;
-    vec3 new_edge = {
-        abs(trans[0][0])*old_edge.x + abs(trans[0][1])*old_edge.y + abs(trans[0][2])*old_edge.z,
-        abs(trans[1][0])*old_edge.x + abs(trans[1][1])*old_edge.y + abs(trans[1][2])*old_edge.z,
-        abs(trans[2][0])*old_edge.x + abs(trans[2][1])*old_edge.y + abs(trans[2][2])*old_edge.z
-    };
-
-    AABB new_aabb;
-    new_aabb.min_ = new_center - new_edge;
-    new_aabb.max_ = new_center + new_edge;
-
-    return new_aabb;
-}
-
-// Frustum Culling for AABB
-bool checkAABB(AABB aabb)
-{
-    vec3 min_val = aabb.min_;
-    vec3 max_val = aabb.max_;
-
-	vec3 pos = (min_val + max_val)/2.0;
-	float radius = length(min_val - max_val)/2.0;
-    if(checkSphere(pos, radius))
-    {
-        return true;
-    }
-    else
-    {
-        for (uint i=0; i < 6; i++)
-        {
-            vec4 plane = camera.frustum[i];
-            vec3 plane_normal = { plane.x, plane.y, plane.z };
-            float plane_constant = plane.w;
-
-            vec3 axis_vert = { 0.0, 0.0, 0.0 };
-
-            // x-axis
-            axis_vert.x = plane.x < 0.0 ? min_val.x : max_val.x;
-
-            // y-axis
-            axis_vert.y = plane.y < 0.0 ? min_val.y : max_val.y;
-
-            // z-axis
-            axis_vert.z = plane.z < 0.0 ? min_val.z : max_val.z;
-
-            if (dot(axis_vert, plane_normal) + plane_constant > 0.0)
-            {
-                return false;
-            }
-        }
-    }
-    
-    return true;
-}
 
 void main()
 {
 	uint idx = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x;
 
-    AABB aabb = boundingbox[indirectDraws[idx].firstInstance];
-    mat4 trans = transform[indirectDraws[idx].firstInstance].world_transform * transform[indirectDraws[idx].firstInstance].pre_transform;
+    Bound bound = bounds[indirectDraws[idx].firstInstance];
+    mat4 trans = transform[meshlet[indirectDraws[idx].firstInstance]].world_transform * transform[meshlet[indirectDraws[idx].firstInstance]].pre_transform;
 
-    if (checkAABB(boundingBoxTransform(aabb, trans)))
+    bound.center = (trans * vec4(bound.center, 1.0)).xyz;
+    vec3 edge = vec3(1.0) * sqrt(bound.radius * bound.radius / 3.0);
+    bound.radius = length(vec3(
+        abs(trans[0][0])*edge.x + abs(trans[0][1])*edge.y + abs(trans[0][2])*edge.z,
+        abs(trans[1][0])*edge.x + abs(trans[1][1])*edge.y + abs(trans[1][2])*edge.z,
+        abs(trans[2][0])*edge.x + abs(trans[2][1])*edge.y + abs(trans[2][2])*edge.z
+    ));
+
+    vec3 scale = vec3(
+        sqrt(trans[0][0] * trans[0][0] + trans[0][1] * trans[0][1] + trans[0][2] * trans[0][2]),
+        sqrt(trans[1][0] * trans[1][0] + trans[1][1] * trans[1][1] + trans[1][2] * trans[1][2]),
+        sqrt(trans[2][0] * trans[2][0] + trans[2][1] * trans[2][1] + trans[2][2] * trans[2][2])
+    );
+
+    mat3 rotation = mat3(
+        trans[0].xyz/scale.x,
+        trans[1].xyz/scale.y,
+        trans[2].xyz/scale.z
+    );
+
+    mat3 T=mat3(1);
+
+
+    bound.cone_apex = (trans * vec4(bound.cone_apex, 1.0)).xyz;
+    bound.cone_axis = rotation * bound.cone_axis;
+
+    if (dot(normalize(camera.position - bound.cone_apex), bound.cone_axis) < bound.cone_cutoff && checkBound(bound))
     {
         indirectDraws[idx].instanceCount = 1;
     }
