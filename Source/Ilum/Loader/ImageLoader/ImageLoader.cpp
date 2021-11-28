@@ -188,7 +188,7 @@ void ImageLoader::loadImage(Image &image, const Bitmap &bitmap, bool mipmaps)
 	CommandBuffer command_buffer;
 	VK_Debugger::setName(command_buffer, "transfer image data");
 	command_buffer.begin();
-	command_buffer.copyBufferToImage(BufferInfo{staging_buffer, offset}, ImageInfo{std::ref(image)});
+	command_buffer.copyBufferToImage(BufferInfo{staging_buffer, offset}, ImageInfo{image});
 
 	offset += static_cast<uint32_t>(bitmap.data.size());
 

@@ -91,10 +91,12 @@ void main() {
 
     gl_Position = main_camera.view_projection * outPos;
 
+    outPos.w = gl_Position.z;
+
     outUV = inUV;
 
 
     outIndex = meshlets[gl_DrawIDARB];
 
-    outColor = vec3(float(gl_DrawIDARB%12)/12,float((gl_DrawIDARB+4)%12)/12,float((gl_DrawIDARB+4)%12)/12);
+    outColor = vec3(float(gl_DrawIDARB%9)/9,float((gl_DrawIDARB+3)%9)/9,float((gl_DrawIDARB+6)%9)/9);
 }

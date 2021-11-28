@@ -349,8 +349,9 @@ inline std::vector<ReflectionData::Image> read_shader_resource<ReflectionData::I
 		image.name  = resource.name;
 
 		read_resource_array_size(compiler, resource, image);
-		read_resource_decoration<spv::DecorationNonReadable>(compiler, resource, image);
-		read_resource_decoration<spv::DecorationNonWritable>(compiler, resource, image);
+		// TODO:
+		//read_resource_decoration<spv::DecorationNonReadable>(compiler, resource, image);
+		//read_resource_decoration<spv::DecorationNonWritable>(compiler, resource, image);
 		read_resource_decoration<spv::DecorationDescriptorSet>(compiler, resource, image);
 		read_resource_decoration<spv::DecorationBinding>(compiler, resource, image);
 

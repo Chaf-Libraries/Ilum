@@ -5,6 +5,8 @@
 #define DBL_MAX 1.7976931348623158e+308
 #define DBL_MIN 2.2250738585072014e-308
 
+const float infinity = 1. / 0.;
+
 struct Bound 
 {
 	vec3 center;
@@ -49,6 +51,7 @@ layout (binding = 3) uniform Camera
 	mat4 view_projection;
     vec4 frustum[6];
     vec3 position;
+    mat4 last_view_projection;
 } camera;
 
 layout (binding = 4) buffer Meshlet
@@ -56,12 +59,22 @@ layout (binding = 4) buffer Meshlet
     uint meshlet[];
 };
 
-layout (local_size_x = 256) in;
+layout (binding = 5) uniform sampler2D hiz_buffer;
 
-bool checkBound(Bound bound)
+layout (binding = 6) buffer MeshletCount
 {
+    uint count;
+};
 
+layout(push_constant) uniform PushConstBlock {
+	uvec2 extent;
+    float fov;
+} push_constant;
 
+layout (local_size_x = 1024) in;
+
+bool checkFrustum(Bound bound)
+{
     for (uint i = 0; i < 6; i++)
     {
         if (dot(camera.frustum[i], vec4(bound.center, 1)) + length(bound.radius) < 0.0)
@@ -72,13 +85,36 @@ bool checkBound(Bound bound)
     return true;
 }
 
+bool checkOcclusion(Bound bound)
+{
+    vec4 sceen_space_center = camera.view_projection * vec4(bound.center, 1.0);
+    vec4 sceen_space_center_last = camera.last_view_projection * vec4(bound.center, 1.0);
+
+    float d = length(camera.position - bound.center);
+    float screen_space_radius = push_constant.extent.y * 0.5 * bound.radius / (tan(push_constant.fov/2.0)*sqrt(d*d-bound.radius*bound.radius));
+
+    float mip_level = ceil(log2(screen_space_radius));
+
+    vec2 uv = sceen_space_center.xy/sceen_space_center.w;
+    uv=clamp((uv+vec2(1.0))*0.5, 0.0, 1.0);
+    uv.y = 1.0 - uv.y;
+   
+    float depth = textureLod(hiz_buffer, uv, mip_level).r;
+    depth = max(depth, textureLodOffset(hiz_buffer, uv, mip_level, ivec2(0, 1)).r);
+    depth = max(depth, textureLodOffset(hiz_buffer, uv, mip_level, ivec2(0,-1)).r);
+    depth = max(depth, textureLodOffset(hiz_buffer, uv, mip_level, ivec2(-1,0)).r);
+    depth = max(depth, textureLodOffset(hiz_buffer, uv, mip_level, ivec2(1,0)).r);
+    
+    return depth >= sceen_space_center_last.z - bound.radius;
+}
+
 
 void main()
 {
 	uint idx = gl_GlobalInvocationID.x;
 
-    Bound bound = bounds[idx];
-    mat4 trans = transform[meshlet[idx]].world_transform * transform[meshlet[idx]].pre_transform;
+    Bound bound = bounds[indirectDraws[idx].firstInstance];
+    mat4 trans = transform[meshlet[indirectDraws[idx].firstInstance]].world_transform * transform[meshlet[indirectDraws[idx].firstInstance]].pre_transform;
 
     bound.center = (trans * vec4(bound.center, 1.0)).xyz;
     vec3 edge = vec3(1.0) * sqrt(bound.radius * bound.radius / 3.0);
@@ -103,9 +139,12 @@ void main()
     bound.cone_apex = (trans * vec4(bound.cone_apex, 1.0)).xyz;
     bound.cone_axis = rotation * bound.cone_axis;
 
-    if (dot(normalize(camera.position - bound.cone_apex), bound.cone_axis) < bound.cone_cutoff && checkBound(bound))
+    if (dot(normalize(camera.position - bound.cone_apex), bound.cone_axis) < bound.cone_cutoff 
+        && checkFrustum(bound) 
+        && checkOcclusion(bound))
     {
         indirectDraws[idx].instanceCount = 1;
+        atomicAdd(count, 1);
     }
     else
     {

@@ -28,9 +28,9 @@ class Image
 
 	Image &operator=(const Image &other) = delete;
 
-	Image(Image &&other);
+	Image(Image &&other) noexcept;
 
-	Image &operator=(Image &&other);
+	Image &operator=(Image &&other) noexcept;
 
 	~Image();
 

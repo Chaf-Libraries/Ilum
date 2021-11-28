@@ -3,6 +3,8 @@
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Profiler.hpp"
 
+#include "Renderer/Renderer.hpp"
+
 #include "Timing/Timer.hpp"
 
 #include <imgui.h>
@@ -90,6 +92,11 @@ void ProfilerMonitor::draw(float delta_time)
 	ImGui::PlotLines(("Frame Times (" + std::to_string(static_cast<uint32_t>(Timer::instance()->getFPS())) + "fps)").c_str(), m_frame_times.data(), static_cast<int>(m_frame_times.size()), 0, nullptr, min_frame_time * 0.8f, max_frame_time * 1.2f, ImVec2{0, 80});
 	ImGui::PlotHistogram("CPU Times", cpu_times.data(), static_cast<int>(cpu_times.size()), 0, nullptr, 0.f, max_cpu_time * 1.2f, ImVec2(0, 80.0f));
 	ImGui::PlotHistogram("GPU Times", gpu_times.data(), static_cast<int>(gpu_times.size()), 0, nullptr, 0.f, max_gpu_time * 1.2f, ImVec2(0, 80.0f));
+
+	ImGui::Text("Total Triangle Count: %d", Renderer::instance()->Indices_Count / 3);
+	ImGui::Text("Total Instance Count: %d", Renderer::instance()->Instance_Count);
+	ImGui::Text("Total Meshlet Count: %d", Renderer::instance()->Meshlet_Count);
+	ImGui::Text("Total Meshlet Visible: %d", Renderer::instance()->Meshlet_Visible);
 
 	ImGui::End();
 }

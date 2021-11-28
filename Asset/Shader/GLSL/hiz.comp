@@ -1,0 +1,29 @@
+#version 450
+
+layout (local_size_x = 32, local_size_y = 32) in;
+
+layout (binding = 0) uniform sampler2D input_image;
+
+layout (binding = 1, r32f) writeonly uniform image2D output_image;
+
+layout(push_constant) uniform PushConstBlock {
+	uvec2 extent;
+} push_constant;
+
+const float infinity = 1. / 0.;
+
+void main()
+{
+   	uvec2 pos = gl_GlobalInvocationID.xy;
+    vec2 uv = pos/vec2(push_constant.extent);
+
+    float depth = texture(input_image, uv).r;
+    depth = max(depth, textureOffset(input_image, uv, ivec2(0, 1)).r);
+    depth = max(depth, textureOffset(input_image, uv, ivec2(0, -1)).r);
+    depth = max(depth, textureOffset(input_image, uv, ivec2(-1, 0)).r);
+    depth = max(depth, textureOffset(input_image, uv, ivec2(1, 0)).r);
+
+    depth = depth ==0.0? infinity : depth;
+
+	imageStore(output_image, ivec2(pos), vec4(depth));
+}

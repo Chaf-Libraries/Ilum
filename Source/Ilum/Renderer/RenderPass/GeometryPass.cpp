@@ -21,6 +21,7 @@ namespace Ilum::pass
 {
 GeometryPass::GeometryPass()
 {
+
 }
 
 void GeometryPass::setupPipeline(PipelineState &state)

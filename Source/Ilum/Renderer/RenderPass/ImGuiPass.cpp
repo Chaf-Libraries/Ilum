@@ -45,8 +45,6 @@ void ImGuiPass::setupPipeline(PipelineState &state)
 			state.addDependency(name, VK_IMAGE_USAGE_SAMPLED_BIT);
 		}
 	}
-
-	state.addDependency(m_view, VK_IMAGE_USAGE_SAMPLED_BIT);
 }
 
 void ImGuiPass::resolveResources(ResolveState &resolve)

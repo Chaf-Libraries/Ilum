@@ -6,18 +6,15 @@
 
 namespace Ilum::pass
 {
-class CullingPass : public TRenderPass<CullingPass>
+class CopyPass : public TRenderPass<CopyPass>
 {
   public:
-	CullingPass();
+	CopyPass();
 
 	virtual void setupPipeline(PipelineState &state) override;
 
 	virtual void resolveResources(ResolveState &resolve) override;
 
 	virtual void render(RenderPassState &state) override;
-
-  private:
-	scope<Buffer> m_count_buffer = nullptr;
 };
 }        // namespace Ilum::pass

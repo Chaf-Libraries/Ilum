@@ -154,9 +154,9 @@ Image::Image(VkImage image, uint32_t width, uint32_t height, VkFormat format) :
 	createImageViews();
 }
 
-Image::Image(Image &&other) :
+Image::Image(Image &&other) noexcept :
     m_handle(other.m_handle),
-    m_views(other.m_views),
+    m_views(std::move(other.m_views)),
     m_layer_views(std ::move(other.m_layer_views)),
     m_extent(other.m_extent),
     m_mip_level_count(other.m_mip_level_count),
@@ -168,12 +168,12 @@ Image::Image(Image &&other) :
 	other.m_allocation = VK_NULL_HANDLE;
 }
 
-Image &Image::operator=(Image &&other)
+Image &Image::operator=(Image &&other) noexcept
 {
 	destroy();
 
 	m_handle          = other.m_handle;
-	m_views           = other.m_views;
+	m_views           = std::move(other.m_views);
 	m_layer_views     = std ::move(other.m_layer_views);
 	m_extent          = other.m_extent;
 	m_mip_level_count = other.m_mip_level_count;

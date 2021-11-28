@@ -11,6 +11,8 @@
 #include <Ilum/Renderer/RenderPass/CullingPass.hpp>
 #include <Ilum/Renderer/RenderPass/GeometryPass.hpp>
 #include <Ilum/Renderer/RenderPass/LightPass.hpp>
+#include <Ilum/Renderer/RenderPass/HizPass.hpp>
+#include <Ilum/Renderer/RenderPass/CopyPass.hpp>
 #include <Ilum/Renderer/RenderPass/TonemappingPass.hpp>
 #include <Ilum/Renderer/Renderer.hpp>
 #include <Ilum/Scene/Component/Hierarchy.hpp>
@@ -28,6 +30,7 @@ int main()
 
 	Ilum::Renderer::instance()->buildRenderGraph = [](Ilum::RenderGraphBuilder &builder) {
 		builder
+		    .addRenderPass("HizPass", std::make_unique<Ilum::pass::HizPass>())
 		    .addRenderPass("CullingPass", std::make_unique<Ilum::pass::CullingPass>())
 		    .addRenderPass("GeometryPass", std::make_unique<Ilum::pass::GeometryPass>())
 		    .addRenderPass("LightPass", std::make_unique<Ilum::pass::LightPass>())
@@ -36,6 +39,7 @@ int main()
 		    .addRenderPass("Blur2", std::make_unique<Ilum::pass::BlurPass>("blur1", "blur2", true))
 		    .addRenderPass("Blend", std::make_unique<Ilum::pass::BlendPass>("blur2", "lighting", "blooming"))
 		    .addRenderPass("Tonemapping", std::make_unique<Ilum::pass::TonemappingPass>("blooming"))
+		    .addRenderPass("CopyBuffer", std::make_unique<Ilum::pass::CopyPass>())
 
 		    .setView("gbuffer - normal")
 		    .setOutput("gbuffer - normal");

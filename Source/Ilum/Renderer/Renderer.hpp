@@ -108,6 +108,8 @@ class Renderer : public TSubsystem<Renderer>
 
 	void updateInstanceBuffer();
 
+	void updateImages();
+
   private:
 	std::function<void(RenderGraphBuilder &)> defaultBuilder;
 
@@ -135,6 +137,8 @@ class Renderer : public TSubsystem<Renderer>
 
 	uint32_t Instance_Count = 0;
 	uint32_t Meshlet_Count  = 0;
+	uint32_t Indices_Count   = 0;
+	uint32_t Meshlet_Visible = 0;
 
 	struct
 	{
@@ -149,6 +153,12 @@ class Renderer : public TSubsystem<Renderer>
 		float strength = 0.13f;
 		uint32_t enable    = 0;
 	} Bloom;
+
+	struct
+	{
+		scope<Image> depth_buffer;
+		scope<Image> hiz_buffer;
+	}Last_Frame;
 
   public:
 	Event<> Event_RenderGraph_Rebuild;

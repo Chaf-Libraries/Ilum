@@ -891,7 +891,7 @@ RenderGraphBuilder::AttachmentMap RenderGraphBuilder::allocateAttachments(const 
 			                                         attachment.width == 0 ? surface_width : attachment.width,
 			                                         attachment.height == 0 ? surface_height : attachment.height,
 			                                         attachment.format,
-			                                         attachment_usage | VK_IMAGE_USAGE_SAMPLED_BIT,
+			                                         attachment_usage | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
 			                                         VMA_MEMORY_USAGE_GPU_ONLY,
 			                                         attachment.mipmaps,
 			                                         attachment.layers)));

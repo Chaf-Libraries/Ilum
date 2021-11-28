@@ -6,10 +6,12 @@
 
 namespace Ilum::pass
 {
-class CullingPass : public TRenderPass<CullingPass>
+class HizPass : public TRenderPass<HizPass>
 {
   public:
-	CullingPass();
+	HizPass();
+
+	~HizPass();
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -18,6 +20,7 @@ class CullingPass : public TRenderPass<CullingPass>
 	virtual void render(RenderPassState &state) override;
 
   private:
-	scope<Buffer> m_count_buffer = nullptr;
+	std::vector<DescriptorSet> m_descriptor_sets;
+	std::vector<VkImageView>   m_views;
 };
 }        // namespace Ilum::pass

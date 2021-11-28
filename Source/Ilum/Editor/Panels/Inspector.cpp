@@ -299,7 +299,10 @@ inline void draw_component<cmpt::Tag>(Entity entity)
 		}
 		ImGui::PopItemWidth();
 		ImGui::SameLine();
-		ImGui::Checkbox("Active", &entity.getComponent<cmpt::Tag>().active);
+		if (ImGui::Checkbox("Active", &entity.getComponent<cmpt::Tag>().active))
+		{
+			cmpt::Tag::update = true;
+		}
 	}
 }
 

@@ -137,6 +137,8 @@ void Renderer::rebuild()
 {
 	GraphicsContext::instance()->getQueueSystem().waitAll();
 
+	updateImages();
+
 	m_render_graph.reset();
 	m_render_graph = nullptr;
 
@@ -363,12 +365,19 @@ void Renderer::updateCameraBuffer()
 			glm::mat4 view_projection;
 			glm::vec4 frustum[6];
 			alignas(16) glm::vec3 position;
+			glm::mat4 last_view_projection;
 		} camera_buffer;
 
 		if (m_buffers[BufferType::MainCamera].getSize() != sizeof(camera_buffer))
 		{
 			GraphicsContext::instance()->getQueueSystem().waitAll();
 			m_buffers[BufferType::MainCamera] = Buffer(sizeof(camera_buffer), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			
+			camera_buffer.last_view_projection = Main_Camera.view_projection;
+		}
+		else
+		{
+			camera_buffer.last_view_projection = reinterpret_cast<decltype(camera_buffer) *>(m_buffers[BufferType::MainCamera].map())->view_projection;
 		}
 		camera_buffer.position        = Main_Camera.position;
 		camera_buffer.view_projection = Main_Camera.view_projection;
@@ -445,9 +454,14 @@ void Renderer::updateInstanceBuffer()
 		});
 	});
 
-	if (instance_count != Instance_Count || ResourceCache::update || cmpt::MeshRenderer::update)
+	if (instance_count != Instance_Count || ResourceCache::update || cmpt::MeshRenderer::update || cmpt::Tag::update)
 	{
 		cmpt::MeshRenderer::update = false;
+		cmpt::Tag::update          = false;
+
+		Indices_Count  = 0;
+		Instance_Count = 0;
+		Meshlet_Count  = 0;
 
 		// Collect data
 		std::vector<VkDrawIndexedIndirectCommand> indirect_commands;
@@ -456,11 +470,9 @@ void Renderer::updateInstanceBuffer()
 		std::vector<Bound>                        bound_data;
 		std::vector<uint32_t>                     meshlet_data;        //	Which submesh the meshlet belong
 
-		uint32_t   instance_idx = 0;
-		uint32_t   meshlet_idx  = 0;
 		const auto group        = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Tag, cmpt::Transform>);
 		group.each([&](const entt::entity &entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Tag &tag, const cmpt::Transform &transform) {
-			if (!m_resource_cache->hasModel(mesh_renderer.model))
+			if (!tag.active  || !m_resource_cache->hasModel(mesh_renderer.model))
 			{
 				return;
 			}
@@ -478,10 +490,12 @@ void Renderer::updateInstanceBuffer()
 					{
 						const auto &meshlet = model.get().meshlets[j];
 
-						meshlet_data.push_back(instance_idx);
+						Indices_Count += meshlet.indices_count;
+
+						meshlet_data.push_back(Instance_Count);
 
 						VkDrawIndexedIndirectCommand indirect_cmd;
-						indirect_cmd.firstInstance = meshlet_idx++;
+						indirect_cmd.firstInstance = Meshlet_Count++;
 						indirect_cmd.firstIndex    = model.get().indices_offset + meshlet.indices_offset;
 						indirect_cmd.vertexOffset  = model.get().vertices_offset + meshlet.vertices_offset;
 						indirect_cmd.instanceCount = 1;
@@ -520,13 +534,10 @@ void Renderer::updateInstanceBuffer()
 					data.id                  = static_cast<uint32_t>(entity);
 					material_data.push_back(data);
 
-					instance_idx++;
+					Instance_Count++;
 				}
 			}
 		});
-
-		Instance_Count = instance_idx;
-		Meshlet_Count  = meshlet_idx;
 
 		// Enlarge buffer
 		if (m_buffers[BufferType::IndirectCommand].getSize() == 0)
@@ -598,6 +609,23 @@ void Renderer::updateInstanceBuffer()
 	}
 
 	GraphicsContext::instance()->getProfiler().endSample("Instance Update");
+}
+
+void Renderer::updateImages()
+{
+	Renderer::instance()->Last_Frame.hiz_buffer = createScope<Image>(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
+	                                                                 VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VMA_MEMORY_USAGE_GPU_ONLY, true);
+	Renderer::instance()->Last_Frame.depth_buffer = createScope<Image>(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
+	                                                                   VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	// Layout transition
+	{
+		CommandBuffer cmd_buffer;
+		cmd_buffer.begin();
+		cmd_buffer.transferLayout(*Renderer::instance()->Last_Frame.hiz_buffer, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_SAMPLED_BIT);
+		cmd_buffer.transferLayout(*Renderer::instance()->Last_Frame.depth_buffer, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_SAMPLED_BIT);
+		cmd_buffer.end();
+		cmd_buffer.submitIdle();
+	}
 }
 
 void Renderer::createBuffers()
