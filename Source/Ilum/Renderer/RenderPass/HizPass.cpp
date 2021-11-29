@@ -11,7 +11,7 @@ namespace Ilum::pass
 {
 HizPass::HizPass()
 {
-	m_views.resize(Renderer::instance()->Last_Frame.hiz_buffer->getMipLevelCount());
+	m_views.resize(Renderer::instance()->Last_Frame.hiz_buffer->getMipLevelCount() - 3);
 
 	VkImageViewCreateInfo image_view_create_info       = {};
 	image_view_create_info.sType                       = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -21,7 +21,7 @@ HizPass::HizPass()
 	image_view_create_info.subresourceRange.layerCount = 1;
 	image_view_create_info.image                       = *Renderer::instance()->Last_Frame.hiz_buffer;
 
-	for (uint32_t i = 0; i < Renderer::instance()->Last_Frame.hiz_buffer->getMipLevelCount(); i++)
+	for (uint32_t i = 0; i < m_views.size(); i++)
 	{
 		image_view_create_info.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
 		image_view_create_info.subresourceRange.baseArrayLayer = 0;
@@ -108,6 +108,11 @@ void HizPass::resolveResources(ResolveState &resolve)
 
 void HizPass::render(RenderPassState &state)
 {
+	//if (!Renderer::instance()->Culling.occulsion_culling)
+	//{
+	//	return;
+	//}
+
 	auto &cmd_buffer = state.command_buffer;
 
 	vkCmdBindPipeline(cmd_buffer, state.pass.bind_point, state.pass.pipeline);

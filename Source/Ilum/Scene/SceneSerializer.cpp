@@ -266,15 +266,11 @@ void serialize_bloom(YAML::Emitter &emitter)
 void deserialize_main_camera(const YAML::Node &data)
 {
 	Renderer::instance()->Main_Camera.type            = static_cast<Camera::Type>(data["type"].as<uint32_t>());
-	Renderer::instance()->Main_Camera.aspect          = data["aspect"].as<float>();
 	Renderer::instance()->Main_Camera.fov             = data["fov"].as<float>();
 	Renderer::instance()->Main_Camera.far_plane       = data["far_plane"].as<float>();
 	Renderer::instance()->Main_Camera.near_plane      = data["near_plane"].as<float>();
 	Renderer::instance()->Main_Camera.forward         = data["forward"].as<glm::vec3>();
 	Renderer::instance()->Main_Camera.position        = data["position"].as<glm::vec3>();
-	Renderer::instance()->Main_Camera.view            = data["view"].as<glm::mat4>();
-	Renderer::instance()->Main_Camera.projection      = data["projection"].as<glm::mat4>();
-	Renderer::instance()->Main_Camera.view_projection = data["view_projection"].as<glm::mat4>();
 	Renderer::instance()->Main_Camera.update          = true;
 }
 

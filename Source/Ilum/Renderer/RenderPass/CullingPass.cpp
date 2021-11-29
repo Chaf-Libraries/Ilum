@@ -60,8 +60,9 @@ void CullingPass::render(RenderPassState &state)
 	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(VkExtent2D), &Renderer::instance()->getRenderTargetExtent());
 	float fov = glm::radians(Renderer::instance()->Main_Camera.fov);
 	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, sizeof(VkExtent2D), sizeof(float), &fov);
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, sizeof(VkExtent2D) + sizeof(float), sizeof(Renderer::instance()->Culling), &Renderer::instance()->Culling);
 
-	uint32_t group_count = Renderer::instance()->Meshlet_Count / 1024 + 1;
+	uint32_t group_count = (Renderer::instance()->Meshlet_Count + 1024  - 1) / 1024;
 	vkCmdDispatch(cmd_buffer, group_count, 1, 1);
 }
 }        // namespace Ilum::pass

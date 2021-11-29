@@ -160,6 +160,13 @@ class Renderer : public TSubsystem<Renderer>
 		scope<Image> hiz_buffer;
 	}Last_Frame;
 
+	struct
+	{
+		uint32_t frustum_culling = 1;
+		uint32_t backface_culling  = 1;
+		uint32_t occulsion_culling = 0;
+	}Culling;
+
   public:
 	Event<> Event_RenderGraph_Rebuild;
 };

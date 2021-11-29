@@ -69,6 +69,9 @@ layout (binding = 6) buffer MeshletCount
 layout(push_constant) uniform PushConstBlock {
 	uvec2 extent;
     float fov;
+    uint frustum_enable;
+    uint backface_enable;
+    uint occlusion_enable;
 } push_constant;
 
 layout (local_size_x = 1024) in;
@@ -85,25 +88,31 @@ bool checkFrustum(Bound bound)
     return true;
 }
 
-bool checkOcclusion(Bound bound)
+bool checkOcclusion(Bound bound, uint idx)
 {
     vec4 sceen_space_center = camera.view_projection * vec4(bound.center, 1.0);
     vec4 sceen_space_center_last = camera.last_view_projection * vec4(bound.center, 1.0);
 
     float d = length(camera.position - bound.center);
-    float screen_space_radius = push_constant.extent.y * 0.5 * bound.radius / (tan(push_constant.fov/2.0)*sqrt(d*d-bound.radius*bound.radius));
+    float screen_space_radius = bound.radius / (tan(push_constant.fov/2.0)*sqrt(d*d-bound.radius*bound.radius));
 
-    float mip_level = ceil(log2(screen_space_radius));
+    float mip_level = clamp(ceil(log2(max(push_constant.extent.x, push_constant.extent.y) * 0.5 * screen_space_radius)), 0.0, floor(log2(max(push_constant.extent.x, push_constant.extent.y))+1) - 4);
 
     vec2 uv = sceen_space_center.xy/sceen_space_center.w;
     uv=clamp((uv+vec2(1.0))*0.5, 0.0, 1.0);
     uv.y = 1.0 - uv.y;
+    vec2 uv0 = clamp(uv + screen_space_radius * normalize(vec2(1,1)), 0.0, 1.0);
+    vec2 uv1 = clamp(uv + screen_space_radius * normalize(vec2(-1,-1)), 0.0, 1.0);
+    vec2 uv2 = clamp(uv + screen_space_radius * normalize(vec2(1,-1)), 0.0, 1.0);
+    vec2 uv3 = clamp(uv + screen_space_radius * normalize(vec2(-1,1)), 0.0, 1.0);
    
     float depth = textureLod(hiz_buffer, uv, mip_level).r;
-    depth = max(depth, textureLodOffset(hiz_buffer, uv, mip_level, ivec2(0, 1)).r);
-    depth = max(depth, textureLodOffset(hiz_buffer, uv, mip_level, ivec2(0,-1)).r);
-    depth = max(depth, textureLodOffset(hiz_buffer, uv, mip_level, ivec2(-1,0)).r);
-    depth = max(depth, textureLodOffset(hiz_buffer, uv, mip_level, ivec2(1,0)).r);
+    depth = max(depth, textureLod(hiz_buffer, uv0, mip_level).r);
+    depth = max(depth, textureLod(hiz_buffer, uv1, mip_level).r);
+    depth = max(depth, textureLod(hiz_buffer, uv2, mip_level).r);
+    depth = max(depth, textureLod(hiz_buffer, uv3, mip_level).r);
+
+    //debug[idx] = vec4(0.0,0.0,screen_space_radius * vec2(1.0 / push_constant.extent.x, 1.0 / push_constant.extent.y));
     
     return depth >= sceen_space_center_last.z - bound.radius;
 }
@@ -113,35 +122,54 @@ void main()
 {
 	uint idx = gl_GlobalInvocationID.x;
 
+    if (idx == 0)
+	{
+		atomicExchange(count, 0);
+	}
+
     Bound bound = bounds[indirectDraws[idx].firstInstance];
     mat4 trans = transform[meshlet[indirectDraws[idx].firstInstance]].world_transform * transform[meshlet[indirectDraws[idx].firstInstance]].pre_transform;
+    bool visible = true;
 
-    bound.center = (trans * vec4(bound.center, 1.0)).xyz;
-    vec3 edge = vec3(1.0) * sqrt(bound.radius * bound.radius / 3.0);
-    bound.radius = length(vec3(
-        abs(trans[0][0])*edge.x + abs(trans[0][1])*edge.y + abs(trans[0][2])*edge.z,
-        abs(trans[1][0])*edge.x + abs(trans[1][1])*edge.y + abs(trans[1][2])*edge.z,
-        abs(trans[2][0])*edge.x + abs(trans[2][1])*edge.y + abs(trans[2][2])*edge.z
-    ));
+    if(visible && push_constant.frustum_enable == 1)
+    {
+        bound.center = (trans * vec4(bound.center, 1.0)).xyz;
+        vec3 edge = vec3(1.0) * sqrt(bound.radius * bound.radius / 3.0);
+        bound.radius = length(vec3(
+            abs(trans[0][0])*edge.x + abs(trans[0][1])*edge.y + abs(trans[0][2])*edge.z,
+            abs(trans[1][0])*edge.x + abs(trans[1][1])*edge.y + abs(trans[1][2])*edge.z,
+            abs(trans[2][0])*edge.x + abs(trans[2][1])*edge.y + abs(trans[2][2])*edge.z
+        ));
 
-    vec3 scale = vec3(
-        sqrt(trans[0][0] * trans[0][0] + trans[0][1] * trans[0][1] + trans[0][2] * trans[0][2]),
-        sqrt(trans[1][0] * trans[1][0] + trans[1][1] * trans[1][1] + trans[1][2] * trans[1][2]),
-        sqrt(trans[2][0] * trans[2][0] + trans[2][1] * trans[2][1] + trans[2][2] * trans[2][2])
-    );
+        visible = visible && checkFrustum(bound);
+    }
 
-    mat3 rotation = mat3(
-        trans[0].xyz/scale.x,
-        trans[1].xyz/scale.y,
-        trans[2].xyz/scale.z
-    );
+    if(visible && push_constant.backface_enable == 1)
+    {
+        vec3 scale = vec3(
+            sqrt(trans[0][0] * trans[0][0] + trans[0][1] * trans[0][1] + trans[0][2] * trans[0][2]),
+            sqrt(trans[1][0] * trans[1][0] + trans[1][1] * trans[1][1] + trans[1][2] * trans[1][2]),
+            sqrt(trans[2][0] * trans[2][0] + trans[2][1] * trans[2][1] + trans[2][2] * trans[2][2])
+        );
 
-    bound.cone_apex = (trans * vec4(bound.cone_apex, 1.0)).xyz;
-    bound.cone_axis = rotation * bound.cone_axis;
+        mat3 rotation = mat3(
+            trans[0].xyz/scale.x,
+            trans[1].xyz/scale.y,
+            trans[2].xyz/scale.z
+        );
 
-    if (dot(normalize(camera.position - bound.cone_apex), bound.cone_axis) < bound.cone_cutoff 
-        && checkFrustum(bound) 
-        && checkOcclusion(bound))
+        bound.cone_apex = (trans * vec4(bound.cone_apex, 1.0)).xyz;
+        bound.cone_axis = rotation * bound.cone_axis;
+
+        visible = visible && dot(normalize(camera.position - bound.cone_apex), bound.cone_axis) < bound.cone_cutoff;
+    }
+
+    if(visible && push_constant.occlusion_enable == 1)
+    {
+        visible = visible && checkOcclusion(bound, idx);
+    }
+
+    if (visible)
     {
         indirectDraws[idx].instanceCount = 1;
         atomicAdd(count, 1);
@@ -150,4 +178,43 @@ void main()
     {
         indirectDraws[idx].instanceCount = 0;
     }
+    
+
+    // Bound bound = bounds[indirectDraws[idx].firstInstance];
+    // mat4 trans = transform[meshlet[indirectDraws[idx].firstInstance]].world_transform * transform[meshlet[indirectDraws[idx].firstInstance]].pre_transform;
+
+    // bound.center = (trans * vec4(bound.center, 1.0)).xyz;
+    // vec3 edge = vec3(1.0) * sqrt(bound.radius * bound.radius / 3.0);
+    // bound.radius = length(vec3(
+    //     abs(trans[0][0])*edge.x + abs(trans[0][1])*edge.y + abs(trans[0][2])*edge.z,
+    //     abs(trans[1][0])*edge.x + abs(trans[1][1])*edge.y + abs(trans[1][2])*edge.z,
+    //     abs(trans[2][0])*edge.x + abs(trans[2][1])*edge.y + abs(trans[2][2])*edge.z
+    // ));
+
+    // vec3 scale = vec3(
+    //     sqrt(trans[0][0] * trans[0][0] + trans[0][1] * trans[0][1] + trans[0][2] * trans[0][2]),
+    //     sqrt(trans[1][0] * trans[1][0] + trans[1][1] * trans[1][1] + trans[1][2] * trans[1][2]),
+    //     sqrt(trans[2][0] * trans[2][0] + trans[2][1] * trans[2][1] + trans[2][2] * trans[2][2])
+    // );
+
+    // mat3 rotation = mat3(
+    //     trans[0].xyz/scale.x,
+    //     trans[1].xyz/scale.y,
+    //     trans[2].xyz/scale.z
+    // );
+
+    // bound.cone_apex = (trans * vec4(bound.cone_apex, 1.0)).xyz;
+    // bound.cone_axis = rotation * bound.cone_axis;
+
+    // if (checkFrustum(bound)
+    //     && dot(normalize(camera.position - bound.cone_apex), bound.cone_axis) < bound.cone_cutoff 
+    //     && checkOcclusion(bound, idx))
+    // {
+    //     indirectDraws[idx].instanceCount = 1;
+    //     atomicAdd(count, 1);
+    // }
+    // else
+    // {
+    //     indirectDraws[idx].instanceCount = 0;
+    // }
 }
