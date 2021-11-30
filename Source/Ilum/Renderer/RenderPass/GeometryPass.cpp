@@ -72,7 +72,7 @@ void GeometryPass::setupPipeline(PipelineState &state)
 	state.addOutputAttachment("gbuffer - albedo", AttachmentState::Clear_Color);
 	state.addOutputAttachment("gbuffer - normal", AttachmentState::Clear_Color);
 	state.addOutputAttachment("gbuffer - position", AttachmentState::Clear_Color);
-	state.addOutputAttachment("gbuffer - depth", AttachmentState::Clear_Color);
+	state.addOutputAttachment("gbuffer - depth", VkClearColorValue{std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()});
 	state.addOutputAttachment("gbuffer - metallic", AttachmentState::Clear_Color);
 	state.addOutputAttachment("gbuffer - roughness", AttachmentState::Clear_Color);
 	state.addOutputAttachment("gbuffer - emissive", AttachmentState::Clear_Color);

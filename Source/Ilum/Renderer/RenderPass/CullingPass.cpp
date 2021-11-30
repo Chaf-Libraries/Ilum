@@ -42,10 +42,24 @@ void CullingPass::resolveResources(ResolveState &resolve)
 void CullingPass::render(RenderPassState &state)
 {
 	{
-		uint32_t refresh = 0;
 		std::memcpy(&Renderer::instance()->Meshlet_Visible, m_count_buffer->map(), sizeof(uint32_t));
-		*reinterpret_cast<uint32_t *>(m_count_buffer->map()) = 0;
 		m_count_buffer->unmap();
+	}
+
+	// Update cull data
+	{
+		m_cull_data.last_view        = m_cull_data.view;
+		m_cull_data.view             = Renderer::instance()->Main_Camera.view;
+		m_cull_data.P00              = Renderer::instance()->Main_Camera.projection[0][0];
+		m_cull_data.P11              = Renderer::instance()->Main_Camera.projection[1][1];
+		m_cull_data.znear            = Renderer::instance()->Main_Camera.near_plane;
+		m_cull_data.zfar             = Renderer::instance()->Main_Camera.far_plane;
+		m_cull_data.draw_count       = Renderer::instance()->Meshlet_Count;
+		m_cull_data.frustum_enable   = Renderer::instance()->Culling.frustum_culling;
+		m_cull_data.backface_enable  = Renderer::instance()->Culling.backface_culling;
+		m_cull_data.occlusion_enable = Renderer::instance()->Culling.occulsion_culling;
+		m_cull_data.zbuffer_width    = Renderer::instance()->Last_Frame.hiz_buffer->getWidth();
+		m_cull_data.zbuffer_height   = Renderer::instance()->Last_Frame.hiz_buffer->getHeight();
 	}
 
 	auto &cmd_buffer = state.command_buffer;
@@ -56,13 +70,10 @@ void CullingPass::render(RenderPassState &state)
 	{
 		vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
 	}
-	
-	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(VkExtent2D), &Renderer::instance()->getRenderTargetExtent());
-	float fov = glm::radians(Renderer::instance()->Main_Camera.fov);
-	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, sizeof(VkExtent2D), sizeof(float), &fov);
-	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, sizeof(VkExtent2D) + sizeof(float), sizeof(Renderer::instance()->Culling), &Renderer::instance()->Culling);
 
-	uint32_t group_count = (Renderer::instance()->Meshlet_Count + 1024  - 1) / 1024;
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(m_cull_data), &m_cull_data);
+
+	uint32_t group_count = (Renderer::instance()->Meshlet_Count + 1024 - 1) / 1024;
 	vkCmdDispatch(cmd_buffer, group_count, 1, 1);
 }
 }        // namespace Ilum::pass

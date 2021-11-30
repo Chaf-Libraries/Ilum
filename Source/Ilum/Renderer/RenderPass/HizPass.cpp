@@ -11,7 +11,7 @@ namespace Ilum::pass
 {
 HizPass::HizPass()
 {
-	m_views.resize(Renderer::instance()->Last_Frame.hiz_buffer->getMipLevelCount() - 3);
+	m_views.resize(Renderer::instance()->Last_Frame.hiz_buffer->getMipLevelCount());
 
 	VkImageViewCreateInfo image_view_create_info       = {};
 	image_view_create_info.sType                       = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -108,10 +108,10 @@ void HizPass::resolveResources(ResolveState &resolve)
 
 void HizPass::render(RenderPassState &state)
 {
-	//if (!Renderer::instance()->Culling.occulsion_culling)
-	//{
-	//	return;
-	//}
+	if (!Renderer::instance()->Culling.occulsion_culling)
+	{
+		return;
+	}
 
 	auto &cmd_buffer = state.command_buffer;
 
@@ -142,12 +142,15 @@ void HizPass::render(RenderPassState &state)
 
 		vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, 0, 1, &m_descriptor_sets[level].getDescriptorSet(), 0, nullptr);
 
-		VkExtent2D extent = {Renderer::instance()->Last_Frame.hiz_buffer->getMipWidth(level), Renderer::instance()->Last_Frame.hiz_buffer->getMipHeight(level)};
+		uint32_t level_width  = std::max(1u, Renderer::instance()->Last_Frame.hiz_buffer->getWidth() >> level);
+		uint32_t level_height = std::max(1u, Renderer::instance()->Last_Frame.hiz_buffer->getHeight() >> level);
+
+		VkExtent2D extent = {level_width, level_height};
 		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(VkExtent2D), &extent);
 
-		uint32_t group_count_x = Renderer::instance()->getRenderTargetExtent().width / 32 + 1;
-		uint32_t group_count_y = Renderer::instance()->getRenderTargetExtent().height / 32 + 1;
- 		vkCmdDispatch(cmd_buffer, group_count_x, group_count_y, 1);
+		uint32_t group_count_x = (Renderer::instance()->getRenderTargetExtent().width + 32 - 1) / 32;
+		uint32_t group_count_y = (Renderer::instance()->getRenderTargetExtent().height + 32 - 1) / 32;
+		vkCmdDispatch(cmd_buffer, group_count_x, group_count_y, 1);
 
 		{
 			VkImageMemoryBarrier write_to_read{};
