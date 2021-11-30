@@ -69,6 +69,9 @@ layout (set = 0, binding = 4) buffer MeshletBuffer
     uint meshlets[];
 };
 
+float rand(vec2 co){
+    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+}
 
 void main() {
     float height=material_data[meshlets[gl_DrawIDARB]].displacement_map < 1024?
@@ -98,5 +101,7 @@ void main() {
 
     outIndex = meshlets[gl_DrawIDARB];
 
-    outColor = vec3(float(gl_DrawIDARB%9)/9,float((gl_DrawIDARB+3)%9)/9,float((gl_DrawIDARB+6)%9)/9);
+    outColor = vec3(rand(vec2(gl_DrawIDARB,gl_DrawIDARB+1)), 
+    rand(vec2(gl_DrawIDARB+2,gl_DrawIDARB+3)), 
+    rand(vec2(gl_DrawIDARB+4,gl_DrawIDARB+5)));
 }
