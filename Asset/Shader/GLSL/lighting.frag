@@ -2,12 +2,9 @@
 
 layout(binding = 0) uniform sampler2D Albedo;
 layout(binding = 1) uniform sampler2D Normal;
-layout(binding = 2) uniform sampler2D Position;
-layout(binding = 3) uniform sampler2D Depth;
-layout(binding = 4) uniform sampler2D Metallic;
-layout(binding = 5) uniform sampler2D Roughness;
-layout(binding = 6) uniform sampler2D Emissive;
-layout(binding = 7) uniform sampler2D AO;
+layout(binding = 2) uniform sampler2D Position_Depth;
+layout(binding = 3) uniform sampler2D Metallic_Roughness_AO;
+layout(binding = 4) uniform sampler2D Emissive;
 
 struct DirectionalLight
 {
@@ -36,15 +33,15 @@ struct SpotLight
     float outer_cut_off;
 };
 
-layout(binding = 8) buffer DirectionalLights{
+layout(binding = 5) buffer DirectionalLights{
     DirectionalLight directional_lights[ ];
 };
 
-layout(binding = 9) buffer PointLights{
+layout(binding = 6) buffer PointLights{
     PointLight point_lights[ ];
 };
 
-layout(binding = 10) buffer SpotLights{
+layout(binding = 7) buffer SpotLights{
     SpotLight spot_lights[ ];
 };
 
@@ -128,9 +125,11 @@ void main()
     vec3 albedo = pow(texture(Albedo, inUV).rgb, vec3(2.2));
     vec3 normal = texture(Normal, inUV).rgb;
     vec3 emissive = texture(Emissive, inUV).rgb;
-    vec3 frag_pos = texture(Position, inUV).rgb;
-    float metallic = texture(Metallic, inUV).r;
-    float roughness = texture(Roughness, inUV).r;
+    vec3 frag_pos = texture(Position_Depth, inUV).rgb;
+    float metallic = texture(Metallic_Roughness_AO, inUV).r;
+    float roughness = texture(Metallic_Roughness_AO, inUV).g;
+
+    roughness = roughness == 0.0 ? 6.274e-5 : roughness;
 
     vec3 Lo = vec3(0.0);
     outColor = vec4(0.0,0.0,0.0,1.0);

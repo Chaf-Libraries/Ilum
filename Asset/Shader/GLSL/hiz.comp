@@ -4,7 +4,7 @@ layout (local_size_x = 32, local_size_y = 32) in;
 
 layout (binding = 0) uniform sampler2D input_image;
 
-layout (binding = 1, r32f) writeonly uniform image2D output_image;
+layout (binding = 1, r16f) writeonly uniform image2D output_image;
 
 layout(push_constant) uniform PushConstBlock {
 	uvec2 extent;

@@ -14,10 +14,9 @@ layout(location = 0) out vec4 Albedo;
 layout(location = 1) out vec4 Normal;
 layout(location = 2) out vec4 Position;
 layout(location = 3) out vec4 Depth;
-layout(location = 4) out vec4 Metallic;
-layout(location = 5) out vec4 Roughness;
-layout(location = 6) out vec4 Emissive;
-layout(location = 7) out vec4 AO;
+layout(location = 4) out vec4 Metallic_Roughness_AO;
+layout(location = 5) out vec4 Emissive;
+
 
 struct MaterialData
 {
@@ -64,26 +63,26 @@ void main() {
     // Albedo = vec4(inColor ,1.0);
         
     // Metallic G-Buffer
-    Metallic = material_data[inIndex].metallic_map < 1024?
-        vec4(vec3(texture(textureArray[nonuniformEXT(material_data[inIndex].metallic_map)], inUV).r * material_data[inIndex].metallic_factor), 1.0) : 
-        vec4(vec3(material_data[inIndex].metallic_factor), 1.0);
+    Metallic_Roughness_AO.r = material_data[inIndex].metallic_map < 1024?
+        texture(textureArray[nonuniformEXT(material_data[inIndex].metallic_map)], inUV).r * material_data[inIndex].metallic_factor : 
+        material_data[inIndex].metallic_factor;
 
     // Roughness G-Buffer
-    Roughness = material_data[inIndex].roughness_map < 1024?
-        vec4(vec3(texture(textureArray[nonuniformEXT(material_data[inIndex].roughness_map)], inUV).g * material_data[inIndex].roughness_factor), 1.0) : 
-        vec4(vec3(material_data[inIndex].roughness_factor), 1.0);
-
-    Roughness = Roughness.r == 0.0 ? vec4(6.274e-5, 6.274e-5, 6.274e-5, 1.0) : Roughness;
+    Metallic_Roughness_AO.g = material_data[inIndex].roughness_map < 1024?
+        texture(textureArray[nonuniformEXT(material_data[inIndex].roughness_map)], inUV).g * material_data[inIndex].roughness_factor : 
+        material_data[inIndex].roughness_factor;
 
     Normal =  material_data[inIndex].normal_map < 1024?
         vec4(TBN * normalize(texture(textureArray[nonuniformEXT(material_data[inIndex].normal_map)], inUV).xyz * 2.0 - vec3(1.0)), 1.0) : 
         vec4(N, 1.0);    
 
     Emissive = material_data[inIndex].emissive_map < 1024?
-        texture(textureArray[nonuniformEXT(material_data[inIndex].emissive_map)], inUV) * vec4(material_data[inIndex].emissive_color * material_data[inIndex].emissive_intensity, 1.0) : 
+        vec4(texture(textureArray[nonuniformEXT(material_data[inIndex].emissive_map)], inUV).rgb * material_data[inIndex].emissive_color * material_data[inIndex].emissive_intensity, 1.0) : 
         vec4(material_data[inIndex].emissive_color * material_data[inIndex].emissive_intensity, 1.0);
 
-    AO = material_data[inIndex].ao_map < 1024?
-        vec4(vec3(texture(textureArray[nonuniformEXT(material_data[inIndex].ao_map)], inUV).r), 1.0) : 
-        vec4(vec3(0.0), 1.0);
+    Metallic_Roughness_AO.b = material_data[inIndex].ao_map < 1024?
+        texture(textureArray[nonuniformEXT(material_data[inIndex].ao_map)], inUV).r : 
+        0.0;
+    
+    Metallic_Roughness_AO.w=1.0;
 }

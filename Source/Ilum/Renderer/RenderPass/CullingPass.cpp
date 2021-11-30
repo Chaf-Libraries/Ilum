@@ -58,8 +58,8 @@ void CullingPass::render(RenderPassState &state)
 		m_cull_data.frustum_enable   = Renderer::instance()->Culling.frustum_culling;
 		m_cull_data.backface_enable  = Renderer::instance()->Culling.backface_culling;
 		m_cull_data.occlusion_enable = Renderer::instance()->Culling.occulsion_culling;
-		m_cull_data.zbuffer_width    = Renderer::instance()->Last_Frame.hiz_buffer->getWidth();
-		m_cull_data.zbuffer_height   = Renderer::instance()->Last_Frame.hiz_buffer->getHeight();
+		m_cull_data.zbuffer_width    = static_cast<float>(Renderer::instance()->Last_Frame.hiz_buffer->getWidth());
+		m_cull_data.zbuffer_height   = static_cast<float>(Renderer::instance()->Last_Frame.hiz_buffer->getHeight());
 	}
 
 	auto &cmd_buffer = state.command_buffer;
@@ -73,7 +73,6 @@ void CullingPass::render(RenderPassState &state)
 
 	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(m_cull_data), &m_cull_data);
 
-	uint32_t group_count = (Renderer::instance()->Meshlet_Count + 1024 - 1) / 1024;
-	vkCmdDispatch(cmd_buffer, group_count, 1, 1);
+	vkCmdDispatch(cmd_buffer, Renderer::instance()->Meshlet_Count, 1, 1);
 }
 }        // namespace Ilum::pass

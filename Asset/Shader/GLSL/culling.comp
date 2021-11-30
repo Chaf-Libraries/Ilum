@@ -81,7 +81,7 @@ layout(push_constant) uniform PushConstBlock {
     uint occlusion_enable;
 } cullData;
 
-layout (local_size_x = 1024) in;
+layout (local_size_x = 1) in;
 
 bool checkFrustum(Bound bound)
 {
@@ -153,7 +153,7 @@ bool checkOcclusion(Bound bound)
 
 void main()
 {
-	uint idx = gl_GlobalInvocationID.x;
+	uint idx = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x;;
 
     if (idx == 0)
 	{
