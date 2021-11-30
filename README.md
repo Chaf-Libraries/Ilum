@@ -1,4 +1,7 @@
 # IlumEngine(WIP)
+
+[![Windows](https://github.com/Chaf-Libraries/IlumEngine/actions/workflows/windows.yml/badge.svg)](https://github.com/Chaf-Libraries/IlumEngine/actions/workflows/windows.yml) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/b0cb3a2729ee4be783dd5feb2cc67eb6)](https://www.codacy.com/gh/Chaf-Libraries/IlumEngine/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Chaf-Libraries/IlumEngine&amp;utm_campaign=Badge_Grade)
+
 Ilum Graphics Engine, name after *Planet Ilum* from [Star Wars](https://starwars.fandom.com/es/wiki/Ilum)
 
 ## Build
