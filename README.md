@@ -31,6 +31,8 @@ cmake --build ./ --target ALL_BUILD --config Release
   * Bindless Texture
   * Vertex/Index Buffer Packing
   * GPU Frustum Culling
+  * GPU Back-Face Cone Culling
+  * GPU Hierarchy Z Buffer Occlusion Culling
 * Rendering Feature
   * PBR Material
 * Post Processing
@@ -40,11 +42,14 @@ cmake --build ./ --target ALL_BUILD --config Release
 
 * Skybox
 * Image Based Lighting
+* Path Tracing
 
 
 ## Screenshot
 
 ![image-20211120113603895](README/image-20211120113603895.png)
+
+![image-20211130105935862](README/image-20211130105935862.png)
 
 ![image-20211120113259237](README/image-20211120113259237.png)
 
@@ -55,11 +60,9 @@ cmake --build ./ --target ALL_BUILD --config Release
 More features are on their way:
 
 * Image based lighting
-
 * Shadow
 * RTX
 * GI
-* GPU driven rendering
 * Screen space
   * SSR
   * SSGI
