@@ -1,5 +1,7 @@
 #version 450
 
+layout (local_size_x = 256) in;
+
 #define FLT_MAX 3.402823466e+38
 #define FLT_MIN 1.175494351e-38
 #define DBL_MAX 1.7976931348623158e+308
@@ -81,7 +83,6 @@ layout(push_constant) uniform PushConstBlock {
     uint occlusion_enable;
 } cullData;
 
-layout (local_size_x = 1) in;
 
 bool checkFrustum(Bound bound)
 {
@@ -153,7 +154,7 @@ bool checkOcclusion(Bound bound)
 
 void main()
 {
-	uint idx = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x;;
+	uint idx = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x;
 
     if (idx == 0)
 	{
@@ -162,18 +163,18 @@ void main()
 
     Bound bound = bounds[indirectDraws[idx].firstInstance];
     mat4 trans = transform[meshlet[indirectDraws[idx].firstInstance]].world_transform * transform[meshlet[indirectDraws[idx].firstInstance]].pre_transform;
+    bound.center = (trans * vec4(bound.center, 1.0)).xyz;
+    vec3 edge = vec3(1.0) * sqrt(bound.radius * bound.radius / 3.0);
+    bound.radius = length(vec3(
+        abs(trans[0][0])*edge.x + abs(trans[0][1])*edge.y + abs(trans[0][2])*edge.z,
+        abs(trans[1][0])*edge.x + abs(trans[1][1])*edge.y + abs(trans[1][2])*edge.z,
+        abs(trans[2][0])*edge.x + abs(trans[2][1])*edge.y + abs(trans[2][2])*edge.z
+    ));
+
     bool visible = true;
 
     if(visible && cullData.frustum_enable == 1)
     {
-        bound.center = (trans * vec4(bound.center, 1.0)).xyz;
-        vec3 edge = vec3(1.0) * sqrt(bound.radius * bound.radius / 3.0);
-        bound.radius = length(vec3(
-            abs(trans[0][0])*edge.x + abs(trans[0][1])*edge.y + abs(trans[0][2])*edge.z,
-            abs(trans[1][0])*edge.x + abs(trans[1][1])*edge.y + abs(trans[1][2])*edge.z,
-            abs(trans[2][0])*edge.x + abs(trans[2][1])*edge.y + abs(trans[2][2])*edge.z
-        ));
-
         visible = visible && checkFrustum(bound);
     }
 

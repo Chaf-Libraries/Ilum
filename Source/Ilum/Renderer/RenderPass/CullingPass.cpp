@@ -43,6 +43,7 @@ void CullingPass::render(RenderPassState &state)
 {
 	{
 		std::memcpy(&Renderer::instance()->Meshlet_Visible, m_count_buffer->map(), sizeof(uint32_t));
+		Renderer::instance()->Meshlet_Visible = std::min(Renderer::instance()->Meshlet_Visible, Renderer::instance()->Meshlet_Count);
 		m_count_buffer->unmap();
 	}
 
@@ -73,6 +74,6 @@ void CullingPass::render(RenderPassState &state)
 
 	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(m_cull_data), &m_cull_data);
 
-	vkCmdDispatch(cmd_buffer, Renderer::instance()->Meshlet_Count, 1, 1);
+	vkCmdDispatch(cmd_buffer, (Renderer::instance()->Meshlet_Count + 256 - 1) / 256, 1, 1);
 }
 }        // namespace Ilum::pass
