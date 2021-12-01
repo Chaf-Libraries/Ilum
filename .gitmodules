@@ -49,3 +49,6 @@
 [submodule "External/meshoptimizer"]
 	path = External/meshoptimizer
 	url = https://github.com/zeux/meshoptimizer
+[submodule "External/oneTBB"]
+	path = External/oneTBB
+	url = https://github.com/oneapi-src/oneTBB
