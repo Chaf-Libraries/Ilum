@@ -22,7 +22,7 @@ jobs:
           submodules: "recursive"
 
       - name: Configure
-        run: cmake .
+        run: cmake -H"." -B"build/${{ matrix.platform }}"
 
       - name: "Build ${{ matrix.platform }} in ${{ matrix.build_type }}"
         run: cmake --build .
