@@ -15,14 +15,14 @@ jobs:
         build_type: [Release]
     env:
       PARALLEL: -j 2
-    runs-on: "${{ matrix.platform }}-latest"
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v2
         with:
           submodules: "recursive"
 
       - name: Configure
-        run: cmake -H"." -B"build/${{ matrix.platform }}" -DBuild_Test_IlumEngine=OFF
+        run: cmake .
 
       - name: "Build ${{ matrix.platform }} in ${{ matrix.build_type }}"
         run: cmake --build .
