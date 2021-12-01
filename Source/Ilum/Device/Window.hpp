@@ -29,8 +29,6 @@ class Window : public TSubsystem<Window>
 
 	const std::string getTitle() const;
 
-	void *getWindowHandle() const;
-
 	SDL_Window *getSDLHandle() const;
 
 	void setSize(uint32_t width, uint32_t height);

@@ -105,21 +105,6 @@ const std::string Window::getTitle() const
 	return SDL_GetWindowTitle(m_window);
 }
 
-void *Window::getWindowHandle() const
-{
-	ASSERT(m_window != nullptr);
-
-	SDL_SysWMinfo sys_info;
-	SDL_VERSION(&sys_info.version);
-	SDL_GetWindowWMInfo(m_window, &sys_info);
-#ifdef WIN32
-	return static_cast<void *>(sys_info.info.win.window);
-#else
-	// TODO: Linux support
-	return nullptr;
-#endif        // WIN32
-}
-
 SDL_Window *Window::getSDLHandle() const
 {
 	return m_window;
