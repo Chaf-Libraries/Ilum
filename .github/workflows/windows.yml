@@ -25,4 +25,4 @@ jobs:
         run: cmake -H"." -B"build/${{ matrix.platform }}" -DBuild_Test_IlumEngine=OFF
 
       - name: "Build ${{ matrix.platform }} in ${{ matrix.build_type }}"
-        run: cmake --build .
+        run: cmake --build "build/${{ matrix.platform }}" --config Release
