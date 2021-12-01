@@ -8,6 +8,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include<tbb/tbb.h>
+
 namespace Ilum::sym
 {
 inline void transform_recrusive(entt::entity entity)
@@ -56,7 +58,7 @@ void TransformUpdate::run()
 			}
 		}
 
-		std::for_each(std::execution::par_unseq, roots.begin(), roots.end(), [&group](auto entity) {
+		tbb::parallel_for_each(roots.begin(), roots.end(), [&group](auto entity) {
 			transform_recrusive(entity);
 		});
 	}

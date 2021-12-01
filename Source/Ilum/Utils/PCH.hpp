@@ -9,7 +9,6 @@
 #endif            // ILUM_PLATFORM_WINDOWS
 
 #include <algorithm>
-#include <execution>
 #include <filesystem>
 #include <functional>
 #include <future>

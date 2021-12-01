@@ -310,10 +310,10 @@ template <>
 inline void draw_component<cmpt::Transform>(Entity entity)
 {
 	draw_component<cmpt::Transform>(
-	    "Transform", entity, [](auto &component) {
-		    component.update = draw_vec3_control("Translation", component.translation, 0.f);
-		    component.update = component.update | draw_vec3_control("Rotation", component.rotation, 0.f);
-		    component.update = component.update | draw_vec3_control("Scale", component.scale, 1.f);
+	    "Transform", entity, [](cmpt::Transform &component) {
+		    component.update |= draw_vec3_control("Translation", component.translation, 0.f);
+		    component.update |= draw_vec3_control("Rotation", component.rotation, 0.f);
+		    component.update |= draw_vec3_control("Scale", component.scale, 1.f);
 	    },
 	    true);
 }

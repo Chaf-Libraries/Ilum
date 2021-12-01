@@ -32,6 +32,8 @@
 
 #include <imgui.h>
 
+#include <tbb/tbb.h>
+
 namespace Ilum
 {
 Renderer::Renderer(Context *context) :
@@ -437,7 +439,7 @@ void Renderer::updateInstanceBuffer()
 	std::atomic<uint32_t> instance_count = 0;
 
 	auto group = Scene::instance()->getRegistry().group<cmpt::MeshRenderer, cmpt::Tag, cmpt::Transform>();
-	std::for_each(std::execution::par_unseq, group.begin(), group.end(), [&instance_count, this](auto entity) {
+	tbb::parallel_for_each(group.begin(), group.end(), [&instance_count, this](auto entity) {
 		auto &mesh_renderer = Entity(entity).getComponent<cmpt::MeshRenderer>();
 		if (!m_resource_cache->hasModel(mesh_renderer.model))
 		{
@@ -446,7 +448,7 @@ void Renderer::updateInstanceBuffer()
 
 		auto &model = m_resource_cache->loadModel(mesh_renderer.model);
 
-		std::for_each(std::execution::par_unseq, mesh_renderer.materials.begin(), mesh_renderer.materials.end(), [&instance_count](scope<IMaterial> &material) {
+		tbb::parallel_for_each(mesh_renderer.materials.begin(), mesh_renderer.materials.end(), [&instance_count](scope<IMaterial> &material) {
 			if (material->type() == typeid(material::DisneyPBR))
 			{
 				instance_count.fetch_add(1, std::memory_order_relaxed);

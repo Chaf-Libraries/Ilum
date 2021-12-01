@@ -7,12 +7,14 @@
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
+#include <tbb/tbb.h>
+
 namespace Ilum::sym
 {
 void LightUpdate::run()
 {
 	auto view = Scene::instance()->getRegistry().view<cmpt::Light>();
-	std::for_each(std::execution::par_unseq, view.begin(), view.end(), [&view](auto entity) {
+	tbb::parallel_for_each(view.begin(), view.end(), [&view](auto entity) {
 		auto &light = Entity(entity).getComponent<cmpt::Light>();
 		if (!light.impl || light.impl->type() != light.type)
 		{
