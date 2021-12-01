@@ -177,3 +177,7 @@ target_link_libraries(ImFileDialog imgui stb)
 
 # mesh optimizer
 add_subdirectory(meshoptimizer)
+
+# one tbb
+option(TBB_TEST OFF)
+add_subdirectory(oneTBB)

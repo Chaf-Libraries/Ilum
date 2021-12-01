@@ -26,4 +26,5 @@ SetTarget(
         imgui-node-editor
         ImFileDialog
         meshoptimizer
+        TBB::tbb
 )
