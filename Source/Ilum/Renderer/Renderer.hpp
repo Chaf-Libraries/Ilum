@@ -16,6 +16,8 @@
 
 #include "Loader/ResourceCache.hpp"
 
+#include "RenderQueue.hpp"
+
 #include <glm/glm.hpp>
 
 namespace Ilum
@@ -134,6 +136,8 @@ class Renderer : public TSubsystem<Renderer>
 
   public:
 	Camera Main_Camera;
+
+	RenderQueue Render_Queue;
 
 	uint32_t Instance_Count = 0;
 	uint32_t Meshlet_Count  = 0;

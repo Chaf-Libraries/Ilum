@@ -12,7 +12,7 @@ const std::vector<const char *> LogicalDevice::extensions = {
     VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
     VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
     VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
-	VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME};
+    VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME};
 
 inline const std::vector<const char *> get_device_extension_support(const PhysicalDevice &physical_device, const std::vector<const char *> &extensions)
 {
@@ -230,15 +230,16 @@ LogicalDevice::LogicalDevice()
 	ENABLE_DEVICE_FEATURE(robustBufferAccess);
 	ENABLE_DEVICE_FEATURE(multiDrawIndirect);
 	ENABLE_DEVICE_FEATURE(drawIndirectFirstInstance);
-	
-	// Enable descriptor indexing features
-	VkPhysicalDeviceDescriptorIndexingFeatures descriptor_indexing_features{};
-	descriptor_indexing_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
-	descriptor_indexing_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
-	descriptor_indexing_features.runtimeDescriptorArray                    = VK_TRUE;
-	descriptor_indexing_features.descriptorBindingVariableDescriptorCount  = VK_TRUE;
-	descriptor_indexing_features.descriptorBindingPartiallyBound           = VK_TRUE;
-	
+
+	// Enable draw indirect count
+	VkPhysicalDeviceVulkan12Features vulkan12_features = {};
+	vulkan12_features.sType                            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+	vulkan12_features.drawIndirectCount                = VK_TRUE;
+	vulkan12_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+	vulkan12_features.runtimeDescriptorArray                    = VK_TRUE;
+	vulkan12_features.descriptorBindingVariableDescriptorCount  = VK_TRUE;
+	vulkan12_features.descriptorBindingPartiallyBound           = VK_TRUE;
+
 	// Get support extensions
 	auto support_extensions = get_device_extension_support(GraphicsContext::instance()->getPhysicalDevice(), extensions);
 
@@ -255,7 +256,7 @@ LogicalDevice::LogicalDevice()
 	device_create_info.enabledExtensionCount   = static_cast<uint32_t>(support_extensions.size());
 	device_create_info.ppEnabledExtensionNames = support_extensions.data();
 	device_create_info.pEnabledFeatures        = &m_enabled_features;
-	device_create_info.pNext                   = &descriptor_indexing_features;
+	device_create_info.pNext                   = &vulkan12_features;
 
 	if (!VK_CHECK(vkCreateDevice(GraphicsContext::instance()->getPhysicalDevice(), &device_create_info, nullptr, &m_handle)))
 	{

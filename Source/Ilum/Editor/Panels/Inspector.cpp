@@ -171,8 +171,8 @@ inline void draw_material(T &material)
 
 void draw_texture(std::string &texture)
 {
-	if (ImGui::ImageButton(Renderer::instance()->getResourceCache().hasImage(texture) ?
-                               ImGuiContext::textureID(Renderer::instance()->getResourceCache().loadImage(texture), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)) :
+	if (ImGui::ImageButton(Renderer::instance()->getResourceCache().hasImage(FileSystem::getRelativePath(texture)) ?
+                               ImGuiContext::textureID(Renderer::instance()->getResourceCache().loadImage(FileSystem::getRelativePath(texture)), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)) :
                                ImGuiContext::textureID(Renderer::instance()->getDefaultTexture(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
 	                       ImVec2{100.f, 100.f}))
 	{

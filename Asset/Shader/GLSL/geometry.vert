@@ -17,31 +17,49 @@ layout(location = 4) out vec3 outBiTangent;
 layout(location = 5) out uint outIndex;
 layout(location = 6) out vec3 outColor;
 
-struct MaterialData
+struct PerInstanceData
 {
-    vec4 base_color;
-    vec3 emissive_color;
-    float metallic_factor;
+	// Transform
+	mat4 world_transform;
+	mat4 pre_transform;
 
-    float roughness_factor;
-    float emissive_intensity;
-    uint albedo_map;
-    uint normal_map;
+	// Material
+	vec4 base_color;
+	vec3 emissive_color;
+	float metallic_factor;
 
-    uint metallic_map;
-    uint roughness_map;
-    uint emissive_map;
-    uint ao_map;
+	float roughness_factor;
+	float emissive_intensity;
+	uint albedo_map;
+	uint normal_map;
 
-    float displacement_height;
-    uint displacement_map;
-    uint id;
+	uint metallic_map;
+	uint roughness_map;
+	uint emissive_map;
+	uint ao_map;
+
+	vec3 min_;
+	float displacement_height;
+
+    vec3 max_;
+	uint displacement_map;
 };
 
-struct TransformData
+struct PerMeshletData
 {
-    mat4 world_transform;
-    mat4 pre_transform;
+	// Vertex
+	uint instance_id;
+	uint vertex_offset;
+	uint index_offset;
+	uint index_count;
+
+	vec3 center;
+	float radius;
+
+	vec3 cone_apex;
+	float cone_cutoff;
+
+	vec3 cone_axis;
 };
 
 layout (set = 0, binding = 0) uniform MainCamera
@@ -51,22 +69,21 @@ layout (set = 0, binding = 0) uniform MainCamera
     vec3 position;
 }main_camera;
 
-
 layout (set = 0, binding = 1) uniform sampler2D textureArray[];
 
-layout (set = 0, binding = 2) buffer MaterialBuffer
+layout (set = 0, binding = 2) buffer PerInstanceBuffer
 {
-    MaterialData material_data[];
+    PerInstanceData instance_data[];
 };
 
-layout (set = 0, binding = 3) buffer TransformBuffer
+layout (set = 0, binding = 3) buffer PerMeshletBuffer
 {
-    TransformData transform[];
+    PerMeshletData meshlet_data[];
 };
 
-layout (set = 0, binding = 4) buffer MeshletBuffer
+layout (set = 0, binding = 4) buffer DrawBuffer
 {
-    uint meshlets[];
+    uint draw_data[];
 };
 
 float rand(vec2 co){
@@ -74,11 +91,13 @@ float rand(vec2 co){
 }
 
 void main() {
-    float height=material_data[meshlets[gl_DrawIDARB]].displacement_map < 1024?
-        max(textureLod(textureArray[nonuniformEXT(material_data[meshlets[gl_DrawIDARB]].displacement_map)], inUV, 0.0).r, 0.0) * material_data[meshlets[gl_DrawIDARB]].displacement_height:
+    outIndex = draw_data[gl_DrawIDARB];
+
+    float height = instance_data[outIndex].displacement_map < 1024?
+        max(textureLod(textureArray[nonuniformEXT(instance_data[outIndex].displacement_map)], inUV, 0.0).r, 0.0) * instance_data[outIndex].displacement_height:
         0.0;
     
-    mat4 trans = transform[meshlets[gl_DrawIDARB]].world_transform*transform[meshlets[gl_DrawIDARB]].pre_transform;
+    mat4 trans = instance_data[outIndex].world_transform * instance_data[outIndex].pre_transform;
 
     // World normal
     mat3 mNormal = transpose(inverse(mat3(trans)));
@@ -88,8 +107,8 @@ void main() {
 
     outPos = trans * vec4(inPos, 1.0);
 
-    outPos.xyz += material_data[meshlets[gl_DrawIDARB]].displacement_map < 1024?
-        normalize(outNormal) * (max(textureLod(textureArray[nonuniformEXT(material_data[meshlets[gl_DrawIDARB]].displacement_map)], inUV, 0.0).r, 0.0) * material_data[meshlets[gl_DrawIDARB]].displacement_height):
+    outPos.xyz += instance_data[outIndex].displacement_map < 1024?
+        normalize(outNormal) * (max(textureLod(textureArray[nonuniformEXT(instance_data[outIndex].displacement_map)], inUV, 0.0).r, 0.0) * instance_data[outIndex].displacement_height):
         vec3(0.0);
 
     gl_Position = main_camera.view_projection * outPos;
@@ -97,9 +116,6 @@ void main() {
     outPos.w = gl_Position.z;
 
     outUV = inUV;
-
-
-    outIndex = meshlets[gl_DrawIDARB];
 
     outColor = vec3(rand(vec2(gl_DrawIDARB,gl_DrawIDARB+1)), 
     rand(vec2(gl_DrawIDARB+2,gl_DrawIDARB+3)), 

@@ -1,6 +1,6 @@
 #version 450
 
-layout (local_size_x = 256) in;
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 #define FLT_MAX 3.402823466e+38
 #define FLT_MIN 1.175494351e-38
@@ -9,13 +9,50 @@ layout (local_size_x = 256) in;
 
 const float infinity = 1. / 0.;
 
-struct Bound 
+struct PerInstanceData
 {
+	// Transform
+	mat4 world_transform;
+	mat4 pre_transform;
+
+	// Material
+	vec4 base_color;
+	vec3 emissive_color;
+	float metallic_factor;
+
+	float roughness_factor;
+	float emissive_intensity;
+	uint albedo_map;
+	uint normal_map;
+
+	uint metallic_map;
+	uint roughness_map;
+	uint emissive_map;
+	uint ao_map;
+
+	vec3 min_;
+	float displacement_height;
+
+    vec3 max_;
+	uint displacement_map;
+};
+
+struct PerMeshletData
+{
+	// Vertex
+	uint instance_id;
+	uint vertex_offset;
+	uint index_offset;
+	uint index_count;
+
 	vec3 center;
-    float radius;
-    vec3 cone_apex;
-    float cone_cutoff;
-    vec3 cone_axis;
+	float radius;
+
+	vec3 cone_apex;
+	float cone_cutoff;
+
+	vec3 cone_axis;
+
 };
 
 struct DrawIndexedIndirectCommand 
@@ -27,28 +64,27 @@ struct DrawIndexedIndirectCommand
 	uint firstInstance;
 };
 
-struct TransformData
-{
-    mat4 world_transform;
-    mat4 pre_transform;
-};
-
-layout (binding = 0) buffer Bounding
-{
-   Bound bounds[ ];
-};
-
-layout (binding = 1, std430) buffer IndirectDraws
+layout (binding = 0, std430) buffer IndirectDraws
 {
 	DrawIndexedIndirectCommand indirectDraws[ ];
 };
 
-layout (binding = 2) buffer Transform
+layout (binding = 1) buffer PerInstanceBuffer
 {
-    TransformData transform[];
+    PerInstanceData instance_data[];
 };
 
-layout (binding = 3) uniform Camera 
+layout (binding = 2) buffer PerMeshletBuffer
+{
+    PerMeshletData meshlet_data[];
+};
+
+layout (binding = 3) buffer DrawBuffer
+{
+    uint draw_data[];
+};
+
+layout (binding = 4) uniform Camera 
 {
 	mat4 view_projection;
     vec4 frustum[6];
@@ -56,10 +92,6 @@ layout (binding = 3) uniform Camera
     mat4 last_view_projection;
 } camera;
 
-layout (binding = 4) buffer Meshlet
-{
-    uint meshlet[];
-};
 
 layout (binding = 5) uniform sampler2D hiz_buffer;
 
@@ -84,11 +116,11 @@ layout(push_constant) uniform PushConstBlock {
 } cullData;
 
 
-bool checkFrustum(Bound bound)
+bool checkFrustum(PerMeshletData meshlet)
 {
     for (uint i = 0; i < 6; i++)
     {
-        if (dot(camera.frustum[i], vec4(bound.center, 1)) + length(bound.radius) < 0.0)
+        if (dot(camera.frustum[i], vec4(meshlet.center, 1)) + length(meshlet.radius) < 0.0)
         {
             return false;
         }
@@ -117,16 +149,16 @@ bool projectSphere(vec3 C, float r, float znear, float P00, float P11, out vec4 
     return true;
 }
 
-bool checkOcclusion(Bound bound)
+bool checkOcclusion(PerMeshletData meshlet)
 {
-    vec3 dir = normalize(camera.position - bound.center);
-    vec4 sceen_space_center_last = camera.last_view_projection * vec4(bound.center + dir*bound.radius, 1.0);
+    vec3 dir = normalize(camera.position - meshlet.center);
+    vec4 sceen_space_center_last = camera.last_view_projection * vec4(meshlet.center + dir*meshlet.radius, 1.0);
 
-    vec3 C = ((cullData.view) * vec4(bound.center,1.0)).xyz;
+    vec3 C = ((cullData.view) * vec4(meshlet.center,1.0)).xyz;
     C.z=-C.z;
 
     vec4 aabb;
-    if(!projectSphere(C, bound.radius, cullData.znear, cullData.P00, cullData.P11, aabb))
+    if(!projectSphere(C, meshlet.radius, cullData.znear, cullData.P00, cullData.P11, aabb))
     {
         return true;
     }
@@ -148,24 +180,29 @@ bool checkOcclusion(Bound bound)
     depth = max(depth, textureLod(hiz_buffer, uv2, mip_level).r);
     depth = max(depth, textureLod(hiz_buffer, uv3, mip_level).r);
     
-    return depth >= abs(sceen_space_center_last.z) - bound.radius;
+    return depth >= abs(sceen_space_center_last.z) - meshlet.radius;
 }
 
 
 void main()
 {
-	uint idx = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * gl_NumWorkGroups.x * gl_WorkGroupSize.x;
-
+	uint idx = gl_GlobalInvocationID.x;
     if (idx == 0)
 	{
 		atomicExchange(count, 0);
 	}
 
-    Bound bound = bounds[indirectDraws[idx].firstInstance];
-    mat4 trans = transform[meshlet[indirectDraws[idx].firstInstance]].world_transform * transform[meshlet[indirectDraws[idx].firstInstance]].pre_transform;
-    bound.center = (trans * vec4(bound.center, 1.0)).xyz;
-    vec3 edge = vec3(1.0) * sqrt(bound.radius * bound.radius / 3.0);
-    bound.radius = length(vec3(
+    if(idx >= cullData.draw_count)
+    {
+        return;
+    }
+
+    PerMeshletData meshlet = meshlet_data[idx];
+
+    mat4 trans = instance_data[meshlet.instance_id].world_transform * instance_data[meshlet.instance_id].pre_transform;
+    meshlet.center = (trans * vec4(meshlet.center, 1.0)).xyz;
+    vec3 edge = vec3(1.0) * sqrt(meshlet.radius * meshlet.radius / 3.0);
+    meshlet.radius = length(vec3(
         abs(trans[0][0])*edge.x + abs(trans[0][1])*edge.y + abs(trans[0][2])*edge.z,
         abs(trans[1][0])*edge.x + abs(trans[1][1])*edge.y + abs(trans[1][2])*edge.z,
         abs(trans[2][0])*edge.x + abs(trans[2][1])*edge.y + abs(trans[2][2])*edge.z
@@ -175,7 +212,7 @@ void main()
 
     if(visible && cullData.frustum_enable == 1)
     {
-        visible = visible && checkFrustum(bound);
+        visible = visible && checkFrustum(meshlet);
     }
 
     if(visible && cullData.backface_enable == 1)
@@ -192,63 +229,25 @@ void main()
             trans[2].xyz/scale.z
         );
 
-        bound.cone_apex = (trans * vec4(bound.cone_apex, 1.0)).xyz;
-        bound.cone_axis = rotation * bound.cone_axis;
+        meshlet.cone_apex = (trans * vec4(meshlet.cone_apex, 1.0)).xyz;
+        meshlet.cone_axis = rotation * meshlet.cone_axis;
 
-        visible = visible && dot(normalize(camera.position - bound.cone_apex), bound.cone_axis) < bound.cone_cutoff;
+        visible = visible && dot(normalize(camera.position - meshlet.cone_apex), meshlet.cone_axis) < meshlet.cone_cutoff;
     }
 
     if(visible && cullData.occlusion_enable == 1)
     {
-        visible = visible && checkOcclusion(bound);
+        visible = visible && checkOcclusion(meshlet);
     }
 
     if (visible)
     {
-        indirectDraws[idx].instanceCount = 1;
-        atomicAdd(count, 1);
+        uint dci = atomicAdd(count, 1);
+        indirectDraws[dci].indexCount = meshlet.index_count;
+        indirectDraws[dci].instanceCount = 1;
+        indirectDraws[dci].firstIndex = meshlet.index_offset;
+        indirectDraws[dci].vertexOffset = meshlet.vertex_offset;
+        indirectDraws[dci].firstInstance = 0;
+        draw_data[dci] = meshlet.instance_id;
     }
-    else
-    {
-        indirectDraws[idx].instanceCount = 0;
-    }
-    
-
-    // Bound bound = bounds[indirectDraws[idx].firstInstance];
-    // mat4 trans = transform[meshlet[indirectDraws[idx].firstInstance]].world_transform * transform[meshlet[indirectDraws[idx].firstInstance]].pre_transform;
-
-    // bound.center = (trans * vec4(bound.center, 1.0)).xyz;
-    // vec3 edge = vec3(1.0) * sqrt(bound.radius * bound.radius / 3.0);
-    // bound.radius = length(vec3(
-    //     abs(trans[0][0])*edge.x + abs(trans[0][1])*edge.y + abs(trans[0][2])*edge.z,
-    //     abs(trans[1][0])*edge.x + abs(trans[1][1])*edge.y + abs(trans[1][2])*edge.z,
-    //     abs(trans[2][0])*edge.x + abs(trans[2][1])*edge.y + abs(trans[2][2])*edge.z
-    // ));
-
-    // vec3 scale = vec3(
-    //     sqrt(trans[0][0] * trans[0][0] + trans[0][1] * trans[0][1] + trans[0][2] * trans[0][2]),
-    //     sqrt(trans[1][0] * trans[1][0] + trans[1][1] * trans[1][1] + trans[1][2] * trans[1][2]),
-    //     sqrt(trans[2][0] * trans[2][0] + trans[2][1] * trans[2][1] + trans[2][2] * trans[2][2])
-    // );
-
-    // mat3 rotation = mat3(
-    //     trans[0].xyz/scale.x,
-    //     trans[1].xyz/scale.y,
-    //     trans[2].xyz/scale.z
-    // );
-
-    // bound.cone_apex = (trans * vec4(bound.cone_apex, 1.0)).xyz;
-    // bound.cone_axis = rotation * bound.cone_axis;
-
-    // if (checkFrustum(bound)
-    //     && dot(normalize(camera.position - bound.cone_apex), bound.cone_axis) < bound.cone_cutoff 
-    //     && checkOcclusion(bound, idx))
-    // {
-    //     indirectDraws[idx].instanceCount = 1;
-    //     atomicAdd(count, 1);
-    // }
-    // else
-    // {
-    //     indirectDraws[idx].instanceCount = 0;
-    // }
 }

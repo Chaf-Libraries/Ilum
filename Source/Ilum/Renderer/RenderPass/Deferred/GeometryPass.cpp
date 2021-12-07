@@ -21,7 +21,6 @@ namespace Ilum::pass
 {
 GeometryPass::GeometryPass()
 {
-
 }
 
 void GeometryPass::setupPipeline(PipelineState &state)
@@ -53,11 +52,12 @@ void GeometryPass::setupPipeline(PipelineState &state)
 
 	state.descriptor_bindings.bind(0, 0, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	state.descriptor_bindings.bind(0, 1, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Wrap), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	state.descriptor_bindings.bind(0, 2, "MaterialData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 3, "TransformData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 4, "MeshletData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 2, "PerInstanceData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 3, "PerMeshletData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 4, "DrawInfo", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
 	state.addDependency("IndirectDrawCommand", VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT);
+	state.addDependency("meshlet_count", VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT);
 
 	state.declareAttachment("gbuffer - albedo", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("gbuffer - normal", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
@@ -81,9 +81,9 @@ void GeometryPass::resolveResources(ResolveState &resolve)
 {
 	resolve.resolve("Camera", Renderer::instance()->getBuffer(Renderer::BufferType::MainCamera));
 	resolve.resolve("textureArray", Renderer::instance()->getResourceCache().getImageReferences());
-	resolve.resolve("MaterialData", Renderer::instance()->getBuffer(Renderer::BufferType::Material));
-	resolve.resolve("TransformData", Renderer::instance()->getBuffer(Renderer::BufferType::Transform));
-	resolve.resolve("MeshletData", Renderer::instance()->getBuffer(Renderer::BufferType::Meshlet));
+	resolve.resolve("PerInstanceData", Renderer::instance()->Render_Queue.Instance_Buffer);
+	resolve.resolve("PerMeshletData", Renderer::instance()->Render_Queue.Meshlet_Buffer);
+	resolve.resolve("DrawInfo", Renderer::instance()->Render_Queue.Draw_Buffer);
 }
 
 void GeometryPass::render(RenderPassState &state)
@@ -126,8 +126,9 @@ void GeometryPass::render(RenderPassState &state)
 		vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &vertex_buffer.get().getBuffer(), offsets);
 		vkCmdBindIndexBuffer(cmd_buffer, index_buffer.get().getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-		auto &draw_buffer = Renderer::instance()->getBuffer(Renderer::BufferType::IndirectCommand);
-		vkCmdDrawIndexedIndirect(cmd_buffer, draw_buffer.get(), 0, Renderer::instance()->Meshlet_Count, sizeof(VkDrawIndexedIndirectCommand));
+		auto &   draw_buffer  = Renderer::instance()->Render_Queue.Command_Buffer;
+		auto &   count_buffer = Renderer::instance()->Render_Queue.Command_Buffer;
+		vkCmdDrawIndexedIndirectCount(cmd_buffer, draw_buffer, 0, Renderer::instance()->Render_Queue.Count_Buffer, 0, Renderer::instance()->Meshlet_Count, sizeof(VkDrawIndexedIndirectCommand));
 	}
 
 	vkCmdEndRenderPass(cmd_buffer);

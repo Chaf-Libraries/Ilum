@@ -20,7 +20,7 @@ class CullingPass : public TRenderPass<CullingPass>
 	virtual void render(RenderPassState &state) override;
 
   private:
-	scope<Buffer> m_count_buffer = nullptr;
+
 	struct
 	{
 		glm::mat4 view;
