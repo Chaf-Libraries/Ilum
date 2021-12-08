@@ -31,6 +31,22 @@ HizPass::HizPass()
 
 		vkCreateImageView(GraphicsContext::instance()->getLogicalDevice(), &image_view_create_info, nullptr, &m_views[i]);
 	}
+
+	VkSamplerCreateInfo createInfo = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+
+	createInfo.magFilter    = VK_FILTER_LINEAR;
+	createInfo.minFilter    = VK_FILTER_LINEAR;
+	createInfo.mipmapMode   = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+	createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	createInfo.minLod       = 0;
+	createInfo.maxLod       = 16.f;
+
+	VkSamplerReductionModeCreateInfo createInfoReduction = {VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT};
+	createInfoReduction.reductionMode = VK_SAMPLER_REDUCTION_MODE_MAX;
+	createInfo.pNext = &createInfoReduction;
+	vkCreateSampler(GraphicsContext::instance()->getLogicalDevice(), &createInfo, 0, &m_hiz_sampler);
 }
 
 HizPass::~HizPass()
@@ -39,6 +55,7 @@ HizPass::~HizPass()
 	{
 		vkDestroyImageView(GraphicsContext::instance()->getLogicalDevice(), view, nullptr);
 	}
+	vkDestroySampler(GraphicsContext::instance()->getLogicalDevice(), m_hiz_sampler, nullptr);
 }
 
 void HizPass::setupPipeline(PipelineState &state)
@@ -53,15 +70,15 @@ void HizPass::setupPipeline(PipelineState &state)
 	for (uint32_t level = 0; level < m_views.size(); level++)
 	{
 		VkDescriptorImageInfo dstTarget;
-		dstTarget.sampler     = Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp);
+		dstTarget.sampler     = m_hiz_sampler;
 		dstTarget.imageView   = m_views[level];
 		dstTarget.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
 		VkDescriptorImageInfo srcTarget;
-		srcTarget.sampler = Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp);
+		srcTarget.sampler = m_hiz_sampler;
 		if (level == 0)
 		{
-			srcTarget.imageView   = Renderer::instance()->Last_Frame.depth_buffer->getView();
+			srcTarget.imageView   = Renderer::instance()->Last_Frame.depth_buffer->getView(ImageViewType::Depth_Only);
 			srcTarget.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		}
 		else
@@ -96,7 +113,7 @@ void HizPass::setupPipeline(PipelineState &state)
 		m_descriptor_sets[level].update(write_descriptor_sets);
 	}
 
-	state.descriptor_bindings.bind(0, 0, "depth - buffer", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 0, "depth - buffer", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Depth_Only, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 1, "hiz - buffer", ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 }
 

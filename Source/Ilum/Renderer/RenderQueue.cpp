@@ -18,6 +18,22 @@ namespace Ilum
 {
 bool RenderQueue::update()
 {
+	// Update culling data
+	auto *culling_data = reinterpret_cast<CullingData *>(Culling_Buffer.map());
+	culling_data->last_view = culling_data->view;
+	culling_data->view             = Renderer::instance()->Main_Camera.view;
+	culling_data->P00              = Renderer::instance()->Main_Camera.projection[0][0];
+	culling_data->P11              = Renderer::instance()->Main_Camera.projection[1][1];
+	culling_data->znear            = Renderer::instance()->Main_Camera.near_plane;
+	culling_data->zfar             = Renderer::instance()->Main_Camera.far_plane;
+	culling_data->draw_count       = Renderer::instance()->Meshlet_Count;
+	culling_data->frustum_enable   = Renderer::instance()->Culling.frustum_culling;
+	culling_data->backface_enable  = Renderer::instance()->Culling.backface_culling;
+	culling_data->occlusion_enable = Renderer::instance()->Culling.occulsion_culling;
+	culling_data->zbuffer_width    = static_cast<float>(Renderer::instance()->Last_Frame.hiz_buffer->getWidth());
+	culling_data->zbuffer_height   = static_cast<float>(Renderer::instance()->Last_Frame.hiz_buffer->getHeight());
+	Culling_Buffer.unmap();
+
 	// Check for update
 	bool                  update         = false;
 	std::atomic<uint32_t> instance_count = 0;

@@ -42,12 +42,12 @@ void GeometryPass::setupPipeline(PipelineState &state)
 	state.vertex_input_state.binding_descriptions = {
 	    VkVertexInputBindingDescription{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX}};
 
-	state.color_blend_attachment_states.resize(6);
+	state.color_blend_attachment_states.resize(5);
 
 	// Disable blending
 	for (auto &color_blend_attachment_state : state.color_blend_attachment_states)
 	{
-		//color_blend_attachment_state.blend_enable = false;
+		color_blend_attachment_state.blend_enable = false;
 	}
 
 	state.descriptor_bindings.bind(0, 0, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
@@ -62,7 +62,6 @@ void GeometryPass::setupPipeline(PipelineState &state)
 	state.declareAttachment("gbuffer - albedo", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("gbuffer - normal", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("gbuffer - position", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	state.declareAttachment("gbuffer - depth", VK_FORMAT_R32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("gbuffer - metallic_roughness_ao", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("gbuffer - emissive", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("depth_stencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
@@ -70,7 +69,6 @@ void GeometryPass::setupPipeline(PipelineState &state)
 	state.addOutputAttachment("gbuffer - albedo", AttachmentState::Clear_Color);
 	state.addOutputAttachment("gbuffer - normal", AttachmentState::Clear_Color);
 	state.addOutputAttachment("gbuffer - position", AttachmentState::Clear_Color);
-	state.addOutputAttachment("gbuffer - depth", VkClearColorValue{std::numeric_limits<float>::infinity()});
 	state.addOutputAttachment("gbuffer - metallic_roughness_ao", AttachmentState::Clear_Color);
 	state.addOutputAttachment("gbuffer - emissive", AttachmentState::Clear_Color);
 
@@ -120,15 +118,15 @@ void GeometryPass::render(RenderPassState &state)
 	auto &vertex_buffer = Renderer::instance()->getBuffer(Renderer::BufferType::Vertex);
 	auto &index_buffer  = Renderer::instance()->getBuffer(Renderer::BufferType::Index);
 
-	if (Renderer::instance()->Meshlet_Count > 0)
+	if (Renderer::instance()->Meshlet_Count > 0/* && index_buffer.get().getBuffer() && vertex_buffer.get().getBuffer()*/)
 	{
 		VkDeviceSize offsets[1] = {0};
 		vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &vertex_buffer.get().getBuffer(), offsets);
 		vkCmdBindIndexBuffer(cmd_buffer, index_buffer.get().getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-		auto &   draw_buffer  = Renderer::instance()->Render_Queue.Command_Buffer;
-		auto &   count_buffer = Renderer::instance()->Render_Queue.Command_Buffer;
-		vkCmdDrawIndexedIndirectCount(cmd_buffer, draw_buffer, 0, Renderer::instance()->Render_Queue.Count_Buffer, 0, Renderer::instance()->Meshlet_Count, sizeof(VkDrawIndexedIndirectCommand));
+		auto &draw_buffer  = Renderer::instance()->Render_Queue.Command_Buffer;
+		auto &count_buffer = Renderer::instance()->Render_Queue.Count_Buffer;
+		vkCmdDrawIndexedIndirectCount(cmd_buffer, draw_buffer, 0, count_buffer, 0, Renderer::instance()->Meshlet_Count, sizeof(VkDrawIndexedIndirectCommand));
 	}
 
 	vkCmdEndRenderPass(cmd_buffer);

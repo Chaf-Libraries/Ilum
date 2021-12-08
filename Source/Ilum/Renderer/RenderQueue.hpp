@@ -50,6 +50,27 @@ struct PerMeshletData
 	alignas(16) glm::vec3 cone_axis = {};
 };
 
+struct CullingData
+{
+	glm::mat4 view;
+
+	glm::mat4 last_view;
+
+	// projection matrix elements
+	float     P00;
+	float     P11;
+	float     znear;
+	float     zfar;
+
+	float     zbuffer_width;
+	float     zbuffer_height;
+	uint32_t  draw_count;
+	uint32_t  frustum_enable;
+
+	uint32_t  backface_enable;
+	uint32_t  occlusion_enable;
+};
+
 // Collecting and sorting geometry render data
 struct RenderQueue
 {
@@ -58,6 +79,7 @@ struct RenderQueue
 	Buffer Draw_Buffer  = Buffer(1024 * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 	Buffer Command_Buffer  = Buffer(1024 * sizeof(VkDrawIndexedIndirectCommand), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 	Buffer Count_Buffer    = Buffer(sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
+	Buffer Culling_Buffer  = Buffer(sizeof(CullingData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	bool update();
 };

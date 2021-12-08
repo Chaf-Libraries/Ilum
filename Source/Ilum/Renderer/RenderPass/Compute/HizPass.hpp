@@ -22,5 +22,6 @@ class HizPass : public TRenderPass<HizPass>
   private:
 	std::vector<DescriptorSet> m_descriptor_sets;
 	std::vector<VkImageView>   m_views;
+	VkSampler                  m_hiz_sampler=VK_NULL_HANDLE;
 };
 }        // namespace Ilum::pass

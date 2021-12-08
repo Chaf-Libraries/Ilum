@@ -52,7 +52,6 @@ struct PerMeshletData
 	float cone_cutoff;
 
 	vec3 cone_axis;
-
 };
 
 struct DrawIndexedIndirectCommand 
@@ -100,7 +99,7 @@ layout (binding = 6) buffer MeshletCount
     uint count;
 };
 
-layout(push_constant) uniform PushConstBlock {
+layout(binding = 7) uniform CullingBuffer {
     mat4 view;
     mat4 last_view;
     float P00;
@@ -114,7 +113,6 @@ layout(push_constant) uniform PushConstBlock {
     uint backface_enable;
     uint occlusion_enable;
 } cullData;
-
 
 bool checkFrustum(PerMeshletData meshlet)
 {
@@ -149,6 +147,12 @@ bool projectSphere(vec3 C, float r, float znear, float P00, float P11, out vec4 
     return true;
 }
 
+float LinearizeDepth(float depth)
+{
+  float d =  (2.0 * cullData.znear) / (cullData.zfar + cullData.znear - depth * (cullData.zfar - cullData.znear));	
+  return cullData.znear + d*(cullData.zfar - cullData.znear);
+}
+
 bool checkOcclusion(PerMeshletData meshlet)
 {
     vec3 dir = normalize(camera.position - meshlet.center);
@@ -180,7 +184,9 @@ bool checkOcclusion(PerMeshletData meshlet)
     depth = max(depth, textureLod(hiz_buffer, uv2, mip_level).r);
     depth = max(depth, textureLod(hiz_buffer, uv3, mip_level).r);
     
-    return depth >= abs(sceen_space_center_last.z) - meshlet.radius;
+    float depthSphere = abs(sceen_space_center_last.z);
+
+    return LinearizeDepth(depth) >= depthSphere;
 }
 
 

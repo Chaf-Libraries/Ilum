@@ -16,15 +16,7 @@ void main()
 {
    	uvec2 pos = gl_GlobalInvocationID.xy;
 
-    //float depth = texture(input_image, (vec2(pos)+vec2(0.5))/vec2(push_constant.extent)).r;
-
-    vec2 uv = pos/vec2(push_constant.extent);
-
-    float depth = texture(input_image, uv).r;
-    depth = max(depth, textureOffset(input_image, uv, ivec2(0, 1)).r);
-    depth = max(depth, textureOffset(input_image, uv, ivec2(0, -1)).r);
-    depth = max(depth, textureOffset(input_image, uv, ivec2(-1, 0)).r);
-    depth = max(depth, textureOffset(input_image, uv, ivec2(1, 0)).r);
+    float depth = texture(input_image, (vec2(pos)+vec2(0.5))/vec2(push_constant.extent)).r;
 
 	imageStore(output_image, ivec2(pos), vec4(depth));
 }

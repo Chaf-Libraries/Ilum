@@ -13,9 +13,8 @@ layout(location = 6) in vec3 inColor;
 layout(location = 0) out vec4 Albedo;
 layout(location = 1) out vec4 Normal;
 layout(location = 2) out vec4 Position;
-layout(location = 3) out vec4 Depth;
-layout(location = 4) out vec4 Metallic_Roughness_AO;
-layout(location = 5) out vec4 Emissive;
+layout(location = 3) out vec4 Metallic_Roughness_AO;
+layout(location = 4) out vec4 Emissive;
 
 struct PerInstanceData
 {
@@ -54,7 +53,6 @@ layout (set = 0, binding = 2) buffer PerInstanceBuffer
 
 void main() {
     Position = vec4(inPos.xyz, 1.0);
-    Depth = vec4(vec3(inPos.w), 1.0);
 
     vec3 N = normalize(inNormal);
     vec3 T = normalize(inTangent);
