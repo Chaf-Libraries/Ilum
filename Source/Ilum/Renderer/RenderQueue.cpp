@@ -142,6 +142,7 @@ bool RenderQueue::update()
 		{
 			GraphicsContext::instance()->getQueueSystem().waitAll();
 			Instance_Buffer = Buffer(static_cast<VkDeviceSize>(static_cast<double>(instance_data.size() * sizeof(PerInstanceData)) * 1.1), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			Instance_Visibility_Buffer = Buffer(static_cast<VkDeviceSize>(static_cast<double>(instance_data.size() * sizeof(uint32_t)) * 1.1), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
 			update = true;
 		}

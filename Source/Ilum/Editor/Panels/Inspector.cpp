@@ -195,13 +195,13 @@ void draw_texture(std::string &texture)
 
 template <>
 inline void draw_material<material::DisneyPBR>(material::DisneyPBR &material)
-{
-	ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color));
-	ImGui::ColorEdit3("Emissive Color", glm::value_ptr(material.emissive_color));
-	ImGui::DragFloat("Metallic Factor", &material.metallic_factor, 0.01f, 0.f, 1.f, "%.3f");
-	ImGui::DragFloat("Emissive Intensity", &material.emissive_intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-	ImGui::DragFloat("Roughness Factor", &material.roughness_factor, 0.01f, 0.f, 1.f, "%.3f");
-	ImGui::DragFloat("Height Factor", &material.displacement_height, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+{	
+	cmpt::MeshRenderer::update = cmpt::MeshRenderer::update || ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color));
+	cmpt::MeshRenderer::update = cmpt::MeshRenderer::update || ImGui::ColorEdit3("Emissive Color", glm::value_ptr(material.emissive_color));
+	cmpt::MeshRenderer::update = cmpt::MeshRenderer::update || ImGui::DragFloat("Metallic Factor", &material.metallic_factor, 0.01f, 0.f, 1.f, "%.3f");
+	cmpt::MeshRenderer::update = cmpt::MeshRenderer::update || ImGui::DragFloat("Emissive Intensity", &material.emissive_intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	cmpt::MeshRenderer::update = cmpt::MeshRenderer::update || ImGui::DragFloat("Roughness Factor", &material.roughness_factor, 0.01f, 0.f, 1.f, "%.3f");
+	cmpt::MeshRenderer::update = cmpt::MeshRenderer::update || ImGui::DragFloat("Height Factor", &material.displacement_height, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 
 	ImGui::Text("Albedo Map");
 	draw_texture(material.albedo_map);
@@ -311,9 +311,9 @@ inline void draw_component<cmpt::Transform>(Entity entity)
 {
 	draw_component<cmpt::Transform>(
 	    "Transform", entity, [](cmpt::Transform &component) {
-		    component.update |= draw_vec3_control("Translation", component.translation, 0.f);
-		    component.update |= draw_vec3_control("Rotation", component.rotation, 0.f);
-		    component.update |= draw_vec3_control("Scale", component.scale, 1.f);
+		    component.update = component.update || draw_vec3_control("Translation", component.translation, 0.f);
+		    component.update = component.update || draw_vec3_control("Rotation", component.rotation, 0.f);
+		    component.update = component.update || draw_vec3_control("Scale", component.scale, 1.f);
 	    },
 	    true);
 }

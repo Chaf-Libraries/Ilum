@@ -215,11 +215,13 @@ void Renderer::updateGeometry()
 
 	if (m_resource_cache->getVerticesCount() == 0)
 	{
+		GraphicsContext::instance()->getQueueSystem().waitAll();
 		m_buffers[BufferType::Vertex] = Buffer(0, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 		m_buffers[BufferType::Index]  = Buffer(0, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 	}
 	else
 	{
+		GraphicsContext::instance()->getQueueSystem().waitAll();
 		vertex_buffer = Buffer(m_resource_cache->getVerticesCount() * sizeof(Ilum::Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 		index_buffer  = Buffer(m_resource_cache->getIndicesCount() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 

@@ -59,7 +59,7 @@ struct DrawIndexedIndirectCommand
 	uint indexCount;
 	uint instanceCount;
 	uint firstIndex;
-	uint vertexOffset;
+	int vertexOffset;
 	uint firstInstance;
 };
 
@@ -96,7 +96,10 @@ layout (binding = 5) uniform sampler2D hiz_buffer;
 
 layout (binding = 6) buffer MeshletCount
 {
-    uint count;
+    uint visible_count;
+    uint instance_visible_count;
+    uint invisible_count;
+    uint total_count;
 };
 
 layout(binding = 7) uniform CullingBuffer {
@@ -113,6 +116,11 @@ layout(binding = 7) uniform CullingBuffer {
     uint backface_enable;
     uint occlusion_enable;
 } cullData;
+
+layout (binding = 8) buffer VisibilityBuffer
+{
+    uint visibility_data[];
+};
 
 bool checkFrustum(PerMeshletData meshlet)
 {
@@ -170,7 +178,7 @@ bool checkOcclusion(PerMeshletData meshlet)
     float width = (aabb.z - aabb.x) * cullData.zbuffer_width;
     float height = (aabb.w - aabb.y) * cullData.zbuffer_height;
 
-    float mip_level = floor(log2(max(width, height))) - 1;
+    float mip_level = floor(log2(max(width, height)));
 
     vec2 uv = (aabb.xy + aabb.zw) * 0.5;
     vec2 uv0 = aabb.xy;
@@ -195,7 +203,9 @@ void main()
 	uint idx = gl_GlobalInvocationID.x;
     if (idx == 0)
 	{
-		atomicExchange(count, 0);
+		atomicExchange(visible_count, 0);
+		atomicExchange(invisible_count, 0);
+		atomicExchange(total_count, 0);
 	}
 
     if(idx >= cullData.draw_count)
@@ -205,6 +215,19 @@ void main()
 
     PerMeshletData meshlet = meshlet_data[idx];
 
+    if(visibility_data[meshlet.instance_id] != 1)
+    {
+        uint dci = atomicAdd(invisible_count, 1);
+        indirectDraws[cullData.draw_count - 1 - dci].indexCount = meshlet.index_count;
+        indirectDraws[cullData.draw_count - 1 - dci].instanceCount = 1;
+        indirectDraws[cullData.draw_count - 1 - dci].firstIndex = meshlet.index_offset;
+        indirectDraws[cullData.draw_count - 1 - dci].vertexOffset = int(meshlet.vertex_offset);
+        indirectDraws[cullData.draw_count - 1 - dci].firstInstance = 0;
+        draw_data[cullData.draw_count - 1 - dci] = meshlet.instance_id;
+        atomicAdd(total_count, 1);
+        return;
+    }
+    
     mat4 trans = instance_data[meshlet.instance_id].world_transform * instance_data[meshlet.instance_id].pre_transform;
     meshlet.center = (trans * vec4(meshlet.center, 1.0)).xyz;
     vec3 edge = vec3(1.0) * sqrt(meshlet.radius * meshlet.radius / 3.0);
@@ -248,12 +271,23 @@ void main()
 
     if (visible)
     {
-        uint dci = atomicAdd(count, 1);
+        uint dci = atomicAdd(visible_count, 1);
         indirectDraws[dci].indexCount = meshlet.index_count;
         indirectDraws[dci].instanceCount = 1;
         indirectDraws[dci].firstIndex = meshlet.index_offset;
-        indirectDraws[dci].vertexOffset = meshlet.vertex_offset;
+        indirectDraws[dci].vertexOffset = int(meshlet.vertex_offset);
         indirectDraws[dci].firstInstance = 0;
         draw_data[dci] = meshlet.instance_id;
     }
+    else
+    {
+        uint dci = atomicAdd(invisible_count, 1);
+        indirectDraws[cullData.draw_count - 1 - dci].indexCount = meshlet.index_count;
+        indirectDraws[cullData.draw_count - 1 - dci].instanceCount = 1;
+        indirectDraws[cullData.draw_count - 1 - dci].firstIndex = meshlet.index_offset;
+        indirectDraws[cullData.draw_count - 1 - dci].vertexOffset = int(meshlet.vertex_offset);
+        indirectDraws[cullData.draw_count - 1 - dci].firstInstance = 0;
+        draw_data[cullData.draw_count - 1 - dci] = meshlet.instance_id;
+    }
+    atomicAdd(total_count, 1);
 }

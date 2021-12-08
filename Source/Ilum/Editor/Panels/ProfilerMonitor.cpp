@@ -95,6 +95,7 @@ void ProfilerMonitor::draw(float delta_time)
 
 	ImGui::Text("Total Triangle Count: %d", Renderer::instance()->Indices_Count / 3);
 	ImGui::Text("Total Instance Count: %d", Renderer::instance()->Instance_Count);
+	ImGui::Text("Total Instance Visible: %d", Renderer::instance()->Instance_Visible);
 	ImGui::Text("Total Meshlet Count: %d", Renderer::instance()->Meshlet_Count);
 	ImGui::Text("Total Meshlet Visible: %d", Renderer::instance()->Meshlet_Visible);
 

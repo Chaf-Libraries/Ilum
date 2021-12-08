@@ -8,7 +8,8 @@
 #include <Ilum/Renderer/RenderPass/PostProcess/BloomPass.hpp>
 #include <Ilum/Renderer/RenderPass/PostProcess/BlurPass.hpp>
 #include <Ilum/Renderer/RenderPass/PostProcess/BrightPass.hpp>
-#include <Ilum/Renderer/RenderPass/Compute/CullingPass.hpp>
+#include <Ilum/Renderer/RenderPass/Compute/MeshletCullingPass.hpp>
+#include <Ilum/Renderer/RenderPass/Compute/InstanceCullingPass.hpp>
 #include <Ilum/Renderer/RenderPass/Deferred/GeometryPass.hpp>
 #include <Ilum/Renderer/RenderPass/Deferred/LightPass.hpp>
 #include <Ilum/Renderer/RenderPass/Compute/HizPass.hpp>
@@ -31,7 +32,8 @@ int main()
 	Ilum::Renderer::instance()->buildRenderGraph = [](Ilum::RenderGraphBuilder &builder) {
 		builder
 		    .addRenderPass("HizPass", std::make_unique<Ilum::pass::HizPass>())
-		    .addRenderPass("CullingPass", std::make_unique<Ilum::pass::CullingPass>())
+		    .addRenderPass("InstanceCulling", std::make_unique<Ilum::pass::InstanceCullingPass>())
+		    .addRenderPass("MeshletCulling", std::make_unique<Ilum::pass::MeshletCullingPass>())
 		    .addRenderPass("GeometryPass", std::make_unique<Ilum::pass::GeometryPass>())
 		    .addRenderPass("LightPass", std::make_unique<Ilum::pass::LightPass>())
 		    .addRenderPass("BrightPass", std::make_unique<Ilum::pass::BrightPass>("lighting"))

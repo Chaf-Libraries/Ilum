@@ -118,7 +118,7 @@ void GeometryPass::render(RenderPassState &state)
 	auto &vertex_buffer = Renderer::instance()->getBuffer(Renderer::BufferType::Vertex);
 	auto &index_buffer  = Renderer::instance()->getBuffer(Renderer::BufferType::Index);
 
-	if (Renderer::instance()->Meshlet_Count > 0/* && index_buffer.get().getBuffer() && vertex_buffer.get().getBuffer()*/)
+	if (Renderer::instance()->Meshlet_Count > 0 && vertex_buffer.get().getBuffer() && index_buffer.get().getBuffer())
 	{
 		VkDeviceSize offsets[1] = {0};
 		vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &vertex_buffer.get().getBuffer(), offsets);

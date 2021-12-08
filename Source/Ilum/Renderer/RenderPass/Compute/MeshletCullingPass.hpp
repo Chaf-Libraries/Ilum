@@ -8,10 +8,10 @@
 
 namespace Ilum::pass
 {
-class CullingPass : public TRenderPass<CullingPass>
+class MeshletCullingPass : public TRenderPass<MeshletCullingPass>
 {
   public:
-	CullingPass();
+	MeshletCullingPass();
 
 	virtual void setupPipeline(PipelineState &state) override;
 
