@@ -64,11 +64,12 @@ struct CullingData
 
 	float     zbuffer_width;
 	float     zbuffer_height;
-	uint32_t  draw_count;
 	uint32_t  frustum_enable;
-
 	uint32_t  backface_enable;
+
 	uint32_t  occlusion_enable;
+	uint32_t meshlet_count;
+	uint32_t instance_count;
 };
 
 // Collecting and sorting geometry render data

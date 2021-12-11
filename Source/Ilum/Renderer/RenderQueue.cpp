@@ -26,7 +26,8 @@ bool RenderQueue::update()
 	culling_data->P11              = Renderer::instance()->Main_Camera.projection[1][1];
 	culling_data->znear            = Renderer::instance()->Main_Camera.near_plane;
 	culling_data->zfar             = Renderer::instance()->Main_Camera.far_plane;
-	culling_data->draw_count       = Renderer::instance()->Meshlet_Count;
+	culling_data->meshlet_count    = Renderer::instance()->Meshlet_Count;
+	culling_data->instance_count    = Renderer::instance()->Instance_Count;
 	culling_data->frustum_enable   = Renderer::instance()->Culling.frustum_culling;
 	culling_data->backface_enable  = Renderer::instance()->Culling.backface_culling;
 	culling_data->occlusion_enable = Renderer::instance()->Culling.occulsion_culling;
