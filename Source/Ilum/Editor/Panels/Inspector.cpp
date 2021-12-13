@@ -63,7 +63,7 @@ inline bool draw_vec3_control(const std::string &label, glm::vec3 &values, float
 	ImGui::PopStyleColor(3);
 
 	ImGui::SameLine();
-	update = update | ImGui::DragFloat("##X", &values.x, 0.1f, 0.0f, 0.0f, "%.3f");
+	update = ImGui::DragFloat("##X", &values.x, 0.1f, 0.0f, 0.0f, "%.3f") || update;
 	ImGui::PopItemWidth();
 	ImGui::SameLine();
 
@@ -80,7 +80,7 @@ inline bool draw_vec3_control(const std::string &label, glm::vec3 &values, float
 	ImGui::PopStyleColor(3);
 
 	ImGui::SameLine();
-	update = update | ImGui::DragFloat("##Y", &values.y, 0.1f, 0.0f, 0.0f, "%.3f");
+	update = ImGui::DragFloat("##Y", &values.y, 0.1f, 0.0f, 0.0f, "%.3f") || update;
 	ImGui::PopItemWidth();
 	ImGui::SameLine();
 
@@ -97,7 +97,7 @@ inline bool draw_vec3_control(const std::string &label, glm::vec3 &values, float
 	ImGui::PopStyleColor(3);
 
 	ImGui::SameLine();
-	update = update | ImGui::DragFloat("##Z", &values.z, 0.1f, 0.0f, 0.0f, "%.3f");
+	update = ImGui::DragFloat("##Z", &values.z, 0.1f, 0.0f, 0.0f, "%.3f") || update;
 	ImGui::PopItemWidth();
 
 	ImGui::PopStyleVar();
@@ -311,9 +311,9 @@ inline void draw_component<cmpt::Transform>(Entity entity)
 {
 	draw_component<cmpt::Transform>(
 	    "Transform", entity, [](cmpt::Transform &component) {
-		    component.update = component.update || draw_vec3_control("Translation", component.translation, 0.f);
-		    component.update = component.update || draw_vec3_control("Rotation", component.rotation, 0.f);
-		    component.update = component.update || draw_vec3_control("Scale", component.scale, 1.f);
+		    component.update = draw_vec3_control("Translation", component.translation, 0.f) || component.update;
+		    component.update = draw_vec3_control("Rotation", component.rotation, 0.f) || component.update;
+		    component.update = draw_vec3_control("Scale", component.scale, 1.f) || component.update;
 	    },
 	    true);
 }

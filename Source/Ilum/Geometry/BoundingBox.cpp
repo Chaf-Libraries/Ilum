@@ -37,14 +37,25 @@ void BoundingBox::merge(const BoundingBox &bounding_box)
 
 BoundingBox BoundingBox::transform(const glm::mat4 &trans) const
 {
-	glm::vec3 new_center = trans * glm::vec4(center(), 1.f);
-	glm::vec3 old_edge   = scale() * 0.5f;
-	glm::vec3 new_edge   = glm::vec3(
-        std::fabs(trans[0][0]) * old_edge.x + std::fabs(trans[0][1]) * old_edge.y + std::fabs(trans[0][2]) * old_edge.z,
-        std::fabs(trans[1][0]) * old_edge.x + std::fabs(trans[1][1]) * old_edge.y + std::fabs(trans[1][2]) * old_edge.z,
-        std::fabs(trans[2][0]) * old_edge.x + std::fabs(trans[2][1]) * old_edge.y + std::fabs(trans[2][2]) * old_edge.z);
+	glm::vec3 tmp_min = min_;
+	glm::vec3 tmp_max = max_;
 
-	return BoundingBox(new_center - new_edge, new_center + new_edge);
+	glm::vec3 new_min_, new_max_;
+	new_max_ = new_min_ = glm::vec3(trans[3][0], trans[3][1], trans[3][2]);
+
+	for (uint32_t j = 0; j < 3; j++)
+	{
+		for (uint32_t i = 0; i < 3; i++)
+		{
+			float a = trans[i][j] * tmp_min[j];
+			float b = trans[i][j] * tmp_max[j];
+
+			new_min_[j] += a < b ? a : b;
+			new_max_[j] += a < b ? b : a;
+		}
+	}
+
+	return BoundingBox(new_min_, new_max_);
 }
 
 const glm::vec3 BoundingBox::center() const

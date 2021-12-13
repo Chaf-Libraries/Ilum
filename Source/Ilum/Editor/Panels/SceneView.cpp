@@ -13,6 +13,7 @@
 
 #include "Editor/Editor.hpp"
 
+#include "Geometry/BoundingBox.hpp"
 #include "Geometry/Ray.hpp"
 
 #include "ImGui/ImGuiContext.hpp"
@@ -29,10 +30,136 @@
 
 #include <ImGuizmo/ImGuizmo.h>
 
+#include "Scene/Component/Light.hpp"
+
 #include <imgui.h>
 
 namespace Ilum::panel
 {
+inline glm::vec2 world2screen(glm::vec3 position, glm::vec2 offset)
+{
+	glm::vec4 pos = Renderer::instance()->Main_Camera.view_projection * glm::vec4(position, 1.f);
+	pos *= 0.5f / pos.w;
+	pos += glm::vec4(0.5f, 0.5f, 0.f, 0.f);
+	pos.y = 1.f - pos.y;
+	pos.x *= static_cast<float>(Renderer::instance()->getRenderTargetExtent().width);
+	pos.y *= static_cast<float>(Renderer::instance()->getRenderTargetExtent().height);
+	pos.x += static_cast<float>(offset.x);
+	pos.y += static_cast<float>(offset.y);
+
+	return glm::vec2(pos.x, pos.y);
+}
+
+template <typename T>
+inline void drawComponentGizmo(const ImVec2 &offset, const Image &icon, bool enable)
+{
+}
+
+template <>
+inline void drawComponentGizmo<cmpt::Light>(const ImVec2 &offset, const Image &icon, bool enable)
+{
+	if (!enable)
+	{
+		return;
+	}
+
+	auto group = Scene::instance()->getRegistry().group<cmpt::Light>(entt::get<cmpt::Transform>);
+
+	for (const auto &entity : group)
+	{
+		const auto &[light, trans] = group.template get<cmpt::Light, cmpt::Transform>(entity);
+
+		glm::quat rotation;
+		glm::vec3 position;
+		glm::vec3 scale;
+		glm::vec3 skew;
+		glm::vec4 perspective;
+		glm::decompose(trans.world_transform, scale, rotation, position, skew, perspective);
+
+		if (!Renderer::instance()->Main_Camera.frustum.isInside(position))
+		{
+			continue;
+		}
+
+		glm::vec2 screen_pos = world2screen(position, {static_cast<float>(offset.x), static_cast<float>(offset.y)});
+		ImGui::SetCursorPos({screen_pos.x - ImGui::GetFontSize() / 2.0f, screen_pos.y - ImGui::GetFontSize() / 2.0f});
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.7f, 0.7f, 0.0f));
+
+		if (ImGui::ImageButton(ImGuiContext::textureID(icon, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
+		                       ImVec2(20.f, 20.f),
+		                       ImVec2(0.f, 0.f),
+		                       ImVec2(1.f, 1.f),
+		                       -1,
+		                       ImVec4(0.f, 0.f, 0.f, 0.f)))
+		{
+			Editor::instance()->select(Entity(entity));
+		}
+		ImGui::PopStyleColor();
+	}
+}
+
+template <>
+inline void drawComponentGizmo<geometry::BoundingBox>(const ImVec2 &offset, const Image &icon, bool enable)
+{
+	if (!enable)
+	{
+		return;
+	}
+
+	auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform>);
+
+	for (const auto &entity : group)
+	{
+		const auto &[mesh_renderer, trans] = group.template get<cmpt::MeshRenderer, cmpt::Transform>(entity);
+
+		if (!Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model))
+		{
+			continue;
+		}
+
+		auto bbox = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model).get().bounding_box.transform(trans.world_transform);
+
+		if (!Renderer::instance()->Main_Camera.frustum.isInside(bbox))
+		{
+			continue;
+		}
+
+		std::array<glm::vec3, 8> cube_vertex = {
+		    bbox.min_,
+		    glm::vec3(bbox.min_.x, bbox.min_.y, bbox.max_.z),
+		    glm::vec3(bbox.min_.x, bbox.max_.y, bbox.min_.z),
+		    glm::vec3(bbox.min_.x, bbox.max_.y, bbox.max_.z),
+		    glm::vec3(bbox.max_.x, bbox.min_.y, bbox.min_.z),
+		    glm::vec3(bbox.max_.x, bbox.min_.y, bbox.max_.z),
+		    glm::vec3(bbox.max_.x, bbox.max_.y, bbox.min_.z),
+		    bbox.max_,
+		};
+
+		std::array<ImVec2, 8> cube_screen_vertex;
+
+		for (uint32_t i = 0; i < 8; i++)
+		{
+			auto pos = world2screen(cube_vertex[i], {static_cast<float>(offset.x), static_cast<float>(offset.y)});
+
+			cube_screen_vertex[i] = ImVec2(pos.x, pos.y) + ImGui::GetWindowPos();
+		}
+
+		auto *draw_list = ImGui::GetWindowDrawList();
+		draw_list->AddLine(cube_screen_vertex[0], cube_screen_vertex[1], ImColor(255.f, 0.f, 0.f), 1.f);
+		draw_list->AddLine(cube_screen_vertex[0], cube_screen_vertex[2], ImColor(255.f, 0.f, 0.f), 1.f);
+		draw_list->AddLine(cube_screen_vertex[1], cube_screen_vertex[3], ImColor(255.f, 0.f, 0.f), 1.f);
+		draw_list->AddLine(cube_screen_vertex[2], cube_screen_vertex[3], ImColor(255.f, 0.f, 0.f), 1.f);
+		draw_list->AddLine(cube_screen_vertex[4], cube_screen_vertex[5], ImColor(255.f, 0.f, 0.f), 1.f);
+		draw_list->AddLine(cube_screen_vertex[4], cube_screen_vertex[6], ImColor(255.f, 0.f, 0.f), 1.f);
+		draw_list->AddLine(cube_screen_vertex[5], cube_screen_vertex[7], ImColor(255.f, 0.f, 0.f), 1.f);
+		draw_list->AddLine(cube_screen_vertex[6], cube_screen_vertex[7], ImColor(255.f, 0.f, 0.f), 1.f);
+		draw_list->AddLine(cube_screen_vertex[0], cube_screen_vertex[4], ImColor(255.f, 0.f, 0.f), 1.f);
+		draw_list->AddLine(cube_screen_vertex[1], cube_screen_vertex[5], ImColor(255.f, 0.f, 0.f), 1.f);
+		draw_list->AddLine(cube_screen_vertex[2], cube_screen_vertex[6], ImColor(255.f, 0.f, 0.f), 1.f);
+		draw_list->AddLine(cube_screen_vertex[3], cube_screen_vertex[7], ImColor(255.f, 0.f, 0.f), 1.f);
+	}
+}
+
 SceneView::SceneView()
 {
 	m_name = "SceneView";
@@ -41,10 +168,17 @@ SceneView::SceneView()
 	ImageLoader::loadImageFromFile(m_icons["rotate"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/rotate.png"));
 	ImageLoader::loadImageFromFile(m_icons["scale"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/scale.png"));
 	ImageLoader::loadImageFromFile(m_icons["select"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/select.png"));
-	ImageLoader::loadImageFromFile(m_icons["grid"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/grid.png"));
 	ImageLoader::loadImageFromFile(m_icons["transform"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/transform.png"));
 	ImageLoader::loadImageFromFile(m_icons["camera"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/camera.png"));
 	ImageLoader::loadImageFromFile(m_icons["viewport"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/viewport.png"));
+	ImageLoader::loadImageFromFile(m_icons["light"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/light.png"));
+	ImageLoader::loadImageFromFile(m_icons["gizmo"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/gizmo.png"));
+
+	m_gizmo = {
+	    {"grid", true},
+	    {"aabb", false},
+	    {"light", true},
+	};
 }
 
 void SceneView::draw(float delta_time)
@@ -72,7 +206,7 @@ void SceneView::draw(float delta_time)
 
 	ImGuizmo::SetRect(scene_view_position.x, scene_view_position.y, scene_view_size.x, scene_view_size.y);
 
-	if (m_grid)
+	if (m_gizmo["grid"])
 	{
 		ImGuizmo::DrawGrid(glm::value_ptr(Renderer::instance()->Main_Camera.view), glm::value_ptr(Renderer::instance()->Main_Camera.projection), glm::value_ptr(glm::mat4(1.0)), 100.f);
 	}
@@ -92,12 +226,12 @@ void SceneView::draw(float delta_time)
 		if (const auto *pay_load = ImGui::AcceptDragDropPayload("Model"))
 		{
 			ASSERT(pay_load->DataSize == sizeof(std::string));
-			auto  entity        = Scene::instance()->createEntity(FileSystem::getFileName(*static_cast<std::string *>(pay_load->Data),false));
+			auto  entity        = Scene::instance()->createEntity(FileSystem::getFileName(*static_cast<std::string *>(pay_load->Data), false));
 			auto &mesh_renderer = entity.addComponent<cmpt::MeshRenderer>();
 			mesh_renderer.model = *static_cast<std::string *>(pay_load->Data);
 			// Setting default material
 			auto &model = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
-			for (auto& submesh : model.get().submeshes)
+			for (auto &submesh : model.get().submeshes)
 			{
 				mesh_renderer.materials.emplace_back(createScope<material::DisneyPBR>());
 				*static_cast<material::DisneyPBR *>(mesh_renderer.materials.back().get()) = submesh.material;
@@ -108,7 +242,6 @@ void SceneView::draw(float delta_time)
 	}
 
 	// Guizmo operation
-
 	auto view = Renderer::instance()->Main_Camera.view;
 	ImGuizmo::ViewManipulate(
 	    glm::value_ptr(view),
@@ -201,6 +334,9 @@ void SceneView::draw(float delta_time)
 			}
 		});
 	}
+
+	drawComponentGizmo<cmpt::Light>(offset, m_icons["light"], m_gizmo["light"]);
+	drawComponentGizmo<geometry::BoundingBox>(offset, Image(), m_gizmo["aabb"]);
 
 	ImGui::End();
 
@@ -373,18 +509,6 @@ void SceneView::showToolBar()
 	SHOW_TIPS("Transform")
 
 	ImGui::SameLine();
-	if (ImGui::ImageButton(ImGuiContext::textureID(m_icons["grid"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
-	                       ImVec2(20.f, 20.f),
-	                       ImVec2(0.f, 0.f),
-	                       ImVec2(1.f, 1.f),
-	                       -1,
-	                       !m_grid ? ImVec4(0.f, 0.f, 0.f, 0.f) : select_color))
-	{
-		m_grid = !m_grid;
-	}
-	SHOW_TIPS("Grid")
-
-	ImGui::SameLine();
 	if (ImGui::ImageButton(ImGuiContext::textureID(m_icons["camera"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
 	                       ImVec2(20.f, 20.f),
 	                       ImVec2(0.f, 0.f),
@@ -463,6 +587,25 @@ void SceneView::showToolBar()
 			}
 		}
 
+		ImGui::EndPopup();
+	}
+
+	ImGui::SameLine();
+	if (ImGui::ImageButton(ImGuiContext::textureID(m_icons["gizmo"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
+	                       ImVec2(20.f, 20.f),
+	                       ImVec2(0.f, 0.f),
+	                       ImVec2(1.f, 1.f),
+	                       -1,
+	                       ImVec4(0.f, 0.f, 0.f, 0.f)))
+	{
+		ImGui::OpenPopup("GizmoPopup");
+	}
+
+	if (ImGui::BeginPopup("GizmoPopup"))
+	{
+		ImGui::Checkbox("Grid", &m_gizmo["grid"]);
+		ImGui::Checkbox("Light", &m_gizmo["light"]);
+		ImGui::Checkbox("AABB", &m_gizmo["aabb"]);
 		ImGui::EndPopup();
 	}
 

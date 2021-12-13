@@ -1,5 +1,7 @@
 #include "Frustum.hpp"
 
+#include "BoundingBox.hpp"
+
 namespace Ilum::geometry
 {
 Frustum::Frustum(const glm::mat4 &view_projection)
@@ -48,5 +50,34 @@ Frustum::Frustum(const glm::mat4 &view_projection)
 		plane.normal /= length;
 		plane.constant /= length;
 	}
+}
+
+bool Frustum::isInside(const glm::vec3 &p)
+{
+	for (auto& plane : planes)
+	{
+		if (glm::dot(plane.normal, p) + plane.constant < 0.f)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
+bool Frustum::isInside(const BoundingBox &bbox)
+{
+	for (auto &plane : planes)
+	{
+		glm::vec3 p;
+		p.x = plane.normal.x < 0.f ? bbox.min_.x : bbox.max_.x;
+		p.y = plane.normal.y < 0.f ? bbox.min_.y : bbox.max_.y;
+		p.z = plane.normal.z < 0.f ? bbox.min_.z : bbox.max_.z;
+
+		if (glm::dot(plane.normal, p) + plane.constant < 0.f)
+		{
+			return false;
+		}
+	}
+	return true;
 }
 }        // namespace Ilum::geometry

@@ -143,7 +143,7 @@ inline void draw_model_asset(const Image &image, float height, float space)
 			ImGui::BulletText("vertices offset: %d", model.get().vertices_offset);
 			ImGui::BulletText("indices count: %d", model.get().indices_count);
 			ImGui::BulletText("indices offset: %d", model.get().indices_offset);
-			ImGui::BulletText("bounding box: min(%d, %d, %d), max(%d, %d, %d)",
+			ImGui::BulletText("bounding box: min(%f, %f, %f), max(%f, %f, %f)",
 			                  model.get().bounding_box.min_.x, model.get().bounding_box.min_.y, model.get().bounding_box.min_.z,
 			                  model.get().bounding_box.max_.x, model.get().bounding_box.max_.y, model.get().bounding_box.max_.z);
 			ImGui::End();

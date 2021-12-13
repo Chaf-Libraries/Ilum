@@ -25,6 +25,14 @@ class SceneView : public Panel
 	void showToolBar();
 
   private:
+	enum class GizmoComponent
+	{
+		Grid,
+		Light,
+		AABB,
+	};
+
+  private:
 	bool                        m_cursor_hidden = false;
 	std::pair<int32_t, int32_t> m_last_position;
 
@@ -32,7 +40,8 @@ class SceneView : public Panel
 	float m_camera_sensitivity = 0.5f;
 
 	uint32_t m_guizmo_operation = 0;
-	bool     m_grid             = true;
+
+	std::unordered_map<std::string, bool> m_gizmo;
 
 	std::unordered_map<std::string, Image> m_icons;
 
