@@ -85,6 +85,7 @@ inline void drawComponentGizmo<cmpt::Light>(const ImVec2 &offset, const Image &i
 		ImGui::SetCursorPos({screen_pos.x - ImGui::GetFontSize() / 2.0f, screen_pos.y - ImGui::GetFontSize() / 2.0f});
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.7f, 0.7f, 0.0f));
 
+		ImGui::PushID(static_cast<int>(entity));
 		if (ImGui::ImageButton(ImGuiContext::textureID(icon, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
 		                       ImVec2(20.f, 20.f),
 		                       ImVec2(0.f, 0.f),
@@ -94,6 +95,8 @@ inline void drawComponentGizmo<cmpt::Light>(const ImVec2 &offset, const Image &i
 		{
 			Editor::instance()->select(Entity(entity));
 		}
+		ImGui::PopID();
+
 		ImGui::PopStyleColor();
 	}
 }
@@ -252,28 +255,7 @@ void SceneView::draw(float delta_time)
 
 	bool is_on_guizmo = false;
 
-	if (Editor::instance()->getSelect())
-	{
-		auto &transform = Editor::instance()->getSelect().getComponent<cmpt::Transform>();
-
-		if (m_guizmo_operation)
-		{
-			is_on_guizmo = ImGuizmo::Manipulate(
-			    glm::value_ptr(Renderer::instance()->Main_Camera.view),
-			    glm::value_ptr(Renderer::instance()->Main_Camera.projection),
-			    static_cast<ImGuizmo::OPERATION>(m_guizmo_operation),
-			    ImGuizmo::LOCAL, glm::value_ptr(transform.local_transform), NULL, NULL, NULL, NULL);
-
-			if (is_on_guizmo)
-			{
-				ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(transform.local_transform),
-				                                      glm::value_ptr(transform.translation),
-				                                      glm::value_ptr(transform.rotation),
-				                                      glm::value_ptr(transform.scale));
-				transform.update = true;
-			}
-		}
-	}
+	
 
 	// We don't want camera moving while handling object transform or window is not focused
 	if (ImGui::IsWindowFocused() && !ImGuizmo::IsUsing())
@@ -337,6 +319,29 @@ void SceneView::draw(float delta_time)
 
 	drawComponentGizmo<cmpt::Light>(offset, m_icons["light"], m_gizmo["light"]);
 	drawComponentGizmo<geometry::BoundingBox>(offset, Image(), m_gizmo["aabb"]);
+
+	if (Editor::instance()->getSelect())
+	{
+		auto &transform = Editor::instance()->getSelect().getComponent<cmpt::Transform>();
+
+		if (m_guizmo_operation)
+		{
+			is_on_guizmo = ImGuizmo::Manipulate(
+			    glm::value_ptr(Renderer::instance()->Main_Camera.view),
+			    glm::value_ptr(Renderer::instance()->Main_Camera.projection),
+			    static_cast<ImGuizmo::OPERATION>(m_guizmo_operation),
+			    ImGuizmo::LOCAL, glm::value_ptr(transform.local_transform), NULL, NULL, NULL, NULL);
+
+			if (is_on_guizmo)
+			{
+				ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(transform.local_transform),
+				                                      glm::value_ptr(transform.translation),
+				                                      glm::value_ptr(transform.rotation),
+				                                      glm::value_ptr(transform.scale));
+				transform.update = true;
+			}
+		}
+	}
 
 	ImGui::End();
 

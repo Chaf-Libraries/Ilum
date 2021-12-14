@@ -35,6 +35,8 @@ struct PerInstanceData
 
     vec3 max_;
 	uint displacement_map;
+
+    uint entity_id;
 };
 
 struct PerMeshletData

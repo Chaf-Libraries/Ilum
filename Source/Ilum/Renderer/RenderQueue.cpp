@@ -131,7 +131,7 @@ bool RenderQueue::update()
 					instance.displacement_height = material->displacement_height;
 					instance.displacement_map    = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->displacement_map));
 				}
-
+				instance.entity_id = static_cast<uint32_t>(entity);
 				instance_data.push_back(instance);
 
 				Renderer::instance()->Instance_Count++;

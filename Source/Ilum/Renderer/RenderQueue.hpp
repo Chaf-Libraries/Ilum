@@ -14,6 +14,7 @@ struct PerInstanceData
 
 	// Material
 	glm::vec4 base_color      = {};
+
 	glm::vec3 emissive_color  = {0.f, 0.f, 0.f};
 	float     metallic_factor = 0.f;
 
@@ -32,6 +33,8 @@ struct PerInstanceData
 
 	glm::vec3 max_            = {};
 	uint32_t displacement_map             = 0;
+
+	alignas(16) uint32_t entity_id = 0;
 };
 
 struct PerMeshletData

@@ -24,9 +24,18 @@ struct RasterizationState
 
 struct DepthStencilState
 {
-	bool        depth_test_enable  = true;
-	bool        depth_write_enable = true;
-	VkCompareOp depth_compare_op   = VK_COMPARE_OP_LESS_OR_EQUAL;
+	bool             depth_test_enable   = true;
+	bool             depth_write_enable  = true;
+	bool             stencil_test_enable = true;
+	VkCompareOp      depth_compare_op    = VK_COMPARE_OP_LESS_OR_EQUAL;
+	VkStencilOpState front               = {VK_STENCIL_OP_REPLACE,
+                              VK_STENCIL_OP_REPLACE,
+                              VK_STENCIL_OP_REPLACE,
+                              VK_COMPARE_OP_ALWAYS,
+                              0xff,
+                              0xff,
+                              1};
+	VkStencilOpState back                = front;
 };
 
 struct ViewportState

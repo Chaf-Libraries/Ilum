@@ -224,7 +224,9 @@ inline void createGraphicsPipeline(const PipelineState &pipeline_state, PassNati
 	depth_stencil_state_create_info.depthTestEnable                       = pipeline_state.depth_stencil_state.depth_test_enable;
 	depth_stencil_state_create_info.depthWriteEnable                      = pipeline_state.depth_stencil_state.depth_write_enable;
 	depth_stencil_state_create_info.depthCompareOp                        = pipeline_state.depth_stencil_state.depth_compare_op;
-	depth_stencil_state_create_info.back.compareOp                        = VK_COMPARE_OP_ALWAYS;
+	depth_stencil_state_create_info.back                                  = pipeline_state.depth_stencil_state.back;
+	depth_stencil_state_create_info.front                                 = pipeline_state.depth_stencil_state.front;
+	depth_stencil_state_create_info.stencilTestEnable                     = pipeline_state.depth_stencil_state.stencil_test_enable;
 
 	// Viewport State
 	VkPipelineViewportStateCreateInfo viewport_state_create_info = {};
@@ -292,10 +294,10 @@ inline void createGraphicsPipeline(const PipelineState &pipeline_state, PassNati
 inline void createComputePipeline(const PipelineState &pipeline_state, PassNative &pass_native)
 {
 	VkPipelineShaderStageCreateInfo shader_stage_create_info = {};
-	shader_stage_create_info.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	shader_stage_create_info.stage  = VK_SHADER_STAGE_COMPUTE_BIT;
-	shader_stage_create_info.pName  = "main";
-	shader_stage_create_info.module = pipeline_state.shader.getShaders().at(VK_SHADER_STAGE_COMPUTE_BIT);
+	shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	shader_stage_create_info.stage                           = VK_SHADER_STAGE_COMPUTE_BIT;
+	shader_stage_create_info.pName                           = "main";
+	shader_stage_create_info.module                          = pipeline_state.shader.getShaders().at(VK_SHADER_STAGE_COMPUTE_BIT);
 
 	VkComputePipelineCreateInfo compute_pipeline_create_info = {};
 	compute_pipeline_create_info.sType                       = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
@@ -466,8 +468,9 @@ scope<RenderGraph> RenderGraphBuilder::build()
 		    std::move(render_pass_reference.pass),
 		    getRenderPassAttachmentNames(render_pass_reference.name, pipeline_states),
 		    createPipelineBarrierCallback(render_pass_reference.name, pipeline_states.at(render_pass_reference.name), resource_transitions),
-		    pipeline_states.at(render_pass_reference.name).descriptor_bindings/*,
-		    synchronize_dependency.at(render_pass_reference.name)*/});
+		    pipeline_states.at(render_pass_reference.name).descriptor_bindings /*,
+		    synchronize_dependency.at(render_pass_reference.name)*/
+		});
 	}
 
 	return createScope<RenderGraph>(
@@ -652,8 +655,6 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 			write_image_map[attachment_dependency.name].push_back(pass_name);
 		}
 
-
-
 		VkFence           fence             = VK_NULL_HANDLE;
 		VkFenceCreateInfo fence_create_info = {};
 		fence_create_info.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -662,7 +663,7 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 		vkCreateFence(GraphicsContext::instance()->getLogicalDevice(), &fence_create_info, nullptr, &fence);
 
 		SubmitInfo submit_info;
-		submit_info.fence            = fence;
+		submit_info.fence = fence;
 
 		synchronize_map.insert({pass_name, submit_info});
 	}

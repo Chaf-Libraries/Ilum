@@ -15,7 +15,7 @@ layout(location = 2) out vec3 outNormal;
 layout(location = 3) out vec3 outTangent;
 layout(location = 4) out vec3 outBiTangent;
 layout(location = 5) out uint outIndex;
-layout(location = 6) out vec3 outColor;
+layout(location = 6) out uint outMeshletIndex;
 
 struct PerInstanceData
 {
@@ -43,6 +43,8 @@ struct PerInstanceData
 
     vec3 max_;
 	uint displacement_map;
+
+    uint entity_id;
 };
 
 struct PerMeshletData
@@ -86,12 +88,11 @@ layout (set = 0, binding = 4) buffer DrawBuffer
     uint draw_data[];
 };
 
-float rand(vec2 co){
-    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
-}
+
 
 void main() {
     outIndex = draw_data[gl_DrawIDARB];
+    outMeshletIndex = gl_DrawIDARB;
 
     float height = instance_data[outIndex].displacement_map < 1024?
         max(textureLod(textureArray[nonuniformEXT(instance_data[outIndex].displacement_map)], inUV, 0.0).r, 0.0) * instance_data[outIndex].displacement_height:
@@ -116,8 +117,4 @@ void main() {
     outPos.w = gl_Position.z;
 
     outUV = inUV;
-
-    outColor = vec3(rand(vec2(gl_DrawIDARB,gl_DrawIDARB+1)), 
-    rand(vec2(gl_DrawIDARB+2,gl_DrawIDARB+3)), 
-    rand(vec2(gl_DrawIDARB+4,gl_DrawIDARB+5)));
 }
