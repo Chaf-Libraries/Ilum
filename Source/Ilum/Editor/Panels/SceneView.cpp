@@ -8,6 +8,7 @@
 
 #include "Scene/Component/MeshRenderer.hpp"
 #include "Scene/Component/Transform.hpp"
+#include "Scene/Component/Tag.hpp"
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
@@ -255,8 +256,6 @@ void SceneView::draw(float delta_time)
 
 	bool is_on_guizmo = false;
 
-	
-
 	// We don't want camera moving while handling object transform or window is not focused
 	if (ImGui::IsWindowFocused() && !ImGuizmo::IsUsing())
 	{
@@ -277,44 +276,74 @@ void SceneView::draw(float delta_time)
 		}
 	}
 
-	// Mouse picking via ray casting
+	// Mouse picking
 	if (ImGui::IsWindowFocused() && ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGuizmo::IsOver() && !ImGuizmo::IsUsing())
 	{
 		auto [mouse_x, mouse_y] = Input::instance()->getMousePosition();
 		auto click_pos          = ImVec2(static_cast<float>(mouse_x) - scene_view_position.x, static_cast<float>(mouse_y) - scene_view_position.y);
 
-		auto &main_camera = Renderer::instance()->Main_Camera;
+		// Mouse picking via ray casting
+		//{
+		//	auto &main_camera = Renderer::instance()->Main_Camera;
 
-		float x = (click_pos.x / scene_view_size.x) * 2.f - 1.f;
-		float y = -((click_pos.y / scene_view_size.y) * 2.f - 1.f);
+		//	float x = (click_pos.x / scene_view_size.x) * 2.f - 1.f;
+		//	float y = -((click_pos.y / scene_view_size.y) * 2.f - 1.f);
 
-		glm::mat4 inv = glm::inverse(main_camera.view_projection);
+		//	glm::mat4 inv = glm::inverse(main_camera.view_projection);
 
-		glm::vec4 near_point = inv * glm::vec4(x, y, 0.f, 1.f);
-		near_point /= near_point.w;
-		glm::vec4 far_point = inv * glm::vec4(x, y, 1.f, 1.f);
-		far_point /= far_point.w;
+		//	glm::vec4 near_point = inv * glm::vec4(x, y, 0.f, 1.f);
+		//	near_point /= near_point.w;
+		//	glm::vec4 far_point = inv * glm::vec4(x, y, 1.f, 1.f);
+		//	far_point /= far_point.w;
 
-		geometry::Ray ray;
-		ray.origin    = main_camera.position;
-		ray.direction = glm::normalize(glm::vec3(far_point - near_point));
+		//	geometry::Ray ray;
+		//	ray.origin    = main_camera.position;
+		//	ray.direction = glm::normalize(glm::vec3(far_point - near_point));
 
-		Editor::instance()->select(Entity());
-		float      distance = std::numeric_limits<float>::infinity();
-		const auto group    = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform>);
-		group.each([&](const entt::entity &entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform) {
-			if (!Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model))
+		//	Editor::instance()->select(Entity());
+		//	float      distance = std::numeric_limits<float>::infinity();
+		//	const auto group    = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform>);
+		//	group.each([&](const entt::entity &entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform) {
+		//		if (!Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model))
+		//		{
+		//			return;
+		//		}
+		//		auto &model        = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
+		//		float hit_distance = ray.hit(model.get().bounding_box.transform(transform.world_transform));
+		//		if (distance > hit_distance)
+		//		{
+		//			distance = hit_distance;
+		//			Editor::instance()->select(Entity(entity));
+		//		}
+		//	});
+		//}
+
+		// Mouse picking via g-buffer
+		{
+			ImageReference entity_id_buffer = Renderer::instance()->getRenderGraph()->getAttachment("debug - entity");
+
+			CommandBuffer cmd_buffer;
+			cmd_buffer.begin();
+			Buffer staging_buffer(static_cast<VkDeviceSize>(entity_id_buffer.get().getWidth() * entity_id_buffer.get().getHeight()) * sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
+			cmd_buffer.transferLayout(entity_id_buffer, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+			cmd_buffer.copyImageToBuffer(ImageInfo{entity_id_buffer, VK_IMAGE_USAGE_TRANSFER_SRC_BIT, 0, 0}, BufferInfo{staging_buffer, 0});
+			cmd_buffer.transferLayout(entity_id_buffer, VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
+			cmd_buffer.end();
+			cmd_buffer.submitIdle();
+			std::vector<uint32_t> image_data(entity_id_buffer.get().getWidth() * entity_id_buffer.get().getHeight());
+			std::memcpy(image_data.data(), staging_buffer.map(), image_data.size() * sizeof(uint32_t));
+
+			click_pos.x = glm::clamp(click_pos.x, 0.f, static_cast<float>(entity_id_buffer.get().getWidth()));
+			click_pos.y = glm::clamp(click_pos.y, 0.f, static_cast<float>(entity_id_buffer.get().getHeight()));
+
+			auto entity = Entity(static_cast<entt::entity>(image_data[click_pos.y * entity_id_buffer.get().getWidth() + click_pos.x]));
+			if (entity)
 			{
-				return;
+				Editor::instance()->select(entity);
 			}
-			auto &model        = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
-			float hit_distance = ray.hit(model.get().bounding_box.transform(transform.world_transform));
-			if (distance > hit_distance)
-			{
-				distance = hit_distance;
-				Editor::instance()->select(Entity(entity));
-			}
-		});
+
+			staging_buffer.unmap();
+		}
 	}
 
 	drawComponentGizmo<cmpt::Light>(offset, m_icons["light"], m_gizmo["light"]);
@@ -574,7 +603,8 @@ void SceneView::showToolBar()
 		std::unordered_map<std::string, bool> select_display;
 		for (auto &[name, image] : rg->getAttachments())
 		{
-			if (name != rg->output())
+			VkFormat format = Renderer::instance()->getRenderGraph()->getAttachment(name).getFormat();
+			if (name != rg->output() && format != VK_FORMAT_R32_UINT)
 			{
 				select_display[name] = name == m_display_attachment;
 			}

@@ -213,14 +213,14 @@ void CommandBuffer::copyImageToBuffer(const ImageInfo &src, const BufferInfo &ds
 
 	VkBufferImageCopy copy_info = {};
 	copy_info.bufferOffset      = dst.offset;
-	copy_info.bufferImageHeight = 0;
-	copy_info.bufferRowLength   = 0;
+	copy_info.bufferImageHeight = src.resource.get().getMipHeight(src.mip_level);
+	copy_info.bufferRowLength   = src.resource.get().getMipWidth(src.mip_level);
 	copy_info.imageSubresource  = src_layer;
 	copy_info.imageOffset       = {0, 0, 0};
 	copy_info.imageExtent       = {src.resource.get().getMipWidth(src.mip_level),
                              src.resource.get().getMipHeight(src.mip_level), 1};
 
-	vkCmdCopyImageToBuffer(*this, src.resource.get(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, dst.resource.get(), 1, &copy_info);
+	vkCmdCopyImageToBuffer(*this, src.resource.get(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dst.resource.get(), 1, &copy_info);
 }
 
 void CommandBuffer::copyBuffer(const BufferInfo &src, const BufferInfo &dst, VkDeviceSize size) const

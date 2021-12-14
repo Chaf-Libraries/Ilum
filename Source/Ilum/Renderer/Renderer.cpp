@@ -28,6 +28,18 @@
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
+#include "RenderPass/PostProcess/BlendPass.hpp"
+#include "RenderPass/PostProcess/BloomPass.hpp"
+#include "RenderPass/PostProcess/BlurPass.hpp"
+#include "RenderPass/PostProcess/BrightPass.hpp"
+#include "RenderPass/Compute/MeshletCullingPass.hpp"
+#include "RenderPass/Compute/InstanceCullingPass.hpp"
+#include "RenderPass/Deferred/GeometryPass.hpp"
+#include "RenderPass/Deferred/LightPass.hpp"
+#include "RenderPass/Compute/HizPass.hpp"
+#include "RenderPass/CopyPass.hpp"
+#include "RenderPass/PostProcess/TonemappingPass.hpp"
+
 #include "Threading/ThreadPool.hpp"
 
 #include <imgui.h>
@@ -42,7 +54,21 @@ Renderer::Renderer(Context *context) :
 	GraphicsContext::instance()->Swapchain_Rebuild_Event += [this]() { m_update = true; };
 
 	defaultBuilder = [this](RenderGraphBuilder &builder) {
+		builder
+		    .addRenderPass("HizPass", std::make_unique<Ilum::pass::HizPass>())
+		    .addRenderPass("InstanceCulling", std::make_unique<Ilum::pass::InstanceCullingPass>())
+		    .addRenderPass("MeshletCulling", std::make_unique<Ilum::pass::MeshletCullingPass>())
+		    .addRenderPass("GeometryPass", std::make_unique<Ilum::pass::GeometryPass>())
+		    .addRenderPass("LightPass", std::make_unique<Ilum::pass::LightPass>())
+		    .addRenderPass("BrightPass", std::make_unique<Ilum::pass::BrightPass>("lighting"))
+		    .addRenderPass("Blur1", std::make_unique<Ilum::pass::BlurPass>("bright", "blur1"))
+		    .addRenderPass("Blur2", std::make_unique<Ilum::pass::BlurPass>("blur1", "blur2", true))
+		    .addRenderPass("Blend", std::make_unique<Ilum::pass::BlendPass>("blur2", "lighting", "blooming"))
+		    .addRenderPass("Tonemapping", std::make_unique<Ilum::pass::TonemappingPass>("blooming"))
+		    .addRenderPass("CopyBuffer", std::make_unique<Ilum::pass::CopyPass>())
 
+		    .setView("gbuffer - normal")
+		    .setOutput("gbuffer - normal");
 	};
 
 	buildRenderGraph = defaultBuilder;
@@ -60,6 +86,7 @@ Renderer::~Renderer()
 bool Renderer::onInitialize()
 {
 	m_render_target_extent = GraphicsContext::instance()->getSwapchain().getExtent();
+	updateImages();
 
 	defaultBuilder(m_rg_builder);
 
