@@ -157,23 +157,26 @@ void main()
 
     mat4 trans = instance_data[idx].world_transform * instance_data[idx].pre_transform;
 
-    vec3 tmp_min = instance.min_;
-	vec3 tmp_max = instance.max_;
+    vec3 new_min_, new_max_, xa, xb, ya, yb, za, zb;
 
-	vec3 new_min_, new_max_;
-	new_max_ = new_min_ = vec3(trans[3][0], trans[3][1], trans[3][2]);
+	xa = trans[0].xyz * instance.min_[0];
+	xb = trans[0].xyz * instance.max_[0];
 
-	for (uint j = 0; j < 3; j++)
-	{
-		for (uint i = 0; i < 3; i++)
-		{
-			float a = trans[i][j] * tmp_min[j];
-			float b = trans[i][j] * tmp_max[j];
+	ya = trans[1].xyz * instance.min_[1];
+	yb = trans[1].xyz * instance.max_[1];
 
-			new_min_[j] += a < b ? a : b;
-			new_max_[j] += a < b ? b : a;
-		}
-	}
+	za = trans[2].xyz * instance.min_[2];
+	zb = trans[2].xyz * instance.max_[2];
+
+	new_min_ = trans[3].xyz;
+	new_min_ += min(xa, xb);
+	new_min_ += min(ya, yb);
+	new_min_ += min(za, zb);
+
+	new_max_ = trans[3].xyz;
+	new_max_ += max(xa, xb);
+	new_max_ += max(ya, yb);
+	new_max_ += max(za, zb);
 
     instance.min_ = new_min_;
     instance.max_ = new_max_;
