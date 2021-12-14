@@ -7,8 +7,8 @@
 #include "Renderer/Renderer.hpp"
 
 #include "Scene/Component/MeshRenderer.hpp"
-#include "Scene/Component/Transform.hpp"
 #include "Scene/Component/Tag.hpp"
+#include "Scene/Component/Transform.hpp"
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
@@ -37,20 +37,6 @@
 
 namespace Ilum::panel
 {
-inline glm::vec2 world2screen(glm::vec3 position, glm::vec2 offset)
-{
-	glm::vec4 pos = Renderer::instance()->Main_Camera.view_projection * glm::vec4(position, 1.f);
-	pos *= 0.5f / pos.w;
-	pos += glm::vec4(0.5f, 0.5f, 0.f, 0.f);
-	pos.y = 1.f - pos.y;
-	pos.x *= static_cast<float>(Renderer::instance()->getRenderTargetExtent().width);
-	pos.y *= static_cast<float>(Renderer::instance()->getRenderTargetExtent().height);
-	pos.x += static_cast<float>(offset.x);
-	pos.y += static_cast<float>(offset.y);
-
-	return glm::vec2(pos.x, pos.y);
-}
-
 template <typename T>
 inline void drawComponentGizmo(const ImVec2 &offset, const Image &icon, bool enable)
 {
@@ -82,7 +68,7 @@ inline void drawComponentGizmo<cmpt::Light>(const ImVec2 &offset, const Image &i
 			continue;
 		}
 
-		glm::vec2 screen_pos = world2screen(position, {static_cast<float>(offset.x), static_cast<float>(offset.y)});
+		glm::vec2 screen_pos = Renderer::instance()->Main_Camera.world2Screen(position, {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x), static_cast<float>(offset.y)});
 		ImGui::SetCursorPos({screen_pos.x - ImGui::GetFontSize() / 2.0f, screen_pos.y - ImGui::GetFontSize() / 2.0f});
 		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.7f, 0.7f, 0.0f));
 
@@ -110,22 +96,21 @@ inline void drawComponentGizmo<geometry::BoundingBox>(const ImVec2 &offset, cons
 		return;
 	}
 
-	auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform>);
-
-	for (const auto &entity : group)
+	if (Editor::instance()->getSelect())
 	{
-		const auto &[mesh_renderer, trans] = group.template get<cmpt::MeshRenderer, cmpt::Transform>(entity);
+		const auto &mesh_renderer = Editor::instance()->getSelect().getComponent<cmpt::MeshRenderer>();
+		const auto &trans         = Editor::instance()->getSelect().getComponent<cmpt::Transform>();
 
 		if (!Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model))
 		{
-			continue;
+			return;
 		}
 
 		auto bbox = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model).get().bounding_box.transform(trans.world_transform);
 
 		if (!Renderer::instance()->Main_Camera.frustum.isInside(bbox))
 		{
-			continue;
+			return;
 		}
 
 		std::array<glm::vec3, 8> cube_vertex = {
@@ -143,9 +128,9 @@ inline void drawComponentGizmo<geometry::BoundingBox>(const ImVec2 &offset, cons
 
 		for (uint32_t i = 0; i < 8; i++)
 		{
-			auto pos = world2screen(cube_vertex[i], {static_cast<float>(offset.x), static_cast<float>(offset.y)});
+			glm::vec2 screen_pos = Renderer::instance()->Main_Camera.world2Screen(cube_vertex[i], {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x), static_cast<float>(offset.y)});
 
-			cube_screen_vertex[i] = ImVec2(pos.x, pos.y) + ImGui::GetWindowPos();
+			cube_screen_vertex[i] = ImVec2(screen_pos.x, screen_pos.y) + ImGui::GetWindowPos();
 		}
 
 		auto *draw_list = ImGui::GetWindowDrawList();
@@ -336,11 +321,8 @@ void SceneView::draw(float delta_time)
 			click_pos.x = glm::clamp(click_pos.x, 0.f, static_cast<float>(entity_id_buffer.get().getWidth()));
 			click_pos.y = glm::clamp(click_pos.y, 0.f, static_cast<float>(entity_id_buffer.get().getHeight()));
 
-			auto entity = Entity(static_cast<entt::entity>(image_data[click_pos.y * entity_id_buffer.get().getWidth() + click_pos.x]));
-			if (entity)
-			{
-				Editor::instance()->select(entity);
-			}
+			auto entity = Entity(static_cast<entt::entity>(image_data[static_cast<uint32_t>(click_pos.y) * entity_id_buffer.get().getWidth() + static_cast<uint32_t>(click_pos.x)]));
+			Editor::instance()->select(entity);
 
 			staging_buffer.unmap();
 		}

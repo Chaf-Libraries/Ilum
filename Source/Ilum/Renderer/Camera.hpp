@@ -36,5 +36,7 @@ struct Camera
 	~Camera() = default;
 
 	void onUpdate();
+
+	glm::vec2 world2Screen(glm::vec3 position, glm::vec2 extent, glm::vec2 offset);
 };
 }

@@ -2,6 +2,8 @@
 
 #include <algorithm>
 
+#include <glm/gtc/matrix_transform.hpp>
+
 namespace Ilum::geometry
 {
 BoundingBox::BoundingBox(const glm::vec3 &_min, const glm::vec3 &_max) :
@@ -37,25 +39,28 @@ void BoundingBox::merge(const BoundingBox &bounding_box)
 
 BoundingBox BoundingBox::transform(const glm::mat4 &trans) const
 {
-	glm::vec3 tmp_min = min_;
-	glm::vec3 tmp_max = max_;
+	glm::vec3 v[2], xa, xb, ya, yb, za, zb;
 
-	glm::vec3 new_min_, new_max_;
-	new_max_ = new_min_ = glm::vec3(trans[3][0], trans[3][1], trans[3][2]);
+	xa = trans[0] * min_[0];
+	xb = trans[0] * max_[0];
 
-	for (uint32_t j = 0; j < 3; j++)
-	{
-		for (uint32_t i = 0; i < 3; i++)
-		{
-			float a = trans[i][j] * tmp_min[j];
-			float b = trans[i][j] * tmp_max[j];
+	ya = trans[1] * min_[1];
+	yb = trans[1] * max_[1];
 
-			new_min_[j] += a < b ? a : b;
-			new_max_[j] += a < b ? b : a;
-		}
-	}
+	za = trans[2] * min_[2];
+	zb = trans[2] * max_[2];
 
-	return BoundingBox(new_min_, new_max_);
+	v[0] = trans[3];
+	v[0] += glm::min(xa, xb);
+	v[0] += glm::min(ya, yb);
+	v[0] += glm::min(za, zb);
+
+	v[1] = trans[3];
+	v[1] += glm::max(xa, xb);
+	v[1] += glm::max(ya, yb);
+	v[1] += glm::max(za, zb);
+
+	return BoundingBox(v[0], v[1]);
 }
 
 const glm::vec3 BoundingBox::center() const
