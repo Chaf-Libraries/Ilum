@@ -21,7 +21,7 @@ void TonemappingPass::setupPipeline(PipelineState &state)
 	    VK_DYNAMIC_STATE_SCISSOR};
 
 	state.descriptor_bindings.bind(0, 0, m_result, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	state.declareAttachment("back_buffer", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("back_buffer", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.addOutputAttachment("back_buffer", AttachmentState::Clear_Color);
 }
 
