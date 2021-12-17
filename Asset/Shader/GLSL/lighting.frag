@@ -54,8 +54,6 @@ layout(push_constant) uniform PushBlock{
     uint directional_light_count;
     uint spot_light_count;
     uint point_light_count;
-    float exposure;
-    float gamma;
 }push_data;
 
 const float PI = 3.14159265359;

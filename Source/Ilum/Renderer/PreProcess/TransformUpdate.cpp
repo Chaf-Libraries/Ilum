@@ -61,6 +61,9 @@ void TransformUpdate::run()
 		tbb::parallel_for_each(roots.begin(), roots.end(), [&group](auto entity) {
 			transform_recrusive(entity);
 		});
+
+		// Update static mesh transform buffer
+
 	}
 }
 }        // namespace Ilum::sym

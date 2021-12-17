@@ -2,7 +2,6 @@
 
 #include "Renderer/Renderer.hpp"
 
-#include "Scene/Component/DirectionalLight.hpp"
 #include "Scene/Component/Light.hpp"
 #include "Scene/Component/Tag.hpp"
 #include "Scene/Scene.hpp"
@@ -39,9 +38,9 @@ void LightPass::setupPipeline(PipelineState &state)
 
 void LightPass::resolveResources(ResolveState &resolve)
 {
-	resolve.resolve("directional_light_buffer", Renderer::instance()->getBuffer(Renderer::BufferType::DirectionalLight));
-	resolve.resolve("point_light_buffer", Renderer::instance()->getBuffer(Renderer::BufferType::PointLight));
-	resolve.resolve("spot_light_buffer", Renderer::instance()->getBuffer(Renderer::BufferType::SpotLight));
+	resolve.resolve("directional_light_buffer", Renderer::instance()->Render_Buffer.Directional_Light_Buffer);
+	resolve.resolve("point_light_buffer", Renderer::instance()->Render_Buffer.Point_Light_Buffer);
+	resolve.resolve("spot_light_buffer", Renderer::instance()->Render_Buffer.Spot_Light_Buffer);
 }
 
 void LightPass::render(RenderPassState &state)
@@ -73,40 +72,9 @@ void LightPass::render(RenderPassState &state)
 	vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
 	vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
-	struct
-	{
-		glm::vec3 camera_position;
-		uint32_t directional_light_count = 0;
-		uint32_t spot_light_count        = 0;
-		uint32_t point_light_count       = 0;
-	}push_block;
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(glm::vec3), glm::value_ptr(Renderer::instance()->Main_Camera_.position));
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(LightCountData), &Renderer::instance()->Render_Buffer.light_count);
 
-	push_block.camera_position = Renderer::instance()->Main_Camera.position;
-
-	const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::Light, cmpt::Tag>);
-	group.each([&](const entt::entity &entity, const cmpt::Light &light, const cmpt::Tag &tag) {
-		if (!tag.active || !light.impl)
-		{
-			return;
-		}
-
-		switch (light.type)
-		{
-			case cmpt::LightType::Directional:
-				push_block.directional_light_count++;
-				break;
-			case cmpt::LightType::Spot:
-				push_block.spot_light_count++;
-				break;
-			case cmpt::LightType::Point:
-				push_block.point_light_count++;
-				break;
-			default:
-				break;
-		}
-	});
-
-	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_block), &push_block);
 	vkCmdDraw(cmd_buffer, 3, 1, 0, 0);
 
 	vkCmdEndRenderPass(cmd_buffer);

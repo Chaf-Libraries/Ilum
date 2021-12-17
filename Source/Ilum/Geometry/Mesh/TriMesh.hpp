@@ -2,9 +2,10 @@
 
 #include <vector>
 
+#include "Geometry/Vertex.hpp"
+
 namespace Ilum::geometry
 {
-template <typename Vertex>
 struct TriMesh
 {
 	std::vector<Vertex>   vertices;
@@ -23,9 +24,5 @@ struct TriMesh
 	void clear();
 
 	bool empty() const;
-
-	void set(std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices);
 };
-}        // namespace Ilum
-
-#include "TriMesh.inl"
+}        // namespace Ilum::geometry

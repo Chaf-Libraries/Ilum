@@ -2,14 +2,14 @@
 
 #include "Editor/Editor.hpp"
 
-#include "Scene/Component/DirectionalLight.hpp"
 #include "Scene/Component/Hierarchy.hpp"
 #include "Scene/Component/Light.hpp"
-#include "Scene/Component/MeshRenderer.hpp"
-#include "Scene/Component/PointLight.hpp"
-#include "Scene/Component/SpotLight.hpp"
+#include "Scene/Component/Renderable.hpp"
 #include "Scene/Component/Tag.hpp"
 #include "Scene/Component/Transform.hpp"
+#include "Scene/Component/Camera.hpp"
+
+#include "Geometry/Shape/Sphere.hpp"
 
 #include "Material/DisneyPBR.h"
 #include "Material/Material.h"
@@ -195,13 +195,13 @@ void draw_texture(std::string &texture)
 
 template <>
 inline void draw_material<material::DisneyPBR>(material::DisneyPBR &material)
-{	
-	cmpt::MeshRenderer::update = cmpt::MeshRenderer::update || ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color));
-	cmpt::MeshRenderer::update = cmpt::MeshRenderer::update || ImGui::ColorEdit3("Emissive Color", glm::value_ptr(material.emissive_color));
-	cmpt::MeshRenderer::update = cmpt::MeshRenderer::update || ImGui::DragFloat("Metallic Factor", &material.metallic_factor, 0.01f, 0.f, 1.f, "%.3f");
-	cmpt::MeshRenderer::update = cmpt::MeshRenderer::update || ImGui::DragFloat("Emissive Intensity", &material.emissive_intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-	cmpt::MeshRenderer::update = cmpt::MeshRenderer::update || ImGui::DragFloat("Roughness Factor", &material.roughness_factor, 0.01f, 0.f, 1.f, "%.3f");
-	cmpt::MeshRenderer::update = cmpt::MeshRenderer::update || ImGui::DragFloat("Height Factor", &material.displacement_height, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+{
+	cmpt::Renderable::update = cmpt::Renderable::update || ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color));
+	cmpt::Renderable::update = cmpt::Renderable::update || ImGui::ColorEdit3("Emissive Color", glm::value_ptr(material.emissive_color));
+	cmpt::Renderable::update = cmpt::Renderable::update || ImGui::DragFloat("Metallic Factor", &material.metallic_factor, 0.01f, 0.f, 1.f, "%.3f");
+	cmpt::Renderable::update = cmpt::Renderable::update || ImGui::DragFloat("Emissive Intensity", &material.emissive_intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	cmpt::Renderable::update = cmpt::Renderable::update || ImGui::DragFloat("Roughness Factor", &material.roughness_factor, 0.01f, 0.f, 1.f, "%.3f");
+	cmpt::Renderable::update = cmpt::Renderable::update || ImGui::DragFloat("Height Factor", &material.displacement_height, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 
 	ImGui::Text("Albedo Map");
 	draw_texture(material.albedo_map);
@@ -252,7 +252,7 @@ inline void draw_material(scope<IMaterial> &material)
 }
 
 template <typename T>
-inline void add_component()
+inline void add_components()
 {
 	if (!Editor::instance()->getSelect().hasComponent<T>() && ImGui::MenuItem(typeid(T).name()))
 	{
@@ -262,10 +262,37 @@ inline void add_component()
 }
 
 template <typename T1, typename T2, typename... Tn>
+inline void add_components()
+{
+	add_components<T1>();
+	add_components<T2, Tn...>();
+}
+
+template <typename Base, typename T>
+inline bool has_component()
+{
+	return std::is_base_of_v<Base, T> && Editor::instance()->getSelect().hasComponent<T>();
+}
+
+template <typename Base, typename T1, typename T2, typename... Tn>
+inline bool has_component()
+{
+	return has_component<Base, T1>() || has_component<Base, T2, Tn...>();
+}
+
+template <typename Base, typename T1, typename... Tn>
 inline void add_component()
 {
-	add_component<T1>();
-	add_component<T2, Tn...>();
+	if (has_component<Base, T1, Tn...>())
+	{
+		return;
+	}
+
+	if (ImGui::BeginMenu(typeid(Base).name()))
+	{
+		add_components<T1, Tn...>();
+		ImGui::EndMenu();
+	}
 }
 
 template <typename T>
@@ -331,10 +358,10 @@ inline void draw_component<cmpt::Hierarchy>(Entity entity)
 }
 
 template <>
-inline void draw_component<cmpt::MeshRenderer>(Entity entity)
+inline void draw_component<cmpt::MeshletRenderer>(Entity entity)
 {
-	draw_component<cmpt::MeshRenderer>(
-	    "MeshRenderer", entity, [](cmpt::MeshRenderer &component) {
+	draw_component<cmpt::MeshletRenderer>(
+	    "MeshletRenderer", entity, [](cmpt::MeshletRenderer &component) {
 		    ImGui::Text("Model: ");
 		    ImGui::SameLine();
 		    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.f, 0.f));
@@ -407,15 +434,16 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 
 						    if (ImGui::BeginPopup("Material Type"))
 						    {
+							    if (material && ImGui::MenuItem("clear"))
+							    {
+								    material = nullptr;
+							    }
 							    select_material<material::DisneyPBR>(material);
 							    ImGui::EndPopup();
 						    }
-
 						    draw_material(material);
-
 						    ImGui::TreePop();
 					    }
-
 					    ImGui::TreePop();
 				    }
 			    }
@@ -424,51 +452,125 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 }
 
 template <>
-inline void draw_component<cmpt::Light>(Entity entity)
+inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 {
-	draw_component<cmpt::Light>(
-	    "Light", entity, [](cmpt::Light &component) {
-		    const char *const LightNames[] = {"None", "Directional", "Point", "Spot"};
-		    int               current      = static_cast<int>(component.type);
-		    ImGui::Combo("Type", &current, LightNames, 4);
+	draw_component<cmpt::MeshRenderer>("MeshRenderer", entity, [](cmpt::MeshRenderer &component) {
+		const char *const MeshNames[] = {"None", "Model", "Sphere", "Plane"};
+		int               current     = static_cast<int>(component.type);
+		if (ImGui::Combo("Type", &current, MeshNames, 4) && current != static_cast<int>(component.type))
+		{
+			if (component.type == cmpt::MeshType::Sphere)
+			{
+				geometry::Sphere sphere({0.f, 0.f, 0.f}, 1.f);
+				auto             mesh = std::move(sphere.toTriMesh());
+				component.vertices    = std::move(mesh.vertices);
+				component.indices     = std::move(mesh.indices);
+			}
 
-		    if (component.type != cmpt::LightType::None && !component.impl)
-		    {
-			    return;
-		    }
+			component.type = static_cast<cmpt::MeshType>(current);
+		}
 
-		    if (component.type == cmpt::LightType::Directional)
-		    {
-			    auto light = static_cast<cmpt::DirectionalLight *>(component.impl.get());
-			    ImGui::DragFloat("Intensity", &light->data.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-			    ImGui::ColorEdit3("Color", glm::value_ptr(light->data.color));
-			    ImGui::DragFloat3("Direction", glm::value_ptr(light->data.direction), 0.1f, 0.0f, 0.0f, "%.3f");
-		    }
-		    else if (component.type == cmpt::LightType::Spot)
-		    {
-			    auto light = static_cast<cmpt::SpotLight *>(component.impl.get());
-			    ImGui::DragFloat("Intensity", &light->data.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-			    ImGui::ColorEdit3("Color", glm::value_ptr(light->data.color));
-			    ImGui::DragFloat3("Direction", glm::value_ptr(light->data.direction), 0.1f, 0.0f, 0.0f, "%.3f");
-			    ImGui::DragFloat("Cut off", &light->data.cut_off, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
-			    ImGui::DragFloat("Outer cut off", &light->data.outer_cut_off, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
-		    }
-		    else if (component.type == cmpt::LightType::Point)
-		    {
-			    auto light = static_cast<cmpt::PointLight *>(component.impl.get());
-			    ImGui::DragFloat("Intensity", &light->data.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-			    ImGui::ColorEdit3("Color", glm::value_ptr(light->data.color));
-			    ImGui::DragFloat("Constant", &light->data.constant, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
-			    ImGui::DragFloat("Linear", &light->data.linear, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
-			    ImGui::DragFloat("Quadratic", &light->data.quadratic, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
-		    }
-		    else if (component.type == cmpt::LightType::Area)
-		    {
-			    ImGui::Text("Area");
-		    }
+		if (component.type == cmpt::MeshType::Model)
+		{
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const auto *pay_load = ImGui::AcceptDragDropPayload("Model"))
+				{
+					ASSERT(pay_load->DataSize == sizeof(std::string));
+					std::string new_model = *static_cast<std::string *>(pay_load->Data);
+					auto &      model     = Renderer::instance()->getResourceCache().loadModel(new_model);
+					if (model.get().submeshes.size() > 1)
+					{
+						LOG_WARN("Dynamic meshrenderer only support single submesh");
+					}
+					else
+					{
+						component.vertices = model.get().mesh.vertices;
+						component.indices  = model.get().mesh.indices;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+		}
 
-		    component.type = static_cast<cmpt::LightType>(current);
-	    });
+		ImGui::Text("vertices count: %d", component.vertices.size());
+		ImGui::Text("indices count: %d", component.indices.size());
+
+		if (ImGui::Button(component.material ? component.material->type().name() : "Select Material"))
+		{
+			ImGui::OpenPopup("Material Type");
+		}
+
+		if (ImGui::BeginPopup("Material Type"))
+		{
+			if (component.material && ImGui::MenuItem("clear"))
+			{
+				component.material = nullptr;
+			}
+			select_material<material::DisneyPBR>(component.material);
+			ImGui::EndPopup();
+		}
+		draw_material<material::DisneyPBR>(component.material);
+	});
+}
+
+template <>
+inline void draw_component<cmpt::DirectionalLight>(Entity entity)
+{
+	draw_component<cmpt::DirectionalLight>("Directional Light", entity, [](cmpt::DirectionalLight &component) {
+		ImGui::DragFloat("Intensity", &component.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+		ImGui::ColorEdit3("Color", glm::value_ptr(component.color));
+		ImGui::DragFloat3("Direction", glm::value_ptr(component.direction), 0.1f, 0.0f, 0.0f, "%.3f");
+	});
+}
+
+template <>
+inline void draw_component<cmpt::SpotLight>(Entity entity)
+{
+	draw_component<cmpt::SpotLight>("Spot Light", entity, [](cmpt::SpotLight &component) {
+		ImGui::DragFloat("Intensity", &component.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+		ImGui::ColorEdit3("Color", glm::value_ptr(component.color));
+		ImGui::DragFloat3("Direction", glm::value_ptr(component.direction), 0.1f, 0.0f, 0.0f, "%.3f");
+		ImGui::DragFloat("Cut off", &component.cut_off, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
+		ImGui::DragFloat("Outer cut off", &component.outer_cut_off, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
+	});
+}
+
+template <>
+inline void draw_component<cmpt::PointLight>(Entity entity)
+{
+	draw_component<cmpt::PointLight>("Point Light", entity, [](cmpt::PointLight &component) {
+		ImGui::DragFloat("Intensity", &component.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+		ImGui::ColorEdit3("Color", glm::value_ptr(component.color));
+		ImGui::DragFloat("Constant", &component.constant, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
+		ImGui::DragFloat("Linear", &component.linear, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
+		ImGui::DragFloat("Quadratic", &component.quadratic, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
+	});
+}
+
+template <>
+inline void draw_component<cmpt::PerspectiveCamera>(Entity entity)
+{
+	draw_component<cmpt::PerspectiveCamera>("Perspective Camera", entity, [](cmpt::PerspectiveCamera &component) {
+
+		ImGui::DragFloat("Aspect", &component.aspect, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+		ImGui::DragFloat("Fov", &component.fov, 0.01f, 0.f, 90.f, "%.3f");
+		ImGui::DragFloat("Near Plane", &component.near_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+		ImGui::DragFloat("Far Plane", &component.far_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	});
+}
+
+template <>
+inline void draw_component<cmpt::OrthographicCamera>(Entity entity)
+{
+	draw_component<cmpt::OrthographicCamera>("Orthographic Camera", entity, [](cmpt::OrthographicCamera &component) {
+		ImGui::DragFloat("Left", &component.left, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f");
+		ImGui::DragFloat("Right", &component.right, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f");
+		ImGui::DragFloat("Bottom", &component.bottom, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f");
+		ImGui::DragFloat("Top", &component.top, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f");
+		ImGui::DragFloat("Near Plane", &component.near_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+		ImGui::DragFloat("Far Plane", &component.far_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	});
 }
 
 Inspector::Inspector()
@@ -502,12 +604,15 @@ void Inspector::draw(float delta_time)
 
 	if (ImGui::BeginPopup("AddComponent"))
 	{
-		add_component<cmpt::MeshRenderer, cmpt::Light>();
+		add_component<cmpt::Light, cmpt::DirectionalLight, cmpt::PointLight, cmpt::SpotLight>();
+		add_component<cmpt::Renderable, cmpt::MeshletRenderer, cmpt::MeshRenderer>();
+		add_component<cmpt::Camera, cmpt::PerspectiveCamera, cmpt::OrthographicCamera>();
 		ImGui::EndPopup();
 	}
 	ImGui::PopItemWidth();
 
-	draw_component<cmpt::Transform, cmpt::Hierarchy, cmpt::MeshRenderer, cmpt::Light>(entity);
+	draw_component<cmpt::Transform, cmpt::Hierarchy, cmpt::MeshletRenderer, cmpt::MeshRenderer, 
+		cmpt::DirectionalLight, cmpt::PointLight, cmpt::SpotLight, cmpt::PerspectiveCamera, cmpt::OrthographicCamera>(entity);
 
 	ImGui::End();
 }

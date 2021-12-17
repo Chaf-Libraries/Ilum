@@ -2,7 +2,7 @@
 
 #include <array>
 
-#include "Plane.hpp"
+#include "Shape/Plane.hpp"
 
 namespace Ilum::geometry
 {

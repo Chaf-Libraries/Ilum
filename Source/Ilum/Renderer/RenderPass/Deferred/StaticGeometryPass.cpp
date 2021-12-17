@@ -1,11 +1,8 @@
-#include "GeometryPass.hpp"
-
-#include "Graphics/Model/Model.hpp"
-#include "Graphics/Model/Vertex.hpp"
+#include "StaticGeometryPass.hpp"
 
 #include "Renderer/Renderer.hpp"
 
-#include "Scene/Component/MeshRenderer.hpp"
+#include "Scene/Component/Renderable.hpp"
 #include "Scene/Component/Tag.hpp"
 #include "Scene/Component/Transform.hpp"
 #include "Scene/Entity.hpp"
@@ -19,14 +16,14 @@
 
 namespace Ilum::pass
 {
-GeometryPass::GeometryPass()
+StaticGeometryPass::StaticGeometryPass()
 {
 }
 
-void GeometryPass::setupPipeline(PipelineState &state)
+void StaticGeometryPass::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/geometry.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/geometry.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/static_geometry.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/static_geometry.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,
@@ -86,7 +83,7 @@ void GeometryPass::setupPipeline(PipelineState &state)
 	state.addOutputAttachment("depth_stencil", VkClearDepthStencilValue{1.f, 0u});
 }
 
-void GeometryPass::resolveResources(ResolveState &resolve)
+void StaticGeometryPass::resolveResources(ResolveState &resolve)
 {
 	resolve.resolve("Camera", Renderer::instance()->getBuffer(Renderer::BufferType::MainCamera));
 	resolve.resolve("textureArray", Renderer::instance()->getResourceCache().getImageReferences());
@@ -95,7 +92,7 @@ void GeometryPass::resolveResources(ResolveState &resolve)
 	resolve.resolve("DrawInfo", Renderer::instance()->Render_Queue.Draw_Buffer);
 }
 
-void GeometryPass::render(RenderPassState &state)
+void StaticGeometryPass::render(RenderPassState &state)
 {
 	auto &cmd_buffer = state.command_buffer;
 
@@ -124,7 +121,7 @@ void GeometryPass::render(RenderPassState &state)
 	vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
 	vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
-	const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform, cmpt::Tag>);
+	const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshletRenderer, cmpt::Transform, cmpt::Tag>);
 
 	auto &vertex_buffer = Renderer::instance()->getBuffer(Renderer::BufferType::Vertex);
 	auto &index_buffer  = Renderer::instance()->getBuffer(Renderer::BufferType::Index);

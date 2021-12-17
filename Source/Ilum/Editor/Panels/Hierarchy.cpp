@@ -92,26 +92,13 @@ inline void draw_node(Entity entity)
 
 	auto &tag = entity.getComponent<cmpt::Tag>().name;
 
-	bool active = entity.getComponent<cmpt::Tag>().active;
-
 	bool has_child = entity.hasComponent<cmpt::Hierarchy>() && entity.getComponent<cmpt::Hierarchy>().first != entt::null;
 
 	// Setting up
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5, 5));
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_DefaultOpen | (Editor::instance()->getSelect() == entity ? ImGuiTreeNodeFlags_Selected : 0) | (has_child ? 0 : ImGuiTreeNodeFlags_Leaf);
 
-	// Inactive entity set to gray
-	if (!active)
-	{
-		ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 0.5f));
-	}
-
 	bool open = ImGui::TreeNodeEx(std::to_string(entity).c_str(), flags, "%s", tag.c_str());
-
-	if (!active)
-	{
-		ImGui::PopStyleColor();
-	}
 
 	ImGui::PopStyleVar();
 

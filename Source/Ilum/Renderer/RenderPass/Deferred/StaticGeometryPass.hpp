@@ -6,18 +6,15 @@
 
 namespace Ilum::pass
 {
-class GeometryPass : public TRenderPass<GeometryPass>
+class StaticGeometryPass : public TRenderPass<StaticGeometryPass>
 {
   public:
-	GeometryPass();
+	StaticGeometryPass();
 
 	virtual void setupPipeline(PipelineState &state) override;
 
 	virtual void resolveResources(ResolveState &resolve) override;
 
 	virtual void render(RenderPassState &state) override;
-
-  private:
-	std::vector<scope<CommandBuffer>> m_secondary_command_buffers;
 };
 }        // namespace Ilum::pass

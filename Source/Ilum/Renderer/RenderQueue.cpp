@@ -1,6 +1,6 @@
 #include "RenderQueue.hpp"
 
-#include "Scene/Component/MeshRenderer.hpp"
+#include "Scene/Component/Renderable.hpp"
 #include "Scene/Component/Tag.hpp"
 #include "Scene/Component/Transform.hpp"
 #include "Scene/Entity.hpp"
@@ -21,13 +21,13 @@ bool RenderQueue::update()
 	// Update culling data
 	auto *culling_data = reinterpret_cast<CullingData *>(Culling_Buffer.map());
 	culling_data->last_view = culling_data->view;
-	culling_data->view             = Renderer::instance()->Main_Camera.view;
-	culling_data->P00              = Renderer::instance()->Main_Camera.projection[0][0];
-	culling_data->P11              = Renderer::instance()->Main_Camera.projection[1][1];
-	culling_data->znear            = Renderer::instance()->Main_Camera.near_plane;
-	culling_data->zfar             = Renderer::instance()->Main_Camera.far_plane;
+	culling_data->view             = Renderer::instance()->Main_Camera_.view;
+	culling_data->P00              = Renderer::instance()->Main_Camera_.projection[0][0];
+	culling_data->P11              = Renderer::instance()->Main_Camera_.projection[1][1];
+	culling_data->znear            = Renderer::instance()->Main_Camera_.near_plane;
+	culling_data->zfar             = Renderer::instance()->Main_Camera_.far_plane;
 	culling_data->meshlet_count    = Renderer::instance()->Meshlet_Count;
-	culling_data->instance_count    = Renderer::instance()->Instance_Count;
+	culling_data->instance_count    = Renderer::instance()->Static_Instance_Count;
 	culling_data->frustum_enable   = Renderer::instance()->Culling.frustum_culling;
 	culling_data->backface_enable  = Renderer::instance()->Culling.backface_culling;
 	culling_data->occlusion_enable = Renderer::instance()->Culling.occulsion_culling;
@@ -39,9 +39,9 @@ bool RenderQueue::update()
 	bool                  update         = false;
 	std::atomic<uint32_t> instance_count = 0;
 
-	auto group = Scene::instance()->getRegistry().group<cmpt::MeshRenderer, cmpt::Tag, cmpt::Transform>();
+	auto group = Scene::instance()->getRegistry().group<cmpt::MeshletRenderer, cmpt::Tag, cmpt::Transform>();
 	tbb::parallel_for_each(group.begin(), group.end(), [&instance_count, this](auto entity) {
-		auto &mesh_renderer = Entity(entity).getComponent<cmpt::MeshRenderer>();
+		auto &mesh_renderer = Entity(entity).getComponent<cmpt::MeshletRenderer>();
 		if (!Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model))
 		{
 			return;
@@ -54,20 +54,20 @@ bool RenderQueue::update()
 		});
 	});
 
-	if (instance_count != Renderer::instance()->Instance_Count || ResourceCache::update || cmpt::MeshRenderer::update || cmpt::Tag::update)
+	if (instance_count != Renderer::instance()->Static_Instance_Count || ResourceCache::update || cmpt::Renderable::update || cmpt::Tag::update)
 	{
-		cmpt::MeshRenderer::update = false;
+		cmpt::Renderable::update = false;
 		cmpt::Tag::update          = false;
 
 		Renderer::instance()->Indices_Count  = 0;
-		Renderer::instance()->Instance_Count = 0;
+		Renderer::instance()->Static_Instance_Count = 0;
 		Renderer::instance()->Meshlet_Count  = 0;
 
 		std::vector<PerInstanceData> instance_data;
 		std::vector<PerMeshletData>  meshlet_data;
 
-		const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Tag, cmpt::Transform>);
-		group.each([&](const entt::entity &entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Tag &tag, const cmpt::Transform &transform) {
+		const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshletRenderer, cmpt::Tag, cmpt::Transform>);
+		group.each([&](const entt::entity &entity, const cmpt::MeshletRenderer &mesh_renderer, const cmpt::Tag &tag, const cmpt::Transform &transform) {
 			if (!tag.active || !Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model))
 			{
 				return;
@@ -102,7 +102,7 @@ bool RenderQueue::update()
 					meshlet_.cone_cutoff = meshlet.bounds.cone_cutoff;
 					std::memcpy(&meshlet_.cone_axis, meshlet.bounds.cone_axis, 3 * sizeof(float));
 
-					meshlet_.instance_id = Renderer::instance()->Instance_Count;
+					meshlet_.instance_id = Renderer::instance()->Static_Instance_Count;
 
 					meshlet_data.push_back(meshlet_);
 				}
@@ -134,7 +134,7 @@ bool RenderQueue::update()
 				instance.entity_id = static_cast<uint32_t>(entity);
 				instance_data.push_back(instance);
 
-				Renderer::instance()->Instance_Count++;
+				Renderer::instance()->Static_Instance_Count++;
 			}
 		});
 
@@ -166,12 +166,12 @@ bool RenderQueue::update()
 	else if (cmpt::Transform::update)
 	{
 		// Update transform only
-		std::vector<PerInstanceData> instance_data(Renderer::instance()->Instance_Count);
-		std::memcpy(instance_data.data(), Instance_Buffer.map(), Renderer::instance()->Instance_Count * sizeof(PerInstanceData));
+		std::vector<PerInstanceData> instance_data(Renderer::instance()->Static_Instance_Count);
+		std::memcpy(instance_data.data(), Instance_Buffer.map(), Renderer::instance()->Static_Instance_Count * sizeof(PerInstanceData));
 
 		uint32_t   idx   = 0;
-		const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Tag, cmpt::Transform>);
-		group.each([&](const entt::entity &entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Tag &tag, const cmpt::Transform &transform) {
+		const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshletRenderer, cmpt::Tag, cmpt::Transform>);
+		group.each([&](const entt::entity &entity, const cmpt::MeshletRenderer &mesh_renderer, const cmpt::Tag &tag, const cmpt::Transform &transform) {
 			if (!Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model))
 			{
 				return;
@@ -186,7 +186,7 @@ bool RenderQueue::update()
 		});
 
 		//	// Copy buffer
-		std::memcpy(Instance_Buffer.map(), instance_data.data(), Renderer::instance()->Instance_Count * sizeof(PerInstanceData));
+		std::memcpy(Instance_Buffer.map(), instance_data.data(), Renderer::instance()->Static_Instance_Count * sizeof(PerInstanceData));
 
 		Instance_Buffer.unmap();
 	}

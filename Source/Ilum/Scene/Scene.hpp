@@ -4,13 +4,14 @@
 
 #include "Engine/Subsystem.hpp"
 
+#include "SystemManager.hpp"
+
 #include <entt.hpp>
 
 namespace Ilum
 {
 class Entity;
 class EntityManager;
-class SystemManager;
 
 class Scene : public TSubsystem<Scene>
 {
@@ -28,6 +29,12 @@ class Scene : public TSubsystem<Scene>
 	Entity createEntity();
 
 	Entity createEntity(const std::string &name);
+
+	template<typename T>
+	void addSystem()
+	{
+		m_system_manager->add<T>();
+	}
 
   public:
 	std::string name = "";

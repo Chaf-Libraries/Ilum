@@ -12,11 +12,14 @@
 #include "Graphics/Image/Image.hpp"
 #include "Graphics/Image/Sampler.hpp"
 
+#include "Scene/Entity.hpp"
+
 #include "RenderGraph/RenderGraphBuilder.hpp"
 
 #include "Loader/ResourceCache.hpp"
 
 #include "RenderQueue.hpp"
+#include "RenderData.hpp"
 
 #include <glm/glm.hpp>
 
@@ -47,10 +50,7 @@ class Renderer : public TSubsystem<Renderer>
 		Transform,
 		BoundingBox,
 		Meshlet,
-		IndirectCommand,
-		DirectionalLight,
-		PointLight,
-		SpotLight
+		IndirectCommand
 	};
 
   public:
@@ -71,8 +71,6 @@ class Renderer : public TSubsystem<Renderer>
 	RenderGraph *getRenderGraph();
 
 	ResourceCache &getResourceCache();
-
-	void resetBuilder();
 
 	void rebuild();
 
@@ -104,8 +102,6 @@ class Renderer : public TSubsystem<Renderer>
 
 	void updateBuffers();
 
-	void updateLightBuffer();
-
 	void updateCameraBuffer();
 
 	void updateInstanceBuffer();
@@ -113,7 +109,7 @@ class Renderer : public TSubsystem<Renderer>
 	void updateImages();
 
   private:
-	std::function<void(RenderGraphBuilder &)> defaultBuilder;
+	std::function<void(RenderGraphBuilder &)> DeferredRendering;
 
 	RenderGraphBuilder m_rg_builder;
 
@@ -135,11 +131,16 @@ class Renderer : public TSubsystem<Renderer>
 	uint32_t m_texture_count = 0;
 
   public:
-	Camera Main_Camera;
+	Camera Main_Camera_;
+
+	Entity Main_Camera;
 
 	RenderQueue Render_Queue;
 
-	uint32_t Instance_Count = 0;
+	RenderBuffer Render_Buffer;
+
+	uint32_t Static_Instance_Count = 0;
+	uint32_t Instance_Count        = 0;
 	uint32_t Meshlet_Count  = 0;
 	uint32_t Indices_Count   = 0;
 	uint32_t Meshlet_Visible = 0;

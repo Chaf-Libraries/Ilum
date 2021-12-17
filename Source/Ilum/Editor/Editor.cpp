@@ -21,11 +21,8 @@
 #include "Panels/RenderSetting.hpp"
 #include "Panels/SceneView.hpp"
 
-#include "Scene/Component/DirectionalLight.hpp"
 #include "Scene/Component/Light.hpp"
-#include "Scene/Component/MeshRenderer.hpp"
-#include "Scene/Component/PointLight.hpp"
-#include "Scene/Component/SpotLight.hpp"
+#include "Scene/Component/Renderable.hpp"
 #include "Scene/SceneSerializer.hpp"
 
 #include "ImFileDialog.h"
@@ -134,21 +131,21 @@ void Editor::onTick(float delta_time)
 					auto entity     = Scene::instance()->createEntity("Directional Light");
 					m_select_entity = entity;
 
-					entity.addComponent<cmpt::Light>().type = cmpt::LightType::Directional;
+					entity.addComponent<cmpt::DirectionalLight>();
 				}
 				if (ImGui::MenuItem("Point Light"))
 				{
 					auto entity     = Scene::instance()->createEntity("Point Light");
 					m_select_entity = entity;
 
-					entity.addComponent<cmpt::Light>().type = cmpt::LightType::Point;
+					entity.addComponent<cmpt::PointLight>();
 				}
 				if (ImGui::MenuItem("Spot Light"))
 				{
 					auto entity     = Scene::instance()->createEntity("Spot Light");
 					m_select_entity = entity;
 
-					entity.addComponent<cmpt::Light>().type = cmpt::LightType::Spot;
+					entity.addComponent<cmpt::SpotLight>();
 				}
 				ImGui::EndMenu();
 			}
@@ -157,7 +154,7 @@ void Editor::onTick(float delta_time)
 				if (ImGui::MenuItem("Plane"))
 				{
 					auto entity                                     = Scene::instance()->createEntity("Plane");
-					entity.addComponent<cmpt::MeshRenderer>().model = std::string(PROJECT_SOURCE_DIR) + "Asset/Model/plane.obj";
+					entity.addComponent<cmpt::MeshletRenderer>().model = std::string(PROJECT_SOURCE_DIR) + "Asset/Model/plane.obj";
 					Renderer::instance()->getResourceCache().loadModelAsync(std::string(PROJECT_SOURCE_DIR) + "Asset/Model/plane.obj");
 					m_select_entity = entity;
 				}

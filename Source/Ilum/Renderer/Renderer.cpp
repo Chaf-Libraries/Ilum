@@ -8,7 +8,6 @@
 #include "Device/Window.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
-#include "Graphics/Model/Vertex.hpp"
 #include "Graphics/Profiler.hpp"
 
 #include "ImGui/ImGuiContext.hpp"
@@ -18,27 +17,28 @@
 #include "Loader/ImageLoader/Bitmap.hpp"
 #include "Loader/ImageLoader/ImageLoader.hpp"
 
-#include "Scene/Component/DirectionalLight.hpp"
 #include "Scene/Component/Light.hpp"
-#include "Scene/Component/MeshRenderer.hpp"
-#include "Scene/Component/PointLight.hpp"
-#include "Scene/Component/SpotLight.hpp"
+#include "Scene/Component/Renderable.hpp"
 #include "Scene/Component/Tag.hpp"
 #include "Scene/Component/Transform.hpp"
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
+#include "RenderPass/Compute/HizPass.hpp"
+#include "RenderPass/Compute/InstanceCullingPass.hpp"
+#include "RenderPass/Compute/MeshletCullingPass.hpp"
+#include "RenderPass/CopyPass.hpp"
+#include "RenderPass/Deferred/LightPass.hpp"
+#include "RenderPass/Deferred/StaticGeometryPass.hpp"
 #include "RenderPass/PostProcess/BlendPass.hpp"
 #include "RenderPass/PostProcess/BloomPass.hpp"
 #include "RenderPass/PostProcess/BlurPass.hpp"
 #include "RenderPass/PostProcess/BrightPass.hpp"
-#include "RenderPass/Compute/MeshletCullingPass.hpp"
-#include "RenderPass/Compute/InstanceCullingPass.hpp"
-#include "RenderPass/Deferred/GeometryPass.hpp"
-#include "RenderPass/Deferred/LightPass.hpp"
-#include "RenderPass/Compute/HizPass.hpp"
-#include "RenderPass/CopyPass.hpp"
 #include "RenderPass/PostProcess/TonemappingPass.hpp"
+
+#include "PreProcess/LightUpdate.hpp"
+#include "PreProcess/TransformUpdate.hpp"
+#include "PreProcess/CameraUpdate.hpp"
 
 #include "Threading/ThreadPool.hpp"
 
@@ -53,12 +53,12 @@ Renderer::Renderer(Context *context) :
 {
 	GraphicsContext::instance()->Swapchain_Rebuild_Event += [this]() { m_update = true; };
 
-	defaultBuilder = [this](RenderGraphBuilder &builder) {
+	DeferredRendering = [this](RenderGraphBuilder &builder) {
 		builder
 		    .addRenderPass("HizPass", std::make_unique<Ilum::pass::HizPass>())
 		    .addRenderPass("InstanceCulling", std::make_unique<Ilum::pass::InstanceCullingPass>())
 		    .addRenderPass("MeshletCulling", std::make_unique<Ilum::pass::MeshletCullingPass>())
-		    .addRenderPass("GeometryPass", std::make_unique<Ilum::pass::GeometryPass>())
+		    .addRenderPass("StaticGeometryPass", std::make_unique<Ilum::pass::StaticGeometryPass>())
 		    .addRenderPass("LightPass", std::make_unique<Ilum::pass::LightPass>())
 		    .addRenderPass("BrightPass", std::make_unique<Ilum::pass::BrightPass>("lighting"))
 		    .addRenderPass("Blur1", std::make_unique<Ilum::pass::BlurPass>("bright", "blur1"))
@@ -71,7 +71,7 @@ Renderer::Renderer(Context *context) :
 		    .setOutput("gbuffer - normal");
 	};
 
-	buildRenderGraph = defaultBuilder;
+	buildRenderGraph = DeferredRendering;
 
 	m_resource_cache = createScope<ResourceCache>();
 	createSamplers();
@@ -85,10 +85,14 @@ Renderer::~Renderer()
 
 bool Renderer::onInitialize()
 {
+	Scene::instance()->addSystem<sym::TransformUpdate>();
+	Scene::instance()->addSystem<sym::LightUpdate>();
+	Scene::instance()->addSystem<sym::CameraUpdate>();
+
 	m_render_target_extent = GraphicsContext::instance()->getSwapchain().getExtent();
 	updateImages();
 
-	defaultBuilder(m_rg_builder);
+	DeferredRendering(m_rg_builder);
 
 	rebuild();
 
@@ -104,7 +108,7 @@ void Renderer::onPreTick()
 	updateBuffers();
 
 	// Update camera
-	Main_Camera.onUpdate();
+	Main_Camera_.onUpdate();
 
 	// Check out images update
 	if (m_texture_count != m_resource_cache->getImages().size())
@@ -155,11 +159,6 @@ RenderGraph *Renderer::getRenderGraph()
 ResourceCache &Renderer::getResourceCache()
 {
 	return *m_resource_cache;
-}
-
-void Renderer::resetBuilder()
-{
-	buildRenderGraph = defaultBuilder;
 }
 
 void Renderer::rebuild()
@@ -262,8 +261,8 @@ void Renderer::updateGeometry()
 		{
 			auto &model = m_resource_cache->loadModel(name);
 
-			std::memcpy(vertex_data + model.get().vertices_offset * sizeof(Ilum::Vertex), model.get().vertices.data(), sizeof(Ilum::Vertex) * model.get().vertices_count);
-			std::memcpy(index_data + model.get().indices_offset * sizeof(uint32_t), model.get().indices.data(), sizeof(uint32_t) * model.get().indices_count);
+			std::memcpy(vertex_data + model.get().vertices_offset * sizeof(Ilum::Vertex), model.get().mesh.vertices.data(), sizeof(Ilum::Vertex) * model.get().vertices_count);
+			std::memcpy(index_data + model.get().indices_offset * sizeof(uint32_t), model.get().mesh.indices.data(), sizeof(uint32_t) * model.get().indices_count);
 		}
 
 		staging_vertex_buffer.unmap();
@@ -296,100 +295,16 @@ void Renderer::updateBuffers()
 {
 	updateCameraBuffer();
 
-	updateLightBuffer();
-
 	updateInstanceBuffer();
-}
-
-void Renderer::updateLightBuffer()
-{
-	GraphicsContext::instance()->getProfiler().beginSample("Light Update");
-	{
-		std::vector<cmpt::DirectionalLight::Data> directional_lights;
-		std::vector<cmpt::SpotLight::Data>        spot_lights;
-		std::vector<cmpt::PointLight::Data>       point_lights;
-
-		// Gather light infos
-		const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::Light, cmpt::Tag>);
-		group.each([&](const entt::entity &entity, const cmpt::Light &light, const cmpt::Tag &tag) {
-			if (!tag.active || !light.impl)
-			{
-				return;
-			}
-
-			switch (light.type)
-			{
-				case cmpt::LightType::Directional:
-					directional_lights.push_back(static_cast<cmpt::DirectionalLight *>(light.impl.get())->data);
-					break;
-				case cmpt::LightType::Spot:
-					spot_lights.push_back(static_cast<cmpt::SpotLight *>(light.impl.get())->data);
-					spot_lights.back().position = Entity(entity).getComponent<cmpt::Transform>().translation;
-					break;
-				case cmpt::LightType::Point:
-					point_lights.push_back(static_cast<cmpt::PointLight *>(light.impl.get())->data);
-					point_lights.back().position = Entity(entity).getComponent<cmpt::Transform>().translation;
-					break;
-				default:
-					break;
-			}
-		});
-
-		//// Enlarge buffer
-		size_t directional_lights_count = m_buffers[BufferType::DirectionalLight].getSize() / sizeof(cmpt::DirectionalLight::Data);
-		if (directional_lights_count < directional_lights.size())
-		{
-			GraphicsContext::instance()->getQueueSystem().waitAll();
-			m_buffers[BufferType::DirectionalLight] = Buffer(2 * directional_lights_count * sizeof(cmpt::DirectionalLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-
-			m_update = true;
-		}
-
-		size_t spot_lights_count = m_buffers[BufferType::SpotLight].getSize() / sizeof(cmpt::SpotLight::Data);
-		if (spot_lights_count < spot_lights.size())
-		{
-			GraphicsContext::instance()->getQueueSystem().waitAll();
-			m_buffers[BufferType::SpotLight] = Buffer(2 * spot_lights_count * sizeof(cmpt::SpotLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-
-			m_update = true;
-		}
-
-		size_t point_lights_count = m_buffers[BufferType::PointLight].getSize() / sizeof(cmpt::PointLight::Data);
-		if (point_lights_count < point_lights.size())
-		{
-			GraphicsContext::instance()->getQueueSystem().waitAll();
-			m_buffers[BufferType::PointLight] = Buffer(2 * point_lights_count * sizeof(cmpt::PointLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-
-			m_update = true;
-		}
-
-		//// Copy buffer
-		if (!directional_lights.empty())
-		{
-			std::memcpy(m_buffers[BufferType::DirectionalLight].map(), directional_lights.data(), directional_lights.size() * sizeof(cmpt::DirectionalLight::Data));
-			m_buffers[BufferType::DirectionalLight].unmap();
-		}
-		if (!spot_lights.empty())
-		{
-			std::memcpy(m_buffers[BufferType::SpotLight].map(), spot_lights.data(), spot_lights.size() * sizeof(cmpt::SpotLight::Data));
-			m_buffers[BufferType::SpotLight].unmap();
-		}
-		if (!point_lights.empty())
-		{
-			std::memcpy(m_buffers[BufferType::PointLight].map(), point_lights.data(), point_lights.size() * sizeof(cmpt::PointLight::Data));
-			m_buffers[BufferType::PointLight].unmap();
-		}
-	}
-	GraphicsContext::instance()->getProfiler().endSample("Light Update");
 }
 
 void Renderer::updateCameraBuffer()
 {
-	GraphicsContext::instance()->getProfiler().beginSample("Camera Update");
+	GraphicsContext::instance()->getProfiler().beginSample("Camera Update original");
 	// Update main camera
-	if (Main_Camera.update)
+	if (Main_Camera_.update)
 	{
-		Main_Camera.onUpdate();
+		Main_Camera_.onUpdate();
 
 		struct
 		{
@@ -403,44 +318,38 @@ void Renderer::updateCameraBuffer()
 		{
 			GraphicsContext::instance()->getQueueSystem().waitAll();
 			m_buffers[BufferType::MainCamera] = Buffer(sizeof(camera_buffer), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-			
-			camera_buffer.last_view_projection = Main_Camera.view_projection;
+
+			camera_buffer.last_view_projection = Main_Camera_.view_projection;
 		}
 		else
 		{
 			camera_buffer.last_view_projection = reinterpret_cast<decltype(camera_buffer) *>(m_buffers[BufferType::MainCamera].map())->view_projection;
 		}
-		camera_buffer.position        = Main_Camera.position;
-		camera_buffer.view_projection = Main_Camera.view_projection;
+		camera_buffer.position        = Main_Camera_.position;
+		camera_buffer.view_projection = Main_Camera_.view_projection;
 		for (uint32_t i = 0; i < 6; i++)
 		{
-			const auto &plane        = Main_Camera.frustum.planes[i];
+			const auto &plane        = Main_Camera_.frustum.planes[i];
 			camera_buffer.frustum[i] = glm::vec4(plane.normal, plane.constant);
 		}
 		std::memcpy(m_buffers[BufferType::MainCamera].map(), &camera_buffer, sizeof(camera_buffer));
 		m_buffers[BufferType::MainCamera].unmap();
 	}
 
-	GraphicsContext::instance()->getProfiler().endSample("Camera Update");
+	GraphicsContext::instance()->getProfiler().endSample("Camera Update original");
 }
 
 void Renderer::updateInstanceBuffer()
 {
-
-	// Per Meshlet
-
-
 	GraphicsContext::instance()->getProfiler().beginSample("Instance Update");
-
 	m_update = m_update || Render_Queue.update();
-
 	GraphicsContext::instance()->getProfiler().endSample("Instance Update");
 }
 
 void Renderer::updateImages()
 {
-	Renderer::instance()->Last_Frame.hiz_buffer = createScope<Image>(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
-	                                                                 VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VMA_MEMORY_USAGE_GPU_ONLY, true);
+	Renderer::instance()->Last_Frame.hiz_buffer   = createScope<Image>(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
+                                                                     VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VMA_MEMORY_USAGE_GPU_ONLY, true);
 	Renderer::instance()->Last_Frame.depth_buffer = createScope<Image>(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
 	                                                                   VK_FORMAT_D32_SFLOAT_S8_UINT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 	// Layout transition
@@ -457,9 +366,6 @@ void Renderer::updateImages()
 void Renderer::createBuffers()
 {
 	m_buffers[BufferType::MainCamera]       = Buffer(1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	m_buffers[BufferType::DirectionalLight] = Buffer(2 * sizeof(cmpt::DirectionalLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	m_buffers[BufferType::SpotLight]        = Buffer(2 * sizeof(cmpt::SpotLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	m_buffers[BufferType::PointLight]       = Buffer(2 * sizeof(cmpt::PointLight::Data), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 	m_buffers[BufferType::Material]         = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 	m_buffers[BufferType::Transform]        = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 	m_buffers[BufferType::IndirectCommand]  = Buffer(1, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);

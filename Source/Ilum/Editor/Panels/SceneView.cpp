@@ -7,7 +7,7 @@
 #include "Renderer/Renderer.hpp"
 
 #include "Scene/Component/Light.hpp"
-#include "Scene/Component/MeshRenderer.hpp"
+#include "Scene/Component/Renderable.hpp"
 #include "Scene/Component/Tag.hpp"
 #include "Scene/Component/Transform.hpp"
 #include "Scene/Entity.hpp"
@@ -43,24 +43,20 @@ __pragma(warning(push, 0))
 
         namespace Ilum::panel
 {
-	template <typename T>
-	inline void drawComponentGizmo(const ImVec2 &offset, const Image &icon, bool enable)
-	{
-	}
-
-	template <>
-	inline void drawComponentGizmo<cmpt::Light>(const ImVec2 &offset, const Image &icon, bool enable)
+	template <typename LightType>
+	inline void drawLightGizmo(const ImVec2 &offset, const Image &icon, bool enable)
 	{
 		if (!enable)
 		{
 			return;
 		}
 
-		auto group = Scene::instance()->getRegistry().group<cmpt::Light>(entt::get<cmpt::Transform>);
+		auto group = Scene::instance()->getRegistry().group<LightType>(entt::get<cmpt::Transform, cmpt::Tag>);
 
 		for (const auto &entity : group)
 		{
-			const auto &[light, trans] = group.template get<cmpt::Light, cmpt::Transform>(entity);
+			const auto &tag   = group.template get<cmpt::Tag>(entity);
+			const auto &trans = group.template get<cmpt::Transform>(entity);
 
 			glm::quat rotation;
 			glm::vec3 position;
@@ -69,22 +65,17 @@ __pragma(warning(push, 0))
 			glm::vec4 perspective;
 			glm::decompose(trans.world_transform, scale, rotation, position, skew, perspective);
 
-			if (!Renderer::instance()->Main_Camera.frustum.isInside(position))
+			if (!Renderer::instance()->Main_Camera_.frustum.isInside(position))
 			{
 				continue;
 			}
 
-			glm::vec2 screen_pos = Renderer::instance()->Main_Camera.world2Screen(position, {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x), static_cast<float>(offset.y)});
-			ImGui::SetCursorPos({screen_pos.x - ImGui::GetFontSize() / 2.0f, screen_pos.y - ImGui::GetFontSize() / 2.0f});
+			glm::vec2 screen_pos = Renderer::instance()->Main_Camera_.world2Screen(position, {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x), static_cast<float>(offset.y)});
+			ImGui::SetCursorPos({screen_pos.x - 20.f, screen_pos.y - ImGui::GetFontSize() - 20.f});
 			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.7f, 0.7f, 0.0f));
 
 			ImGui::PushID(static_cast<int>(entity));
-			if (ImGui::ImageButton(ImGuiContext::textureID(icon, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
-			                       ImVec2(20.f, 20.f),
-			                       ImVec2(0.f, 0.f),
-			                       ImVec2(1.f, 1.f),
-			                       -1,
-			                       ImVec4(0.f, 0.f, 0.f, 0.f)))
+			if (ImGui::ImageButton(ImGuiContext::textureID(icon, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), ImVec2(20.f, 20.f), ImVec2(0.f, 0.f), ImVec2(1.f, 1.f), -1, ImVec4(0.f, 0.f, 0.f, 0.f)))
 			{
 				Editor::instance()->select(Entity(entity));
 			}
@@ -94,17 +85,16 @@ __pragma(warning(push, 0))
 		}
 	}
 
-	template <>
-	inline void drawComponentGizmo<geometry::BoundingBox>(const ImVec2 &offset, const Image &icon, bool enable)
+	inline void drawBoundingBoxGizmo(const ImVec2 &offset, bool enable)
 	{
 		if (!enable)
 		{
 			return;
 		}
 
-		if (Editor::instance()->getSelect() && Editor::instance()->getSelect().hasComponent<cmpt::MeshRenderer>())
+		if (Editor::instance()->getSelect() && Editor::instance()->getSelect().hasComponent<cmpt::MeshletRenderer>())
 		{
-			const auto &mesh_renderer = Editor::instance()->getSelect().getComponent<cmpt::MeshRenderer>();
+			const auto &mesh_renderer = Editor::instance()->getSelect().getComponent<cmpt::MeshletRenderer>();
 			const auto &trans         = Editor::instance()->getSelect().getComponent<cmpt::Transform>();
 
 			if (!Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model))
@@ -114,7 +104,7 @@ __pragma(warning(push, 0))
 
 			auto bbox = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model).get().bounding_box.transform(trans.world_transform);
 
-			if (!Renderer::instance()->Main_Camera.frustum.isInside(bbox))
+			if (!Renderer::instance()->Main_Camera_.frustum.isInside(bbox))
 			{
 				return;
 			}
@@ -134,7 +124,7 @@ __pragma(warning(push, 0))
 
 			for (uint32_t i = 0; i < 8; i++)
 			{
-				glm::vec2 screen_pos = Renderer::instance()->Main_Camera.world2Screen(cube_vertex[i], {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x), static_cast<float>(offset.y)});
+				glm::vec2 screen_pos = Renderer::instance()->Main_Camera_.world2Screen(cube_vertex[i], {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x), static_cast<float>(offset.y)});
 
 				cube_screen_vertex[i] = ImVec2(screen_pos.x, screen_pos.y) + ImGui::GetWindowPos();
 			}
@@ -204,7 +194,7 @@ __pragma(warning(push, 0))
 
 		if (m_gizmo["grid"])
 		{
-			ImGuizmo::DrawGrid(glm::value_ptr(Renderer::instance()->Main_Camera.view), glm::value_ptr(Renderer::instance()->Main_Camera.projection), glm::value_ptr(glm::mat4(1.0)), 100.f);
+			ImGuizmo::DrawGrid(glm::value_ptr(Renderer::instance()->Main_Camera_.view), glm::value_ptr(Renderer::instance()->Main_Camera_.projection), glm::value_ptr(glm::mat4(1.0)), 100.f);
 		}
 
 		// Display main scene
@@ -223,7 +213,7 @@ __pragma(warning(push, 0))
 			{
 				ASSERT(pay_load->DataSize == sizeof(std::string));
 				auto  entity        = Scene::instance()->createEntity(FileSystem::getFileName(*static_cast<std::string *>(pay_load->Data), false));
-				auto &mesh_renderer = entity.addComponent<cmpt::MeshRenderer>();
+				auto &mesh_renderer = entity.addComponent<cmpt::MeshletRenderer>();
 				mesh_renderer.model = *static_cast<std::string *>(pay_load->Data);
 				// Setting default material
 				auto &model = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
@@ -232,13 +222,14 @@ __pragma(warning(push, 0))
 					mesh_renderer.materials.emplace_back(createScope<material::DisneyPBR>());
 					*static_cast<material::DisneyPBR *>(mesh_renderer.materials.back().get()) = submesh.material;
 				}
-				cmpt::MeshRenderer::update = true;
+				Editor::instance()->select(entity);
+				cmpt::Renderable::update = true;
 			}
 			ImGui::EndDragDropTarget();
 		}
 
 		// Guizmo operation
-		auto view = Renderer::instance()->Main_Camera.view;
+		auto view = Renderer::instance()->Main_Camera_.view;
 		ImGuizmo::ViewManipulate(
 		    glm::value_ptr(view),
 		    8.f,
@@ -251,9 +242,9 @@ __pragma(warning(push, 0))
 		// We don't want camera moving while handling object transform or window is not focused
 		if (ImGui::IsWindowFocused() && !ImGuizmo::IsUsing())
 		{
-			if (view != Renderer::instance()->Main_Camera.view)
+			if (view != Renderer::instance()->Main_Camera_.view)
 			{
-				auto &main_camera = Renderer::instance()->Main_Camera;
+				auto &main_camera = Renderer::instance()->Main_Camera_;
 				main_camera.view  = view;
 
 				float yaw   = std::atan2f(-main_camera.view[2][2], -main_camera.view[0][2]);
@@ -276,7 +267,7 @@ __pragma(warning(push, 0))
 
 			// Mouse picking via ray casting
 			//{
-			//	auto &main_camera = Renderer::instance()->Main_Camera;
+			//	auto &main_camera = Renderer::instance()->Main_Camera_;
 
 			//	float x = (click_pos.x / scene_view_size.x) * 2.f - 1.f;
 			//	float y = -((click_pos.y / scene_view_size.y) * 2.f - 1.f);
@@ -294,8 +285,8 @@ __pragma(warning(push, 0))
 
 			//	Editor::instance()->select(Entity());
 			//	float      distance = std::numeric_limits<float>::infinity();
-			//	const auto group    = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform>);
-			//	group.each([&](const entt::entity &entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform) {
+			//	const auto group    = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshletRenderer, cmpt::Transform>);
+			//	group.each([&](const entt::entity &entity, const cmpt::MeshletRenderer &mesh_renderer, const cmpt::Transform &transform) {
 			//		if (!Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model))
 			//		{
 			//			return;
@@ -316,27 +307,29 @@ __pragma(warning(push, 0))
 
 				CommandBuffer cmd_buffer;
 				cmd_buffer.begin();
-				Buffer staging_buffer(static_cast<VkDeviceSize>(entity_id_buffer.get().getWidth() * entity_id_buffer.get().getHeight()) * sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
+				Buffer staging_buffer(static_cast<VkDeviceSize>(static_cast<size_t>(entity_id_buffer.get().getWidth() * entity_id_buffer.get().getHeight())) * sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
 				cmd_buffer.transferLayout(entity_id_buffer, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 				cmd_buffer.copyImageToBuffer(ImageInfo{entity_id_buffer, VK_IMAGE_USAGE_TRANSFER_SRC_BIT, 0, 0}, BufferInfo{staging_buffer, 0});
 				cmd_buffer.transferLayout(entity_id_buffer, VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
 				cmd_buffer.end();
 				cmd_buffer.submitIdle();
-				std::vector<uint32_t> image_data(entity_id_buffer.get().getWidth() * entity_id_buffer.get().getHeight());
+				std::vector<uint32_t> image_data(static_cast<size_t>(entity_id_buffer.get().getWidth() * entity_id_buffer.get().getHeight()));
 				std::memcpy(image_data.data(), staging_buffer.map(), image_data.size() * sizeof(uint32_t));
 
 				click_pos.x = glm::clamp(click_pos.x, 0.f, static_cast<float>(entity_id_buffer.get().getWidth()));
 				click_pos.y = glm::clamp(click_pos.y, 0.f, static_cast<float>(entity_id_buffer.get().getHeight()));
 
-				auto entity = Entity(static_cast<entt::entity>(image_data[static_cast<uint32_t>(click_pos.y) * entity_id_buffer.get().getWidth() + static_cast<uint32_t>(click_pos.x)]));
+				auto entity = Entity(static_cast<entt::entity>(image_data[static_cast<size_t>(click_pos.y) * static_cast<size_t>(entity_id_buffer.get().getWidth()) + static_cast<size_t>(click_pos.x)]));
 				Editor::instance()->select(entity);
 
 				staging_buffer.unmap();
 			}
 		}
 
-		drawComponentGizmo<cmpt::Light>(offset, m_icons["light"], m_gizmo["light"]);
-		drawComponentGizmo<geometry::BoundingBox>(offset, Image(), m_gizmo["aabb"]);
+		drawLightGizmo<cmpt::DirectionalLight>(offset, m_icons["light"], m_gizmo["light"]);
+		drawLightGizmo<cmpt::SpotLight>(offset, m_icons["light"], m_gizmo["light"]);
+		drawLightGizmo<cmpt::PointLight>(offset, m_icons["light"], m_gizmo["light"]);
+		drawBoundingBoxGizmo(offset, m_gizmo["aabb"]);
 
 		if (Editor::instance()->getSelect())
 		{
@@ -345,8 +338,8 @@ __pragma(warning(push, 0))
 			if (m_guizmo_operation)
 			{
 				is_on_guizmo = ImGuizmo::Manipulate(
-				    glm::value_ptr(Renderer::instance()->Main_Camera.view),
-				    glm::value_ptr(Renderer::instance()->Main_Camera.projection),
+				    glm::value_ptr(Renderer::instance()->Main_Camera_.view),
+				    glm::value_ptr(Renderer::instance()->Main_Camera_.projection),
 				    static_cast<ImGuizmo::OPERATION>(m_guizmo_operation),
 				    ImGuizmo::LOCAL, glm::value_ptr(transform.local_transform), NULL, NULL, NULL, NULL);
 
@@ -388,7 +381,7 @@ __pragma(warning(push, 0))
 
 			Input::instance()->setMousePosition(m_last_position.first, m_last_position.second);
 
-			auto &main_camera = Renderer::instance()->Main_Camera;
+			auto &main_camera = Renderer::instance()->Main_Camera_;
 
 			bool update = false;
 
@@ -544,7 +537,7 @@ __pragma(warning(push, 0))
 		if (ImGui::BeginPopup("CameraSettingPopup"))
 		{
 			// Camera setting
-			auto &main_camera = Renderer::instance()->Main_Camera;
+			auto &main_camera = Renderer::instance()->Main_Camera_;
 
 			static const char *const camera_type[] = {"Perspective", "Orthographic"};
 			static int               select_type   = 0;
@@ -699,12 +692,12 @@ __pragma(warning(push, 0))
 						std::vector<uint16_t> raw_data(static_cast<size_t>(attachment_buffer.get().getWidth() * attachment_buffer.get().getHeight() * pixel_size));
 						std::memcpy(raw_data.data(), staging_buffer.map(), raw_data.size());
 						staging_buffer.unmap();
-						std::vector<float>    data(raw_data.size());
+						std::vector<float> data(raw_data.size());
 						for (uint32_t i = 0; i < data.size(); i++)
 						{
 							uint16_t frac = (raw_data[i] & 0x3ff) | 0x400;
-							int32_t exp  = ((raw_data[i] & 0x7c00) >> 10) - 25;
-							
+							int32_t  exp  = ((raw_data[i] & 0x7c00) >> 10) - 25;
+
 							if (frac == 0 && exp == 0x1f)
 								data[i] = std::numeric_limits<float>::infinity();
 							else if (frac || exp)
@@ -732,7 +725,7 @@ __pragma(warning(push, 0))
 			Renderer::instance()->resizeRenderTarget(extent);
 
 			// Reset camera aspect
-			auto &main_camera = Renderer::instance()->Main_Camera;
+			auto &main_camera = Renderer::instance()->Main_Camera_;
 			if (main_camera.aspect != static_cast<float>(extent.width) / static_cast<float>(extent.height))
 			{
 				main_camera.aspect = static_cast<float>(extent.width) / static_cast<float>(extent.height);

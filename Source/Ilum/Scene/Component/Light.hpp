@@ -5,36 +5,35 @@
 
 namespace Ilum::cmpt
 {
-enum class LightType
-{
-	None,
-	Directional,
-	Point,
-	Spot,
-	Area
-};
-
-struct ILight
-{
-	virtual LightType type() = 0;
-};
-
-template <LightType Type>
-struct TLight : public ILight
-{
-	virtual LightType type() override
-	{
-		return Type;
-	}
-};
-
 struct Light
 {
-	// Light type
-	LightType type = LightType::None;
-
-	scope<ILight> impl = nullptr;
-
 	inline static std::atomic<bool> update = false;
 };
-}        // namespace Ilum::Cmpt
+
+struct DirectionalLight : public Light
+{
+	glm::vec3 color                 = {1.f, 1.f, 1.f};
+	float     intensity             = 1.f;
+	alignas(16) glm::vec3 direction = {1.f, 1.f, 1.f};
+};
+
+struct PointLight : public Light
+{
+	glm::vec3 color          = {1.f, 1.f, 1.f};
+	float     intensity      = 1.f;
+	glm::vec3 position       = {0.f, 0.f, 0.f};
+	float     constant       = 1.0f;
+	alignas(16) float linear = 0.09f;
+	float quadratic          = 0.032f;
+};
+
+struct SpotLight : public Light
+{
+	glm::vec3 color         = {1.f, 1.f, 1.f};
+	float     intensity     = 1.f;
+	glm::vec3 position      = {0.f, 0.f, 0.f};
+	float     cut_off       = glm::cos(glm::radians(12.5f));
+	glm::vec3 direction     = {1.f, 1.f, 1.f};
+	float     outer_cut_off = glm::cos(glm::radians(17.5f));
+};
+}        // namespace Ilum::cmpt

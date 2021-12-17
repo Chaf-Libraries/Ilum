@@ -1,8 +1,7 @@
 #pragma once
 
 #include "Geometry/BoundingBox.hpp"
-#include "Geometry/Mesh/TriMesh.hpp"
-#include "Vertex.hpp"
+#include "Geometry/Vertex.hpp"
 
 #include "Material/DisneyPBR.h"
 

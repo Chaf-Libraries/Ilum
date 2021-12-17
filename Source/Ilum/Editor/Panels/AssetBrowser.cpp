@@ -10,7 +10,7 @@
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Shader/ShaderCache.hpp"
 
-#include "Scene/Component/MeshRenderer.hpp"
+#include "Scene/Component/Renderable.hpp"
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
@@ -121,10 +121,10 @@ inline void draw_model_asset(const Image &image, float height, float space)
 		{
 			if (ImGui::MenuItem("Delete"))
 			{
-				auto view = Scene::instance()->getRegistry().view<cmpt::MeshRenderer>();
+				auto view = Scene::instance()->getRegistry().view<cmpt::MeshletRenderer>();
 				for (auto &entity : view)
 				{
-					auto &mesh_renderer = view.get<cmpt::MeshRenderer>(entity);
+					auto &mesh_renderer = view.get<cmpt::MeshletRenderer>(entity);
 				}
 				Renderer::instance()->getResourceCache().removeModel(name);
 			}

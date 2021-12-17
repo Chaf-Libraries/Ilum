@@ -5,6 +5,7 @@
 #include "Graphics/Buffer/Buffer.h"
 
 #include "Geometry/BoundingBox.hpp"
+#include "Geometry/Mesh/TriMesh.hpp"
 
 #include <meshoptimizer.h>
 
@@ -30,8 +31,7 @@ struct Model
 	uint32_t indices_offset  = 0;
 
 	// Raw geometry, original data
-	std::vector<Vertex>   vertices;
-	std::vector<uint32_t> indices;
+	geometry::TriMesh mesh;
 
 	// Meshlet, for mesh shading & cluster culling
 	std::vector<Meshlet>  meshlets;
