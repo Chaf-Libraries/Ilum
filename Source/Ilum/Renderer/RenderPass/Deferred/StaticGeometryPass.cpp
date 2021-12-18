@@ -51,8 +51,9 @@ void StaticGeometryPass::setupPipeline(PipelineState &state)
 	state.descriptor_bindings.bind(0, 0, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	state.descriptor_bindings.bind(0, 1, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Wrap), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 2, "PerInstanceData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 3, "PerMeshletData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 4, "DrawInfo", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 3, "MaterialData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 4, "PerMeshletData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 5, "DrawInfo", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
 	state.addDependency("IndirectDrawCommand", VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT);
 	state.addDependency("meshlet_count", VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT);
@@ -88,6 +89,7 @@ void StaticGeometryPass::resolveResources(ResolveState &resolve)
 	resolve.resolve("Camera", Renderer::instance()->Render_Buffer.Camera_Buffer);
 	resolve.resolve("textureArray", Renderer::instance()->getResourceCache().getImageReferences());
 	resolve.resolve("PerInstanceData", Renderer::instance()->Render_Queue.Instance_Buffer);
+	resolve.resolve("MaterialData", Renderer::instance()->Render_Queue.Material_Buffer);
 	resolve.resolve("PerMeshletData", Renderer::instance()->Render_Queue.Meshlet_Buffer);
 	resolve.resolve("DrawInfo", Renderer::instance()->Render_Queue.Draw_Buffer);
 }

@@ -22,8 +22,8 @@ bool RenderQueue::update()
 	if (Renderer::instance()->hasMainCamera())
 	{
 		cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
-		                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
-		                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
+                                        static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
+                                        static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
 
 		// Update culling data
 		auto *culling_data             = reinterpret_cast<CullingData *>(Culling_Buffer.map());
@@ -72,6 +72,7 @@ bool RenderQueue::update()
 		Renderer::instance()->Meshlet_Count         = 0;
 
 		std::vector<PerInstanceData> instance_data;
+		std::vector<MaterialData>    material_data;
 		std::vector<PerMeshletData>  meshlet_data;
 
 		const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshletRenderer, cmpt::Tag, cmpt::Transform>);
@@ -116,31 +117,38 @@ bool RenderQueue::update()
 				}
 
 				PerInstanceData instance;
+
 				// Instance Transform
 				instance.world_transform = transform.world_transform;
 				instance.pre_transform   = submesh.pre_transform;
 				// Instance BoundingBox
-				instance.min_ = submesh.bounding_box.min_;
-				instance.max_ = submesh.bounding_box.max_;
-				// Instance Material
+				instance.bbox_min    = submesh.bounding_box.min_;
+				instance.bbox_max    = submesh.bounding_box.max_;
+				instance.material_id = std::numeric_limits<uint32_t>::max();
+				instance.entity_id   = static_cast<uint32_t>(entity);
+
+				MaterialData material_;
 				if (material)
 				{
-					instance.base_color          = material->base_color;
-					instance.emissive_color      = material->emissive_color;
-					instance.metallic_factor     = material->metallic_factor;
-					instance.roughness_factor    = material->roughness_factor;
-					instance.emissive_intensity  = material->emissive_intensity;
-					instance.albedo_map          = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->albedo_map));
-					instance.normal_map          = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->normal_map));
-					instance.metallic_map        = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->metallic_map));
-					instance.roughness_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->roughness_map));
-					instance.emissive_map        = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->emissive_map));
-					instance.ao_map              = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->ao_map));
-					instance.displacement_height = material->displacement_height;
-					instance.displacement_map    = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->displacement_map));
+					instance.material_id = static_cast<uint32_t>(material_data.size());
+
+					material_.base_color          = material->base_color;
+					material_.emissive_color      = material->emissive_color;
+					material_.metallic_factor     = material->metallic_factor;
+					material_.roughness_factor    = material->roughness_factor;
+					material_.emissive_intensity  = material->emissive_intensity;
+					material_.albedo_map          = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->albedo_map));
+					material_.normal_map          = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->normal_map));
+					material_.metallic_map        = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->metallic_map));
+					material_.roughness_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->roughness_map));
+					material_.emissive_map        = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->emissive_map));
+					material_.ao_map              = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->ao_map));
+					material_.displacement_height = material->displacement_height;
+					material_.displacement_map    = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material->displacement_map));
 				}
-				instance.entity_id = static_cast<uint32_t>(entity);
+
 				instance_data.push_back(instance);
+				material_data.push_back(material_);
 
 				Renderer::instance()->Static_Instance_Count++;
 			}
@@ -152,8 +160,8 @@ bool RenderQueue::update()
 			GraphicsContext::instance()->getQueueSystem().waitAll();
 			Instance_Buffer            = Buffer(static_cast<VkDeviceSize>(static_cast<double>(instance_data.size() * sizeof(PerInstanceData)) * 1.1), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			Instance_Visibility_Buffer = Buffer(static_cast<VkDeviceSize>(static_cast<double>(instance_data.size() * sizeof(uint32_t)) * 1.1), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-
-			update = true;
+			Material_Buffer            = Buffer(static_cast<VkDeviceSize>(static_cast<double>(material_data.size() * sizeof(MaterialData)) * 1.1), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			update                     = true;
 		}
 		if (Meshlet_Buffer.getSize() < meshlet_data.size() * sizeof(PerMeshletData))
 		{
@@ -168,8 +176,10 @@ bool RenderQueue::update()
 		// Copy buffer
 		std::memcpy(Instance_Buffer.map(), instance_data.data(), instance_data.size() * sizeof(PerInstanceData));
 		std::memcpy(Meshlet_Buffer.map(), meshlet_data.data(), meshlet_data.size() * sizeof(PerMeshletData));
+		std::memcpy(Material_Buffer.map(), material_data.data(), material_data.size() * sizeof(MaterialData));
 		Instance_Buffer.unmap();
 		Meshlet_Buffer.unmap();
+		Material_Buffer.unmap();
 	}
 	else if (cmpt::Transform::update)
 	{

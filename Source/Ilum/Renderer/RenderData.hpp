@@ -73,26 +73,26 @@ struct LightCountData
 	uint32_t point_light_count       = 0;
 };
 
-struct MaterialData
-{
-	glm::vec4 base_color = {};
-
-	glm::vec3 emissive_color  = {0.f, 0.f, 0.f};
-	float     metallic_factor = 0.f;
-
-	float    roughness_factor   = 0.f;
-	float    emissive_intensity = 0.f;
-	uint32_t albedo_map         = 0;
-	uint32_t normal_map         = 0;
-
-	uint32_t metallic_map  = 0;
-	uint32_t roughness_map = 0;
-	uint32_t emissive_map  = 0;
-	uint32_t ao_map        = 0;
-
-	alignas(16) uint32_t displacement_map = 0;
-	float displacement_height             = 0.f;
-};
+//struct MaterialData
+//{
+//	glm::vec4 base_color = {};
+//
+//	glm::vec3 emissive_color  = {0.f, 0.f, 0.f};
+//	float     metallic_factor = 0.f;
+//
+//	float    roughness_factor   = 0.f;
+//	float    emissive_intensity = 0.f;
+//	uint32_t albedo_map         = 0;
+//	uint32_t normal_map         = 0;
+//
+//	uint32_t metallic_map  = 0;
+//	uint32_t roughness_map = 0;
+//	uint32_t emissive_map  = 0;
+//	uint32_t ao_map        = 0;
+//
+//	alignas(16) uint32_t displacement_map = 0;
+//	float displacement_height             = 0.f;
+//};
 
 struct CameraData
 {
