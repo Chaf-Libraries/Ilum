@@ -2,8 +2,10 @@
 
 #include "Renderer/Renderer.hpp"
 
+#include "Scene/Component/Camera.hpp"
 #include "Scene/Component/Light.hpp"
 #include "Scene/Component/Tag.hpp"
+#include "Scene/Component/Transform.hpp"
 #include "Scene/Scene.hpp"
 
 #include <entt.hpp>
@@ -47,6 +49,11 @@ void LightPass::render(RenderPassState &state)
 {
 	auto &cmd_buffer = state.command_buffer;
 
+	if (!Renderer::instance()->hasMainCamera())
+	{
+		return;
+	}
+
 	VkRenderPassBeginInfo begin_info = {};
 	begin_info.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	begin_info.renderPass            = state.pass.render_pass;
@@ -72,7 +79,11 @@ void LightPass::render(RenderPassState &state)
 	vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
 	vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
-	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(glm::vec3), glm::value_ptr(Renderer::instance()->Main_Camera_.position));
+	cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
+	                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
+	                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
+
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(glm::vec3), glm::value_ptr(main_camera->position));
 	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(LightCountData), &Renderer::instance()->Render_Buffer.light_count);
 
 	vkCmdDraw(cmd_buffer, 3, 1, 0, 0);

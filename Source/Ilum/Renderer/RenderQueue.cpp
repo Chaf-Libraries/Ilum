@@ -1,5 +1,6 @@
 #include "RenderQueue.hpp"
 
+#include "Scene/Component/Camera.hpp"
 #include "Scene/Component/Renderable.hpp"
 #include "Scene/Component/Tag.hpp"
 #include "Scene/Component/Transform.hpp"
@@ -18,22 +19,29 @@ namespace Ilum
 {
 bool RenderQueue::update()
 {
-	// Update culling data
-	auto *culling_data = reinterpret_cast<CullingData *>(Culling_Buffer.map());
-	culling_data->last_view = culling_data->view;
-	culling_data->view             = Renderer::instance()->Main_Camera_.view;
-	culling_data->P00              = Renderer::instance()->Main_Camera_.projection[0][0];
-	culling_data->P11              = Renderer::instance()->Main_Camera_.projection[1][1];
-	culling_data->znear            = Renderer::instance()->Main_Camera_.near_plane;
-	culling_data->zfar             = Renderer::instance()->Main_Camera_.far_plane;
-	culling_data->meshlet_count    = Renderer::instance()->Meshlet_Count;
-	culling_data->instance_count    = Renderer::instance()->Static_Instance_Count;
-	culling_data->frustum_enable   = Renderer::instance()->Culling.frustum_culling;
-	culling_data->backface_enable  = Renderer::instance()->Culling.backface_culling;
-	culling_data->occlusion_enable = Renderer::instance()->Culling.occulsion_culling;
-	culling_data->zbuffer_width    = static_cast<float>(Renderer::instance()->Last_Frame.hiz_buffer->getWidth());
-	culling_data->zbuffer_height   = static_cast<float>(Renderer::instance()->Last_Frame.hiz_buffer->getHeight());
-	Culling_Buffer.unmap();
+	if (Renderer::instance()->hasMainCamera())
+	{
+		cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
+		                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
+		                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
+
+		// Update culling data
+		auto *culling_data             = reinterpret_cast<CullingData *>(Culling_Buffer.map());
+		culling_data->last_view        = culling_data->view;
+		culling_data->view             = main_camera->view;
+		culling_data->P00              = main_camera->projection[0][0];
+		culling_data->P11              = main_camera->projection[1][1];
+		culling_data->znear            = main_camera->near_plane;
+		culling_data->zfar             = main_camera->far_plane;
+		culling_data->meshlet_count    = Renderer::instance()->Meshlet_Count;
+		culling_data->instance_count   = Renderer::instance()->Static_Instance_Count;
+		culling_data->frustum_enable   = Renderer::instance()->Culling.frustum_culling;
+		culling_data->backface_enable  = Renderer::instance()->Culling.backface_culling;
+		culling_data->occlusion_enable = Renderer::instance()->Culling.occulsion_culling;
+		culling_data->zbuffer_width    = static_cast<float>(Renderer::instance()->Last_Frame.hiz_buffer->getWidth());
+		culling_data->zbuffer_height   = static_cast<float>(Renderer::instance()->Last_Frame.hiz_buffer->getHeight());
+		Culling_Buffer.unmap();
+	}
 
 	// Check for update
 	bool                  update         = false;
@@ -57,11 +65,11 @@ bool RenderQueue::update()
 	if (instance_count != Renderer::instance()->Static_Instance_Count || ResourceCache::update || cmpt::Renderable::update || cmpt::Tag::update)
 	{
 		cmpt::Renderable::update = false;
-		cmpt::Tag::update          = false;
+		cmpt::Tag::update        = false;
 
-		Renderer::instance()->Indices_Count  = 0;
+		Renderer::instance()->Indices_Count         = 0;
 		Renderer::instance()->Static_Instance_Count = 0;
-		Renderer::instance()->Meshlet_Count  = 0;
+		Renderer::instance()->Meshlet_Count         = 0;
 
 		std::vector<PerInstanceData> instance_data;
 		std::vector<PerMeshletData>  meshlet_data;
@@ -142,7 +150,7 @@ bool RenderQueue::update()
 		if (Instance_Buffer.getSize() < instance_data.size() * sizeof(PerInstanceData))
 		{
 			GraphicsContext::instance()->getQueueSystem().waitAll();
-			Instance_Buffer = Buffer(static_cast<VkDeviceSize>(static_cast<double>(instance_data.size() * sizeof(PerInstanceData)) * 1.1), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			Instance_Buffer            = Buffer(static_cast<VkDeviceSize>(static_cast<double>(instance_data.size() * sizeof(PerInstanceData)) * 1.1), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			Instance_Visibility_Buffer = Buffer(static_cast<VkDeviceSize>(static_cast<double>(instance_data.size() * sizeof(uint32_t)) * 1.1), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
 			update = true;

@@ -51,10 +51,10 @@ layout (binding = 1) buffer VisibilityBuffer
 
 layout (binding = 2) uniform Camera 
 {
-	mat4 view_projection;
-    vec4 frustum[6];
-    vec3 position;
-    mat4 last_view_projection;
+    mat4 view_projection;
+	mat4 last_view_projection;
+	vec4 frustum[6];
+	vec3 position;
 } camera;
 
 layout (binding = 3) uniform sampler2D hiz_buffer;

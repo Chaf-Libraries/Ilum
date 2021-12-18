@@ -6,6 +6,7 @@
 #include "Renderer/RenderGraph/RenderGraph.hpp"
 #include "Renderer/Renderer.hpp"
 
+#include "Scene/Component/Camera.hpp"
 #include "Scene/Component/Light.hpp"
 #include "Scene/Component/Renderable.hpp"
 #include "Scene/Component/Tag.hpp"
@@ -46,48 +47,48 @@ __pragma(warning(push, 0))
 	template <typename LightType>
 	inline void drawLightGizmo(const ImVec2 &offset, const Image &icon, bool enable)
 	{
-		if (!enable)
-		{
-			return;
-		}
+		//if (!enable)
+		//{
+		//	return;
+		//}
 
-		auto group = Scene::instance()->getRegistry().group<LightType>(entt::get<cmpt::Transform, cmpt::Tag>);
+		//auto group = Scene::instance()->getRegistry().group<LightType>(entt::get<cmpt::Transform, cmpt::Tag>);
 
-		for (const auto &entity : group)
-		{
-			const auto &tag   = group.template get<cmpt::Tag>(entity);
-			const auto &trans = group.template get<cmpt::Transform>(entity);
+		//for (const auto &entity : group)
+		//{
+		//	const auto &tag   = group.template get<cmpt::Tag>(entity);
+		//	const auto &trans = group.template get<cmpt::Transform>(entity);
 
-			glm::quat rotation;
-			glm::vec3 position;
-			glm::vec3 scale;
-			glm::vec3 skew;
-			glm::vec4 perspective;
-			glm::decompose(trans.world_transform, scale, rotation, position, skew, perspective);
+		//	glm::quat rotation;
+		//	glm::vec3 position;
+		//	glm::vec3 scale;
+		//	glm::vec3 skew;
+		//	glm::vec4 perspective;
+		//	glm::decompose(trans.world_transform, scale, rotation, position, skew, perspective);
 
-			if (!Renderer::instance()->Main_Camera_.frustum.isInside(position))
-			{
-				continue;
-			}
+		//	if (!Renderer::instance()->Main_Camera_.frustum.isInside(position))
+		//	{
+		//		continue;
+		//	}
 
-			glm::vec2 screen_pos = Renderer::instance()->Main_Camera_.world2Screen(position, {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x), static_cast<float>(offset.y)});
-			ImGui::SetCursorPos({screen_pos.x - 20.f, screen_pos.y - ImGui::GetFontSize() - 20.f});
-			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.7f, 0.7f, 0.0f));
+		//	glm::vec2 screen_pos = Renderer::instance()->Main_Camera_.world2Screen(position, {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x), static_cast<float>(offset.y)});
+		//	ImGui::SetCursorPos({screen_pos.x - 20.f, screen_pos.y - ImGui::GetFontSize() - 20.f});
+		//	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.7f, 0.7f, 0.0f));
 
-			ImGui::PushID(static_cast<int>(entity));
-			if (ImGui::ImageButton(ImGuiContext::textureID(icon, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), ImVec2(20.f, 20.f), ImVec2(0.f, 0.f), ImVec2(1.f, 1.f), -1, ImVec4(0.f, 0.f, 0.f, 0.f)))
-			{
-				Editor::instance()->select(Entity(entity));
-			}
-			ImGui::PopID();
+		//	ImGui::PushID(static_cast<int>(entity));
+		//	if (ImGui::ImageButton(ImGuiContext::textureID(icon, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), ImVec2(20.f, 20.f), ImVec2(0.f, 0.f), ImVec2(1.f, 1.f), -1, ImVec4(0.f, 0.f, 0.f, 0.f)))
+		//	{
+		//		Editor::instance()->select(Entity(entity));
+		//	}
+		//	ImGui::PopID();
 
-			ImGui::PopStyleColor();
-		}
+		//	ImGui::PopStyleColor();
+		//}
 	}
 
 	inline void drawBoundingBoxGizmo(const ImVec2 &offset, bool enable)
 	{
-		if (!enable)
+		/*if (!enable)
 		{
 			return;
 		}
@@ -142,7 +143,7 @@ __pragma(warning(push, 0))
 			draw_list->AddLine(cube_screen_vertex[1], cube_screen_vertex[5], ImColor(255.f, 0.f, 0.f), 1.f);
 			draw_list->AddLine(cube_screen_vertex[2], cube_screen_vertex[6], ImColor(255.f, 0.f, 0.f), 1.f);
 			draw_list->AddLine(cube_screen_vertex[3], cube_screen_vertex[7], ImColor(255.f, 0.f, 0.f), 1.f);
-		}
+		}*/
 	}
 
 	SceneView::SceneView()
@@ -174,6 +175,20 @@ __pragma(warning(push, 0))
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 5.f));
 
 		ImGui::Begin("SceneView", &active, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+		// Acquire main camera
+		auto &camera_entity = Renderer::instance()->Main_Camera;
+		if (!camera_entity || (!camera_entity.hasComponent<cmpt::PerspectiveCamera>() && !camera_entity.hasComponent<cmpt::OrthographicCamera>()))
+		{
+			ImGui::End();
+			ImGui::PopStyleVar();
+			return;
+		}
+
+		cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
+		                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
+		                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
+
 		updateMainCamera(delta_time);
 
 		// Tool Bar
@@ -194,7 +209,7 @@ __pragma(warning(push, 0))
 
 		if (m_gizmo["grid"])
 		{
-			ImGuizmo::DrawGrid(glm::value_ptr(Renderer::instance()->Main_Camera_.view), glm::value_ptr(Renderer::instance()->Main_Camera_.projection), glm::value_ptr(glm::mat4(1.0)), 100.f);
+			ImGuizmo::DrawGrid(glm::value_ptr(main_camera->view), glm::value_ptr(main_camera->projection), glm::value_ptr(glm::mat4(1.0)), 100.f);
 		}
 
 		// Display main scene
@@ -229,7 +244,7 @@ __pragma(warning(push, 0))
 		}
 
 		// Guizmo operation
-		auto view = Renderer::instance()->Main_Camera_.view;
+		auto view = main_camera->view;
 		ImGuizmo::ViewManipulate(
 		    glm::value_ptr(view),
 		    8.f,
@@ -242,20 +257,20 @@ __pragma(warning(push, 0))
 		// We don't want camera moving while handling object transform or window is not focused
 		if (ImGui::IsWindowFocused() && !ImGuizmo::IsUsing())
 		{
-			if (view != Renderer::instance()->Main_Camera_.view)
+			if (view != main_camera->view)
 			{
-				auto &main_camera = Renderer::instance()->Main_Camera_;
-				main_camera.view  = view;
+				auto &    transform         = Renderer::instance()->Main_Camera.getComponent<cmpt::Transform>();
+				glm::mat4 related_transform = transform.world_transform * glm::inverse(transform.local_transform);
 
-				float yaw   = std::atan2f(-main_camera.view[2][2], -main_camera.view[0][2]);
-				float pitch = std::asinf(-main_camera.view[1][2]);
+				main_camera->view = view;
 
-				main_camera.forward.x = std::cosf(pitch) * std::cosf(yaw);
-				main_camera.forward.y = std::sinf(pitch);
-				main_camera.forward.z = std::cosf(pitch) * std::sinf(yaw);
-				main_camera.forward   = glm::normalize(main_camera.forward);
+				transform.world_transform = glm::inverse(view);
+				transform.local_transform = transform.world_transform * glm::inverse(related_transform);
 
-				main_camera.update = true;
+				ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(transform.local_transform),
+				                                      glm::value_ptr(transform.translation),
+				                                      glm::value_ptr(transform.rotation),
+				                                      glm::value_ptr(transform.scale));
 			}
 		}
 
@@ -338,8 +353,8 @@ __pragma(warning(push, 0))
 			if (m_guizmo_operation)
 			{
 				is_on_guizmo = ImGuizmo::Manipulate(
-				    glm::value_ptr(Renderer::instance()->Main_Camera_.view),
-				    glm::value_ptr(Renderer::instance()->Main_Camera_.projection),
+				    glm::value_ptr(main_camera->view),
+				    glm::value_ptr(main_camera->projection),
 				    static_cast<ImGuizmo::OPERATION>(m_guizmo_operation),
 				    ImGuizmo::LOCAL, glm::value_ptr(transform.local_transform), NULL, NULL, NULL, NULL);
 
@@ -381,43 +396,39 @@ __pragma(warning(push, 0))
 
 			Input::instance()->setMousePosition(m_last_position.first, m_last_position.second);
 
-			auto &main_camera = Renderer::instance()->Main_Camera_;
+			cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
+			                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
+			                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
 
-			bool update = false;
+			auto &camera_transform = Renderer::instance()->Main_Camera.getComponent<cmpt::Transform>();
 
-			float yaw   = std::atan2f(main_camera.forward.z, main_camera.forward.x);
-			float pitch = std::asinf(main_camera.forward.y);
+			float yaw   = std::atan2f(-main_camera->view[2][2], -main_camera->view[0][2]);
+			float pitch = std::asinf(-main_camera->view[1][2]);
 
-			if (delta_x != 0)
-			{
-				yaw += m_camera_sensitivity * delta_time * static_cast<float>(delta_x);
-				update = true;
-			}
+			yaw += m_camera_sensitivity * delta_time * static_cast<float>(delta_x);
+			pitch -= m_camera_sensitivity * delta_time * static_cast<float>(delta_y);
 
-			if (delta_y != 0)
-			{
-				pitch -= m_camera_sensitivity * delta_time * static_cast<float>(delta_y);
-				pitch  = glm::clamp(pitch, glm::radians(-89.f), glm::radians(89.f));
-				update = true;
-			}
+			camera_transform.rotation.x = glm::degrees(pitch);
+			camera_transform.rotation.y = -glm::degrees(yaw) - 90.f;
 
-			main_camera.forward.x = std::cosf(pitch) * std::cosf(yaw);
-			main_camera.forward.y = std::sinf(pitch);
-			main_camera.forward.z = std::cosf(pitch) * std::sinf(yaw);
-			main_camera.forward   = glm::normalize(main_camera.forward);
+			glm::vec3 forward;
+			forward.x = std::cosf(pitch) * std::cosf(yaw);
+			forward.y = std::sinf(pitch);
+			forward.z = std::cosf(pitch) * std::sinf(yaw);
+			forward   = glm::normalize(forward);
 
-			glm::vec3 right = glm::normalize(glm::cross(main_camera.forward, glm::vec3{0.f, 1.f, 0.f}));
-			glm::vec3 up    = glm::normalize(glm::cross(right, main_camera.forward));
+			glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3{0.f, 1.f, 0.f}));
+			glm::vec3 up    = glm::normalize(glm::cross(right, forward));
 
 			glm::vec3 direction = glm::vec3(0.f);
 
 			if (Input::instance()->getKey(KeyCode::W))
 			{
-				direction += main_camera.forward;
+				direction += forward;
 			}
 			if (Input::instance()->getKey(KeyCode::S))
 			{
-				direction -= main_camera.forward;
+				direction -= forward;
 			}
 			if (Input::instance()->getKey(KeyCode::D))
 			{
@@ -436,9 +447,11 @@ __pragma(warning(push, 0))
 				direction -= up;
 			}
 
-			main_camera.position += direction * delta_time * m_camera_speed;
-
-			main_camera.update = true;
+			camera_transform.translation += direction * delta_time * m_camera_speed;
+			glm::mat4 related_transform      = camera_transform.world_transform * glm::inverse(camera_transform.local_transform);
+			camera_transform.local_transform = glm::scale(glm::translate(glm::mat4(1.f), camera_transform.translation) * glm::mat4_cast(glm::qua<float>(glm::radians(camera_transform.rotation))), camera_transform.scale);
+			camera_transform.world_transform = related_transform * camera_transform.local_transform;
+			//main_camera.update = true;
 		}
 		else if (m_cursor_hidden)
 		{
@@ -534,36 +547,36 @@ __pragma(warning(push, 0))
 		{
 			ImGui::OpenPopup("CameraSettingPopup");
 		}
-		if (ImGui::BeginPopup("CameraSettingPopup"))
-		{
-			// Camera setting
-			auto &main_camera = Renderer::instance()->Main_Camera_;
+		//if (ImGui::BeginPopup("CameraSettingPopup"))
+		//{
+		//	// Camera setting
+		//	auto &main_camera = Renderer::instance()->Main_Camera_;
 
-			static const char *const camera_type[] = {"Perspective", "Orthographic"};
-			static int               select_type   = 0;
+		//	static const char *const camera_type[] = {"Perspective", "Orthographic"};
+		//	static int               select_type   = 0;
 
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2.f, 2.f));
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.f, 5.f));
-			if (ImGui::Combo("Type", &select_type, camera_type, 2))
-			{
-				if (main_camera.type != static_cast<Camera::Type>(select_type))
-				{
-					main_camera.type   = static_cast<Camera::Type>(select_type);
-					main_camera.update = true;
-				}
-			}
+		//	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2.f, 2.f));
+		//	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.f, 5.f));
+		//	if (ImGui::Combo("Type", &select_type, camera_type, 2))
+		//	{
+		//		if (main_camera.type != static_cast<Camera::Type>(select_type))
+		//		{
+		//			main_camera.type   = static_cast<Camera::Type>(select_type);
+		//			main_camera.update = true;
+		//		}
+		//	}
 
-			main_camera.update |= ImGui::DragFloat("Speed", &m_camera_speed, 0.01f, 0.0f, 100.f, "%.2f");
-			main_camera.update |= ImGui::DragFloat("Sensitivity", &m_camera_sensitivity, 0.01f, 0.0f, 100.f, "%.2f");
-			main_camera.update |= ImGui::DragFloat("Near Plane", &main_camera.near_plane, 1.f, 0.0f, std::numeric_limits<float>::infinity(), "%.2f");
-			main_camera.update |= ImGui::DragFloat("Far Plane", &main_camera.far_plane, 1.f, 0.0f, std::numeric_limits<float>::infinity(), "%.2f");
-			main_camera.update |= ImGui::DragFloat("Fov", &main_camera.fov, 0.1f, 0.0f, 180.f, "%.2f");
+		//	main_camera.update |= ImGui::DragFloat("Speed", &m_camera_speed, 0.01f, 0.0f, 100.f, "%.2f");
+		//	main_camera.update |= ImGui::DragFloat("Sensitivity", &m_camera_sensitivity, 0.01f, 0.0f, 100.f, "%.2f");
+		//	main_camera.update |= ImGui::DragFloat("Near Plane", &main_camera.near_plane, 1.f, 0.0f, std::numeric_limits<float>::infinity(), "%.2f");
+		//	main_camera.update |= ImGui::DragFloat("Far Plane", &main_camera.far_plane, 1.f, 0.0f, std::numeric_limits<float>::infinity(), "%.2f");
+		//	main_camera.update |= ImGui::DragFloat("Fov", &main_camera.fov, 0.1f, 0.0f, 180.f, "%.2f");
 
-			ImGui::PopStyleVar();
-			ImGui::PopStyleVar();
+		//	ImGui::PopStyleVar();
+		//	ImGui::PopStyleVar();
 
-			ImGui::EndPopup();
-		}
+		//	ImGui::EndPopup();
+		//}
 
 		SHOW_TIPS("Camera")
 
@@ -725,11 +738,16 @@ __pragma(warning(push, 0))
 			Renderer::instance()->resizeRenderTarget(extent);
 
 			// Reset camera aspect
-			auto &main_camera = Renderer::instance()->Main_Camera_;
-			if (main_camera.aspect != static_cast<float>(extent.width) / static_cast<float>(extent.height))
+
+			auto &camera_entity = Renderer::instance()->Main_Camera;
+
+			if (camera_entity && camera_entity.hasComponent<cmpt::PerspectiveCamera>())
 			{
-				main_camera.aspect = static_cast<float>(extent.width) / static_cast<float>(extent.height);
-				main_camera.update = true;
+				auto &camera = camera_entity.getComponent<cmpt::PerspectiveCamera>();
+				if (camera.aspect != static_cast<float>(extent.width) / static_cast<float>(extent.height))
+				{
+					camera.aspect = static_cast<float>(extent.width) / static_cast<float>(extent.height);
+				}
 			}
 		}
 	}

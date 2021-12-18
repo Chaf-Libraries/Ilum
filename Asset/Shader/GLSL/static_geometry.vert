@@ -67,8 +67,9 @@ struct PerMeshletData
 layout (set = 0, binding = 0) uniform MainCamera
 {
     mat4 view_projection;
-    vec4 frustum[6];
-    vec3 position;
+	mat4 last_view_projection;
+	vec4 frustum[6];
+	vec3 position;
 }main_camera;
 
 layout (set = 0, binding = 1) uniform sampler2D textureArray[];

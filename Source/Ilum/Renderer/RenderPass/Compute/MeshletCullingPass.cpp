@@ -35,7 +35,7 @@ void MeshletCullingPass::resolveResources(ResolveState &resolve)
 	resolve.resolve("PerInstanceData", Renderer::instance()->Render_Queue.Instance_Buffer);
 	resolve.resolve("PerMeshletData", Renderer::instance()->Render_Queue.Meshlet_Buffer);
 	resolve.resolve("DrawInfo", Renderer::instance()->Render_Queue.Draw_Buffer);
-	resolve.resolve("Camera", Renderer::instance()->getBuffer(Renderer::BufferType::MainCamera));
+	resolve.resolve("Camera", Renderer::instance()->Render_Buffer.Camera_Buffer);
 	resolve.resolve("hiz - buffer", *Renderer::instance()->Last_Frame.hiz_buffer);
 	resolve.resolve("count_buffer", Renderer::instance()->Render_Queue.Count_Buffer);
 	resolve.resolve("culling_buffer", Renderer::instance()->Render_Queue.Culling_Buffer);

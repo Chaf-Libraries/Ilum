@@ -87,10 +87,10 @@ layout (binding = 3) buffer DrawBuffer
 
 layout (binding = 4) uniform Camera 
 {
-	mat4 view_projection;
-    vec4 frustum[6];
-    vec3 position;
-    mat4 last_view_projection;
+    mat4 view_projection;
+	mat4 last_view_projection;
+	vec4 frustum[6];
+	vec3 position;
 } camera;
 
 

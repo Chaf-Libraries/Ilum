@@ -77,7 +77,7 @@ void DynamicGeometryPass::setupPipeline(PipelineState &state)
 
 void DynamicGeometryPass::resolveResources(ResolveState &resolve)
 {
-	resolve.resolve("Camera", Renderer::instance()->getBuffer(Renderer::BufferType::MainCamera));
+	resolve.resolve("Camera", Renderer::instance()->Render_Buffer.Camera_Buffer);
 	resolve.resolve("textureArray", Renderer::instance()->getResourceCache().getImageReferences());
 }
 

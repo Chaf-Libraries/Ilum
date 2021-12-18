@@ -85,7 +85,7 @@ void StaticGeometryPass::setupPipeline(PipelineState &state)
 
 void StaticGeometryPass::resolveResources(ResolveState &resolve)
 {
-	resolve.resolve("Camera", Renderer::instance()->getBuffer(Renderer::BufferType::MainCamera));
+	resolve.resolve("Camera", Renderer::instance()->Render_Buffer.Camera_Buffer);
 	resolve.resolve("textureArray", Renderer::instance()->getResourceCache().getImageReferences());
 	resolve.resolve("PerInstanceData", Renderer::instance()->Render_Queue.Instance_Buffer);
 	resolve.resolve("PerMeshletData", Renderer::instance()->Render_Queue.Meshlet_Buffer);

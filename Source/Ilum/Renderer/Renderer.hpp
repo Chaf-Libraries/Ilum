@@ -2,8 +2,6 @@
 
 #include "Utils/PCH.hpp"
 
-#include "Camera.hpp"
-
 #include "Engine/Context.hpp"
 #include "Engine/Subsystem.hpp"
 
@@ -43,7 +41,7 @@ class Renderer : public TSubsystem<Renderer>
 
 	enum class BufferType
 	{
-		MainCamera,
+		//MainCamera,
 		Vertex,
 		Index,
 		Material,
@@ -88,6 +86,8 @@ class Renderer : public TSubsystem<Renderer>
 
 	const ImageReference getDefaultTexture() const;
 
+	bool hasMainCamera();
+
 	void update();
 
 	void updateGeometry();
@@ -101,8 +101,6 @@ class Renderer : public TSubsystem<Renderer>
 	void createBuffers();
 
 	void updateBuffers();
-
-	void updateCameraBuffer();
 
 	void updateInstanceBuffer();
 
@@ -131,7 +129,7 @@ class Renderer : public TSubsystem<Renderer>
 	uint32_t m_texture_count = 0;
 
   public:
-	Camera Main_Camera_;
+	//Camera Main_Camera_;
 
 	Entity Main_Camera;
 

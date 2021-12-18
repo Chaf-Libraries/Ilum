@@ -17,6 +17,7 @@
 #include "Loader/ImageLoader/Bitmap.hpp"
 #include "Loader/ImageLoader/ImageLoader.hpp"
 
+#include "Scene/Component/Camera.hpp"
 #include "Scene/Component/Light.hpp"
 #include "Scene/Component/Renderable.hpp"
 #include "Scene/Component/Tag.hpp"
@@ -36,9 +37,9 @@
 #include "RenderPass/PostProcess/BrightPass.hpp"
 #include "RenderPass/PostProcess/TonemappingPass.hpp"
 
+#include "PreProcess/CameraUpdate.hpp"
 #include "PreProcess/LightUpdate.hpp"
 #include "PreProcess/TransformUpdate.hpp"
-#include "PreProcess/CameraUpdate.hpp"
 
 #include "Threading/ThreadPool.hpp"
 
@@ -108,7 +109,7 @@ void Renderer::onPreTick()
 	updateBuffers();
 
 	// Update camera
-	Main_Camera_.onUpdate();
+	//Main_Camera_.onUpdate();
 
 	// Check out images update
 	if (m_texture_count != m_resource_cache->getImages().size())
@@ -229,6 +230,11 @@ const ImageReference Renderer::getDefaultTexture() const
 	return m_default_texture;
 }
 
+bool Renderer::hasMainCamera()
+{
+	return Main_Camera && (Main_Camera.hasComponent < cmpt::PerspectiveCamera>()||Main_Camera.hasComponent<cmpt::OrthographicCamera>());
+}
+
 void Renderer::update()
 {
 	m_update = true;
@@ -293,50 +299,9 @@ void Renderer::createSamplers()
 
 void Renderer::updateBuffers()
 {
-	updateCameraBuffer();
+
 
 	updateInstanceBuffer();
-}
-
-void Renderer::updateCameraBuffer()
-{
-	GraphicsContext::instance()->getProfiler().beginSample("Camera Update original");
-	// Update main camera
-	if (Main_Camera_.update)
-	{
-		Main_Camera_.onUpdate();
-
-		struct
-		{
-			glm::mat4 view_projection;
-			glm::vec4 frustum[6];
-			alignas(16) glm::vec3 position;
-			glm::mat4 last_view_projection;
-		} camera_buffer;
-
-		if (m_buffers[BufferType::MainCamera].getSize() != sizeof(camera_buffer))
-		{
-			GraphicsContext::instance()->getQueueSystem().waitAll();
-			m_buffers[BufferType::MainCamera] = Buffer(sizeof(camera_buffer), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-
-			camera_buffer.last_view_projection = Main_Camera_.view_projection;
-		}
-		else
-		{
-			camera_buffer.last_view_projection = reinterpret_cast<decltype(camera_buffer) *>(m_buffers[BufferType::MainCamera].map())->view_projection;
-		}
-		camera_buffer.position        = Main_Camera_.position;
-		camera_buffer.view_projection = Main_Camera_.view_projection;
-		for (uint32_t i = 0; i < 6; i++)
-		{
-			const auto &plane        = Main_Camera_.frustum.planes[i];
-			camera_buffer.frustum[i] = glm::vec4(plane.normal, plane.constant);
-		}
-		std::memcpy(m_buffers[BufferType::MainCamera].map(), &camera_buffer, sizeof(camera_buffer));
-		m_buffers[BufferType::MainCamera].unmap();
-	}
-
-	GraphicsContext::instance()->getProfiler().endSample("Camera Update original");
 }
 
 void Renderer::updateInstanceBuffer()
@@ -365,13 +330,13 @@ void Renderer::updateImages()
 
 void Renderer::createBuffers()
 {
-	m_buffers[BufferType::MainCamera]       = Buffer(1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	m_buffers[BufferType::Material]         = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	m_buffers[BufferType::Transform]        = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	m_buffers[BufferType::IndirectCommand]  = Buffer(1, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	m_buffers[BufferType::BoundingBox]      = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	m_buffers[BufferType::Meshlet]          = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	m_buffers[BufferType::Vertex]           = Buffer(0, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-	m_buffers[BufferType::Index]            = Buffer(0, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	//m_buffers[BufferType::MainCamera]      = Buffer(1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	m_buffers[BufferType::Material]        = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	m_buffers[BufferType::Transform]       = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	m_buffers[BufferType::IndirectCommand] = Buffer(1, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	m_buffers[BufferType::BoundingBox]     = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	m_buffers[BufferType::Meshlet]         = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	m_buffers[BufferType::Vertex]          = Buffer(0, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	m_buffers[BufferType::Index]           = Buffer(0, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 }
 }        // namespace Ilum

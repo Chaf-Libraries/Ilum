@@ -224,7 +224,7 @@ void serialize_entity(YAML::Emitter &emitter, const entt::entity entity)
 
 void serialize_main_camera(YAML::Emitter &emitter)
 {
-	emitter << YAML::BeginMap;
+	/*emitter << YAML::BeginMap;
 	const auto &main_camera = Renderer::instance()->Main_Camera_;
 	emitter << YAML::Key << "type" << YAML::Value << static_cast<uint32_t>(main_camera.type);
 	emitter << YAML::Key << "aspect" << YAML::Value << main_camera.aspect;
@@ -236,7 +236,7 @@ void serialize_main_camera(YAML::Emitter &emitter)
 	emitter << YAML::Key << "view" << YAML::Value << main_camera.view;
 	emitter << YAML::Key << "projection" << YAML::Value << main_camera.projection;
 	emitter << YAML::Key << "view_projection" << YAML::Value << main_camera.view_projection;
-	emitter << YAML::EndMap;
+	emitter << YAML::EndMap;*/
 }
 
 void serialize_color_correction(YAML::Emitter &emitter)
@@ -259,13 +259,13 @@ void serialize_bloom(YAML::Emitter &emitter)
 
 void deserialize_main_camera(const YAML::Node &data)
 {
-	Renderer::instance()->Main_Camera_.type       = static_cast<Camera::Type>(data["type"].as<uint32_t>());
-	Renderer::instance()->Main_Camera_.fov        = data["fov"].as<float>();
-	Renderer::instance()->Main_Camera_.far_plane  = data["far_plane"].as<float>();
-	Renderer::instance()->Main_Camera_.near_plane = data["near_plane"].as<float>();
-	Renderer::instance()->Main_Camera_.forward    = data["forward"].as<glm::vec3>();
-	Renderer::instance()->Main_Camera_.position   = data["position"].as<glm::vec3>();
-	Renderer::instance()->Main_Camera_.update     = true;
+	//Renderer::instance()->Main_Camera_.type       = static_cast<Camera::Type>(data["type"].as<uint32_t>());
+	//Renderer::instance()->Main_Camera_.fov        = data["fov"].as<float>();
+	//Renderer::instance()->Main_Camera_.far_plane  = data["far_plane"].as<float>();
+	//Renderer::instance()->Main_Camera_.near_plane = data["near_plane"].as<float>();
+	//Renderer::instance()->Main_Camera_.forward    = data["forward"].as<glm::vec3>();
+	//Renderer::instance()->Main_Camera_.position   = data["position"].as<glm::vec3>();
+	//Renderer::instance()->Main_Camera_.update     = true;
 }
 
 void deserialize_color_correction(const YAML::Node &data)
