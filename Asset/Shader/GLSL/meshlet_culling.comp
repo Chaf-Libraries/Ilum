@@ -183,11 +183,6 @@ bool checkOcclusion(PerMeshletData meshlet)
     float width = (aabb.z - aabb.x) * cullData.zbuffer_width;
     float height = (aabb.w - aabb.y) * cullData.zbuffer_height;
 
-    if(width * height < 1.0)
-    {
-        return false;
-    }
-
     float mip_level = floor(log2(max(width, height)));
 
     vec2 uv = (aabb.xy + aabb.zw) * 0.5;

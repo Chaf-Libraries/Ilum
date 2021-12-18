@@ -44,21 +44,41 @@ __pragma(warning(push, 0))
 
         namespace Ilum::panel
 {
-	inline void drawLine(const ImVec2& p1, const ImVec2& p2, const ImVec2& offset, float width, float height)
+	inline void draw_line(ImDrawList * draw_list, const glm::vec3 &x1, const glm::vec3 &x2, const ImVec2 &offset, float width, float height, ImColor color, float line_width)
 	{
-		if ((p1.x < 0.f && p2.x < 0.f) || (p1.y< 0.f && p2.y < 0.f) || (p1.x>width && p2.x>width) || (p1.y>height && p2.y>height))
+		if (x1.z < 0.f && x2.z < 0.f)
 		{
 			return;
 		}
 
-		if (p1.x>0.f&&p2.x>0.f &&p1.y>0.f)
+		if (x1.z < 0.f && x1.x > offset.x && x1.x < offset.x + width && x1.y > offset.y && x1.y < offset.y + height)
 		{
-		
+			return;
 		}
+		if (x2.z < 0.f && x2.x > offset.x && x2.x < offset.x + width && x2.y > offset.y && x2.y < offset.y + height)
+		{
+			return;
+		}
+
+		ImVec2 p1 = ImVec2(x1.x, x1.y);
+		ImVec2 p2 = ImVec2(x2.x, x2.y);
+
+		if (x1.y < offset.y)
+		{
+			p1.y = offset.y;
+			p1.x = (x2.x - x1.x) / (x2.y - x1.y) * (p1.y - x1.y) + x1.x;
+		}
+		if (x2.y < offset.y)
+		{
+			p2.y = offset.y;
+			p2.x = (x2.x - x1.x) / (x2.y - x1.y) * (p2.y - x1.y) + x1.x;
+		}
+
+		draw_list->AddLine(p1, p2, color, line_width);
 	}
 
 	template <typename T>
-	inline void drawGizmo(const ImVec2 &offset, const Image &icon, bool enable)
+	inline void draw_gizmo(const ImVec2 &offset, const Image &icon, bool enable)
 	{
 		if (!enable || !Renderer::instance()->hasMainCamera())
 		{
@@ -80,8 +100,8 @@ __pragma(warning(push, 0))
 			glm::decompose(trans.world_transform, scale, rotation, position, skew, perspective);
 
 			cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
-			                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
-			                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
+                                            static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
+                                            static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
 
 			if (Renderer::instance()->Main_Camera == entity || !main_camera->frustum.isInside(position))
 			{
@@ -103,7 +123,7 @@ __pragma(warning(push, 0))
 		}
 	}
 
-	inline void drawBoundingBoxGizmo(const ImVec2 &offset, bool enable)
+	inline void draw_boundingbox_gizmo(const ImVec2 &offset, bool enable)
 	{
 		if (!enable || !Renderer::instance()->hasMainCamera() || Renderer::instance()->Main_Camera == Editor::instance()->getSelect())
 		{
@@ -116,8 +136,8 @@ __pragma(warning(push, 0))
 			const auto &trans         = Editor::instance()->getSelect().getComponent<cmpt::Transform>();
 
 			cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
-			                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
-			                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
+                                            static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
+                                            static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
 
 			if (!Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model))
 			{
@@ -132,42 +152,42 @@ __pragma(warning(push, 0))
 			}
 
 			std::array<glm::vec3, 8> cube_vertex = {
-			    bbox.min_,
-			    glm::vec3(bbox.min_.x, bbox.min_.y, bbox.max_.z),
+			    glm::vec3(bbox.min_.x, bbox.min_.y, bbox.min_.z),
 			    glm::vec3(bbox.min_.x, bbox.max_.y, bbox.min_.z),
-			    glm::vec3(bbox.min_.x, bbox.max_.y, bbox.max_.z),
-			    glm::vec3(bbox.max_.x, bbox.min_.y, bbox.min_.z),
-			    glm::vec3(bbox.max_.x, bbox.min_.y, bbox.max_.z),
 			    glm::vec3(bbox.max_.x, bbox.max_.y, bbox.min_.z),
-			    bbox.max_,
+			    glm::vec3(bbox.max_.x, bbox.min_.y, bbox.min_.z),
+			    glm::vec3(bbox.min_.x, bbox.min_.y, bbox.max_.z),
+			    glm::vec3(bbox.min_.x, bbox.max_.y, bbox.max_.z),
+			    glm::vec3(bbox.max_.x, bbox.max_.y, bbox.max_.z),
+			    glm::vec3(bbox.max_.x, bbox.min_.y, bbox.max_.z),
 			};
 
-			std::array<ImVec2, 8> cube_screen_vertex;
+			std::array<glm::vec3, 8> cube_screen_vertex;
 
 			for (uint32_t i = 0; i < 8; i++)
 			{
-				glm::vec2 screen_pos = main_camera->world2Screen(cube_vertex[i], {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x), static_cast<float>(offset.y)});
+				glm::vec3 screen_pos = main_camera->world2Screen(cube_vertex[i], {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x), static_cast<float>(offset.y)});
 
-				cube_screen_vertex[i] = ImVec2(screen_pos.x, screen_pos.y) + ImGui::GetWindowPos();
+				cube_screen_vertex[i] = glm::vec3(screen_pos.x + ImGui::GetWindowPos().x, screen_pos.y + ImGui::GetWindowPos().y, screen_pos.z);
 			}
 
 			auto *draw_list = ImGui::GetWindowDrawList();
-			draw_list->AddLine(cube_screen_vertex[0], cube_screen_vertex[1], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(cube_screen_vertex[0], cube_screen_vertex[2], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(cube_screen_vertex[1], cube_screen_vertex[3], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(cube_screen_vertex[2], cube_screen_vertex[3], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(cube_screen_vertex[4], cube_screen_vertex[5], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(cube_screen_vertex[4], cube_screen_vertex[6], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(cube_screen_vertex[5], cube_screen_vertex[7], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(cube_screen_vertex[6], cube_screen_vertex[7], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(cube_screen_vertex[0], cube_screen_vertex[4], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(cube_screen_vertex[1], cube_screen_vertex[5], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(cube_screen_vertex[2], cube_screen_vertex[6], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(cube_screen_vertex[3], cube_screen_vertex[7], ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, cube_screen_vertex[0], cube_screen_vertex[1], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, cube_screen_vertex[1], cube_screen_vertex[2], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, cube_screen_vertex[2], cube_screen_vertex[3], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, cube_screen_vertex[3], cube_screen_vertex[0], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, cube_screen_vertex[4], cube_screen_vertex[5], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, cube_screen_vertex[5], cube_screen_vertex[6], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, cube_screen_vertex[6], cube_screen_vertex[7], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, cube_screen_vertex[7], cube_screen_vertex[4], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, cube_screen_vertex[0], cube_screen_vertex[4], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, cube_screen_vertex[1], cube_screen_vertex[5], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, cube_screen_vertex[2], cube_screen_vertex[6], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, cube_screen_vertex[3], cube_screen_vertex[7], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
 		}
 	}
 
-	inline void drawFrustumGizmo(const ImVec2 &offset, bool enable)
+	inline void draw_frustum_gizmo(const ImVec2 &offset, bool enable)
 	{
 		if (!enable || !Renderer::instance()->hasMainCamera() || Renderer::instance()->Main_Camera == Editor::instance()->getSelect())
 		{
@@ -177,12 +197,12 @@ __pragma(warning(push, 0))
 		if (Editor::instance()->getSelect() && (Editor::instance()->getSelect().hasComponent<cmpt::PerspectiveCamera>() || Editor::instance()->getSelect().hasComponent<cmpt::OrthographicCamera>()))
 		{
 			cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
-			                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
-			                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
+                                            static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
+                                            static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
 
 			cmpt::Camera *camera = Editor::instance()->getSelect().hasComponent<cmpt::PerspectiveCamera>() ?
-			                           static_cast<cmpt::Camera *>(&Editor::instance()->getSelect().getComponent<cmpt::PerspectiveCamera>()) :
-			                           static_cast<cmpt::Camera *>(&Editor::instance()->getSelect().getComponent<cmpt::OrthographicCamera>());
+                                       static_cast<cmpt::Camera *>(&Editor::instance()->getSelect().getComponent<cmpt::PerspectiveCamera>()) :
+                                       static_cast<cmpt::Camera *>(&Editor::instance()->getSelect().getComponent<cmpt::OrthographicCamera>());
 
 			const auto &trans = Editor::instance()->getSelect().getComponent<cmpt::Transform>();
 
@@ -208,18 +228,18 @@ __pragma(warning(push, 0))
 
 			if (Editor::instance()->getSelect().hasComponent<cmpt::PerspectiveCamera>())
 			{
-				camera->view                  = glm::inverse(trans.world_transform);
+				camera->view                                = glm::inverse(trans.world_transform);
 				cmpt::PerspectiveCamera *perspective_camera = static_cast<cmpt::PerspectiveCamera *>(camera);
 				camera->projection                          = glm::perspective(glm::radians(perspective_camera->fov), perspective_camera->aspect, perspective_camera->near_plane, perspective_camera->far_plane);
-				camera->view_projection       = camera->projection * camera->view;
+				camera->view_projection                     = camera->projection * camera->view;
 			}
 			else if (Editor::instance()->getSelect().hasComponent<cmpt::OrthographicCamera>())
 			{
-				camera->view                 = glm::inverse(trans.world_transform);
+				camera->view                           = glm::inverse(trans.world_transform);
 				cmpt::OrthographicCamera *ortho_camera = static_cast<cmpt::OrthographicCamera *>(camera);
 
-				camera->projection      = glm::ortho(ortho_camera->left, ortho_camera->right, ortho_camera->bottom, ortho_camera->top, ortho_camera->near_plane, ortho_camera->far_plane                                             );
-				camera->view_projection       = camera->projection * camera->view;
+				camera->projection      = glm::ortho(ortho_camera->left, ortho_camera->right, ortho_camera->bottom, ortho_camera->top, ortho_camera->near_plane, ortho_camera->far_plane);
+				camera->view_projection = camera->projection * camera->view;
 			}
 
 			glm::mat4 inv = glm::inverse(camera->view_projection);
@@ -247,28 +267,29 @@ __pragma(warning(push, 0))
 				return;
 			}
 
-			std::array<ImVec2, 8> frustum_screen_vertex;
+			std::array<glm::vec3, 8> frustum_screen_vertex;
 
 			for (uint32_t i = 0; i < 8; i++)
 			{
-				glm::vec2 screen_pos = main_camera->world2Screen(frustum_vertex[i], {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x), static_cast<float>(offset.y)});
+				glm::vec3 screen_pos = main_camera->world2Screen(frustum_vertex[i], {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x), static_cast<float>(offset.y)});
 
-				frustum_screen_vertex[i] = ImVec2(screen_pos.x, screen_pos.y) + ImGui::GetWindowPos();
+				frustum_screen_vertex[i] = glm::vec3(screen_pos.x + ImGui::GetWindowPos().x, screen_pos.y + ImGui::GetWindowPos().y, screen_pos.z);
 			}
 
 			auto *draw_list = ImGui::GetWindowDrawList();
-			draw_list->AddLine(frustum_screen_vertex[0], frustum_screen_vertex[1], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(frustum_screen_vertex[1], frustum_screen_vertex[2], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(frustum_screen_vertex[2], frustum_screen_vertex[3], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(frustum_screen_vertex[3], frustum_screen_vertex[0], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(frustum_screen_vertex[4], frustum_screen_vertex[5], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(frustum_screen_vertex[5], frustum_screen_vertex[6], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(frustum_screen_vertex[6], frustum_screen_vertex[7], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(frustum_screen_vertex[7], frustum_screen_vertex[4], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(frustum_screen_vertex[0], frustum_screen_vertex[4], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(frustum_screen_vertex[1], frustum_screen_vertex[5], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(frustum_screen_vertex[2], frustum_screen_vertex[6], ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_list->AddLine(frustum_screen_vertex[3], frustum_screen_vertex[7], ImColor(255.f, 0.f, 0.f), 1.f);
+
+			draw_line(draw_list, frustum_screen_vertex[0], frustum_screen_vertex[1], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, frustum_screen_vertex[1], frustum_screen_vertex[2], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, frustum_screen_vertex[2], frustum_screen_vertex[3], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, frustum_screen_vertex[3], frustum_screen_vertex[0], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, frustum_screen_vertex[4], frustum_screen_vertex[5], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, frustum_screen_vertex[5], frustum_screen_vertex[6], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, frustum_screen_vertex[6], frustum_screen_vertex[7], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, frustum_screen_vertex[7], frustum_screen_vertex[4], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, frustum_screen_vertex[0], frustum_screen_vertex[4], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, frustum_screen_vertex[1], frustum_screen_vertex[5], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, frustum_screen_vertex[2], frustum_screen_vertex[6], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, frustum_screen_vertex[3], frustum_screen_vertex[7], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
 		}
 	}
 
@@ -305,17 +326,14 @@ __pragma(warning(push, 0))
 		ImGui::Begin("SceneView", &active, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
 		// Acquire main camera
-		auto &camera_entity = Renderer::instance()->Main_Camera;
-		if (!camera_entity || (!camera_entity.hasComponent<cmpt::PerspectiveCamera>() && !camera_entity.hasComponent<cmpt::OrthographicCamera>()))
+		auto &        camera_entity = Renderer::instance()->Main_Camera;
+		cmpt::Camera *main_camera   = nullptr;
+		if (Renderer::instance()->hasMainCamera())
 		{
-			ImGui::End();
-			ImGui::PopStyleVar();
-			return;
+			main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
+                              static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
+                              static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
 		}
-
-		cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
-		                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
-		                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
 
 		updateMainCamera(delta_time);
 
@@ -335,9 +353,9 @@ __pragma(warning(push, 0))
 
 		ImGuizmo::SetRect(scene_view_position.x, scene_view_position.y, scene_view_size.x, scene_view_size.y);
 
-		if (m_gizmo["grid"])
+		if (m_gizmo["grid"] && main_camera)
 		{
-			ImGuizmo::DrawGrid(glm::value_ptr(main_camera->view), glm::value_ptr(main_camera->projection), glm::value_ptr(glm::mat4(1.0)), 100.f);
+			ImGuizmo::DrawGrid(glm::value_ptr(main_camera->view), glm::value_ptr(main_camera->projection), glm::value_ptr(glm::mat4(1.0)), 1000.f);
 		}
 
 		// Display main scene
@@ -371,6 +389,13 @@ __pragma(warning(push, 0))
 			ImGui::EndDragDropTarget();
 		}
 
+		if (!main_camera)
+		{
+			ImGui::End();
+			ImGui::PopStyleVar();
+			return;
+		}
+
 		// Guizmo operation
 		auto view = main_camera->view;
 		ImGuizmo::ViewManipulate(
@@ -393,7 +418,7 @@ __pragma(warning(push, 0))
 				main_camera->view = view;
 
 				transform.world_transform = glm::inverse(view);
-				transform.local_transform = transform.world_transform * glm::inverse(related_transform);
+				transform.local_transform = glm::inverse(related_transform) * transform.world_transform;
 
 				ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(transform.local_transform),
 				                                      glm::value_ptr(transform.translation),
@@ -469,13 +494,13 @@ __pragma(warning(push, 0))
 			}
 		}
 
-		drawGizmo<cmpt::DirectionalLight>(offset, m_icons["light"], m_gizmo["light"]);
-		drawGizmo<cmpt::SpotLight>(offset, m_icons["light"], m_gizmo["light"]);
-		drawGizmo<cmpt::PointLight>(offset, m_icons["light"], m_gizmo["light"]);
-		drawGizmo<cmpt::PerspectiveCamera>(offset, m_icons["camera"], m_gizmo["camera"]);
-		drawGizmo<cmpt::OrthographicCamera>(offset, m_icons["camera"], m_gizmo["camera"]);
-		drawFrustumGizmo(offset, m_gizmo["frustum"]);
-		drawBoundingBoxGizmo(offset, m_gizmo["aabb"]);
+		draw_gizmo<cmpt::DirectionalLight>(offset, m_icons["light"], m_gizmo["light"]);
+		draw_gizmo<cmpt::SpotLight>(offset, m_icons["light"], m_gizmo["light"]);
+		draw_gizmo<cmpt::PointLight>(offset, m_icons["light"], m_gizmo["light"]);
+		draw_gizmo<cmpt::PerspectiveCamera>(offset, m_icons["camera"], m_gizmo["camera"]);
+		draw_gizmo<cmpt::OrthographicCamera>(offset, m_icons["camera"], m_gizmo["camera"]);
+		draw_frustum_gizmo(offset, m_gizmo["frustum"]);
+		draw_boundingbox_gizmo(offset, m_gizmo["aabb"]);
 
 		if (Editor::instance()->getSelect())
 		{
@@ -528,19 +553,24 @@ __pragma(warning(push, 0))
 			Input::instance()->setMousePosition(m_last_position.first, m_last_position.second);
 
 			cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
-			                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
-			                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
+                                            static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
+                                            static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
 
 			auto &camera_transform = Renderer::instance()->Main_Camera.getComponent<cmpt::Transform>();
 
 			float yaw   = std::atan2f(-main_camera->view[2][2], -main_camera->view[0][2]);
-			float pitch = std::asinf(-main_camera->view[1][2]);
+			float pitch = std::asinf(-glm::clamp(main_camera->view[1][2], -1.f, 1.f));
 
-			yaw += m_camera_sensitivity * delta_time * static_cast<float>(delta_x);
-			pitch -= m_camera_sensitivity * delta_time * static_cast<float>(delta_y);
-
-			camera_transform.rotation.x = glm::degrees(pitch);
-			camera_transform.rotation.y = -glm::degrees(yaw) - 90.f;
+			if (delta_x != 0.f)
+			{
+				yaw += m_camera_sensitity * delta_time * static_cast<float>(delta_x);
+				camera_transform.rotation.y = -glm::degrees(yaw) - 90.f;
+			}
+			if (delta_y != 0.f)
+			{
+				pitch -= m_camera_sensitity * delta_time * static_cast<float>(delta_y);
+				camera_transform.rotation.x = glm::degrees(pitch);
+			}
 
 			glm::vec3 forward;
 			forward.x = std::cosf(pitch) * std::cosf(yaw);
@@ -746,6 +776,13 @@ __pragma(warning(push, 0))
 				}
 			}
 		}
+
+		ImGui::SameLine();
+		ImGui::PushItemWidth(80.f);
+		ImGui::DragFloat("Camera speed", &m_camera_speed, 0.01f, 0.f, std::numeric_limits<float>::max());
+		ImGui::SameLine();
+		ImGui::DragFloat("Camera sensitity", &m_camera_sensitity, 0.01f, 0.f, std::numeric_limits<float>::max());
+		ImGui::PopItemWidth();
 
 		ImGui::PopStyleColor();
 		ImGui::PopStyleVar();

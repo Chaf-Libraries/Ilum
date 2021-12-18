@@ -29,6 +29,8 @@ void CameraUpdate::run()
 		if (perspective_cameras.size() != 0)
 		{
 			camera_entity = Entity(perspective_cameras.front());
+			auto extent      = Renderer::instance()->getRenderTargetExtent();
+			camera_entity.getComponent<cmpt::PerspectiveCamera>().aspect = static_cast<float>(extent.width) / static_cast<float>(extent.height);
 		}
 		else
 		{

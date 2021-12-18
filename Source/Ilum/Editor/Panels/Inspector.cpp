@@ -2,12 +2,12 @@
 
 #include "Editor/Editor.hpp"
 
+#include "Scene/Component/Camera.hpp"
 #include "Scene/Component/Hierarchy.hpp"
 #include "Scene/Component/Light.hpp"
 #include "Scene/Component/Renderable.hpp"
 #include "Scene/Component/Tag.hpp"
 #include "Scene/Component/Transform.hpp"
-#include "Scene/Component/Camera.hpp"
 
 #include "Geometry/Shape/Sphere.hpp"
 
@@ -551,25 +551,44 @@ inline void draw_component<cmpt::PointLight>(Entity entity)
 template <>
 inline void draw_component<cmpt::PerspectiveCamera>(Entity entity)
 {
-	draw_component<cmpt::PerspectiveCamera>("Perspective Camera", entity, [](cmpt::PerspectiveCamera &component) {
-
+	draw_component<cmpt::PerspectiveCamera>("Perspective Camera", entity, [entity](cmpt::PerspectiveCamera &component) {
 		ImGui::DragFloat("Aspect", &component.aspect, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 		ImGui::DragFloat("Fov", &component.fov, 0.01f, 0.f, 90.f, "%.3f");
 		ImGui::DragFloat("Near Plane", &component.near_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 		ImGui::DragFloat("Far Plane", &component.far_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+		bool select = entity == Renderer::instance()->Main_Camera;
+		if (ImGui::Checkbox("Main Camera", &select))
+		{
+			if (select)
+			{
+				Renderer::instance()->Main_Camera = entity;
+
+				auto extent      = Renderer::instance()->getRenderTargetExtent();
+				component.aspect = static_cast<float>(extent.width) / static_cast<float>(extent.height);
+			}
+			else
+			{
+				Renderer::instance()->Main_Camera = Entity();
+			}
+		}
 	});
 }
 
 template <>
 inline void draw_component<cmpt::OrthographicCamera>(Entity entity)
 {
-	draw_component<cmpt::OrthographicCamera>("Orthographic Camera", entity, [](cmpt::OrthographicCamera &component) {
+	draw_component<cmpt::OrthographicCamera>("Orthographic Camera", entity, [entity](cmpt::OrthographicCamera &component) {
 		ImGui::DragFloat("Left", &component.left, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f");
 		ImGui::DragFloat("Right", &component.right, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f");
 		ImGui::DragFloat("Bottom", &component.bottom, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f");
 		ImGui::DragFloat("Top", &component.top, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f");
 		ImGui::DragFloat("Near Plane", &component.near_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 		ImGui::DragFloat("Far Plane", &component.far_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+		bool select = entity == Renderer::instance()->Main_Camera;
+		if (ImGui::Checkbox("Main Camera", &select))
+		{
+			Renderer::instance()->Main_Camera = select ? entity : Entity();
+		}
 	});
 }
 
@@ -611,8 +630,8 @@ void Inspector::draw(float delta_time)
 	}
 	ImGui::PopItemWidth();
 
-	draw_component<cmpt::Transform, cmpt::Hierarchy, cmpt::MeshletRenderer, cmpt::MeshRenderer, 
-		cmpt::DirectionalLight, cmpt::PointLight, cmpt::SpotLight, cmpt::PerspectiveCamera, cmpt::OrthographicCamera>(entity);
+	draw_component<cmpt::Transform, cmpt::Hierarchy, cmpt::MeshletRenderer, cmpt::MeshRenderer,
+	               cmpt::DirectionalLight, cmpt::PointLight, cmpt::SpotLight, cmpt::PerspectiveCamera, cmpt::OrthographicCamera>(entity);
 
 	ImGui::End();
 }
