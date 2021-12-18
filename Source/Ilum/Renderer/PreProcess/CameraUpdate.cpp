@@ -55,10 +55,11 @@ void CameraUpdate::run()
 		auto &camera                 = camera_entity.getComponent<cmpt::PerspectiveCamera>();
 		camera.view                  = glm::inverse(transform.world_transform);
 		camera.projection            = glm::perspective(glm::radians(camera.fov), camera.aspect, camera.near_plane, camera.far_plane);
+		camera.view_projection       = camera.projection * camera.view;
 		camera.frustum               = geometry::Frustum(camera_data->view_projection);
 		camera.position              = transform.world_transform[3];
 		camera_data->position        = transform.world_transform[3];
-		camera_data->view_projection = camera.projection * camera.view;
+		camera_data->view_projection = camera.view_projection;
 		for (size_t i = 0; i < 6; i++)
 		{
 			camera_data->frustum[i] = glm::vec4(camera.frustum.planes[i].normal, camera.frustum.planes[i].constant);
@@ -68,11 +69,12 @@ void CameraUpdate::run()
 	{
 		auto &camera                 = camera_entity.getComponent<cmpt::OrthographicCamera>();
 		camera.view                  = glm::inverse(transform.world_transform);
-		camera.projection            = glm::ortho(camera.left, camera.right, camera.bottom, camera.top);
+		camera.projection            = glm::ortho(camera.left, camera.right, camera.bottom, camera.top, camera.near_plane, camera.far_plane);
+		camera.view_projection       = camera.projection * camera.view;
 		camera.frustum               = geometry::Frustum(camera_data->view_projection);
 		camera.position              = transform.world_transform[3];
 		camera_data->position        = transform.world_transform[3];
-		camera_data->view_projection = camera.projection * camera.view;
+		camera_data->view_projection = camera.view_projection;
 		for (size_t i = 0; i < 6; i++)
 		{
 			camera_data->frustum[i] = glm::vec4(camera.frustum.planes[i].normal, camera.frustum.planes[i].constant);

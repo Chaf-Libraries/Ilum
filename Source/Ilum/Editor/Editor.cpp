@@ -23,6 +23,7 @@
 
 #include "Scene/Component/Light.hpp"
 #include "Scene/Component/Renderable.hpp"
+#include "Scene/Component/Camera.hpp"
 #include "Scene/SceneSerializer.hpp"
 
 #include "ImFileDialog.h"
@@ -149,7 +150,25 @@ void Editor::onTick(float delta_time)
 				}
 				ImGui::EndMenu();
 			}
-			if (ImGui::BeginMenu("Model"))
+			if (ImGui::BeginMenu("Camera"))
+			{
+				if (ImGui::MenuItem("Perspective Camera"))
+				{
+					auto entity     = Scene::instance()->createEntity("Perspective Camera");
+					m_select_entity = entity;
+
+					entity.addComponent<cmpt::PerspectiveCamera>();
+				}
+				if (ImGui::MenuItem("Orthographic Light"))
+				{
+					auto entity     = Scene::instance()->createEntity("Orthographic Light");
+					m_select_entity = entity;
+
+					entity.addComponent<cmpt::OrthographicCamera>();
+				}
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("Shape"))
 			{
 				if (ImGui::MenuItem("Plane"))
 				{
