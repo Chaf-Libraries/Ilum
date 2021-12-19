@@ -11,32 +11,13 @@ const float infinity = 1. / 0.;
 
 struct PerInstanceData
 {
-	// Transform
 	mat4 world_transform;
 	mat4 pre_transform;
 
-	// Material
-	vec4 base_color;
-	vec3 emissive_color;
-	float metallic_factor;
+	vec3 bbox_min;
+	uint entity_id;
 
-	float roughness_factor;
-	float emissive_intensity;
-	uint albedo_map;
-	uint normal_map;
-
-	uint metallic_map;
-	uint roughness_map;
-	uint emissive_map;
-	uint ao_map;
-
-	vec3 min_;
-	float displacement_height;
-
-    vec3 max_;
-	uint displacement_map;
-
-    uint entity_id;
+	vec3 bbox_max;
 };
 
 struct PerMeshletData

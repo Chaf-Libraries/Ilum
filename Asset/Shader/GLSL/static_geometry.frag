@@ -21,12 +21,19 @@ layout(location = 7) out uint Entity_ID;
 
 struct PerInstanceData
 {
-	// Transform
 	mat4 world_transform;
 	mat4 pre_transform;
 
-	// Material
+	vec3 bbox_min;
+	uint entity_id;
+
+	vec3 bbox_max;
+};
+
+struct MaterialData
+{
 	vec4 base_color;
+
 	vec3 emissive_color;
 	float metallic_factor;
 
@@ -40,13 +47,8 @@ struct PerInstanceData
 	uint emissive_map;
 	uint ao_map;
 
-	vec3 min_;
-	float displacement_height;
-
-    vec3 max_;
 	uint displacement_map;
-
-    uint entity_id;
+	float displacement_height;
 };
 
 layout (set = 0, binding = 1) uniform sampler2D textureArray[];
@@ -55,6 +57,12 @@ layout (set = 0, binding = 2) buffer PerInstanceBuffer
 {
     PerInstanceData instance_data[];
 };
+
+layout (set = 0, binding = 3) buffer MaterialBuffer
+{
+    MaterialData material_data[];
+};
+
 
 float rand(vec2 co){
     return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
@@ -69,30 +77,30 @@ void main() {
     mat3 TBN = mat3(T, B, N);
 
     // Albedo G-Buffer
-    Albedo = instance_data[inIndex].albedo_map < 1024?
-        texture(textureArray[nonuniformEXT(instance_data[inIndex].albedo_map)], inUV) * instance_data[inIndex].base_color : 
-        instance_data[inIndex].base_color;
+    Albedo = material_data[inIndex].albedo_map < 1024?
+        texture(textureArray[nonuniformEXT(material_data[inIndex].albedo_map)], inUV) * material_data[inIndex].base_color : 
+        material_data[inIndex].base_color;
         
     // Metallic G-Buffer
-    Metallic_Roughness_AO.r = instance_data[inIndex].metallic_map < 1024?
-        texture(textureArray[nonuniformEXT(instance_data[inIndex].metallic_map)], inUV).r * instance_data[inIndex].metallic_factor : 
-        instance_data[inIndex].metallic_factor;
+    Metallic_Roughness_AO.r = material_data[inIndex].metallic_map < 1024?
+        texture(textureArray[nonuniformEXT(material_data[inIndex].metallic_map)], inUV).r * material_data[inIndex].metallic_factor : 
+        material_data[inIndex].metallic_factor;
 
     // Roughness G-Buffer
-    Metallic_Roughness_AO.g = instance_data[inIndex].roughness_map < 1024?
-        texture(textureArray[nonuniformEXT(instance_data[inIndex].roughness_map)], inUV).g * instance_data[inIndex].roughness_factor : 
-        instance_data[inIndex].roughness_factor;
+    Metallic_Roughness_AO.g = material_data[inIndex].roughness_map < 1024?
+        texture(textureArray[nonuniformEXT(material_data[inIndex].roughness_map)], inUV).g * material_data[inIndex].roughness_factor : 
+        material_data[inIndex].roughness_factor;
 
-    Normal =  instance_data[inIndex].normal_map < 1024?
-        vec4(TBN * normalize(texture(textureArray[nonuniformEXT(instance_data[inIndex].normal_map)], inUV).xyz * 2.0 - vec3(1.0)), 1.0) : 
+    Normal =  material_data[inIndex].normal_map < 1024?
+        vec4(TBN * normalize(texture(textureArray[nonuniformEXT(material_data[inIndex].normal_map)], inUV).xyz * 2.0 - vec3(1.0)), 1.0) : 
         vec4(N, 1.0);    
 
-    Emissive = instance_data[inIndex].emissive_map < 1024?
-        vec4(texture(textureArray[nonuniformEXT(instance_data[inIndex].emissive_map)], inUV).rgb * instance_data[inIndex].emissive_color * instance_data[inIndex].emissive_intensity, 1.0) : 
-        vec4(instance_data[inIndex].emissive_color * instance_data[inIndex].emissive_intensity, 1.0);
+    Emissive = material_data[inIndex].emissive_map < 1024?
+        vec4(texture(textureArray[nonuniformEXT(material_data[inIndex].emissive_map)], inUV).rgb * material_data[inIndex].emissive_color * material_data[inIndex].emissive_intensity, 1.0) : 
+        vec4(material_data[inIndex].emissive_color * material_data[inIndex].emissive_intensity, 1.0);
 
-    Metallic_Roughness_AO.b = instance_data[inIndex].ao_map < 1024?
-        texture(textureArray[nonuniformEXT(instance_data[inIndex].ao_map)], inUV).r : 
+    Metallic_Roughness_AO.b = material_data[inIndex].ao_map < 1024?
+        texture(textureArray[nonuniformEXT(material_data[inIndex].ao_map)], inUV).r : 
         0.0;
     
     Metallic_Roughness_AO.w=1.0;

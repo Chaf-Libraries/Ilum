@@ -19,12 +19,19 @@ layout(location = 6) out uint outMeshletIndex;
 
 struct PerInstanceData
 {
-	// Transform
 	mat4 world_transform;
 	mat4 pre_transform;
 
-	// Material
+	vec3 bbox_min;
+	uint entity_id;
+
+	vec3 bbox_max;
+};
+
+struct MaterialData
+{
 	vec4 base_color;
+
 	vec3 emissive_color;
 	float metallic_factor;
 
@@ -38,13 +45,8 @@ struct PerInstanceData
 	uint emissive_map;
 	uint ao_map;
 
-	vec3 min_;
-	float displacement_height;
-
-    vec3 max_;
 	uint displacement_map;
-
-    uint entity_id;
+	float displacement_height;
 };
 
 struct PerMeshletData
@@ -79,12 +81,17 @@ layout (set = 0, binding = 2) buffer PerInstanceBuffer
     PerInstanceData instance_data[];
 };
 
-layout (set = 0, binding = 3) buffer PerMeshletBuffer
+layout (set = 0, binding = 3) buffer MaterialBuffer
+{
+    MaterialData material_data[];
+};
+
+layout (set = 0, binding = 4) buffer PerMeshletBuffer
 {
     PerMeshletData meshlet_data[];
 };
 
-layout (set = 0, binding = 4) buffer DrawBuffer
+layout (set = 0, binding = 5) buffer DrawBuffer
 {
     uint draw_data[];
 };
@@ -95,8 +102,8 @@ void main() {
     outIndex = draw_data[gl_DrawIDARB];
     outMeshletIndex = gl_DrawIDARB;
 
-    float height = instance_data[outIndex].displacement_map < 1024?
-        max(textureLod(textureArray[nonuniformEXT(instance_data[outIndex].displacement_map)], inUV, 0.0).r, 0.0) * instance_data[outIndex].displacement_height:
+    float height = material_data[outIndex].displacement_map < 1024?
+        max(textureLod(textureArray[nonuniformEXT(material_data[outIndex].displacement_map)], inUV, 0.0).r, 0.0) * material_data[outIndex].displacement_height:
         0.0;
     
     mat4 trans = instance_data[outIndex].world_transform * instance_data[outIndex].pre_transform;
@@ -109,8 +116,8 @@ void main() {
 
     outPos = trans * vec4(inPos, 1.0);
 
-    outPos.xyz += instance_data[outIndex].displacement_map < 1024?
-        normalize(outNormal) * (max(textureLod(textureArray[nonuniformEXT(instance_data[outIndex].displacement_map)], inUV, 0.0).r, 0.0) * instance_data[outIndex].displacement_height):
+    outPos.xyz += material_data[outIndex].displacement_map < 1024?
+        normalize(outNormal) * (max(textureLod(textureArray[nonuniformEXT(material_data[outIndex].displacement_map)], inUV, 0.0).r, 0.0) * material_data[outIndex].displacement_height):
         vec3(0.0);
 
     gl_Position = main_camera.view_projection * outPos;

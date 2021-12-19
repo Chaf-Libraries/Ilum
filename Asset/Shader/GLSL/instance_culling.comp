@@ -11,32 +11,13 @@ const float infinity = 1. / 0.;
 
 struct PerInstanceData
 {
-	// Transform
 	mat4 world_transform;
 	mat4 pre_transform;
 
-	// Material
-	vec4 base_color;
-	vec3 emissive_color;
-	float metallic_factor;
+	vec3 bbox_min;
+	uint entity_id;
 
-	float roughness_factor;
-	float emissive_intensity;
-	uint albedo_map;
-	uint normal_map;
-
-	uint metallic_map;
-	uint roughness_map;
-	uint emissive_map;
-	uint ao_map;
-
-	vec3 min_;
-	float displacement_height;
-
-    vec3 max_;
-	uint displacement_map;
-
-    uint entity_id;
+	vec3 bbox_max;
 };
 
 layout (binding = 0) buffer PerInstanceBuffer
@@ -101,8 +82,8 @@ bool checkSphere(vec3 pos, float radius)
 
 bool checkFrustum(PerInstanceData instance)
 {
-    vec3 min_val = instance.min_;
-    vec3 max_val = instance.max_;
+    vec3 min_val = instance.bbox_min;
+    vec3 max_val = instance.bbox_max;
 
 	vec3 pos = (min_val + max_val)/2.0;
 	float radius = length(min_val - max_val)/2.0;
@@ -159,14 +140,14 @@ void main()
 
     vec3 new_min_, new_max_, xa, xb, ya, yb, za, zb;
 
-	xa = trans[0].xyz * instance.min_[0];
-	xb = trans[0].xyz * instance.max_[0];
+	xa = trans[0].xyz * instance.bbox_min[0];
+	xb = trans[0].xyz * instance.bbox_max[0];
 
-	ya = trans[1].xyz * instance.min_[1];
-	yb = trans[1].xyz * instance.max_[1];
+	ya = trans[1].xyz * instance.bbox_min[1];
+	yb = trans[1].xyz * instance.bbox_max[1];
 
-	za = trans[2].xyz * instance.min_[2];
-	zb = trans[2].xyz * instance.max_[2];
+	za = trans[2].xyz * instance.bbox_min[2];
+	zb = trans[2].xyz * instance.bbox_max[2];
 
 	new_min_ = trans[3].xyz;
 	new_min_ += min(xa, xb);
@@ -178,8 +159,8 @@ void main()
 	new_max_ += max(ya, yb);
 	new_max_ += max(za, zb);
 
-    instance.min_ = new_min_;
-    instance.max_ = new_max_;
+    instance.bbox_min = new_min_;
+    instance.bbox_max = new_max_;
 
     bool visible = true;
 
