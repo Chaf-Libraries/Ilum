@@ -31,23 +31,23 @@ void MeshletCullingPass::setupPipeline(PipelineState &state)
 
 void MeshletCullingPass::resolveResources(ResolveState &resolve)
 {
-	resolve.resolve("IndirectDrawCommand", Renderer::instance()->Render_Queue.Command_Buffer);
-	resolve.resolve("PerInstanceData", Renderer::instance()->Render_Queue.Instance_Buffer);
-	resolve.resolve("PerMeshletData", Renderer::instance()->Render_Queue.Meshlet_Buffer);
-	resolve.resolve("DrawInfo", Renderer::instance()->Render_Queue.Draw_Buffer);
+	resolve.resolve("IndirectDrawCommand", Renderer::instance()->Render_Buffer.Command_Buffer);
+	resolve.resolve("PerInstanceData", Renderer::instance()->Render_Buffer.Instance_Buffer);
+	resolve.resolve("PerMeshletData", Renderer::instance()->Render_Buffer.Meshlet_Buffer);
+	resolve.resolve("DrawInfo", Renderer::instance()->Render_Buffer.Draw_Buffer);
 	resolve.resolve("Camera", Renderer::instance()->Render_Buffer.Camera_Buffer);
 	resolve.resolve("hiz - buffer", *Renderer::instance()->Last_Frame.hiz_buffer);
-	resolve.resolve("count_buffer", Renderer::instance()->Render_Queue.Count_Buffer);
-	resolve.resolve("culling_buffer", Renderer::instance()->Render_Queue.Culling_Buffer);
-	resolve.resolve("InstanceVisibility", Renderer::instance()->Render_Queue.Instance_Visibility_Buffer);
+	resolve.resolve("count_buffer", Renderer::instance()->Render_Buffer.Count_Buffer);
+	resolve.resolve("culling_buffer", Renderer::instance()->Render_Buffer.Culling_Buffer);
+	resolve.resolve("InstanceVisibility", Renderer::instance()->Render_Buffer.Instance_Visibility_Buffer);
 }
 
 void MeshletCullingPass::render(RenderPassState &state)
 {
 	{
-		std::memcpy(&Renderer::instance()->Meshlet_Visible, Renderer::instance()->Render_Queue.Count_Buffer.map(), sizeof(uint32_t));
-		std::memcpy(&Renderer::instance()->Instance_Visible, reinterpret_cast<uint32_t *>(Renderer::instance()->Render_Queue.Count_Buffer.map()) + 1, sizeof(uint32_t));
-		Renderer::instance()->Render_Queue.Count_Buffer.unmap();
+		std::memcpy(&Renderer::instance()->Render_Stats.meshlet_visible, Renderer::instance()->Render_Buffer.Count_Buffer.map(), sizeof(uint32_t));
+		std::memcpy(&Renderer::instance()->Render_Stats.instance_visible, reinterpret_cast<uint32_t *>(Renderer::instance()->Render_Buffer.Count_Buffer.map()) + 1, sizeof(uint32_t));
+		Renderer::instance()->Render_Buffer.Count_Buffer.unmap();
 	}
 
 
@@ -60,6 +60,6 @@ void MeshletCullingPass::render(RenderPassState &state)
 		vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
 	}
 
-	vkCmdDispatch(cmd_buffer, (Renderer::instance()->Meshlet_Count + 64 - 1) / 64, 1, 1);
+	vkCmdDispatch(cmd_buffer, (Renderer::instance()->Render_Stats.meshlet_count + 64 - 1) / 64, 1, 1);
 }
 }        // namespace Ilum::pass

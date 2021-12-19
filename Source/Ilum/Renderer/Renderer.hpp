@@ -16,8 +16,8 @@
 
 #include "Loader/ResourceCache.hpp"
 
-#include "RenderQueue.hpp"
 #include "RenderData.hpp"
+#include "RenderQueue.hpp"
 
 #include <glm/glm.hpp>
 
@@ -42,13 +42,13 @@ class Renderer : public TSubsystem<Renderer>
 	enum class BufferType
 	{
 		//MainCamera,
-		Vertex,
-		Index,
-		Material,
-		Transform,
-		BoundingBox,
-		Meshlet,
-		IndirectCommand
+		//Vertex,
+		//Index,
+		/*Material,*/
+		//Transform,
+		//BoundingBox,
+		//Meshlet,
+		//IndirectCommand
 	};
 
   public:
@@ -59,6 +59,8 @@ class Renderer : public TSubsystem<Renderer>
 	virtual bool onInitialize() override;
 
 	virtual void onPreTick() override;
+
+	virtual void onTick(float delta_time) override;
 
 	virtual void onPostTick() override;
 
@@ -89,8 +91,6 @@ class Renderer : public TSubsystem<Renderer>
 	bool hasMainCamera();
 
 	void update();
-
-	void updateGeometry();
 
   public:
 	std::function<void(RenderGraphBuilder &)> buildRenderGraph = nullptr;
@@ -135,14 +135,16 @@ class Renderer : public TSubsystem<Renderer>
 
 	RenderQueue Render_Queue;
 
+	RenderStats Render_Stats;
+
 	RenderBuffer Render_Buffer;
 
-	uint32_t Static_Instance_Count = 0;
-	uint32_t Instance_Count        = 0;
-	uint32_t Meshlet_Count  = 0;
-	uint32_t Indices_Count   = 0;
-	uint32_t Meshlet_Visible = 0;
-	uint32_t Instance_Visible = 0;
+	//uint32_t Static_Instance_Count = 0;
+	//uint32_t Instance_Count        = 0;
+	//uint32_t Meshlet_Count  = 0;
+	//uint32_t Indices_Count   = 0;
+	//uint32_t Meshlet_Visible = 0;
+	//uint32_t Instance_Visible = 0;
 
 	struct
 	{
@@ -152,9 +154,9 @@ class Renderer : public TSubsystem<Renderer>
 
 	struct
 	{
-		float threshold = 0.75f;
-		float scale = 3.f;
-		float strength = 0.13f;
+		float    threshold = 0.75f;
+		float    scale     = 3.f;
+		float    strength  = 0.13f;
 		uint32_t enable    = 0;
 	} Bloom;
 
@@ -162,14 +164,14 @@ class Renderer : public TSubsystem<Renderer>
 	{
 		scope<Image> depth_buffer;
 		scope<Image> hiz_buffer;
-	}Last_Frame;
+	} Last_Frame;
 
 	struct
 	{
-		uint32_t frustum_culling = 1;
+		uint32_t frustum_culling   = 1;
 		uint32_t backface_culling  = 1;
 		uint32_t occulsion_culling = 0;
-	}Culling;
+	} Culling;
 
   public:
 	Event<> Event_RenderGraph_Rebuild;

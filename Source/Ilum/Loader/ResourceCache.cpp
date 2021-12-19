@@ -4,8 +4,11 @@
 #include "Loader/ModelLoader/ModelLoader.hpp"
 
 #include "Device/LogicalDevice.hpp"
+
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Shader/ShaderCompiler.hpp"
+
+#include "Material/Material.h"
 
 #include "File/FileSystem.hpp"
 
@@ -188,8 +191,6 @@ void ResourceCache::clear()
 
 void ResourceCache::flush()
 {
-	update = false;
-
 	if (m_deprecated_model.empty() && m_deprecated_image.empty() &&
 	    m_new_image.empty() && m_new_model.empty() &&
 	    m_image_futures.empty() && m_model_futures.empty())
@@ -224,7 +225,6 @@ void ResourceCache::flush()
 			m_model_cache.erase(model);
 			m_model_map.erase(name);
 			LOG_INFO("Release Model: {}", name);
-			update = true;
 		}
 		m_deprecated_model.clear();
 
@@ -253,8 +253,7 @@ void ResourceCache::flush()
 				m_model_cache.push_back(std::move(future.get()));
 				m_vertices_count += m_model_cache.back().vertices_count;
 				m_indices_count += m_model_cache.back().indices_count;
-				iter   = m_model_futures.erase(iter);
-				update = true;
+				iter = m_model_futures.erase(iter);
 			}
 			else
 			{
@@ -277,11 +276,6 @@ void ResourceCache::flush()
 				indices_offset += model.indices_count;
 			}
 		}
-
-		if (update)
-		{
-			Renderer::instance()->updateGeometry();
-		}
 	}
 
 	{
@@ -302,7 +296,7 @@ void ResourceCache::flush()
 			m_image_cache.erase(m_image_cache.begin() + index);
 			m_image_map.erase(name);
 			LOG_INFO("Release Image: {}", name);
-			update = true;
+			Material::update = true;
 		}
 		m_deprecated_image.clear();
 
@@ -328,7 +322,7 @@ void ResourceCache::flush()
 				m_image_map[name] = m_image_cache.size();
 				m_image_cache.push_back(std::move(future.get()));
 				iter = m_image_futures.erase(iter);
-				update = true;
+				Material::update = true;
 			}
 			else
 			{

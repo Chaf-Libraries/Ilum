@@ -11,8 +11,8 @@
 
 #include "Geometry/Shape/Sphere.hpp"
 
-#include "Material/DisneyPBR.h"
 #include "Material/Material.h"
+#include "Material/PBR.h"
 
 #include "Renderer/Renderer.hpp"
 
@@ -110,7 +110,7 @@ inline bool draw_vec3_control(const std::string &label, glm::vec3 &values, float
 }
 
 template <typename T>
-void select_material(scope<IMaterial> &material)
+void select_material(scope<Material> &material)
 {
 	if ((!material || (material && material->type() != typeid(T))) && ImGui::MenuItem(typeid(T).name()))
 	{
@@ -136,8 +136,7 @@ inline void draw_component(const std::string &name, Entity entity, Callback call
 
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{4, 4});
 		float line_height = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
-		ImGui::Separator();
-		bool open = ImGui::TreeNodeEx((void *) typeid(T).hash_code(), tree_node_flags, name.c_str());
+		bool  open        = ImGui::TreeNodeEx((void *) typeid(T).hash_code(), tree_node_flags, name.c_str());
 		ImGui::PopStyleVar();
 
 		bool remove_component = false;
@@ -169,15 +168,19 @@ inline void draw_material(T &material)
 	ASSERT(false);
 }
 
-void draw_texture(std::string &texture)
+bool draw_texture(std::string &texture, const std::string& name)
 {
+	bool update = false;
+	ImGui::PushID(name.c_str());
 	if (ImGui::ImageButton(Renderer::instance()->getResourceCache().hasImage(FileSystem::getRelativePath(texture)) ?
                                ImGuiContext::textureID(Renderer::instance()->getResourceCache().loadImage(FileSystem::getRelativePath(texture)), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)) :
                                ImGuiContext::textureID(Renderer::instance()->getDefaultTexture(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
 	                       ImVec2{100.f, 100.f}))
 	{
 		texture = "";
+		update  = true;
 	}
+	ImGui::PopID();
 
 	if (ImGui::BeginDragDropTarget())
 	{
@@ -187,46 +190,49 @@ void draw_texture(std::string &texture)
 			if (texture != *static_cast<std::string *>(pay_load->Data))
 			{
 				texture = *static_cast<std::string *>(pay_load->Data);
+				update  = true;
 			}
 		}
 		ImGui::EndDragDropTarget();
 	}
+
+	return update;
 }
 
 template <>
-inline void draw_material<material::DisneyPBR>(material::DisneyPBR &material)
+inline void draw_material<material::PBRMaterial>(material::PBRMaterial &material)
 {
-	cmpt::Renderable::update = cmpt::Renderable::update || ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color));
-	cmpt::Renderable::update = cmpt::Renderable::update || ImGui::ColorEdit3("Emissive Color", glm::value_ptr(material.emissive_color));
-	cmpt::Renderable::update = cmpt::Renderable::update || ImGui::DragFloat("Metallic Factor", &material.metallic_factor, 0.01f, 0.f, 1.f, "%.3f");
-	cmpt::Renderable::update = cmpt::Renderable::update || ImGui::DragFloat("Emissive Intensity", &material.emissive_intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-	cmpt::Renderable::update = cmpt::Renderable::update || ImGui::DragFloat("Roughness Factor", &material.roughness_factor, 0.01f, 0.f, 1.f, "%.3f");
-	cmpt::Renderable::update = cmpt::Renderable::update || ImGui::DragFloat("Height Factor", &material.displacement_height, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	Material::update = ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color)) || Material::update;
+	Material::update = ImGui::ColorEdit3("Emissive Color", glm::value_ptr(material.emissive_color)) || Material::update;
+	Material::update = ImGui::DragFloat("Metallic Factor", &material.metallic_factor, 0.01f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Emissive Intensity", &material.emissive_intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Roughness Factor", &material.roughness_factor, 0.01f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Height Factor", &material.displacement_height, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
 
 	ImGui::Text("Albedo Map");
-	draw_texture(material.albedo_map);
+	Material::update = draw_texture(material.albedo_map, "Albedo Map") || Material::update;
 
 	ImGui::Text("Normal Map");
-	draw_texture(material.normal_map);
+	Material::update = draw_texture(material.normal_map, "Normal Map") || Material::update;
 
 	ImGui::Text("Metallic Map");
-	draw_texture(material.metallic_map);
+	Material::update = draw_texture(material.metallic_map, "Metallic Map") || Material::update;
 
 	ImGui::Text("Roughness Map");
-	draw_texture(material.roughness_map);
+	Material::update = draw_texture(material.roughness_map, "Roughness Map") || Material::update;
 
 	ImGui::Text("Emissive Map");
-	draw_texture(material.emissive_map);
+	Material::update = draw_texture(material.emissive_map, "Emissive Map") || Material::update;
 
 	ImGui::Text("AO Map");
-	draw_texture(material.ao_map);
+	Material::update = draw_texture(material.ao_map, "AO Map") || Material::update;
 
 	ImGui::Text("Displacement Map");
-	draw_texture(material.displacement_map);
+	Material::update = draw_texture(material.displacement_map, "Displacement Map") || Material::update;
 }
 
 template <typename T>
-inline void draw_material(scope<IMaterial> &material)
+inline void draw_material(scope<Material> &material)
 {
 	if (material->type() == typeid(T))
 	{
@@ -235,20 +241,20 @@ inline void draw_material(scope<IMaterial> &material)
 }
 
 template <typename T1, typename T2, typename... Tn>
-inline void draw_material(scope<IMaterial> &material)
+inline void draw_material(scope<Material> &material)
 {
 	draw_material<T1>(material);
 	draw_material<T2, Tn...>(material);
 }
 
-inline void draw_material(scope<IMaterial> &material)
+inline void draw_material(scope<Material> &material)
 {
 	if (!material)
 	{
 		return;
 	}
 
-	draw_material<material::DisneyPBR>(material);
+	draw_material<material::PBRMaterial>(material);
 }
 
 template <typename T>
@@ -325,11 +331,6 @@ inline void draw_component<cmpt::Tag>(Entity entity)
 			tag = std::string(buffer);
 		}
 		ImGui::PopItemWidth();
-		ImGui::SameLine();
-		if (ImGui::Checkbox("Active", &entity.getComponent<cmpt::Tag>().active))
-		{
-			cmpt::Tag::update = true;
-		}
 	}
 }
 
@@ -369,6 +370,7 @@ inline void draw_component<cmpt::MeshletRenderer>(Entity entity)
 		    {
 			    component.model = "";
 			    component.materials.clear();
+			    cmpt::Renderable::update = true;
 		    }
 		    ImGui::PopStyleVar();
 		    if (ImGui::BeginDragDropTarget())
@@ -379,13 +381,14 @@ inline void draw_component<cmpt::MeshletRenderer>(Entity entity)
 				    std::string new_model = *static_cast<std::string *>(pay_load->Data);
 				    if (component.model != new_model)
 				    {
-					    component.model = new_model;
+					    cmpt::Renderable::update = true;
+					    component.model          = new_model;
 					    component.materials.clear();
 					    auto &model = Renderer::instance()->getResourceCache().loadModel(component.model);
 					    for (auto &submesh : model.get().submeshes)
 					    {
-						    component.materials.emplace_back(createScope<material::DisneyPBR>());
-						    *static_cast<material::DisneyPBR *>(component.materials.back().get()) = submesh.material;
+						    component.materials.emplace_back(createScope<material::PBRMaterial>());
+						    *static_cast<material::PBRMaterial *>(component.materials.back().get()) = submesh.material;
 					    }
 				    }
 			    }
@@ -402,7 +405,7 @@ inline void draw_component<cmpt::MeshletRenderer>(Entity entity)
 				    auto &submesh = model.get().submeshes[i];
 				    if (component.materials.size() <= i)
 				    {
-					    component.materials.emplace_back(createScope<material::DisneyPBR>());
+					    component.materials.emplace_back(createScope<material::PBRMaterial>());
 				    }
 				    auto &material = component.materials[i];
 
@@ -438,7 +441,10 @@ inline void draw_component<cmpt::MeshletRenderer>(Entity entity)
 							    {
 								    material = nullptr;
 							    }
-							    select_material<material::DisneyPBR>(material);
+							    if (material)
+							    {
+								    select_material<material::PBRMaterial>(material);
+							    }
 							    ImGui::EndPopup();
 						    }
 						    draw_material(material);
@@ -507,10 +513,14 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 			{
 				component.material = nullptr;
 			}
-			select_material<material::DisneyPBR>(component.material);
+
+			if (component.material)
+			{
+				select_material<material::PBRMaterial>(component.material);
+			}
 			ImGui::EndPopup();
 		}
-		draw_material<material::DisneyPBR>(component.material);
+		draw_material<material::PBRMaterial>(component.material);
 	});
 }
 
@@ -614,12 +624,12 @@ void Inspector::draw(float delta_time)
 
 	ImGui::SameLine();
 	ImGui::PushItemWidth(-1);
-
 	// Add components popup
 	if (ImGui::Button("Add Component"))
 	{
 		ImGui::OpenPopup("AddComponent");
 	}
+	ImGui::PopItemWidth();
 
 	if (ImGui::BeginPopup("AddComponent"))
 	{
@@ -628,7 +638,6 @@ void Inspector::draw(float delta_time)
 		add_component<cmpt::Camera, cmpt::PerspectiveCamera, cmpt::OrthographicCamera>();
 		ImGui::EndPopup();
 	}
-	ImGui::PopItemWidth();
 
 	draw_component<cmpt::Transform, cmpt::Hierarchy, cmpt::MeshletRenderer, cmpt::MeshRenderer,
 	               cmpt::DirectionalLight, cmpt::PointLight, cmpt::SpotLight, cmpt::PerspectiveCamera, cmpt::OrthographicCamera>(entity);

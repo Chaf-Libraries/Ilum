@@ -28,8 +28,8 @@ void CameraUpdate::run()
 		auto perspective_cameras = Scene::instance()->getRegistry().group<cmpt::PerspectiveCamera>(entt::get<cmpt::Tag>);
 		if (perspective_cameras.size() != 0)
 		{
-			camera_entity = Entity(perspective_cameras.front());
-			auto extent      = Renderer::instance()->getRenderTargetExtent();
+			camera_entity                                                = Entity(perspective_cameras.front());
+			auto extent                                                  = Renderer::instance()->getRenderTargetExtent();
 			camera_entity.getComponent<cmpt::PerspectiveCamera>().aspect = static_cast<float>(extent.width) / static_cast<float>(extent.height);
 		}
 		else
@@ -49,7 +49,8 @@ void CameraUpdate::run()
 
 	const auto &transform = camera_entity.getComponent<cmpt::Transform>();
 
-	CameraData *camera_data           = reinterpret_cast<CameraData *>(Renderer::instance()->Render_Buffer.Camera_Buffer.map());
+	CameraData * camera_data          = reinterpret_cast<CameraData *>(Renderer::instance()->Render_Buffer.Camera_Buffer.map());
+	CullingData *culling_data         = reinterpret_cast<CullingData *>(Renderer::instance()->Render_Buffer.Culling_Buffer.map());
 	camera_data->last_view_projection = camera_data->view_projection;
 
 	if (camera_entity.hasComponent<cmpt::PerspectiveCamera>())
@@ -60,6 +61,13 @@ void CameraUpdate::run()
 		camera.view_projection       = camera.projection * camera.view;
 		camera.frustum               = geometry::Frustum(camera_data->view_projection);
 		camera.position              = transform.world_transform[3];
+
+		culling_data->view = camera.view;
+		culling_data->P00  = camera.projection[0][0];
+		culling_data->P11  = camera.projection[1][1];
+		culling_data->znear = camera.near_plane;
+		culling_data->zfar = camera.far_plane;
+
 		camera_data->position        = transform.world_transform[3];
 		camera_data->view_projection = camera.view_projection;
 		for (size_t i = 0; i < 6; i++)
@@ -75,6 +83,13 @@ void CameraUpdate::run()
 		camera.view_projection       = camera.projection * camera.view;
 		camera.frustum               = geometry::Frustum(camera_data->view_projection);
 		camera.position              = transform.world_transform[3];
+
+		culling_data->view  = camera.view;
+		culling_data->P00   = camera.projection[0][0];
+		culling_data->P11   = camera.projection[1][1];
+		culling_data->znear = camera.near_plane;
+		culling_data->zfar  = camera.far_plane;
+
 		camera_data->position        = transform.world_transform[3];
 		camera_data->view_projection = camera.view_projection;
 		for (size_t i = 0; i < 6; i++)
@@ -83,7 +98,17 @@ void CameraUpdate::run()
 		}
 	}
 
+	culling_data->last_view        = culling_data->view;
+	culling_data->meshlet_count    = Renderer::instance()->Render_Stats.meshlet_count;
+	culling_data->instance_count   = Renderer::instance()->Render_Stats.static_instance_count;
+	culling_data->frustum_enable   = Renderer::instance()->Culling.frustum_culling;
+	culling_data->backface_enable  = Renderer::instance()->Culling.backface_culling;
+	culling_data->occlusion_enable = Renderer::instance()->Culling.occulsion_culling;
+	culling_data->zbuffer_width    = static_cast<float>(Renderer::instance()->Last_Frame.hiz_buffer->getWidth());
+	culling_data->zbuffer_height   = static_cast<float>(Renderer::instance()->Last_Frame.hiz_buffer->getHeight());
+
 	Renderer::instance()->Render_Buffer.Camera_Buffer.unmap();
+	Renderer::instance()->Render_Buffer.Culling_Buffer.unmap();
 
 	GraphicsContext::instance()->getProfiler().endSample("Camera Update");
 }

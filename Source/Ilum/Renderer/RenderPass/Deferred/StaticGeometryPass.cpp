@@ -10,7 +10,7 @@
 
 #include "Threading/ThreadPool.hpp"
 
-#include "Material/DisneyPBR.h"
+#include "Material/PBR.h"
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -88,10 +88,10 @@ void StaticGeometryPass::resolveResources(ResolveState &resolve)
 {
 	resolve.resolve("Camera", Renderer::instance()->Render_Buffer.Camera_Buffer);
 	resolve.resolve("textureArray", Renderer::instance()->getResourceCache().getImageReferences());
-	resolve.resolve("PerInstanceData", Renderer::instance()->Render_Queue.Instance_Buffer);
-	resolve.resolve("MaterialData", Renderer::instance()->Render_Queue.Material_Buffer);
-	resolve.resolve("PerMeshletData", Renderer::instance()->Render_Queue.Meshlet_Buffer);
-	resolve.resolve("DrawInfo", Renderer::instance()->Render_Queue.Draw_Buffer);
+	resolve.resolve("PerInstanceData", Renderer::instance()->Render_Buffer.Instance_Buffer);
+	resolve.resolve("MaterialData", Renderer::instance()->Render_Buffer.Material_Buffer);
+	resolve.resolve("PerMeshletData", Renderer::instance()->Render_Buffer.Meshlet_Buffer);
+	resolve.resolve("DrawInfo", Renderer::instance()->Render_Buffer.Draw_Buffer);
 }
 
 void StaticGeometryPass::render(RenderPassState &state)
@@ -125,18 +125,18 @@ void StaticGeometryPass::render(RenderPassState &state)
 
 	const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshletRenderer, cmpt::Transform, cmpt::Tag>);
 
-	auto &vertex_buffer = Renderer::instance()->getBuffer(Renderer::BufferType::Vertex);
-	auto &index_buffer  = Renderer::instance()->getBuffer(Renderer::BufferType::Index);
+	const auto &vertex_buffer = Renderer::instance()->Render_Buffer.Static_Vertex_Buffer;
+	const auto &index_buffer  = Renderer::instance()->Render_Buffer.Static_Index_Buffer;
 
-	if (Renderer::instance()->Meshlet_Count > 0 && vertex_buffer.get().getBuffer() && index_buffer.get().getBuffer())
+	if (Renderer::instance()->Render_Stats.meshlet_count > 0 && vertex_buffer.getBuffer() && index_buffer.getBuffer())
 	{
 		VkDeviceSize offsets[1] = {0};
-		vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &vertex_buffer.get().getBuffer(), offsets);
-		vkCmdBindIndexBuffer(cmd_buffer, index_buffer.get().getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &vertex_buffer.getBuffer(), offsets);
+		vkCmdBindIndexBuffer(cmd_buffer, index_buffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-		auto &draw_buffer  = Renderer::instance()->Render_Queue.Command_Buffer;
-		auto &count_buffer = Renderer::instance()->Render_Queue.Count_Buffer;
-		vkCmdDrawIndexedIndirectCount(cmd_buffer, draw_buffer, 0, count_buffer, 0, Renderer::instance()->Meshlet_Count, sizeof(VkDrawIndexedIndirectCommand));
+		auto &draw_buffer  = Renderer::instance()->Render_Buffer.Command_Buffer;
+		auto &count_buffer = Renderer::instance()->Render_Buffer.Count_Buffer;
+		vkCmdDrawIndexedIndirectCount(cmd_buffer, draw_buffer, 0, count_buffer, 0, Renderer::instance()->Render_Stats.meshlet_count, sizeof(VkDrawIndexedIndirectCommand));
 	}
 
 	vkCmdEndRenderPass(cmd_buffer);

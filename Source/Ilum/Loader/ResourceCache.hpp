@@ -56,9 +56,6 @@ class ResourceCache
 
 	void flush();
 
-  public:
-	inline static std::atomic<bool> update = false;
-
   private:
 	// Cache image
 	std::vector<Image>                                  m_image_cache;

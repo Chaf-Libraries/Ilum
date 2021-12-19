@@ -10,7 +10,7 @@
 
 #include "Threading/ThreadPool.hpp"
 
-#include "Material/DisneyPBR.h"
+#include "Material/PBR.h"
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -112,9 +112,9 @@ void DynamicGeometryPass::render(RenderPassState &state)
 
 	const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform, cmpt::Tag>);
 
-	Renderer::instance()->Instance_Count = Renderer::instance()->Static_Instance_Count + group.size();
+	//Renderer::instance()->Instance_Count = Renderer::instance()->Static_Instance_Count + group.size();
 
-	group.each([&cmd_buffer](const entt::entity &entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform, const cmpt::Tag &tag) {
+	/*group.each([&cmd_buffer](const entt::entity &entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform, const cmpt::Tag &tag) {
 		if (mesh_renderer.vertex_buffer && mesh_renderer.index_buffer)
 		{
 			Renderer::instance()->Instance_Count++;
@@ -149,7 +149,7 @@ void DynamicGeometryPass::render(RenderPassState &state)
 			};
 
 		}
-	});
+	});*/
 
 	//auto &vertex_buffer = Renderer::instance()->getBuffer(Renderer::BufferType::Vertex);
 	//auto &index_buffer  = Renderer::instance()->getBuffer(Renderer::BufferType::Index);

@@ -8,6 +8,16 @@ namespace Ilum::cmpt
 {
 struct Renderable
 {
+	Renderable()
+	{
+		update = true;
+	}
+
+	~Renderable()
+	{
+		update = true;
+	}
+
 	inline static bool update = false;
 };
 
@@ -16,7 +26,7 @@ struct MeshletRenderer : public Renderable
 {
 	std::string model;
 
-	std::vector<scope<IMaterial>> materials;
+	std::vector<scope<Material>> materials;
 };
 
 enum class MeshType
@@ -38,6 +48,8 @@ struct MeshRenderer : public Renderable
 	Buffer vertex_buffer;
 	Buffer index_buffer;
 
-	scope<IMaterial> material = createScope<material::DisneyPBR>();
+	uint32_t material_id = 0;
+
+	scope<Material> material = createScope<material::PBRMaterial>();
 };
 }        // namespace Ilum::cmpt

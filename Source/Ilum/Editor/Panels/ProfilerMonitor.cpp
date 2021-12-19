@@ -93,11 +93,11 @@ void ProfilerMonitor::draw(float delta_time)
 	ImGui::PlotHistogram("CPU Times", cpu_times.data(), static_cast<int>(cpu_times.size()), 0, nullptr, 0.f, max_cpu_time * 1.2f, ImVec2(0, 80.0f));
 	ImGui::PlotHistogram("GPU Times", gpu_times.data(), static_cast<int>(gpu_times.size()), 0, nullptr, 0.f, max_gpu_time * 1.2f, ImVec2(0, 80.0f));
 
-	ImGui::Text("Total Triangle Count: %d", Renderer::instance()->Indices_Count / 3);
-	ImGui::Text("Total Instance Count: %d", Renderer::instance()->Instance_Count);
-	ImGui::Text("Total Instance Visible: %d", Renderer::instance()->Instance_Visible);
-	ImGui::Text("Total Meshlet Count: %d", Renderer::instance()->Meshlet_Count);
-	ImGui::Text("Total Meshlet Visible: %d", Renderer::instance()->Meshlet_Visible);
+	//ImGui::Text("Total Triangle Count: %d", Renderer::instance()->Indices_Count / 3);
+	ImGui::Text("Total Instance Count: %d", Renderer::instance()->Render_Stats.static_instance_count);
+	ImGui::Text("Total Instance Visible: %d", Renderer::instance()->Render_Stats.instance_visible);
+	ImGui::Text("Total Meshlet Count: %d", Renderer::instance()->Render_Stats.meshlet_count);
+	ImGui::Text("Total Meshlet Visible: %d", Renderer::instance()->Render_Stats.meshlet_visible);
 
 	ImGui::End();
 }

@@ -365,7 +365,14 @@ __pragma(warning(push, 0))
 		}
 		auto &attachment = render_graph->getAttachment(m_display_attachment);
 
-		ImGui::Image(ImGuiContext::textureID(attachment.isDepth() ? attachment.getView(ImageViewType::Depth_Only) : attachment.getView(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), scene_view_size);
+		if (main_camera)
+		{
+			ImGui::Image(ImGuiContext::textureID(attachment.isDepth() ? attachment.getView(ImageViewType::Depth_Only) : attachment.getView(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), scene_view_size);
+		}
+		else
+		{
+			ImGui::Image(ImGuiContext::textureID(Renderer::instance()->getDefaultTexture().get().getView(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), scene_view_size);
+		}
 
 		// Drag new model
 		if (ImGui::BeginDragDropTarget())
@@ -380,8 +387,8 @@ __pragma(warning(push, 0))
 				auto &model = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
 				for (auto &submesh : model.get().submeshes)
 				{
-					mesh_renderer.materials.emplace_back(createScope<material::DisneyPBR>());
-					*static_cast<material::DisneyPBR *>(mesh_renderer.materials.back().get()) = submesh.material;
+					mesh_renderer.materials.emplace_back(createScope<material::PBRMaterial>());
+					*static_cast<material::PBRMaterial *>(mesh_renderer.materials.back().get()) = submesh.material;
 				}
 				Editor::instance()->select(entity);
 				cmpt::Renderable::update = true;
@@ -424,6 +431,7 @@ __pragma(warning(push, 0))
 				                                      glm::value_ptr(transform.translation),
 				                                      glm::value_ptr(transform.rotation),
 				                                      glm::value_ptr(transform.scale));
+				transform.rotation.z = 0.f;
 			}
 		}
 
@@ -533,7 +541,7 @@ __pragma(warning(push, 0))
 	void SceneView::updateMainCamera(float delta_time)
 	{
 		// TODO: Better camera movement, Model view camera, Ortho camera
-		if (!ImGui::IsWindowFocused() || !ImGui::IsWindowHovered())
+		if (!Renderer::instance()->hasMainCamera() || !ImGui::IsWindowFocused() || !ImGui::IsWindowHovered())
 		{
 			return;
 		}

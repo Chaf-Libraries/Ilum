@@ -20,6 +20,8 @@ class Scene : public TSubsystem<Scene>
 
 	~Scene() = default;
 
+	virtual void onPreTick() override;
+
 	virtual void onTick(float delta_time) override;
 
 	void clear();

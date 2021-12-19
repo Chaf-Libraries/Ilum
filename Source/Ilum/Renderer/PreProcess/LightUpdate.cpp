@@ -45,32 +45,23 @@ void LightUpdate::run()
 	}
 
 	// Copy Buffer
-	Renderer::instance()->Render_Buffer.light_count.directional_light_count = 0;
+	Renderer::instance()->Render_Stats.light_count.directional_light_count = 0;
 	directional_lights.each([](entt::entity entity, cmpt::DirectionalLight &light, cmpt::Tag &tag) {
-		if (tag.active)
-		{
-			std::memcpy(reinterpret_cast<cmpt::DirectionalLight *>(Renderer::instance()->Render_Buffer.Directional_Light_Buffer.map()) + Renderer::instance()->Render_Buffer.light_count.directional_light_count++,
-			            &light, sizeof(cmpt::DirectionalLight));
-		}
+		std::memcpy(reinterpret_cast<cmpt::DirectionalLight *>(Renderer::instance()->Render_Buffer.Directional_Light_Buffer.map()) + Renderer::instance()->Render_Stats.light_count.directional_light_count++,
+		            &light, sizeof(cmpt::DirectionalLight));
 	});
 
-	Renderer::instance()->Render_Buffer.light_count.point_light_count = 0;
+	Renderer::instance()->Render_Stats.light_count.point_light_count = 0;
 	point_lights.each([](entt::entity entity, cmpt::PointLight &light, cmpt::Tag &tag, cmpt::Transform &transform) {
-		if (tag.active)
-		{
-			light.position = transform.translation;
-			std::memcpy(reinterpret_cast<cmpt::PointLight *>(Renderer::instance()->Render_Buffer.Point_Light_Buffer.map()) + Renderer::instance()->Render_Buffer.light_count.point_light_count++,
-			            &light, sizeof(cmpt::PointLight));
-		}
+		light.position = transform.translation;
+		std::memcpy(reinterpret_cast<cmpt::PointLight *>(Renderer::instance()->Render_Buffer.Point_Light_Buffer.map()) + Renderer::instance()->Render_Stats.light_count.point_light_count++,
+		            &light, sizeof(cmpt::PointLight));
 	});
 
-	Renderer::instance()->Render_Buffer.light_count.spot_light_count = 0;
+	Renderer::instance()->Render_Stats.light_count.spot_light_count = 0;
 	spot_lights.each([](entt::entity entity, cmpt::SpotLight &light, cmpt::Tag &tag, cmpt::Transform &transform) {
-		if (tag.active)
-		{
-			std::memcpy(reinterpret_cast<cmpt::SpotLight *>(Renderer::instance()->Render_Buffer.Spot_Light_Buffer.map()) + Renderer::instance()->Render_Buffer.light_count.spot_light_count++,
-			            &light, sizeof(cmpt::SpotLight));
-		}
+		std::memcpy(reinterpret_cast<cmpt::SpotLight *>(Renderer::instance()->Render_Buffer.Spot_Light_Buffer.map()) + Renderer::instance()->Render_Stats.light_count.spot_light_count++,
+		            &light, sizeof(cmpt::SpotLight));
 	});
 
 	Renderer::instance()->Render_Buffer.Directional_Light_Buffer.unmap();

@@ -253,7 +253,7 @@ void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform,
 		std::vector<Vertex>   vertices;
 		std::vector<uint32_t> indices;
 
-		auto pbr = createScope<material::DisneyPBR>();
+		auto pbr = createScope<material::PBRMaterial>();
 
 		uint32_t    index_offset = 0;
 		aiMesh *    mesh         = scene->mMeshes[node->mMeshes[i]];
@@ -292,7 +292,7 @@ void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform,
 	}
 }
 
-void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_material, scope<material::DisneyPBR> &material)
+void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_material, scope<material::PBRMaterial> &material)
 {
 	std::string dictionary = FileSystem::getFileDirectory(file_path);
 

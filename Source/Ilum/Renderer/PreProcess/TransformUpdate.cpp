@@ -1,14 +1,19 @@
 #include "TransformUpdate.hpp"
 
 #include "Scene/Component/Hierarchy.hpp"
+#include "Scene/Component/Renderable.hpp"
 #include "Scene/Component/Transform.hpp"
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
+#include "Renderer/Renderer.hpp"
+
+#include "Graphics/GraphicsContext.hpp"
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include<tbb/tbb.h>
+#include <tbb/tbb.h>
 
 namespace Ilum::sym
 {
@@ -40,8 +45,7 @@ void TransformUpdate::run()
 {
 	if (cmpt::Transform::update)
 	{
-		cmpt::Transform::update = false;
-		auto group              = Scene::instance()->getRegistry().group<>(entt::get<cmpt::Transform, cmpt::Hierarchy>);
+		auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::Transform, cmpt::Hierarchy>);
 
 		std::vector<entt::entity> roots;
 
@@ -61,9 +65,70 @@ void TransformUpdate::run()
 		tbb::parallel_for_each(roots.begin(), roots.end(), [&group](auto entity) {
 			transform_recrusive(entity);
 		});
-
-		// Update static mesh transform buffer
-
 	}
+
+	if (cmpt::Transform::update || cmpt::Renderable::update)
+	{
+		// Update static mesh transform buffer
+		auto meshlet_view = Scene::instance()->getRegistry().view<cmpt::MeshletRenderer>();
+
+		// Collect instance data
+		std::vector<size_t> instance_offset(meshlet_view.size());
+
+		size_t instance_count = 0;
+
+		for (size_t i = 0; i < meshlet_view.size(); i++)
+		{
+			instance_offset[i] += instance_count;
+
+			auto &meshlet_renderer = Entity(meshlet_view[i]).getComponent<cmpt::MeshletRenderer>();
+
+			if (Renderer::instance()->getResourceCache().hasModel(meshlet_renderer.model))
+			{
+				auto model = Renderer::instance()->getResourceCache().loadModel(meshlet_renderer.model);
+				instance_count += model.get().submeshes.size();
+			}
+		}
+
+		if (instance_count * sizeof(PerInstanceData) > Renderer::instance()->Render_Buffer.Instance_Buffer.getSize())
+		{
+			GraphicsContext::instance()->getQueueSystem().waitAll();
+			Renderer::instance()->Render_Buffer.Instance_Buffer = Buffer(instance_count * sizeof(PerInstanceData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			Renderer::instance()->Render_Buffer.Instance_Visibility_Buffer = Buffer(instance_count * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+			Renderer::instance()->update();
+		}
+
+		PerInstanceData *instance_data = reinterpret_cast<PerInstanceData *>(Renderer::instance()->Render_Buffer.Instance_Buffer.map());
+
+		tbb::parallel_for(tbb::blocked_range<size_t>(0, meshlet_view.size()), [&meshlet_view, &instance_data, instance_offset](const tbb::blocked_range<size_t> &r) {
+			for (size_t i = r.begin(); i != r.end(); i++)
+			{
+				auto        entity           = Entity(meshlet_view[i]);
+				const auto &meshlet_renderer = entity.getComponent<cmpt::MeshletRenderer>();
+				const auto &transform        = entity.getComponent<cmpt::Transform>();
+
+				if (!Renderer::instance()->getResourceCache().hasModel(meshlet_renderer.model))
+				{
+					continue;
+				}
+
+				auto model = Renderer::instance()->getResourceCache().loadModel(meshlet_renderer.model);
+
+				uint32_t submesh_index = 0;
+				for (auto &submesh : model.get().submeshes)
+				{
+					auto &instance           = instance_data[instance_offset[i] + submesh_index++];
+					instance.entity_id       = static_cast<uint32_t>(meshlet_view[i]);
+					instance.bbox_min        = submesh.bounding_box.min_;
+					instance.bbox_max        = submesh.bounding_box.max_;
+					instance.pre_transform   = submesh.pre_transform;
+					instance.world_transform = transform.world_transform;
+				}
+			}
+		});
+		Renderer::instance()->Render_Buffer.Instance_Buffer.unmap();
+	}
+
+	cmpt::Transform::update = false;
 }
 }        // namespace Ilum::sym

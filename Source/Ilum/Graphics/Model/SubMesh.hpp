@@ -3,7 +3,7 @@
 #include "Geometry/BoundingBox.hpp"
 #include "Geometry/Vertex.hpp"
 
-#include "Material/DisneyPBR.h"
+#include "Material/PBR.h"
 
 namespace Ilum
 {
@@ -25,7 +25,7 @@ struct SubMesh
 	uint32_t meshlet_offset = 0;
 	uint32_t meshlet_count  = 0;
 
-	material::DisneyPBR material;
+	material::PBRMaterial material;
 
 	geometry::BoundingBox bounding_box;
 

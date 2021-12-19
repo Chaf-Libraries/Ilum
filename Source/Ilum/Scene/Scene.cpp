@@ -13,6 +13,10 @@ Scene::Scene(Context *context) :
 
 }
 
+void Scene::onPreTick()
+{
+}
+
 void Scene::onTick(float delta_time)
 {
 	m_system_manager->run();

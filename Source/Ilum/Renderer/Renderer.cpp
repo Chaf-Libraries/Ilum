@@ -40,6 +40,9 @@
 #include "PreProcess/CameraUpdate.hpp"
 #include "PreProcess/LightUpdate.hpp"
 #include "PreProcess/TransformUpdate.hpp"
+#include "PreProcess/GeometryUpdate.hpp"
+#include "PreProcess/MeshletUpdate.hpp"
+#include "PreProcess/MaterialUpdate.hpp"
 
 #include "Threading/ThreadPool.hpp"
 
@@ -86,9 +89,12 @@ Renderer::~Renderer()
 
 bool Renderer::onInitialize()
 {
+	Scene::instance()->addSystem<sym::GeometryUpdate>();
 	Scene::instance()->addSystem<sym::TransformUpdate>();
 	Scene::instance()->addSystem<sym::LightUpdate>();
 	Scene::instance()->addSystem<sym::CameraUpdate>();
+	Scene::instance()->addSystem<sym::MeshletUpdate>();
+	Scene::instance()->addSystem<sym::MaterialUpdate>();
 
 	m_render_target_extent = GraphicsContext::instance()->getSwapchain().getExtent();
 	updateImages();
@@ -101,6 +107,11 @@ bool Renderer::onInitialize()
 }
 
 void Renderer::onPreTick()
+{
+	
+}
+
+void Renderer::onTick(float delta_time)
 {
 	// Flush resource cache
 	m_resource_cache->flush();
@@ -240,50 +251,6 @@ void Renderer::update()
 	m_update = true;
 }
 
-void Renderer::updateGeometry()
-{
-	auto &vertex_buffer = m_buffers[BufferType::Vertex];
-	auto &index_buffer  = m_buffers[BufferType::Index];
-
-	if (m_resource_cache->getVerticesCount() == 0)
-	{
-		GraphicsContext::instance()->getQueueSystem().waitAll();
-		m_buffers[BufferType::Vertex] = Buffer(0, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-		m_buffers[BufferType::Index]  = Buffer(0, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-	}
-	else
-	{
-		GraphicsContext::instance()->getQueueSystem().waitAll();
-		vertex_buffer = Buffer(m_resource_cache->getVerticesCount() * sizeof(Ilum::Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-		index_buffer  = Buffer(m_resource_cache->getIndicesCount() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-
-		Buffer staging_vertex_buffer(vertex_buffer.getSize(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-		Buffer staging_index_buffer(index_buffer.getSize(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-		auto * vertex_data = staging_vertex_buffer.map();
-		auto * index_data  = staging_index_buffer.map();
-
-		// CPU -> Staging
-		for (auto &[name, index] : m_resource_cache->getModels())
-		{
-			auto &model = m_resource_cache->loadModel(name);
-
-			std::memcpy(vertex_data + model.get().vertices_offset * sizeof(Ilum::Vertex), model.get().mesh.vertices.data(), sizeof(Ilum::Vertex) * model.get().vertices_count);
-			std::memcpy(index_data + model.get().indices_offset * sizeof(uint32_t), model.get().mesh.indices.data(), sizeof(uint32_t) * model.get().indices_count);
-		}
-
-		staging_vertex_buffer.unmap();
-		staging_index_buffer.unmap();
-
-		// Staging -> GPU
-		CommandBuffer command_buffer(QueueUsage::Transfer);
-		command_buffer.begin();
-		command_buffer.copyBuffer(BufferInfo{staging_vertex_buffer}, BufferInfo{vertex_buffer}, vertex_buffer.getSize());
-		command_buffer.copyBuffer(BufferInfo{staging_index_buffer}, BufferInfo{index_buffer}, index_buffer.getSize());
-		command_buffer.end();
-		command_buffer.submitIdle();
-	}
-}
-
 void Renderer::createSamplers()
 {
 	m_samplers[SamplerType::Compare_Depth]     = Sampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_NEAREST);
@@ -313,6 +280,8 @@ void Renderer::updateInstanceBuffer()
 
 void Renderer::updateImages()
 {
+	GraphicsContext::instance()->getQueueSystem().waitAll();
+
 	Renderer::instance()->Last_Frame.hiz_buffer   = createScope<Image>(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
                                                                      VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VMA_MEMORY_USAGE_GPU_ONLY, true);
 	Renderer::instance()->Last_Frame.depth_buffer = createScope<Image>(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
@@ -331,12 +300,12 @@ void Renderer::updateImages()
 void Renderer::createBuffers()
 {
 	//m_buffers[BufferType::MainCamera]      = Buffer(1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	m_buffers[BufferType::Material]        = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	m_buffers[BufferType::Transform]       = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	m_buffers[BufferType::IndirectCommand] = Buffer(1, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	m_buffers[BufferType::BoundingBox]     = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	m_buffers[BufferType::Meshlet]         = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	m_buffers[BufferType::Vertex]          = Buffer(0, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-	m_buffers[BufferType::Index]           = Buffer(0, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	//m_buffers[BufferType::Material]        = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	//m_buffers[BufferType::Transform]       = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	//m_buffers[BufferType::IndirectCommand] = Buffer(1, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	//m_buffers[BufferType::BoundingBox]     = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	//m_buffers[BufferType::Meshlet]         = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	//m_buffers[BufferType::Vertex]          = Buffer(0, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	//m_buffers[BufferType::Index]           = Buffer(0, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 }
 }        // namespace Ilum

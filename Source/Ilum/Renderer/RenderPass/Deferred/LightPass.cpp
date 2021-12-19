@@ -84,7 +84,7 @@ void LightPass::render(RenderPassState &state)
 	                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
 
 	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(glm::vec3), glm::value_ptr(main_camera->position));
-	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(LightCountData), &Renderer::instance()->Render_Buffer.light_count);
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(RenderStats::LightCount), &Renderer::instance()->Render_Stats.light_count);
 
 	vkCmdDraw(cmd_buffer, 3, 1, 0, 0);
 

@@ -2,6 +2,7 @@
 #include "Entity.hpp"
 #include "Scene.hpp"
 
+#include "Component/Camera.hpp"
 #include "Component/Hierarchy.hpp"
 #include "Component/Light.hpp"
 #include "Component/Renderable.hpp"
@@ -12,8 +13,8 @@
 
 #include "File/FileSystem.hpp"
 
-#include "Material/DisneyPBR.h"
 #include "Material/Material.h"
+#include "Material/PBR.h"
 
 #include <fstream>
 
@@ -33,10 +34,10 @@ void serialize_material(YAML::Emitter &emitter, const T &material)
 }
 
 template <>
-void serialize_material<material::DisneyPBR>(YAML::Emitter &emitter, const material::DisneyPBR &material)
+void serialize_material<material::PBRMaterial>(YAML::Emitter &emitter, const material::PBRMaterial &material)
 {
 	emitter << YAML::BeginMap;
-	emitter << YAML::Key << "type" << YAML::Value << typeid(material::DisneyPBR).name();
+	emitter << YAML::Key << "type" << YAML::Value << typeid(material::PBRMaterial).name();
 	emitter << YAML::Key << "base_color" << YAML::Value << material.base_color;
 	emitter << YAML::Key << "emissive_color" << YAML::Value << material.emissive_color;
 	emitter << YAML::Key << "emissive_intensity" << YAML::Value << material.emissive_intensity;
@@ -53,11 +54,11 @@ void serialize_material<material::DisneyPBR>(YAML::Emitter &emitter, const mater
 	emitter << YAML::EndMap;
 }
 
-void serialize_material(YAML::Emitter &emitter, scope<IMaterial> &material)
+void serialize_material(YAML::Emitter &emitter, scope<Material> &material)
 {
-	if (material->type() == typeid(material::DisneyPBR))
+	if (material->type() == typeid(material::PBRMaterial))
 	{
-		serialize_material<material::DisneyPBR>(emitter, *static_cast<material::DisneyPBR *>(material.get()));
+		serialize_material<material::PBRMaterial>(emitter, *static_cast<material::PBRMaterial *>(material.get()));
 	}
 }
 
@@ -74,7 +75,6 @@ void serialize_component<cmpt::Tag>(YAML::Emitter &emitter, const entt::entity e
 	emitter << YAML::Key << typeid(cmpt::Tag).name();
 	emitter << YAML::BeginMap;
 	emitter << YAML::Key << "name" << YAML::Value << tag.name;
-	emitter << YAML::Key << "active" << YAML::Value << tag.active;
 	emitter << YAML::EndMap;
 }
 
@@ -150,10 +150,12 @@ void serialize_component<cmpt::DirectionalLight>(YAML::Emitter &emitter, const e
 
 	auto &light = Entity(entity).getComponent<cmpt::DirectionalLight>();
 
-	emitter << YAML::Key << "type" << YAML::Value << typeid(cmpt::DirectionalLight).name();
+	emitter << YAML::Key << typeid(cmpt::DirectionalLight).name();
+	emitter << YAML::BeginMap;
 	emitter << YAML::Key << "color" << YAML::Value << light.color;
 	emitter << YAML::Key << "intensity" << YAML::Value << light.intensity;
 	emitter << YAML::Key << "direction" << YAML::Value << light.direction;
+	emitter << YAML::EndMap;
 }
 
 template <>
@@ -166,13 +168,15 @@ void serialize_component<cmpt::PointLight>(YAML::Emitter &emitter, const entt::e
 
 	auto &light = Entity(entity).getComponent<cmpt::PointLight>();
 
-	emitter << YAML::Key << "type" << YAML::Value << typeid(cmpt::PointLight).name();
+	emitter << YAML::Key << typeid(cmpt::PointLight).name();
+	emitter << YAML::BeginMap;
 	emitter << YAML::Key << "color" << YAML::Value << light.color;
 	emitter << YAML::Key << "intensity" << YAML::Value << light.intensity;
 	emitter << YAML::Key << "position" << YAML::Value << light.position;
 	emitter << YAML::Key << "constant" << YAML::Value << light.constant;
 	emitter << YAML::Key << "linear" << YAML::Value << light.linear;
 	emitter << YAML::Key << "quadratic" << YAML::Value << light.quadratic;
+	emitter << YAML::EndMap;
 }
 
 template <>
@@ -185,23 +189,54 @@ void serialize_component<cmpt::SpotLight>(YAML::Emitter &emitter, const entt::en
 
 	auto &light = Entity(entity).getComponent<cmpt::SpotLight>();
 
-	emitter << YAML::Key << "type" << YAML::Value << typeid(cmpt::SpotLight).name();
+	emitter << YAML::Key << typeid(cmpt::SpotLight).name();
+	emitter << YAML::BeginMap;
 	emitter << YAML::Key << "color" << YAML::Value << light.color;
 	emitter << YAML::Key << "intensity" << YAML::Value << light.intensity;
 	emitter << YAML::Key << "position" << YAML::Value << light.position;
 	emitter << YAML::Key << "cut_off" << YAML::Value << light.cut_off;
 	emitter << YAML::Key << "direction" << YAML::Value << light.direction;
 	emitter << YAML::Key << "outer_cut_off" << YAML::Value << light.outer_cut_off;
+	emitter << YAML::EndMap;
 }
 
 template <>
-void serialize_component<cmpt::Light>(YAML::Emitter &emitter, const entt::entity entity)
+void serialize_component<cmpt::PerspectiveCamera>(YAML::Emitter &emitter, const entt::entity entity)
 {
-	emitter << YAML::Key << typeid(cmpt::Light).name();
+	if (!Entity(entity).hasComponent<cmpt::PerspectiveCamera>())
+	{
+		return;
+	}
+
+	auto &camera = Entity(entity).getComponent<cmpt::PerspectiveCamera>();
+
+	emitter << YAML::Key << typeid(cmpt::PerspectiveCamera).name();
 	emitter << YAML::BeginMap;
-	serialize_component<cmpt::DirectionalLight>(emitter, entity);
-	serialize_component<cmpt::PointLight>(emitter, entity);
-	serialize_component<cmpt::SpotLight>(emitter, entity);
+	emitter << YAML::Key << "aspect" << YAML::Value << camera.aspect;
+	emitter << YAML::Key << "fov" << YAML::Value << camera.fov;
+	emitter << YAML::Key << "far_plane" << YAML::Value << camera.far_plane;
+	emitter << YAML::Key << "near_plane" << YAML::Value << camera.near_plane;
+	emitter << YAML::EndMap;
+}
+
+template <>
+void serialize_component<cmpt::OrthographicCamera>(YAML::Emitter &emitter, const entt::entity entity)
+{
+	if (!Entity(entity).hasComponent<cmpt::OrthographicCamera>())
+	{
+		return;
+	}
+
+	auto &camera = Entity(entity).getComponent<cmpt::OrthographicCamera>();
+
+	emitter << YAML::Key << typeid(cmpt::OrthographicCamera).name();
+	emitter << YAML::BeginMap;
+	emitter << YAML::Key << "left" << YAML::Value << camera.left;
+	emitter << YAML::Key << "right" << YAML::Value << camera.right;
+	emitter << YAML::Key << "top" << YAML::Value << camera.top;
+	emitter << YAML::Key << "bottom" << YAML::Value << camera.bottom;
+	emitter << YAML::Key << "far_plane" << YAML::Value << camera.far_plane;
+	emitter << YAML::Key << "near_plane" << YAML::Value << camera.near_plane;
 	emitter << YAML::EndMap;
 }
 
@@ -218,25 +253,12 @@ void serialize_entity(YAML::Emitter &emitter, const entt::entity entity)
 	serialize_component<cmpt::Transform>(emitter, entity);
 	serialize_component<cmpt::Hierarchy>(emitter, entity);
 	serialize_component<cmpt::MeshletRenderer>(emitter, entity);
-	serialize_component<cmpt::Light>(emitter, entity);
+	serialize_component<cmpt::DirectionalLight>(emitter, entity);
+	serialize_component<cmpt::PointLight>(emitter, entity);
+	serialize_component<cmpt::SpotLight>(emitter, entity);
+	serialize_component<cmpt::PerspectiveCamera>(emitter, entity);
+	serialize_component<cmpt::OrthographicCamera>(emitter, entity);
 	emitter << YAML::EndMap;
-}
-
-void serialize_main_camera(YAML::Emitter &emitter)
-{
-	/*emitter << YAML::BeginMap;
-	const auto &main_camera = Renderer::instance()->Main_Camera_;
-	emitter << YAML::Key << "type" << YAML::Value << static_cast<uint32_t>(main_camera.type);
-	emitter << YAML::Key << "aspect" << YAML::Value << main_camera.aspect;
-	emitter << YAML::Key << "fov" << YAML::Value << main_camera.fov;
-	emitter << YAML::Key << "far_plane" << YAML::Value << main_camera.far_plane;
-	emitter << YAML::Key << "near_plane" << YAML::Value << main_camera.near_plane;
-	emitter << YAML::Key << "forward" << YAML::Value << main_camera.forward;
-	emitter << YAML::Key << "position" << YAML::Value << main_camera.position;
-	emitter << YAML::Key << "view" << YAML::Value << main_camera.view;
-	emitter << YAML::Key << "projection" << YAML::Value << main_camera.projection;
-	emitter << YAML::Key << "view_projection" << YAML::Value << main_camera.view_projection;
-	emitter << YAML::EndMap;*/
 }
 
 void serialize_color_correction(YAML::Emitter &emitter)
@@ -255,17 +277,6 @@ void serialize_bloom(YAML::Emitter &emitter)
 	emitter << YAML::Key << "strength" << YAML::Value << Renderer::instance()->Bloom.strength;
 	emitter << YAML::Key << "enable" << YAML::Value << Renderer::instance()->Bloom.enable;
 	emitter << YAML::EndMap;
-}
-
-void deserialize_main_camera(const YAML::Node &data)
-{
-	//Renderer::instance()->Main_Camera_.type       = static_cast<Camera::Type>(data["type"].as<uint32_t>());
-	//Renderer::instance()->Main_Camera_.fov        = data["fov"].as<float>();
-	//Renderer::instance()->Main_Camera_.far_plane  = data["far_plane"].as<float>();
-	//Renderer::instance()->Main_Camera_.near_plane = data["near_plane"].as<float>();
-	//Renderer::instance()->Main_Camera_.forward    = data["forward"].as<glm::vec3>();
-	//Renderer::instance()->Main_Camera_.position   = data["position"].as<glm::vec3>();
-	//Renderer::instance()->Main_Camera_.update     = true;
 }
 
 void deserialize_color_correction(const YAML::Node &data)
@@ -290,9 +301,8 @@ void deserialize_component(Entity entity, const YAML::Node &data)
 template <>
 void deserialize_component<cmpt::Tag>(Entity entity, const YAML::Node &data)
 {
-	auto &tag  = entity.getComponent<cmpt::Tag>();
-	tag.name   = data["name"].as<std::string>();
-	tag.active = data["active"].as<bool>();
+	auto &tag = entity.getComponent<cmpt::Tag>();
+	tag.name  = data["name"].as<std::string>();
 }
 
 template <>
@@ -323,9 +333,9 @@ void deserialize_material(Entity entity, const YAML::Node &data)
 }
 
 template <>
-void deserialize_material<material::DisneyPBR>(Entity entity, const YAML::Node &data)
+void deserialize_material<material::PBRMaterial>(Entity entity, const YAML::Node &data)
 {
-	auto *material                = static_cast<material::DisneyPBR *>(entity.getComponent<cmpt::MeshletRenderer>().materials.emplace_back(createScope<material::DisneyPBR>()).get());
+	auto *material                = static_cast<material::PBRMaterial *>(entity.getComponent<cmpt::MeshletRenderer>().materials.emplace_back(createScope<material::PBRMaterial>()).get());
 	material->base_color          = data["base_color"].as<glm::vec4>();
 	material->emissive_color      = data["emissive_color"].as<glm::vec3>();
 	material->emissive_intensity  = data["emissive_intensity"].as<float>();
@@ -351,9 +361,9 @@ void deserialize_material<material::DisneyPBR>(Entity entity, const YAML::Node &
 
 void deserialize_material(Entity entity, const YAML::Node &data)
 {
-	if (data["type"].as<std::string>() == typeid(material::DisneyPBR).name())
+	if (data["type"].as<std::string>() == typeid(material::PBRMaterial).name())
 	{
-		deserialize_material<material::DisneyPBR>(entity, data);
+		deserialize_material<material::PBRMaterial>(entity, data);
 	}
 }
 
@@ -377,6 +387,11 @@ void deserialize_component<cmpt::MeshletRenderer>(Entity entity, const YAML::Nod
 template <>
 void deserialize_component<cmpt::DirectionalLight>(Entity entity, const YAML::Node &data)
 {
+	if (!data)
+	{
+		return;
+	}
+
 	auto &directional_light     = entity.addComponent<cmpt::DirectionalLight>();
 	directional_light.color     = data["color"].as<glm::vec3>();
 	directional_light.intensity = data["intensity"].as<float>();
@@ -386,6 +401,11 @@ void deserialize_component<cmpt::DirectionalLight>(Entity entity, const YAML::No
 template <>
 void deserialize_component<cmpt::PointLight>(Entity entity, const YAML::Node &data)
 {
+	if (!data)
+	{
+		return;
+	}
+
 	auto &point_light     = entity.addComponent<cmpt::PointLight>();
 	point_light.color     = data["color"].as<glm::vec3>();
 	point_light.intensity = data["intensity"].as<float>();
@@ -398,6 +418,11 @@ void deserialize_component<cmpt::PointLight>(Entity entity, const YAML::Node &da
 template <>
 void deserialize_component<cmpt::SpotLight>(Entity entity, const YAML::Node &data)
 {
+	if (!data)
+	{
+		return;
+	}
+
 	auto &spot_light         = entity.addComponent<cmpt::SpotLight>();
 	spot_light.color         = data["color"].as<glm::vec3>();
 	spot_light.intensity     = data["intensity"].as<float>();
@@ -408,25 +433,35 @@ void deserialize_component<cmpt::SpotLight>(Entity entity, const YAML::Node &dat
 }
 
 template <>
-void deserialize_component<cmpt::Light>(Entity entity, const YAML::Node &data)
+void deserialize_component<cmpt::PerspectiveCamera>(Entity entity, const YAML::Node &data)
 {
 	if (!data)
 	{
 		return;
 	}
 
-	if (data["type"].as<std::string>() == typeid(cmpt::DirectionalLight).name())
+	auto &camera      = entity.addComponent<cmpt::PerspectiveCamera>();
+	camera.fov        = data["fov"].as<float>();
+	camera.aspect     = data["aspect"].as<float>();
+	camera.near_plane = data["near_plane"].as<float>();
+	camera.far_plane  = data["far_plane"].as<float>();
+}
+
+template <>
+void deserialize_component<cmpt::OrthographicCamera>(Entity entity, const YAML::Node &data)
+{
+	if (!data)
 	{
-		deserialize_component<cmpt::DirectionalLight>(entity, data);
+		return;
 	}
-	else if (data["type"].as<std::string>() == typeid(cmpt::PointLight).name())
-	{
-		deserialize_component<cmpt::PointLight>(entity, data);
-	}
-	else if (data["type"].as<std::string>() == typeid(cmpt::SpotLight).name())
-	{
-		deserialize_component<cmpt::SpotLight>(entity, data);
-	}
+
+	auto &camera      = entity.addComponent<cmpt::OrthographicCamera>();
+	camera.left       = data["left"].as<float>();
+	camera.right      = data["right"].as<float>();
+	camera.top        = data["top"].as<float>();
+	camera.bottom     = data["bottom"].as<float>();
+	camera.near_plane = data["near_plane"].as<float>();
+	camera.far_plane  = data["far_plane"].as<float>();
 }
 
 entt::entity deserialize_entity(const YAML::Node &data)
@@ -437,7 +472,11 @@ entt::entity deserialize_entity(const YAML::Node &data)
 	deserialize_component<cmpt::Transform>(entity, data[typeid(cmpt::Transform).name()]);
 	deserialize_component<cmpt::Hierarchy>(entity, data[typeid(cmpt::Hierarchy).name()]);
 	deserialize_component<cmpt::MeshletRenderer>(entity, data[typeid(cmpt::MeshletRenderer).name()]);
-	deserialize_component<cmpt::Light>(entity, data[typeid(cmpt::Light).name()]);
+	deserialize_component<cmpt::DirectionalLight>(entity, data[typeid(cmpt::Light).name()]);
+	deserialize_component<cmpt::SpotLight>(entity, data[typeid(cmpt::Light).name()]);
+	deserialize_component<cmpt::PointLight>(entity, data[typeid(cmpt::Light).name()]);
+	deserialize_component<cmpt::PerspectiveCamera>(entity, data[typeid(cmpt::PerspectiveCamera).name()]);
+	deserialize_component<cmpt::OrthographicCamera>(entity, data[typeid(cmpt::OrthographicCamera).name()]);
 
 	return entity;
 }
@@ -449,10 +488,6 @@ void SceneSerializer::serialize(const std::string &file_path)
 
 	// Scene
 	emitter << YAML::Key << "Scene" << YAML::Value << Scene::instance()->name;
-
-	// Main Camera
-	emitter << YAML::Key << "Main Camera";
-	serialize_main_camera(emitter);
 
 	// Color correction
 	emitter << YAML::Key << "Color Correction";
@@ -491,9 +526,6 @@ void SceneSerializer::deserialize(const std::string &file_path)
 
 	// Scene
 	Scene::instance()->name = data["Scene"].as<std::string>();
-
-	// Main Camera
-	deserialize_main_camera(data["Main Camera"]);
 
 	// Color correction
 	deserialize_color_correction(data["Color Correction"]);

@@ -28,12 +28,12 @@ void InstanceCullingPass::setupPipeline(PipelineState &state)
 
 void InstanceCullingPass::resolveResources(ResolveState &resolve)
 {
-	resolve.resolve("PerInstanceData", Renderer::instance()->Render_Queue.Instance_Buffer);
-	resolve.resolve("InstanceVisibility", Renderer::instance()->Render_Queue.Instance_Visibility_Buffer);
+	resolve.resolve("PerInstanceData", Renderer::instance()->Render_Buffer.Instance_Buffer);
+	resolve.resolve("InstanceVisibility", Renderer::instance()->Render_Buffer.Instance_Visibility_Buffer);
 	resolve.resolve("Camera", Renderer::instance()->Render_Buffer.Camera_Buffer);
 	resolve.resolve("hiz - buffer", *Renderer::instance()->Last_Frame.hiz_buffer);
-	resolve.resolve("culling_buffer", Renderer::instance()->Render_Queue.Culling_Buffer);
-	resolve.resolve("count_buffer", Renderer::instance()->Render_Queue.Count_Buffer);
+	resolve.resolve("culling_buffer", Renderer::instance()->Render_Buffer.Culling_Buffer);
+	resolve.resolve("count_buffer", Renderer::instance()->Render_Buffer.Count_Buffer);
 }
 
 void InstanceCullingPass::render(RenderPassState &state)
@@ -47,6 +47,6 @@ void InstanceCullingPass::render(RenderPassState &state)
 		vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
 	}
 
-	vkCmdDispatch(cmd_buffer, (Renderer::instance()->Static_Instance_Count + 64 - 1) / 64, 1, 1);
+	vkCmdDispatch(cmd_buffer, (Renderer::instance()->Render_Stats.static_instance_count + 64 - 1) / 64, 1, 1);
 }
 }        // namespace Ilum::pass

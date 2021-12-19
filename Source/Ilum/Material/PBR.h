@@ -6,7 +6,7 @@
 
 namespace Ilum::material
 {
-struct DisneyPBR : public TMaterial<DisneyPBR>
+struct PBRMaterial : public TMaterial<PBRMaterial>
 {
 	glm::vec4 base_color      = {1.f, 1.f, 1.f, 1.f};
 	glm::vec3 emissive_color     = {0.f, 0.f, 0.f};
