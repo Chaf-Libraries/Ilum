@@ -17,7 +17,6 @@
 #include "Loader/ResourceCache.hpp"
 
 #include "RenderData.hpp"
-#include "RenderQueue.hpp"
 
 #include <glm/glm.hpp>
 
@@ -37,18 +36,6 @@ class Renderer : public TSubsystem<Renderer>
 		Trilinear_Wrap,
 		Anisptropic_Clamp,
 		Anisptropic_Wrap
-	};
-
-	enum class BufferType
-	{
-		//MainCamera,
-		//Vertex,
-		//Index,
-		/*Material,*/
-		//Transform,
-		//BoundingBox,
-		//Meshlet,
-		//IndirectCommand
 	};
 
   public:
@@ -80,8 +67,6 @@ class Renderer : public TSubsystem<Renderer>
 
 	const Sampler &getSampler(SamplerType type) const;
 
-	const BufferReference getBuffer(BufferType type) const;
-
 	const VkExtent2D &getRenderTargetExtent() const;
 
 	void resizeRenderTarget(VkExtent2D extent);
@@ -98,12 +83,6 @@ class Renderer : public TSubsystem<Renderer>
   private:
 	void createSamplers();
 
-	void createBuffers();
-
-	void updateBuffers();
-
-	void updateInstanceBuffer();
-
 	void updateImages();
 
   private:
@@ -116,7 +95,6 @@ class Renderer : public TSubsystem<Renderer>
 	scope<ResourceCache> m_resource_cache = nullptr;
 
 	std::unordered_map<SamplerType, Sampler> m_samplers;
-	std::unordered_map<BufferType, Buffer>   m_buffers;
 
 	VkExtent2D m_render_target_extent;
 
@@ -129,22 +107,11 @@ class Renderer : public TSubsystem<Renderer>
 	uint32_t m_texture_count = 0;
 
   public:
-	//Camera Main_Camera_;
-
 	Entity Main_Camera;
-
-	RenderQueue Render_Queue;
 
 	RenderStats Render_Stats;
 
 	RenderBuffer Render_Buffer;
-
-	//uint32_t Static_Instance_Count = 0;
-	//uint32_t Instance_Count        = 0;
-	//uint32_t Meshlet_Count  = 0;
-	//uint32_t Indices_Count   = 0;
-	//uint32_t Meshlet_Visible = 0;
-	//uint32_t Instance_Visible = 0;
 
 	struct
 	{

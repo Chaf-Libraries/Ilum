@@ -47,6 +47,6 @@ void InstanceCullingPass::render(RenderPassState &state)
 		vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
 	}
 
-	vkCmdDispatch(cmd_buffer, (Renderer::instance()->Render_Stats.static_instance_count + 64 - 1) / 64, 1, 1);
+	vkCmdDispatch(cmd_buffer, (Renderer::instance()->Render_Stats.static_mesh_count.instance_count + 64 - 1) / 64, 1, 1);
 }
 }        // namespace Ilum::pass

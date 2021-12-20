@@ -31,6 +31,7 @@
 #include "RenderPass/CopyPass.hpp"
 #include "RenderPass/Deferred/LightPass.hpp"
 #include "RenderPass/Deferred/StaticGeometryPass.hpp"
+#include "RenderPass/Deferred/DynamicGeometryPass.hpp"
 #include "RenderPass/PostProcess/BlendPass.hpp"
 #include "RenderPass/PostProcess/BloomPass.hpp"
 #include "RenderPass/PostProcess/BlurPass.hpp"
@@ -63,6 +64,7 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("InstanceCulling", std::make_unique<Ilum::pass::InstanceCullingPass>())
 		    .addRenderPass("MeshletCulling", std::make_unique<Ilum::pass::MeshletCullingPass>())
 		    .addRenderPass("StaticGeometryPass", std::make_unique<Ilum::pass::StaticGeometryPass>())
+		    .addRenderPass("DynamicGeometryPass", std::make_unique<Ilum::pass::DynamicGeometryPass>())
 		    .addRenderPass("LightPass", std::make_unique<Ilum::pass::LightPass>())
 		    .addRenderPass("BrightPass", std::make_unique<Ilum::pass::BrightPass>("lighting"))
 		    .addRenderPass("Blur1", std::make_unique<Ilum::pass::BlurPass>("bright", "blur1"))
@@ -79,7 +81,6 @@ Renderer::Renderer(Context *context) :
 
 	m_resource_cache = createScope<ResourceCache>();
 	createSamplers();
-	createBuffers();
 	ImageLoader::loadImage(m_default_texture, Bitmap{{0, 0, 0, 255}, VK_FORMAT_R8G8B8A8_UNORM, 1, 1}, false);
 }
 
@@ -116,12 +117,6 @@ void Renderer::onTick(float delta_time)
 	// Flush resource cache
 	m_resource_cache->flush();
 
-	// Update uniform buffers
-	updateBuffers();
-
-	// Update camera
-	//Main_Camera_.onUpdate();
-
 	// Check out images update
 	if (m_texture_count != m_resource_cache->getImages().size())
 	{
@@ -155,7 +150,6 @@ void Renderer::onShutdown()
 {
 	GraphicsContext::instance()->getQueueSystem().waitAll();
 	m_samplers.clear();
-	m_buffers.clear();
 }
 
 const RenderGraph *Renderer::getRenderGraph() const
@@ -217,11 +211,6 @@ const Sampler &Renderer::getSampler(SamplerType type) const
 	return m_samplers.at(type);
 }
 
-const BufferReference Renderer::getBuffer(BufferType type) const
-{
-	return m_buffers.at(type);
-}
-
 const VkExtent2D &Renderer::getRenderTargetExtent() const
 {
 	return m_render_target_extent;
@@ -264,20 +253,6 @@ void Renderer::createSamplers()
 	m_samplers[SamplerType::Anisptropic_Wrap]  = Sampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_FILTER_LINEAR);
 }
 
-void Renderer::updateBuffers()
-{
-
-
-	updateInstanceBuffer();
-}
-
-void Renderer::updateInstanceBuffer()
-{
-	GraphicsContext::instance()->getProfiler().beginSample("Instance Update");
-	m_update = m_update || Render_Queue.update();
-	GraphicsContext::instance()->getProfiler().endSample("Instance Update");
-}
-
 void Renderer::updateImages()
 {
 	GraphicsContext::instance()->getQueueSystem().waitAll();
@@ -295,17 +270,5 @@ void Renderer::updateImages()
 		cmd_buffer.end();
 		cmd_buffer.submitIdle();
 	}
-}
-
-void Renderer::createBuffers()
-{
-	//m_buffers[BufferType::MainCamera]      = Buffer(1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	//m_buffers[BufferType::Material]        = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	//m_buffers[BufferType::Transform]       = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	//m_buffers[BufferType::IndirectCommand] = Buffer(1, VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	//m_buffers[BufferType::BoundingBox]     = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	//m_buffers[BufferType::Meshlet]         = Buffer(1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-	//m_buffers[BufferType::Vertex]          = Buffer(0, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-	//m_buffers[BufferType::Index]           = Buffer(0, VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 }
 }        // namespace Ilum

@@ -135,6 +135,7 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 	    aiProcess_GenSmoothNormals |
 	    aiProcess_Triangulate |
 	    aiProcess_GenBoundingBoxes |
+	    aiProcess_JoinIdenticalVertices|
 	    aiProcess_GenUVCoords |
 	    aiProcess_SortByPType |
 	    aiProcess_FindInvalidData |

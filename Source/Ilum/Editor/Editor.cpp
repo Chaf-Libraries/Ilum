@@ -217,6 +217,8 @@ void Editor::onTick(float delta_time)
 			panel->draw(delta_time);
 		}
 	}
+
+	ImGui::ShowDemoWindow();
 }
 
 void Editor::onPostTick()

@@ -155,13 +155,21 @@ struct RenderStats
 		uint32_t point_light_count       = 0;
 	} light_count;
 
-	// Mesh count
-	uint32_t model_count      = 0;
-	uint32_t meshlet_count    = 0;
-	uint32_t instance_visible = 0;
-	uint32_t meshlet_visible  = 0;
-	uint32_t triangle_count   = 0;
-	uint32_t static_instance_count = 0;
-	uint32_t dynamic_instance_count = 0;
+	uint32_t model_count = 0;
+
+	struct StaticMeshCount
+	{
+		uint32_t instance_count   = 0;
+		uint32_t meshlet_count    = 0;
+		uint32_t instance_visible = 0;
+		uint32_t meshlet_visible  = 0;
+		uint32_t triangle_count   = 0;
+	} static_mesh_count;
+
+	struct DynamicMeshCount
+	{
+		uint32_t instance_count   = 0;
+		uint32_t triangle_count   = 0;
+	} dynamic_mesh_count;
 };
 }        // namespace Ilum

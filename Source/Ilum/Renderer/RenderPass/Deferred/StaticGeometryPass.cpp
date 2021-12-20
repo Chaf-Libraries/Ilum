@@ -128,7 +128,7 @@ void StaticGeometryPass::render(RenderPassState &state)
 	const auto &vertex_buffer = Renderer::instance()->Render_Buffer.Static_Vertex_Buffer;
 	const auto &index_buffer  = Renderer::instance()->Render_Buffer.Static_Index_Buffer;
 
-	if (Renderer::instance()->Render_Stats.meshlet_count > 0 && vertex_buffer.getBuffer() && index_buffer.getBuffer())
+	if (Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count > 0 && vertex_buffer.getBuffer() && index_buffer.getBuffer())
 	{
 		VkDeviceSize offsets[1] = {0};
 		vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &vertex_buffer.getBuffer(), offsets);
@@ -136,7 +136,7 @@ void StaticGeometryPass::render(RenderPassState &state)
 
 		auto &draw_buffer  = Renderer::instance()->Render_Buffer.Command_Buffer;
 		auto &count_buffer = Renderer::instance()->Render_Buffer.Count_Buffer;
-		vkCmdDrawIndexedIndirectCount(cmd_buffer, draw_buffer, 0, count_buffer, 0, Renderer::instance()->Render_Stats.meshlet_count, sizeof(VkDrawIndexedIndirectCommand));
+		vkCmdDrawIndexedIndirectCount(cmd_buffer, draw_buffer, 0, count_buffer, 0, Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count, sizeof(VkDrawIndexedIndirectCommand));
 	}
 
 	vkCmdEndRenderPass(cmd_buffer);

@@ -99,8 +99,8 @@ void CameraUpdate::run()
 	}
 
 	culling_data->last_view        = culling_data->view;
-	culling_data->meshlet_count    = Renderer::instance()->Render_Stats.meshlet_count;
-	culling_data->instance_count   = Renderer::instance()->Render_Stats.static_instance_count;
+	culling_data->meshlet_count    = Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count;
+	culling_data->instance_count   = Renderer::instance()->Render_Stats.static_mesh_count.instance_count;
 	culling_data->frustum_enable   = Renderer::instance()->Culling.frustum_culling;
 	culling_data->backface_enable  = Renderer::instance()->Culling.backface_culling;
 	culling_data->occlusion_enable = Renderer::instance()->Culling.occulsion_culling;

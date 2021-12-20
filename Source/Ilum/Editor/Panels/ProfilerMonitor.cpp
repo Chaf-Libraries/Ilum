@@ -8,9 +8,28 @@
 #include "Timing/Timer.hpp"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 
 namespace Ilum::panel
 {
+template <typename Callback>
+inline void draw_node(const std::string &name, Callback callback)
+{
+	const ImGuiTreeNodeFlags tree_node_flags          = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
+	ImVec2                   content_region_available = ImGui::GetContentRegionAvail();
+
+	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{4, 4});
+	float line_height = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
+	bool  open        = ImGui::TreeNodeEx(name.c_str(), tree_node_flags, name.c_str());
+	ImGui::PopStyleVar();
+
+	if (open)
+	{
+		callback();
+		ImGui::TreePop();
+	}
+}
+
 ProfilerMonitor::ProfilerMonitor()
 {
 	m_name = "Profiler";
@@ -98,11 +117,24 @@ void ProfilerMonitor::draw(float delta_time)
 	ImGui::PlotHistogram("CPU Times", cpu_times.data(), static_cast<int>(cpu_times.size()), 0, nullptr, 0.f, max_cpu_time * 1.2f, ImVec2(0, 80.0f));
 	ImGui::PlotHistogram("GPU Times", gpu_times.data(), static_cast<int>(gpu_times.size()), 0, nullptr, 0.f, max_gpu_time * 1.2f, ImVec2(0, 80.0f));
 
-	//ImGui::Text("Total Triangle Count: %d", Renderer::instance()->Indices_Count / 3);
-	ImGui::Text("Total Instance Count: %d", Renderer::instance()->Render_Stats.static_instance_count);
-	ImGui::Text("Total Instance Visible: %d", Renderer::instance()->Render_Stats.instance_visible);
-	ImGui::Text("Total Meshlet Count: %d", Renderer::instance()->Render_Stats.meshlet_count);
-	ImGui::Text("Total Meshlet Visible: %d", Renderer::instance()->Render_Stats.meshlet_visible);
+	draw_node("Static Mesh Stats", []() {
+		ImGui::Text("Instance Count: %d", Renderer::instance()->Render_Stats.static_mesh_count.instance_count);
+		ImGui::Text("Instance Visible: %d", Renderer::instance()->Render_Stats.static_mesh_count.instance_visible);
+		ImGui::Text("Meshlet Count: %d", Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count);
+		ImGui::Text("Meshlet Visible: %d", Renderer::instance()->Render_Stats.static_mesh_count.meshlet_visible);
+		ImGui::Text("Triangle Count: %d", Renderer::instance()->Render_Stats.static_mesh_count.triangle_count);
+	});
+
+	draw_node("Dynamic Mesh Stats", []() {
+		ImGui::Text("Instance Count: %d", Renderer::instance()->Render_Stats.dynamic_mesh_count.instance_count);
+		ImGui::Text("Triangle Count: %d", Renderer::instance()->Render_Stats.dynamic_mesh_count.triangle_count);
+	});
+
+	draw_node("Light Stats", []() {
+		ImGui::Text("Directional Light Count: %d", Renderer::instance()->Render_Stats.light_count.directional_light_count);
+		ImGui::Text("Point Light Count: %d", Renderer::instance()->Render_Stats.light_count.point_light_count);
+		ImGui::Text("Spot Light Count: %d", Renderer::instance()->Render_Stats.light_count.spot_light_count);
+	});
 
 	ImGui::End();
 }

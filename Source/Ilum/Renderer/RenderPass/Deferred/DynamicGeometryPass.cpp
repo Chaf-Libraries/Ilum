@@ -10,6 +10,8 @@
 
 #include "Threading/ThreadPool.hpp"
 
+#include "File/FileSystem.hpp"
+
 #include "Material/PBR.h"
 
 #include <glm/gtc/type_ptr.hpp>
@@ -39,7 +41,7 @@ void DynamicGeometryPass::setupPipeline(PipelineState &state)
 	state.vertex_input_state.binding_descriptions = {
 	    VkVertexInputBindingDescription{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX}};
 
-	state.color_blend_attachment_states.resize(8);
+	state.color_blend_attachment_states.resize(7);
 	state.depth_stencil_state.stencil_test_enable = false;
 
 	// Disable blending
@@ -110,14 +112,18 @@ void DynamicGeometryPass::render(RenderPassState &state)
 	vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
 	vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
-	const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshRenderer, cmpt::Transform, cmpt::Tag>);
+	const auto group = Scene::instance()->getRegistry().group<cmpt::MeshRenderer>(entt::get<cmpt::Transform, cmpt::Tag>);
 
-	//Renderer::instance()->Instance_Count = Renderer::instance()->Static_Instance_Count + group.size();
+	Renderer::instance()->Render_Stats.dynamic_mesh_count.instance_count = 0;
+	Renderer::instance()->Render_Stats.dynamic_mesh_count.triangle_count = 0;
 
-	/*group.each([&cmd_buffer](const entt::entity &entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform, const cmpt::Tag &tag) {
+	uint32_t instance_id = Renderer::instance()->Render_Stats.static_mesh_count.instance_count;
+
+	group.each([&cmd_buffer, &instance_id, state](const entt::entity &entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform, const cmpt::Tag &tag) {
 		if (mesh_renderer.vertex_buffer && mesh_renderer.index_buffer)
 		{
-			Renderer::instance()->Instance_Count++;
+			Renderer::instance()->Render_Stats.dynamic_mesh_count.instance_count++;
+			Renderer::instance()->Render_Stats.dynamic_mesh_count.triangle_count += static_cast<uint32_t>(mesh_renderer.indices.size()) / 3;
 
 			VkDeviceSize offsets[1] = {0};
 			vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &mesh_renderer.vertex_buffer.getBuffer(), offsets);
@@ -126,18 +132,18 @@ void DynamicGeometryPass::render(RenderPassState &state)
 			struct VertexPushBlock
 			{
 				glm::mat4 transform;
-				float     displacement_height;
+				float displacement_height;
 				uint32_t  displacement_map;
-				uint32_t  instance_id;
-			}vertex_block;
+				uint32_t instance_id;
+			} vertex_block;
 
 			struct FragmentPushBlock
 			{
-				glm::vec4  base_color;
-				glm::vec3  emissive_color;
-				float metallic_factor;
-				float roughness_factor;
-				float emissive_intensity;
+				glm::vec4 base_color;
+				glm::vec3 emissive_color;
+				float     metallic_factor;
+				float     roughness_factor;
+				float     emissive_intensity;
 
 				uint32_t albedo_map;
 				uint32_t normal_map;
@@ -146,24 +152,56 @@ void DynamicGeometryPass::render(RenderPassState &state)
 				uint32_t emissive_map;
 				uint32_t ao_map;
 				uint32_t entity_id;
-			};
+			} fragment_block;
 
+			vertex_block.transform   = transform.world_transform;
+			vertex_block.instance_id = instance_id++;
+
+			fragment_block.entity_id = static_cast<uint32_t>(entity);
+
+			if (mesh_renderer.material && mesh_renderer.material->type() == typeid(material::PBRMaterial))
+			{
+				material::PBRMaterial *pbr = static_cast<material::PBRMaterial *>(mesh_renderer.material.get());
+
+				vertex_block.displacement_height = pbr->displacement_height;
+				vertex_block.displacement_map    = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->displacement_map));
+
+				fragment_block.base_color         = pbr->base_color;
+				fragment_block.emissive_color     = pbr->emissive_color;
+				fragment_block.metallic_factor    = pbr->metallic_factor;
+				fragment_block.roughness_factor   = pbr->roughness_factor;
+				fragment_block.emissive_intensity = pbr->emissive_intensity;
+				fragment_block.albedo_map         = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->albedo_map));
+				fragment_block.normal_map         = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->normal_map));
+				fragment_block.metallic_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->metallic_map));
+				fragment_block.roughness_map      = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->roughness_map));
+				fragment_block.emissive_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->emissive_map));
+				fragment_block.ao_map             = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->ao_map));
+			}
+			else
+			{
+				vertex_block.displacement_height = 0.f;
+				vertex_block.displacement_map    = std::numeric_limits<uint32_t>::max();
+
+				fragment_block.base_color         = glm::vec4(1.f);
+				fragment_block.emissive_color     = glm::vec4(0.f);
+				fragment_block.metallic_factor    = 1.f;
+				fragment_block.roughness_factor   = 1.f;
+				fragment_block.emissive_intensity = 0.f;
+				fragment_block.albedo_map         = std::numeric_limits<uint32_t>::max();
+				fragment_block.normal_map         = std::numeric_limits<uint32_t>::max();
+				fragment_block.metallic_map       = std::numeric_limits<uint32_t>::max();
+				fragment_block.roughness_map      = std::numeric_limits<uint32_t>::max();
+				fragment_block.emissive_map       = std::numeric_limits<uint32_t>::max();
+				fragment_block.ao_map             = std::numeric_limits<uint32_t>::max();
+			}
+
+			vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(VertexPushBlock), &vertex_block);
+			vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 80, sizeof(FragmentPushBlock), &fragment_block);
+
+			vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(mesh_renderer.indices.size()), 1, 0, 0, 0);
 		}
-	});*/
-
-	//auto &vertex_buffer = Renderer::instance()->getBuffer(Renderer::BufferType::Vertex);
-	//auto &index_buffer  = Renderer::instance()->getBuffer(Renderer::BufferType::Index);
-
-	//if (Renderer::instance()->Meshlet_Count > 0 && vertex_buffer.get().getBuffer() && index_buffer.get().getBuffer())
-	//{
-	//	VkDeviceSize offsets[1] = {0};
-	//	vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &vertex_buffer.get().getBuffer(), offsets);
-	//	vkCmdBindIndexBuffer(cmd_buffer, index_buffer.get().getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-
-	//	auto &draw_buffer  = Renderer::instance()->Render_Queue.Command_Buffer;
-	//	auto &count_buffer = Renderer::instance()->Render_Queue.Count_Buffer;
-	//	vkCmdDrawIndexedIndirectCount(cmd_buffer, draw_buffer, 0, count_buffer, 0, Renderer::instance()->Meshlet_Count, sizeof(VkDrawIndexedIndirectCommand));
-	//}
+	});
 
 	vkCmdEndRenderPass(cmd_buffer);
 }
