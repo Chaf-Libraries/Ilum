@@ -472,9 +472,9 @@ entt::entity deserialize_entity(const YAML::Node &data)
 	deserialize_component<cmpt::Transform>(entity, data[typeid(cmpt::Transform).name()]);
 	deserialize_component<cmpt::Hierarchy>(entity, data[typeid(cmpt::Hierarchy).name()]);
 	deserialize_component<cmpt::MeshletRenderer>(entity, data[typeid(cmpt::MeshletRenderer).name()]);
-	deserialize_component<cmpt::DirectionalLight>(entity, data[typeid(cmpt::Light).name()]);
-	deserialize_component<cmpt::SpotLight>(entity, data[typeid(cmpt::Light).name()]);
-	deserialize_component<cmpt::PointLight>(entity, data[typeid(cmpt::Light).name()]);
+	deserialize_component<cmpt::DirectionalLight>(entity, data[typeid(cmpt::DirectionalLight).name()]);
+	deserialize_component<cmpt::SpotLight>(entity, data[typeid(cmpt::SpotLight).name()]);
+	deserialize_component<cmpt::PointLight>(entity, data[typeid(cmpt::PointLight).name()]);
 	deserialize_component<cmpt::PerspectiveCamera>(entity, data[typeid(cmpt::PerspectiveCamera).name()]);
 	deserialize_component<cmpt::OrthographicCamera>(entity, data[typeid(cmpt::OrthographicCamera).name()]);
 

@@ -9,6 +9,7 @@
 #include "Renderer/Renderer.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
+#include "Graphics/Profiler.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -43,6 +44,8 @@ inline void transform_recrusive(entt::entity entity)
 
 void TransformUpdate::run()
 {
+	GraphicsContext::instance()->getProfiler().beginSample("Transform Update");
+
 	if (cmpt::Transform::update)
 	{
 		auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::Transform, cmpt::Hierarchy>);
@@ -130,5 +133,6 @@ void TransformUpdate::run()
 	}
 
 	cmpt::Transform::update = false;
+	GraphicsContext::instance()->getProfiler().endSample("Transform Update");
 }
 }        // namespace Ilum::sym

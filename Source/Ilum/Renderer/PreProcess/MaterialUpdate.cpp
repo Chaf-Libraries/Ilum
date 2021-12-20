@@ -8,6 +8,7 @@
 #include "Renderer/Renderer.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
+#include "Graphics/Profiler.hpp"
 
 #include "File/FileSystem.hpp"
 
@@ -17,6 +18,8 @@ namespace Ilum::sym
 {
 void MaterialUpdate::run()
 {
+	GraphicsContext::instance()->getProfiler().beginSample("Material Update");
+
 	if (Material::update)
 	{
 		auto meshlet_view = Scene::instance()->getRegistry().view<cmpt::MeshletRenderer>();
@@ -52,7 +55,6 @@ void MaterialUpdate::run()
 				for (uint32_t material_id = 0; material_id < meshlet_renderer.materials.size(); material_id++)
 				{
 					auto &material = material_data[material_offset[i] + material_id];
-					LOG_INFO("{} - {} - {} - {}", i, material_offset[i], material_id, material_offset[i] + material_id);
 
 					auto &material_ptr = meshlet_renderer.materials[material_id];
 
@@ -93,7 +95,6 @@ void MaterialUpdate::run()
 				}
 			}
 		});
-		LOG_INFO("=========");
 		// Update dynamic mesh material
 		tbb::parallel_for(tbb::blocked_range<size_t>(0, mesh_view.size()), [&mesh_view, &material_data, material_count](const tbb::blocked_range<size_t> &r) {
 			for (size_t i = r.begin(); i != r.end(); i++)
@@ -145,5 +146,6 @@ void MaterialUpdate::run()
 		Renderer::instance()->Render_Buffer.Instance_Buffer.unmap();
 	}
 	Material::update = false;
+	GraphicsContext::instance()->getProfiler().endSample("Material Update");
 }
 }        // namespace Ilum::sym

@@ -56,7 +56,9 @@ void ProfilerMonitor::draw(float delta_time)
 
 	if (ImGui::BeginTable("CPU&GPU Time", 4, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
 	{
+		ImGui::PushItemWidth(5.f);
 		ImGui::TableSetupColumn("Index");
+		ImGui::PopItemWidth();
 		ImGui::TableSetupColumn("Pass");
 		ImGui::TableSetupColumn("CPU Time (ms)");
 		ImGui::TableSetupColumn("GPU Time (ms)");
@@ -70,8 +72,11 @@ void ProfilerMonitor::draw(float delta_time)
 			gpu_times.push_back(gpu_time);
 
 			ImGui::TableNextRow();
+
 			ImGui::TableSetColumnIndex(0);
+
 			ImGui::Text("%d", index++);
+
 			ImGui::TableSetColumnIndex(1);
 			ImGui::Text("%s", name.c_str());
 			ImGui::TableSetColumnIndex(2);

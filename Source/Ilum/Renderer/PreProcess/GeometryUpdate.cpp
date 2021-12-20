@@ -4,6 +4,7 @@
 
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/GraphicsContext.hpp"
+#include "Graphics/Profiler.hpp"
 
 #include "Scene/Component/Renderable.hpp"
 #include "Scene/Scene.hpp"
@@ -14,6 +15,7 @@ namespace Ilum::sym
 {
 void GeometryUpdate::run()
 {
+	GraphicsContext::instance()->getProfiler().beginSample("Geometry Update");
 	auto &resource_cache       = Renderer::instance()->getResourceCache();
 
 	// Update static mesh only when it needed
@@ -90,5 +92,7 @@ void GeometryUpdate::run()
 		mesh_renderer.vertex_buffer.unmap();
 		mesh_renderer.index_buffer.unmap();
 	});
+
+	GraphicsContext::instance()->getProfiler().endSample("Geometry Update");
 }
 }        // namespace Ilum::sym
