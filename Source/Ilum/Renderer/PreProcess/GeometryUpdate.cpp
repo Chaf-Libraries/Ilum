@@ -73,24 +73,32 @@ void GeometryUpdate::run()
 		{
 			GraphicsContext::instance()->getQueueSystem().waitAll();
 			mesh_renderer.vertex_buffer = Buffer(mesh_renderer.vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			mesh_renderer.need_update   = true;
 		}
 
 		if (mesh_renderer.indices.size() * sizeof(Vertex) != mesh_renderer.index_buffer.getSize())
 		{
 			GraphicsContext::instance()->getQueueSystem().waitAll();
 			mesh_renderer.index_buffer = Buffer(mesh_renderer.indices.size() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			mesh_renderer.need_update  = true;
 		}
 
 		if (mesh_renderer.vertices.size() == 0 || mesh_renderer.indices.size() == 0)
 		{
+			mesh_renderer.need_update = false;
 			return;
 		}
 
-		std::memcpy(mesh_renderer.vertex_buffer.map(), mesh_renderer.vertices.data(), mesh_renderer.vertex_buffer.getSize());
-		std::memcpy(mesh_renderer.index_buffer.map(), mesh_renderer.indices.data(), mesh_renderer.index_buffer.getSize());
+		if (mesh_renderer.need_update)
+		{
+			std::memcpy(mesh_renderer.vertex_buffer.map(), mesh_renderer.vertices.data(), mesh_renderer.vertex_buffer.getSize());
+			std::memcpy(mesh_renderer.index_buffer.map(), mesh_renderer.indices.data(), mesh_renderer.index_buffer.getSize());
 
-		mesh_renderer.vertex_buffer.unmap();
-		mesh_renderer.index_buffer.unmap();
+			mesh_renderer.vertex_buffer.unmap();
+			mesh_renderer.index_buffer.unmap();
+
+			mesh_renderer.need_update = false;
+		}
 	});
 
 	GraphicsContext::instance()->getProfiler().endSample("Geometry Update");

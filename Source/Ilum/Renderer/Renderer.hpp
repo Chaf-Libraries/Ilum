@@ -38,6 +38,13 @@ class Renderer : public TSubsystem<Renderer>
 		Anisptropic_Wrap
 	};
 
+	enum class RenderMode
+	{
+		Polygon,
+		WireFrame,
+		PointCloud
+	};
+
   public:
 	Renderer(Context *context = nullptr);
 
@@ -112,6 +119,8 @@ class Renderer : public TSubsystem<Renderer>
 	RenderStats Render_Stats;
 
 	RenderBuffer Render_Buffer;
+
+	RenderMode Render_Mode = RenderMode::Polygon;
 
 	struct
 	{

@@ -48,6 +48,22 @@ void StaticGeometryPass::setupPipeline(PipelineState &state)
 		color_blend_attachment_state.blend_enable = false;
 	}
 
+	// Setting rasterization state
+	switch (Renderer::instance()->Render_Mode)
+	{
+		case Renderer::RenderMode::Polygon:
+			state.rasterization_state.polygon_mode = VK_POLYGON_MODE_FILL;
+			break;
+		case Renderer::RenderMode::WireFrame:
+			state.rasterization_state.polygon_mode = VK_POLYGON_MODE_LINE;
+			break;
+		case Renderer::RenderMode::PointCloud:
+			state.rasterization_state.polygon_mode = VK_POLYGON_MODE_POINT;
+			break;
+		default:
+			break;
+	}
+
 	state.descriptor_bindings.bind(0, 0, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	state.descriptor_bindings.bind(0, 1, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Wrap), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 2, "PerInstanceData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
@@ -122,8 +138,6 @@ void StaticGeometryPass::render(RenderPassState &state)
 
 	vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
 	vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
-
-	const auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshletRenderer, cmpt::Transform, cmpt::Tag>);
 
 	const auto &vertex_buffer = Renderer::instance()->Render_Buffer.Static_Vertex_Buffer;
 	const auto &index_buffer  = Renderer::instance()->Render_Buffer.Static_Index_Buffer;

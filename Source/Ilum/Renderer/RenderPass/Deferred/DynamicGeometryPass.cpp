@@ -50,6 +50,22 @@ void DynamicGeometryPass::setupPipeline(PipelineState &state)
 		color_blend_attachment_state.blend_enable = false;
 	}
 
+	// Setting rasterization state
+	switch (Renderer::instance()->Render_Mode)
+	{
+		case Renderer::RenderMode::Polygon:
+			state.rasterization_state.polygon_mode = VK_POLYGON_MODE_FILL;
+			break;
+		case Renderer::RenderMode::WireFrame:
+			state.rasterization_state.polygon_mode = VK_POLYGON_MODE_LINE;
+			break;
+		case Renderer::RenderMode::PointCloud:
+			state.rasterization_state.polygon_mode = VK_POLYGON_MODE_POINT;
+			break;
+		default:
+			break;
+	}
+
 	state.descriptor_bindings.bind(0, 0, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	state.descriptor_bindings.bind(0, 1, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Wrap), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
@@ -62,18 +78,13 @@ void DynamicGeometryPass::setupPipeline(PipelineState &state)
 	state.declareAttachment("debug - entity", VK_FORMAT_R32_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("depth_stencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 
-	state.addOutputAttachment("gbuffer - albedo", AttachmentState::Clear_Color);
-	state.addOutputAttachment("gbuffer - normal", AttachmentState::Clear_Color);
-	state.addOutputAttachment("gbuffer - position", AttachmentState::Clear_Color);
-	state.addOutputAttachment("gbuffer - metallic_roughness_ao", AttachmentState::Clear_Color);
-	state.addOutputAttachment("gbuffer - emissive", AttachmentState::Clear_Color);
-	state.addOutputAttachment("debug - instance", AttachmentState::Clear_Color);
-
-	VkClearColorValue clear_entity_id = {};
-	clear_entity_id.uint32[0]         = static_cast<uint32_t>(entt::null);
-
-	state.addOutputAttachment("debug - entity", clear_entity_id);
-
+	state.addOutputAttachment("gbuffer - albedo", AttachmentState::Load_Color);
+	state.addOutputAttachment("gbuffer - normal", AttachmentState::Load_Color);
+	state.addOutputAttachment("gbuffer - position", AttachmentState::Load_Color);
+	state.addOutputAttachment("gbuffer - metallic_roughness_ao", AttachmentState::Load_Color);
+	state.addOutputAttachment("gbuffer - emissive", AttachmentState::Load_Color);
+	state.addOutputAttachment("debug - instance", AttachmentState::Load_Color);
+	state.addOutputAttachment("debug - entity", AttachmentState::Load_Color);
 	state.addOutputAttachment("depth_stencil", AttachmentState::Load_Depth_Stencil);
 }
 

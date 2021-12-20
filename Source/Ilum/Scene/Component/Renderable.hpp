@@ -49,6 +49,7 @@ struct MeshRenderer : public Renderable
 	Buffer index_buffer;
 
 	uint32_t material_id = 0;
+	bool     need_update = true;
 
 	scope<Material> material = createScope<material::PBRMaterial>();
 };

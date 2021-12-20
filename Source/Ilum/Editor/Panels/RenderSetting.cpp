@@ -34,6 +34,15 @@ void RenderSetting::draw(float delta_time)
 {
 	ImGui::Begin("Render Setting", &active);
 
+	const char *const render_mode[]       = {"Polygon", "Wire Frame", "Point Cloud"};
+	int               current_render_mode = static_cast<int>(Renderer::instance()->Render_Mode);
+
+	if (ImGui::Combo("Render Mode", &current_render_mode, render_mode, 3))
+	{
+		Renderer::instance()->Render_Mode = static_cast<Renderer::RenderMode>(current_render_mode);
+		Renderer::instance()->update();
+	}
+
 	draw_node("Culling", []() {
 		ImGui::Checkbox("Frustum Culling", reinterpret_cast<bool *>(&Renderer::instance()->Culling.frustum_culling));
 		ImGui::Checkbox("Back Face Cone Culling", reinterpret_cast<bool *>(&Renderer::instance()->Culling.backface_culling));
