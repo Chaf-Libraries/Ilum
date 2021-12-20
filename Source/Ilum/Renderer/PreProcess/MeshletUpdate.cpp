@@ -36,12 +36,15 @@ void MeshletUpdate::run()
 			if (Renderer::instance()->getResourceCache().hasModel(meshlet_renderer.model))
 			{
 				auto model = Renderer::instance()->getResourceCache().loadModel(meshlet_renderer.model);
-				Renderer::instance()->Render_Stats.meshlet_count += static_cast<uint32_t>(model.get().meshlets.size());
 				Renderer::instance()->Render_Stats.static_instance_count += static_cast<uint32_t>(model.get().submeshes.size());
+				for (auto& submesh : model.get().submeshes)
+				{
+					Renderer::instance()->Render_Stats.meshlet_count += static_cast<uint32_t>(submesh.meshlet_count);
+				}
 			}
 		}
 
-		if (Renderer::instance()->Render_Stats.meshlet_count * sizeof(MaterialData) > Renderer::instance()->Render_Buffer.Meshlet_Buffer.getSize())
+		if (Renderer::instance()->Render_Stats.meshlet_count * sizeof(PerMeshletData) > Renderer::instance()->Render_Buffer.Meshlet_Buffer.getSize())
 		{
 			GraphicsContext::instance()->getQueueSystem().waitAll();
 			Renderer::instance()->Render_Buffer.Meshlet_Buffer = Buffer(Renderer::instance()->Render_Stats.meshlet_count * sizeof(PerMeshletData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
