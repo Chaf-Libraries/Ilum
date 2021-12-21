@@ -96,8 +96,6 @@ layout (set = 0, binding = 5) buffer DrawBuffer
     uint draw_data[];
 };
 
-
-
 void main() {
     outIndex = draw_data[gl_DrawIDARB];
     outMeshletIndex = gl_DrawIDARB;

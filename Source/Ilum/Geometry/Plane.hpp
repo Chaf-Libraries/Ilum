@@ -22,6 +22,8 @@ namespace Ilum::geometry
 
 		Plane transform(const glm::mat4 &trans) const;
 
-		glm::vec3 relect(const glm::vec3 &direction) const;
+		glm::vec3 reflect(const glm::vec3 &direction) const;
+
+		float distance(const glm::vec3 &p) const;
 	};
 }

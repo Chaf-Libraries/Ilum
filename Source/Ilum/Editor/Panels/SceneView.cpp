@@ -44,24 +44,10 @@ __pragma(warning(push, 0))
 
         namespace Ilum::panel
 {
-	inline void draw_line(ImDrawList * draw_list, const glm::vec3 &x1, const glm::vec3 &x2, const ImVec2 &offset, float width, float height, ImColor color, float line_width)
+	inline void draw_line(ImDrawList * draw_list, const ImVec2 &x1, const ImVec2 &x2, const ImVec2 &offset, ImColor color, float line_width)
 	{
-		if (x1.z < 0.f && x2.z < 0.f)
-		{
-			return;
-		}
-
-		if (x1.z < 0.f && x1.x > offset.x && x1.x < offset.x + width && x1.y > offset.y && x1.y < offset.y + height)
-		{
-			return;
-		}
-		if (x2.z < 0.f && x2.x > offset.x && x2.x < offset.x + width && x2.y > offset.y && x2.y < offset.y + height)
-		{
-			return;
-		}
-
-		ImVec2 p1 = ImVec2(x1.x, x1.y);
-		ImVec2 p2 = ImVec2(x2.x, x2.y);
+		ImVec2 p1 = x1;
+		ImVec2 p2 = x2;
 
 		if (x1.y < offset.y)
 		{
@@ -75,6 +61,43 @@ __pragma(warning(push, 0))
 		}
 
 		draw_list->AddLine(p1, p2, color, line_width);
+	}
+
+	inline void draw_line(ImDrawList * draw_list, cmpt::Camera * camera, const glm::vec3 &x1, const glm::vec3 &x2, const ImVec2 &offset, const ImVec2 &extent, ImColor color, float line_width)
+	{
+		// Projection
+		glm::vec4 p1 = camera->world2Screen(x1, {extent.x, extent.y}, {offset.x, offset.y});
+		glm::vec4 p2 = camera->world2Screen(x2, {extent.x, extent.y}, {offset.x, offset.y});
+
+		if (p1.z < 0.f && p2.z < 0.f)
+		{
+			return;
+		}
+
+		if (p1.z > 0.f && p2.z > 0.f)
+		{
+			draw_line(draw_list, ImVec2(p1.x, p1.y), ImVec2(p2.x, p2.y), offset, color, line_width);
+			return;
+		}
+
+		// Consider line interset with the near plane
+		const auto &near_plane = camera->frustum.planes[4];
+
+		float d1 = near_plane.distance(x1);
+		float d2 = near_plane.distance(x2);
+
+		// Make sure p1 is behind camera
+		if (p2.z < 0.f)
+		{
+			std::swap(p1, p2);
+			std::swap(d1, d2);
+		}
+
+		// Interset
+		glm::vec3 p = x1 + (x2 - x1) * (d1 / (d1 + d2));
+		p1          = camera->world2Screen(p, {extent.x, extent.y}, {offset.x, offset.y});
+
+		draw_line(draw_list, ImVec2(p1.x, p1.y), ImVec2(p2.x, p2.y), offset, color, line_width);
 	}
 
 	template <typename T>
@@ -162,28 +185,21 @@ __pragma(warning(push, 0))
 			    glm::vec3(bbox.max_.x, bbox.min_.y, bbox.max_.z),
 			};
 
-			std::array<glm::vec3, 8> cube_screen_vertex;
-
-			for (uint32_t i = 0; i < 8; i++)
-			{
-				glm::vec3 screen_pos = main_camera->world2Screen(cube_vertex[i], {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x), static_cast<float>(offset.y)});
-
-				cube_screen_vertex[i] = glm::vec3(screen_pos.x + ImGui::GetWindowPos().x, screen_pos.y + ImGui::GetWindowPos().y, screen_pos.z);
-			}
+			ImVec2 extent = ImVec2(static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height));
 
 			auto *draw_list = ImGui::GetWindowDrawList();
-			draw_line(draw_list, cube_screen_vertex[0], cube_screen_vertex[1], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, cube_screen_vertex[1], cube_screen_vertex[2], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, cube_screen_vertex[2], cube_screen_vertex[3], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, cube_screen_vertex[3], cube_screen_vertex[0], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, cube_screen_vertex[4], cube_screen_vertex[5], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, cube_screen_vertex[5], cube_screen_vertex[6], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, cube_screen_vertex[6], cube_screen_vertex[7], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, cube_screen_vertex[7], cube_screen_vertex[4], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, cube_screen_vertex[0], cube_screen_vertex[4], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, cube_screen_vertex[1], cube_screen_vertex[5], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, cube_screen_vertex[2], cube_screen_vertex[6], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, cube_screen_vertex[3], cube_screen_vertex[7], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, cube_vertex[0], cube_vertex[1], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, cube_vertex[1], cube_vertex[2], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, cube_vertex[2], cube_vertex[3], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, cube_vertex[3], cube_vertex[0], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, cube_vertex[4], cube_vertex[5], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, cube_vertex[5], cube_vertex[6], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, cube_vertex[6], cube_vertex[7], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, cube_vertex[7], cube_vertex[4], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, cube_vertex[0], cube_vertex[4], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, cube_vertex[1], cube_vertex[5], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, cube_vertex[2], cube_vertex[6], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, cube_vertex[3], cube_vertex[7], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
 		}
 	}
 
@@ -276,20 +292,82 @@ __pragma(warning(push, 0))
 				frustum_screen_vertex[i] = glm::vec3(screen_pos.x + ImGui::GetWindowPos().x, screen_pos.y + ImGui::GetWindowPos().y, screen_pos.z);
 			}
 
+			ImVec2 extent = ImVec2(static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height));
+
 			auto *draw_list = ImGui::GetWindowDrawList();
 
-			draw_line(draw_list, frustum_screen_vertex[0], frustum_screen_vertex[1], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, frustum_screen_vertex[1], frustum_screen_vertex[2], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, frustum_screen_vertex[2], frustum_screen_vertex[3], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, frustum_screen_vertex[3], frustum_screen_vertex[0], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, frustum_screen_vertex[4], frustum_screen_vertex[5], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, frustum_screen_vertex[5], frustum_screen_vertex[6], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, frustum_screen_vertex[6], frustum_screen_vertex[7], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, frustum_screen_vertex[7], frustum_screen_vertex[4], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, frustum_screen_vertex[0], frustum_screen_vertex[4], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, frustum_screen_vertex[1], frustum_screen_vertex[5], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, frustum_screen_vertex[2], frustum_screen_vertex[6], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
-			draw_line(draw_list, frustum_screen_vertex[3], frustum_screen_vertex[7], ImGui::GetWindowPos() + offset, static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height), ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, frustum_vertex[0], frustum_vertex[1], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, frustum_vertex[1], frustum_vertex[2], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, frustum_vertex[2], frustum_vertex[3], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, frustum_vertex[3], frustum_vertex[0], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, frustum_vertex[4], frustum_vertex[5], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, frustum_vertex[5], frustum_vertex[6], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, frustum_vertex[6], frustum_vertex[7], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, frustum_vertex[7], frustum_vertex[4], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, frustum_vertex[0], frustum_vertex[4], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, frustum_vertex[1], frustum_vertex[5], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, frustum_vertex[2], frustum_vertex[6], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, frustum_vertex[3], frustum_vertex[7], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+		}
+	}
+
+	inline void draw_curve_gizmo(const ImVec2 &offset, bool enable)
+	{
+		if (!enable || !Renderer::instance()->hasMainCamera() || Renderer::instance()->Main_Camera == Editor::instance()->getSelect())
+		{
+			return;
+		}
+
+		if (Editor::instance()->getSelect() && Editor::instance()->getSelect().hasComponent<cmpt::CurveRenderer>())
+		{
+			cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
+                                            static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
+                                            static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
+
+			auto &curve_renderer = Editor::instance()->getSelect().getComponent<cmpt::CurveRenderer>();
+			auto &transform      = Editor::instance()->getSelect().getComponent<cmpt::Transform>();
+
+			std::vector<glm::vec4> screen_vertices(curve_renderer.control_points.size());
+
+			auto *draw_list = ImGui::GetWindowDrawList();
+
+			auto [mouse_x, mouse_y] = Input::instance()->getMousePosition();
+			auto click_pos          = ImVec2(static_cast<float>(mouse_x), static_cast<float>(mouse_y));
+
+			for (uint32_t i = 0; i < screen_vertices.size(); i++)
+			{
+				glm::vec3 control_point = transform.world_transform * glm::vec4(curve_renderer.control_points[i], 1.f);
+
+				screen_vertices[i] = main_camera->world2Screen(control_point, {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x + ImGui::GetWindowPos().x), static_cast<float>(offset.y + ImGui::GetWindowPos().y)});
+
+				if (main_camera->frustum.isInside(control_point))
+				{
+					float distance = std::fabs(click_pos.x - screen_vertices[i].x) + std::fabs(click_pos.y - screen_vertices[i].y);
+
+					if (distance < 4.f)
+					{
+						curve_renderer.select_point = i;
+					}
+
+					draw_list->AddCircleFilled(ImVec2{screen_vertices[i].x, screen_vertices[i].y}, curve_renderer.select_point == i ? 8.f : 4.f, ImColor(0.f, 255.f, 0.f));
+
+					// Select
+					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left) && curve_renderer.select_point == i)
+					{
+						curve_renderer.control_points[i] = main_camera->screen2World(glm::vec4(click_pos.x, click_pos.y, screen_vertices[i].z, screen_vertices[i].w), {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x + ImGui::GetWindowPos().x), static_cast<float>(offset.y + ImGui::GetWindowPos().y)});
+					}
+				}
+			}
+
+			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) || !ImGui::IsAnyMouseDown())
+			{
+				curve_renderer.select_point = std::numeric_limits<uint32_t>::max();
+			}
+
+			for (uint32_t i = 1; i < screen_vertices.size(); i++)
+			{
+				draw_line(draw_list, ImVec2(screen_vertices[i - 1].x, screen_vertices[i - 1].y), ImVec2(screen_vertices[i].x, screen_vertices[i].y), ImGui::GetWindowPos() + offset, ImColor(0.f, 255.f, 0.f), 1.f);
+			}
 		}
 	}
 
@@ -309,11 +387,12 @@ __pragma(warning(push, 0))
 		ImageLoader::loadImageFromFile(m_icons["save"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/save.png"));
 
 		m_gizmo = {
-		    {"grid", true},
-		    {"aabb", false},
-		    {"light", true},
-		    {"camera", true},
-		    {"frustum", true},
+		    {"Grid", true},
+		    {"AABB", false},
+		    {"Light", true},
+		    {"Camera", true},
+		    {"Frustum", true},
+		    {"Curve", true},
 		};
 	}
 
@@ -353,7 +432,7 @@ __pragma(warning(push, 0))
 
 		ImGuizmo::SetRect(scene_view_position.x, scene_view_position.y, scene_view_size.x, scene_view_size.y);
 
-		if (m_gizmo["grid"] && main_camera)
+		if (m_gizmo["Grid"] && main_camera)
 		{
 			ImGuizmo::DrawGrid(glm::value_ptr(main_camera->view), glm::value_ptr(main_camera->projection), glm::value_ptr(glm::mat4(1.0)), 1000.f);
 		}
@@ -391,7 +470,7 @@ __pragma(warning(push, 0))
 					*static_cast<material::PBRMaterial *>(mesh_renderer.materials.back().get()) = submesh.material;
 				}
 				Editor::instance()->select(entity);
-				cmpt::Renderable::update = true;
+				cmpt::MeshletRenderer::update = true;
 			}
 			ImGui::EndDragDropTarget();
 		}
@@ -436,7 +515,7 @@ __pragma(warning(push, 0))
 		}
 
 		// Mouse picking
-		if (ImGui::IsWindowFocused() && ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGuizmo::IsOver() && !ImGuizmo::IsUsing())
+		if (ImGui::IsWindowFocused() && ImGui::IsWindowHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && !ImGuizmo::IsOver() && !ImGuizmo::IsUsing())
 		{
 			auto [mouse_x, mouse_y] = Input::instance()->getMousePosition();
 			auto click_pos          = ImVec2(static_cast<float>(mouse_x) - scene_view_position.x, static_cast<float>(mouse_y) - scene_view_position.y);
@@ -502,13 +581,14 @@ __pragma(warning(push, 0))
 			}
 		}
 
-		draw_gizmo<cmpt::DirectionalLight>(offset, m_icons["light"], m_gizmo["light"]);
-		draw_gizmo<cmpt::SpotLight>(offset, m_icons["light"], m_gizmo["light"]);
-		draw_gizmo<cmpt::PointLight>(offset, m_icons["light"], m_gizmo["light"]);
-		draw_gizmo<cmpt::PerspectiveCamera>(offset, m_icons["camera"], m_gizmo["camera"]);
-		draw_gizmo<cmpt::OrthographicCamera>(offset, m_icons["camera"], m_gizmo["camera"]);
-		draw_frustum_gizmo(offset, m_gizmo["frustum"]);
-		draw_boundingbox_gizmo(offset, m_gizmo["aabb"]);
+		draw_gizmo<cmpt::DirectionalLight>(offset, m_icons["light"], m_gizmo["Light"]);
+		draw_gizmo<cmpt::SpotLight>(offset, m_icons["light"], m_gizmo["Light"]);
+		draw_gizmo<cmpt::PointLight>(offset, m_icons["light"], m_gizmo["Light"]);
+		draw_gizmo<cmpt::PerspectiveCamera>(offset, m_icons["camera"], m_gizmo["Camera"]);
+		draw_gizmo<cmpt::OrthographicCamera>(offset, m_icons["camera"], m_gizmo["Camera"]);
+		draw_frustum_gizmo(offset, m_gizmo["Frustum"]);
+		draw_boundingbox_gizmo(offset, m_gizmo["AABB"]);
+		draw_curve_gizmo(offset, m_gizmo["Curve"]);
 
 		if (Editor::instance()->getSelect())
 		{
@@ -759,11 +839,10 @@ __pragma(warning(push, 0))
 
 		if (ImGui::BeginPopup("GizmoPopup"))
 		{
-			ImGui::Checkbox("Grid", &m_gizmo["grid"]);
-			ImGui::Checkbox("Light", &m_gizmo["light"]);
-			ImGui::Checkbox("Camera", &m_gizmo["camera"]);
-			ImGui::Checkbox("AABB", &m_gizmo["aabb"]);
-			ImGui::Checkbox("Frustum", &m_gizmo["frustum"]);
+			for (auto &[key, value] : m_gizmo)
+			{
+				ImGui::Checkbox(key.c_str(), &value);
+			}
 			ImGui::EndPopup();
 		}
 

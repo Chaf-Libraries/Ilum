@@ -53,4 +53,32 @@ struct MeshRenderer : public Renderable
 
 	scope<Material> material = createScope<material::PBRMaterial>();
 };
+
+enum class CurveType
+{
+	None,
+	BezierCurve
+};
+
+struct CurveRenderer : public Renderable
+{
+	CurveType type = CurveType::None;
+
+	std::vector<glm::vec3> control_points;
+
+	std::vector<glm::vec3> vertices;
+
+	Buffer vertex_buffer;
+
+	bool need_update = true;
+
+	// Curve only support base color
+	glm::vec4 base_color = glm::vec4(1.f);
+
+	float line_width = 1.f;
+
+	uint32_t sample = 100;
+
+	uint32_t select_point = std::numeric_limits<uint32_t>::max();
+};
 }        // namespace Ilum::cmpt

@@ -25,7 +25,7 @@ void GeometryUpdate::run()
 	if (resource_cache.getVerticesCount() * sizeof(Vertex) != static_vertex_buffer.getSize() ||
 	    resource_cache.getIndicesCount() * sizeof(uint32_t) != static_index_buffer.getSize())
 	{
-		cmpt::Renderable::update = true;
+		cmpt::MeshletRenderer::update = true;
 
 		GraphicsContext::instance()->getQueueSystem().waitAll();
 
@@ -65,9 +65,9 @@ void GeometryUpdate::run()
 		command_buffer.submitIdle();
 	}
 
-	// Update dynamic mesh, update every frame
-	auto view = Scene::instance()->getRegistry().view<cmpt::MeshRenderer>();
-	tbb::parallel_for_each(view.begin(), view.end(), [](entt::entity entity) {
+	// Update dynamic mesh
+	auto mesh_view = Scene::instance()->getRegistry().view<cmpt::MeshRenderer>();
+	tbb::parallel_for_each(mesh_view.begin(), mesh_view.end(), [](entt::entity entity) {
 		auto &mesh_renderer = Entity(entity).getComponent<cmpt::MeshRenderer>();
 		if (mesh_renderer.vertices.size() * sizeof(Vertex) != mesh_renderer.vertex_buffer.getSize())
 		{
@@ -98,6 +98,37 @@ void GeometryUpdate::run()
 			mesh_renderer.index_buffer.unmap();
 
 			mesh_renderer.need_update = false;
+		}
+	});
+
+	// Update curve
+	auto curve_view = Scene::instance()->getRegistry().view<cmpt::CurveRenderer>();
+	tbb::parallel_for_each(curve_view.begin(), curve_view.end(), [](entt::entity entity) {
+		auto &curve_renderer = Entity(entity).getComponent<cmpt::CurveRenderer>();
+
+		if (curve_renderer.vertices.size() * sizeof(glm::vec3) != curve_renderer.vertex_buffer.getSize())
+		{
+			GraphicsContext::instance()->getQueueSystem().waitAll();
+			curve_renderer.vertex_buffer = Buffer(curve_renderer.vertices.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			curve_renderer.update        = true;
+		}
+
+		if (curve_renderer.vertices.size() == 0)
+		{
+			curve_renderer.need_update = false;
+			return;
+		}
+
+		if (curve_renderer.need_update)
+		{
+
+
+
+
+			std::memcpy(curve_renderer.vertex_buffer.map(), curve_renderer.vertices.data(), curve_renderer.vertex_buffer.getSize());
+			curve_renderer.vertex_buffer.unmap();
+
+			curve_renderer.need_update = false;
 		}
 	});
 

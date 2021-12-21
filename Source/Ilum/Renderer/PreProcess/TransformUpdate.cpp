@@ -70,7 +70,7 @@ void TransformUpdate::run()
 		});
 	}
 
-	if (cmpt::Transform::update || cmpt::Renderable::update)
+	if (cmpt::Transform::update || cmpt::MeshletRenderer::update)
 	{
 		// Update static mesh transform buffer
 		auto meshlet_view = Scene::instance()->getRegistry().view<cmpt::MeshletRenderer>();

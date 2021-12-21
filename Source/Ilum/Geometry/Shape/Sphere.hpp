@@ -22,5 +22,7 @@ struct Sphere : public Shape
 	void merge(const glm::vec3 &point);
 
 	void merge(const std::vector<glm::vec3> &points);
+
+	TriMesh toTriMesh() override;
 };
 }        // namespace Ilum::geometry

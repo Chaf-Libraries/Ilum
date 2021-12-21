@@ -15,7 +15,7 @@ void MeshletUpdate::run()
 {
 	GraphicsContext::instance()->getProfiler().beginSample("Meshlet Update");
 
-	if (cmpt::Renderable::update)
+	if (cmpt::MeshletRenderer::update)
 	{
 		auto meshlet_view = Scene::instance()->getRegistry().view<cmpt::MeshletRenderer>();
 		auto mesh_view    = Scene::instance()->getRegistry().view<cmpt::MeshRenderer>();
@@ -95,7 +95,7 @@ void MeshletUpdate::run()
 		});
 		Renderer::instance()->Render_Buffer.Meshlet_Buffer.unmap();
 	}
-	cmpt::Renderable::update = false;
+	cmpt::MeshletRenderer::update = false;
 	GraphicsContext::instance()->getProfiler().endSample("Meshlet Update");
 }
 }        // namespace Ilum::sym

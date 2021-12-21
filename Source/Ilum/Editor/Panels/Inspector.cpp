@@ -168,7 +168,7 @@ inline void draw_material(T &material)
 	ASSERT(false);
 }
 
-bool draw_texture(std::string &texture, const std::string& name)
+bool draw_texture(std::string &texture, const std::string &name)
 {
 	bool update = false;
 	ImGui::PushID(name.c_str());
@@ -370,7 +370,7 @@ inline void draw_component<cmpt::MeshletRenderer>(Entity entity)
 		    {
 			    component.model = "";
 			    component.materials.clear();
-			    cmpt::Renderable::update = true;
+			    cmpt::MeshletRenderer::update = true;
 		    }
 		    ImGui::PopStyleVar();
 		    if (ImGui::BeginDragDropTarget())
@@ -381,8 +381,8 @@ inline void draw_component<cmpt::MeshletRenderer>(Entity entity)
 				    std::string new_model = *static_cast<std::string *>(pay_load->Data);
 				    if (component.model != new_model)
 				    {
-					    cmpt::Renderable::update = true;
-					    component.model          = new_model;
+					    cmpt::MeshletRenderer::update = true;
+					    component.model               = new_model;
 					    component.materials.clear();
 					    auto &model = Renderer::instance()->getResourceCache().loadModel(component.model);
 					    for (auto &submesh : model.get().submeshes)
@@ -461,9 +461,9 @@ template <>
 inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 {
 	draw_component<cmpt::MeshRenderer>("MeshRenderer", entity, [](cmpt::MeshRenderer &component) {
-		const char *const MeshNames[] = {"None", "Model", "Sphere", "Plane"};
-		int               current     = static_cast<int>(component.type);
-		if (ImGui::Combo("Type", &current, MeshNames, 4) && current != static_cast<int>(component.type))
+		const char *const mesh_names[] = {"None", "Model", "Sphere", "Plane"};
+		int               current      = static_cast<int>(component.type);
+		if (ImGui::Combo("Type", &current, mesh_names, 4) && current != static_cast<int>(component.type))
 		{
 			if (component.type == cmpt::MeshType::Sphere)
 			{
@@ -473,7 +473,8 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 				component.indices     = std::move(mesh.indices);
 			}
 
-			component.type = static_cast<cmpt::MeshType>(current);
+			component.type        = static_cast<cmpt::MeshType>(current);
+			component.need_update = true;
 		}
 
 		if (component.type == cmpt::MeshType::Model)
@@ -491,8 +492,9 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 					}
 					else
 					{
-						component.vertices = model.get().mesh.vertices;
-						component.indices  = model.get().mesh.indices;
+						component.vertices    = model.get().mesh.vertices;
+						component.indices     = model.get().mesh.indices;
+						component.need_update = true;
 					}
 				}
 				ImGui::EndDragDropTarget();
@@ -521,6 +523,59 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 			ImGui::EndPopup();
 		}
 		draw_material<material::PBRMaterial>(component.material);
+	});
+}
+
+template <>
+inline void draw_component<cmpt::CurveRenderer>(Entity entity)
+{
+	draw_component<cmpt::CurveRenderer>("CurveRenderer", entity, [](cmpt::CurveRenderer &component) {
+		const char *const curve_names[] = {"None", "BezierCurve"};
+		int               current       = static_cast<int>(component.type);
+		if (ImGui::Combo("Type", &current, curve_names, 2) && current != static_cast<int>(component.type))
+		{
+			component.type        = static_cast<cmpt::CurveType>(current);
+			component.need_update = true;
+		}
+
+		ImGui::ColorEdit4("Color", glm::value_ptr(component.base_color));
+		ImGui::DragFloat("Width", &component.line_width, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
+
+		int sample = static_cast<uint32_t>(component.sample);
+		ImGui::DragInt("Sample", &sample, 1.f, 0, std::numeric_limits<int>::max());
+		component.sample = static_cast<int>(sample);
+
+		uint32_t point_idx = 0;
+		auto     iter      = component.control_points.begin();
+		ImGui::Text("Control Points:");
+		while (iter != component.control_points.end())
+		{
+			draw_vec3_control(std::to_string(point_idx++).c_str(), *iter, 0.f, 30.f);
+			ImGui::SameLine();
+			ImGui::PushID(point_idx);
+			if (ImGui::Button("-"))
+			{
+				iter = component.control_points.erase(iter);
+				component.need_update = true;
+			}
+			else
+			{
+				iter++;
+			}
+			ImGui::SameLine();
+			bool is_select = point_idx == (component.select_point + 1);
+			if (ImGui::Checkbox("", &is_select) && is_select)
+			{
+				component.select_point = point_idx - 1;
+			}
+
+			ImGui::PopID();
+		}
+		if (ImGui::Button("Add Control Points"))
+		{
+			component.control_points.push_back(glm::vec3(0.f));
+			component.need_update = true;
+		}
 	});
 }
 
@@ -634,12 +689,12 @@ void Inspector::draw(float delta_time)
 	if (ImGui::BeginPopup("AddComponent"))
 	{
 		add_component<cmpt::Light, cmpt::DirectionalLight, cmpt::PointLight, cmpt::SpotLight>();
-		add_component<cmpt::Renderable, cmpt::MeshletRenderer, cmpt::MeshRenderer>();
+		add_component<cmpt::Renderable, cmpt::MeshletRenderer, cmpt::MeshRenderer, cmpt::CurveRenderer>();
 		add_component<cmpt::Camera, cmpt::PerspectiveCamera, cmpt::OrthographicCamera>();
 		ImGui::EndPopup();
 	}
 
-	draw_component<cmpt::Transform, cmpt::Hierarchy, cmpt::MeshletRenderer, cmpt::MeshRenderer,
+	draw_component<cmpt::Transform, cmpt::Hierarchy, cmpt::MeshletRenderer, cmpt::MeshRenderer, cmpt::CurveRenderer,
 	               cmpt::DirectionalLight, cmpt::PointLight, cmpt::SpotLight, cmpt::PerspectiveCamera, cmpt::OrthographicCamera>(entity);
 
 	ImGui::End();

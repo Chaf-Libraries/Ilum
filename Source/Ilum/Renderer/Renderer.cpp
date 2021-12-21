@@ -29,9 +29,10 @@
 #include "RenderPass/Compute/InstanceCullingPass.hpp"
 #include "RenderPass/Compute/MeshletCullingPass.hpp"
 #include "RenderPass/CopyPass.hpp"
+#include "RenderPass/Deferred/CurvePass.hpp"
+#include "RenderPass/Deferred/DynamicGeometryPass.hpp"
 #include "RenderPass/Deferred/LightPass.hpp"
 #include "RenderPass/Deferred/StaticGeometryPass.hpp"
-#include "RenderPass/Deferred/DynamicGeometryPass.hpp"
 #include "RenderPass/PostProcess/BlendPass.hpp"
 #include "RenderPass/PostProcess/BloomPass.hpp"
 #include "RenderPass/PostProcess/BlurPass.hpp"
@@ -39,11 +40,11 @@
 #include "RenderPass/PostProcess/TonemappingPass.hpp"
 
 #include "PreProcess/CameraUpdate.hpp"
-#include "PreProcess/LightUpdate.hpp"
-#include "PreProcess/TransformUpdate.hpp"
 #include "PreProcess/GeometryUpdate.hpp"
-#include "PreProcess/MeshletUpdate.hpp"
+#include "PreProcess/LightUpdate.hpp"
 #include "PreProcess/MaterialUpdate.hpp"
+#include "PreProcess/MeshletUpdate.hpp"
+#include "PreProcess/TransformUpdate.hpp"
 
 #include "Threading/ThreadPool.hpp"
 
@@ -65,6 +66,7 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("MeshletCulling", std::make_unique<Ilum::pass::MeshletCullingPass>())
 		    .addRenderPass("StaticGeometryPass", std::make_unique<Ilum::pass::StaticGeometryPass>())
 		    .addRenderPass("DynamicGeometryPass", std::make_unique<Ilum::pass::DynamicGeometryPass>())
+		    .addRenderPass("CurvePass", std::make_unique<Ilum::pass::CurvePass>())
 		    .addRenderPass("LightPass", std::make_unique<Ilum::pass::LightPass>())
 		    .addRenderPass("BrightPass", std::make_unique<Ilum::pass::BrightPass>("lighting"))
 		    .addRenderPass("Blur1", std::make_unique<Ilum::pass::BlurPass>("bright", "blur1"))
@@ -109,7 +111,6 @@ bool Renderer::onInitialize()
 
 void Renderer::onPreTick()
 {
-	
 }
 
 void Renderer::onTick(float delta_time)
@@ -232,7 +233,7 @@ const ImageReference Renderer::getDefaultTexture() const
 
 bool Renderer::hasMainCamera()
 {
-	return Main_Camera && (Main_Camera.hasComponent < cmpt::PerspectiveCamera>()||Main_Camera.hasComponent<cmpt::OrthographicCamera>());
+	return Main_Camera && (Main_Camera.hasComponent<cmpt::PerspectiveCamera>() || Main_Camera.hasComponent<cmpt::OrthographicCamera>());
 }
 
 void Renderer::update()

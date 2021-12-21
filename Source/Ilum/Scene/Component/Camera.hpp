@@ -25,7 +25,7 @@ struct Camera
 
 	inline static bool update = true;
 
-	inline glm::vec3 world2Screen(glm::vec3 position, glm::vec2 extent, glm::vec2 offset)
+	inline glm::vec4 world2Screen(glm::vec3 position, glm::vec2 extent, glm::vec2 offset)
 	{
 		glm::vec4 pos = view_projection * glm::vec4(position, 1.f);
 		pos.x *= std::fabsf(0.5f / pos.w);
@@ -37,7 +37,23 @@ struct Camera
 		pos.x += offset.x;
 		pos.y += offset.y;
 
-		return glm::vec3(pos.x, pos.y, pos.z);
+		return pos;
+	}
+
+	inline glm::vec3 screen2World(glm::vec4 position, glm::vec2 extent, glm::vec2 offset)
+	{
+		glm::vec4 pos = position;
+		pos.x -= offset.x;
+		pos.y -= offset.y;
+		pos.x /= extent.x;
+		pos.y /= extent.y;
+		pos.y = 1.f - pos.y;
+		pos -= glm::vec4(0.5f, 0.5f, 0.f, 0.f);
+		pos.x /= std::fabsf(0.5f / pos.w);
+		pos.y /= std::fabsf(0.5f / pos.w);
+		pos = glm::inverse(view_projection) * pos;
+
+		return pos;
 	}
 };
 

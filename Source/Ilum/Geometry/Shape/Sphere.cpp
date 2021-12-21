@@ -26,4 +26,11 @@ void Sphere::merge(const std::vector<glm::vec3> &points)
 {
 	std::for_each(points.begin(), points.end(), [this](const glm::vec3 &p) { merge(p); });
 }
+
+TriMesh Sphere::toTriMesh()
+{
+
+
+	return TriMesh();
+}
 }        // namespace Ilum::geometry

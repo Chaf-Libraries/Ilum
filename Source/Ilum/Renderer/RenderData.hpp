@@ -171,5 +171,11 @@ struct RenderStats
 		uint32_t instance_count   = 0;
 		uint32_t triangle_count   = 0;
 	} dynamic_mesh_count;
+
+	struct CurveCount
+	{
+		uint32_t instance_count = 0;
+		uint32_t vertices_count = 0;
+	}curve_count;
 };
 }        // namespace Ilum
