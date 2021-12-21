@@ -27,4 +27,5 @@ SetTarget(
         ImFileDialog
         meshoptimizer
         TBB::tbb
+        Eigen
 )

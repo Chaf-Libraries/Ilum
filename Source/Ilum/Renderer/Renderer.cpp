@@ -45,6 +45,7 @@
 #include "PreProcess/MaterialUpdate.hpp"
 #include "PreProcess/MeshletUpdate.hpp"
 #include "PreProcess/TransformUpdate.hpp"
+#include "PreProcess/CurveUpdate.hpp"
 
 #include "Threading/ThreadPool.hpp"
 
@@ -93,6 +94,7 @@ Renderer::~Renderer()
 bool Renderer::onInitialize()
 {
 	Scene::instance()->addSystem<sym::GeometryUpdate>();
+	Scene::instance()->addSystem<sym::CurveUpdate>();
 	Scene::instance()->addSystem<sym::TransformUpdate>();
 	Scene::instance()->addSystem<sym::LightUpdate>();
 	Scene::instance()->addSystem<sym::CameraUpdate>();

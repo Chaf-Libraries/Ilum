@@ -9,7 +9,7 @@
 #include "Scene/Component/Renderable.hpp"
 #include "Scene/Scene.hpp"
 
-#include "tbb/tbb.h"
+#include <tbb/tbb.h>
 
 namespace Ilum::sym
 {
@@ -100,38 +100,6 @@ void GeometryUpdate::run()
 			mesh_renderer.need_update = false;
 		}
 	});
-
-	// Update curve
-	auto curve_view = Scene::instance()->getRegistry().view<cmpt::CurveRenderer>();
-	tbb::parallel_for_each(curve_view.begin(), curve_view.end(), [](entt::entity entity) {
-		auto &curve_renderer = Entity(entity).getComponent<cmpt::CurveRenderer>();
-
-		if (curve_renderer.vertices.size() * sizeof(glm::vec3) != curve_renderer.vertex_buffer.getSize())
-		{
-			GraphicsContext::instance()->getQueueSystem().waitAll();
-			curve_renderer.vertex_buffer = Buffer(curve_renderer.vertices.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-			curve_renderer.update        = true;
-		}
-
-		if (curve_renderer.vertices.size() == 0)
-		{
-			curve_renderer.need_update = false;
-			return;
-		}
-
-		if (curve_renderer.need_update)
-		{
-
-
-
-
-			std::memcpy(curve_renderer.vertex_buffer.map(), curve_renderer.vertices.data(), curve_renderer.vertex_buffer.getSize());
-			curve_renderer.vertex_buffer.unmap();
-
-			curve_renderer.need_update = false;
-		}
-	});
-
 	GraphicsContext::instance()->getProfiler().endSample("Geometry Update");
 }
 }        // namespace Ilum::sym

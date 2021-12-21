@@ -334,13 +334,15 @@ __pragma(warning(push, 0))
 			auto [mouse_x, mouse_y] = Input::instance()->getMousePosition();
 			auto click_pos          = ImVec2(static_cast<float>(mouse_x), static_cast<float>(mouse_y));
 
+			std::vector<glm::vec3> control_points(curve_renderer.control_points.size());
+
 			for (uint32_t i = 0; i < screen_vertices.size(); i++)
 			{
-				glm::vec3 control_point = transform.world_transform * glm::vec4(curve_renderer.control_points[i], 1.f);
+				control_points[i] = transform.world_transform * glm::vec4(curve_renderer.control_points[i], 1.f);
 
-				screen_vertices[i] = main_camera->world2Screen(control_point, {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x + ImGui::GetWindowPos().x), static_cast<float>(offset.y + ImGui::GetWindowPos().y)});
+				screen_vertices[i] = main_camera->world2Screen(control_points[i], {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x + ImGui::GetWindowPos().x), static_cast<float>(offset.y + ImGui::GetWindowPos().y)});
 
-				if (main_camera->frustum.isInside(control_point))
+				if (main_camera->frustum.isInside(control_points[i]))
 				{
 					float distance = std::fabs(click_pos.x - screen_vertices[i].x) + std::fabs(click_pos.y - screen_vertices[i].y);
 
@@ -355,6 +357,7 @@ __pragma(warning(push, 0))
 					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left) && curve_renderer.select_point == i)
 					{
 						curve_renderer.control_points[i] = main_camera->screen2World(glm::vec4(click_pos.x, click_pos.y, screen_vertices[i].z, screen_vertices[i].w), {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x + ImGui::GetWindowPos().x), static_cast<float>(offset.y + ImGui::GetWindowPos().y)});
+						curve_renderer.need_update       = true;
 					}
 				}
 			}
@@ -364,9 +367,11 @@ __pragma(warning(push, 0))
 				curve_renderer.select_point = std::numeric_limits<uint32_t>::max();
 			}
 
+			ImVec2 extent = ImVec2(static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height));
+
 			for (uint32_t i = 1; i < screen_vertices.size(); i++)
 			{
-				draw_line(draw_list, ImVec2(screen_vertices[i - 1].x, screen_vertices[i - 1].y), ImVec2(screen_vertices[i].x, screen_vertices[i].y), ImGui::GetWindowPos() + offset, ImColor(0.f, 255.f, 0.f), 1.f);
+				draw_line(draw_list, main_camera, control_points[i-1], control_points[i], offset + ImGui::GetWindowPos(), extent, ImColor(0.f, 255.f, 0.f), 1.f);
 			}
 		}
 	}
