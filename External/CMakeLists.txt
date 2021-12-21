@@ -2,6 +2,8 @@
 option(VIDEO_OPENGLES "Include OpenGL ES support" OFF)
 add_subdirectory(SDL)
 
+set_target_properties(uninstall PROPERTIES OUTPUT_NAME "SDL-uninstall")
+
 # spdlog
 add_subdirectory(spdlog)
 
@@ -181,3 +183,8 @@ add_subdirectory(meshoptimizer)
 # one tbb
 option(TBB_TEST OFF)
 add_subdirectory(oneTBB)
+
+# Eigen
+add_library(Eigen INTERFACE)
+set(EIGEN_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Eigen)
+target_include_directories(vulkan INTERFACE ${EIGEN_INCLUDE_DIR})

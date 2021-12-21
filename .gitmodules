@@ -52,3 +52,6 @@
 [submodule "External/oneTBB"]
 	path = External/oneTBB
 	url = https://github.com/oneapi-src/oneTBB
+[submodule "External/Eigen"]
+	path = External/Eigen
+	url = https://gitlab.com/libeigen/eigen
