@@ -57,7 +57,8 @@ struct MeshRenderer : public Renderable
 enum class CurveType
 {
 	None,
-	BezierCurve
+	BezierCurve,
+	BezierSpline
 };
 
 struct CurveRenderer : public Renderable

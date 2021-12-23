@@ -10,6 +10,7 @@
 #include "Scene/Scene.hpp"
 
 #include "Geometry/Curve/BezierCurve.hpp"
+#include "Geometry/Curve/BezierSpline.hpp"
 
 #include <tbb/tbb.h>
 
@@ -33,6 +34,10 @@ void CurveUpdate::run()
 					break;
 				case cmpt::CurveType::BezierCurve:
 					curve                   = createScope<geometry::BezierCurve>();
+					curve_renderer.vertices = std::move(curve->generateVertices(curve_renderer.control_points, curve_renderer.sample));
+					break;
+				case cmpt::CurveType::BezierSpline:
+					curve                   = createScope<geometry::BezierSpline>();
 					curve_renderer.vertices = std::move(curve->generateVertices(curve_renderer.control_points, curve_renderer.sample));
 					break;
 				default:
