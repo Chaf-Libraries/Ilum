@@ -246,7 +246,22 @@ void RenderGraphViewer::draw(float delta_time)
 				}
 				else
 				{
-					ImGui::Image(ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {400.f, static_cast<float>(image.getHeight()) * 400.f / static_cast<float>(image.getWidth())});
+					if (image.getFormat() != VK_FORMAT_R32_UINT)
+					{
+						if (image.getLayerCount() > 1)
+						{
+							for (uint32_t layer = 0; layer < image.getLayerCount(); layer++)
+							{
+								auto &view = image.getView(layer);
+
+								ImGui::Image(ImGuiContext::textureID(view, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {400.f, static_cast<float>(image.getHeight()) * 400.f / static_cast<float>(image.getWidth())});
+							}
+						}
+						else
+						{
+							ImGui::Image(ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {400.f, static_cast<float>(image.getHeight()) * 400.f / static_cast<float>(image.getWidth())});
+						}
+					}
 				}
 				if (image.isStencil())
 				{

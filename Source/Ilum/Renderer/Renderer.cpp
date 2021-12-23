@@ -31,8 +31,10 @@
 #include "RenderPass/CopyPass.hpp"
 #include "RenderPass/Deferred/CurvePass.hpp"
 #include "RenderPass/Deferred/DynamicGeometryPass.hpp"
+#include "RenderPass/Deferred/EnvLightPass.hpp"
 #include "RenderPass/Deferred/LightPass.hpp"
 #include "RenderPass/Deferred/StaticGeometryPass.hpp"
+#include "RenderPass/IBLGenerator/EquirectangularToCubemap.hpp"
 #include "RenderPass/PostProcess/BlendPass.hpp"
 #include "RenderPass/PostProcess/BloomPass.hpp"
 #include "RenderPass/PostProcess/BlurPass.hpp"
@@ -40,12 +42,12 @@
 #include "RenderPass/PostProcess/TonemappingPass.hpp"
 
 #include "PreProcess/CameraUpdate.hpp"
+#include "PreProcess/CurveUpdate.hpp"
 #include "PreProcess/GeometryUpdate.hpp"
 #include "PreProcess/LightUpdate.hpp"
 #include "PreProcess/MaterialUpdate.hpp"
 #include "PreProcess/MeshletUpdate.hpp"
 #include "PreProcess/TransformUpdate.hpp"
-#include "PreProcess/CurveUpdate.hpp"
 
 #include "Threading/ThreadPool.hpp"
 
@@ -62,6 +64,7 @@ Renderer::Renderer(Context *context) :
 
 	DeferredRendering = [this](RenderGraphBuilder &builder) {
 		builder
+		    .addRenderPass("EquirectangularToCubemap", std::make_unique<Ilum::pass::EquirectangularToCubemap>())
 		    .addRenderPass("HizPass", std::make_unique<Ilum::pass::HizPass>())
 		    .addRenderPass("InstanceCulling", std::make_unique<Ilum::pass::InstanceCullingPass>())
 		    .addRenderPass("MeshletCulling", std::make_unique<Ilum::pass::MeshletCullingPass>())
@@ -69,11 +72,12 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("DynamicGeometryPass", std::make_unique<Ilum::pass::DynamicGeometryPass>())
 		    .addRenderPass("CurvePass", std::make_unique<Ilum::pass::CurvePass>())
 		    .addRenderPass("LightPass", std::make_unique<Ilum::pass::LightPass>())
+		    .addRenderPass("EnvLight", std::make_unique<Ilum::pass::EnvLightPass>())
 		    .addRenderPass("BrightPass", std::make_unique<Ilum::pass::BrightPass>("lighting"))
 		    .addRenderPass("Blur1", std::make_unique<Ilum::pass::BlurPass>("bright", "blur1"))
 		    .addRenderPass("Blur2", std::make_unique<Ilum::pass::BlurPass>("blur1", "blur2", true))
-		    .addRenderPass("Blend", std::make_unique<Ilum::pass::BlendPass>("blur2", "lighting", "blooming"))
-		    .addRenderPass("Tonemapping", std::make_unique<Ilum::pass::TonemappingPass>("blooming"))
+		    .addRenderPass("Blend", std::make_unique<Ilum::pass::BlendPass>("blur2", "lighting", "output"))
+		    .addRenderPass("Tonemapping", std::make_unique<Ilum::pass::TonemappingPass>("output"))
 		    .addRenderPass("CopyBuffer", std::make_unique<Ilum::pass::CopyPass>())
 
 		    .setView("gbuffer - normal")
@@ -135,6 +139,8 @@ void Renderer::onTick(float delta_time)
 		m_render_graph = nullptr;
 		rebuild();
 		m_update = false;
+
+		EnvLight.update = true;
 	}
 }
 

@@ -6,6 +6,7 @@
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Image/Image.hpp"
 #include "Graphics/Pipeline/PipelineState.hpp"
+#include "Graphics/Vulkan/VK_Debugger.h"
 
 #include "Device/LogicalDevice.hpp"
 #include "Device/Swapchain.hpp"
@@ -1007,6 +1008,8 @@ PassNative RenderGraphBuilder::buildRenderPass(const RenderPassReference &render
 		render_pass_create_info.pDependencies          = subpass_dependencies.data();
 
 		vkCreateRenderPass(GraphicsContext::instance()->getLogicalDevice(), &render_pass_create_info, nullptr, &pass_native.render_pass);
+
+		VK_Debugger::setName(pass_native.render_pass, render_pass_reference.name.c_str());
 
 		// Create framebuffer
 		VkFramebufferCreateInfo frame_buffer_create_info = {};

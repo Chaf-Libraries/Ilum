@@ -6,10 +6,12 @@
 
 namespace Ilum::pass
 {
-class EnvLightPass : public TRenderPass<EnvLightPass>
+class EquirectangularToCubemap : public TRenderPass<EquirectangularToCubemap>
 {
   public:
-	EnvLightPass();
+	EquirectangularToCubemap() = default;
+
+	~EquirectangularToCubemap();
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -18,6 +20,6 @@ class EnvLightPass : public TRenderPass<EnvLightPass>
 	virtual void render(RenderPassState &state) override;
 
   private:
-	Buffer m_vertex_buffer;
+	std::vector<VkFramebuffer> m_framebuffers;
 };
 }        // namespace Ilum::pass

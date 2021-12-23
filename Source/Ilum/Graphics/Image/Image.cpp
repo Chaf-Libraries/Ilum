@@ -356,14 +356,16 @@ void Image::createImageViews()
 		// Native
 		native_range                = getSubresourceRange();
 		native_range.baseArrayLayer = layer;
-		native_range.layerCount     = VK_REMAINING_ARRAY_LAYERS;
+		native_range.layerCount     = 1;
+		view_create_info.subresourceRange = native_range;
 		vkCreateImageView(GraphicsContext::instance()->getLogicalDevice(), &view_create_info, nullptr, &views.native);
 
 		// Depth
 		depth_range = getSubresourceRange();
 		depth_range.aspectMask &= VK_IMAGE_ASPECT_DEPTH_BIT;
 		depth_range.baseArrayLayer = layer;
-		depth_range.layerCount     = VK_REMAINING_ARRAY_LAYERS;
+		depth_range.layerCount     = 1;
+		view_create_info.subresourceRange = native_range;
 		if (depth_range.aspectMask != 0)
 		{
 			view_create_info.subresourceRange = depth_range;
@@ -374,7 +376,8 @@ void Image::createImageViews()
 		auto stencil_range = getSubresourceRange();
 		stencil_range.aspectMask &= VK_IMAGE_ASPECT_STENCIL_BIT;
 		stencil_range.baseArrayLayer = layer;
-		stencil_range.layerCount     = VK_REMAINING_ARRAY_LAYERS;
+		stencil_range.layerCount     = 1;
+		view_create_info.subresourceRange = native_range;
 		if (stencil_range.aspectMask != 0)
 		{
 			view_create_info.subresourceRange = stencil_range;

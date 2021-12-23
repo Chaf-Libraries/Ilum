@@ -2,6 +2,10 @@
 
 #include "Renderer/Renderer.hpp"
 
+#include "ImGui/ImGuiContext.hpp"
+
+#include "File/FileSystem.hpp"
+
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -59,6 +63,41 @@ void RenderSetting::draw(float delta_time)
 		ImGui::DragFloat("Threshold", &Renderer::instance()->Bloom.threshold, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 		ImGui::DragFloat("Scale", &Renderer::instance()->Bloom.scale, 0.001f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 		ImGui::DragFloat("Strength", &Renderer::instance()->Bloom.strength, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	});
+
+	draw_node("Environment Light", []() {
+		const char *const environment_light_type[] = {"None", "HDRI"};
+		int               current                  = static_cast<int>(Renderer::instance()->EnvLight.type);
+		ImGui::Combo("Environment Light", &current, environment_light_type, 2);
+		Renderer::instance()->EnvLight.type = static_cast<Renderer::EnvLightType>(current);
+
+		if (current == 1 || current == 2)
+		{
+			ImGui::PushID("Environment Light");
+			if (ImGui::ImageButton(Renderer::instance()->getResourceCache().hasImage(FileSystem::getRelativePath(Renderer::instance()->EnvLight.filename)) ?
+                                       ImGuiContext::textureID(Renderer::instance()->getResourceCache().loadImage(FileSystem::getRelativePath(Renderer::instance()->EnvLight.filename)), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)) :
+                                       ImGuiContext::textureID(Renderer::instance()->getDefaultTexture(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
+			                       ImVec2{100.f, 100.f}))
+			{
+				Renderer::instance()->EnvLight.filename         = "";
+				Renderer::instance()->EnvLight.update   = true;
+			}
+			ImGui::PopID();
+
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const auto *pay_load = ImGui::AcceptDragDropPayload("Texture2D"))
+				{
+					ASSERT(pay_load->DataSize == sizeof(std::string));
+					if (Renderer::instance()->EnvLight.filename != *static_cast<std::string *>(pay_load->Data))
+					{
+						Renderer::instance()->EnvLight.filename         = *static_cast<std::string *>(pay_load->Data);
+						Renderer::instance()->EnvLight.update   = true;
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
+		}
 	});
 
 	ImGui::End();

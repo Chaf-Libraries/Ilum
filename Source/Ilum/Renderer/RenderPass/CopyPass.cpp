@@ -14,8 +14,6 @@ CopyPass::CopyPass()
 
 void CopyPass::setupPipeline(PipelineState &state)
 {
-
-
 	state.addDependency("depth_stencil", VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 	state.addDependency("depth - buffer", VK_IMAGE_USAGE_SAMPLED_BIT);
 }

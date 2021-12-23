@@ -149,6 +149,21 @@ class Renderer : public TSubsystem<Renderer>
 		uint32_t occulsion_culling = 0;
 	} Culling;
 
+	enum class EnvLightType
+	{
+		None,
+		HDR,
+		Cubemap,
+		// TODO: Atmospheric
+	};
+
+	struct
+	{
+		EnvLightType type;
+		std::string  filename;
+		bool         update = false;
+	} EnvLight;
+
   public:
 	Event<> Event_RenderGraph_Rebuild;
 };
