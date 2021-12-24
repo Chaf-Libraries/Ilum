@@ -6,7 +6,7 @@
 
 namespace Ilum::pass
 {
-class EnvLightPass : public TRenderPass<EnvLightPass>
+class GenerateIrradianceCube : public TRenderPass<GenerateIrradianceCube>
 {
   public:
 	virtual void setupPipeline(PipelineState &state) override;

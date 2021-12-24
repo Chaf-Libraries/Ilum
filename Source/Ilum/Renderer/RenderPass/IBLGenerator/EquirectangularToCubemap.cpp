@@ -42,7 +42,7 @@ void EquirectangularToCubemap::setupPipeline(PipelineState &state)
 
 	state.descriptor_bindings.bind(0, 0, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Wrap), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
-	state.declareAttachment("generated_cubmap", VK_FORMAT_R32G32B32A32_SFLOAT, 1024, 1024, false, 6);
+	state.declareAttachment("generated_cubmap", VK_FORMAT_R16G16B16A16_SFLOAT, 512, 512, false, 6);
 
 	state.addOutputAttachment("generated_cubmap", AttachmentState::Clear_Color);
 }
@@ -59,10 +59,7 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 		return;
 	}
 
-	if (!Renderer::instance()->getResourceCache().hasImage(Renderer::instance()->EnvLight.filename))
-	{
-		return;
-	}
+	auto &cmd_buffer = state.command_buffer;
 
 	auto &attachment = Renderer::instance()->getRenderGraph()->getAttachment("generated_cubmap");
 
@@ -79,8 +76,8 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 			frame_buffer_create_info.renderPass              = state.pass.render_pass;
 			frame_buffer_create_info.attachmentCount         = 1;
 			frame_buffer_create_info.pAttachments            = &attachment.getView(layer);
-			frame_buffer_create_info.width                   = 1024;
-			frame_buffer_create_info.height                  = 1024;
+			frame_buffer_create_info.width                   = 512;
+			frame_buffer_create_info.height                  = 512;
 			frame_buffer_create_info.layers                  = 1;
 
 			vkCreateFramebuffer(GraphicsContext::instance()->getLogicalDevice(), &frame_buffer_create_info, nullptr, &m_framebuffers[layer]);
@@ -95,10 +92,8 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 	begin_info.clearValueCount       = static_cast<uint32_t>(state.pass.clear_values.size());
 	begin_info.pClearValues          = state.pass.clear_values.data();
 
-	auto &cmd_buffer = state.command_buffer;
-
-	VkViewport viewport = {0, 0, 1024, 1024, 0, 1};
-	VkRect2D   scissor  = {0, 0, 1024, 1024};
+	VkViewport viewport = {0, 0, 512, 512, 0, 1};
+	VkRect2D   scissor  = {0, 0, 512, 512};
 
 	glm::mat4 projection_matrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
 	glm::mat4 views_matrix[] =
@@ -119,6 +114,17 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 		vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
 	}
 
+	if (!Renderer::instance()->getResourceCache().hasImage(Renderer::instance()->EnvLight.filename))
+	{
+		for (uint32_t i = 0; i < 6; i++)
+		{
+			begin_info.framebuffer = m_framebuffers[i];
+			vkCmdBeginRenderPass(cmd_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
+			vkCmdEndRenderPass(cmd_buffer);
+		}
+		return;
+	}
+
 	for (uint32_t i = 0; i < 6; i++)
 	{
 		begin_info.framebuffer = m_framebuffers[i];
@@ -136,7 +142,5 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 
 		vkCmdEndRenderPass(cmd_buffer);
 	}
-
-	Renderer::instance()->EnvLight.update = false;
 }
 }        // namespace Ilum::pass

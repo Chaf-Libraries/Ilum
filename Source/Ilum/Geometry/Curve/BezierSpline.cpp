@@ -25,7 +25,7 @@ __pragma(warning(push, 0))
 			generateControlPoints(control_points);
 		}
 
-		uint32_t patch = sample / (control_points.size() - 1);
+		uint32_t patch = sample / static_cast<uint32_t>(control_points.size() - 1);
 
 		std::vector<glm::vec3> result;
 

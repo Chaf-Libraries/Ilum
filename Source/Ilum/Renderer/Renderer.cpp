@@ -35,6 +35,7 @@
 #include "RenderPass/Deferred/LightPass.hpp"
 #include "RenderPass/Deferred/StaticGeometryPass.hpp"
 #include "RenderPass/IBLGenerator/EquirectangularToCubemap.hpp"
+#include "RenderPass/IBLGenerator/GenerateIrradianceCube.hpp"
 #include "RenderPass/PostProcess/BlendPass.hpp"
 #include "RenderPass/PostProcess/BloomPass.hpp"
 #include "RenderPass/PostProcess/BlurPass.hpp"
@@ -65,6 +66,7 @@ Renderer::Renderer(Context *context) :
 	DeferredRendering = [this](RenderGraphBuilder &builder) {
 		builder
 		    .addRenderPass("EquirectangularToCubemap", std::make_unique<Ilum::pass::EquirectangularToCubemap>())
+		    .addRenderPass("GenerateIrradianceCube", std::make_unique<Ilum::pass::GenerateIrradianceCube>())
 		    .addRenderPass("HizPass", std::make_unique<Ilum::pass::HizPass>())
 		    .addRenderPass("InstanceCulling", std::make_unique<Ilum::pass::InstanceCullingPass>())
 		    .addRenderPass("MeshletCulling", std::make_unique<Ilum::pass::MeshletCullingPass>())

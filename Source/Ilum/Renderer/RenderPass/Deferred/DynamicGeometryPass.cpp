@@ -98,6 +98,13 @@ void DynamicGeometryPass::render(RenderPassState &state)
 {
 	auto &cmd_buffer = state.command_buffer;
 
+	const auto group = Scene::instance()->getRegistry().group<cmpt::MeshRenderer>(entt::get<cmpt::Transform, cmpt::Tag>);
+
+	if (group.empty())
+	{
+		return;
+	}
+
 	VkRenderPassBeginInfo begin_info = {};
 	begin_info.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	begin_info.renderPass            = state.pass.render_pass;
@@ -122,8 +129,6 @@ void DynamicGeometryPass::render(RenderPassState &state)
 
 	vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
 	vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
-
-	const auto group = Scene::instance()->getRegistry().group<cmpt::MeshRenderer>(entt::get<cmpt::Transform, cmpt::Tag>);
 
 	Renderer::instance()->Render_Stats.dynamic_mesh_count.instance_count = 0;
 	Renderer::instance()->Render_Stats.dynamic_mesh_count.triangle_count = 0;

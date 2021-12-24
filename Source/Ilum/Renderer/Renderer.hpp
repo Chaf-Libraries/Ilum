@@ -159,7 +159,7 @@ class Renderer : public TSubsystem<Renderer>
 
 	struct
 	{
-		EnvLightType type;
+		EnvLightType type = EnvLightType::None;
 		std::string  filename;
 		bool         update = false;
 	} EnvLight;

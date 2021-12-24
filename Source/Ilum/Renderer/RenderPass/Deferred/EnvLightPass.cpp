@@ -6,66 +6,6 @@
 
 namespace Ilum::pass
 {
-EnvLightPass::EnvLightPass()
-{
-	// Setup a cube
-	std::vector<glm::vec3> vertices = {
-	    {-1.0f, -1.0f, -1.0f},        // bottom-left
-	    {1.0f, 1.0f, -1.0f},          // top-right
-	    {1.0f, -1.0f, -1.0f},         // bottom-right
-	    {1.0f, 1.0f, -1.0f},          // top-right
-	    {-1.0f, -1.0f, -1.0f},        // bottom-left
-	    {-1.0f, 1.0f, -1.0f},         // top-left
-	                                  // front face
-	    {-1.0f, -1.0f, 1.0f},         // bottom-left
-	    {1.0f, -1.0f, 1.0f},          // bottom-right
-	    {1.0f, 1.0f, 1.0f},           // top-right
-	    {1.0f, 1.0f, 1.0f},           // top-right
-	    {-1.0f, 1.0f, 1.0f},          // top-left
-	    {-1.0f, -1.0f, 1.0f},         // bottom-left
-	                                  // left face
-	    {-1.0f, 1.0f, 1.0f},          // top-right
-	    {-1.0f, 1.0f, -1.0f},         // top-left
-	    {-1.0f, -1.0f, -1.0f},        // bottom-left
-	    {-1.0f, -1.0f, -1.0f},        // bottom-left
-	    {-1.0f, -1.0f, 1.0f},         // bottom-right
-	    {-1.0f, 1.0f, 1.0f},          // top-right
-	                                  // right face
-	    {1.0f, 1.0f, 1.0f},           // top-left
-	    {1.0f, -1.0f, -1.0f},         // bottom-right
-	    {1.0f, 1.0f, -1.0f},          // top-right
-	    {1.0f, -1.0f, -1.0f},         // bottom-right
-	    {1.0f, 1.0f, 1.0f},           // top-left
-	    {1.0f, -1.0f, 1.0f},          // bottom-left
-	                                  // bottom face
-	    {-1.0f, -1.0f, -1.0f},        // top-right
-	    {1.0f, -1.0f, -1.0f},         // top-left
-	    {1.0f, -1.0f, 1.0f},          // bottom-left
-	    {1.0f, -1.0f, 1.0f},          // bottom-left
-	    {-1.0f, -1.0f, 1.0f},         // bottom-right
-	    {-1.0f, -1.0f, -1.0f},        // top-right
-	                                  // top face
-	    {-1.0f, 1.0f, -1.0f},         // top-left
-	    {1.0f, 1.0f, 1.0f},           // bottom-right
-	    {1.0f, 1.0f, -1.0f},          // top-right
-	    {1.0f, 1.0f, 1.0f},           // bottom-right
-	    {-1.0f, 1.0f, -1.0f},         // top-left
-	    {-1.0f, 1.0f, 1.0f},          // bottom-left
-	};
-
-	{
-		Buffer staging_buffer(vertices.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-		m_vertex_buffer = Buffer(vertices.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-
-		std::memcpy(staging_buffer.map(), vertices.data(), vertices.size() * sizeof(glm::vec3));
-		CommandBuffer cmd_buffer;
-		cmd_buffer.begin();
-		cmd_buffer.copyBuffer(BufferInfo{staging_buffer}, BufferInfo{m_vertex_buffer}, vertices.size() * sizeof(glm::vec3));
-		cmd_buffer.end();
-		cmd_buffer.submitIdle();
-	}
-}
-
 void EnvLightPass::setupPipeline(PipelineState &state)
 {
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/environment.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
@@ -74,13 +14,6 @@ void EnvLightPass::setupPipeline(PipelineState &state)
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,
 	    VK_DYNAMIC_STATE_SCISSOR};
-
-	state.vertex_input_state.attribute_descriptions = {
-	    VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, 0},
-	};
-
-	state.vertex_input_state.binding_descriptions = {
-	    VkVertexInputBindingDescription{0, sizeof(glm::vec3), VK_VERTEX_INPUT_RATE_VERTEX}};
 
 	state.color_blend_attachment_states.resize(1);
 	state.depth_stencil_state.stencil_test_enable = false;
@@ -142,10 +75,7 @@ void EnvLightPass::render(RenderPassState &state)
 	vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
 	vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
-	VkDeviceSize offsets[1] = {0};
-	vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &m_vertex_buffer.getBuffer(), offsets);
-
-	vkCmdDraw(cmd_buffer, m_vertex_buffer.getSize() / sizeof(glm::vec3), 1, 0, 0);
+	vkCmdDraw(cmd_buffer, 36, 1, 0, 0);
 
 	vkCmdEndRenderPass(cmd_buffer);
 }
