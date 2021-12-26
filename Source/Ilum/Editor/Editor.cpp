@@ -59,11 +59,13 @@ bool Editor::onInitialize()
 
 void Editor::onPreTick()
 {
-	ImGuiContext::begin();
+	
 }
 
 void Editor::onTick(float delta_time)
 {
+	ImGuiContext::begin();
+
 	if (!Renderer::instance()->hasImGui())
 	{
 		return;
@@ -219,11 +221,13 @@ void Editor::onTick(float delta_time)
 	}
 
 	ImGui::ShowDemoWindow();
+
+	ImGuiContext::end();
 }
 
 void Editor::onPostTick()
 {
-	ImGuiContext::end();
+	
 }
 
 void Editor::onShutdown()
