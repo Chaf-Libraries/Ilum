@@ -43,7 +43,7 @@ class Profiler
 	void endSample(const std::string &name);
 
 	// name - [cpu, gpu]
-	std::unordered_map<std::string, std::pair<float, float>> getResult() const;
+	std::map<std::string, std::pair<float, float>> getResult() const;
 
   private:
 	std::vector<VkQueryPool> m_query_pools;
@@ -51,6 +51,6 @@ class Profiler
 	Stopwatch                m_stopwatch;
 	uint32_t                 m_current_index = 0;
 
-	std::vector<std::unordered_map<std::string, Sample>> m_samples;
+	std::vector<std::map<std::string, Sample>> m_samples;
 };
 }        // namespace Ilum

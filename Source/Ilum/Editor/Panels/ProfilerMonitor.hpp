@@ -19,7 +19,7 @@ class ProfilerMonitor : public Panel
 
   private:
 	Stopwatch m_stopwatch;
-	std::unordered_map<std::string, std::pair<float, float>> m_profile_result;
+	std::map<std::string, std::pair<float, float>> m_profile_result;
 	std::vector<float>                                        m_frame_times;
 };
 }        // namespace Ilum::panel

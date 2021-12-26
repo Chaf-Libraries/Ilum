@@ -99,11 +99,11 @@ void Profiler::endSample(const std::string &name)
 	end_sample.index    = m_current_index++;
 }
 
-std::unordered_map<std::string, std::pair<float, float>> Profiler::getResult() const
+std::map<std::string, std::pair<float, float>> Profiler::getResult() const
 {
-	uint32_t idx = GraphicsContext::instance()->getFrameIndex();
+	uint32_t idx = (GraphicsContext::instance()->getFrameIndex() + 2) % 3;
 
-	std::unordered_map<std::string, std::pair<float, float>> result;
+	std::map<std::string, std::pair<float, float>> result;
 
 	for (auto &[name, sample] : m_samples[idx])
 	{
