@@ -72,8 +72,6 @@ void QueueSystem::waitAll()
 
 Queue *QueueSystem::acquire(QueueUsage usage, uint32_t index)
 {
-	std::lock_guard<std::mutex> lock(m_mutex);
-
 	if (usage == QueueUsage::Present)
 	{
 		if (m_present_queues.empty())
