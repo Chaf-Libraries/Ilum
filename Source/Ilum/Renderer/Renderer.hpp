@@ -111,6 +111,8 @@ class Renderer : public TSubsystem<Renderer>
 
 	bool m_imgui = true;
 
+	std::array<bool, 3> m_recorded = {false};
+
 	uint32_t m_texture_count = 0;
 
   public:
