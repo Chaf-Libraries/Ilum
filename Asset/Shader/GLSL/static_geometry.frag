@@ -1,6 +1,9 @@
 #version 450
 
 #extension GL_EXT_nonuniform_qualifier : require
+#extension GL_GOOGLE_include_directive: enable
+
+#include "common_buffer.h"
 
 layout(location = 0) in vec4 inPos;
 layout(location = 1) in vec2 inUV;
@@ -19,38 +22,6 @@ layout(location = 5) out vec4 Mehslet_Vis;
 layout(location = 6) out vec4 Instance_Vis;
 layout(location = 7) out uint Entity_ID;
 
-struct PerInstanceData
-{
-	mat4 world_transform;
-	mat4 pre_transform;
-
-	vec3 bbox_min;
-	uint entity_id;
-
-	vec3 bbox_max;
-};
-
-struct MaterialData
-{
-	vec4 base_color;
-
-	vec3 emissive_color;
-	float metallic_factor;
-
-	float roughness_factor;
-	float emissive_intensity;
-	uint albedo_map;
-	uint normal_map;
-
-	uint metallic_map;
-	uint roughness_map;
-	uint emissive_map;
-	uint ao_map;
-
-	uint displacement_map;
-	float displacement_height;
-};
-
 layout (set = 0, binding = 1) uniform sampler2D textureArray[];
 
 layout (set = 0, binding = 2) buffer PerInstanceBuffer
@@ -62,7 +33,6 @@ layout (set = 0, binding = 3) buffer MaterialBuffer
 {
     MaterialData material_data[];
 };
-
 
 float rand(vec2 co){
     return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);

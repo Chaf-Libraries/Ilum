@@ -1,5 +1,9 @@
 #version 450
 
+#extension GL_GOOGLE_include_directive: enable
+
+#include "common_buffer.h"
+
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 #define FLT_MAX 3.402823466e+38
@@ -7,44 +11,6 @@ layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 #define DBL_MAX 1.7976931348623158e+308
 #define DBL_MIN 2.2250738585072014e-308
 
-const float infinity = 1. / 0.;
-
-struct PerInstanceData
-{
-	mat4 world_transform;
-	mat4 pre_transform;
-
-	vec3 bbox_min;
-	uint entity_id;
-
-	vec3 bbox_max;
-};
-
-struct PerMeshletData
-{
-	// Vertex
-	uint instance_id;
-	uint vertex_offset;
-	uint index_offset;
-	uint index_count;
-
-	vec3 center;
-	float radius;
-
-	vec3 cone_apex;
-	float cone_cutoff;
-
-	vec3 cone_axis;
-};
-
-struct DrawIndexedIndirectCommand 
-{
-	uint indexCount;
-	uint instanceCount;
-	uint firstIndex;
-	int vertexOffset;
-	uint firstInstance;
-};
 
 layout (binding = 0, std430) buffer IndirectDraws
 {
@@ -66,44 +32,22 @@ layout (binding = 3) buffer DrawBuffer
     uint draw_data[];
 };
 
-layout (binding = 4) uniform Camera 
+layout (binding = 4) uniform CameraBuffer
 {
-    mat4 view_projection;
-	mat4 last_view_projection;
-	vec4 frustum[6];
-	vec3 position;
-} camera;
+    CameraData camera;
+};
 
 
 layout (binding = 5) uniform sampler2D hiz_buffer;
 
-layout (binding = 6) buffer MeshletCount
+layout (binding = 6) buffer CountBuffer
 {
-    uint visible_count;
-    uint instance_visible_count;
-    uint invisible_count;
-    uint total_count;
+    CountData count_data;
 };
 
 layout(binding = 7) uniform CullingBuffer {
-    mat4 view;
-
-    mat4 last_view;
-
-    float P00;
-    float P11;
-    float znear;
-    float zfar;
-
-    float zbuffer_width;
-    float zbuffer_height;
-    uint frustum_enable;
-    uint backface_enable;
-
-    uint occlusion_enable;
-    uint meshlet_count;
-    uint instance_count;
-} cullData;
+    CullingData cull_data;
+};
 
 layout (binding = 8) buffer VisibilityBuffer
 {
@@ -145,7 +89,7 @@ bool projectSphere(vec3 C, float r, float znear, float P00, float P11, out vec4 
 
 float LinearizeDepth(float depth)
 {
-    return -(2.0 * cullData.zfar * cullData.znear) / (depth * (cullData.zfar - cullData.znear) - (cullData.zfar + cullData.znear));	
+    return -(2.0 * cull_data.zfar * cull_data.znear) / (depth * (cull_data.zfar - cull_data.znear) - (cull_data.zfar + cull_data.znear));	
 }
 
 bool checkOcclusion(PerMeshletData meshlet)
@@ -153,16 +97,16 @@ bool checkOcclusion(PerMeshletData meshlet)
     vec3 dir = normalize(camera.position - meshlet.center);
     vec4 sceen_space_center_last = camera.last_view_projection * vec4(meshlet.center + dir*meshlet.radius, 1.0);
 
-    vec3 C = ((cullData.view) * vec4(meshlet.center,1.0)).xyz;
+    vec3 C = ((cull_data.view) * vec4(meshlet.center,1.0)).xyz;
 
     vec4 aabb;
-    if(!projectSphere(C, meshlet.radius, cullData.znear, cullData.P00, cullData.P11, aabb))
+    if(!projectSphere(C, meshlet.radius, cull_data.znear, cull_data.P00, cull_data.P11, aabb))
     {
         return true;
     }
 
-    float width = (aabb.z - aabb.x) * cullData.zbuffer_width;
-    float height = (aabb.w - aabb.y) * cullData.zbuffer_height;
+    float width = (aabb.z - aabb.x) * cull_data.zbuffer_width;
+    float height = (aabb.w - aabb.y) * cull_data.zbuffer_height;
 
     float mip_level = floor(log2(max(width, height)));
 
@@ -189,12 +133,12 @@ void main()
 	uint idx = gl_GlobalInvocationID.x;
     if (idx == 0)
 	{
-		atomicExchange(visible_count, 0);
-		atomicExchange(invisible_count, 0);
-		atomicExchange(total_count, 0);
+		atomicExchange(count_data.visible_count, 0);
+		atomicExchange(count_data.invisible_count, 0);
+		atomicExchange(count_data.total_count, 0);
 	}
 
-    if(idx >= cullData.meshlet_count)
+    if(idx >= cull_data.meshlet_count)
     {
         return;
     }
@@ -203,14 +147,14 @@ void main()
 
     if(visibility_data[meshlet.instance_id] != 1)
     {
-        uint dci = atomicAdd(invisible_count, 1);
-        indirectDraws[cullData.meshlet_count - 1 - dci].indexCount = meshlet.index_count;
-        indirectDraws[cullData.meshlet_count - 1 - dci].instanceCount = 1;
-        indirectDraws[cullData.meshlet_count - 1 - dci].firstIndex = meshlet.index_offset;
-        indirectDraws[cullData.meshlet_count - 1 - dci].vertexOffset = int(meshlet.vertex_offset);
-        indirectDraws[cullData.meshlet_count - 1 - dci].firstInstance = 0;
-        draw_data[cullData.meshlet_count - 1 - dci] = meshlet.instance_id;
-        atomicAdd(total_count, 1);
+        uint dci = atomicAdd(count_data.invisible_count, 1);
+        indirectDraws[cull_data.meshlet_count - 1 - dci].indexCount = meshlet.index_count;
+        indirectDraws[cull_data.meshlet_count - 1 - dci].instanceCount = 1;
+        indirectDraws[cull_data.meshlet_count - 1 - dci].firstIndex = meshlet.index_offset;
+        indirectDraws[cull_data.meshlet_count - 1 - dci].vertexOffset = int(meshlet.vertex_offset);
+        indirectDraws[cull_data.meshlet_count - 1 - dci].firstInstance = 0;
+        draw_data[cull_data.meshlet_count - 1 - dci] = meshlet.instance_id;
+        atomicAdd(count_data.total_count, 1);
         return;
     }
     
@@ -225,12 +169,12 @@ void main()
 
     bool visible = true;
 
-    if(visible && cullData.frustum_enable == 1)
+    if(visible && cull_data.frustum_enable == 1)
     {
         visible = visible && checkFrustum(meshlet);
     }
 
-    if(visible && cullData.backface_enable == 1)
+    if(visible && cull_data.backface_enable == 1)
     {
         vec3 scale = vec3(
             sqrt(trans[0][0] * trans[0][0] + trans[0][1] * trans[0][1] + trans[0][2] * trans[0][2]),
@@ -250,14 +194,14 @@ void main()
         visible = visible && dot(normalize(camera.position - meshlet.cone_apex), meshlet.cone_axis) < meshlet.cone_cutoff;
     }
 
-    if(visible && cullData.occlusion_enable == 1)
+    if(visible && cull_data.occlusion_enable == 1)
     {
         visible = visible && checkOcclusion(meshlet);
     }
 
     if (visible)
     {
-        uint dci = atomicAdd(visible_count, 1);
+        uint dci = atomicAdd(count_data.visible_count, 1);
         indirectDraws[dci].indexCount = meshlet.index_count;
         indirectDraws[dci].instanceCount = 1;
         indirectDraws[dci].firstIndex = meshlet.index_offset;
@@ -267,13 +211,13 @@ void main()
     }
     else
     {
-        uint dci = atomicAdd(invisible_count, 1);
-        indirectDraws[cullData.meshlet_count - 1 - dci].indexCount = meshlet.index_count;
-        indirectDraws[cullData.meshlet_count - 1 - dci].instanceCount = 1;
-        indirectDraws[cullData.meshlet_count - 1 - dci].firstIndex = meshlet.index_offset;
-        indirectDraws[cullData.meshlet_count - 1 - dci].vertexOffset = int(meshlet.vertex_offset);
-        indirectDraws[cullData.meshlet_count - 1 - dci].firstInstance = 0;
-        draw_data[cullData.meshlet_count - 1 - dci] = meshlet.instance_id;
+        uint dci = atomicAdd(count_data.invisible_count, 1);
+        indirectDraws[cull_data.meshlet_count - 1 - dci].indexCount = meshlet.index_count;
+        indirectDraws[cull_data.meshlet_count - 1 - dci].instanceCount = 1;
+        indirectDraws[cull_data.meshlet_count - 1 - dci].firstIndex = meshlet.index_offset;
+        indirectDraws[cull_data.meshlet_count - 1 - dci].vertexOffset = int(meshlet.vertex_offset);
+        indirectDraws[cull_data.meshlet_count - 1 - dci].firstInstance = 0;
+        draw_data[cull_data.meshlet_count - 1 - dci] = meshlet.instance_id;
     }
-    atomicAdd(total_count, 1);
+    atomicAdd(count_data.total_count, 1);
 }

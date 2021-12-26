@@ -1,37 +1,14 @@
 #version 450
 
+#extension GL_GOOGLE_include_directive: enable
+
+#include "light.h"
+
 layout(binding = 0) uniform sampler2D Albedo;
 layout(binding = 1) uniform sampler2D Normal;
 layout(binding = 2) uniform sampler2D Position_Depth;
 layout(binding = 3) uniform sampler2D Metallic_Roughness_AO;
 layout(binding = 4) uniform sampler2D Emissive;
-
-struct DirectionalLight
-{
-    vec3 color;
-    float intensity;
-    vec3 direction;
-};
-
-struct PointLight
-{
-    vec3 color;
-    float intensity;
-    vec3 position;
-    float constant;
-    float linear;
-    float quadratic;
-};
-
-struct SpotLight
-{
-    vec3 color;
-    float intensity;
-    vec3 position;
-    float cut_off;
-    vec3 direction;
-    float outer_cut_off;
-};
 
 layout(binding = 5) buffer DirectionalLights{
     DirectionalLight directional_lights[ ];

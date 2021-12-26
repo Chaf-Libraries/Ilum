@@ -1,24 +1,15 @@
 #version 450
 
+#extension GL_GOOGLE_include_directive: enable
+
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+#include "common_buffer.h"
 
 #define FLT_MAX 3.402823466e+38
 #define FLT_MIN 1.175494351e-38
 #define DBL_MAX 1.7976931348623158e+308
 #define DBL_MIN 2.2250738585072014e-308
-
-const float infinity = 1. / 0.;
-
-struct PerInstanceData
-{
-	mat4 world_transform;
-	mat4 pre_transform;
-
-	vec3 bbox_min;
-	uint entity_id;
-
-	vec3 bbox_max;
-};
 
 layout (binding = 0) buffer PerInstanceBuffer
 {
@@ -30,42 +21,21 @@ layout (binding = 1) buffer VisibilityBuffer
     uint visibility_data[];
 };
 
-layout (binding = 2) uniform Camera 
+layout (binding = 2) uniform CameraBuffer
 {
-    mat4 view_projection;
-	mat4 last_view_projection;
-	vec4 frustum[6];
-	vec3 position;
-} camera;
+    CameraData camera;
+};
 
 layout (binding = 3) uniform sampler2D hiz_buffer;
 
-layout(binding = 4) uniform CullingBuffer {
-    mat4 view;
-
-    mat4 last_view;
-
-    float P00;
-    float P11;
-    float znear;
-    float zfar;
-
-    float zbuffer_width;
-    float zbuffer_height;
-    uint frustum_enable;
-    uint backface_enable;
-    
-    uint occlusion_enable;
-    uint meshlet_count;
-    uint instance_count;
-} cullData;
+layout(binding = 4) uniform CullingBuffer 
+{
+    CullingData cull_data;
+};
 
 layout (binding = 5) buffer CountBuffer
 {
-    uint visible_count;
-    uint instance_visible_count;
-    uint invisible_count;
-    uint total_count;
+    CountData count_data;
 };
 
 bool checkSphere(vec3 pos, float radius)
@@ -126,10 +96,10 @@ void main()
 
     if (idx == 0)
 	{
-		atomicExchange(instance_visible_count, 0);
+		atomicExchange(count_data.instance_visible_count, 0);
 	}
 
-    if(idx >= cullData.instance_count)
+    if(idx >= cull_data.instance_count)
     {
         return;
     }
@@ -164,7 +134,7 @@ void main()
 
     bool visible = true;
 
-    if(visible && cullData.frustum_enable == 1)
+    if(visible && cull_data.frustum_enable == 1)
     {
         visible = visible && checkFrustum(instance);
     }
@@ -172,7 +142,7 @@ void main()
     if (visible)
     {
         visibility_data[idx] = 1;
-        atomicAdd(instance_visible_count, 1);
+        atomicAdd(count_data.instance_visible_count, 1);
     }
     else
     {
