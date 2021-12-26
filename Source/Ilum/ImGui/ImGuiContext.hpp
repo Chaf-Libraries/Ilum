@@ -50,6 +50,8 @@ class ImGuiContext
 
 	bool enable() const;
 
+	static bool needUpdate();
+
   private:
 	static void setDarkMode();
 
@@ -63,6 +65,12 @@ class ImGuiContext
 	// File dialog
 	std::unordered_map<VkDescriptorSet, Image> m_filedialog_image_cache;
 	std::vector<VkDescriptorSet>               m_deprecated_descriptor_sets;
+
+	// ImGui vertex & index
+	int32_t m_vertex_count = 0;
+	int32_t m_index_count  = 0;
+
+	bool m_need_update = false;
 
 	static bool s_enable;
 };

@@ -196,6 +196,11 @@ bool ImGuiContext::enable() const
 	return s_enable;
 }
 
+bool ImGuiContext::needUpdate()
+{
+	return s_instance->m_need_update;
+}
+
 void ImGuiContext::setDarkMode()
 {
 	ImGuiIO &io = ImGui::GetIO();
@@ -333,14 +338,7 @@ void ImGuiContext::begin()
 
 void ImGuiContext::render(const CommandBuffer &command_buffer)
 {
-	ImGui::Render();
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);
-
-	if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-	{
-		ImGui::UpdatePlatformWindows();
-		ImGui::RenderPlatformWindowsDefault();
-	}
 }
 
 void ImGuiContext::end()
@@ -353,6 +351,44 @@ void ImGuiContext::end()
 	endDockingSpace();
 
 	ImGui::EndFrame();
+
+	ImGui::Render();
+
+	if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+	{
+		ImGui::UpdatePlatformWindows();
+		ImGui::RenderPlatformWindowsDefault();
+	}
+
+	ImDrawData *im_draw_data = ImGui::GetDrawData();
+	s_instance->m_need_update            = false;
+
+	if (!im_draw_data)
+	{
+		s_instance->m_need_update = false;
+	}
+	else
+	{
+		VkDeviceSize vertex_buffer_size = im_draw_data->TotalVtxCount * sizeof(ImDrawVert);
+		VkDeviceSize index_buffer_size  = im_draw_data->TotalIdxCount * sizeof(ImDrawIdx);
+
+		if (vertex_buffer_size == 0 || index_buffer_size == 0)
+		{
+			s_instance->m_need_update = false;
+		}
+
+		if (s_instance->m_vertex_count != im_draw_data->TotalVtxCount)
+		{
+			s_instance->m_vertex_count = im_draw_data->TotalVtxCount;
+			s_instance->m_need_update  = true;
+		}
+
+		if (s_instance->m_index_count != im_draw_data->TotalIdxCount)
+		{
+			s_instance->m_index_count = im_draw_data->TotalIdxCount;
+			s_instance->m_need_update = true;
+		}
+	}
 }
 
 void ImGuiContext::beginDockingSpace()
