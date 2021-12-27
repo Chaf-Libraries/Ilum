@@ -48,7 +48,7 @@ struct TSubsystem : public ISubsystem
 		s_instance = static_cast<T *>(this);
 	}
 
-	static T* instance()
+	static T *instance()
 	{
 		return s_instance;
 	}
