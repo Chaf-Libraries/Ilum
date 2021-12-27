@@ -7,8 +7,6 @@ __pragma(warning(push, 0))
 
 #include <tbb/tbb.h>
 
-#include <iostream>
-
         namespace Ilum::geometry
 {
 	std::vector<glm::vec3> BezierSpline::generateVertices(const std::vector<glm::vec3> &control_points, uint32_t sample)

@@ -11,6 +11,7 @@
 
 #include "Geometry/Curve/BezierCurve.hpp"
 #include "Geometry/Curve/BezierSpline.hpp"
+#include "Geometry/Curve/BSpline.hpp"
 
 #include <tbb/tbb.h>
 
@@ -40,6 +41,9 @@ void CurveUpdate::run()
 					curve                   = createScope<geometry::BezierSpline>();
 					curve_renderer.vertices = std::move(curve->generateVertices(curve_renderer.control_points, curve_renderer.sample));
 					break;
+				case cmpt::CurveType::BSpline:
+					curve                   = createScope<geometry::BSpline>();
+					curve_renderer.vertices = std::move(curve->generateVertices(curve_renderer.control_points, curve_renderer.sample));
 				default:
 					break;
 			}

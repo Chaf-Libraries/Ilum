@@ -530,9 +530,9 @@ template <>
 inline void draw_component<cmpt::CurveRenderer>(Entity entity)
 {
 	draw_component<cmpt::CurveRenderer>("CurveRenderer", entity, [](cmpt::CurveRenderer &component) {
-		const char *const curve_names[] = {"None", "BezierCurve", "BezierSpline"};
+		const char *const curve_names[] = {"None", "BezierCurve", "BezierSpline", "BSpline"};
 		int               current       = static_cast<int>(component.type);
-		if (ImGui::Combo("Type", &current, curve_names, 3) && current != static_cast<int>(component.type))
+		if (ImGui::Combo("Type", &current, curve_names, 4) && current != static_cast<int>(component.type))
 		{
 			component.type        = static_cast<cmpt::CurveType>(current);
 			component.need_update = true;

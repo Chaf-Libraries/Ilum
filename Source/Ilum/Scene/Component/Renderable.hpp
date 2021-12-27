@@ -58,7 +58,8 @@ enum class CurveType
 {
 	None,
 	BezierCurve,
-	BezierSpline
+	BezierSpline,
+	BSpline
 };
 
 struct CurveRenderer : public Renderable
