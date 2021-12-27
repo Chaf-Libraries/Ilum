@@ -4,6 +4,8 @@
 
 Ilum Graphics Playground, name after *Planet Ilum* from [Star Wars](https://starwars.fandom.com/es/wiki/Ilum)
 
+![image-20211120113509528](README/image-20211120113509528.png)
+
 ## Build
 
 * Windows 10
@@ -41,29 +43,40 @@ cmake --build ./ --target ALL_BUILD --config Release
 * Post Processing
   * Blooming
 
-## Upcoming Feature
+## Feature
 
-* Skybox
-* Image Based Lighting
-* Path Tracing
-
-
-## Screenshot
+### Deferred Physical Based Shading
 
 ![image-20211120113603895](README/image-20211120113603895.png)
 
-![image-20211130105935862](README/image-20211130105935862.png)
+### Render Passes Visualization
 
 ![image-20211120113259237](README/image-20211120113259237.png)
 
-![image-20211120113509528](README/image-20211120113509528.png)
+### Meshlet Culling
+
+![image-20211130105935862](README/image-20211130105935862.png)
+
+### Drawing Curve
+
+#### Bézier Curve
+
+![bezier_curve](README/bezier_curve.png)
+
+#### Bézier Spline
+
+![bezier_spline](README/bezier_spline.png)
+
+#### B-Spline
+
+![b_spline](README/b_spline.png)
 
 ## TODO
 
 More features are on their way:
 
 * Image based lighting
-* Shadow
+* Shadow Mapping
 * RTX
 * GI
 * Screen space
