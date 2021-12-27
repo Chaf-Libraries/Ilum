@@ -47,8 +47,6 @@ void GenerateIrradianceCube::render(RenderPassState &state)
 
 	auto &cmd_buffer = state.command_buffer;
 
-
-
 	Renderer::instance()->EnvLight.update = false;
 }
 }        // namespace Ilum::pass
