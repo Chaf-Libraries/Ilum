@@ -1,0 +1,75 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive: enable
+
+#include "../common.glsl"
+
+#define LUT_SIZE 128
+#define SAMPLE_COUNT 1024
+
+layout (local_size_x = 32) in;
+
+layout (binding = 0, r16) uniform readonly image2D Emu_Lut;
+layout (binding = 1, r16) uniform writeonly image2D Eavg_Lut;
+
+vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
+{
+    float alpha = roughness * roughness;
+
+    float theta = atan(alpha * sqrt(Xi.x) / sqrt(1 - Xi.x));
+    float phi = 2.0 * PI * Xi.y;
+
+    vec3 H = vec3(
+        sin(theta)*cos(phi), 
+        sin(theta)*sin(phi), 
+        cos(theta)
+    );
+
+    vec3 Up = N.z > 0.99? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, 1.0);
+    vec3 T = normalize(cross(N, Up));
+    vec3 B = normalize(cross(N, T));
+
+    return T * H.x+B * H.y+N * H.z;
+}
+
+vec3 IntegrateEmu(vec3 V, float roughness, float NoV, vec3 Ei)
+{
+    vec3 Eavg = vec3(0.0);
+    vec3 N = vec3(0.0, 0.0, 1.0);
+
+    for(uint i = 0; i < SAMPLE_COUNT; i++)
+    {
+        vec2 Xi = Hammersley(i, SAMPLE_COUNT);
+        vec3 H = ImportanceSampleGGX(Xi, N, roughness);
+        vec3 L = normalize(H * 2.0 * dot(V, H) - V);
+
+        float NoL = clamp(L.z, 0.0, 1.0);
+
+        Eavg += Ei * 2.0 * NoL;
+    }
+
+    return Eavg / SAMPLE_COUNT;
+}
+
+void main()
+{
+
+    float step = 1.0 / LUT_SIZE;
+    vec3 Eavg = vec3(0.0);
+
+    float roughness = step * (gl_GlobalInvocationID.x + 0.5);
+
+    for(uint i = 0;i < LUT_SIZE; i++)
+    {
+        float NoV = step * (i + 0.5);
+        vec3 V = vec3(sqrt(1.0 - NoV * NoV), 0.0, NoV);
+        
+        vec3 Ei = vec3(imageLoad(Emu_Lut, ivec2(i, roughness * LUT_SIZE)).r);
+        Eavg += IntegrateEmu(V, roughness, NoV, Ei) * step;
+    }
+    
+    for(uint i = 0; i < LUT_SIZE; i++)
+    {
+        imageStore(Eavg_Lut, ivec2(i, roughness * LUT_SIZE), vec4(Eavg.r));
+    }
+}

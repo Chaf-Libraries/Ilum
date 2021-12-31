@@ -126,6 +126,14 @@ class Renderer : public TSubsystem<Renderer>
 
 	struct
 	{
+		// E(mu)
+		Image kulla_conty_energy;
+		// Eavg
+		Image kulla_conty_energy_average;
+	}PreCompute;
+
+	struct
+	{
 		float exposure = 4.5f;
 		float gamma    = 2.2f;
 	} Color_Correction;
@@ -140,8 +148,8 @@ class Renderer : public TSubsystem<Renderer>
 
 	struct
 	{
-		scope<Image> depth_buffer;
-		scope<Image> hiz_buffer;
+		scope<Image> depth_buffer = nullptr;
+		scope<Image> hiz_buffer   = nullptr;
 	} Last_Frame;
 
 	struct

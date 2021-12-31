@@ -35,20 +35,21 @@
 #include "RenderPass/Deferred/LightPass.hpp"
 #include "RenderPass/Deferred/StaticGeometryPass.hpp"
 #include "RenderPass/IBLGenerator/EquirectangularToCubemap.hpp"
-#include "RenderPass/IBLGenerator/GenerateIrradianceCube.hpp"
 #include "RenderPass/PostProcess/BlendPass.hpp"
 #include "RenderPass/PostProcess/BloomPass.hpp"
 #include "RenderPass/PostProcess/BlurPass.hpp"
 #include "RenderPass/PostProcess/BrightPass.hpp"
 #include "RenderPass/PostProcess/TonemappingPass.hpp"
+#include "RenderPass/PreProcess/KullaContyEnergy.hpp"
+#include "RenderPass/PreProcess/KullaContyAverage.hpp"
 
-#include "PreProcess/CameraUpdate.hpp"
-#include "PreProcess/CurveUpdate.hpp"
-#include "PreProcess/GeometryUpdate.hpp"
-#include "PreProcess/LightUpdate.hpp"
-#include "PreProcess/MaterialUpdate.hpp"
-#include "PreProcess/MeshletUpdate.hpp"
-#include "PreProcess/TransformUpdate.hpp"
+#include "BufferUpdate/CameraUpdate.hpp"
+#include "BufferUpdate/CurveUpdate.hpp"
+#include "BufferUpdate/GeometryUpdate.hpp"
+#include "BufferUpdate/LightUpdate.hpp"
+#include "BufferUpdate/MaterialUpdate.hpp"
+#include "BufferUpdate/MeshletUpdate.hpp"
+#include "BufferUpdate/TransformUpdate.hpp"
 
 #include "Threading/ThreadPool.hpp"
 
@@ -65,22 +66,25 @@ Renderer::Renderer(Context *context) :
 
 	DeferredRendering = [this](RenderGraphBuilder &builder) {
 		builder
-		    .addRenderPass("EquirectangularToCubemap", std::make_unique<Ilum::pass::EquirectangularToCubemap>())
-		    .addRenderPass("GenerateIrradianceCube", std::make_unique<Ilum::pass::GenerateIrradianceCube>())
-		    .addRenderPass("HizPass", std::make_unique<Ilum::pass::HizPass>())
-		    .addRenderPass("InstanceCulling", std::make_unique<Ilum::pass::InstanceCullingPass>())
-		    .addRenderPass("MeshletCulling", std::make_unique<Ilum::pass::MeshletCullingPass>())
-		    .addRenderPass("StaticGeometryPass", std::make_unique<Ilum::pass::StaticGeometryPass>())
-		    .addRenderPass("DynamicGeometryPass", std::make_unique<Ilum::pass::DynamicGeometryPass>())
-		    .addRenderPass("CurvePass", std::make_unique<Ilum::pass::CurvePass>())
-		    .addRenderPass("LightPass", std::make_unique<Ilum::pass::LightPass>())
-		    .addRenderPass("EnvLight", std::make_unique<Ilum::pass::EnvLightPass>())
-		    //.addRenderPass("BrightPass", std::make_unique<Ilum::pass::BrightPass>("lighting"))
-		    //.addRenderPass("Blur1", std::make_unique<Ilum::pass::BlurPass>("bright", "blur1"))
-		    //.addRenderPass("Blur2", std::make_unique<Ilum::pass::BlurPass>("blur1", "blur2", true))
-		    //.addRenderPass("Blend", std::make_unique<Ilum::pass::BlendPass>("blur2", "lighting", "output"))
-		    .addRenderPass("Tonemapping", std::make_unique<Ilum::pass::TonemappingPass>("lighting"))
-		    .addRenderPass("CopyBuffer", std::make_unique<Ilum::pass::CopyPass>())
+		    .addRenderPass("KullaContyEnergy", std::make_unique<pass::KullaContyEnergy>())
+		    .addRenderPass("KullaContyAverage", std::make_unique<pass::KullaContyAverage>())
+		    .addRenderPass("EquirectangularToCubemap", std::make_unique<pass::EquirectangularToCubemap>())
+		    .addRenderPass("HizPass", std::make_unique<pass::HizPass>())
+		    .addRenderPass("InstanceCulling", std::make_unique<pass::InstanceCullingPass>())
+		    .addRenderPass("MeshletCulling", std::make_unique<pass::MeshletCullingPass>())
+		    .addRenderPass("StaticGeometryPass", std::make_unique<pass::StaticGeometryPass>())
+		    .addRenderPass("DynamicGeometryPass", std::make_unique<pass::DynamicGeometryPass>())
+		    .addRenderPass("CurvePass", std::make_unique<pass::CurvePass>())
+		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
+		    .addRenderPass("EnvLight", std::make_unique<pass::EnvLightPass>())
+
+		    //.addRenderPass("BrightPass", std::make_unique<pass::BrightPass>("lighting"))
+		    //.addRenderPass("Blur1", std::make_unique<pass::BlurPass>("bright", "blur1"))
+		    //.addRenderPass("Blur2", std::make_unique<pass::BlurPass>("blur1", "blur2", true))
+		    //.addRenderPass("Blend", std::make_unique<pass::BlendPass>("blur2", "lighting", "output"))
+
+		    .addRenderPass("Tonemapping", std::make_unique<pass::TonemappingPass>("lighting"))
+		    .addRenderPass("CopyBuffer", std::make_unique<pass::CopyPass>())
 
 		    .setView("gbuffer - normal")
 		    .setOutput("gbuffer - normal");

@@ -4,21 +4,25 @@
 
 #include "light.h"
 
+#include "brdf.glsl"
+
 layout(binding = 0) uniform sampler2D Albedo;
 layout(binding = 1) uniform sampler2D Normal;
 layout(binding = 2) uniform sampler2D Position_Depth;
 layout(binding = 3) uniform sampler2D Metallic_Roughness_AO;
 layout(binding = 4) uniform sampler2D Emissive;
+layout(binding = 5) uniform sampler2D Emu_Lut;
+layout(binding = 6) uniform sampler2D Eavg_Lut;
 
-layout(binding = 5) buffer DirectionalLights{
+layout(binding = 7) buffer DirectionalLights{
     DirectionalLight directional_lights[ ];
 };
 
-layout(binding = 6) buffer PointLights{
+layout(binding = 8) buffer PointLights{
     PointLight point_lights[ ];
 };
 
-layout(binding = 7) buffer SpotLights{
+layout(binding = 9) buffer SpotLights{
     SpotLight spot_lights[ ];
 };
 
@@ -33,8 +37,6 @@ layout(push_constant) uniform PushBlock{
     uint point_light_count;
 }push_data;
 
-const float PI = 3.14159265359;
-
 // From http://filmicgames.com/archives/75
 vec3 uncharted2Tonemap(vec3 x)
 {
@@ -47,36 +49,6 @@ vec3 uncharted2Tonemap(vec3 x)
 	return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
 }
 
-// Normal Distribution function
-float D_GGX(float NoH, float roughness)
-{
-    float alpha = roughness * roughness;
-    float alpha2 = alpha * alpha;
-    float denom = NoH * NoH * (alpha2 - 1.0) + 1.0;
-    return alpha2 / (PI * denom * denom);
-}
-
-// Geometric Shadowing function
-float G_SchlicksmithGGX(float NoL, float NoV, float roughness)
-{
-    float r = (roughness + 1.0);
-	float k = (r*r) / 8.0;
-    k=roughness;
-    float GL = NoL /(NoL * (1.0 - k) + k);
-    float GV = NoV /(NoV * (1.0 - k) + k);
-    return GL * GV;
-}
-
-vec3 F_Schlick(float cos_theta, vec3 F0)
-{
-    return F0 + (1.0 - F0)*pow(1.0 - cos_theta, 5.0);
-}
-
-vec3 F_SchlickR(float cos_theta, vec3 F0, float roughness)
-{
-    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cos_theta, 5.0);
-}
-
 vec3 specularContribution(vec3 L, vec3 V, vec3 N, vec3 F0, float metallic, float roughness, vec3 albedo, vec3 radiance)
 {
     vec3 H = normalize(V + L);
@@ -85,14 +57,27 @@ vec3 specularContribution(vec3 L, vec3 V, vec3 N, vec3 F0, float metallic, float
     float NoH = clamp(dot(N,H), 0.0, 1.0);
     float HoV = clamp(dot(H,V), 0.0, 1.0);
 
-    float D = D_GGX(NoH, roughness);
-    float G = G_SchlicksmithGGX(NoL, NoV, roughness);
-    vec3 F = F_Schlick(HoV, F0);
+    // vec3 Eo = vec3(texture(Emu_Lut, vec2(NoL, roughness)).r);
+    // vec3 Ei = vec3(texture(Emu_Lut, vec2(NoV, roughness)).r);
+    // float Eavg = texture(Eavg_Lut, vec2(0, roughness)).r;
+
+    vec3 Eo = vec3(texture(Emu_Lut, vec2(NoL, roughness)).r);
+    vec3 Ei = vec3(texture(Emu_Lut, vec2(NoV, roughness)).r);
+    float Eavg = texture(Eavg_Lut, vec2(0, roughness)).r;
+
+    float D = DistributeGGX(NoH, roughness);
+    float G = GeometrySmith(NoL, NoV, roughness);
+    vec3 F = FresnelSchlick(HoV, F0);
 
     vec3 specular = D * F * G / (4.0 * NoL * NoV + 0.001);
     vec3 Kd = (vec3(1.0)-F)*(1-metallic);
 
-    return (Kd * albedo/PI+specular)*radiance*NoL;
+    vec3 Fmicro = Kd * albedo/PI+specular;
+
+    vec3 Fms = MultiScatterBRDF(albedo, Eo, Ei, Eavg);
+    vec3 BRDF = Fmicro ;
+
+    return BRDF * radiance * NoL;
 }
 
 void main()
