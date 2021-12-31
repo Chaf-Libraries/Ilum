@@ -75,7 +75,7 @@ vec3 specularContribution(vec3 L, vec3 V, vec3 N, vec3 F0, float metallic, float
     vec3 Fmicro = Kd * albedo/PI+specular;
 
     vec3 Fms = MultiScatterBRDF(albedo, Eo, Ei, Eavg);
-    vec3 BRDF = Fmicro ;
+    vec3 BRDF = Fmicro + Fms;
 
     return BRDF * radiance * NoL;
 }
