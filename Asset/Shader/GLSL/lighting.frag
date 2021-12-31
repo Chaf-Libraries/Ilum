@@ -57,10 +57,6 @@ vec3 specularContribution(vec3 L, vec3 V, vec3 N, vec3 F0, float metallic, float
     float NoH = clamp(dot(N,H), 0.0, 1.0);
     float HoV = clamp(dot(H,V), 0.0, 1.0);
 
-    // vec3 Eo = vec3(texture(Emu_Lut, vec2(NoL, roughness)).r);
-    // vec3 Ei = vec3(texture(Emu_Lut, vec2(NoV, roughness)).r);
-    // float Eavg = texture(Eavg_Lut, vec2(0, roughness)).r;
-
     vec3 Eo = vec3(texture(Emu_Lut, vec2(NoL, roughness)).r);
     vec3 Ei = vec3(texture(Emu_Lut, vec2(NoV, roughness)).r);
     float Eavg = texture(Eavg_Lut, vec2(0, roughness)).r;
