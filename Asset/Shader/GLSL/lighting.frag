@@ -62,13 +62,15 @@ vec3 specularContribution(vec3 L, vec3 V, vec3 N, vec3 F0, float metallic, float
     float Eavg = texture(Eavg_Lut, vec2(0, roughness)).r;
 
     float D = DistributeGGX(NoH, roughness);
+    // float D = DistributeBeckmann(NoH, roughness);
+    // float D = DistributeBlinnPhong(NoH, roughness);
     float G = GeometrySmith(NoL, NoV, roughness);
     vec3 F = FresnelSchlick(HoV, F0);
 
     vec3 specular = D * F * G / (4.0 * NoL * NoV + 0.001);
     vec3 Kd = (vec3(1.0)-F)*(1-metallic);
 
-    vec3 Fmicro = Kd * albedo/PI+specular;
+    vec3 Fmicro = Kd * LambertianDiffuse(albedo) + specular;
 
     vec3 Fms = MultiScatterBRDF(albedo, Eo, Ei, Eavg);
     vec3 BRDF = Fmicro + Fms;
@@ -85,7 +87,8 @@ void main()
     float metallic = texture(Metallic_Roughness_AO, inUV).r;
     float roughness = texture(Metallic_Roughness_AO, inUV).g;
 
-    roughness = roughness == 0.0 ? 6.274e-5 : roughness;
+    roughness = roughness == 0.0 ? 0.01 : roughness;
+    roughness = roughness == 1.0 ? roughness - 0.01 : roughness;
 
     vec3 Lo = vec3(0.0);
     outColor = vec4(0.0,0.0,0.0,1.0);

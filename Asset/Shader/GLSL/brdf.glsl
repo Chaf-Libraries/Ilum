@@ -1,5 +1,23 @@
 #include "common.glsl"
 
+vec3 LambertianDiffuse(vec3 albedo)
+{
+    return albedo / PI;
+}
+
+float DistributeBlinnPhong(float NoH, float roughness)
+{
+    float a2 = roughness * roughness;
+    return pow(NoH, 2.0 / a2 - 2.0)/(PI * a2);
+}
+
+float DistributeBeckmann(float NoH, float roughness)
+{
+    float a2 = roughness * roughness;
+    float NoH2 = NoH * NoH;
+    return exp((NoH2 - 1.0)/(a2 * NoH2))/(PI * a2 * NoH2 * NoH2 + 0.00001);
+}
+
 float DistributeGGX(float NoH, float roughness)
 {
     float alpha = roughness * roughness;

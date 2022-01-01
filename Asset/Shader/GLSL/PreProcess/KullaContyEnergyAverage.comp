@@ -64,12 +64,12 @@ void main()
         float NoV = step * (i + 0.5);
         vec3 V = vec3(sqrt(1.0 - NoV * NoV), 0.0, NoV);
         
-        vec3 Ei = vec3(imageLoad(Emu_Lut, ivec2(i, roughness * LUT_SIZE)).r);
+        vec3 Ei = vec3(imageLoad(Emu_Lut, ivec2(NoV, i)).r);
         Eavg += IntegrateEmu(V, roughness, NoV, Ei) * step;
     }
     
     for(uint i = 0; i < LUT_SIZE; i++)
     {
-        imageStore(Eavg_Lut, ivec2(i, roughness * LUT_SIZE), vec4(Eavg.r));
+        imageStore(Eavg_Lut, ivec2(i, gl_GlobalInvocationID.x), vec4(Eavg.r));
     }
 }

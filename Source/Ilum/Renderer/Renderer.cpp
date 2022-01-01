@@ -78,10 +78,10 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
 		    .addRenderPass("EnvLight", std::make_unique<pass::EnvLightPass>())
 
-		    //.addRenderPass("BrightPass", std::make_unique<pass::BrightPass>("lighting"))
-		    //.addRenderPass("Blur1", std::make_unique<pass::BlurPass>("bright", "blur1"))
-		    //.addRenderPass("Blur2", std::make_unique<pass::BlurPass>("blur1", "blur2", true))
-		    //.addRenderPass("Blend", std::make_unique<pass::BlendPass>("blur2", "lighting", "output"))
+		    .addRenderPass("BrightPass", std::make_unique<pass::BrightPass>("lighting"))
+		    .addRenderPass("Blur1", std::make_unique<pass::BlurPass>("bright", "blur1"))
+		    .addRenderPass("Blur2", std::make_unique<pass::BlurPass>("blur1", "blur2", true))
+		    .addRenderPass("Blend", std::make_unique<pass::BlendPass>("blur2", "lighting", "output"))
 
 		    .addRenderPass("Tonemapping", std::make_unique<pass::TonemappingPass>("lighting"))
 		    .addRenderPass("CopyBuffer", std::make_unique<pass::CopyPass>())
