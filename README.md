@@ -38,8 +38,10 @@ cmake --build ./ --target ALL_BUILD --config Release
   * GPU Frustum Culling
   * GPU Back-Face Cone Culling
   * GPU Hierarchy Z Buffer Occlusion Culling
-* Rendering Feature
-  * PBR Material
+* Rasterization Shading
+  * Cook-Torrance BRDF
+  * Kulla-Conty Approximation
+
 * Post Processing
   * Blooming
 
@@ -70,6 +72,10 @@ cmake --build ./ --target ALL_BUILD --config Release
 #### B-Spline
 
 ![b_spline](README/b_spline.png)
+
+#### Kulla Conty Approximation
+
+![image-20211231141039926](README/image-20211231141039926.png)
 
 ## TODO
 
