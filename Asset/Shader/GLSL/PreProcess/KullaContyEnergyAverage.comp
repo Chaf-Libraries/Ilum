@@ -64,7 +64,7 @@ void main()
         float NoV = step * (i + 0.5);
         vec3 V = vec3(sqrt(1.0 - NoV * NoV), 0.0, NoV);
         
-        vec3 Ei = vec3(imageLoad(Emu_Lut, ivec2(NoV, i)).r);
+        vec3 Ei = vec3(imageLoad(Emu_Lut, ivec2(i, gl_GlobalInvocationID.x)).r);
         Eavg += IntegrateEmu(V, roughness, NoV, Ei) * step;
     }
     

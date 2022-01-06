@@ -62,8 +62,6 @@ vec3 specularContribution(vec3 L, vec3 V, vec3 N, vec3 F0, float metallic, float
     float Eavg = texture(Eavg_Lut, vec2(0, roughness)).r;
 
     float D = DistributeGGX(NoH, roughness);
-    // float D = DistributeBeckmann(NoH, roughness);
-    // float D = DistributeBlinnPhong(NoH, roughness);
     float G = GeometrySmith(NoL, NoV, roughness);
     vec3 F = FresnelSchlick(HoV, F0);
 
@@ -95,7 +93,7 @@ void main()
     vec3 V = normalize(push_data.view_pos - frag_pos);
     vec3 N = normalize(normal);
 
-    vec3 F0 = vec3(0.0);
+    vec3 F0 = vec3(0.04);
     F0 = mix(F0, albedo, metallic);
 
     // Directional light
