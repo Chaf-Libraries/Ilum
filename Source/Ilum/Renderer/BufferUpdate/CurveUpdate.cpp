@@ -9,9 +9,11 @@
 #include "Scene/Component/Renderable.hpp"
 #include "Scene/Scene.hpp"
 
-#include "Geometry/Curve/BezierCurve.hpp"
-#include "Geometry/Curve/BezierSpline.hpp"
 #include "Geometry/Curve/BSpline.hpp"
+#include "Geometry/Curve/BezierCurve.hpp"
+#include "Geometry/Curve/CubicSpline.hpp"
+#include "Geometry/Curve/RationalBSpline.hpp"
+#include "Geometry/Curve/RationalBezier.hpp"
 
 #include <tbb/tbb.h>
 
@@ -37,13 +39,28 @@ void CurveUpdate::run()
 					curve                   = createScope<geometry::BezierCurve>();
 					curve_renderer.vertices = std::move(curve->generateVertices(curve_renderer.control_points, curve_renderer.sample));
 					break;
-				case cmpt::CurveType::BezierSpline:
-					curve                   = createScope<geometry::BezierSpline>();
+				case cmpt::CurveType::CubicSpline:
+					curve                   = createScope<geometry::CubicSpline>();
 					curve_renderer.vertices = std::move(curve->generateVertices(curve_renderer.control_points, curve_renderer.sample));
 					break;
 				case cmpt::CurveType::BSpline:
-					curve                   = createScope<geometry::BSpline>();
+					curve                                                = createScope<geometry::BSpline>();
+					static_cast<geometry::BSpline *>(curve.get())->order = curve_renderer.order;
+					curve_renderer.vertices                              = std::move(curve->generateVertices(curve_renderer.control_points, curve_renderer.sample));
+					break;
+				case cmpt::CurveType::RationalBezier:
+					curve = createScope<geometry::RationalBezier>();
+					static_cast<geometry::RationalBezier *>(curve.get())->weights.resize(curve_renderer.weights.size());
+					std::memcpy(static_cast<geometry::RationalBezier *>(curve.get())->weights.data(), curve_renderer.weights.data(), curve_renderer.weights.size() * sizeof(float));
 					curve_renderer.vertices = std::move(curve->generateVertices(curve_renderer.control_points, curve_renderer.sample));
+					break;
+				case cmpt::CurveType::RationalBSpline:
+					curve = createScope<geometry::RationalBSpline>();
+					static_cast<geometry::RationalBSpline *>(curve.get())->weights.resize(curve_renderer.weights.size());
+					static_cast<geometry::BSpline *>(curve.get())->order = curve_renderer.order;
+					std::memcpy(static_cast<geometry::RationalBSpline *>(curve.get())->weights.data(), curve_renderer.weights.data(), curve_renderer.weights.size() * sizeof(float));
+					curve_renderer.vertices = std::move(curve->generateVertices(curve_renderer.control_points, curve_renderer.sample));
+					break;
 				default:
 					break;
 			}
