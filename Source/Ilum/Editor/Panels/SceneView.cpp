@@ -864,7 +864,7 @@ __pragma(warning(push, 0))
 				                       -1,
 				                       ImVec4(0.f, 0.f, 0.f, 0.f)))
 				{
-					ifd::FileDialog::Instance().Save("SaveScreenShotDialog", "Save ScreenShot", "Image file (*.png;*hdr){}");
+					ifd::FileDialog::Instance().Save("SaveScreenShotDialog", "Save ScreenShot", "Image file{,.png,.hdr}");
 				}
 			}
 		}

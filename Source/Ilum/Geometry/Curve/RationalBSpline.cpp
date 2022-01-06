@@ -1,4 +1,4 @@
-#include "BSpline.hpp"
+#include "RationalBSpline.hpp"
 
 #include <tbb/tbb.h>
 
@@ -27,7 +27,7 @@ inline float gen_basis(uint32_t i, uint32_t k, float t)
 	return left + right;
 }
 
-std::vector<glm::vec3> BSpline::generateVertices(const std::vector<glm::vec3> &control_points, uint32_t sample)
+std::vector<glm::vec3> RationalBSpline::generateVertices(const std::vector<glm::vec3> &control_points, uint32_t sample)
 {
 	if (control_points.empty())
 	{
@@ -46,16 +46,20 @@ std::vector<glm::vec3> BSpline::generateVertices(const std::vector<glm::vec3> &c
 	return vertices;
 }
 
-glm::vec3 BSpline::value(const std::vector<glm::vec3> &control_points, float t)
+glm::vec3 RationalBSpline::value(const std::vector<glm::vec3> &control_points, float t)
 {
-	glm::vec3 result = glm::vec3(0.f);
 	uint32_t  n      = static_cast<uint32_t>(control_points.size());
+
+	float     denominator = 0.f;
+	glm::vec3 numerator   = glm::vec3(0.f);
 
 	for (uint32_t i = 0; i < n; i++)
 	{
-		result += gen_basis(i, order, t) * control_points[i];
+		float weight = gen_basis(i, order, t) * weights[i];
+		denominator += weight;
+		numerator += weight * control_points[i];
 	}
 
-	return result;
+	return numerator / denominator;
 }
-}        // namespace Ilum::geometry
+}

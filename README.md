@@ -38,8 +38,16 @@ cmake --build ./ --target ALL_BUILD --config Release
   * GPU Frustum Culling
   * GPU Back-Face Cone Culling
   * GPU Hierarchy Z Buffer Occlusion Culling
-* Rendering Feature
-  * PBR Material
+* Curve Modeling
+  * Bézier Curve
+  * Bézier Spline
+  * B Spline
+  * Rational Bézier Curve
+  * Rational B Spline
+
+* Rasterization Shading
+  * Cook-Torrance BRDF
+  * Kulla-Conty Approximation
 * Post Processing
   * Blooming
 
@@ -57,19 +65,9 @@ cmake --build ./ --target ALL_BUILD --config Release
 
 ![image-20211130105935862](README/image-20211130105935862.png)
 
-### Drawing Curve
+#### Kulla Conty Approximation
 
-#### Bézier Curve
-
-![bezier_curve](README/bezier_curve.png)
-
-#### Bézier Spline
-
-![bezier_spline](README/bezier_spline.png)
-
-#### B-Spline
-
-![b_spline](README/b_spline.png)
+![image-20211231141039926](README/image-20211231141039926.png)
 
 ## TODO
 

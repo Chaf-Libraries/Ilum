@@ -122,6 +122,8 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 			vkCmdBeginRenderPass(cmd_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
 			vkCmdEndRenderPass(cmd_buffer);
 		}
+
+		Renderer::instance()->EnvLight.update = false;
 		return;
 	}
 
@@ -142,5 +144,7 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 
 		vkCmdEndRenderPass(cmd_buffer);
 	}
+
+	Renderer::instance()->EnvLight.update = false;
 }
 }        // namespace Ilum::pass

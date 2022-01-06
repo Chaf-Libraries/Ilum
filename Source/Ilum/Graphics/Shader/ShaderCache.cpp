@@ -104,7 +104,18 @@ VkShaderModule ShaderCache::load(const std::string &filename, VkShaderStageFlagB
 		std::memcpy(raw_data.data(), glsl_string.data(), glsl_string.size());
 	}
 
-	auto spirv = ShaderCompiler::compile(raw_data, stage, type);
+	std::vector<uint32_t> spirv;
+
+	if (type == Shader::Type::SPIRV)
+	{
+		spirv.resize(raw_data.size() / 4);
+		std::memcpy(spirv.data(), raw_data.data(), raw_data.size());
+	}
+	else
+	{
+		spirv = ShaderCompiler::compile(raw_data, stage, type);
+	}
+
 	m_reflection_data.emplace_back(std::move(ShaderReflection::reflect(spirv, stage)));
 
 	VkShaderModuleCreateInfo shader_module_create_info = {};

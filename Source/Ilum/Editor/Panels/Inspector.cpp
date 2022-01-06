@@ -530,9 +530,9 @@ template <>
 inline void draw_component<cmpt::CurveRenderer>(Entity entity)
 {
 	draw_component<cmpt::CurveRenderer>("CurveRenderer", entity, [](cmpt::CurveRenderer &component) {
-		const char *const curve_names[] = {"None", "BezierCurve", "BezierSpline", "BSpline"};
+		const char *const curve_names[] = {"None", "Bezier Curve", "B Spline", "Cubic Spline", "Rational Bezier", "Rational B Spline"};
 		int               current       = static_cast<int>(component.type);
-		if (ImGui::Combo("Type", &current, curve_names, 4) && current != static_cast<int>(component.type))
+		if (ImGui::Combo("Type", &current, curve_names, 6) && current != static_cast<int>(component.type))
 		{
 			component.type        = static_cast<cmpt::CurveType>(current);
 			component.need_update = true;
@@ -541,9 +541,22 @@ inline void draw_component<cmpt::CurveRenderer>(Entity entity)
 		ImGui::ColorEdit4("Color", glm::value_ptr(component.base_color));
 		ImGui::DragFloat("Width", &component.line_width, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
 
-		int sample = static_cast<uint32_t>(component.sample);
-		ImGui::DragInt("Sample", &sample, 1.f, 0, std::numeric_limits<int>::max());
-		component.sample = static_cast<int>(sample);
+		int sample = static_cast<int>(component.sample);
+		if (ImGui::DragInt("Sample", &sample, 1.f, 0, std::numeric_limits<int>::max()))
+		{
+			component.sample = static_cast<uint32_t>(sample);
+			component.need_update = true;
+		}
+
+		if (current == 2 || current == 5)
+		{
+			int order = static_cast<int>(component.order);
+			if (ImGui::DragInt("Order", &order, 1.f, 1, std::numeric_limits<int>::max()))
+			{
+				component.order       = static_cast<uint32_t>(order);
+				component.need_update = true;
+			}
+		}
 
 		uint32_t point_idx = 0;
 		auto     iter      = component.control_points.begin();
@@ -555,12 +568,19 @@ inline void draw_component<cmpt::CurveRenderer>(Entity entity)
 			ImGui::PushID(point_idx);
 			if (ImGui::Button("-"))
 			{
-				iter = component.control_points.erase(iter);
+				iter                  = component.control_points.erase(iter);
 				component.need_update = true;
 			}
 			else
 			{
 				iter++;
+			}
+			if (current == 4 || current == 5)
+			{
+				if (ImGui::DragFloat("weight", &component.weights[point_idx - 1], 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.2f"))
+				{
+					component.need_update = true;
+				}
 			}
 			ImGui::SameLine();
 			bool is_select = point_idx == (component.select_point + 1);
@@ -574,6 +594,7 @@ inline void draw_component<cmpt::CurveRenderer>(Entity entity)
 		if (ImGui::Button("Add Control Points"))
 		{
 			component.control_points.push_back(glm::vec3(0.f));
+			component.weights.push_back(1.f);
 			component.need_update = true;
 		}
 	});
