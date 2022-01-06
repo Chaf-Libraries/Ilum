@@ -58,8 +58,10 @@ enum class CurveType
 {
 	None,
 	BezierCurve,
-	BezierSpline,
-	BSpline
+	BSpline,
+	CubicSpline,
+	RationalBezier,
+	RationalBSpline
 };
 
 struct CurveRenderer : public Renderable
@@ -69,6 +71,10 @@ struct CurveRenderer : public Renderable
 	std::vector<glm::vec3> control_points;
 
 	std::vector<glm::vec3> vertices;
+
+	std::vector<float> weights;
+
+	uint32_t order = 4;
 
 	Buffer vertex_buffer;
 
