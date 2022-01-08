@@ -29,19 +29,20 @@
 #include "RenderPass/Compute/InstanceCullingPass.hpp"
 #include "RenderPass/Compute/MeshletCullingPass.hpp"
 #include "RenderPass/CopyPass.hpp"
-#include "RenderPass/Deferred/CurvePass.hpp"
 #include "RenderPass/Deferred/DynamicGeometryPass.hpp"
 #include "RenderPass/Deferred/EnvLightPass.hpp"
 #include "RenderPass/Deferred/LightPass.hpp"
 #include "RenderPass/Deferred/StaticGeometryPass.hpp"
+#include "RenderPass/GeometryView/CurvePass.hpp"
+#include "RenderPass/GeometryView/SurfacePass.hpp"
 #include "RenderPass/IBLGenerator/EquirectangularToCubemap.hpp"
 #include "RenderPass/PostProcess/BlendPass.hpp"
 #include "RenderPass/PostProcess/BloomPass.hpp"
 #include "RenderPass/PostProcess/BlurPass.hpp"
 #include "RenderPass/PostProcess/BrightPass.hpp"
 #include "RenderPass/PostProcess/TonemappingPass.hpp"
-#include "RenderPass/PreProcess/KullaContyEnergy.hpp"
 #include "RenderPass/PreProcess/KullaContyAverage.hpp"
+#include "RenderPass/PreProcess/KullaContyEnergy.hpp"
 
 #include "BufferUpdate/CameraUpdate.hpp"
 #include "BufferUpdate/CurveUpdate.hpp"
@@ -50,6 +51,7 @@
 #include "BufferUpdate/MaterialUpdate.hpp"
 #include "BufferUpdate/MeshletUpdate.hpp"
 #include "BufferUpdate/TransformUpdate.hpp"
+#include "BufferUpdate/SurfaceUpdate.hpp"
 
 #include "Threading/ThreadPool.hpp"
 
@@ -75,13 +77,14 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("StaticGeometryPass", std::make_unique<pass::StaticGeometryPass>())
 		    .addRenderPass("DynamicGeometryPass", std::make_unique<pass::DynamicGeometryPass>())
 		    .addRenderPass("CurvePass", std::make_unique<pass::CurvePass>())
+		    .addRenderPass("SurfacePass", std::make_unique<pass::SurfacePass>())
 		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
 		    .addRenderPass("EnvLight", std::make_unique<pass::EnvLightPass>())
 
-		    .addRenderPass("BrightPass", std::make_unique<pass::BrightPass>("lighting"))
-		    .addRenderPass("Blur1", std::make_unique<pass::BlurPass>("bright", "blur1"))
-		    .addRenderPass("Blur2", std::make_unique<pass::BlurPass>("blur1", "blur2", true))
-		    .addRenderPass("Blend", std::make_unique<pass::BlendPass>("blur2", "lighting", "output"))
+		    //.addRenderPass("BrightPass", std::make_unique<pass::BrightPass>("lighting"))
+		    //.addRenderPass("Blur1", std::make_unique<pass::BlurPass>("bright", "blur1"))
+		    //.addRenderPass("Blur2", std::make_unique<pass::BlurPass>("blur1", "blur2", true))
+		    //.addRenderPass("Blend", std::make_unique<pass::BlendPass>("blur2", "lighting", "output"))
 
 		    .addRenderPass("Tonemapping", std::make_unique<pass::TonemappingPass>("lighting"))
 		    .addRenderPass("CopyBuffer", std::make_unique<pass::CopyPass>())
@@ -105,6 +108,7 @@ bool Renderer::onInitialize()
 {
 	Scene::instance()->addSystem<sym::GeometryUpdate>();
 	Scene::instance()->addSystem<sym::CurveUpdate>();
+	Scene::instance()->addSystem<sym::SurfaceUpdate>();
 	Scene::instance()->addSystem<sym::TransformUpdate>();
 	Scene::instance()->addSystem<sym::LightUpdate>();
 	Scene::instance()->addSystem<sym::CameraUpdate>();
