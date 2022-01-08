@@ -26,7 +26,7 @@ void CurveUpdate::run()
 	tbb::parallel_for_each(curve_view.begin(), curve_view.end(), [](entt::entity entity) {
 		auto &curve_renderer = Entity(entity).getComponent<cmpt::CurveRenderer>();
 
-		scope<geometry::Curve> curve;
+		scope<geometry::Curve> curve = nullptr;
 		// Update vertices
 		if (curve_renderer.need_update)
 		{
@@ -39,22 +39,22 @@ void CurveUpdate::run()
 					curve                   = createScope<geometry::BezierCurve>();
 					curve_renderer.vertices = std::move(curve->generateVertices(curve_renderer.control_points, curve_renderer.sample));
 					break;
-				case cmpt::CurveType::CubicSpline:
+				case cmpt::CurveType::CubicSplineCurve:
 					curve                   = createScope<geometry::CubicSpline>();
 					curve_renderer.vertices = std::move(curve->generateVertices(curve_renderer.control_points, curve_renderer.sample));
 					break;
-				case cmpt::CurveType::BSpline:
+				case cmpt::CurveType::BSplineCurve:
 					curve                                                = createScope<geometry::BSpline>();
 					static_cast<geometry::BSpline *>(curve.get())->order = curve_renderer.order;
 					curve_renderer.vertices                              = std::move(curve->generateVertices(curve_renderer.control_points, curve_renderer.sample));
 					break;
-				case cmpt::CurveType::RationalBezier:
+				case cmpt::CurveType::RationalBezierCurve:
 					curve = createScope<geometry::RationalBezier>();
 					static_cast<geometry::RationalBezier *>(curve.get())->weights.resize(curve_renderer.weights.size());
 					std::memcpy(static_cast<geometry::RationalBezier *>(curve.get())->weights.data(), curve_renderer.weights.data(), curve_renderer.weights.size() * sizeof(float));
 					curve_renderer.vertices = std::move(curve->generateVertices(curve_renderer.control_points, curve_renderer.sample));
 					break;
-				case cmpt::CurveType::RationalBSpline:
+				case cmpt::CurveType::RationalBSplineCurve:
 					curve = createScope<geometry::RationalBSpline>();
 					static_cast<geometry::RationalBSpline *>(curve.get())->weights.resize(curve_renderer.weights.size());
 					static_cast<geometry::BSpline *>(curve.get())->order = curve_renderer.order;
