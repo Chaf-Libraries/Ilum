@@ -18,10 +18,6 @@
 
 namespace Ilum::pass
 {
-CurvePass::CurvePass()
-{
-}
-
 void CurvePass::setupPipeline(PipelineState &state)
 {
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/curve.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
@@ -64,19 +60,17 @@ void CurvePass::setupPipeline(PipelineState &state)
 			break;
 	}
 
-	state.input_assembly_state.topology    = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+	state.input_assembly_state.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
 
 	state.descriptor_bindings.bind(0, 0, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
-	state.declareAttachment("gbuffer - albedo", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("geometry - curve", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("debug - instance", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("debug - entity", VK_FORMAT_R32_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	state.declareAttachment("depth_stencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 
-	state.addOutputAttachment("gbuffer - albedo", AttachmentState::Load_Color);
+	state.addOutputAttachment("geometry - curve", AttachmentState::Clear_Color);
 	state.addOutputAttachment("debug - instance", AttachmentState::Load_Color);
 	state.addOutputAttachment("debug - entity", AttachmentState::Load_Color);
-	state.addOutputAttachment("depth_stencil", AttachmentState::Load_Depth_Stencil);
 }
 
 void CurvePass::resolveResources(ResolveState &resolve)

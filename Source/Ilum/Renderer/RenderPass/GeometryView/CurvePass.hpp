@@ -9,7 +9,7 @@ namespace Ilum::pass
 class CurvePass : public TRenderPass<CurvePass>
 {
   public:
-	CurvePass();
+	CurvePass() = default;
 
 	virtual void setupPipeline(PipelineState &state) override;
 
