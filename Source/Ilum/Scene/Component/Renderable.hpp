@@ -58,10 +58,10 @@ enum class CurveType
 {
 	None,
 	BezierCurve,
-	BSpline,
-	CubicSpline,
-	RationalBezier,
-	RationalBSpline
+	BSplineCurve,
+	CubicSplineCurve,
+	RationalBezierCurve,
+	RationalBSplineCurve,
 };
 
 struct CurveRenderer : public Renderable
@@ -88,5 +88,41 @@ struct CurveRenderer : public Renderable
 	uint32_t sample = 100;
 
 	uint32_t select_point = std::numeric_limits<uint32_t>::max();
+};
+
+enum class SurfaceType
+{
+	None,
+	BezierSurface,
+	BSplineSurface,
+	RationalBezierSurface,
+	RationalBSplineSurface,
+};
+
+struct SurfaceRenderer: public Renderable
+{
+	SurfaceType type = SurfaceType::None;
+
+	std::vector<std::vector<glm::vec3>> control_points;
+
+	std::vector<Vertex> vertices;
+
+	std::vector<uint32_t> indices;
+
+	std::vector<std::vector<float>> weights;
+
+	uint32_t order = 4;
+
+	Buffer vertex_buffer;
+
+	Buffer index_buffer;
+
+	bool need_update = true;
+
+	uint32_t sample_x = 20;
+
+	uint32_t sample_y = 20;
+
+	uint32_t select_point[2] = {std::numeric_limits<uint32_t>::max(), std::numeric_limits<uint32_t>::max()};
 };
 }        // namespace Ilum::cmpt

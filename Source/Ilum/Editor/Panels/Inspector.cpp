@@ -544,7 +544,7 @@ inline void draw_component<cmpt::CurveRenderer>(Entity entity)
 		int sample = static_cast<int>(component.sample);
 		if (ImGui::DragInt("Sample", &sample, 1.f, 0, std::numeric_limits<int>::max()))
 		{
-			component.sample = static_cast<uint32_t>(sample);
+			component.sample      = static_cast<uint32_t>(sample);
 			component.need_update = true;
 		}
 
@@ -596,6 +596,140 @@ inline void draw_component<cmpt::CurveRenderer>(Entity entity)
 			component.control_points.push_back(glm::vec3(0.f));
 			component.weights.push_back(1.f);
 			component.need_update = true;
+		}
+	});
+}
+
+template <>
+inline void draw_component<cmpt::SurfaceRenderer>(Entity entity)
+{
+	draw_component<cmpt::SurfaceRenderer>("SurfaceRenderer", entity, [](cmpt::SurfaceRenderer &component) {
+		const char *const surface_names[] = {
+		    "None",
+		    "Bezier Surface",
+		    "B Spline Surface",
+		    "Rational Bezier Spline Surface",
+		    "Rational B Spline Surface",
+		};
+		int current = static_cast<int>(component.type);
+		if (ImGui::Combo("Type", &current, surface_names, 5) && current != static_cast<int>(component.type))
+		{
+			component.type        = static_cast<cmpt::SurfaceType>(current);
+			component.need_update = true;
+		}
+
+		ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() / 4.f);
+		int sample = static_cast<int>(component.sample_x);
+		if (ImGui::DragInt("SampleX", &sample, 1.f, 0, std::numeric_limits<int>::max()))
+		{
+			component.sample_x    = static_cast<uint32_t>(sample);
+			component.need_update = true;
+		}
+		ImGui::SameLine();
+		sample = static_cast<int>(component.sample_y);
+		if (ImGui::DragInt("SampleY", &sample, 1.f, 0, std::numeric_limits<int>::max()))
+		{
+			component.sample_y    = static_cast<uint32_t>(sample);
+			component.need_update = true;
+		}
+
+		int  nu                    = static_cast<int>(component.control_points.size());
+		int  nv                    = component.control_points.empty() ? 0 : static_cast<int>(component.control_points[0].size());
+		bool resize_control_points = false;
+
+		ImGui::Text("Control Points: ");
+		if (ImGui::DragInt("NU", &nu, 0.1f, 1, std::numeric_limits<int>::max()))
+		{
+			resize_control_points = true;
+		}
+		ImGui::SameLine();
+		if (ImGui::DragInt("NV", &nv, 0.1f, 1, std::numeric_limits<int>::max()))
+		{
+			resize_control_points = true;
+		}
+
+		ImGui::PopItemWidth();
+
+		// Reset control points after resize
+		if (resize_control_points)
+		{
+			bool need_extend = false;
+			if (component.control_points.size() != nu)
+			{
+				if (component.control_points.size() <= nu)
+				{
+					need_extend = true;
+				}
+				component.control_points.resize(nu);
+				component.weights.resize(nu);
+				component.need_update = true;
+			}
+
+			if (!component.control_points.empty() && (component.control_points[0].size() != nv || need_extend))
+			{
+				for (auto &points : component.control_points)
+				{
+					if (points.size() != nv)
+					{
+						points.resize(nv);
+					}
+				}
+				for (auto &weight : component.weights)
+				{
+					if (weight.size() != nv)
+					{
+						weight.resize(nv);
+					}
+				}
+				component.need_update = true;
+			}
+
+			for (int x = 0; x < nu; x++)
+			{
+				for (int y = 0; y < nv; y++)
+				{
+					component.control_points[x][y] = glm::vec3(static_cast<float>(x) - static_cast<float>(nu) / 2.f, 0.f, static_cast<float>(y) - static_cast<float>(nv) / 2.f);
+					component.weights[x][y]        = 1.f;
+				}
+			}
+		}
+
+		for (uint32_t i = 0; i < component.control_points.size(); i++)
+		{
+			if (ImGui::TreeNode((std::string("Row ") + std::to_string(i)).c_str()))
+			{
+				for (uint32_t j = 0; j < component.control_points[i].size(); j++)
+				{
+					ImGui::PushID((std::to_string(i)+std::to_string(j)).c_str());
+					draw_vec3_control(std::to_string(i) + std::to_string(j), component.control_points[i][j], 0.f, 30.f);
+					if (current == 3 || current == 4)
+					{
+						if (ImGui::DragFloat("weight", &component.weights[i][j], 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.2f"))
+						{
+							component.need_update = true;
+						}
+					}
+					ImGui::SameLine();
+					bool is_select = (i == component.select_point[0] && j == component.select_point[1]);
+					if (ImGui::Checkbox("", &is_select) && is_select)
+					{
+						component.select_point[0] = i;
+						component.select_point[1] = j;
+					}
+					ImGui::PopID();
+				}
+				ImGui::TreePop();
+			}
+		}
+
+		if (current == 2 || current == 4)
+		{
+			int order = static_cast<int>(component.order);
+			if (ImGui::DragInt("Order", &order, 1.f, 1, std::numeric_limits<int>::max()))
+			{
+				component.order       = static_cast<uint32_t>(order);
+				component.need_update = true;
+			}
 		}
 	});
 }
@@ -710,12 +844,12 @@ void Inspector::draw(float delta_time)
 	if (ImGui::BeginPopup("AddComponent"))
 	{
 		add_component<cmpt::Light, cmpt::DirectionalLight, cmpt::PointLight, cmpt::SpotLight>();
-		add_component<cmpt::Renderable, cmpt::MeshletRenderer, cmpt::MeshRenderer, cmpt::CurveRenderer>();
+		add_component<cmpt::Renderable, cmpt::MeshletRenderer, cmpt::MeshRenderer, cmpt::CurveRenderer, cmpt::SurfaceRenderer>();
 		add_component<cmpt::Camera, cmpt::PerspectiveCamera, cmpt::OrthographicCamera>();
 		ImGui::EndPopup();
 	}
 
-	draw_component<cmpt::Transform, cmpt::Hierarchy, cmpt::MeshletRenderer, cmpt::MeshRenderer, cmpt::CurveRenderer,
+	draw_component<cmpt::Transform, cmpt::Hierarchy, cmpt::MeshletRenderer, cmpt::MeshRenderer, cmpt::CurveRenderer, cmpt::SurfaceRenderer,
 	               cmpt::DirectionalLight, cmpt::PointLight, cmpt::SpotLight, cmpt::PerspectiveCamera, cmpt::OrthographicCamera>(entity);
 
 	ImGui::End();

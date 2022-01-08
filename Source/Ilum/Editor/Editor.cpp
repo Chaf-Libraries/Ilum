@@ -163,7 +163,7 @@ void Editor::onTick(float delta_time)
 				}
 				if (ImGui::MenuItem("Orthographic Light"))
 				{
-					auto entity     = Scene::instance()->createEntity("Orthographic Light");
+					auto entity     = Scene::instance()->createEntity("Orthographic Camera");
 					m_select_entity = entity;
 
 					entity.addComponent<cmpt::OrthographicCamera>();
@@ -219,8 +219,6 @@ void Editor::onTick(float delta_time)
 			panel->draw(delta_time);
 		}
 	}
-
-	ImGui::ShowDemoWindow();
 
 	ImGuiContext::end();
 }
