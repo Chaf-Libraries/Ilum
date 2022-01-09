@@ -52,6 +52,7 @@ void CameraUpdate::run()
 	CameraData * camera_data          = reinterpret_cast<CameraData *>(Renderer::instance()->Render_Buffer.Camera_Buffer.map());
 	CullingData *culling_data         = reinterpret_cast<CullingData *>(Renderer::instance()->Render_Buffer.Culling_Buffer.map());
 	camera_data->last_view_projection = camera_data->view_projection;
+	culling_data->last_view           = culling_data->view;
 
 	if (camera_entity.hasComponent<cmpt::PerspectiveCamera>())
 	{
@@ -98,7 +99,6 @@ void CameraUpdate::run()
 		}
 	}
 
-	culling_data->last_view        = culling_data->view;
 	culling_data->meshlet_count    = Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count;
 	culling_data->instance_count   = Renderer::instance()->Render_Stats.static_mesh_count.instance_count;
 	culling_data->frustum_enable   = Renderer::instance()->Culling.frustum_culling;
