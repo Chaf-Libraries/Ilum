@@ -39,7 +39,7 @@ void StaticGeometryPass::setupPipeline(PipelineState &state)
 	state.vertex_input_state.binding_descriptions = {
 	    VkVertexInputBindingDescription{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX}};
 
-	state.color_blend_attachment_states.resize(8);
+	state.color_blend_attachment_states.resize(7);
 	state.depth_stencil_state.stencil_test_enable = false;
 
 	// Disable blending
@@ -79,8 +79,7 @@ void StaticGeometryPass::setupPipeline(PipelineState &state)
 	state.declareAttachment("gbuffer - position", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("gbuffer - metallic_roughness_ao", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("gbuffer - emissive", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	state.declareAttachment("debug - meshlet", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	state.declareAttachment("debug - instance", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("gbuffer - linear_depth", VK_FORMAT_R32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("debug - entity", VK_FORMAT_R32_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("depth_stencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 
@@ -89,13 +88,13 @@ void StaticGeometryPass::setupPipeline(PipelineState &state)
 	state.addOutputAttachment("gbuffer - position", AttachmentState::Clear_Color);
 	state.addOutputAttachment("gbuffer - metallic_roughness_ao", AttachmentState::Clear_Color);
 	state.addOutputAttachment("gbuffer - emissive", AttachmentState::Clear_Color);
-	state.addOutputAttachment("debug - meshlet", AttachmentState::Clear_Color);
-	state.addOutputAttachment("debug - instance", AttachmentState::Clear_Color);
 
-	VkClearColorValue clear_entity_id = {};
-	clear_entity_id.uint32[0]         = static_cast<uint32_t>(entt::null);
+	VkClearColorValue clear_color = {};
+	clear_color.uint32[0]         = static_cast<uint32_t>(entt::null);
+	clear_color.float32[0]        = std::numeric_limits<float>::max();
 
-	state.addOutputAttachment("debug - entity", clear_entity_id);
+	state.addOutputAttachment("gbuffer - linear_depth", clear_color);
+	state.addOutputAttachment("debug - entity", clear_color);
 
 	state.addOutputAttachment("depth_stencil", VkClearDepthStencilValue{1.f, 0u});
 }

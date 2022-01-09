@@ -11,7 +11,7 @@ namespace Ilum::pass
 class MeshletCullingPass : public TRenderPass<MeshletCullingPass>
 {
   public:
-	MeshletCullingPass();
+	MeshletCullingPass() = default;
 
 	virtual void setupPipeline(PipelineState &state) override;
 

@@ -35,7 +35,7 @@ void CurvePass::setupPipeline(PipelineState &state)
 	state.vertex_input_state.binding_descriptions = {
 	    VkVertexInputBindingDescription{0, sizeof(glm::vec3), VK_VERTEX_INPUT_RATE_VERTEX}};
 
-	state.color_blend_attachment_states.resize(3);
+	state.color_blend_attachment_states.resize(2);
 	state.depth_stencil_state.stencil_test_enable = false;
 
 	// Disable blending
@@ -65,11 +65,9 @@ void CurvePass::setupPipeline(PipelineState &state)
 	state.descriptor_bindings.bind(0, 0, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
 	state.declareAttachment("geometry - curve", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	state.declareAttachment("debug - instance", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("debug - entity", VK_FORMAT_R32_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 
 	state.addOutputAttachment("geometry - curve", AttachmentState::Clear_Color);
-	state.addOutputAttachment("debug - instance", AttachmentState::Load_Color);
 	state.addOutputAttachment("debug - entity", AttachmentState::Load_Color);
 }
 

@@ -10,10 +10,6 @@
 
 namespace Ilum::pass
 {
-MeshletCullingPass::MeshletCullingPass()
-{
-}
-
 void MeshletCullingPass::setupPipeline(PipelineState &state)
 {
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/meshlet_culling.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);

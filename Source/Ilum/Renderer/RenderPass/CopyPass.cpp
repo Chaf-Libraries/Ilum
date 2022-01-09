@@ -14,7 +14,8 @@ CopyPass::CopyPass()
 
 void CopyPass::setupPipeline(PipelineState &state)
 {
-	state.addDependency("depth_stencil", VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+	//state.addDependency("depth_stencil", VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+	state.addDependency("gbuffer - linear_depth", VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 	state.addDependency("depth - buffer", VK_IMAGE_USAGE_SAMPLED_BIT);
 }
 
@@ -28,7 +29,7 @@ void CopyPass::render(RenderPassState &state)
 	auto &cmd_buffer = state.command_buffer;
 
 	cmd_buffer.copyImage(
-	    ImageInfo{state.graph.getAttachment("depth_stencil"), VK_IMAGE_USAGE_TRANSFER_SRC_BIT},
+	    ImageInfo{state.graph.getAttachment("gbuffer - linear_depth"), VK_IMAGE_USAGE_TRANSFER_SRC_BIT},
 	    ImageInfo{*Renderer::instance()->Last_Frame.depth_buffer, VK_IMAGE_USAGE_SAMPLED_BIT});
 	cmd_buffer.transferLayout(*Renderer::instance()->Last_Frame.depth_buffer, VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
 }

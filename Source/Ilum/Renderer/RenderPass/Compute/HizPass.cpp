@@ -78,7 +78,7 @@ void HizPass::setupPipeline(PipelineState &state)
 		srcTarget.sampler = m_hiz_sampler;
 		if (level == 0)
 		{
-			srcTarget.imageView   = Renderer::instance()->Last_Frame.depth_buffer->getView(ImageViewType::Depth_Only);
+			srcTarget.imageView   = Renderer::instance()->Last_Frame.depth_buffer->getView();
 			srcTarget.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		}
 		else
@@ -113,7 +113,7 @@ void HizPass::setupPipeline(PipelineState &state)
 		m_descriptor_sets[level].update(write_descriptor_sets);
 	}
 
-	state.descriptor_bindings.bind(0, 0, "depth - buffer", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Depth_Only, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 0, "depth - buffer", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 1, "hiz - buffer", ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 }
 

@@ -27,7 +27,7 @@ void SurfacePass::setupPipeline(PipelineState &state)
 	state.vertex_input_state.binding_descriptions = {
 	    VkVertexInputBindingDescription{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX}};
 
-	state.color_blend_attachment_states.resize(3);
+	state.color_blend_attachment_states.resize(2);
 	state.depth_stencil_state.stencil_test_enable = false;
 
 	state.rasterization_state.cull_mode = VK_CULL_MODE_NONE;
@@ -57,12 +57,10 @@ void SurfacePass::setupPipeline(PipelineState &state)
 	state.descriptor_bindings.bind(0, 0, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
 	state.declareAttachment("geometry - surface", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	state.declareAttachment("debug - instance", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("debug - entity", VK_FORMAT_R32_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("surface_depth_stencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 
 	state.addOutputAttachment("geometry - surface", AttachmentState::Clear_Color);
-	state.addOutputAttachment("debug - instance", AttachmentState::Load_Color);
 	state.addOutputAttachment("debug - entity", AttachmentState::Load_Color);
 	state.addOutputAttachment("surface_depth_stencil", VkClearDepthStencilValue{1.f, 0u});
 }
