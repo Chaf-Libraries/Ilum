@@ -18,6 +18,8 @@ layout(location = 2) out vec3 outNormal;
 layout(location = 3) out vec3 outTangent;
 layout(location = 4) out vec3 outBiTangent;
 layout(location = 5) out uint outIndex;
+layout(location = 6) out vec4 outScreenSpacePos;
+layout(location = 7) out vec4 outlastScreenSpacePos;
 
 layout (set = 0, binding = 0) uniform CameraBuffer
 {
@@ -68,6 +70,12 @@ void main() {
         vec3(0.0);
 
     gl_Position = main_camera.view_projection * outPos;
+
+    outScreenSpacePos = gl_Position;
+
+    outlastScreenSpacePos = main_camera.last_view_projection * 
+            instance_data[outIndex].last_world_transform * 
+            instance_data[outIndex].pre_transform* vec4(inPos, 1.0);
 
     outPos.w = gl_Position.z;
 

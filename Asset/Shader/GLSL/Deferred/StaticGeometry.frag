@@ -4,6 +4,7 @@
 #extension GL_GOOGLE_include_directive: enable
 
 #include "../common_buffer.glsl"
+#include "../common.glsl"
 
 layout(location = 0) in vec4 inPos;
 layout(location = 1) in vec2 inUV;
@@ -11,14 +12,17 @@ layout(location = 2) in vec3 inNormal;
 layout(location = 3) in vec3 inTangent;
 layout(location = 4) in vec3 inBiTangent;
 layout(location = 5) flat in uint inIndex;
+layout(location = 6) in vec4 inScreenSpacePos;
+layout(location = 7) in vec4 inlastScreenSpacePos;
 
 layout(location = 0) out vec4 Albedo;
 layout(location = 1) out vec4 Normal;
 layout(location = 2) out vec4 Position;
 layout(location = 3) out vec4 Metallic_Roughness_AO;
 layout(location = 4) out vec4 Emissive;
-layout(location = 5) out float LinearDepth;
-layout(location = 6) out uint Entity_ID;
+layout(location = 5) out vec4 MotionVector_Curvature;
+layout(location = 6) out float LinearDepth;
+layout(location = 7) out uint Entity_ID;
 
 layout (set = 0, binding = 1) uniform sampler2D textureArray[];
 
@@ -38,6 +42,8 @@ float rand(vec2 co){
 
 void main() {
     Position = vec4(inPos.xyz, 1.0);
+
+    MotionVector_Curvature = vec4(compute_motion_vector(inlastScreenSpacePos, inScreenSpacePos), 1.0, 1.0);
 
     LinearDepth = inPos.w;
 

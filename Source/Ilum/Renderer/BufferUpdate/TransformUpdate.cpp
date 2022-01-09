@@ -72,6 +72,14 @@ void TransformUpdate::run()
 
 	if (cmpt::Transform::update || cmpt::MeshletRenderer::update)
 	{
+		m_motionless_count = 0;
+	}
+
+	// Update all transform and update last transform for another time
+	if (m_motionless_count <= 1)
+	{
+		m_motionless_count++;
+
 		// Update static mesh transform buffer
 		auto meshlet_view = Scene::instance()->getRegistry().view<cmpt::MeshletRenderer>();
 
@@ -96,7 +104,7 @@ void TransformUpdate::run()
 		if (instance_count * sizeof(PerInstanceData) > Renderer::instance()->Render_Buffer.Instance_Buffer.getSize())
 		{
 			GraphicsContext::instance()->getQueueSystem().waitAll();
-			Renderer::instance()->Render_Buffer.Instance_Buffer = Buffer(instance_count * sizeof(PerInstanceData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			Renderer::instance()->Render_Buffer.Instance_Buffer            = Buffer(instance_count * sizeof(PerInstanceData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			Renderer::instance()->Render_Buffer.Instance_Visibility_Buffer = Buffer(instance_count * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 			Renderer::instance()->update();
 		}
@@ -120,12 +128,13 @@ void TransformUpdate::run()
 				uint32_t submesh_index = 0;
 				for (auto &submesh : model.get().submeshes)
 				{
-					auto &instance           = instance_data[instance_offset[i] + submesh_index++];
-					instance.entity_id       = static_cast<uint32_t>(meshlet_view[i]);
-					instance.bbox_min        = submesh.bounding_box.min_;
-					instance.bbox_max        = submesh.bounding_box.max_;
-					instance.pre_transform   = submesh.pre_transform;
-					instance.world_transform = transform.world_transform;
+					auto &instance                = instance_data[instance_offset[i] + submesh_index++];
+					instance.entity_id            = static_cast<uint32_t>(meshlet_view[i]);
+					instance.bbox_min             = submesh.bounding_box.min_;
+					instance.bbox_max             = submesh.bounding_box.max_;
+					instance.pre_transform        = submesh.pre_transform;
+					instance.last_world_transform = instance.world_transform;
+					instance.world_transform      = transform.world_transform;
 				}
 			}
 		});

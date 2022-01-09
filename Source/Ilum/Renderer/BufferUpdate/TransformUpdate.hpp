@@ -14,5 +14,8 @@ namespace Ilum::sym
 		~TransformUpdate() = default;
 
 		virtual void run() override;
+
+	  private:
+	    uint32_t m_motionless_count = 0;
 	};
 }

@@ -13,4 +13,16 @@ float RadicalInverse_VdC(uint bits)
 vec2 Hammersley(uint i, uint N)
 {
     return vec2(float(i)/float(N), RadicalInverse_VdC(i));
-}  
+}
+
+vec2 compute_motion_vector(vec4 prev_pos, vec4 current_pos)
+{
+    // Clip space -> NDC
+    vec2 current = current_pos.xy / current_pos.w;
+    vec2 prev = prev_pos.xy / prev_pos.w;
+
+    current = current * 0.5 + 0.5;
+    prev = prev * 0.5 + 0.5;
+
+    return prev - current;
+}
