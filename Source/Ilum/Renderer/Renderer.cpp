@@ -25,23 +25,24 @@
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
-#include "RenderPass/Compute/HizPass.hpp"
-#include "RenderPass/Compute/InstanceCullingPass.hpp"
-#include "RenderPass/Compute/MeshletCullingPass.hpp"
+#include "RenderPass/Culling/HizPass.hpp"
+#include "RenderPass/Culling/InstanceCullingPass.hpp"
+#include "RenderPass/Culling/MeshletCullingPass.hpp"
 #include "RenderPass/CopyPass.hpp"
-#include "RenderPass/Deferred/CurvePass.hpp"
 #include "RenderPass/Deferred/DynamicGeometryPass.hpp"
 #include "RenderPass/Deferred/EnvLightPass.hpp"
 #include "RenderPass/Deferred/LightPass.hpp"
 #include "RenderPass/Deferred/StaticGeometryPass.hpp"
-#include "RenderPass/IBLGenerator/EquirectangularToCubemap.hpp"
+#include "RenderPass/GeometryView/CurvePass.hpp"
+#include "RenderPass/GeometryView/SurfacePass.hpp"
+#include "RenderPass/Preprocess/EquirectangularToCubemap.hpp"
 #include "RenderPass/PostProcess/BlendPass.hpp"
 #include "RenderPass/PostProcess/BloomPass.hpp"
 #include "RenderPass/PostProcess/BlurPass.hpp"
 #include "RenderPass/PostProcess/BrightPass.hpp"
 #include "RenderPass/PostProcess/TonemappingPass.hpp"
-#include "RenderPass/PreProcess/KullaContyEnergy.hpp"
 #include "RenderPass/PreProcess/KullaContyAverage.hpp"
+#include "RenderPass/PreProcess/KullaContyEnergy.hpp"
 
 #include "BufferUpdate/CameraUpdate.hpp"
 #include "BufferUpdate/CurveUpdate.hpp"
@@ -50,6 +51,7 @@
 #include "BufferUpdate/MaterialUpdate.hpp"
 #include "BufferUpdate/MeshletUpdate.hpp"
 #include "BufferUpdate/TransformUpdate.hpp"
+#include "BufferUpdate/SurfaceUpdate.hpp"
 
 #include "Threading/ThreadPool.hpp"
 
@@ -75,13 +77,14 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("StaticGeometryPass", std::make_unique<pass::StaticGeometryPass>())
 		    .addRenderPass("DynamicGeometryPass", std::make_unique<pass::DynamicGeometryPass>())
 		    .addRenderPass("CurvePass", std::make_unique<pass::CurvePass>())
+		    .addRenderPass("SurfacePass", std::make_unique<pass::SurfacePass>())
 		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
 		    .addRenderPass("EnvLight", std::make_unique<pass::EnvLightPass>())
 
-		    .addRenderPass("BrightPass", std::make_unique<pass::BrightPass>("lighting"))
-		    .addRenderPass("Blur1", std::make_unique<pass::BlurPass>("bright", "blur1"))
-		    .addRenderPass("Blur2", std::make_unique<pass::BlurPass>("blur1", "blur2", true))
-		    .addRenderPass("Blend", std::make_unique<pass::BlendPass>("blur2", "lighting", "output"))
+		    //.addRenderPass("BrightPass", std::make_unique<pass::BrightPass>("lighting"))
+		    //.addRenderPass("Blur1", std::make_unique<pass::BlurPass>("bright", "blur1"))
+		    //.addRenderPass("Blur2", std::make_unique<pass::BlurPass>("blur1", "blur2", true))
+		    //.addRenderPass("Blend", std::make_unique<pass::BlendPass>("blur2", "lighting", "output"))
 
 		    .addRenderPass("Tonemapping", std::make_unique<pass::TonemappingPass>("lighting"))
 		    .addRenderPass("CopyBuffer", std::make_unique<pass::CopyPass>())
@@ -105,6 +108,7 @@ bool Renderer::onInitialize()
 {
 	Scene::instance()->addSystem<sym::GeometryUpdate>();
 	Scene::instance()->addSystem<sym::CurveUpdate>();
+	Scene::instance()->addSystem<sym::SurfaceUpdate>();
 	Scene::instance()->addSystem<sym::TransformUpdate>();
 	Scene::instance()->addSystem<sym::LightUpdate>();
 	Scene::instance()->addSystem<sym::CameraUpdate>();
@@ -275,7 +279,7 @@ void Renderer::updateImages()
 	Renderer::instance()->Last_Frame.hiz_buffer   = createScope<Image>(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
                                                                      VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VMA_MEMORY_USAGE_GPU_ONLY, true);
 	Renderer::instance()->Last_Frame.depth_buffer = createScope<Image>(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
-	                                                                   VK_FORMAT_D32_SFLOAT_S8_UINT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	                                                                   VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 	// Layout transition
 	{
 		CommandBuffer cmd_buffer;

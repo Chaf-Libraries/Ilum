@@ -11,6 +11,7 @@ namespace Ilum
 struct PerInstanceData
 {
 	glm::mat4 world_transform = {};
+	glm::mat4 last_world_transform = {};
 	glm::mat4 pre_transform   = {};
 
 	glm::vec3 bbox_min  = {};

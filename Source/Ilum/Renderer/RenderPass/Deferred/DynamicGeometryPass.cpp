@@ -24,8 +24,8 @@ DynamicGeometryPass::DynamicGeometryPass()
 
 void DynamicGeometryPass::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/dynamic_geometry.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/dynamic_geometry.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/Deferred/DynamicGeometry.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/Deferred/DynamicGeometry.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,
@@ -74,7 +74,7 @@ void DynamicGeometryPass::setupPipeline(PipelineState &state)
 	state.declareAttachment("gbuffer - position", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("gbuffer - metallic_roughness_ao", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("gbuffer - emissive", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	state.declareAttachment("debug - instance", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("gbuffer - linear_depth", VK_FORMAT_R32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("debug - entity", VK_FORMAT_R32_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("depth_stencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 
@@ -83,7 +83,7 @@ void DynamicGeometryPass::setupPipeline(PipelineState &state)
 	state.addOutputAttachment("gbuffer - position", AttachmentState::Load_Color);
 	state.addOutputAttachment("gbuffer - metallic_roughness_ao", AttachmentState::Load_Color);
 	state.addOutputAttachment("gbuffer - emissive", AttachmentState::Load_Color);
-	state.addOutputAttachment("debug - instance", AttachmentState::Load_Color);
+	state.addOutputAttachment("gbuffer - linear_depth", AttachmentState::Load_Color);
 	state.addOutputAttachment("debug - entity", AttachmentState::Load_Color);
 	state.addOutputAttachment("depth_stencil", AttachmentState::Load_Depth_Stencil);
 }

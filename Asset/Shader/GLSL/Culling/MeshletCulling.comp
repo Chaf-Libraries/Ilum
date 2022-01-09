@@ -1,0 +1,218 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive: enable
+
+#include "../common_buffer.glsl"
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+#define FLT_MAX 3.402823466e+38
+#define FLT_MIN 1.175494351e-38
+#define DBL_MAX 1.7976931348623158e+308
+#define DBL_MIN 2.2250738585072014e-308
+
+
+layout (binding = 0, std430) buffer IndirectDraws
+{
+	DrawIndexedIndirectCommand indirectDraws[ ];
+};
+
+layout (binding = 1) buffer PerInstanceBuffer
+{
+    PerInstanceData instance_data[];
+};
+
+layout (binding = 2) buffer PerMeshletBuffer
+{
+    PerMeshletData meshlet_data[];
+};
+
+layout (binding = 3) buffer DrawBuffer
+{
+    uint draw_data[];
+};
+
+layout (binding = 4) uniform CameraBuffer
+{
+    CameraData camera;
+};
+
+
+layout (binding = 5) uniform sampler2D hiz_buffer;
+
+layout (binding = 6) buffer CountBuffer
+{
+    CountData count_data;
+};
+
+layout(binding = 7) uniform CullingBuffer {
+    CullingData cull_data;
+};
+
+layout (binding = 8) buffer VisibilityBuffer
+{
+    uint visibility_data[];
+};
+
+bool checkFrustum(PerMeshletData meshlet)
+{
+    for (uint i = 0; i < 6; i++)
+    {
+        if (dot(camera.frustum[i], vec4(meshlet.center, 1)) + length(meshlet.radius) < 0.0)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool projectSphere(vec3 C, float r, float znear, float P00, float P11, out vec4 aabb)
+{
+    if (-C.z < r + znear)
+		return false;
+
+	vec2 cx = C.xz;
+	vec2 vx = vec2(sqrt(dot(cx, cx) - r * r), r);
+	vec2 minx = mat2(vx.x, vx.y, -vx.y, vx.x) * cx;
+	vec2 maxx = mat2(vx.x, -vx.y, vx.y, vx.x) * cx;
+
+	vec2 cy = C.yz;
+	vec2 vy = vec2(sqrt(dot(cy, cy) - r * r), r);
+	vec2 miny = mat2(vy.x, vy.y, -vy.y, vy.x) * cy;
+	vec2 maxy = mat2(vy.x, -vy.y, vy.y, vy.x) * cy;
+
+	aabb = vec4(-minx.x / minx.y * P00, -miny.x / miny.y * P11, -maxx.x / maxx.y * P00, -maxy.x / maxy.y * P11);
+	aabb = aabb.xwzy * vec4(0.5f, -0.5f, 0.5f, -0.5f) + vec4(0.5f);
+
+    return true;
+}
+
+bool checkOcclusion(PerMeshletData meshlet)
+{
+    vec3 dir = normalize(camera.position - meshlet.center);
+    vec4 sceen_space_center_last = camera.last_view_projection * vec4(meshlet.center, 1.0);
+
+    vec3 C = ((cull_data.view) * vec4(meshlet.center,1.0)).xyz;
+
+    vec4 aabb;
+    if(!projectSphere(C, meshlet.radius, cull_data.znear, cull_data.P00, cull_data.P11, aabb))
+    {
+        return true;
+    }
+
+    float width = (aabb.z - aabb.x) * cull_data.zbuffer_width;
+    float height = (aabb.w - aabb.y) * cull_data.zbuffer_height;
+
+    float mip_level = floor(log2(max(width, height))) - 1;
+
+    vec2 uv = (aabb.xy + aabb.zw) * 0.5;
+    vec2 uv0 = aabb.xy;
+    vec2 uv1 = aabb.zw;
+    vec2 uv2 = aabb.xw;
+    vec2 uv3 = aabb.zy;
+
+    float depth = textureLod(hiz_buffer, uv, mip_level).r;
+    depth = max(depth, textureLod(hiz_buffer, uv0, mip_level).r);
+    depth = max(depth, textureLod(hiz_buffer, uv1, mip_level).r);
+    depth = max(depth, textureLod(hiz_buffer, uv2, mip_level).r);
+    depth = max(depth, textureLod(hiz_buffer, uv3, mip_level).r);
+    
+    float depthSphere = abs(sceen_space_center_last.z) - 2 * meshlet.radius;
+
+    return depth >= depthSphere;
+}
+
+
+void main()
+{
+	uint idx = gl_GlobalInvocationID.x;
+    if (idx == 0)
+	{
+		atomicExchange(count_data.visible_count, 0);
+		atomicExchange(count_data.invisible_count, 0);
+		atomicExchange(count_data.total_count, 0);
+	}
+
+    if(idx >= cull_data.meshlet_count)
+    {
+        return;
+    }
+
+    PerMeshletData meshlet = meshlet_data[idx];
+
+    if(visibility_data[meshlet.instance_id] != 1)
+    {
+        uint dci = atomicAdd(count_data.invisible_count, 1);
+        indirectDraws[cull_data.meshlet_count - 1 - dci].indexCount = meshlet.index_count;
+        indirectDraws[cull_data.meshlet_count - 1 - dci].instanceCount = 1;
+        indirectDraws[cull_data.meshlet_count - 1 - dci].firstIndex = meshlet.index_offset;
+        indirectDraws[cull_data.meshlet_count - 1 - dci].vertexOffset = int(meshlet.vertex_offset);
+        indirectDraws[cull_data.meshlet_count - 1 - dci].firstInstance = 0;
+        draw_data[cull_data.meshlet_count - 1 - dci] = meshlet.instance_id;
+        atomicAdd(count_data.total_count, 1);
+        return;
+    }
+    
+    mat4 trans = instance_data[meshlet.instance_id].world_transform * instance_data[meshlet.instance_id].pre_transform;
+    meshlet.center = (trans * vec4(meshlet.center, 1.0)).xyz;
+    vec3 edge = vec3(1.0) * sqrt(meshlet.radius * meshlet.radius / 3.0);
+    meshlet.radius = length(vec3(
+        abs(trans[0][0])*edge.x + abs(trans[0][1])*edge.y + abs(trans[0][2])*edge.z,
+        abs(trans[1][0])*edge.x + abs(trans[1][1])*edge.y + abs(trans[1][2])*edge.z,
+        abs(trans[2][0])*edge.x + abs(trans[2][1])*edge.y + abs(trans[2][2])*edge.z
+    ));
+
+    bool visible = true;
+
+    if(visible && cull_data.frustum_enable == 1)
+    {
+        visible = visible && checkFrustum(meshlet);
+    }
+
+    if(visible && cull_data.backface_enable == 1)
+    {
+        vec3 scale = vec3(
+            sqrt(trans[0][0] * trans[0][0] + trans[0][1] * trans[0][1] + trans[0][2] * trans[0][2]),
+            sqrt(trans[1][0] * trans[1][0] + trans[1][1] * trans[1][1] + trans[1][2] * trans[1][2]),
+            sqrt(trans[2][0] * trans[2][0] + trans[2][1] * trans[2][1] + trans[2][2] * trans[2][2])
+        );
+
+        mat3 rotation = mat3(
+            trans[0].xyz/scale.x,
+            trans[1].xyz/scale.y,
+            trans[2].xyz/scale.z
+        );
+
+        meshlet.cone_apex = (trans * vec4(meshlet.cone_apex, 1.0)).xyz;
+        meshlet.cone_axis = rotation * meshlet.cone_axis;
+
+        visible = visible && dot(normalize(camera.position - meshlet.cone_apex), meshlet.cone_axis) < meshlet.cone_cutoff;
+    }
+
+    if(visible && cull_data.occlusion_enable == 1)
+    {
+        visible = visible && checkOcclusion(meshlet);
+    }
+
+    if (visible)
+    {
+        uint dci = atomicAdd(count_data.visible_count, 1);
+        indirectDraws[dci].indexCount = meshlet.index_count;
+        indirectDraws[dci].instanceCount = 1;
+        indirectDraws[dci].firstIndex = meshlet.index_offset;
+        indirectDraws[dci].vertexOffset = int(meshlet.vertex_offset);
+        indirectDraws[dci].firstInstance = 0;
+        draw_data[dci] = meshlet.instance_id;
+    }
+    else
+    {
+        uint dci = atomicAdd(count_data.invisible_count, 1);
+        indirectDraws[cull_data.meshlet_count - 1 - dci].indexCount = meshlet.index_count;
+        indirectDraws[cull_data.meshlet_count - 1 - dci].instanceCount = 1;
+        indirectDraws[cull_data.meshlet_count - 1 - dci].firstIndex = meshlet.index_offset;
+        indirectDraws[cull_data.meshlet_count - 1 - dci].vertexOffset = int(meshlet.vertex_offset);
+        indirectDraws[cull_data.meshlet_count - 1 - dci].firstInstance = 0;
+        draw_data[cull_data.meshlet_count - 1 - dci] = meshlet.instance_id;
+    }
+    atomicAdd(count_data.total_count, 1);
+}

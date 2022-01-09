@@ -346,7 +346,7 @@ __pragma(warning(push, 0))
 				{
 					float distance = std::fabs(click_pos.x - screen_vertices[i].x) + std::fabs(click_pos.y - screen_vertices[i].y);
 
-					if (distance < 4.f)
+					if (distance < 4.f && !ImGui::IsMouseDragging(ImGuiMouseButton_Left))
 					{
 						curve_renderer.select_point = i;
 					}
@@ -371,7 +371,91 @@ __pragma(warning(push, 0))
 
 			for (uint32_t i = 1; i < screen_vertices.size(); i++)
 			{
-				draw_line(draw_list, main_camera, control_points[i-1], control_points[i], offset + ImGui::GetWindowPos(), extent, ImColor(0.f, 255.f, 0.f), 1.f);
+				draw_line(draw_list, main_camera, control_points[i - 1], control_points[i], offset + ImGui::GetWindowPos(), extent, ImColor(0.f, 255.f, 0.f), 1.f);
+			}
+		}
+	}
+
+	inline void draw_surface_gizmo(const ImVec2 &offset, bool enable)
+	{
+		if (!enable || !Renderer::instance()->hasMainCamera() || Renderer::instance()->Main_Camera == Editor::instance()->getSelect())
+		{
+			return;
+		}
+
+		if (Editor::instance()->getSelect() && Editor::instance()->getSelect().hasComponent<cmpt::SurfaceRenderer>())
+		{
+			cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
+                                            static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
+                                            static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
+
+			auto &surface_renderer = Editor::instance()->getSelect().getComponent<cmpt::SurfaceRenderer>();
+			auto &transform        = Editor::instance()->getSelect().getComponent<cmpt::Transform>();
+
+			if (surface_renderer.control_points.empty() || surface_renderer.control_points[0].empty())
+			{
+				return;
+			}
+
+			std::vector<std::vector<glm::vec4>> screen_vertices(surface_renderer.control_points.size(), std::vector<glm::vec4>(surface_renderer.control_points[0].size()));
+
+			auto *draw_list = ImGui::GetWindowDrawList();
+
+			auto [mouse_x, mouse_y] = Input::instance()->getMousePosition();
+			auto click_pos          = ImVec2(static_cast<float>(mouse_x), static_cast<float>(mouse_y));
+
+			std::vector<std::vector<glm::vec3>> control_points(surface_renderer.control_points.size(), std::vector<glm::vec3>(surface_renderer.control_points[0].size()));
+
+			for (uint32_t i = 0; i < screen_vertices.size(); i++)
+			{
+				for (uint32_t j = 0; j < screen_vertices[0].size(); j++)
+				{
+					control_points[i][j]  = transform.world_transform * glm::vec4(surface_renderer.control_points[i][j], 1.f);
+					screen_vertices[i][j] = main_camera->world2Screen(control_points[i][j], {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x + ImGui::GetWindowPos().x), static_cast<float>(offset.y + ImGui::GetWindowPos().y)});
+
+					if (main_camera->frustum.isInside(control_points[i][j]))
+					{
+						float distance = std::fabs(click_pos.x - screen_vertices[i][j].x) + std::fabs(click_pos.y - screen_vertices[i][j].y);
+
+						if (distance < 4.f && !ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+						{
+							surface_renderer.select_point[0] = i;
+							surface_renderer.select_point[1] = j;
+						}
+
+						draw_list->AddCircleFilled(ImVec2{screen_vertices[i][j].x, screen_vertices[i][j].y}, surface_renderer.select_point[0] == i && surface_renderer.select_point[1] == j ? 8.f : 4.f, ImColor(0.f, 255.f, 0.f));
+
+						// Select
+						if (ImGui::IsMouseDragging(ImGuiMouseButton_Left) && surface_renderer.select_point[0] == i && surface_renderer.select_point[1] == j)
+						{
+							surface_renderer.control_points[i][j] = main_camera->screen2World(glm::vec4(click_pos.x, click_pos.y, screen_vertices[i][j].z, screen_vertices[i][j].w), {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x + ImGui::GetWindowPos().x), static_cast<float>(offset.y + ImGui::GetWindowPos().y)});
+							surface_renderer.need_update          = true;
+						}
+					}
+				}
+			}
+
+			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) || !ImGui::IsAnyMouseDown())
+			{
+				surface_renderer.select_point[0] = std::numeric_limits<uint32_t>::max();
+				surface_renderer.select_point[1] = std::numeric_limits<uint32_t>::max();
+			}
+
+			ImVec2 extent = ImVec2(static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height));
+
+			for (uint32_t i = 0; i < screen_vertices.size(); i++)
+			{
+				for (uint32_t j = 0; j < screen_vertices[0].size(); j++)
+				{
+					if (j >= 1)
+					{
+						draw_line(draw_list, main_camera, control_points[i][j - 1], control_points[i][j], offset + ImGui::GetWindowPos(), extent, ImColor(0.f, 255.f, 0.f), 1.f);
+					}
+					if (i >= 1)
+					{
+						draw_line(draw_list, main_camera, control_points[i - 1][j], control_points[i][j], offset + ImGui::GetWindowPos(), extent, ImColor(0.f, 255.f, 0.f), 1.f);
+					}
+				}
 			}
 		}
 	}
@@ -398,6 +482,7 @@ __pragma(warning(push, 0))
 		    {"Camera", true},
 		    {"Frustum", true},
 		    {"Curve", true},
+		    {"Surface", true},
 		};
 	}
 
@@ -594,6 +679,7 @@ __pragma(warning(push, 0))
 		draw_frustum_gizmo(offset, m_gizmo["Frustum"]);
 		draw_boundingbox_gizmo(offset, m_gizmo["AABB"]);
 		draw_curve_gizmo(offset, m_gizmo["Curve"]);
+		draw_surface_gizmo(offset, m_gizmo["Surface"]);
 
 		if (Editor::instance()->getSelect())
 		{

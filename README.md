@@ -40,10 +40,16 @@ cmake --build ./ --target ALL_BUILD --config Release
   * GPU Hierarchy Z Buffer Occlusion Culling
 * Curve Modeling
   * Bézier Curve
-  * Bézier Spline
-  * B Spline
+  * Cubic Spline Curve
+  * B Spline Curve
   * Rational Bézier Curve
-  * Rational B Spline
+  * Rational B Spline Curve
+
+* Tensor Product Surface Modeling
+  * Bézier Surface
+  * B Spline Surface
+  * Rational Bézier Surface
+  * Rational B Spline Surface
 
 * Rasterization Shading
   * Cook-Torrance BRDF
@@ -68,6 +74,14 @@ cmake --build ./ --target ALL_BUILD --config Release
 #### Kulla Conty Approximation
 
 ![image-20211231141039926](README/image-20211231141039926.png)
+
+## Curve Modeling
+
+![image-20220108150839809](README/image-20220108150839809.png)
+
+## Surface Modeling
+
+![image-20220108151149909](README/image-20220108151149909.png)
 
 ## TODO
 

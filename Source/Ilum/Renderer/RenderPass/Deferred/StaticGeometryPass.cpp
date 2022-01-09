@@ -22,8 +22,8 @@ StaticGeometryPass::StaticGeometryPass()
 
 void StaticGeometryPass::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/static_geometry.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/static_geometry.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/Deferred/StaticGeometry.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/Deferred/StaticGeometry.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,
@@ -79,8 +79,8 @@ void StaticGeometryPass::setupPipeline(PipelineState &state)
 	state.declareAttachment("gbuffer - position", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("gbuffer - metallic_roughness_ao", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("gbuffer - emissive", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	state.declareAttachment("debug - meshlet", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	state.declareAttachment("debug - instance", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("gbuffer - motion_vector_curvature", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("gbuffer - linear_depth", VK_FORMAT_R32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("debug - entity", VK_FORMAT_R32_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("depth_stencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 
@@ -89,13 +89,14 @@ void StaticGeometryPass::setupPipeline(PipelineState &state)
 	state.addOutputAttachment("gbuffer - position", AttachmentState::Clear_Color);
 	state.addOutputAttachment("gbuffer - metallic_roughness_ao", AttachmentState::Clear_Color);
 	state.addOutputAttachment("gbuffer - emissive", AttachmentState::Clear_Color);
-	state.addOutputAttachment("debug - meshlet", AttachmentState::Clear_Color);
-	state.addOutputAttachment("debug - instance", AttachmentState::Clear_Color);
+	state.addOutputAttachment("gbuffer - motion_vector_curvature", AttachmentState::Clear_Color);
 
-	VkClearColorValue clear_entity_id = {};
-	clear_entity_id.uint32[0]         = static_cast<uint32_t>(entt::null);
+	VkClearColorValue clear_color = {};
+	clear_color.uint32[0]         = static_cast<uint32_t>(entt::null);
+	clear_color.float32[0]        = std::numeric_limits<float>::max();
 
-	state.addOutputAttachment("debug - entity", clear_entity_id);
+	state.addOutputAttachment("gbuffer - linear_depth", clear_color);
+	state.addOutputAttachment("debug - entity", clear_color);
 
 	state.addOutputAttachment("depth_stencil", VkClearDepthStencilValue{1.f, 0u});
 }

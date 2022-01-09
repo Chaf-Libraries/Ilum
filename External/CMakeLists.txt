@@ -106,6 +106,7 @@ add_subdirectory(spirv_cross)
 
 #assimp
 option(ASSIMP_BUILD_TESTS OFF)
+option(ASSIMP_BUILD_DOCS OFF)
 add_subdirectory(assimp)
 
 #entt

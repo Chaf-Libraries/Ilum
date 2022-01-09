@@ -30,9 +30,9 @@ inline uint32_t Cnk(uint32_t n, uint32_t k)
 	return dp[k];
 }
 
-float bernstein_basis(uint32_t n, uint32_t i, float t)
+inline float bernstein_basis(uint32_t n, uint32_t i, float t)
 {
-	return static_cast<float>(Cnk(n, i)) * std::pow(t, i) * std::pow(1 - t, n - i);
+	return static_cast<float>(Cnk(n, i)) * static_cast<float>(std::pow(t, i) * std::pow(1 - t, n - i));
 }
 
 std::vector<glm::vec3> RationalBezier::generateVertices(const std::vector<glm::vec3> &control_points, uint32_t sample)
