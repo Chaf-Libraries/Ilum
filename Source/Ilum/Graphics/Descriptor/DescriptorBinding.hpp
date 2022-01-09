@@ -110,6 +110,8 @@ class DescriptorBinding
 
 	void setOption(ResolveOption option);
 
+	ResolveOption getOption() const;
+
 	void resolve(const ResolveInfo &resolve_info);
 
 	void write(const DescriptorSet &descriptor_set);

@@ -154,8 +154,11 @@ void RenderGraph::executeNode(RenderGraphNode &node, const CommandBuffer &comman
 	RenderPassState state{*this, command_buffer, node.pass_native};
 
 	node.pass->resolveResources(resolve);
-	node.descriptors.resolve(resolve);
-	node.descriptors.write(node.pass_native.descriptor_sets);
+	if (node.descriptors.getOption() != ResolveOption::None)
+	{
+		node.descriptors.resolve(resolve);
+		node.descriptors.write(node.pass_native.descriptor_sets);
+	}
 
 	// Insert pipeline barrier
 	node.pipeline_barrier_callback(command_buffer, resolve);

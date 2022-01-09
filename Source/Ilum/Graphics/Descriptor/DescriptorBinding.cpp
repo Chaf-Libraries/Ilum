@@ -128,6 +128,11 @@ void DescriptorBinding::setOption(ResolveOption option)
 	m_options = option;
 }
 
+ResolveOption DescriptorBinding::getOption() const
+{
+	return m_options;
+}
+
 void DescriptorBinding::resolve(const ResolveInfo &resolve_info)
 {
 	m_buffer_writes.clear();
