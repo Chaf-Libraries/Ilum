@@ -22,8 +22,8 @@ StaticGeometryPass::StaticGeometryPass()
 
 void StaticGeometryPass::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/static_geometry.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/static_geometry.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/Deferred/StaticGeometry.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/Deferred/StaticGeometry.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,

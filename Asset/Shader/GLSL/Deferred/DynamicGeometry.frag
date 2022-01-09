@@ -3,7 +3,7 @@
 #extension GL_EXT_nonuniform_qualifier : require
 #extension GL_GOOGLE_include_directive: enable
 
-#include "common_buffer.h"
+#include "../common_buffer.glsl"
 
 layout(location = 0) in vec4 inPos;
 layout(location = 1) in vec2 inUV;
@@ -17,7 +17,7 @@ layout(location = 1) out vec4 Normal;
 layout(location = 2) out vec4 Position;
 layout(location = 3) out vec4 Metallic_Roughness_AO;
 layout(location = 4) out vec4 Emissive;
-layout(location = 5) out vec4 Instance_Vis;
+layout(location = 5) out float Linear_Depth;
 layout(location = 6) out uint Entity_ID;
 
 layout(push_constant) uniform PushBlock{
@@ -45,6 +45,7 @@ float rand(vec2 co){
 
 void main() {
     Position = vec4(inPos.xyz, 1.0);
+    Linear_Depth = inPos.w;
 
     vec3 N = normalize(inNormal);
     vec3 T = normalize(inTangent);
@@ -79,9 +80,6 @@ void main() {
         0.0;
     
     Metallic_Roughness_AO.w=1.0;
-
-    // Instance Visualization
-    Instance_Vis = vec4(rand(vec2(inIndex)), rand(vec2(inIndex + 1)), rand(vec2(inIndex + 2)), 1);
 
     Entity_ID = push_data.entity_id;
 }

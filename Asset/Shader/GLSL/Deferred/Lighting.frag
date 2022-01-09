@@ -2,9 +2,9 @@
 
 #extension GL_GOOGLE_include_directive: enable
 
-#include "light.h"
+#include "../light.glsl"
 
-#include "brdf.glsl"
+#include "../brdf.glsl"
 
 layout(binding = 0) uniform sampler2D Albedo;
 layout(binding = 1) uniform sampler2D Normal;

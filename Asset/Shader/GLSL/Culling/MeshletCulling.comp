@@ -2,7 +2,7 @@
 
 #extension GL_GOOGLE_include_directive: enable
 
-#include "common_buffer.h"
+#include "../common_buffer.glsl"
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
@@ -87,15 +87,10 @@ bool projectSphere(vec3 C, float r, float znear, float P00, float P11, out vec4 
     return true;
 }
 
-float LinearizeDepth(float depth)
-{
-    return -(2.0 * cull_data.zfar * cull_data.znear) / (depth * (cull_data.zfar - cull_data.znear) - (cull_data.zfar + cull_data.znear));	
-}
-
 bool checkOcclusion(PerMeshletData meshlet)
 {
     vec3 dir = normalize(camera.position - meshlet.center);
-    vec4 sceen_space_center_last = camera.last_view_projection * vec4(meshlet.center + dir*meshlet.radius, 1.0);
+    vec4 sceen_space_center_last = camera.last_view_projection * vec4(meshlet.center, 1.0);
 
     vec3 C = ((cull_data.view) * vec4(meshlet.center,1.0)).xyz;
 
@@ -108,7 +103,7 @@ bool checkOcclusion(PerMeshletData meshlet)
     float width = (aabb.z - aabb.x) * cull_data.zbuffer_width;
     float height = (aabb.w - aabb.y) * cull_data.zbuffer_height;
 
-    float mip_level = floor(log2(max(width, height)));
+    float mip_level = floor(log2(max(width, height))) - 1;
 
     vec2 uv = (aabb.xy + aabb.zw) * 0.5;
     vec2 uv0 = aabb.xy;
@@ -122,9 +117,9 @@ bool checkOcclusion(PerMeshletData meshlet)
     depth = max(depth, textureLod(hiz_buffer, uv2, mip_level).r);
     depth = max(depth, textureLod(hiz_buffer, uv3, mip_level).r);
     
-    float depthSphere = abs(sceen_space_center_last.z);
+    float depthSphere = abs(sceen_space_center_last.z) - 2 * meshlet.radius;
 
-    return LinearizeDepth(depth) >= depthSphere;
+    return depth >= depthSphere;
 }
 
 

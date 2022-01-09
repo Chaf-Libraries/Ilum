@@ -8,8 +8,8 @@ namespace Ilum::pass
 {
 void EnvLightPass::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/environment.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/environment.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/Deferred/Environment.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/Deferred/Environment.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,

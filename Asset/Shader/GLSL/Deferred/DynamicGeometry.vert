@@ -3,7 +3,7 @@
 #extension GL_EXT_nonuniform_qualifier : require
 #extension GL_GOOGLE_include_directive: enable
 
-#include "common_buffer.h"
+#include "../common_buffer.glsl"
 
 layout(location = 0) in vec3 inPos;
 layout(location = 1) in vec2 inUV;

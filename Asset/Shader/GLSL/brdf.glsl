@@ -1,4 +1,4 @@
-#include "common.glsl"
+#include "../common.glsl"
 
 vec3 LambertianDiffuse(vec3 albedo)
 {

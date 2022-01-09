@@ -1,6 +1,7 @@
 struct PerInstanceData
 {
 	mat4 world_transform;
+	mat4 last_world_transform;
 	mat4 pre_transform;
 
 	vec3 bbox_min;

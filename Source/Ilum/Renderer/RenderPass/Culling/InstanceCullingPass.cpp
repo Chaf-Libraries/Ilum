@@ -16,7 +16,7 @@ InstanceCullingPass::InstanceCullingPass()
 
 void InstanceCullingPass::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/instance_culling.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/Culling/InstanceCulling.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
 
 	state.descriptor_bindings.bind(0, 0, "PerInstanceData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 1, "InstanceVisibility", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);

@@ -4,7 +4,7 @@
 #extension GL_ARB_shader_draw_parameters : require
 #extension GL_GOOGLE_include_directive: enable
 
-#include "common_buffer.h"
+#include "../common_buffer.glsl"
 
 layout(location = 0) in vec3 inPos;
 layout(location = 1) in vec2 inUV;
@@ -18,7 +18,6 @@ layout(location = 2) out vec3 outNormal;
 layout(location = 3) out vec3 outTangent;
 layout(location = 4) out vec3 outBiTangent;
 layout(location = 5) out uint outIndex;
-layout(location = 6) out uint outMeshletIndex;
 
 layout (set = 0, binding = 0) uniform CameraBuffer
 {
@@ -49,7 +48,6 @@ layout (set = 0, binding = 5) buffer DrawBuffer
 
 void main() {
     outIndex = draw_data[gl_DrawIDARB];
-    outMeshletIndex = gl_DrawIDARB;
 
     float height = material_data[outIndex].displacement_map < 1024?
         max(textureLod(textureArray[nonuniformEXT(material_data[outIndex].displacement_map)], inUV, 0.0).r, 0.0) * material_data[outIndex].displacement_height:
