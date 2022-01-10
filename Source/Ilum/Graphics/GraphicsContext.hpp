@@ -59,6 +59,8 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 
 	const CommandBuffer &acquireCommandBuffer(QueueUsage usage = QueueUsage::Graphics);
 
+	uint64_t getFrameCount() const;
+
   public:
 	virtual bool onInitialize() override;
 

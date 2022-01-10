@@ -43,7 +43,7 @@ float rand(vec2 co){
 void main() {
     Position = vec4(inPos.xyz, 1.0);
 
-    MotionVector_Curvature = vec4(compute_motion_vector(inlastScreenSpacePos, inScreenSpacePos), 1.0, 1.0);
+    MotionVector_Curvature = vec4(compute_motion_vector(inlastScreenSpacePos, inScreenSpacePos), 0.0, 1.0);
 
     LinearDepth = inPos.w;
 

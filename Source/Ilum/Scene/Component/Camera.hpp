@@ -17,6 +17,7 @@ struct Camera
 	glm::mat4 view;
 	glm::mat4 projection;
 	glm::mat4 view_projection;
+	glm::mat4 last_view_projection;
 
 	float near_plane = 0.01f;
 	float far_plane  = 1000.f;

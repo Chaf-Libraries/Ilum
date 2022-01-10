@@ -148,8 +148,17 @@ class Renderer : public TSubsystem<Renderer>
 
 	struct
 	{
+		bool enable = true;
+		glm::vec2 current_jitter = glm::vec2(0.f);
+		glm::vec2 prev_jitter    = glm::vec2(0.f);
+		glm::vec2 feedback       = glm::vec2(1.f, 1.f);
+	}TAA;
+
+	struct
+	{
 		scope<Image> depth_buffer = nullptr;
 		scope<Image> hiz_buffer   = nullptr;
+		scope<Image> last_result  = nullptr;
 	} Last_Frame;
 
 	struct

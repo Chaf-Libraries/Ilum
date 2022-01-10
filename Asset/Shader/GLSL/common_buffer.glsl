@@ -1,3 +1,6 @@
+#ifndef COMMON_BUFFER_GLSL
+#define COMMON_BUFFER_GLSL
+
 struct PerInstanceData
 {
 	mat4 world_transform;
@@ -94,3 +97,5 @@ struct MaterialData
 	uint displacement_map;
 	float displacement_height;
 };
+
+#endif

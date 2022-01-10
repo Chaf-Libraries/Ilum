@@ -14,8 +14,34 @@
 #include <glm/gtx/matrix_decompose.hpp>
 #include <glm/gtx/quaternion.hpp>
 
+#define HALTION_SAMPLES 16
+
 namespace Ilum::sym
 {
+// Camera jitter
+inline float halton_sequence(uint32_t base, uint32_t index)
+{
+	float result = 0.f;
+	float f      = 1.f;
+
+	while (index > 0)
+	{
+		f /= static_cast<float>(base);
+		result += f * (index % base);
+		index = static_cast<uint32_t>(floorf(static_cast<float>(index) / static_cast<float>(base)));
+	}
+
+	return result;
+}
+
+CameraUpdate::CameraUpdate()
+{
+	for (uint32_t i = 1; i <= HALTION_SAMPLES; i++)
+	{
+		m_jitter_samples.push_back(glm::vec2(2.f * halton_sequence(2, i) - 1.f, 2.f * halton_sequence(3, i) - 1.f));
+	}
+}
+
 void CameraUpdate::run()
 {
 	GraphicsContext::instance()->getProfiler().beginSample("Camera Update");
@@ -47,43 +73,38 @@ void CameraUpdate::run()
 		}
 	}
 
+	// Update camera jitter
+	if (Renderer::instance()->TAA.enable)
+	{
+		Renderer::instance()->TAA.prev_jitter = Renderer::instance()->TAA.current_jitter;
+		uint32_t sample_idx = static_cast<uint32_t>(GraphicsContext::instance()->getFrameCount() % m_jitter_samples.size());
+		glm::vec2 halton     = m_jitter_samples[sample_idx];
+
+		auto rt_extent   = Renderer::instance()->getRenderTargetExtent();
+		
+		Renderer::instance()->TAA.current_jitter = glm::vec2(halton.x / static_cast<float>(rt_extent.width), halton.y / static_cast<float>(rt_extent.height));
+	}
+	else
+	{
+		Renderer::instance()->TAA.prev_jitter    = glm::vec2(0.f);
+		Renderer::instance()->TAA.current_jitter = glm::vec2(0.f);
+	}
+
 	const auto &transform = camera_entity.getComponent<cmpt::Transform>();
 
 	CameraData * camera_data          = reinterpret_cast<CameraData *>(Renderer::instance()->Render_Buffer.Camera_Buffer.map());
 	CullingData *culling_data         = reinterpret_cast<CullingData *>(Renderer::instance()->Render_Buffer.Culling_Buffer.map());
-	camera_data->last_view_projection = camera_data->view_projection;
 	culling_data->last_view           = culling_data->view;
 
 	if (camera_entity.hasComponent<cmpt::PerspectiveCamera>())
 	{
-		auto &camera                 = camera_entity.getComponent<cmpt::PerspectiveCamera>();
-		camera.view                  = glm::inverse(transform.world_transform);
-		camera.projection            = glm::perspective(glm::radians(camera.fov), camera.aspect, camera.near_plane, camera.far_plane);
-		camera.view_projection       = camera.projection * camera.view;
-		camera.frustum               = geometry::Frustum(camera_data->view_projection);
-		camera.position              = transform.world_transform[3];
+		auto &camera = camera_entity.getComponent<cmpt::PerspectiveCamera>();
 
-		culling_data->view = camera.view;
-		culling_data->P00  = camera.projection[0][0];
-		culling_data->P11  = camera.projection[1][1];
-		culling_data->znear = camera.near_plane;
-		culling_data->zfar = camera.far_plane;
-
-		camera_data->position        = transform.world_transform[3];
-		camera_data->view_projection = camera.view_projection;
-		for (size_t i = 0; i < 6; i++)
-		{
-			camera_data->frustum[i] = glm::vec4(camera.frustum.planes[i].normal, camera.frustum.planes[i].constant);
-		}
-	}
-	else if (camera_entity.hasComponent<cmpt::OrthographicCamera>())
-	{
-		auto &camera                 = camera_entity.getComponent<cmpt::OrthographicCamera>();
-		camera.view                  = glm::inverse(transform.world_transform);
-		camera.projection            = glm::ortho(camera.left, camera.right, camera.bottom, camera.top, camera.near_plane, camera.far_plane);
-		camera.view_projection       = camera.projection * camera.view;
-		camera.frustum               = geometry::Frustum(camera_data->view_projection);
-		camera.position              = transform.world_transform[3];
+		camera.view            = glm::inverse(transform.world_transform);
+		camera.projection      = glm::perspective(glm::radians(camera.fov), camera.aspect, camera.near_plane, camera.far_plane);
+		camera.view_projection = camera.projection * camera.view;
+		camera.frustum         = geometry::Frustum(camera_data->view_projection);
+		camera.position        = transform.world_transform[3];
 
 		culling_data->view  = camera.view;
 		culling_data->P00   = camera.projection[0][0];
@@ -92,11 +113,41 @@ void CameraUpdate::run()
 		culling_data->zfar  = camera.far_plane;
 
 		camera_data->position        = transform.world_transform[3];
-		camera_data->view_projection = camera.view_projection;
+		camera_data->view_projection = glm::translate(glm::mat4(1.f), glm::vec3(Renderer::instance()->TAA.current_jitter, 0.f)) * camera.view_projection;
+		camera_data->last_view_projection = glm::translate(glm::mat4(1.f), glm::vec3(Renderer::instance()->TAA.current_jitter, 0.f)) * camera.last_view_projection;
+
 		for (size_t i = 0; i < 6; i++)
 		{
 			camera_data->frustum[i] = glm::vec4(camera.frustum.planes[i].normal, camera.frustum.planes[i].constant);
 		}
+
+		camera.last_view_projection = camera.view_projection;
+	}
+	else if (camera_entity.hasComponent<cmpt::OrthographicCamera>())
+	{
+		auto &camera           = camera_entity.getComponent<cmpt::OrthographicCamera>();
+		camera.view            = glm::inverse(transform.world_transform);
+		camera.projection      = glm::ortho(camera.left, camera.right, camera.bottom, camera.top, camera.near_plane, camera.far_plane);
+		camera.view_projection = camera.projection * camera.view;
+		camera.frustum         = geometry::Frustum(camera_data->view_projection);
+		camera.position        = transform.world_transform[3];
+
+		culling_data->view  = camera.view;
+		culling_data->P00   = camera.projection[0][0];
+		culling_data->P11   = camera.projection[1][1];
+		culling_data->znear = camera.near_plane;
+		culling_data->zfar  = camera.far_plane;
+
+		camera_data->position        = transform.world_transform[3];
+		camera_data->view_projection = glm::translate(glm::mat4(1.f), glm::vec3(Renderer::instance()->TAA.current_jitter, 0.f)) * camera.view_projection;
+		camera_data->last_view_projection = glm::translate(glm::mat4(1.f), glm::vec3(Renderer::instance()->TAA.current_jitter, 0.f)) * camera.last_view_projection;
+
+		for (size_t i = 0; i < 6; i++)
+		{
+			camera_data->frustum[i] = glm::vec4(camera.frustum.planes[i].normal, camera.frustum.planes[i].constant);
+		}
+
+		camera.last_view_projection = camera.view_projection;
 	}
 
 	culling_data->meshlet_count    = Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count;

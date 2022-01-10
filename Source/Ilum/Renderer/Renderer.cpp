@@ -25,24 +25,25 @@
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
+#include "RenderPass/CopyPass.hpp"
 #include "RenderPass/Culling/HizPass.hpp"
 #include "RenderPass/Culling/InstanceCullingPass.hpp"
 #include "RenderPass/Culling/MeshletCullingPass.hpp"
-#include "RenderPass/CopyPass.hpp"
 #include "RenderPass/Deferred/DynamicGeometryPass.hpp"
 #include "RenderPass/Deferred/EnvLightPass.hpp"
 #include "RenderPass/Deferred/LightPass.hpp"
 #include "RenderPass/Deferred/StaticGeometryPass.hpp"
 #include "RenderPass/GeometryView/CurvePass.hpp"
 #include "RenderPass/GeometryView/SurfacePass.hpp"
-#include "RenderPass/Preprocess/EquirectangularToCubemap.hpp"
 #include "RenderPass/PostProcess/BlendPass.hpp"
 #include "RenderPass/PostProcess/BloomPass.hpp"
 #include "RenderPass/PostProcess/BlurPass.hpp"
 #include "RenderPass/PostProcess/BrightPass.hpp"
+#include "RenderPass/PostProcess/TAA.hpp"
 #include "RenderPass/PostProcess/TonemappingPass.hpp"
 #include "RenderPass/PreProcess/KullaContyAverage.hpp"
 #include "RenderPass/PreProcess/KullaContyEnergy.hpp"
+#include "RenderPass/Preprocess/EquirectangularToCubemap.hpp"
 
 #include "BufferUpdate/CameraUpdate.hpp"
 #include "BufferUpdate/CurveUpdate.hpp"
@@ -50,8 +51,8 @@
 #include "BufferUpdate/LightUpdate.hpp"
 #include "BufferUpdate/MaterialUpdate.hpp"
 #include "BufferUpdate/MeshletUpdate.hpp"
-#include "BufferUpdate/TransformUpdate.hpp"
 #include "BufferUpdate/SurfaceUpdate.hpp"
+#include "BufferUpdate/TransformUpdate.hpp"
 
 #include "Threading/ThreadPool.hpp"
 
@@ -80,14 +81,15 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("SurfacePass", std::make_unique<pass::SurfacePass>())
 		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
 		    .addRenderPass("EnvLight", std::make_unique<pass::EnvLightPass>())
+		    .addRenderPass("TAAPass", std::make_unique<pass::TAAPass>())
+		    .addRenderPass("CopyBuffer", std::make_unique<pass::CopyPass>())
 
 		    //.addRenderPass("BrightPass", std::make_unique<pass::BrightPass>("lighting"))
 		    //.addRenderPass("Blur1", std::make_unique<pass::BlurPass>("bright", "blur1"))
 		    //.addRenderPass("Blur2", std::make_unique<pass::BlurPass>("blur1", "blur2", true))
 		    //.addRenderPass("Blend", std::make_unique<pass::BlendPass>("blur2", "lighting", "output"))
 
-		    .addRenderPass("Tonemapping", std::make_unique<pass::TonemappingPass>("lighting"))
-		    .addRenderPass("CopyBuffer", std::make_unique<pass::CopyPass>())
+		    .addRenderPass("Tonemapping", std::make_unique<pass::TonemappingPass>("taa_result"))
 
 		    .setView("gbuffer - normal")
 		    .setOutput("gbuffer - normal");
@@ -280,12 +282,15 @@ void Renderer::updateImages()
                                                                      VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VMA_MEMORY_USAGE_GPU_ONLY, true);
 	Renderer::instance()->Last_Frame.depth_buffer = createScope<Image>(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
 	                                                                   VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	Renderer::instance()->Last_Frame.last_result  = createScope<Image>(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
+                                                                      VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 	// Layout transition
 	{
 		CommandBuffer cmd_buffer;
 		cmd_buffer.begin();
 		cmd_buffer.transferLayout(*Renderer::instance()->Last_Frame.hiz_buffer, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_SAMPLED_BIT);
 		cmd_buffer.transferLayout(*Renderer::instance()->Last_Frame.depth_buffer, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_SAMPLED_BIT);
+		cmd_buffer.transferLayout(*Renderer::instance()->Last_Frame.last_result, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_SAMPLED_BIT);
 		cmd_buffer.end();
 		cmd_buffer.submitIdle();
 	}

@@ -133,6 +133,11 @@ const CommandBuffer &GraphicsContext::acquireCommandBuffer(QueueUsage usage)
 	return *m_command_buffers[std::this_thread::get_id()][usage][m_current_frame];
 }
 
+uint64_t GraphicsContext::getFrameCount() const
+{
+	return m_frame_count;
+}
+
 bool GraphicsContext::onInitialize()
 {
 	createSwapchain();

@@ -44,18 +44,18 @@ cmake --build ./ --target ALL_BUILD --config Release
   * B Spline Curve
   * Rational Bézier Curve
   * Rational B Spline Curve
-
 * Tensor Product Surface Modeling
   * Bézier Surface
   * B Spline Surface
   * Rational Bézier Surface
   * Rational B Spline Surface
-
 * Rasterization Shading
   * Cook-Torrance BRDF
   * Kulla-Conty Approximation
 * Post Processing
+  * Temporal Anti-Alias
   * Blooming
+
 
 ## Feature
 
@@ -75,13 +75,17 @@ cmake --build ./ --target ALL_BUILD --config Release
 
 ![image-20211231141039926](README/image-20211231141039926.png)
 
-## Curve Modeling
+#### Curve Modeling
 
 ![image-20220108150839809](README/image-20220108150839809.png)
 
 ## Surface Modeling
 
 ![image-20220108151149909](README/image-20220108151149909.png)
+
+#### Temporal Anti-Alias
+
+![image-20220110234059973](README/image-20220110234059973.png)
 
 ## TODO
 

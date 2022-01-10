@@ -1,3 +1,6 @@
+#ifndef LIGHT_GLSL
+#define LIGHT_GLSL
+
 struct DirectionalLight
 {
     vec3 color;
@@ -24,3 +27,5 @@ struct SpotLight
     vec3 direction;
     float outer_cut_off;
 };
+
+#endif

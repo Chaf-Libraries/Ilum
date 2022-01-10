@@ -1,3 +1,6 @@
+#ifndef COMMON_GLSL
+#define COMMON_GLSL
+
 #define PI 3.141592653589793
 
 float RadicalInverse_VdC(uint bits) 
@@ -24,5 +27,10 @@ vec2 compute_motion_vector(vec4 prev_pos, vec4 current_pos)
     current = current * 0.5 + 0.5;
     prev = prev * 0.5 + 0.5;
 
-    return prev - current;
+    current.y = 1 - current.y;
+    prev.y = 1 - prev.y;
+
+    return current - prev;
 }
+
+#endif
