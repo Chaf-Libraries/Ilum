@@ -65,6 +65,12 @@ void RenderSetting::draw(float delta_time)
 		ImGui::DragFloat("Strength", &Renderer::instance()->Bloom.strength, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 	});
 
+	draw_node("Temporal Anti Alias", []() {
+		ImGui::Checkbox("Enable", reinterpret_cast<bool *>(&Renderer::instance()->TAA.enable));
+		ImGui::SliderFloat("Feedback Min", &Renderer::instance()->TAA.feedback.x, 0.f, 1.f, "%.3f");
+		ImGui::SliderFloat("Feedback Max", &Renderer::instance()->TAA.feedback.y, 0.f, 1.f, "%.3f");
+	});
+
 	draw_node("Environment Light", []() {
 		const char *const environment_light_type[] = {"None", "HDRI"};
 		int               current                  = static_cast<int>(Renderer::instance()->EnvLight.type);
@@ -79,7 +85,7 @@ void RenderSetting::draw(float delta_time)
                                        ImGuiContext::textureID(Renderer::instance()->getDefaultTexture(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
 			                       ImVec2{100.f, 100.f}))
 			{
-				Renderer::instance()->EnvLight.filename         = "";
+				Renderer::instance()->EnvLight.filename = "";
 				Renderer::instance()->EnvLight.update   = true;
 			}
 			ImGui::PopID();
@@ -91,7 +97,7 @@ void RenderSetting::draw(float delta_time)
 					ASSERT(pay_load->DataSize == sizeof(std::string));
 					if (Renderer::instance()->EnvLight.filename != *static_cast<std::string *>(pay_load->Data))
 					{
-						Renderer::instance()->EnvLight.filename         = *static_cast<std::string *>(pay_load->Data);
+						Renderer::instance()->EnvLight.filename = *static_cast<std::string *>(pay_load->Data);
 						Renderer::instance()->EnvLight.update   = true;
 					}
 				}

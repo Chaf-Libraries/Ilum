@@ -1,3 +1,6 @@
+#ifndef BRDF_GLSL
+#define BRDF_GLSL
+
 #include "../common.glsl"
 
 vec3 LambertianDiffuse(vec3 albedo)
@@ -65,3 +68,5 @@ vec3 MultiScatterBRDF(vec3 albedo, vec3 Eo, vec3 Ei, float Eavg)
 
   return f_ms * f_add;
 }
+
+#endif
