@@ -9,12 +9,13 @@
 
 namespace Ilum
 {
-Swapchain::Swapchain(const VkExtent2D &extent, const Swapchain *old_swapchain) :
+Swapchain::Swapchain(const VkExtent2D &extent, const Swapchain *old_swapchain, bool vsync) :
     m_extent(extent),
     m_present_mode(VK_PRESENT_MODE_FIFO_KHR),
     m_pre_transform(VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR),
     m_composite_alpha(VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR),
-    m_active_image_index(std::numeric_limits<uint32_t>::max())
+    m_active_image_index(std::numeric_limits<uint32_t>::max()),
+    m_vsync(vsync)
 {
 	auto &surface_format       = GraphicsContext::instance()->getSurface().getFormat();
 	auto &surface_capabilities = GraphicsContext::instance()->getSurface().getCapabilities();
@@ -29,15 +30,25 @@ Swapchain::Swapchain(const VkExtent2D &extent, const Swapchain *old_swapchain) :
 
 	for (const auto &present_mode : present_modes)
 	{
-		if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR)
+		if (!vsync)
 		{
-			m_present_mode = present_mode;
-			break;
-		}
+			if (present_mode == VK_PRESENT_MODE_MAILBOX_KHR)
+			{
+				m_present_mode = present_mode;
+				break;
+			}
 
-		else if (present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR)
+			else if (present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR)
+			{
+				m_present_mode = present_mode;
+			}
+		}
+		else
 		{
-			m_present_mode = present_mode;
+			if (present_mode == VK_PRESENT_MODE_FIFO_KHR)
+			{
+				m_present_mode = present_mode;
+			}
 		}
 	}
 
@@ -202,5 +213,10 @@ const VkSwapchainKHR &Swapchain::getSwapchain() const
 uint32_t Swapchain::getActiveImageIndex() const
 {
 	return m_active_image_index;
+}
+
+bool Swapchain::isVsync() const
+{
+	return m_vsync;
 }
 }        // namespace Ilum

@@ -27,7 +27,7 @@ struct DepthStencilState
 	bool             depth_test_enable   = true;
 	bool             depth_write_enable  = true;
 	bool             stencil_test_enable = true;
-	VkCompareOp      depth_compare_op    = VK_COMPARE_OP_LESS_OR_EQUAL;
+	VkCompareOp      depth_compare_op    = VK_COMPARE_OP_LESS;
 	VkStencilOpState front               = {VK_STENCIL_OP_REPLACE,
                               VK_STENCIL_OP_REPLACE,
                               VK_STENCIL_OP_REPLACE,

@@ -55,7 +55,7 @@ vec3 find_motion_vector_uv(vec2 uv)
 
 float luminance(vec3 rgb)
 {
-    return max(dot(rgb, vec3(0.299, 0.587, 0.114)), 0.0001);
+    return dot(rgb, vec3(0.25, 0.50, 0.25));
 }
 
 vec3 tonemap(vec3 x)
@@ -112,7 +112,7 @@ vec3 clip_aabb(vec3 aabb_min, vec3 aabb_max, vec3 prev_sample)
 
 vec3 temporal_reprojection(vec2 motion_vector)
 {
-    vec2 uv = inUV;
+    vec2 uv = inUV + push_data.jitter.xy;
 
     vec3 current_color = RGB2YCoCg(texture(current_result, uv).rgb);
     vec3 last_color = RGB2YCoCg(texture(last_result, inUV - motion_vector).rgb);
@@ -150,6 +150,15 @@ vec3 temporal_reprojection(vec2 motion_vector)
 
     last_color = clip_aabb(cmin, cmax, last_color);
 
+    // Calculate mix weight
+    float lum0 = current_color.r;
+    float lum1 = last_color.r;
+
+    float unbiased_diff = abs(lum0 - lum1) / max(lum0, max(lum1, 0.2));
+    float unbiased_weight = 1.0 - unbiased_diff;
+    float unbiased_weight_sqr = unbiased_weight * unbiased_weight;
+    float k_feedback = mix(push_data.feedback_min, push_data.feedback_max, unbiased_weight_sqr);
+
     // Sharpen
     current_color *= 5.0;
     current_color += -1.0 * cml;
@@ -159,15 +168,6 @@ vec3 temporal_reprojection(vec2 motion_vector)
 
     current_color = tonemap(current_color);
     last_color = tonemap(last_color);
-
-    // Calculate mix weight
-    float lum0 = current_color.r;
-    float lum1 = last_color.r;
-
-    float unbiased_diff = abs(lum0 - lum1) / max(lum0, max(lum1, 0.2));
-    float unbiased_weight = 1.0 - unbiased_diff;
-    float unbiased_weight_sqr = unbiased_weight * unbiased_weight;
-    float k_feedback = mix(push_data.feedback_min, push_data.feedback_max, unbiased_weight_sqr);
 
     vec3 blended = mix(current_color.rgb, last_color.rgb, k_feedback);
 
@@ -180,7 +180,7 @@ vec3 temporal_reprojection(vec2 motion_vector)
 void main()
 {
     // TODO: Unjitter?
-    vec2 uv = inUV;
+    vec2 uv = inUV + push_data.jitter.xy;
 
     // Find motion vector sample uv
     vec3 mv_uv = find_motion_vector_uv(uv);

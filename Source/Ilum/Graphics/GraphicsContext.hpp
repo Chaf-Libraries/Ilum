@@ -61,6 +61,10 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 
 	uint64_t getFrameCount() const;
 
+	bool isVsync() const;
+
+	void setVsync(bool vsync);
+
   public:
 	virtual bool onInitialize() override;
 
@@ -73,7 +77,7 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	virtual void onShutdown() override;
 
   public:
-	void createSwapchain();
+	void createSwapchain(bool vsync = false);
 
 	void createCommandBuffer();
 
@@ -104,7 +108,7 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	std::vector<VkSemaphore>          m_render_complete;
 	std::vector<VkFence>              m_flight_fences;
 	uint32_t                          m_current_frame = 0;
-	bool                              m_resized       = false;
+	bool                              m_vsync         = false;
 
 	VkPipelineCache m_pipeline_cache = VK_NULL_HANDLE;
 

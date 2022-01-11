@@ -138,9 +138,19 @@ uint64_t GraphicsContext::getFrameCount() const
 	return m_frame_count;
 }
 
+bool GraphicsContext::isVsync() const
+{
+	return m_vsync;
+}
+
+void GraphicsContext::setVsync(bool vsync)
+{
+	m_vsync = vsync;
+}
+
 bool GraphicsContext::onInitialize()
 {
-	createSwapchain();
+	createSwapchain(m_vsync);
 
 	m_profiler = createScope<Profiler>();
 
@@ -188,7 +198,7 @@ void GraphicsContext::onShutdown()
 	vkDestroyPipelineCache(*m_logical_device, m_pipeline_cache, nullptr);
 }
 
-void GraphicsContext::createSwapchain()
+void GraphicsContext::createSwapchain(bool vsync)
 {
 	GraphicsContext::instance()->getQueueSystem().waitAll();
 
@@ -208,7 +218,7 @@ void GraphicsContext::createSwapchain()
 		VK_INFO("Recreating swapchain from ({}, {}) to ({}, {})", m_swapchain->getExtent().width, m_swapchain->getExtent().height, display_extent.width, display_extent.height);
 	}
 
-	m_swapchain = createScope<Swapchain>(display_extent, m_swapchain.get());
+	m_swapchain = createScope<Swapchain>(display_extent, m_swapchain.get(), vsync);
 
 	if (need_rebuild)
 	{
@@ -252,9 +262,9 @@ void GraphicsContext::createCommandBuffer()
 void GraphicsContext::newFrame()
 {
 	auto acquire_result = m_swapchain->acquireNextImage(m_present_complete[m_current_frame]);
-	if (acquire_result == VK_ERROR_OUT_OF_DATE_KHR)
+	if (acquire_result == VK_ERROR_OUT_OF_DATE_KHR || m_swapchain->isVsync() != m_vsync)
 	{
-		createSwapchain();
+		createSwapchain(m_vsync);
 		return;
 	}
 
@@ -277,12 +287,12 @@ void GraphicsContext::submitFrame()
 	m_main_command_buffers[m_current_frame]->end();
 
 	m_queue_system->acquire()->submit(*m_main_command_buffers[m_current_frame], m_render_complete[m_current_frame], m_present_complete[m_current_frame], m_flight_fences[m_current_frame]);
-	auto &present_queue = *m_queue_system->acquire(QueueUsage::Present, 1);
-	auto present_result = m_swapchain->present(present_queue, m_render_complete[m_current_frame]);
+	auto &present_queue  = *m_queue_system->acquire(QueueUsage::Present, 1);
+	auto  present_result = m_swapchain->present(present_queue, m_render_complete[m_current_frame]);
 
-	if (present_result == VK_ERROR_OUT_OF_DATE_KHR)
+	if (present_result == VK_ERROR_OUT_OF_DATE_KHR || m_swapchain->isVsync() != m_vsync)
 	{
-		createSwapchain();
+		createSwapchain(m_vsync);
 		return;
 	}
 
