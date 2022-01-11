@@ -13,7 +13,7 @@ class LogicalDevice;
 class Swapchain
 {
   public:
-	Swapchain(const VkExtent2D &extent, const Swapchain *old_swapchain = nullptr);
+	Swapchain(const VkExtent2D &extent, const Swapchain *old_swapchain = nullptr, bool vsync = false);
 
 	~Swapchain();
 
@@ -35,6 +35,8 @@ class Swapchain
 
 	uint32_t getActiveImageIndex() const;
 
+	bool isVsync() const;
+
   private:
 	VkExtent2D       m_extent       = {};
 	VkPresentModeKHR m_present_mode = {};
@@ -47,5 +49,7 @@ class Swapchain
 	VkSwapchainKHR m_handle = VK_NULL_HANDLE;
 
 	uint32_t m_active_image_index = 0;
+
+	bool m_vsync = false;
 };
 }        // namespace Ilum

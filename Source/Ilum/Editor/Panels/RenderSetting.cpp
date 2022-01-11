@@ -1,5 +1,7 @@
 #include "RenderSetting.hpp"
 
+#include "Graphics/GraphicsContext.hpp"
+
 #include "Renderer/Renderer.hpp"
 
 #include "ImGui/ImGuiContext.hpp"
@@ -41,10 +43,21 @@ void RenderSetting::draw(float delta_time)
 	const char *const render_mode[]       = {"Polygon", "Wire Frame", "Point Cloud"};
 	int               current_render_mode = static_cast<int>(Renderer::instance()->Render_Mode);
 
+	ImGui::PushItemWidth(100.f);
 	if (ImGui::Combo("Render Mode", &current_render_mode, render_mode, 3))
 	{
 		Renderer::instance()->Render_Mode = static_cast<Renderer::RenderMode>(current_render_mode);
 		Renderer::instance()->update();
+	}
+	ImGui::PopItemWidth();
+
+	ImGui::SameLine();
+
+	bool vsync = GraphicsContext::instance()->isVsync();
+
+	if (ImGui::Checkbox("V-Sync", &vsync))
+	{
+		GraphicsContext::instance()->setVsync(vsync);
 	}
 
 	draw_node("Culling", []() {
@@ -68,7 +81,7 @@ void RenderSetting::draw(float delta_time)
 	draw_node("Temporal Anti Alias", []() {
 		ImGui::Checkbox("Enable", reinterpret_cast<bool *>(&Renderer::instance()->TAA.enable));
 		ImGui::SliderFloat("Feedback Min", &Renderer::instance()->TAA.feedback.x, 0.f, 1.f, "%.3f");
-		ImGui::SliderFloat("Feedback Max", &Renderer::instance()->TAA.feedback.y, 0.f, 1.f, "%.3f");
+		ImGui::SliderFloat("Feedback Max", &Renderer::instance()->TAA.feedback.y, Renderer::instance()->TAA.feedback.x, 1.f, "%.3f");
 	});
 
 	draw_node("Environment Light", []() {
