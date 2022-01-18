@@ -11,12 +11,7 @@ JobNode::JobNode(std::function<void()> &&task) :
 {
 }
 
-std::type_index JobNode::type() const
-{
-	return typeid(JobNode);
-}
-
-void JobNode::percede(JobNode *node)
+void JobNode::Percede(JobNode *node)
 {
 	if (!node)
 	{
@@ -28,7 +23,7 @@ void JobNode::percede(JobNode *node)
 	node->m_unfinish_dependents++;
 }
 
-void JobNode::succeed(JobNode *node)
+void JobNode::Succeed(JobNode *node)
 {
 	if (!node)
 	{
@@ -40,12 +35,12 @@ void JobNode::succeed(JobNode *node)
 	this->m_unfinish_dependents++;
 }
 
-bool JobNode::compile()
+bool JobNode::Compile()
 {
 	return true;
 }
 
-void JobNode::run()
+void JobNode::Run()
 {
 	assert(m_unfinish_dependents == 0 && "Some dependents haven't completed yet");
 
@@ -59,18 +54,13 @@ void JobNode::run()
 	}
 }
 
-std::type_index JobGraph::type() const
-{
-	return typeid(JobGraph);
-}
-
 JobGraph &JobGraph::addNode(JobNode *node)
 {
 	m_nodes.push_back(node);
 	return *this;
 }
 
-bool JobGraph::compile()
+bool JobGraph::Compile()
 {
 	std::queue<JobNode *>  queue;
 	std::vector<JobNode *> result;
@@ -96,7 +86,7 @@ bool JobGraph::compile()
 		auto *t = queue.front();
 		queue.pop();
 
-		if (!t->compile())
+		if (!t->Compile())
 		{
 			return false;
 		}
@@ -122,13 +112,13 @@ bool JobGraph::compile()
 	return false;
 }
 
-void JobGraph::run()
+void JobGraph::Run()
 {
-	compile();
+	Compile();
 	
 	for (auto& node : m_nodes)
 	{
-		node->run();
+		node->Run();
 	}
 }
 }        // namespace Ilum::Core

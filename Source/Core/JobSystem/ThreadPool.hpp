@@ -13,17 +13,17 @@ class ThreadPool
 
 	~ThreadPool();
 
-	size_t getThreadCount() const;
+	size_t GetThreadCount() const;
 
 	template <typename Task, typename... Args>
-	auto addTask(Task &&task, Args &&...args)
+	inline auto AddTask(Task &&task, Args &&...args)
 	    -> std::future<decltype(task(args...))>
 	{
 		using return_type = decltype(task(args...));
 
 		auto pack = std::make_shared<std::packaged_task<return_type()>>(
 		    std::bind(std::forward<Task>(task), std::forward<Args>(args)...));
-		m_task_queue.push([pack]() { (*pack)(); });
+		m_task_queue.Push([pack]() { (*pack)(); });
 
 		{
 			std::unique_lock<std::mutex> lock(m_mutex);

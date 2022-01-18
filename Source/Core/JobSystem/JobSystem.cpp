@@ -11,7 +11,7 @@ void JobSystem::initialize()
 
 size_t JobSystem::getThreadCount()
 {
-	return instance().m_thread_pool->getThreadCount();
+	return instance().m_thread_pool->GetThreadCount();
 }
 
 void JobSystem::execute(JobHandle &handle, JobGraph &graph)
@@ -27,8 +27,8 @@ void JobSystem::execute(JobHandle &handle, JobGraph &graph)
 			if (node->m_unfinish_dependents == 0 && finished_nodes.find(node) == finished_nodes.end())
 			{
 				finished_nodes.insert(node);
-				instance().m_thread_pool->addTask([&node, &handle]() {
-					node->run();
+				instance().m_thread_pool->AddTask([&node, &handle]() {
+					node->Run();
 					handle.m_counter.fetch_sub(1);
 				});
 			}
@@ -40,7 +40,7 @@ void JobSystem::execute(JobHandle &handle, JobNode &node)
 {
 	handle.m_counter.fetch_add(1);
 
-	instance().m_thread_pool->addTask([&node, &handle]() { node.run();handle.m_counter.fetch_sub(1); });
+	instance().m_thread_pool->AddTask([&node, &handle]() { node.Run();handle.m_counter.fetch_sub(1); });
 }
 
 void JobSystem::dispatch(JobHandle &handle, uint32_t job_count, uint32_t group_size, const std::function<void(uint32_t)> &task)
@@ -51,7 +51,7 @@ void JobSystem::dispatch(JobHandle &handle, uint32_t job_count, uint32_t group_s
 
 	for (uint32_t group_id = 0; group_id < group_count; group_id++)
 	{
-		instance().m_thread_pool->addTask([task, &handle, group_id]() {
+		instance().m_thread_pool->AddTask([task, &handle, group_id]() {
 			task(group_id);
 			handle.m_counter.fetch_sub(1);
 		});

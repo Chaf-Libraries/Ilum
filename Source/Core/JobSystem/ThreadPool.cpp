@@ -14,12 +14,12 @@ ThreadPool::ThreadPool(uint32_t max_threads_num)
 
 				    {
 					    std::unique_lock<std::mutex> lock(m_mutex);
-					    m_condition.wait(lock, [this]() { return m_stop || !m_task_queue.empty(); });
-					    if (m_stop && m_task_queue.empty())
+					    m_condition.wait(lock, [this]() { return m_stop || !m_task_queue.Empty(); });
+					    if (m_stop && m_task_queue.Empty())
 					    {
 						    return;
 					    }
-					    m_task_queue.tryPop(task);
+					    m_task_queue.TryPop(task);
 				    }
 
 				    task();
@@ -42,7 +42,7 @@ ThreadPool ::~ThreadPool()
 	}
 }
 
-size_t ThreadPool::getThreadCount() const
+size_t ThreadPool::GetThreadCount() const
 {
 	return m_workers.size();
 }

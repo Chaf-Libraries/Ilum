@@ -23,17 +23,15 @@ class JobNode
 
 	~JobNode() = default;
 
-	virtual std::type_index type() const;
-
 	// A.percede(B) => B depend on A
-	void percede(JobNode *node);
+	void Percede(JobNode *node);
 
 	// A.succeed(B) => A depend on B
-	void succeed(JobNode *node);
+	void Succeed(JobNode *node);
 
-	virtual bool compile();
+	virtual bool Compile();
 
-	virtual void run();
+	virtual void Run();
 
   protected:
 	std::vector<JobNode *> m_successors;
@@ -53,16 +51,14 @@ class JobGraph : public JobNode
 
 	~JobGraph() = default;
 
-	virtual std::type_index type() const override;
-
 	JobGraph &addNode(JobNode *node);
 
 	// Validation and topology sorting
-	virtual bool compile() override;
+	virtual bool Compile() override;
 
 	// Single thread job graph execute
 	// You must compile job graph before it runs
-	virtual void run() override;
+	virtual void Run() override;
 
   private:
 	std::vector<JobNode *> m_nodes;

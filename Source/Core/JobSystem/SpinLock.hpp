@@ -11,9 +11,9 @@ class SpinLock
 
 	~SpinLock() = default;
 
-	void lock();
+	void Lock();
 
-	void unlock();
+	void Unlock();
 
   private:
 	std::atomic_flag m_flag;

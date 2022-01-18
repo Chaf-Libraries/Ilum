@@ -20,31 +20,32 @@ class ConcurrentQueue
 
 	ConcurrentQueue &operator=(const ConcurrentQueue &) = delete;
 
-	void push(const T &data)
+	void Push(const T &data)
 	{
 		size_t current_tail             = m_run_tail.fetch_add(1, std::memory_order_relaxed);
 		m_data[current_tail % capacity] = data;
 		m_tail.fetch_add(1, std::memory_order_relaxed);
 	}
 
-	bool tryPop(T &data)
+	bool TryPop(T &data)
 	{
 		size_t current_head = 0;
 
 		{
-			std::lock_guard<SpinLock> guard(m_lock);
+			m_lock.Lock();
 			if (m_tail <= m_head)
 			{
 				return false;
 			}
 			current_head = m_head++;
+			m_lock.Unlock();
 		}
 
 		data = m_data[current_head % capacity];
 		return true;
 	}
 
-	bool empty() const
+	bool Empty() const
 	{
 		return m_tail <= m_head;
 	}

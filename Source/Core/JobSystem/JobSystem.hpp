@@ -28,7 +28,7 @@ class JobSystem
 
 	// Async execute, can be used in resource loading
 	template <typename Task, typename... Args>
-	static auto execute(JobHandle &handle, Task &&task, Args &&...args)
+	inline static auto execute(JobHandle &handle, Task &&task, Args &&...args)
 	    -> std::future<decltype(task(args...))>
 	{
 		handle.m_counter.fetch_add(1);
