@@ -23,6 +23,8 @@ class JobNode
 
 	~JobNode() = default;
 
+	virtual std::type_index GetType();
+
 	// A.percede(B) => B depend on A
 	void Percede(JobNode *node);
 
@@ -50,6 +52,8 @@ class JobGraph : public JobNode
 	explicit JobGraph() = default;
 
 	~JobGraph() = default;
+
+	virtual std::type_index GetType() override;
 
 	JobGraph &addNode(JobNode *node);
 

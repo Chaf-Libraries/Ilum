@@ -17,23 +17,23 @@ class JobHandle
 class JobSystem
 {
   public:
-	static void initialize();
+	static void Initialize();
 
-	static size_t getThreadCount();
+	static size_t GetThreadCount();
 
 	// You must compile job graph before it executed
-	static void execute(JobHandle &handle, JobGraph &graph);
+	static void Execute(JobHandle &handle, JobGraph &graph);
 
-	static void execute(JobHandle &handle, JobNode &node);
+	static void Execute(JobHandle &handle, JobNode &node);
 
 	// Async execute, can be used in resource loading
 	template <typename Task, typename... Args>
-	inline static auto execute(JobHandle &handle, Task &&task, Args &&...args)
+	inline static auto Execute(JobHandle &handle, Task &&task, Args &&...args)
 	    -> std::future<decltype(task(args...))>
 	{
 		handle.m_counter.fetch_add(1);
 
-		return instance().m_thread_pool->addTask([&task, &handle, &args...]() {
+		return Instance().m_thread_pool->AddTask([&task, &handle, &args...]() {
 			auto result = task(std::forward<Args>(args)...);
 			handle.m_counter.fetch_sub(1);
 			return result;
@@ -41,18 +41,18 @@ class JobSystem
 	}
 
 	// Using dispatch method, task need group id as parameter
-	static void dispatch(JobHandle &handle, uint32_t job_count, uint32_t group_size, const std::function<void(uint32_t)> &task);
+	static void Dispatch(JobHandle &handle, uint32_t job_count, uint32_t group_size, const std::function<void(uint32_t)> &task);
 
-	static bool isBusy(const JobHandle &handle);
+	static bool IsBusy(const JobHandle &handle);
 
-	static void wait(const JobHandle &handle);
+	static void Wait(const JobHandle &handle);
 
   private:
 	JobSystem() = default;
 
 	~JobSystem() = default;
 
-	static JobSystem &instance();
+	static JobSystem &Instance();
 
   private:
 	std::unique_ptr<ThreadPool> m_thread_pool = nullptr;

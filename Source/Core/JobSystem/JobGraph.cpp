@@ -11,6 +11,11 @@ JobNode::JobNode(std::function<void()> &&task) :
 {
 }
 
+std::type_index JobNode::GetType()
+{
+	return typeid(JobNode);
+}
+
 void JobNode::Percede(JobNode *node)
 {
 	if (!node)
@@ -52,6 +57,11 @@ void JobNode::Run()
 	{
 		node->m_unfinish_dependents.fetch_sub(1, std::memory_order_relaxed);
 	}
+}
+
+std::type_index JobGraph::GetType()
+{
+	return typeid(JobGraph);
 }
 
 JobGraph &JobGraph::addNode(JobNode *node)
