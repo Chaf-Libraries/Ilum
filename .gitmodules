@@ -55,3 +55,6 @@
 [submodule "External/Eigen"]
 	path = External/Eigen
 	url = https://gitlab.com/libeigen/eigen
+[submodule "External/glfw"]
+	path = External/glfw
+	url = https://github.com/glfw/glfw
