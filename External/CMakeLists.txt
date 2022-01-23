@@ -4,6 +4,9 @@ add_subdirectory(SDL)
 
 set_target_properties(uninstall PROPERTIES OUTPUT_NAME "SDL-uninstall")
 
+# glfw
+add_subdirectory(glfw)
+
 # spdlog
 add_subdirectory(spdlog)
 

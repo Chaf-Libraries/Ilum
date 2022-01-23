@@ -8,10 +8,14 @@ Ilum Graphics Playground, name after *Planet Ilum* from [Star Wars](https://star
 
 ## Build
 
-* Windows 10
-* Visual Studio 2019
+**Compiler:**
+
+* MSVC v142(Visual Studio 2019)
+* GCC >= 9.4
+
+**C++ Version**
+
 * C++17
-* CMake 3.14+
 
 Run:
 
