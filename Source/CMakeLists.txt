@@ -1,5 +1,6 @@
 add_subdirectory(App)
 add_subdirectory(Ilum)
 add_subdirectory(Core)
+add_subdirectory(Asset)
 add_subdirectory(RHI)
 add_subdirectory(Application)
