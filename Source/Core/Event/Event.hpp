@@ -76,24 +76,24 @@ inline std::ostream &operator<<(std::ostream &os, const Event &e)
 class EventDispatcher
 {
 	template <typename T>
-	using EventFunc = std::function<bool(T &)>;
+	using EventFunc = std::function<bool(const T &)>;
 
   public:
-	EventDispatcher(Event &event);
+	EventDispatcher(const Event &event);
 
 	template <typename T>
-	inline bool Dispatch(EventFunc<T> func)
+	inline bool Dispatch(const EventFunc<T>& func)
 	{
 		if (m_event.GetEventType() == T::GetType())
 		{
-			m_event.m_handle = func(*static_cast<T *>(&m_event));
+			func(*static_cast<const T *>(&m_event));
 			return true;
 		}
 		return false;
 	}
 
   private:
-	Event &m_event;
+	const Event &m_event;
 };
 
 }        // namespace Ilum::Core

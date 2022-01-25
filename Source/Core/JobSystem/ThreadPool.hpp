@@ -3,6 +3,8 @@
 #include "ConcurrentQueue.hpp"
 
 #include <future>
+#include <functional>
+#include <unordered_map>
 
 namespace Ilum::Core
 {

@@ -11,5 +11,4 @@ SetTarget(
     LIB
         spdlog
         glfw
-        SDL2::SDL2
 )

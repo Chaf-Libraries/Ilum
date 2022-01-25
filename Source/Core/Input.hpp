@@ -35,22 +35,22 @@ class Input
 
 	static MouseMode GetMouseMode();
 
-	static void OnEvent(Event &event);
+	static void OnEvent(const Event &event);
 
 	static void Flush();
 
   private:
-	bool OnKeyPressed(KeyPressedEvent &event);
-	bool OnKeyReleased(KeyReleasedEvent &event);
-	bool OnMouseButtonPressed(MouseButtonPressedEvent &event);
-	bool OnMouseButtonReleased(MouseButtonReleasedEvent &event);
-	bool OnMouseMoved(MouseMovedEvent &event);
-	bool OnMouseScrolled(MouseScrolledEvent &event);
+	bool OnKeyPressed(const KeyPressedEvent &event);
+	bool OnKeyReleased(const KeyReleasedEvent &event);
+	bool OnMouseButtonPressed(const MouseButtonPressedEvent &event);
+	bool OnMouseButtonReleased(const MouseButtonReleasedEvent &event);
+	bool OnMouseMoved(const MouseMovedEvent &event);
+	bool OnMouseScrolled(const MouseScrolledEvent &event);
 
   private:
 	static Input &GetInstance();
 
-	void OnEvent_(Event &event);
+	void OnEvent_(const Event &event);
 
 	bool m_key_pressed[MAX_KEYS] = {false};
 	bool m_key_held[MAX_KEYS]    = {false};

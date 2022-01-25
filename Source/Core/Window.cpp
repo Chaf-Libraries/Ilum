@@ -1,5 +1,3 @@
-#pragma once
-
 #include "Window.hpp"
 
 namespace Ilum::Core

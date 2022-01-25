@@ -3,6 +3,9 @@
 #include <Core/Logger.hpp>
 #include <Core/Input.hpp>
 
+#include <functional>
+#include <thread>
+
 namespace Ilum::App
 {
 Application::Application(Core::GraphicsBackend backend)
@@ -37,8 +40,6 @@ void Application::Run()
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
-		Core::Input::SetMousePosition(100,100);
-
 		if (Core::Input::IsKeyHeld(Core::Key::Escape))
 		{
 			m_running = false;
@@ -48,7 +49,7 @@ void Application::Run()
 	}
 }
 
-void Application::OnEvent(Core::Event &event)
+void Application::OnEvent(const Core::Event &event)
 {
 	Core::EventDispatcher dispatcher(event);
 	dispatcher.Dispatch<Core::WindowClosedEvent>(std::bind(&Application::OnWindowClosed, this, std::placeholders::_1));
@@ -57,13 +58,13 @@ void Application::OnEvent(Core::Event &event)
 	Core::Input::OnEvent(event);
 }
 
-bool Application::OnWindowClosed(Core::WindowClosedEvent &event)
+bool Application::OnWindowClosed(const Core::WindowClosedEvent &event)
 {
 	m_running = false;
 	return true;
 }
 
-bool Application::OnWindowResized(Core::WindowResizedEvent &event)
+bool Application::OnWindowResized(const Core::WindowResizedEvent &event)
 {
 	if (event.GetWidth() == 0 || event.GetHeight() == 0)
 	{

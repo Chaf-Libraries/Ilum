@@ -17,7 +17,7 @@ bool Event::operator()()
 	return m_handle;
 }
 
-EventDispatcher::EventDispatcher(Event &event):
+EventDispatcher::EventDispatcher(const Event &event):
     m_event(event)
 {
 }

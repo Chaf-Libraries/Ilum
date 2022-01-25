@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 
 namespace Ilum::Core
 {
@@ -140,7 +141,7 @@ const size_t FileSystem::GetFileSize(const std::string &path)
 
 bool FileSystem::Save(const std::string &path, const std::vector<uint8_t> &data, bool binary)
 {
-	std::ofstream output(path, binary ? std::ofstream::binary : 2);
+	std::ofstream output(path.c_str(), binary ? std::ofstream::binary : std::ofstream::out);
 	output.write(reinterpret_cast<const char *>(data.data()), data.size() * sizeof(uint8_t));
 	output.flush();
 	output.close();
@@ -158,7 +159,7 @@ bool FileSystem::Read(const std::string &path, std::vector<uint8_t> &data, bool 
 
 	std::ifstream file;
 
-	file.open(path, std::ios::in | (binary ? std::ios::binary : 0));
+	file.open(path, std::ios::in | (binary ? std::ios::binary : std::ofstream::in));
 
 	if (!file.is_open())
 	{

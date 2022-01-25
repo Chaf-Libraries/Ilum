@@ -30,7 +30,7 @@ struct WindowDesc
 class Window
 {
   public:
-	using EventCallbackFunc = std::function<void(Event &)>;
+	using EventCallbackFunc = std::function<void(const Event &)>;
 
 	static Window *Create(const WindowDesc &desc);
 

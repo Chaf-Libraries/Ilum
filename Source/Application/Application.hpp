@@ -18,11 +18,11 @@ class Application
 	void Run();
 
   private:
-	void OnEvent(Core::Event &event);
+	void OnEvent(const Core::Event &event);
 
-	bool OnWindowClosed(Core::WindowClosedEvent &event);
+	bool OnWindowClosed(const Core::WindowClosedEvent &event);
 
-	bool OnWindowResized(Core::WindowResizedEvent &event);
+	bool OnWindowResized(const Core::WindowResizedEvent &event);
 
   private:
 	bool m_running   = true;

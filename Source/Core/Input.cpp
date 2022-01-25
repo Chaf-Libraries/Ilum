@@ -1,6 +1,8 @@
 #include "Input.hpp"
 #include "Window.hpp"
 
+#include <cstring>
+
 namespace Ilum::Core
 {
 bool Input::IsKeyPressed(Key key)
@@ -53,7 +55,7 @@ MouseMode Input::GetMouseMode()
 	return GetInstance().m_mouse_mode;
 }
 
-void Input::OnEvent(Event &event)
+void Input::OnEvent(const Event &event)
 {
 	GetInstance().OnEvent_(event);
 }
@@ -67,40 +69,40 @@ void Input::Flush()
 	GetInstance().m_mouse_scrolled[1] = 0.f;
 }
 
-bool Input::OnKeyPressed(KeyPressedEvent &event)
+bool Input::OnKeyPressed(const KeyPressedEvent &event)
 {
 	m_key_pressed[uint32_t(event.GetKeyCode())] = event.GetRepeatCount() < 1;
 	m_key_held[uint32_t(event.GetKeyCode())]    = true;
 	return false;
 }
 
-bool Input::OnKeyReleased(KeyReleasedEvent &event)
+bool Input::OnKeyReleased(const KeyReleasedEvent &event)
 {
 	m_key_pressed[uint32_t(event.GetKeyCode())] = false;
 	m_key_held[uint32_t(event.GetKeyCode())]    = false;
 	return false;
 }
 
-bool Input::OnMouseButtonPressed(MouseButtonPressedEvent &event)
+bool Input::OnMouseButtonPressed(const MouseButtonPressedEvent &event)
 {
 	m_button[uint32_t(event.GetMouseButton())] = true;
 	return false;
 }
 
-bool Input::OnMouseButtonReleased(MouseButtonReleasedEvent &event)
+bool Input::OnMouseButtonReleased(const MouseButtonReleasedEvent &event)
 {
 	m_button[uint32_t(event.GetMouseButton())] = false;
 	return false;
 }
 
-bool Input::OnMouseMoved(MouseMovedEvent &event)
+bool Input::OnMouseMoved(const MouseMovedEvent &event)
 {
 	m_mouse_position[0] = event.GetX();
 	m_mouse_position[1] = event.GetY();
 	return false;
 }
 
-bool Input::OnMouseScrolled(MouseScrolledEvent &event)
+bool Input::OnMouseScrolled(const MouseScrolledEvent &event)
 {
 	m_mouse_scrolled[0] = event.GetOffsetX();
 	m_mouse_scrolled[1] = event.GetOffsetY();
@@ -113,7 +115,7 @@ Input &Input::GetInstance()
 	return input;
 }
 
-void Input::OnEvent_(Event &event)
+void Input::OnEvent_(const Event &event)
 {
 	EventDispatcher dispatcher(event);
 	dispatcher.Dispatch<KeyPressedEvent>(std::bind(&Input::OnKeyPressed, this, std::placeholders::_1));
