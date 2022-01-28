@@ -6,4 +6,9 @@ SetTarget(
         NOMINMAX
     INC
         ${PROJECT_SOURCE_DIR}/Source
+    LIB
+        stb
+        meshoptimizer
+        assimp::assimp
+        Geometry
 )
