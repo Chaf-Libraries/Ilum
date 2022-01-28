@@ -32,11 +32,11 @@ class Window
   public:
 	using EventCallbackFunc = std::function<void(const Event &)>;
 
-	static Window *Create(const WindowDesc &desc);
+	static std::shared_ptr<Window> Create(const WindowDesc &desc);
 
-	static void SetInstance(Window *window);
+	static void SetInstance(std::shared_ptr<Window> window);
 
-	static Window *GetInstance();
+	static std::shared_ptr<Window> GetInstance();
 
 	virtual ~Window();
 
@@ -64,8 +64,8 @@ class Window
 	virtual void HideMouse(bool enable) = 0;
 
   protected:
-	static std::function<Window *(const WindowDesc &)> CreateFunc;
+	static std::function<std::shared_ptr<Window>(const WindowDesc &)> CreateFunc;
 
-	static Window *s_instance;
+	static std::shared_ptr<Window> s_instance;
 };
 }        // namespace Ilum::Core

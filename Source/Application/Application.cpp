@@ -17,9 +17,9 @@ Application::Application(Core::GraphicsBackend backend)
 	desc.width   = 1920;
 	desc.height   = 1080;
 
-	m_window = std::unique_ptr<Core::Window>(Core::Window::Create(desc));
+	m_window = Core::Window::Create(desc);
 	m_window->SetEventCallback(std::bind(&Application::OnEvent, this, std::placeholders::_1));
-	Core::Window::SetInstance(m_window.get());
+	Core::Window::SetInstance(m_window);
 }
 
 Application::~Application()

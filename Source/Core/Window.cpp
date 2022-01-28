@@ -2,23 +2,23 @@
 
 namespace Ilum::Core
 {
-Window *Window::s_instance = nullptr;
+std::shared_ptr<Window> Window::s_instance = nullptr;
 
 Window ::~Window()
 {
 }
 
-Window *Window::Create(const WindowDesc &desc)
+std::shared_ptr<Window> Window::Create(const WindowDesc &desc)
 {
 	return CreateFunc(desc);
 }
 
-void Window::SetInstance(Window* window)
+void Window::SetInstance(std::shared_ptr<Window> window)
 {
 	s_instance = window;
 }
 
-Window* Window::GetInstance()
+std::shared_ptr<Window> Window::GetInstance()
 {
 	return s_instance;
 }

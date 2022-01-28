@@ -16,7 +16,8 @@
 namespace Ilum::Core
 {
 #ifdef USE_GLFW
-std::function<Window *(const WindowDesc &)> Window::CreateFunc = [](const WindowDesc &desc) -> GLFWWindow * { return new GLFWWindow(desc); };
+std::function<std::shared_ptr<Window>(const WindowDesc &)> Window::CreateFunc =
+    [](const WindowDesc &desc) -> std::shared_ptr<Window> { return std::shared_ptr<Window>(new GLFWWindow(desc)); };
 #endif        // USE_GLFW
 
 inline void GLFWErrorCallback(int32_t error, const char *desc)

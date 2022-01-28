@@ -29,7 +29,7 @@ class Application
 	bool m_minimized = false;
 
   private:
-	std::unique_ptr<Core::Window> m_window = nullptr;
+	std::shared_ptr<Core::Window> m_window = nullptr;
 
 	Core::Timer timer;
 };
