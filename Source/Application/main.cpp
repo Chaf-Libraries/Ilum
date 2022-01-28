@@ -3,17 +3,26 @@
 #include <Core/Logger.hpp>
 #include <Core/Timer.hpp>
 
+#include <Asset/Image2D.hpp>
+#include <Asset/ImageCube.hpp>
+#include <Asset/Mesh.hpp>
+
 #include <iostream>
 
 int main()
 {
-	Ilum::Core::Logger::Initialize();
+	//Ilum::Core::Logger::Initialize();
 
-	Ilum::App::Application *application = new Ilum::App::Application;
-	application->Run();
-	delete application;
+	{
+		auto mesh = Ilum::Asset::Mesh::Create(std::string(PROJECT_SOURCE_DIR) + "Asset/Model/FlightHelmet/FlightHelmet.gltf");
+	}
 
-	Ilum::Core::Logger::Release();
+
+	//Ilum::App::Application *application = new Ilum::App::Application;
+	//application->Run();
+	//delete application;
+
+	//Ilum::Core::Logger::Release();
 
 #ifdef _WIN32
 	_CrtDumpMemoryLeaks();

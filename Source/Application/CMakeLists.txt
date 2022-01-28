@@ -8,4 +8,5 @@ SetTarget(
         ${PROJECT_SOURCE_DIR}/Source
     LIB
         Core
+        Asset
 )
