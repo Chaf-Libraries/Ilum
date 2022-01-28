@@ -11,7 +11,7 @@ class TriMesh
   public:
 	TriMesh() = default;
 
-	TriMesh(std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices);
+	TriMesh(std::pmr::vector<Vertex> &&vertices, std::pmr::vector<uint32_t> &&indices);
 
 	TriMesh(const TriMesh &) = delete;
 
@@ -23,16 +23,20 @@ class TriMesh
 
 	~TriMesh() = default;
 
-	const std::vector<Vertex> &GetVertices() const;
+	const std::pmr::vector<Vertex> &GetVertices() const;
 
-	const std::vector<uint32_t> &GetIndices() const;
+	const std::pmr::vector<uint32_t> &GetIndices() const;
+
+	std::pmr::vector<Vertex> &GetVertices();
+
+	std::pmr::vector<uint32_t> &GetIndices();
 
 	void Clear();
 
 	bool Empty() const;
 
   private:
-	std::vector<Vertex>   m_vertices;
-	std::vector<uint32_t> m_indices;
+	std::pmr::vector<Vertex> m_vertices;
+	std::pmr::vector<uint32_t> m_indices;
 };
 }        // namespace Ilum::Geo

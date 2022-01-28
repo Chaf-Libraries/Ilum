@@ -2,7 +2,7 @@
 
 namespace Ilum::Geo
 {
-TriMesh::TriMesh(std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices) :
+TriMesh::TriMesh(std::pmr::vector<Vertex> &&vertices, std::pmr::vector<uint32_t> &&indices) :
     m_vertices(std::move(vertices)), m_indices(std::move(indices))
 {
 }
@@ -21,12 +21,22 @@ TriMesh &TriMesh::operator=(TriMesh &&other) noexcept
 	return *this;
 }
 
-const std::vector<Vertex> &TriMesh::GetVertices() const
+const std::pmr::vector<Vertex> &TriMesh::GetVertices() const
 {
 	return m_vertices;
 }
 
-const std::vector<uint32_t> &TriMesh::GetIndices() const
+const std::pmr::vector<uint32_t> &TriMesh::GetIndices() const
+{
+	return m_indices;
+}
+
+std::pmr::vector<Vertex> &TriMesh::GetVertices()
+{
+	return m_vertices;
+}
+
+std::pmr::vector<uint32_t> &TriMesh::GetIndices()
 {
 	return m_indices;
 }
@@ -41,4 +51,4 @@ bool TriMesh::Empty() const
 {
 	return m_vertices.empty() && m_indices.empty();
 }
-}
+}        // namespace Ilum::Geo
