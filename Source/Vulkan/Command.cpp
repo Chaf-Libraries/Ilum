@@ -157,7 +157,7 @@ VkCommandBufferLevel CommandBuffer::GetLevel() const
 
 void CommandBuffer::Reset()
 {
-	//assert(m_state == State::Invalid);
+	assert(m_state == State::Invalid);
 
 	if (m_pool.GetResetMode() == CommandPool::ResetMode::ResetIndividually)
 	{
@@ -199,12 +199,12 @@ void CommandBuffer::SubmitIdle()
 	submit_info.commandBufferCount = 1;
 	submit_info.pCommandBuffers    = &m_handle;
 
-	VkFenceCreateInfo fence_create_info = {};
-	fence_create_info.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	VkFenceCreateInfo create_info = {};
+	create_info.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
-	Fence fence;
-
-	fence.Reset();
+	VkFence fence = VK_NULL_HANDLE;
+	vkCreateFence(RenderContext::GetDevice(), &create_info, nullptr, &fence);
+	vkResetFences(RenderContext::GetDevice(), 1, &fence);
 
 	if (!VK_CHECK(vkQueueSubmit(RenderContext::GetDevice().GetQueue(m_queue), 1, &submit_info, fence)))
 	{
@@ -212,7 +212,8 @@ void CommandBuffer::SubmitIdle()
 		return;
 	}
 
-	fence.Wait();
+	vkWaitForFences(RenderContext::GetDevice(), 1, &fence, true, std::numeric_limits<uint32_t>::max());
+	vkDestroyFence(RenderContext::GetDevice(), fence, nullptr);
 
 	m_state = State::Invalid;
 }

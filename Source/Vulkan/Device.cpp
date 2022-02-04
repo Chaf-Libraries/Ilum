@@ -756,6 +756,7 @@ Device ::~Device()
 {
 	if (VK_CHECK(vkDeviceWaitIdle(m_handle)))
 	{
+		m_command_pools.clear();
 		vmaDestroyAllocator(m_allocator);
 		vkDestroyDevice(m_handle, nullptr);
 	}
@@ -804,6 +805,24 @@ VkQueue Device::GetQueue(QueueFamily queue)
 	queue_family = m_queue_family[queue];
 	queue_index  = (++m_queue_index[queue_family]) % m_queues[queue_family].size();
 	return m_queues[queue_family][queue_index];
+}
+
+std::unique_ptr<CommandBuffer> Device::CreateCommandBuffer(QueueFamily queue)
+{
+	// Request Command pool
+	auto thread_id = std::this_thread::get_id();
+
+	size_t hash = 0;
+	Core::HashCombine(hash, static_cast<size_t>(queue));
+	Core::HashCombine(hash, thread_id);
+
+	if (m_command_pools.find(hash) == m_command_pools.end())
+	{
+		m_command_pools.emplace(hash, std::make_unique<CommandPool>(queue, CommandPool::ResetMode::ResetPool, thread_id));
+	}
+
+	auto& cmd_pool = *m_command_pools[hash];
+	return std::make_unique<CommandBuffer>(cmd_pool);
 }
 
 Swapchain::Swapchain(uint32_t width, uint32_t height, bool vsync, Swapchain *old_swapchain) :

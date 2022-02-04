@@ -43,8 +43,8 @@ class Image
 	VkImageSubresourceLayers GetSubresourceLayers(uint32_t mip_level, uint32_t base_layer, uint32_t layer_count = 1) const;
 	VkImageSubresourceRange  GetSubresourceRange(uint32_t base_mip_level, uint32_t mip_level_count, uint32_t base_layer, uint32_t layer_count) const;
 	const VkImageView &      GetView(VkImageViewType view_type,
-	                                 uint32_t base_mip_level, uint32_t base_array_layer,
-	                                 uint32_t mip_level_count, uint32_t array_layer_count);
+	                                 uint32_t base_mip_level = 0, uint32_t base_array_layer = 0,
+	                                 uint32_t mip_level_count = 0, uint32_t array_layer_count = 0);
 
 	bool IsDepth() const;
 	bool IsStencil() const;

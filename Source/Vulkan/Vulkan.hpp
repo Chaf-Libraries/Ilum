@@ -23,6 +23,10 @@ const bool vk_check(VkResult result);
 
 std::string shader_stage_to_string(VkShaderStageFlags stage);
 
+bool IsDepth(VkFormat format);
+bool IsStencil(VkFormat format);
+bool IsDepthStencil(VkFormat format);
+
 class VKDebugger
 {
   public:

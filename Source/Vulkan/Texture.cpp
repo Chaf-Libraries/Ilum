@@ -254,7 +254,11 @@ const VkImageView &Image::GetView(VkImageViewType view_type,
 		return m_views[hash];
 	}
 
-	auto subresource_range = GetSubresourceRange(base_mip_level, mip_level_count, base_array_layer, array_layer_count);
+	auto subresource_range = GetSubresourceRange(
+	    base_mip_level,
+	    mip_level_count == 0 ? m_mip_levels : mip_level_count,
+	    base_array_layer,
+	    array_layer_count == 0 ? m_array_layers : array_layer_count);
 
 	// We don't consider stencil view
 	subresource_range.aspectMask = subresource_range.aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT ?
@@ -273,7 +277,7 @@ const VkImageView &Image::GetView(VkImageViewType view_type,
 
 	m_views.emplace(hash, view);
 
-	return view;
+	return m_views[hash];
 }
 bool Image::IsDepth() const
 {

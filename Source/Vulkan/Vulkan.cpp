@@ -86,6 +86,40 @@ std::string shader_stage_to_string(VkShaderStageFlags stage)
 	return result;
 }
 
+bool IsDepth(VkFormat format)
+{
+	switch (format)
+	{
+		case VK_FORMAT_D16_UNORM:
+		case VK_FORMAT_D32_SFLOAT:
+		case VK_FORMAT_D16_UNORM_S8_UINT:
+		case VK_FORMAT_D24_UNORM_S8_UINT:
+		case VK_FORMAT_D32_SFLOAT_S8_UINT:
+			return true;
+		default:
+			return false;
+	}
+}
+
+bool IsStencil(VkFormat format)
+{
+	switch (format)
+	{
+		case VK_FORMAT_S8_UINT:
+		case VK_FORMAT_D16_UNORM_S8_UINT:
+		case VK_FORMAT_D24_UNORM_S8_UINT:
+		case VK_FORMAT_D32_SFLOAT_S8_UINT:
+			return true;
+		default:
+			return false;
+	}
+}
+
+bool IsDepthStencil(VkFormat format)
+{
+	return IsDepth(format) && IsStencil(format);
+}
+
 void VKDebugger::Initialize(VkInstance instance)
 {
 	if (Instance::CreateDebugUtilsMessengerEXT)

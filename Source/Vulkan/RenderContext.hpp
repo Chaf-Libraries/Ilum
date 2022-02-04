@@ -6,6 +6,8 @@ namespace Ilum::Vulkan
 {
 class Instance;
 class Device;
+class ShaderCache;
+class DescriptorCache;
 class Swapchain;
 class RenderFrame;
 
@@ -14,7 +16,7 @@ class RenderContext
   public:
 	RenderContext();
 
-	~RenderContext();
+	~RenderContext() = default;
 
 	void OnImGui();
 	void OnEvent(const Core::Event &event);
@@ -23,15 +25,19 @@ class RenderContext
 	void EndFrame();
 
   public:
-	static Instance & GetInstance();
-	static Device &   GetDevice();
-	static Swapchain &GetSwapchain();
+	static Instance &   GetInstance();
+	static Device &     GetDevice();
+	static ShaderCache &GetShaderCache();
+	static DescriptorCache &GetDescriptorCache();
+	static Swapchain &  GetSwapchain();
 	static RenderFrame &GetFrame();
 
   private:
-	static std::unique_ptr<Instance> s_instance;
-	static std::unique_ptr<Device>   s_device;
-	static std::unique_ptr<Swapchain> s_swapchain;
+	static std::unique_ptr<Instance>                 s_instance;
+	static std::unique_ptr<Device>                   s_device;
+	static std::unique_ptr<ShaderCache>              s_shader_cache;
+	static std::unique_ptr<DescriptorCache>          s_descriptor_cache;
+	static std::unique_ptr<Swapchain>                s_swapchain;
 	static std::vector<std::unique_ptr<RenderFrame>> s_frames;
 
 	static uint32_t s_active_frame;

@@ -7,6 +7,7 @@
 namespace Ilum::Vulkan
 {
 class CommandPool;
+class CommandBuffer;
 
 // Vulkan Instance
 class Instance
@@ -125,12 +126,17 @@ class Device
 	const PhysicalDevice &          GetPhysicalDevice() const;
 	VkQueue                         GetQueue(QueueFamily queue);
 
+	// Single use command buffer
+	std::unique_ptr<CommandBuffer> CreateCommandBuffer(QueueFamily queue = QueueFamily::Graphics);
+
   public:
 	static const std::vector<const char *> s_extensions;
 
   private:
 	std::unique_ptr<PhysicalDevice> m_physical_device = nullptr;
 	std::unique_ptr<Surface>        m_surface         = nullptr;
+
+	std::unordered_map<size_t, std::unique_ptr<CommandPool>> m_command_pools;
 
 	VkDevice                 m_handle           = VK_NULL_HANDLE;
 	VmaAllocator             m_allocator        = VK_NULL_HANDLE;
@@ -174,5 +180,4 @@ class Swapchain
 	uint32_t m_current_index = 0;
 	uint32_t m_image_count   = 0;
 };
-
 }        // namespace Ilum::Vulkan

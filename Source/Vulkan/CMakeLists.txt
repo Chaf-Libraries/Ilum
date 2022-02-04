@@ -11,4 +11,7 @@ SetTarget(
         vulkan
         volk
         vma
+        glslang
+        SPIRV
+        spirv-cross-glsl
 )
