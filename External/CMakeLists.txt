@@ -40,17 +40,10 @@ add_library(vma INTERFACE)
 set(VMA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vma/include)
 target_sources(vma INTERFACE ${VMA_DIR}/vk_mem_alloc.h)
 target_include_directories(vma INTERFACE ${VMA_DIR})
-target_link_libraries(vma INTERFACE vulkan)
 
 # volk
-set(VOLK_DIR "${CMAKE_CURRENT_SOURCE_DIR}/volk")
-set(VOLK_FILES
-    "${VOLK_DIR}/volk.c"
-    "${VOLK_DIR}/volk.h")
-add_library(volk STATIC ${VOLK_FILES})
-target_link_libraries(volk PUBLIC vulkan)
-target_include_directories(volk PUBLIC ${VOLK_DIR})
-# set_property(TARGET volk PROPERTY FOLDER "Extern/volk")
+add_subdirectory(volk)
+
 
 # imgui
 set(IMGUI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
@@ -87,8 +80,6 @@ add_subdirectory(glslang)
 if (NOT TARGET glslang-default-resource-limits)
     add_library(glslang-default-resource-limits
                 glslang/StandAlone/ResourceLimits.cpp)
-
-    # set_property(TARGET glslang-default-resource-limits PROPERTY FOLDER "Extern/glslang")
     
     target_include_directories(glslang-default-resource-limits
                                 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/glslang/StandAlone)
