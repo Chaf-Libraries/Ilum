@@ -103,25 +103,20 @@ ReflectionData &ReflectionData::operator+=(const ReflectionData &rhs)
 	return *this;
 }
 
-size_t ReflectionData::GetHash() const
-{
-	return m_hash;
-}
-
 void ReflectionData::UpdateHash()
 {
-	m_hash = 0;
+	hash = 0;
 	for (auto &image : images)
 	{
-		Ilum::Core::HashCombine(m_hash, image);
+		Ilum::Core::HashCombine(hash, image);
 	}
 	for (auto &input : input_attachments)
 	{
-		Ilum::Core::HashCombine(m_hash, input);
+		Ilum::Core::HashCombine(hash, input);
 	}
 	for (auto &buffer : buffers)
 	{
-		Ilum::Core::HashCombine(m_hash, buffer);
+		Ilum::Core::HashCombine(hash, buffer);
 	}
 }
 

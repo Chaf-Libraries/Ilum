@@ -1,6 +1,7 @@
 #include "RenderContext.hpp"
 #include "Descriptor.hpp"
 #include "Device.hpp"
+#include "Pipeline.hpp"
 #include "RenderFrame.hpp"
 #include "Shader.hpp"
 
@@ -12,6 +13,7 @@ std::unique_ptr<Instance>        RenderContext::s_instance         = nullptr;
 std::unique_ptr<Device>          RenderContext::s_device           = nullptr;
 std::unique_ptr<ShaderCache>     RenderContext::s_shader_cache     = nullptr;
 std::unique_ptr<DescriptorCache> RenderContext::s_descriptor_cache = nullptr;
+std::unique_ptr<PipelineCache>   RenderContext::s_pipeline_cache   = nullptr;
 std::unique_ptr<Swapchain>       RenderContext::s_swapchain        = nullptr;
 
 std::vector<std::unique_ptr<RenderFrame>> RenderContext::s_frames;
@@ -24,6 +26,7 @@ RenderContext::RenderContext()
 	s_device           = std::make_unique<Device>();
 	s_shader_cache     = std::make_unique<ShaderCache>();
 	s_descriptor_cache = std::make_unique<DescriptorCache>();
+	s_pipeline_cache   = std::make_unique<PipelineCache>();
 	s_swapchain        = std::make_unique<Swapchain>(Core::Window::GetInstance().GetWidth(), Core::Window::GetInstance().GetHeight());
 
 	for (uint32_t i = 0; i < s_swapchain->GetImageCount(); i++)
@@ -68,6 +71,11 @@ ShaderCache &RenderContext::GetShaderCache()
 DescriptorCache &RenderContext::GetDescriptorCache()
 {
 	return *s_descriptor_cache;
+}
+
+PipelineCache &RenderContext::GetPipelineCache()
+{
+	return *s_pipeline_cache;
 }
 
 Swapchain &RenderContext::GetSwapchain()

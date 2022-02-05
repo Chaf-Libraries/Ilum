@@ -2,10 +2,13 @@
 
 #include "Vulkan.hpp"
 
+#include <map>
+
 namespace Ilum::Vulkan
 {
 struct ReflectionData;
 class Shader;
+class RenderPass;
 
 struct InputAssemblyState
 {
@@ -95,7 +98,7 @@ struct VertexInputState
 
 struct ShaderState
 {
-	Shader *                          shader = nullptr;
+	const Shader *                          shader = nullptr;
 	std::vector<VkSpecializationInfo> specializations;
 };
 
@@ -174,7 +177,10 @@ class PipelineLayout
 class Pipeline
 {
   public:
-	Pipeline(const PipelineState &pso);
+	// Create Graphics Pipeline
+	Pipeline(const PipelineState &pso, const PipelineLayout &pipeline_layout, const RenderPass &render_pass, VkPipelineCache pipeline_cache = VK_NULL_HANDLE, uint32_t subpass_index = 0);
+	// Create Compute Pipeline
+	Pipeline(const PipelineState &pso, const PipelineLayout &pipeline_layout, VkPipelineCache pipeline_cache = VK_NULL_HANDLE);
 	~Pipeline();
 
 	Pipeline(const Pipeline &) = delete;
@@ -194,5 +200,21 @@ class Pipeline
 
 class PipelineCache
 {
+  public:
+	PipelineCache()  = default;
+	~PipelineCache() = default;
+
+	const PipelineLayout &RequestPipelineLayout(const PipelineState &pso);
+	const Pipeline &      RequestPipeline(const PipelineState &pso, const RenderPass &render_pass, uint32_t subpass_index = 0);
+	const Pipeline &      RequestPipeline(const PipelineState &pso);
+
+  private:
+	VkPipelineCache m_handle = VK_NULL_HANDLE;
+
+	std::mutex m_pipeline_mutex;
+	std::mutex m_layout_mutex;
+
+	std::map<size_t, std::unique_ptr<PipelineLayout>> m_pipeline_layouts;
+	std::map<size_t, std::unique_ptr<Pipeline>>       m_pipelines;
 };
 }        // namespace Ilum::Vulkan

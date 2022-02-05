@@ -151,6 +151,17 @@ RenderPass::RenderPass(const std::vector<Attachment> &attachments, const std::ve
 	render_pass_create_info.pDependencies          = dependencies.data();
 
 	vkCreateRenderPass(RenderContext::GetDevice(), &render_pass_create_info, nullptr, &m_handle);
+
+	// Update hash
+	m_hash = 0;
+	for (auto &attachment : attachments)
+	{
+		Core::HashCombine(m_hash, attachment);
+	}
+	for (auto &subpass_info : subpass_infos)
+	{
+		Core::HashCombine(m_hash, subpass_info);
+	}
 }
 
 RenderPass::RenderPass(const std::vector<Attachment> &attachments)
@@ -219,6 +230,13 @@ RenderPass::RenderPass(const std::vector<Attachment> &attachments)
 	render_pass_create_info.pDependencies          = dependencies;
 
 	vkCreateRenderPass(RenderContext::GetDevice(), &render_pass_create_info, nullptr, &m_handle);
+
+	// Update hash
+	m_hash = 0;
+	for (auto &attachment : attachments)
+	{
+		Core::HashCombine(m_hash, attachment);
+	}
 }
 
 RenderPass::~RenderPass()
@@ -235,6 +253,43 @@ RenderPass::operator const VkRenderPass &() const
 }
 
 const VkRenderPass &RenderPass::GetHandle() const
+{
+	return m_handle;
+}
+
+size_t RenderPass::GetHash() const
+{
+	return m_hash;
+}
+
+Framebuffer::Framebuffer(const std::vector<VkImageView> &views, const RenderPass &render_pass, uint32_t width, uint32_t height, uint32_t layers)
+{
+	VkFramebufferCreateInfo frame_buffer_create_info = {};
+	frame_buffer_create_info.sType                   = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	frame_buffer_create_info.renderPass              = render_pass;
+	frame_buffer_create_info.attachmentCount         = static_cast<uint32_t>(views.size());
+	frame_buffer_create_info.pAttachments            = views.data();
+	frame_buffer_create_info.width                   = width;
+	frame_buffer_create_info.height                  = height;
+	frame_buffer_create_info.layers                  = layers;
+
+	vkCreateFramebuffer(RenderContext::GetDevice(), &frame_buffer_create_info, nullptr, &m_handle);
+}
+
+Framebuffer::~Framebuffer()
+{
+	if (m_handle)
+	{
+		vkDestroyFramebuffer(RenderContext::GetDevice(), m_handle, nullptr);
+	}
+}
+
+Framebuffer::operator const VkFramebuffer &() const
+{
+	return m_handle;
+}
+
+const VkFramebuffer &Framebuffer::GetHandle() const
 {
 	return m_handle;
 }

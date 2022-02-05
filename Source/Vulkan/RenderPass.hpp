@@ -43,7 +43,29 @@ class RenderPass
 
 	const VkRenderPass &GetHandle() const;
 
+	size_t GetHash() const;
+
   private:
 	VkRenderPass m_handle = VK_NULL_HANDLE;
+	size_t       m_hash   = 0;
+};
+
+class Framebuffer
+{
+  public:
+	Framebuffer(const std::vector<VkImageView> &views, const RenderPass &render_pass, uint32_t width, uint32_t height, uint32_t layers = 1);
+	~Framebuffer();
+
+	Framebuffer(const Framebuffer &) = delete;
+	Framebuffer &operator=(const Framebuffer &) = delete;
+	Framebuffer(Framebuffer &&)                 = delete;
+	Framebuffer &operator=(Framebuffer &&) = delete;
+
+	operator const VkFramebuffer &() const;
+
+	const VkFramebuffer &GetHandle() const;
+
+  private:
+	VkFramebuffer m_handle = VK_NULL_HANDLE;
 };
 }        // namespace Ilum::Vulkan

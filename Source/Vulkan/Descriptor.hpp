@@ -79,7 +79,7 @@ class DescriptorCache
 	~DescriptorCache() = default;
 
 	const DescriptorSetLayout &RequestDescriptorSetLayout(const ReflectionData &reflection_data, uint32_t set, const std::string &debug_name = "");
-	VkDescriptorSet            RequestDescriptorSet(const ReflectionData &reflection_data, uint32_t set, const std::string &debug_name = "");
+	VkDescriptorSet            AllocateDescriptorSet(const ReflectionData &reflection_data, uint32_t set, const std::string &debug_name = "");
 
 	// Not recommand
 	void Free(const VkDescriptorSet &descriptor_set);
@@ -88,6 +88,10 @@ class DescriptorCache
 	DescriptorPool &RequestDescriptorPool(const ReflectionData &reflection_data, uint32_t set, const std::string &debug_name = "");
 
   private:
+	std::mutex m_pool_mutex;
+	std::mutex m_layout_mutex;
+	std::mutex m_set_mutex;
+
 	std::unordered_map<size_t, std::unique_ptr<DescriptorSetLayout>> m_descriptor_layouts;
 	std::unordered_map<size_t, std::unique_ptr<DescriptorPool>>      m_descriptor_pools;
 };

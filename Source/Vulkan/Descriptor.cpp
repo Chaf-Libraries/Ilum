@@ -302,7 +302,10 @@ const DescriptorSetLayout &DescriptorCache::RequestDescriptorSetLayout(const Ref
 		return *m_descriptor_layouts[hash];
 	}
 
-	m_descriptor_layouts.emplace(hash, std::make_unique<DescriptorSetLayout>(reflection_data, set));
+	{
+		std::lock_guard<std::mutex> lock(m_layout_mutex);
+		m_descriptor_layouts.emplace(hash, std::make_unique<DescriptorSetLayout>(reflection_data, set));
+	}
 
 	if (!debug_name.empty())
 	{
@@ -312,8 +315,10 @@ const DescriptorSetLayout &DescriptorCache::RequestDescriptorSetLayout(const Ref
 	return *m_descriptor_layouts[hash];
 }
 
-VkDescriptorSet DescriptorCache::RequestDescriptorSet(const ReflectionData &reflection_data, uint32_t set, const std::string &debug_name)
+VkDescriptorSet DescriptorCache::AllocateDescriptorSet(const ReflectionData &reflection_data, uint32_t set, const std::string &debug_name)
 {
+	std::lock_guard<std::mutex> lock(m_set_mutex);
+
 	auto &pool           = RequestDescriptorPool(reflection_data, set);
 	auto  descriptor_set = pool.Allocate();
 
@@ -327,6 +332,8 @@ VkDescriptorSet DescriptorCache::RequestDescriptorSet(const ReflectionData &refl
 
 void DescriptorCache::Free(const VkDescriptorSet &descriptor_set)
 {
+	std::lock_guard<std::mutex> lock(m_set_mutex);
+
 	for (auto &[hash, pool] : m_descriptor_pools)
 	{
 		if (pool->Has(descriptor_set))
@@ -348,7 +355,10 @@ DescriptorPool &DescriptorCache::RequestDescriptorPool(const ReflectionData &ref
 		return *m_descriptor_pools[hash];
 	}
 
-	m_descriptor_pools.emplace(hash, std::make_unique<DescriptorPool>(RequestDescriptorSetLayout(reflection_data, set)));
+	{
+		std::lock_guard<std::mutex> lock(m_pool_mutex);
+		m_descriptor_pools.emplace(hash, std::make_unique<DescriptorPool>(RequestDescriptorSetLayout(reflection_data, set)));
+	}
 
 	return *m_descriptor_pools[hash];
 }
