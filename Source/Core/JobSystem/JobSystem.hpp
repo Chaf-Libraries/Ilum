@@ -47,6 +47,8 @@ class JobSystem
 
 	static void Wait(const JobHandle &handle);
 
+	static void WaitAll();
+
   private:
 	JobSystem() = default;
 

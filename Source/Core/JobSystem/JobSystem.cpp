@@ -40,7 +40,7 @@ void JobSystem::Execute(JobHandle &handle, JobGraph &graph)
 					Instance().m_thread_pool->AddTask([&node, &handle]() {
 						handle.m_counter.fetch_sub(1);
 						Execute(handle, *static_cast<JobGraph *>(node));
-					});					
+					});
 				}
 			}
 		}
@@ -86,5 +86,10 @@ JobSystem &JobSystem::Instance()
 {
 	static JobSystem job_system;
 	return job_system;
+}
+
+void JobSystem::WaitAll()
+{
+	Instance().m_thread_pool->WaitAll();
 }
 }        // namespace Ilum::Core

@@ -35,6 +35,8 @@ class ThreadPool
 		return pack->get_future();
 	}
 
+	void WaitAll();
+
   private:
 	ConcurrentQueue<std::function<void()>, 1024>       m_task_queue;
 	std::unordered_map<std::thread::id, const char *> m_thread_names;

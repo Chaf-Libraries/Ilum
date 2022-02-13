@@ -46,4 +46,20 @@ size_t ThreadPool::GetThreadCount() const
 {
 	return m_workers.size();
 }
+
+void ThreadPool::WaitAll()
+{
+	{
+		std::lock_guard<std::mutex> lock(m_mutex);
+		m_condition.notify_all();
+	}
+
+	for (auto& worker : m_workers)
+	{
+		if (worker.joinable())
+		{
+			worker.join();
+		}
+	}
+}
 }        // namespace Ilum::Core
