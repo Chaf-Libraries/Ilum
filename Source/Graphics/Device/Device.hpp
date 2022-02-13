@@ -22,6 +22,11 @@ class Device
 
 	operator const VkDevice &() const;
 
+	Device(const Device &) = delete;
+	Device &operator=(const Device &) = delete;
+	Device(Device &&)                 = delete;
+	Device &operator=(Device &&) = delete;
+
 	const VkDevice &                GetHandle() const;
 	const VkPhysicalDeviceFeatures &GetEnabledFeatures() const;
 	const VmaAllocator &            GetAllocator() const;

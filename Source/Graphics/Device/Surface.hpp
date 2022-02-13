@@ -15,6 +15,11 @@ class Surface
 	Surface(const Instance &instance, const PhysicalDevice &physical_device, SDL_Window *window);
 	~Surface();
 
+	Surface(const Surface &) = delete;
+	Surface &operator=(const Surface &) = delete;
+	Surface(Surface &&)                 = delete;
+	Surface &operator=(Surface &&) = delete;
+
 	operator const VkSurfaceKHR &() const;
 
 	const VkSurfaceKHR &            GetHandle() const;

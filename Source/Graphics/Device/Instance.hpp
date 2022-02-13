@@ -8,8 +8,12 @@ class Instance
 {
   public:
 	Instance();
-
 	~Instance();
+
+	Instance(const Instance &) = delete;
+	Instance &operator=(const Instance &) = delete;
+	Instance(Instance &&)                 = delete;
+	Instance &operator=(Instance &&) = delete;
 
 	operator const VkInstance &() const;
 
@@ -24,4 +28,4 @@ class Instance
 	bool m_debug_enable = false;
 #endif        // _DEBUG
 };
-}        // namespace Ilum
+}        // namespace Ilum::Graphics

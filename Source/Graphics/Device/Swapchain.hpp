@@ -14,6 +14,11 @@ class Swapchain
 	Swapchain(const Device &device, const Surface &surface, const PhysicalDevice &physical_device, VkSwapchainKHR old_swapchain = VK_NULL_HANDLE, bool vsync = false);
 	~Swapchain();
 
+	Swapchain(const Swapchain &) = delete;
+	Swapchain &operator=(const Swapchain &) = delete;
+	Swapchain(Swapchain &&)                 = delete;
+	Swapchain &operator=(Swapchain &&) = delete;
+
 	operator const VkSwapchainKHR &() const;
 
 	const VkSwapchainKHR &GetHandle() const;
@@ -25,7 +30,7 @@ class Swapchain
 	VkResult Present(VkSemaphore wait_semaphore);
 
   private:
-	const Device& m_device;
+	const Device &m_device;
 
 	VkExtent2D                  m_extent          = {};
 	VkPresentModeKHR            m_present_mode    = {};
