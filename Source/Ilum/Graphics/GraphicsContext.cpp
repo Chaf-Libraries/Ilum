@@ -1,15 +1,10 @@
 #include "GraphicsContext.hpp"
 
-#include "Device/Instance.hpp"
-#include "Device/LogicalDevice.hpp"
-#include "Device/PhysicalDevice.hpp"
-#include "Device/Surface.hpp"
 #include "Device/Swapchain.hpp"
-#include "Device/Window.hpp"
 
 #include "Engine/Context.hpp"
 
-#include "Threading/ThreadPool.hpp"
+#include <Core/JobSystem/JobSystem.hpp>
 
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/Command/CommandPool.hpp"
@@ -17,7 +12,11 @@
 #include "Graphics/Profiler.hpp"
 #include "Graphics/Shader/ShaderCache.hpp"
 #include "Graphics/Synchronization/Queue.hpp"
-#include "Graphics/Vulkan/VK_Debugger.h"
+
+#include <Graphics/Vulkan.hpp>
+#include <Graphics/RenderContext.hpp>
+#include <Graphics/Device/Device.hpp>
+#include <Graphics/Device/Window.hpp>
 
 #include "ImGui/ImGuiContext.hpp"
 
@@ -27,10 +26,6 @@ namespace Ilum
 {
 GraphicsContext::GraphicsContext(Context *context) :
     TSubsystem<GraphicsContext>(context),
-    m_instance(createScope<Instance>()),
-    m_physical_device(createScope<PhysicalDevice>()),
-    m_surface(createScope<Surface>()),
-    m_logical_device(createScope<LogicalDevice>()),
     m_descriptor_cache(createScope<DescriptorCache>()),
     m_shader_cache(createScope<ShaderCache>()),
     m_queue_system(createScope<QueueSystem>())
@@ -38,27 +33,7 @@ GraphicsContext::GraphicsContext(Context *context) :
 	// Create pipeline cache
 	VkPipelineCacheCreateInfo pipeline_cache_create_info = {};
 	pipeline_cache_create_info.sType                     = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-	vkCreatePipelineCache(*m_logical_device, &pipeline_cache_create_info, nullptr, &m_pipeline_cache);
-}
-
-const Instance &GraphicsContext::getInstance() const
-{
-	return *m_instance;
-}
-
-const PhysicalDevice &GraphicsContext::getPhysicalDevice() const
-{
-	return *m_physical_device;
-}
-
-const Surface &GraphicsContext::getSurface() const
-{
-	return *m_surface;
-}
-
-const LogicalDevice &GraphicsContext::getLogicalDevice() const
-{
-	return *m_logical_device;
+	vkCreatePipelineCache(Graphics::RenderContext::GetDevice(), &pipeline_cache_create_info, nullptr, &m_pipeline_cache);
 }
 
 const Swapchain &GraphicsContext::getSwapchain() const
@@ -164,7 +139,7 @@ void GraphicsContext::onPreTick()
 
 void GraphicsContext::onTick(float delta_time)
 {
-	if (Window::instance()->isMinimized())
+	if (Graphics::RenderContext::GetWindow().IsMinimized())
 	{
 		return;
 	}
@@ -179,15 +154,13 @@ void GraphicsContext::onPostTick()
 
 void GraphicsContext::onShutdown()
 {
-	ThreadPool::instance()->waitAll();
-
 	GraphicsContext::instance()->getQueueSystem().waitAll();
 
 	for (uint32_t i = 0; i < m_flight_fences.size(); i++)
 	{
-		vkDestroyFence(*m_logical_device, m_flight_fences[i], nullptr);
-		vkDestroySemaphore(*m_logical_device, m_render_complete[i], nullptr);
-		vkDestroySemaphore(*m_logical_device, m_present_complete[i], nullptr);
+		vkDestroyFence(Graphics::RenderContext::GetDevice(), m_flight_fences[i], nullptr);
+		vkDestroySemaphore(Graphics::RenderContext::GetDevice(), m_render_complete[i], nullptr);
+		vkDestroySemaphore(Graphics::RenderContext::GetDevice(), m_present_complete[i], nullptr);
 	}
 
 	m_command_pools.clear();
@@ -195,7 +168,7 @@ void GraphicsContext::onShutdown()
 
 	m_swapchain.reset();
 
-	vkDestroyPipelineCache(*m_logical_device, m_pipeline_cache, nullptr);
+	vkDestroyPipelineCache(Graphics::RenderContext::GetDevice(), m_pipeline_cache, nullptr);
 }
 
 void GraphicsContext::createSwapchain(bool vsync)
@@ -204,11 +177,11 @@ void GraphicsContext::createSwapchain(bool vsync)
 
 	m_current_frame = 0;
 
-	VkExtent2D display_extent = {Window::instance()->getWidth(), Window::instance()->getHeight()};
+	VkExtent2D display_extent = {Graphics::RenderContext::GetWindow().GetWidth(), Graphics::RenderContext::GetWindow().GetHeight()};
 
-	while (Window::instance()->isMinimized())
+	while (Graphics::RenderContext::GetWindow().IsMinimized())
 	{
-		Window::instance()->pollEvent();
+		Graphics::RenderContext::GetWindow().PollEvent();
 	}
 
 	bool need_rebuild = m_swapchain != nullptr;
@@ -222,7 +195,7 @@ void GraphicsContext::createSwapchain(bool vsync)
 
 	if (need_rebuild)
 	{
-		Swapchain_Rebuild_Event.invoke();
+		Swapchain_Rebuild_Event.Invoke();
 	}
 
 	createCommandBuffer();
@@ -232,9 +205,9 @@ void GraphicsContext::createCommandBuffer()
 {
 	for (uint32_t i = 0; i < m_flight_fences.size(); i++)
 	{
-		vkDestroyFence(*m_logical_device, m_flight_fences[i], nullptr);
-		vkDestroySemaphore(*m_logical_device, m_render_complete[i], nullptr);
-		vkDestroySemaphore(*m_logical_device, m_present_complete[i], nullptr);
+		vkDestroyFence(Graphics::RenderContext::GetDevice(), m_flight_fences[i], nullptr);
+		vkDestroySemaphore(Graphics::RenderContext::GetDevice(), m_render_complete[i], nullptr);
+		vkDestroySemaphore(Graphics::RenderContext::GetDevice(), m_present_complete[i], nullptr);
 	}
 
 	m_flight_fences.resize(m_swapchain->getImageCount());
@@ -251,11 +224,11 @@ void GraphicsContext::createCommandBuffer()
 
 	for (uint32_t i = 0; i < m_swapchain->getImageCount(); i++)
 	{
-		vkCreateSemaphore(*m_logical_device, &semaphore_create_info, nullptr, &m_present_complete[i]);
-		vkCreateSemaphore(*m_logical_device, &semaphore_create_info, nullptr, &m_render_complete[i]);
-		vkCreateFence(*m_logical_device, &fence_create_info, nullptr, &m_flight_fences[i]);
+		vkCreateSemaphore(Graphics::RenderContext::GetDevice(), &semaphore_create_info, nullptr, &m_present_complete[i]);
+		vkCreateSemaphore(Graphics::RenderContext::GetDevice(), &semaphore_create_info, nullptr, &m_render_complete[i]);
+		vkCreateFence(Graphics::RenderContext::GetDevice(), &fence_create_info, nullptr, &m_flight_fences[i]);
 		m_main_command_buffers[i] = createScope<CommandBuffer>(QueueUsage::Present);
-		VK_Debugger::setName(*m_main_command_buffers[i], ("main command buffer " + std::to_string(i)).c_str());
+		Graphics::VKDebugger::SetName(Graphics::RenderContext::GetDevice(), *m_main_command_buffers[i], ("main command buffer " + std::to_string(i)).c_str());
 	}
 }
 
@@ -274,8 +247,8 @@ void GraphicsContext::newFrame()
 		return;
 	}
 
-	vkWaitForFences(GraphicsContext::instance()->getLogicalDevice(), 1, &m_flight_fences[m_current_frame], VK_TRUE, std::numeric_limits<uint64_t>::max());
-	vkResetFences(GraphicsContext::instance()->getLogicalDevice(), 1, &m_flight_fences[m_current_frame]);
+	vkWaitForFences(Graphics::RenderContext::GetDevice(), 1, &m_flight_fences[m_current_frame], VK_TRUE, std::numeric_limits<uint64_t>::max());
+	vkResetFences(Graphics::RenderContext::GetDevice(), 1, &m_flight_fences[m_current_frame]);
 
 	m_main_command_buffers[m_current_frame]->begin();
 

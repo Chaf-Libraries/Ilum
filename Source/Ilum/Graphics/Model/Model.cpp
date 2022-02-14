@@ -1,13 +1,13 @@
 #include "Model.hpp"
 
-#include "Device/LogicalDevice.hpp"
+#include <Graphics/Device/Device.hpp>
 
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Synchronization/Queue.hpp"
 #include "Graphics/Synchronization/QueueSystem.hpp"
 
-#include "Threading/ThreadPool.hpp"
+#include <Core/JobSystem/JobSystem.hpp>
 
 namespace Ilum
 {

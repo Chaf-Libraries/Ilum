@@ -3,18 +3,19 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include "Device/LogicalDevice.hpp"
+#include <Graphics/Device/Device.hpp>
 
-#include "Graphics/Buffer/Buffer.h"
+#include <Graphics/Resource/Buffer.hpp>
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/GraphicsContext.hpp"
-#include "Graphics/Image/Image.hpp"
+#include <Graphics/Resource/Image.hpp>
 #include "Graphics/Synchronization/Queue.hpp"
 #include "Graphics/Synchronization/QueueSystem.hpp"
 
-#include "Threading/ThreadPool.hpp"
+#include <Core/JobSystem/JobSystem.hpp>
 
-#include "Graphics/Vulkan/VK_Debugger.h"
+#include <Graphics/Vulkan.hpp>
+#include <Graphics/RenderContext.hpp>
 
 namespace Ilum
 {
@@ -174,19 +175,19 @@ Cubemap ImageLoader::loadCubemap(const std::array<std::string, 6> &filepaths)
 	return cubemap;
 }
 
-void ImageLoader::loadImage(Image &image, const Bitmap &bitmap, bool mipmaps)
+void ImageLoader::loadImage(Graphics::Image &image, const Bitmap &bitmap, bool mipmaps)
 {
-	image = Image(bitmap.width, bitmap.height, bitmap.format, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, true);
+	image = Graphics::Image(Graphics::RenderContext::GetDevice(), bitmap.width, bitmap.height, bitmap.format, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY, true);
 
-	Buffer staging_buffer(bitmap.data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	Graphics::Buffer staging_buffer(Graphics::RenderContext::GetDevice(), bitmap.data.size(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	uint32_t offset = 0;
-	uint8_t *data   = staging_buffer.map();
+	uint8_t *data   = staging_buffer.Map();
 	std::memcpy(data, bitmap.data.data(), bitmap.data.size());
-	staging_buffer.unmap();
+	staging_buffer.Unmap();
 
 	CommandBuffer command_buffer;
-	VK_Debugger::setName(command_buffer, "transfer image data");
+	Graphics::VKDebugger::SetName(Graphics::RenderContext::GetDevice(), command_buffer, "transfer image data");
 	command_buffer.begin();
 	command_buffer.copyBufferToImage(BufferInfo{staging_buffer, offset}, ImageInfo{image});
 
@@ -203,9 +204,9 @@ void ImageLoader::loadImage(Image &image, const Bitmap &bitmap, bool mipmaps)
 			uint32_t mip_level = 1;
 			for (const auto &mip_data : bitmap.mip_levels)
 			{
-				uint8_t *data = staging_buffer.map();
+				uint8_t *data = staging_buffer.Map();
 				std::memcpy(data + offset, mip_data.data(), mip_data.size());
-				staging_buffer.unmap();
+				staging_buffer.Unmap();
 				command_buffer.copyBufferToImage(BufferInfo{staging_buffer, offset}, ImageInfo{image, VK_IMAGE_USAGE_TRANSFER_DST_BIT, mip_level, 0});
 
 				offset += static_cast<uint32_t>(mip_data.size());
@@ -220,16 +221,16 @@ void ImageLoader::loadImage(Image &image, const Bitmap &bitmap, bool mipmaps)
 	command_buffer.submitIdle();
 }
 
-void ImageLoader::loadCubemap(Image &image, const Cubemap &cubemap)
+void ImageLoader::loadCubemap(Graphics::Image &image, const Cubemap &cubemap)
 {
 }
 
-void ImageLoader::loadImageFromFile(Image &image, const std::string &filepath, bool mipmaps)
+void ImageLoader::loadImageFromFile(Graphics::Image &image, const std::string &filepath, bool mipmaps)
 {
 	loadImage(image, loadImage(filepath), mipmaps);
 }
 
-void ImageLoader::loadCubemapFromFile(Image &image, const std::string &filepath)
+void ImageLoader::loadCubemapFromFile(Graphics::Image &image, const std::string &filepath)
 {
 	loadCubemap(image, loadCubemap(filepath));
 }

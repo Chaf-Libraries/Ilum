@@ -3,16 +3,15 @@
 
 #include "Renderer/RenderPass/ImGuiPass.hpp"
 
-#include "Device/LogicalDevice.hpp"
 #include "Device/Swapchain.hpp"
-#include "Device/Window.hpp"
+#include <Graphics/Device/Device.hpp>
 
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Profiler.hpp"
 
 #include "ImGui/ImGuiContext.hpp"
 
-#include "File/FileSystem.hpp"
+#include <Core/FileSystem.hpp>
 
 #include "Loader/ImageLoader/Bitmap.hpp"
 #include "Loader/ImageLoader/ImageLoader.hpp"
@@ -54,7 +53,10 @@
 #include "BufferUpdate/SurfaceUpdate.hpp"
 #include "BufferUpdate/TransformUpdate.hpp"
 
-#include "Threading/ThreadPool.hpp"
+#include <Core/JobSystem/JobSystem.hpp>
+
+#include <Graphics/Device/Window.hpp>
+#include <Graphics/RenderContext.hpp>
 
 #include <imgui.h>
 
@@ -63,7 +65,8 @@
 namespace Ilum
 {
 Renderer::Renderer(Context *context) :
-    TSubsystem<Renderer>(context)
+    TSubsystem<Renderer>(context),
+    m_default_texture(Graphics::RenderContext::GetDevice())
 {
 	GraphicsContext::instance()->Swapchain_Rebuild_Event += [this]() { m_update = true; };
 
@@ -158,7 +161,7 @@ void Renderer::onTick(float delta_time)
 
 void Renderer::onPostTick()
 {
-	if (!m_render_graph || Window::instance()->isMinimized())
+	if (!m_render_graph || Graphics::RenderContext::GetWindow().IsMinimized())
 	{
 		return;
 	}
@@ -209,7 +212,7 @@ void Renderer::rebuild()
 	}
 
 	m_render_graph = m_rg_builder.build();
-	Event_RenderGraph_Rebuild.invoke();
+	Event_RenderGraph_Rebuild.Invoke();
 }
 
 bool Renderer::hasImGui() const
@@ -227,7 +230,7 @@ void Renderer::setImGui(bool enable)
 	}
 }
 
-const Sampler &Renderer::getSampler(SamplerType type) const
+const Graphics::Sampler &Renderer::getSampler(SamplerType type) const
 {
 	return m_samplers.at(type);
 }
@@ -246,7 +249,7 @@ void Renderer::resizeRenderTarget(VkExtent2D extent)
 	}
 }
 
-const ImageReference Renderer::getDefaultTexture() const
+const Graphics::ImageReference Renderer::getDefaultTexture() const
 {
 	return m_default_texture;
 }
@@ -263,27 +266,27 @@ void Renderer::update()
 
 void Renderer::createSamplers()
 {
-	m_samplers[SamplerType::Compare_Depth]     = Sampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_NEAREST);
-	m_samplers[SamplerType::Point_Clamp]       = Sampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_NEAREST);
-	m_samplers[SamplerType::Point_Wrap]        = Sampler(VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_FILTER_NEAREST);
-	m_samplers[SamplerType::Bilinear_Clamp]    = Sampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_NEAREST);
-	m_samplers[SamplerType::Bilinear_Wrap]     = Sampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_FILTER_NEAREST);
-	m_samplers[SamplerType::Trilinear_Clamp]   = Sampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_LINEAR);
-	m_samplers[SamplerType::Trilinear_Wrap]    = Sampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_FILTER_LINEAR);
-	m_samplers[SamplerType::Anisptropic_Clamp] = Sampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_LINEAR);
-	m_samplers[SamplerType::Anisptropic_Wrap]  = Sampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_FILTER_LINEAR);
+	m_samplers.emplace(SamplerType::Compare_Depth, Graphics::Sampler(Graphics::RenderContext::GetDevice(), VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_NEAREST));
+	m_samplers.emplace(SamplerType::Point_Clamp, Graphics::Sampler(Graphics::RenderContext::GetDevice(), VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_NEAREST));
+	m_samplers.emplace(SamplerType::Point_Wrap, Graphics::Sampler(Graphics::RenderContext::GetDevice(), VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_FILTER_NEAREST));
+	m_samplers.emplace(SamplerType::Bilinear_Clamp, Graphics::Sampler(Graphics::RenderContext::GetDevice(), VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_NEAREST));
+	m_samplers.emplace(SamplerType::Bilinear_Wrap, Graphics::Sampler(Graphics::RenderContext::GetDevice(), VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_FILTER_NEAREST));
+	m_samplers.emplace(SamplerType::Trilinear_Clamp, Graphics::Sampler(Graphics::RenderContext::GetDevice(), VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_LINEAR));
+	m_samplers.emplace(SamplerType::Trilinear_Wrap, Graphics::Sampler(Graphics::RenderContext::GetDevice(), VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_FILTER_LINEAR));
+	m_samplers.emplace(SamplerType::Anisptropic_Clamp, Graphics::Sampler(Graphics::RenderContext::GetDevice(), VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_LINEAR));
+	m_samplers.emplace(SamplerType::Anisptropic_Wrap, Graphics::Sampler(Graphics::RenderContext::GetDevice(), VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_FILTER_LINEAR));
 }
 
 void Renderer::updateImages()
 {
 	GraphicsContext::instance()->getQueueSystem().waitAll();
 
-	Renderer::instance()->Last_Frame.hiz_buffer   = createScope<Image>(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
-                                                                     VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VMA_MEMORY_USAGE_GPU_ONLY, true);
-	Renderer::instance()->Last_Frame.depth_buffer = createScope<Image>(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
-	                                                                   VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-	Renderer::instance()->Last_Frame.last_result  = createScope<Image>(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
-                                                                      VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	Renderer::instance()->Last_Frame.hiz_buffer   = createScope<Graphics::Image>(Graphics::RenderContext::GetDevice(), Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
+                                                                               VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VMA_MEMORY_USAGE_GPU_ONLY, true);
+	Renderer::instance()->Last_Frame.depth_buffer = createScope<Graphics::Image>(Graphics::RenderContext::GetDevice(), Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
+	                                                                             VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	Renderer::instance()->Last_Frame.last_result  = createScope<Graphics::Image>(Graphics::RenderContext::GetDevice(), Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
+                                                                                VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 	// Layout transition
 	{
 		CommandBuffer cmd_buffer;

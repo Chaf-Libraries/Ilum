@@ -1,12 +1,12 @@
 #include "Shader.hpp"
 
-#include "Device/LogicalDevice.hpp"
-#include "Device/PhysicalDevice.hpp"
+#include <Graphics/Device/Device.hpp>
+#include <Graphics/Device/PhysicalDevice.hpp>
 
 #include "Engine/Context.hpp"
 #include "Engine/Engine.hpp"
 
-#include "File/FileSystem.hpp"
+#include <Core/FileSystem.hpp>
 
 #include "Graphics/GraphicsContext.hpp"
 

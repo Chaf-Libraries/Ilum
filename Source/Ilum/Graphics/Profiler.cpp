@@ -1,10 +1,11 @@
 #include "Profiler.hpp"
 
-#include "Buffer/Buffer.h"
 #include "Command/CommandBuffer.hpp"
 #include "GraphicsContext.hpp"
 
-#include "Device/LogicalDevice.hpp"
+#include <Graphics/Device/Device.hpp>
+#include <Graphics/RenderContext.hpp>
+
 #include "Device/Swapchain.hpp"
 
 namespace Ilum
@@ -21,10 +22,10 @@ Profiler::Profiler()
 		createInfo.queryType  = VK_QUERY_TYPE_TIMESTAMP;
 		createInfo.queryCount = 256;
 		VkQueryPool handle    = VK_NULL_HANDLE;
-		vkCreateQueryPool(GraphicsContext::instance()->getLogicalDevice(), &createInfo, nullptr, &handle);
+		vkCreateQueryPool(Graphics::RenderContext::GetDevice(), &createInfo, nullptr, &handle);
 		m_query_pools.push_back(handle);
 
-		m_buffers.emplace_back(sizeof(uint32_t) * 256, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
+		m_buffers.emplace_back(Graphics::RenderContext::GetDevice(), sizeof(uint32_t) * 256, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
 	}
 
 	m_samples.resize(GraphicsContext::instance()->getSwapchain().getImageCount());
@@ -34,7 +35,7 @@ Profiler ::~Profiler()
 {
 	for (auto &query_pool : m_query_pools)
 	{
-		vkDestroyQueryPool(GraphicsContext::instance()->getLogicalDevice(), query_pool, nullptr);
+		vkDestroyQueryPool(Graphics::RenderContext::GetDevice(), query_pool, nullptr);
 	}
 }
 
@@ -110,8 +111,8 @@ std::map<std::string, std::pair<float, float>> Profiler::getResult() const
 		uint64_t start = 0, end = 0;
 		if (sample.has_gpu)
 		{
-			vkGetQueryPoolResults(GraphicsContext::instance()->getLogicalDevice(), m_query_pools[idx], sample.start.index, 1, sizeof(uint64_t), &start, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
-			vkGetQueryPoolResults(GraphicsContext::instance()->getLogicalDevice(), m_query_pools[idx], sample.end.index, 1, sizeof(uint64_t), &end, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
+			vkGetQueryPoolResults(Graphics::RenderContext::GetDevice(), m_query_pools[idx], sample.start.index, 1, sizeof(uint64_t), &start, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
+			vkGetQueryPoolResults(Graphics::RenderContext::GetDevice(), m_query_pools[idx], sample.end.index, 1, sizeof(uint64_t), &end, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
 		}
 		result[sample.name] = std::make_pair(
 		    static_cast<float>(std::chrono::duration<double, std::milli>(sample.end.cpu_time - sample.start.cpu_time).count()),

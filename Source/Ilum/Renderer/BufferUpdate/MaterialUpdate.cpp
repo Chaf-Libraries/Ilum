@@ -10,7 +10,7 @@
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Profiler.hpp"
 
-#include "File/FileSystem.hpp"
+#include <Core/FileSystem.hpp>
 
 #include <tbb/tbb.h>
 
@@ -35,14 +35,14 @@ void MaterialUpdate::run()
 			material_count += meshlet_renderer.materials.size();
 		}
 
-		if (material_count * sizeof(MaterialData) > Renderer::instance()->Render_Buffer.Material_Buffer.getSize())
+		if (material_count * sizeof(MaterialData) > Renderer::instance()->Render_Buffer.Material_Buffer.GetSize())
 		{
 			GraphicsContext::instance()->getQueueSystem().waitAll();
-			Renderer::instance()->Render_Buffer.Material_Buffer = Buffer(material_count * sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			Renderer::instance()->Render_Buffer.Material_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), material_count * sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			Renderer::instance()->update();
 		}
 
-		MaterialData *material_data = reinterpret_cast<MaterialData *>(Renderer::instance()->Render_Buffer.Material_Buffer.map());
+		MaterialData *material_data = reinterpret_cast<MaterialData *>(Renderer::instance()->Render_Buffer.Material_Buffer.Map());
 
 		// Update static mesh material
 		tbb::parallel_for(tbb::blocked_range<size_t>(0, meshlet_view.size()), [&meshlet_view, &material_data, material_offset](const tbb::blocked_range<size_t> &r) {
@@ -66,13 +66,13 @@ void MaterialUpdate::run()
 						material.metallic_factor     = pbr->metallic_factor;
 						material.roughness_factor    = pbr->roughness_factor;
 						material.emissive_intensity  = pbr->emissive_intensity;
-						material.albedo_map          = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->albedo_map));
-						material.normal_map          = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->normal_map));
-						material.metallic_map        = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->metallic_map));
-						material.roughness_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->roughness_map));
-						material.emissive_map        = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->emissive_map));
-						material.ao_map              = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->ao_map));
-						material.displacement_map    = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->displacement_map));
+						material.albedo_map          = Renderer::instance()->getResourceCache().imageID(Core::FileSystem::GetRelativePath(pbr->albedo_map));
+						material.normal_map          = Renderer::instance()->getResourceCache().imageID(Core::FileSystem::GetRelativePath(pbr->normal_map));
+						material.metallic_map        = Renderer::instance()->getResourceCache().imageID(Core::FileSystem::GetRelativePath(pbr->metallic_map));
+						material.roughness_map       = Renderer::instance()->getResourceCache().imageID(Core::FileSystem::GetRelativePath(pbr->roughness_map));
+						material.emissive_map        = Renderer::instance()->getResourceCache().imageID(Core::FileSystem::GetRelativePath(pbr->emissive_map));
+						material.ao_map              = Renderer::instance()->getResourceCache().imageID(Core::FileSystem::GetRelativePath(pbr->ao_map));
+						material.displacement_map    = Renderer::instance()->getResourceCache().imageID(Core::FileSystem::GetRelativePath(pbr->displacement_map));
 						material.displacement_height = pbr->displacement_height;
 					}
 					else
@@ -94,7 +94,7 @@ void MaterialUpdate::run()
 				}
 			}
 		});
-		Renderer::instance()->Render_Buffer.Material_Buffer.unmap();
+		Renderer::instance()->Render_Buffer.Material_Buffer.Unmap();
 	}
 	Material::update = false;
 	GraphicsContext::instance()->getProfiler().endSample("Material Update");

@@ -2,6 +2,8 @@
 
 #include "Utils/PCH.hpp"
 
+#include <Core/Timer.hpp>
+
 namespace Ilum
 {
 class Context;
@@ -21,6 +23,8 @@ class Engine
 
   private:
 	scope<Context> m_context = nullptr;
+
+	Core::Timer m_timer;
 
 	static Engine *s_instance;
 };

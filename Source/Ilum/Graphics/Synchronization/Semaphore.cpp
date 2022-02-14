@@ -1,7 +1,8 @@
 #include "Semaphore.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
-#include "Device/LogicalDevice.hpp"
+#include <Graphics/Device/Device.hpp>
+#include <Graphics/RenderContext.hpp>
 
 namespace Ilum
 {
@@ -17,7 +18,7 @@ Semaphore::Semaphore(bool timeline):
 	create_info.pNext = m_timeline ? &type_create_info : nullptr;
 	create_info.flags = 0;
 
-	if (!VK_CHECK(vkCreateSemaphore(GraphicsContext::instance()->getLogicalDevice(), &create_info, nullptr, &m_handle)))
+	if (!VK_CHECK(vkCreateSemaphore(Graphics::RenderContext::GetDevice(), &create_info, nullptr, &m_handle)))
 	{
 		VK_ERROR("Failed to create semaphore");
 	}
@@ -27,7 +28,7 @@ Semaphore::~Semaphore()
 {
 	if (m_handle)
 	{
-		vkDestroySemaphore(GraphicsContext::instance()->getLogicalDevice(), m_handle, nullptr);
+		vkDestroySemaphore(Graphics::RenderContext::GetDevice(), m_handle, nullptr);
 	}
 }
 
@@ -56,7 +57,7 @@ bool Semaphore::wait(const uint64_t value, const uint64_t timeout) const
 	wait_info.pSemaphores    = &m_handle;
 	wait_info.pValues        = &value;
 
-	return VK_CHECK(vkWaitSemaphores(GraphicsContext::instance()->getLogicalDevice(), &wait_info, timeout));
+	return VK_CHECK(vkWaitSemaphores(Graphics::RenderContext::GetDevice(), &wait_info, timeout));
 }
 
 bool Semaphore::signal(const uint64_t value) const
@@ -68,7 +69,7 @@ bool Semaphore::signal(const uint64_t value) const
 	signal_info.semaphore = m_handle;
 	signal_info.value     = value;
 
-	return VK_CHECK(vkSignalSemaphore(GraphicsContext::instance()->getLogicalDevice(), &signal_info));
+	return VK_CHECK(vkSignalSemaphore(Graphics::RenderContext::GetDevice(), &signal_info));
 }
 
 bool Semaphore::isTimeline() const
@@ -81,7 +82,7 @@ uint64_t Semaphore::count() const
 	assert(m_timeline);
 
 	uint64_t value = 0;
-	VK_CHECK(vkGetSemaphoreCounterValue(GraphicsContext::instance()->getLogicalDevice(), m_handle, &value));
+	VK_CHECK(vkGetSemaphoreCounterValue(Graphics::RenderContext::GetDevice(), m_handle, &value));
 
 	return value;
 }

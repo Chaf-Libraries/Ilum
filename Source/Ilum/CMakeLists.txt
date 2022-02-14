@@ -8,6 +8,8 @@ SetTarget(
     INC
         ${PROJECT_SOURCE_DIR}/Source/Ilum
     LIB
+        Core
+        Graphics
         SDL2::SDL2
         spdlog
         volk

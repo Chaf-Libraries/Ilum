@@ -5,10 +5,10 @@
 #include "Engine/Context.hpp"
 #include "Engine/Subsystem.hpp"
 
-#include "Eventing/Event.hpp"
+#include <Core/Event.hpp>
 
-#include "Graphics/Image/Image.hpp"
-#include "Graphics/Image/Sampler.hpp"
+#include <Graphics/Resource/Image.hpp>
+#include <Graphics/Resource/Sampler.hpp>
 
 #include "Scene/Entity.hpp"
 
@@ -72,13 +72,13 @@ class Renderer : public TSubsystem<Renderer>
 
 	void setImGui(bool enable);
 
-	const Sampler &getSampler(SamplerType type) const;
+	const Graphics::Sampler &getSampler(SamplerType type) const;
 
 	const VkExtent2D &getRenderTargetExtent() const;
 
 	void resizeRenderTarget(VkExtent2D extent);
 
-	const ImageReference getDefaultTexture() const;
+	const Graphics::ImageReference getDefaultTexture() const;
 
 	bool hasMainCamera();
 
@@ -101,11 +101,11 @@ class Renderer : public TSubsystem<Renderer>
 
 	scope<ResourceCache> m_resource_cache = nullptr;
 
-	std::unordered_map<SamplerType, Sampler> m_samplers;
+	std::unordered_map<SamplerType, Graphics::Sampler> m_samplers;
 
 	VkExtent2D m_render_target_extent;
 
-	Image m_default_texture;
+	Graphics::Image m_default_texture;
 
 	bool m_update = false;
 
@@ -127,9 +127,9 @@ class Renderer : public TSubsystem<Renderer>
 	struct
 	{
 		// E(mu)
-		Image kulla_conty_energy;
+		Graphics::Image kulla_conty_energy = Graphics::Image(Graphics::RenderContext::GetDevice());
 		// Eavg
-		Image kulla_conty_energy_average;
+		Graphics::Image kulla_conty_energy_average = Graphics::Image(Graphics::RenderContext::GetDevice());
 	}PreCompute;
 
 	struct
@@ -156,9 +156,9 @@ class Renderer : public TSubsystem<Renderer>
 
 	struct
 	{
-		scope<Image> depth_buffer = nullptr;
-		scope<Image> hiz_buffer   = nullptr;
-		scope<Image> last_result  = nullptr;
+		scope<Graphics::Image> depth_buffer = nullptr;
+		scope<Graphics::Image> hiz_buffer   = nullptr;
+		scope<Graphics::Image> last_result  = nullptr;
 	} Last_Frame;
 
 	struct
@@ -184,6 +184,6 @@ class Renderer : public TSubsystem<Renderer>
 	} EnvLight;
 
   public:
-	Event<> Event_RenderGraph_Rebuild;
+	Core::Event<> Event_RenderGraph_Rebuild;
 };
 }        // namespace Ilum

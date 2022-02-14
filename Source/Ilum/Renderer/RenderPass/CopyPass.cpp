@@ -3,7 +3,7 @@
 #include "Renderer/RenderGraph/RenderGraph.hpp"
 #include "Renderer/Renderer.hpp"
 
-#include "Graphics/Vulkan/VK_Debugger.h"
+#include <Graphics/Vulkan.hpp>
 
 namespace Ilum::pass
 {

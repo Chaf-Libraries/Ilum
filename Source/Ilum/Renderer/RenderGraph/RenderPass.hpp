@@ -28,7 +28,7 @@ struct RenderPassState
 	const CommandBuffer &command_buffer;
 	const PassNative &   pass;
 
-	const Image &getAttachment(const std::string &name);
+	const Graphics::Image &getAttachment(const std::string &name);
 };
 
 using ResolveState = ResolveInfo;

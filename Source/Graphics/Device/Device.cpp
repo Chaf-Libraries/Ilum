@@ -89,6 +89,7 @@ Device::Device(VkInstance instance, VkPhysicalDevice physical_device, VkSurfaceK
 	vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_property_count, queue_family_properties.data());
 
 	std::optional<uint32_t> graphics_family, compute_family, transfer_family, present_family;
+	m_queues.resize(4);
 
 	graphics_family = GetQueueFamilyIndex(queue_family_properties, VK_QUEUE_GRAPHICS_BIT);
 	transfer_family = GetQueueFamilyIndex(queue_family_properties, VK_QUEUE_TRANSFER_BIT);
@@ -297,22 +298,22 @@ Device::~Device()
 	}
 }
 
-Device::operator const VkDevice& () const
+Device::operator const VkDevice &() const
 {
 	return m_handle;
 }
 
-const VkDevice& Device::GetHandle() const
+const VkDevice &Device::GetHandle() const
 {
 	return m_handle;
 }
 
-const VkPhysicalDeviceFeatures& Device::GetEnabledFeatures() const
+const VkPhysicalDeviceFeatures &Device::GetEnabledFeatures() const
 {
 	return m_enabled_features;
 }
 
-const VmaAllocator& Device::GetAllocator() const
+const VmaAllocator &Device::GetAllocator() const
 {
 	return m_allocator;
 }
@@ -325,5 +326,10 @@ const uint32_t Device::GetQueueFamily(QueueFamily family) const
 VkQueue Device::GetQueue(QueueFamily family, uint32_t index) const
 {
 	return m_queues[m_queue_family.at(family)][index];
+}
+
+void Device::WaitIdle() const
+{
+	vkDeviceWaitIdle(m_handle);
 }
 }        // namespace Ilum::Graphics

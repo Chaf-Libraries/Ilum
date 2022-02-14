@@ -1,6 +1,6 @@
 #include "ModelLoader.hpp"
 
-#include "File/FileSystem.hpp"
+#include <Core/FileSystem.hpp>
 
 #include "Renderer/Renderer.hpp"
 
@@ -117,7 +117,7 @@ void AssimpLogger::OnError(const char *message)
 
 void ModelLoader::load(Model &model, const std::string &file_path)
 {
-	if (!FileSystem::isFile(file_path))
+	if (!Core::FileSystem::IsFile(file_path))
 	{
 		LOG_ERROR("Model {} is not existed!", file_path);
 		return;
@@ -295,7 +295,7 @@ void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform,
 
 void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_material, scope<material::PBRMaterial> &material)
 {
-	std::string dictionary = FileSystem::getFileDirectory(file_path);
+	std::string dictionary = Core::FileSystem::GetFileDirectory(file_path);
 
 	aiString path;
 
@@ -308,53 +308,53 @@ void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_m
 	if (aiGetMaterialTexture(mesh_material, AI_MATKEY_BASE_COLOR_TEXTURE, &path) != aiReturn_FAILURE)
 	{
 		material->albedo_map = dictionary + path.C_Str();
-		Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
+		Renderer::instance()->getResourceCache().loadImageAsync(Core::FileSystem::GetRelativePath(dictionary + path.C_Str()));
 	}
 	path.Clear();
 
 	if (aiGetMaterialTexture(mesh_material, aiTextureType_NORMALS, 0, &path) != aiReturn_FAILURE)
 	{
 		material->normal_map = dictionary + path.C_Str();
-		Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
+		Renderer::instance()->getResourceCache().loadImageAsync(Core::FileSystem::GetRelativePath(dictionary + path.C_Str()));
 	}
 	path.Clear();
 
 	if (aiGetMaterialTexture(mesh_material, AI_MATKEY_METALLIC_TEXTURE, &path) != aiReturn_FAILURE)
 	{
 		material->metallic_map = dictionary + path.C_Str();
-		Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
+		Renderer::instance()->getResourceCache().loadImageAsync(Core::FileSystem::GetRelativePath(dictionary + path.C_Str()));
 	}
 	path.Clear();
 
 	if (aiGetMaterialTexture(mesh_material, AI_MATKEY_ROUGHNESS_TEXTURE, &path) != aiReturn_FAILURE)
 	{
 		material->roughness_map = dictionary + path.C_Str();
-		Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
+		Renderer::instance()->getResourceCache().loadImageAsync(Core::FileSystem::GetRelativePath(dictionary + path.C_Str()));
 	}
 	path.Clear();
 
 	if (aiGetMaterialTexture(mesh_material, aiTextureType_EMISSIVE, 0, &path) != aiReturn_FAILURE)
 	{
 		material->emissive_map = dictionary + path.C_Str();
-		Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
+		Renderer::instance()->getResourceCache().loadImageAsync(Core::FileSystem::GetRelativePath(dictionary + path.C_Str()));
 	}
 	path.Clear();
 
 	if (aiGetMaterialTexture(mesh_material, aiTextureType_AMBIENT_OCCLUSION, 0, &path) != aiReturn_FAILURE)
 	{
 		material->ao_map = dictionary + path.C_Str();
-		Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
+		Renderer::instance()->getResourceCache().loadImageAsync(Core::FileSystem::GetRelativePath(dictionary + path.C_Str()));
 	}
 	path.Clear();
 
-	if (FileSystem::getFileExtension(file_path) == ".gltf")
+	if (Core::FileSystem::GetFileExtension(file_path) == ".gltf")
 	{
 		// For gltf, unknown for roughness & metallic
 		if (aiGetMaterialTexture(mesh_material, aiTextureType_UNKNOWN, 0, &path) != aiReturn_FAILURE)
 		{
 			material->roughness_map = dictionary + path.C_Str();
 			material->metallic_map  = dictionary + path.C_Str();
-			Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
+			Renderer::instance()->getResourceCache().loadImageAsync(Core::FileSystem::GetRelativePath(dictionary + path.C_Str()));
 		}
 
 		path.Clear();

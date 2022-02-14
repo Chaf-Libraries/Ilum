@@ -4,6 +4,9 @@
 
 #include "Material/Material.h"
 
+#include <Graphics/RenderContext.hpp>
+#include <Graphics/Device/Device.hpp>
+
 namespace Ilum::cmpt
 {
 struct Renderable
@@ -45,8 +48,8 @@ struct MeshRenderer : public Renderable
 	std::vector<Vertex>   vertices;
 	std::vector<uint32_t> indices;
 
-	Buffer vertex_buffer;
-	Buffer index_buffer;
+	Graphics::Buffer vertex_buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice());
+	Graphics::Buffer index_buffer  = Graphics::Buffer(Graphics::RenderContext::GetDevice());
 
 	uint32_t material_id = 0;
 	bool     need_update = true;
@@ -76,7 +79,7 @@ struct CurveRenderer : public Renderable
 
 	uint32_t order = 4;
 
-	Buffer vertex_buffer;
+	Graphics::Buffer vertex_buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice());
 
 	bool need_update = true;
 
@@ -99,7 +102,7 @@ enum class SurfaceType
 	RationalBSplineSurface,
 };
 
-struct SurfaceRenderer: public Renderable
+struct SurfaceRenderer : public Renderable
 {
 	SurfaceType type = SurfaceType::None;
 
@@ -113,9 +116,9 @@ struct SurfaceRenderer: public Renderable
 
 	uint32_t order = 4;
 
-	Buffer vertex_buffer;
+	Graphics::Buffer vertex_buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice());
 
-	Buffer index_buffer;
+	Graphics::Buffer index_buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice());
 
 	bool need_update = true;
 

@@ -8,6 +8,8 @@
 namespace Ilum
 {
 class Shader;
+struct ReflectionData;
+
 
 struct InputAssemblyState
 {

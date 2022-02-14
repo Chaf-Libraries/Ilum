@@ -4,7 +4,7 @@
 
 #include "Editor/Panel.hpp"
 
-#include "Graphics/Image/Image.hpp"
+#include <Graphics/Resource/Image.hpp>
 
 namespace Ilum::panel
 {
@@ -43,7 +43,7 @@ class SceneView : public Panel
 
 	std::unordered_map<std::string, bool> m_gizmo;
 
-	std::unordered_map<std::string, Image> m_icons;
+	std::unordered_map<std::string, std::unique_ptr<Graphics::Image>> m_icons;
 
 	std::string m_display_attachment = "";
 };

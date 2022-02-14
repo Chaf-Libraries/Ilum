@@ -2,31 +2,31 @@
 
 #include "Utils/PCH.hpp"
 
-#include "Graphics/Buffer/Buffer.h"
+#include <Graphics/Resource/Buffer.hpp>
 #include "Graphics/Descriptor/DescriptorSet.hpp"
-#include "Graphics/Image/Image.hpp"
-#include "Graphics/Image/Sampler.hpp"
+#include <Graphics/Resource/Image.hpp>
+#include <Graphics/Resource/Sampler.hpp>
 
 namespace Ilum
 {
 class ResolveInfo
 {
   public:
-	void resolve(const std::string &name, const Buffer &buffer);
+	void resolve(const std::string &name, const Graphics::Buffer &buffer);
 
-	void resolve(const std::string &name, const Image &image);
+	void resolve(const std::string &name, const Graphics::Image &image);
 
-	void resolve(const std::string &name, const std::vector<BufferReference> &buffers);
+	void resolve(const std::string &name, const std::vector<Graphics::BufferReference> &buffers);
 
-	void resolve(const std::string &name, const std::vector<ImageReference> &images);
+	void resolve(const std::string &name, const std::vector<Graphics::ImageReference> &images);
 
-	const std::unordered_map<std::string, std::vector<BufferReference>> &getBuffers() const;
+	const std::unordered_map<std::string, std::vector<Graphics::BufferReference>> &getBuffers() const;
 
-	const std::unordered_map<std::string, std::vector<ImageReference>> &getImages() const;
+	const std::unordered_map<std::string, std::vector<Graphics::ImageReference>> &getImages() const;
 
   private:
-	std::unordered_map<std::string, std::vector<BufferReference>> m_buffer_resolves;
-	std::unordered_map<std::string, std::vector<ImageReference>>  m_image_resolves;
+	std::unordered_map<std::string, std::vector<Graphics::BufferReference>> m_buffer_resolves;
+	std::unordered_map<std::string, std::vector<Graphics::ImageReference>>  m_image_resolves;
 };
 
 enum class ResolveOption
@@ -49,16 +49,16 @@ class DescriptorBinding
 
 	struct BufferWriteInfo
 	{
-		const Buffer *        handle;
+		const Graphics::Buffer *        handle;
 		VkBufferUsageFlagBits usage;
 	};
 
 	struct ImageWriteInfo
 	{
-		const Image *        handle;
+		const Graphics::Image *        handle;
 		VkImageUsageFlagBits usage;
-		ImageViewType        view;
-		const Sampler *      sampler_handle;
+		Graphics::ImageViewType        view;
+		const Graphics::Sampler *      sampler_handle;
 	};
 
 	struct ImageToResolve
@@ -67,13 +67,13 @@ class DescriptorBinding
 		uint32_t             binding;
 		VkDescriptorType     type;
 		VkImageUsageFlagBits usage;
-		ImageViewType        view;
-		const Sampler *      sampler_handle;
+		Graphics::ImageViewType view;
+		const Graphics::Sampler *sampler_handle;
 	};
 
 	struct SamplerToResolve
 	{
-		const Sampler *  sampler_handle;
+		const Graphics::Sampler *sampler_handle;
 		uint32_t         binding;
 		VkDescriptorType type;
 	};
@@ -96,17 +96,17 @@ class DescriptorBinding
 
 	ResolveOption m_options = ResolveOption::Once;
 
-	size_t allocate(uint32_t set, const Buffer &buffer, VkDescriptorType type);
-	size_t allocate(uint32_t set, const Image &image, ImageViewType view, VkDescriptorType type);
-	size_t allocate(uint32_t set, const Image &image, const Sampler &sampler, ImageViewType view, VkDescriptorType type);
-	size_t allocate(uint32_t set, const Sampler &sampler);
+	size_t allocate(uint32_t set, const Graphics::Buffer &buffer, VkDescriptorType type);
+	size_t allocate(uint32_t set, const Graphics::Image &image, Graphics::ImageViewType view, VkDescriptorType type);
+	size_t allocate(uint32_t set, const Graphics::Image &image, const Graphics::Sampler &sampler, Graphics::ImageViewType view, VkDescriptorType type);
+	size_t allocate(uint32_t set, const Graphics::Sampler &sampler);
 
   public:
 	DescriptorBinding &bind(uint32_t set, uint32_t binding, const std::string &name, VkDescriptorType type);
-	DescriptorBinding &bind(uint32_t set, uint32_t binding, const std::string &name, ImageViewType view, VkDescriptorType type);
-	DescriptorBinding &bind(uint32_t set, uint32_t binding, const std::string &name, const Sampler &sampler, VkDescriptorType type);
-	DescriptorBinding &bind(uint32_t set, uint32_t binding, const std::string &name, const Sampler &sampler, ImageViewType view, VkDescriptorType type);
-	DescriptorBinding &bind(uint32_t set, uint32_t binding, const Sampler &sampler, VkDescriptorType type);
+	DescriptorBinding &bind(uint32_t set, uint32_t binding, const std::string &name, Graphics::ImageViewType view, VkDescriptorType type);
+	DescriptorBinding &bind(uint32_t set, uint32_t binding, const std::string &name, const Graphics::Sampler &sampler, VkDescriptorType type);
+	DescriptorBinding &bind(uint32_t set, uint32_t binding, const std::string &name, const Graphics::Sampler &sampler, Graphics::ImageViewType view, VkDescriptorType type);
+	DescriptorBinding &bind(uint32_t set, uint32_t binding, const Graphics::Sampler &sampler, VkDescriptorType type);
 
 	void setOption(ResolveOption option);
 

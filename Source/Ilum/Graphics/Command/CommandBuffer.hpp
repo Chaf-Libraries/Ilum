@@ -2,8 +2,8 @@
 
 #include "Utils/PCH.hpp"
 
-#include "Graphics/Buffer/Buffer.h"
-#include "Graphics/Image/Image.hpp"
+#include <Graphics/Resource/Buffer.hpp>
+#include <Graphics/Resource/Image.hpp>
 #include "Graphics/Synchronization/Queue.hpp"
 #include "Graphics/Synchronization/QueueSystem.hpp"
 
@@ -17,7 +17,7 @@ struct PassNative;
 
 struct ImageInfo
 {
-	ImageReference       resource;
+	Graphics::ImageReference       resource;
 	VkImageUsageFlagBits usage     = VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM;
 	uint32_t             mip_level = 0;
 	uint32_t             layer     = 0;
@@ -25,7 +25,7 @@ struct ImageInfo
 
 struct BufferInfo
 {
-	BufferReference resource;
+	Graphics::BufferReference resource;
 	uint32_t        offset = 0;
 };
 
@@ -60,14 +60,14 @@ class CommandBuffer
 	void copyBuffer(const BufferInfo &src, const BufferInfo &dst, VkDeviceSize size) const;
 
 	// Mipmap generate
-	void blitImage(const Image &src, VkImageUsageFlagBits src_usage, const Image &dst, VkImageUsageFlagBits dst_usage, VkFilter filter) const;
+	void blitImage(const Graphics::Image &src, VkImageUsageFlagBits src_usage, const Graphics::Image &dst, VkImageUsageFlagBits dst_usage, VkFilter filter) const;
 
-	void generateMipmaps(const Image &image, VkImageUsageFlagBits initial_usage, VkFilter filter) const;
+	void generateMipmaps(const Graphics::Image &image, VkImageUsageFlagBits initial_usage, VkFilter filter) const;
 
 	// Transfer layout
-	void transferLayout(const Image &image, VkImageUsageFlagBits old_usage, VkImageUsageFlagBits new_usage) const;
+	void transferLayout(const Graphics::Image &image, VkImageUsageFlagBits old_usage, VkImageUsageFlagBits new_usage) const;
 
-	void transferLayout(const std::vector<ImageReference> &images, VkImageUsageFlagBits old_usage, VkImageUsageFlagBits new_usage) const;
+	void transferLayout(const std::vector<Graphics::ImageReference> &images, VkImageUsageFlagBits old_usage, VkImageUsageFlagBits new_usage) const;
 
 	void submitIdle();
 

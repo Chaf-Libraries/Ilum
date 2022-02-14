@@ -2,7 +2,7 @@
 
 #include "SubMesh.hpp"
 
-#include "Graphics/Buffer/Buffer.h"
+#include <Graphics/Resource/Buffer.hpp>
 
 #include "Geometry/BoundingBox.hpp"
 #include "Geometry/Mesh/TriMesh.hpp"

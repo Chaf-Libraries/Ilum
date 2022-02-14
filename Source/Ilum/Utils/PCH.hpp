@@ -28,10 +28,10 @@
 #include <unordered_set>
 #include <vector>
 
-#include "Logging/Logger.hpp"
+#include <Core/Logger/Logger.hpp>
 
 #include "Base.hpp"
 
 #include "Hash.hpp"
 
-#include "Graphics/Vulkan/Vulkan.hpp"
+#include <Graphics/Vulkan.hpp>

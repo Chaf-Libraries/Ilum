@@ -3,19 +3,21 @@
 #include <imgui_impl_sdl.h>
 #include <imgui_impl_vulkan.h>
 
-#include "Device/Instance.hpp"
-#include "Device/LogicalDevice.hpp"
-#include "Device/PhysicalDevice.hpp"
-#include "Device/Surface.hpp"
+#include <Graphics/Device/Instance.hpp>
+#include <Graphics/Device/Device.hpp>
+#include <Graphics/Device/PhysicalDevice.hpp>
+#include <Graphics/Device/Surface.hpp>
+#include <Graphics/RenderContext.hpp>
+
 #include "Device/Swapchain.hpp"
-#include "Device/Window.hpp"
 
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/Command/CommandPool.hpp"
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Synchronization/Queue.hpp"
 #include "Graphics/Synchronization/QueueSystem.hpp"
-#include "Graphics/Vulkan/VK_Debugger.h"
+#include <Graphics/Vulkan.hpp>
+#include <Graphics/Resource/Sampler.hpp>
 
 #include "Renderer/RenderGraph/RenderGraph.hpp"
 #include "Renderer/RenderPass/ImGuiPass.hpp"
@@ -23,6 +25,9 @@
 
 #include "Loader/ImageLoader/Bitmap.hpp"
 #include "Loader/ImageLoader/ImageLoader.hpp"
+
+#include <Graphics/Device/Window.hpp>
+#include <Graphics/RenderContext.hpp>
 
 #include <ImFileDialog.h>
 
@@ -43,7 +48,7 @@ inline VkDescriptorPool createDescriptorPool()
 	pool_info.poolSizeCount              = (uint32_t) IM_ARRAYSIZE(pool_sizes);
 	pool_info.pPoolSizes                 = pool_sizes;
 	VkDescriptorPool handle;
-	vkCreateDescriptorPool(GraphicsContext::instance()->getLogicalDevice(), &pool_info, nullptr, &handle);
+	vkCreateDescriptorPool(Graphics::RenderContext::GetDevice(), &pool_info, nullptr, &handle);
 
 	return handle;
 }
@@ -51,7 +56,7 @@ inline VkDescriptorPool createDescriptorPool()
 ImGuiContext::ImGuiContext()
 {
 	// Event poll
-	Window::instance()->Event_SDL += [this](const SDL_Event &e) {
+	Graphics::RenderContext::GetWindow().Event_SDL += [this](const SDL_Event &e) {
 		if (Renderer::instance()->hasImGui() && s_enable)
 		{
 			ImGui_ImplSDL2_ProcessEvent(&e);
@@ -81,7 +86,7 @@ void ImGuiContext::createResouce()
 	// Setting file dialog
 	ifd::FileDialog::Instance().CreateTexture = [](uint8_t *data, int w, int h, char fmt) -> void * {
 		Bitmap bitmap;
-		Image  image;
+		Graphics::Image  image(Graphics::RenderContext::GetDevice());
 
 		bitmap.data.resize(static_cast<size_t>(w) * static_cast<size_t>(h) * 4ull);
 		bitmap.format = fmt == 1 ? VK_FORMAT_R8G8B8A8_UNORM : VK_FORMAT_B8G8R8A8_UNORM;
@@ -91,7 +96,7 @@ void ImGuiContext::createResouce()
 		std::memcpy(bitmap.data.data(), data, static_cast<size_t>(w) * static_cast<size_t>(h) * 4ull);
 		ImageLoader::loadImage(image, bitmap, true);
 
-		auto texure_id = (VkDescriptorSet) ImGui_ImplVulkan_AddTexture(Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), image.getView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		auto texure_id = (VkDescriptorSet) ImGui_ImplVulkan_AddTexture(Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), image.GetView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		s_instance->m_filedialog_image_cache.emplace((VkDescriptorSet) texure_id, std::move(image));
 
 		return texure_id;
@@ -102,17 +107,17 @@ void ImGuiContext::createResouce()
 	};
 
 	ImGui_ImplVulkan_InitInfo init_info = {};
-	init_info.Instance                  = GraphicsContext::instance()->getInstance();
-	init_info.PhysicalDevice            = GraphicsContext::instance()->getPhysicalDevice();
-	init_info.Device                    = GraphicsContext::instance()->getLogicalDevice();
-	init_info.QueueFamily               = GraphicsContext::instance()->getLogicalDevice().getGraphicsFamily();
-	init_info.Queue                     = GraphicsContext::instance()->getLogicalDevice().getGraphicsQueues()[0];
+	init_info.Instance                  = Graphics::RenderContext::GetInstance();
+	init_info.PhysicalDevice            = Graphics::RenderContext::GetPhysicalDevice();
+	init_info.Device                    = Graphics::RenderContext::GetDevice();
+	init_info.QueueFamily               = Graphics::RenderContext::GetDevice().GetQueueFamily(Graphics::QueueFamily::Graphics);
+	init_info.Queue                     = Graphics::RenderContext::GetDevice().GetQueue(Graphics::QueueFamily::Graphics);
 	init_info.PipelineCache             = GraphicsContext::instance()->getPipelineCache();
 	init_info.DescriptorPool            = s_instance->m_descriptor_pool;
 	init_info.MinImageCount             = GraphicsContext::instance()->getSwapchain().getImageCount() - 1;
 	init_info.ImageCount                = GraphicsContext::instance()->getSwapchain().getImageCount();
 
-	ImGui_ImplSDL2_InitForVulkan(Window::instance()->getSDLHandle());
+	ImGui_ImplSDL2_InitForVulkan(Graphics::RenderContext::GetWindow().GetHandle());
 	ImGui_ImplVulkan_Init(&init_info, Renderer::instance()->getRenderGraph()->getNode<pass::ImGuiPass>().pass_native.render_pass);
 
 	// Upload fonts
@@ -137,7 +142,7 @@ void ImGuiContext::releaseResource()
 		ImGui::DestroyContext();
 
 		// Release resource
-		vkDestroyDescriptorPool(GraphicsContext::instance()->getLogicalDevice(), s_instance->m_descriptor_pool, nullptr);
+		vkDestroyDescriptorPool(Graphics::RenderContext::GetDevice(), s_instance->m_descriptor_pool, nullptr);
 		s_instance->m_texture_id_mapping.clear();
 		s_instance->m_filedialog_image_cache.clear();
 		s_instance->m_deprecated_descriptor_sets.clear();
@@ -146,16 +151,16 @@ void ImGuiContext::releaseResource()
 	}
 }
 
-void *ImGuiContext::textureID(const Image &image, const Sampler &sampler)
+void *ImGuiContext::textureID(const Graphics::Image &image, const Graphics::Sampler &sampler)
 {
-	return textureID(image.getView(), sampler);
+	return textureID(image.GetView(), sampler);
 }
 
-void *ImGuiContext::textureID(const VkImageView &view, const Sampler &sampler)
+void *ImGuiContext::textureID(const VkImageView &view, const Graphics::Sampler &sampler)
 {
 	size_t hash = 0;
 	hash_combine(hash, (uint64_t) view);
-	hash_combine(hash, (uint64_t) sampler.getSampler());
+	hash_combine(hash, (uint64_t) sampler.GetHandle());
 
 	if (s_instance->m_texture_id_mapping.find(hash) == s_instance->m_texture_id_mapping.end())
 	{
@@ -175,7 +180,7 @@ void ImGuiContext::flush()
 		{
 			descriptor_sets.push_back(set);
 		}
-		vkFreeDescriptorSets(GraphicsContext::instance()->getLogicalDevice(), s_instance->m_descriptor_pool, static_cast<uint32_t>(descriptor_sets.size()), descriptor_sets.data());
+		vkFreeDescriptorSets(Graphics::RenderContext::GetDevice(), s_instance->m_descriptor_pool, static_cast<uint32_t>(descriptor_sets.size()), descriptor_sets.data());
 		s_instance->m_texture_id_mapping.clear();
 		s_instance->m_filedialog_image_cache.clear();
 	}
@@ -186,7 +191,7 @@ void ImGuiContext::flush()
 		{
 			s_instance->m_filedialog_image_cache.erase(set);
 		}
-		vkFreeDescriptorSets(GraphicsContext::instance()->getLogicalDevice(), s_instance->m_descriptor_pool, static_cast<uint32_t>(s_instance->m_deprecated_descriptor_sets.size()), s_instance->m_deprecated_descriptor_sets.data());
+		vkFreeDescriptorSets(Graphics::RenderContext::GetDevice(), s_instance->m_descriptor_pool, static_cast<uint32_t>(s_instance->m_deprecated_descriptor_sets.size()), s_instance->m_deprecated_descriptor_sets.data());
 		s_instance->m_deprecated_descriptor_sets.clear();
 	}
 }
@@ -360,8 +365,8 @@ void ImGuiContext::end()
 		ImGui::RenderPlatformWindowsDefault();
 	}
 
-	ImDrawData *im_draw_data = ImGui::GetDrawData();
-	s_instance->m_need_update            = false;
+	ImDrawData *im_draw_data  = ImGui::GetDrawData();
+	s_instance->m_need_update = false;
 
 	if (!im_draw_data)
 	{
@@ -419,6 +424,6 @@ void ImGuiContext::endDockingSpace()
 {
 	ImGui::End();
 	ImGuiIO &io    = ImGui::GetIO();
-	io.DisplaySize = ImVec2(static_cast<float>(Window::instance()->getWidth()), static_cast<float>(Window::instance()->getHeight()));
+	io.DisplaySize = ImVec2(static_cast<float>(Graphics::RenderContext::GetWindow().GetWidth()), static_cast<float>(Graphics::RenderContext::GetWindow().GetHeight()));
 }
 }        // namespace Ilum

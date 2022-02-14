@@ -2,24 +2,26 @@
 
 #include "Utils/PCH.hpp"
 
-#include "Timing/Stopwatch.hpp"
-
 namespace Ilum
 {
-class CommandBuffer;
+namespace Graphics
+{
 class Buffer;
+};
+
+class CommandBuffer;
 
 class Profiler
 {
   public:
 	struct Sample
 	{
-		std::string name = "";
+		std::string name    = "";
 		bool        has_gpu = false;
 
 		struct Data
 		{
-			uint32_t index   = 0;
+			uint32_t                                                    index = 0;
 			std::chrono::time_point<std::chrono::high_resolution_clock> cpu_time;
 		};
 
@@ -46,10 +48,9 @@ class Profiler
 	std::map<std::string, std::pair<float, float>> getResult() const;
 
   private:
-	std::vector<VkQueryPool> m_query_pools;
-	std::vector<Buffer>      m_buffers;
-	Stopwatch                m_stopwatch;
-	uint32_t                 m_current_index = 0;
+	std::vector<VkQueryPool>      m_query_pools;
+	std::vector<Graphics::Buffer> m_buffers;
+	uint32_t                      m_current_index = 0;
 
 	std::vector<std::map<std::string, Sample>> m_samples;
 };

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Graphics/Image/Image.hpp"
+#include <Graphics/Resource/Image.hpp>
 #include <glm/glm.hpp>
 
 namespace Ilum::cmpt

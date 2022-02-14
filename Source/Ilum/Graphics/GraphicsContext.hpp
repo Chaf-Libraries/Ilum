@@ -1,17 +1,13 @@
 #pragma once
 
 #include "Engine/Subsystem.hpp"
-#include "Eventing/Event.hpp"
+#include <Core/Event.hpp>
 #include "Graphics/Synchronization/QueueSystem.hpp"
-#include "Timing/Stopwatch.hpp"
+#include <Core/Timer.hpp>
 #include "Utils/PCH.hpp"
 
 namespace Ilum
 {
-class Instance;
-class PhysicalDevice;
-class Surface;
-class LogicalDevice;
 class Swapchain;
 class CommandBuffer;
 class CommandPool;
@@ -26,14 +22,6 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	GraphicsContext(Context *context);
 
 	~GraphicsContext() = default;
-
-	const Instance &getInstance() const;
-
-	const PhysicalDevice &getPhysicalDevice() const;
-
-	const Surface &getSurface() const;
-
-	const LogicalDevice &getLogicalDevice() const;
 
 	const Swapchain &getSwapchain() const;
 
@@ -87,10 +75,6 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	void submitFrame();
 
   private:
-	scope<Instance>       m_instance        = nullptr;
-	scope<PhysicalDevice> m_physical_device = nullptr;
-	scope<Surface>        m_surface         = nullptr;
-	scope<LogicalDevice>  m_logical_device  = nullptr;
 	scope<Swapchain>      m_swapchain       = nullptr;
 
 	scope<DescriptorCache> m_descriptor_cache = nullptr;
@@ -120,6 +104,6 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	scope<QueueSystem> m_queue_system = nullptr;
 
   public:
-	Event<> Swapchain_Rebuild_Event;
+	Core::Event<> Swapchain_Rebuild_Event;
 };
 }        // namespace Ilum

@@ -1,14 +1,16 @@
 #include "RenderGraphBuilder.hpp"
 
-#include "Graphics/Buffer/Buffer.h"
+#include <Graphics/Resource/Buffer.hpp>
 #include "Graphics/Descriptor/DescriptorBinding.hpp"
 #include "Graphics/Descriptor/DescriptorCache.hpp"
 #include "Graphics/GraphicsContext.hpp"
-#include "Graphics/Image/Image.hpp"
+#include <Graphics/Resource/Image.hpp>
 #include "Graphics/Pipeline/PipelineState.hpp"
-#include "Graphics/Vulkan/VK_Debugger.h"
 
-#include "Device/LogicalDevice.hpp"
+#include <Graphics/Vulkan.hpp>
+#include <Graphics/RenderContext.hpp>
+
+#include <Graphics/Device/Device.hpp>
 #include "Device/Swapchain.hpp"
 
 #include "RenderGraph.hpp"
@@ -289,7 +291,7 @@ inline void createGraphicsPipeline(const PipelineState &pipeline_state, PassNati
 	graphics_pipeline_create_info.basePipelineHandle = VK_NULL_HANDLE;
 	graphics_pipeline_create_info.basePipelineIndex  = -1;
 
-	vkCreateGraphicsPipelines(GraphicsContext::instance()->getLogicalDevice(), GraphicsContext::instance()->getPipelineCache(), 1, &graphics_pipeline_create_info, nullptr, &pass_native.pipeline);
+	vkCreateGraphicsPipelines(Graphics::RenderContext::GetDevice(), GraphicsContext::instance()->getPipelineCache(), 1, &graphics_pipeline_create_info, nullptr, &pass_native.pipeline);
 }
 
 inline void createComputePipeline(const PipelineState &pipeline_state, PassNative &pass_native)
@@ -307,13 +309,13 @@ inline void createComputePipeline(const PipelineState &pipeline_state, PassNativ
 	compute_pipeline_create_info.basePipelineIndex           = 0;
 	compute_pipeline_create_info.basePipelineHandle          = VK_NULL_HANDLE;
 
-	vkCreateComputePipelines(GraphicsContext::instance()->getLogicalDevice(), GraphicsContext::instance()->getPipelineCache(), 1, &compute_pipeline_create_info, nullptr, &pass_native.pipeline);
+	vkCreateComputePipelines(Graphics::RenderContext::GetDevice(), GraphicsContext::instance()->getPipelineCache(), 1, &compute_pipeline_create_info, nullptr, &pass_native.pipeline);
 }
 
 inline VkImageMemoryBarrier createImageMemoryBarrier(VkImage image, VkImageUsageFlagBits old_usage, VkImageUsageFlagBits new_usage, VkFormat format, uint32_t mip_level_count, uint32_t layer_count)
 {
 	VkImageSubresourceRange subresource_range = {};
-	subresource_range.aspectMask              = Image::format_to_aspect(format);
+	subresource_range.aspectMask              = Graphics::Image::FormatToAspect(format);
 	subresource_range.baseArrayLayer          = 0;
 	subresource_range.baseMipLevel            = 0;
 	subresource_range.layerCount              = layer_count;
@@ -322,10 +324,10 @@ inline VkImageMemoryBarrier createImageMemoryBarrier(VkImage image, VkImageUsage
 	VkImageMemoryBarrier barrier = {};
 	barrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 	barrier.image                = image;
-	barrier.oldLayout            = Image::usage_to_layout(old_usage);
-	barrier.newLayout            = Image::usage_to_layout(new_usage);
-	barrier.srcAccessMask        = Image::usage_to_access(old_usage);
-	barrier.dstAccessMask        = Image::usage_to_access(new_usage);
+	barrier.oldLayout            = Graphics::Image::UsageToLayout(old_usage);
+	barrier.newLayout            = Graphics::Image::UsageToLayout(new_usage);
+	barrier.srcAccessMask        = Graphics::Image::UsageToAccess(old_usage);
+	barrier.dstAccessMask        = Graphics::Image::UsageToAccess(new_usage);
 	barrier.srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
 	barrier.dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
 	barrier.subresourceRange     = subresource_range;
@@ -370,7 +372,7 @@ inline void insertPipelineBarrier(const CommandBuffer &command_buffer, const Res
 		auto buffers = resolve_info.getBuffers().at(buffer_name);
 		for (const auto &buffer : buffers)
 		{
-			buffer_barriers.push_back(createBufferMemoryBarrier(buffer.get().getBuffer(), buffer_transition.initial_usage, buffer_transition.final_usage));
+			buffer_barriers.push_back(createBufferMemoryBarrier(buffer.get().GetHandle(), buffer_transition.initial_usage, buffer_transition.final_usage));
 		}
 	}
 
@@ -382,13 +384,13 @@ inline void insertPipelineBarrier(const CommandBuffer &command_buffer, const Res
 			continue;
 		}
 
-		src_pipeline_flags |= Image::usage_to_stage(image_transition.initial_usage);
-		dst_pipeline_flags |= Image::usage_to_stage(image_transition.final_usage);
+		src_pipeline_flags |= Graphics::Image::UsageToStage(image_transition.initial_usage);
+		dst_pipeline_flags |= Graphics::Image::UsageToStage(image_transition.final_usage);
 
 		const auto &images = resolve_info.getImages().at(image_name);
 		for (const auto &image : images)
 		{
-			image_barriers.push_back(createImageMemoryBarrier(image.get().getImage(), image_transition.initial_usage, image_transition.final_usage, image.get().getFormat(), image.get().getMipLevelCount(), image.get().getLayerCount()));
+			image_barriers.push_back(createImageMemoryBarrier(image.get().GetHandle(), image_transition.initial_usage, image_transition.final_usage, image.get().GetFormat(), image.get().GetMipLevelCount(), image.get().GetLayerCount()));
 		}
 	}
 
@@ -407,7 +409,7 @@ inline VkSemaphore createSemaphore()
 	create_info.pNext = nullptr;
 	create_info.flags = 0;
 
-	vkCreateSemaphore(GraphicsContext::instance()->getLogicalDevice(), &create_info, nullptr, &semaphore);
+	vkCreateSemaphore(Graphics::RenderContext::GetDevice(), &create_info, nullptr, &semaphore);
 
 	return semaphore;
 }
@@ -479,7 +481,7 @@ scope<RenderGraph> RenderGraphBuilder::build()
 	    std::move(attachments),
 	    m_output,
 	    m_view,
-	    m_output.empty() ? [](const CommandBuffer &, const Image &, const Image &) {} : createOnPresentCallback(m_output, resource_transitions),
+	    m_output.empty() ? [](const CommandBuffer &, const Graphics::Image &, const Graphics::Image &) {} : createOnPresentCallback(m_output, resource_transitions),
 	    createOnCreateCallback(pipeline_states, resource_transitions, attachments));
 }
 
@@ -661,7 +663,7 @@ RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependen
 		fence_create_info.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		fence_create_info.flags             = 0;
 
-		vkCreateFence(GraphicsContext::instance()->getLogicalDevice(), &fence_create_info, nullptr, &fence);
+		vkCreateFence(Graphics::RenderContext::GetDevice(), &fence_create_info, nullptr, &fence);
 
 		SubmitInfo submit_info;
 		submit_info.fence = fence;
@@ -889,7 +891,8 @@ RenderGraphBuilder::AttachmentMap RenderGraphBuilder::allocateAttachments(const 
 		for (const auto &attachment : pipeline_state.getAttachmentDeclarations())
 		{
 			auto attachment_usage = resource_transitions.images.total_usages.at(attachment.name);
-			attachments.emplace(attachment.name, std::move(Image(
+			attachments.emplace(attachment.name, std::move(Graphics::Image(
+			                                         Graphics::RenderContext::GetDevice(), 
 			                                         attachment.width == 0 ? surface_width : attachment.width,
 			                                         attachment.height == 0 ? surface_height : attachment.height,
 			                                         attachment.format,
@@ -928,33 +931,33 @@ PassNative RenderGraphBuilder::buildRenderPass(const RenderPassReference &render
 
 			if (render_area.width == 0 && render_area.height == 0)
 			{
-				render_area.width  = std::max(render_area.width, image_reference.getWidth());
-				render_area.height = std::max(render_area.height, image_reference.getHeight());
+				render_area.width  = std::max(render_area.width, image_reference.GetWidth());
+				render_area.height = std::max(render_area.height, image_reference.GetHeight());
 			}
 
 			VkAttachmentDescription attachment_description = {};
-			attachment_description.format                  = image_reference.getFormat();
+			attachment_description.format                  = image_reference.GetFormat();
 			attachment_description.samples                 = VK_SAMPLE_COUNT_1_BIT;
 			attachment_description.loadOp                  = attachment_state_to_loadop(attachment.state);
 			attachment_description.storeOp                 = VK_ATTACHMENT_STORE_OP_STORE;
 			attachment_description.stencilLoadOp           = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachment_description.stencilStoreOp          = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-			attachment_description.initialLayout           = Image::usage_to_layout(attachment_transition.final_usage);
-			attachment_description.finalLayout             = Image::usage_to_layout(attachment_transition.final_usage);
+			attachment_description.initialLayout           = Graphics::Image::UsageToLayout(attachment_transition.final_usage);
+			attachment_description.finalLayout             = Graphics::Image::UsageToLayout(attachment_transition.final_usage);
 
 			attachment_descriptions.push_back(std::move(attachment_description));
 			if (attachment.layer == PipelineState::OutputAttachment::ALL_LAYERS)
 			{
-				attachment_views.push_back(image_reference.getView(ImageViewType::Native));
+				attachment_views.push_back(image_reference.GetView(Graphics::ImageViewType::Native));
 			}
 			else
 			{
-				attachment_views.push_back(image_reference.getView(attachment.layer, ImageViewType::Native));
+				attachment_views.push_back(image_reference.GetView(attachment.layer, Graphics::ImageViewType::Native));
 			}
 
 			VkAttachmentReference attachment_reference = {};
 			attachment_reference.attachment            = attachment_index;
-			attachment_reference.layout                = Image::usage_to_layout(attachment_transition.final_usage);
+			attachment_reference.layout                = Graphics::Image::UsageToLayout(attachment_transition.final_usage);
 
 			if (attachment_transition.final_usage == VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT)
 			{
@@ -1007,9 +1010,9 @@ PassNative RenderGraphBuilder::buildRenderPass(const RenderPassReference &render
 		render_pass_create_info.dependencyCount        = static_cast<uint32_t>(subpass_dependencies.size());
 		render_pass_create_info.pDependencies          = subpass_dependencies.data();
 
-		vkCreateRenderPass(GraphicsContext::instance()->getLogicalDevice(), &render_pass_create_info, nullptr, &pass_native.render_pass);
+		vkCreateRenderPass(Graphics::RenderContext::GetDevice(), &render_pass_create_info, nullptr, &pass_native.render_pass);
 
-		VK_Debugger::setName(pass_native.render_pass, render_pass_reference.name.c_str());
+		Graphics::VKDebugger::SetName(Graphics::RenderContext::GetDevice(), pass_native.render_pass, render_pass_reference.name.c_str());
 
 		// Create framebuffer
 		VkFramebufferCreateInfo frame_buffer_create_info = {};
@@ -1021,7 +1024,7 @@ PassNative RenderGraphBuilder::buildRenderPass(const RenderPassReference &render
 		frame_buffer_create_info.height                  = render_area.height;
 		frame_buffer_create_info.layers                  = 1;
 
-		vkCreateFramebuffer(GraphicsContext::instance()->getLogicalDevice(), &frame_buffer_create_info, nullptr, &pass_native.frame_buffer);
+		vkCreateFramebuffer(Graphics::RenderContext::GetDevice(), &frame_buffer_create_info, nullptr, &pass_native.frame_buffer);
 
 		pass_native.render_area.extent = render_area;
 		pass_native.render_area.offset = {0, 0};
@@ -1047,7 +1050,7 @@ PassNative RenderGraphBuilder::buildRenderPass(const RenderPassReference &render
 	pipeline_layout_create_info.setLayoutCount             = static_cast<uint32_t>(descriptor_set_layouts.size());
 	pipeline_layout_create_info.pSetLayouts                = descriptor_set_layouts.data();
 
-	vkCreatePipelineLayout(GraphicsContext::instance()->getLogicalDevice(), &pipeline_layout_create_info, nullptr, &pass_native.pipeline_layout);
+	vkCreatePipelineLayout(Graphics::RenderContext::GetDevice(), &pipeline_layout_create_info, nullptr, &pass_native.pipeline_layout);
 
 	if (pass.shader.getBindPoint() == VK_PIPELINE_BIND_POINT_GRAPHICS)
 	{
@@ -1117,35 +1120,35 @@ RenderGraphBuilder::PresentCallback RenderGraphBuilder::createOnPresentCallback(
 	output_image_transition.initial_usage = resource_transitions.images.transitions.at(last_render_pass_name).at(output).final_usage;
 	output_image_transition.final_usage   = resource_transitions.images.transitions.at(first_render_pass_name).at(output).initial_usage;
 
-	return [output_image_transition](const CommandBuffer &command_buffer, const Image &output_image, const Image &present_image) {
+	return [output_image_transition](const CommandBuffer &command_buffer, const Graphics::Image &output_image, const Graphics::Image &present_image) {
 		command_buffer.blitImage(output_image, output_image_transition.initial_usage, present_image, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_FILTER_LINEAR);
-		auto subresource_range = output_image.getSubresourceRange();
+		auto subresource_range = output_image.GetSubresourceRange();
 		if (output_image_transition.final_usage != VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
 		{
 			VkImageMemoryBarrier barrier = {};
 			barrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 			barrier.srcAccessMask        = VK_ACCESS_TRANSFER_READ_BIT;
-			barrier.dstAccessMask        = Image::usage_to_access(output_image_transition.final_usage);
+			barrier.dstAccessMask        = Graphics::Image::UsageToAccess(output_image_transition.final_usage);
 			barrier.oldLayout            = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-			barrier.newLayout            = Image::usage_to_layout(output_image_transition.final_usage);
+			barrier.newLayout            = Graphics::Image::UsageToLayout(output_image_transition.final_usage);
 			barrier.srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
 			barrier.dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
-			barrier.image                = output_image.getImage();
+			barrier.image                = output_image.GetHandle();
 			barrier.subresourceRange     = subresource_range;
-			vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT, Image::usage_to_stage(output_image_transition.final_usage), 0, 0, nullptr, 0, nullptr, 1, &barrier);
+			vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT, Graphics::Image::UsageToStage(output_image_transition.final_usage), 0, 0, nullptr, 0, nullptr, 1, &barrier);
 		}
 
 		VkImageMemoryBarrier barrier = {};
 		barrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		barrier.srcAccessMask        = Image::usage_to_access(VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+		barrier.srcAccessMask        = Graphics::Image::UsageToAccess(VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 		barrier.dstAccessMask        = VK_ACCESS_MEMORY_READ_BIT;
-		barrier.oldLayout            = Image::usage_to_layout(VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+		barrier.oldLayout            = Graphics::Image::UsageToLayout(VK_IMAGE_USAGE_TRANSFER_DST_BIT);
 		barrier.newLayout            = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 		barrier.srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
 		barrier.dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
-		barrier.image                = present_image.getImage();
+		barrier.image                = present_image.GetHandle();
 		barrier.subresourceRange     = subresource_range;
-		vkCmdPipelineBarrier(command_buffer, Image::usage_to_stage(VK_IMAGE_USAGE_TRANSFER_DST_BIT), VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+		vkCmdPipelineBarrier(command_buffer, Graphics::Image::UsageToStage(VK_IMAGE_USAGE_TRANSFER_DST_BIT), VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 	};
 }
 }        // namespace Ilum

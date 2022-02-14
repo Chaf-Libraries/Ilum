@@ -2,7 +2,7 @@
 
 #include "Editor/Panel.hpp"
 
-#include "Graphics/Image/Image.hpp"
+#include <Graphics/Resource/Image.hpp>
 
 namespace Ilum::panel
 {
@@ -16,7 +16,7 @@ class AssetBrowser : public Panel
 	virtual void draw(float delta_time) override;
 
   private:
-	Image m_model_icon;
-	Image m_shader_icon;
+	Graphics::Image m_model_icon;
+	Graphics::Image m_shader_icon;
 };
 }        // namespace Ilum::panel

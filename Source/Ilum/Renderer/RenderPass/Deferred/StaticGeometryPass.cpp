@@ -8,7 +8,7 @@
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
-#include "Threading/ThreadPool.hpp"
+#include <Core/JobSystem/JobSystem.hpp>
 
 #include "Material/PBR.h"
 
@@ -65,7 +65,7 @@ void StaticGeometryPass::setupPipeline(PipelineState &state)
 	}
 
 	state.descriptor_bindings.bind(0, 0, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-	state.descriptor_bindings.bind(0, 1, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Wrap), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 1, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Wrap), Graphics::ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 2, "PerInstanceData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 3, "MaterialData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 4, "PerMeshletData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
@@ -143,11 +143,11 @@ void StaticGeometryPass::render(RenderPassState &state)
 	const auto &vertex_buffer = Renderer::instance()->Render_Buffer.Static_Vertex_Buffer;
 	const auto &index_buffer  = Renderer::instance()->Render_Buffer.Static_Index_Buffer;
 
-	if (Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count > 0 && vertex_buffer.getBuffer() && index_buffer.getBuffer())
+	if (Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count > 0 && vertex_buffer.GetHandle() && index_buffer.GetHandle())
 	{
 		VkDeviceSize offsets[1] = {0};
-		vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &vertex_buffer.getBuffer(), offsets);
-		vkCmdBindIndexBuffer(cmd_buffer, index_buffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+		vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &vertex_buffer.GetHandle(), offsets);
+		vkCmdBindIndexBuffer(cmd_buffer, index_buffer.GetHandle(), 0, VK_INDEX_TYPE_UINT32);
 
 		auto &draw_buffer  = Renderer::instance()->Render_Buffer.Command_Buffer;
 		auto &count_buffer = Renderer::instance()->Render_Buffer.Count_Buffer;

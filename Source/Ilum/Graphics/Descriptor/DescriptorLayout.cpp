@@ -1,11 +1,12 @@
 #include "DescriptorLayout.hpp"
 
-#include "Device/LogicalDevice.hpp"
+#include <Graphics/Device/Device.hpp>
+#include <Graphics/RenderContext.hpp>
 
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Shader/Shader.hpp"
 
-#include "Graphics/Vulkan/VK_Debugger.h"
+#include <Graphics/Vulkan.hpp>
 
 namespace Ilum
 {
@@ -58,7 +59,7 @@ DescriptorLayout::DescriptorLayout(const Shader &shader, const uint32_t set_inde
 
 	std::vector<VkDescriptorBindingFlags> descriptor_binding_flags = {};
 
-	// Buffer descriptor
+	// Graphics::Buffer descriptor
 	for (const auto &buffer : buffers)
 	{
 		if (buffer.set != set_index)
@@ -79,7 +80,7 @@ DescriptorLayout::DescriptorLayout(const Shader &shader, const uint32_t set_inde
 		descriptor_binding_flags.push_back(buffer.bindless ? VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT : 0);
 	}
 
-	// Image descriptor
+	// Graphics::Image descriptor
 	for (const auto &image : images)
 	{
 		if (image.set != set_index)
@@ -137,14 +138,14 @@ DescriptorLayout::DescriptorLayout(const Shader &shader, const uint32_t set_inde
 	descriptor_set_layout_binding_flag_create_info.pBindingFlags = descriptor_binding_flags.data();
 	descriptor_set_layout_create_info.pNext                      = bindless ? &descriptor_set_layout_binding_flag_create_info : nullptr;
 
-	vkCreateDescriptorSetLayout(GraphicsContext::instance()->getLogicalDevice(), &descriptor_set_layout_create_info, nullptr, &m_handle);
+	vkCreateDescriptorSetLayout(Graphics::RenderContext::GetDevice(), &descriptor_set_layout_create_info, nullptr, &m_handle);
 }
 
 DescriptorLayout::~DescriptorLayout()
 {
 	if (m_handle)
 	{
-		vkDestroyDescriptorSetLayout(GraphicsContext::instance()->getLogicalDevice(), m_handle, nullptr);
+		vkDestroyDescriptorSetLayout(Graphics::RenderContext::GetDevice(), m_handle, nullptr);
 		m_handle = VK_NULL_HANDLE;
 	}
 }

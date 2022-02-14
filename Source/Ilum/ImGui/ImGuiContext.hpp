@@ -4,12 +4,16 @@
 
 #include "Engine/Subsystem.hpp"
 
-#include "Graphics/Image/Image.hpp"
+#include <Graphics/Resource/Image.hpp>
 
 namespace Ilum
 {
 class CommandBuffer;
+
+namespace Graphics
+{
 class Sampler;
+};
 
 class ImGuiContext
 {
@@ -42,9 +46,9 @@ class ImGuiContext
 
 	static void endDockingSpace();
 
-	static void *textureID(const Image &image, const Sampler &sampler);
+	static void *textureID(const Graphics::Image &image, const Graphics::Sampler &sampler);
 
-	static void *textureID(const VkImageView &view, const Sampler &sampler);
+	static void *textureID(const VkImageView &view, const Graphics::Sampler &sampler);
 
 	static void flush();
 
@@ -63,8 +67,8 @@ class ImGuiContext
 	std::unordered_map<size_t, VkDescriptorSet> m_texture_id_mapping;
 
 	// File dialog
-	std::unordered_map<VkDescriptorSet, Image> m_filedialog_image_cache;
-	std::vector<VkDescriptorSet>               m_deprecated_descriptor_sets;
+	std::unordered_map<VkDescriptorSet, Graphics::Image> m_filedialog_image_cache;
+	std::vector<VkDescriptorSet>                         m_deprecated_descriptor_sets;
 
 	// ImGui vertex & index
 	int32_t m_vertex_count = 0;

@@ -3,9 +3,10 @@
 
 #include "Graphics/GraphicsContext.hpp"
 
-#include "Device/LogicalDevice.hpp"
+#include <Graphics/Device/Device.hpp>
+#include <Graphics/RenderContext.hpp>
 
-#include "Graphics/Vulkan/VK_Debugger.h"
+#include <Graphics/Vulkan.hpp>
 
 namespace Ilum
 {
@@ -13,25 +14,10 @@ QueueSystem::QueueSystem()
 {
 	std::unordered_set<VkQueue> all_queues;
 
-	for (uint32_t i = 0; i < GraphicsContext::instance()->getLogicalDevice().getPresentQueues().size(); i++)
-	{
-		all_queues.insert(GraphicsContext::instance()->getLogicalDevice().getPresentQueues()[i]);
-	}
-
-	for (uint32_t i = 0; i < GraphicsContext::instance()->getLogicalDevice().getGraphicsQueues().size(); i++)
-	{
-		all_queues.insert(GraphicsContext::instance()->getLogicalDevice().getGraphicsQueues()[i]);
-	}
-
-	for (uint32_t i = 0; i < GraphicsContext::instance()->getLogicalDevice().getComputeQueues().size(); i++)
-	{
-		all_queues.insert(GraphicsContext::instance()->getLogicalDevice().getComputeQueues()[i]);
-	}
-
-	for (uint32_t i = 0; i < GraphicsContext::instance()->getLogicalDevice().getTransferQueues().size(); i++)
-	{
-		all_queues.insert(GraphicsContext::instance()->getLogicalDevice().getTransferQueues()[i]);
-	}
+	all_queues.insert(Graphics::RenderContext::GetDevice().GetQueue(Graphics::QueueFamily::Present));
+	all_queues.insert(Graphics::RenderContext::GetDevice().GetQueue(Graphics::QueueFamily::Graphics));
+	all_queues.insert(Graphics::RenderContext::GetDevice().GetQueue(Graphics::QueueFamily::Compute));
+	all_queues.insert(Graphics::RenderContext::GetDevice().GetQueue(Graphics::QueueFamily::Transfer));
 
 	std::unordered_map<VkQueue, Queue *> lut;
 	for (auto &queue : all_queues)
@@ -40,31 +26,20 @@ QueueSystem::QueueSystem()
 		lut[queue] = m_queues.back().get();
 	}
 
-	for (auto &queue : GraphicsContext::instance()->getLogicalDevice().getPresentQueues())
-	{
-		m_present_queues.push_back(lut[queue]);
-	}
-	uint32_t i = 0;
-	for (auto &queue : GraphicsContext::instance()->getLogicalDevice().getGraphicsQueues())
-	{
-		m_graphics_queues.push_back(lut[queue]);
-		VK_Debugger::setName(*lut[queue], std::to_string(i++).c_str());
-	}
-	for (auto &queue : GraphicsContext::instance()->getLogicalDevice().getTransferQueues())
-	{
-		m_transfer_queues.push_back(lut[queue]);
-	}
-	for (auto &queue : GraphicsContext::instance()->getLogicalDevice().getComputeQueues())
-	{
-		m_compute_queues.push_back(lut[queue]);
-	}
+	m_present_queues.push_back(lut[Graphics::RenderContext::GetDevice().GetQueue(Graphics::QueueFamily::Present)]);
+
+	m_graphics_queues.push_back(lut[Graphics::RenderContext::GetDevice().GetQueue(Graphics::QueueFamily::Graphics)]);
+
+	m_transfer_queues.push_back(lut[Graphics::RenderContext::GetDevice().GetQueue(Graphics::QueueFamily::Transfer)]);
+
+	m_compute_queues.push_back(lut[Graphics::RenderContext::GetDevice().GetQueue(Graphics::QueueFamily::Compute)]);
 }
 
 void QueueSystem::waitAll()
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
 
-	for (auto& queue : m_queues)
+	for (auto &queue : m_queues)
 	{
 		queue->waitIdle();
 	}
@@ -79,7 +54,7 @@ Queue *QueueSystem::acquire(QueueUsage usage, uint32_t index)
 			return nullptr;
 		}
 
-		return m_present_queues[index];
+		return m_present_queues[0];
 	}
 
 	if (usage == QueueUsage::Graphics)
@@ -89,7 +64,7 @@ Queue *QueueSystem::acquire(QueueUsage usage, uint32_t index)
 			return nullptr;
 		}
 
-		return m_graphics_queues[index];
+		return m_graphics_queues[0];
 	}
 
 	if (usage == QueueUsage::Transfer)
@@ -99,7 +74,7 @@ Queue *QueueSystem::acquire(QueueUsage usage, uint32_t index)
 			return nullptr;
 		}
 
-		return m_transfer_queues[index];
+		return m_transfer_queues[0];
 	}
 
 	if (usage == QueueUsage::Compute)
@@ -109,7 +84,7 @@ Queue *QueueSystem::acquire(QueueUsage usage, uint32_t index)
 			return nullptr;
 		}
 
-		return m_compute_queues[index];
+		return m_compute_queues[0];
 	}
 
 	return nullptr;

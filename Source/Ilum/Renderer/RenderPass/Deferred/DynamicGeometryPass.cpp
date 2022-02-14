@@ -8,9 +8,9 @@
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
-#include "Threading/ThreadPool.hpp"
+#include <Core/JobSystem/JobSystem.hpp>
 
-#include "File/FileSystem.hpp"
+#include <Core/FileSystem.hpp>
 
 #include "Material/PBR.h"
 
@@ -67,7 +67,7 @@ void DynamicGeometryPass::setupPipeline(PipelineState &state)
 	}
 
 	state.descriptor_bindings.bind(0, 0, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-	state.descriptor_bindings.bind(0, 1, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Wrap), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 1, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Wrap), Graphics::ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
 	state.declareAttachment("gbuffer - albedo", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("gbuffer - normal", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
@@ -142,7 +142,7 @@ void DynamicGeometryPass::render(RenderPassState &state)
 			Renderer::instance()->Render_Stats.dynamic_mesh_count.triangle_count += static_cast<uint32_t>(mesh_renderer.indices.size()) / 3;
 
 			VkDeviceSize offsets[1] = {0};
-			vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &mesh_renderer.vertex_buffer.getBuffer(), offsets);
+			vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &mesh_renderer.vertex_buffer.GetHandle(), offsets);
 			vkCmdBindIndexBuffer(cmd_buffer, mesh_renderer.index_buffer, 0, VK_INDEX_TYPE_UINT32);
 
 			struct VertexPushBlock
@@ -180,19 +180,19 @@ void DynamicGeometryPass::render(RenderPassState &state)
 				material::PBRMaterial *pbr = static_cast<material::PBRMaterial *>(mesh_renderer.material.get());
 
 				vertex_block.displacement_height = pbr->displacement_height;
-				vertex_block.displacement_map    = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->displacement_map));
+				vertex_block.displacement_map    = Renderer::instance()->getResourceCache().imageID(Core::FileSystem::GetRelativePath(pbr->displacement_map));
 
 				fragment_block.base_color         = pbr->base_color;
 				fragment_block.emissive_color     = pbr->emissive_color;
 				fragment_block.metallic_factor    = pbr->metallic_factor;
 				fragment_block.roughness_factor   = pbr->roughness_factor;
 				fragment_block.emissive_intensity = pbr->emissive_intensity;
-				fragment_block.albedo_map         = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->albedo_map));
-				fragment_block.normal_map         = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->normal_map));
-				fragment_block.metallic_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->metallic_map));
-				fragment_block.roughness_map      = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->roughness_map));
-				fragment_block.emissive_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->emissive_map));
-				fragment_block.ao_map             = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->ao_map));
+				fragment_block.albedo_map         = Renderer::instance()->getResourceCache().imageID(Core::FileSystem::GetRelativePath(pbr->albedo_map));
+				fragment_block.normal_map         = Renderer::instance()->getResourceCache().imageID(Core::FileSystem::GetRelativePath(pbr->normal_map));
+				fragment_block.metallic_map       = Renderer::instance()->getResourceCache().imageID(Core::FileSystem::GetRelativePath(pbr->metallic_map));
+				fragment_block.roughness_map      = Renderer::instance()->getResourceCache().imageID(Core::FileSystem::GetRelativePath(pbr->roughness_map));
+				fragment_block.emissive_map       = Renderer::instance()->getResourceCache().imageID(Core::FileSystem::GetRelativePath(pbr->emissive_map));
+				fragment_block.ao_map             = Renderer::instance()->getResourceCache().imageID(Core::FileSystem::GetRelativePath(pbr->ao_map));
 			}
 			else
 			{

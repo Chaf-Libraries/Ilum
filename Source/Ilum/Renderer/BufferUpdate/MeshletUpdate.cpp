@@ -45,16 +45,16 @@ void MeshletUpdate::run()
 			}
 		}
 
-		if (Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count * sizeof(PerMeshletData) > Renderer::instance()->Render_Buffer.Meshlet_Buffer.getSize())
+		if (Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count * sizeof(PerMeshletData) > Renderer::instance()->Render_Buffer.Meshlet_Buffer.GetSize())
 		{
 			GraphicsContext::instance()->getQueueSystem().waitAll();
-			Renderer::instance()->Render_Buffer.Meshlet_Buffer = Buffer(Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count * sizeof(PerMeshletData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-			Renderer::instance()->Render_Buffer.Command_Buffer = Buffer(Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count * sizeof(VkDrawIndexedIndirectCommand), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-			Renderer::instance()->Render_Buffer.Draw_Buffer    = Buffer(Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+			Renderer::instance()->Render_Buffer.Meshlet_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count * sizeof(PerMeshletData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			Renderer::instance()->Render_Buffer.Command_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count * sizeof(VkDrawIndexedIndirectCommand), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+			Renderer::instance()->Render_Buffer.Draw_Buffer    = Graphics::Buffer(Graphics::RenderContext::GetDevice(), Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 			Renderer::instance()->update();
 		}
 
-		PerMeshletData *meshlet_data = reinterpret_cast<PerMeshletData *>(Renderer::instance()->Render_Buffer.Meshlet_Buffer.map());
+		PerMeshletData *meshlet_data = reinterpret_cast<PerMeshletData *>(Renderer::instance()->Render_Buffer.Meshlet_Buffer.Map());
 
 		// Update static mesh material
 		tbb::parallel_for(tbb::blocked_range<size_t>(0, meshlet_view.size()), [&meshlet_view, &meshlet_data, meshlet_offset, instance_offset](const tbb::blocked_range<size_t> &r) {
@@ -93,7 +93,7 @@ void MeshletUpdate::run()
 				}
 			}
 		});
-		Renderer::instance()->Render_Buffer.Meshlet_Buffer.unmap();
+		Renderer::instance()->Render_Buffer.Meshlet_Buffer.Unmap();
 	}
 	cmpt::MeshletRenderer::update = false;
 	GraphicsContext::instance()->getProfiler().endSample("Meshlet Update");

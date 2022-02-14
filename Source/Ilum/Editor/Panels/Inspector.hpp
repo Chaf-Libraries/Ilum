@@ -2,7 +2,7 @@
 
 #include "Editor/Panel.hpp"
 
-#include "Graphics/Image/Image.hpp"
+#include <Graphics/Resource/Image.hpp>
 
 namespace Ilum::panel
 {

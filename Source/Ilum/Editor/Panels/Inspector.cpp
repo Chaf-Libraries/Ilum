@@ -21,7 +21,7 @@
 
 #include "ImGui/ImGuiContext.hpp"
 
-#include "File/FileSystem.hpp"
+#include <Core/FileSystem.hpp>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -172,8 +172,8 @@ bool draw_texture(std::string &texture, const std::string &name)
 {
 	bool update = false;
 	ImGui::PushID(name.c_str());
-	if (ImGui::ImageButton(Renderer::instance()->getResourceCache().hasImage(FileSystem::getRelativePath(texture)) ?
-                               ImGuiContext::textureID(Renderer::instance()->getResourceCache().loadImage(FileSystem::getRelativePath(texture)), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)) :
+	if (ImGui::ImageButton(Renderer::instance()->getResourceCache().hasImage(Core::FileSystem::GetRelativePath(texture)) ?
+                               ImGuiContext::textureID(Renderer::instance()->getResourceCache().loadImage(Core::FileSystem::GetRelativePath(texture)), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)) :
                                ImGuiContext::textureID(Renderer::instance()->getDefaultTexture(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
 	                       ImVec2{100.f, 100.f}))
 	{

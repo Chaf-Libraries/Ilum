@@ -2,7 +2,7 @@
 
 #include "Editor/Panel.hpp"
 
-#include "Graphics/Image/Image.hpp"
+#include <Graphics/Resource/Image.hpp>
 
 #include <imgui.h>
 
@@ -20,6 +20,6 @@ class Console : public Panel
   private:
 	ImGuiTextFilter m_filter;
 
-	Image m_icons[6];
+	Graphics::Image m_icons[6];
 };
 }        // namespace Ilum::panel

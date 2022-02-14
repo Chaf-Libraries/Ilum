@@ -6,11 +6,15 @@
 
 namespace Ilum
 {
+namespace Graphics
+{
+class Image;
+class Buffer;
+};        // namespace Graphics
+
 class RenderPass;
 class RenderGraph;
 struct RenderGraphNode;
-class Image;
-class Buffer;
 class PipelineState;
 class CommandBuffer;
 class ResolveInfo;
@@ -76,11 +80,11 @@ class RenderGraphBuilder
 
 	// TODO: Semaphore?
 
-	using SynchronizeMap           = std::unordered_map<std::string, SubmitInfo>;
-	using AttachmentMap           = std::unordered_map<std::string, Image>;
+	using SynchronizeMap          = std::unordered_map<std::string, SubmitInfo>;
+	using AttachmentMap           = std::unordered_map<std::string, Graphics::Image>;
 	using PipelineMap             = std::unordered_map<std::string, PipelineState>;
 	using PipelineBarrierCallback = std::function<void(const CommandBuffer &, const ResolveInfo &)>;
-	using PresentCallback         = std::function<void(const CommandBuffer &, const Image &, const Image &)>;
+	using PresentCallback         = std::function<void(const CommandBuffer &, const Graphics::Image &, const Graphics::Image &)>;
 	using CreateCallback          = std::function<void(const CommandBuffer &)>;
 
   private:

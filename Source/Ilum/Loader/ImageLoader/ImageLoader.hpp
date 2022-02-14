@@ -4,7 +4,10 @@
 
 namespace Ilum
 {
+namespace Graphics
+{
 class Image;
+}
 
 class ImageLoader
 {
@@ -15,12 +18,12 @@ class ImageLoader
 
 	static Cubemap loadCubemap(const std::array<std::string, 6> &filepaths);
 
-	static void loadImage(Image &image, const Bitmap &bitmap, bool mipmaps = true);
+	static void loadImage(Graphics::Image &image, const Bitmap &bitmap, bool mipmaps = true);
 
-	static void loadCubemap(Image &image, const Cubemap &cubemap);
+	static void loadCubemap(Graphics::Image &image, const Cubemap &cubemap);
 
-	static void loadImageFromFile(Image &image, const std::string &filepath, bool mipmaps = true);
+	static void loadImageFromFile(Graphics::Image &image, const std::string &filepath, bool mipmaps = true);
 
-	static void loadCubemapFromFile(Image &image, const std::string &filepath);
+	static void loadCubemapFromFile(Graphics::Image &image, const std::string &filepath);
 };
 }        // namespace Ilum

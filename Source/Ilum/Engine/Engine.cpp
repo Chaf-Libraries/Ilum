@@ -1,14 +1,17 @@
 #include "Engine.hpp"
 #include "Context.hpp"
-#include "Device/Input.hpp"
-#include "Device/Window.hpp"
 #include "Graphics/GraphicsContext.hpp"
 #include "ImGui/ImGuiContext.hpp"
 #include "Renderer/Renderer.hpp"
-#include "Threading/ThreadPool.hpp"
-#include "Timing/Timer.hpp"
 #include "Editor/Editor.hpp"
 #include "Scene/Scene.hpp"
+
+#include <Core/JobSystem/JobSystem.hpp>
+#include <Core/Timer.hpp>
+
+#include <Graphics/RenderContext.hpp>
+#include <Graphics/Device/Window.hpp>
+#include <Graphics/Device/Input.hpp>
 
 namespace Ilum
 {
@@ -20,16 +23,14 @@ Engine::Engine()
 
 	m_context = createScope<Context>();
 
-	m_context->addSubsystem<Timer>();
-	m_context->addSubsystem<Window>();
-	m_context->addSubsystem<Input>();
 	m_context->addSubsystem<GraphicsContext>();
-	m_context->addSubsystem<ThreadPool>();
 	m_context->addSubsystem<Scene>();
 	m_context->addSubsystem<Renderer>();
 	m_context->addSubsystem<Editor>();
 
 	m_context->onInitialize();
+
+	Core::JobSystem::Initialize();
 }
 
 Engine::~Engine()
@@ -46,10 +47,13 @@ void Engine::onTick()
 {
 	m_context->onPreTick();
 
-	auto *timer = m_context->getSubsystem<Timer>();
+	m_timer.OnUpdate();
 
-	m_context->onTick(TickType::Smoothed, static_cast<float>(timer->getDeltaTimeSecondSmoothed()));
-	m_context->onTick(TickType::Variable, static_cast<float>(timer->getDeltaTimeSecond()));
+	Graphics::RenderContext::GetWindow().OnUpdate();
+	Graphics::Input::GetInstance().OnUpdate();
+
+	m_context->onTick(TickType::Smoothed, static_cast<float>(m_timer.GetDeltaTime(true)) / 1000.f);
+	m_context->onTick(TickType::Variable, static_cast<float>(m_timer.GetDeltaTime()) / 1000.f);
 
 	m_context->onPostTick();
 }

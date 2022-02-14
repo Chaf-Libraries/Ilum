@@ -12,6 +12,9 @@
 
 #include "Graphics/GraphicsContext.hpp"
 
+#include <Graphics/RenderContext.hpp>
+#include <Graphics/Device/Device.hpp>
+
 #include <tbb/tbb.h>
 
 namespace Ilum::sym
@@ -54,11 +57,11 @@ void SurfaceUpdate::run()
 			}
 		}
 
-		if (surface_renderer.vertices.size() * sizeof(Vertex) != surface_renderer.vertex_buffer.getSize())
+		if (surface_renderer.vertices.size() * sizeof(Vertex) != surface_renderer.vertex_buffer.GetSize())
 		{
 			GraphicsContext::instance()->getQueueSystem().waitAll();
-			surface_renderer.vertex_buffer = Buffer(surface_renderer.vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-			surface_renderer.index_buffer  = Buffer(surface_renderer.indices.size() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			surface_renderer.vertex_buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), surface_renderer.vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			surface_renderer.index_buffer  = Graphics::Buffer(Graphics::RenderContext::GetDevice(), surface_renderer.indices.size() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 			surface_renderer.need_update = true;
 		}
@@ -72,11 +75,11 @@ void SurfaceUpdate::run()
 		// Copy memory
 		if (surface_renderer.need_update)
 		{
-			std::memcpy(surface_renderer.vertex_buffer.map(), surface_renderer.vertices.data(), surface_renderer.vertex_buffer.getSize());
-			surface_renderer.vertex_buffer.unmap();
+			std::memcpy(surface_renderer.vertex_buffer.Map(), surface_renderer.vertices.data(), surface_renderer.vertex_buffer.GetSize());
+			surface_renderer.vertex_buffer.Unmap();
 
-			std::memcpy(surface_renderer.index_buffer.map(), surface_renderer.indices.data(), surface_renderer.index_buffer.getSize());
-			surface_renderer.index_buffer.unmap();
+			std::memcpy(surface_renderer.index_buffer.Map(), surface_renderer.indices.data(), surface_renderer.index_buffer.GetSize());
+			surface_renderer.index_buffer.Unmap();
 
 			surface_renderer.need_update = false;
 		}

@@ -2,7 +2,7 @@
 
 #include <entt.hpp>
 
-#include "Eventing/Event.hpp"
+#include <Core/Event.hpp>
 
 namespace Ilum
 {
@@ -64,7 +64,7 @@ class Entity
 	bool         m_active = true;
 
   public:
-	static Event<> Event_Add;
+	static Core::Event<> Event_Add;
 };
 }        // namespace Ilum
 

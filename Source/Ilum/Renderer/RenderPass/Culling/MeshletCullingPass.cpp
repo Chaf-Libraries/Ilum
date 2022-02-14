@@ -6,7 +6,7 @@
 
 #include "Graphics/GraphicsContext.hpp"
 
-#include "Device/PhysicalDevice.hpp"
+#include <Graphics/Device/PhysicalDevice.hpp>
 
 namespace Ilum::pass
 {
@@ -19,7 +19,7 @@ void MeshletCullingPass::setupPipeline(PipelineState &state)
 	state.descriptor_bindings.bind(0, 2, "PerMeshletData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 3, "DrawInfo", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 4, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-	state.descriptor_bindings.bind(0, 5, "hiz - buffer", Renderer::instance()->getSampler(Renderer::SamplerType::Point_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 5, "hiz - buffer", Renderer::instance()->getSampler(Renderer::SamplerType::Point_Clamp), Graphics::ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 6, "count_buffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 7, "culling_buffer", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	state.descriptor_bindings.bind(0, 8, "InstanceVisibility", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
@@ -41,9 +41,9 @@ void MeshletCullingPass::resolveResources(ResolveState &resolve)
 void MeshletCullingPass::render(RenderPassState &state)
 {
 	{
-		std::memcpy(&Renderer::instance()->Render_Stats.static_mesh_count.meshlet_visible, Renderer::instance()->Render_Buffer.Count_Buffer.map(), sizeof(uint32_t));
-		std::memcpy(&Renderer::instance()->Render_Stats.static_mesh_count.instance_visible, reinterpret_cast<uint32_t *>(Renderer::instance()->Render_Buffer.Count_Buffer.map()) + 1, sizeof(uint32_t));
-		Renderer::instance()->Render_Buffer.Count_Buffer.unmap();
+		std::memcpy(&Renderer::instance()->Render_Stats.static_mesh_count.meshlet_visible, Renderer::instance()->Render_Buffer.Count_Buffer.Map(), sizeof(uint32_t));
+		std::memcpy(&Renderer::instance()->Render_Stats.static_mesh_count.instance_visible, reinterpret_cast<uint32_t *>(Renderer::instance()->Render_Buffer.Count_Buffer.Map()) + 1, sizeof(uint32_t));
+		Renderer::instance()->Render_Buffer.Count_Buffer.Unmap();
 	}
 
 	auto &cmd_buffer = state.command_buffer;

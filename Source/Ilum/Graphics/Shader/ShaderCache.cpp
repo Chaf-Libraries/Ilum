@@ -1,9 +1,11 @@
 #include "ShaderCache.hpp"
 #include "ShaderCompiler.hpp"
 
-#include "File/FileSystem.hpp"
+#include <Core/FileSystem.hpp>
 
-#include "Device/LogicalDevice.hpp"
+#include <Graphics/Device/Device.hpp>
+#include <Graphics/RenderContext.hpp>
+
 #include "Graphics/GraphicsContext.hpp"
 
 namespace Ilum
@@ -41,7 +43,7 @@ inline std::vector<std::string> precompile_shader(const std::string &source, con
 			}
 
 			std::vector<uint8_t> raw_data;
-			FileSystem::read(include_dir + include_path, raw_data);
+			Core::FileSystem::Read(include_dir + include_path, raw_data);
 			std::string str;
 			str.resize(raw_data.size());
 			std::memcpy(str.data(), raw_data.data(), raw_data.size());
@@ -68,7 +70,7 @@ ShaderCache::~ShaderCache()
 	{
 		if (shader_module != VK_NULL_HANDLE)
 		{
-			vkDestroyShaderModule(GraphicsContext::instance()->getLogicalDevice(), shader_module, nullptr);
+			vkDestroyShaderModule(Graphics::RenderContext::GetDevice(), shader_module, nullptr);
 		}
 	}
 
@@ -86,7 +88,7 @@ VkShaderModule ShaderCache::load(const std::string &filename, VkShaderStageFlagB
 	VK_INFO("Loading Shader {}", filename);
 
 	std::vector<uint8_t> raw_data;
-	FileSystem::read(filename, raw_data, type == Shader::Type::SPIRV);
+	Core::FileSystem::Read(filename, raw_data, type == Shader::Type::SPIRV);
 
 	if (type == Shader::Type::GLSL)
 	{
@@ -94,7 +96,7 @@ VkShaderModule ShaderCache::load(const std::string &filename, VkShaderStageFlagB
 		std::string glsl_string;
 		glsl_string.resize(raw_data.size());
 		std::memcpy(glsl_string.data(), raw_data.data(), raw_data.size());
-		auto glsl_strings = precompile_shader(glsl_string, FileSystem::getFileDirectory(filename));
+		auto glsl_strings = precompile_shader(glsl_string, Core::FileSystem::GetFileDirectory(filename));
 		glsl_string.clear();
 		for (auto &s : glsl_strings)
 		{
@@ -124,7 +126,7 @@ VkShaderModule ShaderCache::load(const std::string &filename, VkShaderStageFlagB
 	shader_module_create_info.pCode                    = spirv.data();
 
 	VkShaderModule shader_module;
-	if (!VK_CHECK(vkCreateShaderModule(GraphicsContext::instance()->getLogicalDevice(), &shader_module_create_info, nullptr, &shader_module)))
+	if (!VK_CHECK(vkCreateShaderModule(Graphics::RenderContext::GetDevice(), &shader_module_create_info, nullptr, &shader_module)))
 	{
 		VK_ERROR("Failed to create shader module");
 		return VK_NULL_HANDLE;

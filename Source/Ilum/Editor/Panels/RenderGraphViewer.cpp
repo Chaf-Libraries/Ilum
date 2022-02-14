@@ -20,7 +20,8 @@ namespace ed = ax::NodeEditor;
 
 namespace Ilum::panel
 {
-RenderGraphViewer::RenderGraphViewer()
+RenderGraphViewer::RenderGraphViewer():
+    m_bg(Graphics::RenderContext::GetDevice())
 {
 	m_name = "Render Graph Viewer";
 
@@ -81,7 +82,7 @@ void RenderGraphViewer::build()
 				image_infos.push_back("bind: " + std::to_string(image.binding));
 				m_passes.back().infos.emplace_back(image_infos);
 
-				if (std::find_if(render_graph->getAttachments().begin(), render_graph->getAttachments().end(), [&image](const std::pair<const std::string, Image> &iter) { return iter.first == image.name; }) != render_graph->getAttachments().end())
+				if (std::find_if(render_graph->getAttachments().begin(), render_graph->getAttachments().end(), [&image](const std::pair<const std::string, Graphics::Image> &iter) { return iter.first == image.name; }) != render_graph->getAttachments().end())
 				{
 					m_passes.back().inputs.emplace_back(unique_id++, image.name, ed::PinKind::Input);
 					m_passes.back().inputs.back().node = &m_passes.back();
@@ -158,7 +159,7 @@ void RenderGraphViewer::draw(float delta_time)
 	auto &sampler      = Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp);
 	auto *render_graph = Renderer::instance()->getRenderGraph();
 
-	ed::Utilities::BlueprintNodeBuilder builder(ImGuiContext::textureID(m_bg, sampler), static_cast<int>(m_bg.getWidth()), static_cast<int>(m_bg.getHeight()));
+	ed::Utilities::BlueprintNodeBuilder builder(ImGuiContext::textureID(m_bg, sampler), static_cast<int>(m_bg.GetWidth()), static_cast<int>(m_bg.GetHeight()));
 
 	// Draw render pass
 	for (auto &node : m_passes)
@@ -240,32 +241,32 @@ void RenderGraphViewer::draw(float delta_time)
 			{
 				auto &image = render_graph->getAttachment(attachment.name);
 
-				if (image.isDepth())
+				if (image.IsDepth())
 				{
-					ImGui::Image(ImGuiContext::textureID(image.getView(ImageViewType::Depth_Only), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {400.f, static_cast<float>(image.getHeight()) * 400.f / static_cast<float>(image.getWidth())});
+					ImGui::Image(ImGuiContext::textureID(image.GetView(Graphics::ImageViewType::Depth_Only), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {400.f, static_cast<float>(image.GetHeight()) * 400.f / static_cast<float>(image.GetWidth())});
 				}
 				else
 				{
-					if (image.getFormat() != VK_FORMAT_R32_UINT)
+					if (image.GetFormat() != VK_FORMAT_R32_UINT)
 					{
-						if (image.getLayerCount() > 1)
+						if (image.GetLayerCount() > 1)
 						{
-							for (uint32_t layer = 0; layer < image.getLayerCount(); layer++)
+							for (uint32_t layer = 0; layer < image.GetLayerCount(); layer++)
 							{
-								auto &view = image.getView(layer);
+								auto &view = image.GetView(layer);
 
-								ImGui::Image(ImGuiContext::textureID(view, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {400.f, static_cast<float>(image.getHeight()) * 400.f / static_cast<float>(image.getWidth())});
+								ImGui::Image(ImGuiContext::textureID(view, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {400.f, static_cast<float>(image.GetHeight()) * 400.f / static_cast<float>(image.GetWidth())});
 							}
 						}
 						else
 						{
-							ImGui::Image(ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {400.f, static_cast<float>(image.getHeight()) * 400.f / static_cast<float>(image.getWidth())});
+							ImGui::Image(ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {400.f, static_cast<float>(image.GetHeight()) * 400.f / static_cast<float>(image.GetWidth())});
 						}
 					}
 				}
-				if (image.isStencil())
+				if (image.IsStencil())
 				{
-					ImGui::Image(ImGuiContext::textureID(image.getView(ImageViewType::Stencil_Only), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {400.f, static_cast<float>(image.getHeight()) * 400.f / static_cast<float>(image.getWidth())});
+					ImGui::Image(ImGuiContext::textureID(image.GetView(Graphics::ImageViewType::Stencil_Only), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), {400.f, static_cast<float>(image.GetHeight()) * 400.f / static_cast<float>(image.GetWidth())});
 				}
 			}
 			ImGui::PopStyleVar();
@@ -328,11 +329,11 @@ void RenderGraphViewer::draw(float delta_time)
 		if (attachment)
 		{
 			auto &image = render_graph->getAttachment(attachment->name);
-			ImGui::Text("format: %s", std::to_string(image.getFormat()).c_str());
-			ImGui::Text("width: %d", image.getWidth());
-			ImGui::Text("height: %d", image.getHeight());
-			ImGui::Text("mip levels: %d", image.getMipLevelCount());
-			ImGui::Text("layers: %d", image.getLayerCount());
+			ImGui::Text("format: %s", std::to_string(image.GetFormat()).c_str());
+			ImGui::Text("width: %d", image.GetWidth());
+			ImGui::Text("height: %d", image.GetHeight());
+			ImGui::Text("mip levels: %d", image.GetMipLevelCount());
+			ImGui::Text("layers: %d", image.GetLayerCount());
 		}
 
 		ImGui::EndPopup();

@@ -4,7 +4,7 @@
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Synchronization/Fence.hpp"
 
-#include "Device/LogicalDevice.hpp"
+#include <Graphics/Device/Device.hpp>
 
 namespace Ilum
 {

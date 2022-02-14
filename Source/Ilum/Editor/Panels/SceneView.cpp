@@ -1,7 +1,7 @@
 #include "SceneView.hpp"
 
-#include "Device/Input.hpp"
-#include "Device/Window.hpp"
+#include <Graphics/Device/Input.hpp>
+#include <Graphics/RenderContext.hpp>
 
 #include "Renderer/RenderGraph/RenderGraph.hpp"
 #include "Renderer/Renderer.hpp"
@@ -24,7 +24,7 @@
 
 #include "Loader/ImageLoader/ImageLoader.hpp"
 
-#include "File/FileSystem.hpp"
+#include <Core/FileSystem.hpp>
 
 #include <SDL.h>
 
@@ -101,7 +101,7 @@ __pragma(warning(push, 0))
 	}
 
 	template <typename T>
-	inline void draw_gizmo(const ImVec2 &offset, const Image &icon, bool enable)
+	inline void draw_gizmo(const ImVec2 &offset, const Graphics::Image &icon, bool enable)
 	{
 		if (!enable || !Renderer::instance()->hasMainCamera())
 		{
@@ -331,7 +331,7 @@ __pragma(warning(push, 0))
 
 			auto *draw_list = ImGui::GetWindowDrawList();
 
-			auto [mouse_x, mouse_y] = Input::instance()->getMousePosition();
+			auto [mouse_x, mouse_y] = Graphics::Input::GetInstance().GetMousePosition();
 			auto click_pos          = ImVec2(static_cast<float>(mouse_x), static_cast<float>(mouse_y));
 
 			std::vector<glm::vec3> control_points(curve_renderer.control_points.size());
@@ -401,7 +401,7 @@ __pragma(warning(push, 0))
 
 			auto *draw_list = ImGui::GetWindowDrawList();
 
-			auto [mouse_x, mouse_y] = Input::instance()->getMousePosition();
+			auto [mouse_x, mouse_y] = Graphics::Input::GetInstance().GetMousePosition();
 			auto click_pos          = ImVec2(static_cast<float>(mouse_x), static_cast<float>(mouse_y));
 
 			std::vector<std::vector<glm::vec3>> control_points(surface_renderer.control_points.size(), std::vector<glm::vec3>(surface_renderer.control_points[0].size()));
@@ -464,16 +464,27 @@ __pragma(warning(push, 0))
 	{
 		m_name = "SceneView";
 
-		ImageLoader::loadImageFromFile(m_icons["translate"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/translate.png"));
-		ImageLoader::loadImageFromFile(m_icons["rotate"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/rotate.png"));
-		ImageLoader::loadImageFromFile(m_icons["scale"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/scale.png"));
-		ImageLoader::loadImageFromFile(m_icons["select"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/select.png"));
-		ImageLoader::loadImageFromFile(m_icons["transform"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/transform.png"));
-		ImageLoader::loadImageFromFile(m_icons["camera"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/camera.png"));
-		ImageLoader::loadImageFromFile(m_icons["viewport"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/viewport.png"));
-		ImageLoader::loadImageFromFile(m_icons["light"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/light.png"));
-		ImageLoader::loadImageFromFile(m_icons["gizmo"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/gizmo.png"));
-		ImageLoader::loadImageFromFile(m_icons["save"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/save.png"));
+		m_icons.emplace("translate", std::make_unique<Graphics::Image>(Graphics::RenderContext::GetDevice()));
+		m_icons.emplace("rotate", std::make_unique<Graphics::Image>(Graphics::RenderContext::GetDevice()));
+		m_icons.emplace("scale", std::make_unique<Graphics::Image>(Graphics::RenderContext::GetDevice()));
+		m_icons.emplace("select", std::make_unique<Graphics::Image>(Graphics::RenderContext::GetDevice()));
+		m_icons.emplace("transform", std::make_unique<Graphics::Image>(Graphics::RenderContext::GetDevice()));
+		m_icons.emplace("camera", std::make_unique<Graphics::Image>(Graphics::RenderContext::GetDevice()));
+		m_icons.emplace("viewport", std::make_unique<Graphics::Image>(Graphics::RenderContext::GetDevice()));
+		m_icons.emplace("light", std::make_unique<Graphics::Image>(Graphics::RenderContext::GetDevice()));
+		m_icons.emplace("gizmo", std::make_unique<Graphics::Image>(Graphics::RenderContext::GetDevice()));
+		m_icons.emplace("save", std::make_unique<Graphics::Image>(Graphics::RenderContext::GetDevice()));
+
+		ImageLoader::loadImageFromFile(*m_icons["translate"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/translate.png"));
+		ImageLoader::loadImageFromFile(*m_icons["rotate"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/rotate.png"));
+		ImageLoader::loadImageFromFile(*m_icons["scale"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/scale.png"));
+		ImageLoader::loadImageFromFile(*m_icons["select"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/select.png"));
+		ImageLoader::loadImageFromFile(*m_icons["transform"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/transform.png"));
+		ImageLoader::loadImageFromFile(*m_icons["camera"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/camera.png"));
+		ImageLoader::loadImageFromFile(*m_icons["viewport"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/viewport.png"));
+		ImageLoader::loadImageFromFile(*m_icons["light"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/light.png"));
+		ImageLoader::loadImageFromFile(*m_icons["gizmo"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/gizmo.png"));
+		ImageLoader::loadImageFromFile(*m_icons["save"], PROJECT_SOURCE_DIR + std::string("Asset/Texture/Icon/save.png"));
 
 		m_gizmo = {
 		    {"Grid", true},
@@ -536,11 +547,11 @@ __pragma(warning(push, 0))
 
 		if (main_camera)
 		{
-			ImGui::Image(ImGuiContext::textureID(attachment.isDepth() ? attachment.getView(ImageViewType::Depth_Only) : attachment.getView(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), scene_view_size);
+			ImGui::Image(ImGuiContext::textureID(attachment.IsDepth() ? attachment.GetView(Graphics::ImageViewType::Depth_Only) : attachment.GetView(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), scene_view_size);
 		}
 		else
 		{
-			ImGui::Image(ImGuiContext::textureID(Renderer::instance()->getDefaultTexture().get().getView(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), scene_view_size);
+			ImGui::Image(ImGuiContext::textureID(Renderer::instance()->getDefaultTexture().get().GetView(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), scene_view_size);
 		}
 
 		// Drag new model
@@ -549,7 +560,7 @@ __pragma(warning(push, 0))
 			if (const auto *pay_load = ImGui::AcceptDragDropPayload("Model"))
 			{
 				ASSERT(pay_load->DataSize == sizeof(std::string));
-				auto  entity        = Scene::instance()->createEntity(FileSystem::getFileName(*static_cast<std::string *>(pay_load->Data), false));
+				auto  entity        = Scene::instance()->createEntity(Core::FileSystem::GetFileName(*static_cast<std::string *>(pay_load->Data), false));
 				auto &mesh_renderer = entity.addComponent<cmpt::MeshletRenderer>();
 				mesh_renderer.model = *static_cast<std::string *>(pay_load->Data);
 				// Setting default material
@@ -607,7 +618,7 @@ __pragma(warning(push, 0))
 		// Mouse picking
 		if (ImGui::IsWindowFocused() && ImGui::IsWindowHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left) && !ImGuizmo::IsOver() && !ImGuizmo::IsUsing())
 		{
-			auto [mouse_x, mouse_y] = Input::instance()->getMousePosition();
+			auto [mouse_x, mouse_y] = Graphics::Input::GetInstance().GetMousePosition();
 			auto click_pos          = ImVec2(static_cast<float>(mouse_x) - scene_view_position.x, static_cast<float>(mouse_y) - scene_view_position.y);
 
 			// Mouse picking via ray casting
@@ -648,34 +659,34 @@ __pragma(warning(push, 0))
 
 			// Mouse picking via g-buffer
 			{
-				ImageReference entity_id_buffer = Renderer::instance()->getRenderGraph()->getAttachment("debug - entity");
+				Graphics::ImageReference entity_id_buffer = Renderer::instance()->getRenderGraph()->getAttachment("debug - entity");
 
 				CommandBuffer cmd_buffer;
 				cmd_buffer.begin();
-				Buffer staging_buffer(static_cast<VkDeviceSize>(static_cast<size_t>(entity_id_buffer.get().getWidth() * entity_id_buffer.get().getHeight())) * sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
+				Graphics::Buffer staging_buffer(Graphics::RenderContext::GetDevice(), static_cast<VkDeviceSize>(static_cast<size_t>(entity_id_buffer.get().GetWidth() * entity_id_buffer.get().GetHeight())) * sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
 				cmd_buffer.transferLayout(entity_id_buffer, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 				cmd_buffer.copyImageToBuffer(ImageInfo{entity_id_buffer, VK_IMAGE_USAGE_TRANSFER_SRC_BIT, 0, 0}, BufferInfo{staging_buffer, 0});
 				cmd_buffer.transferLayout(entity_id_buffer, VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
 				cmd_buffer.end();
 				cmd_buffer.submitIdle();
-				std::vector<uint32_t> image_data(static_cast<size_t>(entity_id_buffer.get().getWidth() * entity_id_buffer.get().getHeight()));
-				std::memcpy(image_data.data(), staging_buffer.map(), image_data.size() * sizeof(uint32_t));
+				std::vector<uint32_t> image_data(static_cast<size_t>(entity_id_buffer.get().GetWidth() * entity_id_buffer.get().GetHeight()));
+				std::memcpy(image_data.data(), staging_buffer.Map(), image_data.size() * sizeof(uint32_t));
 
-				click_pos.x = glm::clamp(click_pos.x, 0.f, static_cast<float>(entity_id_buffer.get().getWidth()));
-				click_pos.y = glm::clamp(click_pos.y, 0.f, static_cast<float>(entity_id_buffer.get().getHeight()));
+				click_pos.x = glm::clamp(click_pos.x, 0.f, static_cast<float>(entity_id_buffer.get().GetWidth()));
+				click_pos.y = glm::clamp(click_pos.y, 0.f, static_cast<float>(entity_id_buffer.get().GetHeight()));
 
-				auto entity = Entity(static_cast<entt::entity>(image_data[static_cast<size_t>(click_pos.y) * static_cast<size_t>(entity_id_buffer.get().getWidth()) + static_cast<size_t>(click_pos.x)]));
+				auto entity = Entity(static_cast<entt::entity>(image_data[static_cast<size_t>(click_pos.y) * static_cast<size_t>(entity_id_buffer.get().GetWidth()) + static_cast<size_t>(click_pos.x)]));
 				Editor::instance()->select(entity);
 
-				staging_buffer.unmap();
+				staging_buffer.Unmap();
 			}
 		}
 
-		draw_gizmo<cmpt::DirectionalLight>(offset, m_icons["light"], m_gizmo["Light"]);
-		draw_gizmo<cmpt::SpotLight>(offset, m_icons["light"], m_gizmo["Light"]);
-		draw_gizmo<cmpt::PointLight>(offset, m_icons["light"], m_gizmo["Light"]);
-		draw_gizmo<cmpt::PerspectiveCamera>(offset, m_icons["camera"], m_gizmo["Camera"]);
-		draw_gizmo<cmpt::OrthographicCamera>(offset, m_icons["camera"], m_gizmo["Camera"]);
+		draw_gizmo<cmpt::DirectionalLight>(offset, *m_icons["light"], m_gizmo["Light"]);
+		draw_gizmo<cmpt::SpotLight>(offset, *m_icons["light"], m_gizmo["Light"]);
+		draw_gizmo<cmpt::PointLight>(offset, *m_icons["light"], m_gizmo["Light"]);
+		draw_gizmo<cmpt::PerspectiveCamera>(offset, *m_icons["camera"], m_gizmo["Camera"]);
+		draw_gizmo<cmpt::OrthographicCamera>(offset, *m_icons["camera"], m_gizmo["Camera"]);
 		draw_frustum_gizmo(offset, m_gizmo["Frustum"]);
 		draw_boundingbox_gizmo(offset, m_gizmo["AABB"]);
 		draw_curve_gizmo(offset, m_gizmo["Curve"]);
@@ -717,19 +728,19 @@ __pragma(warning(push, 0))
 			return;
 		}
 
-		if (Input::instance()->getKey(KeyCode::Click_Right))
+		if (Graphics::Input::GetInstance().GetKey(Graphics::KeyCode::Click_Right))
 		{
 			if (!m_cursor_hidden)
 			{
 				m_cursor_hidden = true;
-				m_last_position = Input::instance()->getMousePosition();
+				m_last_position = Graphics::Input::GetInstance().GetMousePosition();
 			}
 
 			ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 
-			auto [delta_x, delta_y] = Input::instance()->getMouseDelta();
+			auto [delta_x, delta_y] = Graphics::Input::GetInstance().GetMouseDelta();
 
-			Input::instance()->setMousePosition(m_last_position.first, m_last_position.second);
+			Graphics::Input::GetInstance().SetMousePosition(m_last_position.first, m_last_position.second);
 
 			cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
                                             static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
@@ -762,27 +773,27 @@ __pragma(warning(push, 0))
 
 			glm::vec3 direction = glm::vec3(0.f);
 
-			if (Input::instance()->getKey(KeyCode::W))
+			if (Graphics::Input::GetInstance().GetKey(Graphics::KeyCode::W))
 			{
 				direction += forward;
 			}
-			if (Input::instance()->getKey(KeyCode::S))
+			if (Graphics::Input::GetInstance().GetKey(Graphics::KeyCode::S))
 			{
 				direction -= forward;
 			}
-			if (Input::instance()->getKey(KeyCode::D))
+			if (Graphics::Input::GetInstance().GetKey(Graphics::KeyCode::D))
 			{
 				direction += right;
 			}
-			if (Input::instance()->getKey(KeyCode::A))
+			if (Graphics::Input::GetInstance().GetKey(Graphics::KeyCode::A))
 			{
 				direction -= right;
 			}
-			if (Input::instance()->getKey(KeyCode::Q))
+			if (Graphics::Input::GetInstance().GetKey(Graphics::KeyCode::Q))
 			{
 				direction += up;
 			}
-			if (Input::instance()->getKey(KeyCode::E))
+			if (Graphics::Input::GetInstance().GetKey(Graphics::KeyCode::E))
 			{
 				direction -= up;
 			}
@@ -818,7 +829,7 @@ __pragma(warning(push, 0))
 		ImVec4 select_color = ImVec4(0.5f, 0.5f, 0.5f, 1.f);
 
 		ImGui::SameLine();
-		if (ImGui::ImageButton(ImGuiContext::textureID(m_icons["select"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
+		if (ImGui::ImageButton(ImGuiContext::textureID(*m_icons["select"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
 		                       ImVec2(20.f, 20.f),
 		                       ImVec2(0.f, 0.f),
 		                       ImVec2(1.f, 1.f),
@@ -830,7 +841,7 @@ __pragma(warning(push, 0))
 		SHOW_TIPS("Select")
 
 		ImGui::SameLine();
-		if (ImGui::ImageButton(ImGuiContext::textureID(m_icons["translate"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
+		if (ImGui::ImageButton(ImGuiContext::textureID(*m_icons["translate"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
 		                       ImVec2(20.f, 20.f),
 		                       ImVec2(0.f, 0.f),
 		                       ImVec2(1.f, 1.f),
@@ -842,7 +853,7 @@ __pragma(warning(push, 0))
 		SHOW_TIPS("Translation")
 
 		ImGui::SameLine();
-		if (ImGui::ImageButton(ImGuiContext::textureID(m_icons["rotate"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
+		if (ImGui::ImageButton(ImGuiContext::textureID(*m_icons["rotate"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
 		                       ImVec2(20.f, 20.f),
 		                       ImVec2(0.f, 0.f),
 		                       ImVec2(1.f, 1.f),
@@ -854,7 +865,7 @@ __pragma(warning(push, 0))
 		SHOW_TIPS("Rotation")
 
 		ImGui::SameLine();
-		if (ImGui::ImageButton(ImGuiContext::textureID(m_icons["scale"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
+		if (ImGui::ImageButton(ImGuiContext::textureID(*m_icons["scale"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
 		                       ImVec2(20.f, 20.f),
 		                       ImVec2(0.f, 0.f),
 		                       ImVec2(1.f, 1.f),
@@ -866,7 +877,7 @@ __pragma(warning(push, 0))
 		SHOW_TIPS("Scale")
 
 		ImGui::SameLine();
-		if (ImGui::ImageButton(ImGuiContext::textureID(m_icons["transform"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
+		if (ImGui::ImageButton(ImGuiContext::textureID(*m_icons["transform"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
 		                       ImVec2(20.f, 20.f),
 		                       ImVec2(0.f, 0.f),
 		                       ImVec2(1.f, 1.f),
@@ -878,7 +889,7 @@ __pragma(warning(push, 0))
 		SHOW_TIPS("Transform")
 
 		ImGui::SameLine();
-		if (ImGui::ImageButton(ImGuiContext::textureID(m_icons["viewport"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
+		if (ImGui::ImageButton(ImGuiContext::textureID(*m_icons["viewport"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
 		                       ImVec2(20.f, 20.f),
 		                       ImVec2(0.f, 0.f),
 		                       ImVec2(1.f, 1.f),
@@ -895,7 +906,7 @@ __pragma(warning(push, 0))
 			std::unordered_map<std::string, bool> select_display;
 			for (auto &[name, image] : rg->getAttachments())
 			{
-				VkFormat format = Renderer::instance()->getRenderGraph()->getAttachment(name).getFormat();
+				VkFormat format = Renderer::instance()->getRenderGraph()->getAttachment(name).GetFormat();
 				if (name != rg->output() && format != VK_FORMAT_R32_UINT)
 				{
 					select_display[name] = name == m_display_attachment;
@@ -918,7 +929,7 @@ __pragma(warning(push, 0))
 		}
 
 		ImGui::SameLine();
-		if (ImGui::ImageButton(ImGuiContext::textureID(m_icons["gizmo"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
+		if (ImGui::ImageButton(ImGuiContext::textureID(*m_icons["gizmo"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
 		                       ImVec2(20.f, 20.f),
 		                       ImVec2(0.f, 0.f),
 		                       ImVec2(1.f, 1.f),
@@ -939,18 +950,18 @@ __pragma(warning(push, 0))
 
 		if (Renderer::instance()->getRenderGraph()->hasAttachment(m_display_attachment))
 		{
-			ImageReference attachment_buffer = Renderer::instance()->getRenderGraph()->getAttachment(m_display_attachment);
-			if (attachment_buffer.get().getFormat() == VK_FORMAT_R8G8B8A8_UNORM || attachment_buffer.get().getFormat() == VK_FORMAT_R16G16B16A16_SFLOAT)
+			Graphics::ImageReference attachment_buffer = Renderer::instance()->getRenderGraph()->getAttachment(m_display_attachment);
+			if (attachment_buffer.get().GetFormat() == VK_FORMAT_R8G8B8A8_UNORM || attachment_buffer.get().GetFormat() == VK_FORMAT_R16G16B16A16_SFLOAT)
 			{
 				ImGui::SameLine();
-				if (ImGui::ImageButton(ImGuiContext::textureID(m_icons["save"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
+				if (ImGui::ImageButton(ImGuiContext::textureID(*m_icons["save"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
 				                       ImVec2(20.f, 20.f),
 				                       ImVec2(0.f, 0.f),
 				                       ImVec2(1.f, 1.f),
 				                       -1,
 				                       ImVec4(0.f, 0.f, 0.f, 0.f)))
 				{
-					ifd::FileDialog::Instance().Save("SaveScreenShotDialog", "Save ScreenShot", "Image file{,.png,.hdr}");
+					ifd::FileDialog::Instance().Save("SaveScreenShotDialog", "Save ScreenShot", "Graphics::Image file{,.png,.hdr}");
 				}
 			}
 		}
@@ -975,41 +986,41 @@ __pragma(warning(push, 0))
 
 				{
 					uint32_t       pixel_size        = 0;
-					ImageReference attachment_buffer = Renderer::instance()->getRenderGraph()->getAttachment(m_display_attachment);
-					if (attachment_buffer.get().getFormat() == VK_FORMAT_R8G8B8A8_UNORM)
+					Graphics::ImageReference attachment_buffer = Renderer::instance()->getRenderGraph()->getAttachment(m_display_attachment);
+					if (attachment_buffer.get().GetFormat() == VK_FORMAT_R8G8B8A8_UNORM)
 					{
 						pixel_size = 4;
 					}
-					else if (attachment_buffer.get().getFormat() == VK_FORMAT_R16G16B16A16_SFLOAT)
+					else if (attachment_buffer.get().GetFormat() == VK_FORMAT_R16G16B16A16_SFLOAT)
 					{
 						pixel_size = 8;
 					}
 
 					CommandBuffer cmd_buffer;
 					cmd_buffer.begin();
-					Buffer staging_buffer(static_cast<VkDeviceSize>(attachment_buffer.get().getWidth() * attachment_buffer.get().getHeight()) * pixel_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
+					Graphics::Buffer staging_buffer(Graphics::RenderContext::GetDevice(), static_cast<VkDeviceSize>(attachment_buffer.get().GetWidth() * attachment_buffer.get().GetHeight()) * pixel_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
 					cmd_buffer.transferLayout(attachment_buffer, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 					cmd_buffer.copyImageToBuffer(ImageInfo{attachment_buffer, VK_IMAGE_USAGE_TRANSFER_SRC_BIT, 0, 0}, BufferInfo{staging_buffer, 0});
 					cmd_buffer.transferLayout(attachment_buffer, VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
 					cmd_buffer.end();
 					cmd_buffer.submitIdle();
 
-					int w       = static_cast<int>(attachment_buffer.get().getWidth());
-					int h       = static_cast<int>(attachment_buffer.get().getHeight());
+					int w       = static_cast<int>(attachment_buffer.get().GetWidth());
+					int h       = static_cast<int>(attachment_buffer.get().GetHeight());
 					int channel = 4;
 
-					if (attachment_buffer.get().getFormat() == VK_FORMAT_R8G8B8A8_UNORM)
+					if (attachment_buffer.get().GetFormat() == VK_FORMAT_R8G8B8A8_UNORM)
 					{
-						std::vector<uint8_t> data(static_cast<size_t>(attachment_buffer.get().getWidth() * attachment_buffer.get().getHeight() * pixel_size));
-						std::memcpy(data.data(), staging_buffer.map(), data.size());
-						staging_buffer.unmap();
+						std::vector<uint8_t> data(static_cast<size_t>(attachment_buffer.get().GetWidth() * attachment_buffer.get().GetHeight() * pixel_size));
+						std::memcpy(data.data(), staging_buffer.Map(), data.size());
+						staging_buffer.Unmap();
 						stbi_write_png((save_path + ".png").c_str(), w, h, 4, data.data(), w * 4);
 					}
-					else if (attachment_buffer.get().getFormat() == VK_FORMAT_R16G16B16A16_SFLOAT)
+					else if (attachment_buffer.get().GetFormat() == VK_FORMAT_R16G16B16A16_SFLOAT)
 					{
-						std::vector<uint16_t> raw_data(static_cast<size_t>(attachment_buffer.get().getWidth() * attachment_buffer.get().getHeight() * pixel_size));
-						std::memcpy(raw_data.data(), staging_buffer.map(), raw_data.size());
-						staging_buffer.unmap();
+						std::vector<uint16_t> raw_data(static_cast<size_t>(attachment_buffer.get().GetWidth() * attachment_buffer.get().GetHeight() * pixel_size));
+						std::memcpy(raw_data.data(), staging_buffer.Map(), raw_data.size());
+						staging_buffer.Unmap();
 						std::vector<float> data(raw_data.size());
 						for (uint32_t i = 0; i < data.size(); i++)
 						{

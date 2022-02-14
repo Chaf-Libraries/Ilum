@@ -3,15 +3,16 @@
 #include "Renderer/Renderer.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
-#include "Graphics/Vulkan/VK_Debugger.h"
+#include <Graphics/Vulkan.hpp>
+#include <Graphics/RenderContext.hpp>
 
-#include "Device/LogicalDevice.hpp"
+#include <Graphics/Device/Device.hpp>
 
 namespace Ilum::pass
 {
 HizPass::HizPass()
 {
-	m_views.resize(Renderer::instance()->Last_Frame.hiz_buffer->getMipLevelCount());
+	m_views.resize(Renderer::instance()->Last_Frame.hiz_buffer->GetMipLevelCount());
 
 	VkImageViewCreateInfo image_view_create_info       = {};
 	image_view_create_info.sType                       = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -29,7 +30,7 @@ HizPass::HizPass()
 		image_view_create_info.subresourceRange.baseMipLevel   = i;
 		image_view_create_info.subresourceRange.levelCount     = 1;
 
-		vkCreateImageView(GraphicsContext::instance()->getLogicalDevice(), &image_view_create_info, nullptr, &m_views[i]);
+		vkCreateImageView(Graphics::RenderContext::GetDevice(), &image_view_create_info, nullptr, &m_views[i]);
 	}
 
 	VkSamplerCreateInfo createInfo = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
@@ -46,16 +47,16 @@ HizPass::HizPass()
 	VkSamplerReductionModeCreateInfo createInfoReduction = {VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT};
 	createInfoReduction.reductionMode = VK_SAMPLER_REDUCTION_MODE_MAX;
 	createInfo.pNext = &createInfoReduction;
-	vkCreateSampler(GraphicsContext::instance()->getLogicalDevice(), &createInfo, 0, &m_hiz_sampler);
+	vkCreateSampler(Graphics::RenderContext::GetDevice(), &createInfo, 0, &m_hiz_sampler);
 }
 
 HizPass::~HizPass()
 {
 	for (auto &view : m_views)
 	{
-		vkDestroyImageView(GraphicsContext::instance()->getLogicalDevice(), view, nullptr);
+		vkDestroyImageView(Graphics::RenderContext::GetDevice(), view, nullptr);
 	}
-	vkDestroySampler(GraphicsContext::instance()->getLogicalDevice(), m_hiz_sampler, nullptr);
+	vkDestroySampler(Graphics::RenderContext::GetDevice(), m_hiz_sampler, nullptr);
 }
 
 void HizPass::setupPipeline(PipelineState &state)
@@ -78,7 +79,7 @@ void HizPass::setupPipeline(PipelineState &state)
 		srcTarget.sampler = m_hiz_sampler;
 		if (level == 0)
 		{
-			srcTarget.imageView   = Renderer::instance()->Last_Frame.depth_buffer->getView();
+			srcTarget.imageView   = Renderer::instance()->Last_Frame.depth_buffer->GetView();
 			srcTarget.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		}
 		else
@@ -113,8 +114,8 @@ void HizPass::setupPipeline(PipelineState &state)
 		m_descriptor_sets[level].update(write_descriptor_sets);
 	}
 
-	state.descriptor_bindings.bind(0, 0, "depth - buffer", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	state.descriptor_bindings.bind(0, 1, "hiz - buffer", ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	state.descriptor_bindings.bind(0, 0, "depth - buffer", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), Graphics::ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 1, "hiz - buffer", Graphics::ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 }
 
 void HizPass::resolveResources(ResolveState &resolve)
@@ -159,8 +160,8 @@ void HizPass::render(RenderPassState &state)
 
 		vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, 0, 1, &m_descriptor_sets[level].getDescriptorSet(), 0, nullptr);
 
-		uint32_t level_width  = std::max(1u, Renderer::instance()->Last_Frame.hiz_buffer->getWidth() >> level);
-		uint32_t level_height = std::max(1u, Renderer::instance()->Last_Frame.hiz_buffer->getHeight() >> level);
+		uint32_t level_width  = std::max(1u, Renderer::instance()->Last_Frame.hiz_buffer->GetWidth() >> level);
+		uint32_t level_height = std::max(1u, Renderer::instance()->Last_Frame.hiz_buffer->GetHeight() >> level);
 
 		VkExtent2D extent = {level_width, level_height};
 		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(VkExtent2D), &extent);

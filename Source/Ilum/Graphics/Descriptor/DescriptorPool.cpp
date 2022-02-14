@@ -1,7 +1,8 @@
 #include "DescriptorPool.hpp"
 #include "DescriptorLayout.hpp"
 
-#include "Device/LogicalDevice.hpp"
+#include <Graphics/Device/Device.hpp>
+#include <Graphics/RenderContext.hpp>
 
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Shader/Shader.hpp"
@@ -37,7 +38,7 @@ DescriptorPool::~DescriptorPool()
 {
 	for (auto &pool : m_descriptor_pools)
 	{
-		vkDestroyDescriptorPool(GraphicsContext::instance()->getLogicalDevice(), pool, nullptr);
+		vkDestroyDescriptorPool(Graphics::RenderContext::GetDevice(), pool, nullptr);
 	}
 }
 
@@ -67,7 +68,7 @@ void DescriptorPool::reset()
 {
 	for (auto &pool : m_descriptor_pools)
 	{
-		vkResetDescriptorPool(GraphicsContext::instance()->getLogicalDevice(), pool, 0);
+		vkResetDescriptorPool(Graphics::RenderContext::GetDevice(), pool, 0);
 	}
 
 	std::fill(m_pool_sets_count.begin(), m_pool_sets_count.end(), 0);
@@ -95,7 +96,7 @@ VkDescriptorSet DescriptorPool::allocate(const DescriptorLayout &descriptor_layo
 
 	VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
 
-	if (!VK_CHECK(vkAllocateDescriptorSets(GraphicsContext::instance()->getLogicalDevice(), &allocate_info, &descriptor_set)))
+	if (!VK_CHECK(vkAllocateDescriptorSets(Graphics::RenderContext::GetDevice(), &allocate_info, &descriptor_set)))
 	{
 		VK_ERROR("Failed to allocate descriptor set!");
 
@@ -119,7 +120,7 @@ void DescriptorPool::free(VkDescriptorSet descriptor_set)
 
 	auto desc_pool_index = it->second;
 
-	vkFreeDescriptorSets(GraphicsContext::instance()->getLogicalDevice(), m_descriptor_pools[desc_pool_index], 1, &descriptor_set);
+	vkFreeDescriptorSets(Graphics::RenderContext::GetDevice(), m_descriptor_pools[desc_pool_index], 1, &descriptor_set);
 
 	m_set_pool_mapping.erase(it);
 
@@ -151,7 +152,7 @@ uint32_t DescriptorPool::find_avaliable_pool(const DescriptorLayout &descriptor_
 
 		VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
 
-		if (!VK_CHECK(vkCreateDescriptorPool(GraphicsContext::instance()->getLogicalDevice(), &descriptor_pool_create_info, nullptr, &descriptor_pool)))
+		if (!VK_CHECK(vkCreateDescriptorPool(Graphics::RenderContext::GetDevice(), &descriptor_pool_create_info, nullptr, &descriptor_pool)))
 		{
 			VK_ERROR("Failed to create descriptor pool!");
 			return 0;

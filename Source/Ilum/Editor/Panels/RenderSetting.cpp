@@ -6,7 +6,7 @@
 
 #include "ImGui/ImGuiContext.hpp"
 
-#include "File/FileSystem.hpp"
+#include <Core/FileSystem.hpp>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -93,8 +93,8 @@ void RenderSetting::draw(float delta_time)
 		if (current == 1 || current == 2)
 		{
 			ImGui::PushID("Environment Light");
-			if (ImGui::ImageButton(Renderer::instance()->getResourceCache().hasImage(FileSystem::getRelativePath(Renderer::instance()->EnvLight.filename)) ?
-                                       ImGuiContext::textureID(Renderer::instance()->getResourceCache().loadImage(FileSystem::getRelativePath(Renderer::instance()->EnvLight.filename)), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)) :
+			if (ImGui::ImageButton(Renderer::instance()->getResourceCache().hasImage(Core::FileSystem::GetRelativePath(Renderer::instance()->EnvLight.filename)) ?
+                                       ImGuiContext::textureID(Renderer::instance()->getResourceCache().loadImage(Core::FileSystem::GetRelativePath(Renderer::instance()->EnvLight.filename)), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)) :
                                        ImGuiContext::textureID(Renderer::instance()->getDefaultTexture(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
 			                       ImVec2{100.f, 100.f}))
 			{

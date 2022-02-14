@@ -118,8 +118,8 @@ void SurfacePass::render(RenderPassState &state)
 			Renderer::instance()->Render_Stats.curve_count.vertices_count += static_cast<uint32_t>(surface_renderer.vertices.size());
 
 			VkDeviceSize offsets[1] = {0};
-			vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &surface_renderer.vertex_buffer.getBuffer(), offsets);
-			vkCmdBindIndexBuffer(cmd_buffer, surface_renderer.index_buffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
+			vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &surface_renderer.vertex_buffer.GetHandle(), offsets);
+			vkCmdBindIndexBuffer(cmd_buffer, surface_renderer.index_buffer.GetHandle(), 0, VK_INDEX_TYPE_UINT32);
 
 			struct
 			{
@@ -133,7 +133,7 @@ void SurfacePass::render(RenderPassState &state)
 			push_block.instance_id = instance_id++;
 
 			vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_block), &push_block);
-			vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(surface_renderer.index_buffer.getSize()) / sizeof(uint32_t), 1, 0, 0, 0);
+			vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(surface_renderer.index_buffer.GetSize()) / sizeof(uint32_t), 1, 0, 0, 0);
 		}
 	});
 

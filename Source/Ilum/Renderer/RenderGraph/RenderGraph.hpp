@@ -9,7 +9,7 @@
 
 namespace Ilum
 {
-class Image;
+class Graphics::Image;
 
 struct RenderGraphNode
 {
@@ -25,13 +25,13 @@ struct RenderGraphNode
 class RenderGraph
 {
   private:
-	using PresentCallback = std::function<void(const CommandBuffer &, const Image &, const Image &)>;
+	using PresentCallback = std::function<void(const CommandBuffer &, const Graphics::Image &, const Graphics::Image &)>;
 	using CreateCallback  = std::function<void(const CommandBuffer &)>;
 
   public:
 	RenderGraph() = default;
 
-	RenderGraph(std::vector<RenderGraphNode> &&nodes, std::unordered_map<std::string, Image> &&attachments, const std::string &output_name, const std::string &view_name, PresentCallback on_present, CreateCallback on_create);
+	RenderGraph(std::vector<RenderGraphNode> &&nodes, std::unordered_map<std::string, Graphics::Image> &&attachments, const std::string &output_name, const std::string &view_name, PresentCallback on_present, CreateCallback on_create);
 
 	~RenderGraph();
 
@@ -41,7 +41,7 @@ class RenderGraph
 
 	void execute(const CommandBuffer &command_buffer);
 
-	void present(const CommandBuffer &command_buffer, const Image &present_image);
+	void present(const CommandBuffer &command_buffer, const Graphics::Image &present_image);
 
 	template <typename T>
 	const RenderGraphNode &getNode() const
@@ -67,9 +67,9 @@ class RenderGraph
 
 	RenderGraphNode &getNode(const std::string &name);
 
-	const Image &getAttachment(const std::string &name) const;
+	const Graphics::Image &getAttachment(const std::string &name) const;
 
-	const std::unordered_map<std::string, Image> &getAttachments() const;
+	const std::unordered_map<std::string, Graphics::Image> &getAttachments() const;
 
 	bool hasAttachment(const std::string &name) const;
 
@@ -111,7 +111,7 @@ class RenderGraph
 
   private:
 	std::vector<RenderGraphNode>           m_nodes;
-	std::unordered_map<std::string, Image> m_attachments;
+	std::unordered_map<std::string, Graphics::Image> m_attachments;
 	std::string                            m_output      = "output";
 	std::string                            m_view        = "view";
 	bool                                   m_initialized = false;

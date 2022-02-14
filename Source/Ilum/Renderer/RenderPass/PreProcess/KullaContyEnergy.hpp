@@ -22,6 +22,6 @@ class KullaContyEnergy : public TRenderPass<KullaContyEnergy>
 	private:
 	const uint32_t Resolution = 128;
 	  bool           m_finish   = false;
-	Image          m_kulla_conty_energy;
+	Graphics::Image          m_kulla_conty_energy;
 };
 }        // namespace Ilum::pass

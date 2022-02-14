@@ -11,7 +11,7 @@
 
 #include "Renderer/Renderer.hpp"
 
-#include "File/FileSystem.hpp"
+#include <Core/FileSystem.hpp>
 
 #include "Material/Material.h"
 #include "Material/PBR.h"
@@ -44,13 +44,13 @@ void serialize_material<material::PBRMaterial>(YAML::Emitter &emitter, const mat
 	emitter << YAML::Key << "metallic_factor" << YAML::Value << material.metallic_factor;
 	emitter << YAML::Key << "roughness_factor" << YAML::Value << material.roughness_factor;
 	emitter << YAML::Key << "displacement_height" << YAML::Value << material.displacement_height;
-	emitter << YAML::Key << "albedo_map" << YAML::Value << FileSystem::getRelativePath(material.albedo_map);
-	emitter << YAML::Key << "normal_map" << YAML::Value << FileSystem::getRelativePath(material.normal_map);
-	emitter << YAML::Key << "metallic_map" << YAML::Value << FileSystem::getRelativePath(material.metallic_map);
-	emitter << YAML::Key << "roughness_map" << YAML::Value << FileSystem::getRelativePath(material.roughness_map);
-	emitter << YAML::Key << "emissive_map" << YAML::Value << FileSystem::getRelativePath(material.emissive_map);
-	emitter << YAML::Key << "ao_map" << YAML::Value << FileSystem::getRelativePath(material.ao_map);
-	emitter << YAML::Key << "displacement_map" << YAML::Value << FileSystem::getRelativePath(material.displacement_map);
+	emitter << YAML::Key << "albedo_map" << YAML::Value << Core::FileSystem::GetRelativePath(material.albedo_map);
+	emitter << YAML::Key << "normal_map" << YAML::Value << Core::FileSystem::GetRelativePath(material.normal_map);
+	emitter << YAML::Key << "metallic_map" << YAML::Value << Core::FileSystem::GetRelativePath(material.metallic_map);
+	emitter << YAML::Key << "roughness_map" << YAML::Value << Core::FileSystem::GetRelativePath(material.roughness_map);
+	emitter << YAML::Key << "emissive_map" << YAML::Value << Core::FileSystem::GetRelativePath(material.emissive_map);
+	emitter << YAML::Key << "ao_map" << YAML::Value << Core::FileSystem::GetRelativePath(material.ao_map);
+	emitter << YAML::Key << "displacement_map" << YAML::Value << Core::FileSystem::GetRelativePath(material.displacement_map);
 	emitter << YAML::EndMap;
 }
 
@@ -129,7 +129,7 @@ void serialize_component<cmpt::MeshletRenderer>(YAML::Emitter &emitter, const en
 
 	emitter << YAML::Key << typeid(cmpt::MeshletRenderer).name();
 	emitter << YAML::BeginMap;
-	emitter << YAML::Key << "model" << YAML::Value << FileSystem::getRelativePath(mesh_renderer.model);
+	emitter << YAML::Key << "model" << YAML::Value << Core::FileSystem::GetRelativePath(mesh_renderer.model);
 	emitter << YAML::Key << "materials" << YAML::Value;
 	emitter << YAML::BeginSeq;
 	for (auto &material : mesh_renderer.materials)
@@ -562,7 +562,7 @@ void SceneSerializer::deserialize(const std::string &file_path)
 	load_models.clear();
 	for (auto &image : load_images)
 	{
-		if (FileSystem::isExist(image))
+		if (Core::FileSystem::IsExist(image))
 		{
 			Renderer::instance()->getResourceCache().loadImageAsync(image);
 		}

@@ -4,7 +4,7 @@
 
 #include "Editor/Panel.hpp"
 
-#include "Graphics/Image/Image.hpp"
+#include <Graphics/Resource/Image.hpp>
 
 #include <imgui_node_editor.h>
 
@@ -101,6 +101,6 @@ class RenderGraphViewer : public Panel
 
 	ax::NodeEditor::NodeId m_select_node;
 
-	Image m_bg;
+	Graphics::Image m_bg;
 };
 }        // namespace Ilum::panel

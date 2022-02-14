@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Graphics/Image/Image.hpp"
+#include <Graphics/Resource/Image.hpp>
 #include "Graphics/Model/Model.hpp"
 #include "Graphics/Shader/Shader.hpp"
 #include "Graphics/Shader/ShaderReflection.hpp"
@@ -14,7 +14,7 @@ class ResourceCache
 
 	~ResourceCache() = default;
 
-	ImageReference loadImage(const std::string &filepath);
+	Graphics::ImageReference loadImage(const std::string &filepath);
 
 	void loadImageAsync(const std::string &filepath);
 
@@ -26,7 +26,7 @@ class ResourceCache
 
 	void updateImageReferences();
 
-	const std::vector<ImageReference> &getImageReferences() const;
+	const std::vector<Graphics::ImageReference> &getImageReferences() const;
 
 	uint32_t imageID(const std::string &filepath);
 
@@ -58,12 +58,12 @@ class ResourceCache
 
   private:
 	// Cache image
-	std::vector<Image>                                  m_image_cache;
+	std::vector<Graphics::Image>                                  m_image_cache;
 	std::unordered_map<std::string, size_t>             m_image_map;
 	std::vector<std::string>                            m_deprecated_image;
 	std::unordered_set<std::string>                     m_new_image;
-	std::unordered_map<std::string, std::future<Image>> m_image_futures;
-	std::vector<ImageReference>                         m_image_references;
+	std::unordered_map<std::string, std::future<Graphics::Image>> m_image_futures;
+	std::vector<Graphics::ImageReference>                         m_image_references;
 
 	// Cache model
 	std::vector<Model>                                  m_model_cache;

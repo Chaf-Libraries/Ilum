@@ -2,11 +2,9 @@
 
 #include <imgui.h>
 
-#include "Device/Window.hpp"
-
 #include "ImGui/ImGuiContext.hpp"
 
-#include "File/FileSystem.hpp"
+#include <Core/FileSystem.hpp>
 
 #include "Renderer/RenderGraph/RenderGraph.hpp"
 #include "Renderer/RenderPass/ImGuiPass.hpp"
@@ -98,7 +96,7 @@ void Editor::onTick(float delta_time)
 				{
 					SceneSerializer serializer;
 					serializer.serialize(m_scene_path.c_str());
-					Scene::instance()->name = FileSystem::getFileName(m_scene_path, false);
+					Scene::instance()->name = Core::FileSystem::GetFileName(m_scene_path, false);
 					LOG_INFO("Save scene to {}", m_scene_path);
 				}
 			}
@@ -201,7 +199,7 @@ void Editor::onTick(float delta_time)
 			if (ifd::FileDialog::Instance().HasResult())
 			{
 				m_scene_path = ifd::FileDialog::Instance().GetResult().u8string();
-				Scene::instance()->name = FileSystem::getFileName(m_scene_path, false);
+				Scene::instance()->name = Core::FileSystem::GetFileName(m_scene_path, false);
 				SceneSerializer serializer;
 				serializer.serialize(m_scene_path.c_str());
 				LOG_INFO("Save scene to {}", m_scene_path);

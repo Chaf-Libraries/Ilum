@@ -3,33 +3,33 @@
 #include "Loader/ImageLoader/ImageLoader.hpp"
 #include "Loader/ModelLoader/ModelLoader.hpp"
 
-#include "Device/LogicalDevice.hpp"
+#include <Graphics/Device/Device.hpp>
 
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Shader/ShaderCompiler.hpp"
 
 #include "Material/Material.h"
 
-#include "File/FileSystem.hpp"
+#include <Core/FileSystem.hpp>
 
-#include "Threading/ThreadPool.hpp"
+#include <Core/JobSystem/JobSystem.hpp>
 
-#include "Graphics/Vulkan/VK_Debugger.h"
+#include <Graphics/Vulkan.hpp>
 
 #include "Renderer/Renderer.hpp"
 
 namespace Ilum
 {
-ImageReference ResourceCache::loadImage(const std::string &filepath)
+Graphics::ImageReference ResourceCache::loadImage(const std::string &filepath)
 {
 	if (m_image_cache.size() == m_image_map.size() && m_image_map.find(filepath) != m_image_map.end())
 	{
 		return m_image_cache.at(m_image_map.at(filepath));
 	}
 
-	LOG_INFO("Import Image: {}", filepath);
+	LOG_INFO("Import Graphics::Image: {}", filepath);
 
-	Image image;
+	Graphics::Image image(Graphics::RenderContext::GetDevice());
 	ImageLoader::loadImageFromFile(image, filepath);
 
 	{
@@ -44,7 +44,7 @@ ImageReference ResourceCache::loadImage(const std::string &filepath)
 void ResourceCache::loadImageAsync(const std::string &filepath)
 {
 	std::lock_guard<std::mutex> lock(m_image_mutex);
-	if (FileSystem::isExist(filepath))
+	if (Core::FileSystem::IsExist(filepath))
 	{
 		m_new_image.insert(filepath);
 	}
@@ -81,7 +81,7 @@ void ResourceCache::updateImageReferences()
 	}
 }
 
-const std::vector<ImageReference> &ResourceCache::getImageReferences() const
+const std::vector<Graphics::ImageReference> &ResourceCache::getImageReferences() const
 {
 	return m_image_references;
 }
@@ -134,7 +134,7 @@ ModelReference ResourceCache::loadModel(const std::string &name)
 void ResourceCache::loadModelAsync(const std::string &filepath)
 {
 	std::lock_guard<std::mutex> lock(m_model_mutex);
-	if (FileSystem::isExist(filepath))
+	if (Core::FileSystem::IsExist(filepath))
 	{
 		m_new_model.insert(filepath);
 	}
@@ -233,9 +233,10 @@ void ResourceCache::flush()
 		{
 			if (m_model_futures.find(filepath) == m_model_futures.end() && m_model_map.find(filepath) == m_model_map.end())
 			{
-				m_model_futures[filepath] = ThreadPool::instance()->addTask([filepath](size_t id) {
+				Core::JobHandle handle;
+				Core::JobSystem::Execute(handle, [filepath]() {
 					Model model;
-					LOG_INFO("Loading model {}, using thread {}", filepath, id);
+					LOG_INFO("Loading model {}", filepath);
 					ModelLoader::load(model, filepath);
 					return model;
 				});
@@ -295,24 +296,25 @@ void ResourceCache::flush()
 			}
 			m_image_cache.erase(m_image_cache.begin() + index);
 			m_image_map.erase(name);
-			LOG_INFO("Release Image: {}", name);
+			LOG_INFO("Release Graphics::Image: {}", name);
 			Material::update = true;
 		}
 		m_deprecated_image.clear();
 
 		// Add new image
-		for (auto &filepath : m_new_image)
+		/*for (auto &filepath : m_new_image)
 		{
 			if (m_image_futures.find(filepath) == m_image_futures.end() && m_image_map.find(filepath) == m_image_map.end())
 			{
-				m_image_futures[filepath] = ThreadPool::instance()->addTask([filepath](size_t id) {
-					Image image;
+				Core::JobHandle handle;
+				Core::JobSystem::Execute(handle, [filepath]() {
+					Graphics::Image image(Graphics::RenderContext::GetDevice());
 					ImageLoader::loadImageFromFile(image, filepath);
-					LOG_INFO("Loading image {}, using thread {}", filepath, id);
+					LOG_INFO("Loading image {}", filepath);
 					return image;
 				});
 			}
-		}
+		}*/
 
 		for (auto iter = m_image_futures.begin(); iter != m_image_futures.end();)
 		{

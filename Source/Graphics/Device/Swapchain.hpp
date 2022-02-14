@@ -11,7 +11,7 @@ class PhysicalDevice;
 class Swapchain
 {
   public:
-	Swapchain(const Device &device, const Surface &surface, const PhysicalDevice &physical_device, VkSwapchainKHR old_swapchain = VK_NULL_HANDLE, bool vsync = false);
+	Swapchain(const VkExtent2D& extent, const Device &device, const Surface &surface, const PhysicalDevice &physical_device, VkSwapchainKHR old_swapchain = VK_NULL_HANDLE, bool vsync = false);
 	~Swapchain();
 
 	Swapchain(const Swapchain &) = delete;

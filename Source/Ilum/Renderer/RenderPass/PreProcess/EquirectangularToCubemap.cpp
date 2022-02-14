@@ -4,9 +4,10 @@
 #include "Renderer/Renderer.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
-#include "Graphics/Vulkan/VK_Debugger.h"
+#include <Graphics/Vulkan.hpp>
+#include <Graphics/RenderContext.hpp>
 
-#include "Device/LogicalDevice.hpp"
+#include <Graphics/Device/Device.hpp>
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -16,7 +17,7 @@ EquirectangularToCubemap::~EquirectangularToCubemap()
 {
 	for (auto &framebuffer : m_framebuffers)
 	{
-		vkDestroyFramebuffer(GraphicsContext::instance()->getLogicalDevice(), framebuffer, nullptr);
+		vkDestroyFramebuffer(Graphics::RenderContext::GetDevice(), framebuffer, nullptr);
 	}
 }
 
@@ -40,7 +41,7 @@ void EquirectangularToCubemap::setupPipeline(PipelineState &state)
 
 	state.rasterization_state.polygon_mode = VK_POLYGON_MODE_FILL;
 
-	state.descriptor_bindings.bind(0, 0, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Wrap), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 0, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Wrap), Graphics::ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
 	state.declareAttachment("generated_cubmap", VK_FORMAT_R16G16B16A16_SFLOAT, 512, 512, false, 6);
 
@@ -65,7 +66,7 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 
 	if (m_framebuffers.empty())
 	{
-		VK_Debugger::setName(attachment, "cubemap");
+		Graphics::VKDebugger::SetName(Graphics::RenderContext::GetDevice(), attachment, "cubemap");
 
 		m_framebuffers.resize(6);
 
@@ -75,12 +76,12 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 			frame_buffer_create_info.sType                   = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 			frame_buffer_create_info.renderPass              = state.pass.render_pass;
 			frame_buffer_create_info.attachmentCount         = 1;
-			frame_buffer_create_info.pAttachments            = &attachment.getView(layer);
+			frame_buffer_create_info.pAttachments            = &attachment.GetView(layer);
 			frame_buffer_create_info.width                   = 512;
 			frame_buffer_create_info.height                  = 512;
 			frame_buffer_create_info.layers                  = 1;
 
-			vkCreateFramebuffer(GraphicsContext::instance()->getLogicalDevice(), &frame_buffer_create_info, nullptr, &m_framebuffers[layer]);
+			vkCreateFramebuffer(Graphics::RenderContext::GetDevice(), &frame_buffer_create_info, nullptr, &m_framebuffers[layer]);
 		}
 	}
 

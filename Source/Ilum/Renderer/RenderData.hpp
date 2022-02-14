@@ -1,6 +1,8 @@
 #pragma once
 
-#include "Graphics/Buffer/Buffer.h"
+#include <Graphics/Device/Device.hpp>
+#include <Graphics/RenderContext.hpp>
+#include <Graphics/Resource/Buffer.hpp>
 
 #include "Scene/Component/Light.hpp"
 
@@ -10,9 +12,9 @@ namespace Ilum
 {
 struct PerInstanceData
 {
-	glm::mat4 world_transform = {};
+	glm::mat4 world_transform      = {};
 	glm::mat4 last_world_transform = {};
-	glm::mat4 pre_transform   = {};
+	glm::mat4 pre_transform        = {};
 
 	glm::vec3 bbox_min  = {};
 	uint32_t  entity_id = 0;
@@ -98,52 +100,52 @@ struct CameraData
 struct RenderBuffer
 {
 	// Per instance data buffer
-	Buffer Instance_Buffer = Buffer(1024 * sizeof(PerInstanceData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	Graphics::Buffer Instance_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), 1024 * sizeof(PerInstanceData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	// Per material buffer
-	Buffer Material_Buffer = Buffer(1024 * sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	Graphics::Buffer Material_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), 1024 * sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	// Instance visibility buffer
-	Buffer Instance_Visibility_Buffer = Buffer(1024 * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	Graphics::Buffer Instance_Visibility_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), 1024 * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
 	// Per meshlet data buffer
-	Buffer Meshlet_Buffer = Buffer(1024 * sizeof(PerMeshletData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	Graphics::Buffer Meshlet_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), 1024 * sizeof(PerMeshletData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	// Meshlet - index instance from meshlet
-	Buffer Draw_Buffer = Buffer(1024 * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	Graphics::Buffer Draw_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), 1024 * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
 	// Indirect draw command
-	Buffer Command_Buffer = Buffer(1024 * sizeof(VkDrawIndexedIndirectCommand), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	Graphics::Buffer Command_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), 1024 * sizeof(VkDrawIndexedIndirectCommand), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
 	// Draw count buffer:
-	Buffer Count_Buffer = Buffer(sizeof(uint32_t) * 3, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
+	Graphics::Buffer Count_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), sizeof(uint32_t) * 3, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
 
 	// Culling data buffer
-	Buffer Culling_Buffer = Buffer(sizeof(CullingData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	Graphics::Buffer Culling_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), sizeof(CullingData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	// Camera buffer
-	Buffer Camera_Buffer = Buffer(sizeof(CameraData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	Graphics::Buffer Camera_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), sizeof(CameraData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-	// Static Vertex Buffer for meshlet rendering
-	Buffer Static_Vertex_Buffer;
+	// Static Vertex Graphics::Buffer for meshlet rendering
+	Graphics::Buffer Static_Vertex_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice());
 
-	// Static Index Buffer for meshlet rendering
-	Buffer Static_Index_Buffer;
+	// Static Index Graphics::Buffer for meshlet rendering
+	Graphics::Buffer Static_Index_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice());
 
-	// Dynamic Vertex Buffer for dynamic mesh rendering
-	Buffer Dynamic_Vertex_Buffer;
+	// Dynamic Vertex Graphics::Buffer for dynamic mesh rendering
+	Graphics::Buffer Dynamic_Vertex_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice());
 
-	// Dynamic Index Buffer for dynamic mesh rendering
-	Buffer Dynamic_Index_Buffer;
+	// Dynamic Index Graphics::Buffer for dynamic mesh rendering
+	Graphics::Buffer Dynamic_Index_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice());
 
-	// Directional Light Buffer
-	Buffer Directional_Light_Buffer = Buffer(sizeof(cmpt::DirectionalLight) * 10, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	// Directional Light Graphics::Buffer
+	Graphics::Buffer Directional_Light_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), sizeof(cmpt::DirectionalLight) * 10, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-	// Point Light Buffer
-	Buffer Point_Light_Buffer = Buffer(sizeof(cmpt::PointLight) * 10, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	// Point Light Graphics::Buffer
+	Graphics::Buffer Point_Light_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), sizeof(cmpt::PointLight) * 10, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-	// Spot Light Buffer
-	Buffer Spot_Light_Buffer = Buffer(sizeof(cmpt::SpotLight) * 10, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	// Spot Light Graphics::Buffer
+	Graphics::Buffer Spot_Light_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), sizeof(cmpt::SpotLight) * 10, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 };
 
 struct RenderStats
@@ -169,14 +171,14 @@ struct RenderStats
 
 	struct DynamicMeshCount
 	{
-		uint32_t instance_count   = 0;
-		uint32_t triangle_count   = 0;
+		uint32_t instance_count = 0;
+		uint32_t triangle_count = 0;
 	} dynamic_mesh_count;
 
 	struct CurveCount
 	{
 		uint32_t instance_count = 0;
 		uint32_t vertices_count = 0;
-	}curve_count;
+	} curve_count;
 };
 }        // namespace Ilum

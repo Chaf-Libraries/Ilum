@@ -1,6 +1,7 @@
 #include "DescriptorBinding.hpp"
 
-#include "Device/LogicalDevice.hpp"
+#include <Graphics/Device/Device.hpp>
+#include <Graphics/RenderContext.hpp>
 
 #include "Graphics/GraphicsContext.hpp"
 
@@ -65,25 +66,25 @@ inline bool is_buffer(VkDescriptorType type)
 	}
 }
 
-size_t DescriptorBinding::allocate(uint32_t set, const Buffer &buffer, VkDescriptorType type)
+size_t DescriptorBinding::allocate(uint32_t set, const Graphics::Buffer &buffer, VkDescriptorType type)
 {
 	m_buffer_writes[set].push_back(BufferWriteInfo{std::addressof(buffer), type_to_buffer_usage(type)});
 	return m_buffer_writes[set].size() - 1;
 }
 
-size_t DescriptorBinding::allocate(uint32_t set, const Image &image, ImageViewType view, VkDescriptorType type)
+size_t DescriptorBinding::allocate(uint32_t set, const Graphics::Image &image, Graphics::ImageViewType view, VkDescriptorType type)
 {
 	m_image_writes[set].push_back(ImageWriteInfo{std::addressof(image), type_to_image_usage(type), view, {}});
 	return m_image_writes[set].size() - 1;
 }
 
-size_t DescriptorBinding::allocate(uint32_t set, const Image &image, const Sampler &sampler, ImageViewType view, VkDescriptorType type)
+size_t DescriptorBinding::allocate(uint32_t set, const Graphics::Image &image, const Graphics::Sampler &sampler, Graphics::ImageViewType view, VkDescriptorType type)
 {
 	m_image_writes[set].push_back(ImageWriteInfo{std::addressof(image), type_to_image_usage(type), view, std::addressof(sampler)});
 	return m_image_writes[set].size() - 1;
 }
 
-size_t DescriptorBinding::allocate(uint32_t set, const Sampler &sampler)
+size_t DescriptorBinding::allocate(uint32_t set, const Graphics::Sampler &sampler)
 {
 	m_image_writes[set].push_back(ImageWriteInfo{{}, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, {}, std::addressof(sampler)});
 	return m_image_writes[set].size() - 1;
@@ -93,31 +94,31 @@ DescriptorBinding &DescriptorBinding::bind(uint32_t set, uint32_t binding, const
 {
 	if (type_to_buffer_usage(type) == VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM)
 	{
-		return bind(set, binding, name, Sampler(), ImageViewType::Native, type);
+		return bind(set, binding, name, Graphics::Sampler(Graphics::RenderContext::GetDevice()), Graphics::ImageViewType::Native, type);
 	}
 
 	m_buffer_to_resolves[set].push_back(BufferToResolve{name, binding, type, type_to_buffer_usage(type)});
 	return *this;
 }
 
-DescriptorBinding &DescriptorBinding::bind(uint32_t set, uint32_t binding, const std::string &name, ImageViewType view, VkDescriptorType type)
+DescriptorBinding &DescriptorBinding::bind(uint32_t set, uint32_t binding, const std::string &name, Graphics::ImageViewType view, VkDescriptorType type)
 {
-	return bind(set, binding, name, Sampler(), view, type);
+	return bind(set, binding, name, Graphics::Sampler(Graphics::RenderContext::GetDevice()), view, type);
 }
 
-DescriptorBinding &DescriptorBinding::bind(uint32_t set, uint32_t binding, const std::string &name, const Sampler &sampler, VkDescriptorType type)
+DescriptorBinding &DescriptorBinding::bind(uint32_t set, uint32_t binding, const std::string &name, const Graphics::Sampler &sampler, VkDescriptorType type)
 {
 	m_sampler_to_resolves[set].push_back(SamplerToResolve{std::addressof(sampler), binding, type});
 	return *this;
 }
 
-DescriptorBinding &DescriptorBinding::bind(uint32_t set, uint32_t binding, const std::string &name, const Sampler &sampler, ImageViewType view, VkDescriptorType type)
+DescriptorBinding &DescriptorBinding::bind(uint32_t set, uint32_t binding, const std::string &name, const Graphics::Sampler &sampler, Graphics::ImageViewType view, VkDescriptorType type)
 {
 	m_image_to_resolves[set].push_back(ImageToResolve{name, binding, type, type_to_image_usage(type), view, std::addressof(sampler)});
 	return *this;
 }
 
-DescriptorBinding &DescriptorBinding::bind(uint32_t set, uint32_t binding, const Sampler &sampler, VkDescriptorType type)
+DescriptorBinding &DescriptorBinding::bind(uint32_t set, uint32_t binding, const Graphics::Sampler &sampler, VkDescriptorType type)
 {
 	m_sampler_to_resolves[set].push_back(SamplerToResolve{std::addressof(sampler), binding, type});
 	return *this;
@@ -151,7 +152,7 @@ void DescriptorBinding::resolve(const ResolveInfo &resolve_info)
 
 			auto   images = resolve_info.getImages().at(image_to_resolve.name);
 			size_t index  = 0;
-			if (image_to_resolve.sampler_handle->getSampler())
+			if (image_to_resolve.sampler_handle->GetHandle())
 			{
 				for (const auto &image : images)
 				{
@@ -233,18 +234,18 @@ void DescriptorBinding::write(const DescriptorSet &descriptor_set)
 	for (const auto &buffer_info : m_buffer_writes[descriptor_set.index()])
 	{
 		descriptor_buffer_infos.push_back(VkDescriptorBufferInfo{
-		    buffer_info.handle->getBuffer(),
+		    buffer_info.handle->GetHandle(),
 		    0,
-		    buffer_info.handle->getSize()});
+		    buffer_info.handle->GetSize()});
 	}
 
 	// Write images
 	for (const auto &image_info : m_image_writes[descriptor_set.index()])
 	{
 		descriptor_image_infos.push_back(VkDescriptorImageInfo{
-		    image_info.sampler_handle != nullptr ? image_info.sampler_handle->getSampler() : VK_NULL_HANDLE,
-		    image_info.handle != nullptr ? image_info.handle->getView(image_info.view) : VK_NULL_HANDLE,
-		    Image::usage_to_layout(image_info.usage)});
+		    image_info.sampler_handle != nullptr ? image_info.sampler_handle->GetHandle() : VK_NULL_HANDLE,
+		    image_info.handle != nullptr ? image_info.handle->GetView(image_info.view) : VK_NULL_HANDLE,
+		    Graphics::Image::UsageToLayout(image_info.usage)});
 	}
 
 	// Write descriptor
@@ -284,17 +285,17 @@ const std::map<uint32_t, std::vector<DescriptorBinding::ImageToResolve>> &Descri
 	return m_image_to_resolves;
 }
 
-void ResolveInfo::resolve(const std::string &name, const Buffer &buffer)
+void ResolveInfo::resolve(const std::string &name, const Graphics::Buffer &buffer)
 {
 	m_buffer_resolves[name] = {buffer};
 }
 
-void ResolveInfo::resolve(const std::string &name, const Image &image)
+void ResolveInfo::resolve(const std::string &name, const Graphics::Image &image)
 {
 	m_image_resolves[name] = {image};
 }
 
-void ResolveInfo::resolve(const std::string &name, const std::vector<BufferReference> &buffers)
+void ResolveInfo::resolve(const std::string &name, const std::vector<Graphics::BufferReference> &buffers)
 {
 	for (const auto &buffer : buffers)
 	{
@@ -302,7 +303,7 @@ void ResolveInfo::resolve(const std::string &name, const std::vector<BufferRefer
 	}
 }
 
-void ResolveInfo::resolve(const std::string &name, const std::vector<ImageReference> &images)
+void ResolveInfo::resolve(const std::string &name, const std::vector<Graphics::ImageReference> &images)
 {
 	for (const auto &image : images)
 	{
@@ -310,12 +311,12 @@ void ResolveInfo::resolve(const std::string &name, const std::vector<ImageRefere
 	}
 }
 
-const std::unordered_map<std::string, std::vector<BufferReference>> &ResolveInfo::getBuffers() const
+const std::unordered_map<std::string, std::vector<Graphics::BufferReference>> &ResolveInfo::getBuffers() const
 {
 	return m_buffer_resolves;
 }
 
-const std::unordered_map<std::string, std::vector<ImageReference>> &ResolveInfo::getImages() const
+const std::unordered_map<std::string, std::vector<Graphics::ImageReference>> &ResolveInfo::getImages() const
 {
 	return m_image_resolves;
 }

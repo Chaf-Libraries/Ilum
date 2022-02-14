@@ -66,10 +66,10 @@ void CurveUpdate::run()
 			}
 		}
 
-		if (curve_renderer.vertices.size() * sizeof(glm::vec3) != curve_renderer.vertex_buffer.getSize())
+		if (curve_renderer.vertices.size() * sizeof(glm::vec3) != curve_renderer.vertex_buffer.GetSize())
 		{
 			GraphicsContext::instance()->getQueueSystem().waitAll();
-			curve_renderer.vertex_buffer = Buffer(curve_renderer.vertices.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			curve_renderer.vertex_buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), curve_renderer.vertices.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 			curve_renderer.need_update = true;
 		}
@@ -83,8 +83,8 @@ void CurveUpdate::run()
 		// Copy memory
 		if (curve_renderer.need_update)
 		{
-			std::memcpy(curve_renderer.vertex_buffer.map(), curve_renderer.vertices.data(), curve_renderer.vertex_buffer.getSize());
-			curve_renderer.vertex_buffer.unmap();
+			std::memcpy(curve_renderer.vertex_buffer.Map(), curve_renderer.vertices.data(), curve_renderer.vertex_buffer.GetSize());
+			curve_renderer.vertex_buffer.Unmap();
 
 			curve_renderer.need_update = false;
 		}

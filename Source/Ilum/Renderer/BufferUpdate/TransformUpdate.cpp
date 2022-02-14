@@ -101,15 +101,15 @@ void TransformUpdate::run()
 			}
 		}
 
-		if (instance_count * sizeof(PerInstanceData) > Renderer::instance()->Render_Buffer.Instance_Buffer.getSize())
+		if (instance_count * sizeof(PerInstanceData) > Renderer::instance()->Render_Buffer.Instance_Buffer.GetSize())
 		{
 			GraphicsContext::instance()->getQueueSystem().waitAll();
-			Renderer::instance()->Render_Buffer.Instance_Buffer            = Buffer(instance_count * sizeof(PerInstanceData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-			Renderer::instance()->Render_Buffer.Instance_Visibility_Buffer = Buffer(instance_count * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+			Renderer::instance()->Render_Buffer.Instance_Buffer            = Graphics::Buffer(Graphics::RenderContext::GetDevice(), instance_count * sizeof(PerInstanceData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			Renderer::instance()->Render_Buffer.Instance_Visibility_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), instance_count * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 			Renderer::instance()->update();
 		}
 
-		PerInstanceData *instance_data = reinterpret_cast<PerInstanceData *>(Renderer::instance()->Render_Buffer.Instance_Buffer.map());
+		PerInstanceData *instance_data = reinterpret_cast<PerInstanceData *>(Renderer::instance()->Render_Buffer.Instance_Buffer.Map());
 
 		tbb::parallel_for(tbb::blocked_range<size_t>(0, meshlet_view.size()), [&meshlet_view, &instance_data, instance_offset](const tbb::blocked_range<size_t> &r) {
 			for (size_t i = r.begin(); i != r.end(); i++)
@@ -138,7 +138,7 @@ void TransformUpdate::run()
 				}
 			}
 		});
-		Renderer::instance()->Render_Buffer.Instance_Buffer.unmap();
+		Renderer::instance()->Render_Buffer.Instance_Buffer.Unmap();
 	}
 
 	cmpt::Transform::update = false;

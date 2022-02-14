@@ -2,7 +2,8 @@
 
 #include "Graphics/GraphicsContext.hpp"
 
-#include"Device/LogicalDevice.hpp"
+#include <Graphics/Device/Device.hpp>
+#include <Graphics/RenderContext.hpp>
 
 namespace Ilum
 {
@@ -12,14 +13,14 @@ Fence::Fence()
 	fence_create_info.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fence_create_info.flags             = 0;
 
-	vkCreateFence(GraphicsContext::instance()->getLogicalDevice(), &fence_create_info, nullptr, &m_handle);
+	vkCreateFence(Graphics::RenderContext::GetDevice(), &fence_create_info, nullptr, &m_handle);
 }
 
 Fence::~Fence()
 {
 	if (m_handle)
 	{
-		vkDestroyFence(GraphicsContext::instance()->getLogicalDevice(), m_handle, nullptr);
+		vkDestroyFence(Graphics::RenderContext::GetDevice(), m_handle, nullptr);
 	}
 }
 
@@ -39,17 +40,17 @@ Fence &Fence::operator=(Fence &&other) noexcept
 
 void Fence::wait() const
 {
-	vkWaitForFences(GraphicsContext::instance()->getLogicalDevice(), 1, &m_handle, VK_TRUE, std::numeric_limits<uint64_t>::max());
+	vkWaitForFences(Graphics::RenderContext::GetDevice(), 1, &m_handle, VK_TRUE, std::numeric_limits<uint64_t>::max());
 }
 
 void Fence::reset() const
 {
-	vkResetFences(GraphicsContext::instance()->getLogicalDevice(), 1, &m_handle);
+	vkResetFences(Graphics::RenderContext::GetDevice(), 1, &m_handle);
 }
 
 bool Fence::isSignaled() const
 {
-	auto result = vkGetFenceStatus(GraphicsContext::instance()->getLogicalDevice(), m_handle);
+	auto result = vkGetFenceStatus(Graphics::RenderContext::GetDevice(), m_handle);
 
 	if (result == VK_SUCCESS)
 	{

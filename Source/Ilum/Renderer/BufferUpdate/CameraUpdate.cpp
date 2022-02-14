@@ -92,8 +92,8 @@ void CameraUpdate::run()
 
 	const auto &transform = camera_entity.getComponent<cmpt::Transform>();
 
-	CameraData * camera_data          = reinterpret_cast<CameraData *>(Renderer::instance()->Render_Buffer.Camera_Buffer.map());
-	CullingData *culling_data         = reinterpret_cast<CullingData *>(Renderer::instance()->Render_Buffer.Culling_Buffer.map());
+	CameraData * camera_data          = reinterpret_cast<CameraData *>(Renderer::instance()->Render_Buffer.Camera_Buffer.Map());
+	CullingData *culling_data         = reinterpret_cast<CullingData *>(Renderer::instance()->Render_Buffer.Culling_Buffer.Map());
 	culling_data->last_view           = culling_data->view;
 
 	if (camera_entity.hasComponent<cmpt::PerspectiveCamera>())
@@ -155,11 +155,11 @@ void CameraUpdate::run()
 	culling_data->frustum_enable   = Renderer::instance()->Culling.frustum_culling;
 	culling_data->backface_enable  = Renderer::instance()->Culling.backface_culling;
 	culling_data->occlusion_enable = Renderer::instance()->Culling.occulsion_culling;
-	culling_data->zbuffer_width    = static_cast<float>(Renderer::instance()->Last_Frame.hiz_buffer->getWidth());
-	culling_data->zbuffer_height   = static_cast<float>(Renderer::instance()->Last_Frame.hiz_buffer->getHeight());
+	culling_data->zbuffer_width    = static_cast<float>(Renderer::instance()->Last_Frame.hiz_buffer->GetWidth());
+	culling_data->zbuffer_height   = static_cast<float>(Renderer::instance()->Last_Frame.hiz_buffer->GetHeight());
 
-	Renderer::instance()->Render_Buffer.Camera_Buffer.unmap();
-	Renderer::instance()->Render_Buffer.Culling_Buffer.unmap();
+	Renderer::instance()->Render_Buffer.Camera_Buffer.Unmap();
+	Renderer::instance()->Render_Buffer.Culling_Buffer.Unmap();
 
 	GraphicsContext::instance()->getProfiler().endSample("Camera Update");
 }

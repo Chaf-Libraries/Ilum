@@ -14,7 +14,7 @@
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
-#include "File/FileSystem.hpp"
+#include <Core/FileSystem.hpp>
 
 #include "ImFileDialog.h"
 
@@ -38,16 +38,16 @@ inline void draw_texture_asset(float height, float space)
 
 		ImGui::ImageButton(
 		    ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
-		    {height / static_cast<float>(image.get().getHeight()) * static_cast<float>(image.get().getWidth()), height});
+		    {height / static_cast<float>(image.get().GetHeight()) * static_cast<float>(image.get().GetWidth()), height});
 
 		// Drag&Drop source
 		if (ImGui::BeginDragDropSource())
 		{
-			if (image.get().getLayerCount() == 1)
+			if (image.get().GetLayerCount() == 1)
 			{
 				ImGui::SetDragDropPayload("Texture2D", &name, sizeof(std::string));
 			}
-			else if (image.get().getLayerCount() == 6)
+			else if (image.get().GetLayerCount() == 6)
 			{
 				ImGui::SetDragDropPayload("TextureCube", &name, sizeof(std::string));
 				ImGui::SetDragDropPayload("TextureArray", &name, sizeof(std::string));
@@ -59,7 +59,7 @@ inline void draw_texture_asset(float height, float space)
 			ImGui::EndDragDropSource();
 		}
 
-		// Image Hint
+		// Graphics::Image Hint
 		if (ImGui::BeginPopupContextItem(name.c_str()))
 		{
 			if (ImGui::MenuItem("Delete"))
@@ -75,16 +75,16 @@ inline void draw_texture_asset(float height, float space)
 			ImGui::Begin(name.c_str(), NULL, ImGuiWindowFlags_Tooltip | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar);
 			ImGui::Text(name.c_str());
 			ImGui::Separator();
-			ImGui::Text("format: %s", std::to_string(image.get().getFormat()).c_str());
-			ImGui::Text("width: %s", std::to_string(image.get().getWidth()).c_str());
-			ImGui::Text("height: %s", std::to_string(image.get().getHeight()).c_str());
-			ImGui::Text("mip levels: %s", std::to_string(image.get().getMipLevelCount()).c_str());
-			ImGui::Text("layers: %s", std::to_string(image.get().getLayerCount()).c_str());
+			ImGui::Text("format: %s", std::to_string(image.get().GetFormat()).c_str());
+			ImGui::Text("width: %s", std::to_string(image.get().GetWidth()).c_str());
+			ImGui::Text("height: %s", std::to_string(image.get().GetHeight()).c_str());
+			ImGui::Text("mip levels: %s", std::to_string(image.get().GetMipLevelCount()).c_str());
+			ImGui::Text("layers: %s", std::to_string(image.get().GetLayerCount()).c_str());
 			ImGui::End();
 		}
 
 		float last_button_x2 = ImGui::GetItemRectMax().x;
-		float next_button_x2 = last_button_x2 + style.ItemSpacing.x + height / static_cast<float>(image.get().getHeight()) * static_cast<float>(image.get().getWidth());
+		float next_button_x2 = last_button_x2 + style.ItemSpacing.x + height / static_cast<float>(image.get().GetHeight()) * static_cast<float>(image.get().GetWidth());
 		if (next_button_x2 < window_visible_x2)
 		{
 			ImGui::SameLine();
@@ -92,7 +92,7 @@ inline void draw_texture_asset(float height, float space)
 	}
 }
 
-inline void draw_model_asset(const Image &image, float height, float space)
+inline void draw_model_asset(const Graphics::Image &image, float height, float space)
 {
 	auto &model_cache = Renderer::instance()->getResourceCache().getModels();
 
@@ -105,7 +105,7 @@ inline void draw_model_asset(const Image &image, float height, float space)
 		ImGui::PushID(name.c_str());
 		ImGui::ImageButton(
 		    ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
-		    {height / static_cast<float>(image.getHeight()) * static_cast<float>(image.getWidth()), height});
+		    {height / static_cast<float>(image.GetHeight()) * static_cast<float>(image.GetWidth()), height});
 
 		// Drag&Drop source
 		if (ImGui::BeginDragDropSource())
@@ -116,7 +116,7 @@ inline void draw_model_asset(const Image &image, float height, float space)
 
 		ImGui::PopID();
 
-		// Image Hint
+		// Graphics::Image Hint
 		if (ImGui::BeginPopupContextItem(name.c_str()))
 		{
 			if (ImGui::MenuItem("Delete"))
@@ -150,7 +150,7 @@ inline void draw_model_asset(const Image &image, float height, float space)
 		}
 
 		float last_button_x2 = ImGui::GetItemRectMax().x;
-		float next_button_x2 = last_button_x2 + style.ItemSpacing.x + height / static_cast<float>(image.getHeight()) * static_cast<float>(image.getWidth());
+		float next_button_x2 = last_button_x2 + style.ItemSpacing.x + height / static_cast<float>(image.GetHeight()) * static_cast<float>(image.GetWidth());
 		if (next_button_x2 < window_visible_x2)
 		{
 			ImGui::SameLine();
@@ -158,7 +158,7 @@ inline void draw_model_asset(const Image &image, float height, float space)
 	}
 }
 
-inline void draw_shader_asset(const Image &image, float height, float space)
+inline void draw_shader_asset(const Graphics::Image &image, float height, float space)
 {
 	auto &shader_cache = GraphicsContext::instance()->getShaderCache().getShaders();
 
@@ -170,7 +170,7 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 	{
 		ImGui::ImageButton(
 		    ImGuiContext::textureID(image, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
-		    {height / static_cast<float>(image.getHeight()) * static_cast<float>(image.getWidth()), height});
+		    {height / static_cast<float>(image.GetHeight()) * static_cast<float>(image.GetWidth()), height});
 
 		// Drag&Drop source
 		if (ImGui::BeginDragDropSource())
@@ -179,7 +179,7 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 			ImGui::EndDragDropSource();
 		}
 
-		// Image Hint
+		// Graphics::Image Hint
 		if (ImGui::IsItemHovered() && ImGui::IsWindowFocused())
 		{
 			auto   shader_data = GraphicsContext::instance()->getShaderCache().reflect(GraphicsContext::instance()->getShaderCache().getShader(name));
@@ -326,7 +326,7 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 
 			if (!shader_data.buffers.empty())
 			{
-				ImGui::Text("Buffer");
+				ImGui::Text("Graphics::Buffer");
 				if (ImGui::BeginTable("shader buffer", 8, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
 				{
 					ImGui::TableSetupColumn("name");
@@ -370,7 +370,7 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 								break;
 						}
 						ImGui::TableSetColumnIndex(7);
-						ImGui::Text("%s", shader_stage_to_string(buffer.stage).c_str());
+						ImGui::Text("%s", std::to_string(buffer.stage).c_str());
 					}
 					ImGui::EndTable();
 				}
@@ -378,7 +378,7 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 
 			if (!shader_data.images.empty())
 			{
-				ImGui::Text("Image");
+				ImGui::Text("Graphics::Image");
 				if (ImGui::BeginTable("shader image", 7, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
 				{
 					ImGui::TableSetupColumn("name");
@@ -410,7 +410,7 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 								ImGui::Text("None");
 								break;
 							case ReflectionData::Image::Type::Image:
-								ImGui::Text("Image");
+								ImGui::Text("Graphics::Image");
 								break;
 							case ReflectionData::Image::Type::Sampler:
 								ImGui::Text("Sampler");
@@ -425,7 +425,7 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 								break;
 						}
 						ImGui::TableSetColumnIndex(6);
-						ImGui::Text("%s", shader_stage_to_string(image.stage).c_str());
+						ImGui::Text("%s", std::to_string(image.stage).c_str());
 					}
 					ImGui::EndTable();
 				}
@@ -435,7 +435,7 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 		}
 
 		float last_button_x2 = ImGui::GetItemRectMax().x;
-		float next_button_x2 = last_button_x2 + style.ItemSpacing.x + height / static_cast<float>(image.getHeight()) * static_cast<float>(image.getWidth());
+		float next_button_x2 = last_button_x2 + style.ItemSpacing.x + height / static_cast<float>(image.GetHeight()) * static_cast<float>(image.GetWidth());
 		if (next_button_x2 < window_visible_x2)
 		{
 			ImGui::SameLine();
@@ -443,7 +443,9 @@ inline void draw_shader_asset(const Image &image, float height, float space)
 	}
 }
 
-AssetBrowser::AssetBrowser()
+AssetBrowser::AssetBrowser():
+    m_model_icon(Graphics::RenderContext::GetDevice()),
+    m_shader_icon(Graphics::RenderContext::GetDevice())
 {
 	m_name = "Asset Browser";
 	ImageLoader::loadImageFromFile(m_model_icon, std::string(PROJECT_SOURCE_DIR) + "Asset/Texture/Icon/model.png");
@@ -466,7 +468,7 @@ void AssetBrowser::draw(float delta_time)
 		ImGui::SameLine();
 		if (ImGui::Button("Import"))
 		{
-			ifd::FileDialog::Instance().Open("TextureOpenDialog", "Import Texture", "Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga;*.hdr){.png,.jpg,.jpeg,.bmp,.tga,.hdr}", true);
+			ifd::FileDialog::Instance().Open("TextureOpenDialog", "Import Texture", "Graphics::Image file (*.png;*.jpg;*.jpeg;*.bmp;*.tga;*.hdr){.png,.jpg,.jpeg,.bmp,.tga,.hdr}", true);
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("Clear"))
@@ -480,7 +482,7 @@ void AssetBrowser::draw(float delta_time)
 			{
 				for (auto &path : ifd::FileDialog::Instance().GetResults())
 				{
-					Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(path.u8string()));
+					Renderer::instance()->getResourceCache().loadImageAsync(Core::FileSystem::GetRelativePath(path.u8string()));
 				}
 			}
 			ifd::FileDialog::Instance().Close();

@@ -1,15 +1,19 @@
 #include "KullaContyEnergy.hpp"
 
 #include "Renderer/Renderer.hpp"
+#include "Graphics/GraphicsContext.hpp"
+#include <Graphics/Device/Device.hpp>
+#include <Graphics/RenderContext.hpp>
 
-#include "Graphics/Vulkan/VK_Debugger.h"
+#include <Graphics/Vulkan.hpp>
 
 namespace Ilum::pass
 {
-KullaContyEnergy::KullaContyEnergy()
+KullaContyEnergy::KullaContyEnergy():
+    m_kulla_conty_energy{Graphics::RenderContext::GetDevice()}
 {
-	m_kulla_conty_energy = Image(128, 128, VK_FORMAT_R16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-	VK_Debugger::setName(m_kulla_conty_energy, "m_kulla_conty_energy");
+	m_kulla_conty_energy = Graphics::Image(Graphics::RenderContext::GetDevice(), 128, 128, VK_FORMAT_R16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	Graphics::VKDebugger::SetName(Graphics::RenderContext::GetDevice(), m_kulla_conty_energy, "m_kulla_conty_energy");
 
 	{
 		CommandBuffer cmd_buffer;
@@ -24,7 +28,7 @@ void KullaContyEnergy::setupPipeline(PipelineState &state)
 {
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/PreProcess/KullaContyEnergy.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
 
-	state.descriptor_bindings.bind(0, 0, "LUT - Emu", ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	state.descriptor_bindings.bind(0, 0, "LUT - Emu", Graphics::ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 }
 
 void KullaContyEnergy::resolveResources(ResolveState &resolve)

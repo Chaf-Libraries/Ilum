@@ -7,7 +7,8 @@
 
 namespace Ilum::Graphics
 {
-Swapchain::Swapchain(const Device &device, const Surface &surface, const PhysicalDevice &physical_device, VkSwapchainKHR old_swapchain, bool vsync) :
+Swapchain::Swapchain(const VkExtent2D &extent, const Device &device, const Surface &surface, const PhysicalDevice &physical_device, VkSwapchainKHR old_swapchain, bool vsync) :
+    m_extent(extent),
     m_device(device)
 {
 	auto &surface_format       = surface.GetFormat();

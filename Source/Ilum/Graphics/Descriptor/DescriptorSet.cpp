@@ -1,7 +1,8 @@
 #include "DescriptorSet.hpp"
 #include "DescriptorCache.hpp"
 
-#include "Device/LogicalDevice.hpp"
+#include <Graphics/Device/Device.hpp>
+#include <Graphics/RenderContext.hpp>
 
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/GraphicsContext.hpp"
@@ -23,7 +24,7 @@ DescriptorSet::~DescriptorSet()
 
 void DescriptorSet::update(const std::vector<VkWriteDescriptorSet> &write_descriptor_sets) const
 {
-	vkUpdateDescriptorSets(GraphicsContext::instance()->getLogicalDevice(), static_cast<uint32_t>(write_descriptor_sets.size()), write_descriptor_sets.data(), 0, nullptr);
+	vkUpdateDescriptorSets(Graphics::RenderContext::GetDevice(), static_cast<uint32_t>(write_descriptor_sets.size()), write_descriptor_sets.data(), 0, nullptr);
 }
 
 const VkDescriptorSet &DescriptorSet::getDescriptorSet() const

@@ -1,11 +1,11 @@
 //#include "RenderPass.hpp"
 //#include "RenderTarget.hpp"
 //
-//#include "Device/LogicalDevice.hpp"
-//#include "Device/Surface.hpp"
+//#include <Graphics/Device/Device.hpp>
+//#include <Graphics/Device/Surface.hpp>
 //
 //#include "Graphics/GraphicsContext.hpp"
-//#include "Graphics/Image/ImageDepth.hpp"
+//#include "Graphics/Graphics::Image/ImageDepth.hpp"
 //
 //namespace Ilum
 //{
@@ -26,17 +26,17 @@
 //
 //		switch (attachment.getType())
 //		{
-//			case Attachment::Type::Image:
+//			case Attachment::Type::Graphics::Image:
 //				attachment_description.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-//				attachment_description.format      = attachment.getFormat();
+//				attachment_description.format      = attachment.GetFormat();
 //				break;
 //			case Attachment::Type::Depth:
 //				attachment_description.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-//				attachment_description.format      = render_target.hasDepthAttachment() ? render_target.getDepthStencil()->getFormat() : VK_FORMAT_UNDEFINED;
+//				attachment_description.format      = render_target.hasDepthAttachment() ? render_target.getDepthStencil()->GetFormat() : VK_FORMAT_UNDEFINED;
 //				break;
 //			case Attachment::Type::Swapchain:
 //				attachment_description.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-//				attachment_description.format      = GraphicsContext::instance()->getSurface().getFormat().format;
+//				attachment_description.format      = Graphics::RenderContext::GetSurface().GetFormat().format;
 //				break;
 //			default:
 //				break;
@@ -176,7 +176,7 @@
 //	render_pass_create_info.dependencyCount        = static_cast<uint32_t>(subpass_dependencies.size());
 //	render_pass_create_info.pDependencies          = subpass_dependencies.data();
 //
-//	if (!VK_CHECK(vkCreateRenderPass(GraphicsContext::instance()->getLogicalDevice(), &render_pass_create_info, nullptr, &m_handle)))
+//	if (!VK_CHECK(vkCreateRenderPass(Graphics::RenderContext::GetDevice(), &render_pass_create_info, nullptr, &m_handle)))
 //	{
 //		VK_ERROR("Failed to create render pass!");
 //	}
@@ -184,7 +184,7 @@
 //
 //RenderPass::~RenderPass()
 //{
-//	vkDestroyRenderPass(GraphicsContext::instance()->getLogicalDevice(), m_handle, nullptr);
+//	vkDestroyRenderPass(Graphics::RenderContext::GetDevice(), m_handle, nullptr);
 //}
 //
 //RenderPass::operator const VkRenderPass &() const
@@ -203,7 +203,7 @@
 
 namespace Ilum
 {
-const Image &RenderPassState::getAttachment(const std::string &name)
+const Graphics::Image &RenderPassState::getAttachment(const std::string &name)
 {
 	return graph.getAttachment(name);
 }

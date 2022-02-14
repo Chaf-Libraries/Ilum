@@ -6,14 +6,6 @@
 
 namespace Ilum::Graphics
 {
-enum class QueueFamily
-{
-	Graphics,
-	Compute,
-	Transfer,
-	Present
-};
-
 class Device
 {
   public:
@@ -32,6 +24,8 @@ class Device
 	const VmaAllocator &            GetAllocator() const;
 	const uint32_t                  GetQueueFamily(QueueFamily family) const;
 	VkQueue                         GetQueue(QueueFamily family, uint32_t index = 0) const;
+
+	void WaitIdle() const;
 
   private:
 	VkDevice                 m_handle           = VK_NULL_HANDLE;

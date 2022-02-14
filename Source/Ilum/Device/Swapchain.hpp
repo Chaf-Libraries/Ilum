@@ -2,7 +2,7 @@
 
 #include "Utils/PCH.hpp"
 
-#include "Graphics/Image/Image.hpp"
+#include <Graphics/Resource/Image.hpp>
 
 namespace Ilum
 {
@@ -27,7 +27,7 @@ class Swapchain
 
 	uint32_t getImageCount() const;
 
-	const std::vector<Image> &getImages() const;
+	const std::vector<Graphics::Image> &getImages() const;
 
 	const VkImage &getActiveImage() const;
 
@@ -44,7 +44,7 @@ class Swapchain
 	VkCompositeAlphaFlagBitsKHR m_composite_alpha = {};
 
 	uint32_t                 m_image_count = 0;
-	std::vector<Image>       m_images;
+	std::vector<Graphics::Image> m_images;
 
 	VkSwapchainKHR m_handle = VK_NULL_HANDLE;
 

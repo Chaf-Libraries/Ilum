@@ -8,9 +8,9 @@
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
-#include "Threading/ThreadPool.hpp"
+#include <Core/JobSystem/JobSystem.hpp>
 
-#include "File/FileSystem.hpp"
+#include <Core/FileSystem.hpp>
 
 #include "Material/PBR.h"
 
@@ -126,7 +126,7 @@ void CurvePass::render(RenderPassState &state)
 			vkCmdSetLineWidth(cmd_buffer, curve_renderer.line_width);
 
 			VkDeviceSize offsets[1] = {0};
-			vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &curve_renderer.vertex_buffer.getBuffer(), offsets);
+			vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &curve_renderer.vertex_buffer.GetHandle(), offsets);
 
 			struct
 			{

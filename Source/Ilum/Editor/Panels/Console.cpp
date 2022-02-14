@@ -1,6 +1,6 @@
 #include "Console.hpp"
 
-#include "Logging/Logger.hpp"
+#include <Core/Logger/Logger.hpp>
 
 #include "Loader/ImageLoader/ImageLoader.hpp"
 
@@ -10,7 +10,13 @@
 
 namespace Ilum::panel
 {
-Console::Console()
+Console::Console() :
+    m_icons{Graphics::Image(Graphics::RenderContext::GetDevice()),
+            Graphics::Image(Graphics::RenderContext::GetDevice()),
+            Graphics::Image(Graphics::RenderContext::GetDevice()),
+            Graphics::Image(Graphics::RenderContext::GetDevice()),
+            Graphics::Image(Graphics::RenderContext::GetDevice()),
+            Graphics::Image(Graphics::RenderContext::GetDevice())}
 {
 	m_name = "Console";
 
@@ -49,13 +55,13 @@ void Console::draw(float delta_time)
 	ImGui::SameLine();
 	if (ImGui::Button("Clear"))
 	{
-		Logger::getInstance().clear();
+		Core::Logger::GetInstance().Clear();
 	}
 
 	ImGui::SameLine();
 	if (ImGui::Button("Save"))
 	{
-		Logger::getInstance().save();
+		Core::Logger::GetInstance().Save();
 	}
 
 	for (uint32_t i = 0; i < 6; i++)
@@ -75,7 +81,7 @@ void Console::draw(float delta_time)
 	ImGui::Separator();
 	ImGui::BeginChild("scrolling", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
-	auto &logs = current_item == 0 ? Logger::getInstance().copyLogs("engine") : Logger::getInstance().copyLogs("vulkan");
+	auto &logs = current_item == 0 ? Core::Logger::GetInstance().CopyLogs("engine") : Core::Logger::GetInstance().CopyLogs("vulkan");
 	for (auto &log : logs)
 	{
 		if (!enable[log.level])

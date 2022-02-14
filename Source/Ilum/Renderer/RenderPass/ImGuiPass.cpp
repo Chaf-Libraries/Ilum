@@ -1,11 +1,12 @@
 #include "ImGuiPass.hpp"
 
-#include "Device/Instance.hpp"
-#include "Device/LogicalDevice.hpp"
-#include "Device/PhysicalDevice.hpp"
-#include "Device/Surface.hpp"
+#include <Graphics/Device/Instance.hpp>
+#include <Graphics/Device/Device.hpp>
+#include <Graphics/Device/PhysicalDevice.hpp>
+#include <Graphics/Device/Surface.hpp>
+#include <Graphics/RenderContext.hpp>
+
 #include "Device/Swapchain.hpp"
-#include "Device/Window.hpp"
 
 #include "Graphics/Descriptor/DescriptorCache.hpp"
 #include "Graphics/Descriptor/DescriptorPool.hpp"
@@ -36,7 +37,7 @@ void ImGuiPass::setupPipeline(PipelineState &state)
 	auto &rg = builder.build();
 
 	state.addOutputAttachment(m_output, m_attachment_state);
-	state.declareAttachment(m_output, GraphicsContext::instance()->getSurface().getFormat().format);
+	state.declareAttachment(m_output, Graphics::RenderContext::GetSurface().GetFormat().format);
 
 	for (auto &[name, output] : rg->getAttachments())
 	{
