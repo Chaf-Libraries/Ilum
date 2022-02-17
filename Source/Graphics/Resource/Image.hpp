@@ -29,18 +29,18 @@ class Image
 
 	operator const VkImage &() const;
 
-	const VkImageView &GetView(ImageViewType type = ImageViewType::Native) const;
-	const VkImageView &GetView(uint32_t layer, ImageViewType type = ImageViewType::Native) const;
-	uint32_t GetWidth() const;
-	uint32_t GetHeight() const;
-	uint32_t GetMipWidth(uint32_t mip_level) const;
-	uint32_t GetMipHeight(uint32_t mip_level) const;
-	uint32_t GetMipLevelCount() const;
-	uint32_t GetLayerCount() const;
-	VkFormat GetFormat() const;
-	const VkImage &GetHandle() const;
+	const VkImageView &      GetView(ImageViewType type = ImageViewType::Native) const;
+	const VkImageView &      GetView(uint32_t layer, ImageViewType type = ImageViewType::Native) const;
+	uint32_t                 GetWidth() const;
+	uint32_t                 GetHeight() const;
+	uint32_t                 GetMipWidth(uint32_t mip_level) const;
+	uint32_t                 GetMipHeight(uint32_t mip_level) const;
+	uint32_t                 GetMipLevelCount() const;
+	uint32_t                 GetLayerCount() const;
+	VkFormat                 GetFormat() const;
+	const VkImage &          GetHandle() const;
 	VkImageSubresourceLayers GetSubresourceLayers(uint32_t mip_level = 0, uint32_t layer = 0) const;
-	VkImageSubresourceRange GetSubresourceRange() const;
+	VkImageSubresourceRange  GetSubresourceRange() const;
 
 	bool IsDepth() const;
 
@@ -85,10 +85,8 @@ using ImageReference = std::reference_wrapper<const Image>;
 struct ImageInfo
 {
 	ImageReference       handle;
-	VkImageUsageFlagBits usage           = VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM;
-	uint32_t             base_mip_level  = 0;
-	uint32_t             base_layer      = 0;
-	uint32_t             mip_level_count = 0;
-	uint32_t             layer_count     = 0;
+	VkImageUsageFlagBits usage     = VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM;
+	uint32_t             mip_level = 0;
+	uint32_t             layer     = 0;
 };
 }        // namespace Ilum::Graphics

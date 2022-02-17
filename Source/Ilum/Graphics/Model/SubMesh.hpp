@@ -7,7 +7,10 @@
 
 namespace Ilum
 {
+namespace Graphics
+{
 class CommandBuffer;
+};
 
 struct SubMesh
 {

@@ -2,7 +2,7 @@
 
 #include "Utils/PCH.hpp"
 
-#include "Graphics/Command/CommandBuffer.hpp"
+#include <Graphics/Command/CommandBuffer.hpp>
 #include "Graphics/Descriptor/DescriptorBinding.hpp"
 
 namespace Ilum
@@ -25,7 +25,7 @@ struct PassNative
 struct RenderPassState
 {
 	RenderGraph &        graph;
-	const CommandBuffer &command_buffer;
+	const Graphics::CommandBuffer &command_buffer;
 	const PassNative &   pass;
 
 	const Graphics::Image &getAttachment(const std::string &name);

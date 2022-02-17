@@ -6,11 +6,10 @@
 #include <Core/Timer.hpp>
 #include "Utils/PCH.hpp"
 
+#include <Graphics/Command/CommandBuffer.hpp>
+
 namespace Ilum
 {
-class Swapchain;
-class CommandBuffer;
-class CommandPool;
 class DescriptorCache;
 class ShaderCache;
 class ImGuiContext;
@@ -23,8 +22,6 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 
 	~GraphicsContext() = default;
 
-	const Swapchain &getSwapchain() const;
-
 	DescriptorCache &getDescriptorCache();
 
 	ShaderCache &getShaderCache();
@@ -35,23 +32,19 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 
 	const VkPipelineCache &getPipelineCache() const;
 
-	const ref<CommandPool> &getCommandPool(QueueUsage usage = QueueUsage::Graphics, const std::thread::id &thread_id = std::this_thread::get_id());
-
 	uint32_t getFrameIndex() const;
 
 	const VkSemaphore &getPresentCompleteSemaphore() const;
 
 	const VkSemaphore &getRenderCompleteSemaphore() const;
 
-	const CommandBuffer &getCurrentCommandBuffer() const;
-
-	const CommandBuffer &acquireCommandBuffer(QueueUsage usage = QueueUsage::Graphics);
-
 	uint64_t getFrameCount() const;
 
 	bool isVsync() const;
 
 	void setVsync(bool vsync);
+
+	Graphics::CommandBuffer *getCurrentCommandBuffer() const;
 
   public:
 	virtual bool onInitialize() override;
@@ -75,19 +68,13 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	void submitFrame();
 
   private:
-	scope<Swapchain>      m_swapchain       = nullptr;
-
 	scope<DescriptorCache> m_descriptor_cache = nullptr;
 	scope<ShaderCache>     m_shader_cache     = nullptr;
 	scope<Profiler>        m_profiler         = nullptr;
 
-	// Command pool per thread
-	std::unordered_map<std::thread::id, std::unordered_map<QueueUsage, ref<CommandPool>>> m_command_pools;
-
-	std::unordered_map<std::thread::id, std::unordered_map<QueueUsage, std::vector<scope<CommandBuffer>>>> m_command_buffers;
+	Graphics::CommandBuffer *m_cmd_buffer = nullptr;
 
 	// Present resource
-	std::vector<scope<CommandBuffer>> m_main_command_buffers;
 	std::vector<VkSemaphore>          m_present_complete;
 	std::vector<VkSemaphore>          m_render_complete;
 	std::vector<VkFence>              m_flight_fences;

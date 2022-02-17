@@ -4,7 +4,10 @@
 
 namespace Ilum
 {
+namespace Graphics
+{
 class CommandBuffer;
+};
 
 struct SubmitInfo
 {
@@ -21,25 +24,25 @@ class Queue
 
 	~Queue() = default;
 
-	void submit(const CommandBuffer &command_buffer,
-	            const VkSemaphore &  signal_semaphore = VK_NULL_HANDLE,
-	            const VkSemaphore &  wait_semaphore   = VK_NULL_HANDLE,
-	            const VkFence &      fence            = VK_NULL_HANDLE,
-	            VkPipelineStageFlags wait_stages      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+	void submit(const Graphics::CommandBuffer &command_buffer,
+	            const VkSemaphore &            signal_semaphore = VK_NULL_HANDLE,
+	            const VkSemaphore &            wait_semaphore   = VK_NULL_HANDLE,
+	            const VkFence &                fence            = VK_NULL_HANDLE,
+	            VkPipelineStageFlags           wait_stages      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 
-	void submit(const CommandBuffer &                    command_buffers,
+	void submit(const Graphics::CommandBuffer &          command_buffers,
 	            const std::vector<VkSemaphore> &         signal_semaphores = {},
 	            const std::vector<VkSemaphore> &         wait_semaphores   = {},
 	            const VkFence &                          fence             = VK_NULL_HANDLE,
 	            const std::vector<VkPipelineStageFlags> &wait_stages       = {});
 
-	void submit(const CommandBuffer &command_buffer, const SubmitInfo &submit_info);
+	void submit(const Graphics::CommandBuffer &command_buffer, const SubmitInfo &submit_info);
 
-	void submitIdle(const CommandBuffer &command_buffer);
+	void SubmitIdle(const Graphics::CommandBuffer &command_buffer);
 
 	void waitIdle();
 
-	std::lock_guard<std::mutex>&& lock();
+	std::lock_guard<std::mutex> &&lock();
 
 	const VkQueue &getQueue() const;
 

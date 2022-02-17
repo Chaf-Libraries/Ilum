@@ -8,8 +8,16 @@
 #include "Device/Swapchain.hpp"
 #include "Device/Window.hpp"
 
+#include "Descriptor/DescriptorCache.hpp"
+#include "Descriptor/DescriptorPool.hpp"
+#include "Descriptor/DescriptorSetLayout.hpp"
+
+#include "Pipeline/PipelineCache.hpp"
+
 #include "Synchronize/FencePool.hpp"
 #include "Synchronize/SemaphorePool.hpp"
+
+#include <Core/Hash.hpp>
 
 namespace Ilum::Graphics
 {
@@ -26,6 +34,9 @@ RenderContext::RenderContext()
 	{
 		m_render_frames.emplace_back(std::make_unique<RenderFrame>(*m_device));
 	}
+
+	m_pipeline_cache   = std::make_unique<PipelineCache>(*m_device);
+	m_descriptor_cache = std::make_unique<DescriptorCache>(*m_device);
 }
 
 void RenderContext::NewFrame(VkSemaphore image_ready)
@@ -65,6 +76,68 @@ const VkExtent2D &RenderContext::GetRenderArea()
 {
 	return Get().m_render_area;
 }
+
+VkDescriptorSet RenderContext::AllocateDescriptorSet(const PipelineState &pso, uint32_t set)
+{
+	return Get().m_descriptor_cache->AllocateDescriptorSet(pso.GetReflectionData(), set);
+}
+
+void RenderContext::FreeDescriptorSet(const VkDescriptorSet &descriptor_set)
+{
+	Get().m_descriptor_cache->Free(descriptor_set);
+}
+
+Pipeline &RenderContext::RequestPipeline(const PipelineState &pso)
+{
+	return Get().m_pipeline_cache->RequestPipeline(pso, RequestPipelineLayout(pso));
+}
+
+Pipeline &RenderContext::RequestPipeline(const PipelineState &pso, const RenderPass &render_pass, uint32_t subpass_index)
+{
+	return Get().m_pipeline_cache->RequestPipeline(pso, RequestPipelineLayout(pso), render_pass, subpass_index);
+}
+
+PipelineLayout &RenderContext::RequestPipelineLayout(const PipelineState &pso)
+{
+	std::vector<VkDescriptorSetLayout> descriptor_set_layouts;
+	for (auto &set : pso.GetReflectionData().sets)
+	{
+		descriptor_set_layouts.push_back(Get().m_descriptor_cache->RequestDescriptorSetLayout(pso.GetReflectionData(), set));
+	}
+
+	return Get().m_pipeline_cache->RequestPipelineLayout(pso.GetReflectionData(), descriptor_set_layouts);
+}
+
+CommandBuffer &RenderContext::CreateCommandBuffer(QueueFamily queue)
+{
+	// Request command pool
+	auto thread_id = std::this_thread::get_id();
+
+	size_t hash = 0;
+	Core::HashCombine(hash, static_cast<size_t>(queue));
+	Core::HashCombine(hash, thread_id);
+
+	if (Get().m_command_pools.find(hash) == Get().m_command_pools.end())
+	{
+		Get().m_command_pools.emplace(hash, std::make_unique<CommandPool>(*Get().m_device, queue, CommandPool::ResetMode::ResetPool, thread_id));
+	}
+
+	return Get().m_command_pools.at(hash)->RequestCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+}
+
+ void RenderContext::ResetCommandPool(QueueFamily queue)
+{
+	 auto thread_id = std::this_thread::get_id();
+
+	 size_t hash = 0;
+	 Core::HashCombine(hash, static_cast<size_t>(queue));
+	 Core::HashCombine(hash, thread_id);
+
+	 if (Get().m_command_pools.find(hash) != Get().m_command_pools.end())
+	 {
+		 Get().m_command_pools.at(hash)->Reset();
+	 }
+ }
 
 Window &RenderContext::GetWindow()
 {

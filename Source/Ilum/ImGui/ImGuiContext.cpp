@@ -7,9 +7,8 @@
 #include <Graphics/Device/Device.hpp>
 #include <Graphics/Device/PhysicalDevice.hpp>
 #include <Graphics/Device/Surface.hpp>
+#include <Graphics/Device/Swapchain.hpp>
 #include <Graphics/RenderContext.hpp>
-
-#include "Device/Swapchain.hpp"
 
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/Command/CommandPool.hpp"
@@ -114,19 +113,21 @@ void ImGuiContext::createResouce()
 	init_info.Queue                     = Graphics::RenderContext::GetDevice().GetQueue(Graphics::QueueFamily::Graphics);
 	init_info.PipelineCache             = GraphicsContext::instance()->getPipelineCache();
 	init_info.DescriptorPool            = s_instance->m_descriptor_pool;
-	init_info.MinImageCount             = GraphicsContext::instance()->getSwapchain().getImageCount() - 1;
-	init_info.ImageCount                = GraphicsContext::instance()->getSwapchain().getImageCount();
+	init_info.MinImageCount             = Graphics::RenderContext::GetSwapchain().GetImageCount() - 1;
+	init_info.ImageCount                = Graphics::RenderContext::GetSwapchain().GetImageCount();
 
 	ImGui_ImplSDL2_InitForVulkan(Graphics::RenderContext::GetWindow().GetHandle());
 	ImGui_ImplVulkan_Init(&init_info, Renderer::instance()->getRenderGraph()->getNode<pass::ImGuiPass>().pass_native.render_pass);
 
 	// Upload fonts
-	CommandBuffer command_buffer;
-	command_buffer.begin();
+	auto &        command_buffer = Graphics::RenderContext::CreateCommandBuffer();
+	//CommandBuffer command_buffer;
+	command_buffer.Begin();
 	ImGui_ImplVulkan_CreateFontsTexture(command_buffer);
-	command_buffer.end();
-	//GraphicsContext::instance()->getQueueSystem().acquire(QueueUsage::Transfer)->submitIdle(command_buffer);
-	command_buffer.submitIdle();
+	command_buffer.End();
+	//GraphicsContext::instance()->getQueueSystem().acquire(QueueUsage::Transfer)->SubmitIdle(command_buffer);
+	command_buffer.SubmitIdle();
+	Graphics::RenderContext::ResetCommandPool();
 	ImGui_ImplVulkan_DestroyFontUploadObjects();
 
 	s_enable = true;
@@ -341,7 +342,7 @@ void ImGuiContext::begin()
 	beginDockingSpace();
 }
 
-void ImGuiContext::render(const CommandBuffer &command_buffer)
+void ImGuiContext::render(const Graphics::CommandBuffer &command_buffer)
 {
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer);
 }

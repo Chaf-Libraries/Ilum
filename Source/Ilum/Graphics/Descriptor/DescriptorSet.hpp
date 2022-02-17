@@ -5,8 +5,12 @@
 namespace Ilum
 {
 class Pipeline;
-class CommandBuffer;
 class Shader;
+
+namespace Graphics
+{
+class CommandBuffer;
+}
 
 class DescriptorSet
 {

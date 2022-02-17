@@ -2,9 +2,13 @@
 
 #include "../Vulkan.hpp"
 
+#include "Resource/Buffer.hpp"
+#include "Resource/Image.hpp"
+
 namespace Ilum::Graphics
 {
 class CommandPool;
+class Device;
 
 class CommandBuffer
 {
@@ -18,7 +22,7 @@ class CommandBuffer
 	};
 
   public:
-	CommandBuffer(const CommandPool &cmd_pool, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+	CommandBuffer(const Device &device, const CommandPool &cmd_pool, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 	~CommandBuffer();
 
 	CommandBuffer(const CommandBuffer &) = delete;
@@ -39,14 +43,26 @@ class CommandBuffer
 	void SubmitIdle(uint32_t queue_index = 0);
 
 	// Copy image and buffer
+	void CopyImage(const ImageInfo &src, const ImageInfo &dst) const;
+	void CopyBuffer(const BufferInfo &src, const BufferInfo &dst, VkDeviceSize size) const;
+	void CopyBufferToImage(const BufferInfo &src, const ImageInfo &dst) const;
+	void CopyImageToBuffer(const ImageInfo &src, const BufferInfo &dst) const;
+
+	// Image blit and mipmap
+	void BlitImage(const Image &src, VkImageUsageFlagBits src_usage, const Image &dst, VkImageUsageFlagBits dst_usage, VkFilter filter) const;
+	void GenerateMipmap(const Image &image, VkImageUsageFlagBits initial_usage, VkFilter filter) const;
+
+	// Layout transfer
+	void TransferLayout(const Image &image, VkImageUsageFlagBits src_usage, VkImageUsageFlagBits dst_usage) const;
+	void TransferLayout(const std::vector<ImageReference> &images, VkImageUsageFlagBits src_usage, VkImageUsageFlagBits dst_usage) const;
 
   private:
+	const Device &     m_device;
 	const CommandPool &m_pool;
 
 	VkCommandBuffer m_handle = VK_NULL_HANDLE;
 
-	QueueFamily          m_queue;
 	VkCommandBufferLevel m_level;
 	State                m_state = State::Invalid;
 };
-}
+}        // namespace Ilum::Graphics

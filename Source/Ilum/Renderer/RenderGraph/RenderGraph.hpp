@@ -17,7 +17,7 @@ struct RenderGraphNode
 	PassNative                                                      pass_native;
 	scope<RenderPass>                                               pass;
 	std::vector<std::string>                                        attachments;
-	std::function<void(const CommandBuffer &, const ResolveInfo &)> pipeline_barrier_callback;
+	std::function<void(const Graphics::CommandBuffer &, const ResolveInfo &)> pipeline_barrier_callback;
 	DescriptorBinding                                               descriptors;
 	SubmitInfo                                                      submit_info;
 };
@@ -25,8 +25,8 @@ struct RenderGraphNode
 class RenderGraph
 {
   private:
-	using PresentCallback = std::function<void(const CommandBuffer &, const Graphics::Image &, const Graphics::Image &)>;
-	using CreateCallback  = std::function<void(const CommandBuffer &)>;
+	using PresentCallback = std::function<void(const Graphics::CommandBuffer &, const Graphics::Image &, const Graphics::Image &)>;
+	using CreateCallback  = std::function<void(const Graphics::CommandBuffer &)>;
 
   public:
 	RenderGraph() = default;
@@ -39,9 +39,9 @@ class RenderGraph
 
 	bool empty() const;
 
-	void execute(const CommandBuffer &command_buffer);
+	void execute(const Graphics::CommandBuffer &command_buffer);
 
-	void present(const CommandBuffer &command_buffer, const Graphics::Image &present_image);
+	void present(const Graphics::CommandBuffer &command_buffer, const Graphics::Image &present_image);
 
 	template <typename T>
 	const RenderGraphNode &getNode() const
@@ -107,7 +107,7 @@ class RenderGraph
   private:
 	void initialize();
 
-	void executeNode(RenderGraphNode &node, const CommandBuffer &command_buffer, ResolveInfo &resolve);
+	void executeNode(RenderGraphNode &node, const Graphics::CommandBuffer &command_buffer, ResolveInfo &resolve);
 
   private:
 	std::vector<RenderGraphNode>           m_nodes;

@@ -3,8 +3,8 @@
 
 #include "Renderer/RenderPass/ImGuiPass.hpp"
 
-#include "Device/Swapchain.hpp"
 #include <Graphics/Device/Device.hpp>
+#include <Graphics/Device/Swapchain.hpp>
 
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Profiler.hpp"
@@ -120,7 +120,7 @@ bool Renderer::onInitialize()
 	Scene::instance()->addSystem<sym::MeshletUpdate>();
 	Scene::instance()->addSystem<sym::MaterialUpdate>();
 
-	m_render_target_extent = GraphicsContext::instance()->getSwapchain().getExtent();
+	m_render_target_extent = Graphics::RenderContext::GetSwapchain().GetExtent();
 	updateImages();
 
 	DeferredRendering(m_rg_builder);
@@ -166,8 +166,8 @@ void Renderer::onPostTick()
 		return;
 	}
 
-	m_render_graph->execute(GraphicsContext::instance()->getCurrentCommandBuffer());
-	m_render_graph->present(GraphicsContext::instance()->getCurrentCommandBuffer(), GraphicsContext::instance()->getSwapchain().getImages()[GraphicsContext::instance()->getFrameIndex()]);
+	m_render_graph->execute(*GraphicsContext::instance()->getCurrentCommandBuffer());
+	m_render_graph->present(*GraphicsContext::instance()->getCurrentCommandBuffer(), *Graphics::RenderContext::GetSwapchain().GetImages()[GraphicsContext::instance()->getFrameIndex()]);
 }
 
 void Renderer::onShutdown()
@@ -289,13 +289,16 @@ void Renderer::updateImages()
                                                                                 VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 	// Layout transition
 	{
-		CommandBuffer cmd_buffer;
-		cmd_buffer.begin();
-		cmd_buffer.transferLayout(*Renderer::instance()->Last_Frame.hiz_buffer, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_SAMPLED_BIT);
-		cmd_buffer.transferLayout(*Renderer::instance()->Last_Frame.depth_buffer, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_SAMPLED_BIT);
-		cmd_buffer.transferLayout(*Renderer::instance()->Last_Frame.last_result, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_SAMPLED_BIT);
-		cmd_buffer.end();
-		cmd_buffer.submitIdle();
+		auto &cmd_buffer = Graphics::RenderContext::CreateCommandBuffer();
+
+		//CommandBuffer cmd_buffer;
+		cmd_buffer.Begin();
+		cmd_buffer.TransferLayout(*Renderer::instance()->Last_Frame.hiz_buffer, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_SAMPLED_BIT);
+		cmd_buffer.TransferLayout(*Renderer::instance()->Last_Frame.depth_buffer, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_SAMPLED_BIT);
+		cmd_buffer.TransferLayout(*Renderer::instance()->Last_Frame.last_result, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_SAMPLED_BIT);
+		cmd_buffer.End();
+		cmd_buffer.SubmitIdle();
+		Graphics::RenderContext::ResetCommandPool();
 	}
 }
 }        // namespace Ilum

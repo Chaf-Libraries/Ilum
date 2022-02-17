@@ -8,7 +8,10 @@
 
 namespace Ilum
 {
+namespace Graphics
+{
 class CommandBuffer;
+};
 
 namespace Graphics
 {
@@ -38,7 +41,7 @@ class ImGuiContext
 
 	static void begin();
 
-	static void render(const CommandBuffer &command_buffer);
+	static void render(const Graphics::CommandBuffer &command_buffer);
 
 	static void end();
 

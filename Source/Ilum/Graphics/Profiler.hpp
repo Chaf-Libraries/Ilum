@@ -7,9 +7,8 @@ namespace Ilum
 namespace Graphics
 {
 class Buffer;
-};
-
 class CommandBuffer;
+};
 
 class Profiler
 {
@@ -34,13 +33,13 @@ class Profiler
 
 	~Profiler();
 
-	void beginFrame(const CommandBuffer &cmd_buffer);
+	void beginFrame(const Graphics::CommandBuffer &cmd_buffer);
 
-	void beginSample(const std::string &name, const CommandBuffer &cmd_buffer);
+	void beginSample(const std::string &name, const Graphics::CommandBuffer &cmd_buffer);
 
 	void beginSample(const std::string &name);
 
-	void endSample(const std::string &name, const CommandBuffer &cmd_buffer);
+	void endSample(const std::string &name, const Graphics::CommandBuffer &cmd_buffer);
 
 	void endSample(const std::string &name);
 

@@ -4,7 +4,11 @@
 
 namespace Ilum
 {
+namespace Graphics
+{
 class CommandBuffer;
+};
+
 class Queue;
 
 enum class QueueUsage
@@ -36,8 +40,8 @@ class QueueSystem
 	std::vector<Queue *>      m_transfer_queues;
 
 	uint32_t m_graphics_index = 0;
-	uint32_t m_present_index = 0;
-	uint32_t m_compute_index = 0;
+	uint32_t m_present_index  = 0;
+	uint32_t m_compute_index  = 0;
 	uint32_t m_transfer_index = 0;
 
 	std::mutex m_mutex;

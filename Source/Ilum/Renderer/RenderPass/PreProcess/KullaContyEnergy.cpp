@@ -16,11 +16,13 @@ KullaContyEnergy::KullaContyEnergy():
 	Graphics::VKDebugger::SetName(Graphics::RenderContext::GetDevice(), m_kulla_conty_energy, "m_kulla_conty_energy");
 
 	{
-		CommandBuffer cmd_buffer;
-		cmd_buffer.begin();
-		cmd_buffer.transferLayout(m_kulla_conty_energy, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_SAMPLED_BIT);
-		cmd_buffer.end();
-		cmd_buffer.submitIdle();
+		auto& cmd_buffer = Graphics::RenderContext::CreateCommandBuffer();
+		//CommandBuffer cmd_buffer;
+		cmd_buffer.Begin();
+		cmd_buffer.TransferLayout(m_kulla_conty_energy, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_SAMPLED_BIT);
+		cmd_buffer.End();
+		cmd_buffer.SubmitIdle();
+		Graphics::RenderContext::ResetCommandPool();
 	}
 }
 

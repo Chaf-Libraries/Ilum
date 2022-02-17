@@ -1,18 +1,17 @@
 #include "Profiler.hpp"
 
-#include "Command/CommandBuffer.hpp"
+#include <Graphics/Command/CommandBuffer.hpp>
 #include "GraphicsContext.hpp"
 
 #include <Graphics/Device/Device.hpp>
+#include <Graphics/Device/Swapchain.hpp>
 #include <Graphics/RenderContext.hpp>
-
-#include "Device/Swapchain.hpp"
 
 namespace Ilum
 {
 Profiler::Profiler()
 {
-	for (uint32_t i = 0; i < GraphicsContext::instance()->getSwapchain().getImageCount(); i++)
+	for (uint32_t i = 0; i < Graphics::RenderContext::GetSwapchain().GetImageCount(); i++)
 	{
 		VkQueryPoolCreateInfo createInfo{};
 		createInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
@@ -28,7 +27,7 @@ Profiler::Profiler()
 		m_buffers.emplace_back(Graphics::RenderContext::GetDevice(), sizeof(uint32_t) * 256, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
 	}
 
-	m_samples.resize(GraphicsContext::instance()->getSwapchain().getImageCount());
+	m_samples.resize(Graphics::RenderContext::GetSwapchain().GetImageCount());
 }
 
 Profiler ::~Profiler()
@@ -39,13 +38,13 @@ Profiler ::~Profiler()
 	}
 }
 
-void Profiler::beginFrame(const CommandBuffer &cmd_buffer)
+void Profiler::beginFrame(const Graphics::CommandBuffer &cmd_buffer)
 {
 	m_current_index = 0;
 	vkCmdResetQueryPool(cmd_buffer, m_query_pools[GraphicsContext::instance()->getFrameIndex()], 0, 256);
 }
 
-void Profiler::beginSample(const std::string &name, const CommandBuffer &cmd_buffer)
+void Profiler::beginSample(const std::string &name, const Graphics::CommandBuffer &cmd_buffer)
 {
 	uint32_t idx = GraphicsContext::instance()->getFrameIndex();
 	if (m_samples[idx].find(name) == m_samples[idx].end())
@@ -73,7 +72,7 @@ void Profiler::beginSample(const std::string &name)
 	start_sample.index        = m_current_index++;
 }
 
-void Profiler::endSample(const std::string &name, const CommandBuffer &cmd_buffer)
+void Profiler::endSample(const std::string &name, const Graphics::CommandBuffer &cmd_buffer)
 {
 	uint32_t idx = GraphicsContext::instance()->getFrameIndex();
 	if (m_samples[idx].find(name) == m_samples[idx].end())

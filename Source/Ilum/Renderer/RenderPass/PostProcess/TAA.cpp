@@ -78,11 +78,11 @@ void TAAPass::render(RenderPassState &state)
 	}
 	else
 	{
-		cmd_buffer.copyImage(
-		    ImageInfo{state.graph.getAttachment("lighting"), VK_IMAGE_USAGE_SAMPLED_BIT},
-		    ImageInfo{state.graph.getAttachment("taa_result"), VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT});
-		cmd_buffer.transferLayout(state.graph.getAttachment("lighting"), VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
-		cmd_buffer.transferLayout(state.graph.getAttachment("taa_result"), VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+		cmd_buffer.CopyImage(
+		    Graphics::ImageInfo{state.graph.getAttachment("lighting"), VK_IMAGE_USAGE_SAMPLED_BIT},
+		    Graphics::ImageInfo{state.graph.getAttachment("taa_result"), VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT});
+		cmd_buffer.TransferLayout(state.graph.getAttachment("lighting"), VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
+		cmd_buffer.TransferLayout(state.graph.getAttachment("taa_result"), VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
 	}
 }
 }        // namespace Ilum::pass

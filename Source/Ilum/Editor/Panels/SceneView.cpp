@@ -661,14 +661,15 @@ __pragma(warning(push, 0))
 			{
 				Graphics::ImageReference entity_id_buffer = Renderer::instance()->getRenderGraph()->getAttachment("debug - entity");
 
-				CommandBuffer cmd_buffer;
-				cmd_buffer.begin();
+				auto &        cmd_buffer = Graphics::RenderContext::GetFrame().RequestCommandBuffer();
+				//CommandBuffer cmd_buffer;
+				cmd_buffer.Begin();
 				Graphics::Buffer staging_buffer(Graphics::RenderContext::GetDevice(), static_cast<VkDeviceSize>(static_cast<size_t>(entity_id_buffer.get().GetWidth() * entity_id_buffer.get().GetHeight())) * sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
-				cmd_buffer.transferLayout(entity_id_buffer, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-				cmd_buffer.copyImageToBuffer(ImageInfo{entity_id_buffer, VK_IMAGE_USAGE_TRANSFER_SRC_BIT, 0, 0}, BufferInfo{staging_buffer, 0});
-				cmd_buffer.transferLayout(entity_id_buffer, VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
-				cmd_buffer.end();
-				cmd_buffer.submitIdle();
+				cmd_buffer.TransferLayout(entity_id_buffer, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+				cmd_buffer.CopyImageToBuffer(Graphics::ImageInfo{entity_id_buffer, VK_IMAGE_USAGE_TRANSFER_SRC_BIT, 0, 0}, Graphics::BufferInfo{staging_buffer, 0});
+				cmd_buffer.TransferLayout(entity_id_buffer, VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
+				cmd_buffer.End();
+				cmd_buffer.SubmitIdle();
 				std::vector<uint32_t> image_data(static_cast<size_t>(entity_id_buffer.get().GetWidth() * entity_id_buffer.get().GetHeight()));
 				std::memcpy(image_data.data(), staging_buffer.Map(), image_data.size() * sizeof(uint32_t));
 
@@ -996,14 +997,15 @@ __pragma(warning(push, 0))
 						pixel_size = 8;
 					}
 
-					CommandBuffer cmd_buffer;
-					cmd_buffer.begin();
+					auto &        cmd_buffer = Graphics::RenderContext::GetFrame().RequestCommandBuffer();
+					//CommandBuffer cmd_buffer;
+					cmd_buffer.Begin();
 					Graphics::Buffer staging_buffer(Graphics::RenderContext::GetDevice(), static_cast<VkDeviceSize>(attachment_buffer.get().GetWidth() * attachment_buffer.get().GetHeight()) * pixel_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
-					cmd_buffer.transferLayout(attachment_buffer, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
-					cmd_buffer.copyImageToBuffer(ImageInfo{attachment_buffer, VK_IMAGE_USAGE_TRANSFER_SRC_BIT, 0, 0}, BufferInfo{staging_buffer, 0});
-					cmd_buffer.transferLayout(attachment_buffer, VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
-					cmd_buffer.end();
-					cmd_buffer.submitIdle();
+					cmd_buffer.TransferLayout(attachment_buffer, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+					cmd_buffer.CopyImageToBuffer(Graphics::ImageInfo{attachment_buffer, VK_IMAGE_USAGE_TRANSFER_SRC_BIT, 0, 0}, Graphics::BufferInfo{staging_buffer, 0});
+					cmd_buffer.TransferLayout(attachment_buffer, VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
+					cmd_buffer.End();
+					cmd_buffer.SubmitIdle();
 
 					int w       = static_cast<int>(attachment_buffer.get().GetWidth());
 					int h       = static_cast<int>(attachment_buffer.get().GetHeight());

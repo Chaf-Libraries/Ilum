@@ -7,6 +7,7 @@ namespace Ilum::Graphics
 class Device;
 class Surface;
 class PhysicalDevice;
+class Image;
 
 class Swapchain
 {
@@ -27,7 +28,9 @@ class Swapchain
 	const VkImage &       GetActiveImage() const;
 
 	VkResult AcquireNextImage(VkSemaphore image_avaliable_semaphore);
-	VkResult Present(VkSemaphore wait_semaphore);
+	VkResult Present(VkSemaphore wait_semaphore, uint32_t index = 0);
+
+	const std::vector<std::unique_ptr<Image>> &GetImages() const;
 
   private:
 	const Device &m_device;
@@ -38,7 +41,7 @@ class Swapchain
 	VkCompositeAlphaFlagBitsKHR m_composite_alpha = {};
 	VkSwapchainKHR              m_handle          = VK_NULL_HANDLE;
 
-	std::vector<VkImage> m_images;
+	std::vector<std::unique_ptr<Image>> m_images;
 
 	uint32_t m_active_image_index = 0;
 };

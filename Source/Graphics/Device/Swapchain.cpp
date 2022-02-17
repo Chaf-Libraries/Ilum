@@ -2,6 +2,7 @@
 #include "Device.hpp"
 #include "PhysicalDevice.hpp"
 #include "Surface.hpp"
+#include "../Resource/Image.hpp"
 
 #include <array>
 
@@ -122,12 +123,18 @@ Swapchain::Swapchain(const VkExtent2D &extent, const Device &device, const Surfa
 		return;
 	}
 
-	m_images.reserve(image_count);
+	std::vector<VkImage> images;
+	images.resize(image_count);
 
-	if (!VK_CHECK(vkGetSwapchainImagesKHR(device, m_handle, &image_count, m_images.data())))
+	if (!VK_CHECK(vkGetSwapchainImagesKHR(device, m_handle, &image_count, images.data())))
 	{
 		VK_ERROR("Failed to get swapchain images");
 		return;
+	}
+	//	Image(const Device &device, VkImage image, uint32_t width, uint32_t height, VkFormat format);
+	for (auto& image : images)
+	{
+		m_images.emplace_back(std::make_unique<Graphics::Image>(m_device, image, m_extent.width, m_extent.height, surface.GetFormat().format));
 	}
 }
 
@@ -161,7 +168,7 @@ uint32_t Swapchain::GetImageCount() const
 
 const VkImage &Swapchain::GetActiveImage() const
 {
-	return m_images[m_active_image_index];
+	return *m_images[m_active_image_index];
 }
 
 VkResult Swapchain::AcquireNextImage(VkSemaphore image_avaliable_semaphore)
@@ -176,7 +183,7 @@ VkResult Swapchain::AcquireNextImage(VkSemaphore image_avaliable_semaphore)
 	return result;
 }
 
-VkResult Swapchain::Present(VkSemaphore wait_semaphore)
+VkResult Swapchain::Present(VkSemaphore wait_semaphore, uint32_t index)
 {
 	VkPresentInfoKHR present_info   = {};
 	present_info.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -186,6 +193,11 @@ VkResult Swapchain::Present(VkSemaphore wait_semaphore)
 	present_info.pSwapchains        = &m_handle;
 	present_info.pImageIndices      = &m_active_image_index;
 
-	return vkQueuePresentKHR(m_device.GetQueue(QueueFamily::Present), &present_info);
+	return vkQueuePresentKHR(m_device.GetQueue(QueueFamily::Present, index), &present_info);
+}
+
+const std::vector<std::unique_ptr<Image>> &Swapchain::GetImages() const
+{
+	return m_images;
 }
 }        // namespace Ilum::Graphics

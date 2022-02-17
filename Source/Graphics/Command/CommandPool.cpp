@@ -122,7 +122,7 @@ CommandBuffer& CommandPool::RequestCommandBuffer(VkCommandBufferLevel level)
 			return *m_primary_cmd_buffers.at(m_active_primary_count++);
 		}
 
-		m_primary_cmd_buffers.emplace_back(std::make_unique<CommandBuffer>(*this, level));
+		m_primary_cmd_buffers.emplace_back(std::make_unique<CommandBuffer>(m_device, *this, level));
 
 		m_active_primary_count++;
 
@@ -135,7 +135,7 @@ CommandBuffer& CommandPool::RequestCommandBuffer(VkCommandBufferLevel level)
 			return *m_secondary_cmd_buffers.at(m_active_secondary_count++);
 		}
 
-		m_secondary_cmd_buffers.emplace_back(std::make_unique<CommandBuffer>(*this, level));
+		m_secondary_cmd_buffers.emplace_back(std::make_unique<CommandBuffer>(m_device, *this, level));
 
 		m_active_secondary_count++;
 

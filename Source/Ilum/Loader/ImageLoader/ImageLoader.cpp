@@ -186,10 +186,11 @@ void ImageLoader::loadImage(Graphics::Image &image, const Bitmap &bitmap, bool m
 	std::memcpy(data, bitmap.data.data(), bitmap.data.size());
 	staging_buffer.Unmap();
 
-	CommandBuffer command_buffer;
+	auto &            command_buffer = Graphics::RenderContext::CreateCommandBuffer();
+	//CommandBuffer command_buffer;
 	Graphics::VKDebugger::SetName(Graphics::RenderContext::GetDevice(), command_buffer, "transfer image data");
-	command_buffer.begin();
-	command_buffer.copyBufferToImage(BufferInfo{staging_buffer, offset}, ImageInfo{image});
+	command_buffer.Begin();
+	command_buffer.CopyBufferToImage(Graphics::BufferInfo{staging_buffer, offset}, Graphics::ImageInfo{image});
 
 	offset += static_cast<uint32_t>(bitmap.data.size());
 
@@ -197,7 +198,7 @@ void ImageLoader::loadImage(Graphics::Image &image, const Bitmap &bitmap, bool m
 	{
 		if (bitmap.mip_levels.empty())
 		{
-			command_buffer.generateMipmaps(image, VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_FILTER_LINEAR);
+			command_buffer.GenerateMipmap(image, VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_FILTER_LINEAR);
 		}
 		else
 		{
@@ -207,7 +208,7 @@ void ImageLoader::loadImage(Graphics::Image &image, const Bitmap &bitmap, bool m
 				uint8_t *data = staging_buffer.Map();
 				std::memcpy(data + offset, mip_data.data(), mip_data.size());
 				staging_buffer.Unmap();
-				command_buffer.copyBufferToImage(BufferInfo{staging_buffer, offset}, ImageInfo{image, VK_IMAGE_USAGE_TRANSFER_DST_BIT, mip_level, 0});
+				command_buffer.CopyBufferToImage(Graphics::BufferInfo{staging_buffer, offset}, Graphics::ImageInfo{image, VK_IMAGE_USAGE_TRANSFER_DST_BIT, mip_level, 0});
 
 				offset += static_cast<uint32_t>(mip_data.size());
 
@@ -216,9 +217,11 @@ void ImageLoader::loadImage(Graphics::Image &image, const Bitmap &bitmap, bool m
 		}
 	}
 
-	command_buffer.transferLayout(image, VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
-	command_buffer.end();
-	command_buffer.submitIdle();
+	command_buffer.TransferLayout(image, VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
+	command_buffer.End();
+	command_buffer.SubmitIdle();
+
+	Graphics::RenderContext::ResetCommandPool();
 }
 
 void ImageLoader::loadCubemap(Graphics::Image &image, const Cubemap &cubemap)

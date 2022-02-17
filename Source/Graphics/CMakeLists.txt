@@ -6,6 +6,7 @@ SetTarget(
         NOMINMAX
     INC
         ${PROJECT_SOURCE_DIR}/Source
+        ${PROJECT_SOURCE_DIR}/Source/Graphics
     LIB
         SDL2::SDL2
         Core

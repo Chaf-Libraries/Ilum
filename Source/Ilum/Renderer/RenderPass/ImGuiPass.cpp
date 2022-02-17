@@ -6,8 +6,6 @@
 #include <Graphics/Device/Surface.hpp>
 #include <Graphics/RenderContext.hpp>
 
-#include "Device/Swapchain.hpp"
-
 #include "Graphics/Descriptor/DescriptorCache.hpp"
 #include "Graphics/Descriptor/DescriptorPool.hpp"
 #include "Graphics/GraphicsContext.hpp"

@@ -10,13 +10,13 @@ namespace Graphics
 {
 class Image;
 class Buffer;
+class CommandBuffer;
 };        // namespace Graphics
 
 class RenderPass;
 class RenderGraph;
 struct RenderGraphNode;
 class PipelineState;
-class CommandBuffer;
 class ResolveInfo;
 struct PassNative;
 
@@ -83,9 +83,9 @@ class RenderGraphBuilder
 	using SynchronizeMap          = std::unordered_map<std::string, SubmitInfo>;
 	using AttachmentMap           = std::unordered_map<std::string, Graphics::Image>;
 	using PipelineMap             = std::unordered_map<std::string, PipelineState>;
-	using PipelineBarrierCallback = std::function<void(const CommandBuffer &, const ResolveInfo &)>;
-	using PresentCallback         = std::function<void(const CommandBuffer &, const Graphics::Image &, const Graphics::Image &)>;
-	using CreateCallback          = std::function<void(const CommandBuffer &)>;
+	using PipelineBarrierCallback = std::function<void(const Graphics::CommandBuffer &, const ResolveInfo &)>;
+	using PresentCallback         = std::function<void(const Graphics::CommandBuffer &, const Graphics::Image &, const Graphics::Image &)>;
+	using CreateCallback          = std::function<void(const Graphics::CommandBuffer &)>;
 
   private:
 	PipelineMap createPipelineStates();

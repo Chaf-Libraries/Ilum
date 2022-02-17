@@ -57,12 +57,14 @@ void GeometryUpdate::run()
 		staging_index_buffer.Unmap();
 
 		// Staging -> GPU
-		CommandBuffer command_buffer(QueueUsage::Transfer);
-		command_buffer.begin();
-		command_buffer.copyBuffer(BufferInfo{staging_vertex_buffer}, BufferInfo{static_vertex_buffer}, static_vertex_buffer.GetSize());
-		command_buffer.copyBuffer(BufferInfo{staging_index_buffer}, BufferInfo{static_index_buffer}, static_index_buffer.GetSize());
-		command_buffer.end();
-		command_buffer.submitIdle();
+		auto &        command_buffer = Graphics::RenderContext::CreateCommandBuffer(Graphics::QueueFamily::Transfer);
+		//CommandBuffer command_buffer(QueueUsage::Transfer);
+		command_buffer.Begin();
+		command_buffer.CopyBuffer(Graphics::BufferInfo{staging_vertex_buffer}, Graphics::BufferInfo{static_vertex_buffer}, static_vertex_buffer.GetSize());
+		command_buffer.CopyBuffer(Graphics::BufferInfo{staging_index_buffer}, Graphics::BufferInfo{static_index_buffer}, static_index_buffer.GetSize());
+		command_buffer.End();
+		command_buffer.SubmitIdle();
+		Graphics::RenderContext::ResetCommandPool();
 	}
 
 	// Update dynamic mesh

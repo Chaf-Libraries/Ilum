@@ -1,6 +1,6 @@
 #include "Queue.hpp"
 
-#include "Graphics/Command/CommandBuffer.hpp"
+#include <Graphics/Command/CommandBuffer.hpp>
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Synchronization/Fence.hpp"
 
@@ -13,7 +13,7 @@ Queue::Queue(VkQueue handle) :
 {
 }
 
-void Queue::submit(const CommandBuffer &command_buffer,
+void Queue::submit(const Graphics::CommandBuffer &command_buffer,
                    const VkSemaphore &  signal_semaphore,
                    const VkSemaphore &  wait_semaphore,
                    const VkFence &      fence,
@@ -24,7 +24,7 @@ void Queue::submit(const CommandBuffer &command_buffer,
 	VkSubmitInfo submit_info       = {};
 	submit_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submit_info.commandBufferCount = 1;
-	submit_info.pCommandBuffers    = &command_buffer.getCommandBuffer();
+	submit_info.pCommandBuffers    = &command_buffer.GetHandle();
 
 	submit_info.pWaitDstStageMask = &wait_stages;
 
@@ -47,7 +47,7 @@ void Queue::submit(const CommandBuffer &command_buffer,
 	}
 }
 
-void Queue::submit(const CommandBuffer &                    command_buffer,
+void Queue::submit(const Graphics::CommandBuffer &                    command_buffer,
                    const std::vector<VkSemaphore> &         signal_semaphores,
                    const std::vector<VkSemaphore> &         wait_semaphores,
                    const VkFence &                          fence,
@@ -58,7 +58,7 @@ void Queue::submit(const CommandBuffer &                    command_buffer,
 	VkSubmitInfo submit_info       = {};
 	submit_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submit_info.commandBufferCount = 1;
-	submit_info.pCommandBuffers    = &command_buffer.getCommandBuffer();
+	submit_info.pCommandBuffers    = &command_buffer.GetHandle();
 
 	submit_info.pWaitDstStageMask = wait_stages.data();
 
@@ -81,12 +81,12 @@ void Queue::submit(const CommandBuffer &                    command_buffer,
 	}
 }
 
-void Queue::submit(const CommandBuffer &command_buffer, const SubmitInfo &submit_info)
+void Queue::submit(const Graphics::CommandBuffer &command_buffer, const SubmitInfo &submit_info)
 {
 	submit(command_buffer, {submit_info.signal_semaphore}, submit_info.wait_semaphores, submit_info.fence, submit_info.wait_stages);
 }
 
-void Queue::submitIdle(const CommandBuffer &command_buffer)
+void Queue::SubmitIdle(const Graphics::CommandBuffer &command_buffer)
 {
 	waitIdle();
 
@@ -95,7 +95,7 @@ void Queue::submitIdle(const CommandBuffer &command_buffer)
 	VkSubmitInfo submit_info       = {};
 	submit_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submit_info.commandBufferCount = 1;
-	submit_info.pCommandBuffers    = &command_buffer.getCommandBuffer();
+	submit_info.pCommandBuffers    = &command_buffer.GetHandle();
 
 	VkFenceCreateInfo fence_create_info = {};
 	fence_create_info.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;

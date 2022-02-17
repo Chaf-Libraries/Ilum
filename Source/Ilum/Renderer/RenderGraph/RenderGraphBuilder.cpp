@@ -11,7 +11,7 @@
 #include <Graphics/RenderContext.hpp>
 
 #include <Graphics/Device/Device.hpp>
-#include "Device/Swapchain.hpp"
+#include <Graphics/Device/Swapchain.hpp>
 
 #include "RenderGraph.hpp"
 #include "RenderPass.hpp"
@@ -350,7 +350,7 @@ inline VkBufferMemoryBarrier createBufferMemoryBarrier(VkBuffer buffer, VkBuffer
 	return barrier;
 }
 
-inline void insertPipelineBarrier(const CommandBuffer &command_buffer, const ResolveInfo &resolve_info, const std::unordered_map<std::string, BufferTransition> &buffer_transitions, const std::unordered_map<std::string, ImageTransition> &image_transitions)
+inline void insertPipelineBarrier(const Graphics::CommandBuffer &command_buffer, const ResolveInfo &resolve_info, const std::unordered_map<std::string, BufferTransition> &buffer_transitions, const std::unordered_map<std::string, ImageTransition> &image_transitions)
 {
 	VkPipelineStageFlags src_pipeline_flags = {};
 	VkPipelineStageFlags dst_pipeline_flags = {};
@@ -481,7 +481,7 @@ scope<RenderGraph> RenderGraphBuilder::build()
 	    std::move(attachments),
 	    m_output,
 	    m_view,
-	    m_output.empty() ? [](const CommandBuffer &, const Graphics::Image &, const Graphics::Image &) {} : createOnPresentCallback(m_output, resource_transitions),
+	    m_output.empty() ? [](const Graphics::CommandBuffer &, const Graphics::Image &, const Graphics::Image &) {} : createOnPresentCallback(m_output, resource_transitions),
 	    createOnCreateCallback(pipeline_states, resource_transitions, attachments));
 }
 
@@ -884,12 +884,13 @@ RenderGraphBuilder::AttachmentMap RenderGraphBuilder::allocateAttachments(const 
 {
 	AttachmentMap attachments;
 
-	auto [surface_width, surface_height] = GraphicsContext::instance()->getSwapchain().getExtent();
+	auto [surface_width, surface_height] = Graphics::RenderContext::GetSwapchain().GetExtent();
 
 	for (const auto &[pass_name, pipeline_state] : pipeline_states)
 	{
 		for (const auto &attachment : pipeline_state.getAttachmentDeclarations())
 		{
+			Graphics::RenderContext::GetSwapchain().GetImageCount();
 			auto attachment_usage = resource_transitions.images.total_usages.at(attachment.name);
 			attachments.emplace(attachment.name, std::move(Graphics::Image(
 			                                         Graphics::RenderContext::GetDevice(), 
@@ -1081,7 +1082,7 @@ RenderGraphBuilder::PipelineBarrierCallback RenderGraphBuilder::createPipelineBa
 	auto &buffer_transitions = resource_transitions.buffers.transitions.at(render_pass_name);
 	auto &image_transitions  = resource_transitions.images.transitions.at(render_pass_name);
 
-	return [buffer_transitions, image_transitions](const CommandBuffer &command_buffer, const ResolveInfo &resolve_info) {
+	return [buffer_transitions, image_transitions](const Graphics::CommandBuffer &command_buffer, const ResolveInfo &resolve_info) {
 		insertPipelineBarrier(command_buffer, resolve_info, buffer_transitions, image_transitions);
 	};
 }
@@ -1105,7 +1106,7 @@ RenderGraphBuilder::CreateCallback RenderGraphBuilder::createOnCreateCallback(co
 		}
 	}
 
-	return [resolve = std::move(resolve_info), transitions = std::move(attachment_transitions)](const CommandBuffer &command_buffer) {
+	return [resolve = std::move(resolve_info), transitions = std::move(attachment_transitions)](const Graphics::CommandBuffer &command_buffer) {
 		insertPipelineBarrier(command_buffer, resolve, {}, transitions);
 	};
 }
@@ -1120,8 +1121,8 @@ RenderGraphBuilder::PresentCallback RenderGraphBuilder::createOnPresentCallback(
 	output_image_transition.initial_usage = resource_transitions.images.transitions.at(last_render_pass_name).at(output).final_usage;
 	output_image_transition.final_usage   = resource_transitions.images.transitions.at(first_render_pass_name).at(output).initial_usage;
 
-	return [output_image_transition](const CommandBuffer &command_buffer, const Graphics::Image &output_image, const Graphics::Image &present_image) {
-		command_buffer.blitImage(output_image, output_image_transition.initial_usage, present_image, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_FILTER_LINEAR);
+	return [output_image_transition](const Graphics::CommandBuffer &command_buffer, const Graphics::Image &output_image, const Graphics::Image &present_image) {
+		command_buffer.BlitImage(output_image, output_image_transition.initial_usage, present_image, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_FILTER_LINEAR);
 		auto subresource_range = output_image.GetSubresourceRange();
 		if (output_image_transition.final_usage != VK_IMAGE_USAGE_TRANSFER_SRC_BIT)
 		{

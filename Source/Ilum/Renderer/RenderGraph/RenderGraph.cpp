@@ -1,7 +1,6 @@
 #include "RenderGraph.hpp"
 
 #include <Graphics/Device/Device.hpp>
-#include "Device/Swapchain.hpp"
 
 #include <Core/JobSystem/JobSystem.hpp>
 
@@ -50,7 +49,7 @@ bool RenderGraph::empty() const
 	return m_nodes.empty();
 }
 
-void RenderGraph::execute(const CommandBuffer &command_buffer)
+void RenderGraph::execute(const Graphics::CommandBuffer &command_buffer)
 {
 	initialize();
 
@@ -68,7 +67,7 @@ void RenderGraph::execute(const CommandBuffer &command_buffer)
 	}
 }
 
-void RenderGraph::present(const CommandBuffer &command_buffer, const Graphics::Image &present_image)
+void RenderGraph::present(const Graphics::CommandBuffer &command_buffer, const Graphics::Image &present_image)
 {
 	onPresent(command_buffer, m_attachments.at(m_output), present_image);
 }
@@ -142,16 +141,18 @@ void RenderGraph::initialize()
 {
 	if (!m_initialized)
 	{
-		CommandBuffer command_buffer;
-		command_buffer.begin();
+		auto &        command_buffer = Graphics::RenderContext::CreateCommandBuffer();
+		//CommandBuffer command_buffer;
+		command_buffer.Begin();
 		onCreate(command_buffer);
-		command_buffer.end();
-		command_buffer.submitIdle();
+		command_buffer.End();
+		command_buffer.SubmitIdle();
+		Graphics::RenderContext::ResetCommandPool();
 		m_initialized = true;
 	}
 }
 
-void RenderGraph::executeNode(RenderGraphNode &node, const CommandBuffer &command_buffer, ResolveInfo &resolve)
+void RenderGraph::executeNode(RenderGraphNode &node, const Graphics::CommandBuffer &command_buffer, ResolveInfo &resolve)
 {
 	RenderPassState state{*this, command_buffer, node.pass_native};
 
