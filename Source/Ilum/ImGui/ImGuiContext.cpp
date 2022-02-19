@@ -13,8 +13,8 @@
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/Command/CommandPool.hpp"
 #include "Graphics/GraphicsContext.hpp"
-#include "Graphics/Synchronization/Queue.hpp"
-#include "Graphics/Synchronization/QueueSystem.hpp"
+
+
 #include <Graphics/Vulkan.hpp>
 #include <Graphics/Resource/Sampler.hpp>
 
@@ -137,7 +137,7 @@ void ImGuiContext::releaseResource()
 {
 	if (s_enable)
 	{
-		GraphicsContext::instance()->getQueueSystem().waitAll();
+		Graphics::RenderContext::WaitDevice();
 		ImGui_ImplVulkan_Shutdown();
 		ImGui_ImplSDL2_Shutdown();
 		ImGui::DestroyContext();

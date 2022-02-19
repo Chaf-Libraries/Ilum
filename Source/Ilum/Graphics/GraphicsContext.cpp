@@ -9,7 +9,6 @@
 #include "Graphics/Descriptor/DescriptorCache.hpp"
 #include "Graphics/Profiler.hpp"
 #include "Graphics/Shader/ShaderCache.hpp"
-#include "Graphics/Synchronization/Queue.hpp"
 
 #include <Graphics/Device/Device.hpp>
 #include <Graphics/Device/Swapchain.hpp>
@@ -26,13 +25,8 @@ namespace Ilum
 GraphicsContext::GraphicsContext(Context *context) :
     TSubsystem<GraphicsContext>(context),
     m_descriptor_cache(createScope<DescriptorCache>()),
-    m_shader_cache(createScope<ShaderCache>()),
-    m_queue_system(createScope<QueueSystem>())
+    m_shader_cache(createScope<ShaderCache>())
 {
-	// Create pipeline cache
-	VkPipelineCacheCreateInfo pipeline_cache_create_info = {};
-	pipeline_cache_create_info.sType                     = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-	vkCreatePipelineCache(Graphics::RenderContext::GetDevice(), &pipeline_cache_create_info, nullptr, &m_pipeline_cache);
 }
 
 DescriptorCache &GraphicsContext::getDescriptorCache()
@@ -43,11 +37,6 @@ DescriptorCache &GraphicsContext::getDescriptorCache()
 ShaderCache &GraphicsContext::getShaderCache()
 {
 	return *m_shader_cache;
-}
-
-QueueSystem &GraphicsContext::getQueueSystem()
-{
-	return *m_queue_system;
 }
 
 Profiler &GraphicsContext::getProfiler()
@@ -126,7 +115,7 @@ void GraphicsContext::onPostTick()
 
 void GraphicsContext::onShutdown()
 {
-	GraphicsContext::instance()->getQueueSystem().waitAll();
+	Graphics::RenderContext::WaitDevice();
 
 	for (uint32_t i = 0; i < m_flight_fences.size(); i++)
 	{
@@ -140,7 +129,7 @@ void GraphicsContext::onShutdown()
 
 void GraphicsContext::createSwapchain(bool vsync)
 {
-	GraphicsContext::instance()->getQueueSystem().waitAll();
+	Graphics::RenderContext::WaitDevice();
 
 	m_current_frame = 0;
 
@@ -217,8 +206,20 @@ void GraphicsContext::submitFrame()
 {
 	m_cmd_buffer->End();
 
-	m_queue_system->acquire()->submit(*m_cmd_buffer, m_render_complete[m_current_frame], m_present_complete[m_current_frame], m_flight_fences[m_current_frame]);
-	auto &present_queue = *m_queue_system->acquire(QueueUsage::Present, 1);
+	VkSubmitInfo submit_info = {};
+	submit_info.sType        = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submit_info.commandBufferCount = 1;
+	submit_info.pCommandBuffers    = &m_cmd_buffer->GetHandle();
+	submit_info.signalSemaphoreCount = 1;
+	submit_info.pSignalSemaphores    = &m_render_complete[m_current_frame];
+	submit_info.waitSemaphoreCount = 1;
+	submit_info.pWaitSemaphores      = &m_present_complete[m_current_frame];
+	VkPipelineStageFlags wait_dst_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+	submit_info.pWaitDstStageMask       = &wait_dst_stage;
+
+	Graphics::RenderContext::Submit({submit_info}, Graphics::QueueFamily::Graphics, 0, m_flight_fences[m_current_frame]);
+
+	//auto &present_queue = *m_queue_system->acquire(QueueUsage::Present, 1);
 
 	/*auto present_result = Graphics::RenderContext::GetSwapchain().Present(m_render_complete[m_current_frame]);
 

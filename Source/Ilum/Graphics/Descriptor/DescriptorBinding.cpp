@@ -220,7 +220,7 @@ void DescriptorBinding::write(const DescriptorSet &descriptor_set)
 		m_options = ResolveOption::None;
 	}
 
-	GraphicsContext::instance()->getQueueSystem().waitAll();
+	
 
 	std::vector<VkWriteDescriptorSet>   write_descriptor_sets;
 	std::vector<VkDescriptorBufferInfo> descriptor_buffer_infos;

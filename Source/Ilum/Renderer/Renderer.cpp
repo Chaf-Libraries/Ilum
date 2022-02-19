@@ -149,7 +149,7 @@ void Renderer::onTick(float delta_time)
 
 	if (m_update)
 	{
-		GraphicsContext::instance()->getQueueSystem().waitAll();
+		
 		m_render_graph.reset();
 		m_render_graph = nullptr;
 		rebuild();
@@ -172,7 +172,7 @@ void Renderer::onPostTick()
 
 void Renderer::onShutdown()
 {
-	GraphicsContext::instance()->getQueueSystem().waitAll();
+	
 	m_samplers.clear();
 }
 
@@ -193,7 +193,7 @@ ResourceCache &Renderer::getResourceCache()
 
 void Renderer::rebuild()
 {
-	GraphicsContext::instance()->getQueueSystem().waitAll();
+	
 
 	updateImages();
 
@@ -279,7 +279,7 @@ void Renderer::createSamplers()
 
 void Renderer::updateImages()
 {
-	GraphicsContext::instance()->getQueueSystem().waitAll();
+	
 
 	Renderer::instance()->Last_Frame.hiz_buffer   = createScope<Graphics::Image>(Graphics::RenderContext::GetDevice(), Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
                                                                                VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VMA_MEMORY_USAGE_GPU_ONLY, true);

@@ -2,7 +2,7 @@
 
 #include "Utils/PCH.hpp"
 
-#include "Graphics/Synchronization/Queue.hpp"
+
 
 namespace Ilum
 {
@@ -80,7 +80,6 @@ class RenderGraphBuilder
 
 	// TODO: Semaphore?
 
-	using SynchronizeMap          = std::unordered_map<std::string, SubmitInfo>;
 	using AttachmentMap           = std::unordered_map<std::string, Graphics::Image>;
 	using PipelineMap             = std::unordered_map<std::string, PipelineState>;
 	using PipelineBarrierCallback = std::function<void(const Graphics::CommandBuffer &, const ResolveInfo &)>;
@@ -91,8 +90,6 @@ class RenderGraphBuilder
 	PipelineMap createPipelineStates();
 
 	ResourceTransitions resolveResourceTransitions(const PipelineMap &pipeline_states);
-
-	SynchronizeMap createSynchronizeDependency(const PipelineMap &pipeline_states);
 
 	void setOutputImage(ResourceTransitions &resource_transitions, const std ::string &name);
 

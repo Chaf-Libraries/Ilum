@@ -199,7 +199,7 @@ void ResourceCache::flush()
 	}
 	else
 	{
-		GraphicsContext::instance()->getQueueSystem().waitAll();
+		Graphics::RenderContext::WaitDevice();
 	}
 
 	{

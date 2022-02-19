@@ -161,6 +161,19 @@ PhysicalDevice::PhysicalDevice(const Instance &instance)
 
 	// Get physical device memory properties
 	vkGetPhysicalDeviceMemoryProperties(m_handle, &m_memory_properties);
+
+	// Get ray tracing pipeline properties
+	m_raytracing_pipeline_properties.sType         = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+	VkPhysicalDeviceProperties2 device_properties2 = {};
+	device_properties2.sType                       = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+	device_properties2.pNext                       = &m_raytracing_pipeline_properties;
+	vkGetPhysicalDeviceProperties2(m_handle, &device_properties2);
+
+	m_acceleration_structure_features.sType    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+	VkPhysicalDeviceFeatures2 device_features2 = {};
+	device_features2.sType                     = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	device_features2.pNext                     = &m_acceleration_structure_features;
+	vkGetPhysicalDeviceFeatures2(m_handle, &device_features2);
 }
 
 PhysicalDevice::operator const VkPhysicalDevice &() const
@@ -191,5 +204,15 @@ const VkPhysicalDeviceMemoryProperties &PhysicalDevice::GetMemoryProperties() co
 const VkSampleCountFlagBits &PhysicalDevice::GetSampleCount() const
 {
 	return m_max_samples_count;
+}
+
+const VkPhysicalDeviceRayTracingPipelinePropertiesKHR &PhysicalDevice::GetRayTracingPipelineProperties() const
+{
+	return m_raytracing_pipeline_properties;
+}
+
+const VkPhysicalDeviceAccelerationStructureFeaturesKHR &PhysicalDevice::GetAccelerationStructureFeatures() const
+{
+	return m_acceleration_structure_features;
 }
 }        // namespace Ilum::Graphics

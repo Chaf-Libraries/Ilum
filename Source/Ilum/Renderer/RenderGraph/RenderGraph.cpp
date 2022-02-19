@@ -19,7 +19,7 @@ RenderGraph::RenderGraph(std::vector<RenderGraphNode> &&nodes, std::unordered_ma
 
 RenderGraph::~RenderGraph()
 {
-	GraphicsContext::instance()->getQueueSystem().waitAll();
+	Graphics::RenderContext::WaitDevice();
 
 	for (auto &node : m_nodes)
 	{

@@ -9,7 +9,7 @@ Buffer::Buffer(const Device &device) :
 }
 
 Buffer::Buffer(const Device &device, VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memory_usage) :
-    m_device(device), m_size(size)
+    m_device(device), m_size(size), m_usage(usage)
 {
 	VkBufferCreateInfo buffer_create_info = {};
 	buffer_create_info.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -22,6 +22,14 @@ Buffer::Buffer(const Device &device, VkDeviceSize size, VkBufferUsageFlags usage
 
 	VmaAllocationInfo allocation_info;
 	vmaCreateBuffer(m_device.GetAllocator(), &buffer_create_info, &allocation_create_info, &m_handle, &m_allocation, &allocation_info);
+
+	if (usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
+	{
+		VkBufferDeviceAddressInfoKHR buffer_device_address_info = {};
+		buffer_device_address_info.sType                        = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+		buffer_device_address_info.buffer                       = m_handle;
+		m_device_address                                        = vkGetBufferDeviceAddressKHR(device, &buffer_device_address_info);
+	}
 }
 
 Buffer::~Buffer()
@@ -33,6 +41,7 @@ Buffer::Buffer(Buffer &&other) noexcept :
     m_device(other.m_device),
     m_allocation(other.m_allocation),
     m_handle(other.m_handle),
+    m_usage(other.m_usage),
     m_mapping(other.m_mapping),
     m_size(other.m_size)
 {
@@ -46,6 +55,7 @@ Buffer &Buffer::operator=(Buffer &&other) noexcept
 
 	m_allocation = other.m_allocation;
 	m_handle     = other.m_handle;
+	m_usage      = other.m_usage;
 	m_mapping    = other.m_mapping;
 	m_size       = other.m_size;
 
@@ -68,6 +78,12 @@ const VkBuffer &Buffer::GetHandle() const
 VkDeviceSize Buffer::GetSize() const
 {
 	return m_size;
+}
+
+uint64_t Buffer::GetDeviceAddress() const
+{
+	assert(m_usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT);
+	return m_device_address;
 }
 
 bool Buffer::IsMapped() const

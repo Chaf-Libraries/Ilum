@@ -61,11 +61,13 @@ set(IMGUI_FILES
     "${IMGUI_DIR}/imstb_truetype.h"
     "${IMGUI_DIR}/backends/imgui_impl_vulkan.h"
     "${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp"
+    "${IMGUI_DIR}/backends/imgui_impl_glfw.h"
+    "${IMGUI_DIR}/backends/imgui_impl_glfw.cpp"
     "${IMGUI_DIR}/backends/imgui_impl_sdl.h"
     "${IMGUI_DIR}/backends/imgui_impl_sdl.cpp")
 add_library(imgui STATIC ${IMGUI_FILES})
 target_include_directories(imgui PUBLIC ${IMGUI_DIR} ${IMGUI_DIR}/backends)
-target_link_libraries(imgui SDL2 volk)
+target_link_libraries(imgui PRIVATE SDL2 volk glfw)
 
 # glslang
 option(ENABLE_SPVREMAPPER OFF)
@@ -183,3 +185,7 @@ add_subdirectory(oneTBB)
 add_library(Eigen INTERFACE)
 set(EIGEN_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Eigen)
 target_include_directories(vulkan INTERFACE ${EIGEN_INCLUDE_DIR})
+
+#cereal
+add_library(cereal INTERFACE)
+target_include_directories(cereal INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/cereal/include")

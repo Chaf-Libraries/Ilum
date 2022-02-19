@@ -10,6 +10,7 @@ SetTarget(
     LIB
         Core
         Graphics
+        Resource
         SDL2::SDL2
         spdlog
         volk

@@ -59,7 +59,7 @@ void SurfaceUpdate::run()
 
 		if (surface_renderer.vertices.size() * sizeof(Vertex) != surface_renderer.vertex_buffer.GetSize())
 		{
-			GraphicsContext::instance()->getQueueSystem().waitAll();
+			Graphics::RenderContext::WaitDevice();
 			surface_renderer.vertex_buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), surface_renderer.vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			surface_renderer.index_buffer  = Graphics::Buffer(Graphics::RenderContext::GetDevice(), surface_renderer.indices.size() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 

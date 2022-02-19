@@ -5,7 +5,7 @@
 #include "RenderPass.hpp"
 
 #include "Graphics/Command/CommandBuffer.hpp"
-#include "Graphics/Synchronization/Queue.hpp"
+
 
 namespace Ilum
 {
@@ -19,7 +19,6 @@ struct RenderGraphNode
 	std::vector<std::string>                                        attachments;
 	std::function<void(const Graphics::CommandBuffer &, const ResolveInfo &)> pipeline_barrier_callback;
 	DescriptorBinding                                               descriptors;
-	SubmitInfo                                                      submit_info;
 };
 
 class RenderGraph
@@ -117,6 +116,5 @@ class RenderGraph
 	bool                                   m_initialized = false;
 	PresentCallback                        onPresent;
 	CreateCallback                         onCreate;
-	std::vector<Queue *>                   m_queues;
 };
 }        // namespace Ilum

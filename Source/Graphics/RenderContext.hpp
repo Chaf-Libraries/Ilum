@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Vulkan.hpp"
 #include "RenderFrame.hpp"
+#include "Vulkan.hpp"
 
 #include "Pipeline/Pipeline.hpp"
 #include "Pipeline/PipelineLayout.hpp"
@@ -50,12 +50,18 @@ class RenderContext
 	static PipelineLayout &RequestPipelineLayout(const PipelineState &pso);
 
 	// One time submit command buffer
-	static CommandBuffer& CreateCommandBuffer(QueueFamily queue = QueueFamily::Graphics);
+	static CommandBuffer &CreateCommandBuffer(QueueFamily queue = QueueFamily::Graphics);
 	static void           ResetCommandPool(QueueFamily queue = QueueFamily::Graphics);
+	static void           Submit(VkCommandBuffer cmd_buffer, QueueFamily queue_family = QueueFamily::Graphics, uint32_t queue_index = 0, VkFence fence = VK_NULL_HANDLE);
+	static void           Submit(const std::vector<VkSubmitInfo> &submit_infos, QueueFamily queue_family = QueueFamily::Graphics, uint32_t queue_index = 0, VkFence fence = VK_NULL_HANDLE);
+
+	// Wait
+	static void WaitDevice();
+	static void WaitQueue(QueueFamily queue_family = QueueFamily::Graphics, uint32_t queue_index = 0);
 
 	// Set debug name
-	template<typename T>
-	static void SetName(const T& data, const char* name)
+	template <typename T>
+	static void SetName(const T &data, const char *name)
 	{
 		Graphics::VKDebugger::SetName(*Get().m_device, data, name);
 	}

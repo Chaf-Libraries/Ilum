@@ -27,19 +27,19 @@ void LightUpdate::run()
 	// Enlarge buffer
 	if (Renderer::instance()->Render_Buffer.Directional_Light_Buffer.GetSize() / sizeof(cmpt::SpotLight) < directional_lights.size())
 	{
-		GraphicsContext::instance()->getQueueSystem().waitAll();
+		Graphics::RenderContext::WaitDevice();
 		Renderer::instance()->Render_Buffer.Directional_Light_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), directional_lights.size() * sizeof(cmpt::DirectionalLight), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 		Renderer::instance()->update();
 	}
 	if (Renderer::instance()->Render_Buffer.Spot_Light_Buffer.GetSize() / sizeof(cmpt::SpotLight) < spot_lights.size())
 	{
-		GraphicsContext::instance()->getQueueSystem().waitAll();
+		Graphics::RenderContext::WaitDevice();
 		Renderer::instance()->Render_Buffer.Spot_Light_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), spot_lights.size() * sizeof(cmpt::SpotLight), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 		Renderer::instance()->update();
 	}
 	if (Renderer::instance()->Render_Buffer.Point_Light_Buffer.GetSize() / sizeof(cmpt::PointLight) < point_lights.size())
 	{
-		GraphicsContext::instance()->getQueueSystem().waitAll();
+		Graphics::RenderContext::WaitDevice();
 		Renderer::instance()->Render_Buffer.Point_Light_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), point_lights.size() * sizeof(cmpt::PointLight), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 		Renderer::instance()->update();
 	}

@@ -47,7 +47,7 @@ void MeshletUpdate::run()
 
 		if (Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count * sizeof(PerMeshletData) > Renderer::instance()->Render_Buffer.Meshlet_Buffer.GetSize())
 		{
-			GraphicsContext::instance()->getQueueSystem().waitAll();
+			Graphics::RenderContext::WaitDevice();
 			Renderer::instance()->Render_Buffer.Meshlet_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count * sizeof(PerMeshletData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			Renderer::instance()->Render_Buffer.Command_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count * sizeof(VkDrawIndexedIndirectCommand), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 			Renderer::instance()->Render_Buffer.Draw_Buffer    = Graphics::Buffer(Graphics::RenderContext::GetDevice(), Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);

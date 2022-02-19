@@ -16,7 +16,7 @@ namespace Ilum::sym
 void GeometryUpdate::run()
 {
 	GraphicsContext::instance()->getProfiler().beginSample("Geometry Update");
-	auto &resource_cache       = Renderer::instance()->getResourceCache();
+	auto &resource_cache = Renderer::instance()->getResourceCache();
 
 	// Update static mesh only when it needed
 	auto &static_vertex_buffer = Renderer::instance()->Render_Buffer.Static_Vertex_Buffer;
@@ -27,7 +27,7 @@ void GeometryUpdate::run()
 	{
 		cmpt::MeshletRenderer::update = true;
 
-		GraphicsContext::instance()->getQueueSystem().waitAll();
+		Graphics::RenderContext::WaitDevice();
 
 		// Resize buffer
 		static_vertex_buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), resource_cache.getVerticesCount() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
@@ -41,8 +41,8 @@ void GeometryUpdate::run()
 		// Staging buffer
 		Graphics::Buffer staging_vertex_buffer(Graphics::RenderContext::GetDevice(), static_vertex_buffer.GetSize(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 		Graphics::Buffer staging_index_buffer(Graphics::RenderContext::GetDevice(), static_index_buffer.GetSize(), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-		auto * vertex_data = staging_vertex_buffer.Map();
-		auto * index_data  = staging_index_buffer.Map();
+		auto *           vertex_data = staging_vertex_buffer.Map();
+		auto *           index_data  = staging_index_buffer.Map();
 
 		// CPU -> Staging
 		for (auto &[name, index] : resource_cache.getModels())
@@ -57,7 +57,7 @@ void GeometryUpdate::run()
 		staging_index_buffer.Unmap();
 
 		// Staging -> GPU
-		auto &        command_buffer = Graphics::RenderContext::CreateCommandBuffer(Graphics::QueueFamily::Transfer);
+		auto &command_buffer = Graphics::RenderContext::CreateCommandBuffer(Graphics::QueueFamily::Transfer);
 		//CommandBuffer command_buffer(QueueUsage::Transfer);
 		command_buffer.Begin();
 		command_buffer.CopyBuffer(Graphics::BufferInfo{staging_vertex_buffer}, Graphics::BufferInfo{static_vertex_buffer}, static_vertex_buffer.GetSize());
@@ -73,14 +73,12 @@ void GeometryUpdate::run()
 		auto &mesh_renderer = Entity(entity).getComponent<cmpt::MeshRenderer>();
 		if (mesh_renderer.vertices.size() * sizeof(Vertex) != mesh_renderer.vertex_buffer.GetSize())
 		{
-			GraphicsContext::instance()->getQueueSystem().waitAll();
 			mesh_renderer.vertex_buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), mesh_renderer.vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			mesh_renderer.need_update   = true;
 		}
 
 		if (mesh_renderer.indices.size() * sizeof(Vertex) != mesh_renderer.index_buffer.GetSize())
 		{
-			GraphicsContext::instance()->getQueueSystem().waitAll();
 			mesh_renderer.index_buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), mesh_renderer.indices.size() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			mesh_renderer.need_update  = true;
 		}

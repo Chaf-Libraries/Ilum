@@ -29,4 +29,3 @@ FOREACH(T IN ITEMS ${ALL_TARGETS})
 ENDFOREACH()
 
 add_subdirectory(Source)
-add_subdirectory(Test)

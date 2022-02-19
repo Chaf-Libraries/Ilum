@@ -125,19 +125,43 @@ CommandBuffer &RenderContext::CreateCommandBuffer(QueueFamily queue)
 	return Get().m_command_pools.at(hash)->RequestCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 }
 
- void RenderContext::ResetCommandPool(QueueFamily queue)
+void RenderContext::ResetCommandPool(QueueFamily queue)
 {
-	 auto thread_id = std::this_thread::get_id();
+	auto thread_id = std::this_thread::get_id();
 
-	 size_t hash = 0;
-	 Core::HashCombine(hash, static_cast<size_t>(queue));
-	 Core::HashCombine(hash, thread_id);
+	size_t hash = 0;
+	Core::HashCombine(hash, static_cast<size_t>(queue));
+	Core::HashCombine(hash, thread_id);
 
-	 if (Get().m_command_pools.find(hash) != Get().m_command_pools.end())
-	 {
-		 Get().m_command_pools.at(hash)->Reset();
-	 }
- }
+	if (Get().m_command_pools.find(hash) != Get().m_command_pools.end())
+	{
+		Get().m_command_pools.at(hash)->Reset();
+	}
+}
+
+void RenderContext::Submit(VkCommandBuffer cmd_buffer, QueueFamily queue_family, uint32_t queue_index, VkFence fence)
+{
+	VkSubmitInfo submit_info       = {};
+	submit_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submit_info.commandBufferCount = 1;
+	submit_info.pCommandBuffers    = &cmd_buffer;
+	vkQueueSubmit(Get().m_device->GetQueue(queue_family, queue_index), 1, &submit_info, fence);
+}
+
+void RenderContext::Submit(const std::vector<VkSubmitInfo> &submit_infos, QueueFamily queue_family, uint32_t queue_index, VkFence fence)
+{
+	vkQueueSubmit(Get().m_device->GetQueue(queue_family, queue_index), static_cast<uint32_t>(submit_infos.size()), submit_infos.data(), fence);
+}
+
+void RenderContext::WaitDevice()
+{
+	vkDeviceWaitIdle(*Get().m_device);
+}
+
+void RenderContext::WaitQueue(QueueFamily queue_family, uint32_t queue_index)
+{
+	vkQueueWaitIdle(Get().m_device->GetQueue(queue_family, queue_index));
+}
 
 Window &RenderContext::GetWindow()
 {
@@ -182,7 +206,7 @@ RenderContext &RenderContext::Get()
 
 void RenderContext::Recreate()
 {
-	m_device->WaitIdle();
+	WaitDevice();
 
 	m_active_frame = 0;
 	m_render_frames.clear();

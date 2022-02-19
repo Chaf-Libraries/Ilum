@@ -37,7 +37,7 @@ void MaterialUpdate::run()
 
 		if (material_count * sizeof(MaterialData) > Renderer::instance()->Render_Buffer.Material_Buffer.GetSize())
 		{
-			GraphicsContext::instance()->getQueueSystem().waitAll();
+			Graphics::RenderContext::WaitDevice();
 			Renderer::instance()->Render_Buffer.Material_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), material_count * sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			Renderer::instance()->update();
 		}

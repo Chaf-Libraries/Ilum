@@ -2,7 +2,6 @@
 
 #include "Engine/Subsystem.hpp"
 #include <Core/Event.hpp>
-#include "Graphics/Synchronization/QueueSystem.hpp"
 #include <Core/Timer.hpp>
 #include "Utils/PCH.hpp"
 
@@ -25,8 +24,6 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 	DescriptorCache &getDescriptorCache();
 
 	ShaderCache &getShaderCache();
-
-	QueueSystem &getQueueSystem();
 
 	Profiler &getProfiler();
 
@@ -87,8 +84,6 @@ class GraphicsContext : public TSubsystem<GraphicsContext>
 
 	std::mutex m_command_pool_mutex;
 	std::mutex m_command_buffer_mutex;
-
-	scope<QueueSystem> m_queue_system = nullptr;
 
   public:
 	Core::Event<> Swapchain_Rebuild_Event;

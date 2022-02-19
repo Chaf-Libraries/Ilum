@@ -33,7 +33,7 @@ class JobSystem
 	{
 		handle.m_counter.fetch_add(1);
 
-		return Instance().m_thread_pool->AddTask([&task, &handle, &args...]() {
+		return Instance().m_thread_pool->AddTask([task, &handle, args...]() {
 			auto result = task(std::forward<Args>(args)...);
 			handle.m_counter.fetch_sub(1);
 			return result;

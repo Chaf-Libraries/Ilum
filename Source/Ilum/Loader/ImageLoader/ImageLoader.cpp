@@ -1,6 +1,6 @@
 #include "ImageLoader.hpp"
 
-#define STB_IMAGE_IMPLEMENTATION
+//#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
 #include <Graphics/Device/Device.hpp>
@@ -9,8 +9,8 @@
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/GraphicsContext.hpp"
 #include <Graphics/Resource/Image.hpp>
-#include "Graphics/Synchronization/Queue.hpp"
-#include "Graphics/Synchronization/QueueSystem.hpp"
+
+
 
 #include <Core/JobSystem/JobSystem.hpp>
 

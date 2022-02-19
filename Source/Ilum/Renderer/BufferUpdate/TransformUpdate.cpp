@@ -103,7 +103,7 @@ void TransformUpdate::run()
 
 		if (instance_count * sizeof(PerInstanceData) > Renderer::instance()->Render_Buffer.Instance_Buffer.GetSize())
 		{
-			GraphicsContext::instance()->getQueueSystem().waitAll();
+			Graphics::RenderContext::WaitDevice();
 			Renderer::instance()->Render_Buffer.Instance_Buffer            = Graphics::Buffer(Graphics::RenderContext::GetDevice(), instance_count * sizeof(PerInstanceData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			Renderer::instance()->Render_Buffer.Instance_Visibility_Buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), instance_count * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 			Renderer::instance()->update();

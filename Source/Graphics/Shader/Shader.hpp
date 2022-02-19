@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Vulkan.hpp"
+#include "Graphics/Vulkan.hpp"
 #include "SpirvReflection.hpp"
 
 #include <vector>

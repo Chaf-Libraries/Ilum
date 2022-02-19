@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Vulkan.hpp"
+#include "Graphics/Vulkan.hpp"
 
 namespace Ilum::Graphics
 {
@@ -22,6 +22,7 @@ class Buffer
 
 	const VkBuffer &GetHandle() const;
 	VkDeviceSize    GetSize() const;
+	uint64_t        GetDeviceAddress() const;
 
 	bool     IsMapped() const;
 	uint8_t *Map();
@@ -37,11 +38,13 @@ class Buffer
 	void Destroy();
 
   private:
-	const Device &m_device;
-	VkBuffer      m_handle     = VK_NULL_HANDLE;
-	VmaAllocation m_allocation = VK_NULL_HANDLE;
-	VkDeviceSize  m_size       = 0;
-	uint8_t *     m_mapping    = nullptr;
+	const Device &     m_device;
+	VkBuffer           m_handle         = VK_NULL_HANDLE;
+	VmaAllocation      m_allocation     = VK_NULL_HANDLE;
+	VkDeviceSize       m_size           = 0;
+	VkBufferUsageFlags m_usage          = 0;
+	uint8_t *          m_mapping        = nullptr;
+	uint64_t           m_device_address = 0;
 };
 
 using BufferReference = std::reference_wrapper<const Buffer>;

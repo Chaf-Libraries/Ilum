@@ -68,7 +68,7 @@ void CurveUpdate::run()
 
 		if (curve_renderer.vertices.size() * sizeof(glm::vec3) != curve_renderer.vertex_buffer.GetSize())
 		{
-			GraphicsContext::instance()->getQueueSystem().waitAll();
+			Graphics::RenderContext::WaitDevice();			
 			curve_renderer.vertex_buffer = Graphics::Buffer(Graphics::RenderContext::GetDevice(), curve_renderer.vertices.size() * sizeof(glm::vec3), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 			curve_renderer.need_update = true;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Vulkan.hpp"
+#include "Graphics/Vulkan.hpp"
 
 #include "Resource/Buffer.hpp"
 #include "Resource/Image.hpp"

@@ -327,9 +327,4 @@ VkQueue Device::GetQueue(QueueFamily family, uint32_t index) const
 {
 	return m_queues[m_queue_family.at(family)][index];
 }
-
-void Device::WaitIdle() const
-{
-	vkDeviceWaitIdle(m_handle);
-}
 }        // namespace Ilum::Graphics

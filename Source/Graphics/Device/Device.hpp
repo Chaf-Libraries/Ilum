@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Vulkan.hpp"
+#include "Graphics/Vulkan.hpp"
 
 #include <map>
 
@@ -24,8 +24,6 @@ class Device
 	const VmaAllocator &            GetAllocator() const;
 	const uint32_t                  GetQueueFamily(QueueFamily family) const;
 	VkQueue                         GetQueue(QueueFamily family, uint32_t index = 0) const;
-
-	void WaitIdle() const;
 
   private:
 	VkDevice                 m_handle           = VK_NULL_HANDLE;
