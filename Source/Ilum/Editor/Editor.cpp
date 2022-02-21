@@ -233,6 +233,11 @@ void Editor::onShutdown()
 	m_panels.clear();
 }
 
+void Editor::addPanel(scope<Panel> &&panel)
+{
+	m_panels.emplace_back(std::move(panel));
+}
+
 void Editor::select(Entity entity)
 {
 	m_select_entity = entity;

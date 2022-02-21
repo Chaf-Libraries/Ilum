@@ -26,4 +26,6 @@ class Sampler
 	const Device &m_device;
 	VkSampler     m_handle = VK_NULL_HANDLE;
 };
+
+using SamplerReference = std::reference_wrapper<const Sampler>;
 }        // namespace Ilum::Graphics

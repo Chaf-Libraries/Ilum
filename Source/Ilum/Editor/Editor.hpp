@@ -27,6 +27,8 @@ class Editor : public TSubsystem<Editor>
 
 	virtual void onShutdown() override;
 
+	void addPanel(scope<Panel> &&panel);
+
 	void select(Entity entity);
 
 	Entity getSelect();

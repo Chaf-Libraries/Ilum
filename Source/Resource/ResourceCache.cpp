@@ -14,6 +14,9 @@ namespace Ilum::Resource
 {
 void ResourceCache::OnUpdate()
 {
+	Get().m_image_update = false;
+	Get().m_model_update = false;
+
 	// Handle texture2D
 	// Remove deprecated image
 	if (!Get().m_deprecated_image_async.empty())
@@ -40,6 +43,36 @@ void ResourceCache::OnUpdate()
 		Get().m_deprecated_image_async.clear();
 	}
 
+	// Collect async loading images
+	std::vector<Bitmap> bitmaps;
+	for (auto iter = Get().m_loading_image_async.begin(); iter != Get().m_loading_image_async.end();)
+	{
+		if (iter->second.wait_for(std::chrono::nanoseconds(10)) == std::future_status::ready)
+		{
+			if (iter->second.valid())
+			{
+				bitmaps.emplace_back(std::move(iter->second.get()));
+				Get().m_image_query.emplace(iter->first, static_cast<uint32_t>(Get().m_images.size()) - 1);
+				Get().m_image_update = true;
+			}
+			iter = Get().m_loading_image_async.erase(iter);
+		}
+		else
+		{
+			iter++;
+		}
+	}
+	// Upload to GPU
+	if (!bitmaps.empty())
+	{
+		for (auto& bitmap : bitmaps)
+		{
+			auto &cmd_buffer = Graphics::RenderContext::CreateCommandBuffer();
+			Get().m_images.emplace_back(ImageLoader::LoadTexture2D(Graphics::RenderContext::GetDevice(), cmd_buffer, bitmap, true));
+		}
+		Graphics::RenderContext::ResetCommandPool();
+	}
+
 	// Async loading new image on worker threads
 	if (!Get().m_new_image_async.empty())
 	{
@@ -48,31 +81,13 @@ void ResourceCache::OnUpdate()
 			if (Get().m_image_query.find(filepath) == Get().m_image_query.end())
 			{
 				Core::JobHandle handle;
-				Get().m_loading_image_async.emplace(filepath, Core::JobSystem::Execute(
-				                                                  handle, [path = filepath]() {
-					                                                  auto &cmd_buffer = Graphics::RenderContext::CreateCommandBuffer();
-					                                                  auto  image      = ImageLoader::LoadTexture2DFromFile(Graphics::RenderContext::GetDevice(), cmd_buffer, path);
-					                                                  Graphics::RenderContext::ResetCommandPool();
-					                                                  return image;
-				                                                  }));
+				Get().m_loading_image_async[filepath] = Core::JobSystem::Execute(
+				    handle, [path = filepath]() {
+					    return ImageLoader::LoadTexture2D(path);
+				    });
 			}
 		}
 		Get().m_new_image_async.clear();
-	}
-
-	// Collect async loading images
-	for (auto iter = Get().m_loading_image_async.begin(); iter != Get().m_loading_image_async.end();)
-	{
-		if (iter->second.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
-		{
-			Get().m_images.emplace_back(std::move(iter->second.get()));
-			Get().m_image_query.emplace(iter->first, static_cast<uint32_t>(Get().m_images.size()) - 1);
-			iter = Get().m_loading_image_async.erase(iter);
-		}
-		else
-		{
-			iter++;
-		}
 	}
 
 	// Handle model
@@ -101,6 +116,22 @@ void ResourceCache::OnUpdate()
 		Get().m_deprecated_model_async.clear();
 	}
 
+	// Collect async loading models
+	for (auto iter = Get().m_loading_model_async.begin(); iter != Get().m_loading_model_async.end();)
+	{
+		if (iter->second.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
+		{
+			Get().m_models.emplace_back(std::move(iter->second.get()));
+			Get().m_model_query.emplace(iter->first, static_cast<uint32_t>(Get().m_models.size()) - 1);
+			iter                 = Get().m_loading_model_async.erase(iter);
+			Get().m_model_update = true;
+		}
+		else
+		{
+			iter++;
+		}
+	}
+
 	// Async loading new model on worker threads
 	if (!Get().m_new_model_async.empty())
 	{
@@ -115,21 +146,6 @@ void ResourceCache::OnUpdate()
 			}
 		}
 		Get().m_new_model_async.clear();
-	}
-
-	// Collect async loading models
-	for (auto iter = Get().m_loading_model_async.begin(); iter != Get().m_loading_model_async.end();)
-	{
-		if (iter->second.wait_for(std::chrono::seconds(0)) == std::future_status::ready)
-		{
-			Get().m_models.emplace_back(std::move(iter->second.get()));
-			Get().m_model_query.emplace(iter->first, static_cast<uint32_t>(Get().m_models.size()) - 1);
-			iter = Get().m_loading_model_async.erase(iter);
-		}
-		else
-		{
-			iter++;
-		}
 	}
 }
 
@@ -147,6 +163,7 @@ Graphics::ImageReference ResourceCache::LoadTexture2D(const std::string &filepat
 	Get().m_image_query.emplace(filepath, static_cast<uint32_t>(Get().m_images.size()) - 1);
 
 	Graphics::RenderContext::SetName(*Get().m_images.at(Get().m_image_query.at(filepath)), filepath.c_str());
+	Get().m_image_update = true;
 
 	return *Get().m_images.at(Get().m_image_query.at(filepath));
 }
@@ -169,6 +186,8 @@ ModelReference ResourceCache::LoadModel(const std::string &filepath)
 
 	Get().m_models.emplace_back(ModelLoader::Load(filepath));
 	Get().m_model_query.emplace(filepath, static_cast<uint32_t>(Get().m_models.size()) - 1);
+
+	Get().m_model_update = true;
 
 	return *Get().m_models.at(Get().m_model_query.at(filepath));
 }
@@ -204,31 +223,35 @@ uint32_t ResourceCache::GetTexture2DIndex(const std::string &filepath)
 std::vector<Graphics::ImageReference> ResourceCache::GetTexture2DReference()
 {
 	std::vector<Graphics::ImageReference> image_reference;
-	for (auto &image : Get().m_images)
+
+	for (const auto &image : Get().m_images)
 	{
 		image_reference.push_back(*image);
 	}
+
 	return image_reference;
 }
 
 std::vector<ModelReference> ResourceCache::GetModelReference()
 {
 	std::vector<ModelReference> model_reference;
+
 	for (auto &model : Get().m_models)
 	{
 		model_reference.push_back(*model);
 	}
+
 	return model_reference;
 }
 
-bool ResourceCache::HasNewModelLoaded()
+bool ResourceCache::ImageUpdate()
 {
-	return !Get().m_loading_image_async.empty();
+	return Get().m_image_update;
 }
 
-bool ResourceCache::HasNewTexture2DLoaded()
+bool ResourceCache::ModelUpdate()
 {
-	return !Get().m_loading_model_async.empty();
+	return Get().m_model_update;
 }
 
 bool ResourceCache::IsModelLoading()

@@ -30,6 +30,8 @@
 
 #include <ImFileDialog.h>
 
+#include <imnodes.h>
+
 namespace Ilum
 {
 scope<ImGuiContext> ImGuiContext::s_instance = nullptr;
@@ -74,6 +76,7 @@ void ImGuiContext::createResouce()
 	}
 
 	ImGui::CreateContext();
+	ImNodes::CreateContext();
 
 	s_instance->m_texture_id_mapping.clear();
 
@@ -140,6 +143,7 @@ void ImGuiContext::releaseResource()
 		Graphics::RenderContext::WaitDevice();
 		ImGui_ImplVulkan_Shutdown();
 		ImGui_ImplSDL2_Shutdown();
+		ImNodes::DestroyContext();
 		ImGui::DestroyContext();
 
 		// Release resource

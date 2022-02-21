@@ -189,3 +189,14 @@ target_include_directories(vulkan INTERFACE ${EIGEN_INCLUDE_DIR})
 #cereal
 add_library(cereal INTERFACE)
 target_include_directories(cereal INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/cereal/include")
+
+#imnodes
+set(IMNODES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/imnodes")
+set(IMNODES_FILES
+    "${IMNODES_DIR}/imnodes.h"
+    "${IMNODES_DIR}/imnodes.cpp"
+    "${IMNODES_DIR}/imnodes_internal.h")
+add_library(imnodes STATIC ${IMNODES_FILES})
+target_include_directories(imgui PUBLIC ${IMNODES_DIR})
+target_link_libraries(imnodes PRIVATE imgui)
+target_compile_definitions(imnodes PRIVATE _CRT_SECURE_NO_WARNINGS)

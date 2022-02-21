@@ -31,4 +31,5 @@ SetTarget(
         meshoptimizer
         TBB::tbb
         Eigen
+        imnodes
 )

@@ -75,7 +75,7 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("KullaContyEnergy", std::make_unique<pass::KullaContyEnergy>())
 		    .addRenderPass("KullaContyAverage", std::make_unique<pass::KullaContyAverage>())
 		    .addRenderPass("EquirectangularToCubemap", std::make_unique<pass::EquirectangularToCubemap>())
-		    .addRenderPass("HizPass", std::make_unique<pass::HizPass>())
+		    //.addRenderPass("HizPass", std::make_unique<pass::HizPass>())
 		    .addRenderPass("InstanceCulling", std::make_unique<pass::InstanceCullingPass>())
 		    .addRenderPass("MeshletCulling", std::make_unique<pass::MeshletCullingPass>())
 		    .addRenderPass("StaticGeometryPass", std::make_unique<pass::StaticGeometryPass>())
@@ -85,7 +85,7 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
 		    .addRenderPass("EnvLight", std::make_unique<pass::EnvLightPass>())
 		    .addRenderPass("TAAPass", std::make_unique<pass::TAAPass>())
-		    .addRenderPass("CopyBuffer", std::make_unique<pass::CopyPass>())
+		    //.addRenderPass("CopyBuffer", std::make_unique<pass::CopyPass>())
 
 		    //.addRenderPass("BrightPass", std::make_unique<pass::BrightPass>("lighting"))
 		    //.addRenderPass("Blur1", std::make_unique<pass::BlurPass>("bright", "blur1"))

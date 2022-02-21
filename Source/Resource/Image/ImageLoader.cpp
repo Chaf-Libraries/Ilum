@@ -1,7 +1,7 @@
 #include "ImageLoader.hpp"
 
-#include <Graphics/Resource/Buffer.hpp>
 #include <Graphics/Command/CommandBuffer.hpp>
+#include <Graphics/Resource/Buffer.hpp>
 
 #include <Core/Logger/Logger.hpp>
 
@@ -120,7 +120,8 @@ std::unique_ptr<Graphics::Image> ImageLoader::LoadTexture2D(const Graphics::Devi
 
 	cmd_buffer.TransferLayout(*image, VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
 	cmd_buffer.End();
-	cmd_buffer.SubmitIdle();
+
+	cmd_buffer.SubmitIdle(2);
 
 	return image;
 }
@@ -129,4 +130,4 @@ std::unique_ptr<Graphics::Image> ImageLoader::LoadTexture2DFromFile(const Graphi
 {
 	return LoadTexture2D(device, cmd_buffer, LoadTexture2D(filepath), mipmaps);
 }
-}        // namespace Ilum::Graphics
+}        // namespace Ilum::Resource

@@ -58,3 +58,6 @@
 [submodule "External/cereal"]
 	path = External/cereal
 	url = https://github.com/USCiLab/cereal
+[submodule "External/imnodes"]
+	path = External/imnodes
+	url = https://github.com/Nelarius/imnodes
