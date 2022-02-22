@@ -52,9 +52,6 @@
 [submodule "External/oneTBB"]
 	path = External/oneTBB
 	url = https://github.com/oneapi-src/oneTBB
-[submodule "External/glfw"]
-	path = External/glfw
-	url = https://github.com/glfw/glfw
 [submodule "External/cereal"]
 	path = External/cereal
 	url = https://github.com/USCiLab/cereal

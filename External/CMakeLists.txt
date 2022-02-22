@@ -4,9 +4,6 @@ add_subdirectory(SDL)
 
 set_target_properties(uninstall PROPERTIES OUTPUT_NAME "SDL-uninstall")
 
-# glfw
-add_subdirectory(glfw)
-
 # spdlog
 add_subdirectory(spdlog)
 
@@ -61,8 +58,6 @@ set(IMGUI_FILES
     "${IMGUI_DIR}/imstb_truetype.h"
     "${IMGUI_DIR}/backends/imgui_impl_vulkan.h"
     "${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp"
-    "${IMGUI_DIR}/backends/imgui_impl_glfw.h"
-    "${IMGUI_DIR}/backends/imgui_impl_glfw.cpp"
     "${IMGUI_DIR}/backends/imgui_impl_sdl.h"
     "${IMGUI_DIR}/backends/imgui_impl_sdl.cpp")
 add_library(imgui STATIC ${IMGUI_FILES})
