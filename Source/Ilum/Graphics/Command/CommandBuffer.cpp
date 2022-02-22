@@ -9,6 +9,7 @@
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Synchronization/Queue.hpp"
 #include "Graphics/Synchronization/QueueSystem.hpp"
+#include "Graphics/Vulkan/Vulkan.hpp"
 
 namespace Ilum
 {

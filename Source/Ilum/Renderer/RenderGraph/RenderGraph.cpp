@@ -154,6 +154,7 @@ void RenderGraph::executeNode(RenderGraphNode &node, const CommandBuffer &comman
 	RenderPassState state{*this, command_buffer, node.pass_native};
 
 	node.pass->resolveResources(resolve);
+
 	if (node.descriptors.getOption() != ResolveOption::None)
 	{
 		node.descriptors.resolve(resolve);

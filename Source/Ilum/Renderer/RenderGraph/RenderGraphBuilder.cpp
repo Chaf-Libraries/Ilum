@@ -1058,6 +1058,10 @@ PassNative RenderGraphBuilder::buildRenderPass(const RenderPassReference &render
 		createComputePipeline(pass, pass_native);
 	}
 
+	VK_Debugger::setName(pass_native.pipeline, (render_pass_reference.name + " - pipeline").c_str());
+	VK_Debugger::setName(pass_native.pipeline_layout, (render_pass_reference.name + " - pipeline_layout").c_str());
+	VK_Debugger::setName(pass_native.render_pass, (render_pass_reference.name + " - render_pass").c_str());
+
 	return pass_native;
 }
 

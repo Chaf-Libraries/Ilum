@@ -1,6 +1,8 @@
 #include "Semaphore.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
+#include "Graphics/Vulkan/Vulkan.hpp"
+
 #include "Device/LogicalDevice.hpp"
 
 namespace Ilum

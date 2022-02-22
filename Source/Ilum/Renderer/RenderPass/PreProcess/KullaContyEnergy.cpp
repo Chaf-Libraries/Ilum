@@ -10,6 +10,7 @@ KullaContyEnergy::KullaContyEnergy()
 {
 	m_kulla_conty_energy = Image(128, 128, VK_FORMAT_R16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 	VK_Debugger::setName(m_kulla_conty_energy, "m_kulla_conty_energy");
+	VK_Debugger::setName(m_kulla_conty_energy.getView(), "m_kulla_conty_energy");
 
 	{
 		CommandBuffer cmd_buffer;

@@ -4,7 +4,9 @@
 #include "File/FileSystem.hpp"
 
 #include "Device/LogicalDevice.hpp"
+
 #include "Graphics/GraphicsContext.hpp"
+#include "Graphics/Vulkan/Vulkan.hpp"
 
 namespace Ilum
 {
@@ -114,6 +116,10 @@ VkShaderModule ShaderCache::load(const std::string &filename, VkShaderStageFlagB
 	else
 	{
 		spirv = ShaderCompiler::compile(raw_data, stage, type);
+
+		std::vector<uint8_t> write_data(spirv.size() * 4);
+		std::memcpy(write_data.data(), spirv.data(), write_data.size());
+		FileSystem::save("Shader/" + FileSystem::getFileName(filename, false) + "_" + std::to_string(stage) + ".spv", write_data, true);
 	}
 
 	m_reflection_data.emplace_back(std::move(ShaderReflection::reflect(spirv, stage)));

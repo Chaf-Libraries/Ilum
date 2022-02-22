@@ -44,6 +44,8 @@ class RenderPass
 
 	virtual void render(RenderPassState &state){};
 
+	virtual void onImGui(){};
+
 	virtual std::type_index type() const = 0;
 };
 

@@ -3,6 +3,7 @@
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Synchronization/Fence.hpp"
+#include "Graphics/Vulkan/Vulkan.hpp"
 
 #include "Device/LogicalDevice.hpp"
 

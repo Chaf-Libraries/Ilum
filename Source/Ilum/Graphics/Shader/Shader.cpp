@@ -10,21 +10,37 @@
 
 #include "Graphics/GraphicsContext.hpp"
 
-#include <glslang/Include/ResourceLimits.h>
 #include <SPIRV/GLSL.std.450.h>
 #include <SPIRV/GlslangToSpv.h>
+#include <glslang/Include/ResourceLimits.h>
 
 #include <spirv_glsl.hpp>
 
+#include "ShaderCache.hpp"
 #include "ShaderCompiler.hpp"
 #include "ShaderReflection.hpp"
-#include "ShaderCache.hpp"
 
 namespace Ilum
 {
 Shader &Shader::load(const std::string &filename, VkShaderStageFlagBits stage, Type type)
 {
-	const auto shader_module = GraphicsContext::instance()->getShaderCache().load(filename, stage, type);
+	if (!FileSystem::isExist("Shader/"))
+	{
+		FileSystem::createPath("Shader/");
+	}
+
+	std::string spv_path = "Shader/" + FileSystem::getFileName(filename, false) + "_" + std::to_string(stage) + ".spv";
+
+	VkShaderModule shader_module = VK_NULL_HANDLE;
+	if (FileSystem::isExist(spv_path))
+	{
+		shader_module = GraphicsContext::instance()->getShaderCache().load(spv_path, stage, Type::SPIRV);
+	}
+	else
+	{
+		shader_module = GraphicsContext::instance()->getShaderCache().load(filename, stage, type);
+	}
+
 	if (!shader_module)
 	{
 		VK_ERROR("Failed to load shader: {}", filename);
@@ -44,7 +60,6 @@ const ReflectionData &Shader::getReflectionData() const
 
 std::vector<VkPushConstantRange> Shader::getPushConstantRanges() const
 {
-
 	std::vector<VkPushConstantRange> push_constant_ranges;
 	for (auto &constant : m_relection_data.constants)
 	{

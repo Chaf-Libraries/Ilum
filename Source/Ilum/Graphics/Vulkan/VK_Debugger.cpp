@@ -59,6 +59,11 @@ void VK_Debugger::setObjectName(uint64_t object, VkObjectType object_type, const
 		return;
 	}
 
+	if (object == (uint64_t)VK_NULL_HANDLE)
+	{
+		return;
+	}
+
 	VkDebugUtilsObjectNameInfoEXT name_info{VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT};
 	name_info.pNext        = nullptr;
 	name_info.objectType   = object_type;

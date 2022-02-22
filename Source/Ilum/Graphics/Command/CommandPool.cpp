@@ -6,6 +6,7 @@
 #include "Engine/Engine.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
+#include "Graphics/Vulkan/Vulkan.hpp"
 
 namespace Ilum
 {
