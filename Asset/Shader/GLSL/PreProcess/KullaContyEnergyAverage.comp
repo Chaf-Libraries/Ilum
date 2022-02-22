@@ -9,7 +9,7 @@
 
 layout (local_size_x = 32) in;
 
-layout (binding = 0, r16) uniform readonly image2D Emu_Lut;
+layout(binding = 0) uniform sampler2D Emu_Lut;
 layout (binding = 1, r16) uniform writeonly image2D Eavg_Lut;
 
 vec3 ImportanceSampleGGX(vec2 Xi, vec3 N, float roughness)
@@ -64,7 +64,7 @@ void main()
         float NoV = step * (i + 0.5);
         vec3 V = vec3(sqrt(1.0 - NoV * NoV), 0.0, NoV);
         
-        vec3 Ei = vec3(imageLoad(Emu_Lut, ivec2(i, gl_GlobalInvocationID.x)).r);
+        vec3 Ei = vec3(texture(Emu_Lut, ivec2(i / LUT_SIZE, gl_GlobalInvocationID.x / LUT_SIZE)).r);
         Eavg += IntegrateEmu(V, roughness, NoV, Ei) * step;
     }
     
