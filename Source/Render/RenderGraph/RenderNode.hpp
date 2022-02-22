@@ -1,28 +1,31 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 namespace Ilum::Render
 {
-struct PinDesc
-{
-	virtual size_t Hash() = 0;
-	const int32_t  node;
-};
+class RenderGraph;
 
 class RenderNode
 {
   public:
-	RenderNode();
+	RenderNode(const std::string &name, RenderGraph &render_graph);
 	~RenderNode() = default;
 
-	uint64_t GetUUID() const;
+	int32_t            GetUUID() const;
+	const std::string &GetName() const;
 
-	virtual void OnImGui() = 0;
+	virtual void OnUpdate() = 0;
+	virtual void OnImGui()  = 0;
 	virtual void OnImNode() = 0;
 
   protected:
-	uint64_t       NewUUID();
-	const uint64_t m_uuid;
+	int32_t NewUUID();
+
+  protected:
+	RenderGraph &  m_render_graph;
+	const int32_t m_uuid;
+	std::string    m_name;
 };
 }        // namespace Ilum::Render

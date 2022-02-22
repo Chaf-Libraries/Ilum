@@ -14,38 +14,14 @@
 
 #include <Render/RenderGraph/RenderGraph.hpp>
 #include <Render/RenderGraph/ResourceNode.hpp>
+#include <Render/ResourceNode/BindlessTextureNode.hpp>
+#include <Render/PassNode/Deferred/GeometryPass.hpp>
 
 #include <Core/JobSystem/JobSystem.hpp>
 
 #include <imgui.h>
 #include <imnodes/imnodes.h>
 
-namespace Ilum::Render
-{
-class TestNode : public RenderNode
-{
-  public:
-	virtual void OnImGui() override;
-
-	virtual void OnImNode() override;
-
-  private:
-	struct Pin: public PinDesc
-	{
-		virtual size_t Hash() override
-		{
-			return 0;
-		}
-
-		virtual int32_t GetNode() override
-		{
-			return m_uuid;
-		}
-
-		int32_t node = m_uuid;
-	}m_pin;
-};
-};        // namespace Ilum::Render
 
 namespace Ilum::panel
 {
@@ -55,6 +31,9 @@ class RGEditor : public Panel
 	RGEditor()
 	{
 		m_name = "Render Graph Editor";
+
+		render_graph.AddResourceNode<Render::BindlessTextureNode>();
+		render_graph.AddPassNode<Render::GeometryPass>();
 	}
 
 	~RGEditor() = default;
@@ -63,93 +42,84 @@ class RGEditor : public Panel
 	{
 		ImGui::Begin(m_name.c_str(), &active);
 
-		ImNodes::BeginNodeEditor();
+		//ImNodes::BeginNodeEditor();
 
-		ImNodes::BeginNode(1);
+		//ImNodes::BeginNode(1);
 
-		ImNodes::BeginNodeTitleBar();
-		ImGui::TextUnformatted("simple node :)");
-		ImNodes::EndNodeTitleBar();
+		//ImNodes::BeginNodeTitleBar();
+		//ImGui::TextUnformatted("simple node :)");
+		//ImNodes::EndNodeTitleBar();
 
-		ImNodes::BeginInputAttribute(2);
-		ImGui::Text("input");
-		ImNodes::EndInputAttribute();
+		//ImNodes::BeginInputAttribute(2);
+		//ImGui::Text("input");
+		//ImNodes::EndInputAttribute();
 
-		ImNodes::BeginOutputAttribute(3);
-		ImGui::Indent(40);
-		ImGui::Text("output");
-		ImNodes::EndOutputAttribute();
+		//ImNodes::BeginOutputAttribute(3);
+		//ImGui::Indent(40);
+		//ImGui::Text("output");
+		//ImNodes::EndOutputAttribute();
 
-		ImNodes::EndNode();
+		//ImNodes::EndNode();
 
-		ImNodes::BeginNode(2);
+		//ImNodes::BeginNode(2);
 
-		ImNodes::BeginNodeTitleBar();
-		ImGui::TextUnformatted("simple node ):");
-		ImNodes::EndNodeTitleBar();
+		//ImNodes::BeginNodeTitleBar();
+		//ImGui::TextUnformatted("simple node ):");
+		//ImNodes::EndNodeTitleBar();
 
-		ImNodes::BeginInputAttribute(4);
-		ImGui::Text("input");
-		ImNodes::EndInputAttribute();
+		//ImNodes::BeginInputAttribute(4);
+		//ImGui::Text("input");
+		//ImNodes::EndInputAttribute();
 
-		ImNodes::BeginOutputAttribute(5);
-		ImGui::Indent(40);
-		ImGui::Text("output");
-		ImNodes::EndOutputAttribute();
+		//ImNodes::BeginOutputAttribute(5);
+		//ImGui::Indent(40);
+		//ImGui::Text("output");
+		//ImNodes::EndOutputAttribute();
 
-		ImNodes::EndNode();
+		//ImNodes::EndNode();
 
-		for (int i = 0; i < links.size(); ++i)
-		{
-			const std::pair<int, int> p = links[i];
-			// in this case, we just use the array index of the link
-			// as the unique identifier
-			ImNodes::Link(i, p.first, p.second);
-		}
+		//for (int i = 0; i < links.size(); ++i)
+		//{
+		//	const std::pair<int, int> p = links[i];
+		//	// in this case, we just use the array index of the link
+		//	// as the unique identifier
+		//	ImNodes::Link(i, p.first, p.second);
+		//}
 
-		ImNodes::MiniMap();
-		ImNodes::EndNodeEditor();
+		//ImNodes::MiniMap();
+		//ImNodes::EndNodeEditor();
 
-		int link;
-		if (ImNodes::IsLinkHovered(&link))
-		{
-			if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-			{
-				links.erase(links.begin() + link);
-			}
-		}
+		//int link;
+		//if (ImNodes::IsLinkHovered(&link))
+		//{
+		//	if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+		//	{
+		//		links.erase(links.begin() + link);
+		//	}
+		//}
 
-		int start_attr, end_attr;
-		if (ImNodes::IsLinkCreated(&start_attr, &end_attr))
-		{
-			links.push_back(std::make_pair(start_attr, end_attr));
-		}
+		//int start_attr, end_attr;
+		//if (ImNodes::IsLinkCreated(&start_attr, &end_attr))
+		//{
+		//	links.push_back(std::make_pair(start_attr, end_attr));
+		//}
+
+
+		render_graph.OnImGui();
 
 		ImGui::End();
 	}
 
   private:
 	std::vector<std::pair<int, int>> links;
+	Render::RenderGraph              render_graph;
 };
 }        // namespace Ilum::panel
 
 int main()
 {
-	auto image = Ilum::Resource::ResourceCache::LoadTexture2D("D:/Workspace/IlumEngine/Asset/Texture/Material/cavern-deposits/cavern-deposits_albedo.png");
 
 	Ilum::Core::JobSystem::Initialize();
-
-	Ilum::Resource::ResourceCache::LoadTexture2DAsync("D:/Workspace/IlumEngine/Asset/Texture/Material/cavern-deposits/cavern-deposits_ao.png");
-	Ilum::Resource::ResourceCache::LoadTexture2DAsync("D:/Workspace/IlumEngine/Asset/Texture/Material/cavern-deposits/cavern-deposits_height.png");
-	Ilum::Resource::ResourceCache::LoadTexture2DAsync("D:/Workspace/IlumEngine/Asset/Texture/Material/cavern-deposits/cavern-deposits_metallic.png");
-	Ilum::Resource::ResourceCache::LoadTexture2DAsync("D:/Workspace/IlumEngine/Asset/Texture/Material/cavern-deposits/cavern-deposits_normal-ogl.png");
-	Ilum::Resource::ResourceCache::LoadTexture2DAsync("D:/Workspace/IlumEngine/Asset/Texture/Material/cavern-deposits/cavern-deposits_roughness.png");
-	Ilum::Resource::ResourceCache::LoadTexture2DAsync("D:/Workspace/IlumEngine/Asset/Texture/Material/dusty-cobble/dusty-cobble_albedo.png");
-	Ilum::Resource::ResourceCache::LoadTexture2DAsync("D:/Workspace/IlumEngine/Asset/Texture/Material/dusty-cobble/dusty-cobble_ao.png");
-	Ilum::Resource::ResourceCache::LoadTexture2DAsync("D:/Workspace/IlumEngine/Asset/Texture/Material/dusty-cobble/dusty-cobble_height.png");
-	Ilum::Resource::ResourceCache::LoadTexture2DAsync("D:/Workspace/IlumEngine/Asset/Texture/Material/dusty-cobble/dusty-cobble_metallic.png");
-	Ilum::Resource::ResourceCache::LoadTexture2DAsync("D:/Workspace/IlumEngine/Asset/Texture/Material/dusty-cobble/dusty-cobble_normal-ogl.png");
-	Ilum::Resource::ResourceCache::LoadTexture2DAsync("D:/Workspace/IlumEngine/Asset/Texture/Material/dusty-cobble/dusty-cobble_roughness.png");
 
 	Ilum::Resource::ResourceCache::OnUpdate();
 

@@ -4,20 +4,27 @@
 
 namespace Ilum::Render
 {
-static uint64_t GLOBAL_UUID = 0;
+static int32_t GLOBAL_UUID = 0;
 	
-RenderNode::RenderNode() :
-	m_uuid(GLOBAL_UUID++)
+RenderNode::RenderNode(const std::string &name, RenderGraph &render_graph) :
+	m_uuid(GLOBAL_UUID++),
+    m_name(name),
+    m_render_graph(render_graph)
 {
 
 }
 
-uint64_t RenderNode::GetUUID() const
+int32_t RenderNode::GetUUID() const
 {
 	return m_uuid;
 }
 
-uint64_t RenderNode::NewUUID()
+const std::string &RenderNode::GetName() const
+{
+	return m_name;
+}
+
+int32_t RenderNode::NewUUID()
 {
 	return GLOBAL_UUID++;
 }

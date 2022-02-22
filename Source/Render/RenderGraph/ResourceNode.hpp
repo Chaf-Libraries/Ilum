@@ -12,33 +12,51 @@
 namespace Ilum::Render
 {
 class IPassNode;
+class RenderGraph;
 
 class IResourceNode : public RenderNode
 {
-  public:
-	IResourceNode(const std::string &name);
-	~IResourceNode() = default;
+	friend class RenderGraph;
 
-	const std::string &GetName() const;
+  public:
+	IResourceNode(const std::string &name, RenderGraph &render_graph);
+	~IResourceNode() = default;
 
 	virtual void OnImGui()  = 0;
 	virtual void OnImNode() = 0;
 	virtual void OnUpdate() = 0;
 
-	void ReadBy(IPassNode *pass, VkBufferUsageFlagBits usage){};
-	void WriteBy(IPassNode *pass, VkBufferUsageFlagBits usage){};
-	void ReadBy(IPassNode *pass, VkImageUsageFlagBits usage){};
-	void WriteBy(IPassNode *pass, VkImageUsageFlagBits usage){};
+	bool ReadBy(IPassNode *pass, int32_t pin)
+	{
+		if (_ReadBy(pass, pin))
+		{
+			m_read_passes.emplace(pass, pin);
+			return true;
+		}
+		return false;
+	}
+
+	bool WriteBy(IPassNode *pass, int32_t pin)
+	{
+		if (_WriteBy(pass, pin))
+		{
+			m_write_passes.emplace(pass, pin);
+			return true;
+		}
+		return false;
+	}
 
   protected:
-	std::string m_name;
+	virtual bool _ReadBy(IPassNode *pass, int32_t pin)  = 0;
+	virtual bool _WriteBy(IPassNode *pass, int32_t pin) = 0;
 
-	std::map<IPassNode *, VkDescriptorType> m_read_passes;
-	std::map<IPassNode *, VkDescriptorType> m_write_passes;
+  protected:
+	// Pass - Pin
+	std::map<IPassNode *, int32_t> m_read_passes;
+	std::map<IPassNode *, int32_t> m_write_passes;
 
-	const uint64_t m_node_id;
-	const uint64_t m_write_id;
-	const uint64_t m_read_id;
+	const int32_t  m_write_id;
+	const int32_t m_read_id;
 
 	bool m_dirty = false;
 };

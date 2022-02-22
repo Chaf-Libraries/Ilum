@@ -4,20 +4,20 @@
 
 namespace Ilum::Render
 {
-void RenderGraph::RegisterPin(int32_t uuid, PinDesc *pin_desc)
+void RenderGraph::RegisterPin(int32_t pin, int32_t node)
 {
-	m_pin_desc[uuid] = pin_desc;
+	m_pin_query[pin] = node;
 }
 
-void RenderGraph::UnRegisterPin(int32_t uuid)
+void RenderGraph::UnRegisterPin(int32_t pin)
 {
-	if (m_pin_desc.find(uuid) != m_pin_desc.end())
+	if (m_pin_query.find(pin) != m_pin_query.end())
 	{
-		m_pin_desc.erase(uuid);
+		m_pin_query.erase(pin);
 	}
 	for (auto iter = m_links.begin(); iter != m_links.end();)
 	{
-		if (iter->first == uuid || iter->second == uuid)
+		if (iter->first == pin || iter->second == pin)
 		{
 			iter = m_links.erase(iter);
 		}
@@ -32,7 +32,12 @@ void RenderGraph::OnImGui()
 {
 	ImNodes::BeginNodeEditor();
 
-	for (auto& [uuid, node] : m_render_nodes)
+	for (auto &[uuid, node] : m_resource_nodes)
+	{
+		node->OnImNode();
+	}
+
+	for (auto &[uuid, node] : m_pass_nodes)
 	{
 		node->OnImNode();
 	}
@@ -47,22 +52,55 @@ void RenderGraph::OnImGui()
 	ImNodes::MiniMap();
 	ImNodes::EndNodeEditor();
 
-	int link;
-	if (ImNodes::IsLinkHovered(&link))
-	{
-		if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
-		{
-			m_links.erase(m_links.begin() + link);
-		}
-	}
+	//int link;
+	//if (ImNodes::IsLinkHovered(&link))
+	//{
+	//	if (ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+	//	{
+	//		m_links.erase(m_links.begin() + link);
+	//	}
+	//}
 
 	int start_attr, end_attr;
 	if (ImNodes::IsLinkCreated(&start_attr, &end_attr))
 	{
-		if (m_pin_desc[start_attr]->Hash() == m_pin_desc[end_attr]->Hash())
+		// resource - > pass
+		if (m_resource_nodes.find(m_pin_query[start_attr]) != m_resource_nodes.end() &&
+		    m_pass_nodes.find(m_pin_query[end_attr]) != m_pass_nodes.end())
 		{
-			m_links.push_back(std::make_pair(start_attr, end_attr));
+			if (m_resource_nodes[m_pin_query[start_attr]]->ReadBy(m_pass_nodes[m_pin_query[end_attr]].get(), end_attr))
+			{
+				m_links.push_back(std::make_pair(start_attr, end_attr));
+			}
+		}
+
+		// pass - > resource
+		if (m_pass_nodes.find(m_pin_query[start_attr]) != m_pass_nodes.end() &&
+		    m_resource_nodes.find(m_pin_query[end_attr]) != m_resource_nodes.end())
+		{
+			if (m_resource_nodes[m_pin_query[start_attr]]->WriteBy(m_pass_nodes[m_pin_query[end_attr]].get(), end_attr))
+			{
+				m_links.push_back(std::make_pair(start_attr, end_attr));
+			}
 		}
 	}
+
+	ImGui::Begin("Render Node Inspector");
+	if (ImNodes::NumSelectedNodes() > 0)
+	{
+		std::vector<int32_t> select_nodes(ImNodes::NumSelectedNodes());
+		ImNodes::GetSelectedNodes(select_nodes.data());
+
+		const ImGuiTreeNodeFlags tree_node_flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
+		for (auto &node : select_nodes)
+		{
+			if (ImGui::TreeNodeEx(std::to_string(m_render_nodes[node]->GetUUID()).c_str(), tree_node_flags, m_render_nodes[node]->GetName().c_str()))
+			{
+				m_render_nodes[node]->OnImGui();
+				ImGui::TreePop();
+			}
+		}
+	}
+	ImGui::End();
 }
 }        // namespace Ilum::Render

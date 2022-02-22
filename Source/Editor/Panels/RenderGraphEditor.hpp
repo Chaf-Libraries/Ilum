@@ -2,9 +2,6 @@
 
 #include "../Panel.hpp"
 
-#include <RenderGraph/RenderGraph.hpp>
-
-#include <Vulkan/Texture.hpp>
 
 #include <memory>
 #include <vector>

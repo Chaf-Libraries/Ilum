@@ -29,6 +29,7 @@ class ResourceCache
 	static void RemoveModel(const std::string &filepath);
 
 	static uint32_t GetTexture2DIndex(const std::string &filepath);
+	static const std::unordered_map<std::string, uint32_t> &GetTexture2DQuery();
 
 	static std::vector<Graphics::ImageReference> GetTexture2DReference();
 	static std::vector<ModelReference>           GetModelReference();

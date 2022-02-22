@@ -38,6 +38,7 @@ void ResourceCache::OnUpdate()
 				Get().m_images.erase(Get().m_images.begin() + index);
 				Get().m_image_query.erase(name);
 				LOG_INFO("Release Image: {}", name);
+				Get().m_image_update = true;
 			}
 		}
 		Get().m_deprecated_image_async.clear();
@@ -110,7 +111,8 @@ void ResourceCache::OnUpdate()
 				}
 				Get().m_models.erase(Get().m_models.begin() + index);
 				Get().m_model_query.erase(name);
-				LOG_INFO("Release Image: {}", name);
+				LOG_INFO("Release Model: {}", name);
+				Get().m_model_update = true;
 			}
 		}
 		Get().m_deprecated_model_async.clear();
@@ -218,6 +220,11 @@ uint32_t ResourceCache::GetTexture2DIndex(const std::string &filepath)
 		return Get().m_image_query.at(filepath);
 	}
 	return std::numeric_limits<uint32_t>::max();
+}
+
+const std::unordered_map<std::string, uint32_t> &ResourceCache::GetTexture2DQuery()
+{
+	return Get().m_image_query;
 }
 
 std::vector<Graphics::ImageReference> ResourceCache::GetTexture2DReference()

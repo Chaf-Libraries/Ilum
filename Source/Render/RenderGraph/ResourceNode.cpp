@@ -2,16 +2,14 @@
 
 #include "ResourceNode.hpp"
 #include "PassNode.hpp"
+#include "RenderGraph.hpp"
 
 namespace Ilum::Render
 {
-IResourceNode::IResourceNode(const std::string &name) :
-    m_name(name), m_node_id(NewUUID()), m_write_id(NewUUID()), m_read_id(NewUUID())
+IResourceNode::IResourceNode(const std::string &name, RenderGraph &render_graph) :
+    RenderNode(name, render_graph), m_write_id(NewUUID()), m_read_id(NewUUID())
 {
-}
-
-const std::string &IResourceNode::GetName() const
-{
-	return m_name;
+	m_render_graph.RegisterPin(m_write_id, m_uuid);
+	m_render_graph.RegisterPin(m_read_id, m_uuid);
 }
 }        // namespace Ilum::Render
