@@ -19,9 +19,11 @@ class KullaContyEnergy : public TRenderPass<KullaContyEnergy>
 
 	virtual void render(RenderPassState &state) override;
 
-	private:
+	virtual void onImGui() override;
+
+  private:
 	const uint32_t Resolution = 128;
-	  bool           m_finish   = false;
+	bool           m_finish   = false;
 	Image          m_kulla_conty_energy;
 };
 }        // namespace Ilum::pass

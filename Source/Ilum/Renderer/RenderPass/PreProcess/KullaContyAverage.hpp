@@ -19,6 +19,8 @@ class KullaContyAverage : public TRenderPass<KullaContyAverage>
 
 	virtual void render(RenderPassState &state) override;
 
+	virtual void onImGui() override;
+
   private:
 	const uint32_t Resolution = 128;
 	bool           m_finish   = false;

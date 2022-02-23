@@ -4,11 +4,15 @@
 
 #include "Graphics/Vulkan/VK_Debugger.h"
 
+#include "ImGui/ImGuiContext.hpp"
+
+#include <imgui.h>
+
 namespace Ilum::pass
 {
 KullaContyEnergy::KullaContyEnergy()
 {
-	m_kulla_conty_energy = Image(128, 128, VK_FORMAT_R16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	m_kulla_conty_energy = Image(1024, 1024, VK_FORMAT_R16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 	VK_Debugger::setName(m_kulla_conty_energy, "m_kulla_conty_energy");
 	VK_Debugger::setName(m_kulla_conty_energy.getView(), "m_kulla_conty_energy");
 
@@ -46,9 +50,18 @@ void KullaContyEnergy::render(RenderPassState &state)
 			vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
 		}
 
-		vkCmdDispatch(cmd_buffer, 128 / 32, 128 / 32, 1);
+		vkCmdDispatch(cmd_buffer, 1024 / 32, 1024 / 32, 1);
 
 		m_finish = true;
+	}
+}
+
+void KullaContyEnergy::onImGui()
+{
+	if (m_kulla_conty_energy)
+	{
+		ImGui::Text("Kulla Conty Energy Emu Precompute Result: ");
+		ImGui::Image(ImGuiContext::textureID(m_kulla_conty_energy.getView(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), ImVec2(100, 100));
 	}
 }
 }        // namespace Ilum::pass

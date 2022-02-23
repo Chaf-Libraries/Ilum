@@ -2,6 +2,8 @@
 
 #include "Renderer/Renderer.hpp"
 
+#include <imgui.h>
+
 namespace Ilum::pass
 {
 BlurPass::BlurPass(const std::string &input, const std::string &output, bool horizental) :
@@ -58,14 +60,21 @@ void BlurPass::render(RenderPassState &state)
 	vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
 	vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
-	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(float), &Renderer::instance()->Bloom.scale);
-	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float), sizeof(float), &Renderer::instance()->Bloom.strength);
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(float), &m_scale);
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float), sizeof(float), &m_strength);
 	uint32_t horizental = static_cast<uint32_t>(m_horizental);
 	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 2 * sizeof(float), sizeof(float), &horizental);
-	uint32_t enable = static_cast<uint32_t>(Renderer::instance()->Bloom.enable);
+	uint32_t enable = static_cast<uint32_t>(m_enable);
 	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 3 * sizeof(float), sizeof(uint32_t), &enable);
 	vkCmdDraw(cmd_buffer, 3, 1, 0, 0);
 
 	vkCmdEndRenderPass(cmd_buffer);
+}
+
+void BlurPass::onImGui()
+{
+		ImGui::Checkbox("Enable", reinterpret_cast<bool *>(&m_enable));
+		ImGui::DragFloat("Scale", &m_scale, 0.001f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	    ImGui::DragFloat("Strength", &m_strength, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 }
 }        // namespace Ilum::pass

@@ -2,6 +2,8 @@
 
 #include "Renderer/Renderer.hpp"
 
+#include <imgui.h>
+
 namespace Ilum::pass
 {
 void BloomPass::setupPipeline(PipelineState &state)
@@ -53,9 +55,17 @@ void BloomPass::render(RenderPassState &state)
 	vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
 	vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
-	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Renderer::instance()->Bloom), &Renderer::instance()->Bloom);
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(m_bloom_data), &m_bloom_data);
 	vkCmdDraw(cmd_buffer, 3, 1, 0, 0);
 
 	vkCmdEndRenderPass(cmd_buffer);
+}
+
+void BloomPass::onImGui()
+{
+	ImGui::Checkbox("Enable", reinterpret_cast<bool *>(&m_bloom_data.enable));
+	ImGui::DragFloat("Threshold", &m_bloom_data.threshold, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	ImGui::DragFloat("Scale", &m_bloom_data.scale, 0.001f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	ImGui::DragFloat("Strength", &m_bloom_data.strength, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 }
 }        // namespace Ilum::pass

@@ -2,6 +2,8 @@
 
 #include "Renderer/Renderer.hpp"
 
+#include <imgui.h>
+
 namespace Ilum::pass
 {
 BrightPass::BrightPass(const std::string &input):
@@ -58,10 +60,16 @@ void BrightPass::render(RenderPassState &state)
 	vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
 	vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
-	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(float), &Renderer::instance()->Bloom.threshold);
-	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float), sizeof(uint32_t), &Renderer::instance()->Bloom.enable);
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(float), &m_threshold);
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(float), sizeof(uint32_t), &m_enable);
 	vkCmdDraw(cmd_buffer, 3, 1, 0, 0);
 
 	vkCmdEndRenderPass(cmd_buffer);
+}
+
+void BrightPass::onImGui()
+{
+		ImGui::Checkbox("Enable", reinterpret_cast<bool *>(&m_enable));
+		ImGui::DragFloat("Threshold", &m_threshold, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 }
 }        // namespace Ilum::pass

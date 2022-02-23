@@ -4,15 +4,21 @@
 
 #include "Editor/Panel.hpp"
 
+#include "Timing/Stopwatch.hpp"
+
 namespace Ilum::panel
 {
-	class RenderSetting:public Panel
-	{
-	  public:
-	    RenderSetting();
+class RenderSetting : public Panel
+{
+  public:
+	RenderSetting();
 
-		~RenderSetting() = default;
+	~RenderSetting() = default;
 
-		virtual void draw(float delta_time) override;
-    };
-}
+	virtual void draw(float delta_time) override;
+
+  private:
+	Stopwatch m_stopwatch;
+	std::vector<float> m_frame_times;
+};
+}        // namespace Ilum::panel

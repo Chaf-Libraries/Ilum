@@ -2,11 +2,14 @@
 
 #include "Graphics/GraphicsContext.hpp"
 
+#include "Renderer/RenderGraph/RenderGraph.hpp"
 #include "Renderer/Renderer.hpp"
 
 #include "ImGui/ImGuiContext.hpp"
 
 #include "File/FileSystem.hpp"
+
+#include "Timing/Timer.hpp"
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -16,7 +19,7 @@ namespace Ilum::panel
 template <typename Callback>
 inline void draw_node(const std::string &name, Callback callback)
 {
-	const ImGuiTreeNodeFlags tree_node_flags          = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
+	const ImGuiTreeNodeFlags tree_node_flags          = ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
 	ImVec2                   content_region_available = ImGui::GetContentRegionAvail();
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{4, 4});
@@ -33,12 +36,13 @@ inline void draw_node(const std::string &name, Callback callback)
 
 RenderSetting::RenderSetting()
 {
-	m_name = "Render Setting";
+	m_name = "Renderer Inspector";
+	m_stopwatch.start();
 }
 
 void RenderSetting::draw(float delta_time)
 {
-	ImGui::Begin("Render Setting", &active);
+	ImGui::Begin("Renderer Inspector", &active);
 
 	const char *const render_mode[]       = {"Polygon", "Wire Frame", "Point Cloud"};
 	int               current_render_mode = static_cast<int>(Renderer::instance()->Render_Mode);
@@ -60,28 +64,22 @@ void RenderSetting::draw(float delta_time)
 		GraphicsContext::instance()->setVsync(vsync);
 	}
 
+	auto *render_graph = Renderer::instance()->getRenderGraph();
+	render_graph->onImGui();
+
+	draw_node("Render Pass", [&render_graph]() {
+		for (auto &render_node : render_graph->getNodes())
+		{
+			draw_node(render_node.name, [&render_node]() {
+				render_node.pass->onImGui();
+			});
+		}
+	});
+
 	draw_node("Culling", []() {
 		ImGui::Checkbox("Frustum Culling", reinterpret_cast<bool *>(&Renderer::instance()->Culling.frustum_culling));
 		ImGui::Checkbox("Back Face Cone Culling", reinterpret_cast<bool *>(&Renderer::instance()->Culling.backface_culling));
 		ImGui::Checkbox("Hi-z Occlusion Culling", reinterpret_cast<bool *>(&Renderer::instance()->Culling.occulsion_culling));
-	});
-
-	draw_node("Color Correction", []() {
-		ImGui::DragFloat("Exposure", &Renderer::instance()->Color_Correction.exposure, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
-		ImGui::DragFloat("Gamma", &Renderer::instance()->Color_Correction.gamma, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
-	});
-
-	draw_node("Bloom", []() {
-		ImGui::Checkbox("Enable", reinterpret_cast<bool *>(&Renderer::instance()->Bloom.enable));
-		ImGui::DragFloat("Threshold", &Renderer::instance()->Bloom.threshold, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-		ImGui::DragFloat("Scale", &Renderer::instance()->Bloom.scale, 0.001f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-		ImGui::DragFloat("Strength", &Renderer::instance()->Bloom.strength, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-	});
-
-	draw_node("Temporal Anti Alias", []() {
-		ImGui::Checkbox("Enable", reinterpret_cast<bool *>(&Renderer::instance()->TAA.enable));
-		ImGui::SliderFloat("Feedback Min", &Renderer::instance()->TAA.feedback.x, 0.f, 1.f, "%.3f");
-		ImGui::SliderFloat("Feedback Max", &Renderer::instance()->TAA.feedback.y, Renderer::instance()->TAA.feedback.x, 1.f, "%.3f");
 	});
 
 	draw_node("Environment Light", []() {
@@ -117,6 +115,72 @@ void RenderSetting::draw(float delta_time)
 				ImGui::EndDragDropTarget();
 			}
 		}
+	});
+
+	draw_node("Profiler", [render_graph, this]() {
+		if (m_stopwatch.elapsedSecond() > 0.1f)
+		{
+			if (Timer::instance()->getFPS() != 0.0)
+			{
+				if (m_frame_times.size() < 50)
+				{
+					m_frame_times.push_back(1000.0f / static_cast<float>(Timer::instance()->getFPS()));
+				}
+				else
+				{
+					std::rotate(m_frame_times.begin(), m_frame_times.begin() + 1, m_frame_times.end());
+					m_frame_times.back() = 1000.0f / static_cast<float>(Timer::instance()->getFPS());
+				}
+			}
+
+			m_stopwatch.start();
+		}
+
+		float min_frame_time = 0.f, max_frame_time = 0.f;
+		float max_cpu_time = 0.f, max_gpu_time = 0.f;
+
+		if (!m_frame_times.empty())
+		{
+			min_frame_time = *std::min_element(m_frame_times.begin(), m_frame_times.end());
+			max_frame_time = *std::max_element(m_frame_times.begin(), m_frame_times.end());
+		}
+
+		std::vector<float> cpu_times;
+		std::vector<float> gpu_times;
+
+		if (ImGui::BeginTable("CPU&GPU Time", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
+		{
+			ImGui::TableSetupColumn("Pass");
+			ImGui::TableSetupColumn("CPU Time (ms)");
+			ImGui::TableSetupColumn("GPU Time (ms)");
+			ImGui::TableHeadersRow();
+
+			for (auto &render_node : render_graph->getNodes())
+			{
+				cpu_times.push_back(render_node.pass->getCPUTime());
+				gpu_times.push_back(render_node.pass->getGPUTime());
+
+				ImGui::TableNextRow();
+
+				ImGui::TableSetColumnIndex(0);
+				ImGui::Text("%s", render_node.name.c_str());
+				ImGui::TableSetColumnIndex(1);
+				ImGui::Text("%f", cpu_times.back());
+				ImGui::TableSetColumnIndex(2);
+				ImGui::Text("%f", gpu_times.back());
+			}
+			ImGui::EndTable();
+		}
+
+		if (!cpu_times.empty())
+		{
+			max_cpu_time = *std::max_element(cpu_times.begin(), cpu_times.end());
+			max_gpu_time = *std::max_element(gpu_times.begin(), gpu_times.end());
+		}
+
+		ImGui::PlotLines(("Frame Times (" + std::to_string(static_cast<uint32_t>(Timer::instance()->getFPS())) + "fps)").c_str(), m_frame_times.data(), static_cast<int>(m_frame_times.size()), 0, nullptr, min_frame_time * 0.8f, max_frame_time * 1.2f, ImVec2{0, 80});
+		ImGui::PlotHistogram("CPU Times", cpu_times.data(), static_cast<int>(cpu_times.size()), 0, nullptr, 0.f, max_cpu_time * 1.2f, ImVec2(0, 80.0f));
+		ImGui::PlotHistogram("GPU Times", gpu_times.data(), static_cast<int>(gpu_times.size()), 0, nullptr, 0.f, max_gpu_time * 1.2f, ImVec2(0, 80.0f));
 	});
 
 	ImGui::End();

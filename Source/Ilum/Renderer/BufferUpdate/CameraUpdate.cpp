@@ -18,28 +18,8 @@
 
 namespace Ilum::sym
 {
-// Camera jitter
-inline float halton_sequence(uint32_t base, uint32_t index)
-{
-	float result = 0.f;
-	float f      = 1.f;
-
-	while (index > 0)
-	{
-		f /= static_cast<float>(base);
-		result += f * (index % base);
-		index = static_cast<uint32_t>(floorf(static_cast<float>(index) / static_cast<float>(base)));
-	}
-
-	return result;
-}
-
 CameraUpdate::CameraUpdate()
 {
-	for (uint32_t i = 1; i <= HALTION_SAMPLES; i++)
-	{
-		m_jitter_samples.push_back(glm::vec2(2.f * halton_sequence(2, i) - 1.f, 2.f * halton_sequence(3, i) - 1.f));
-	}
 }
 
 void CameraUpdate::run()
@@ -73,28 +53,11 @@ void CameraUpdate::run()
 		}
 	}
 
-	// Update camera jitter
-	if (Renderer::instance()->TAA.enable)
-	{
-		Renderer::instance()->TAA.prev_jitter = Renderer::instance()->TAA.current_jitter;
-		uint32_t sample_idx = static_cast<uint32_t>(GraphicsContext::instance()->getFrameCount() % m_jitter_samples.size());
-		glm::vec2 halton     = m_jitter_samples[sample_idx];
-
-		auto rt_extent   = Renderer::instance()->getRenderTargetExtent();
-		
-		Renderer::instance()->TAA.current_jitter = glm::vec2(halton.x / static_cast<float>(rt_extent.width), halton.y / static_cast<float>(rt_extent.height));
-	}
-	else
-	{
-		Renderer::instance()->TAA.prev_jitter    = glm::vec2(0.f);
-		Renderer::instance()->TAA.current_jitter = glm::vec2(0.f);
-	}
-
 	const auto &transform = camera_entity.getComponent<cmpt::Transform>();
 
-	CameraData * camera_data          = reinterpret_cast<CameraData *>(Renderer::instance()->Render_Buffer.Camera_Buffer.map());
-	CullingData *culling_data         = reinterpret_cast<CullingData *>(Renderer::instance()->Render_Buffer.Culling_Buffer.map());
-	culling_data->last_view           = culling_data->view;
+	CameraData * camera_data  = reinterpret_cast<CameraData *>(Renderer::instance()->Render_Buffer.Camera_Buffer.map());
+	CullingData *culling_data = reinterpret_cast<CullingData *>(Renderer::instance()->Render_Buffer.Culling_Buffer.map());
+	culling_data->last_view   = culling_data->view;
 
 	if (camera_entity.hasComponent<cmpt::PerspectiveCamera>())
 	{
@@ -112,9 +75,9 @@ void CameraUpdate::run()
 		culling_data->znear = camera.near_plane;
 		culling_data->zfar  = camera.far_plane;
 
-		camera_data->position        = transform.world_transform[3];
-		camera_data->view_projection = glm::translate(glm::mat4(1.f), glm::vec3(Renderer::instance()->TAA.current_jitter, 0.f)) * camera.view_projection;
-		camera_data->last_view_projection = glm::translate(glm::mat4(1.f), glm::vec3(Renderer::instance()->TAA.current_jitter, 0.f)) * camera.last_view_projection;
+		camera_data->position             = transform.world_transform[3];
+		camera_data->view_projection      = camera.view_projection;
+		camera_data->last_view_projection = camera.last_view_projection;
 
 		for (size_t i = 0; i < 6; i++)
 		{
@@ -138,9 +101,9 @@ void CameraUpdate::run()
 		culling_data->znear = camera.near_plane;
 		culling_data->zfar  = camera.far_plane;
 
-		camera_data->position        = transform.world_transform[3];
-		camera_data->view_projection = glm::translate(glm::mat4(1.f), glm::vec3(Renderer::instance()->TAA.current_jitter, 0.f)) * camera.view_projection;
-		camera_data->last_view_projection = glm::translate(glm::mat4(1.f), glm::vec3(Renderer::instance()->TAA.current_jitter, 0.f)) * camera.last_view_projection;
+		camera_data->position             = transform.world_transform[3];
+		camera_data->view_projection      = camera.view_projection;
+		camera_data->last_view_projection = camera.last_view_projection;
 
 		for (size_t i = 0; i < 6; i++)
 		{

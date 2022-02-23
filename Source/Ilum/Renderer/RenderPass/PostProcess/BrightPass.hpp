@@ -18,7 +18,12 @@ class BrightPass : public TRenderPass<BrightPass>
 
 	virtual void render(RenderPassState &state) override;
 
+	virtual void onImGui() override;
+
   private:
 	std::string m_input;
+
+	float m_threshold = 0.75f;
+	uint32_t m_enable = 0;
 };
 }        // namespace Ilum::pass
