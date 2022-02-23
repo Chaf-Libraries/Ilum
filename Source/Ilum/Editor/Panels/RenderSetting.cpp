@@ -76,12 +76,6 @@ void RenderSetting::draw(float delta_time)
 		}
 	});
 
-	draw_node("Culling", []() {
-		ImGui::Checkbox("Frustum Culling", reinterpret_cast<bool *>(&Renderer::instance()->Culling.frustum_culling));
-		ImGui::Checkbox("Back Face Cone Culling", reinterpret_cast<bool *>(&Renderer::instance()->Culling.backface_culling));
-		ImGui::Checkbox("Hi-z Occlusion Culling", reinterpret_cast<bool *>(&Renderer::instance()->Culling.occulsion_culling));
-	});
-
 	draw_node("Environment Light", []() {
 		const char *const environment_light_type[] = {"None", "HDRI"};
 		int               current                  = static_cast<int>(Renderer::instance()->EnvLight.type);

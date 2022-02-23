@@ -124,35 +124,11 @@ class Renderer : public TSubsystem<Renderer>
 
 	RenderMode Render_Mode = RenderMode::Polygon;
 
-	struct
-	{
-		// E(mu)
-		Image kulla_conty_energy;
-		// Eavg
-		Image kulla_conty_energy_average;
-	}PreCompute;
-
-	struct
-	{
-		float exposure = 4.5f;
-		float gamma    = 2.2f;
-	} Color_Correction;
-
-	struct
-	{
-		float    threshold = 0.75f;
-		float    scale     = 3.f;
-		float    strength  = 0.13f;
-		uint32_t enable    = 0;
-	} Bloom;
-
-	struct
-	{
-		bool enable = true;
-		glm::vec2 current_jitter = glm::vec2(0.f);
-		glm::vec2 prev_jitter    = glm::vec2(0.f);
-		glm::vec2 feedback       = glm::vec2(1.f, 1.f);
-	}TAA;
+	//struct
+	//{
+	//	float exposure = 4.5f;
+	//	float gamma    = 2.2f;
+	//} Color_Correction;
 
 	struct
 	{
@@ -160,13 +136,6 @@ class Renderer : public TSubsystem<Renderer>
 		scope<Image> hiz_buffer   = nullptr;
 		scope<Image> last_result  = nullptr;
 	} Last_Frame;
-
-	struct
-	{
-		uint32_t frustum_culling   = 1;
-		uint32_t backface_culling  = 1;
-		uint32_t occulsion_culling = 0;
-	} Culling;
 
 	enum class EnvLightType
 	{

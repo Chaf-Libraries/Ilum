@@ -11,6 +11,11 @@ struct PerInstanceData
 	uint entity_id;
 
 	vec3 bbox_max;
+	uint material_id;
+
+	uint vertex_offset;
+	uint index_offset;
+	uint index_count;
 };
 
 struct CameraData 
@@ -34,22 +39,20 @@ struct CullingData
 
     float zbuffer_width;
     float zbuffer_height;
-    uint frustum_enable;
-    uint backface_enable;
-    
-    uint occlusion_enable;
     uint meshlet_count;
     uint instance_count;
 };
 
 struct CountData
 {
-	uint visible_count;
+	uint actual_draw;
+	uint meshlet_visible_count;
     uint instance_visible_count;
-    uint invisible_count;
-    uint total_count;
+    uint meshlet_invisible_count;
+    uint instance_invisible_count;
+    uint meshlet_total_count;
+    uint instance_total_count;
 };
-
 
 struct PerMeshletData
 {

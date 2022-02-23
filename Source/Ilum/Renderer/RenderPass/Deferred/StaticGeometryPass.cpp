@@ -151,7 +151,6 @@ void StaticGeometryPass::render(RenderPassState &state)
 
 		auto &draw_buffer  = Renderer::instance()->Render_Buffer.Command_Buffer;
 		auto &count_buffer = Renderer::instance()->Render_Buffer.Count_Buffer;
-		//vkCmdDrawIndexedIndirect(cmd_buffer, draw_buffer, 0, Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count, sizeof(VkDrawIndexedIndirectCommand));
 		vkCmdDrawIndexedIndirectCount(cmd_buffer, draw_buffer, 0, count_buffer, 0, Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count, sizeof(VkDrawIndexedIndirectCommand));
 	}
 

@@ -115,9 +115,6 @@ void CameraUpdate::run()
 
 	culling_data->meshlet_count    = Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count;
 	culling_data->instance_count   = Renderer::instance()->Render_Stats.static_mesh_count.instance_count;
-	culling_data->frustum_enable   = Renderer::instance()->Culling.frustum_culling;
-	culling_data->backface_enable  = Renderer::instance()->Culling.backface_culling;
-	culling_data->occlusion_enable = Renderer::instance()->Culling.occulsion_culling;
 	culling_data->zbuffer_width    = static_cast<float>(Renderer::instance()->Last_Frame.hiz_buffer->getWidth());
 	culling_data->zbuffer_height   = static_cast<float>(Renderer::instance()->Last_Frame.hiz_buffer->getHeight());
 

@@ -9,6 +9,7 @@
 
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Profiler.hpp"
+#include "Graphics/RenderFrame.hpp"
 
 #include "ImGui/ImGuiContext.hpp"
 
@@ -81,13 +82,16 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("SurfacePass", std::make_unique<pass::SurfacePass>())
 		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
 		    .addRenderPass("EnvLight", std::make_unique<pass::EnvLightPass>())
-		    .addRenderPass("TAAPass", std::make_unique<pass::TAAPass>())
-		    .addRenderPass("CopyBuffer", std::make_unique<pass::CopyPass>())
 
 		    //.addRenderPass("BrightPass", std::make_unique<pass::BrightPass>("lighting"))
 		    //.addRenderPass("Blur1", std::make_unique<pass::BlurPass>("bright", "blur1"))
 		    //.addRenderPass("Blur2", std::make_unique<pass::BlurPass>("blur1", "blur2", true))
 		    //.addRenderPass("Blend", std::make_unique<pass::BlendPass>("blur2", "lighting", "output"))
+
+		    .addRenderPass("TAAPass", std::make_unique<pass::TAAPass>())
+		    .addRenderPass("CopyBuffer", std::make_unique<pass::CopyPass>())
+
+
 
 		    .addRenderPass("Tonemapping", std::make_unique<pass::TonemappingPass>("taa_result"))
 
@@ -163,8 +167,15 @@ void Renderer::onPostTick()
 		return;
 	}
 
-	m_render_graph->execute(GraphicsContext::instance()->getCurrentCommandBuffer());
-	m_render_graph->present(GraphicsContext::instance()->getCurrentCommandBuffer(), GraphicsContext::instance()->getSwapchain().getImages()[GraphicsContext::instance()->getFrameIndex()]);
+	auto& cmd_buffer = GraphicsContext::instance()->getFrame().requestCommandBuffer();
+	cmd_buffer.begin();
+	GraphicsContext::instance()->getProfiler().beginFrame(cmd_buffer);
+
+	m_render_graph->execute();
+	m_render_graph->present(cmd_buffer, GraphicsContext::instance()->getSwapchain().getImages()[GraphicsContext::instance()->getFrameIndex()]);
+
+	cmd_buffer.end();
+	GraphicsContext::instance()->submitCommandBuffer(cmd_buffer);
 }
 
 void Renderer::onShutdown()
