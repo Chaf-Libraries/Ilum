@@ -14,12 +14,12 @@ class Profiler
   public:
 	struct Sample
 	{
-		std::string name = "";
+		std::string name    = "";
 		bool        has_gpu = false;
 
 		struct Data
 		{
-			uint32_t index   = 0;
+			uint32_t                                                    index = 0;
 			std::chrono::time_point<std::chrono::high_resolution_clock> cpu_time;
 		};
 
@@ -47,9 +47,11 @@ class Profiler
 
   private:
 	std::vector<VkQueryPool> m_query_pools;
-	std::vector<Buffer>      m_buffers;
+	//std::vector<Buffer>      m_buffers;
 	Stopwatch                m_stopwatch;
-	uint32_t                 m_current_index = 0;
+	std::atomic<uint32_t>                 m_current_index = 0;
+
+	std::mutex m_mutex;
 
 	std::vector<std::map<std::string, Sample>> m_samples;
 };

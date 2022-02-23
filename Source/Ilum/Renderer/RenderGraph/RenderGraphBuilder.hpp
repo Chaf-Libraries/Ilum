@@ -88,8 +88,6 @@ class RenderGraphBuilder
 
 	ResourceTransitions resolveResourceTransitions(const PipelineMap &pipeline_states);
 
-	SynchronizeMap createSynchronizeDependency(const PipelineMap &pipeline_states);
-
 	void setOutputImage(ResourceTransitions &resource_transitions, const std ::string &name);
 
 	AttachmentMap allocateAttachments(const PipelineMap &pipeline_states, const ResourceTransitions &resource_transitions);

@@ -27,6 +27,12 @@ class Queue
 	            const VkFence &      fence            = VK_NULL_HANDLE,
 	            VkPipelineStageFlags wait_stages      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 
+	void submit(const std::vector<VkCommandBuffer> &command_buffers,
+	            const VkSemaphore &  signal_semaphore = VK_NULL_HANDLE,
+	            const VkSemaphore &  wait_semaphore   = VK_NULL_HANDLE,
+	            const VkFence &      fence            = VK_NULL_HANDLE,
+	            VkPipelineStageFlags wait_stages      = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+
 	void submit(const CommandBuffer &                    command_buffers,
 	            const std::vector<VkSemaphore> &         signal_semaphores = {},
 	            const std::vector<VkSemaphore> &         wait_semaphores   = {},
@@ -39,7 +45,7 @@ class Queue
 
 	void waitIdle();
 
-	std::lock_guard<std::mutex>&& lock();
+	std::lock_guard<std::mutex> &&lock();
 
 	const VkQueue &getQueue() const;
 

@@ -400,18 +400,6 @@ inline void insertPipelineBarrier(const CommandBuffer &command_buffer, const Res
 	vkCmdPipelineBarrier(command_buffer, src_pipeline_flags, dst_pipeline_flags, 0, 0, nullptr, static_cast<uint32_t>(buffer_barriers.size()), buffer_barriers.data(), static_cast<uint32_t>(image_barriers.size()), image_barriers.data());
 }
 
-inline VkSemaphore createSemaphore()
-{
-	VkSemaphore           semaphore = VK_NULL_HANDLE;
-	VkSemaphoreCreateInfo create_info{VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-	create_info.pNext = nullptr;
-	create_info.flags = 0;
-
-	vkCreateSemaphore(GraphicsContext::instance()->getLogicalDevice(), &create_info, nullptr, &semaphore);
-
-	return semaphore;
-}
-
 RenderGraphBuilder &RenderGraphBuilder::addRenderPass(const std::string &name, std::unique_ptr<RenderPass> render_pass)
 {
 	m_render_pass_references.push_back({name, std::move(render_pass)});
@@ -440,10 +428,6 @@ scope<RenderGraph> RenderGraphBuilder::build()
 	// Prepare:
 	// - Create pipeline states
 	auto pipeline_states = createPipelineStates();
-
-	// - Create synchronize dependency
-	// TODO: Fixing multi-threading rendering
-	//auto synchronize_dependency = createSynchronizeDependency(pipeline_states);
 
 	// - Resolve resource transitions
 	auto resource_transitions = resolveResourceTransitions(pipeline_states);
@@ -606,271 +590,6 @@ RenderGraphBuilder::ResourceTransitions RenderGraphBuilder::resolveResourceTrans
 	}
 
 	return resource_transitions;
-}
-
-RenderGraphBuilder::SynchronizeMap RenderGraphBuilder::createSynchronizeDependency(const PipelineMap &pipeline_states)
-{
-	SynchronizeMap                            synchronize_map;
-	std::unordered_map<std::string, uint32_t> pass_order;
-	for (uint32_t i = 0; i < m_render_pass_references.size(); i++)
-	{
-		pass_order[m_render_pass_references[i].name] = i;
-	}
-
-	std::unordered_map<std::string, std::vector<std::string>> read_image_map;
-	std::unordered_map<std::string, std::vector<std::string>> read_buffer_map;
-	std::unordered_map<std::string, std::vector<std::string>> write_image_map;
-	std::unordered_map<std::string, std::vector<std::string>> write_buffer_map;
-
-	for (auto &[pass_name, pipeline_state] : pipeline_states)
-	{
-		// Handle buffer
-		for (auto &buffer_dependency : pipeline_state.getBufferDependencies())
-		{
-			if (hasBufferWriteDependency(buffer_dependency.usage))
-			{
-				write_buffer_map[buffer_dependency.name].push_back(pass_name);
-			}
-			else
-			{
-				read_buffer_map[buffer_dependency.name].push_back(pass_name);
-			}
-		}
-
-		// Handle image
-		for (auto &image_dependency : pipeline_state.getImageDependencies())
-		{
-			if (hasImageWriteDependency(image_dependency.usage))
-			{
-				write_image_map[image_dependency.name].push_back(pass_name);
-			}
-			else
-			{
-				read_image_map[image_dependency.name].push_back(pass_name);
-			}
-		}
-
-		// Handle attachment
-		for (auto &attachment_dependency : pipeline_state.getOutputAttachments())
-		{
-			write_image_map[attachment_dependency.name].push_back(pass_name);
-		}
-
-		VkFence           fence             = VK_NULL_HANDLE;
-		VkFenceCreateInfo fence_create_info = {};
-		fence_create_info.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		fence_create_info.flags             = 0;
-
-		vkCreateFence(GraphicsContext::instance()->getLogicalDevice(), &fence_create_info, nullptr, &fence);
-
-		SubmitInfo submit_info;
-		submit_info.fence = fence;
-
-		synchronize_map.insert({pass_name, submit_info});
-	}
-
-	for (auto &[pass_name, pipeline_state] : pipeline_states)
-	{
-		// Handle buffer
-		for (auto &buffer_dependency : pipeline_state.getBufferDependencies())
-		{
-			if (hasBufferWriteDependency(buffer_dependency.usage))
-			{
-				if (read_buffer_map.find(buffer_dependency.name) == read_buffer_map.end())
-				{
-					continue;
-				}
-
-				for (auto &pass : read_buffer_map[buffer_dependency.name])
-				{
-					if (pass_order.at(pass) < pass_order.at(pass_name))
-					{
-						bool found = false;
-						for (auto &semaphore : synchronize_map[pass_name].wait_semaphores)
-						{
-							if (semaphore == synchronize_map[pass].signal_semaphore)
-							{
-								found = true;
-							}
-						}
-
-						if (!found)
-						{
-							if (!synchronize_map[pass].signal_semaphore)
-							{
-								synchronize_map[pass].signal_semaphore = createSemaphore();
-							}
-
-							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
-							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-						}
-					}
-				}
-			}
-			else
-			{
-				if (write_buffer_map.find(buffer_dependency.name) == write_buffer_map.end())
-				{
-					continue;
-				}
-
-				for (auto &pass : write_buffer_map[buffer_dependency.name])
-				{
-					if (pass_order.at(pass) < pass_order.at(pass_name))
-					{
-						bool found = false;
-						for (auto &semaphore : synchronize_map[pass_name].wait_semaphores)
-						{
-							if (semaphore == synchronize_map[pass].signal_semaphore)
-							{
-								found = true;
-							}
-						}
-
-						if (!found)
-						{
-							if (!synchronize_map[pass].signal_semaphore)
-							{
-								synchronize_map[pass].signal_semaphore = createSemaphore();
-							}
-							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
-							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-						}
-					}
-				}
-			}
-		}
-
-		// Handle image
-		for (auto &image_dependency : pipeline_state.getImageDependencies())
-		{
-			if (hasImageWriteDependency(image_dependency.usage))
-			{
-				if (read_image_map.find(image_dependency.name) == read_image_map.end())
-				{
-					continue;
-				}
-
-				// Only one pass can write into it at the same time
-				for (auto &pass : read_image_map[image_dependency.name])
-				{
-					if (pass_order.at(pass) < pass_order.at(pass_name))
-					{
-						bool found = false;
-						for (auto &semaphore : synchronize_map[pass_name].wait_semaphores)
-						{
-							if (semaphore == synchronize_map[pass].signal_semaphore)
-							{
-								found = true;
-							}
-						}
-
-						if (!found)
-						{
-							if (!synchronize_map[pass].signal_semaphore)
-							{
-								synchronize_map[pass].signal_semaphore = createSemaphore();
-							}
-							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
-							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-						}
-					}
-				}
-				for (auto &pass : write_image_map[image_dependency.name])
-				{
-					if (pass_order.at(pass) < pass_order.at(pass_name))
-					{
-						bool found = false;
-						for (auto &semaphore : synchronize_map[pass_name].wait_semaphores)
-						{
-							if (semaphore == synchronize_map[pass].signal_semaphore)
-							{
-								found = true;
-							}
-						}
-
-						if (!found)
-						{
-							if (!synchronize_map[pass].signal_semaphore)
-							{
-								synchronize_map[pass].signal_semaphore = createSemaphore();
-							}
-							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
-							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-						}
-					}
-				}
-			}
-			else
-			{
-				if (write_image_map.find(image_dependency.name) == write_image_map.end())
-				{
-					continue;
-				}
-
-				for (auto &pass : write_image_map[image_dependency.name])
-				{
-					if (pass_order.at(pass) < pass_order.at(pass_name))
-					{
-						bool found = false;
-						for (auto &semaphore : synchronize_map[pass_name].wait_semaphores)
-						{
-							if (semaphore == synchronize_map[pass].signal_semaphore)
-							{
-								found = true;
-							}
-						}
-
-						if (!found)
-						{
-							if (!synchronize_map[pass].signal_semaphore)
-							{
-								synchronize_map[pass].signal_semaphore = createSemaphore();
-							}
-							synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
-							synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-						}
-					}
-				}
-			}
-		}
-
-		// Handle attachment
-		for (auto &attachment_dependency : pipeline_state.getOutputAttachments())
-		{
-			if (read_image_map.find(attachment_dependency.name) == read_image_map.end())
-			{
-				continue;
-			}
-
-			for (auto &pass : read_image_map[attachment_dependency.name])
-			{
-				if (pass_order.at(pass) < pass_order.at(pass_name))
-				{
-					bool found = false;
-					for (auto &semaphore : synchronize_map[pass_name].wait_semaphores)
-					{
-						if (semaphore == synchronize_map[pass].signal_semaphore)
-						{
-							found = true;
-						}
-					}
-
-					if (!found)
-					{
-						if (!synchronize_map[pass].signal_semaphore)
-						{
-							synchronize_map[pass].signal_semaphore = createSemaphore();
-						}
-						synchronize_map[pass_name].wait_semaphores.push_back(synchronize_map[pass].signal_semaphore);
-						synchronize_map[pass_name].wait_stages.push_back(VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-					}
-				}
-			}
-		}
-	}
-
-	return synchronize_map;
 }
 
 void RenderGraphBuilder::setOutputImage(ResourceTransitions &resource_transitions, const std::string &name)
@@ -1056,6 +775,24 @@ PassNative RenderGraphBuilder::buildRenderPass(const RenderPassReference &render
 	else if (pass.shader.getBindPoint() == VK_PIPELINE_BIND_POINT_COMPUTE)
 	{
 		createComputePipeline(pass, pass_native);
+	}
+
+	// Create query pool for profile
+	{
+		VkQueryPoolCreateInfo createInfo = {};
+		createInfo.sType                 = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+		createInfo.pNext                 = nullptr;
+		createInfo.flags                 = 0;
+
+		createInfo.queryType  = VK_QUERY_TYPE_TIMESTAMP;
+		createInfo.queryCount = 2;
+
+		pass_native.query_pools.resize(GraphicsContext::instance()->getSwapchain().getImageCount());
+
+		for (auto &query_pool : pass_native.query_pools)
+		{
+			vkCreateQueryPool(GraphicsContext::instance()->getLogicalDevice(), &createInfo, nullptr, &query_pool);
+		}
 	}
 
 	VK_Debugger::setName(pass_native.pipeline, (render_pass_reference.name + " - pipeline").c_str());

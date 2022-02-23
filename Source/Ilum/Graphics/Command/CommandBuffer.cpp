@@ -13,12 +13,27 @@
 
 namespace Ilum
 {
-CommandBuffer::CommandBuffer(QueueUsage usage, VkCommandBufferLevel level) :
-    m_command_pool(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getCommandPool(usage))
+CommandBuffer::CommandBuffer(CommandPool &cmd_pool, QueueUsage usage, VkCommandBufferLevel level) :
+    m_command_pool(cmd_pool)
 {
 	VkCommandBufferAllocateInfo command_buffer_allocate_info = {};
 	command_buffer_allocate_info.sType                       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	command_buffer_allocate_info.commandPool                 = *m_command_pool;
+	command_buffer_allocate_info.commandPool                 = m_command_pool;
+	command_buffer_allocate_info.level                       = level;
+	command_buffer_allocate_info.commandBufferCount          = 1;
+	if (!VK_CHECK(vkAllocateCommandBuffers(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice(), &command_buffer_allocate_info, &m_handle)))
+	{
+		VK_ERROR("Failed to create command buffer!");
+		return;
+	}
+}
+
+CommandBuffer::CommandBuffer(QueueUsage usage, VkCommandBufferLevel level):
+    m_command_pool(GraphicsContext::instance()->getCommandPool(usage, CommandPool::ResetMode::AlwaysAllocate))
+{
+	VkCommandBufferAllocateInfo command_buffer_allocate_info = {};
+	command_buffer_allocate_info.sType                       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	command_buffer_allocate_info.commandPool                 = m_command_pool;
 	command_buffer_allocate_info.level                       = level;
 	command_buffer_allocate_info.commandBufferCount          = 1;
 	if (!VK_CHECK(vkAllocateCommandBuffers(Engine::instance()->getContext().getSubsystem<GraphicsContext>()->getLogicalDevice(), &command_buffer_allocate_info, &m_handle)))
@@ -32,16 +47,19 @@ CommandBuffer::~CommandBuffer()
 {
 	if (m_handle)
 	{
-		vkFreeCommandBuffers(GraphicsContext::instance()->getLogicalDevice(), *m_command_pool, 1, &m_handle);
+		vkFreeCommandBuffers(GraphicsContext::instance()->getLogicalDevice(), m_command_pool, 1, &m_handle);
 	}
 }
 
 void CommandBuffer::reset() const
 {
-	if (!VK_CHECK(vkResetCommandBuffer(m_handle, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT)))
+	if (m_command_pool.getResetMode() == CommandPool::ResetMode::ResetIndividually)
 	{
-		VK_ERROR("Failed to reset command buffer!");
-		return;
+		if (!VK_CHECK(vkResetCommandBuffer(m_handle, VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT)))
+		{
+			VK_ERROR("Failed to reset command buffer!");
+			return;
+		}
 	}
 }
 
@@ -424,19 +442,19 @@ void CommandBuffer::transferLayout(const std::vector<ImageReference> &images, Vk
 void CommandBuffer::submitIdle()
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
-	auto *                      queue = GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool->getUsage(), 0);
+	auto *                      queue = GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool.getUsage(), 1);
 	queue->submitIdle(*this);
 }
 
 void CommandBuffer::submit(const VkSemaphore &wait_semaphore, const VkSemaphore &signal_semaphore, VkFence fence, VkShaderStageFlags wait_stages)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
-	GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool->getUsage())->submit(*this, signal_semaphore, wait_semaphore, fence, wait_stages);
+	GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool.getUsage())->submit(*this, signal_semaphore, wait_semaphore, fence, wait_stages);
 }
 
 void CommandBuffer::submit(const SubmitInfo &submit_info) const
 {
-	GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool->getUsage())->submit(*this, submit_info);
+	GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool.getUsage())->submit(*this, submit_info);
 }
 
 CommandBuffer::operator const VkCommandBuffer &() const
