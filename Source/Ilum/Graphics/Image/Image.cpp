@@ -98,9 +98,9 @@ VkPipelineStageFlags Image::usage_to_stage(VkImageUsageFlagBits usage)
 		case VK_IMAGE_USAGE_TRANSFER_DST_BIT:
 			return VK_PIPELINE_STAGE_TRANSFER_BIT;
 		case VK_IMAGE_USAGE_SAMPLED_BIT:
-			return VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+			return VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 		case VK_IMAGE_USAGE_STORAGE_BIT:
-			return VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+			return VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 		case VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT:
 			return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 		case VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT:
@@ -164,7 +164,7 @@ Image::Image(Image &&other) noexcept :
     m_format(other.m_format),
     m_allocation(other.m_allocation)
 {
-	other.m_handle = VK_NULL_HANDLE;
+	other.m_handle     = VK_NULL_HANDLE;
 	other.m_allocation = VK_NULL_HANDLE;
 }
 
@@ -181,7 +181,7 @@ Image &Image::operator=(Image &&other) noexcept
 	m_format          = other.m_format;
 	m_allocation      = other.m_allocation;
 
-	other.m_handle = VK_NULL_HANDLE;
+	other.m_handle     = VK_NULL_HANDLE;
 	other.m_allocation = VK_NULL_HANDLE;
 
 	return *this;
@@ -354,17 +354,17 @@ void Image::createImageViews()
 	for (auto &views : m_layer_views)
 	{
 		// Native
-		native_range                = getSubresourceRange();
-		native_range.baseArrayLayer = layer;
-		native_range.layerCount     = 1;
+		native_range                      = getSubresourceRange();
+		native_range.baseArrayLayer       = layer;
+		native_range.layerCount           = 1;
 		view_create_info.subresourceRange = native_range;
 		vkCreateImageView(GraphicsContext::instance()->getLogicalDevice(), &view_create_info, nullptr, &views.native);
 
 		// Depth
 		depth_range = getSubresourceRange();
 		depth_range.aspectMask &= VK_IMAGE_ASPECT_DEPTH_BIT;
-		depth_range.baseArrayLayer = layer;
-		depth_range.layerCount     = 1;
+		depth_range.baseArrayLayer        = layer;
+		depth_range.layerCount            = 1;
 		view_create_info.subresourceRange = native_range;
 		if (depth_range.aspectMask != 0)
 		{
@@ -375,8 +375,8 @@ void Image::createImageViews()
 		// Stencil
 		auto stencil_range = getSubresourceRange();
 		stencil_range.aspectMask &= VK_IMAGE_ASPECT_STENCIL_BIT;
-		stencil_range.baseArrayLayer = layer;
-		stencil_range.layerCount     = 1;
+		stencil_range.baseArrayLayer      = layer;
+		stencil_range.layerCount          = 1;
 		view_create_info.subresourceRange = native_range;
 		if (stencil_range.aspectMask != 0)
 		{
@@ -425,10 +425,10 @@ void Image::destroy()
 		}
 	}
 
-	m_handle = VK_NULL_HANDLE;
-	m_allocation = VK_NULL_HANDLE;
-	m_views.native = VK_NULL_HANDLE;
-	m_views.depth  = VK_NULL_HANDLE;
+	m_handle        = VK_NULL_HANDLE;
+	m_allocation    = VK_NULL_HANDLE;
+	m_views.native  = VK_NULL_HANDLE;
+	m_views.depth   = VK_NULL_HANDLE;
 	m_views.stencil = VK_NULL_HANDLE;
 	m_layer_views.clear();
 }

@@ -8,6 +8,8 @@
 
 #include "Device/PhysicalDevice.hpp"
 
+#include <imgui.h>
+
 namespace Ilum::pass
 {
 void MeshletCullingPass::setupPipeline(PipelineState &state)
@@ -41,20 +43,45 @@ void MeshletCullingPass::resolveResources(ResolveState &resolve)
 void MeshletCullingPass::render(RenderPassState &state)
 {
 	{
-		std::memcpy(&Renderer::instance()->Render_Stats.static_mesh_count.meshlet_visible, Renderer::instance()->Render_Buffer.Count_Buffer.map(), sizeof(uint32_t));
-		std::memcpy(&Renderer::instance()->Render_Stats.static_mesh_count.instance_visible, reinterpret_cast<uint32_t *>(Renderer::instance()->Render_Buffer.Count_Buffer.map()) + 1, sizeof(uint32_t));
+		std::memcpy(&Renderer::instance()->Render_Stats.static_mesh_count.instance_visible, reinterpret_cast<uint32_t *>(Renderer::instance()->Render_Buffer.Count_Buffer.map()) + 2, sizeof(uint32_t));
 		Renderer::instance()->Render_Buffer.Count_Buffer.unmap();
 	}
 
-	auto &cmd_buffer = state.command_buffer;
-
-	vkCmdBindPipeline(cmd_buffer, state.pass.bind_point, state.pass.pipeline);
-
-	for (auto &descriptor_set : state.pass.descriptor_sets)
+	if (enable_culling)
 	{
-		vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
-	}
+		auto &cmd_buffer = state.command_buffer;
 
-	vkCmdDispatch(cmd_buffer, (Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count + 64 - 1) / 64, 1, 1);
+		vkCmdBindPipeline(cmd_buffer, state.pass.bind_point, state.pass.pipeline);
+
+		for (auto &descriptor_set : state.pass.descriptor_sets)
+		{
+			vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
+		}
+
+		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(m_culling_mode), &m_culling_mode);
+
+		vkCmdDispatch(cmd_buffer, (Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count + 64 - 1) / 64, 1, 1);
+	}
+}
+
+void MeshletCullingPass::onImGui()
+{
+	ImGui::Checkbox("Enable Frustum Culling", reinterpret_cast<bool *>(&m_culling_mode.enable_frustum_culling));
+	ImGui::Checkbox("Enable Back Face Cone Culling", reinterpret_cast<bool *>(&m_culling_mode.enable_backface_culling));
+	ImGui::Checkbox("Enable Occlusion Culling", reinterpret_cast<bool *>(&m_culling_mode.enable_occlusion_culling));
+
+	enable_culling = m_culling_mode.enable_frustum_culling == 1 ||
+	                 m_culling_mode.enable_backface_culling == 1 ||
+	                 m_culling_mode.enable_occlusion_culling == 1;
+
+	ImGui::Text("Total Meshlet Count: %d", Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count);
+
+	if (enable_culling)
+	{
+		uint32_t visible = 0;
+		std::memcpy(&visible, reinterpret_cast<uint32_t *>(Renderer::instance()->Render_Buffer.Count_Buffer.map()) + 1, sizeof(uint32_t));
+		ImGui::Text("Visible Meshlet Count: %d", visible);
+		Renderer::instance()->Render_Buffer.Count_Buffer.unmap();
+	}
 }
 }        // namespace Ilum::pass

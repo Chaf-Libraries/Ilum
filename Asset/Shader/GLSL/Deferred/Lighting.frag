@@ -35,6 +35,7 @@ layout(push_constant) uniform PushBlock{
     uint directional_light_count;
     uint spot_light_count;
     uint point_light_count;
+    uint enable_multi_bounce;
 }push_data;
 
 // From http://filmicgames.com/archives/75
@@ -57,10 +58,6 @@ vec3 specularContribution(vec3 L, vec3 V, vec3 N, vec3 F0, float metallic, float
     float NoH = clamp(dot(N,H), 0.0, 1.0);
     float HoV = clamp(dot(H,V), 0.0, 1.0);
 
-    vec3 Eo = vec3(texture(Emu_Lut, vec2(NoL, roughness)).r);
-    vec3 Ei = vec3(texture(Emu_Lut, vec2(NoV, roughness)).r);
-    float Eavg = texture(Eavg_Lut, vec2(0, roughness)).r;
-
     float D = DistributeGGX(NoH, roughness);
     float G = GeometrySmith(NoL, NoV, roughness);
     vec3 F = FresnelSchlick(HoV, F0);
@@ -69,9 +66,16 @@ vec3 specularContribution(vec3 L, vec3 V, vec3 N, vec3 F0, float metallic, float
     vec3 Kd = (vec3(1.0)-F)*(1-metallic);
 
     vec3 Fmicro = Kd * LambertianDiffuse(albedo) + specular;
+    vec3 BRDF = Fmicro;
 
-    vec3 Fms = MultiScatterBRDF(albedo, Eo, Ei, Eavg);
-    vec3 BRDF = Fmicro + Fms;
+    if(push_data.enable_multi_bounce == 1)
+    {
+        vec3 Eo = vec3(texture(Emu_Lut, vec2(NoL, roughness)).r);
+        vec3 Ei = vec3(texture(Emu_Lut, vec2(NoV, roughness)).r);
+        float Eavg = texture(Eavg_Lut, vec2(0, roughness)).r;
+        vec3 Fms = MultiScatterBRDF(albedo, Eo, Ei, Eavg);
+        BRDF = BRDF + Fms;
+    }
 
     return BRDF * radiance * NoL;
 }

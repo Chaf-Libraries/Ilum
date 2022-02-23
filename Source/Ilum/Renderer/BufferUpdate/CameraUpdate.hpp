@@ -16,8 +16,5 @@ class CameraUpdate : public System
 	~CameraUpdate() = default;
 
 	virtual void run() override;
-
-  private:
-	std::vector<glm::vec2> m_jitter_samples;
 };
 }        // namespace Ilum::sym

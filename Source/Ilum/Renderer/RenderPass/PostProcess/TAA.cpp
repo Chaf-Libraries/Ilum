@@ -3,10 +3,63 @@
 #include "Renderer/RenderGraph/RenderGraph.hpp"
 #include "Renderer/Renderer.hpp"
 
+#include "Graphics/GraphicsContext.hpp"
+
 #include <glm/gtc/type_ptr.hpp>
+
+#include <imgui.h>
+
+#define HALTION_SAMPLES 16
 
 namespace Ilum::pass
 {
+// Camera jitter
+inline float halton_sequence(uint32_t base, uint32_t index)
+{
+	float result = 0.f;
+	float f      = 1.f;
+
+	while (index > 0)
+	{
+		f /= static_cast<float>(base);
+		result += f * (index % base);
+		index = static_cast<uint32_t>(floorf(static_cast<float>(index) / static_cast<float>(base)));
+	}
+
+	return result;
+}
+
+TAAPass::TAAPass()
+{
+	for (uint32_t i = 1; i <= HALTION_SAMPLES; i++)
+	{
+		m_jitter_samples.push_back(glm::vec2(2.f * halton_sequence(2, i) - 1.f, 2.f * halton_sequence(3, i) - 1.f));
+	}
+}
+
+void TAAPass::onUpdate()
+{
+	if (m_enable)
+	{
+		// Jitter camera
+		CameraData *camera_data = reinterpret_cast<CameraData *>(Renderer::instance()->Render_Buffer.Camera_Buffer.map());
+
+		camera_data->last_view_projection = glm::translate(camera_data->last_view_projection, glm::vec3(-m_prev_jitter, 0.f));
+
+		m_prev_jitter = m_current_jitter;
+
+		uint32_t  sample_idx = static_cast<uint32_t>(GraphicsContext::instance()->getFrameCount() % m_jitter_samples.size());
+		glm::vec2 halton     = m_jitter_samples[sample_idx];
+
+		auto rt_extent = Renderer::instance()->getRenderTargetExtent();
+
+		m_current_jitter = glm::vec2(halton.x / static_cast<float>(rt_extent.width), halton.y / static_cast<float>(rt_extent.height));
+
+		camera_data->view_projection      = glm::translate(camera_data->view_projection, glm::vec3(m_current_jitter, 0.f)) ;
+		camera_data->last_view_projection = glm::translate(camera_data->last_view_projection, glm::vec3(m_current_jitter, 0.f));
+	}
+}
+
 void TAAPass::setupPipeline(PipelineState &state)
 {
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/PostProcess/TAA.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
@@ -36,7 +89,7 @@ void TAAPass::render(RenderPassState &state)
 {
 	auto &cmd_buffer = state.command_buffer;
 
-	if (Renderer::instance()->TAA.enable)
+	if (m_enable)
 	{
 		VkRenderPassBeginInfo begin_info = {};
 		begin_info.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -63,14 +116,14 @@ void TAAPass::render(RenderPassState &state)
 		vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
 		vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
-		glm::vec4 jitter = glm::vec4(Renderer::instance()->TAA.current_jitter, Renderer::instance()->TAA.prev_jitter);
+		glm::vec4 jitter = glm::vec4(m_current_jitter, m_prev_jitter);
 
 		glm::vec4 extent = glm::vec4(1.f / static_cast<float>(rt_extent.width), 1.f / static_cast<float>(rt_extent.height), static_cast<float>(rt_extent.width), static_cast<float>(rt_extent.height));
-		uint32_t  enable = static_cast<uint32_t>(Renderer::instance()->TAA.enable);
+		uint32_t  enable = static_cast<uint32_t>(m_enable);
 
 		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(glm::vec4), glm::value_ptr(jitter));
 		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec4), sizeof(glm::vec4), glm::value_ptr(extent));
-		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 2 * sizeof(glm::vec4), sizeof(glm::vec2), glm::value_ptr(Renderer::instance()->TAA.feedback));
+		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 2 * sizeof(glm::vec4), sizeof(glm::vec2), glm::value_ptr(m_feedback));
 
 		vkCmdDraw(cmd_buffer, 3, 1, 0, 0);
 
@@ -84,5 +137,12 @@ void TAAPass::render(RenderPassState &state)
 		cmd_buffer.transferLayout(state.graph.getAttachment("lighting"), VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
 		cmd_buffer.transferLayout(state.graph.getAttachment("taa_result"), VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
 	}
+}
+
+void TAAPass::onImGui()
+{
+		ImGui::Checkbox("Enable", &m_enable);
+		ImGui::SliderFloat("Feedback Min", &m_feedback.x, 0.f, 1.f, "%.3f");
+	    ImGui::SliderFloat("Feedback Max", &m_feedback.y, m_feedback.x, 1.f, "%.3f");
 }
 }        // namespace Ilum::pass

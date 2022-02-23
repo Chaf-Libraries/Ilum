@@ -4,7 +4,7 @@
 
 #include "../common.glsl"
 
-#define LUT_SIZE 128
+#define LUT_SIZE 1024
 #define SAMPLE_COUNT 1024
 
 layout (local_size_x = 32, local_size_y = 32) in;

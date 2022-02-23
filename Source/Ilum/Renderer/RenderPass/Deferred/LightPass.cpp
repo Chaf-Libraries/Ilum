@@ -12,6 +12,8 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
+#include <imgui.h>
+
 namespace Ilum::pass
 {
 void LightPass::setupPipeline(PipelineState &state)
@@ -87,9 +89,15 @@ void LightPass::render(RenderPassState &state)
 
 	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(glm::vec3), glm::value_ptr(main_camera->position));
 	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3), sizeof(RenderStats::LightCount), &Renderer::instance()->Render_Stats.light_count);
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec3) + sizeof(RenderStats::LightCount), sizeof(uint32_t), &m_multi_bounce_enable);
 
 	vkCmdDraw(cmd_buffer, 3, 1, 0, 0);
 
 	vkCmdEndRenderPass(cmd_buffer);
+}
+
+void LightPass::onImGui()
+{
+	ImGui::Checkbox("Enable Kulla Conty Multi-Bounce Approximation", reinterpret_cast<bool *>(&m_multi_bounce_enable));
 }
 }        // namespace Ilum::pass

@@ -261,38 +261,6 @@ void serialize_entity(YAML::Emitter &emitter, const entt::entity entity)
 	emitter << YAML::EndMap;
 }
 
-void serialize_color_correction(YAML::Emitter &emitter)
-{
-	emitter << YAML::BeginMap;
-	emitter << YAML::Key << "exposure" << YAML::Value << Renderer::instance()->Color_Correction.exposure;
-	emitter << YAML::Key << "gamma" << YAML::Value << Renderer::instance()->Color_Correction.gamma;
-	emitter << YAML::EndMap;
-}
-
-void serialize_bloom(YAML::Emitter &emitter)
-{
-	emitter << YAML::BeginMap;
-	emitter << YAML::Key << "threshold" << YAML::Value << Renderer::instance()->Bloom.threshold;
-	emitter << YAML::Key << "scale" << YAML::Value << Renderer::instance()->Bloom.scale;
-	emitter << YAML::Key << "strength" << YAML::Value << Renderer::instance()->Bloom.strength;
-	emitter << YAML::Key << "enable" << YAML::Value << Renderer::instance()->Bloom.enable;
-	emitter << YAML::EndMap;
-}
-
-void deserialize_color_correction(const YAML::Node &data)
-{
-	Renderer::instance()->Color_Correction.exposure = data["exposure"].as<float>();
-	Renderer::instance()->Color_Correction.gamma    = data["gamma"].as<float>();
-}
-
-void deserialize_bloom(const YAML::Node &data)
-{
-	Renderer::instance()->Bloom.threshold = data["threshold"].as<float>();
-	Renderer::instance()->Bloom.scale     = data["scale"].as<float>();
-	Renderer::instance()->Bloom.strength  = data["strength"].as<float>();
-	Renderer::instance()->Bloom.enable    = data["enable"].as<uint32_t>();
-}
-
 template <typename T>
 void deserialize_component(Entity entity, const YAML::Node &data)
 {
@@ -489,14 +457,6 @@ void SceneSerializer::serialize(const std::string &file_path)
 	// Scene
 	emitter << YAML::Key << "Scene" << YAML::Value << Scene::instance()->name;
 
-	// Color correction
-	emitter << YAML::Key << "Color Correction";
-	serialize_color_correction(emitter);
-
-	// Bloom
-	emitter << YAML::Key << "Bloom";
-	serialize_bloom(emitter);
-
 	// Entities
 	emitter << YAML::Key << "Entities" << YAML::Value << YAML::BeginSeq;
 	Scene::instance()->getRegistry().each([&emitter](const entt::entity &entity) {
@@ -526,12 +486,6 @@ void SceneSerializer::deserialize(const std::string &file_path)
 
 	// Scene
 	Scene::instance()->name = data["Scene"].as<std::string>();
-
-	// Color correction
-	deserialize_color_correction(data["Color Correction"]);
-
-	// Bloom
-	deserialize_bloom(data["Bloom"]);
 
 	// Entities
 	if (!data)

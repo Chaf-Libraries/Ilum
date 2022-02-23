@@ -24,7 +24,7 @@ Profiler::Profiler()
 		vkCreateQueryPool(GraphicsContext::instance()->getLogicalDevice(), &createInfo, nullptr, &handle);
 		m_query_pools.push_back(handle);
 
-		m_buffers.emplace_back(sizeof(uint32_t) * 256, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
+		//m_buffers.emplace_back(sizeof(uint32_t) * 256, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
 	}
 
 	m_samples.resize(GraphicsContext::instance()->getSwapchain().getImageCount());
@@ -64,6 +64,7 @@ void Profiler::beginSample(const std::string &name)
 	uint32_t idx = GraphicsContext::instance()->getFrameIndex();
 	if (m_samples[idx].find(name) == m_samples[idx].end())
 	{
+		std::lock_guard<std::mutex> lock(m_mutex);
 		m_samples[idx][name] = Sample();
 	}
 	m_samples[idx][name].name = name;

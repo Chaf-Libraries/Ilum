@@ -18,7 +18,15 @@ class TonemappingPass : public TRenderPass<TonemappingPass>
 
 	virtual void render(RenderPassState &state) override;
 
+	virtual void onImGui() override;
+
   private:
 	std::string m_result;
+
+	struct
+	{
+		float exposure = 2.f;
+		float gamma    = 5.f;
+	} m_tonemapping_data;
 };
 }        // namespace Ilum::pass

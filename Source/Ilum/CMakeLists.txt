@@ -29,3 +29,8 @@ SetTarget(
         TBB::tbb
         Eigen
 )
+
+target_precompile_headers(Ilum
+  PUBLIC
+    ${PROJECT_SOURCE_DIR}/Source/Ilum/Utils/PCH.hpp
+)

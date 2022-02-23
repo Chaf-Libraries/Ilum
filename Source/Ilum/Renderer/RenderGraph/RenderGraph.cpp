@@ -7,7 +7,10 @@
 
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Profiler.hpp"
+#include "Graphics/RenderFrame.hpp"
 #include "Graphics/Vulkan/VK_Debugger.h"
+
+#include <imgui.h>
 
 namespace Ilum
 {
@@ -38,6 +41,10 @@ RenderGraph::~RenderGraph()
 		{
 			vkDestroyRenderPass(GraphicsContext::instance()->getLogicalDevice(), node.pass_native.render_pass, nullptr);
 		}
+		for (auto &query_pool : node.pass_native.query_pools)
+		{
+			vkDestroyQueryPool(GraphicsContext::instance()->getLogicalDevice(), query_pool, nullptr);
+		}
 	}
 
 	reset();
@@ -48,27 +55,56 @@ bool RenderGraph::empty() const
 	return m_nodes.empty();
 }
 
-void RenderGraph::execute(const CommandBuffer &command_buffer)
+void RenderGraph::execute()
 {
 	initialize();
 
-	ResolveInfo resolve;
-	for (const auto &[name, attachment] : m_attachments)
-	{
-		resolve.resolve(name, attachment);
-	}
-
 	for (auto &node : m_nodes)
 	{
-		GraphicsContext::instance()->getProfiler().beginSample(node.name, command_buffer);
-		executeNode(node, command_buffer, resolve);
-		GraphicsContext::instance()->getProfiler().endSample(node.name, command_buffer);
+		node.pass->onUpdate();
+	}
+
+	if (m_multi_threading)
+	{
+		std::vector<std::future<VkCommandBuffer>> cmd_buffers;
+		for (auto &node : m_nodes)
+		{
+			cmd_buffers.push_back(ThreadPool::instance()->addTask([&node, this](size_t) {
+				auto &cmd_buffer = GraphicsContext::instance()->getFrame().requestCommandBuffer();
+				cmd_buffer.begin();
+				executeNode(node, cmd_buffer, m_resolve_info);
+				cmd_buffer.end();
+				return cmd_buffer.getCommandBuffer();
+			}));
+		}
+
+		for (auto &future : cmd_buffers)
+		{
+			GraphicsContext::instance()->submitCommandBuffer(future.get());
+		}
+	}
+	else
+	{
+		for (auto &node : m_nodes)
+		{
+			auto &cmd_buffer = GraphicsContext::instance()->getFrame().requestCommandBuffer();
+			cmd_buffer.begin();
+			executeNode(node, cmd_buffer, m_resolve_info);
+			cmd_buffer.end();
+
+			GraphicsContext::instance()->submitCommandBuffer(cmd_buffer);
+		}
 	}
 }
 
 void RenderGraph::present(const CommandBuffer &command_buffer, const Image &present_image)
 {
 	onPresent(command_buffer, m_attachments.at(m_output), present_image);
+}
+
+void RenderGraph::onImGui()
+{
+	ImGui::Checkbox("Enable Multi-Threading", &m_multi_threading);
 }
 
 const std::vector<RenderGraphNode> &RenderGraph::getNodes() const
@@ -146,6 +182,16 @@ void RenderGraph::initialize()
 		command_buffer.end();
 		command_buffer.submitIdle();
 		m_initialized = true;
+
+		for (const auto &[name, attachment] : m_attachments)
+		{
+			m_resolve_info.resolve(name, attachment);
+		}
+
+		for (auto &node : m_nodes)
+		{
+			node.pass->resolveResources(m_resolve_info);
+		}
 	}
 }
 
@@ -153,7 +199,8 @@ void RenderGraph::executeNode(RenderGraphNode &node, const CommandBuffer &comman
 {
 	RenderPassState state{*this, command_buffer, node.pass_native};
 
-	node.pass->resolveResources(resolve);
+	/*node.pass->resolveResources(resolve);*/
+
 	if (node.descriptors.getOption() != ResolveOption::None)
 	{
 		node.descriptors.resolve(resolve);
@@ -163,6 +210,8 @@ void RenderGraph::executeNode(RenderGraphNode &node, const CommandBuffer &comman
 	// Insert pipeline barrier
 	node.pipeline_barrier_callback(command_buffer, resolve);
 
+	node.pass->beginProfile(state);
 	node.pass->render(state);
+	node.pass->endProfile(state);
 }
 }        // namespace Ilum

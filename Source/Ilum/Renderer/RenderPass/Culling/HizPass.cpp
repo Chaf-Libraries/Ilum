@@ -125,11 +125,6 @@ void HizPass::resolveResources(ResolveState &resolve)
 
 void HizPass::render(RenderPassState &state)
 {
-	if (!Renderer::instance()->Culling.occulsion_culling)
-	{
-		return;
-	}
-
 	auto &cmd_buffer = state.command_buffer;
 
 	vkCmdBindPipeline(cmd_buffer, state.pass.bind_point, state.pass.pipeline);

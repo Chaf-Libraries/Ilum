@@ -32,6 +32,8 @@ struct BufferInfo
 class CommandBuffer
 {
   public:
+	CommandBuffer(CommandPool &cmd_pool, QueueUsage usage = QueueUsage::Graphics, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+
 	CommandBuffer(QueueUsage usage = QueueUsage::Graphics, VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
 	~CommandBuffer();
@@ -80,8 +82,8 @@ class CommandBuffer
 	const VkCommandBuffer &getCommandBuffer() const;
 
   private:
-	ref<CommandPool> m_command_pool = nullptr;
-	VkCommandBuffer  m_handle       = VK_NULL_HANDLE;
-	std::mutex       m_mutex;
+	CommandPool &   m_command_pool;
+	VkCommandBuffer m_handle = VK_NULL_HANDLE;
+	std::mutex      m_mutex;
 };
 }        // namespace Ilum

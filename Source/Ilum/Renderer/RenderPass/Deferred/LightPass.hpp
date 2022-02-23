@@ -14,5 +14,10 @@ class LightPass : public TRenderPass<LightPass>
 	virtual void resolveResources(ResolveState &resolve) override;
 
 	virtual void render(RenderPassState &state) override;
+
+	virtual void onImGui() override;
+
+  private:
+	uint32_t m_multi_bounce_enable = 0;
 };
 }        // namespace Ilum::pass

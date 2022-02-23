@@ -10,15 +10,19 @@ namespace Ilum
 {
 struct PerInstanceData
 {
-	glm::mat4 world_transform = {};
+	glm::mat4 world_transform      = {};
 	glm::mat4 last_world_transform = {};
-	glm::mat4 pre_transform   = {};
+	glm::mat4 pre_transform        = {};
 
 	glm::vec3 bbox_min  = {};
 	uint32_t  entity_id = 0;
 
 	glm::vec3 bbox_max    = {};
 	uint32_t  material_id = std::numeric_limits<uint32_t>::max();
+
+	alignas(16) uint32_t vertex_offset = 0;
+	uint32_t index_offset              = 0;
+	uint32_t index_count               = 0;
 };
 
 struct PerMeshletData
@@ -51,10 +55,6 @@ struct CullingData
 
 	float    zbuffer_width;
 	float    zbuffer_height;
-	uint32_t frustum_enable;
-	uint32_t backface_enable;
-
-	uint32_t occlusion_enable;
 	uint32_t meshlet_count;
 	uint32_t instance_count;
 };
@@ -116,7 +116,19 @@ struct RenderBuffer
 	Buffer Command_Buffer = Buffer(1024 * sizeof(VkDrawIndexedIndirectCommand), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
 	// Draw count buffer:
-	Buffer Count_Buffer = Buffer(sizeof(uint32_t) * 3, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
+	/*
+	struct CountData
+{
+	uint actual_draw;
+	uint meshlet_visible_count;
+    uint instance_visible_count;
+    uint meshlet_invisible_count;
+    uint instance_invisible_count;
+    uint meshlet_total_count;
+    uint instance_total_count;
+};
+*/
+	Buffer Count_Buffer = Buffer(sizeof(uint32_t) * 7, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
 
 	// Culling data buffer
 	Buffer Culling_Buffer = Buffer(sizeof(CullingData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
@@ -169,14 +181,14 @@ struct RenderStats
 
 	struct DynamicMeshCount
 	{
-		uint32_t instance_count   = 0;
-		uint32_t triangle_count   = 0;
+		uint32_t instance_count = 0;
+		uint32_t triangle_count = 0;
 	} dynamic_mesh_count;
 
 	struct CurveCount
 	{
 		uint32_t instance_count = 0;
 		uint32_t vertices_count = 0;
-	}curve_count;
+	} curve_count;
 };
 }        // namespace Ilum

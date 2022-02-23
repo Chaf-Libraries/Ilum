@@ -17,6 +17,7 @@ struct PassNative
 	VkFramebuffer              frame_buffer    = VK_NULL_HANDLE;
 	VkPipeline                 pipeline        = VK_NULL_HANDLE;
 	VkPipelineLayout           pipeline_layout = VK_NULL_HANDLE;
+	std::vector<VkQueryPool>   query_pools;
 	VkPipelineBindPoint        bind_point;
 	VkRect2D                   render_area;
 	std::vector<VkClearValue>  clear_values;
@@ -38,13 +39,34 @@ class RenderPass
   public:
 	virtual ~RenderPass() = default;
 
+	virtual void onUpdate(){};
+
 	virtual void setupPipeline(PipelineState &state){};
 
 	virtual void resolveResources(ResolveState &resolve){};
 
 	virtual void render(RenderPassState &state){};
 
+	virtual void onImGui(){};
+
 	virtual std::type_index type() const = 0;
+
+  public:
+	void beginProfile(RenderPassState &state);
+	void endProfile(RenderPassState &state);
+
+	float getGPUTime();
+	float getCPUTime();
+
+  protected:
+	std::chrono::time_point<std::chrono::high_resolution_clock> m_cpu_start;
+	std::chrono::time_point<std::chrono::high_resolution_clock> m_cpu_end;
+
+	uint64_t m_gpu_start = 0;
+	uint64_t m_gpu_end   = 0;
+
+	float m_cpu_time = 0.f;
+	float m_gpu_time = 0.f;
 };
 
 template <typename T>

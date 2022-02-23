@@ -39,9 +39,11 @@ class RenderGraph
 
 	bool empty() const;
 
-	void execute(const CommandBuffer &command_buffer);
+	void execute();
 
 	void present(const CommandBuffer &command_buffer, const Image &present_image);
+
+	void onImGui();
 
 	template <typename T>
 	const RenderGraphNode &getNode() const
@@ -118,5 +120,7 @@ class RenderGraph
 	PresentCallback                        onPresent;
 	CreateCallback                         onCreate;
 	std::vector<Queue *>                   m_queues;
+	ResolveInfo                            m_resolve_info;
+	bool                                   m_multi_threading = true;
 };
 }        // namespace Ilum

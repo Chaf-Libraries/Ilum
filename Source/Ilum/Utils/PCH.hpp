@@ -34,4 +34,5 @@
 
 #include "Hash.hpp"
 
-#include "Graphics/Vulkan/Vulkan.hpp"
+#include <volk.h>
+#include <vk_mem_alloc.h>

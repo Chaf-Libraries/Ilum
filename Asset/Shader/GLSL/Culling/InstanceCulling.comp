@@ -26,7 +26,10 @@ layout (binding = 2) uniform CameraBuffer
     CameraData camera;
 };
 
-layout (binding = 3) uniform sampler2D hiz_buffer;
+layout (binding = 3, std430) buffer IndirectDraws
+{
+	DrawIndexedIndirectCommand indirectDraws[ ];
+};
 
 layout(binding = 4) uniform CullingBuffer 
 {
@@ -37,6 +40,15 @@ layout (binding = 5) buffer CountBuffer
 {
     CountData count_data;
 };
+
+layout (binding = 6) buffer DrawBuffer
+{
+    uint draw_data[];
+};
+
+layout(push_constant) uniform PushBlock{
+    uint enable_frustum_culling;
+}push_data;
 
 bool checkSphere(vec3 pos, float radius)
 {
@@ -97,6 +109,9 @@ void main()
     if (idx == 0)
 	{
 		atomicExchange(count_data.instance_visible_count, 0);
+		atomicExchange(count_data.instance_invisible_count, 0);
+		atomicExchange(count_data.instance_total_count, 0);
+		atomicExchange(count_data.actual_draw, 0);
 	}
 
     if(idx >= cull_data.instance_count)
@@ -134,18 +149,35 @@ void main()
 
     bool visible = true;
 
-    if(visible && cull_data.frustum_enable == 1)
+    if(visible && push_data.enable_frustum_culling == 1)
     {
         visible = visible && checkFrustum(instance);
     }
-    
+
     if (visible)
     {
+        uint dci = atomicAdd(count_data.instance_visible_count, 1);
+        indirectDraws[dci].indexCount = instance.index_count;
+        indirectDraws[dci].instanceCount = 1;
+        indirectDraws[dci].firstIndex = instance.index_offset;
+        indirectDraws[dci].vertexOffset = int(instance.vertex_offset);
+        indirectDraws[dci].firstInstance = 0;
+        draw_data[dci] = idx;
+
         visibility_data[idx] = 1;
-        atomicAdd(count_data.instance_visible_count, 1);
+        atomicAdd(count_data.actual_draw, 1);
     }
     else
     {
+        uint dci = atomicAdd(count_data.instance_invisible_count, 1);
+        indirectDraws[cull_data.instance_count - 1 - dci].indexCount = instance.index_count;
+        indirectDraws[cull_data.instance_count - 1 - dci].instanceCount = 1;
+        indirectDraws[cull_data.instance_count - 1 - dci].firstIndex = instance.index_offset;
+        indirectDraws[cull_data.instance_count - 1 - dci].vertexOffset = int(instance.vertex_offset);
+        indirectDraws[cull_data.instance_count - 1 - dci].firstInstance = 0;
+        draw_data[cull_data.instance_count - 1 - dci] = idx;
+
         visibility_data[idx] = 0;
     }
+    atomicAdd(count_data.instance_total_count, 1);
 }

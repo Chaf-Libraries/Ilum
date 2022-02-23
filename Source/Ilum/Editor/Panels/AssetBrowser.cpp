@@ -9,6 +9,7 @@
 
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Shader/ShaderCache.hpp"
+#include "Graphics/Vulkan/Vulkan.hpp"
 
 #include "Scene/Component/Renderable.hpp"
 #include "Scene/Entity.hpp"

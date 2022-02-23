@@ -135,6 +135,9 @@ void TransformUpdate::run()
 					instance.pre_transform        = submesh.pre_transform;
 					instance.last_world_transform = instance.world_transform;
 					instance.world_transform      = transform.world_transform;
+					instance.vertex_offset        = model.get().vertices_offset + submesh.vertices_offset;
+					instance.index_offset         = model.get().indices_offset + submesh.indices_offset;
+					instance.index_count          = submesh.indices_count;
 				}
 			}
 		});

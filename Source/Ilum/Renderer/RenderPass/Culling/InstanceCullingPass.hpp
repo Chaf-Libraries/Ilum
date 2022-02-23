@@ -11,12 +11,17 @@ namespace Ilum::pass
 class InstanceCullingPass : public TRenderPass<InstanceCullingPass>
 {
   public:
-	InstanceCullingPass();
+	InstanceCullingPass() = default;
 
 	virtual void setupPipeline(PipelineState &state) override;
 
 	virtual void resolveResources(ResolveState &resolve) override;
 
 	virtual void render(RenderPassState &state) override;
+
+	virtual void onImGui() override;
+
+  private:
+	uint32_t m_frustum_culling_enable = 1;
 };
 }        // namespace Ilum::pass

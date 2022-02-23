@@ -4,12 +4,17 @@
 
 #include "Graphics/Vulkan/VK_Debugger.h"
 
+#include "ImGui/ImGuiContext.hpp"
+
+#include <imgui.h>
+
 namespace Ilum::pass
 {
 KullaContyAverage::KullaContyAverage()
 {
-	m_kulla_conty_average = Image(128, 128, VK_FORMAT_R16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	m_kulla_conty_average = Image(1024, 1024, VK_FORMAT_R16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 	VK_Debugger::setName(m_kulla_conty_average, "m_kulla_conty_average");
+	VK_Debugger::setName(m_kulla_conty_average.getView(), "m_kulla_conty_average");
 	{
 		CommandBuffer cmd_buffer;
 		cmd_buffer.begin();
@@ -23,9 +28,8 @@ void KullaContyAverage::setupPipeline(PipelineState &state)
 {
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/PreProcess/KullaContyEnergyAverage.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
 
-	state.descriptor_bindings.bind(0, 0, "LUT - Emu", ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	state.descriptor_bindings.bind(0, 0, "LUT - Emu", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 1, "LUT - Eavg", ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-
 }
 
 void KullaContyAverage::resolveResources(ResolveState &resolve)
@@ -46,9 +50,18 @@ void KullaContyAverage::render(RenderPassState &state)
 			vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
 		}
 
-		vkCmdDispatch(cmd_buffer, 128 / 32, 1, 1);
+		vkCmdDispatch(cmd_buffer, 1024 / 32, 1, 1);
 
 		m_finish = true;
+	}
+}
+
+void KullaContyAverage::onImGui()
+{
+	if (m_kulla_conty_average)
+	{
+		ImGui::Text("Kulla Conty Energy Average Eavg Precompute Result: ");
+		ImGui::Image(ImGuiContext::textureID(m_kulla_conty_average.getView(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), ImVec2(100, 100));
 	}
 }
 }        // namespace Ilum::pass

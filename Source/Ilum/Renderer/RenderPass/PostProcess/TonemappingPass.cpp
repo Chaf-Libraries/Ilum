@@ -2,6 +2,8 @@
 
 #include "Renderer/Renderer.hpp"
 
+#include <imgui.h>
+
 namespace Ilum::pass
 {
 TonemappingPass::TonemappingPass(const std::string &result):
@@ -58,9 +60,15 @@ void TonemappingPass::render(RenderPassState &state)
 	vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
 	vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
-	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(Renderer::instance()->Color_Correction), &Renderer::instance()->Color_Correction);
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(m_tonemapping_data), &m_tonemapping_data);
 	vkCmdDraw(cmd_buffer, 3, 1, 0, 0);
 
 	vkCmdEndRenderPass(cmd_buffer);
+}
+
+void TonemappingPass::onImGui()
+{
+	ImGui::DragFloat("Exposure", &m_tonemapping_data.exposure, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
+	ImGui::DragFloat("Gamma", &m_tonemapping_data.gamma, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
 }
 }        // namespace Ilum::pass

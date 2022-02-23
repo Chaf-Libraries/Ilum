@@ -5,6 +5,7 @@
 
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Shader/Shader.hpp"
+#include "Graphics/Vulkan/Vulkan.hpp"
 
 namespace Ilum
 {
