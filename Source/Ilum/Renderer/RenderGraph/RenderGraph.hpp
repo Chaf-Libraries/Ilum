@@ -121,6 +121,6 @@ class RenderGraph
 	CreateCallback                         onCreate;
 	std::vector<Queue *>                   m_queues;
 	ResolveInfo                            m_resolve_info;
-	bool                                   m_multi_threading = true;
+	bool                                   m_multi_threading = false;
 };
 }        // namespace Ilum

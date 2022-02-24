@@ -29,6 +29,8 @@ class Buffer
 
 	VkDeviceSize getSize() const;
 
+	uint64_t getDeviceAddress() const;
+
 	bool isMapped() const;
 
 	uint8_t *map();
@@ -51,6 +53,7 @@ class Buffer
 	VmaAllocation m_allocation = VK_NULL_HANDLE;
 	VkDeviceSize  m_size       = 0;
 	uint8_t *     m_mapping    = nullptr;
+	uint64_t      m_device_address = 0;
 };
 
 using BufferReference = std::reference_wrapper<const Buffer>;

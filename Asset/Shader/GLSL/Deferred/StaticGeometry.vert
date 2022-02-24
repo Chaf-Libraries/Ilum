@@ -55,7 +55,7 @@ void main() {
         max(textureLod(textureArray[nonuniformEXT(material_data[outIndex].displacement_map)], inUV, 0.0).r, 0.0) * material_data[outIndex].displacement_height:
         0.0;
     
-    mat4 trans = instance_data[outIndex].world_transform * instance_data[outIndex].pre_transform;
+    mat4 trans = instance_data[outIndex].transform;
 
     // World normal
     mat3 mNormal = transpose(inverse(mat3(trans)));
@@ -74,8 +74,8 @@ void main() {
     outScreenSpacePos = gl_Position;
 
     outlastScreenSpacePos = main_camera.last_view_projection * 
-            instance_data[outIndex].last_world_transform * 
-            instance_data[outIndex].pre_transform* vec4(inPos, 1.0);
+            instance_data[outIndex].last_transform * 
+            vec4(inPos, 1.0);
 
     outPos.w = gl_Position.z;
 

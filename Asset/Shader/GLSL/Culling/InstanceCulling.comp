@@ -121,7 +121,7 @@ void main()
 
     PerInstanceData instance = instance_data[idx];
 
-    mat4 trans = instance_data[idx].world_transform * instance_data[idx].pre_transform;
+    mat4 trans = instance_data[idx].transform;
 
     vec3 new_min_, new_max_, xa, xb, ya, yb, za, zb;
 

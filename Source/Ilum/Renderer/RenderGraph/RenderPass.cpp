@@ -17,6 +17,8 @@ const Image &RenderPassState::getAttachment(const std::string &name)
 
 void RenderPass::beginProfile(RenderPassState &state)
 {
+	m_thread_id = std::this_thread::get_id();
+
 	uint32_t idx = GraphicsContext::instance()->getFrameIndex();
 
 	auto result  = vkGetQueryPoolResults(GraphicsContext::instance()->getLogicalDevice(), state.pass.query_pools[(idx + 1) % GraphicsContext::instance()->getSwapchain().getImageCount()], 0, 1, sizeof(uint64_t), &m_gpu_start, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
@@ -44,5 +46,10 @@ float RenderPass::getGPUTime()
 float RenderPass::getCPUTime()
 {
 	return m_cpu_time;
+}
+
+size_t RenderPass::getThreadID()
+{
+	return std::hash<std::thread::id>{}(m_thread_id);
 }
 }        // namespace Ilum

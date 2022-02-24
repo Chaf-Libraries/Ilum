@@ -160,7 +160,7 @@ void main()
         return;
     }
     
-    mat4 trans = instance_data[meshlet.instance_id].world_transform * instance_data[meshlet.instance_id].pre_transform;
+    mat4 trans = instance_data[meshlet.instance_id].transform;
     meshlet.center = (trans * vec4(meshlet.center, 1.0)).xyz;
     vec3 edge = vec3(1.0) * sqrt(meshlet.radius * meshlet.radius / 3.0);
     meshlet.radius = length(vec3(

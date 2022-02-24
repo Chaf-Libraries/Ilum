@@ -71,7 +71,7 @@ class CommandBuffer
 
 	void transferLayout(const std::vector<ImageReference> &images, VkImageUsageFlagBits old_usage, VkImageUsageFlagBits new_usage) const;
 
-	void submitIdle();
+	void submitIdle(uint32_t index = 0);
 
 	void submit(const VkSemaphore &wait_semaphore = VK_NULL_HANDLE, const VkSemaphore &signal_semaphore = VK_NULL_HANDLE, VkFence fence = VK_NULL_HANDLE, VkShaderStageFlags wait_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 

@@ -58,6 +58,8 @@ class RenderPass
 	float getGPUTime();
 	float getCPUTime();
 
+	size_t getThreadID(); 
+
   protected:
 	std::chrono::time_point<std::chrono::high_resolution_clock> m_cpu_start;
 	std::chrono::time_point<std::chrono::high_resolution_clock> m_cpu_end;
@@ -67,6 +69,8 @@ class RenderPass
 
 	float m_cpu_time = 0.f;
 	float m_gpu_time = 0.f;
+
+	std::thread::id m_thread_id;
 };
 
 template <typename T>
