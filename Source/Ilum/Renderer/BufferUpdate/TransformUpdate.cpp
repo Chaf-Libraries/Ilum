@@ -111,17 +111,15 @@ void TransformUpdate::run()
 		{
 			GraphicsContext::instance()->getQueueSystem().waitAll();
 			Renderer::instance()->Render_Buffer.Instance_Buffer            = Buffer(instance_count * sizeof(PerInstanceData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-			Renderer::instance()->Render_Buffer.VKTransfrom_Buffer         = Buffer(instance_count * sizeof(VkTransformMatrixKHR), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			Renderer::instance()->Render_Buffer.Instance_Visibility_Buffer = Buffer(instance_count * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+			Renderer::instance()->Render_Buffer.RTXInstance_Buffer         = Buffer(instance_count * sizeof(VkAccelerationStructureInstanceKHR), VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_GPU_ONLY);
 			Renderer::instance()->update();
 		}
 
-		PerInstanceData *     instance_data         = reinterpret_cast<PerInstanceData *>(Renderer::instance()->Render_Buffer.Instance_Buffer.map());
-		VkTransformMatrixKHR *transform_matrix_data = reinterpret_cast<VkTransformMatrixKHR *>(Renderer::instance()->Render_Buffer.VKTransfrom_Buffer.map());
+		PerInstanceData *                   instance_data    = reinterpret_cast<PerInstanceData *>(Renderer::instance()->Render_Buffer.Instance_Buffer.map());
+		VkAccelerationStructureInstanceKHR *as_instance_data = reinterpret_cast<VkAccelerationStructureInstanceKHR *>(Renderer::instance()->Render_Buffer.RTXInstance_Buffer.map());
 
-		std::vector<VkAccelerationStructureBuildRangeInfoKHR> range_infos(instance_count);
-
-		tbb::parallel_for(tbb::blocked_range<size_t>(0, meshlet_view.size()), [&meshlet_view, &instance_data, &transform_matrix_data, &range_infos, instance_offset](const tbb::blocked_range<size_t> &r) {
+		tbb::parallel_for(tbb::blocked_range<size_t>(0, meshlet_view.size()), [&meshlet_view, &instance_data, &as_instance_data, instance_offset](const tbb::blocked_range<size_t> &r) {
 			for (size_t i = r.begin(); i != r.end(); i++)
 			{
 				auto        entity           = Entity(meshlet_view[i]);
@@ -150,49 +148,18 @@ void TransformUpdate::run()
 					instance.index_offset   = model.get().indices_offset + submesh.indices_offset;
 					instance.index_count    = submesh.indices_count;
 
-					range_infos[instance_idx].firstVertex     = instance.vertex_offset;
-					range_infos[instance_idx].primitiveCount  = instance.index_count / 3;
-					range_infos[instance_idx].primitiveOffset = instance.index_offset / 3;
-					range_infos[instance_idx].transformOffset = instance_idx;
-
-					transform_matrix_data[instance_idx] = VkTransformMatrixKHR{
-					    instance.transform[0][0], instance.transform[0][1], instance.transform[0][2], instance.transform[0][3],
-					    instance.transform[1][0], instance.transform[1][1], instance.transform[1][2], instance.transform[1][3],
-					    instance.transform[2][0], instance.transform[2][1], instance.transform[2][2], instance.transform[2][3]};
+					auto transform = glm::mat3x4(glm::transpose(instance.transform));
+					std::memcpy(&as_instance_data[instance_idx].transform, &transform, sizeof(VkTransformMatrixKHR));
+					as_instance_data[instance_idx].instanceCustomIndex                    = 0;
+					as_instance_data[instance_idx].mask                                   = 0xFF;
+					as_instance_data[instance_idx].instanceShaderBindingTableRecordOffset = 0;
+					as_instance_data[instance_idx].flags                                  = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+					as_instance_data[instance_idx].accelerationStructureReference         = submesh.bottom_level_as.getDeviceAddress();
 				}
 			}
 		});
 		Renderer::instance()->Render_Buffer.Instance_Buffer.unmap();
-		Renderer::instance()->Render_Buffer.VKTransfrom_Buffer.unmap();
-
-		// Update BLAS
-		auto &blas = Renderer::instance()->Render_Buffer.Bottom_Level_AS;
-		blas.reset();
-
-		VkAccelerationStructureGeometryTrianglesDataKHR triangle_data = {};
-		triangle_data.sType                                           = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
-		triangle_data.vertexFormat                                    = VK_FORMAT_R32G32B32_SFLOAT;        // vec3 vertex position data.
-		triangle_data.vertexData.deviceAddress                        = Renderer::instance()->Render_Buffer.Static_Vertex_Buffer.getDeviceAddress();
-		triangle_data.vertexStride                                    = sizeof(Vertex);
-		triangle_data.indexType                                       = VK_INDEX_TYPE_UINT32;
-		triangle_data.indexData.deviceAddress                         = Renderer::instance()->Render_Buffer.Static_Index_Buffer.getDeviceAddress();
-		triangle_data.transformData.hostAddress                       = nullptr;
-		triangle_data.transformData.deviceAddress                     = 0;
-		triangle_data.maxVertex                                       = Renderer::instance()->getResourceCache().getVerticesCount();
-
-		VkAccelerationStructureBuildRangeInfoKHR range_info = {};
-		range_info.firstVertex                              = 0;
-		range_info.primitiveOffset                          = 0;
-		range_info.transformOffset                          = 0;
-		range_info.primitiveCount                           = Renderer::instance()->getResourceCache().getIndicesCount() / 3;
-
-		//for (auto& range_info : range_infos)
-		//{
-		blas.add(triangle_data);
-		blas.add(range_info);
-		//}
-
-		blas.build();
+		Renderer::instance()->Render_Buffer.RTXInstance_Buffer.unmap();
 	}
 
 	cmpt::Transform::update = false;

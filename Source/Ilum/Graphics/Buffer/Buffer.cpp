@@ -1,6 +1,7 @@
 #include "Buffer.h"
 
 #include "Graphics/GraphicsContext.hpp"
+#include "Graphics/Vulkan/Vulkan.hpp"
 
 #include "Device/LogicalDevice.hpp"
 
@@ -9,6 +10,11 @@ namespace Ilum
 Buffer::Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memory_usage) :
     m_size(size)
 {
+	if (size == 0)
+	{
+		return;
+	}
+
 	VkBufferCreateInfo buffer_create_info = {};
 	buffer_create_info.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	buffer_create_info.size               = size;
@@ -18,8 +24,11 @@ Buffer::Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memor
 	VmaAllocationCreateInfo allocation_create_info = {};
 	allocation_create_info.usage                   = memory_usage;
 
-	VmaAllocationInfo allocation_info;
-	auto result = vmaCreateBuffer(GraphicsContext::instance()->getLogicalDevice().getAllocator(), &buffer_create_info, &allocation_create_info, &m_handle, &m_allocation, &allocation_info);
+	VmaAllocationInfo allocation_info = {};
+	if (!VK_CHECK(vmaCreateBuffer(GraphicsContext::instance()->getLogicalDevice().getAllocator(), &buffer_create_info, &allocation_create_info, &m_handle, &m_allocation, &allocation_info)))
+	{
+		return;
+	}
 
 	if (usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
 	{

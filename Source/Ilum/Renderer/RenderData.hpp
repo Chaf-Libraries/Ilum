@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Graphics/Buffer/Buffer.h"
-#include "Graphics/RTX/BLAS.hpp"
 
 #include "Scene/Component/Light.hpp"
 
@@ -243,9 +242,8 @@ struct RenderBuffer
 	// Spot Light Buffer
 	Buffer Spot_Light_Buffer = Buffer(sizeof(cmpt::SpotLight) * 10, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-	// RTX Bottom Level Acceleration Structure
-	BLAS Bottom_Level_AS;
-	Buffer VKTransfrom_Buffer = Buffer(1024 * sizeof(VkTransformMatrixKHR), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	//RTX Instance Buffer
+	Buffer RTXInstance_Buffer = Buffer(1024 * sizeof(VkAccelerationStructureInstanceKHR), VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_CPU_TO_GPU);
 };
 
 struct RenderStats
