@@ -112,7 +112,7 @@ void TransformUpdate::run()
 			GraphicsContext::instance()->getQueueSystem().waitAll();
 			Renderer::instance()->Render_Buffer.Instance_Buffer            = Buffer(instance_count * sizeof(PerInstanceData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			Renderer::instance()->Render_Buffer.Instance_Visibility_Buffer = Buffer(instance_count * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-			Renderer::instance()->Render_Buffer.RTXInstance_Buffer         = Buffer(instance_count * sizeof(VkAccelerationStructureInstanceKHR), VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_GPU_ONLY);
+			Renderer::instance()->Render_Buffer.RTXInstance_Buffer         = Buffer(instance_count * sizeof(VkAccelerationStructureInstanceKHR), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			Renderer::instance()->update();
 		}
 
@@ -160,6 +160,25 @@ void TransformUpdate::run()
 		});
 		Renderer::instance()->Render_Buffer.Instance_Buffer.unmap();
 		Renderer::instance()->Render_Buffer.RTXInstance_Buffer.unmap();
+
+		VkAccelerationStructureGeometryKHR geometry_info    = {};
+		geometry_info.sType                                 = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+		geometry_info.geometryType                          = VK_GEOMETRY_TYPE_INSTANCES_KHR;
+		geometry_info.flags                                 = VK_GEOMETRY_OPAQUE_BIT_KHR;
+		geometry_info.geometry.instances.sType              = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
+		geometry_info.geometry.instances.arrayOfPointers    = VK_FALSE;
+		geometry_info.geometry.instances.data.deviceAddress = Renderer::instance()->Render_Buffer.RTXInstance_Buffer.getDeviceAddress();
+
+		VkAccelerationStructureBuildRangeInfoKHR range_info = {};
+		range_info.primitiveCount                           = static_cast<uint32_t>(instance_count);
+		range_info.primitiveOffset                          = 0;
+		range_info.firstVertex                              = 0;
+		range_info.transformOffset                          = 0;
+
+		if (Renderer::instance()->Render_Buffer.Top_Level_AS.build(geometry_info, range_info, VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR))
+		{
+			Renderer::instance()->rebuild();
+		}
 	}
 
 	cmpt::Transform::update = false;

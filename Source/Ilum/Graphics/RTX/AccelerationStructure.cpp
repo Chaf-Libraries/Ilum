@@ -36,11 +36,13 @@ const Buffer &AccelerationStructure::getBuffer() const
 	return m_buffer;
 }
 
-void AccelerationStructure::build(VkAccelerationStructureGeometryKHR &geometry, VkAccelerationStructureBuildRangeInfoKHR &range_info, VkAccelerationStructureTypeKHR type)
+bool AccelerationStructure::build(VkAccelerationStructureGeometryKHR &geometry, VkAccelerationStructureBuildRangeInfoKHR &range_info, VkAccelerationStructureTypeKHR type)
 {
+	bool rebuild = false;
+
 	if (range_info.primitiveCount == 0)
 	{
-		return;
+		return false;
 	}
 
 	VkAccelerationStructureBuildGeometryInfoKHR build_geometry_info = {};
@@ -81,12 +83,22 @@ void AccelerationStructure::build(VkAccelerationStructureGeometryKHR &geometry, 
 		    VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR,
 		    VMA_MEMORY_USAGE_GPU_ONLY);
 
-		VkAccelerationStructureCreateInfoKHR acceleration_structure_create_info{};
-		acceleration_structure_create_info.sType  = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
-		acceleration_structure_create_info.buffer = m_buffer;
-		acceleration_structure_create_info.size   = build_sizes_info.accelerationStructureSize;
-		acceleration_structure_create_info.type   = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+		if (m_handle)
+		{
+			vkDestroyAccelerationStructureKHR(GraphicsContext::instance()->getLogicalDevice(), m_handle, nullptr);
+		}
+
+		VkAccelerationStructureCreateInfoKHR acceleration_structure_create_info = {};
+		acceleration_structure_create_info.sType                                = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
+		acceleration_structure_create_info.buffer                               = m_buffer;
+		acceleration_structure_create_info.size                                 = build_sizes_info.accelerationStructureSize;
+		acceleration_structure_create_info.type                                 = type;
 		vkCreateAccelerationStructureKHR(GraphicsContext::instance()->getLogicalDevice(), &acceleration_structure_create_info, nullptr, &m_handle);
+
+		rebuild = true;
+
+		build_geometry_info.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+		build_geometry_info.srcAccelerationStructure = VK_NULL_HANDLE;
 	}
 
 	// Get the acceleration structure's handle
@@ -113,5 +125,7 @@ void AccelerationStructure::build(VkAccelerationStructureGeometryKHR &geometry, 
 	    &as_build_range_infos);
 	cmd_buffer.end();
 	cmd_buffer.submitIdle();
+
+	return rebuild;
 }
 }        // namespace Ilum

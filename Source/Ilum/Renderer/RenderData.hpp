@@ -243,7 +243,10 @@ struct RenderBuffer
 	Buffer Spot_Light_Buffer = Buffer(sizeof(cmpt::SpotLight) * 10, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	//RTX Instance Buffer
-	Buffer RTXInstance_Buffer = Buffer(1024 * sizeof(VkAccelerationStructureInstanceKHR), VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	Buffer RTXInstance_Buffer = Buffer(1024 * sizeof(VkAccelerationStructureInstanceKHR), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+	// Top Level Acceleration Structure
+	AccelerationStructure Top_Level_AS;
 };
 
 struct RenderStats

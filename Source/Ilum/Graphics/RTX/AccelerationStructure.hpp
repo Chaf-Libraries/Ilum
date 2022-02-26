@@ -20,7 +20,8 @@ class AccelerationStructure
 
 	const Buffer &getBuffer() const;
 
-	void build(VkAccelerationStructureGeometryKHR &geometry, VkAccelerationStructureBuildRangeInfoKHR &range_info, VkAccelerationStructureTypeKHR type);
+	// If rebuild as, return true
+	bool build(VkAccelerationStructureGeometryKHR &geometry, VkAccelerationStructureBuildRangeInfoKHR &range_info, VkAccelerationStructureTypeKHR type);
 
   protected:
 	VkAccelerationStructureKHR     m_handle = VK_NULL_HANDLE;
