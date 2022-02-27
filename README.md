@@ -42,7 +42,7 @@ cmake --build ./ --target ALL_BUILD --config Release
 * Architecture
   * Deferred Shading Pipeline
   * Render Graph
-    * Customize Render Pass (Graphics, Compute)
+    * Customize Render Pass (Graphics, Compute, Ray Tracing)
     * Auto Resource Transition
     * Render Passes Visualization
     * Render Pass Setting
@@ -82,9 +82,15 @@ cmake --build ./ --target ALL_BUILD --config Release
 
 ## Feature
 
-### Deferred Physical Based Shading
+### Deferred Shading
+
+#### Cook-Torrance BRDF
 
 ![image-20211120113603895](README/image-20211120113603895.png)
+
+#### Kulla-Conty Mutli-Bounce Approximation
+
+![image-20211231141039926](README/image-20211231141039926.png)
 
 ### Render Passes Visualization
 
@@ -99,10 +105,6 @@ cmake --build ./ --target ALL_BUILD --config Release
 #### Massive Scene Rendering
 
 ![performance](README/performance.png)
-
-### Kulla Conty Approximation
-
-![image-20211231141039926](README/image-20211231141039926.png)
 
 ### Curve Modeling
 
