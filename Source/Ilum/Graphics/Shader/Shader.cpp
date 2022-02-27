@@ -46,7 +46,7 @@ Shader &Shader::load(const std::string &filename, VkShaderStageFlagBits stage, T
 		VK_ERROR("Failed to load shader: {}", filename);
 	}
 
-	m_shader_modules.emplace(stage, shader_module);
+	m_shader_modules[stage].emplace_back(shader_module);
 	m_relection_data += GraphicsContext::instance()->getShaderCache().reflect(shader_module);
 	m_stage |= stage;
 
@@ -86,11 +86,15 @@ VkPipelineBindPoint Shader::getBindPoint() const
 	{
 		return VK_PIPELINE_BIND_POINT_GRAPHICS;
 	}
+	else if (m_stage & VK_SHADER_STAGE_RAYGEN_BIT_KHR)
+	{
+		return VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
+	}
 
 	return VK_PIPELINE_BIND_POINT_MAX_ENUM;
 }
 
-const std::unordered_map<VkShaderStageFlagBits, VkShaderModule> &Shader::getShaders() const
+const std::unordered_map<VkShaderStageFlagBits, std::vector<VkShaderModule>> &Shader::getShaders() const
 {
 	return m_shader_modules;
 }

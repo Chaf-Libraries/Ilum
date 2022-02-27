@@ -9,6 +9,7 @@
 #include "Graphics/Vulkan/VK_Debugger.h"
 
 #include "Device/LogicalDevice.hpp"
+#include "Device/PhysicalDevice.hpp"
 #include "Device/Swapchain.hpp"
 
 #include "RenderGraph.hpp"
@@ -249,7 +250,7 @@ inline void createGraphicsPipeline(const PipelineState &pipeline_state, PassNati
 	dynamic_state_create_info.dynamicStateCount                = static_cast<uint32_t>(pipeline_state.dynamic_state.dynamic_states.size());
 	dynamic_state_create_info.flags                            = 0;
 
-	std::vector<VkPipelineShaderStageCreateInfo> shader_module_create_infos;
+	std::vector<VkPipelineShaderStageCreateInfo> pipeline_shader_stage_create_infos;
 	for (auto &[stage, shader] : pipeline_state.shader.getShaders())
 	{
 		VkPipelineShaderStageCreateInfo shader_stage_create_info = {};
@@ -257,8 +258,8 @@ inline void createGraphicsPipeline(const PipelineState &pipeline_state, PassNati
 		shader_stage_create_info.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		shader_stage_create_info.stage  = stage;
 		shader_stage_create_info.pName  = "main";
-		shader_stage_create_info.module = shader;
-		shader_module_create_infos.push_back(shader_stage_create_info);
+		shader_stage_create_info.module = shader[0];
+		pipeline_shader_stage_create_infos.push_back(shader_stage_create_info);
 	}
 
 	// Vertex Input State
@@ -271,8 +272,8 @@ inline void createGraphicsPipeline(const PipelineState &pipeline_state, PassNati
 
 	VkGraphicsPipelineCreateInfo graphics_pipeline_create_info = {};
 	graphics_pipeline_create_info.sType                        = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	graphics_pipeline_create_info.stageCount                   = static_cast<uint32_t>(shader_module_create_infos.size());
-	graphics_pipeline_create_info.pStages                      = shader_module_create_infos.data();
+	graphics_pipeline_create_info.stageCount                   = static_cast<uint32_t>(pipeline_shader_stage_create_infos.size());
+	graphics_pipeline_create_info.pStages                      = pipeline_shader_stage_create_infos.data();
 
 	graphics_pipeline_create_info.pInputAssemblyState = &input_assembly_state_create_info;
 	graphics_pipeline_create_info.pRasterizationState = &rasterization_state_create_info;
@@ -298,7 +299,7 @@ inline void createComputePipeline(const PipelineState &pipeline_state, PassNativ
 	shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shader_stage_create_info.stage                           = VK_SHADER_STAGE_COMPUTE_BIT;
 	shader_stage_create_info.pName                           = "main";
-	shader_stage_create_info.module                          = pipeline_state.shader.getShaders().at(VK_SHADER_STAGE_COMPUTE_BIT);
+	shader_stage_create_info.module                          = pipeline_state.shader.getShaders().at(VK_SHADER_STAGE_COMPUTE_BIT)[0];
 
 	VkComputePipelineCreateInfo compute_pipeline_create_info = {};
 	compute_pipeline_create_info.sType                       = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
@@ -308,6 +309,269 @@ inline void createComputePipeline(const PipelineState &pipeline_state, PassNativ
 	compute_pipeline_create_info.basePipelineHandle          = VK_NULL_HANDLE;
 
 	vkCreateComputePipelines(GraphicsContext::instance()->getLogicalDevice(), GraphicsContext::instance()->getPipelineCache(), 1, &compute_pipeline_create_info, nullptr, &pass_native.pipeline);
+}
+
+inline void createRayTracingPipeline(const PipelineState &pipeline_state, PassNative &pass_native)
+{
+	std::vector<VkRayTracingShaderGroupCreateInfoKHR> shader_group_create_infos;
+	std::vector<VkPipelineShaderStageCreateInfo>      pipeline_shader_stage_create_infos;
+
+	// Ray Generation Group
+	{
+		if (pipeline_state.shader.getShaders().find(VK_SHADER_STAGE_RAYGEN_BIT_KHR) != pipeline_state.shader.getShaders().end())
+		{
+			auto &raygen_shaders = pipeline_state.shader.getShaders().at(VK_SHADER_STAGE_RAYGEN_BIT_KHR);
+			for (auto &raygen_shader : raygen_shaders)
+			{
+				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
+				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+				pipeline_shader_stage_create_info.stage                           = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+				pipeline_shader_stage_create_info.module                          = raygen_shader;
+				pipeline_shader_stage_create_info.pName                           = "main";
+				pipeline_shader_stage_create_infos.push_back(pipeline_shader_stage_create_info);
+
+				VkRayTracingShaderGroupCreateInfoKHR shader_group = {};
+				shader_group.sType                                = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+				shader_group.type                                 = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+				shader_group.generalShader                        = static_cast<uint32_t>(pipeline_shader_stage_create_infos.size()) - 1;
+				shader_group.closestHitShader                     = VK_SHADER_UNUSED_KHR;
+				shader_group.anyHitShader                         = VK_SHADER_UNUSED_KHR;
+				shader_group.intersectionShader                   = VK_SHADER_UNUSED_KHR;
+				shader_group_create_infos.push_back(shader_group);
+			}
+		}
+	}
+
+	// Ray Miss Group
+	{
+		if (pipeline_state.shader.getShaders().find(VK_SHADER_STAGE_MISS_BIT_KHR) != pipeline_state.shader.getShaders().end())
+		{
+			auto &miss_shaders = pipeline_state.shader.getShaders().at(VK_SHADER_STAGE_MISS_BIT_KHR);
+			for (auto &miss_shader : miss_shaders)
+			{
+				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
+				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+				pipeline_shader_stage_create_info.stage                           = VK_SHADER_STAGE_MISS_BIT_KHR;
+				pipeline_shader_stage_create_info.module                          = miss_shader;
+				pipeline_shader_stage_create_info.pName                           = "main";
+				pipeline_shader_stage_create_infos.push_back(pipeline_shader_stage_create_info);
+
+				VkRayTracingShaderGroupCreateInfoKHR shader_group = {};
+				shader_group.sType                                = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+				shader_group.type                                 = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+				shader_group.generalShader                        = static_cast<uint32_t>(pipeline_shader_stage_create_infos.size()) - 1;
+				shader_group.closestHitShader                     = VK_SHADER_UNUSED_KHR;
+				shader_group.anyHitShader                         = VK_SHADER_UNUSED_KHR;
+				shader_group.intersectionShader                   = VK_SHADER_UNUSED_KHR;
+				shader_group_create_infos.push_back(shader_group);
+			}
+		}
+	}
+
+	// Closest Hit Group
+	{
+		if (pipeline_state.shader.getShaders().find(VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR) != pipeline_state.shader.getShaders().end())
+		{
+			auto &closest_hit_shaders = pipeline_state.shader.getShaders().at(VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
+			for (auto &closest_hit_shader : closest_hit_shaders)
+			{
+				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
+				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+				pipeline_shader_stage_create_info.stage                           = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+				pipeline_shader_stage_create_info.module                          = closest_hit_shader;
+				pipeline_shader_stage_create_info.pName                           = "main";
+				pipeline_shader_stage_create_infos.push_back(pipeline_shader_stage_create_info);
+
+				VkRayTracingShaderGroupCreateInfoKHR shader_group = {};
+				shader_group.sType                                = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+				shader_group.type                                 = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
+				shader_group.generalShader                        = VK_SHADER_UNUSED_KHR;
+				shader_group.closestHitShader                     = static_cast<uint32_t>(pipeline_shader_stage_create_infos.size()) - 1;
+				shader_group.anyHitShader                         = VK_SHADER_UNUSED_KHR;
+				shader_group.intersectionShader                   = VK_SHADER_UNUSED_KHR;
+				shader_group_create_infos.push_back(shader_group);
+			}
+		}
+	}
+
+	// Any Hit Group
+	{
+		if (pipeline_state.shader.getShaders().find(VK_SHADER_STAGE_ANY_HIT_BIT_KHR) != pipeline_state.shader.getShaders().end())
+		{
+			auto &any_hit_shaders = pipeline_state.shader.getShaders().at(VK_SHADER_STAGE_ANY_HIT_BIT_KHR);
+			for (auto &any_hit_shader : any_hit_shaders)
+			{
+				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
+				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+				pipeline_shader_stage_create_info.stage                           = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
+				pipeline_shader_stage_create_info.module                          = any_hit_shader;
+				pipeline_shader_stage_create_info.pName                           = "main";
+				pipeline_shader_stage_create_infos.push_back(pipeline_shader_stage_create_info);
+
+				VkRayTracingShaderGroupCreateInfoKHR shader_group = {};
+				shader_group.sType                                = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+				shader_group.type                                 = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
+				shader_group.generalShader                        = VK_SHADER_UNUSED_KHR;
+				shader_group.closestHitShader                     = VK_SHADER_UNUSED_KHR;
+				shader_group.anyHitShader                         = static_cast<uint32_t>(pipeline_shader_stage_create_infos.size()) - 1;
+				shader_group.intersectionShader                   = VK_SHADER_UNUSED_KHR;
+				shader_group_create_infos.push_back(shader_group);
+			}
+		}
+	}
+
+	// Intersection Group
+	{
+		if (pipeline_state.shader.getShaders().find(VK_SHADER_STAGE_INTERSECTION_BIT_KHR) != pipeline_state.shader.getShaders().end())
+		{
+			auto &intersection_shaders = pipeline_state.shader.getShaders().at(VK_SHADER_STAGE_INTERSECTION_BIT_KHR);
+			for (auto &intersection_shader : intersection_shaders)
+			{
+				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
+				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+				pipeline_shader_stage_create_info.stage                           = VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
+				pipeline_shader_stage_create_info.module                          = intersection_shader;
+				pipeline_shader_stage_create_info.pName                           = "main";
+				pipeline_shader_stage_create_infos.push_back(pipeline_shader_stage_create_info);
+
+				VkRayTracingShaderGroupCreateInfoKHR shader_group = {};
+				shader_group.sType                                = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+				shader_group.type                                 = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
+				shader_group.generalShader                        = VK_SHADER_UNUSED_KHR;
+				shader_group.closestHitShader                     = VK_SHADER_UNUSED_KHR;
+				shader_group.anyHitShader                         = VK_SHADER_UNUSED_KHR;
+				shader_group.intersectionShader                   = static_cast<uint32_t>(pipeline_shader_stage_create_infos.size()) - 1;
+				shader_group_create_infos.push_back(shader_group);
+			}
+		}
+	}
+
+	// Callable Group
+	{
+		if (pipeline_state.shader.getShaders().find(VK_SHADER_STAGE_CALLABLE_BIT_KHR) != pipeline_state.shader.getShaders().end())
+		{
+			auto &callable_shaders = pipeline_state.shader.getShaders().at(VK_SHADER_STAGE_CALLABLE_BIT_KHR);
+			for (auto &callable_shader : callable_shaders)
+			{
+				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
+				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+				pipeline_shader_stage_create_info.stage                           = VK_SHADER_STAGE_CALLABLE_BIT_KHR;
+				pipeline_shader_stage_create_info.module                          = callable_shader;
+				pipeline_shader_stage_create_info.pName                           = "main";
+				pipeline_shader_stage_create_infos.push_back(pipeline_shader_stage_create_info);
+
+				VkRayTracingShaderGroupCreateInfoKHR shader_group = {};
+				shader_group.sType                                = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+				shader_group.type                                 = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+				shader_group.generalShader                        = static_cast<uint32_t>(pipeline_shader_stage_create_infos.size()) - 1;
+				shader_group.closestHitShader                     = VK_SHADER_UNUSED_KHR;
+				shader_group.anyHitShader                         = VK_SHADER_UNUSED_KHR;
+				shader_group.intersectionShader                   = VK_SHADER_UNUSED_KHR;
+				shader_group_create_infos.push_back(shader_group);
+			}
+		}
+	}
+
+	VkRayTracingPipelineCreateInfoKHR raytracing_pipeline_create_info = {};
+	raytracing_pipeline_create_info.sType                             = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
+	raytracing_pipeline_create_info.stageCount                        = static_cast<uint32_t>(pipeline_shader_stage_create_infos.size());
+	raytracing_pipeline_create_info.pStages                           = pipeline_shader_stage_create_infos.data();
+	raytracing_pipeline_create_info.groupCount                        = static_cast<uint32_t>(shader_group_create_infos.size());
+	raytracing_pipeline_create_info.pGroups                           = shader_group_create_infos.data();
+	raytracing_pipeline_create_info.maxPipelineRayRecursionDepth      = 4;
+	raytracing_pipeline_create_info.layout                            = pass_native.pipeline_layout;
+
+	vkCreateRayTracingPipelinesKHR(GraphicsContext::instance()->getLogicalDevice(), VK_NULL_HANDLE, GraphicsContext::instance()->getPipelineCache(), 1, &raytracing_pipeline_create_info, nullptr, &pass_native.pipeline);
+
+	// Create shader binding table
+	/*			
+		SBT Layout:
+
+			/-----------\
+			| raygen    |
+			|-----------|
+			| miss        |
+			|-----------|
+			| hit           |
+			|-----------|
+			| callable   |
+			\-----------/
+
+	*/
+	const auto &   raytracing_properties = GraphicsContext::instance()->getPhysicalDevice().getRayTracingPipelineProperties();
+	const uint32_t handle_size           = raytracing_properties.shaderGroupHandleSize;
+	const uint32_t handle_size_aligned   = (raytracing_properties.shaderGroupHandleSize + raytracing_properties.shaderGroupHandleAlignment - 1) & ~(raytracing_properties.shaderGroupHandleAlignment - 1);
+	const uint32_t group_count           = static_cast<uint32_t>(shader_group_create_infos.size());
+	const uint32_t sbt_size              = group_count * handle_size_aligned;
+
+	std::vector<uint8_t> shader_handle_storage(sbt_size);
+	auto result = vkGetRayTracingShaderGroupHandlesKHR(GraphicsContext::instance()->getLogicalDevice(), pass_native.pipeline, 0, group_count, sbt_size, shader_handle_storage.data());
+
+	uint32_t handle_offset = 0;
+
+	// Gen Group
+	{
+		uint32_t handle_count = 0;
+		if (pipeline_state.shader.getShaders().find(VK_SHADER_STAGE_RAYGEN_BIT_KHR) != pipeline_state.shader.getShaders().end())
+		{
+			handle_count += static_cast<uint32_t>(pipeline_state.shader.getShaders().at(VK_SHADER_STAGE_RAYGEN_BIT_KHR).size());
+		}
+
+		pass_native.shader_binding_table.raygen = std::make_unique<ShaderBindingTable>(handle_count);
+
+		std::memcpy(pass_native.shader_binding_table.raygen->getData(), shader_handle_storage.data() + handle_offset, handle_size * handle_count);
+		handle_offset += handle_count * handle_size_aligned;
+	}
+
+	// Miss Group
+	{
+		uint32_t handle_count = 0;
+		if (pipeline_state.shader.getShaders().find(VK_SHADER_STAGE_MISS_BIT_KHR) != pipeline_state.shader.getShaders().end())
+		{
+			handle_count += static_cast<uint32_t>(pipeline_state.shader.getShaders().at(VK_SHADER_STAGE_MISS_BIT_KHR).size());
+		}
+
+		pass_native.shader_binding_table.miss = std::make_unique<ShaderBindingTable>(handle_count);
+
+		std::memcpy(pass_native.shader_binding_table.miss->getData(), shader_handle_storage.data() + handle_offset, handle_size * handle_count);
+		handle_offset += handle_count * handle_size_aligned;
+	}
+
+	// Hit Group
+	{
+		uint32_t handle_count = 0;
+		if (pipeline_state.shader.getShaders().find(VK_SHADER_STAGE_ANY_HIT_BIT_KHR) != pipeline_state.shader.getShaders().end())
+		{
+			handle_count += static_cast<uint32_t>(pipeline_state.shader.getShaders().at(VK_SHADER_STAGE_ANY_HIT_BIT_KHR).size());
+		}
+		if (pipeline_state.shader.getShaders().find(VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR) != pipeline_state.shader.getShaders().end())
+		{
+			handle_count += static_cast<uint32_t>(pipeline_state.shader.getShaders().at(VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR).size());
+		}
+		if (pipeline_state.shader.getShaders().find(VK_SHADER_STAGE_INTERSECTION_BIT_KHR) != pipeline_state.shader.getShaders().end())
+		{
+			handle_count += static_cast<uint32_t>(pipeline_state.shader.getShaders().at(VK_SHADER_STAGE_INTERSECTION_BIT_KHR).size());
+		}
+
+		pass_native.shader_binding_table.hit = std::make_unique<ShaderBindingTable>(handle_count);
+
+		std::memcpy(pass_native.shader_binding_table.hit->getData(), shader_handle_storage.data() + handle_offset, handle_size * handle_count);
+		handle_offset += handle_count * handle_size_aligned;
+	}
+
+	// Callable Group
+	{
+		uint32_t handle_count = 0;
+		if (pipeline_state.shader.getShaders().find(VK_SHADER_STAGE_CALLABLE_BIT_KHR) != pipeline_state.shader.getShaders().end())
+		{
+			handle_count += static_cast<uint32_t>(pipeline_state.shader.getShaders().at(VK_SHADER_STAGE_CALLABLE_BIT_KHR).size());
+		}
+
+		pass_native.shader_binding_table.callable = std::make_unique<ShaderBindingTable>(static_cast<uint32_t>(handle_count));
+
+		std::memcpy(pass_native.shader_binding_table.callable->getData(), shader_handle_storage.data() + handle_offset, handle_size * handle_count);
+		handle_offset += handle_count * handle_size_aligned;
+	}
 }
 
 inline VkImageMemoryBarrier createImageMemoryBarrier(VkImage image, VkImageUsageFlagBits old_usage, VkImageUsageFlagBits new_usage, VkFormat format, uint32_t mip_level_count, uint32_t layer_count)
@@ -449,7 +713,7 @@ scope<RenderGraph> RenderGraphBuilder::build()
 
 		nodes.push_back(RenderGraphNode{
 		    render_pass_reference.name,
-		    render_pass,
+		    std::move(render_pass),
 		    std::move(render_pass_reference.pass),
 		    getRenderPassAttachmentNames(render_pass_reference.name, pipeline_states),
 		    createPipelineBarrierCallback(render_pass_reference.name, pipeline_states.at(render_pass_reference.name), resource_transitions),
@@ -775,6 +1039,10 @@ PassNative RenderGraphBuilder::buildRenderPass(const RenderPassReference &render
 	else if (pass.shader.getBindPoint() == VK_PIPELINE_BIND_POINT_COMPUTE)
 	{
 		createComputePipeline(pass, pass_native);
+	}
+	else if (pass.shader.getBindPoint() == VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR)
+	{
+		createRayTracingPipeline(pass, pass_native);
 	}
 
 	// Create query pool for profile

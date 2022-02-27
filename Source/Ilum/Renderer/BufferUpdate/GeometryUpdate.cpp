@@ -92,7 +92,7 @@ void GeometryUpdate::run()
 				range_info.firstVertex     = model.get().vertices_offset + submesh.vertices_offset;
 				range_info.transformOffset = 0;
 
-				submesh.bottom_level_as.build(geometry_info, range_info, VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
+				submesh.bottom_level_as.build(geometry_info, range_info);
 			}
 		}
 	}

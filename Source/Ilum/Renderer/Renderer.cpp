@@ -45,6 +45,7 @@
 #include "RenderPass/PreProcess/KullaContyAverage.hpp"
 #include "RenderPass/PreProcess/KullaContyEnergy.hpp"
 #include "RenderPass/Preprocess/EquirectangularToCubemap.hpp"
+#include "RenderPass/RayTracing/RayTracingTestPass.hpp"
 
 #include "BufferUpdate/CameraUpdate.hpp"
 #include "BufferUpdate/CurveUpdate.hpp"
@@ -89,6 +90,10 @@ Renderer::Renderer(Context *context) :
 		    //.addRenderPass("Blend", std::make_unique<pass::BlendPass>("blur2", "lighting", "output"))
 
 		    .addRenderPass("TAAPass", std::make_unique<pass::TAAPass>())
+		    
+			.addRenderPass("RayTracingTest", std::make_unique<pass::RayTracingTestPass>())
+
+
 		    .addRenderPass("CopyBuffer", std::make_unique<pass::CopyPass>())
 
 

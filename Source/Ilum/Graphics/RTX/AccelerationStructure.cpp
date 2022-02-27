@@ -7,13 +7,61 @@
 
 namespace Ilum
 {
+AccelerationStructure::AccelerationStructure(VkAccelerationStructureTypeKHR type) :
+    m_type(type)
+{
+	VkAccelerationStructureGeometryKHR geometry = {};
+	geometry.sType                              = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+	if (type == VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR)
+	{
+		geometry.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR;
+		geometry.geometry.instances.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
+	}
+	else if (type == VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR)
+	{
+		geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
+		geometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
+	}
+
+	build(geometry, VkAccelerationStructureBuildRangeInfoKHR{});
+}
+
 AccelerationStructure::~AccelerationStructure()
 {
 	if (m_handle)
 	{
+		GraphicsContext::instance()->getQueueSystem().waitAll();
 		vkDestroyAccelerationStructureKHR(GraphicsContext::instance()->getLogicalDevice(), m_handle, nullptr);
 		m_handle = VK_NULL_HANDLE;
 	}
+}
+
+AccelerationStructure::AccelerationStructure(AccelerationStructure &&other) :
+    m_handle(other.m_handle),
+    m_type(other.m_type),
+    m_device_address(other.m_device_address),
+    m_buffer(std::move(other.m_buffer))
+{
+	other.m_handle = VK_NULL_HANDLE;
+}
+
+AccelerationStructure &AccelerationStructure::operator=(AccelerationStructure &&other)
+{
+	if (m_handle)
+	{
+		GraphicsContext::instance()->getQueueSystem().waitAll();
+		vkDestroyAccelerationStructureKHR(GraphicsContext::instance()->getLogicalDevice(), m_handle, nullptr);
+		m_handle = VK_NULL_HANDLE;
+	}
+
+	m_handle         = other.m_handle;
+	m_type           = other.m_type;
+	m_device_address = other.m_device_address;
+	m_buffer         = std::move(other.m_buffer);
+
+	other.m_handle = VK_NULL_HANDLE;
+
+	return *this;
 }
 
 const VkAccelerationStructureKHR AccelerationStructure::operator&() const
@@ -36,18 +84,18 @@ const Buffer &AccelerationStructure::getBuffer() const
 	return m_buffer;
 }
 
-bool AccelerationStructure::build(VkAccelerationStructureGeometryKHR &geometry, VkAccelerationStructureBuildRangeInfoKHR &range_info, VkAccelerationStructureTypeKHR type)
+bool AccelerationStructure::build(VkAccelerationStructureGeometryKHR &geometry, VkAccelerationStructureBuildRangeInfoKHR &range_info)
 {
 	bool rebuild = false;
 
 	if (range_info.primitiveCount == 0)
 	{
-		return false;
+		//return false;
 	}
 
 	VkAccelerationStructureBuildGeometryInfoKHR build_geometry_info = {};
 	build_geometry_info.sType                                       = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
-	build_geometry_info.type                                        = type;
+	build_geometry_info.type                                        = m_type;
 	build_geometry_info.flags                                       = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
 
 	if (m_handle)
@@ -85,6 +133,7 @@ bool AccelerationStructure::build(VkAccelerationStructureGeometryKHR &geometry, 
 
 		if (m_handle)
 		{
+			GraphicsContext::instance()->getQueueSystem().waitAll();
 			vkDestroyAccelerationStructureKHR(GraphicsContext::instance()->getLogicalDevice(), m_handle, nullptr);
 		}
 
@@ -92,12 +141,12 @@ bool AccelerationStructure::build(VkAccelerationStructureGeometryKHR &geometry, 
 		acceleration_structure_create_info.sType                                = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
 		acceleration_structure_create_info.buffer                               = m_buffer;
 		acceleration_structure_create_info.size                                 = build_sizes_info.accelerationStructureSize;
-		acceleration_structure_create_info.type                                 = type;
+		acceleration_structure_create_info.type                                 = m_type;
 		vkCreateAccelerationStructureKHR(GraphicsContext::instance()->getLogicalDevice(), &acceleration_structure_create_info, nullptr, &m_handle);
 
 		rebuild = true;
 
-		build_geometry_info.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+		build_geometry_info.mode                     = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
 		build_geometry_info.srcAccelerationStructure = VK_NULL_HANDLE;
 	}
 

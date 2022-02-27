@@ -31,7 +31,7 @@ struct SubMesh
 
 	geometry::BoundingBox bounding_box;
 
-	AccelerationStructure bottom_level_as;
+	AccelerationStructure bottom_level_as = AccelerationStructure(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
 
 	SubMesh() = default;
 

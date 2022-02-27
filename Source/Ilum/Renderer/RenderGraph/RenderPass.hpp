@@ -5,6 +5,8 @@
 #include "Graphics/Command/CommandBuffer.hpp"
 #include "Graphics/Descriptor/DescriptorBinding.hpp"
 
+#include "Graphics/RTX/ShaderBindingTable.hpp"
+
 namespace Ilum
 {
 class PipelineState;
@@ -21,6 +23,14 @@ struct PassNative
 	VkPipelineBindPoint        bind_point;
 	VkRect2D                   render_area;
 	std::vector<VkClearValue>  clear_values;
+
+	struct
+	{
+		std::unique_ptr<ShaderBindingTable> raygen = nullptr;
+		std::unique_ptr<ShaderBindingTable> miss   = nullptr;
+		std::unique_ptr<ShaderBindingTable> hit    = nullptr;
+		std::unique_ptr<ShaderBindingTable> callable = nullptr;
+	} shader_binding_table;
 };
 
 struct RenderPassState
@@ -58,7 +68,7 @@ class RenderPass
 	float getGPUTime();
 	float getCPUTime();
 
-	size_t getThreadID(); 
+	size_t getThreadID();
 
   protected:
 	std::chrono::time_point<std::chrono::high_resolution_clock> m_cpu_start;

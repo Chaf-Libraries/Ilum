@@ -31,13 +31,15 @@ class Shader
 
 	VkPipelineBindPoint getBindPoint() const;
 
-	const std::unordered_map<VkShaderStageFlagBits, VkShaderModule> &getShaders() const;
+	const std::unordered_map<VkShaderStageFlagBits, std::vector<VkShaderModule>> &getShaders() const;
 
   private:
 	VkShaderStageFlags m_stage = 0;
 
 	ReflectionData m_relection_data;
 
-	std::unordered_map<VkShaderStageFlagBits, VkShaderModule> m_shader_modules;
+	std::unordered_map<VkShaderStageFlagBits, std::vector<VkShaderModule>> m_shader_modules;
+
+
 };
 }        // namespace Ilum

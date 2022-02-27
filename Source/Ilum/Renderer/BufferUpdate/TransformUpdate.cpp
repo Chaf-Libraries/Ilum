@@ -175,7 +175,7 @@ void TransformUpdate::run()
 		range_info.firstVertex                              = 0;
 		range_info.transformOffset                          = 0;
 
-		if (Renderer::instance()->Render_Buffer.Top_Level_AS.build(geometry_info, range_info, VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR))
+		if (Renderer::instance()->Render_Buffer.Top_Level_AS.build(geometry_info, range_info))
 		{
 			Renderer::instance()->rebuild();
 		}

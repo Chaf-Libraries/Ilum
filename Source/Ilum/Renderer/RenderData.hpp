@@ -90,6 +90,8 @@ struct CameraData
 {
 	glm::mat4 view_projection;
 	glm::mat4 last_view_projection;
+	glm::mat4 view_inverse;
+	glm::mat4 projection_inverse;
 	glm::vec4 frustum[6];
 	alignas(16) glm::vec3 position;
 };
@@ -246,7 +248,7 @@ struct RenderBuffer
 	Buffer RTXInstance_Buffer = Buffer(1024 * sizeof(VkAccelerationStructureInstanceKHR), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	// Top Level Acceleration Structure
-	AccelerationStructure Top_Level_AS;
+	AccelerationStructure Top_Level_AS = AccelerationStructure(VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR);
 };
 
 struct RenderStats
