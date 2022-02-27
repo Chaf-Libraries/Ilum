@@ -21,6 +21,8 @@ struct CameraData
 {
     mat4 view_projection;
 	mat4 last_view_projection;
+	mat4 view_inverse;
+	mat4 projection_inverse;
 	vec4 frustum[6];
 	vec3 position;
 };
