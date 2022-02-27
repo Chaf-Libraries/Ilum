@@ -13,6 +13,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <tbb/tbb.h>
 
@@ -46,10 +47,15 @@ void TransformUpdate::run()
 {
 	GraphicsContext::instance()->getProfiler().beginSample("Transform Update");
 
+	auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::Transform, cmpt::Hierarchy>);
+
+	if (group.empty())
+	{
+		return;
+	}
+
 	if (cmpt::Transform::update)
 	{
-		auto group = Scene::instance()->getRegistry().group<>(entt::get<cmpt::Transform, cmpt::Hierarchy>);
-
 		std::vector<entt::entity> roots;
 
 		// Find roots
@@ -106,12 +112,14 @@ void TransformUpdate::run()
 			GraphicsContext::instance()->getQueueSystem().waitAll();
 			Renderer::instance()->Render_Buffer.Instance_Buffer            = Buffer(instance_count * sizeof(PerInstanceData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			Renderer::instance()->Render_Buffer.Instance_Visibility_Buffer = Buffer(instance_count * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+			Renderer::instance()->Render_Buffer.RTXInstance_Buffer         = Buffer(instance_count * sizeof(VkAccelerationStructureInstanceKHR), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			Renderer::instance()->update();
 		}
 
-		PerInstanceData *instance_data = reinterpret_cast<PerInstanceData *>(Renderer::instance()->Render_Buffer.Instance_Buffer.map());
+		PerInstanceData *                   instance_data    = reinterpret_cast<PerInstanceData *>(Renderer::instance()->Render_Buffer.Instance_Buffer.map());
+		VkAccelerationStructureInstanceKHR *as_instance_data = reinterpret_cast<VkAccelerationStructureInstanceKHR *>(Renderer::instance()->Render_Buffer.RTXInstance_Buffer.map());
 
-		tbb::parallel_for(tbb::blocked_range<size_t>(0, meshlet_view.size()), [&meshlet_view, &instance_data, instance_offset](const tbb::blocked_range<size_t> &r) {
+		tbb::parallel_for(tbb::blocked_range<size_t>(0, meshlet_view.size()), [&meshlet_view, &instance_data, &as_instance_data, instance_offset](const tbb::blocked_range<size_t> &r) {
 			for (size_t i = r.begin(); i != r.end(); i++)
 			{
 				auto        entity           = Entity(meshlet_view[i]);
@@ -128,20 +136,49 @@ void TransformUpdate::run()
 				uint32_t submesh_index = 0;
 				for (auto &submesh : model.get().submeshes)
 				{
-					auto &instance                = instance_data[instance_offset[i] + submesh_index++];
-					instance.entity_id            = static_cast<uint32_t>(meshlet_view[i]);
-					instance.bbox_min             = submesh.bounding_box.min_;
-					instance.bbox_max             = submesh.bounding_box.max_;
-					instance.pre_transform        = submesh.pre_transform;
-					instance.last_world_transform = instance.world_transform;
-					instance.world_transform      = transform.world_transform;
-					instance.vertex_offset        = model.get().vertices_offset + submesh.vertices_offset;
-					instance.index_offset         = model.get().indices_offset + submesh.indices_offset;
-					instance.index_count          = submesh.indices_count;
+					size_t instance_idx = instance_offset[i] + submesh_index++;
+
+					auto &instance          = instance_data[instance_idx];
+					instance.entity_id      = static_cast<uint32_t>(meshlet_view[i]);
+					instance.bbox_min       = submesh.bounding_box.min_;
+					instance.bbox_max       = submesh.bounding_box.max_;
+					instance.last_transform = instance.transform;
+					instance.transform      = transform.world_transform * submesh.pre_transform;
+					instance.vertex_offset  = model.get().vertices_offset + submesh.vertices_offset;
+					instance.index_offset   = model.get().indices_offset + submesh.indices_offset;
+					instance.index_count    = submesh.indices_count;
+
+					auto transform = glm::mat3x4(glm::transpose(instance.transform));
+					std::memcpy(&as_instance_data[instance_idx].transform, &transform, sizeof(VkTransformMatrixKHR));
+					as_instance_data[instance_idx].instanceCustomIndex                    = 0;
+					as_instance_data[instance_idx].mask                                   = 0xFF;
+					as_instance_data[instance_idx].instanceShaderBindingTableRecordOffset = 0;
+					as_instance_data[instance_idx].flags                                  = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+					as_instance_data[instance_idx].accelerationStructureReference         = submesh.bottom_level_as.getDeviceAddress();
 				}
 			}
 		});
 		Renderer::instance()->Render_Buffer.Instance_Buffer.unmap();
+		Renderer::instance()->Render_Buffer.RTXInstance_Buffer.unmap();
+
+		VkAccelerationStructureGeometryKHR geometry_info    = {};
+		geometry_info.sType                                 = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+		geometry_info.geometryType                          = VK_GEOMETRY_TYPE_INSTANCES_KHR;
+		geometry_info.flags                                 = VK_GEOMETRY_OPAQUE_BIT_KHR;
+		geometry_info.geometry.instances.sType              = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
+		geometry_info.geometry.instances.arrayOfPointers    = VK_FALSE;
+		geometry_info.geometry.instances.data.deviceAddress = Renderer::instance()->Render_Buffer.RTXInstance_Buffer.getDeviceAddress();
+
+		VkAccelerationStructureBuildRangeInfoKHR range_info = {};
+		range_info.primitiveCount                           = static_cast<uint32_t>(instance_count);
+		range_info.primitiveOffset                          = 0;
+		range_info.firstVertex                              = 0;
+		range_info.transformOffset                          = 0;
+
+		if (Renderer::instance()->Render_Buffer.Top_Level_AS.build(geometry_info, range_info))
+		{
+			Renderer::instance()->rebuild();
+		}
 	}
 
 	cmpt::Transform::update = false;

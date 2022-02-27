@@ -65,6 +65,20 @@ inline bool is_buffer(VkDescriptorType type)
 	}
 }
 
+inline bool is_image(VkDescriptorType type)
+{
+	switch (type)
+	{
+		case VK_DESCRIPTOR_TYPE_SAMPLER:
+		case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+		case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+		case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+			return true;
+		default:
+			return false;
+	}
+}
+
 size_t DescriptorBinding::allocate(uint32_t set, const Buffer &buffer, VkDescriptorType type)
 {
 	m_buffer_writes[set].push_back(BufferWriteInfo{std::addressof(buffer), type_to_buffer_usage(type)});
@@ -89,8 +103,20 @@ size_t DescriptorBinding::allocate(uint32_t set, const Sampler &sampler)
 	return m_image_writes[set].size() - 1;
 }
 
+size_t DescriptorBinding::allocate(uint32_t set, const AccelerationStructure &acceleration_structure)
+{
+	m_acceleration_structure_writes[set].push_back(AccelerationStructureWriteInfo{std::addressof(acceleration_structure)});
+	return m_acceleration_structure_writes[set].size() - 1;
+}
+
 DescriptorBinding &DescriptorBinding::bind(uint32_t set, uint32_t binding, const std::string &name, VkDescriptorType type)
 {
+	if (type == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR)
+	{
+		m_acceleration_structure_to_resolves[set].push_back(AccelerationStructureToResolve{name, binding});
+		return *this;
+	}
+
 	if (type_to_buffer_usage(type) == VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM)
 	{
 		return bind(set, binding, name, Sampler(), ImageViewType::Native, type);
@@ -138,6 +164,7 @@ void DescriptorBinding::resolve(const ResolveInfo &resolve_info)
 	m_buffer_writes.clear();
 	m_image_writes.clear();
 	m_descriptor_writes.clear();
+	m_acceleration_structure_writes.clear();
 
 	// Resolve images
 	for (const auto &[set, image_to_resolves] : m_image_to_resolves)
@@ -206,6 +233,26 @@ void DescriptorBinding::resolve(const ResolveInfo &resolve_info)
 			    1});
 		}
 	}
+
+	// Resolve acceleration structures
+	for (const auto &[set, acceleration_structure_to_resolves] : m_acceleration_structure_to_resolves)
+	{
+		for (const auto &acceleration_structure_to_resolve : acceleration_structure_to_resolves)
+		{
+			auto & acceleration_structures = resolve_info.getAccelerationStructures().at(acceleration_structure_to_resolve.name);
+			size_t index                   = 0;
+			for (const auto &acceleration_structure : acceleration_structures)
+			{
+				index = allocate(set, acceleration_structure.get());
+			}
+
+			m_descriptor_writes[set].push_back(DescriptorWriteInfo{
+			    VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
+			    acceleration_structure_to_resolve.binding,
+			    static_cast<uint32_t>(index + 1 - acceleration_structures.size()),
+			    static_cast<uint32_t>(acceleration_structures.size())});
+		}
+	}
 }
 
 void DescriptorBinding::write(const DescriptorSet &descriptor_set)
@@ -221,13 +268,15 @@ void DescriptorBinding::write(const DescriptorSet &descriptor_set)
 
 	GraphicsContext::instance()->getQueueSystem().waitAll();
 
-	std::vector<VkWriteDescriptorSet>   write_descriptor_sets;
-	std::vector<VkDescriptorBufferInfo> descriptor_buffer_infos;
-	std::vector<VkDescriptorImageInfo>  descriptor_image_infos;
+	std::vector<VkWriteDescriptorSet>                         write_descriptor_sets;
+	std::vector<VkDescriptorBufferInfo>                       descriptor_buffer_infos;
+	std::vector<VkDescriptorImageInfo>                        descriptor_image_infos;
+	std::vector<VkWriteDescriptorSetAccelerationStructureKHR> descriptor_as_infos;
 
 	write_descriptor_sets.reserve(m_descriptor_writes.size());
 	descriptor_buffer_infos.reserve(m_buffer_to_resolves.size());
 	descriptor_image_infos.reserve(m_image_to_resolves.size());
+	descriptor_as_infos.reserve(m_acceleration_structure_to_resolves.size());
 
 	// Write buffers
 	for (const auto &buffer_info : m_buffer_writes[descriptor_set.index()])
@@ -247,18 +296,30 @@ void DescriptorBinding::write(const DescriptorSet &descriptor_set)
 		    Image::usage_to_layout(image_info.usage)});
 	}
 
+	// Write acceleration structures
+	for (const auto &acceleration_structure_info : m_acceleration_structure_writes[descriptor_set.index()])
+	{
+		VkWriteDescriptorSetAccelerationStructureKHR write_descriptor_set_as = {};
+
+		write_descriptor_set_as.sType                      = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+		write_descriptor_set_as.accelerationStructureCount = 1;
+		write_descriptor_set_as.pAccelerationStructures    = &acceleration_structure_info.handle->getHandle();
+
+		descriptor_as_infos.push_back(write_descriptor_set_as);
+	}
+
 	// Write descriptor
 	for (const auto &write : m_descriptor_writes[descriptor_set.index()])
 	{
 		write_descriptor_sets.push_back(VkWriteDescriptorSet{
 		    /*sType*/ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-		    /*pNext*/ nullptr,
+		    /*pNext*/ write.type == VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR ? descriptor_as_infos.data() + write.first_index : nullptr,
 		    /*dstSet*/ descriptor_set,
 		    /*dstBinding*/ write.binding,
 		    /*dstArrayElement*/ 0,
 		    /*descriptorCount*/ write.count,
 		    /*descriptorType*/ write.type,
-		    /*pImageInfo*/ is_buffer(write.type) ? nullptr : descriptor_image_infos.data() + write.first_index,
+		    /*pImageInfo*/ is_image(write.type) ? descriptor_image_infos.data() + write.first_index : nullptr,
 		    /*pBufferInfo*/ is_buffer(write.type) ? descriptor_buffer_infos.data() + write.first_index : nullptr,
 		    /*pTexelBufferView*/ nullptr});
 	}
@@ -284,6 +345,11 @@ const std::map<uint32_t, std::vector<DescriptorBinding::ImageToResolve>> &Descri
 	return m_image_to_resolves;
 }
 
+const std::map<uint32_t, std::vector<DescriptorBinding::AccelerationStructureToResolve>> &DescriptorBinding::getAccelerationStructures() const
+{
+	return m_acceleration_structure_to_resolves;
+}
+
 void ResolveInfo::resolve(const std::string &name, const Buffer &buffer)
 {
 	m_buffer_resolves[name] = {buffer};
@@ -292,6 +358,11 @@ void ResolveInfo::resolve(const std::string &name, const Buffer &buffer)
 void ResolveInfo::resolve(const std::string &name, const Image &image)
 {
 	m_image_resolves[name] = {image};
+}
+
+void ResolveInfo::resolve(const std::string &name, const AccelerationStructure &acceleration_structure)
+{
+	m_acceleration_structure_resolves[name] = {acceleration_structure};
 }
 
 void ResolveInfo::resolve(const std::string &name, const std::vector<BufferReference> &buffers)
@@ -310,6 +381,14 @@ void ResolveInfo::resolve(const std::string &name, const std::vector<ImageRefere
 	}
 }
 
+void ResolveInfo::resolve(const std::string &name, const std::vector<AccelerationStructureReference> &acceleration_structures)
+{
+	for (const auto &acceleration_structure : acceleration_structures)
+	{
+		m_acceleration_structure_resolves[name].push_back(acceleration_structure);
+	}
+}
+
 const std::unordered_map<std::string, std::vector<BufferReference>> &ResolveInfo::getBuffers() const
 {
 	return m_buffer_resolves;
@@ -318,5 +397,10 @@ const std::unordered_map<std::string, std::vector<BufferReference>> &ResolveInfo
 const std::unordered_map<std::string, std::vector<ImageReference>> &ResolveInfo::getImages() const
 {
 	return m_image_resolves;
+}
+
+const std::unordered_map<std::string, std::vector<AccelerationStructureReference>> &ResolveInfo::getAccelerationStructures() const
+{
+	return m_acceleration_structure_resolves;
 }
 }        // namespace Ilum

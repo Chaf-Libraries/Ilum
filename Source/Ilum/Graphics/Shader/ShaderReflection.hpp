@@ -80,6 +80,17 @@ struct ReflectionData
 		size_t hash() const;
 	};
 
+	struct AccelerationStructure
+	{
+		std::string        name       = "";
+		uint32_t           array_size = 0;
+		uint32_t           set        = 0;
+		uint32_t           binding    = 0;
+		VkShaderStageFlags stage      = 0;
+
+		size_t hash() const;
+	};
+
 	struct Constant
 	{
 		enum class Type
@@ -99,13 +110,14 @@ struct ReflectionData
 		uint32_t constant_id = 0;
 	};
 
-	VkShaderStageFlags           stage;
-	std::vector<Attribute>       attributes;
-	std::vector<InputAttachment> input_attachments;
-	std::vector<Image>           images;
-	std::vector<Buffer>          buffers;
-	std::vector<Constant>        constants;
-	std::unordered_set<uint32_t> sets;
+	VkShaderStageFlags                 stage;
+	std::vector<Attribute>             attributes;
+	std::vector<InputAttachment>       input_attachments;
+	std::vector<Image>                 images;
+	std::vector<Buffer>                buffers;
+	std::vector<AccelerationStructure> acceleration_structures;
+	std::vector<Constant>              constants;
+	std::unordered_set<uint32_t>       sets;
 
 	ReflectionData &operator+=(const ReflectionData &rhs);
 

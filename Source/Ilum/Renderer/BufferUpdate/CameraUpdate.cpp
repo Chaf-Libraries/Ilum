@@ -78,6 +78,8 @@ void CameraUpdate::run()
 		camera_data->position             = transform.world_transform[3];
 		camera_data->view_projection      = camera.view_projection;
 		camera_data->last_view_projection = camera.last_view_projection;
+		camera_data->view_inverse         = transform.world_transform;
+		camera_data->projection_inverse   = glm::inverse(camera.projection);
 
 		for (size_t i = 0; i < 6; i++)
 		{
@@ -104,6 +106,8 @@ void CameraUpdate::run()
 		camera_data->position             = transform.world_transform[3];
 		camera_data->view_projection      = camera.view_projection;
 		camera_data->last_view_projection = camera.last_view_projection;
+		camera_data->view_inverse         = transform.world_transform;
+		camera_data->projection_inverse   = glm::inverse(camera.projection);
 
 		for (size_t i = 0; i < 6; i++)
 		{

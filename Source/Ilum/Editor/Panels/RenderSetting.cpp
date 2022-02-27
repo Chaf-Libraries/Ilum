@@ -142,11 +142,12 @@ void RenderSetting::draw(float delta_time)
 		std::vector<float> cpu_times;
 		std::vector<float> gpu_times;
 
-		if (ImGui::BeginTable("CPU&GPU Time", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
+		if (ImGui::BeginTable("CPU&GPU Time", 4, ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders))
 		{
 			ImGui::TableSetupColumn("Pass");
 			ImGui::TableSetupColumn("CPU Time (ms)");
 			ImGui::TableSetupColumn("GPU Time (ms)");
+			ImGui::TableSetupColumn("Record Thread");
 			ImGui::TableHeadersRow();
 
 			for (auto &render_node : render_graph->getNodes())
@@ -162,6 +163,8 @@ void RenderSetting::draw(float delta_time)
 				ImGui::Text("%f", cpu_times.back());
 				ImGui::TableSetColumnIndex(2);
 				ImGui::Text("%f", gpu_times.back());
+				ImGui::TableSetColumnIndex(3);
+				ImGui::Text("%zu", render_node.pass->getThreadID());
 			}
 			ImGui::EndTable();
 		}

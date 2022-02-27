@@ -3,9 +3,8 @@
 
 struct PerInstanceData
 {
-	mat4 world_transform;
-	mat4 last_world_transform;
-	mat4 pre_transform;
+	mat4 transform;
+	mat4 last_transform;
 
 	vec3 bbox_min;
 	uint entity_id;
@@ -22,6 +21,8 @@ struct CameraData
 {
     mat4 view_projection;
 	mat4 last_view_projection;
+	mat4 view_inverse;
+	mat4 projection_inverse;
 	vec4 frustum[6];
 	vec3 position;
 };

@@ -6,6 +6,8 @@
 #include <Ilum/Scene/System.hpp>
 #include <Ilum/Timing/Timer.hpp>
 
+#include <Ilum/Graphics/Shader/Shader.hpp>
+
 int main()
 {
 	Ilum::Engine engine;

@@ -1,8 +1,8 @@
 #include "Utils/PCH.hpp"
 
-#include "PhysicalDevice.hpp"
 #include "Instance.hpp"
 #include "LogicalDevice.hpp"
+#include "PhysicalDevice.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
 
@@ -41,51 +41,50 @@ inline uint32_t score_physical_device(VkPhysicalDevice physical_device)
 
 	// Logging gpu
 	std::stringstream ss;
-	ss<<"\nFound physical device ["<<properties.deviceID<<"]\n";
-	ss<<"Name: "<<properties.deviceName<<"\n";
-	ss<<"Type: ";
-	switch (static_cast<int32_t>(properties.deviceType)) 
+	ss << "\nFound physical device [" << properties.deviceID << "]\n";
+	ss << "Name: " << properties.deviceName << "\n";
+	ss << "Type: ";
+	switch (static_cast<int32_t>(properties.deviceType))
 	{
-	case 1:
-		ss << "Integrated\n";
-		break;
-	case 2:
-		ss << "Discrete\n";
-		break;
-	case 3:
-		ss << "Virtual\n";
-		break;
-	case 4:
-		ss << "CPU\n";
-		break;
-	default:
-		ss << "Other " << properties.deviceType <<"\n";
+		case 1:
+			ss << "Integrated\n";
+			break;
+		case 2:
+			ss << "Discrete\n";
+			break;
+		case 3:
+			ss << "Virtual\n";
+			break;
+		case 4:
+			ss << "CPU\n";
+			break;
+		default:
+			ss << "Other " << properties.deviceType << "\n";
 	}
 
-		ss << "Vendor: ";
-	switch (properties.vendorID) 
+	ss << "Vendor: ";
+	switch (properties.vendorID)
 	{
-	case 0x8086:
-		ss << "Intel\n";
-		break;
-	case 0x10DE:
-		ss << "Nvidia\n";
-		break;
-	case 0x1002:
-		ss << "AMD\n";
-		break;
-	default:
-		ss << properties.vendorID << "\n";
+		case 0x8086:
+			ss << "Intel\n";
+			break;
+		case 0x10DE:
+			ss << "Nvidia\n";
+			break;
+		case 0x1002:
+			ss << "AMD\n";
+			break;
+		default:
+			ss << properties.vendorID << "\n";
 	}
 
 	uint32_t supportedVersion[3] = {
-		VK_VERSION_MAJOR(properties.apiVersion),
-		VK_VERSION_MINOR(properties.apiVersion),
-		VK_VERSION_PATCH(properties.apiVersion)
-	};
+	    VK_VERSION_MAJOR(properties.apiVersion),
+	    VK_VERSION_MINOR(properties.apiVersion),
+	    VK_VERSION_PATCH(properties.apiVersion)};
 
 	ss << "API Version: " << supportedVersion[0] << "." << supportedVersion[1] << "." << supportedVersion[2] << '\n';
-	
+
 	// Score discrete gpu
 	if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 	{
@@ -164,6 +163,13 @@ PhysicalDevice::PhysicalDevice()
 
 	// Get physical device memory properties
 	vkGetPhysicalDeviceMemoryProperties(m_handle, &m_memory_properties);
+
+	// Get raytracing pipeline properties
+	m_raytracing_pipeline_properties.sType        = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+	VkPhysicalDeviceProperties2 deviceProperties2 = {};
+	deviceProperties2.sType                       = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+	deviceProperties2.pNext                       = &m_raytracing_pipeline_properties;
+	vkGetPhysicalDeviceProperties2(m_handle, &deviceProperties2);
 }
 
 PhysicalDevice::operator const VkPhysicalDevice &() const
@@ -179,6 +185,11 @@ const VkPhysicalDevice &PhysicalDevice::getPhysicalDevice() const
 const VkPhysicalDeviceProperties &PhysicalDevice::getProperties() const
 {
 	return m_properties;
+}
+
+const VkPhysicalDeviceRayTracingPipelinePropertiesKHR &PhysicalDevice::getRayTracingPipelineProperties() const
+{
+	return m_raytracing_pipeline_properties;
 }
 
 const VkPhysicalDeviceFeatures &PhysicalDevice::getFeatures() const

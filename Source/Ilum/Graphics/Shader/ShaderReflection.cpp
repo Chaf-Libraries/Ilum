@@ -43,6 +43,17 @@ size_t ReflectionData::Buffer::hash() const
 	return seed;
 }
 
+size_t ReflectionData::AccelerationStructure::hash() const
+{
+	size_t seed = 0;
+	hash_combine(seed, name);
+	hash_combine(seed, array_size);
+	hash_combine(seed, set);
+	hash_combine(seed, binding);
+	hash_combine(seed, stage);
+	return seed;
+}
+
 ReflectionData &ReflectionData::operator+=(const ReflectionData &rhs)
 {
 	attributes.insert(attributes.end(), rhs.attributes.begin(), rhs.attributes.end());
@@ -75,10 +86,23 @@ ReflectionData &ReflectionData::operator+=(const ReflectionData &rhs)
 		}
 	}
 
-	
+	for (auto &acceleration_structure : rhs.acceleration_structures)
+	{
+		auto iter = std::find_if(acceleration_structures.begin(), acceleration_structures.end(), [acceleration_structure](const AccelerationStructure &as) { return acceleration_structure.binding == as.binding && acceleration_structure.set == as.set; });
+		if (iter == acceleration_structures.end())
+		{
+			acceleration_structures.push_back(acceleration_structure);
+		}
+		else
+		{
+			iter->stage |= acceleration_structure.stage;
+		}
+	}
+
 	std::for_each(rhs.input_attachments.begin(), rhs.input_attachments.end(), [this](const ReflectionData::InputAttachment &input) { sets.insert(input.set); });
 	std::for_each(rhs.images.begin(), rhs.images.end(), [this](const ReflectionData::Image &image) { sets.insert(image.set); });
 	std::for_each(rhs.buffers.begin(), rhs.buffers.end(), [this](const ReflectionData::Buffer &buffer) { sets.insert(buffer.set); });
+	std::for_each(rhs.acceleration_structures.begin(), rhs.acceleration_structures.end(), [this](const ReflectionData::AccelerationStructure &acceleration_structure) { sets.insert(acceleration_structure.set); });
 
 	return *this;
 }
@@ -98,6 +122,11 @@ size_t ReflectionData::hash() const
 	for (auto &buffer : buffers)
 	{
 		hash_combine(hash_val, buffer.hash());
+	}
+
+	for (auto &acceleration_structure : acceleration_structures)
+	{
+		hash_combine(hash_val, acceleration_structure.hash());
 	}
 
 	return hash_val;
@@ -128,6 +157,12 @@ inline void read_resource_decoration<spv::DecorationDescriptorSet, ReflectionDat
 }
 
 template <>
+inline void read_resource_decoration<spv::DecorationDescriptorSet, ReflectionData::AccelerationStructure>(const spirv_cross::Compiler &compiler, const spirv_cross::Resource &resource, ReflectionData::AccelerationStructure &descriptor)
+{
+	descriptor.set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
+}
+
+template <>
 inline void read_resource_decoration<spv::DecorationDescriptorSet, ReflectionData::InputAttachment>(const spirv_cross::Compiler &compiler, const spirv_cross::Resource &resource, ReflectionData::InputAttachment &descriptor)
 {
 	descriptor.set = compiler.get_decoration(resource.id, spv::DecorationDescriptorSet);
@@ -147,6 +182,12 @@ inline void read_resource_decoration<spv::DecorationBinding, ReflectionData::Ima
 
 template <>
 inline void read_resource_decoration<spv::DecorationBinding, ReflectionData::Buffer>(const spirv_cross::Compiler &compiler, const spirv_cross::Resource &resource, ReflectionData::Buffer &descriptor)
+{
+	descriptor.binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
+}
+
+template <>
+inline void read_resource_decoration<spv::DecorationBinding, ReflectionData::AccelerationStructure>(const spirv_cross::Compiler &compiler, const spirv_cross::Resource &resource, ReflectionData::AccelerationStructure &descriptor)
 {
 	descriptor.binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
 }
@@ -176,7 +217,7 @@ inline void read_resource_array_size(const spirv_cross::Compiler &compiler, cons
 {
 	const auto &spirv_type = compiler.get_type_from_variable(resource.id);
 
-	descriptor.bindless = spirv_type.array_size_literal.size() ? spirv_type.array_size_literal[0] : false;
+	descriptor.bindless   = spirv_type.array_size_literal.size() ? spirv_type.array_size_literal[0] : false;
 	descriptor.array_size = spirv_type.array.size() ? spirv_type.array[0] : 1;
 }
 
@@ -192,7 +233,14 @@ inline void read_resource_array_size(const spirv_cross::Compiler &compiler, cons
 {
 	const auto &spirv_type = compiler.get_type_from_variable(resource.id);
 
-	descriptor.bindless = spirv_type.array_size_literal.size() ? spirv_type.array_size_literal[0] : false;
+	descriptor.bindless   = spirv_type.array_size_literal.size() ? spirv_type.array_size_literal[0] : false;
+	descriptor.array_size = spirv_type.array.size() ? spirv_type.array[0] : 1;
+}
+
+inline void read_resource_array_size(const spirv_cross::Compiler &compiler, const spirv_cross::Resource &resource, ReflectionData::AccelerationStructure &descriptor)
+{
+	const auto &spirv_type = compiler.get_type_from_variable(resource.id);
+
 	descriptor.array_size = spirv_type.array.size() ? spirv_type.array[0] : 1;
 }
 
@@ -420,6 +468,28 @@ inline std::vector<ReflectionData::Buffer> read_shader_resource<ReflectionData::
 }
 
 template <>
+inline std::vector<ReflectionData::AccelerationStructure> read_shader_resource<ReflectionData::AccelerationStructure>(const spirv_cross::Compiler &compiler, VkShaderStageFlagBits stage)
+{
+	std::vector<ReflectionData::AccelerationStructure> acceleration_structures;
+
+	auto shader_acceleration_structures = compiler.get_shader_resources().acceleration_structures;
+	for (auto &resource : shader_acceleration_structures)
+	{
+		ReflectionData::AccelerationStructure acceleration_structure = {};
+		acceleration_structure.stage                                 = stage;
+		acceleration_structure.name                                  = resource.name;
+
+		read_resource_array_size(compiler, resource, acceleration_structure);
+		read_resource_decoration<spv::DecorationDescriptorSet>(compiler, resource, acceleration_structure);
+		read_resource_decoration<spv::DecorationBinding>(compiler, resource, acceleration_structure);
+
+		acceleration_structures.push_back(acceleration_structure);
+	}
+
+	return acceleration_structures;
+}
+
+template <>
 inline std::vector<ReflectionData::Constant> read_shader_resource<ReflectionData::Constant>(const spirv_cross::Compiler &compiler, VkShaderStageFlagBits stage)
 {
 	std::vector<ReflectionData::Constant> constants;
@@ -483,12 +553,13 @@ ReflectionData ShaderReflection::reflect(const std::vector<uint32_t> &spirv, VkS
 
 	compiler.set_common_options(opts);
 
-	data.stage             = stage;
-	data.attributes        = read_shader_resource<ReflectionData::Attribute>(compiler, stage);
-	data.input_attachments = read_shader_resource<ReflectionData::InputAttachment>(compiler, stage);
-	data.images            = read_shader_resource<ReflectionData::Image>(compiler, stage);
-	data.buffers           = read_shader_resource<ReflectionData::Buffer>(compiler, stage);
-	data.constants         = read_shader_resource<ReflectionData::Constant>(compiler, stage);
+	data.stage                   = stage;
+	data.attributes              = read_shader_resource<ReflectionData::Attribute>(compiler, stage);
+	data.input_attachments       = read_shader_resource<ReflectionData::InputAttachment>(compiler, stage);
+	data.images                  = read_shader_resource<ReflectionData::Image>(compiler, stage);
+	data.buffers                 = read_shader_resource<ReflectionData::Buffer>(compiler, stage);
+	data.acceleration_structures = read_shader_resource<ReflectionData::AccelerationStructure>(compiler, stage);
+	data.constants               = read_shader_resource<ReflectionData::Constant>(compiler, stage);
 
 	std::for_each(data.input_attachments.begin(), data.input_attachments.end(), [&data](const ReflectionData::InputAttachment &input) { data.sets.insert(input.set); });
 	std::for_each(data.images.begin(), data.images.end(), [&data](const ReflectionData::Image &image) { data.sets.insert(image.set); });

@@ -10,9 +10,8 @@ namespace Ilum
 {
 struct PerInstanceData
 {
-	glm::mat4 world_transform      = {};
-	glm::mat4 last_world_transform = {};
-	glm::mat4 pre_transform        = {};
+	glm::mat4 transform      = {};
+	glm::mat4 last_transform = {};
 
 	glm::vec3 bbox_min  = {};
 	uint32_t  entity_id = 0;
@@ -91,6 +90,8 @@ struct CameraData
 {
 	glm::mat4 view_projection;
 	glm::mat4 last_view_projection;
+	glm::mat4 view_inverse;
+	glm::mat4 projection_inverse;
 	glm::vec4 frustum[6];
 	alignas(16) glm::vec3 position;
 };
@@ -98,15 +99,74 @@ struct CameraData
 struct RenderBuffer
 {
 	// Per instance data buffer
+	/*
+	struct PerInstanceData
+{
+	mat4 world_transform;
+	mat4 last_world_transform;
+	mat4 pre_transform;
+
+	vec3 bbox_min;
+	uint entity_id;
+
+	vec3 bbox_max;
+	uint material_id;
+
+	uint vertex_offset;
+	uint index_offset;
+	uint index_count;
+};
+	*/
 	Buffer Instance_Buffer = Buffer(1024 * sizeof(PerInstanceData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	// Per material buffer
+	/*
+	struct MaterialData
+{
+	vec4 base_color;
+
+	vec3 emissive_color;
+	float metallic_factor;
+
+	float roughness_factor;
+	float emissive_intensity;
+	uint albedo_map;
+	uint normal_map;
+
+	uint metallic_map;
+	uint roughness_map;
+	uint emissive_map;
+	uint ao_map;
+
+	uint displacement_map;
+	float displacement_height;
+};
+	*/
 	Buffer Material_Buffer = Buffer(1024 * sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	// Instance visibility buffer
 	Buffer Instance_Visibility_Buffer = Buffer(1024 * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
 	// Per meshlet data buffer
+	/*
+	struct PerMeshletData
+{
+	// Vertex
+	uint instance_id;
+	uint vertex_offset;
+	uint index_offset;
+	uint index_count;
+
+	vec3 center;
+	float radius;
+
+	vec3 cone_apex;
+	float cone_cutoff;
+
+	vec3 cone_axis;
+};
+
+	*/
 	Buffer Meshlet_Buffer = Buffer(1024 * sizeof(PerMeshletData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	// Meshlet - index instance from meshlet
@@ -131,9 +191,36 @@ struct RenderBuffer
 	Buffer Count_Buffer = Buffer(sizeof(uint32_t) * 7, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
 
 	// Culling data buffer
+	/*
+	struct CullingData
+{
+	mat4 view;
+
+    mat4 last_view;
+
+    float P00;
+    float P11;
+    float znear;
+    float zfar;
+
+    float zbuffer_width;
+    float zbuffer_height;
+    uint meshlet_count;
+    uint instance_count;
+};
+	*/
 	Buffer Culling_Buffer = Buffer(sizeof(CullingData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	// Camera buffer
+	/*
+	struct CameraData 
+{
+    mat4 view_projection;
+	mat4 last_view_projection;
+	vec4 frustum[6];
+	vec3 position;
+};
+	*/
 	Buffer Camera_Buffer = Buffer(sizeof(CameraData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	// Static Vertex Buffer for meshlet rendering
@@ -156,6 +243,12 @@ struct RenderBuffer
 
 	// Spot Light Buffer
 	Buffer Spot_Light_Buffer = Buffer(sizeof(cmpt::SpotLight) * 10, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+	//RTX Instance Buffer
+	Buffer RTXInstance_Buffer = Buffer(1024 * sizeof(VkAccelerationStructureInstanceKHR), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+	// Top Level Acceleration Structure
+	AccelerationStructure Top_Level_AS = AccelerationStructure(VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR);
 };
 
 struct RenderStats

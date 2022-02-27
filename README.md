@@ -23,35 +23,58 @@ cmake ..
 cmake --build ./ --target ALL_BUILD --config Release
 ```
 
+## Vulkan Requirement
+
+* Instance Extension
+  * `VK_KHR_surface`
+  * `VK_KHR_win32_surface`
+  * `VK_EXT_debug_report`
+  * `VK_EXT_debug_utils`
+* Validation Layers
+  * `VK_LAYER_KHRONOS_validation`
+* Device Extension
+  * `VK_KHR_swapchain`
+  * `VK_KHR_acceleration_structure`
+  * `VK_KHR_ray_tracing_pipeline`
+
 ## Feature
 
 * Architecture
   * Deferred Shading Pipeline
   * Render Graph
+    * Customize Render Pass (Graphics, Compute, Ray Tracing)
+    * Auto Resource Transition
+    * Render Passes Visualization
+    * Render Pass Setting
   * Entity Component System
   * Asynchronous Resource Loading
   * Scene Loading/Saving
-* Rendering Optimization
+* Rendering Feature For Performance
   * Multi-Draw Indirect
   * Bindless Texture
   * Vertex/Index Buffer Packing
   * GPU Frustum Culling
   * GPU Back-Face Cone Culling
   * GPU Hierarchy Z Buffer Occlusion Culling
-* Curve Modeling
-  * Bézier Curve
-  * Cubic Spline Curve
-  * B Spline Curve
-  * Rational Bézier Curve
-  * Rational B Spline Curve
-* Tensor Product Surface Modeling
-  * Bézier Surface
-  * B Spline Surface
-  * Rational Bézier Surface
-  * Rational B Spline Surface
-* Rasterization Shading
-  * Cook-Torrance BRDF
-  * Kulla-Conty Approximation
+* Geometry
+  * Curve Modeling
+    * Bézier Curve
+    * Cubic Spline Curve
+    * B Spline Curve
+    * Rational Bézier Curve
+    * Rational B Spline Curve
+
+  * Tensor Product Surface Modeling
+    * Bézier Surface
+    * B Spline Surface
+    * Rational Bézier Surface
+    * Rational B Spline Surface
+
+* Lighting Model
+  * PBR
+    * Cook-Torrance BRDF
+    * Kulla-Conty Approximation
+
 * Post Processing
   * Temporal Anti-Alias
   * Blooming
@@ -59,31 +82,39 @@ cmake --build ./ --target ALL_BUILD --config Release
 
 ## Feature
 
-### Deferred Physical Based Shading
+### Deferred Shading
+
+#### Cook-Torrance BRDF
 
 ![image-20211120113603895](README/image-20211120113603895.png)
+
+#### Kulla-Conty Mutli-Bounce Approximation
+
+![image-20211231141039926](README/image-20211231141039926.png)
 
 ### Render Passes Visualization
 
 ![image-20211120113259237](README/image-20211120113259237.png)
 
-### Meshlet Culling
+### Performance
+
+#### Meshlet
 
 ![image-20211130105935862](README/image-20211130105935862.png)
 
-#### Kulla Conty Approximation
+#### Massive Scene Rendering
 
-![image-20211231141039926](README/image-20211231141039926.png)
+![performance](README/performance.png)
 
-#### Curve Modeling
+### Curve Modeling
 
 ![image-20220108150839809](README/image-20220108150839809.png)
 
-## Surface Modeling
+### Surface Modeling
 
 ![image-20220108151149909](README/image-20220108151149909.png)
 
-#### Temporal Anti-Alias
+### Temporal Anti-Alias
 
 ![image-20220111121723309](README/image-20220111121723309.png)
 

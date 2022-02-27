@@ -217,7 +217,7 @@ void ImageLoader::loadImage(Image &image, const Bitmap &bitmap, bool mipmaps)
 
 	command_buffer.transferLayout(image, VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
 	command_buffer.end();
-	command_buffer.submitIdle();
+	command_buffer.submitIdle(3);
 }
 
 void ImageLoader::loadCubemap(Image &image, const Cubemap &cubemap)

@@ -3,6 +3,8 @@
 #include "Geometry/BoundingBox.hpp"
 #include "Geometry/Vertex.hpp"
 
+#include "Graphics/RTX/AccelerationStructure.hpp"
+
 #include "Material/PBR.h"
 
 namespace Ilum
@@ -28,6 +30,8 @@ struct SubMesh
 	material::PBRMaterial material;
 
 	geometry::BoundingBox bounding_box;
+
+	AccelerationStructure bottom_level_as = AccelerationStructure(VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR);
 
 	SubMesh() = default;
 

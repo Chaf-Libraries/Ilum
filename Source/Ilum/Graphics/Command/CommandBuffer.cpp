@@ -439,10 +439,10 @@ void CommandBuffer::transferLayout(const std::vector<ImageReference> &images, Vk
 	vkCmdPipelineBarrier(*this, Image::usage_to_stage(old_usage), Image::usage_to_stage(new_usage), 0, 0, nullptr, 0, nullptr, static_cast<uint32_t>(barriers.size()), barriers.data());
 }
 
-void CommandBuffer::submitIdle()
+void CommandBuffer::submitIdle(uint32_t index)
 {
 	std::lock_guard<std::mutex> lock(m_mutex);
-	auto *                      queue = GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool.getUsage(), 1);
+	auto *                      queue = GraphicsContext::instance()->getQueueSystem().acquire(m_command_pool.getUsage(), index);
 	queue->submitIdle(*this);
 }
 

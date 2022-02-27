@@ -1,6 +1,7 @@
 #include "Buffer.h"
 
 #include "Graphics/GraphicsContext.hpp"
+#include "Graphics/Vulkan/Vulkan.hpp"
 
 #include "Device/LogicalDevice.hpp"
 
@@ -9,6 +10,11 @@ namespace Ilum
 Buffer::Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memory_usage) :
     m_size(size)
 {
+	if (size == 0)
+	{
+		return;
+	}
+
 	VkBufferCreateInfo buffer_create_info = {};
 	buffer_create_info.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	buffer_create_info.size               = size;
@@ -18,8 +24,20 @@ Buffer::Buffer(VkDeviceSize size, VkBufferUsageFlags usage, VmaMemoryUsage memor
 	VmaAllocationCreateInfo allocation_create_info = {};
 	allocation_create_info.usage                   = memory_usage;
 
-	VmaAllocationInfo allocation_info;
-	vmaCreateBuffer(GraphicsContext::instance()->getLogicalDevice().getAllocator(), &buffer_create_info, &allocation_create_info, &m_handle, &m_allocation, &allocation_info);
+	VmaAllocationInfo allocation_info = {};
+	if (!VK_CHECK(vmaCreateBuffer(GraphicsContext::instance()->getLogicalDevice().getAllocator(), &buffer_create_info, &allocation_create_info, &m_handle, &m_allocation, &allocation_info)))
+	{
+		return;
+	}
+
+	if (usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
+	{
+		VkBufferDeviceAddressInfoKHR buffer_device_address_info = {};
+		buffer_device_address_info.sType                        = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+		buffer_device_address_info.buffer                       = m_handle;
+
+		m_device_address = vkGetBufferDeviceAddress(GraphicsContext::instance()->getLogicalDevice(), &buffer_device_address_info);
+	}
 }
 
 Buffer::~Buffer()
@@ -31,7 +49,8 @@ Buffer::Buffer(Buffer &&other) :
     m_allocation(other.m_allocation),
     m_handle(other.m_handle),
     m_mapping(other.m_mapping),
-    m_size(other.m_size)
+    m_size(other.m_size),
+    m_device_address(other.m_device_address)
 {
 	other.m_allocation = VK_NULL_HANDLE;
 	other.m_handle     = VK_NULL_HANDLE;
@@ -45,6 +64,7 @@ Buffer &Buffer::operator=(Buffer &&other)
 	m_handle     = other.m_handle;
 	m_mapping    = other.m_mapping;
 	m_size       = other.m_size;
+	m_device_address = other.m_device_address;
 
 	other.m_allocation = VK_NULL_HANDLE;
 	other.m_handle     = VK_NULL_HANDLE;
@@ -65,6 +85,11 @@ Buffer::operator const VkBuffer &() const
 VkDeviceSize Buffer::getSize() const
 {
 	return m_size;
+}
+
+uint64_t Buffer::getDeviceAddress() const
+{
+	return m_device_address;
 }
 
 bool Buffer::isMapped() const

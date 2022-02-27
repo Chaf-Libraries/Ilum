@@ -53,6 +53,7 @@ DescriptorLayout::DescriptorLayout(const Shader &shader, const uint32_t set_inde
 {
 	auto &buffers           = shader.getReflectionData().buffers;
 	auto &images            = shader.getReflectionData().images;
+	auto &acceleration_structures = shader.getReflectionData().acceleration_structures;
 	auto &input_attachments = shader.getReflectionData().input_attachments;
 	bool  bindless          = false;
 
@@ -99,6 +100,26 @@ DescriptorLayout::DescriptorLayout(const Shader &shader, const uint32_t set_inde
 
 		bindless |= image.bindless;
 		descriptor_binding_flags.push_back(image.bindless ? VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT : 0);
+	}
+
+	// Acceleration Structure descriptor
+	for (const auto& acceleration_structure : acceleration_structures)
+	{
+		if (acceleration_structure.set != set_index)
+		{
+			continue;
+		}
+
+		m_binding_flags.push_back(0);
+
+		VkDescriptorSetLayoutBinding layout_binding = {};
+		layout_binding.binding                      = acceleration_structure.binding;
+		layout_binding.descriptorType               = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+		layout_binding.stageFlags                   = acceleration_structure.stage;
+		layout_binding.descriptorCount              = acceleration_structure.array_size;
+		m_bindings.push_back(layout_binding);
+
+		descriptor_binding_flags.push_back(0);
 	}
 
 	// Input attachment descriptor

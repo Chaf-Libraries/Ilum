@@ -16,7 +16,7 @@ namespace Ilum::sym
 void GeometryUpdate::run()
 {
 	GraphicsContext::instance()->getProfiler().beginSample("Geometry Update");
-	auto &resource_cache       = Renderer::instance()->getResourceCache();
+	auto &resource_cache = Renderer::instance()->getResourceCache();
 
 	// Update static mesh only when it needed
 	auto &static_vertex_buffer = Renderer::instance()->Render_Buffer.Static_Vertex_Buffer;
@@ -30,8 +30,8 @@ void GeometryUpdate::run()
 		GraphicsContext::instance()->getQueueSystem().waitAll();
 
 		// Resize buffer
-		static_vertex_buffer = Buffer(resource_cache.getVerticesCount() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-		static_index_buffer  = Buffer(resource_cache.getIndicesCount() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+		static_vertex_buffer = Buffer(resource_cache.getVerticesCount() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_GPU_ONLY);
+		static_index_buffer  = Buffer(resource_cache.getIndicesCount() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_GPU_ONLY);
 
 		if (static_vertex_buffer.getSize() == 0 || static_index_buffer.getSize() == 0)
 		{
@@ -63,6 +63,38 @@ void GeometryUpdate::run()
 		command_buffer.copyBuffer(BufferInfo{staging_index_buffer}, BufferInfo{static_index_buffer}, static_index_buffer.getSize());
 		command_buffer.end();
 		command_buffer.submitIdle();
+
+		// Update BLAS
+		for (auto &[name, index] : resource_cache.getModels())
+		{
+			auto &model = resource_cache.loadModel(name);
+
+			for (auto &submesh : model.get().submeshes)
+			{
+				VkAccelerationStructureGeometryKHR geometry_info             = {};
+				geometry_info.sType                                          = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+				geometry_info.flags                                          = VK_GEOMETRY_OPAQUE_BIT_KHR;
+				geometry_info.geometryType                                   = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
+				geometry_info.geometry.triangles.sType                       = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
+				geometry_info.geometry.triangles.vertexFormat                = VK_FORMAT_R32G32B32_SFLOAT;
+				geometry_info.geometry.triangles.vertexData.deviceAddress    = static_vertex_buffer.getDeviceAddress();
+				geometry_info.geometry.triangles.maxVertex                   = submesh.vertices_count;
+				geometry_info.geometry.triangles.vertexStride                = sizeof(Vertex);
+				geometry_info.geometry.triangles.indexType                   = VK_INDEX_TYPE_UINT32;
+				geometry_info.geometry.triangles.indexData.deviceAddress     = static_index_buffer.getDeviceAddress();
+				geometry_info.geometry.triangles.transformData.deviceAddress = 0;
+				geometry_info.geometry.triangles.transformData.hostAddress   = nullptr;
+
+				VkAccelerationStructureBuildRangeInfoKHR range_info = {};
+
+				range_info.primitiveCount  = submesh.indices_count / 3;
+				range_info.primitiveOffset = (model.get().indices_offset + submesh.indices_offset) * sizeof(uint32_t);
+				range_info.firstVertex     = model.get().vertices_offset + submesh.vertices_offset;
+				range_info.transformOffset = 0;
+
+				submesh.bottom_level_as.build(geometry_info, range_info);
+			}
+		}
 	}
 
 	// Update dynamic mesh

@@ -11,6 +11,7 @@ const std::vector<const char *> LogicalDevice::extensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
     VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+    VK_KHR_RAY_QUERY_EXTENSION_NAME,
     VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
     VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME};
 
@@ -216,9 +217,6 @@ LogicalDevice::LogicalDevice()
 	ENABLE_DEVICE_FEATURE(fillModeNonSolid);
 	ENABLE_DEVICE_FEATURE(wideLines);
 	ENABLE_DEVICE_FEATURE(samplerAnisotropy);
-	ENABLE_DEVICE_FEATURE(textureCompressionBC);
-	ENABLE_DEVICE_FEATURE(textureCompressionASTC_LDR);
-	ENABLE_DEVICE_FEATURE(textureCompressionETC2);
 	ENABLE_DEVICE_FEATURE(vertexPipelineStoresAndAtomics);
 	ENABLE_DEVICE_FEATURE(fragmentStoresAndAtomics);
 	ENABLE_DEVICE_FEATURE(shaderStorageImageExtendedFormats);
@@ -231,14 +229,26 @@ LogicalDevice::LogicalDevice()
 	ENABLE_DEVICE_FEATURE(multiDrawIndirect);
 	ENABLE_DEVICE_FEATURE(drawIndirectFirstInstance);
 
-	// Enable draw indirect count
-	VkPhysicalDeviceVulkan12Features vulkan12_features = {};
-	vulkan12_features.sType                            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-	vulkan12_features.drawIndirectCount                = VK_TRUE;
+	// Enable Ray Tracing Extension
+	VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_feature = {};
+	acceleration_structure_feature.sType                                            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+	acceleration_structure_feature.accelerationStructure                            = VK_TRUE;
+
+	VkPhysicalDeviceRayTracingPipelineFeaturesKHR raty_tracing_pipeline_feature = {};
+	raty_tracing_pipeline_feature.sType                                         = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+	raty_tracing_pipeline_feature.rayTracingPipeline                            = VK_TRUE;
+	raty_tracing_pipeline_feature.pNext                                         = &acceleration_structure_feature;
+
+	// Enable Vulkan 1.2 Features
+	VkPhysicalDeviceVulkan12Features vulkan12_features          = {};
+	vulkan12_features.sType                                     = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+	vulkan12_features.drawIndirectCount                         = VK_TRUE;
 	vulkan12_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
 	vulkan12_features.runtimeDescriptorArray                    = VK_TRUE;
 	vulkan12_features.descriptorBindingVariableDescriptorCount  = VK_TRUE;
 	vulkan12_features.descriptorBindingPartiallyBound           = VK_TRUE;
+	vulkan12_features.bufferDeviceAddress                       = VK_TRUE;
+	vulkan12_features.pNext                                     = &raty_tracing_pipeline_feature;
 
 	// Get support extensions
 	auto support_extensions = get_device_extension_support(GraphicsContext::instance()->getPhysicalDevice(), extensions);
@@ -294,6 +304,7 @@ LogicalDevice::LogicalDevice()
 	allocator_info.device                 = m_handle;
 	allocator_info.instance               = GraphicsContext::instance()->getInstance();
 	allocator_info.vulkanApiVersion       = VK_API_VERSION_1_2;
+	allocator_info.flags                  = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
 	if (!VK_CHECK(vmaCreateAllocator(&allocator_info, &m_allocator)))
 	{
 		VK_ERROR("Failed to create vulkan memory allocator");

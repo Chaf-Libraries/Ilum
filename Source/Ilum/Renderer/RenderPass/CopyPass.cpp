@@ -16,6 +16,7 @@ void CopyPass::setupPipeline(PipelineState &state)
 	state.addDependency("taa_result", VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 	state.addDependency("gbuffer - linear_depth", VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 	state.addDependency("depth - buffer", VK_IMAGE_USAGE_SAMPLED_BIT);
+	state.addDependency("Render Result", VK_IMAGE_USAGE_SAMPLED_BIT);
 }
 
 void CopyPass::resolveResources(ResolveState &resolve)

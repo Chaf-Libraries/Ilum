@@ -10,9 +10,12 @@ namespace Ilum
 VkDescriptorSetLayout DescriptorCache::getDescriptorLayout(const Shader &shader, uint32_t set_index)
 {
 	size_t hash = 0;
-	for (auto& [stage, shader_module] : shader.getShaders())
+	for (auto &[stage, shader_modules] : shader.getShaders())
 	{
-		hash_combine(hash, shader_module);
+		for (auto& shader_module : shader_modules)
+		{
+			hash_combine(hash, shader_module);
+		}
 	}
 	hash_combine(hash, set_index);
 
