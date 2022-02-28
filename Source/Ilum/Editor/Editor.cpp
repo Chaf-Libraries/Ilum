@@ -175,7 +175,7 @@ void Editor::onTick(float delta_time)
 				if (ImGui::MenuItem("Plane"))
 				{
 					auto entity                                     = Scene::instance()->createEntity("Plane");
-					entity.addComponent<cmpt::MeshletRenderer>().model = std::string(PROJECT_SOURCE_DIR) + "Asset/Model/plane.obj";
+					entity.addComponent<cmpt::StaticMeshRenderer>().model = std::string(PROJECT_SOURCE_DIR) + "Asset/Model/plane.obj";
 					Renderer::instance()->getResourceCache().loadModelAsync(std::string(PROJECT_SOURCE_DIR) + "Asset/Model/plane.obj");
 					m_select_entity = entity;
 				}

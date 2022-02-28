@@ -118,16 +118,16 @@ void serialize_component<cmpt::Hierarchy>(YAML::Emitter &emitter, const entt::en
 }
 
 template <>
-void serialize_component<cmpt::MeshletRenderer>(YAML::Emitter &emitter, const entt::entity entity)
+void serialize_component<cmpt::StaticMeshRenderer>(YAML::Emitter &emitter, const entt::entity entity)
 {
-	if (!Entity(entity).hasComponent<cmpt::MeshletRenderer>())
+	if (!Entity(entity).hasComponent<cmpt::StaticMeshRenderer>())
 	{
 		return;
 	}
 
-	auto &mesh_renderer = Entity(entity).getComponent<cmpt::MeshletRenderer>();
+	auto &mesh_renderer = Entity(entity).getComponent<cmpt::StaticMeshRenderer>();
 
-	emitter << YAML::Key << typeid(cmpt::MeshletRenderer).name();
+	emitter << YAML::Key << typeid(cmpt::StaticMeshRenderer).name();
 	emitter << YAML::BeginMap;
 	emitter << YAML::Key << "model" << YAML::Value << FileSystem::getRelativePath(mesh_renderer.model);
 	emitter << YAML::Key << "materials" << YAML::Value;
@@ -252,7 +252,7 @@ void serialize_entity(YAML::Emitter &emitter, const entt::entity entity)
 	serialize_component<cmpt::Tag>(emitter, entity);
 	serialize_component<cmpt::Transform>(emitter, entity);
 	serialize_component<cmpt::Hierarchy>(emitter, entity);
-	serialize_component<cmpt::MeshletRenderer>(emitter, entity);
+	serialize_component<cmpt::StaticMeshRenderer>(emitter, entity);
 	serialize_component<cmpt::DirectionalLight>(emitter, entity);
 	serialize_component<cmpt::PointLight>(emitter, entity);
 	serialize_component<cmpt::SpotLight>(emitter, entity);
@@ -303,7 +303,7 @@ void deserialize_material(Entity entity, const YAML::Node &data)
 template <>
 void deserialize_material<material::PBRMaterial>(Entity entity, const YAML::Node &data)
 {
-	auto *material                = static_cast<material::PBRMaterial *>(entity.getComponent<cmpt::MeshletRenderer>().materials.emplace_back(createScope<material::PBRMaterial>()).get());
+	auto *material                = static_cast<material::PBRMaterial *>(entity.getComponent<cmpt::StaticMeshRenderer>().materials.emplace_back(createScope<material::PBRMaterial>()).get());
 	material->base_color          = data["base_color"].as<glm::vec4>();
 	material->emissive_color      = data["emissive_color"].as<glm::vec3>();
 	material->emissive_intensity  = data["emissive_intensity"].as<float>();
@@ -336,14 +336,14 @@ void deserialize_material(Entity entity, const YAML::Node &data)
 }
 
 template <>
-void deserialize_component<cmpt::MeshletRenderer>(Entity entity, const YAML::Node &data)
+void deserialize_component<cmpt::StaticMeshRenderer>(Entity entity, const YAML::Node &data)
 {
 	if (!data)
 	{
 		return;
 	}
 
-	auto &mesh_renderer = entity.addComponent<cmpt::MeshletRenderer>();
+	auto &mesh_renderer = entity.addComponent<cmpt::StaticMeshRenderer>();
 	mesh_renderer.model = data["model"].as<std::string>();
 	Renderer::instance()->getResourceCache().loadModelAsync(mesh_renderer.model);
 	for (auto material : data["materials"])
@@ -439,7 +439,7 @@ entt::entity deserialize_entity(const YAML::Node &data)
 	deserialize_component<cmpt::Tag>(entity, data[typeid(cmpt::Tag).name()]);
 	deserialize_component<cmpt::Transform>(entity, data[typeid(cmpt::Transform).name()]);
 	deserialize_component<cmpt::Hierarchy>(entity, data[typeid(cmpt::Hierarchy).name()]);
-	deserialize_component<cmpt::MeshletRenderer>(entity, data[typeid(cmpt::MeshletRenderer).name()]);
+	deserialize_component<cmpt::StaticMeshRenderer>(entity, data[typeid(cmpt::StaticMeshRenderer).name()]);
 	deserialize_component<cmpt::DirectionalLight>(entity, data[typeid(cmpt::DirectionalLight).name()]);
 	deserialize_component<cmpt::SpotLight>(entity, data[typeid(cmpt::SpotLight).name()]);
 	deserialize_component<cmpt::PointLight>(entity, data[typeid(cmpt::PointLight).name()]);

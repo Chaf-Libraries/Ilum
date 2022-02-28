@@ -25,7 +25,7 @@ void GeometryUpdate::run()
 	if (resource_cache.getVerticesCount() * sizeof(Vertex) != static_vertex_buffer.getSize() ||
 	    resource_cache.getIndicesCount() * sizeof(uint32_t) != static_index_buffer.getSize())
 	{
-		cmpt::MeshletRenderer::update = true;
+		cmpt::StaticMeshRenderer::update = true;
 
 		GraphicsContext::instance()->getQueueSystem().waitAll();
 
@@ -98,9 +98,9 @@ void GeometryUpdate::run()
 	}
 
 	// Update dynamic mesh
-	auto mesh_view = Scene::instance()->getRegistry().view<cmpt::MeshRenderer>();
+	auto mesh_view = Scene::instance()->getRegistry().view<cmpt::DynamicMeshRenderer>();
 	tbb::parallel_for_each(mesh_view.begin(), mesh_view.end(), [](entt::entity entity) {
-		auto &mesh_renderer = Entity(entity).getComponent<cmpt::MeshRenderer>();
+		auto &mesh_renderer = Entity(entity).getComponent<cmpt::DynamicMeshRenderer>();
 		if (mesh_renderer.vertices.size() * sizeof(Vertex) != mesh_renderer.vertex_buffer.getSize())
 		{
 			GraphicsContext::instance()->getQueueSystem().waitAll();

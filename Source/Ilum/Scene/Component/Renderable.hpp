@@ -22,7 +22,7 @@ struct Renderable
 };
 
 // Meshlet Renderer only for static external mesh
-struct MeshletRenderer : public Renderable
+struct StaticMeshRenderer : public Renderable
 {
 	std::string model;
 
@@ -37,8 +37,8 @@ enum class MeshType
 	Plane,
 };
 
-// Dynamic Mesh use MeshRenderer, set as default texture
-struct MeshRenderer : public Renderable
+// Dynamic Mesh use DynamicMeshRenderer, set as default texture
+struct DynamicMeshRenderer : public Renderable
 {
 	MeshType type = MeshType::None;
 

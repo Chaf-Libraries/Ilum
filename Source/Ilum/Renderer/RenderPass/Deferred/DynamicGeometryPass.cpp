@@ -98,7 +98,7 @@ void DynamicGeometryPass::render(RenderPassState &state)
 {
 	auto &cmd_buffer = state.command_buffer;
 
-	const auto group = Scene::instance()->getRegistry().group<cmpt::MeshRenderer>(entt::get<cmpt::Transform, cmpt::Tag>);
+	const auto group = Scene::instance()->getRegistry().group<cmpt::DynamicMeshRenderer>(entt::get<cmpt::Transform, cmpt::Tag>);
 
 	if (group.empty())
 	{
@@ -135,7 +135,7 @@ void DynamicGeometryPass::render(RenderPassState &state)
 
 	uint32_t instance_id = Renderer::instance()->Render_Stats.static_mesh_count.instance_count;
 
-	group.each([&cmd_buffer, &instance_id, state](const entt::entity &entity, const cmpt::MeshRenderer &mesh_renderer, const cmpt::Transform &transform, const cmpt::Tag &tag) {
+	group.each([&cmd_buffer, &instance_id, state](const entt::entity &entity, const cmpt::DynamicMeshRenderer &mesh_renderer, const cmpt::Transform &transform, const cmpt::Tag &tag) {
 		if (mesh_renderer.vertex_buffer && mesh_renderer.index_buffer)
 		{
 			Renderer::instance()->Render_Stats.dynamic_mesh_count.instance_count++;

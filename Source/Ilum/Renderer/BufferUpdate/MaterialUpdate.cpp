@@ -22,7 +22,7 @@ void MaterialUpdate::run()
 
 	if (Material::update)
 	{
-		auto meshlet_view = Scene::instance()->getRegistry().view<cmpt::MeshletRenderer>();
+		auto meshlet_view = Scene::instance()->getRegistry().view<cmpt::StaticMeshRenderer>();
 
 		// Collect instance data
 		std::vector<size_t> material_offset(meshlet_view.size());
@@ -31,7 +31,7 @@ void MaterialUpdate::run()
 		for (size_t i = 0; i < meshlet_view.size(); i++)
 		{
 			material_offset[i]     = material_count;
-			auto &meshlet_renderer = Entity(meshlet_view[i]).getComponent<cmpt::MeshletRenderer>();
+			auto &meshlet_renderer = Entity(meshlet_view[i]).getComponent<cmpt::StaticMeshRenderer>();
 			material_count += meshlet_renderer.materials.size();
 		}
 
@@ -49,7 +49,7 @@ void MaterialUpdate::run()
 			for (size_t i = r.begin(); i != r.end(); i++)
 			{
 				auto        entity           = Entity(meshlet_view[i]);
-				auto &meshlet_renderer = entity.getComponent<cmpt::MeshletRenderer>();
+				auto &meshlet_renderer = entity.getComponent<cmpt::StaticMeshRenderer>();
 
 				for (uint32_t material_id = 0; material_id < meshlet_renderer.materials.size(); material_id++)
 				{

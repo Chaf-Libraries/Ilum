@@ -122,10 +122,10 @@ inline void draw_model_asset(const Image &image, float height, float space)
 		{
 			if (ImGui::MenuItem("Delete"))
 			{
-				auto view = Scene::instance()->getRegistry().view<cmpt::MeshletRenderer>();
+				auto view = Scene::instance()->getRegistry().view<cmpt::StaticMeshRenderer>();
 				for (auto &entity : view)
 				{
-					auto &mesh_renderer = view.get<cmpt::MeshletRenderer>(entity);
+					auto &mesh_renderer = view.get<cmpt::StaticMeshRenderer>(entity);
 				}
 				Renderer::instance()->getResourceCache().removeModel(name);
 			}

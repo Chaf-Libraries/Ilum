@@ -359,10 +359,10 @@ inline void draw_component<cmpt::Hierarchy>(Entity entity)
 }
 
 template <>
-inline void draw_component<cmpt::MeshletRenderer>(Entity entity)
+inline void draw_component<cmpt::StaticMeshRenderer>(Entity entity)
 {
-	draw_component<cmpt::MeshletRenderer>(
-	    "MeshletRenderer", entity, [](cmpt::MeshletRenderer &component) {
+	draw_component<cmpt::StaticMeshRenderer>(
+	    "StaticMeshRenderer", entity, [](cmpt::StaticMeshRenderer &component) {
 		    ImGui::Text("Model: ");
 		    ImGui::SameLine();
 		    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.f, 0.f));
@@ -370,7 +370,7 @@ inline void draw_component<cmpt::MeshletRenderer>(Entity entity)
 		    {
 			    component.model = "";
 			    component.materials.clear();
-			    cmpt::MeshletRenderer::update = true;
+			    cmpt::StaticMeshRenderer::update = true;
 		    }
 		    ImGui::PopStyleVar();
 		    if (ImGui::BeginDragDropTarget())
@@ -381,7 +381,7 @@ inline void draw_component<cmpt::MeshletRenderer>(Entity entity)
 				    std::string new_model = *static_cast<std::string *>(pay_load->Data);
 				    if (component.model != new_model)
 				    {
-					    cmpt::MeshletRenderer::update = true;
+					    cmpt::StaticMeshRenderer::update = true;
 					    component.model               = new_model;
 					    component.materials.clear();
 					    auto &model = Renderer::instance()->getResourceCache().loadModel(component.model);
@@ -458,9 +458,9 @@ inline void draw_component<cmpt::MeshletRenderer>(Entity entity)
 }
 
 template <>
-inline void draw_component<cmpt::MeshRenderer>(Entity entity)
+inline void draw_component<cmpt::DynamicMeshRenderer>(Entity entity)
 {
-	draw_component<cmpt::MeshRenderer>("MeshRenderer", entity, [](cmpt::MeshRenderer &component) {
+	draw_component<cmpt::DynamicMeshRenderer>("DynamicMeshRenderer", entity, [](cmpt::DynamicMeshRenderer &component) {
 		const char *const mesh_names[] = {"None", "Model", "Sphere", "Plane"};
 		int               current      = static_cast<int>(component.type);
 		if (ImGui::Combo("Type", &current, mesh_names, 4) && current != static_cast<int>(component.type))
@@ -844,12 +844,12 @@ void Inspector::draw(float delta_time)
 	if (ImGui::BeginPopup("AddComponent"))
 	{
 		add_component<cmpt::Light, cmpt::DirectionalLight, cmpt::PointLight, cmpt::SpotLight>();
-		add_component<cmpt::Renderable, cmpt::MeshletRenderer, cmpt::MeshRenderer, cmpt::CurveRenderer, cmpt::SurfaceRenderer>();
+		add_component<cmpt::Renderable, cmpt::StaticMeshRenderer, cmpt::DynamicMeshRenderer, cmpt::CurveRenderer, cmpt::SurfaceRenderer>();
 		add_component<cmpt::Camera, cmpt::PerspectiveCamera, cmpt::OrthographicCamera>();
 		ImGui::EndPopup();
 	}
 
-	draw_component<cmpt::Transform, cmpt::Hierarchy, cmpt::MeshletRenderer, cmpt::MeshRenderer, cmpt::CurveRenderer, cmpt::SurfaceRenderer,
+	draw_component<cmpt::Transform, cmpt::Hierarchy, cmpt::StaticMeshRenderer, cmpt::DynamicMeshRenderer, cmpt::CurveRenderer, cmpt::SurfaceRenderer,
 	               cmpt::DirectionalLight, cmpt::PointLight, cmpt::SpotLight, cmpt::PerspectiveCamera, cmpt::OrthographicCamera>(entity);
 
 	ImGui::End();
