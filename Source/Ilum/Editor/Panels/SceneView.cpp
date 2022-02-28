@@ -556,8 +556,7 @@ __pragma(warning(push, 0))
 				auto &model = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
 				for (auto &submesh : model.get().submeshes)
 				{
-					mesh_renderer.materials.emplace_back(createScope<material::PBRMaterial>());
-					*static_cast<material::PBRMaterial *>(mesh_renderer.materials.back().get()) = submesh.material;
+					mesh_renderer.materials.push_back(submesh.material);
 				}
 				Editor::instance()->select(entity);
 				cmpt::StaticMeshRenderer::update = true;

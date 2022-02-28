@@ -1,7 +1,5 @@
 #include "MaterialUpdate.hpp"
 
-#include "Material/PBR.h"
-
 #include "Scene/Component/Renderable.hpp"
 #include "Scene/Scene.hpp"
 
@@ -48,7 +46,7 @@ void MaterialUpdate::run()
 		tbb::parallel_for(tbb::blocked_range<size_t>(0, meshlet_view.size()), [&meshlet_view, &material_data, material_offset](const tbb::blocked_range<size_t> &r) {
 			for (size_t i = r.begin(); i != r.end(); i++)
 			{
-				auto        entity           = Entity(meshlet_view[i]);
+				auto  entity           = Entity(meshlet_view[i]);
 				auto &meshlet_renderer = entity.getComponent<cmpt::StaticMeshRenderer>();
 
 				for (uint32_t material_id = 0; material_id < meshlet_renderer.materials.size(); material_id++)
@@ -57,40 +55,19 @@ void MaterialUpdate::run()
 
 					auto &material_ptr = meshlet_renderer.materials[material_id];
 
-					if (material_ptr && material_ptr->type() == typeid(material::PBRMaterial))
-					{
-						material::PBRMaterial *pbr = static_cast<material::PBRMaterial *>(material_ptr.get());
-
-						material.base_color          = pbr->base_color;
-						material.emissive_color      = pbr->emissive_color;
-						material.metallic_factor     = pbr->metallic_factor;
-						material.roughness_factor    = pbr->roughness_factor;
-						material.emissive_intensity  = pbr->emissive_intensity;
-						material.albedo_map          = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->albedo_map));
-						material.normal_map          = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->normal_map));
-						material.metallic_map        = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->metallic_map));
-						material.roughness_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->roughness_map));
-						material.emissive_map        = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->emissive_map));
-						material.ao_map              = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->ao_map));
-						material.displacement_map    = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->displacement_map));
-						material.displacement_height = pbr->displacement_height;
-					}
-					else
-					{
-						material.base_color          = glm::vec4(1.f);
-						material.emissive_color      = glm::vec4(0.f);
-						material.metallic_factor     = 1.f;
-						material.roughness_factor    = 1.f;
-						material.emissive_intensity  = 0.f;
-						material.albedo_map          = std::numeric_limits<uint32_t>::max();
-						material.normal_map          = std::numeric_limits<uint32_t>::max();
-						material.metallic_map        = std::numeric_limits<uint32_t>::max();
-						material.roughness_map       = std::numeric_limits<uint32_t>::max();
-						material.emissive_map        = std::numeric_limits<uint32_t>::max();
-						material.ao_map              = std::numeric_limits<uint32_t>::max();
-						material.displacement_map    = std::numeric_limits<uint32_t>::max();
-						material.displacement_height = 0.f;
-					}
+					material.base_color          = material_ptr.base_color;
+					material.emissive_color      = material_ptr.emissive_color;
+					material.metallic_factor     = material_ptr.metallic_factor;
+					material.roughness_factor    = material_ptr.roughness_factor;
+					material.emissive_intensity  = material_ptr.emissive_intensity;
+					material.albedo_map          = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.albedo_map));
+					material.normal_map          = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.normal_map));
+					material.metallic_map        = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.metallic_map));
+					material.roughness_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.roughness_map));
+					material.emissive_map        = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.emissive_map));
+					material.ao_map              = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.ao_map));
+					material.displacement_map    = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.displacement_map));
+					material.displacement_height = material_ptr.displacement_height;
 				}
 			}
 		});

@@ -13,9 +13,6 @@
 
 #include "File/FileSystem.hpp"
 
-#include "Material/Material.h"
-#include "Material/PBR.h"
-
 #include <fstream>
 
 namespace Ilum
@@ -28,16 +25,10 @@ void serialize_component(YAML::Emitter &emitter, const entt::entity entity)
 {
 }
 
-template <typename T>
-void serialize_material(YAML::Emitter &emitter, const T &material)
-{
-}
-
-template <>
-void serialize_material<material::PBRMaterial>(YAML::Emitter &emitter, const material::PBRMaterial &material)
+void serialize_material(YAML::Emitter &emitter, const Material &material)
 {
 	emitter << YAML::BeginMap;
-	emitter << YAML::Key << "type" << YAML::Value << typeid(material::PBRMaterial).name();
+	emitter << YAML::Key << "type" << YAML::Value << static_cast<uint32_t>(material.type);
 	emitter << YAML::Key << "base_color" << YAML::Value << material.base_color;
 	emitter << YAML::Key << "emissive_color" << YAML::Value << material.emissive_color;
 	emitter << YAML::Key << "emissive_intensity" << YAML::Value << material.emissive_intensity;
@@ -52,14 +43,6 @@ void serialize_material<material::PBRMaterial>(YAML::Emitter &emitter, const mat
 	emitter << YAML::Key << "ao_map" << YAML::Value << FileSystem::getRelativePath(material.ao_map);
 	emitter << YAML::Key << "displacement_map" << YAML::Value << FileSystem::getRelativePath(material.displacement_map);
 	emitter << YAML::EndMap;
-}
-
-void serialize_material(YAML::Emitter &emitter, scope<Material> &material)
-{
-	if (material->type() == typeid(material::PBRMaterial))
-	{
-		serialize_material<material::PBRMaterial>(emitter, *static_cast<material::PBRMaterial *>(material.get()));
-	}
 }
 
 template <>
@@ -295,44 +278,30 @@ void deserialize_component<cmpt::Hierarchy>(Entity entity, const YAML::Node &dat
 	hierarchy.prev   = static_cast<entt::entity>(data["prev"].as<uint32_t>());
 }
 
-template <typename T>
 void deserialize_material(Entity entity, const YAML::Node &data)
 {
-}
+	auto &material                = entity.getComponent<cmpt::StaticMeshRenderer>().materials.emplace_back(Material());
+	material.base_color          = data["base_color"].as<glm::vec4>();
+	material.emissive_color      = data["emissive_color"].as<glm::vec3>();
+	material.emissive_intensity  = data["emissive_intensity"].as<float>();
+	material.metallic_factor     = data["metallic_factor"].as<float>();
+	material.roughness_factor    = data["roughness_factor"].as<float>();
+	material.displacement_height = data["displacement_height"].as<float>();
+	material.albedo_map          = data["albedo_map"].as<std::string>();
+	material.normal_map          = data["normal_map"].as<std::string>();
+	material.metallic_map        = data["metallic_map"].as<std::string>();
+	material.roughness_map       = data["roughness_map"].as<std::string>();
+	material.emissive_map        = data["emissive_map"].as<std::string>();
+	material.ao_map              = data["ao_map"].as<std::string>();
+	material.displacement_map    = data["displacement_map"].as<std::string>();
 
-template <>
-void deserialize_material<material::PBRMaterial>(Entity entity, const YAML::Node &data)
-{
-	auto *material                = static_cast<material::PBRMaterial *>(entity.getComponent<cmpt::StaticMeshRenderer>().materials.emplace_back(createScope<material::PBRMaterial>()).get());
-	material->base_color          = data["base_color"].as<glm::vec4>();
-	material->emissive_color      = data["emissive_color"].as<glm::vec3>();
-	material->emissive_intensity  = data["emissive_intensity"].as<float>();
-	material->metallic_factor     = data["metallic_factor"].as<float>();
-	material->roughness_factor    = data["roughness_factor"].as<float>();
-	material->displacement_height = data["displacement_height"].as<float>();
-	material->albedo_map          = data["albedo_map"].as<std::string>();
-	material->normal_map          = data["normal_map"].as<std::string>();
-	material->metallic_map        = data["metallic_map"].as<std::string>();
-	material->roughness_map       = data["roughness_map"].as<std::string>();
-	material->emissive_map        = data["emissive_map"].as<std::string>();
-	material->ao_map              = data["ao_map"].as<std::string>();
-	material->displacement_map    = data["displacement_map"].as<std::string>();
-
-	Renderer::instance()->getResourceCache().loadImageAsync(material->albedo_map);
-	Renderer::instance()->getResourceCache().loadImageAsync(material->normal_map);
-	Renderer::instance()->getResourceCache().loadImageAsync(material->metallic_map);
-	Renderer::instance()->getResourceCache().loadImageAsync(material->roughness_map);
-	Renderer::instance()->getResourceCache().loadImageAsync(material->emissive_map);
-	Renderer::instance()->getResourceCache().loadImageAsync(material->ao_map);
-	Renderer::instance()->getResourceCache().loadImageAsync(material->displacement_map);
-}
-
-void deserialize_material(Entity entity, const YAML::Node &data)
-{
-	if (data["type"].as<std::string>() == typeid(material::PBRMaterial).name())
-	{
-		deserialize_material<material::PBRMaterial>(entity, data);
-	}
+	Renderer::instance()->getResourceCache().loadImageAsync(material.albedo_map);
+	Renderer::instance()->getResourceCache().loadImageAsync(material.normal_map);
+	Renderer::instance()->getResourceCache().loadImageAsync(material.metallic_map);
+	Renderer::instance()->getResourceCache().loadImageAsync(material.roughness_map);
+	Renderer::instance()->getResourceCache().loadImageAsync(material.emissive_map);
+	Renderer::instance()->getResourceCache().loadImageAsync(material.ao_map);
+	Renderer::instance()->getResourceCache().loadImageAsync(material.displacement_map);
 }
 
 template <>

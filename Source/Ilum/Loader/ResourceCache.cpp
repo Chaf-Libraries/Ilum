@@ -8,8 +8,6 @@
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Shader/ShaderCompiler.hpp"
 
-#include "Material/Material.h"
-
 #include "File/FileSystem.hpp"
 
 #include "Threading/ThreadPool.hpp"

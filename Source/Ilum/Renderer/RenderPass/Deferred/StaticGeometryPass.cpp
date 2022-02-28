@@ -10,8 +10,6 @@
 
 #include "Threading/ThreadPool.hpp"
 
-#include "Material/PBR.h"
-
 #include <glm/gtc/type_ptr.hpp>
 
 namespace Ilum::pass

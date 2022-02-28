@@ -4,8 +4,6 @@
 
 #include "Graphics/Model/Model.hpp"
 
-#include "Material/PBR.h"
-
 struct aiNode;
 struct aiMesh;
 struct aiScene;
@@ -42,6 +40,6 @@ class ModelLoader
 
   private:
 	static void parseNode(const std::string &file_path, aiMatrix4x4 transform, aiNode *node, const aiScene *scene, Model &model, std::vector<uint32_t> &meshlet_offsets, std::vector<uint32_t> &meshlet_counts);
-	static void parseMaterial(const std::string &file_path, aiMaterial *mesh_material, scope<material::PBRMaterial> &material);
+	static void parseMaterial(const std::string &file_path, aiMaterial *mesh_material, Material &material);
 };
 }        // namespace Ilum

@@ -11,9 +11,6 @@
 
 #include "Geometry/Shape/Sphere.hpp"
 
-#include "Material/Material.h"
-#include "Material/PBR.h"
-
 #include "Renderer/Renderer.hpp"
 
 #include "Loader/ImageLoader/ImageLoader.hpp"
@@ -199,8 +196,7 @@ bool draw_texture(std::string &texture, const std::string &name)
 	return update;
 }
 
-template <>
-inline void draw_material<material::PBRMaterial>(material::PBRMaterial &material)
+inline void draw_material(Material &material)
 {
 	Material::update = ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color)) || Material::update;
 	Material::update = ImGui::ColorEdit3("Emissive Color", glm::value_ptr(material.emissive_color)) || Material::update;
@@ -229,32 +225,6 @@ inline void draw_material<material::PBRMaterial>(material::PBRMaterial &material
 
 	ImGui::Text("Displacement Map");
 	Material::update = draw_texture(material.displacement_map, "Displacement Map") || Material::update;
-}
-
-template <typename T>
-inline void draw_material(scope<Material> &material)
-{
-	if (material->type() == typeid(T))
-	{
-		draw_material<T>(*static_cast<T *>(material.get()));
-	}
-}
-
-template <typename T1, typename T2, typename... Tn>
-inline void draw_material(scope<Material> &material)
-{
-	draw_material<T1>(material);
-	draw_material<T2, Tn...>(material);
-}
-
-inline void draw_material(scope<Material> &material)
-{
-	if (!material)
-	{
-		return;
-	}
-
-	draw_material<material::PBRMaterial>(material);
 }
 
 template <typename T>
@@ -387,8 +357,7 @@ inline void draw_component<cmpt::StaticMeshRenderer>(Entity entity)
 					    auto &model = Renderer::instance()->getResourceCache().loadModel(component.model);
 					    for (auto &submesh : model.get().submeshes)
 					    {
-						    component.materials.emplace_back(createScope<material::PBRMaterial>());
-						    *static_cast<material::PBRMaterial *>(component.materials.back().get()) = submesh.material;
+						    component.materials.emplace_back(submesh.material);
 					    }
 				    }
 			    }
@@ -405,7 +374,7 @@ inline void draw_component<cmpt::StaticMeshRenderer>(Entity entity)
 				    auto &submesh = model.get().submeshes[i];
 				    if (component.materials.size() <= i)
 				    {
-					    component.materials.emplace_back(createScope<material::PBRMaterial>());
+					    component.materials.emplace_back(Material());
 				    }
 				    auto &material = component.materials[i];
 
@@ -429,24 +398,6 @@ inline void draw_component<cmpt::StaticMeshRenderer>(Entity entity)
 					    // Material attributes
 					    if (ImGui::TreeNode("Material Attributes"))
 					    {
-						    // Switch material type
-						    if (ImGui::Button(material ? material->type().name() : "Select Material"))
-						    {
-							    ImGui::OpenPopup("Material Type");
-						    }
-
-						    if (ImGui::BeginPopup("Material Type"))
-						    {
-							    if (material && ImGui::MenuItem("clear"))
-							    {
-								    material = nullptr;
-							    }
-							    if (material)
-							    {
-								    select_material<material::PBRMaterial>(material);
-							    }
-							    ImGui::EndPopup();
-						    }
 						    draw_material(material);
 						    ImGui::TreePop();
 					    }
@@ -504,25 +455,7 @@ inline void draw_component<cmpt::DynamicMeshRenderer>(Entity entity)
 		ImGui::Text("vertices count: %d", component.vertices.size());
 		ImGui::Text("indices count: %d", component.indices.size());
 
-		if (ImGui::Button(component.material ? component.material->type().name() : "Select Material"))
-		{
-			ImGui::OpenPopup("Material Type");
-		}
-
-		if (ImGui::BeginPopup("Material Type"))
-		{
-			if (component.material && ImGui::MenuItem("clear"))
-			{
-				component.material = nullptr;
-			}
-
-			if (component.material)
-			{
-				select_material<material::PBRMaterial>(component.material);
-			}
-			ImGui::EndPopup();
-		}
-		draw_material<material::PBRMaterial>(component.material);
+		draw_material(component.material);
 	});
 }
 

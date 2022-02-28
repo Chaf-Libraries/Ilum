@@ -12,8 +12,6 @@
 
 #include "File/FileSystem.hpp"
 
-#include "Material/PBR.h"
-
 #include <glm/gtc/type_ptr.hpp>
 
 namespace Ilum::pass

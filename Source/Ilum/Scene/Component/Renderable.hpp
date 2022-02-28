@@ -2,8 +2,6 @@
 
 #include "Graphics/Model/Model.hpp"
 
-#include "Material/Material.h"
-
 namespace Ilum::cmpt
 {
 struct Renderable
@@ -26,7 +24,7 @@ struct StaticMeshRenderer : public Renderable
 {
 	std::string model;
 
-	std::vector<scope<Material>> materials;
+	std::vector<Material> materials;
 };
 
 enum class MeshType
@@ -51,7 +49,7 @@ struct DynamicMeshRenderer : public Renderable
 	uint32_t material_id = 0;
 	bool     need_update = true;
 
-	scope<Material> material = createScope<material::PBRMaterial>();
+	Material material;
 };
 
 enum class CurveType
@@ -99,7 +97,7 @@ enum class SurfaceType
 	RationalBSplineSurface,
 };
 
-struct SurfaceRenderer: public Renderable
+struct SurfaceRenderer : public Renderable
 {
 	SurfaceType type = SurfaceType::None;
 

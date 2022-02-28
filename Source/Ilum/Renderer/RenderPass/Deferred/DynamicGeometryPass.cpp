@@ -12,8 +12,6 @@
 
 #include "File/FileSystem.hpp"
 
-#include "Material/PBR.h"
-
 #include <glm/gtc/type_ptr.hpp>
 
 namespace Ilum::pass
@@ -148,9 +146,9 @@ void DynamicGeometryPass::render(RenderPassState &state)
 			struct VertexPushBlock
 			{
 				glm::mat4 transform;
-				float displacement_height;
+				float     displacement_height;
 				uint32_t  displacement_map;
-				uint32_t instance_id;
+				uint32_t  instance_id;
 			} vertex_block;
 
 			struct FragmentPushBlock
@@ -175,42 +173,20 @@ void DynamicGeometryPass::render(RenderPassState &state)
 
 			fragment_block.entity_id = static_cast<uint32_t>(entity);
 
-			if (mesh_renderer.material && mesh_renderer.material->type() == typeid(material::PBRMaterial))
-			{
-				material::PBRMaterial *pbr = static_cast<material::PBRMaterial *>(mesh_renderer.material.get());
+			vertex_block.displacement_height = mesh_renderer.material.displacement_height;
+			vertex_block.displacement_map    = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.displacement_map));
 
-				vertex_block.displacement_height = pbr->displacement_height;
-				vertex_block.displacement_map    = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->displacement_map));
-
-				fragment_block.base_color         = pbr->base_color;
-				fragment_block.emissive_color     = pbr->emissive_color;
-				fragment_block.metallic_factor    = pbr->metallic_factor;
-				fragment_block.roughness_factor   = pbr->roughness_factor;
-				fragment_block.emissive_intensity = pbr->emissive_intensity;
-				fragment_block.albedo_map         = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->albedo_map));
-				fragment_block.normal_map         = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->normal_map));
-				fragment_block.metallic_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->metallic_map));
-				fragment_block.roughness_map      = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->roughness_map));
-				fragment_block.emissive_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->emissive_map));
-				fragment_block.ao_map             = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(pbr->ao_map));
-			}
-			else
-			{
-				vertex_block.displacement_height = 0.f;
-				vertex_block.displacement_map    = std::numeric_limits<uint32_t>::max();
-
-				fragment_block.base_color         = glm::vec4(1.f);
-				fragment_block.emissive_color     = glm::vec4(0.f);
-				fragment_block.metallic_factor    = 1.f;
-				fragment_block.roughness_factor   = 1.f;
-				fragment_block.emissive_intensity = 0.f;
-				fragment_block.albedo_map         = std::numeric_limits<uint32_t>::max();
-				fragment_block.normal_map         = std::numeric_limits<uint32_t>::max();
-				fragment_block.metallic_map       = std::numeric_limits<uint32_t>::max();
-				fragment_block.roughness_map      = std::numeric_limits<uint32_t>::max();
-				fragment_block.emissive_map       = std::numeric_limits<uint32_t>::max();
-				fragment_block.ao_map             = std::numeric_limits<uint32_t>::max();
-			}
+			fragment_block.base_color         = mesh_renderer.material.base_color;
+			fragment_block.emissive_color     = mesh_renderer.material.emissive_color;
+			fragment_block.metallic_factor    = mesh_renderer.material.metallic_factor;
+			fragment_block.roughness_factor   = mesh_renderer.material.roughness_factor;
+			fragment_block.emissive_intensity = mesh_renderer.material.emissive_intensity;
+			fragment_block.albedo_map         = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.albedo_map));
+			fragment_block.normal_map         = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.normal_map));
+			fragment_block.metallic_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.metallic_map));
+			fragment_block.roughness_map      = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.roughness_map));
+			fragment_block.emissive_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.emissive_map));
+			fragment_block.ao_map             = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.ao_map));
 
 			vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(VertexPushBlock), &vertex_block);
 			vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 80, sizeof(FragmentPushBlock), &fragment_block);
