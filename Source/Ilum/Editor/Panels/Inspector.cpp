@@ -198,33 +198,47 @@ bool draw_texture(std::string &texture, const std::string &name)
 
 inline void draw_material(Material &material)
 {
+	const char *const BxDF_types[] = {
+	    "Disney",
+	    "Lambertian"};
+	ImGui::Combo("BxDF", reinterpret_cast<int *>(&material.type), BxDF_types, 2);
+
 	Material::update = ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color)) || Material::update;
-	Material::update = ImGui::ColorEdit3("Emissive Color", glm::value_ptr(material.emissive_color)) || Material::update;
-	Material::update = ImGui::DragFloat("Metallic Factor", &material.metallic_factor, 0.01f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::ColorEdit3("Emissive", glm::value_ptr(material.emissive_color)) || Material::update;
 	Material::update = ImGui::DragFloat("Emissive Intensity", &material.emissive_intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
-	Material::update = ImGui::DragFloat("Roughness Factor", &material.roughness_factor, 0.01f, 0.f, 1.f, "%.3f") || Material::update;
-	Material::update = ImGui::DragFloat("Height Factor", &material.displacement_height, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Metallic", &material.metallic, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Roughness", &material.roughness, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Specular", &material.specular, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Specular Tint", &material.specular_tint, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Anisotropic", &material.anisotropic, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Sheen", &material.sheen, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Sheen Tint", &material.sheen_tint, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Clearcoat", &material.clearcoat, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Clearcoat Gloss", &material.clearcoat, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Transmission", &material.transmission, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Transmission Roughness", &material.transmission_roughness, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Displacement", &material.displacement, 0.001f, 0.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
 
 	ImGui::Text("Albedo Map");
-	Material::update = draw_texture(material.albedo_map, "Albedo Map") || Material::update;
+	Material::update = draw_texture(material.textures[TextureType::BaseColor], "Albedo Map") || Material::update;
 
 	ImGui::Text("Normal Map");
-	Material::update = draw_texture(material.normal_map, "Normal Map") || Material::update;
+	Material::update = draw_texture(material.textures[TextureType::Normal], "Normal Map") || Material::update;
 
 	ImGui::Text("Metallic Map");
-	Material::update = draw_texture(material.metallic_map, "Metallic Map") || Material::update;
+	Material::update = draw_texture(material.textures[TextureType::Metallic], "Metallic Map") || Material::update;
 
 	ImGui::Text("Roughness Map");
-	Material::update = draw_texture(material.roughness_map, "Roughness Map") || Material::update;
+	Material::update = draw_texture(material.textures[TextureType::Roughness], "Roughness Map") || Material::update;
 
 	ImGui::Text("Emissive Map");
-	Material::update = draw_texture(material.emissive_map, "Emissive Map") || Material::update;
+	Material::update = draw_texture(material.textures[TextureType::Emissive], "Emissive Map") || Material::update;
 
 	ImGui::Text("AO Map");
-	Material::update = draw_texture(material.ao_map, "AO Map") || Material::update;
+	Material::update = draw_texture(material.textures[TextureType::AmbientOcclusion], "AO Map") || Material::update;
 
 	ImGui::Text("Displacement Map");
-	Material::update = draw_texture(material.displacement_map, "Displacement Map") || Material::update;
+	Material::update = draw_texture(material.textures[TextureType::Displacement], "Displacement Map") || Material::update;
 }
 
 template <typename T>
@@ -352,7 +366,7 @@ inline void draw_component<cmpt::StaticMeshRenderer>(Entity entity)
 				    if (component.model != new_model)
 				    {
 					    cmpt::StaticMeshRenderer::update = true;
-					    component.model               = new_model;
+					    component.model                  = new_model;
 					    component.materials.clear();
 					    auto &model = Renderer::instance()->getResourceCache().loadModel(component.model);
 					    for (auto &submesh : model.get().submeshes)
@@ -633,7 +647,7 @@ inline void draw_component<cmpt::SurfaceRenderer>(Entity entity)
 			{
 				for (uint32_t j = 0; j < component.control_points[i].size(); j++)
 				{
-					ImGui::PushID((std::to_string(i)+std::to_string(j)).c_str());
+					ImGui::PushID((std::to_string(i) + std::to_string(j)).c_str());
 					draw_vec3_control(std::to_string(i) + std::to_string(j), component.control_points[i][j], 0.f, 30.f);
 					if (current == 3 || current == 4)
 					{

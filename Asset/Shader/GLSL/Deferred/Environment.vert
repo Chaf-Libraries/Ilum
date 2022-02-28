@@ -2,16 +2,16 @@
 
 #extension GL_EXT_nonuniform_qualifier : require
 #extension GL_ARB_shader_draw_parameters : require
+#extension GL_GOOGLE_include_directive: enable
+
+#include "../common_buffer.glsl"
 
 layout(location = 0) out vec3 outUVW;
 
-layout (set = 0, binding = 0) uniform MainCamera
+layout (set = 0, binding = 0) uniform CameraBuffer
 {
-    mat4 view_projection;
-	mat4 last_view_projection;
-	vec4 frustum[6];
-	vec3 position;
-}main_camera;
+    CameraData main_camera;
+};
 
 vec3 vertices[] = {
 	    {-1.0, -1.0, -1.0},        // bottom-left
@@ -59,7 +59,6 @@ vec3 vertices[] = {
 
 void main()
 {
-    vec2 uv = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
 	outUVW = vertices[gl_VertexIndex];
 
     vec4 clip_pos = main_camera.view_projection * vec4(outUVW + main_camera.position, 1.0);

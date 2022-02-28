@@ -124,33 +124,12 @@ class Renderer : public TSubsystem<Renderer>
 
 	RenderMode Render_Mode = RenderMode::Polygon;
 
-	//struct
-	//{
-	//	float exposure = 4.5f;
-	//	float gamma    = 2.2f;
-	//} Color_Correction;
-
 	struct
 	{
 		scope<Image> depth_buffer = nullptr;
 		scope<Image> hiz_buffer   = nullptr;
 		scope<Image> last_result  = nullptr;
 	} Last_Frame;
-
-	enum class EnvLightType
-	{
-		None,
-		HDR,
-		Cubemap,
-		// TODO: Atmospheric
-	};
-
-	struct
-	{
-		EnvLightType type = EnvLightType::None;
-		std::string  filename;
-		bool         update = false;
-	} EnvLight;
 
   public:
 	Event<> Event_RenderGraph_Rebuild;

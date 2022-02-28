@@ -146,7 +146,7 @@ void DynamicGeometryPass::render(RenderPassState &state)
 			struct VertexPushBlock
 			{
 				glm::mat4 transform;
-				float     displacement_height;
+				float     displacement;
 				uint32_t  displacement_map;
 				uint32_t  instance_id;
 			} vertex_block;
@@ -155,8 +155,8 @@ void DynamicGeometryPass::render(RenderPassState &state)
 			{
 				glm::vec4 base_color;
 				glm::vec3 emissive_color;
-				float     metallic_factor;
-				float     roughness_factor;
+				float     metallic;
+				float     roughness;
 				float     emissive_intensity;
 
 				uint32_t albedo_map;
@@ -173,20 +173,20 @@ void DynamicGeometryPass::render(RenderPassState &state)
 
 			fragment_block.entity_id = static_cast<uint32_t>(entity);
 
-			vertex_block.displacement_height = mesh_renderer.material.displacement_height;
-			vertex_block.displacement_map    = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.displacement_map));
+			vertex_block.displacement = mesh_renderer.material.displacement;
+			vertex_block.displacement_map    = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.textures[TextureType::Displacement]));
 
 			fragment_block.base_color         = mesh_renderer.material.base_color;
 			fragment_block.emissive_color     = mesh_renderer.material.emissive_color;
-			fragment_block.metallic_factor    = mesh_renderer.material.metallic_factor;
-			fragment_block.roughness_factor   = mesh_renderer.material.roughness_factor;
+			fragment_block.metallic    = mesh_renderer.material.metallic;
+			fragment_block.roughness   = mesh_renderer.material.roughness;
 			fragment_block.emissive_intensity = mesh_renderer.material.emissive_intensity;
-			fragment_block.albedo_map         = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.albedo_map));
-			fragment_block.normal_map         = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.normal_map));
-			fragment_block.metallic_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.metallic_map));
-			fragment_block.roughness_map      = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.roughness_map));
-			fragment_block.emissive_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.emissive_map));
-			fragment_block.ao_map             = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.ao_map));
+			fragment_block.albedo_map         = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.textures[TextureType::BaseColor]));
+			fragment_block.normal_map         = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.textures[TextureType::Normal]));
+			fragment_block.metallic_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.textures[TextureType::Metallic]));
+			fragment_block.roughness_map      = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.textures[TextureType::Roughness]));
+			fragment_block.emissive_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.textures[TextureType::Emissive]));
+			fragment_block.ao_map             = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(mesh_renderer.material.textures[TextureType::AmbientOcclusion]));
 
 			vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(VertexPushBlock), &vertex_block);
 			vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 80, sizeof(FragmentPushBlock), &fragment_block);

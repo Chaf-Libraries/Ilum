@@ -32,16 +32,16 @@ void serialize_material(YAML::Emitter &emitter, const Material &material)
 	emitter << YAML::Key << "base_color" << YAML::Value << material.base_color;
 	emitter << YAML::Key << "emissive_color" << YAML::Value << material.emissive_color;
 	emitter << YAML::Key << "emissive_intensity" << YAML::Value << material.emissive_intensity;
-	emitter << YAML::Key << "metallic_factor" << YAML::Value << material.metallic_factor;
-	emitter << YAML::Key << "roughness_factor" << YAML::Value << material.roughness_factor;
-	emitter << YAML::Key << "displacement_height" << YAML::Value << material.displacement_height;
-	emitter << YAML::Key << "albedo_map" << YAML::Value << FileSystem::getRelativePath(material.albedo_map);
-	emitter << YAML::Key << "normal_map" << YAML::Value << FileSystem::getRelativePath(material.normal_map);
-	emitter << YAML::Key << "metallic_map" << YAML::Value << FileSystem::getRelativePath(material.metallic_map);
-	emitter << YAML::Key << "roughness_map" << YAML::Value << FileSystem::getRelativePath(material.roughness_map);
-	emitter << YAML::Key << "emissive_map" << YAML::Value << FileSystem::getRelativePath(material.emissive_map);
-	emitter << YAML::Key << "ao_map" << YAML::Value << FileSystem::getRelativePath(material.ao_map);
-	emitter << YAML::Key << "displacement_map" << YAML::Value << FileSystem::getRelativePath(material.displacement_map);
+	emitter << YAML::Key << "metallic" << YAML::Value << material.metallic;
+	emitter << YAML::Key << "roughness" << YAML::Value << material.roughness;
+	emitter << YAML::Key << "displacement" << YAML::Value << material.displacement;
+	emitter << YAML::Key << "albedo_map" << YAML::Value << FileSystem::getRelativePath(material.textures[TextureType::BaseColor]);
+	emitter << YAML::Key << "normal_map" << YAML::Value << FileSystem::getRelativePath(material.textures[TextureType::Normal]);
+	emitter << YAML::Key << "metallic_map" << YAML::Value << FileSystem::getRelativePath(material.textures[TextureType::Metallic]);
+	emitter << YAML::Key << "roughness_map" << YAML::Value << FileSystem::getRelativePath(material.textures[TextureType::Roughness]);
+	emitter << YAML::Key << "emissive_map" << YAML::Value << FileSystem::getRelativePath(material.textures[TextureType::Emissive]);
+	emitter << YAML::Key << "ao_map" << YAML::Value << FileSystem::getRelativePath(material.textures[TextureType::AmbientOcclusion]);
+	emitter << YAML::Key << "displacement_map" << YAML::Value << FileSystem::getRelativePath(material.textures[TextureType::Displacement]);
 	emitter << YAML::EndMap;
 }
 
@@ -284,24 +284,24 @@ void deserialize_material(Entity entity, const YAML::Node &data)
 	material.base_color          = data["base_color"].as<glm::vec4>();
 	material.emissive_color      = data["emissive_color"].as<glm::vec3>();
 	material.emissive_intensity  = data["emissive_intensity"].as<float>();
-	material.metallic_factor     = data["metallic_factor"].as<float>();
-	material.roughness_factor    = data["roughness_factor"].as<float>();
-	material.displacement_height = data["displacement_height"].as<float>();
-	material.albedo_map          = data["albedo_map"].as<std::string>();
-	material.normal_map          = data["normal_map"].as<std::string>();
-	material.metallic_map        = data["metallic_map"].as<std::string>();
-	material.roughness_map       = data["roughness_map"].as<std::string>();
-	material.emissive_map        = data["emissive_map"].as<std::string>();
-	material.ao_map              = data["ao_map"].as<std::string>();
-	material.displacement_map    = data["displacement_map"].as<std::string>();
+	material.metallic     = data["metallic_factor"].as<float>();
+	material.roughness    = data["roughness_factor"].as<float>();
+	material.displacement = data["displacement_height"].as<float>();
+	material.textures[TextureType::BaseColor] = data["albedo_map"].as<std::string>();
+	material.textures[TextureType::Normal] = data["normal_map"].as<std::string>();
+	material.textures[TextureType::Metallic] = data["metallic_map"].as<std::string>();
+	material.textures[TextureType::Roughness] = data["roughness_map"].as<std::string>();
+	material.textures[TextureType::Emissive] = data["emissive_map"].as<std::string>();
+	material.textures[TextureType::AmbientOcclusion] = data["ao_map"].as<std::string>();
+	material.textures[TextureType::Displacement] = data["displacement_map"].as<std::string>();
 
-	Renderer::instance()->getResourceCache().loadImageAsync(material.albedo_map);
-	Renderer::instance()->getResourceCache().loadImageAsync(material.normal_map);
-	Renderer::instance()->getResourceCache().loadImageAsync(material.metallic_map);
-	Renderer::instance()->getResourceCache().loadImageAsync(material.roughness_map);
-	Renderer::instance()->getResourceCache().loadImageAsync(material.emissive_map);
-	Renderer::instance()->getResourceCache().loadImageAsync(material.ao_map);
-	Renderer::instance()->getResourceCache().loadImageAsync(material.displacement_map);
+	Renderer::instance()->getResourceCache().loadImageAsync(material.textures[TextureType::BaseColor]);
+	Renderer::instance()->getResourceCache().loadImageAsync(material.textures[TextureType::Normal]);
+	Renderer::instance()->getResourceCache().loadImageAsync(material.textures[TextureType::Metallic]);
+	Renderer::instance()->getResourceCache().loadImageAsync(material.textures[TextureType::Roughness]);
+	Renderer::instance()->getResourceCache().loadImageAsync(material.textures[TextureType::Emissive]);
+	Renderer::instance()->getResourceCache().loadImageAsync(material.textures[TextureType::AmbientOcclusion]);
+	Renderer::instance()->getResourceCache().loadImageAsync(material.textures[TextureType::Displacement]);
 }
 
 template <>

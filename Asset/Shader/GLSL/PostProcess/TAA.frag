@@ -112,7 +112,7 @@ vec3 clip_aabb(vec3 aabb_min, vec3 aabb_max, vec3 prev_sample)
 
 vec3 temporal_reprojection(vec2 motion_vector)
 {
-    vec2 uv = inUV + push_data.jitter.xy;
+    vec2 uv = inUV;
 
     vec3 current_color = RGB2YCoCg(texture(current_result, uv).rgb);
     vec3 last_color = RGB2YCoCg(texture(last_result, inUV - motion_vector).rgb);

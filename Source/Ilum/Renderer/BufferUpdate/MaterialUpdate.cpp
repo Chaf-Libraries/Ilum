@@ -57,17 +57,17 @@ void MaterialUpdate::run()
 
 					material.base_color          = material_ptr.base_color;
 					material.emissive_color      = material_ptr.emissive_color;
-					material.metallic_factor     = material_ptr.metallic_factor;
-					material.roughness_factor    = material_ptr.roughness_factor;
+					material.metallic     = material_ptr.metallic;
+					material.roughness    = material_ptr.roughness;
 					material.emissive_intensity  = material_ptr.emissive_intensity;
-					material.albedo_map          = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.albedo_map));
-					material.normal_map          = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.normal_map));
-					material.metallic_map        = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.metallic_map));
-					material.roughness_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.roughness_map));
-					material.emissive_map        = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.emissive_map));
-					material.ao_map              = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.ao_map));
-					material.displacement_map    = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.displacement_map));
-					material.displacement_height = material_ptr.displacement_height;
+					material.albedo_map          = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.textures[TextureType::BaseColor]));
+					material.normal_map          = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.textures[TextureType::Normal]));
+					material.metallic_map        = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.textures[TextureType::Metallic]));
+					material.roughness_map       = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.textures[TextureType::Roughness]));
+					material.emissive_map        = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.textures[TextureType::Emissive]));
+					material.ao_map              = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.textures[TextureType::AmbientOcclusion]));
+					material.displacement_map    = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.textures[TextureType::Displacement]));
+					material.displacement = material_ptr.displacement;
 				}
 			}
 		});

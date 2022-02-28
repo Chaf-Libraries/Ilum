@@ -16,9 +16,8 @@
 #include "Panels/Console.hpp"
 #include "Panels/Hierarchy.hpp"
 #include "Panels/Inspector.hpp"
-#include "Panels/ProfilerMonitor.hpp"
 #include "Panels/RenderGraphViewer.hpp"
-#include "Panels/RenderSetting.hpp"
+#include "Panels/RendererInspector.hpp"
 #include "Panels/SceneView.hpp"
 
 #include "Scene/Component/Light.hpp"
@@ -51,8 +50,7 @@ bool Editor::onInitialize()
 	m_panels.emplace_back(createScope<panel::AssetBrowser>());
 	m_panels.emplace_back(createScope<panel::SceneView>());
 	m_panels.emplace_back(createScope<panel::Console>());
-	m_panels.emplace_back(createScope<panel::RenderSetting>());
-	m_panels.emplace_back(createScope<panel::ProfilerMonitor>());
+	m_panels.emplace_back(createScope<panel::RendererInspector>());
 
 	return true;
 }

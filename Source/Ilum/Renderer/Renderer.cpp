@@ -160,8 +160,6 @@ void Renderer::onTick(float delta_time)
 		m_render_graph = nullptr;
 		rebuild();
 		m_update = false;
-
-		EnvLight.update = true;
 	}
 }
 

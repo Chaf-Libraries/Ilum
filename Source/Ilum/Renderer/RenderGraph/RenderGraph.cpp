@@ -199,8 +199,6 @@ void RenderGraph::executeNode(RenderGraphNode &node, const CommandBuffer &comman
 {
 	RenderPassState state{*this, command_buffer, node.pass_native};
 
-	/*node.pass->resolveResources(resolve);*/
-
 	if (node.descriptors.getOption() != ResolveOption::None)
 	{
 		node.descriptors.resolve(resolve);
@@ -210,8 +208,10 @@ void RenderGraph::executeNode(RenderGraphNode &node, const CommandBuffer &comman
 	// Insert pipeline barrier
 	node.pipeline_barrier_callback(command_buffer, resolve);
 
+	VK_Debugger::markerBegin(state.command_buffer, node.name.c_str(), 1.f, 1.f, 1.f, 1.f);
 	node.pass->beginProfile(state);
 	node.pass->render(state);
 	node.pass->endProfile(state);
+	VK_Debugger::markerEnd(state.command_buffer);
 }
 }        // namespace Ilum

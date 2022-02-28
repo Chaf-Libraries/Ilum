@@ -44,8 +44,6 @@ void TAAPass::onUpdate()
 		// Jitter camera
 		CameraData *camera_data = reinterpret_cast<CameraData *>(Renderer::instance()->Render_Buffer.Camera_Buffer.map());
 
-		camera_data->last_view_projection = glm::translate(camera_data->last_view_projection, glm::vec3(-m_prev_jitter, 0.f));
-
 		m_prev_jitter = m_current_jitter;
 
 		uint32_t  sample_idx = static_cast<uint32_t>(GraphicsContext::instance()->getFrameCount() % m_jitter_samples.size());
@@ -54,9 +52,6 @@ void TAAPass::onUpdate()
 		auto rt_extent = Renderer::instance()->getRenderTargetExtent();
 
 		m_current_jitter = glm::vec2(halton.x / static_cast<float>(rt_extent.width), halton.y / static_cast<float>(rt_extent.height));
-
-		camera_data->view_projection      = glm::translate(camera_data->view_projection, glm::vec3(m_current_jitter, 0.f)) ;
-		camera_data->last_view_projection = glm::translate(camera_data->last_view_projection, glm::vec3(m_current_jitter, 0.f));
 	}
 }
 
