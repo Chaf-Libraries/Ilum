@@ -180,8 +180,6 @@ void RendererInspector::draw(float delta_time)
 		}
 	});
 
-	ImGui::ShowDemoWindow();
-
 	ImGui::End();
 }
 }        // namespace Ilum::panel

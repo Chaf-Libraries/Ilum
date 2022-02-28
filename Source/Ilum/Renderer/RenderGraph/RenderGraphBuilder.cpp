@@ -793,6 +793,24 @@ RenderGraphBuilder::ResourceTransitions RenderGraphBuilder::resolveResourceTrans
 		auto &buffer_transitions = resource_transitions.buffers.transitions[render_pass_reference.name];
 		auto &image_transitions  = resource_transitions.images.transitions[render_pass_reference.name];
 
+		// Handle attachments
+		for (const auto &attachment_dependency : pipeline_state.getOutputAttachments())
+		{
+			auto attachment_dependency_usage = attachment_state_to_image_usage(attachment_dependency.state);
+
+			if (last_image_usages.find(attachment_dependency.name) == last_image_usages.end())
+			{
+				resource_transitions.images.first_usages[attachment_dependency.name] = render_pass_reference.name;
+				last_image_usages[attachment_dependency.name]                        = VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM;
+			}
+
+			image_transitions[attachment_dependency.name].initial_usage = last_image_usages.at(attachment_dependency.name);
+			image_transitions[attachment_dependency.name].final_usage   = attachment_dependency_usage;
+			resource_transitions.images.total_usages[attachment_dependency.name] |= attachment_dependency_usage;
+			last_image_usages[attachment_dependency.name]                       = attachment_dependency_usage;
+			resource_transitions.images.last_usages[attachment_dependency.name] = render_pass_reference.name;
+		}
+
 		// Handle buffer dependency
 		for (const auto &buffer_dependency : pipeline_state.getBufferDependencies())
 		{
@@ -822,24 +840,6 @@ RenderGraphBuilder::ResourceTransitions RenderGraphBuilder::resolveResourceTrans
 			resource_transitions.images.total_usages[image_dependency.name] |= image_dependency.usage;
 			last_image_usages[image_dependency.name]                       = image_dependency.usage;
 			resource_transitions.images.last_usages[image_dependency.name] = render_pass_reference.name;
-		}
-
-		// Handle attachments
-		for (const auto &attachment_dependency : pipeline_state.getOutputAttachments())
-		{
-			auto attachment_dependency_usage = attachment_state_to_image_usage(attachment_dependency.state);
-
-			if (last_image_usages.find(attachment_dependency.name) == last_image_usages.end())
-			{
-				resource_transitions.images.first_usages[attachment_dependency.name] = render_pass_reference.name;
-				last_image_usages[attachment_dependency.name]                        = VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM;
-			}
-
-			image_transitions[attachment_dependency.name].initial_usage = last_image_usages.at(attachment_dependency.name);
-			image_transitions[attachment_dependency.name].final_usage   = attachment_dependency_usage;
-			resource_transitions.images.total_usages[attachment_dependency.name] |= attachment_dependency_usage;
-			last_image_usages[attachment_dependency.name]                       = attachment_dependency_usage;
-			resource_transitions.images.last_usages[attachment_dependency.name] = render_pass_reference.name;
 		}
 	}
 

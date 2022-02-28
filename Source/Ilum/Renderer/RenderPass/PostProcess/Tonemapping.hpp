@@ -7,10 +7,10 @@
 namespace Ilum::pass
 {
 // Extract bright part for blooming
-class TonemappingPass : public TRenderPass<TonemappingPass>
+class Tonemapping : public TRenderPass<Tonemapping>
 {
   public:
-	TonemappingPass(const std::string &result);
+	Tonemapping(const std::string &result);
 
 	virtual void setupPipeline(PipelineState &state) override;
 

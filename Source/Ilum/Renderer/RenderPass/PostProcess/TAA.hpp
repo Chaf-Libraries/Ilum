@@ -26,10 +26,11 @@ class TAAPass : public TRenderPass<TAAPass>
 
   private:
 	bool m_enable = true;
+	uint32_t m_sharpen        = true;
 
 	glm::vec2 m_current_jitter = glm::vec2(0.f);
 	glm::vec2 m_prev_jitter    = glm::vec2(0.f);
-	glm::vec2 m_feedback       = glm::vec2(1.f, 1.f);
+	glm::vec2 m_feedback       = glm::vec2(0.925f, 0.987f);
 
 	std::vector<glm::vec2> m_jitter_samples;
 };

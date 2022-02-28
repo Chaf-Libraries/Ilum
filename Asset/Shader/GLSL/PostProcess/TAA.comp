@@ -1,19 +1,20 @@
 #version 450
 
+layout (local_size_x = 32, local_size_y = 32) in;
+
 layout(binding = 0) uniform sampler2D last_result;
 layout(binding = 1) uniform sampler2D current_result;
 layout(binding = 2) uniform sampler2D motion_vector_curvature;
 layout(binding = 3) uniform sampler2D linear_depth;
 
-layout (location = 0) in vec2 inUV;
-
-layout (location = 0) out vec4 outColor;
+layout(binding = 4, rgba16f) uniform image2D output_result; 
 
 layout(push_constant) uniform PushBlock{
     vec4 jitter;    // current jitter - prev jitter
     vec4 extent;    // 1.0/width, 1.0/height, width, height
     float feedback_min;
     float feedback_max;
+    uint use_sharpen;
 }push_data;
 
 const float EPS = 0.00000001;
@@ -60,12 +61,12 @@ float luminance(vec3 rgb)
 
 vec3 tonemap(vec3 x)
 {
-    return x / (1 + luminance(x));
+    return x / (x + vec3(1.0));
 }
 
 vec3 inverse_tonemap(vec3 x)
 {
-    return x / (1 - luminance(x));
+    return x / max((vec3(1.0f) - x), vec3(EPS));
 }
 
 vec3 RGB2YCoCg(vec3 color)
@@ -112,26 +113,26 @@ vec3 clip_aabb(vec3 aabb_min, vec3 aabb_max, vec3 prev_sample)
 
 vec3 temporal_reprojection(vec2 motion_vector)
 {
-    vec2 uv = inUV;
+    vec2 uv = (gl_GlobalInvocationID.xy + 0.5) * push_data.extent.xy;
 
-    vec3 current_color = RGB2YCoCg(texture(current_result, uv).rgb);
-    vec3 last_color = RGB2YCoCg(texture(last_result, inUV - motion_vector).rgb);
+    vec3 current_color = RGB2YCoCg(tonemap(texture(current_result, uv + push_data.jitter.xy).rgb));
+    vec3 last_color = RGB2YCoCg(tonemap(texture(last_result, uv - motion_vector).rgb));
 
     // Clipping
     vec2 du = vec2(push_data.extent.x, 0.0);
     vec2 dv = vec2(0.0, push_data.extent.y);
 
-    vec3 ctl = RGB2YCoCg(texture(current_result, uv - du - dv).rgb);
-    vec3 ctc = RGB2YCoCg(texture(current_result, uv - dv).rgb);
-    vec3 ctr = RGB2YCoCg(texture(current_result, uv + du - dv).rgb);
+    vec3 ctl = RGB2YCoCg(tonemap(texture(current_result, uv - du - dv).rgb));
+    vec3 ctc = RGB2YCoCg(tonemap(texture(current_result, uv - dv).rgb));
+    vec3 ctr = RGB2YCoCg(tonemap(texture(current_result, uv + du - dv).rgb));
 
-    vec3 cml = RGB2YCoCg(texture(current_result, uv - du).rgb);
-    vec3 cmc = RGB2YCoCg(texture(current_result, uv).rgb);
-    vec3 cmr = RGB2YCoCg(texture(current_result, uv + du).rgb);
+    vec3 cml = RGB2YCoCg(tonemap(texture(current_result, uv - du).rgb));
+    vec3 cmc = RGB2YCoCg(tonemap(texture(current_result, uv).rgb));
+    vec3 cmr = RGB2YCoCg(tonemap(texture(current_result, uv + du).rgb));
 
-    vec3 cbl = RGB2YCoCg(texture(current_result, uv - du + dv).rgb);
-    vec3 cbc = RGB2YCoCg(texture(current_result, uv + dv).rgb);
-    vec3 cbr = RGB2YCoCg(texture(current_result, uv + du + dv).rgb);
+    vec3 cbl = RGB2YCoCg(tonemap(texture(current_result, uv - du + dv).rgb));
+    vec3 cbc = RGB2YCoCg(tonemap(texture(current_result, uv + dv).rgb));
+    vec3 cbr = RGB2YCoCg(tonemap(texture(current_result, uv + du + dv).rgb));
 
     // Variance clipping
     vec3 m1 =ctl + ctc + ctr + cml + cmc + cmr + cbl + cbc + cbr;
@@ -160,19 +161,20 @@ vec3 temporal_reprojection(vec2 motion_vector)
     float k_feedback = mix(push_data.feedback_min, push_data.feedback_max, unbiased_weight_sqr);
 
     // Sharpen
-    current_color *= 5.0;
-    current_color += -1.0 * cml;
-    current_color += -1.0 * cmr;
-    current_color += -1.0 * ctc;
-    current_color += -1.0 * cbc;
-
-    current_color = tonemap(current_color);
-    last_color = tonemap(last_color);
+    if(push_data.use_sharpen == 1)
+    {
+        current_color *= 5.0;
+        current_color += -1.0 * cml;
+        current_color += -1.0 * cmr;
+        current_color += -1.0 * ctc;
+        current_color += -1.0 * cbc;
+    }
 
     vec3 blended = mix(current_color.rgb, last_color.rgb, k_feedback);
 
-    blended = inverse_tonemap(blended);
     blended = YCoCg2RGB(blended);
+
+    blended = inverse_tonemap(blended);
 
     return blended;
 }
@@ -180,17 +182,15 @@ vec3 temporal_reprojection(vec2 motion_vector)
 void main()
 {
     // TODO: Unjitter?
-    vec2 uv = inUV + push_data.jitter.xy;
+    vec2 uv = (gl_GlobalInvocationID.xy + 0.5) * push_data.extent.xy;
 
     // Find motion vector sample uv
     vec3 mv_uv = find_motion_vector_uv(uv);
     
     // Sample motion vector
     vec2 motion_vector = texture(motion_vector_curvature, mv_uv.xy).xy;
-    float depth = mv_uv.z;
 
     vec3 color_temporal = temporal_reprojection(motion_vector);
 
-
-    outColor = vec4(clamp(color_temporal, 0.0, 1.0), 1.0);
+    imageStore(output_result, ivec2(gl_GlobalInvocationID.xy),  vec4(clamp(color_temporal, 0.0, 1.0), 1.0));
 }
