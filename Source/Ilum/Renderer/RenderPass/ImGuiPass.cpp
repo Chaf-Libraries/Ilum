@@ -35,6 +35,30 @@ void ImGuiPass::setupPipeline(PipelineState &state)
 	Renderer::instance()->buildRenderGraph(builder);
 	auto &rg = builder.build();
 
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/ImGui.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/ImGui.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
+
+	state.dynamic_state.dynamic_states = {
+	    VK_DYNAMIC_STATE_VIEWPORT,
+	    VK_DYNAMIC_STATE_SCISSOR};
+
+	state.vertex_input_state.attribute_descriptions = {
+	    VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32_SFLOAT, 0},
+	    VkVertexInputAttributeDescription{1, 0, VK_FORMAT_R32G32_SFLOAT, 0},
+	    VkVertexInputAttributeDescription{2, 0, VK_FORMAT_R32G32B32A32_SFLOAT}};
+
+	state.vertex_input_state.binding_descriptions = {
+	    VkVertexInputBindingDescription{0, sizeof(float) * 8, VK_VERTEX_INPUT_RATE_VERTEX}};
+
+	state.color_blend_attachment_states.resize(1);
+	state.depth_stencil_state.stencil_test_enable = false;
+
+	// Disable blending
+	for (auto &color_blend_attachment_state : state.color_blend_attachment_states)
+	{
+		color_blend_attachment_state.blend_enable = false;
+	}
+
 	state.addOutputAttachment(m_output, m_attachment_state);
 	state.declareAttachment(m_output, GraphicsContext::instance()->getSurface().getFormat().format);
 

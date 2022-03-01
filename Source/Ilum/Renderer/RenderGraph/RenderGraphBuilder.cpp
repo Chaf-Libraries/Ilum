@@ -505,7 +505,7 @@ inline void createRayTracingPipeline(const PipelineState &pipeline_state, PassNa
 	const uint32_t sbt_size              = group_count * handle_size_aligned;
 
 	std::vector<uint8_t> shader_handle_storage(sbt_size);
-	auto result = vkGetRayTracingShaderGroupHandlesKHR(GraphicsContext::instance()->getLogicalDevice(), pass_native.pipeline, 0, group_count, sbt_size, shader_handle_storage.data());
+	auto                 result = vkGetRayTracingShaderGroupHandlesKHR(GraphicsContext::instance()->getLogicalDevice(), pass_native.pipeline, 0, group_count, sbt_size, shader_handle_storage.data());
 
 	uint32_t handle_offset = 0;
 
@@ -793,24 +793,6 @@ RenderGraphBuilder::ResourceTransitions RenderGraphBuilder::resolveResourceTrans
 		auto &buffer_transitions = resource_transitions.buffers.transitions[render_pass_reference.name];
 		auto &image_transitions  = resource_transitions.images.transitions[render_pass_reference.name];
 
-		// Handle attachments
-		for (const auto &attachment_dependency : pipeline_state.getOutputAttachments())
-		{
-			auto attachment_dependency_usage = attachment_state_to_image_usage(attachment_dependency.state);
-
-			if (last_image_usages.find(attachment_dependency.name) == last_image_usages.end())
-			{
-				resource_transitions.images.first_usages[attachment_dependency.name] = render_pass_reference.name;
-				last_image_usages[attachment_dependency.name]                        = VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM;
-			}
-
-			image_transitions[attachment_dependency.name].initial_usage = last_image_usages.at(attachment_dependency.name);
-			image_transitions[attachment_dependency.name].final_usage   = attachment_dependency_usage;
-			resource_transitions.images.total_usages[attachment_dependency.name] |= attachment_dependency_usage;
-			last_image_usages[attachment_dependency.name]                       = attachment_dependency_usage;
-			resource_transitions.images.last_usages[attachment_dependency.name] = render_pass_reference.name;
-		}
-
 		// Handle buffer dependency
 		for (const auto &buffer_dependency : pipeline_state.getBufferDependencies())
 		{
@@ -840,6 +822,28 @@ RenderGraphBuilder::ResourceTransitions RenderGraphBuilder::resolveResourceTrans
 			resource_transitions.images.total_usages[image_dependency.name] |= image_dependency.usage;
 			last_image_usages[image_dependency.name]                       = image_dependency.usage;
 			resource_transitions.images.last_usages[image_dependency.name] = render_pass_reference.name;
+		}
+
+		// Handle attachments
+		// Attachments has lower priority
+		for (const auto &attachment_dependency : pipeline_state.getOutputAttachments())
+		{
+			auto attachment_dependency_usage = attachment_state_to_image_usage(attachment_dependency.state);
+
+			if (last_image_usages.find(attachment_dependency.name) == last_image_usages.end())
+			{
+				resource_transitions.images.first_usages[attachment_dependency.name] = render_pass_reference.name;
+				last_image_usages[attachment_dependency.name]                        = VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM;
+			}
+
+			if (image_transitions.find(attachment_dependency.name) == image_transitions.end())
+			{
+				image_transitions[attachment_dependency.name].initial_usage = last_image_usages.at(attachment_dependency.name);
+				image_transitions[attachment_dependency.name].final_usage   = attachment_dependency_usage;
+				resource_transitions.images.total_usages[attachment_dependency.name] |= attachment_dependency_usage;
+				last_image_usages[attachment_dependency.name]                       = attachment_dependency_usage;
+				resource_transitions.images.last_usages[attachment_dependency.name] = render_pass_reference.name;
+			}
 		}
 	}
 
@@ -880,6 +884,7 @@ RenderGraphBuilder::AttachmentMap RenderGraphBuilder::allocateAttachments(const 
 			                                         VMA_MEMORY_USAGE_GPU_ONLY,
 			                                         attachment.mipmaps,
 			                                         attachment.layers)));
+			VK_Debugger::setName(attachments[attachment.name], attachment.name.c_str());
 		}
 	}
 	return attachments;
@@ -900,7 +905,7 @@ PassNative RenderGraphBuilder::buildRenderPass(const RenderPassReference &render
 	auto &image_transitions       = resource_transitions.images.transitions.at(render_pass_reference.name);
 
 	// Only for graphics pipeline
-	if (!render_pass_attachments.empty())
+	if (pass.shader.getBindPoint() == VK_PIPELINE_BIND_POINT_GRAPHICS)
 	{
 		std::optional<VkAttachmentReference> depth_stencil_attachment_reference;
 		for (uint32_t attachment_index = 0; attachment_index < render_pass_attachments.size(); attachment_index++)
