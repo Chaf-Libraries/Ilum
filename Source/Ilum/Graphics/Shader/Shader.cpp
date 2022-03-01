@@ -9,6 +9,7 @@
 #include "File/FileSystem.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
+#include "Graphics/Vulkan/VK_Debugger.h"
 
 #include <SPIRV/GLSL.std.450.h>
 #include <SPIRV/GlslangToSpv.h>
@@ -45,6 +46,8 @@ Shader &Shader::load(const std::string &filename, VkShaderStageFlagBits stage, T
 	{
 		VK_ERROR("Failed to load shader: {}", filename);
 	}
+
+	VK_Debugger::setName(shader_module, FileSystem::getFileName(filename).c_str());
 
 	m_shader_modules[stage].emplace_back(shader_module);
 	m_relection_data += GraphicsContext::instance()->getShaderCache().reflect(shader_module);
