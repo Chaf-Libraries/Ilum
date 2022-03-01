@@ -15,10 +15,10 @@ void MeshletUpdate::run()
 {
 	GraphicsContext::instance()->getProfiler().beginSample("Meshlet Update");
 
-	if (cmpt::MeshletRenderer::update)
+	if (cmpt::StaticMeshRenderer::update)
 	{
-		auto meshlet_view = Scene::instance()->getRegistry().view<cmpt::MeshletRenderer>();
-		auto mesh_view    = Scene::instance()->getRegistry().view<cmpt::MeshRenderer>();
+		auto meshlet_view = Scene::instance()->getRegistry().view<cmpt::StaticMeshRenderer>();
+		auto mesh_view    = Scene::instance()->getRegistry().view<cmpt::DynamicMeshRenderer>();
 
 		// Collect instance data
 		std::vector<size_t> meshlet_offset(meshlet_view.size());
@@ -32,7 +32,7 @@ void MeshletUpdate::run()
 		{
 			meshlet_offset[i]      = Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count;
 			instance_offset[i]     = Renderer::instance()->Render_Stats.static_mesh_count.instance_count;
-			auto &meshlet_renderer = Entity(meshlet_view[i]).getComponent<cmpt::MeshletRenderer>();
+			auto &meshlet_renderer = Entity(meshlet_view[i]).getComponent<cmpt::StaticMeshRenderer>();
 
 			if (Renderer::instance()->getResourceCache().hasModel(meshlet_renderer.model))
 			{
@@ -61,7 +61,7 @@ void MeshletUpdate::run()
 			for (size_t i = r.begin(); i != r.end(); i++)
 			{
 				auto        entity           = Entity(meshlet_view[i]);
-				const auto &meshlet_renderer = entity.getComponent<cmpt::MeshletRenderer>();
+				const auto &meshlet_renderer = entity.getComponent<cmpt::StaticMeshRenderer>();
 
 				if (!Renderer::instance()->getResourceCache().hasModel(meshlet_renderer.model))
 				{
@@ -95,7 +95,7 @@ void MeshletUpdate::run()
 		});
 		Renderer::instance()->Render_Buffer.Meshlet_Buffer.unmap();
 	}
-	cmpt::MeshletRenderer::update = false;
+	cmpt::StaticMeshRenderer::update = false;
 	GraphicsContext::instance()->getProfiler().endSample("Meshlet Update");
 }
 }        // namespace Ilum::sym

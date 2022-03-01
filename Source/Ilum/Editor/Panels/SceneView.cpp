@@ -153,9 +153,9 @@ __pragma(warning(push, 0))
 			return;
 		}
 
-		if (Editor::instance()->getSelect() && Editor::instance()->getSelect().hasComponent<cmpt::MeshletRenderer>())
+		if (Editor::instance()->getSelect() && Editor::instance()->getSelect().hasComponent<cmpt::StaticMeshRenderer>())
 		{
-			const auto &mesh_renderer = Editor::instance()->getSelect().getComponent<cmpt::MeshletRenderer>();
+			const auto &mesh_renderer = Editor::instance()->getSelect().getComponent<cmpt::StaticMeshRenderer>();
 			const auto &trans         = Editor::instance()->getSelect().getComponent<cmpt::Transform>();
 
 			cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
@@ -550,17 +550,16 @@ __pragma(warning(push, 0))
 			{
 				ASSERT(pay_load->DataSize == sizeof(std::string));
 				auto  entity        = Scene::instance()->createEntity(FileSystem::getFileName(*static_cast<std::string *>(pay_load->Data), false));
-				auto &mesh_renderer = entity.addComponent<cmpt::MeshletRenderer>();
+				auto &mesh_renderer = entity.addComponent<cmpt::StaticMeshRenderer>();
 				mesh_renderer.model = *static_cast<std::string *>(pay_load->Data);
 				// Setting default material
 				auto &model = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
 				for (auto &submesh : model.get().submeshes)
 				{
-					mesh_renderer.materials.emplace_back(createScope<material::PBRMaterial>());
-					*static_cast<material::PBRMaterial *>(mesh_renderer.materials.back().get()) = submesh.material;
+					mesh_renderer.materials.push_back(submesh.material);
 				}
 				Editor::instance()->select(entity);
-				cmpt::MeshletRenderer::update = true;
+				cmpt::StaticMeshRenderer::update = true;
 			}
 			ImGui::EndDragDropTarget();
 		}
@@ -630,8 +629,8 @@ __pragma(warning(push, 0))
 
 			//	Editor::instance()->select(Entity());
 			//	float      distance = std::numeric_limits<float>::infinity();
-			//	const auto group    = Scene::instance()->getRegistry().group<>(entt::get<cmpt::MeshletRenderer, cmpt::Transform>);
-			//	group.each([&](const entt::entity &entity, const cmpt::MeshletRenderer &mesh_renderer, const cmpt::Transform &transform) {
+			//	const auto group    = Scene::instance()->getRegistry().group<>(entt::get<cmpt::StaticMeshRenderer, cmpt::Transform>);
+			//	group.each([&](const entt::entity &entity, const cmpt::StaticMeshRenderer &mesh_renderer, const cmpt::Transform &transform) {
 			//		if (!Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model))
 			//		{
 			//			return;

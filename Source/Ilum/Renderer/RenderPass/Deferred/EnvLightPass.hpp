@@ -14,5 +14,15 @@ class EnvLightPass : public TRenderPass<EnvLightPass>
 	virtual void resolveResources(ResolveState &resolve) override;
 
 	virtual void render(RenderPassState &state) override;
+
+  private:
+	enum class EnvLightType
+	{
+		None,
+		HDR,
+		// Atmospheric
+	};
+
+	EnvLightType m_type = EnvLightType::None;
 };
 }        // namespace Ilum::pass

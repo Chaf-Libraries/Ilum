@@ -36,12 +36,11 @@
 #include "RenderPass/Deferred/StaticGeometryPass.hpp"
 #include "RenderPass/GeometryView/CurvePass.hpp"
 #include "RenderPass/GeometryView/SurfacePass.hpp"
-#include "RenderPass/PostProcess/BlendPass.hpp"
-#include "RenderPass/PostProcess/BloomPass.hpp"
-#include "RenderPass/PostProcess/BlurPass.hpp"
-#include "RenderPass/PostProcess/BrightPass.hpp"
+#include "RenderPass/PostProcess/BloomBlend.hpp"
+#include "RenderPass/PostProcess/BloomBlur.hpp"
+#include "RenderPass/PostProcess/BloomMask.hpp"
 #include "RenderPass/PostProcess/TAA.hpp"
-#include "RenderPass/PostProcess/TonemappingPass.hpp"
+#include "RenderPass/PostProcess/Tonemapping.hpp"
 #include "RenderPass/PreProcess/KullaContyAverage.hpp"
 #include "RenderPass/PreProcess/KullaContyEnergy.hpp"
 #include "RenderPass/Preprocess/EquirectangularToCubemap.hpp"
@@ -84,21 +83,18 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
 		    .addRenderPass("EnvLight", std::make_unique<pass::EnvLightPass>())
 
-		    //.addRenderPass("BrightPass", std::make_unique<pass::BrightPass>("lighting"))
-		    //.addRenderPass("Blur1", std::make_unique<pass::BlurPass>("bright", "blur1"))
-		    //.addRenderPass("Blur2", std::make_unique<pass::BlurPass>("blur1", "blur2", true))
-		    //.addRenderPass("Blend", std::make_unique<pass::BlendPass>("blur2", "lighting", "output"))
-
 		    .addRenderPass("TAAPass", std::make_unique<pass::TAAPass>())
-		    
-			.addRenderPass("RayTracingTest", std::make_unique<pass::RayTracingTestPass>())
 
+		    .addRenderPass("BloomMask", std::make_unique<pass::BloomMask>("taa_result", "post_tex1"))
+		    .addRenderPass("BloomBlur1", std::make_unique<pass::BloomBlur>("post_tex1", "post_tex2", false))
+		    .addRenderPass("BloomBlur2", std::make_unique<pass::BloomBlur>("post_tex2", "post_tex1", true))
+		    .addRenderPass("Blend", std::make_unique<pass::BloomBlend>("post_tex1", "taa_result"))
+
+		    //.addRenderPass("RayTracingTest", std::make_unique<pass::RayTracingTestPass>())
 
 		    .addRenderPass("CopyBuffer", std::make_unique<pass::CopyPass>())
 
-
-
-		    .addRenderPass("Tonemapping", std::make_unique<pass::TonemappingPass>("taa_result"))
+		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("taa_result"))
 
 		    .setView("gbuffer - normal")
 		    .setOutput("gbuffer - normal");
@@ -160,8 +156,6 @@ void Renderer::onTick(float delta_time)
 		m_render_graph = nullptr;
 		rebuild();
 		m_update = false;
-
-		EnvLight.update = true;
 	}
 }
 
@@ -172,7 +166,7 @@ void Renderer::onPostTick()
 		return;
 	}
 
-	auto& cmd_buffer = GraphicsContext::instance()->getFrame().requestCommandBuffer();
+	auto &cmd_buffer = GraphicsContext::instance()->getFrame().requestCommandBuffer();
 	cmd_buffer.begin();
 	GraphicsContext::instance()->getProfiler().beginFrame(cmd_buffer);
 

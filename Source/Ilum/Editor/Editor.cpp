@@ -16,9 +16,8 @@
 #include "Panels/Console.hpp"
 #include "Panels/Hierarchy.hpp"
 #include "Panels/Inspector.hpp"
-#include "Panels/ProfilerMonitor.hpp"
 #include "Panels/RenderGraphViewer.hpp"
-#include "Panels/RenderSetting.hpp"
+#include "Panels/RendererInspector.hpp"
 #include "Panels/SceneView.hpp"
 
 #include "Scene/Component/Light.hpp"
@@ -51,8 +50,7 @@ bool Editor::onInitialize()
 	m_panels.emplace_back(createScope<panel::AssetBrowser>());
 	m_panels.emplace_back(createScope<panel::SceneView>());
 	m_panels.emplace_back(createScope<panel::Console>());
-	m_panels.emplace_back(createScope<panel::RenderSetting>());
-	m_panels.emplace_back(createScope<panel::ProfilerMonitor>());
+	m_panels.emplace_back(createScope<panel::RendererInspector>());
 
 	return true;
 }
@@ -175,7 +173,7 @@ void Editor::onTick(float delta_time)
 				if (ImGui::MenuItem("Plane"))
 				{
 					auto entity                                     = Scene::instance()->createEntity("Plane");
-					entity.addComponent<cmpt::MeshletRenderer>().model = std::string(PROJECT_SOURCE_DIR) + "Asset/Model/plane.obj";
+					entity.addComponent<cmpt::StaticMeshRenderer>().model = std::string(PROJECT_SOURCE_DIR) + "Asset/Model/plane.obj";
 					Renderer::instance()->getResourceCache().loadModelAsync(std::string(PROJECT_SOURCE_DIR) + "Asset/Model/plane.obj");
 					m_select_entity = entity;
 				}

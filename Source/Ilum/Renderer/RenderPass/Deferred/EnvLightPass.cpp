@@ -26,6 +26,8 @@ void EnvLightPass::setupPipeline(PipelineState &state)
 
 	state.rasterization_state.polygon_mode = VK_POLYGON_MODE_FILL;
 
+	state.depth_stencil_state.depth_compare_op = VK_COMPARE_OP_LESS_OR_EQUAL;
+
 	state.descriptor_bindings.bind(0, 0, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	state.descriptor_bindings.bind(0, 1, "generated_cubmap", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
@@ -45,7 +47,7 @@ void EnvLightPass::render(RenderPassState &state)
 {
 	auto &cmd_buffer = state.command_buffer;
 
-	if (!Renderer::instance()->hasMainCamera())
+	if (m_type == EnvLightType::None || !Renderer::instance()->hasMainCamera())
 	{
 		return;
 	}

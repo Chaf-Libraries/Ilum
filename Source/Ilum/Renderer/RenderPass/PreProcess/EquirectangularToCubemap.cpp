@@ -6,9 +6,15 @@
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Vulkan/VK_Debugger.h"
 
+#include "ImGui/ImGuiContext.hpp"
+
+#include "File/FileSystem.hpp"
+
 #include "Device/LogicalDevice.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
+
+#include <imgui.h>
 
 namespace Ilum::pass
 {
@@ -54,7 +60,7 @@ void EquirectangularToCubemap::resolveResources(ResolveState &resolve)
 
 void EquirectangularToCubemap::render(RenderPassState &state)
 {
-	if (!Renderer::instance()->EnvLight.update)
+	if (!m_update)
 	{
 		return;
 	}
@@ -105,7 +111,7 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
 	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f))};
 
-	uint32_t texID = Renderer::instance()->getResourceCache().imageID(Renderer::instance()->EnvLight.filename);
+	uint32_t texID = Renderer::instance()->getResourceCache().imageID(m_filename);
 
 	vkCmdBindPipeline(cmd_buffer, state.pass.bind_point, state.pass.pipeline);
 
@@ -114,7 +120,7 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 		vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
 	}
 
-	if (!Renderer::instance()->getResourceCache().hasImage(Renderer::instance()->EnvLight.filename))
+	if (!Renderer::instance()->getResourceCache().hasImage(m_filename))
 	{
 		for (uint32_t i = 0; i < 6; i++)
 		{
@@ -123,7 +129,7 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 			vkCmdEndRenderPass(cmd_buffer);
 		}
 
-		Renderer::instance()->EnvLight.update = false;
+		m_update = false;
 		return;
 	}
 
@@ -145,6 +151,34 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 		vkCmdEndRenderPass(cmd_buffer);
 	}
 
-	Renderer::instance()->EnvLight.update = false;
+	m_update = false;
+}
+
+void EquirectangularToCubemap::onImGui()
+{
+	ImGui::PushID("Environment Light");
+	if (ImGui::ImageButton(Renderer::instance()->getResourceCache().hasImage(FileSystem::getRelativePath(m_filename)) ?
+                               ImGuiContext::textureID(Renderer::instance()->getResourceCache().loadImage(FileSystem::getRelativePath(m_filename)), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)) :
+                               ImGuiContext::textureID(Renderer::instance()->getDefaultTexture(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
+	                       ImVec2{100.f, 100.f}))
+	{
+		m_filename = "";
+		m_update   = true;
+	}
+	ImGui::PopID();
+
+	if (ImGui::BeginDragDropTarget())
+	{
+		if (const auto *pay_load = ImGui::AcceptDragDropPayload("Texture2D"))
+		{
+			ASSERT(pay_load->DataSize == sizeof(std::string));
+			if (m_filename != *static_cast<std::string *>(pay_load->Data))
+			{
+				m_filename = *static_cast<std::string *>(pay_load->Data);
+				m_update   = true;
+			}
+		}
+		ImGui::EndDragDropTarget();
+	}
 }
 }        // namespace Ilum::pass

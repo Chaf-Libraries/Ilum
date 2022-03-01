@@ -76,7 +76,7 @@ void TransformUpdate::run()
 		});
 	}
 
-	if (cmpt::Transform::update || cmpt::MeshletRenderer::update)
+	if (cmpt::Transform::update || cmpt::StaticMeshRenderer::update)
 	{
 		m_motionless_count = 0;
 	}
@@ -87,7 +87,7 @@ void TransformUpdate::run()
 		m_motionless_count++;
 
 		// Update static mesh transform buffer
-		auto meshlet_view = Scene::instance()->getRegistry().view<cmpt::MeshletRenderer>();
+		auto meshlet_view = Scene::instance()->getRegistry().view<cmpt::StaticMeshRenderer>();
 
 		// Collect instance data
 		std::vector<size_t> instance_offset(meshlet_view.size());
@@ -98,7 +98,7 @@ void TransformUpdate::run()
 		{
 			instance_offset[i] += instance_count;
 
-			auto &meshlet_renderer = Entity(meshlet_view[i]).getComponent<cmpt::MeshletRenderer>();
+			auto &meshlet_renderer = Entity(meshlet_view[i]).getComponent<cmpt::StaticMeshRenderer>();
 
 			if (Renderer::instance()->getResourceCache().hasModel(meshlet_renderer.model))
 			{
@@ -123,7 +123,7 @@ void TransformUpdate::run()
 			for (size_t i = r.begin(); i != r.end(); i++)
 			{
 				auto        entity           = Entity(meshlet_view[i]);
-				const auto &meshlet_renderer = entity.getComponent<cmpt::MeshletRenderer>();
+				const auto &meshlet_renderer = entity.getComponent<cmpt::StaticMeshRenderer>();
 				const auto &transform        = entity.getComponent<cmpt::Transform>();
 
 				if (!Renderer::instance()->getResourceCache().hasModel(meshlet_renderer.model))

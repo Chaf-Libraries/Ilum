@@ -7,10 +7,10 @@
 namespace Ilum::pass
 {
 // Extract bright part for blooming
-class BlendPass : public TRenderPass<BlendPass>
+class Tonemapping : public TRenderPass<Tonemapping>
 {
   public:
-	BlendPass(const std::string &src1, const std::string &src2, const std::string &result);
+	Tonemapping(const std::string &result);
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -18,9 +18,16 @@ class BlendPass : public TRenderPass<BlendPass>
 
 	virtual void render(RenderPassState &state) override;
 
+	virtual void onImGui() override;
+
   private:
-	std::string m_src1;
-	std::string m_src2;
 	std::string m_result;
+
+	struct
+	{
+		VkExtent2D extent   = {};
+		float exposure = 2.f;
+		float gamma    = 5.f;
+	} m_tonemapping_data;
 };
 }        // namespace Ilum::pass

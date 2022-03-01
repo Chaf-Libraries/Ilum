@@ -11,9 +11,6 @@
 
 #include "Geometry/Shape/Sphere.hpp"
 
-#include "Material/Material.h"
-#include "Material/PBR.h"
-
 #include "Renderer/Renderer.hpp"
 
 #include "Loader/ImageLoader/ImageLoader.hpp"
@@ -199,62 +196,49 @@ bool draw_texture(std::string &texture, const std::string &name)
 	return update;
 }
 
-template <>
-inline void draw_material<material::PBRMaterial>(material::PBRMaterial &material)
+inline void draw_material(Material &material)
 {
+	const char *const BxDF_types[] = {
+	    "Disney",
+	    "Lambertian"};
+	ImGui::Combo("BxDF", reinterpret_cast<int *>(&material.type), BxDF_types, 2);
+
 	Material::update = ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color)) || Material::update;
-	Material::update = ImGui::ColorEdit3("Emissive Color", glm::value_ptr(material.emissive_color)) || Material::update;
-	Material::update = ImGui::DragFloat("Metallic Factor", &material.metallic_factor, 0.01f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::ColorEdit3("Emissive", glm::value_ptr(material.emissive_color)) || Material::update;
 	Material::update = ImGui::DragFloat("Emissive Intensity", &material.emissive_intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
-	Material::update = ImGui::DragFloat("Roughness Factor", &material.roughness_factor, 0.01f, 0.f, 1.f, "%.3f") || Material::update;
-	Material::update = ImGui::DragFloat("Height Factor", &material.displacement_height, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Metallic", &material.metallic, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Roughness", &material.roughness, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Specular", &material.specular, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Specular Tint", &material.specular_tint, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Anisotropic", &material.anisotropic, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Sheen", &material.sheen, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Sheen Tint", &material.sheen_tint, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Clearcoat", &material.clearcoat, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Clearcoat Gloss", &material.clearcoat, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Transmission", &material.transmission, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Transmission Roughness", &material.transmission_roughness, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Displacement", &material.displacement, 0.001f, 0.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
 
 	ImGui::Text("Albedo Map");
-	Material::update = draw_texture(material.albedo_map, "Albedo Map") || Material::update;
+	Material::update = draw_texture(material.textures[TextureType::BaseColor], "Albedo Map") || Material::update;
 
 	ImGui::Text("Normal Map");
-	Material::update = draw_texture(material.normal_map, "Normal Map") || Material::update;
+	Material::update = draw_texture(material.textures[TextureType::Normal], "Normal Map") || Material::update;
 
 	ImGui::Text("Metallic Map");
-	Material::update = draw_texture(material.metallic_map, "Metallic Map") || Material::update;
+	Material::update = draw_texture(material.textures[TextureType::Metallic], "Metallic Map") || Material::update;
 
 	ImGui::Text("Roughness Map");
-	Material::update = draw_texture(material.roughness_map, "Roughness Map") || Material::update;
+	Material::update = draw_texture(material.textures[TextureType::Roughness], "Roughness Map") || Material::update;
 
 	ImGui::Text("Emissive Map");
-	Material::update = draw_texture(material.emissive_map, "Emissive Map") || Material::update;
+	Material::update = draw_texture(material.textures[TextureType::Emissive], "Emissive Map") || Material::update;
 
 	ImGui::Text("AO Map");
-	Material::update = draw_texture(material.ao_map, "AO Map") || Material::update;
+	Material::update = draw_texture(material.textures[TextureType::AmbientOcclusion], "AO Map") || Material::update;
 
 	ImGui::Text("Displacement Map");
-	Material::update = draw_texture(material.displacement_map, "Displacement Map") || Material::update;
-}
-
-template <typename T>
-inline void draw_material(scope<Material> &material)
-{
-	if (material->type() == typeid(T))
-	{
-		draw_material<T>(*static_cast<T *>(material.get()));
-	}
-}
-
-template <typename T1, typename T2, typename... Tn>
-inline void draw_material(scope<Material> &material)
-{
-	draw_material<T1>(material);
-	draw_material<T2, Tn...>(material);
-}
-
-inline void draw_material(scope<Material> &material)
-{
-	if (!material)
-	{
-		return;
-	}
-
-	draw_material<material::PBRMaterial>(material);
+	Material::update = draw_texture(material.textures[TextureType::Displacement], "Displacement Map") || Material::update;
 }
 
 template <typename T>
@@ -359,10 +343,10 @@ inline void draw_component<cmpt::Hierarchy>(Entity entity)
 }
 
 template <>
-inline void draw_component<cmpt::MeshletRenderer>(Entity entity)
+inline void draw_component<cmpt::StaticMeshRenderer>(Entity entity)
 {
-	draw_component<cmpt::MeshletRenderer>(
-	    "MeshletRenderer", entity, [](cmpt::MeshletRenderer &component) {
+	draw_component<cmpt::StaticMeshRenderer>(
+	    "StaticMeshRenderer", entity, [](cmpt::StaticMeshRenderer &component) {
 		    ImGui::Text("Model: ");
 		    ImGui::SameLine();
 		    ImGui::PushStyleVar(ImGuiStyleVar_ButtonTextAlign, ImVec2(0.f, 0.f));
@@ -370,7 +354,7 @@ inline void draw_component<cmpt::MeshletRenderer>(Entity entity)
 		    {
 			    component.model = "";
 			    component.materials.clear();
-			    cmpt::MeshletRenderer::update = true;
+			    cmpt::StaticMeshRenderer::update = true;
 		    }
 		    ImGui::PopStyleVar();
 		    if (ImGui::BeginDragDropTarget())
@@ -381,14 +365,13 @@ inline void draw_component<cmpt::MeshletRenderer>(Entity entity)
 				    std::string new_model = *static_cast<std::string *>(pay_load->Data);
 				    if (component.model != new_model)
 				    {
-					    cmpt::MeshletRenderer::update = true;
-					    component.model               = new_model;
+					    cmpt::StaticMeshRenderer::update = true;
+					    component.model                  = new_model;
 					    component.materials.clear();
 					    auto &model = Renderer::instance()->getResourceCache().loadModel(component.model);
 					    for (auto &submesh : model.get().submeshes)
 					    {
-						    component.materials.emplace_back(createScope<material::PBRMaterial>());
-						    *static_cast<material::PBRMaterial *>(component.materials.back().get()) = submesh.material;
+						    component.materials.emplace_back(submesh.material);
 					    }
 				    }
 			    }
@@ -405,7 +388,7 @@ inline void draw_component<cmpt::MeshletRenderer>(Entity entity)
 				    auto &submesh = model.get().submeshes[i];
 				    if (component.materials.size() <= i)
 				    {
-					    component.materials.emplace_back(createScope<material::PBRMaterial>());
+					    component.materials.emplace_back(Material());
 				    }
 				    auto &material = component.materials[i];
 
@@ -429,24 +412,6 @@ inline void draw_component<cmpt::MeshletRenderer>(Entity entity)
 					    // Material attributes
 					    if (ImGui::TreeNode("Material Attributes"))
 					    {
-						    // Switch material type
-						    if (ImGui::Button(material ? material->type().name() : "Select Material"))
-						    {
-							    ImGui::OpenPopup("Material Type");
-						    }
-
-						    if (ImGui::BeginPopup("Material Type"))
-						    {
-							    if (material && ImGui::MenuItem("clear"))
-							    {
-								    material = nullptr;
-							    }
-							    if (material)
-							    {
-								    select_material<material::PBRMaterial>(material);
-							    }
-							    ImGui::EndPopup();
-						    }
 						    draw_material(material);
 						    ImGui::TreePop();
 					    }
@@ -458,9 +423,9 @@ inline void draw_component<cmpt::MeshletRenderer>(Entity entity)
 }
 
 template <>
-inline void draw_component<cmpt::MeshRenderer>(Entity entity)
+inline void draw_component<cmpt::DynamicMeshRenderer>(Entity entity)
 {
-	draw_component<cmpt::MeshRenderer>("MeshRenderer", entity, [](cmpt::MeshRenderer &component) {
+	draw_component<cmpt::DynamicMeshRenderer>("DynamicMeshRenderer", entity, [](cmpt::DynamicMeshRenderer &component) {
 		const char *const mesh_names[] = {"None", "Model", "Sphere", "Plane"};
 		int               current      = static_cast<int>(component.type);
 		if (ImGui::Combo("Type", &current, mesh_names, 4) && current != static_cast<int>(component.type))
@@ -504,25 +469,7 @@ inline void draw_component<cmpt::MeshRenderer>(Entity entity)
 		ImGui::Text("vertices count: %d", component.vertices.size());
 		ImGui::Text("indices count: %d", component.indices.size());
 
-		if (ImGui::Button(component.material ? component.material->type().name() : "Select Material"))
-		{
-			ImGui::OpenPopup("Material Type");
-		}
-
-		if (ImGui::BeginPopup("Material Type"))
-		{
-			if (component.material && ImGui::MenuItem("clear"))
-			{
-				component.material = nullptr;
-			}
-
-			if (component.material)
-			{
-				select_material<material::PBRMaterial>(component.material);
-			}
-			ImGui::EndPopup();
-		}
-		draw_material<material::PBRMaterial>(component.material);
+		draw_material(component.material);
 	});
 }
 
@@ -700,7 +647,7 @@ inline void draw_component<cmpt::SurfaceRenderer>(Entity entity)
 			{
 				for (uint32_t j = 0; j < component.control_points[i].size(); j++)
 				{
-					ImGui::PushID((std::to_string(i)+std::to_string(j)).c_str());
+					ImGui::PushID((std::to_string(i) + std::to_string(j)).c_str());
 					draw_vec3_control(std::to_string(i) + std::to_string(j), component.control_points[i][j], 0.f, 30.f);
 					if (current == 3 || current == 4)
 					{
@@ -844,12 +791,12 @@ void Inspector::draw(float delta_time)
 	if (ImGui::BeginPopup("AddComponent"))
 	{
 		add_component<cmpt::Light, cmpt::DirectionalLight, cmpt::PointLight, cmpt::SpotLight>();
-		add_component<cmpt::Renderable, cmpt::MeshletRenderer, cmpt::MeshRenderer, cmpt::CurveRenderer, cmpt::SurfaceRenderer>();
+		add_component<cmpt::Renderable, cmpt::StaticMeshRenderer, cmpt::DynamicMeshRenderer, cmpt::CurveRenderer, cmpt::SurfaceRenderer>();
 		add_component<cmpt::Camera, cmpt::PerspectiveCamera, cmpt::OrthographicCamera>();
 		ImGui::EndPopup();
 	}
 
-	draw_component<cmpt::Transform, cmpt::Hierarchy, cmpt::MeshletRenderer, cmpt::MeshRenderer, cmpt::CurveRenderer, cmpt::SurfaceRenderer,
+	draw_component<cmpt::Transform, cmpt::Hierarchy, cmpt::StaticMeshRenderer, cmpt::DynamicMeshRenderer, cmpt::CurveRenderer, cmpt::SurfaceRenderer,
 	               cmpt::DirectionalLight, cmpt::PointLight, cmpt::SpotLight, cmpt::PerspectiveCamera, cmpt::OrthographicCamera>(entity);
 
 	ImGui::End();

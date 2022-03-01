@@ -1,4 +1,4 @@
-#include "RenderSetting.hpp"
+#include "RendererInspector.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
 
@@ -34,13 +34,13 @@ inline void draw_node(const std::string &name, Callback callback)
 	}
 }
 
-RenderSetting::RenderSetting()
+RendererInspector::RendererInspector()
 {
 	m_name = "Renderer Inspector";
 	m_stopwatch.start();
 }
 
-void RenderSetting::draw(float delta_time)
+void RendererInspector::draw(float delta_time)
 {
 	ImGui::Begin("Renderer Inspector", &active);
 
@@ -70,43 +70,10 @@ void RenderSetting::draw(float delta_time)
 	draw_node("Render Pass", [&render_graph]() {
 		for (auto &render_node : render_graph->getNodes())
 		{
-			draw_node(render_node.name, [&render_node]() {
+			if (ImGui::TreeNode(render_node.name.c_str()))
+			{
 				render_node.pass->onImGui();
-			});
-		}
-	});
-
-	draw_node("Environment Light", []() {
-		const char *const environment_light_type[] = {"None", "HDRI"};
-		int               current                  = static_cast<int>(Renderer::instance()->EnvLight.type);
-		ImGui::Combo("Environment Light", &current, environment_light_type, 2);
-		Renderer::instance()->EnvLight.type = static_cast<Renderer::EnvLightType>(current);
-
-		if (current == 1 || current == 2)
-		{
-			ImGui::PushID("Environment Light");
-			if (ImGui::ImageButton(Renderer::instance()->getResourceCache().hasImage(FileSystem::getRelativePath(Renderer::instance()->EnvLight.filename)) ?
-                                       ImGuiContext::textureID(Renderer::instance()->getResourceCache().loadImage(FileSystem::getRelativePath(Renderer::instance()->EnvLight.filename)), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)) :
-                                       ImGuiContext::textureID(Renderer::instance()->getDefaultTexture(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
-			                       ImVec2{100.f, 100.f}))
-			{
-				Renderer::instance()->EnvLight.filename = "";
-				Renderer::instance()->EnvLight.update   = true;
-			}
-			ImGui::PopID();
-
-			if (ImGui::BeginDragDropTarget())
-			{
-				if (const auto *pay_load = ImGui::AcceptDragDropPayload("Texture2D"))
-				{
-					ASSERT(pay_load->DataSize == sizeof(std::string));
-					if (Renderer::instance()->EnvLight.filename != *static_cast<std::string *>(pay_load->Data))
-					{
-						Renderer::instance()->EnvLight.filename = *static_cast<std::string *>(pay_load->Data);
-						Renderer::instance()->EnvLight.update   = true;
-					}
-				}
-				ImGui::EndDragDropTarget();
+				ImGui::TreePop();
 			}
 		}
 	});
@@ -178,6 +145,39 @@ void RenderSetting::draw(float delta_time)
 		ImGui::PlotLines(("Frame Times (" + std::to_string(static_cast<uint32_t>(Timer::instance()->getFPS())) + "fps)").c_str(), m_frame_times.data(), static_cast<int>(m_frame_times.size()), 0, nullptr, min_frame_time * 0.8f, max_frame_time * 1.2f, ImVec2{0, 80});
 		ImGui::PlotHistogram("CPU Times", cpu_times.data(), static_cast<int>(cpu_times.size()), 0, nullptr, 0.f, max_cpu_time * 1.2f, ImVec2(0, 80.0f));
 		ImGui::PlotHistogram("GPU Times", gpu_times.data(), static_cast<int>(gpu_times.size()), 0, nullptr, 0.f, max_gpu_time * 1.2f, ImVec2(0, 80.0f));
+
+		if (ImGui::TreeNode("Static Mesh Stats"))
+		{
+			ImGui::Text("Instance Visibility:");
+			ImGui::SameLine();
+			ImGui::ProgressBar(static_cast<float>(Renderer::instance()->Render_Stats.static_mesh_count.instance_visible) / static_cast<float>(Renderer::instance()->Render_Stats.static_mesh_count.instance_count),
+			                   ImVec2(0.f, 0.f),
+			                   (std::to_string(Renderer::instance()->Render_Stats.static_mesh_count.instance_visible) + "/" + std::to_string(Renderer::instance()->Render_Stats.static_mesh_count.instance_count)).c_str());
+
+			ImGui::Text("Meshlet Visibility:");
+			ImGui::SameLine();
+			ImGui::ProgressBar(static_cast<float>(Renderer::instance()->Render_Stats.static_mesh_count.meshlet_visible) / static_cast<float>(Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count),
+			                   ImVec2(0.f, 0.f),
+			                   (std::to_string(Renderer::instance()->Render_Stats.static_mesh_count.meshlet_visible) + "/" + std::to_string(Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count)).c_str());
+
+			ImGui::Text("Triangle Count: %d", Renderer::instance()->Render_Stats.static_mesh_count.triangle_count);
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("Dynamic Mesh Stats"))
+		{
+			ImGui::Text("Instance Count: %d", Renderer::instance()->Render_Stats.dynamic_mesh_count.instance_count);
+			ImGui::Text("Triangle Count: %d", Renderer::instance()->Render_Stats.dynamic_mesh_count.triangle_count);
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("Light Stats"))
+		{
+			ImGui::Text("Directional Light Count: %d", Renderer::instance()->Render_Stats.light_count.directional_light_count);
+			ImGui::Text("Point Light Count: %d", Renderer::instance()->Render_Stats.light_count.point_light_count);
+			ImGui::Text("Spot Light Count: %d", Renderer::instance()->Render_Stats.light_count.spot_light_count);
+			ImGui::TreePop();
+		}
 	});
 
 	ImGui::End();

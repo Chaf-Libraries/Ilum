@@ -58,13 +58,5 @@ void InstanceCullingPass::onImGui()
 	ImGui::Checkbox("Enable Frustum Culling", reinterpret_cast<bool *>(&m_frustum_culling_enable));
 
 	ImGui::Text("Total Instance Count: %d", Renderer::instance()->Render_Stats.static_mesh_count.instance_count);
-
-	if (m_frustum_culling_enable)
-	{
-		uint32_t visible = 0;
-		std::memcpy(&visible, reinterpret_cast<uint32_t *>(Renderer::instance()->Render_Buffer.Count_Buffer.map()) + 2, sizeof(uint32_t));
-		ImGui::Text("Visible Instance Count: %d", visible);
-		Renderer::instance()->Render_Buffer.Count_Buffer.unmap();
-	}
 }
 }        // namespace Ilum::pass

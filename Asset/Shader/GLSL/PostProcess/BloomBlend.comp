@@ -1,0 +1,23 @@
+#version 450
+
+layout(local_size_x = 32, local_size_y = 32) in;
+
+// Bloom Output = output + clamp(input - output, 0, |input - output|)
+layout(binding = 0) uniform sampler2D input_image;
+layout(binding = 1, rgba16f) uniform image2D output_image;
+
+layout(push_constant) uniform PushBlock{
+    uvec2 extent;
+}push_data;
+
+void main()
+{
+    if(all(lessThan(gl_GlobalInvocationID.xy, push_data.extent)))
+    {
+        vec2 uv = vec2((gl_GlobalInvocationID.xy + 0.5) / vec2(push_data.extent));
+        vec3 input_color = texture(input_image, uv).rgb;
+        vec3 output_color = imageLoad(output_image, ivec2(gl_GlobalInvocationID.xy)).rgb;
+        output_color = output_color + clamp(input_color - output_color, vec3(0.0), abs(input_color - output_color));
+		imageStore(output_image, ivec2(gl_GlobalInvocationID.xy), vec4(output_color, 1.0));
+    }
+}

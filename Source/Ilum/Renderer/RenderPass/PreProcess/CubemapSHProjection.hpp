@@ -6,11 +6,12 @@
 
 namespace Ilum::pass
 {
-// Extract bright part for blooming
-class BlurPass : public TRenderPass<BlurPass>
+class CubemapSHProjection : public TRenderPass<CubemapSHProjection>
 {
   public:
-	BlurPass(const std::string &input, const std::string &output, bool horizental = false);
+	CubemapSHProjection();
+
+	~CubemapSHProjection() = default;
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -19,14 +20,5 @@ class BlurPass : public TRenderPass<BlurPass>
 	virtual void render(RenderPassState &state) override;
 
 	virtual void onImGui() override;
-
-  private:
-	std::string m_input;
-	std::string m_output;
-	bool        m_horizental;
-
-	float m_scale    = 3.f;
-	float m_strength = 0.13f;
-	bool  m_enable   = false;
 };
 }        // namespace Ilum::pass

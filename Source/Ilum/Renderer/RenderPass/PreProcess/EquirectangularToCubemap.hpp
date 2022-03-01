@@ -19,7 +19,13 @@ class EquirectangularToCubemap : public TRenderPass<EquirectangularToCubemap>
 
 	virtual void render(RenderPassState &state) override;
 
+	virtual void onImGui() override;
+
   private:
+	std::string m_filename = "";
+
+	bool m_update = false;
+
 	std::vector<VkFramebuffer> m_framebuffers;
 };
 }        // namespace Ilum::pass

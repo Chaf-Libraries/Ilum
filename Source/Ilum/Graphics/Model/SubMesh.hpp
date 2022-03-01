@@ -1,11 +1,11 @@
 #pragma once
 
+#include "Material.hpp"
+
 #include "Geometry/BoundingBox.hpp"
 #include "Geometry/Vertex.hpp"
 
 #include "Graphics/RTX/AccelerationStructure.hpp"
-
-#include "Material/PBR.h"
 
 namespace Ilum
 {
@@ -27,7 +27,7 @@ struct SubMesh
 	uint32_t meshlet_offset = 0;
 	uint32_t meshlet_count  = 0;
 
-	material::PBRMaterial material;
+	Material material;
 
 	geometry::BoundingBox bounding_box;
 

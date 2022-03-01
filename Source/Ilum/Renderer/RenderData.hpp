@@ -70,9 +70,9 @@ struct MaterialData
 	glm::vec4 base_color = {};
 
 	glm::vec3 emissive_color  = {0.f, 0.f, 0.f};
-	float     metallic_factor = 0.f;
+	float     metallic = 0.f;
 
-	float    roughness_factor   = 0.f;
+	float    roughness   = 0.f;
 	float    emissive_intensity = 0.f;
 	uint32_t albedo_map         = 0;
 	uint32_t normal_map         = 0;
@@ -83,7 +83,7 @@ struct MaterialData
 	uint32_t ao_map        = 0;
 
 	alignas(16) uint32_t displacement_map = 0;
-	float displacement_height             = 0.f;
+	float displacement             = 0.f;
 };
 
 struct CameraData
@@ -126,9 +126,9 @@ struct RenderBuffer
 	vec4 base_color;
 
 	vec3 emissive_color;
-	float metallic_factor;
+	float metallic;
 
-	float roughness_factor;
+	float roughness;
 	float emissive_intensity;
 	uint albedo_map;
 	uint normal_map;
@@ -139,7 +139,7 @@ struct RenderBuffer
 	uint ao_map;
 
 	uint displacement_map;
-	float displacement_height;
+	float displacement;
 };
 	*/
 	Buffer Material_Buffer = Buffer(1024 * sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);

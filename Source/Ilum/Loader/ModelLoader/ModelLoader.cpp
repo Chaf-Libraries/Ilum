@@ -254,17 +254,17 @@ void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform,
 		std::vector<Vertex>   vertices;
 		std::vector<uint32_t> indices;
 
-		auto pbr = createScope<material::PBRMaterial>();
+		Material submesh_material;
 
 		uint32_t    index_offset = 0;
 		aiMesh *    mesh         = scene->mMeshes[node->mMeshes[i]];
 		aiMaterial *material     = scene->mMaterials[mesh->mMaterialIndex];
 
-		parseMaterial(file_path, material, pbr);
+		parseMaterial(file_path, material, submesh_material);
 
 		SubMesh submesh;
 		submesh.index         = node->mMeshes[i];
-		submesh.material      = *pbr;
+		submesh.material      = submesh_material;
 		submesh.pre_transform = to_matrix(transform);
 		submesh.bounding_box  = geometry::BoundingBox(to_vector(mesh->mAABB.mMin), to_vector(mesh->mAABB.mMax));
 		model.bounding_box.merge(submesh.bounding_box);
@@ -293,56 +293,56 @@ void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform,
 	}
 }
 
-void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_material, scope<material::PBRMaterial> &material)
+void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_material, Material &material)
 {
 	std::string dictionary = FileSystem::getFileDirectory(file_path);
 
 	aiString path;
 
 	// gltf metal-roughness texture
-	aiGetMaterialFloat(mesh_material, AI_MATKEY_METALLIC_FACTOR, &material->metallic_factor);
-	aiGetMaterialFloat(mesh_material, AI_MATKEY_ROUGHNESS_FACTOR, &material->roughness_factor);
-	aiGetMaterialFloat(mesh_material, AI_MATKEY_BASE_COLOR, glm::value_ptr(material->base_color));
-	aiGetMaterialFloat(mesh_material, AI_MATKEY_EMISSIVE_INTENSITY, &material->emissive_intensity);
+	aiGetMaterialFloat(mesh_material, AI_MATKEY_METALLIC_FACTOR, &material.metallic);
+	aiGetMaterialFloat(mesh_material, AI_MATKEY_ROUGHNESS_FACTOR, &material.roughness);
+	aiGetMaterialFloat(mesh_material, AI_MATKEY_BASE_COLOR, glm::value_ptr(material.base_color));
+	aiGetMaterialFloat(mesh_material, AI_MATKEY_EMISSIVE_INTENSITY, &material.emissive_intensity);
 
 	if (aiGetMaterialTexture(mesh_material, AI_MATKEY_BASE_COLOR_TEXTURE, &path) != aiReturn_FAILURE)
 	{
-		material->albedo_map = dictionary + path.C_Str();
+		material.textures[TextureType::BaseColor] = dictionary + path.C_Str();
 		Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
 	}
 	path.Clear();
 
 	if (aiGetMaterialTexture(mesh_material, aiTextureType_NORMALS, 0, &path) != aiReturn_FAILURE)
 	{
-		material->normal_map = dictionary + path.C_Str();
+		material.textures[TextureType::Normal] = dictionary + path.C_Str();
 		Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
 	}
 	path.Clear();
 
 	if (aiGetMaterialTexture(mesh_material, AI_MATKEY_METALLIC_TEXTURE, &path) != aiReturn_FAILURE)
 	{
-		material->metallic_map = dictionary + path.C_Str();
+		material.textures[TextureType::Metallic] = dictionary + path.C_Str();
 		Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
 	}
 	path.Clear();
 
 	if (aiGetMaterialTexture(mesh_material, AI_MATKEY_ROUGHNESS_TEXTURE, &path) != aiReturn_FAILURE)
 	{
-		material->roughness_map = dictionary + path.C_Str();
+		material.textures[TextureType::Roughness] = dictionary + path.C_Str();
 		Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
 	}
 	path.Clear();
 
 	if (aiGetMaterialTexture(mesh_material, aiTextureType_EMISSIVE, 0, &path) != aiReturn_FAILURE)
 	{
-		material->emissive_map = dictionary + path.C_Str();
+		material.textures[TextureType::Emissive] = dictionary + path.C_Str();
 		Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
 	}
 	path.Clear();
 
 	if (aiGetMaterialTexture(mesh_material, aiTextureType_AMBIENT_OCCLUSION, 0, &path) != aiReturn_FAILURE)
 	{
-		material->ao_map = dictionary + path.C_Str();
+		material.textures[TextureType::AmbientOcclusion] = dictionary + path.C_Str();
 		Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
 	}
 	path.Clear();
@@ -352,8 +352,8 @@ void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_m
 		// For gltf, unknown for roughness & metallic
 		if (aiGetMaterialTexture(mesh_material, aiTextureType_UNKNOWN, 0, &path) != aiReturn_FAILURE)
 		{
-			material->roughness_map = dictionary + path.C_Str();
-			material->metallic_map  = dictionary + path.C_Str();
+			material.textures[TextureType::Roughness] = dictionary + path.C_Str();
+			material.textures[TextureType::Metallic] = dictionary + path.C_Str();
 			Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
 		}
 

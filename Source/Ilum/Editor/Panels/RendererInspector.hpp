@@ -8,12 +8,12 @@
 
 namespace Ilum::panel
 {
-class RenderSetting : public Panel
+class RendererInspector : public Panel
 {
   public:
-	RenderSetting();
+	RendererInspector();
 
-	~RenderSetting() = default;
+	~RendererInspector() = default;
 
 	virtual void draw(float delta_time) override;
 

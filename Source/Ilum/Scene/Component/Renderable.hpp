@@ -2,8 +2,6 @@
 
 #include "Graphics/Model/Model.hpp"
 
-#include "Material/Material.h"
-
 namespace Ilum::cmpt
 {
 struct Renderable
@@ -22,11 +20,11 @@ struct Renderable
 };
 
 // Meshlet Renderer only for static external mesh
-struct MeshletRenderer : public Renderable
+struct StaticMeshRenderer : public Renderable
 {
 	std::string model;
 
-	std::vector<scope<Material>> materials;
+	std::vector<Material> materials;
 };
 
 enum class MeshType
@@ -37,8 +35,8 @@ enum class MeshType
 	Plane,
 };
 
-// Dynamic Mesh use MeshRenderer, set as default texture
-struct MeshRenderer : public Renderable
+// Dynamic Mesh use DynamicMeshRenderer, set as default texture
+struct DynamicMeshRenderer : public Renderable
 {
 	MeshType type = MeshType::None;
 
@@ -51,7 +49,7 @@ struct MeshRenderer : public Renderable
 	uint32_t material_id = 0;
 	bool     need_update = true;
 
-	scope<Material> material = createScope<material::PBRMaterial>();
+	Material material;
 };
 
 enum class CurveType
@@ -99,7 +97,7 @@ enum class SurfaceType
 	RationalBSplineSurface,
 };
 
-struct SurfaceRenderer: public Renderable
+struct SurfaceRenderer : public Renderable
 {
 	SurfaceType type = SurfaceType::None;
 
