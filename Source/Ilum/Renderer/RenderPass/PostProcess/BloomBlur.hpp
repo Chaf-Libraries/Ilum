@@ -7,10 +7,10 @@
 namespace Ilum::pass
 {
 // Extract bright part for blooming
-class BlendPass : public TRenderPass<BlendPass>
+class BloomBlur : public TRenderPass<BloomBlur>
 {
   public:
-	BlendPass(const std::string &src1, const std::string &src2, const std::string &result);
+	BloomBlur(const std::string &input, const std::string &output, bool horizontal = false);
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -18,9 +18,20 @@ class BlendPass : public TRenderPass<BlendPass>
 
 	virtual void render(RenderPassState &state) override;
 
+	virtual void onImGui() override;
+
   private:
-	std::string m_src1;
-	std::string m_src2;
-	std::string m_result;
+	std::string m_input;
+	std::string m_output;
+
+	struct
+	{
+		VkExtent2D extent;
+		float      scale      = 2.f;
+		float      strength   = 1.f;
+		uint32_t   horizontal = 0;
+	} m_push_data;
+
+	bool m_enable = true;
 };
 }        // namespace Ilum::pass

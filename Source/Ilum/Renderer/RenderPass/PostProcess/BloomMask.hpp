@@ -7,10 +7,10 @@
 namespace Ilum::pass
 {
 // Extract bright part for blooming
-class BrightPass : public TRenderPass<BrightPass>
+class BloomMask : public TRenderPass<BloomMask>
 {
   public:
-	BrightPass(const std::string &input);
+	BloomMask(const std::string &input, const std::string &output);
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -22,8 +22,9 @@ class BrightPass : public TRenderPass<BrightPass>
 
   private:
 	std::string m_input;
+	std::string m_output;
 
 	float m_threshold = 0.75f;
-	uint32_t m_enable = 0;
+	uint32_t m_enable = 1;
 };
 }        // namespace Ilum::pass

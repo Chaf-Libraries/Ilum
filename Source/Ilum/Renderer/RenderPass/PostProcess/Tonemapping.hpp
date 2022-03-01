@@ -25,6 +25,7 @@ class Tonemapping : public TRenderPass<Tonemapping>
 
 	struct
 	{
+		VkExtent2D extent   = {};
 		float exposure = 2.f;
 		float gamma    = 5.f;
 	} m_tonemapping_data;

@@ -5,6 +5,7 @@ layout (local_size_x = 32, local_size_y = 32) in;
 layout (binding = 0, rgba16f) uniform image2D Image;
 
 layout(push_constant) uniform PushBlock{
+	uvec2 extent;
     float exposure;
     float gamma;
 }push_data;
@@ -23,14 +24,15 @@ vec3 uncharted2Tonemap(vec3 x)
 
 void main()
 {
-    vec4 color = imageLoad(Image, ivec2(gl_GlobalInvocationID.xy));
+	if(all(lessThan(gl_GlobalInvocationID.xy, push_data.extent)))
+	{
+		vec4 color = imageLoad(Image, ivec2(gl_GlobalInvocationID.xy));
 
-    color.xyz = uncharted2Tonemap(color.xyz * push_data.exposure);
-	color.xyz = color.xyz * (1.0f / uncharted2Tonemap(vec3(push_data.gamma)));	
-	// Gamma correction
-	color.xyz = pow(color.xyz, vec3(1.0f / 2.2));
+		color.xyz = uncharted2Tonemap(color.xyz * push_data.exposure);
+		color.xyz = color.xyz * (1.0 / uncharted2Tonemap(vec3(push_data.gamma)));	
+		// Gamma correction
+		color.xyz = pow(color.xyz, vec3(1.0 / 2.2));
 
-    imageStore(Image, ivec2(gl_GlobalInvocationID.xy), color);
-
-    // outColor = vec4(color, 1.0);
+		imageStore(Image, ivec2(gl_GlobalInvocationID.xy), color);
+	}
 }

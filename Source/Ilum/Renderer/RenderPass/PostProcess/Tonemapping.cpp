@@ -35,6 +35,7 @@ void Tonemapping::render(RenderPassState &state)
 
 	auto &extent = Renderer::instance()->getRenderTargetExtent();
 
+	m_tonemapping_data.extent = extent;
 	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(m_tonemapping_data), &m_tonemapping_data);
 
 	vkCmdDispatch(cmd_buffer, (extent.width + 32 - 1) / 32, (extent.height + 32 - 1) / 32, 1);
