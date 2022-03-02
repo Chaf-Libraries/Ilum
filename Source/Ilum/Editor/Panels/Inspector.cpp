@@ -457,8 +457,8 @@ inline void draw_component<cmpt::DynamicMeshRenderer>(Entity entity)
 					}
 					else
 					{
-						component.vertices    = model.get().mesh.vertices;
-						component.indices     = model.get().mesh.indices;
+						component.vertices    = model.get().vertices;
+						component.indices     = model.get().indices;
 						component.need_update = true;
 					}
 				}

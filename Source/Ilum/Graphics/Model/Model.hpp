@@ -31,7 +31,8 @@ struct Model
 	uint32_t indices_offset  = 0;
 
 	// Raw geometry, original data
-	geometry::TriMesh mesh;
+	std::vector<Vertex>   vertices;
+	std::vector<uint32_t> indices;
 
 	// Meshlet, for mesh shading & cluster culling
 	std::vector<Meshlet>  meshlets;
