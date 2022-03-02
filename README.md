@@ -4,7 +4,7 @@
 
 Ilum Graphics Playground, name after *Planet Ilum* from [Star Wars](https://starwars.fandom.com/es/wiki/Ilum)
 
-![image-20211120113509528](README/image-20211120113509528.png)
+![image-20220302105808573](README/image-20220302105808573.png)
 
 ## Build
 
@@ -104,7 +104,7 @@ cmake --build ./ --target ALL_BUILD --config Release
 
 #### Massive Scene Rendering
 
-![performance](README/performance.png)
+![image-20220302110444007](README/image-20220302110444007.png)
 
 ### Curve Modeling
 
