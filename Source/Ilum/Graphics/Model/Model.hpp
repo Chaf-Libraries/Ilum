@@ -5,7 +5,6 @@
 #include "Graphics/Buffer/Buffer.h"
 
 #include "Geometry/BoundingBox.hpp"
-#include "Geometry/Mesh/TriMesh.hpp"
 
 #include <meshoptimizer.h>
 

@@ -433,9 +433,9 @@ inline void draw_component<cmpt::DynamicMeshRenderer>(Entity entity)
 			if (component.type == cmpt::MeshType::Sphere)
 			{
 				geometry::Sphere sphere({0.f, 0.f, 0.f}, 1.f);
-				auto             mesh = std::move(sphere.toTriMesh());
-				component.vertices    = std::move(mesh.vertices);
-				component.indices     = std::move(mesh.indices);
+				auto [vertices, indices] = sphere.toMesh();
+				component.vertices       = std::move(vertices);
+				component.indices        = std::move(indices);
 			}
 
 			component.type        = static_cast<cmpt::MeshType>(current);
