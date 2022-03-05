@@ -65,4 +65,27 @@ const std::vector<FMesh::Face *> &FMesh::faces() const
 {
 	return m_faces.vec();
 }
+
+std::pair<std::vector<glm::vec3>, std::vector<uint32_t>> FMesh::toMesh() const
+{
+	std::vector<glm::vec3> vertices;
+	std::vector<uint32_t>  indices;
+
+	vertices.reserve(m_vertices.size());
+	for (auto& v : m_vertices)
+	{
+		vertices.push_back(v->position);
+	}
+
+	indices.reserve(m_faces.size() * 3);
+	for (auto& f : m_faces)
+	{
+		for (uint32_t i = 0; i < 3; i++)
+		{
+			indices.push_back(static_cast<uint32_t>(m_vertices.idx(f->vertex[i])));
+		}
+	}
+
+	return std::make_pair(vertices, indices);
+}
 }        // namespace Ilum::geometry

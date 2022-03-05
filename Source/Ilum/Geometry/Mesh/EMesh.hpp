@@ -42,7 +42,7 @@ class EMesh
 		Edge *  next[2];
 		Edge *  prev[2];
 
-		Edge(Vertex *v1, Vertex *v2, Face *f1, Face *f2, Edge *next_e1, Edge *next_e2, Edge *prev_e1, Edge *prev_e2):
+		Edge(Vertex *v1, Vertex *v2, Face *f1, Face *f2, Edge *next_e1, Edge *next_e2, Edge *prev_e1, Edge *prev_e2) :
 		    vertex{v1, v2}, face{f1, f2}, next{next_e1, next_e2}, prev{prev_e1, prev_e2}
 		{}
 	};
@@ -57,7 +57,11 @@ class EMesh
 
 	const std::vector<Edge *> &edges() const;
 
+	std::pair<std::vector<glm::vec3>, std::vector<uint32_t>> toMesh() const;
+
   private:
+	uint32_t m_stride;
+
 	std::pmr::unsynchronized_pool_resource m_pool;
 
 	RandomSet<Vertex *> m_vertices;

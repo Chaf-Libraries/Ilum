@@ -42,6 +42,8 @@ class FMesh
 
 	const std::vector<Face *> &faces() const;
 
+	std::pair<std::vector<glm::vec3>, std::vector<uint32_t>> toMesh() const;
+
   private:
 	std::pmr::unsynchronized_pool_resource m_pool;
 
