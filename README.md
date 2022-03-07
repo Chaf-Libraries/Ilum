@@ -40,12 +40,14 @@ cmake --build ./ --target ALL_BUILD --config Release
 ## Feature
 
 * Architecture
-  * Deferred Shading Pipeline
   * Render Graph
     * Customize Render Pass (Graphics, Compute, Ray Tracing)
     * Auto Resource Transition
     * Render Passes Visualization
     * Render Pass Setting
+  * Runtime Shader Compilation
+    * GLSL -> `glslang` -> SPIR-V
+    * HLSL -> `DXC` -> SPIR-V
   * Entity Component System
   * Asynchronous Resource Loading
   * Scene Loading/Saving
@@ -69,12 +71,10 @@ cmake --build ./ --target ALL_BUILD --config Release
     * B Spline Surface
     * Rational Bézier Surface
     * Rational B Spline Surface
-
 * Lighting Model
   * PBR
     * Cook-Torrance BRDF
     * Kulla-Conty Approximation
-
 * Post Processing
   * Temporal Anti-Alias
   * Blooming
@@ -90,7 +90,9 @@ cmake --build ./ --target ALL_BUILD --config Release
 
 #### Kulla-Conty Mutli-Bounce Approximation
 
-![image-20211231141039926](README/image-20211231141039926.png)
+| Multi-Bounce OFF                          | Multi-Bounce ON                        |
+| ----------------------------------------- | -------------------------------------- |
+| ![bloom](README/bloom-16466384709971.png) | ![kulla_conty](README/kulla_conty.png) |
 
 ### Render Passes Visualization
 
@@ -114,9 +116,21 @@ cmake --build ./ --target ALL_BUILD --config Release
 
 ![image-20220108151149909](README/image-20220108151149909.png)
 
-### Temporal Anti-Alias
+### Post Processing
 
-![image-20220111121723309](README/image-20220111121723309.png)
+#### Temporal Anti-Alias
+
+|           TAA OFF            |         TAA ON         |
+| :--------------------------: | :--------------------: |
+| ![no_taa](README/no_taa.png) | ![taa](README/taa.png) |
+
+#### Blooming
+
+| Blooming OFF           | Blooming ON                |
+| ---------------------- | -------------------------- |
+| ![taa](README/taa.png) | ![bloom](README/bloom.png) |
+
+
 
 ## TODO
 
