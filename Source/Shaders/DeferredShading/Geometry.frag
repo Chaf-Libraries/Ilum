@@ -21,17 +21,18 @@ layout(location = 1) out vec4 GBuffer1;   // RGB - Normal, A - Linear Depth
 layout(location = 2) out vec4 GBuffer2; // R - Metallic, G - Roughness, B - Subsurface, A - EntityID
 layout(location = 3) out vec4 GBuffer3; // R - Sheen, G - Sheen Tint, B - Clearcoat, A - Clearcoat Gloss
 layout(location = 4) out vec4 GBuffer4; // RG - Velocity, B - Specular, A - Specular Tint
+layout(location = 5) out vec4 GBuffer5; // RGB - Emissive, A - ?
 
 layout (set = 0, binding = 1) uniform sampler2D texture_array[];
 
 layout (set = 0, binding = 2) buffer PerInstanceBuffer
 {
-    PerInstanceData instance_data[];
+    PerInstanceData instance_data[ ];
 };
 
 layout (set = 0, binding = 4) buffer MaterialBuffer
 {
-    MaterialData material_data[];
+    MaterialData material_data[ ];
 };
 
 float rand(vec2 co){
@@ -83,7 +84,7 @@ void main() {
          material_data[inIndex].metallic;
      // G - Roughness
      GBuffer2.g = material_data[inIndex].textures[TEXTURE_ROUGHNESS] < 1024?
-         texture(texture_array[nonuniformEXT(material_data[inIndex].textures[TEXTURE_ROUGHNESS])], inUV).r * material_data[inIndex].roughness : 
+         texture(texture_array[nonuniformEXT(material_data[inIndex].textures[TEXTURE_ROUGHNESS])], inUV).g * material_data[inIndex].roughness : 
          material_data[inIndex].roughness;
      // B - Subsurface
      GBuffer2.b = material_data[inIndex].subsurface;
@@ -107,4 +108,11 @@ void main() {
      GBuffer4.b = material_data[inIndex].specular;
      // A - Specular Tint
      GBuffer4.a = material_data[inIndex].specular_tint;
+
+     // GBuffer5
+    // RGB - Emissive
+    GBuffer5.rgb =  material_data[inIndex].textures[TEXTURE_EMISSIVE] < MAX_TEXTURE_ARRAY_SIZE?
+        texture(texture_array[nonuniformEXT(material_data[inIndex].textures[TEXTURE_EMISSIVE])], inUV).xyz * material_data[inIndex].emissive_intensity : 
+        material_data[inIndex].emissive_color * material_data[inIndex].emissive_intensity;
+    GBuffer5.a = 1.0;
 }

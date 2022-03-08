@@ -31,17 +31,17 @@ layout (set = 0, binding = 1) uniform sampler2D TextureArray[];
 
 layout(set = 0, binding = 2) buffer PerInstanceBuffer
 {
-	PerInstanceData instance_data[];
+	PerInstanceData instance_data[ ];
 };
 
 layout(set = 0, binding = 3) buffer PerMeshletBuffer
 {
-	PerMeshletData meshlet_data[];
+	PerMeshletData meshlet_data[ ];
 };
 
 layout (set = 0, binding = 4) buffer MaterialBuffer
 {
-    MaterialData material_data[];
+    MaterialData material_data[ ];
 };
 
 layout(push_constant) uniform PushBlock

@@ -1,5 +1,5 @@
-#ifndef _GLOBAL_BUFFER_H_
-#define _GLOBAL_BUFFER_H_
+#ifndef _GLOBAL_BUFFER_GLSL_
+#define _GLOBAL_BUFFER_GLSL_
 
 struct CameraData
 {
@@ -79,4 +79,32 @@ struct MaterialData
 	float transmission_roughness;
 	uint  textures[TEXTURE_MAX_NUM];
 };
+
+struct DirectionalLight
+{
+	vec3  color;
+	float intensity;
+	vec3  direction;
+};
+
+struct PointLight
+{
+	vec3  color;
+	float intensity;
+	vec3  position;
+	float constant;
+	float linear;
+	float quadratic;
+};
+
+struct SpotLight
+{
+	vec3  color;
+	float intensity;
+	vec3  position;
+	float cut_off;
+	vec3  direction;
+	float outer_cut_off;
+};
+
 #endif
