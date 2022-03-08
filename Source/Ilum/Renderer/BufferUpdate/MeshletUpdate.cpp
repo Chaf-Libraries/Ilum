@@ -17,22 +17,22 @@ void MeshletUpdate::run()
 
 	if (cmpt::StaticMeshRenderer::update)
 	{
-		auto meshlet_view = Scene::instance()->getRegistry().view<cmpt::StaticMeshRenderer>();
-		auto mesh_view    = Scene::instance()->getRegistry().view<cmpt::DynamicMeshRenderer>();
+		auto static_mesh_view = Scene::instance()->getRegistry().view<cmpt::StaticMeshRenderer>();
+		auto dynamic_mesh_view    = Scene::instance()->getRegistry().view<cmpt::DynamicMeshRenderer>();
 
 		// Collect instance data
-		std::vector<size_t> meshlet_offset(meshlet_view.size());
-		std::vector<size_t> instance_offset(meshlet_view.size());
+		std::vector<size_t> meshlet_offset(static_mesh_view.size());
+		std::vector<size_t> instance_offset(static_mesh_view.size());
 
 		Renderer::instance()->Render_Stats.static_mesh_count.instance_count = 0;
 		Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count  = 0;
 		Renderer::instance()->Render_Stats.static_mesh_count.triangle_count  = 0;
 
-		for (size_t i = 0; i < meshlet_view.size(); i++)
+		for (size_t i = 0; i < static_mesh_view.size(); i++)
 		{
 			meshlet_offset[i]      = Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count;
 			instance_offset[i]     = Renderer::instance()->Render_Stats.static_mesh_count.instance_count;
-			auto &meshlet_renderer = Entity(meshlet_view[i]).getComponent<cmpt::StaticMeshRenderer>();
+			auto &meshlet_renderer = Entity(static_mesh_view[i]).getComponent<cmpt::StaticMeshRenderer>();
 
 			if (Renderer::instance()->getResourceCache().hasModel(meshlet_renderer.model))
 			{
@@ -57,10 +57,10 @@ void MeshletUpdate::run()
 		PerMeshletData *meshlet_data = reinterpret_cast<PerMeshletData *>(Renderer::instance()->Render_Buffer.Meshlet_Buffer.map());
 
 		// Update static mesh material
-		tbb::parallel_for(tbb::blocked_range<size_t>(0, meshlet_view.size()), [&meshlet_view, &meshlet_data, meshlet_offset, instance_offset](const tbb::blocked_range<size_t> &r) {
+		tbb::parallel_for(tbb::blocked_range<size_t>(0, static_mesh_view.size()), [&static_mesh_view, &meshlet_data, meshlet_offset, instance_offset](const tbb::blocked_range<size_t> &r) {
 			for (size_t i = r.begin(); i != r.end(); i++)
 			{
-				auto        entity           = Entity(meshlet_view[i]);
+				auto        entity           = Entity(static_mesh_view[i]);
 				const auto &meshlet_renderer = entity.getComponent<cmpt::StaticMeshRenderer>();
 
 				if (!Renderer::instance()->getResourceCache().hasModel(meshlet_renderer.model))

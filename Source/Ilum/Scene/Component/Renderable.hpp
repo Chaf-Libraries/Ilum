@@ -43,6 +43,8 @@ struct DynamicMeshRenderer : public Renderable
 	std::vector<Vertex>   vertices;
 	std::vector<uint32_t> indices;
 
+	geometry::BoundingBox bbox;
+
 	Buffer vertex_buffer;
 	Buffer index_buffer;
 

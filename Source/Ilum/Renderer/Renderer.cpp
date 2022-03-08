@@ -45,6 +45,7 @@
 #include "RenderPass/PreProcess/KullaContyEnergy.hpp"
 #include "RenderPass/Preprocess/EquirectangularToCubemap.hpp"
 #include "RenderPass/RayTracing/RayTracingTestPass.hpp"
+#include "RenderPass/Deferred/GeometryPass.hpp"
 
 #include "BufferUpdate/CameraUpdate.hpp"
 #include "BufferUpdate/CurveUpdate.hpp"
@@ -76,28 +77,30 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("HizPass", std::make_unique<pass::HizPass>())
 		    .addRenderPass("InstanceCulling", std::make_unique<pass::InstanceCullingPass>())
 		    .addRenderPass("MeshletCulling", std::make_unique<pass::MeshletCullingPass>())
-		    .addRenderPass("StaticGeometryPass", std::make_unique<pass::StaticGeometryPass>())
-		    .addRenderPass("DynamicGeometryPass", std::make_unique<pass::DynamicGeometryPass>())
-		    .addRenderPass("CurvePass", std::make_unique<pass::CurvePass>())
-		    .addRenderPass("SurfacePass", std::make_unique<pass::SurfacePass>())
-		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
-		    .addRenderPass("EnvLight", std::make_unique<pass::EnvLightPass>())
+		    .addRenderPass("GeometryPass", std::make_unique<pass::GeometryPass>())
 
-		    .addRenderPass("TAAPass", std::make_unique<pass::TAAPass>())
 
-		    .addRenderPass("BloomMask", std::make_unique<pass::BloomMask>("taa_result", "post_tex1"))
-		    .addRenderPass("BloomBlur1", std::make_unique<pass::BloomBlur>("post_tex1", "post_tex2", false))
-		    .addRenderPass("BloomBlur2", std::make_unique<pass::BloomBlur>("post_tex2", "post_tex1", true))
-		    .addRenderPass("Blend", std::make_unique<pass::BloomBlend>("post_tex1", "taa_result"))
+		    //.addRenderPass("StaticGeometryPass", std::make_unique<pass::StaticGeometryPass>())
+		    //.addRenderPass("DynamicGeometryPass", std::make_unique<pass::DynamicGeometryPass>())
+		    //.addRenderPass("CurvePass", std::make_unique<pass::CurvePass>())
+		    //.addRenderPass("SurfacePass", std::make_unique<pass::SurfacePass>())
+		    //.addRenderPass("LightPass", std::make_unique<pass::LightPass>())
 
-		    //.addRenderPass("RayTracingTest", std::make_unique<pass::RayTracingTestPass>())
+		    //.addRenderPass("TAAPass", std::make_unique<pass::TAAPass>())
 
-		    .addRenderPass("CopyBuffer", std::make_unique<pass::CopyPass>())
+		    //.addRenderPass("BloomMask", std::make_unique<pass::BloomMask>("taa_result", "post_tex1"))
+		    //.addRenderPass("BloomBlur1", std::make_unique<pass::BloomBlur>("post_tex1", "post_tex2", false))
+		    //.addRenderPass("BloomBlur2", std::make_unique<pass::BloomBlur>("post_tex2", "post_tex1", true))
+		    //.addRenderPass("Blend", std::make_unique<pass::BloomBlend>("post_tex1", "taa_result"))
 
-		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("taa_result"))
+		    ////.addRenderPass("RayTracingTest", std::make_unique<pass::RayTracingTestPass>())
 
-		    .setView("gbuffer - normal")
-		    .setOutput("gbuffer - normal");
+		    //.addRenderPass("CopyBuffer", std::make_unique<pass::CopyPass>())
+
+		    //.addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("lighting"))
+
+		    .setView("GBuffer0")
+		    .setOutput("GBuffer0");
 	};
 
 	buildRenderGraph = DeferredRendering;

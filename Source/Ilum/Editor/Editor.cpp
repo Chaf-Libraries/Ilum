@@ -16,13 +16,14 @@
 #include "Panels/Console.hpp"
 #include "Panels/Hierarchy.hpp"
 #include "Panels/Inspector.hpp"
+#include "Panels/MeshModifier.hpp"
 #include "Panels/RenderGraphViewer.hpp"
 #include "Panels/RendererInspector.hpp"
 #include "Panels/SceneView.hpp"
 
+#include "Scene/Component/Camera.hpp"
 #include "Scene/Component/Light.hpp"
 #include "Scene/Component/Renderable.hpp"
-#include "Scene/Component/Camera.hpp"
 #include "Scene/SceneSerializer.hpp"
 
 #include "ImFileDialog.h"
@@ -49,6 +50,7 @@ bool Editor::onInitialize()
 	m_panels.emplace_back(createScope<panel::Hierarchy>());
 	m_panels.emplace_back(createScope<panel::AssetBrowser>());
 	m_panels.emplace_back(createScope<panel::SceneView>());
+	m_panels.emplace_back(createScope<panel::MeshModifier>());
 	m_panels.emplace_back(createScope<panel::Console>());
 	m_panels.emplace_back(createScope<panel::RendererInspector>());
 
@@ -57,7 +59,6 @@ bool Editor::onInitialize()
 
 void Editor::onPreTick()
 {
-	
 }
 
 void Editor::onTick(float delta_time)
@@ -172,7 +173,7 @@ void Editor::onTick(float delta_time)
 			{
 				if (ImGui::MenuItem("Plane"))
 				{
-					auto entity                                     = Scene::instance()->createEntity("Plane");
+					auto entity                                           = Scene::instance()->createEntity("Plane");
 					entity.addComponent<cmpt::StaticMeshRenderer>().model = std::string(PROJECT_SOURCE_DIR) + "Asset/Model/plane.obj";
 					Renderer::instance()->getResourceCache().loadModelAsync(std::string(PROJECT_SOURCE_DIR) + "Asset/Model/plane.obj");
 					m_select_entity = entity;
@@ -198,7 +199,7 @@ void Editor::onTick(float delta_time)
 		{
 			if (ifd::FileDialog::Instance().HasResult())
 			{
-				m_scene_path = ifd::FileDialog::Instance().GetResult().u8string();
+				m_scene_path            = ifd::FileDialog::Instance().GetResult().u8string();
 				Scene::instance()->name = FileSystem::getFileName(m_scene_path, false);
 				SceneSerializer serializer;
 				serializer.serialize(m_scene_path.c_str());
@@ -223,7 +224,6 @@ void Editor::onTick(float delta_time)
 
 void Editor::onPostTick()
 {
-	
 }
 
 void Editor::onShutdown()

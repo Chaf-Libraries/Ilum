@@ -44,19 +44,20 @@ layout (set = 0, binding = 4) buffer MaterialBuffer
     MaterialData material_data[];
 };
 
-layout (set = 0, binding = 5) buffer DrawBuffer
+layout(push_constant) uniform PushBlock
 {
-    uint draw_data[];
-};
+    mat4 transform;
+    uint dynamic;
+}push_data;
 
 void main() {
-    outIndex = draw_data[gl_DrawIDARB];
+    outIndex = gl_InstanceIndex;
 
     float height = material_data[outIndex].textures[TEXTURE_DISPLACEMENT] < MAX_TEXTURE_ARRAY_SIZE?
         max(texture(TextureArray[nonuniformEXT(material_data[outIndex].textures[TEXTURE_DISPLACEMENT])], inUV).r, 0.0) 
         * material_data[outIndex].displacement: 0.0;
     
-    mat4 trans = instance_data[outIndex].transform;
+    mat4 trans = push_data.dynamic == 1? push_data.transform: instance_data[outIndex].transform;
 
     // World normal
     mat3 mNormal = transpose(inverse(mat3(trans)));
@@ -72,9 +73,7 @@ void main() {
 
     outScreenSpacePos = gl_Position;
 
-    outLastScreenSpacePos = camera_data.last_view_projection * 
-            instance_data[outIndex].last_transform * 
-            vec4(inPos, 1.0);
+    outLastScreenSpacePos = push_data.dynamic == 1? camera_data.last_view_projection * instance_data[outIndex].last_transform * vec4(inPos, 1.0) : vec4(0.0);
 
     outPos.w = gl_Position.z;
 

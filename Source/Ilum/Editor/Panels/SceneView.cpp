@@ -560,6 +560,7 @@ __pragma(warning(push, 0))
 				}
 				Editor::instance()->select(entity);
 				cmpt::StaticMeshRenderer::update = true;
+				Material::update                 = true;
 			}
 			ImGui::EndDragDropTarget();
 		}
@@ -790,7 +791,6 @@ __pragma(warning(push, 0))
 			glm::mat4 related_transform      = camera_transform.world_transform * glm::inverse(camera_transform.local_transform);
 			camera_transform.local_transform = glm::scale(glm::translate(glm::mat4(1.f), camera_transform.translation) * glm::mat4_cast(glm::qua<float>(glm::radians(camera_transform.rotation))), camera_transform.scale);
 			camera_transform.world_transform = related_transform * camera_transform.local_transform;
-			//main_camera.update = true;
 		}
 		else if (m_cursor_hidden)
 		{
@@ -955,11 +955,26 @@ __pragma(warning(push, 0))
 		}
 
 		ImGui::SameLine();
-		ImGui::PushItemWidth(80.f);
-		ImGui::DragFloat("Camera speed", &m_camera_speed, 0.01f, 0.f, std::numeric_limits<float>::max());
-		ImGui::SameLine();
-		ImGui::DragFloat("Camera sensitity", &m_camera_sensitity, 0.01f, 0.f, std::numeric_limits<float>::max());
-		ImGui::PopItemWidth();
+		if (ImGui::ImageButton(ImGuiContext::textureID(m_icons["camera"], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
+		                       ImVec2(20.f, 20.f),
+		                       ImVec2(0.f, 0.f),
+		                       ImVec2(1.f, 1.f),
+		                       -1,
+		                       ImVec4(0.f, 0.f, 0.f, 0.f)))
+		{
+			ImGui::OpenPopup("CameraPopup");
+		}
+
+		if (ImGui::BeginPopup("CameraPopup"))
+		{
+			ImGui::PushItemWidth(80.f);
+			const char *const camera_controller[] = {"First Person", "Lookat"};
+			ImGui::Combo("Camera Controller", reinterpret_cast<int *>(&m_camera_controller), camera_controller, 2);
+			ImGui::DragFloat("Camera speed", &m_camera_speed, 0.01f, 0.f, std::numeric_limits<float>::max());
+			ImGui::DragFloat("Camera sensitity", &m_camera_sensitity, 0.01f, 0.f, std::numeric_limits<float>::max());
+			ImGui::PopItemWidth();
+			ImGui::EndPopup();
+		}
 
 		ImGui::PopStyleColor();
 		ImGui::PopStyleVar();

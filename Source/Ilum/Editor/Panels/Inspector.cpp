@@ -208,13 +208,14 @@ inline void draw_material(Material &material)
 	Material::update = ImGui::DragFloat("Emissive Intensity", &material.emissive_intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Metallic", &material.metallic, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Roughness", &material.roughness, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Subsurface", &material.subsurface, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Specular", &material.specular, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Specular Tint", &material.specular_tint, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Anisotropic", &material.anisotropic, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Sheen", &material.sheen, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Sheen Tint", &material.sheen_tint, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Clearcoat", &material.clearcoat, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
-	Material::update = ImGui::DragFloat("Clearcoat Gloss", &material.clearcoat, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Clearcoat Gloss", &material.clearcoat_gloss, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Transmission", &material.transmission, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Transmission Roughness", &material.transmission_roughness, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Displacement", &material.displacement, 0.001f, 0.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
@@ -459,7 +460,10 @@ inline void draw_component<cmpt::DynamicMeshRenderer>(Entity entity)
 					{
 						component.vertices    = model.get().vertices;
 						component.indices     = model.get().indices;
+						component.material    = model.get().submeshes[0].material;
+						component.bbox        = model.get().bounding_box;
 						component.need_update = true;
+						Material::update      = true;
 					}
 				}
 				ImGui::EndDragDropTarget();
