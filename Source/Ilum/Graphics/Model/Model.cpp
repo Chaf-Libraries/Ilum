@@ -16,7 +16,8 @@ Model::Model(Model &&other) noexcept :
     bounding_box(other.bounding_box),
     vertices_count(other.vertices_count),
     indices_count(other.indices_count),
-    mesh(std::move(other.mesh)),
+    vertices(std::move(other.vertices)),
+    indices(std::move(other.indices)),
     meshlets(std::move(other.meshlets))
 {
 	other.submeshes.clear();
@@ -28,7 +29,8 @@ Model &Model::operator=(Model &&other) noexcept
 	bounding_box   = other.bounding_box;
 	vertices_count = other.vertices_count;
 	indices_count  = other.indices_count;
-	mesh           = std::move(other.mesh);
+	vertices       = std::move(other.vertices);
+	indices        = std::move(other.indices);
 	meshlets       = std::move(other.meshlets);
 
 	other.submeshes.clear();

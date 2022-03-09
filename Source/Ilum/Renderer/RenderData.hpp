@@ -67,23 +67,30 @@ struct MeshCountData
 
 struct MaterialData
 {
-	glm::vec4 base_color = {};
+	glm::vec4 base_color;
 
-	glm::vec3 emissive_color  = {0.f, 0.f, 0.f};
-	float     metallic = 0.f;
+	glm::vec3 emissive_color;
+	float     emissive_intensity;
 
-	float    roughness   = 0.f;
-	float    emissive_intensity = 0.f;
-	uint32_t albedo_map         = 0;
-	uint32_t normal_map         = 0;
+	float displacement;
+	float subsurface;
+	float metallic;
+	float specular;
 
-	uint32_t metallic_map  = 0;
-	uint32_t roughness_map = 0;
-	uint32_t emissive_map  = 0;
-	uint32_t ao_map        = 0;
+	float specular_tint;
+	float roughness;
+	float anisotropic;
+	float sheen;
 
-	alignas(16) uint32_t displacement_map = 0;
-	float displacement             = 0.f;
+	float sheen_tint;
+	float clearcoat;
+	float clearcoat_gloss;
+	float transmission;
+
+	float    transmission_roughness;
+	uint32_t textures[TextureType::MaxNum];
+
+	alignas(16) uint32_t material_type;
 };
 
 struct CameraData

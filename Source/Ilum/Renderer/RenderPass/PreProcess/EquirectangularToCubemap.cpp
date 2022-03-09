@@ -28,8 +28,8 @@ EquirectangularToCubemap::~EquirectangularToCubemap()
 
 void EquirectangularToCubemap::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/PreProcess/EquirectangularToCubemap.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/PreProcess/EquirectangularToCubemap.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/EquirectangularToCubemap.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/EquirectangularToCubemap.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,
@@ -46,16 +46,16 @@ void EquirectangularToCubemap::setupPipeline(PipelineState &state)
 
 	state.rasterization_state.polygon_mode = VK_POLYGON_MODE_FILL;
 
-	state.descriptor_bindings.bind(0, 0, "textureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Wrap), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 0, "TextureArray", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Wrap), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
-	state.declareAttachment("generated_cubmap", VK_FORMAT_R16G16B16A16_SFLOAT, 512, 512, false, 6);
+	state.declareAttachment("SkyBox", VK_FORMAT_R16G16B16A16_SFLOAT, 1024, 1024, false, 6);
 
-	state.addOutputAttachment("generated_cubmap", AttachmentState::Clear_Color);
+	state.addOutputAttachment("SkyBox", AttachmentState::Clear_Color);
 }
 
 void EquirectangularToCubemap::resolveResources(ResolveState &resolve)
 {
-	resolve.resolve("textureArray", Renderer::instance()->getResourceCache().getImageReferences());
+	resolve.resolve("TextureArray", Renderer::instance()->getResourceCache().getImageReferences());
 }
 
 void EquirectangularToCubemap::render(RenderPassState &state)
@@ -67,7 +67,7 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 
 	auto &cmd_buffer = state.command_buffer;
 
-	auto &attachment = Renderer::instance()->getRenderGraph()->getAttachment("generated_cubmap");
+	auto &attachment = Renderer::instance()->getRenderGraph()->getAttachment("SkyBox");
 
 	if (m_framebuffers.empty())
 	{
@@ -82,8 +82,8 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 			frame_buffer_create_info.renderPass              = state.pass.render_pass;
 			frame_buffer_create_info.attachmentCount         = 1;
 			frame_buffer_create_info.pAttachments            = &attachment.getView(layer);
-			frame_buffer_create_info.width                   = 512;
-			frame_buffer_create_info.height                  = 512;
+			frame_buffer_create_info.width                   = 1024;
+			frame_buffer_create_info.height                  = 1024;
 			frame_buffer_create_info.layers                  = 1;
 
 			vkCreateFramebuffer(GraphicsContext::instance()->getLogicalDevice(), &frame_buffer_create_info, nullptr, &m_framebuffers[layer]);
@@ -98,8 +98,8 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 	begin_info.clearValueCount       = static_cast<uint32_t>(state.pass.clear_values.size());
 	begin_info.pClearValues          = state.pass.clear_values.data();
 
-	VkViewport viewport = {0, 0, 512, 512, 0, 1};
-	VkRect2D   scissor  = {0, 0, 512, 512};
+	VkViewport viewport = {0, 0, 1024, 1024, 0, 1};
+	VkRect2D   scissor  = {0, 0, 1024, 1024};
 
 	glm::mat4 projection_matrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
 	glm::mat4 views_matrix[] =

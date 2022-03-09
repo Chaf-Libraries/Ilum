@@ -35,8 +35,8 @@ void ImGuiPass::setupPipeline(PipelineState &state)
 	Renderer::instance()->buildRenderGraph(builder);
 	auto &rg = builder.build();
 
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/ImGui.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/ImGui.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/ImGui.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/ImGui.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,
@@ -64,7 +64,7 @@ void ImGuiPass::setupPipeline(PipelineState &state)
 
 	for (auto &[name, output] : rg->getAttachments())
 	{
-		if (name != rg->output())
+		if (name != m_output)
 		{
 			state.addDependency(name, VK_IMAGE_USAGE_SAMPLED_BIT);
 		}

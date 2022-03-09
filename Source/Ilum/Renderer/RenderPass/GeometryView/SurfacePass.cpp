@@ -10,8 +10,8 @@ namespace Ilum::pass
 {
 void SurfacePass::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/GeometryView/Surface.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/GeometryView/Surface.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GeometryView/Surface.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GeometryView/Surface.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,
@@ -27,7 +27,7 @@ void SurfacePass::setupPipeline(PipelineState &state)
 	state.vertex_input_state.binding_descriptions = {
 	    VkVertexInputBindingDescription{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX}};
 
-	state.color_blend_attachment_states.resize(2);
+	state.color_blend_attachment_states.resize(1);
 	state.depth_stencil_state.stencil_test_enable = false;
 
 	state.rasterization_state.cull_mode = VK_CULL_MODE_NONE;
@@ -38,31 +38,15 @@ void SurfacePass::setupPipeline(PipelineState &state)
 		color_blend_attachment_state.blend_enable = false;
 	}
 
-	// Setting rasterization state
-	switch (Renderer::instance()->Render_Mode)
-	{
-		case Renderer::RenderMode::Polygon:
-			state.rasterization_state.polygon_mode = VK_POLYGON_MODE_FILL;
-			break;
-		case Renderer::RenderMode::WireFrame:
-			state.rasterization_state.polygon_mode = VK_POLYGON_MODE_LINE;
-			break;
-		case Renderer::RenderMode::PointCloud:
-			state.rasterization_state.polygon_mode = VK_POLYGON_MODE_POINT;
-			break;
-		default:
-			break;
-	}
+	state.rasterization_state.polygon_mode = VK_POLYGON_MODE_FILL;
 
 	state.descriptor_bindings.bind(0, 0, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
-	state.declareAttachment("geometry - surface", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	state.declareAttachment("debug - entity", VK_FORMAT_R32_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	state.declareAttachment("surface_depth_stencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("GeometryView", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("GeometryDepthStencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 
-	state.addOutputAttachment("geometry - surface", AttachmentState::Clear_Color);
-	state.addOutputAttachment("debug - entity", AttachmentState::Load_Color);
-	state.addOutputAttachment("surface_depth_stencil", VkClearDepthStencilValue{1.f, 0u});
+	state.addOutputAttachment("GeometryView", AttachmentState::Load_Color);
+	state.addOutputAttachment("GeometryDepthStencil", AttachmentState::Load_Depth_Stencil);
 }
 
 void SurfacePass::resolveResources(ResolveState &resolve)
@@ -124,13 +108,9 @@ void SurfacePass::render(RenderPassState &state)
 			struct
 			{
 				glm::mat4 transform;
-				uint32_t  entity_id;
-				uint32_t  instance_id;
 			} push_block;
 
 			push_block.transform   = transform.world_transform;
-			push_block.entity_id   = static_cast<uint32_t>(entity);
-			push_block.instance_id = instance_id++;
 
 			vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_block), &push_block);
 			vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(surface_renderer.index_buffer.getSize()) / sizeof(uint32_t), 1, 0, 0, 0);

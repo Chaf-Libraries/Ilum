@@ -90,8 +90,6 @@ class Renderer : public TSubsystem<Renderer>
   private:
 	void createSamplers();
 
-	void updateImages();
-
   private:
 	std::function<void(RenderGraphBuilder &)> DeferredRendering;
 
@@ -123,13 +121,6 @@ class Renderer : public TSubsystem<Renderer>
 	RenderBuffer Render_Buffer;
 
 	RenderMode Render_Mode = RenderMode::Polygon;
-
-	struct
-	{
-		scope<Image> depth_buffer = nullptr;
-		scope<Image> hiz_buffer   = nullptr;
-		scope<Image> last_result  = nullptr;
-	} Last_Frame;
 
   public:
 	Event<> Event_RenderGraph_Rebuild;

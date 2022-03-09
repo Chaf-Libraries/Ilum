@@ -49,8 +49,8 @@ void GeometryUpdate::run()
 		{
 			auto &model = resource_cache.loadModel(name);
 
-			std::memcpy(vertex_data + model.get().vertices_offset * sizeof(Vertex), model.get().mesh.vertices.data(), sizeof(Ilum::Vertex) * model.get().vertices_count);
-			std::memcpy(index_data + model.get().indices_offset * sizeof(uint32_t), model.get().mesh.indices.data(), sizeof(uint32_t) * model.get().indices_count);
+			std::memcpy(vertex_data + model.get().vertices_offset * sizeof(Vertex), model.get().vertices.data(), sizeof(Ilum::Vertex) * model.get().vertices_count);
+			std::memcpy(index_data + model.get().indices_offset * sizeof(uint32_t), model.get().indices.data(), sizeof(uint32_t) * model.get().indices_count);
 		}
 
 		staging_vertex_buffer.unmap();

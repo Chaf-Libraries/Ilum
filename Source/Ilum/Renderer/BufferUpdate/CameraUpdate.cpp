@@ -119,8 +119,8 @@ void CameraUpdate::run()
 
 	culling_data->meshlet_count    = Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count;
 	culling_data->instance_count   = Renderer::instance()->Render_Stats.static_mesh_count.instance_count;
-	culling_data->zbuffer_width    = static_cast<float>(Renderer::instance()->Last_Frame.hiz_buffer->getWidth());
-	culling_data->zbuffer_height   = static_cast<float>(Renderer::instance()->Last_Frame.hiz_buffer->getHeight());
+	culling_data->zbuffer_width    = static_cast<float>(Renderer::instance()->getRenderTargetExtent().width);
+	culling_data->zbuffer_height   = static_cast<float>(Renderer::instance()->getRenderTargetExtent().height);
 
 	Renderer::instance()->Render_Buffer.Camera_Buffer.unmap();
 	Renderer::instance()->Render_Buffer.Culling_Buffer.unmap();

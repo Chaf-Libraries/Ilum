@@ -148,8 +148,8 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 		LOG_INFO("Model {} preprocess finish", file_path);
 		std::unordered_set<std::string> loaded_textures;
 
-		model.mesh.vertices.clear();
-		model.mesh.indices.clear();
+		model.vertices.clear();
+		model.indices.clear();
 		model.meshlets.clear();
 
 		const size_t max_vertices  = 64;
@@ -216,7 +216,7 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 			for (auto &meshlet : meshlets)
 			{
 				Meshlet tmp_meshlet;
-				tmp_meshlet.vertices_offset = static_cast<uint32_t>(model.mesh.vertices.size());
+				tmp_meshlet.vertices_offset = static_cast<uint32_t>(model.vertices.size());
 				tmp_meshlet.indices_offset = meshlet_indices_offset;
 				tmp_meshlet.indices_count  = static_cast<uint32_t>(meshlet.triangle_count * 3);
 				meshlet_indices_offset += tmp_meshlet.indices_count;
@@ -231,12 +231,12 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 				model.meshlets.emplace_back(std::move(tmp_meshlet));
 			}
 
-			model.mesh.vertices.insert(model.mesh.vertices.end(), std::make_move_iterator(vertices.begin()), std::make_move_iterator(vertices.end()));
-			model.mesh.indices.insert(model.mesh.indices.end(), std::make_move_iterator(meshlet_indices.begin()), std::make_move_iterator(meshlet_indices.end()));
+			model.vertices.insert(model.vertices.end(), std::make_move_iterator(vertices.begin()), std::make_move_iterator(vertices.end()));
+			model.indices.insert(model.indices.end(), std::make_move_iterator(meshlet_indices.begin()), std::make_move_iterator(meshlet_indices.end()));
 		}
 
-		model.vertices_count = static_cast<uint32_t>(model.mesh.vertices.size());
-		model.indices_count  = static_cast<uint32_t>(model.mesh.indices.size());
+		model.vertices_count = static_cast<uint32_t>(model.vertices.size());
+		model.indices_count  = static_cast<uint32_t>(model.indices.size());
 
 		aiMatrix4x4 identity;
 		parseNode(file_path, identity, scene->mRootNode, scene, model, meshlet_offsets, meshlet_counts);

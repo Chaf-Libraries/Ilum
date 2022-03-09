@@ -1,14 +1,11 @@
 #pragma once
 
-#include "Geometry/Mesh/TriMesh.hpp"
+#include "Geometry/Vertex.hpp"
 
 namespace Ilum::geometry
 {
 struct Shape
 {
-	virtual TriMesh toTriMesh()
-	{
-		return TriMesh();
-	}
+	virtual std::pair<std::vector<Vertex>, std::vector<uint32_t>> toMesh() = 0;
 };
 }

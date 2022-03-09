@@ -27,14 +27,14 @@ KullaContyEnergy::KullaContyEnergy()
 
 void KullaContyEnergy::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/PreProcess/KullaContyEnergy.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/KullaContyEnergy.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
 
-	state.descriptor_bindings.bind(0, 0, "LUT - Emu", ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	state.descriptor_bindings.bind(0, 0, "EmuLut", ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 }
 
 void KullaContyEnergy::resolveResources(ResolveState &resolve)
 {
-	resolve.resolve("LUT - Emu", m_kulla_conty_energy);
+	resolve.resolve("EmuLut", m_kulla_conty_energy);
 }
 
 void KullaContyEnergy::render(RenderPassState &state)

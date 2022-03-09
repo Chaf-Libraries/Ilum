@@ -4,7 +4,7 @@
 
 Ilum Graphics Playground, name after *Planet Ilum* from [Star Wars](https://starwars.fandom.com/es/wiki/Ilum)
 
-![image-20211120113509528](README/image-20211120113509528.png)
+![image-20220302105808573](README/image-20220302105808573.png)
 
 ## Build
 
@@ -40,12 +40,14 @@ cmake --build ./ --target ALL_BUILD --config Release
 ## Feature
 
 * Architecture
-  * Deferred Shading Pipeline
   * Render Graph
     * Customize Render Pass (Graphics, Compute, Ray Tracing)
     * Auto Resource Transition
     * Render Passes Visualization
     * Render Pass Setting
+  * Runtime Shader Compilation
+    * GLSL -> `glslang` -> SPIR-V
+    * HLSL -> `DXC` -> SPIR-V
   * Entity Component System
   * Asynchronous Resource Loading
   * Scene Loading/Saving
@@ -69,12 +71,10 @@ cmake --build ./ --target ALL_BUILD --config Release
     * B Spline Surface
     * Rational Bézier Surface
     * Rational B Spline Surface
-
 * Lighting Model
   * PBR
     * Cook-Torrance BRDF
     * Kulla-Conty Approximation
-
 * Post Processing
   * Temporal Anti-Alias
   * Blooming
@@ -90,7 +90,9 @@ cmake --build ./ --target ALL_BUILD --config Release
 
 #### Kulla-Conty Mutli-Bounce Approximation
 
-![image-20211231141039926](README/image-20211231141039926.png)
+| Multi-Bounce OFF                          | Multi-Bounce ON                        |
+| ----------------------------------------- | -------------------------------------- |
+| ![bloom](README/bloom-16466384709971.png) | ![kulla_conty](README/kulla_conty.png) |
 
 ### Render Passes Visualization
 
@@ -102,9 +104,13 @@ cmake --build ./ --target ALL_BUILD --config Release
 
 ![image-20211130105935862](README/image-20211130105935862.png)
 
+#### Hierarchy Z Buffer Generation
+
+![image-20211210113933024](README/image-20211210113933024.png)
+
 #### Massive Scene Rendering
 
-![performance](README/performance.png)
+![image-20220302110444007](README/image-20220302110444007.png)
 
 ### Curve Modeling
 
@@ -114,25 +120,17 @@ cmake --build ./ --target ALL_BUILD --config Release
 
 ![image-20220108151149909](README/image-20220108151149909.png)
 
-### Temporal Anti-Alias
+### Post Processing
 
-![image-20220111121723309](README/image-20220111121723309.png)
+#### Temporal Anti-Alias
 
-## TODO
+|           TAA OFF            |         TAA ON         |
+| :--------------------------: | :--------------------: |
+| ![no_taa](README/no_taa.png) | ![taa](README/taa.png) |
 
-More features are on their way:
+#### Blooming
 
-* Image based lighting
-* Shadow Mapping
-* RTX
-* GI
-* Screen space
-  * SSR
-  * SSGI
-  * SSAO
-  * ...
-* Simulation
-  * Ridge body
-  * Fluid
-  * Cloth
-* ...
+| Blooming OFF           | Blooming ON                |
+| ---------------------- | -------------------------- |
+| ![taa](README/taa.png) | ![bloom](README/bloom.png) |
+

@@ -14,24 +14,23 @@ namespace Ilum::pass
 {
 void InstanceCullingPass::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/Culling/InstanceCulling.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Culling/InstanceCulling.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
 
-	state.descriptor_bindings.bind(0, 0, "PerInstanceData", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 0, "PerInstanceBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 1, "InstanceVisibility", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 2, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	state.descriptor_bindings.bind(0, 3, "IndirectDrawCommand", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 4, "culling_buffer", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	state.descriptor_bindings.bind(0, 5, "count_buffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 6, "DrawInfo", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 6, "DrawBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 }
 
 void InstanceCullingPass::resolveResources(ResolveState &resolve)
 {
 	resolve.resolve("IndirectDrawCommand", Renderer::instance()->Render_Buffer.Command_Buffer);
-	resolve.resolve("PerInstanceData", Renderer::instance()->Render_Buffer.Instance_Buffer);
+	resolve.resolve("PerInstanceBuffer", Renderer::instance()->Render_Buffer.Instance_Buffer);
 	resolve.resolve("InstanceVisibility", Renderer::instance()->Render_Buffer.Instance_Visibility_Buffer);
 	resolve.resolve("Camera", Renderer::instance()->Render_Buffer.Camera_Buffer);
-	resolve.resolve("hiz - buffer", *Renderer::instance()->Last_Frame.hiz_buffer);
 	resolve.resolve("culling_buffer", Renderer::instance()->Render_Buffer.Culling_Buffer);
 	resolve.resolve("count_buffer", Renderer::instance()->Render_Buffer.Count_Buffer);
 	resolve.resolve("DrawInfo", Renderer::instance()->Render_Buffer.Draw_Buffer);

@@ -19,9 +19,14 @@ class HizPass : public TRenderPass<HizPass>
 
 	virtual void render(RenderPassState &state) override;
 
+	virtual void onImGui() override;
+
   private:
 	std::vector<DescriptorSet> m_descriptor_sets;
 	std::vector<VkImageView>   m_views;
 	VkSampler                  m_hiz_sampler=VK_NULL_HANDLE;
+	Image                      m_hiz;
+	Image                      m_linear_depth;
+	int32_t                    m_current_level = 0;
 };
 }        // namespace Ilum::pass

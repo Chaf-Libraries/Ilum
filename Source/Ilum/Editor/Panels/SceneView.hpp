@@ -32,12 +32,20 @@ class SceneView : public Panel
 		AABB,
 	};
 
+	enum class CameraController
+	{
+		FPS,
+		Lookat
+	};
+
   private:
 	bool                        m_cursor_hidden = false;
 	std::pair<int32_t, int32_t> m_last_position;
 
-	float m_camera_speed       = 5.f;
+	float m_camera_speed     = 5.f;
 	float m_camera_sensitity = 0.5f;
+
+	CameraController m_camera_controller = CameraController::FPS;
 
 	uint32_t m_guizmo_operation = 0;
 
