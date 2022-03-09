@@ -44,6 +44,32 @@ __pragma(warning(push, 0))
 
         namespace Ilum::panel
 {
+	// Half float -> float
+	inline float float16Tofloat32(uint16_t data)
+	{
+		float result = 0.f;
+
+		uint16_t frac = (data & 0x3ff) | 0x400;
+		int32_t  exp  = ((data & 0x7c00) >> 10) - 25;
+
+		if (frac == 0 && exp == 0x1f)
+		{
+			result = std::numeric_limits<float>::infinity();
+		}
+		else if (frac || exp)
+		{
+			result = frac * powf(2, static_cast<float>(exp));
+		}
+		else
+		{
+			result = 0.f;
+		}
+
+		result = (data & 0x8000) ? -result : result;
+
+		return result;
+	}
+
 	inline void draw_line(ImDrawList * draw_list, const ImVec2 &x1, const ImVec2 &x2, const ImVec2 &offset, ImColor color, float line_width)
 	{
 		ImVec2 p1 = x1;
@@ -648,23 +674,23 @@ __pragma(warning(push, 0))
 
 			// Mouse picking via g-buffer
 			{
-				ImageReference entity_id_buffer = Renderer::instance()->getRenderGraph()->getAttachment("debug - entity");
+				ImageReference entity_id_buffer = Renderer::instance()->getRenderGraph()->getAttachment("GBuffer2");
 
 				CommandBuffer cmd_buffer;
 				cmd_buffer.begin();
-				Buffer staging_buffer(static_cast<VkDeviceSize>(static_cast<size_t>(entity_id_buffer.get().getWidth() * entity_id_buffer.get().getHeight())) * sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
+				Buffer staging_buffer(static_cast<VkDeviceSize>(static_cast<size_t>(entity_id_buffer.get().getWidth() * entity_id_buffer.get().getHeight())) * sizeof(uint16_t) * 4, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
 				cmd_buffer.transferLayout(entity_id_buffer, VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
 				cmd_buffer.copyImageToBuffer(ImageInfo{entity_id_buffer, VK_IMAGE_USAGE_TRANSFER_SRC_BIT, 0, 0}, BufferInfo{staging_buffer, 0});
 				cmd_buffer.transferLayout(entity_id_buffer, VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
 				cmd_buffer.end();
 				cmd_buffer.submitIdle();
-				std::vector<uint32_t> image_data(static_cast<size_t>(entity_id_buffer.get().getWidth() * entity_id_buffer.get().getHeight()));
-				std::memcpy(image_data.data(), staging_buffer.map(), image_data.size() * sizeof(uint32_t));
+				std::vector<uint16_t> image_data(static_cast<size_t>(entity_id_buffer.get().getWidth() * entity_id_buffer.get().getHeight() * 4));
+				std::memcpy(image_data.data(), staging_buffer.map(), image_data.size() * sizeof(uint16_t));
 
 				click_pos.x = glm::clamp(click_pos.x, 0.f, static_cast<float>(entity_id_buffer.get().getWidth()));
 				click_pos.y = glm::clamp(click_pos.y, 0.f, static_cast<float>(entity_id_buffer.get().getHeight()));
 
-				auto entity = Entity(static_cast<entt::entity>(image_data[static_cast<size_t>(click_pos.y) * static_cast<size_t>(entity_id_buffer.get().getWidth()) + static_cast<size_t>(click_pos.x)]));
+				auto entity = Entity(static_cast<entt::entity>(float16Tofloat32(image_data[(static_cast<size_t>(click_pos.y) * static_cast<size_t>(entity_id_buffer.get().getWidth()) + static_cast<size_t>(click_pos.x)) * 4 + 3])));
 				Editor::instance()->select(entity);
 
 				staging_buffer.unmap();
@@ -1027,17 +1053,7 @@ __pragma(warning(push, 0))
 						std::vector<float> data(raw_data.size());
 						for (uint32_t i = 0; i < data.size(); i++)
 						{
-							uint16_t frac = (raw_data[i] & 0x3ff) | 0x400;
-							int32_t  exp  = ((raw_data[i] & 0x7c00) >> 10) - 25;
-
-							if (frac == 0 && exp == 0x1f)
-								data[i] = std::numeric_limits<float>::infinity();
-							else if (frac || exp)
-								data[i] = frac * powf(2, static_cast<float>(exp));
-							else
-								data[i] = 0.f;
-
-							data[i] = (raw_data[i] & 0x8000) ? -data[i] : data[i];
+							data[i] = float16Tofloat32(raw_data[i]);
 						}
 						stbi_write_hdr((save_path + ".hdr").c_str(), w, h, 4, reinterpret_cast<float *>(data.data()));
 					}
