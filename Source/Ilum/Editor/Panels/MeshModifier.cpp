@@ -13,6 +13,8 @@ void MeshModifier::draw(float delta_time)
 {
 	ImGui::Begin(m_name.c_str(), &active);
 
+
+
 	ImGui::End();
 }
 }        // namespace Ilum::panel

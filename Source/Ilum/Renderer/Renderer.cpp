@@ -33,6 +33,7 @@
 #include "RenderPass/Culling/InstanceCullingPass.hpp"
 #include "RenderPass/Culling/MeshletCullingPass.hpp"
 #include "RenderPass/GeometryView/CurvePass.hpp"
+#include "RenderPass/GeometryView/MeshPass.hpp"
 #include "RenderPass/GeometryView/SurfacePass.hpp"
 #include "RenderPass/GeometryView/WireFrame.hpp"
 #include "RenderPass/PostProcess/BloomBlend.hpp"
@@ -99,6 +100,7 @@ Renderer::Renderer(Context *context) :
 
 		    .addRenderPass("CurvePass", std::make_unique<pass::CurvePass>())
 		    .addRenderPass("SurfacePass", std::make_unique<pass::SurfacePass>())
+		    .addRenderPass("MeshPass", std::make_unique<pass::MeshPass>())
 		    .addRenderPass("WireFramePass", std::make_unique<pass::WireFramePass>())
 
 		    .setView("TAAOutput")

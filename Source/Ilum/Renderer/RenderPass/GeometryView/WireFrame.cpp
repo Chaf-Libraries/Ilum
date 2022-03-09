@@ -167,7 +167,8 @@ void WireFramePass::render(RenderPassState &state)
 						uint32_t  dynamic;
 					} push_block;
 
-					push_block.dynamic = false;
+					push_block.transform = transform.world_transform;
+					push_block.dynamic   = true;
 
 					vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_block), &push_block);
 					vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(mesh_renderer.indices.size()), 1, 0, 0, instance_id++);
