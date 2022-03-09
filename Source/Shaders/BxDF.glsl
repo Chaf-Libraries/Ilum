@@ -102,6 +102,7 @@ vec3 AverageFresnel(vec3 r, vec3 g)
 	return vec3(0.087237) + 0.0230685 * g - 0.0864902 * g * g + 0.0774594 * g * g * g + 0.782654 * r - 0.136432 * r * r + 0.278708 * r * r * r + 0.19744 * g * r + 0.0360605 * g * g * r - 0.2586 * g * r * r;
 }
 
+// Kulla Conty Multi-Scatter Approximation
 vec3 MultiScatterBRDF(vec3 albedo, vec3 Eo, vec3 Ei, float Eavg)
 {
 	// copper
@@ -114,6 +115,7 @@ vec3 MultiScatterBRDF(vec3 albedo, vec3 Eo, vec3 Ei, float Eavg)
 	return f_ms * f_add;
 }
 
+// Disney BRDF
 vec3 DisneyBRDF(vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y,
                 vec3 albedo, float metallic, float roughness, float anisotropic,
                 float specular_, float specular_tint, float sheen, float sheen_tint,
@@ -175,6 +177,30 @@ vec3 DisneyBRDF(vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y,
 	float Gr = GeometrySmithGGX(NoL, 0.25) * GeometrySmithGGX(NoV, 0.25);
 
 	return ((1 / PI) * mix(Fd, ss, subsurface) * Cdlin + Fsheen) * (1 - metallic) + Gs * Fs * Ds + 0.25 * clearcoat * Gr * Fr * Dr;
+}
+
+// Cook Torrance BRDF
+vec3 CookTorranceBRDF(vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y,
+                      vec3 albedo, float metallic, float roughness, float anisotropic)
+{
+	vec3 Cdlin = pow(albedo, vec3(2.2));
+	vec3 F0 = vec3(0.04);
+	F0         = mix(F0, Cdlin, metallic);
+
+	vec3  H   = normalize(V + L);
+	float NoV = clamp(dot(N, V), 0.0, 1.0);
+	float NoL = clamp(dot(N, L), 0.0, 1.0);
+	float NoH = clamp(dot(N, H), 0.0, 1.0);
+	float HoV = clamp(dot(H, V), 0.0, 1.0);
+
+	float D = DistributeGGX(NoH, roughness);
+	float G = GeometrySmith(NoL, NoV, roughness);
+	vec3  F = FresnelSchlick(HoV, F0);
+
+	vec3 specular = D * F * G / (4.0 * NoL * NoV + 0.001);
+	vec3 Kd       = (vec3(1.0) - F) * (1 - metallic);
+
+	return Kd * LambertianDiffuse(Cdlin) + specular;
 }
 
 #endif

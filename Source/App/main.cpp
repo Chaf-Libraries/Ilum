@@ -29,7 +29,7 @@ int main()
 	const auto &mesh_vertices = mesh.vertices();
 	const auto &mesh_faces = mesh.faces();
 
-
+	std::vector<std::vector<int>> a;
 
 	while (!Ilum::Window::instance()->shouldClose())
 	{

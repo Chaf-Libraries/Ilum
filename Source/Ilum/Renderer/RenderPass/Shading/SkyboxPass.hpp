@@ -6,7 +6,7 @@
 
 namespace Ilum::pass
 {
-class EnvLightPass : public TRenderPass<EnvLightPass>
+class SkyboxPass : public TRenderPass<SkyboxPass>
 {
   public:
 	virtual void setupPipeline(PipelineState &state) override;
@@ -14,6 +14,8 @@ class EnvLightPass : public TRenderPass<EnvLightPass>
 	virtual void resolveResources(ResolveState &resolve) override;
 
 	virtual void render(RenderPassState &state) override;
+
+	virtual void onImGui() override;
 
   private:
 	enum class EnvLightType

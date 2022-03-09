@@ -14,7 +14,7 @@ namespace Ilum::pass
 {
 void InstanceCullingPass::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/Culling/InstanceCulling.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Culling/InstanceCulling.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
 
 	state.descriptor_bindings.bind(0, 0, "PerInstanceBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 1, "InstanceVisibility", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
@@ -31,7 +31,6 @@ void InstanceCullingPass::resolveResources(ResolveState &resolve)
 	resolve.resolve("PerInstanceBuffer", Renderer::instance()->Render_Buffer.Instance_Buffer);
 	resolve.resolve("InstanceVisibility", Renderer::instance()->Render_Buffer.Instance_Visibility_Buffer);
 	resolve.resolve("Camera", Renderer::instance()->Render_Buffer.Camera_Buffer);
-	resolve.resolve("hiz - buffer", *Renderer::instance()->Last_Frame.hiz_buffer);
 	resolve.resolve("culling_buffer", Renderer::instance()->Render_Buffer.Culling_Buffer);
 	resolve.resolve("count_buffer", Renderer::instance()->Render_Buffer.Count_Buffer);
 	resolve.resolve("DrawInfo", Renderer::instance()->Render_Buffer.Draw_Buffer);

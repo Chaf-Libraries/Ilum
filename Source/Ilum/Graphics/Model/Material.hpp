@@ -6,10 +6,10 @@
 
 namespace Ilum
 {
-enum class BxDFType
+enum class BxDFType : uint32_t
 {
-	Disney,
-	Lambertian
+	CookTorrance,
+	Disney
 };
 
 enum TextureType
@@ -26,7 +26,7 @@ enum TextureType
 
 struct Material
 {
-	BxDFType type = BxDFType::Disney;
+	BxDFType type = BxDFType::CookTorrance;
 
 	glm::vec4 base_color = {1.f, 1.f, 1.f, 1.f};
 

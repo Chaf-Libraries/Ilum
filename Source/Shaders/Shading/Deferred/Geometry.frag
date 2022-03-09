@@ -5,7 +5,7 @@
 #extension GL_ARB_shader_draw_parameters : enable
 #extension GL_GOOGLE_include_directive : enable
 
-#include "../GlobalBuffer.glsl"
+#include "../../GlobalBuffer.glsl"
 
 layout(location = 0) in vec4 inPos;
 layout(location = 1) in vec2 inUV;
@@ -15,13 +15,14 @@ layout(location = 4) in vec3 inBiTangent;
 layout(location = 5) flat in uint inIndex;
 layout(location = 6) in vec4 inScreenSpacePos;
 layout(location = 7) in vec4 inLastScreenSpacePos;
+layout(location = 8) flat in uint inEntityID;
 
 layout(location = 0) out vec4 GBuffer0; // RGB - Albedo, A - Anisotropic
 layout(location = 1) out vec4 GBuffer1;   // RGB - Normal, A - Linear Depth
 layout(location = 2) out vec4 GBuffer2; // R - Metallic, G - Roughness, B - Subsurface, A - EntityID
 layout(location = 3) out vec4 GBuffer3; // R - Sheen, G - Sheen Tint, B - Clearcoat, A - Clearcoat Gloss
 layout(location = 4) out vec4 GBuffer4; // RG - Velocity, B - Specular, A - Specular Tint
-layout(location = 5) out vec4 GBuffer5; // RGB - Emissive, A - ?
+layout(location = 5) out vec4 GBuffer5; // RGB - Emissive, A - Material Type
 
 layout (set = 0, binding = 1) uniform sampler2D texture_array[];
 
@@ -89,7 +90,7 @@ void main() {
      // B - Subsurface
      GBuffer2.b = material_data[inIndex].subsurface;
      // A - EntityID
-     GBuffer2.a = instance_data[inIndex].entity_id;
+     GBuffer2.a = inEntityID;
  
      // GBuffer3
      // R - Sheen
@@ -114,5 +115,5 @@ void main() {
     GBuffer5.rgb =  material_data[inIndex].textures[TEXTURE_EMISSIVE] < MAX_TEXTURE_ARRAY_SIZE?
         texture(texture_array[nonuniformEXT(material_data[inIndex].textures[TEXTURE_EMISSIVE])], inUV).xyz * material_data[inIndex].emissive_intensity : 
         material_data[inIndex].emissive_color * material_data[inIndex].emissive_intensity;
-    GBuffer5.a = 1.0;
+    GBuffer5.a = material_data[inIndex].material_type;
 }

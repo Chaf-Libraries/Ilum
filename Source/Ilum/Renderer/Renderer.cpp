@@ -26,16 +26,15 @@
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
+#include "RenderPass/Copy/CopyLastFrame.hpp"
+#include "RenderPass/Copy/CopyLinearDepth.hpp"
 #include "RenderPass/CopyPass.hpp"
 #include "RenderPass/Culling/HizPass.hpp"
 #include "RenderPass/Culling/InstanceCullingPass.hpp"
 #include "RenderPass/Culling/MeshletCullingPass.hpp"
-#include "RenderPass/Deferred/DynamicGeometryPass.hpp"
-#include "RenderPass/Deferred/EnvLightPass.hpp"
-#include "RenderPass/Deferred/LightPass.hpp"
-#include "RenderPass/Deferred/StaticGeometryPass.hpp"
 #include "RenderPass/GeometryView/CurvePass.hpp"
 #include "RenderPass/GeometryView/SurfacePass.hpp"
+#include "RenderPass/GeometryView/WireFrame.hpp"
 #include "RenderPass/PostProcess/BloomBlend.hpp"
 #include "RenderPass/PostProcess/BloomBlur.hpp"
 #include "RenderPass/PostProcess/BloomMask.hpp"
@@ -45,7 +44,9 @@
 #include "RenderPass/PreProcess/KullaContyEnergy.hpp"
 #include "RenderPass/Preprocess/EquirectangularToCubemap.hpp"
 #include "RenderPass/RayTracing/RayTracingTestPass.hpp"
-#include "RenderPass/Deferred/GeometryPass.hpp"
+#include "RenderPass/Shading/Deferred/GeometryPass.hpp"
+#include "RenderPass/Shading/Deferred/LightPass.hpp"
+#include "RenderPass/Shading/SkyboxPass.hpp"
 
 #include "BufferUpdate/CameraUpdate.hpp"
 #include "BufferUpdate/CurveUpdate.hpp"
@@ -78,29 +79,30 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("InstanceCulling", std::make_unique<pass::InstanceCullingPass>())
 		    .addRenderPass("MeshletCulling", std::make_unique<pass::MeshletCullingPass>())
 		    .addRenderPass("GeometryPass", std::make_unique<pass::GeometryPass>())
+		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
+		    .addRenderPass("Skybox", std::make_unique<pass::SkyboxPass>())
+		    .addRenderPass("TAAPass", std::make_unique<pass::TAAPass>())
 
-
-		    //.addRenderPass("StaticGeometryPass", std::make_unique<pass::StaticGeometryPass>())
-		    //.addRenderPass("DynamicGeometryPass", std::make_unique<pass::DynamicGeometryPass>())
-		    //.addRenderPass("CurvePass", std::make_unique<pass::CurvePass>())
-		    //.addRenderPass("SurfacePass", std::make_unique<pass::SurfacePass>())
 		    //.addRenderPass("LightPass", std::make_unique<pass::LightPass>())
 
-		    //.addRenderPass("TAAPass", std::make_unique<pass::TAAPass>())
-
-		    //.addRenderPass("BloomMask", std::make_unique<pass::BloomMask>("taa_result", "post_tex1"))
-		    //.addRenderPass("BloomBlur1", std::make_unique<pass::BloomBlur>("post_tex1", "post_tex2", false))
-		    //.addRenderPass("BloomBlur2", std::make_unique<pass::BloomBlur>("post_tex2", "post_tex1", true))
-		    //.addRenderPass("Blend", std::make_unique<pass::BloomBlend>("post_tex1", "taa_result"))
+		    .addRenderPass("BloomMask", std::make_unique<pass::BloomMask>("TAAOutput", "PostTex1"))
+		    .addRenderPass("BloomBlur1", std::make_unique<pass::BloomBlur>("PostTex1", "PostTex2", false))
+		    .addRenderPass("BloomBlur2", std::make_unique<pass::BloomBlur>("PostTex2", "PostTex1", true))
+		    .addRenderPass("Blend", std::make_unique<pass::BloomBlend>("PostTex1", "TAAOutput"))
 
 		    ////.addRenderPass("RayTracingTest", std::make_unique<pass::RayTracingTestPass>())
 
-		    //.addRenderPass("CopyBuffer", std::make_unique<pass::CopyPass>())
+		    .addRenderPass("CopyLinearDepth", std::make_unique<pass::CopyLinearDepth>())
+		    .addRenderPass("CopyLastFrame", std::make_unique<pass::CopyLastFrame>("TAAOutput"))
 
-		    //.addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("lighting"))
+		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("TAAOutput"))
 
-		    .setView("GBuffer0")
-		    .setOutput("GBuffer0");
+		    .addRenderPass("CurvePass", std::make_unique<pass::CurvePass>())
+		    .addRenderPass("SurfacePass", std::make_unique<pass::SurfacePass>())
+		    .addRenderPass("WireFramePass", std::make_unique<pass::WireFramePass>())
+
+		    .setView("TAAOutput")
+		    .setOutput("TAAOutput");
 	};
 
 	buildRenderGraph = DeferredRendering;
@@ -126,7 +128,6 @@ bool Renderer::onInitialize()
 	Scene::instance()->addSystem<sym::MaterialUpdate>();
 
 	m_render_target_extent = GraphicsContext::instance()->getSwapchain().getExtent();
-	updateImages();
 
 	DeferredRendering(m_rg_builder);
 
@@ -204,8 +205,6 @@ ResourceCache &Renderer::getResourceCache()
 void Renderer::rebuild()
 {
 	GraphicsContext::instance()->getQueueSystem().waitAll();
-
-	updateImages();
 
 	m_render_graph.reset();
 	m_render_graph = nullptr;
@@ -285,27 +284,5 @@ void Renderer::createSamplers()
 	m_samplers[SamplerType::Trilinear_Wrap]    = Sampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_FILTER_LINEAR);
 	m_samplers[SamplerType::Anisptropic_Clamp] = Sampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_LINEAR);
 	m_samplers[SamplerType::Anisptropic_Wrap]  = Sampler(VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_FILTER_LINEAR);
-}
-
-void Renderer::updateImages()
-{
-	GraphicsContext::instance()->getQueueSystem().waitAll();
-
-	Renderer::instance()->Last_Frame.hiz_buffer   = createScope<Image>(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
-                                                                     VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VMA_MEMORY_USAGE_GPU_ONLY, true);
-	Renderer::instance()->Last_Frame.depth_buffer = createScope<Image>(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
-	                                                                   VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-	Renderer::instance()->Last_Frame.last_result  = createScope<Image>(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
-                                                                      VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-	// Layout transition
-	{
-		CommandBuffer cmd_buffer;
-		cmd_buffer.begin();
-		cmd_buffer.transferLayout(*Renderer::instance()->Last_Frame.hiz_buffer, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_SAMPLED_BIT);
-		cmd_buffer.transferLayout(*Renderer::instance()->Last_Frame.depth_buffer, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_SAMPLED_BIT);
-		cmd_buffer.transferLayout(*Renderer::instance()->Last_Frame.last_result, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_SAMPLED_BIT);
-		cmd_buffer.end();
-		cmd_buffer.submitIdle();
-	}
 }
 }        // namespace Ilum

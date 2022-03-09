@@ -1,15 +1,17 @@
-#include "EnvLightPass.hpp"
+#include "SkyboxPass.hpp"
 
 #include "Renderer/Renderer.hpp"
 
 #include "Scene/Component/Camera.hpp"
 
+#include <imgui.h>
+
 namespace Ilum::pass
 {
-void EnvLightPass::setupPipeline(PipelineState &state)
+void SkyboxPass::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/Deferred/Environment.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/Deferred/Environment.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Skybox.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Skybox.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,
@@ -29,21 +31,21 @@ void EnvLightPass::setupPipeline(PipelineState &state)
 	state.depth_stencil_state.depth_compare_op = VK_COMPARE_OP_LESS_OR_EQUAL;
 
 	state.descriptor_bindings.bind(0, 0, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-	state.descriptor_bindings.bind(0, 1, "generated_cubmap", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 1, "SkyBox", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
-	state.declareAttachment("lighting", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	state.declareAttachment("depth_stencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("Lighting", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("DepthStencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 
-	state.addOutputAttachment("lighting", AttachmentState::Load_Color);
-	state.addOutputAttachment("depth_stencil", AttachmentState::Load_Depth_Stencil);
+	state.addOutputAttachment("Lighting", AttachmentState::Load_Color);
+	state.addOutputAttachment("DepthStencil", AttachmentState::Load_Depth_Stencil);
 }
 
-void EnvLightPass::resolveResources(ResolveState &resolve)
+void SkyboxPass::resolveResources(ResolveState &resolve)
 {
 	resolve.resolve("Camera", Renderer::instance()->Render_Buffer.Camera_Buffer);
 }
 
-void EnvLightPass::render(RenderPassState &state)
+void SkyboxPass::render(RenderPassState &state)
 {
 	auto &cmd_buffer = state.command_buffer;
 
@@ -80,5 +82,11 @@ void EnvLightPass::render(RenderPassState &state)
 	vkCmdDraw(cmd_buffer, 36, 1, 0, 0);
 
 	vkCmdEndRenderPass(cmd_buffer);
+}
+
+void SkyboxPass::onImGui()
+{
+	const char *const skybox_option[] = {"None", "HDRI"};
+	ImGui::Combo("Skybox Option", reinterpret_cast<int *>(&m_type), skybox_option, 2);
 }
 }        // namespace Ilum::pass

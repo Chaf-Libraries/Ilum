@@ -31,6 +31,17 @@ inline float halton_sequence(uint32_t base, uint32_t index)
 
 TAAPass::TAAPass()
 {
+	m_last_frame = Image(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
+	                     VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+
+	{
+		CommandBuffer cmd_buffer;
+		cmd_buffer.begin();
+		cmd_buffer.transferLayout(m_last_frame, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_SAMPLED_BIT);
+		cmd_buffer.end();
+		cmd_buffer.submitIdle();
+	}
+
 	for (uint32_t i = 1; i <= HALTION_SAMPLES; i++)
 	{
 		m_jitter_samples.push_back(glm::vec2(2.f * halton_sequence(2, i) - 1.f, 2.f * halton_sequence(3, i) - 1.f));
@@ -57,7 +68,7 @@ void TAAPass::onUpdate()
 
 void TAAPass::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/PostProcess/TAA.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PostProcess/TAA.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
 
 	state.color_blend_attachment_states[0].blend_enable = false;
 
@@ -65,20 +76,22 @@ void TAAPass::setupPipeline(PipelineState &state)
 	    VK_DYNAMIC_STATE_VIEWPORT,
 	    VK_DYNAMIC_STATE_SCISSOR};
 
-	state.descriptor_bindings.bind(0, 0, "last_result", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	state.descriptor_bindings.bind(0, 1, "lighting", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	state.descriptor_bindings.bind(0, 2, "gbuffer - motion_vector_curvature", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	state.descriptor_bindings.bind(0, 3, "gbuffer - linear_depth", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.declareAttachment("TAAOutput", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.addOutputAttachment("TAAOutput", AttachmentState::Clear_Color);
 
-	state.declareAttachment("taa_result", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	state.addOutputAttachment("taa_result", AttachmentState::Clear_Color);
+	state.declareAttachment("LastFrame", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.addOutputAttachment("LastFrame", AttachmentState::Clear_Color);
 
-	state.descriptor_bindings.bind(0, 4, "taa_result", ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	state.descriptor_bindings.bind(0, 0, "LastFrame", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 1, "Lighting", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 2, "GBuffer1", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 3, "GBuffer4", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 4, "TAAOutput", ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 }
 
 void TAAPass::resolveResources(ResolveState &resolve)
 {
-	resolve.resolve("last_result", *Renderer::instance()->Last_Frame.last_result);
+	//resolve.resolve("LastFrame", m_last_frame);
 }
 
 void TAAPass::render(RenderPassState &state)
@@ -111,17 +124,17 @@ void TAAPass::render(RenderPassState &state)
 	else
 	{
 		cmd_buffer.copyImage(
-		    ImageInfo{state.graph.getAttachment("lighting"), VK_IMAGE_USAGE_SAMPLED_BIT},
-		    ImageInfo{state.graph.getAttachment("taa_result"), VK_IMAGE_USAGE_STORAGE_BIT});
-		cmd_buffer.transferLayout(state.graph.getAttachment("lighting"), VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
-		cmd_buffer.transferLayout(state.graph.getAttachment("taa_result"), VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_USAGE_STORAGE_BIT);
+		    ImageInfo{state.graph.getAttachment("Lighting"), VK_IMAGE_USAGE_SAMPLED_BIT},
+		    ImageInfo{state.graph.getAttachment("TAAOutput"), VK_IMAGE_USAGE_STORAGE_BIT});
+		cmd_buffer.transferLayout(state.graph.getAttachment("Lighting"), VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_IMAGE_USAGE_SAMPLED_BIT);
+		cmd_buffer.transferLayout(state.graph.getAttachment("TAAOutput"), VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_USAGE_STORAGE_BIT);
 	}
 }
 
 void TAAPass::onImGui()
 {
 	ImGui::Checkbox("Enable", &m_enable);
-	ImGui::Checkbox("Sharpen", reinterpret_cast<bool*>(&m_sharpen));
+	ImGui::Checkbox("Sharpen", reinterpret_cast<bool *>(&m_sharpen));
 	ImGui::SliderFloat("Feedback Min", &m_feedback.x, 0.f, 1.f, "%.3f");
 	ImGui::SliderFloat("Feedback Max", &m_feedback.y, m_feedback.x, 1.f, "%.3f");
 }

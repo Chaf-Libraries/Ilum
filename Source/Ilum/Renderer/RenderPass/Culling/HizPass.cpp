@@ -7,11 +7,32 @@
 
 #include "Device/LogicalDevice.hpp"
 
+#include "ImGui/ImGuiContext.hpp"
+
+#include <imgui.h>
+
 namespace Ilum::pass
 {
 HizPass::HizPass()
 {
-	m_views.resize(Renderer::instance()->Last_Frame.hiz_buffer->getMipLevelCount());
+	m_hiz          = Image(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
+                  VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VMA_MEMORY_USAGE_GPU_ONLY, true);
+	m_linear_depth = Image(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
+	                       VK_FORMAT_R32_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+
+	VK_Debugger::setName(m_hiz, "Hierarchy Z Buffer");
+	VK_Debugger::setName(m_linear_depth, "LinearDepth");
+
+	{
+		CommandBuffer cmd_buffer;
+		cmd_buffer.begin();
+		cmd_buffer.transferLayout(m_hiz, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_SAMPLED_BIT);
+		cmd_buffer.transferLayout(m_linear_depth, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_STORAGE_BIT);
+		cmd_buffer.end();
+		cmd_buffer.submitIdle();
+	}
+
+	m_views.resize(m_hiz.getMipLevelCount());
 
 	VkImageViewCreateInfo image_view_create_info       = {};
 	image_view_create_info.sType                       = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -19,7 +40,7 @@ HizPass::HizPass()
 	image_view_create_info.format                      = VK_FORMAT_R32_SFLOAT;
 	image_view_create_info.components                  = {VK_COMPONENT_SWIZZLE_R};
 	image_view_create_info.subresourceRange.layerCount = 1;
-	image_view_create_info.image                       = *Renderer::instance()->Last_Frame.hiz_buffer;
+	image_view_create_info.image                       = m_hiz;
 
 	for (uint32_t i = 0; i < m_views.size(); i++)
 	{
@@ -44,8 +65,8 @@ HizPass::HizPass()
 	createInfo.maxLod       = 16.f;
 
 	VkSamplerReductionModeCreateInfo createInfoReduction = {VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT};
-	createInfoReduction.reductionMode = VK_SAMPLER_REDUCTION_MODE_MAX;
-	createInfo.pNext = &createInfoReduction;
+	createInfoReduction.reductionMode                    = VK_SAMPLER_REDUCTION_MODE_MAX;
+	createInfo.pNext                                     = &createInfoReduction;
 	vkCreateSampler(GraphicsContext::instance()->getLogicalDevice(), &createInfo, 0, &m_hiz_sampler);
 }
 
@@ -60,7 +81,7 @@ HizPass::~HizPass()
 
 void HizPass::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Asset/Shader/GLSL/Culling/Hiz.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Culling/Hiz.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
 
 	for (uint32_t level = 0; level < m_views.size(); level++)
 	{
@@ -78,7 +99,7 @@ void HizPass::setupPipeline(PipelineState &state)
 		srcTarget.sampler = m_hiz_sampler;
 		if (level == 0)
 		{
-			srcTarget.imageView   = Renderer::instance()->Last_Frame.depth_buffer->getView();
+			srcTarget.imageView   = m_linear_depth.getView();
 			srcTarget.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		}
 		else
@@ -113,14 +134,14 @@ void HizPass::setupPipeline(PipelineState &state)
 		m_descriptor_sets[level].update(write_descriptor_sets);
 	}
 
-	state.descriptor_bindings.bind(0, 0, "depth - buffer", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	state.descriptor_bindings.bind(0, 1, "hiz - buffer", ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	state.descriptor_bindings.bind(0, 0, "LinearDepth", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 1, "HizBuffer", ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 }
 
 void HizPass::resolveResources(ResolveState &resolve)
 {
-	resolve.resolve("depth - buffer", *Renderer::instance()->Last_Frame.depth_buffer);
-	resolve.resolve("hiz - buffer", *Renderer::instance()->Last_Frame.hiz_buffer);
+	resolve.resolve("LinearDepth", m_linear_depth);
+	resolve.resolve("HizBuffer", m_hiz);
 }
 
 void HizPass::render(RenderPassState &state)
@@ -138,7 +159,7 @@ void HizPass::render(RenderPassState &state)
 			read_to_write.newLayout           = VK_IMAGE_LAYOUT_GENERAL;
 			read_to_write.srcAccessMask       = VK_ACCESS_SHADER_READ_BIT;
 			read_to_write.dstAccessMask       = VK_ACCESS_SHADER_WRITE_BIT;
-			read_to_write.image               = *Renderer::instance()->Last_Frame.hiz_buffer;
+			read_to_write.image               = m_hiz;
 			read_to_write.subresourceRange    = VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, level, 1, 0, 1};
 			read_to_write.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			read_to_write.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -154,8 +175,8 @@ void HizPass::render(RenderPassState &state)
 
 		vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, 0, 1, &m_descriptor_sets[level].getDescriptorSet(), 0, nullptr);
 
-		uint32_t level_width  = std::max(1u, Renderer::instance()->Last_Frame.hiz_buffer->getWidth() >> level);
-		uint32_t level_height = std::max(1u, Renderer::instance()->Last_Frame.hiz_buffer->getHeight() >> level);
+		uint32_t level_width  = std::max(1u, m_hiz.getWidth() >> level);
+		uint32_t level_height = std::max(1u, m_hiz.getHeight() >> level);
 
 		VkExtent2D extent = {level_width, level_height};
 		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(VkExtent2D), &extent);
@@ -171,7 +192,7 @@ void HizPass::render(RenderPassState &state)
 			write_to_read.newLayout           = VK_IMAGE_LAYOUT_GENERAL;
 			write_to_read.srcAccessMask       = VK_ACCESS_SHADER_WRITE_BIT;
 			write_to_read.dstAccessMask       = VK_ACCESS_SHADER_READ_BIT;
-			write_to_read.image               = *Renderer::instance()->Last_Frame.hiz_buffer;
+			write_to_read.image               = m_hiz;
 			write_to_read.subresourceRange    = VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, level, 1, 0, 1};
 			write_to_read.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			write_to_read.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -184,6 +205,25 @@ void HizPass::render(RenderPassState &state)
 			    0, nullptr,
 			    1, &write_to_read);
 		}
+	}
+}
+
+void HizPass::onImGui()
+{
+	if (m_hiz)
+	{
+		std::string items;
+		for (size_t i = 0; i < m_views.size(); i++)
+		{
+			items += std::to_string(i) + '\0';
+		}
+		items += '\0';
+		ImGui::Text("Hierarchy Z Buffer: ");
+		ImGui::SameLine();
+		ImGui::PushItemWidth(100.f);
+		ImGui::Combo("Mip Level", &m_current_level, items.data());
+		ImGui::PopItemWidth();
+		ImGui::Image(ImGuiContext::textureID(m_views[m_current_level], Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), ImVec2(100, 100));
 	}
 }
 }        // namespace Ilum::pass

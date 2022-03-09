@@ -3,8 +3,8 @@
 #extension GL_KHR_vulkan_glsl : enable
 #extension GL_GOOGLE_include_directive: enable
 
-#include "../GlobalBuffer.glsl"
-#include "../BxDF.glsl"
+#include "../../GlobalBuffer.glsl"
+#include "../../BxDF.glsl"
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
@@ -45,18 +45,6 @@ layout(push_constant) uniform PushBlock{
     uvec2 extent;
 }push_data;
 
-// From http://filmicgames.com/archives/75
-vec3 uncharted2Tonemap(vec3 x)
-{
-	float A = 0.15;
-	float B = 0.50;
-	float C = 0.10;
-	float D = 0.20;
-	float E = 0.02;
-	float F = 0.30;
-	return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
-}
-
 vec3 world_position_from_depth(vec2 uv, float depth, mat4 view_projection_inverse)
 {
     uv.y = 1.0 - uv.y;
@@ -67,7 +55,7 @@ vec3 world_position_from_depth(vec2 uv, float depth, mat4 view_projection_invers
     return world_pos.xyz;
 }
 
-vec3 specular_contribution(vec3 L, vec3 V, vec3 N, vec3 F0, vec3 radiance,
+vec3 specular_contribution(vec3 L, vec3 V, vec3 N, vec3 radiance, uint material_type,
             vec3 albedo, float metallic, float roughness, float anisotropic,
                 float specular_, float specular_tint, float sheen, float sheen_tint,
                 float clearcoat, float clearcoat_gloss, float subsurface)
@@ -75,25 +63,40 @@ vec3 specular_contribution(vec3 L, vec3 V, vec3 N, vec3 F0, vec3 radiance,
     vec3 tangent = normalize(cross( vec3(0,1,0), N));
     vec3 bitangent = normalize(cross(N, tangent));
 
-    vec3 BRDF = DisneyBRDF(L, V, N, tangent, bitangent,
+    vec3 BRDF = vec3(0.0);
+
+    if(material_type == BxDF_Disney)
+    {
+        BRDF += DisneyBRDF(L, V, N, tangent, bitangent,
             albedo, metallic, roughness, anisotropic,
             specular_, specular_tint, sheen, sheen_tint,
             clearcoat, clearcoat_gloss, subsurface);
-
-    if(push_data.enable_multi_bounce == 1)
+    }
+    else if(material_type == BxDF_CookTorrance)
     {
-        vec3 Eo = vec3(texture(EmuLut, vec2(dot(N, L), roughness)).r);
-        vec3 Ei = vec3(texture(EmuLut, vec2(dot(N, V), roughness)).r);
-        float Eavg = texture(EavgLut, vec2(0, roughness)).r;
-        vec3 Fms = MultiScatterBRDF(albedo, Eo, Ei, Eavg);
-        BRDF = BRDF + Fms;
+        BRDF += CookTorranceBRDF(L, V, N, tangent, bitangent,
+            albedo, metallic, roughness, anisotropic);
+
+        if(push_data.enable_multi_bounce == 1)
+        {
+            vec3 Eo = vec3(texture(EmuLut, vec2(dot(N, L), roughness)).r);
+            vec3 Ei = vec3(texture(EmuLut, vec2(dot(N, V), roughness)).r);
+            float Eavg = texture(EavgLut, vec2(0, roughness)).r;
+            vec3 Fms = MultiScatterBRDF(pow(albedo, vec3(2.2)), Eo, Ei, Eavg);
+            BRDF += Fms;
+        }
     }
 
-    return BRDF * radiance * dot(N, L);
+    return BRDF * radiance * clamp(dot(N, L), 0.0, 1.0);
 }
 
 void main()
 {
+    if(gl_GlobalInvocationID.x > push_data.extent.x || gl_GlobalInvocationID.y > push_data.extent.y)
+    {
+        return;
+    }
+
     vec2 uv = (vec2(gl_GlobalInvocationID.xy)+vec2(0.5)) / vec2(push_data.extent);
 
     vec4 gbuffer0 = texture(GBuffer0, uv);
@@ -109,7 +112,7 @@ void main()
 	// GBuffer 2: R - Metallic, G - Roughness, B - Subsurface, A - EntityID
 	// GBuffer 3: R - Sheen, G - Sheen Tint, B - Clearcoat, A - Clearcoat Gloss
 	// GBuffer 4: RG - Velocity, B - Specular, A - Specular Tint
-	// GBuffer 5: RGB - Emissive, A - ?
+	// GBuffer 5: RGB - Emissive, A - Material Type
 
     vec3 albedo = gbuffer0.rgb;
     float anisotropic = gbuffer0.a;
@@ -124,22 +127,20 @@ void main()
     float specular = gbuffer4.b;
     float specular_tint = gbuffer4.a;
     vec3 emissive = gbuffer5.rgb;
+    uint material_type = uint(gbuffer5.a);
     vec3 frag_pos = world_position_from_depth(uv, depth, camera_data.view_inverse * camera_data.projection_inverse);
 
    vec3 Lo = vec3(0.0);
    vec4 out_color = vec4(0.0, 0.0, 0.0,1.0);
    vec3 V = normalize(camera_data.position - frag_pos);
    vec3 N = normalize(normal);
-   
-   vec3 F0 = vec3(0.04);
-   F0 = mix(F0, albedo, metallic);
-   
+      
    // Directional light
    for(uint i = 0; i < push_data.directional_light_count; i++)
    {
        vec3 L = normalize(directional_lights[i].direction);
        vec3 radiance = directional_lights[i].color.rgb * directional_lights[i].intensity;
-       Lo += specular_contribution(L, V, N, F0, radiance,
+       Lo += specular_contribution(L, V, N, radiance, material_type,
             albedo, metallic, roughness, anisotropic,
             specular, specular_tint, sheen, sheen_tint,
             clearcoat, clearcoat_gloss, subsurface);
@@ -154,7 +155,7 @@ void main()
        float epsilon   = spot_lights[i].cut_off - spot_lights[i].outer_cut_off;
        float intensity = spot_lights[i].intensity * clamp((theta - spot_lights[i].outer_cut_off) / epsilon, 0.0, 1.0);
        vec3 radiance = spot_lights[i].color * intensity;
-       Lo += specular_contribution(L, V, N, F0, radiance,
+       Lo += specular_contribution(L, V, N, radiance, material_type,
             albedo, metallic, roughness, anisotropic,
             specular, specular_tint, sheen, sheen_tint,
             clearcoat, clearcoat_gloss, subsurface);
@@ -168,7 +169,7 @@ void main()
        float NoL = max(0.0, dot(N,L));
        float Fatt = 1.0/(point_lights[i].constant + point_lights[i].linear * d + point_lights[i].quadratic * d * d);
        vec3 radiance = point_lights[i].color.rgb * point_lights[i].intensity * Fatt;
-       Lo += specular_contribution(L, V, N, F0, radiance,
+       Lo += specular_contribution(L, V, N, radiance, material_type,
             albedo, metallic, roughness, anisotropic,
             specular, specular_tint, sheen, sheen_tint,
             clearcoat, clearcoat_gloss, subsurface);

@@ -22,8 +22,8 @@ GeometryPass::GeometryPass()
 
 void GeometryPass::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/DeferredShading/Geometry.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/DeferredShading/Geometry.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Deferred/Geometry.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Deferred/Geometry.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,
@@ -39,7 +39,7 @@ void GeometryPass::setupPipeline(PipelineState &state)
 	state.vertex_input_state.binding_descriptions = {
 	    VkVertexInputBindingDescription{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX}};
 
-	state.color_blend_attachment_states.resize(5);
+	state.color_blend_attachment_states.resize(6);
 	state.depth_stencil_state.stencil_test_enable = false;
 
 	// Disable blending
@@ -74,16 +74,19 @@ void GeometryPass::setupPipeline(PipelineState &state)
 	state.addDependency("meshlet_count", VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT);
 
 	// GBuffer 0: RGB - Albedo, A - Anisotropic
-	// GBuffer 1: RGB - Normal, A - Linear Depth
+	// GBuffer 1: RGB - Normal, A - LinearDepth
 	// GBuffer 2: R - Metallic, G - Roughness, B - Subsurface, A - EntityID
 	// GBuffer 3: R - Sheen, G - Sheen Tint, B - Clearcoat, A - Clearcoat Gloss
 	// GBuffer 4: RG - Velocity, B - Specular, A - Specular Tint
+	// GBuffer 5: RGB - Emissive, A - Material Type
 
 	state.declareAttachment("GBuffer0", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("GBuffer1", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("GBuffer2", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("GBuffer3", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("GBuffer4", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("GBuffer4", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("GBuffer5", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("DepthStencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 
 	VkClearColorValue clear_color = {};
@@ -95,6 +98,7 @@ void GeometryPass::setupPipeline(PipelineState &state)
 	state.addOutputAttachment("GBuffer2", clear_color);
 	state.addOutputAttachment("GBuffer3", AttachmentState::Clear_Color);
 	state.addOutputAttachment("GBuffer4", AttachmentState::Clear_Color);
+	state.addOutputAttachment("GBuffer5", AttachmentState::Clear_Color);
 
 	state.addOutputAttachment("DepthStencil", VkClearDepthStencilValue{1.f, 0u});
 }
@@ -179,6 +183,7 @@ void GeometryPass::render(RenderPassState &state)
 
 					m_vertex_block.dynamic   = 1;
 					m_vertex_block.transform = transform.world_transform;
+					m_vertex_block.entity_id = static_cast<uint32_t>(entity);
 					vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(m_vertex_block), &m_vertex_block);
 
 					vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(mesh_renderer.indices.size()), 1, 0, 0, instance_id++);

@@ -33,5 +33,7 @@ class TAAPass : public TRenderPass<TAAPass>
 	glm::vec2 m_feedback       = glm::vec2(0.925f, 0.987f);
 
 	std::vector<glm::vec2> m_jitter_samples;
+
+	Image m_last_frame;
 };
 }        // namespace Ilum::pass

@@ -6,15 +6,21 @@
 
 namespace Ilum::pass
 {
-class StaticGeometryPass : public TRenderPass<StaticGeometryPass>
+class WireFramePass : public TRenderPass<WireFramePass>
 {
   public:
-	StaticGeometryPass();
+	WireFramePass() = default;
 
 	virtual void setupPipeline(PipelineState &state) override;
 
 	virtual void resolveResources(ResolveState &resolve) override;
 
 	virtual void render(RenderPassState &state) override;
+
+	virtual void onImGui() override;
+
+  private:
+	bool  m_enable     = false;
+	float m_line_width = 2.f;
 };
 }        // namespace Ilum::pass

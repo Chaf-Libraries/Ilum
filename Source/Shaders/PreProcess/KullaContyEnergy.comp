@@ -1,8 +1,8 @@
 #version 450
 
-#extension GL_GOOGLE_include_directive: enable
+#include "../GlobalFunction.glsl"
 
-#include "../common.glsl"
+#define PI 3.141592653589793
 
 #define LUT_SIZE 1024
 #define SAMPLE_COUNT 1024
@@ -71,7 +71,7 @@ float IntegrateBRDF(vec3 V, float roughness)
 
 void main()
 {
-    uvec2 uv = gl_GlobalInvocationID.xy;
+    vec2 uv = vec2(gl_GlobalInvocationID.xy);
     float step = 1.0 / LUT_SIZE;
 
     float roughness = step * (uv.y + 0.5);

@@ -5,7 +5,7 @@
 #extension GL_ARB_shader_draw_parameters : require
 #extension GL_GOOGLE_include_directive : enable
 
-#include "../GlobalBuffer.glsl"
+#include "../../GlobalBuffer.glsl"
 
 layout(location = 0) in vec3 inPos;
 layout(location = 1) in vec2 inUV;
@@ -21,6 +21,7 @@ layout(location = 4) out vec3 outBiTangent;
 layout(location = 5) out uint outIndex;
 layout(location = 6) out vec4 outScreenSpacePos;
 layout(location = 7) out vec4 outLastScreenSpacePos;
+layout(location = 8) out uint outEntityID;
 
 layout(set = 0, binding = 0) uniform CameraBuffer
 {
@@ -48,6 +49,7 @@ layout(push_constant) uniform PushBlock
 {
     mat4 transform;
     uint dynamic;
+    uint entity_id;
 }push_data;
 
 void main() {
@@ -56,8 +58,10 @@ void main() {
     float height = material_data[outIndex].textures[TEXTURE_DISPLACEMENT] < MAX_TEXTURE_ARRAY_SIZE?
         max(texture(TextureArray[nonuniformEXT(material_data[outIndex].textures[TEXTURE_DISPLACEMENT])], inUV).r, 0.0) 
         * material_data[outIndex].displacement: 0.0;
+
+    outEntityID = push_data.dynamic == 1? push_data.entity_id : instance_data[outIndex].entity_id;
     
-    mat4 trans = push_data.dynamic == 1? push_data.transform: instance_data[outIndex].transform;
+    mat4 trans = push_data.dynamic == 1? push_data.transform : instance_data[outIndex].transform;
 
     // World normal
     mat3 mNormal = transpose(inverse(mat3(trans)));
@@ -73,7 +77,7 @@ void main() {
 
     outScreenSpacePos = gl_Position;
 
-    outLastScreenSpacePos = push_data.dynamic == 1? camera_data.last_view_projection * instance_data[outIndex].last_transform * vec4(inPos, 1.0) : vec4(0.0);
+    outLastScreenSpacePos = push_data.dynamic == 1? vec4(0.0) :  camera_data.last_view_projection * instance_data[outIndex].last_transform * vec4(inPos, 1.0);
 
     outPos.w = gl_Position.z;
 

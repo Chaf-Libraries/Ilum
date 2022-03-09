@@ -31,6 +31,7 @@ class GeometryPass : public TRenderPass<GeometryPass>
 	{
 		glm::mat4 transform =glm::mat4(1.f);
 		uint32_t  dynamic   = 0;
+		uint32_t  entity_id = 0;
 	} m_vertex_block;
 
 	RenderMode m_render_mode = RenderMode::Polygon;

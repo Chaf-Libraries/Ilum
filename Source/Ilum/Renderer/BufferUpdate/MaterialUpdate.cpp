@@ -72,6 +72,7 @@ void MaterialUpdate::run()
 					material.clearcoat_gloss        = material_ptr.clearcoat_gloss;
 					material.transmission           = material_ptr.transmission;
 					material.transmission_roughness = material_ptr.transmission_roughness;
+					material.material_type          = static_cast<uint32_t>(material_ptr.type);
 
 					for (uint32_t i = 0; i < static_cast<uint32_t>(TextureType::MaxNum); i++)
 					{
@@ -108,6 +109,7 @@ void MaterialUpdate::run()
 				material.clearcoat_gloss        = material_ptr.clearcoat_gloss;
 				material.transmission           = material_ptr.transmission;
 				material.transmission_roughness = material_ptr.transmission_roughness;
+				material.material_type          = static_cast<uint32_t>(material_ptr.type);
 
 				for (uint32_t i = 0; i < static_cast<uint32_t>(TextureType::MaxNum); i++)
 				{

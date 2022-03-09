@@ -196,13 +196,15 @@ bool draw_texture(std::string &texture, const std::string &name)
 	return update;
 }
 
-inline void draw_material(Material &material)
+template <BxDFType _Ty>
+inline void draw_material(Material& material)
 {
-	const char *const BxDF_types[] = {
-	    "Disney",
-	    "Lambertian"};
-	ImGui::Combo("BxDF", reinterpret_cast<int *>(&material.type), BxDF_types, 2);
 
+}
+
+template <>
+inline void draw_material<BxDFType::Disney>(Material &material)
+{
 	Material::update = ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color)) || Material::update;
 	Material::update = ImGui::ColorEdit3("Emissive", glm::value_ptr(material.emissive_color)) || Material::update;
 	Material::update = ImGui::DragFloat("Emissive Intensity", &material.emissive_intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
@@ -240,6 +242,58 @@ inline void draw_material(Material &material)
 
 	ImGui::Text("Displacement Map");
 	Material::update = draw_texture(material.textures[TextureType::Displacement], "Displacement Map") || Material::update;
+}
+
+template <>
+inline void draw_material<BxDFType::CookTorrance>(Material &material)
+{
+	Material::update = ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color)) || Material::update;
+	Material::update = ImGui::ColorEdit3("Emissive", glm::value_ptr(material.emissive_color)) || Material::update;
+	Material::update = ImGui::DragFloat("Emissive Intensity", &material.emissive_intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Metallic", &material.metallic, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Roughness", &material.roughness, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Displacement", &material.displacement, 0.001f, 0.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
+
+	ImGui::Text("Albedo Map");
+	Material::update = draw_texture(material.textures[TextureType::BaseColor], "Albedo Map") || Material::update;
+
+	ImGui::Text("Normal Map");
+	Material::update = draw_texture(material.textures[TextureType::Normal], "Normal Map") || Material::update;
+
+	ImGui::Text("Metallic Map");
+	Material::update = draw_texture(material.textures[TextureType::Metallic], "Metallic Map") || Material::update;
+
+	ImGui::Text("Roughness Map");
+	Material::update = draw_texture(material.textures[TextureType::Roughness], "Roughness Map") || Material::update;
+
+	ImGui::Text("Emissive Map");
+	Material::update = draw_texture(material.textures[TextureType::Emissive], "Emissive Map") || Material::update;
+
+	ImGui::Text("AO Map");
+	Material::update = draw_texture(material.textures[TextureType::AmbientOcclusion], "AO Map") || Material::update;
+
+	ImGui::Text("Displacement Map");
+	Material::update = draw_texture(material.textures[TextureType::Displacement], "Displacement Map") || Material::update;
+}
+
+inline void draw_material(Material &material)
+{
+	const char *const BxDF_types[] = {
+	    "CookTorrance",
+	    "Disney"};
+	Material::update = ImGui::Combo("BxDF", reinterpret_cast<int *>(&material.type), BxDF_types, 2) || Material::update;
+
+	switch (material.type)
+	{
+		case BxDFType::Disney:
+			draw_material<BxDFType::Disney>(material);
+			break;
+		case BxDFType::CookTorrance:
+			draw_material<BxDFType::CookTorrance>(material);
+			break;
+		default:
+			break;
+	}	
 }
 
 template <typename T>

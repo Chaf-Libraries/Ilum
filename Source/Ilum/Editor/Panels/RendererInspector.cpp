@@ -117,15 +117,17 @@ void RendererInspector::draw(float delta_time)
 			ImGui::TableSetupColumn("Record Thread");
 			ImGui::TableHeadersRow();
 
-			for (auto &render_node : render_graph->getNodes())
+			for (size_t i = 0; i < render_graph->getNodes().size(); i++)
 			{
+				const auto &render_node = render_graph->getNodes()[i];
+
 				cpu_times.push_back(render_node.pass->getCPUTime());
 				gpu_times.push_back(render_node.pass->getGPUTime());
 
 				ImGui::TableNextRow();
 
 				ImGui::TableSetColumnIndex(0);
-				ImGui::Text("%s", render_node.name.c_str());
+				ImGui::Text("%s", (std::to_string(i) + " - " + render_node.name).c_str());
 				ImGui::TableSetColumnIndex(1);
 				ImGui::Text("%f", cpu_times.back());
 				ImGui::TableSetColumnIndex(2);

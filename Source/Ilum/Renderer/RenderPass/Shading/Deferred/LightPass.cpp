@@ -18,7 +18,7 @@ namespace Ilum::pass
 {
 void LightPass::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/DeferredShading/Lighting.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Deferred/Lighting.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,

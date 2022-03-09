@@ -65,27 +65,6 @@ struct MeshCountData
 	uint32_t meshlet_invisible_count;
 };
 
-//struct MaterialData
-//{
-//	glm::vec4 base_color = {};
-//
-//	glm::vec3 emissive_color  = {0.f, 0.f, 0.f};
-//	float     metallic = 0.f;
-//
-//	float    roughness   = 0.f;
-//	float    emissive_intensity = 0.f;
-//	uint32_t albedo_map         = 0;
-//	uint32_t normal_map         = 0;
-//
-//	uint32_t metallic_map  = 0;
-//	uint32_t roughness_map = 0;
-//	uint32_t emissive_map  = 0;
-//	uint32_t ao_map        = 0;
-//
-//	alignas(16) uint32_t displacement_map = 0;
-//	float displacement             = 0.f;
-//};
-
 struct MaterialData
 {
 	glm::vec4 base_color;
@@ -110,6 +89,8 @@ struct MaterialData
 
 	float    transmission_roughness;
 	uint32_t textures[TextureType::MaxNum];
+
+	alignas(16) uint32_t material_type;
 };
 
 struct CameraData
