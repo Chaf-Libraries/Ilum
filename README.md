@@ -104,6 +104,10 @@ cmake --build ./ --target ALL_BUILD --config Release
 
 ![image-20211130105935862](README/image-20211130105935862.png)
 
+#### Hierarchy Z Buffer Generation
+
+![image-20211210113933024](README/image-20211210113933024.png)
+
 #### Massive Scene Rendering
 
 ![image-20220302110444007](README/image-20220302110444007.png)
@@ -130,23 +134,3 @@ cmake --build ./ --target ALL_BUILD --config Release
 | ---------------------- | -------------------------- |
 | ![taa](README/taa.png) | ![bloom](README/bloom.png) |
 
-
-
-## TODO
-
-More features are on their way:
-
-* Image based lighting
-* Shadow Mapping
-* RTX
-* GI
-* Screen space
-  * SSR
-  * SSGI
-  * SSAO
-  * ...
-* Simulation
-  * Ridge body
-  * Fluid
-  * Cloth
-* ...
