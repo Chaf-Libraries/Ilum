@@ -6,10 +6,10 @@
 
 namespace Ilum::pass
 {
-class WireFramePass : public TRenderPass<WireFramePass>
+class MeshPass : public TRenderPass<MeshPass>
 {
   public:
-	WireFramePass() = default;
+	MeshPass() = default;
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -20,8 +20,8 @@ class WireFramePass : public TRenderPass<WireFramePass>
 	virtual void onImGui() override;
 
   private:
-	bool  m_enable     = false;
-	float m_line_width = 2.f;
-	uint32_t m_parameterization = 0;
+	std::string m_texture    = "";
+	uint32_t    m_texture_id = std::numeric_limits<uint32_t>::max();
+	uint32_t    m_parameterization = 0;
 };
 }        // namespace Ilum::pass

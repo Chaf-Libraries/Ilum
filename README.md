@@ -65,12 +65,18 @@ cmake --build ./ --target ALL_BUILD --config Release
     * B Spline Curve
     * Rational Bézier Curve
     * Rational B Spline Curve
-
   * Tensor Product Surface Modeling
     * Bézier Surface
     * B Spline Surface
     * Rational Bézier Surface
     * Rational B Spline Surface
+  * Triangle Mesh Processing
+    * Data Structure
+      * Face Based Mesh
+      * Edge Based Mesh
+      * Half-Edge Mesh
+    * Subdivision
+      * Loop Subdivision
 * Lighting Model
   * PBR
     * Cook-Torrance BRDF
@@ -80,9 +86,9 @@ cmake --build ./ --target ALL_BUILD --config Release
   * Blooming
 
 
-## Feature
+## Demo
 
-### Deferred Shading
+### Rendering
 
 #### Cook-Torrance BRDF
 
@@ -94,11 +100,9 @@ cmake --build ./ --target ALL_BUILD --config Release
 | ----------------------------------------- | -------------------------------------- |
 | ![bloom](README/bloom-16466384709971.png) | ![kulla_conty](README/kulla_conty.png) |
 
-### Render Passes Visualization
+#### Render Passes Visualization
 
 ![image-20211120113259237](README/image-20211120113259237.png)
-
-### Performance
 
 #### Meshlet
 
@@ -112,16 +116,6 @@ cmake --build ./ --target ALL_BUILD --config Release
 
 ![image-20220302110444007](README/image-20220302110444007.png)
 
-### Curve Modeling
-
-![image-20220108150839809](README/image-20220108150839809.png)
-
-### Surface Modeling
-
-![image-20220108151149909](README/image-20220108151149909.png)
-
-### Post Processing
-
 #### Temporal Anti-Alias
 
 |           TAA OFF            |         TAA ON         |
@@ -133,4 +127,21 @@ cmake --build ./ --target ALL_BUILD --config Release
 | Blooming OFF           | Blooming ON                |
 | ---------------------- | -------------------------- |
 | ![taa](README/taa.png) | ![bloom](README/bloom.png) |
+
+
+### Geometry
+
+#### Curve Modeling
+
+![image-20220108150839809](README/image-20220108150839809.png)
+
+#### Surface Modeling
+
+![image-20220108151149909](README/image-20220108151149909.png)
+
+#### Loop Subdivision
+
+|           Origin           |        Iteration #1        |        Iteration #2        |        Iteration #3        |        Iteration #4        |
+| :------------------------: | :------------------------: | :------------------------: | :------------------------: | :------------------------: |
+| ![loop0](README/loop0.png) | ![loop1](README/loop1.png) | ![loop2](README/loop2.png) | ![loop3](README/loop3.png) | ![loop4](README/loop4.png) |
 
