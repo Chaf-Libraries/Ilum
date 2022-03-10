@@ -107,10 +107,12 @@ void MeshPass::render(RenderPassState &state)
 		{
 			glm::mat4 transform;
 			uint32_t  texture_id;
+			uint32_t  parameterization;
 		} push_block;
 
 		push_block.transform = entity.getComponent<cmpt::Transform>().world_transform;
 		push_block.texture_id = m_texture_id;
+		push_block.parameterization = m_parameterization;
 
 		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_block), &push_block);
 		vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(mesh.index_buffer.getSize()) / sizeof(uint32_t), 1, 0, 0, 0);
@@ -121,6 +123,8 @@ void MeshPass::render(RenderPassState &state)
 
 void MeshPass::onImGui()
 {
+	ImGui::Checkbox("Show Parameterization", reinterpret_cast<bool *>(&m_parameterization));
+
 	ImGui::PushID("Mesh Texture");
 	if (ImGui::ImageButton(Renderer::instance()->getResourceCache().hasImage(FileSystem::getRelativePath(m_texture)) ?
                                ImGuiContext::textureID(Renderer::instance()->getResourceCache().loadImage(FileSystem::getRelativePath(m_texture)), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)) :

@@ -22,5 +22,6 @@ class WireFramePass : public TRenderPass<WireFramePass>
   private:
 	bool  m_enable     = false;
 	float m_line_width = 2.f;
+	uint32_t m_parameterization = 0;
 };
 }        // namespace Ilum::pass

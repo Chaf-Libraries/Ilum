@@ -22,5 +22,6 @@ class MeshPass : public TRenderPass<MeshPass>
   private:
 	std::string m_texture    = "";
 	uint32_t    m_texture_id = std::numeric_limits<uint32_t>::max();
+	uint32_t    m_parameterization = 0;
 };
 }        // namespace Ilum::pass

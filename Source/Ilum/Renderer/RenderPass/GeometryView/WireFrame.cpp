@@ -6,6 +6,8 @@
 
 #include "Renderer/Renderer.hpp"
 
+#include "Editor/Editor.hpp"
+
 #include <imgui.h>
 
 namespace Ilum::pass
@@ -100,7 +102,7 @@ void WireFramePass::render(RenderPassState &state)
 	vkCmdSetLineWidth(cmd_buffer, m_line_width);
 
 	// Draw surface wire frame
-	surface_group.each([&cmd_buffer, state](const entt::entity &entity, const cmpt::SurfaceRenderer &surface_renderer, const cmpt::Transform &transform, const cmpt::Tag &tag) {
+	surface_group.each([this, &cmd_buffer, state](const entt::entity &entity, const cmpt::SurfaceRenderer &surface_renderer, const cmpt::Transform &transform, const cmpt::Tag &tag) {
 		if (surface_renderer.vertex_buffer)
 		{
 			VkDeviceSize offsets[1] = {0};
@@ -111,10 +113,12 @@ void WireFramePass::render(RenderPassState &state)
 			{
 				glm::mat4 transform;
 				uint32_t  dynamic;
+				uint32_t  parameterization;
 			} push_block;
 
-			push_block.transform = transform.world_transform;
-			push_block.dynamic   = true;
+			push_block.transform        = transform.world_transform;
+			push_block.dynamic          = true;
+			push_block.parameterization = false;
 
 			vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_block), &push_block);
 			vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(surface_renderer.index_buffer.getSize()) / sizeof(uint32_t), 1, 0, 0, 0);
@@ -136,9 +140,11 @@ void WireFramePass::render(RenderPassState &state)
 			{
 				glm::mat4 transform;
 				uint32_t  dynamic;
+				uint32_t  parameterization;
 			} push_block;
 
-			push_block.dynamic = false;
+			push_block.dynamic          = false;
+			push_block.parameterization = false;
 
 			vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_block), &push_block);
 
@@ -165,10 +171,17 @@ void WireFramePass::render(RenderPassState &state)
 					{
 						glm::mat4 transform;
 						uint32_t  dynamic;
+						uint32_t  parameterization;
 					} push_block;
 
 					push_block.transform = transform.world_transform;
 					push_block.dynamic   = true;
+					push_block.parameterization = false;
+
+					if (Editor::instance()->getSelect() == entity)
+					{
+						push_block.parameterization = m_parameterization;
+					}
 
 					vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_block), &push_block);
 					vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(mesh_renderer.indices.size()), 1, 0, 0, instance_id++);
@@ -183,6 +196,7 @@ void WireFramePass::render(RenderPassState &state)
 void WireFramePass::onImGui()
 {
 	ImGui::Checkbox("Enable", &m_enable);
+	ImGui::Checkbox("Show Parameterization", reinterpret_cast<bool*>(&m_parameterization));
 	ImGui::DragFloat("Width", &m_line_width, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
 }
 }        // namespace Ilum::pass

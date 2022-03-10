@@ -22,11 +22,20 @@ layout (set = 0, binding = 0) uniform MainCamera
 layout(push_constant) uniform PushBlock{
 	mat4 transform;
     uint texture_id;
+    uint parameterization;
 } push_data;
 
 void main() 
 {
-    gl_Position = main_camera.view_projection * push_data.transform * vec4(inPos, 1.0);
+    if(push_data.parameterization == 1)
+    {
+        gl_Position = vec4(2.0 * inUV - 1.0, 0.0, 1.0);
+    }
+    else
+    {
+        gl_Position = main_camera.view_projection * push_data.transform * vec4(inPos, 1.0);
+    }
+    
     outUV = inUV;
     outTextureID = push_data.texture_id;
 }
