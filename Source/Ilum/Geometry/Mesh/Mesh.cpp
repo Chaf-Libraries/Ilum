@@ -122,7 +122,7 @@ glm::vec3 Mesh::normal(const glm::vec3 &v1, const glm::vec3 &v2, const glm::vec3
 	glm::vec3 e1 = v2 - v1;
 	glm::vec3 e2 = v3 - v1;
 
-	return glm::cross(e1, e2) / (glm::length(e1) * glm::length(e2));
+	return glm::normalize(glm::cross(e1, e2));
 }
 
 glm::vec3 Mesh::normal(const glm::vec3 &center, const std::vector<glm::vec3> &neighbors, VertexNormalOption option) const
@@ -155,7 +155,7 @@ glm::vec3 Mesh::normal(const glm::vec3 &center, const std::vector<glm::vec3> &ne
 			float     angle = glm::acos(glm::dot(e1, e2) / (glm::length(e1) * glm::length(e2)));
 			norm += angle * normal(center, neighbors[i], neighbors[i + 1]);
 		}
-		return norm / glm::length(norm);
+		return glm::normalize(norm);
 	}
 
 	return glm::vec3(0.f);
@@ -175,7 +175,7 @@ float Mesh::curvature(const glm::vec3 &center, const std::vector<glm::vec3> &nei
 		glm::vec3 norm      = normal(center, neighbors);
 		return glm::abs(-0.5f * glm::dot(laplacian, norm));
 	}
-	else if (option==CurvatureOption::Gaussian)
+	else if (option == CurvatureOption::Gaussian)
 	{
 		float result = 2.f * glm::pi<float>();
 		for (size_t i = 0; i < neighbors.size() - 1; i++)
