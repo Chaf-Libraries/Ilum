@@ -215,10 +215,10 @@ uint32_t HEMesh::degree(Vertex *v) const
 	return deg;
 }
 
-std::vector<std::vector<HEMesh::Vertex *>> HEMesh::boundary() const
+std::vector<std::vector<HEMesh::Vertex *>> HEMesh::boundaries() const
 {
 	std::unordered_set<HEMesh::HalfEdge *>     boundary_halfedges;
-	std::vector<std::vector<HEMesh::Vertex *>> boundaries;
+	std::vector<std::vector<HEMesh::Vertex *>> boundaries_;
 
 	for (auto *he : m_halfedges)
 	{
@@ -234,11 +234,33 @@ std::vector<std::vector<HEMesh::Vertex *>> HEMesh::boundary() const
 				h = h->next;
 			} while (h != he);
 
-			boundaries.push_back(boundary);
+			boundaries_.push_back(boundary);
 		}
 	}
 
-	return boundaries;
+	return boundaries_;
+}
+
+std::vector<HEMesh::Vertex *> HEMesh::longestBoundary() const
+{
+	size_t longest_boundaries = 0;
+	auto   boundaries_         = boundaries();
+
+	if (boundaries_.empty())
+	{
+		return {};
+	}
+
+	// Find longest boundary
+	for (size_t i = 0; i < boundaries_.size(); i++)
+	{
+		if (boundaries_[longest_boundaries].size() < boundaries_[i].size())
+		{
+			longest_boundaries = i;
+		}
+	}
+
+	return std::move(boundaries_[longest_boundaries]);
 }
 
 std::vector<HEMesh::Vertex *> HEMesh::adjVertices(Vertex *v) const

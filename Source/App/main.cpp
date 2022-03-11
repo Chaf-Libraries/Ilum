@@ -36,7 +36,7 @@ int main()
 		}
 	}
 
-	auto boundaries = hemesh.boundary();
+	auto boundaries = hemesh.boundaries();
 
 	for (auto* v : hemesh.vertices())
 	{
