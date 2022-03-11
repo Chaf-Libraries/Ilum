@@ -54,7 +54,29 @@ class HEMesh
 
 	const std::vector<HalfEdge *> &halfEdges() const;
 
+	std::vector<Vertex *> &vertices();
+
+	std::vector<Face *> &faces();
+
+	std::vector<HalfEdge *> &halfEdges();
+
 	std::pair<std::vector<glm::vec3>, std::vector<uint32_t>> toMesh() const;
+
+	bool hasBoundary() const;
+
+	bool onBoundary(HalfEdge *he) const;
+
+	bool onBoundary(Vertex *v) const;
+
+	uint32_t degree(Vertex *v) const;
+
+	std::vector<std::vector<Vertex *>> boundaries() const;
+
+	std::vector<Vertex *> longestBoundary() const;
+
+	std::vector<Vertex *> adjVertices(Vertex *v) const;
+
+	size_t vertexIndex(Vertex *v) const;
 
   private:
 	uint32_t m_stride;

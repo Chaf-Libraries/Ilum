@@ -186,7 +186,7 @@ void GeometryPass::render(RenderPassState &state)
 					m_vertex_block.entity_id = static_cast<uint32_t>(entity);
 					vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(m_vertex_block), &m_vertex_block);
 
-					vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(mesh_renderer.indices.size()), 1, 0, 0, instance_id++);
+					vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(mesh_renderer.index_buffer.getSize() / sizeof(uint32_t)), 1, 0, 0, instance_id++);
 				}
 			});
 		}

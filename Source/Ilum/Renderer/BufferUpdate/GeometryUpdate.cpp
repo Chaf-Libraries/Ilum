@@ -108,7 +108,7 @@ void GeometryUpdate::run()
 			mesh_renderer.need_update   = true;
 		}
 
-		if (mesh_renderer.indices.size() * sizeof(Vertex) != mesh_renderer.index_buffer.getSize())
+		if (mesh_renderer.indices.size() * sizeof(uint32_t) != mesh_renderer.index_buffer.getSize())
 		{
 			GraphicsContext::instance()->getQueueSystem().waitAll();
 			mesh_renderer.index_buffer = Buffer(mesh_renderer.indices.size() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);

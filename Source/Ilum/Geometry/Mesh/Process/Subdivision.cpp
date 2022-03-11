@@ -7,58 +7,8 @@
 
 namespace Ilum::geometry
 {
-inline std::unordered_set<uint32_t> find_boundary(const std::vector<glm::vec3> &vertices, const std::vector<uint32_t> &indices)
-{
-	std::vector<std::vector<size_t>> mesh_graph(vertices.size(), std::vector<size_t>(vertices.size()));
-	for (auto &g : mesh_graph)
-	{
-		std::fill(g.begin(), g.end(), 0);
-	}
-
-	for (size_t i = 0; i < indices.size(); i += 3)
-	{
-		mesh_graph[indices[i]][indices[i + 1]]++;
-		mesh_graph[indices[i + 1]][indices[i]]++;
-		mesh_graph[indices[i + 1]][indices[i + 2]]++;
-		mesh_graph[indices[i + 2]][indices[i + 1]]++;
-		mesh_graph[indices[i + 2]][indices[i]]++;
-		mesh_graph[indices[i]][indices[i + 2]]++;
-	}
-
-	std::unordered_set<size_t>   found;
-	std::unordered_set<uint32_t> boundary_points;
-
-	for (size_t i = 0; i < vertices.size(); i++)
-	{
-		size_t currect_vertex = i;
-		while (true)
-		{
-			bool has = false;
-			for (size_t j = 0; j < vertices.size(); j++)
-			{
-				if (j != currect_vertex && mesh_graph[currect_vertex][j] == 1 && found.find(j) == found.end())
-				{
-					found.insert(j);
-					boundary_points.insert(static_cast<uint32_t>(j));
-					currect_vertex = j;
-					has            = true;
-				}
-			}
-			if (currect_vertex == i || !has)
-			{
-				break;
-			}
-		}
-	}
-
-	return boundary_points;
-}
-
 std::pair<std::vector<Vertex>, std::vector<uint32_t>> Subdivision::LoopSubdivision(const std::vector<Vertex> &in_vertices, const std::vector<uint32_t> &in_indices)
 {
-	//std::vector<glm::vec3> vertices = preprocess(in_vertices);
-	//std::vector<uint32_t>  indices  = in_indices;
-
 	std::vector<glm::vec3> raw_vertices = preprocess(in_vertices);
 	std::vector<uint32_t>  raw_indices  = in_indices;
 
