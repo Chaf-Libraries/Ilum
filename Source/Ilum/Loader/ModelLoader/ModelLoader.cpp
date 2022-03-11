@@ -135,7 +135,9 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 	    aiProcess_GenSmoothNormals |
 	    aiProcess_Triangulate |
 	    aiProcess_GenBoundingBoxes |
-	    aiProcess_JoinIdenticalVertices|
+	    aiProcess_JoinIdenticalVertices |
+	    aiProcess_OptimizeGraph |
+	    aiProcess_OptimizeMeshes |
 	    aiProcess_GenUVCoords |
 	    aiProcess_SortByPType |
 	    aiProcess_FindInvalidData |
@@ -217,8 +219,8 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 			{
 				Meshlet tmp_meshlet;
 				tmp_meshlet.vertices_offset = static_cast<uint32_t>(model.vertices.size());
-				tmp_meshlet.indices_offset = meshlet_indices_offset;
-				tmp_meshlet.indices_count  = static_cast<uint32_t>(meshlet.triangle_count * 3);
+				tmp_meshlet.indices_offset  = meshlet_indices_offset;
+				tmp_meshlet.indices_count   = static_cast<uint32_t>(meshlet.triangle_count * 3);
 				meshlet_indices_offset += tmp_meshlet.indices_count;
 
 				for (uint32_t j = 0; j < meshlet.triangle_count * 3; j++)
@@ -353,7 +355,7 @@ void ModelLoader::parseMaterial(const std::string &file_path, aiMaterial *mesh_m
 		if (aiGetMaterialTexture(mesh_material, aiTextureType_UNKNOWN, 0, &path) != aiReturn_FAILURE)
 		{
 			material.textures[TextureType::Roughness] = dictionary + path.C_Str();
-			material.textures[TextureType::Metallic] = dictionary + path.C_Str();
+			material.textures[TextureType::Metallic]  = dictionary + path.C_Str();
 			Renderer::instance()->getResourceCache().loadImageAsync(FileSystem::getRelativePath(dictionary + path.C_Str()));
 		}
 

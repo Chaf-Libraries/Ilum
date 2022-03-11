@@ -44,7 +44,6 @@
 #include "RenderPass/PreProcess/KullaContyAverage.hpp"
 #include "RenderPass/PreProcess/KullaContyEnergy.hpp"
 #include "RenderPass/Preprocess/EquirectangularToCubemap.hpp"
-#include "RenderPass/RayTracing/RayTracingTestPass.hpp"
 #include "RenderPass/Shading/Deferred/GeometryPass.hpp"
 #include "RenderPass/Shading/Deferred/LightPass.hpp"
 #include "RenderPass/Shading/SkyboxPass.hpp"

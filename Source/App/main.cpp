@@ -9,7 +9,7 @@
 #include <Ilum/Timing/Timer.hpp>
 
 #include "Geometry/Mesh/FMesh.hpp"
-#include "Geometry/Mesh/EMesh.hpp"
+#include "Geometry/Mesh/HEMesh.hpp"
 
 int main()
 {
@@ -17,19 +17,31 @@ int main()
 
 	Ilum::Window::instance()->setIcon(std::string(PROJECT_SOURCE_DIR) + "Asset/Texture/Icon/logo.bmp");
 
-	auto model = Ilum::Renderer::instance()->getResourceCache().loadModel(std::string(PROJECT_SOURCE_DIR) + "Asset/Model/grid.obj");
+	auto model = Ilum::Renderer::instance()->getResourceCache().loadModel(std::string(PROJECT_SOURCE_DIR) + "Asset/Model/head.obj");
 	std::vector<glm::vec3> vertices;
 	vertices.reserve(model.get().vertices.size());
 	for (auto &v : model.get().vertices)
 	{
 		vertices.push_back(v.position);
 	}
-	Ilum::geometry::EMesh mesh(vertices, model.get().indices);
+	Ilum::geometry::HEMesh hemesh(vertices, model.get().indices);
 
-	const auto &mesh_vertices = mesh.vertices();
-	const auto &mesh_faces = mesh.faces();
+	uint32_t boundary_count = 0;
 
-	std::vector<std::vector<int>> a;
+	for (auto* v : hemesh.vertices())
+	{
+		if (hemesh.onBoundary(v))
+		{
+			boundary_count++;
+		}
+	}
+
+	auto boundaries = hemesh.boundary();
+
+	for (auto* v : hemesh.vertices())
+	{
+		LOG_INFO("{}", hemesh.degree(v));
+	}
 
 	while (!Ilum::Window::instance()->shouldClose())
 	{

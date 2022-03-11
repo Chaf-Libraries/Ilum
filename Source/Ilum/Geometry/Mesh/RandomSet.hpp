@@ -52,7 +52,12 @@ class RandomSet
 		return m_data.end();
 	}
 
-	_Ty operator[](size_t idx)
+	_Ty operator[](size_t idx) const
+	{
+		return m_data[idx];
+	}
+
+	_Ty &operator[](size_t idx)
 	{
 		return m_data[idx];
 	}
@@ -80,6 +85,11 @@ class RandomSet
 	}
 
 	const std::vector<_Ty> &vec() const noexcept
+	{
+		return m_data;
+	}
+
+	std::vector<_Ty> &vec() noexcept
 	{
 		return m_data;
 	}
