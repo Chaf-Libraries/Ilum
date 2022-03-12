@@ -70,9 +70,7 @@ class HEMesh
 
 	uint32_t degree(Vertex *v) const;
 
-	std::vector<std::vector<Vertex *>> boundaries() const;
-
-	std::vector<Vertex *> longestBoundary() const;
+	std::vector<std::vector<Vertex *>> boundary() const;
 
 	std::vector<Vertex *> adjVertices(Vertex *v) const;
 
