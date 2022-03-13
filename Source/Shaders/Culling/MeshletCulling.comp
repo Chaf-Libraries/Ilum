@@ -135,6 +135,7 @@ void main()
     if (idx == 0)
 	{
 		atomicExchange(count_data.actual_draw, 0);
+        atomicExchange(count_data.total_draw, 0);
 		atomicExchange(count_data.meshlet_visible_count, 0);
 		atomicExchange(count_data.meshlet_invisible_count, 0);
 		atomicExchange(count_data.meshlet_total_count, 0);
@@ -224,4 +225,5 @@ void main()
         draw_data[cull_data.meshlet_count - 1 - dci] = meshlet.instance_id;
     }
     atomicAdd(count_data.meshlet_total_count, 1);
+    atomicAdd(count_data.total_draw, 1);
 }

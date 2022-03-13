@@ -284,9 +284,9 @@ void deserialize_material(Entity entity, const YAML::Node &data)
 	material.base_color          = data["base_color"].as<glm::vec4>();
 	material.emissive_color      = data["emissive_color"].as<glm::vec3>();
 	material.emissive_intensity  = data["emissive_intensity"].as<float>();
-	material.metallic     = data["metallic_factor"].as<float>();
-	material.roughness    = data["roughness_factor"].as<float>();
-	material.displacement = data["displacement_height"].as<float>();
+	material.metallic     = data["metallic"].as<float>();
+	material.roughness    = data["roughness"].as<float>();
+	material.displacement = data["displacement"].as<float>();
 	material.textures[TextureType::BaseColor] = data["albedo_map"].as<std::string>();
 	material.textures[TextureType::Normal] = data["normal_map"].as<std::string>();
 	material.textures[TextureType::Metallic] = data["metallic_map"].as<std::string>();
@@ -364,9 +364,9 @@ void deserialize_component<cmpt::SpotLight>(Entity entity, const YAML::Node &dat
 	spot_light.color         = data["color"].as<glm::vec3>();
 	spot_light.intensity     = data["intensity"].as<float>();
 	spot_light.direction     = data["direction"].as<glm::vec3>();
-	spot_light.position      = data["direction"].as<glm::vec3>();
-	spot_light.cut_off       = data["direction"].as<float>();
-	spot_light.outer_cut_off = data["direction"].as<float>();
+	spot_light.position      = data["position"].as<glm::vec3>();
+	spot_light.cut_off       = data["cut_off"].as<float>();
+	spot_light.outer_cut_off = data["outer_cut_off"].as<float>();
 }
 
 template <>

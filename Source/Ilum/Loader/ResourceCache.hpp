@@ -28,7 +28,7 @@ class ResourceCache
 
 	const std::vector<ImageReference> &getImageReferences() const;
 
-	uint32_t imageID(const std::string &filepath);
+	uint32_t imageID(const std::string &filepath) const;
 
 	void clearImages();
 

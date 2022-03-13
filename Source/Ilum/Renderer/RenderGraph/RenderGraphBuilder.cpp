@@ -191,7 +191,7 @@ inline void createGraphicsPipeline(const PipelineState &pipeline_state, PassNati
 	rasterization_state_create_info.cullMode                               = pipeline_state.rasterization_state.cull_mode;
 	rasterization_state_create_info.frontFace                              = pipeline_state.rasterization_state.front_face;
 	rasterization_state_create_info.flags                                  = 0;
-	rasterization_state_create_info.depthClampEnable                       = VK_FALSE;
+	rasterization_state_create_info.depthBiasEnable                        = VK_TRUE;
 	rasterization_state_create_info.lineWidth                              = 1.0f;
 
 	// Color Blend Attachment State

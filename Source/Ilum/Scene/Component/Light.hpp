@@ -12,6 +12,7 @@ struct Light
 
 struct DirectionalLight : public Light
 {
+	glm::mat4 view_projection       = glm::mat4(1.f);
 	glm::vec3 color                 = {1.f, 1.f, 1.f};
 	float     intensity             = 1.f;
 	alignas(16) glm::vec3 direction = {1.f, 1.f, 1.f};
@@ -29,7 +30,8 @@ struct PointLight : public Light
 
 struct SpotLight : public Light
 {
-	glm::vec3 color         = {1.f, 1.f, 1.f};
+	glm::mat4 view_projection = glm::mat4(1.f);
+	glm::vec3 color           = {1.f, 1.f, 1.f};
 	float     intensity     = 1.f;
 	glm::vec3 position      = {0.f, 0.f, 0.f};
 	float     cut_off       = glm::cos(glm::radians(12.5f));
