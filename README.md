@@ -152,3 +152,22 @@ cmake --build ./ --target ALL_BUILD --config Release
 | :------------------------: | :------------------------: | :------------------------: | :------------------------: | :------------------------: |
 | ![loop0](README/loop0.png) | ![loop1](README/loop1.png) | ![loop2](README/loop2.png) | ![loop3](README/loop3.png) | ![loop4](README/loop4.png) |
 
+#### Minimum Surface
+
+|          Origin          |             Minimum Surface              |
+| :----------------------: | :--------------------------------------: |
+| ![face](README/face.png) | ![mini_surface](README/mini_surface.png) |
+
+#### Tutte Parameterization
+
+**Origin Mesh**
+
+<img src="README/origin.png" alt="origin" style="zoom:50%;" />
+
+|                                       |                       UV Visualization                       |              Parameterization Visualization              |
+| :-----------------------------------: | :----------------------------------------------------------: | :------------------------------------------------------: |
+|   Circle Boundary + Uniform Weight    |         ![uniform_circle](README/uniform_circle.png)         |   ![uniform_circle_vis](README/uniform_circle_vis.png)   |
+|  Rectangle Boundary + Uniform Weight  |       ![uniform_rectange](README/uniform_rectange.png)       | ![uniform_rectange_vis](README/uniform_rectange_vis.png) |
+|  Circle Boundary + Cotangent Weight   |       ![cotangent_circle](README/cotangent_circle.png)       | ![cotangent_circle_vis](README/cotangent_circle_vis.png) |
+| Rectangle Boundary + Cotangent Weight | ![cotangent_rectange_vis](README/cotangent_rectange_vis.png) |   ![cotangent_rectange](README/cotangent_rectange.png)   |
+
