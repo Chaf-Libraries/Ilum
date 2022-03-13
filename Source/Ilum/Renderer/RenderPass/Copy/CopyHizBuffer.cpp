@@ -1,6 +1,6 @@
 #pragma once
 
-#include "CopyLinearDepth.hpp"
+#include "CopyHizBuffer.hpp"
 
 #include "Renderer/Renderer.hpp"
 
@@ -12,21 +12,21 @@
 
 namespace Ilum::pass
 {
-void CopyLinearDepth::setupPipeline(PipelineState &state)
+void CopyHizBuffer::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Copy/CopyLinearDepth.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Copy/CopyHizBuffer.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
 
 	// GBuffer 2: R - Metallic, G - Roughness, B - Subsurface, A - EntityID
 	state.descriptor_bindings.bind(0, 0, "GBuffer1", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	state.descriptor_bindings.bind(0, 1, "LinearDepth", VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	state.descriptor_bindings.bind(0, 1, "HizBuffer", VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 }
 
-void CopyLinearDepth::resolveResources(ResolveState &resolve)
+void CopyHizBuffer::resolveResources(ResolveState &resolve)
 {
 
 }
 
-void CopyLinearDepth::render(RenderPassState &state)
+void CopyHizBuffer::render(RenderPassState &state)
 {
 	auto &cmd_buffer = state.command_buffer;
 

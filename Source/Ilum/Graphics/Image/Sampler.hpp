@@ -9,6 +9,8 @@ class Sampler
   public:
 	Sampler() = default;
 
+	Sampler(VkSampler sampler);
+
 	Sampler(VkFilter min_filter, VkFilter mag_filter, VkSamplerAddressMode address_mode, VkFilter mip_filter);
 
 	~Sampler();

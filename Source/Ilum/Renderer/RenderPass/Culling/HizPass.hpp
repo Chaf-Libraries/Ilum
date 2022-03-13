@@ -9,7 +9,7 @@ namespace Ilum::pass
 class HizPass : public TRenderPass<HizPass>
 {
   public:
-	HizPass();
+	HizPass() = default;
 
 	~HizPass();
 
@@ -22,11 +22,8 @@ class HizPass : public TRenderPass<HizPass>
 	virtual void onImGui() override;
 
   private:
-	std::vector<DescriptorSet> m_descriptor_sets;
-	std::vector<VkImageView>   m_views;
-	VkSampler                  m_hiz_sampler=VK_NULL_HANDLE;
-	Image                      m_hiz;
-	Image                      m_linear_depth;
-	int32_t                    m_current_level = 0;
+	int32_t m_current_level = 0;
+
+	std::vector<VkImageView> m_views;
 };
 }        // namespace Ilum::pass

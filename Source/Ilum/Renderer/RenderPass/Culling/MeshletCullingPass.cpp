@@ -5,6 +5,9 @@
 #include "Renderer/Renderer.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
+#include "Graphics/Vulkan/VK_Debugger.h"
+
+#include "Device/LogicalDevice.hpp"
 
 #include "Device/PhysicalDevice.hpp"
 
@@ -12,6 +15,29 @@
 
 namespace Ilum::pass
 {
+MeshletCullingPass::MeshletCullingPass()
+{
+	VkSamplerCreateInfo createInfo = {VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO};
+
+	createInfo.magFilter    = VK_FILTER_LINEAR;
+	createInfo.minFilter    = VK_FILTER_LINEAR;
+	createInfo.mipmapMode   = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+	createInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	createInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	createInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	createInfo.minLod       = 0;
+	createInfo.maxLod       = 16.f;
+
+	VkSamplerReductionModeCreateInfo createInfoReduction = {VK_STRUCTURE_TYPE_SAMPLER_REDUCTION_MODE_CREATE_INFO_EXT};
+	createInfoReduction.reductionMode                    = VK_SAMPLER_REDUCTION_MODE_MAX;
+	createInfo.pNext                                     = &createInfoReduction;
+
+	VkSampler hiz_sampler = VK_NULL_HANDLE;
+	vkCreateSampler(GraphicsContext::instance()->getLogicalDevice(), &createInfo, 0, &hiz_sampler);
+
+	m_hiz_sampler = Sampler(hiz_sampler);
+}
+
 void MeshletCullingPass::setupPipeline(PipelineState &state)
 {
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Culling/MeshletCulling.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
@@ -21,9 +47,9 @@ void MeshletCullingPass::setupPipeline(PipelineState &state)
 	state.descriptor_bindings.bind(0, 2, "PerMeshletBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 3, "DrawBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 4, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-	state.descriptor_bindings.bind(0, 5, "HizBuffer", Renderer::instance()->getSampler(Renderer::SamplerType::Point_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	state.descriptor_bindings.bind(0, 6, "count_buffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 7, "culling_buffer", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	state.descriptor_bindings.bind(0, 5, "HizBuffer", m_hiz_sampler, ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 6, "CountBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 7, "CullingBuffer", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	state.descriptor_bindings.bind(0, 8, "InstanceVisibility", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 }
 
@@ -34,8 +60,8 @@ void MeshletCullingPass::resolveResources(ResolveState &resolve)
 	resolve.resolve("PerMeshletBuffer", Renderer::instance()->Render_Buffer.Meshlet_Buffer);
 	resolve.resolve("DrawBuffer", Renderer::instance()->Render_Buffer.Draw_Buffer);
 	resolve.resolve("Camera", Renderer::instance()->Render_Buffer.Camera_Buffer);
-	resolve.resolve("count_buffer", Renderer::instance()->Render_Buffer.Count_Buffer);
-	resolve.resolve("culling_buffer", Renderer::instance()->Render_Buffer.Culling_Buffer);
+	resolve.resolve("CountBuffer", Renderer::instance()->Render_Buffer.Count_Buffer);
+	resolve.resolve("CullingBuffer", Renderer::instance()->Render_Buffer.Culling_Buffer);
 	resolve.resolve("InstanceVisibility", Renderer::instance()->Render_Buffer.Instance_Visibility_Buffer);
 }
 

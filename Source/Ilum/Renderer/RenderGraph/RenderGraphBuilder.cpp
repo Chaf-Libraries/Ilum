@@ -875,7 +875,22 @@ RenderGraphBuilder::AttachmentMap RenderGraphBuilder::allocateAttachments(const 
 	{
 		for (const auto &attachment : pipeline_state.getAttachmentDeclarations())
 		{
-			auto attachment_usage = resource_transitions.images.total_usages.at(attachment.name);
+			uint32_t attachment_usage = 0;
+			if (resource_transitions.images.total_usages.find(attachment.name) != resource_transitions.images.total_usages.end())
+			{
+				attachment_usage = resource_transitions.images.total_usages.at(attachment.name);
+			}
+			else
+			{
+				if (attachment.format == VK_FORMAT_D32_SFLOAT || attachment.format == VK_FORMAT_D32_SFLOAT_S8_UINT)
+				{
+					attachment_usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+				}
+				else
+				{
+					attachment_usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+				}
+			}
 			attachments.emplace(attachment.name, std::move(Image(
 			                                         attachment.width == 0 ? surface_width : attachment.width,
 			                                         attachment.height == 0 ? surface_height : attachment.height,
@@ -897,6 +912,7 @@ PassNative RenderGraphBuilder::buildRenderPass(const RenderPassReference &render
 	std::vector<VkAttachmentDescription> attachment_descriptions;
 	std::vector<VkAttachmentReference>   attachment_references;
 	std::vector<VkImageView>             attachment_views;
+	uint32_t                             frame_buffer_layers = 0;
 
 	VkExtent2D render_area = {0, 0};
 
@@ -913,6 +929,8 @@ PassNative RenderGraphBuilder::buildRenderPass(const RenderPassReference &render
 			const auto &attachment            = render_pass_attachments[attachment_index];
 			const auto &image_reference       = attachments.at(attachment.name);
 			const auto &attachment_transition = image_transitions.at(attachment.name);
+
+			frame_buffer_layers = std::max(frame_buffer_layers, image_reference.getLayerCount());
 
 			if (render_area.width == 0 && render_area.height == 0)
 			{
@@ -1007,7 +1025,7 @@ PassNative RenderGraphBuilder::buildRenderPass(const RenderPassReference &render
 		frame_buffer_create_info.pAttachments            = attachment_views.data();
 		frame_buffer_create_info.width                   = render_area.width;
 		frame_buffer_create_info.height                  = render_area.height;
-		frame_buffer_create_info.layers                  = 1;
+		frame_buffer_create_info.layers                  = frame_buffer_layers;
 
 		vkCreateFramebuffer(GraphicsContext::instance()->getLogicalDevice(), &frame_buffer_create_info, nullptr, &pass_native.frame_buffer);
 
