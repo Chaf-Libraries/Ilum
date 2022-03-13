@@ -27,25 +27,31 @@
 #include "Scene/Scene.hpp"
 
 #include "RenderPass/Copy/CopyLastFrame.hpp"
-#include "RenderPass/Copy/CopyLinearDepth.hpp"
+#include "RenderPass/Copy/CopyHizBuffer.hpp"
 #include "RenderPass/CopyPass.hpp"
+
 #include "RenderPass/Culling/HizPass.hpp"
 #include "RenderPass/Culling/InstanceCullingPass.hpp"
 #include "RenderPass/Culling/MeshletCullingPass.hpp"
+
 #include "RenderPass/GeometryView/CurvePass.hpp"
 #include "RenderPass/GeometryView/MeshPass.hpp"
 #include "RenderPass/GeometryView/SurfacePass.hpp"
 #include "RenderPass/GeometryView/WireFrame.hpp"
+
 #include "RenderPass/PostProcess/BloomBlend.hpp"
 #include "RenderPass/PostProcess/BloomBlur.hpp"
 #include "RenderPass/PostProcess/BloomMask.hpp"
 #include "RenderPass/PostProcess/TAA.hpp"
 #include "RenderPass/PostProcess/Tonemapping.hpp"
+
 #include "RenderPass/PreProcess/KullaContyAverage.hpp"
 #include "RenderPass/PreProcess/KullaContyEnergy.hpp"
 #include "RenderPass/Preprocess/EquirectangularToCubemap.hpp"
+
 #include "RenderPass/Shading/Deferred/GeometryPass.hpp"
 #include "RenderPass/Shading/Deferred/LightPass.hpp"
+#include "RenderPass/Shading/Shadow/Shadowmap.hpp"
 #include "RenderPass/Shading/SkyboxPass.hpp"
 
 #include "BufferUpdate/CameraUpdate.hpp"
@@ -79,29 +85,21 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("InstanceCulling", std::make_unique<pass::InstanceCullingPass>())
 		    .addRenderPass("MeshletCulling", std::make_unique<pass::MeshletCullingPass>())
 		    .addRenderPass("GeometryPass", std::make_unique<pass::GeometryPass>())
+		    .addRenderPass("ShadowmapPass", std::make_unique<pass::ShadowmapPass>())
 		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
 		    .addRenderPass("Skybox", std::make_unique<pass::SkyboxPass>())
 		    .addRenderPass("TAAPass", std::make_unique<pass::TAAPass>())
-
-		    //.addRenderPass("LightPass", std::make_unique<pass::LightPass>())
-
 		    .addRenderPass("BloomMask", std::make_unique<pass::BloomMask>("TAAOutput", "PostTex1"))
 		    .addRenderPass("BloomBlur1", std::make_unique<pass::BloomBlur>("PostTex1", "PostTex2", false))
 		    .addRenderPass("BloomBlur2", std::make_unique<pass::BloomBlur>("PostTex2", "PostTex1", true))
 		    .addRenderPass("Blend", std::make_unique<pass::BloomBlend>("PostTex1", "TAAOutput"))
-
-		    ////.addRenderPass("RayTracingTest", std::make_unique<pass::RayTracingTestPass>())
-
-		    .addRenderPass("CopyLinearDepth", std::make_unique<pass::CopyLinearDepth>())
+		    .addRenderPass("CopyHizBuffer", std::make_unique<pass::CopyHizBuffer>())
 		    .addRenderPass("CopyLastFrame", std::make_unique<pass::CopyLastFrame>("TAAOutput"))
-
 		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("TAAOutput"))
-
 		    .addRenderPass("CurvePass", std::make_unique<pass::CurvePass>())
 		    .addRenderPass("SurfacePass", std::make_unique<pass::SurfacePass>())
 		    .addRenderPass("MeshPass", std::make_unique<pass::MeshPass>())
 		    .addRenderPass("WireFramePass", std::make_unique<pass::WireFramePass>())
-
 		    .setView("TAAOutput")
 		    .setOutput("TAAOutput");
 	};

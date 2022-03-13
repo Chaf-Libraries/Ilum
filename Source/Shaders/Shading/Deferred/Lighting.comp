@@ -4,6 +4,7 @@
 #extension GL_GOOGLE_include_directive: enable
 
 #include "../../GlobalBuffer.glsl"
+#include "../../GlobalFunction.glsl"
 #include "../../BxDF.glsl"
 
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
@@ -17,25 +18,27 @@ layout(set = 0, binding = 5) uniform sampler2D GBuffer5;
 layout(set = 0, binding = 6) uniform sampler2D DepthBuffer;
 layout(set = 0, binding = 7) uniform sampler2D EmuLut;
 layout(set = 0, binding = 8) uniform sampler2D EavgLut;
+layout(set = 0, binding = 9) uniform sampler2DArray ShadowMaps;
 
-layout(set = 0, binding = 9) buffer DirectionalLights{
+
+layout(set = 0, binding = 10) buffer DirectionalLights{
     DirectionalLight directional_lights[ ];
 };
 
-layout(set = 0, binding = 10) buffer PointLights{
+layout(set = 0, binding = 11) buffer PointLights{
     PointLight point_lights[ ];
 };
 
-layout(set = 0, binding = 11) buffer SpotLights{
+layout(set = 0, binding = 12) buffer SpotLights{
     SpotLight spot_lights[ ];
 };
 
-layout(set = 0, binding = 12) uniform CameraBuffer
+layout(set = 0, binding = 13) uniform CameraBuffer
 {
 	CameraData camera_data;
 };
 
-layout(set = 0, binding = 13, rgba16f) writeonly uniform image2D Lighting;
+layout(set = 0, binding = 14, rgba16f) writeonly uniform image2D Lighting;
 
 layout(push_constant) uniform PushBlock{
     uint directional_light_count;
@@ -43,8 +46,13 @@ layout(push_constant) uniform PushBlock{
     uint point_light_count;
     uint enable_multi_bounce;
     uvec2 extent;
+    uint pcf_enable;
+    float pcf_sample_scale;
+    int pcf_sample_num;
+    int pcf_sample_method;
 }push_data;
 
+// Depth buffer to world position
 vec3 world_position_from_depth(vec2 uv, float depth, mat4 view_projection_inverse)
 {
     uv.y = 1.0 - uv.y;
@@ -55,39 +63,132 @@ vec3 world_position_from_depth(vec2 uv, float depth, mat4 view_projection_invers
     return world_pos.xyz;
 }
 
-vec3 specular_contribution(vec3 L, vec3 V, vec3 N, vec3 radiance, uint material_type,
-            vec3 albedo, float metallic, float roughness, float anisotropic,
-                float specular_, float specular_tint, float sheen, float sheen_tint,
-                float clearcoat, float clearcoat_gloss, float subsurface)
+float sample_shadowmap(vec4 p, float layer, vec2 offset)
+{
+    float shadow = 1.0;
+	vec4 shadow_coord = p / p.w;
+	shadow_coord.st = shadow_coord.st * 0.5 + 0.5;
+    shadow_coord.t = 1.0 - shadow_coord.t;
+	
+	if (shadow_coord.z > -1.0 && shadow_coord.z < 1.0) 
+	{
+		float dist = texture(ShadowMaps, vec3(shadow_coord.st + offset, layer)).r;
+		if (shadow_coord.w > 0.0 && dist < shadow_coord.z) 
+		{
+			shadow = 0.0;
+		}
+	}
+	return shadow;
+}
+
+float sample_shadowmap_pcf(vec4 p, float layer)
+{
+    ivec2 tex_dim = textureSize(ShadowMaps, 0).xy;
+    float dx = push_data.pcf_sample_scale / float(tex_dim.x);
+    float dy = push_data.pcf_sample_scale / float(tex_dim.y);
+
+    float shadow_factor = 0.0;
+
+    // Uniform sampling
+    if(push_data.pcf_sample_method == 0)
+    {
+        vec2 offset = vec2(0.0);
+        for(int i = 0; i < push_data.pcf_sample_num; i++)
+        {
+            offset = uniform_disk_samples(vec2(p.xy / p.w) + offset);
+            offset = offset * push_data.pcf_sample_scale / vec2(tex_dim);
+            shadow_factor += sample_shadowmap(p, layer, offset);
+        }
+    }
+    // Poisson sampling
+    else if(push_data.pcf_sample_method == 1)
+    {
+        for(int i = 0; i < push_data.pcf_sample_num; i++)
+        {
+            vec2 offset = poisson_disk_samples(vec2(p.xy / p.w), push_data.pcf_sample_num, 10, i);
+            offset = offset * push_data.pcf_sample_scale / vec2(tex_dim);
+            shadow_factor += sample_shadowmap(p, layer, offset);
+        }
+    }
+
+    return shadow_factor / float(push_data.pcf_sample_num);
+}
+
+// Calculate BRDF contribution for specific parameter
+vec3 brdf_contribution(vec3 L, vec3 V, vec3 N, vec3 radiance, MaterialData material)
 {
     vec3 tangent = normalize(cross( vec3(0,1,0), N));
     vec3 bitangent = normalize(cross(N, tangent));
 
     vec3 BRDF = vec3(0.0);
 
-    if(material_type == BxDF_Disney)
+    if(material.material_type == BxDF_Disney)
     {
-        BRDF += DisneyBRDF(L, V, N, tangent, bitangent,
-            albedo, metallic, roughness, anisotropic,
-            specular_, specular_tint, sheen, sheen_tint,
-            clearcoat, clearcoat_gloss, subsurface);
+        BRDF += DisneyBRDF(L, V, N, tangent, bitangent, material);
     }
-    else if(material_type == BxDF_CookTorrance)
+    else if(material.material_type == BxDF_CookTorrance)
     {
-        BRDF += CookTorranceBRDF(L, V, N, tangent, bitangent,
-            albedo, metallic, roughness, anisotropic);
+        BRDF += CookTorranceBRDF(L, V, N, tangent, bitangent, material);
 
         if(push_data.enable_multi_bounce == 1)
         {
-            vec3 Eo = vec3(texture(EmuLut, vec2(dot(N, L), roughness)).r);
-            vec3 Ei = vec3(texture(EmuLut, vec2(dot(N, V), roughness)).r);
-            float Eavg = texture(EavgLut, vec2(0, roughness)).r;
-            vec3 Fms = MultiScatterBRDF(pow(albedo, vec3(2.2)), Eo, Ei, Eavg);
+            vec3 Eo = vec3(texture(EmuLut, vec2(dot(N, L), material.roughness)).r);
+            vec3 Ei = vec3(texture(EmuLut, vec2(dot(N, V), material.roughness)).r);
+            float Eavg = texture(EavgLut, vec2(0, material.roughness)).r;
+            vec3 Fms = MultiScatterBRDF(pow(material.base_color.rgb, vec3(2.2)), Eo, Ei, Eavg);
             BRDF += Fms;
         }
     }
 
     return BRDF * radiance * clamp(dot(N, L), 0.0, 1.0);
+}
+
+// BRDF contribution for directional light
+vec3 direction_light_contribution(DirectionalLight light, vec3 V, vec3 N, MaterialData material)
+{
+       vec3 L = normalize(light.direction);
+       vec3 radiance = light.color.rgb * light.intensity;
+       return brdf_contribution(L, V, N, radiance, material);
+}
+
+// BRDF contribution for spot light
+vec3 spot_light_contribution(SpotLight light, vec3 V, vec3 N, vec3 frag_pos, MaterialData material)
+{
+       vec3 L = normalize(light.position - frag_pos);
+       float NoL = max(0.0, dot(N,L));
+       float theta = dot(L, normalize(-light.direction));
+       float epsilon   = light.cut_off - light.outer_cut_off;
+       float intensity = light.intensity * clamp((theta - light.outer_cut_off) / epsilon, 0.0, 1.0);
+       vec3 radiance = light.color * intensity;
+       return brdf_contribution(L, V, N, radiance, material);
+}
+
+// BRDF contribution for point light
+vec3 point_light_contribution(PointLight light, vec3 V, vec3 N, vec3 frag_pos, MaterialData material)
+{
+       vec3 L = normalize(light.position - frag_pos);
+       float d = length(light.position - frag_pos);
+       float NoL = max(0.0, dot(N,L));
+       float Fatt = 1.0/(light.constant + light.linear * d + light.quadratic * d * d);
+       vec3 radiance = light.color.rgb * light.intensity * Fatt;
+       return brdf_contribution(L, V, N, radiance, material);
+}
+
+// Shadow for spot light
+vec3 spot_light_shadow(SpotLight light, vec3 frag_color, vec3 frag_pos, float layer)
+{
+    vec4 shadow_clip = light.view_projection * vec4(frag_pos, 1.0);
+    float shadow_factor = 0.0;
+    if(push_data.pcf_enable == 1)
+    {
+        shadow_factor = sample_shadowmap_pcf(shadow_clip, layer);
+    }
+    else
+    {
+        shadow_factor = sample_shadowmap(shadow_clip, layer, vec2(0.0));
+    }
+    frag_color *=shadow_factor;
+    return frag_color;
 }
 
 void main()
@@ -114,20 +215,24 @@ void main()
 	// GBuffer 4: RG - Velocity, B - Specular, A - Specular Tint
 	// GBuffer 5: RGB - Emissive, A - Material Type
 
-    vec3 albedo = gbuffer0.rgb;
-    float anisotropic = gbuffer0.a;
+    MaterialData material;
+
+    material.base_color = vec4(gbuffer0.rgb, 1.0);
+    material.emissive_color = gbuffer5.rgb;
+	material.subsurface = gbuffer2.b;
+	material.metallic = gbuffer2.r;
+	material.specular = gbuffer4.b;
+	material.specular_tint = gbuffer4.a;
+	material.roughness = clamp(gbuffer2.g, 0.01, 0.99);
+	material.anisotropic = gbuffer0.a;
+	material.sheen = gbuffer3.r;
+	material.sheen_tint = gbuffer3.g;
+	material.clearcoat = gbuffer3.b;
+	material.clearcoat_gloss = gbuffer3.a;
+    material.material_type = uint(gbuffer5.a);
+
     vec3 normal = gbuffer1.rgb;
-    float metallic = gbuffer2.r;
-    float roughness = clamp(gbuffer2.g, 0.01, 0.99);
-    float subsurface = gbuffer2.b;
-    float sheen = gbuffer3.r;
-    float sheen_tint = gbuffer3.g;
-    float clearcoat = gbuffer3.b;
-    float clearcoat_gloss = gbuffer3.a;
-    float specular = gbuffer4.b;
-    float specular_tint = gbuffer4.a;
-    vec3 emissive = gbuffer5.rgb;
-    uint material_type = uint(gbuffer5.a);
+
     vec3 frag_pos = world_position_from_depth(uv, depth, camera_data.view_inverse * camera_data.projection_inverse);
 
    vec3 Lo = vec3(0.0);
@@ -138,44 +243,22 @@ void main()
    // Directional light
    for(uint i = 0; i < push_data.directional_light_count; i++)
    {
-       vec3 L = normalize(directional_lights[i].direction);
-       vec3 radiance = directional_lights[i].color.rgb * directional_lights[i].intensity;
-       Lo += specular_contribution(L, V, N, radiance, material_type,
-            albedo, metallic, roughness, anisotropic,
-            specular, specular_tint, sheen, sheen_tint,
-            clearcoat, clearcoat_gloss, subsurface);
+       Lo += direction_light_contribution(directional_lights[i], V, N, material);
    }
    
    // Spot light
    for(uint i = 0; i< push_data.spot_light_count; i++)
    {
-       vec3 L = normalize(spot_lights[i].position - frag_pos);
-       float NoL = max(0.0, dot(N,L));
-       float theta = dot(L, normalize(-spot_lights[i].direction));
-       float epsilon   = spot_lights[i].cut_off - spot_lights[i].outer_cut_off;
-       float intensity = spot_lights[i].intensity * clamp((theta - spot_lights[i].outer_cut_off) / epsilon, 0.0, 1.0);
-       vec3 radiance = spot_lights[i].color * intensity;
-       Lo += specular_contribution(L, V, N, radiance, material_type,
-            albedo, metallic, roughness, anisotropic,
-            specular, specular_tint, sheen, sheen_tint,
-            clearcoat, clearcoat_gloss, subsurface);
+        Lo += spot_light_shadow(spot_lights[i], spot_light_contribution(spot_lights[i], V, N, frag_pos, material), frag_pos, float(i));
    }
    
    // Point Light
    for(uint i = 0; i< push_data.point_light_count; i++)
    {
-       vec3 L = normalize(point_lights[i].position - frag_pos);
-       float d = length(point_lights[i].position - frag_pos);
-       float NoL = max(0.0, dot(N,L));
-       float Fatt = 1.0/(point_lights[i].constant + point_lights[i].linear * d + point_lights[i].quadratic * d * d);
-       vec3 radiance = point_lights[i].color.rgb * point_lights[i].intensity * Fatt;
-       Lo += specular_contribution(L, V, N, radiance, material_type,
-            albedo, metallic, roughness, anisotropic,
-            specular, specular_tint, sheen, sheen_tint,
-            clearcoat, clearcoat_gloss, subsurface);
+        Lo += point_light_contribution(point_lights[i], V, N, frag_pos, material);
    }
    
-   vec3 color = Lo + emissive;
+   vec3 color = Lo + material.emissive_color;
    
     imageStore(Lighting, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1.0));
 }

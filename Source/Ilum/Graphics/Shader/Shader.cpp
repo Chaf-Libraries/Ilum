@@ -85,7 +85,7 @@ VkPipelineBindPoint Shader::getBindPoint() const
 	{
 		return VK_PIPELINE_BIND_POINT_COMPUTE;
 	}
-	else if ((m_stage & VK_SHADER_STAGE_VERTEX_BIT) && (m_stage & VK_SHADER_STAGE_FRAGMENT_BIT))
+	else if ((m_stage & VK_SHADER_STAGE_VERTEX_BIT))
 	{
 		return VK_PIPELINE_BIND_POINT_GRAPHICS;
 	}

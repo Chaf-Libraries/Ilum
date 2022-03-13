@@ -60,7 +60,6 @@ struct CullingData
 	uint  instance_count;
 };
 
-
 struct DrawIndexedIndirectCommand
 {
 	uint indexCount;
@@ -73,6 +72,7 @@ struct DrawIndexedIndirectCommand
 struct CountData
 {
 	uint actual_draw;
+	uint total_draw;
 	uint meshlet_visible_count;
 	uint instance_visible_count;
 	uint meshlet_invisible_count;
@@ -125,6 +125,7 @@ struct MaterialData
 
 struct DirectionalLight
 {
+	mat4  view_projection;
 	vec3  color;
 	float intensity;
 	vec3  direction;
@@ -132,6 +133,7 @@ struct DirectionalLight
 
 struct PointLight
 {
+	mat4  view_projection;
 	vec3  color;
 	float intensity;
 	vec3  position;
@@ -142,6 +144,7 @@ struct PointLight
 
 struct SpotLight
 {
+	mat4  view_projection;
 	vec3  color;
 	float intensity;
 	vec3  position;

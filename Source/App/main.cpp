@@ -36,12 +36,7 @@ int main()
 		}
 	}
 
-	auto boundaries = hemesh.boundaries();
-
-	for (auto* v : hemesh.vertices())
-	{
-		LOG_INFO("{}", hemesh.degree(v));
-	}
+	auto boundaries = hemesh.boundary();
 
 	while (!Ilum::Window::instance()->shouldClose())
 	{

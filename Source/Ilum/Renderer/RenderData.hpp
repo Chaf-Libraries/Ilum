@@ -187,6 +187,7 @@ struct RenderBuffer
 	struct CountData
 {
 	uint actual_draw;
+	uint total_draw;
 	uint meshlet_visible_count;
     uint instance_visible_count;
     uint meshlet_invisible_count;
@@ -195,7 +196,7 @@ struct RenderBuffer
     uint instance_total_count;
 };
 */
-	Buffer Count_Buffer = Buffer(sizeof(uint32_t) * 7, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
+	Buffer Count_Buffer = Buffer(sizeof(uint32_t) * 8, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
 
 	// Culling data buffer
 	/*

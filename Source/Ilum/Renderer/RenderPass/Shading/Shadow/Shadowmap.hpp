@@ -8,10 +8,10 @@
 
 namespace Ilum::pass
 {
-class MeshletCullingPass : public TRenderPass<MeshletCullingPass>
+class ShadowmapPass : public TRenderPass<ShadowmapPass>
 {
   public:
-	MeshletCullingPass();
+	ShadowmapPass();
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -24,13 +24,16 @@ class MeshletCullingPass : public TRenderPass<MeshletCullingPass>
   private:
 	struct
 	{
-		uint32_t enable_frustum_culling   = 0;
-		uint32_t enable_backface_culling  = 0;
-		uint32_t enable_occlusion_culling = 0;
-	}m_culling_mode;
+		glm::mat4 transform;
+		uint32_t  dynamic;
+		uint32_t  layer;
+	} m_push_block;
 
-	bool enable_culling = false;
+	int32_t m_current_layer = 0;
 
-	Sampler m_hiz_sampler;
+	VkExtent2D m_resolution = {2048, 2048};
+
+	float m_depth_bias_constant = 4.f;
+	float m_depth_bias_slope    = 1.75f;
 };
 }        // namespace Ilum::pass

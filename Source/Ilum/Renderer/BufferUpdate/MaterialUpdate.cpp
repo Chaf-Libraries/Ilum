@@ -37,15 +37,16 @@ void MaterialUpdate::run()
 		if ((static_material_count + dynamic_mesh_view.size()) * sizeof(MaterialData) > Renderer::instance()->Render_Buffer.Material_Buffer.getSize())
 		{
 			GraphicsContext::instance()->getQueueSystem().waitAll();
-			Renderer::instance()->Render_Buffer.Material_Buffer = Buffer(static_material_count * sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			Renderer::instance()->Render_Buffer.Material_Buffer = Buffer((static_material_count + dynamic_mesh_view.size()) * sizeof(MaterialData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			Renderer::instance()->update();
 		}
 
 		MaterialData *material_data = reinterpret_cast<MaterialData *>(Renderer::instance()->Render_Buffer.Material_Buffer.map());
 
 		// Update static mesh material
-		tbb::parallel_for(tbb::blocked_range<size_t>(0, static_mesh_view.size()), [&static_mesh_view, &material_data, material_offset](const tbb::blocked_range<size_t> &r) {
-			for (size_t i = r.begin(); i != r.end(); i++)
+		//tbb::parallel_for(tbb::blocked_range<size_t>(0, static_mesh_view.size()), [&static_mesh_view, &material_data, material_offset](const tbb::blocked_range<size_t> &r) {
+		for (size_t i = 0; i != static_mesh_view.size(); i++)
+			//for (size_t i = r.begin(); i != r.end(); i++)
 			{
 				auto  entity               = Entity(static_mesh_view[i]);
 				auto &static_mesh_renderer = entity.getComponent<cmpt::StaticMeshRenderer>();
@@ -80,7 +81,7 @@ void MaterialUpdate::run()
 					}
 				}
 			}
-		});
+		//});
 
 		// Update dynamic mesh material
 		tbb::parallel_for(tbb::blocked_range<size_t>(0, dynamic_mesh_view.size()), [&dynamic_mesh_view, &material_data, static_material_count](const tbb::blocked_range<size_t> &r) {

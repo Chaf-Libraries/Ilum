@@ -428,6 +428,7 @@ inline void draw_component<cmpt::StaticMeshRenderer>(Entity entity)
 					    {
 						    component.materials.emplace_back(submesh.material);
 					    }
+					    Material::update = true;
 				    }
 			    }
 			    ImGui::EndDragDropTarget();
@@ -745,7 +746,7 @@ inline void draw_component<cmpt::DirectionalLight>(Entity entity)
 	draw_component<cmpt::DirectionalLight>("Directional Light", entity, [](cmpt::DirectionalLight &component) {
 		ImGui::DragFloat("Intensity", &component.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 		ImGui::ColorEdit3("Color", glm::value_ptr(component.color));
-		ImGui::DragFloat3("Direction", glm::value_ptr(component.direction), 0.1f, 0.0f, 0.0f, "%.3f");
+		ImGui::DragFloat3("Direction", glm::value_ptr(component.direction), 0.01f, -1.f, 1.f, "%.3f");
 	});
 }
 
@@ -755,9 +756,9 @@ inline void draw_component<cmpt::SpotLight>(Entity entity)
 	draw_component<cmpt::SpotLight>("Spot Light", entity, [](cmpt::SpotLight &component) {
 		ImGui::DragFloat("Intensity", &component.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 		ImGui::ColorEdit3("Color", glm::value_ptr(component.color));
-		ImGui::DragFloat3("Direction", glm::value_ptr(component.direction), 0.1f, 0.0f, 0.0f, "%.3f");
-		ImGui::DragFloat("Cut off", &component.cut_off, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
-		ImGui::DragFloat("Outer cut off", &component.outer_cut_off, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
+		ImGui::DragFloat3("Direction", glm::value_ptr(component.direction), 0.01f, -1.f, 1.f, "%.3f");
+		ImGui::DragFloat("Cut off", &component.cut_off, 0.0001f, 0.f, 1.f, "%.5f");
+		ImGui::DragFloat("Outer cut off", &component.outer_cut_off, 0.0001f, 0.f, component.cut_off, "%.5f");
 	});
 }
 

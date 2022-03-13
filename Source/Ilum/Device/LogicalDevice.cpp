@@ -248,6 +248,8 @@ LogicalDevice::LogicalDevice()
 	vulkan12_features.descriptorBindingVariableDescriptorCount  = VK_TRUE;
 	vulkan12_features.descriptorBindingPartiallyBound           = VK_TRUE;
 	vulkan12_features.bufferDeviceAddress                       = VK_TRUE;
+	vulkan12_features.shaderOutputLayer                         = VK_TRUE;
+	vulkan12_features.shaderOutputViewportIndex                 = VK_TRUE;
 	vulkan12_features.pNext                                     = &raty_tracing_pipeline_feature;
 
 	// Get support extensions

@@ -20,8 +20,8 @@ void InstanceCullingPass::setupPipeline(PipelineState &state)
 	state.descriptor_bindings.bind(0, 1, "InstanceVisibility", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 2, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	state.descriptor_bindings.bind(0, 3, "IndirectDrawCommand", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 4, "culling_buffer", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-	state.descriptor_bindings.bind(0, 5, "count_buffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 4, "CullingBuffer", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	state.descriptor_bindings.bind(0, 5, "CountBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 6, "DrawBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 }
 
@@ -31,8 +31,8 @@ void InstanceCullingPass::resolveResources(ResolveState &resolve)
 	resolve.resolve("PerInstanceBuffer", Renderer::instance()->Render_Buffer.Instance_Buffer);
 	resolve.resolve("InstanceVisibility", Renderer::instance()->Render_Buffer.Instance_Visibility_Buffer);
 	resolve.resolve("Camera", Renderer::instance()->Render_Buffer.Camera_Buffer);
-	resolve.resolve("culling_buffer", Renderer::instance()->Render_Buffer.Culling_Buffer);
-	resolve.resolve("count_buffer", Renderer::instance()->Render_Buffer.Count_Buffer);
+	resolve.resolve("CullingBuffer", Renderer::instance()->Render_Buffer.Culling_Buffer);
+	resolve.resolve("CountBuffer", Renderer::instance()->Render_Buffer.Count_Buffer);
 	resolve.resolve("DrawInfo", Renderer::instance()->Render_Buffer.Draw_Buffer);
 }
 

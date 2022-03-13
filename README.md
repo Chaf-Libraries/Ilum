@@ -4,7 +4,7 @@
 
 Ilum Graphics Playground, name after *Planet Ilum* from [Star Wars](https://starwars.fandom.com/es/wiki/Ilum)
 
-![image-20220302105808573](README/image-20220302105808573.png)
+![image-20220313211708122](README/image-20220313211708122.png)
 
 ## Build
 
@@ -81,6 +81,8 @@ cmake --build ./ --target ALL_BUILD --config Release
   * PBR
     * Cook-Torrance BRDF
     * Kulla-Conty Approximation
+  * Shadow
+    * Shadow Map -> Spot Light
 * Post Processing
   * Temporal Anti-Alias
   * Blooming
@@ -96,9 +98,9 @@ cmake --build ./ --target ALL_BUILD --config Release
 
 #### Kulla-Conty Mutli-Bounce Approximation
 
-| Multi-Bounce OFF                          | Multi-Bounce ON                        |
-| ----------------------------------------- | -------------------------------------- |
-| ![bloom](README/bloom-16466384709971.png) | ![kulla_conty](README/kulla_conty.png) |
+| Multi-Bounce OFF                               | Multi-Bounce ON                              |
+| ---------------------------------------------- | -------------------------------------------- |
+| ![kulla_conty_off](README/kulla_conty_off.png) | ![kulla_conty_on](README/kulla_conty_on.png) |
 
 #### Render Passes Visualization
 
@@ -124,10 +126,15 @@ cmake --build ./ --target ALL_BUILD --config Release
 
 #### Blooming
 
-| Blooming OFF           | Blooming ON                |
-| ---------------------- | -------------------------- |
-| ![taa](README/taa.png) | ![bloom](README/bloom.png) |
+| Blooming OFF                       | Blooming ON                      |
+| ---------------------------------- | -------------------------------- |
+| ![bloom_off](README/bloom_off.png) | ![bloom_on](README/bloom_on.png) |
 
+#### PCF
+
+|           PCF OFF            |            Uniform Sampling            |            Poisson Sampling            |
+| :--------------------------: | :------------------------------------: | :------------------------------------: |
+| ![no_pcf](README/no_pcf.png) | ![uniform_pcf](README/uniform_pcf.png) | ![poisson_pcf](README/poisson_pcf.png) |
 
 ### Geometry
 
@@ -144,23 +151,4 @@ cmake --build ./ --target ALL_BUILD --config Release
 |           Origin           |        Iteration #1        |        Iteration #2        |        Iteration #3        |        Iteration #4        |
 | :------------------------: | :------------------------: | :------------------------: | :------------------------: | :------------------------: |
 | ![loop0](README/loop0.png) | ![loop1](README/loop1.png) | ![loop2](README/loop2.png) | ![loop3](README/loop3.png) | ![loop4](README/loop4.png) |
-
-#### Minimum Surface
-
-|       Origin Mesh        |             Minimum Surface              |
-| :----------------------: | :--------------------------------------: |
-| ![face](README/face.png) | ![mini_surface](README/mini_surface.png) |
-
-#### Tutte Parameterization
-
-**Origin Mesh**
-
-<img src="README/origin.png" alt="origin" style="zoom:50%;" />
-
-|                                       |                     UV Visualization                     |                Parameterization Visualization                |
-| ------------------------------------- | :------------------------------------------------------: | :----------------------------------------------------------: |
-| Cotangent Weight & Circle Boundary    | ![cotangent_circle_vis](README/cotangent_circle_vis.png) |       ![cotangent_circle](README/cotangent_circle.png)       |
-| Cotangent Weight & Rectangle Boundary |   ![cotangent_rectange](README/cotangent_rectange.png)   | ![cotangent_rectange_vis](README/cotangent_rectange_vis.png) |
-| Uniform Weight & Circle Boundary      |   ![uniform_circle_vis](README/uniform_circle_vis.png)   |         ![uniform_circle](README/uniform_circle.png)         |
-| Uniform Weight & Rectangle Boundary   | ![uniform_rectange_vis](README/uniform_rectange_vis.png) |       ![uniform_rectange](README/uniform_rectange.png)       |
 

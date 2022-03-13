@@ -6,12 +6,12 @@
 
 namespace Ilum::pass
 {
-class CopyLinearDepth : public TRenderPass<CopyLinearDepth>
+class CopyHizBuffer : public TRenderPass<CopyHizBuffer>
 {
   public:
-	CopyLinearDepth() = default;
+	CopyHizBuffer() = default;
 
-	~CopyLinearDepth() = default;
+	~CopyHizBuffer() = default;
 
 	virtual void setupPipeline(PipelineState &state) override;
 

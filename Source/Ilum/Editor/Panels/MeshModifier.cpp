@@ -2,8 +2,8 @@
 
 #include "Scene/Component/Renderable.hpp"
 
-#include "Geometry/Mesh/Process/Parameterization.hpp"
 #include "Geometry/Mesh/Process/Subdivision.hpp"
+#include "Geometry/Mesh/Process/Parameterization.hpp"
 
 #include "Graphics/GraphicsContext.hpp"
 
@@ -42,7 +42,7 @@ void MeshModifier::draw(float delta_time)
 			{
 				GraphicsContext::instance()->getQueueSystem().waitAll();
 				dynamic_mesh.vertex_buffer = Buffer(dynamic_mesh.vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-				dynamic_mesh.index_buffer  = Buffer(dynamic_mesh.indices.size() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+				dynamic_mesh.index_buffer = Buffer(dynamic_mesh.indices.size() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			}
 			std::memcpy(dynamic_mesh.vertex_buffer.map(), dynamic_mesh.vertices.data(), dynamic_mesh.vertices.size() * sizeof(Vertex));
 			std::memcpy(dynamic_mesh.index_buffer.map(), dynamic_mesh.indices.data(), dynamic_mesh.indices.size() * sizeof(uint32_t));
@@ -54,55 +54,21 @@ void MeshModifier::draw(float delta_time)
 
 	if (ImGui::TreeNode("Parameterization"))
 	{
-		if (ImGui::TreeNode("Minimum Surface"))
+		if (ImGui::Button("Minimum Surface"))
 		{
-			if (ImGui::Button("Minimum Surface"))
+			auto [vertices, indices] = geometry::Parameterization::MinimumSurface(dynamic_mesh.vertices, dynamic_mesh.indices);
+			dynamic_mesh.vertices    = std::move(vertices);
+			dynamic_mesh.indices     = std::move(indices);
+			if (dynamic_mesh.vertices.size() * sizeof(Vertex) > dynamic_mesh.vertex_buffer.getSize() || dynamic_mesh.indices.size() * sizeof(uint32_t) > dynamic_mesh.index_buffer.getSize())
 			{
-				auto [vertices, indices] = geometry::Parameterization::MinimumSurface(dynamic_mesh.vertices, dynamic_mesh.indices);
-				dynamic_mesh.vertices    = std::move(vertices);
-				dynamic_mesh.indices     = std::move(indices);
-				if (dynamic_mesh.vertices.size() * sizeof(Vertex) > dynamic_mesh.vertex_buffer.getSize() || dynamic_mesh.indices.size() * sizeof(uint32_t) > dynamic_mesh.index_buffer.getSize())
-				{
-					GraphicsContext::instance()->getQueueSystem().waitAll();
-					dynamic_mesh.vertex_buffer = Buffer(dynamic_mesh.vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-					dynamic_mesh.index_buffer  = Buffer(dynamic_mesh.indices.size() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-				}
-				std::memcpy(dynamic_mesh.vertex_buffer.map(), dynamic_mesh.vertices.data(), dynamic_mesh.vertices.size() * sizeof(Vertex));
-				std::memcpy(dynamic_mesh.index_buffer.map(), dynamic_mesh.indices.data(), dynamic_mesh.indices.size() * sizeof(uint32_t));
-				dynamic_mesh.vertex_buffer.unmap();
-				dynamic_mesh.index_buffer.unmap();
+				GraphicsContext::instance()->getQueueSystem().waitAll();
+				dynamic_mesh.vertex_buffer = Buffer(dynamic_mesh.vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+				dynamic_mesh.index_buffer  = Buffer(dynamic_mesh.indices.size() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 			}
-			ImGui::TreePop();
-		}
-
-		if (ImGui::TreeNode("Tutte Parameterization"))
-		{
-			static geometry::Parameterization::TutteWeightType weight_type = geometry::Parameterization::TutteWeightType::Uniform;
-			static geometry::Parameterization::TutteBorderType border_type = geometry::Parameterization::TutteBorderType::Circle;
-
-			const char *const tutte_weight_types[] = {"Uniform", "Cotangent"};
-			const char *const tutte_border_types[] = {"Circle", "Rectangle"};
-
-			ImGui::Combo("Weight", reinterpret_cast<int32_t *>(&weight_type), tutte_weight_types, 2);
-			ImGui::Combo("Border", reinterpret_cast<int32_t *>(&border_type), tutte_border_types, 2);
-
-			if (ImGui::Button("Tutte Parameterization"))
-			{
-				auto [vertices, indices] = geometry::Parameterization::TutteParameterization(dynamic_mesh.vertices, dynamic_mesh.indices, weight_type, border_type);
-				dynamic_mesh.vertices    = std::move(vertices);
-				dynamic_mesh.indices     = std::move(indices);
-				if (dynamic_mesh.vertices.size() * sizeof(Vertex) > dynamic_mesh.vertex_buffer.getSize() || dynamic_mesh.indices.size() * sizeof(uint32_t) > dynamic_mesh.index_buffer.getSize())
-				{
-					GraphicsContext::instance()->getQueueSystem().waitAll();
-					dynamic_mesh.vertex_buffer = Buffer(dynamic_mesh.vertices.size() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-					dynamic_mesh.index_buffer  = Buffer(dynamic_mesh.indices.size() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
-				}
-				std::memcpy(dynamic_mesh.vertex_buffer.map(), dynamic_mesh.vertices.data(), dynamic_mesh.vertices.size() * sizeof(Vertex));
-				std::memcpy(dynamic_mesh.index_buffer.map(), dynamic_mesh.indices.data(), dynamic_mesh.indices.size() * sizeof(uint32_t));
-				dynamic_mesh.vertex_buffer.unmap();
-				dynamic_mesh.index_buffer.unmap();
-			}
-			ImGui::TreePop();
+			std::memcpy(dynamic_mesh.vertex_buffer.map(), dynamic_mesh.vertices.data(), dynamic_mesh.vertices.size() * sizeof(Vertex));
+			std::memcpy(dynamic_mesh.index_buffer.map(), dynamic_mesh.indices.data(), dynamic_mesh.indices.size() * sizeof(uint32_t));
+			dynamic_mesh.vertex_buffer.unmap();
+			dynamic_mesh.index_buffer.unmap();
 		}
 
 		ImGui::TreePop();

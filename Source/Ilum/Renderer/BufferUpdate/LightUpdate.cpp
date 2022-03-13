@@ -11,6 +11,8 @@
 
 #include "Renderer/Renderer.hpp"
 
+#include <glm/gtc/matrix_transform.hpp>
+
 #include <tbb/tbb.h>
 
 namespace Ilum::sym
@@ -60,6 +62,8 @@ void LightUpdate::run()
 
 	Renderer::instance()->Render_Stats.light_count.spot_light_count = 0;
 	spot_lights.each([](entt::entity entity, cmpt::SpotLight &light, cmpt::Tag &tag, cmpt::Transform &transform) {
+		light.position        = transform.translation;
+		light.view_projection = glm::perspective(2.f * glm::acos(light.outer_cut_off), 1.0f, 0.01f, 1000.f) * glm::lookAt(transform.translation, transform.translation + light.direction, glm::vec3(0.f, 1.f, 0.f));
 		std::memcpy(reinterpret_cast<cmpt::SpotLight *>(Renderer::instance()->Render_Buffer.Spot_Light_Buffer.map()) + Renderer::instance()->Render_Stats.light_count.spot_light_count++,
 		            &light, sizeof(cmpt::SpotLight));
 	});

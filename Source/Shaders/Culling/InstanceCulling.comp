@@ -112,6 +112,7 @@ void main()
 		atomicExchange(count_data.instance_invisible_count, 0);
 		atomicExchange(count_data.instance_total_count, 0);
 		atomicExchange(count_data.actual_draw, 0);
+		atomicExchange(count_data.total_draw, 0);
 	}
 
     if(idx >= cull_data.instance_count)
@@ -181,4 +182,5 @@ void main()
         visibility_data[idx] = 0;
     }
     atomicAdd(count_data.instance_total_count, 1);
+    atomicAdd(count_data.total_draw, 1);
 }

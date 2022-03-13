@@ -6,6 +6,11 @@
 
 namespace Ilum
 {
+Sampler::Sampler(VkSampler sampler):
+    m_handle(sampler)
+{
+}
+
 Sampler::Sampler(VkFilter min_filter, VkFilter mag_filter, VkSamplerAddressMode address_mode, VkFilter mip_filter)
 {
 	VkSamplerCreateInfo create_info = {};

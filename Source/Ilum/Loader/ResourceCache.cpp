@@ -84,7 +84,7 @@ const std::vector<ImageReference> &ResourceCache::getImageReferences() const
 	return m_image_references;
 }
 
-uint32_t ResourceCache::imageID(const std::string &filepath)
+uint32_t ResourceCache::imageID(const std::string &filepath) const
 {
 	if (!hasImage(filepath))
 	{
