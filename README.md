@@ -136,6 +136,12 @@ cmake --build ./ --target ALL_BUILD --config Release
 | :--------------------------: | :------------------------------------: | :------------------------------------: |
 | ![no_pcf](README/no_pcf.png) | ![uniform_pcf](README/uniform_pcf.png) | ![poisson_pcf](README/poisson_pcf.png) |
 
+#### PCSS
+
+|           PCSS OFF           |             Uniform Sampling             |             Poisson Sampling             |
+| :--------------------------: | :--------------------------------------: | :--------------------------------------: |
+| ![no_pcf](README/no_pcf.png) | ![uniform_pcss](README/uniform_pcss.png) | ![poisson_pcss](README/poisson_pcss.png) |
+
 ### Geometry
 
 #### Curve Modeling
