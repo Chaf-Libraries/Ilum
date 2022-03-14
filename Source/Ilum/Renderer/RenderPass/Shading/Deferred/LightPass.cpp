@@ -59,15 +59,16 @@ void LightPass::setupPipeline(PipelineState &state)
 	state.descriptor_bindings.bind(0, 7, "EmuLut", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 8, "EavgLut", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 9, "Shadowmap", m_shadowmap_sampler, ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	state.descriptor_bindings.bind(0, 10, "DirectionalLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 11, "PointLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 12, "SpotLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 13, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	state.descriptor_bindings.bind(0, 10, "CascadeShadowmap", m_shadowmap_sampler, ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 11, "DirectionalLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 12, "PointLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 13, "SpotLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 14, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
 	state.declareAttachment("Lighting", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.addOutputAttachment("Lighting", AttachmentState::Clear_Color);
 
-	state.descriptor_bindings.bind(0, 14, "Lighting", VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	state.descriptor_bindings.bind(0, 15, "Lighting", VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 }
 
 void LightPass::resolveResources(ResolveState &resolve)

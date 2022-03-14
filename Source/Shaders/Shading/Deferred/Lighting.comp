@@ -19,26 +19,26 @@ layout(set = 0, binding = 6) uniform sampler2D DepthBuffer;
 layout(set = 0, binding = 7) uniform sampler2D EmuLut;
 layout(set = 0, binding = 8) uniform sampler2D EavgLut;
 layout(set = 0, binding = 9) uniform sampler2DArray ShadowMaps;
+layout(set = 0, binding = 10) uniform sampler2DArray CascadeShadowmap;
 
-
-layout(set = 0, binding = 10) buffer DirectionalLights{
+layout(set = 0, binding = 11) buffer DirectionalLights{
     DirectionalLight directional_lights[ ];
 };
 
-layout(set = 0, binding = 11) buffer PointLights{
+layout(set = 0, binding = 12) buffer PointLights{
     PointLight point_lights[ ];
 };
 
-layout(set = 0, binding = 12) buffer SpotLights{
+layout(set = 0, binding = 13) buffer SpotLights{
     SpotLight spot_lights[ ];
 };
 
-layout(set = 0, binding = 13) uniform CameraBuffer
+layout(set = 0, binding = 14) uniform CameraBuffer
 {
 	CameraData camera_data;
 };
 
-layout(set = 0, binding = 14, rgba16f) writeonly uniform image2D Lighting;
+layout(set = 0, binding = 15, rgba16f) writeonly uniform image2D Lighting;
 
 layout(push_constant) uniform PushBlock{
     uint directional_light_count;
@@ -72,13 +72,13 @@ vec3 world_position_from_depth(vec2 uv, float depth, mat4 view_projection_invers
     return world_pos.xyz;
 }
 
-float sample_shadowmap(vec4 shadow_coord, float layer, vec2 offset)
+float sample_shadowmap(sampler2DArray shadowmap, vec4 shadow_coord, float layer, vec2 offset)
 {
     float shadow = 1.0;
 	
 	if (shadow_coord.z > -1.0 && shadow_coord.z < 1.0) 
 	{
-		float dist = texture(ShadowMaps, vec3(shadow_coord.st + offset, layer)).r;
+		float dist = texture(shadowmap, vec3(shadow_coord.st + offset, layer)).r;
 		if (shadow_coord.w > 0.0 && dist < shadow_coord.z) 
 		{
 			shadow = 0.0;
@@ -87,9 +87,9 @@ float sample_shadowmap(vec4 shadow_coord, float layer, vec2 offset)
 	return shadow;
 }
 
-float sample_shadowmap_pcf(vec4 shadow_coord, float layer)
+float sample_shadowmap_pcf(sampler2DArray shadowmap, vec4 shadow_coord, float layer)
 {
-    ivec2 tex_dim = textureSize(ShadowMaps, 0).xy;
+    ivec2 tex_dim = textureSize(shadowmap, 0).xy;
 
     float shadow_factor = 0.0;
 
@@ -107,14 +107,14 @@ float sample_shadowmap_pcf(vec4 shadow_coord, float layer)
             offset = poisson_disk_samples(shadow_coord.st + offset, push_data.sample_num, 10, i);
         }
         offset = offset * push_data.sample_scale / vec2(tex_dim);
-        shadow_factor += sample_shadowmap(shadow_coord, layer, offset);
+        shadow_factor += sample_shadowmap(shadowmap, shadow_coord, layer, offset);
     }
 
     return shadow_factor / float(push_data.sample_num);
 }
 
 // PCSS find block
-float find_block(vec4 shadow_coord, float layer)
+float find_block(sampler2DArray shadowmap, vec4 shadow_coord, float layer)
 {
     ivec2 tex_dim = textureSize(ShadowMaps, 0).xy;
 
@@ -135,7 +135,7 @@ float find_block(vec4 shadow_coord, float layer)
             offset = poisson_disk_samples(shadow_coord.st + offset, push_data.sample_num, 10, i);
         }
         offset = offset * push_data.sample_scale / vec2(tex_dim);
-        float dist = texture(ShadowMaps, vec3(shadow_coord.st + offset, layer)).r;
+        float dist = texture(shadowmap, vec3(shadow_coord.st + offset, layer)).r;
         if(dist < shadow_coord.z)
         {
             num_blockers += 1.0;
@@ -151,13 +151,13 @@ float find_block(vec4 shadow_coord, float layer)
     return num_blockers == 0.0 ? 0.0 : z_blocker / num_blockers;
 }
 
-float sample_shadowmap_pcss(vec4 shadow_coord, float layer)
+float sample_shadowmap_pcss(sampler2DArray shadowmap, vec4 shadow_coord, float layer)
 {
-    ivec2 tex_dim = textureSize(ShadowMaps, 0).xy;
+    ivec2 tex_dim = textureSize(shadowmap, 0).xy;
     float z_receiver = linearize_depth(shadow_coord.z, 0.01, 1000.0);
 
     // Penumbra size
-    float z_blocker = linearize_depth(find_block(shadow_coord, layer), 0.01, 1000.0);
+    float z_blocker = linearize_depth(find_block(shadowmap, shadow_coord, layer), 0.01, 1000.0);
     float w_light = 0.1;
     float w_penumbra = (z_receiver - z_blocker) * push_data.light_size / z_blocker;
 
@@ -177,7 +177,7 @@ float sample_shadowmap_pcss(vec4 shadow_coord, float layer)
             offset = poisson_disk_samples(shadow_coord.st + offset, push_data.sample_num, 10, i);
         }
         offset = offset * w_penumbra / vec2(tex_dim);
-        shadow_factor += sample_shadowmap(shadow_coord, layer, offset);
+        shadow_factor += sample_shadowmap(shadowmap, shadow_coord, layer, offset);
     }
 
     return shadow_factor / float(push_data.sample_num);
@@ -213,9 +213,10 @@ vec3 brdf_contribution(vec3 L, vec3 V, vec3 N, vec3 radiance, MaterialData mater
 }
 
 // BRDF contribution for directional light
-vec3 direction_light_contribution(DirectionalLight light, vec3 V, vec3 N, MaterialData material)
+vec3 direction_light_contribution(DirectionalLight light, vec3 V, vec3 N, vec3 frag_pos, MaterialData material)
 {
-       vec3 L = normalize(light.direction);
+       //vec3 L = normalize(-light.direction);
+       vec3 L = normalize(light.position);
        vec3 radiance = light.color.rgb * light.intensity;
        return brdf_contribution(L, V, N, radiance, material);
 }
@@ -254,17 +255,70 @@ vec3 spot_light_shadow(SpotLight light, vec3 frag_color, vec3 frag_pos, float la
     float shadow_factor = 0.0;
     if(push_data.filter_method == 1)
     {
-        shadow_factor = sample_shadowmap_pcf(shadow_coord, layer);
+        shadow_factor = sample_shadowmap_pcf(ShadowMaps, shadow_coord, layer);
     }
     else if(push_data.filter_method == 2)
     {
-        shadow_factor = sample_shadowmap_pcss(shadow_coord, layer);
+        shadow_factor = sample_shadowmap_pcss(ShadowMaps, shadow_coord, layer);
     }
     else
     {
-        shadow_factor = sample_shadowmap(shadow_coord, layer, vec2(0.0));
+        shadow_factor = sample_shadowmap(ShadowMaps, shadow_coord, layer, vec2(0.0));
     }
     frag_color *=shadow_factor;
+    return frag_color;
+}
+
+// Shadow for directional light
+vec3 directional_light_shadow(DirectionalLight light, vec3 frag_color, vec3 frag_pos, vec3 view_pos, float layer)
+{
+    uint cascade_index = 0;
+    // Select cascade
+    for(uint i = 0; i < 3; ++i)
+    {
+        if(light.split_depth[i] > view_pos.z)
+        {
+            cascade_index = i + 1;
+        }
+    }
+
+    vec4 shadow_clip = light.view_projection[cascade_index] * vec4(frag_pos, 1.0);
+    vec4 shadow_coord = vec4(shadow_clip.xyz / shadow_clip.w, shadow_clip.w);
+	shadow_coord.st = shadow_coord.st * 0.5 + 0.5;
+    shadow_coord.t = 1.0 - shadow_coord.t;
+
+    layer = layer * 4 + cascade_index;
+
+    float shadow_factor = 0.0;
+    if(push_data.filter_method == 1)
+    {
+        shadow_factor = sample_shadowmap_pcf(CascadeShadowmap, shadow_coord, layer);
+    }
+    else if(push_data.filter_method == 2)
+    {
+        shadow_factor = sample_shadowmap_pcss(CascadeShadowmap, shadow_coord, layer);
+    }
+    else
+    {
+        shadow_factor = sample_shadowmap(CascadeShadowmap, shadow_coord, layer, vec2(0.0));
+    }
+    frag_color *=shadow_factor;
+
+    switch(cascade_index) {
+			case 0 : 
+				frag_color.rgb *= vec3(1.0f, 0.25f, 0.25f);
+				break;
+			case 1 : 
+				frag_color.rgb *= vec3(0.25f, 1.0f, 0.25f);
+				break;
+			case 2 : 
+				frag_color.rgb *= vec3(0.25f, 0.25f, 1.0f);
+				break;
+			case 3 : 
+				frag_color.rgb *= vec3(1.0f, 1.0f, 0.25f);
+				break;
+		}
+
     return frag_color;
 }
 
@@ -311,6 +365,7 @@ void main()
     vec3 normal = gbuffer1.rgb;
 
     vec3 frag_pos = world_position_from_depth(uv, depth, camera_data.view_inverse * camera_data.projection_inverse);
+    vec3 view_pos = (inverse(camera_data.view_inverse) * vec4(frag_pos, 1.0)).xyz;
 
    vec3 Lo = vec3(0.0);
    vec4 out_color = vec4(0.0, 0.0, 0.0,1.0);
@@ -320,7 +375,7 @@ void main()
    // Directional light
    for(uint i = 0; i < push_data.directional_light_count; i++)
    {
-       Lo += direction_light_contribution(directional_lights[i], V, N, material);
+       Lo += directional_light_shadow(directional_lights[i], direction_light_contribution(directional_lights[i], V, N, frag_pos, material), frag_pos, view_pos, float(i));
    }
    
    // Spot light

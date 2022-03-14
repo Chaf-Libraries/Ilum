@@ -87,7 +87,7 @@ const Buffer &AccelerationStructure::getBuffer() const
 bool AccelerationStructure::build(VkAccelerationStructureGeometryKHR &geometry, VkAccelerationStructureBuildRangeInfoKHR &range_info)
 {
 	bool rebuild = false;
-
+	return false;
 	if (range_info.primitiveCount == 0)
 	{
 		//return false;

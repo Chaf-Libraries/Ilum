@@ -52,6 +52,7 @@
 #include "RenderPass/Shading/Deferred/GeometryPass.hpp"
 #include "RenderPass/Shading/Deferred/LightPass.hpp"
 #include "RenderPass/Shading/Shadow/Shadowmap.hpp"
+#include "RenderPass/Shading/Shadow/CascadeShadowmap.hpp"
 #include "RenderPass/Shading/SkyboxPass.hpp"
 
 #include "BufferUpdate/CameraUpdate.hpp"
@@ -86,6 +87,7 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("MeshletCulling", std::make_unique<pass::MeshletCullingPass>())
 		    .addRenderPass("GeometryPass", std::make_unique<pass::GeometryPass>())
 		    .addRenderPass("ShadowmapPass", std::make_unique<pass::ShadowmapPass>())
+		    .addRenderPass("CascadeShadowmapPass", std::make_unique<pass::CascadeShadowmapPass>())
 		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
 		    .addRenderPass("Skybox", std::make_unique<pass::SkyboxPass>())
 		    .addRenderPass("TAAPass", std::make_unique<pass::TAAPass>())

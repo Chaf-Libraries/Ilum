@@ -285,17 +285,10 @@ __pragma(warning(push, 0))
 			}
 
 			glm::mat4 inv = glm::inverse(camera->view_projection);
-			for (uint32_t i = 0; i < 4; i++)
+			for (uint32_t i = 0; i < 8; i++)
 			{
-				glm::vec4 near_point = inv * glm::vec4(frustum_camera_vertex[i], 1.f);
-				near_point /= near_point.w;
-				frustum_vertex[i] = near_point;
-			}
-			for (uint32_t i = 4; i < 8; i++)
-			{
-				glm::vec4 far_point = inv * glm::vec4(frustum_camera_vertex[i], 1.f);
-				far_point /= far_point.w;
-				frustum_vertex[i] = far_point;
+				glm::vec4 point = inv * glm::vec4(frustum_camera_vertex[i], 1.f);
+				frustum_vertex[i] = point /= point.w;
 			}
 
 			geometry::BoundingBox bbox;

@@ -125,10 +125,12 @@ struct MaterialData
 
 struct DirectionalLight
 {
-	mat4  view_projection;
+	vec4  split_depth;
+	mat4  view_projection[4];
 	vec3  color;
 	float intensity;
 	vec3  direction;
+	vec3  position;
 };
 
 struct PointLight
