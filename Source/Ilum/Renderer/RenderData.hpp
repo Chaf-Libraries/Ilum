@@ -244,13 +244,13 @@ struct RenderBuffer
 	Buffer Dynamic_Index_Buffer;
 
 	// Directional Light Buffer
-	Buffer Directional_Light_Buffer = Buffer(sizeof(cmpt::DirectionalLight) * 10, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	Buffer Directional_Light_Buffer = Buffer(sizeof(cmpt::DirectionalLight) * 5, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	// Point Light Buffer
-	Buffer Point_Light_Buffer = Buffer(sizeof(cmpt::PointLight) * 10, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	Buffer Point_Light_Buffer = Buffer(sizeof(cmpt::PointLight) * 5, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	// Spot Light Buffer
-	Buffer Spot_Light_Buffer = Buffer(sizeof(cmpt::SpotLight) * 10, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	Buffer Spot_Light_Buffer = Buffer(sizeof(cmpt::SpotLight) * 5, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	//RTX Instance Buffer
 	Buffer RTXInstance_Buffer = Buffer(1024 * sizeof(VkAccelerationStructureInstanceKHR), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_CPU_TO_GPU);

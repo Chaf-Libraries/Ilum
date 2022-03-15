@@ -4,6 +4,8 @@
 
 #include "Device/LogicalDevice.hpp"
 
+#include "Graphics/Vulkan/VK_Debugger.h"
+
 namespace Ilum
 {
 inline VkImageViewType get_image_view_type(const Image &image)
@@ -11,10 +13,6 @@ inline VkImageViewType get_image_view_type(const Image &image)
 	if (image.getLayerCount() == 1)
 	{
 		return VK_IMAGE_VIEW_TYPE_2D;
-	}
-	else if (image.getLayerCount() == 6)
-	{
-		return VK_IMAGE_VIEW_TYPE_CUBE;
 	}
 	else
 	{
@@ -198,6 +196,10 @@ const VkImageView &Image::getView(ImageViewType type) const
 	{
 		case Ilum::ImageViewType::Native:
 			return m_views.native;
+		case Ilum::ImageViewType::Cube:
+			return m_views.cube;
+		case Ilum::ImageViewType::ArrayCube:
+			return m_views.array_cube;
 		case Ilum::ImageViewType::Depth_Only:
 			return m_views.depth;
 		case Ilum::ImageViewType::Stencil_Only:
@@ -325,6 +327,28 @@ void Image::createImageViews()
 	view_create_info.subresourceRange = native_range;
 	vkCreateImageView(GraphicsContext::instance()->getLogicalDevice(), &view_create_info, nullptr, &m_views.native);
 
+	if (getLayerCount() % 6 == 0)
+	{
+		if (getLayerCount() > 6)
+		{
+			// Array Cube
+			auto cube_array_range             = getSubresourceRange();
+			view_create_info.subresourceRange = cube_array_range;
+			view_create_info.viewType         = VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+			vkCreateImageView(GraphicsContext::instance()->getLogicalDevice(), &view_create_info, nullptr, &m_views.array_cube);
+		}
+		else
+		{
+			// Cube
+			auto cube_array_range             = getSubresourceRange();
+			view_create_info.subresourceRange = cube_array_range;
+			view_create_info.viewType         = VK_IMAGE_VIEW_TYPE_CUBE;
+			vkCreateImageView(GraphicsContext::instance()->getLogicalDevice(), &view_create_info, nullptr, &m_views.cube);
+		}
+
+		view_create_info.viewType = get_image_view_type(*this);
+	}
+
 	// Depth
 	auto depth_range = getSubresourceRange();
 	depth_range.aspectMask &= VK_IMAGE_ASPECT_DEPTH_BIT;
@@ -402,6 +426,17 @@ void Image::destroy()
 		}
 
 		vkDestroyImageView(GraphicsContext::instance()->getLogicalDevice(), m_views.native, nullptr);
+
+		if (m_views.cube)
+		{
+			vkDestroyImageView(GraphicsContext::instance()->getLogicalDevice(), m_views.cube, nullptr);
+		}
+
+		if (m_views.array_cube)
+		{
+			vkDestroyImageView(GraphicsContext::instance()->getLogicalDevice(), m_views.array_cube, nullptr);
+		}
+
 		if (m_views.depth)
 		{
 			vkDestroyImageView(GraphicsContext::instance()->getLogicalDevice(), m_views.depth, nullptr);
