@@ -81,43 +81,42 @@ void LightUpdate::run()
 				float split_dist = cascade_splits[i];
 
 				glm::vec3 frustum_corners[8] = {
-				    glm::vec3(-1.f, -1.f, 0.f),
-				    glm::vec3(1.f, -1.f, 0.f),
-				    glm::vec3(1.f, 1.f, 0.f),
-				    glm::vec3(-1.f, 1.f, 0.f),
-				    glm::vec3(-1.f, -1.f, 1.f),
-				    glm::vec3(1.f, -1.f, 1.f),
-				    glm::vec3(1.f, 1.f, 1.f),
-				    glm::vec3(-1.f, 1.f, 1.f),
-				};
+				    glm::vec3(-1.0f, 1.0f, 0.0f),
+				    glm::vec3(1.0f, 1.0f, 0.0f),
+				    glm::vec3(1.0f, -1.0f, 0.0f),
+				    glm::vec3(-1.0f, -1.0f, 0.0f),
+				    glm::vec3(-1.0f, 1.0f, 1.0f),
+				    glm::vec3(1.0f, 1.0f, 1.0f),
+				    glm::vec3(1.0f, -1.0f, 1.0f),
+				    glm::vec3(-1.0f, -1.0f, 1.0f)};
 
 				// Project frustum corners into world space
 				glm::mat4 inv_cam = glm::inverse(camera->view_projection);
-				for (uint32_t i = 0; i < 8; i++)
+				for (uint32_t j = 0; j < 8; j++)
 				{
-					glm::vec4 inv_corner = inv_cam * glm::vec4(frustum_corners[i], 1.f);
-					frustum_corners[i]   = glm::vec3(inv_corner / inv_corner.w);
+					glm::vec4 inv_corner = inv_cam * glm::vec4(frustum_corners[j], 1.f);
+					frustum_corners[j]   = glm::vec3(inv_corner / inv_corner.w);
 				}
 
-				for (uint32_t i = 0; i < 4; i++)
+				for (uint32_t j = 0; j < 4; j++)
 				{
-					glm::vec3 corner_ray   = frustum_corners[i + 4] - frustum_corners[i];
-					frustum_corners[i + 4] = frustum_corners[i] + corner_ray * split_dist;
-					frustum_corners[i]     = frustum_corners[i] + corner_ray * last_split_dist;
+					glm::vec3 corner_ray   = frustum_corners[j + 4] - frustum_corners[j];
+					frustum_corners[j + 4] = frustum_corners[j] + corner_ray * split_dist;
+					frustum_corners[j]     = frustum_corners[j] + corner_ray * last_split_dist;
 				}
 
 				// Get frustum center
 				glm::vec3 frustum_center = glm::vec3(0.0f);
-				for (uint32_t i = 0; i < 8; i++)
+				for (uint32_t j = 0; j < 8; j++)
 				{
-					frustum_center += frustum_corners[i];
+					frustum_center += frustum_corners[j];
 				}
 				frustum_center /= 8.0f;
 
 				float radius = 0.0f;
-				for (uint32_t i = 0; i < 8; i++)
+				for (uint32_t j = 0; j < 8; j++)
 				{
-					float distance = glm::length(frustum_corners[i] - frustum_center);
+					float distance = glm::length(frustum_corners[j] - frustum_center);
 					radius         = glm::max(radius, distance);
 				}
 				radius = std::ceil(radius * 16.0f) / 16.0f;
@@ -125,14 +124,30 @@ void LightUpdate::run()
 				glm::vec3 max_extents = glm::vec3(radius);
 				glm::vec3 min_extents = -max_extents;
 
-				glm::vec3 light_dir = glm::normalize(-light.position);
+				glm::vec3 light_dir = glm::normalize(light.direction);
+
+				glm::vec3 eye    = frustum_center - light_dir * max_extents.z;
+				glm::vec3 target = frustum_center;
 
 				glm::mat4 light_view_matrix  = glm::lookAt(frustum_center - light_dir * max_extents.z, frustum_center, glm::vec3(0.0f, 1.0f, 0.0f));
-				glm::mat4 light_ortho_matrix = glm::ortho(min_extents.x, max_extents.x, min_extents.y, max_extents.y, 0.0f, max_extents.z - min_extents.z);
+				glm::mat4 light_ortho_matrix = glm::ortho(min_extents.x, max_extents.x, min_extents.y, max_extents.y, -2.f * (max_extents.z - min_extents.z), max_extents.z - min_extents.z);
 
 				// Store split distance and matrix in cascade
 				light.split_depth[i]     = -(near_clip + split_dist * clip_range);
 				light.view_projection[i] = light_ortho_matrix * light_view_matrix;
+
+				// Stablize
+				glm::vec3 shadow_origin = glm::vec3(0.0f);
+				shadow_origin           = (light.view_projection[i] * glm::vec4(shadow_origin, 1.0f));
+				shadow_origin *= 1024.f;
+
+				glm::vec3 rounded_origin = glm::round(shadow_origin);
+				glm::vec3 round_offset   = rounded_origin - shadow_origin;
+				round_offset             = round_offset / 1024.f;
+				round_offset.z           = 0.0f;
+
+				light.view_projection[i][3][0] += round_offset.x;
+				light.view_projection[i][3][1] += round_offset.y;
 
 				last_split_dist = cascade_splits[i];
 			}

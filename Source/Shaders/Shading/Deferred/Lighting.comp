@@ -215,8 +215,7 @@ vec3 brdf_contribution(vec3 L, vec3 V, vec3 N, vec3 radiance, MaterialData mater
 // BRDF contribution for directional light
 vec3 direction_light_contribution(DirectionalLight light, vec3 V, vec3 N, vec3 frag_pos, MaterialData material)
 {
-       //vec3 L = normalize(-light.direction);
-       vec3 L = normalize(light.position);
+       vec3 L = normalize(-light.direction);
        vec3 radiance = light.color.rgb * light.intensity;
        return brdf_contribution(L, V, N, radiance, material);
 }
@@ -287,9 +286,8 @@ vec3 directional_light_shadow(DirectionalLight light, vec3 frag_color, vec3 frag
 	shadow_coord.st = shadow_coord.st * 0.5 + 0.5;
     shadow_coord.t = 1.0 - shadow_coord.t;
 
-    layer = layer * 4 + cascade_index;
-
     float shadow_factor = 0.0;
+    layer = layer * 4 + cascade_index;
     if(push_data.filter_method == 1)
     {
         shadow_factor = sample_shadowmap_pcf(CascadeShadowmap, shadow_coord, layer);
@@ -302,22 +300,8 @@ vec3 directional_light_shadow(DirectionalLight light, vec3 frag_color, vec3 frag
     {
         shadow_factor = sample_shadowmap(CascadeShadowmap, shadow_coord, layer, vec2(0.0));
     }
-    frag_color *=shadow_factor;
 
-    switch(cascade_index) {
-			case 0 : 
-				frag_color.rgb *= vec3(1.0f, 0.25f, 0.25f);
-				break;
-			case 1 : 
-				frag_color.rgb *= vec3(0.25f, 1.0f, 0.25f);
-				break;
-			case 2 : 
-				frag_color.rgb *= vec3(0.25f, 0.25f, 1.0f);
-				break;
-			case 3 : 
-				frag_color.rgb *= vec3(1.0f, 1.0f, 0.25f);
-				break;
-		}
+    frag_color *=shadow_factor;
 
     return frag_color;
 }

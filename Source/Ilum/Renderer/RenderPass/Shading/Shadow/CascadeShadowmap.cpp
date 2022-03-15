@@ -125,7 +125,7 @@ void CascadeShadowmapPass::render(RenderPassState &state)
 				vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &vertex_buffer.getBuffer(), offsets);
 				vkCmdBindIndexBuffer(cmd_buffer, index_buffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
-				m_push_block.dynamic = 0;
+				m_push_block.dynamic  = 0;
 				m_push_block.light_id = light;
 
 				for (uint32_t i = 0; i < 4; i++)
@@ -186,19 +186,26 @@ void CascadeShadowmapPass::onImGui()
 	ImGui::DragFloat("Depth Bias Constant", &m_depth_bias_constant, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
 	ImGui::DragFloat("Depth Bias Slope", &m_depth_bias_slope, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
 
-	const auto &shadowmap = Renderer::instance()->getRenderGraph()->getAttachment("Shadowmap");
+	const auto &shadowmap = Renderer::instance()->getRenderGraph()->getAttachment("CascadeShadowmap");
 
-	std::string items;
-	for (size_t i = 0; i < shadowmap.getLayerCount(); i++)
+	std::string light_id = "";
+	for (size_t i = 0; i < shadowmap.getLayerCount() / 4; i++)
 	{
-		items += std::to_string(i) + '\0';
+		light_id += std::to_string(i) + '\0';
 	}
-	items += '\0';
+	light_id += '\0';
+
+	std::string cascade_id = "";
+	for (size_t i = 0; i < 4; i++)
+	{
+		cascade_id += std::to_string(i) + '\0';
+	}
+	cascade_id += '\0';
 	ImGui::Text("Cascade Shadowmap: ");
-	ImGui::SameLine();
 	ImGui::PushItemWidth(100.f);
-	ImGui::Combo("Directional Light Index", &m_light_index, items.data());
+	ImGui::Combo("Directional Light Index", &m_light_index, light_id.data());
+	ImGui::Combo("Directional Cascade Index", &m_cascade_index, cascade_id.data());
 	ImGui::PopItemWidth();
-	ImGui::Image(ImGuiContext::textureID(shadowmap.getView(m_current_layer), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), ImVec2(100, 100));
+	ImGui::Image(ImGuiContext::textureID(shadowmap.getView(m_light_index * 4 + m_cascade_index), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), ImVec2(100, 100));
 }
 }        // namespace Ilum::pass
