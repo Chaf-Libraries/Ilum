@@ -19,7 +19,7 @@ layout(set = 0, binding = 6) uniform sampler2D DepthBuffer;
 layout(set = 0, binding = 7) uniform sampler2D EmuLut;
 layout(set = 0, binding = 8) uniform sampler2D EavgLut;
 layout(set = 0, binding = 9) uniform sampler2DArray ShadowMaps;
-layout(set = 0, binding = 10) uniform sampler2DArray CascadeShadowmap;
+layout(set = 0, binding = 10) uniform sampler2DArray CascadeShadowMaps;
 
 layout(set = 0, binding = 11) buffer DirectionalLights{
     DirectionalLight directional_lights[ ];
@@ -290,15 +290,15 @@ vec3 directional_light_shadow(DirectionalLight light, vec3 frag_color, vec3 frag
     layer = layer * 4 + cascade_index;
     if(push_data.filter_method == 1)
     {
-        shadow_factor = sample_shadowmap_pcf(CascadeShadowmap, shadow_coord, layer);
+        shadow_factor = sample_shadowmap_pcf(CascadeShadowMaps, shadow_coord, layer);
     }
     else if(push_data.filter_method == 2)
     {
-        shadow_factor = sample_shadowmap_pcss(CascadeShadowmap, shadow_coord, layer);
+        shadow_factor = sample_shadowmap_pcss(CascadeShadowMaps, shadow_coord, layer);
     }
     else
     {
-        shadow_factor = sample_shadowmap(CascadeShadowmap, shadow_coord, layer, vec2(0.0));
+        shadow_factor = sample_shadowmap(CascadeShadowMaps, shadow_coord, layer, vec2(0.0));
     }
 
     frag_color *=shadow_factor;
