@@ -29,10 +29,11 @@ class LightPass : public TRenderPass<LightPass>
 		uint32_t   point_light_count       = 0;
 		uint32_t   enable_multi_bounce     = 0;
 		VkExtent2D extent                  = {};
-		uint32_t   PCF_enable              = 1;
-		float      PCF_sample_scale        = 3.f;
-		int32_t    PCF_sample_num          = 200;
-		int32_t    PCF_sample_method       = 1;// 0 - uniform, 1 - poisson
+		int32_t   filter_method              = 1;		// 0 - no filter, 1 - PCF, 2 - PCSS
+		float      sample_scale        = 10.f;
+		int32_t    sample_num          = 80;
+		int32_t    sample_method       = 1;// 0 - uniform, 1 - poisson
+		float      light_size                 = 10.f;
 	} m_push_block;
 
 	Sampler m_shadowmap_sampler;

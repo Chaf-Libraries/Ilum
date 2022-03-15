@@ -20,10 +20,6 @@
 
 namespace Ilum::pass
 {
-ShadowmapPass::ShadowmapPass()
-{
-}
-
 void ShadowmapPass::setupPipeline(PipelineState &state)
 {
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Shadow/Shadowmap.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
@@ -187,10 +183,10 @@ void ShadowmapPass::onImGui()
 		items += std::to_string(i) + '\0';
 	}
 	items += '\0';
-	ImGui::Text("Hierarchy Z Buffer: ");
+	ImGui::Text("Shadow map: ");
 	ImGui::SameLine();
 	ImGui::PushItemWidth(100.f);
-	ImGui::Combo("Layer", &m_current_layer, items.data());
+	ImGui::Combo("Spot Light Index", &m_current_layer, items.data());
 	ImGui::PopItemWidth();
 	ImGui::Image(ImGuiContext::textureID(shadowmap.getView(m_current_layer), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), ImVec2(100, 100));
 }

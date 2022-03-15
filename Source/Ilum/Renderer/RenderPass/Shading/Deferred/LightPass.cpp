@@ -59,15 +59,16 @@ void LightPass::setupPipeline(PipelineState &state)
 	state.descriptor_bindings.bind(0, 7, "EmuLut", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 8, "EavgLut", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 9, "Shadowmap", m_shadowmap_sampler, ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	state.descriptor_bindings.bind(0, 10, "DirectionalLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 11, "PointLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 12, "SpotLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 13, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	state.descriptor_bindings.bind(0, 10, "CascadeShadowmap", m_shadowmap_sampler, ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 11, "DirectionalLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 12, "PointLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 13, "SpotLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 14, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
 	state.declareAttachment("Lighting", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.addOutputAttachment("Lighting", AttachmentState::Clear_Color);
 
-	state.descriptor_bindings.bind(0, 14, "Lighting", VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	state.descriptor_bindings.bind(0, 15, "Lighting", VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 }
 
 void LightPass::resolveResources(ResolveState &resolve)
@@ -105,14 +106,22 @@ void LightPass::render(RenderPassState &state)
 void LightPass::onImGui()
 {
 	ImGui::Checkbox("Enable Kulla Conty Multi-Bounce Approximation", reinterpret_cast<bool *>(&m_push_block.enable_multi_bounce));
-	if (ImGui::TreeNode("PCF"))
+	if (ImGui::TreeNode("Soft Shadow"))
 	{
-		ImGui::Checkbox("Enable Percentage Closer Filtering(PCF)", reinterpret_cast<bool *>(&m_push_block.PCF_enable));
-		ImGui::DragInt("Number of Samples", &m_push_block.PCF_sample_num, 0.1f, 0);
-		ImGui::DragFloat("Filter scale", &m_push_block.PCF_sample_scale, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
+		const char *const filter_method[] = {"None", "PCF", "PCSS"};
+		ImGui::Combo("Filter method", &m_push_block.filter_method, filter_method, 3);
+		if (m_push_block.filter_method == 1 || m_push_block.filter_method == 2)
+		{
+			ImGui::DragInt("Number of Samples", &m_push_block.sample_num, 0.1f, 0);
+			ImGui::DragFloat("Filter scale", &m_push_block.sample_scale, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
+			if (m_push_block.filter_method == 2)
+			{
+				ImGui::DragFloat("Light size", &m_push_block.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
+			}
 
-		const char *const sample_type[] = {"Uniform", "Possion"};
-		ImGui::Combo("Sample method", &m_push_block.PCF_sample_method, sample_type, 2);
+			const char *const sample_method[] = {"Uniform", "Possion"};
+			ImGui::Combo("Sample method", &m_push_block.sample_method, sample_method, 2);
+		}
 
 		ImGui::TreePop();
 	}

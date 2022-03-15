@@ -12,10 +12,12 @@ struct Light
 
 struct DirectionalLight : public Light
 {
-	glm::mat4 view_projection       = glm::mat4(1.f);
+	glm::vec4 split_depth           = {};
+	glm::mat4 view_projection[4]    = {glm::mat4(1.f)};
 	glm::vec3 color                 = {1.f, 1.f, 1.f};
 	float     intensity             = 1.f;
 	alignas(16) glm::vec3 direction = {1.f, 1.f, 1.f};
+	alignas(16) glm::vec3 position  = {0.f, 0.f, 0.f};
 };
 
 struct PointLight : public Light
@@ -32,10 +34,10 @@ struct SpotLight : public Light
 {
 	glm::mat4 view_projection = glm::mat4(1.f);
 	glm::vec3 color           = {1.f, 1.f, 1.f};
-	float     intensity     = 1.f;
-	glm::vec3 position      = {0.f, 0.f, 0.f};
-	float     cut_off       = glm::cos(glm::radians(12.5f));
-	glm::vec3 direction     = {1.f, 1.f, 1.f};
-	float     outer_cut_off = glm::cos(glm::radians(17.5f));
+	float     intensity       = 1.f;
+	glm::vec3 position        = {0.f, 0.f, 0.f};
+	float     cut_off         = glm::cos(glm::radians(12.5f));
+	glm::vec3 direction       = {1.f, 1.f, 1.f};
+	float     outer_cut_off   = glm::cos(glm::radians(17.5f));
 };
 }        // namespace Ilum::cmpt

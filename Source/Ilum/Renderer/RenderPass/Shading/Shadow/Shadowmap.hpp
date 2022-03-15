@@ -11,7 +11,7 @@ namespace Ilum::pass
 class ShadowmapPass : public TRenderPass<ShadowmapPass>
 {
   public:
-	ShadowmapPass();
+	ShadowmapPass() = default;
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -24,9 +24,9 @@ class ShadowmapPass : public TRenderPass<ShadowmapPass>
   private:
 	struct
 	{
-		glm::mat4 transform;
-		uint32_t  dynamic;
-		uint32_t  layer;
+		glm::mat4 transform = {};
+		uint32_t  dynamic   = {};
+		uint32_t  layer     = {};
 	} m_push_block;
 
 	int32_t m_current_layer = 0;
