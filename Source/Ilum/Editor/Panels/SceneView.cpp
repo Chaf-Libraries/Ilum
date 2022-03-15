@@ -710,7 +710,7 @@ __pragma(warning(push, 0))
 				    glm::value_ptr(main_camera->view),
 				    glm::value_ptr(main_camera->projection),
 				    static_cast<ImGuizmo::OPERATION>(m_guizmo_operation),
-				    ImGuizmo::LOCAL, glm::value_ptr(transform.local_transform), NULL, NULL, NULL, NULL);
+				    ImGuizmo::WORLD, glm::value_ptr(transform.local_transform), NULL, NULL, NULL, NULL);
 
 				if (is_on_guizmo)
 				{
