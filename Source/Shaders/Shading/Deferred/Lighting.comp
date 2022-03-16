@@ -400,7 +400,6 @@ vec3 spot_light_shadow(SpotLight light, vec3 frag_color, vec3 frag_pos, float la
 	shadow_coord.st = shadow_coord.st * 0.5 + 0.5;
     shadow_coord.t = 1.0 - shadow_coord.t;
 
-    float shadow_factor = 0.0;
     switch(light.shadow_mode)
     {
         case 0:
@@ -434,7 +433,6 @@ vec3 directional_light_shadow(DirectionalLight light, vec3 frag_color, vec3 frag
 	shadow_coord.st = shadow_coord.st * 0.5 + 0.5;
     shadow_coord.t = 1.0 - shadow_coord.t;
 
-    float shadow_factor = 0.0;
     layer = layer * 4 + cascade_index;
     switch(light.shadow_mode)
     {
@@ -456,7 +454,6 @@ vec3 point_light_shadow(PointLight light, vec3 frag_color, vec3 frag_pos, float 
 {
     vec3 L = frag_pos - light.position;
    
-    float shadow_factor = 0.0;
     switch(light.shadow_mode)
     {
         case 0:
