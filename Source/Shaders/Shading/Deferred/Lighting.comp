@@ -20,25 +20,26 @@ layout(set = 0, binding = 7) uniform sampler2D EmuLut;
 layout(set = 0, binding = 8) uniform sampler2D EavgLut;
 layout(set = 0, binding = 9) uniform sampler2DArray ShadowMaps;
 layout(set = 0, binding = 10) uniform sampler2DArray CascadeShadowMaps;
+layout(set = 0, binding = 11) uniform samplerCubeArray OmniShadowMaps;
 
-layout(set = 0, binding = 11) buffer DirectionalLights{
+layout(set = 0, binding = 12) buffer DirectionalLights{
     DirectionalLight directional_lights[ ];
 };
 
-layout(set = 0, binding = 12) buffer PointLights{
+layout(set = 0, binding = 13) buffer PointLights{
     PointLight point_lights[ ];
 };
 
-layout(set = 0, binding = 13) buffer SpotLights{
+layout(set = 0, binding = 14) buffer SpotLights{
     SpotLight spot_lights[ ];
 };
 
-layout(set = 0, binding = 14) uniform CameraBuffer
+layout(set = 0, binding = 15) uniform CameraBuffer
 {
 	CameraData camera_data;
 };
 
-layout(set = 0, binding = 15, rgba16f) writeonly uniform image2D Lighting;
+layout(set = 0, binding = 16, rgba16f) writeonly uniform image2D Lighting;
 
 layout(push_constant) uniform PushBlock{
     uint directional_light_count;
@@ -55,10 +56,8 @@ layout(push_constant) uniform PushBlock{
 
 float linearize_depth(float depth, float znear, float zfar)
 {
-  float n = znear; // camera z near
-  float f = zfar; // camera z far
-  float z = depth;
-  return (2.0 * n) / (f + n - z * (f - n));	
+    float z = depth * 2.0 - 1.0;
+    return znear * zfar / (zfar + depth * (znear - zfar));
 }
 
 // Depth buffer to world position
@@ -79,11 +78,28 @@ float sample_shadowmap(sampler2DArray shadowmap, vec4 shadow_coord, float layer,
 	if (shadow_coord.z > -1.0 && shadow_coord.z < 1.0) 
 	{
 		float dist = texture(shadowmap, vec3(shadow_coord.st + offset, layer)).r;
-		if (shadow_coord.w > 0.0 && dist < shadow_coord.z) 
+		if (shadow_coord.w > 0.0 && dist < shadow_coord.z)
 		{
 			shadow = 0.0;
 		}
 	}
+	return shadow;
+}
+
+float sample_shadowmap_cube(samplerCubeArray shadowmap, vec3 L, float layer, vec3 offset)
+{
+    float shadow = 1.0;
+    float light_depth = length(L);
+    L.z = -L.z;
+    // Reconstruct depth
+	float dist = texture(shadowmap, vec4(L + offset, layer)).r;
+    dist *= 100.0;
+
+	if (light_depth > dist)
+	{
+		shadow = 0.0;
+	}
+
 	return shadow;
 }
 
@@ -99,15 +115,41 @@ float sample_shadowmap_pcf(sampler2DArray shadowmap, vec4 shadow_coord, float la
         if(push_data.sample_method == 0)
         {
             // Uniform sampling
-            offset = uniform_disk_samples(shadow_coord.st + offset);
+            offset = uniform_disk_samples_2d(shadow_coord.st + offset);
         }
         else if(push_data.sample_method == 1)
         {
             // Poisson sampling
-            offset = poisson_disk_samples(shadow_coord.st + offset, push_data.sample_num, 10, i);
+            offset = poisson_disk_samples_2d(shadow_coord.st + offset, push_data.sample_num, 10, i);
         }
         offset = offset * push_data.sample_scale / vec2(tex_dim);
         shadow_factor += sample_shadowmap(shadowmap, shadow_coord, layer, offset);
+    }
+
+    return shadow_factor / float(push_data.sample_num);
+}
+
+float sample_shadowmap_cube_pcf(samplerCubeArray shadowmap, vec3 L, float layer)
+{
+    ivec2 tex_dim = textureSize(shadowmap, 0).xy;
+
+    float shadow_factor = 0.0;
+    float light_depth = length(L);
+    
+    float disk_radius =(1.0 + (light_depth / 100.0)) / 25.0;  ;
+
+    const vec3 sample_offset_directions[20] = vec3[]
+    (
+       vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1), 
+       vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
+       vec3( 1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1,  1,  0),
+       vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
+       vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
+    );   
+
+    for(int i = 0; i < 20; i++)
+    {
+        shadow_factor += sample_shadowmap_cube(shadowmap, L, layer, sample_offset_directions[i] * disk_radius);
     }
 
     return shadow_factor / float(push_data.sample_num);
@@ -127,12 +169,12 @@ float find_block(sampler2DArray shadowmap, vec4 shadow_coord, float layer)
         if(push_data.sample_method == 0)
         {
             // Uniform sampling
-            offset = uniform_disk_samples(shadow_coord.st + offset);
+            offset = uniform_disk_samples_2d(shadow_coord.st + offset);
         }
         else if(push_data.sample_method == 1)
         {
             // Poisson sampling
-            offset = poisson_disk_samples(shadow_coord.st + offset, push_data.sample_num, 10, i);
+            offset = poisson_disk_samples_2d(shadow_coord.st + offset, push_data.sample_num, 10, i);
         }
         offset = offset * push_data.sample_scale / vec2(tex_dim);
         float dist = texture(shadowmap, vec3(shadow_coord.st + offset, layer)).r;
@@ -169,12 +211,12 @@ float sample_shadowmap_pcss(sampler2DArray shadowmap, vec4 shadow_coord, float l
         if(push_data.sample_method == 0)
         {
             // Uniform sampling
-            offset = uniform_disk_samples(shadow_coord.st + offset);
+            offset = uniform_disk_samples_2d(shadow_coord.st + offset);
         }
         else if(push_data.sample_method == 1)
         {
             // Poisson sampling
-            offset = poisson_disk_samples(shadow_coord.st + offset, push_data.sample_num, 10, i);
+            offset = poisson_disk_samples_2d(shadow_coord.st + offset, push_data.sample_num, 10, i);
         }
         offset = offset * w_penumbra / vec2(tex_dim);
         shadow_factor += sample_shadowmap(shadowmap, shadow_coord, layer, offset);
@@ -238,7 +280,7 @@ vec3 point_light_contribution(PointLight light, vec3 V, vec3 N, vec3 frag_pos, M
        vec3 L = normalize(light.position - frag_pos);
        float d = length(light.position - frag_pos);
        float NoL = max(0.0, dot(N,L));
-       float Fatt = 1.0/(light.constant + light.linear * d + light.quadratic * d * d);
+       float Fatt = 1.0/(light.constant + light.linear_ * d + light.quadratic * d * d);
        vec3 radiance = light.color.rgb * light.intensity * Fatt;
        return brdf_contribution(L, V, N, radiance, material);
 }
@@ -303,6 +345,25 @@ vec3 directional_light_shadow(DirectionalLight light, vec3 frag_color, vec3 frag
 
     frag_color *=shadow_factor;
 
+    return frag_color;
+}
+
+// Shadow for point light
+vec3 point_light_shadow(PointLight light, vec3 frag_color, vec3 frag_pos, float layer)
+{
+    vec3 L = frag_pos - light.position;
+   
+    float shadow_factor = 0.0;
+    if(push_data.filter_method == 1 || push_data.filter_method == 2)
+    {
+        shadow_factor = sample_shadowmap_cube_pcf(OmniShadowMaps, L, layer);
+    }
+    else
+    {
+        shadow_factor = sample_shadowmap_cube(OmniShadowMaps, L, layer, vec3(0.0));
+    }
+
+    frag_color *=shadow_factor;
     return frag_color;
 }
 
@@ -371,7 +432,8 @@ void main()
    // Point Light
    for(uint i = 0; i< push_data.point_light_count; i++)
    {
-        Lo += point_light_contribution(point_lights[i], V, N, frag_pos, material);
+        Lo += point_light_shadow(point_lights[i], point_light_contribution(point_lights[i], V, N, frag_pos, material), frag_pos, float(i));
+        //Lo += point_light_contribution(point_lights[i], V, N, frag_pos, material);
    }
    
    vec3 color = Lo + material.emissive_color;

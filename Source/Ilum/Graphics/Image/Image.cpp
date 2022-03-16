@@ -133,7 +133,7 @@ Image::Image(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags
 	image_create_info.sharingMode       = VK_SHARING_MODE_EXCLUSIVE;
 	image_create_info.initialLayout     = VK_IMAGE_LAYOUT_UNDEFINED;
 
-	if (layer_count == 6)
+	if (layer_count % 6 == 0)
 	{
 		image_create_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 	}

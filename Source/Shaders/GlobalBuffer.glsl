@@ -135,12 +135,11 @@ struct DirectionalLight
 
 struct PointLight
 {
-	mat4  view_projection;
 	vec3  color;
 	float intensity;
 	vec3  position;
 	float constant;
-	float linear;
+	float linear_;
 	float quadratic;
 };
 
