@@ -47,11 +47,6 @@ layout(push_constant) uniform PushBlock{
     uint point_light_count;
     uint enable_multi_bounce;
     uvec2 extent;
-    int filter_method;
-    float sample_scale;
-    int sample_num;
-    int sample_method;
-    float light_size;
 }push_data;
 
 float linearize_depth(float depth, float znear, float zfar)
@@ -103,60 +98,74 @@ float sample_shadowmap_cube(samplerCubeArray shadowmap, vec3 L, float layer, vec
 	return shadow;
 }
 
-float sample_shadowmap_pcf(sampler2DArray shadowmap, vec4 shadow_coord, float layer)
+float sample_shadowmap_pcf(sampler2DArray shadowmap, vec4 shadow_coord, float layer, int filter_sample, float filter_scale, int sample_method)
 {
     ivec2 tex_dim = textureSize(shadowmap, 0).xy;
 
     float shadow_factor = 0.0;
 
     vec2 offset = vec2(0.0);
-    for(int i = 0; i < push_data.sample_num; i++)
+    for(int i = 0; i < filter_sample; i++)
     {
-        if(push_data.sample_method == 0)
+        if(sample_method == 0)
         {
             // Uniform sampling
             offset = uniform_disk_samples_2d(shadow_coord.st + offset);
         }
-        else if(push_data.sample_method == 1)
+        else if(sample_method == 1)
         {
             // Poisson sampling
-            offset = poisson_disk_samples_2d(shadow_coord.st + offset, push_data.sample_num, 10, i);
+            offset = poisson_disk_samples_2d(shadow_coord.st + offset, filter_sample, 10, i);
         }
-        offset = offset * push_data.sample_scale / vec2(tex_dim);
+        offset = offset * filter_scale / vec2(tex_dim);
         shadow_factor += sample_shadowmap(shadowmap, shadow_coord, layer, offset);
     }
 
-    return shadow_factor / float(push_data.sample_num);
+    return shadow_factor / float(filter_sample);
 }
 
-float sample_shadowmap_cube_pcf(samplerCubeArray shadowmap, vec3 L, float layer)
+float sample_shadowmap_cube_pcf(samplerCubeArray shadowmap, vec3 L, float layer, float filter_scale, int filter_sample, int sample_method)
 {
     ivec2 tex_dim = textureSize(shadowmap, 0).xy;
 
     float shadow_factor = 0.0;
     float light_depth = length(L);
     
-    float disk_radius =(1.0 + (light_depth / 100.0)) / 25.0;  ;
+    float disk_radius = filter_scale / 100.0;
 
-    const vec3 sample_offset_directions[20] = vec3[]
-    (
-       vec3( 1,  1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1,  1,  1), 
-       vec3( 1,  1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1,  1, -1),
-       vec3( 1,  1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1,  1,  0),
-       vec3( 1,  0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1,  0, -1),
-       vec3( 0,  1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0,  1, -1)
-    );   
-
-    for(int i = 0; i < 20; i++)
+    vec3 offset = vec3(0.0);
+    int count = 0;
+    if(sample_method == 0)
     {
-        shadow_factor += sample_shadowmap_cube(shadowmap, L, layer, sample_offset_directions[i] * disk_radius);
+        for(int i = 0; i < filter_sample; i++)
+        {
+            // Uniform sampling
+            offset = uniform_disk_samples_3d(L + offset) * disk_radius;
+            shadow_factor += sample_shadowmap_cube(shadowmap, L, layer, offset);
+        }
+        count = filter_sample;
+    }
+    else if(sample_method == 1)
+    {
+        int x = int(sqrt(filter_sample));
+        int y = filter_sample / x;
+        count = x * y;
+        for(int i = 0; i < x; i++)
+        {
+            for(int j = 0; j < y; j++)
+            {
+                // Poisson sampling
+                offset = poisson_disk_samples_3d(L + offset, count, 10, vec2(i, j)) * disk_radius;
+                shadow_factor += sample_shadowmap_cube(shadowmap, L, layer, offset);
+            }
+        }
     }
 
-    return shadow_factor / float(push_data.sample_num);
+    return shadow_factor / float(count);
 }
 
 // PCSS find block
-float find_block(sampler2DArray shadowmap, vec4 shadow_coord, float layer)
+float find_block(sampler2DArray shadowmap, vec4 shadow_coord, float layer, float filter_scale, int filter_sample, int sample_method)
 {
     ivec2 tex_dim = textureSize(ShadowMaps, 0).xy;
 
@@ -164,19 +173,19 @@ float find_block(sampler2DArray shadowmap, vec4 shadow_coord, float layer)
     float z_blocker = 0.0;
     float num_blockers = 0.0;
     vec2 offset = vec2(0.0);
-    for(int i = 0; i < push_data.sample_num; i++)
+    for(int i = 0; i < filter_sample; i++)
     {
-        if(push_data.sample_method == 0)
+        if(sample_method == 0)
         {
             // Uniform sampling
             offset = uniform_disk_samples_2d(shadow_coord.st + offset);
         }
-        else if(push_data.sample_method == 1)
+        else if(sample_method == 1)
         {
             // Poisson sampling
-            offset = poisson_disk_samples_2d(shadow_coord.st + offset, push_data.sample_num, 10, i);
+            offset = poisson_disk_samples_2d(shadow_coord.st + offset, filter_sample, 10, i);
         }
-        offset = offset * push_data.sample_scale / vec2(tex_dim);
+        offset = offset * filter_scale / vec2(tex_dim);
         float dist = texture(shadowmap, vec3(shadow_coord.st + offset, layer)).r;
         if(dist < shadow_coord.z)
         {
@@ -193,36 +202,134 @@ float find_block(sampler2DArray shadowmap, vec4 shadow_coord, float layer)
     return num_blockers == 0.0 ? 0.0 : z_blocker / num_blockers;
 }
 
-float sample_shadowmap_pcss(sampler2DArray shadowmap, vec4 shadow_coord, float layer)
+float find_block_cube(samplerCubeArray shadowmap, vec3 L, float layer, float filter_scale, int filter_sample, int sample_method)
+{
+    ivec2 tex_dim = textureSize(ShadowMaps, 0).xy;
+    float light_depth = length(L);
+
+    // Find blocker
+    float z_blocker = 0.0;
+    float num_blockers = 0.0;
+    float disk_radius = filter_scale / 100.0;
+    vec3 offset = vec3(0.0);
+
+    if(sample_method == 0)
+    {
+        for(int i = 0; i < filter_sample; i++)
+        {
+            // Uniform sampling
+            offset = uniform_disk_samples_3d(L + offset) * disk_radius;
+            float dist = texture(shadowmap, vec4(L + offset, layer)).r;
+            if (light_depth > dist)
+            {
+                num_blockers += 1.0;
+                z_blocker += dist;
+            }
+        }
+    }
+    else if(sample_method == 1)
+    {
+        int x = int(sqrt(filter_sample));
+        int y = filter_sample / x;
+        for(int i = 0; i < x; i++)
+        {
+            for(int j = 0; j < y; j++)
+            {
+                // Poisson sampling
+                offset = poisson_disk_samples_3d(L + offset, x * y, 10, vec2(i, j)) * disk_radius;
+                float dist = texture(shadowmap, vec4(L + offset, layer)).r;
+                if (light_depth > dist)
+                {
+                    num_blockers += 1.0;
+                    z_blocker += dist;
+                }
+            }
+        }
+    }
+
+    if(num_blockers == 0.0)
+    {
+        return 0.0;
+    }
+
+    return num_blockers == 0.0 ? 0.0 : z_blocker / num_blockers;
+}
+
+float sample_shadowmap_pcss(sampler2DArray shadowmap, vec4 shadow_coord, float layer, float filter_scale, int filter_sample, int sample_method, float light_size)
 {
     ivec2 tex_dim = textureSize(shadowmap, 0).xy;
     float z_receiver = linearize_depth(shadow_coord.z, 0.01, 1000.0);
 
     // Penumbra size
-    float z_blocker = linearize_depth(find_block(shadowmap, shadow_coord, layer), 0.01, 1000.0);
+    float z_blocker = linearize_depth(find_block(shadowmap, shadow_coord, layer, filter_scale, filter_sample, sample_method), 0.01, 1000.0);
     float w_light = 0.1;
-    float w_penumbra = (z_receiver - z_blocker) * push_data.light_size / z_blocker;
+    float w_penumbra = (z_receiver - z_blocker) * light_size / z_blocker;
 
     // Filtering
     float shadow_factor = 0.0;
     vec2 offset = vec2(0.0);
-    for(int i = 0; i < push_data.sample_num; i++)
+    for(int i = 0; i < filter_sample; i++)
     {
-        if(push_data.sample_method == 0)
+        if(sample_method == 0)
         {
             // Uniform sampling
             offset = uniform_disk_samples_2d(shadow_coord.st + offset);
         }
-        else if(push_data.sample_method == 1)
+        else if(sample_method == 1)
         {
             // Poisson sampling
-            offset = poisson_disk_samples_2d(shadow_coord.st + offset, push_data.sample_num, 10, i);
+            offset = poisson_disk_samples_2d(shadow_coord.st + offset, filter_sample, 10, i);
         }
         offset = offset * w_penumbra / vec2(tex_dim);
         shadow_factor += sample_shadowmap(shadowmap, shadow_coord, layer, offset);
     }
 
-    return shadow_factor / float(push_data.sample_num);
+    return shadow_factor / float(filter_sample);
+}
+
+float sample_shadowmap_cube_pcss(samplerCubeArray shadowmap, vec3 L, float layer, float filter_scale, int filter_sample, int sample_method, float light_size)
+{
+    ivec2 tex_dim = textureSize(shadowmap, 0).xy;
+    float light_depth = length(L);
+    float z_receiver = linearize_depth(light_depth, 0.01, 1000.0);
+
+    // Penumbra size
+    float z_blocker = linearize_depth(find_block_cube(shadowmap, L, layer, filter_scale, filter_sample, sample_method), 0.01, 1000.0);
+    float w_light = 0.1;
+    float w_penumbra = (z_receiver - z_blocker) * light_size / z_blocker;
+
+    // Filtering
+    float shadow_factor = 0.0;
+    vec3 offset = vec3(0.0);
+    float disk_radius = filter_scale / 100.0;
+    int count = 0;
+
+    if(sample_method == 0)
+    {
+        for(int i = 0; i < filter_sample; i++)
+        {
+            // Uniform sampling
+            offset = uniform_disk_samples_3d(L + offset) * w_penumbra / float(tex_dim.x);
+            shadow_factor += sample_shadowmap_cube(shadowmap, L, layer, offset);
+        }
+        count = filter_sample;
+    }
+    else if(sample_method == 1)
+    {
+        int x = int(sqrt(filter_sample));
+        int y = filter_sample / x;
+        count = x * y;
+        for(int i = 0; i < x; i++)
+        {
+            for(int j = 0; j < y; j++)
+            {
+                // Poisson sampling
+                offset = poisson_disk_samples_3d(L + offset, count, 10, vec2(i, j)) * w_penumbra / float(tex_dim.x);
+                shadow_factor += sample_shadowmap_cube(shadowmap, L, layer, offset);
+            }
+        }
+    }
+    return shadow_factor / float(filter_sample);
 }
 
 // Calculate BRDF contribution for specific parameter
@@ -294,19 +401,18 @@ vec3 spot_light_shadow(SpotLight light, vec3 frag_color, vec3 frag_pos, float la
     shadow_coord.t = 1.0 - shadow_coord.t;
 
     float shadow_factor = 0.0;
-    if(push_data.filter_method == 1)
+    switch(light.shadow_mode)
     {
-        shadow_factor = sample_shadowmap_pcf(ShadowMaps, shadow_coord, layer);
+        case 0:
+            return frag_color;
+        case 1:
+            return frag_color * sample_shadowmap(ShadowMaps, shadow_coord, layer, vec2(0.0));
+        case 2:
+            return frag_color * sample_shadowmap_pcf(ShadowMaps, shadow_coord, layer, light.filter_sample, light.filter_scale, light.sample_method);
+        case 3:
+            return frag_color * sample_shadowmap_pcss(ShadowMaps, shadow_coord, layer, light.filter_scale, light.filter_sample, light.sample_method, light.light_size);
     }
-    else if(push_data.filter_method == 2)
-    {
-        shadow_factor = sample_shadowmap_pcss(ShadowMaps, shadow_coord, layer);
-    }
-    else
-    {
-        shadow_factor = sample_shadowmap(ShadowMaps, shadow_coord, layer, vec2(0.0));
-    }
-    frag_color *=shadow_factor;
+
     return frag_color;
 }
 
@@ -330,20 +436,17 @@ vec3 directional_light_shadow(DirectionalLight light, vec3 frag_color, vec3 frag
 
     float shadow_factor = 0.0;
     layer = layer * 4 + cascade_index;
-    if(push_data.filter_method == 1)
+    switch(light.shadow_mode)
     {
-        shadow_factor = sample_shadowmap_pcf(CascadeShadowMaps, shadow_coord, layer);
+        case 0:
+            return frag_color;
+        case 1:
+            return frag_color * sample_shadowmap(CascadeShadowMaps, shadow_coord, layer, vec2(0.0));
+        case 2:
+            return frag_color * sample_shadowmap_pcf(CascadeShadowMaps, shadow_coord, layer, light.filter_sample, light.filter_scale, light.sample_method);
+        case 3:
+            return frag_color * sample_shadowmap_pcss(CascadeShadowMaps, shadow_coord, layer, light.filter_scale, light.filter_sample, light.sample_method, light.light_size);
     }
-    else if(push_data.filter_method == 2)
-    {
-        shadow_factor = sample_shadowmap_pcss(CascadeShadowMaps, shadow_coord, layer);
-    }
-    else
-    {
-        shadow_factor = sample_shadowmap(CascadeShadowMaps, shadow_coord, layer, vec2(0.0));
-    }
-
-    frag_color *=shadow_factor;
 
     return frag_color;
 }
@@ -354,16 +457,18 @@ vec3 point_light_shadow(PointLight light, vec3 frag_color, vec3 frag_pos, float 
     vec3 L = frag_pos - light.position;
    
     float shadow_factor = 0.0;
-    if(push_data.filter_method == 1 || push_data.filter_method == 2)
+    switch(light.shadow_mode)
     {
-        shadow_factor = sample_shadowmap_cube_pcf(OmniShadowMaps, L, layer);
-    }
-    else
-    {
-        shadow_factor = sample_shadowmap_cube(OmniShadowMaps, L, layer, vec3(0.0));
+        case 0:
+            return frag_color;
+        case 1:
+            return frag_color * sample_shadowmap_cube(OmniShadowMaps, L, layer, vec3(0.0));
+        case 2:
+            return frag_color * sample_shadowmap_cube_pcf(OmniShadowMaps, L, layer, light.filter_scale, light.filter_sample, light.sample_method);
+        case 3:
+            return frag_color * sample_shadowmap_cube_pcss(OmniShadowMaps, L, layer, light.filter_scale, light.filter_sample, light.sample_method, light.light_size);
     }
 
-    frag_color *=shadow_factor;
     return frag_color;
 }
 
@@ -433,7 +538,6 @@ void main()
    for(uint i = 0; i< push_data.point_light_count; i++)
    {
         Lo += point_light_shadow(point_lights[i], point_light_contribution(point_lights[i], V, N, frag_pos, material), frag_pos, float(i));
-        //Lo += point_light_contribution(point_lights[i], V, N, frag_pos, material);
    }
    
    vec3 color = Lo + material.emissive_color;

@@ -131,6 +131,11 @@ void OmniShadowmapPass::render(RenderPassState &state)
 	{
 		auto point_light = Entity(point_lights[light]);
 
+		if (point_light.getComponent<cmpt::PointLight>().shadow_mode == 0)
+		{
+			continue;
+		}
+
 		// Draw static mesh
 		{
 			const auto &vertex_buffer = Renderer::instance()->Render_Buffer.Static_Vertex_Buffer;

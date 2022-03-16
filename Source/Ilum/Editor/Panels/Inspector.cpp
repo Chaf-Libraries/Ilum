@@ -197,9 +197,8 @@ bool draw_texture(std::string &texture, const std::string &name)
 }
 
 template <BxDFType _Ty>
-inline void draw_material(Material& material)
+inline void draw_material(Material &material)
 {
-
 }
 
 template <>
@@ -293,7 +292,7 @@ inline void draw_material(Material &material)
 			break;
 		default:
 			break;
-	}	
+	}
 }
 
 template <typename T>
@@ -747,6 +746,15 @@ inline void draw_component<cmpt::DirectionalLight>(Entity entity)
 		ImGui::DragFloat("Intensity", &component.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 		ImGui::ColorEdit3("Color", glm::value_ptr(component.color));
 		ImGui::DragFloat3("Direction", glm::value_ptr(component.direction), 0.01f, -1.f, 1.f, "%.3f");
+		// Shadow
+		ImGui::Text("Shadow Setting");
+		const char *const shadow_mode[] = {"No Shadow", "Hard Shadow", "PCF", "PCSS"};
+		ImGui::Combo("Shadow Mode", &component.shadow_mode, shadow_mode, 4);
+		const char *const sample_method[] = {"Uniform", "Possion"};
+		ImGui::Combo("Sample method", &component.sample_method, sample_method, 2);
+		ImGui::DragInt("Samples", &component.filter_sample, 0.1f, 0, std::numeric_limits<int32_t>::max());
+		ImGui::DragFloat("Scale", &component.filter_scale, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
+		ImGui::DragFloat("Light size", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
 	});
 }
 
@@ -759,6 +767,15 @@ inline void draw_component<cmpt::SpotLight>(Entity entity)
 		ImGui::DragFloat3("Direction", glm::value_ptr(component.direction), 0.01f, -1.f, 1.f, "%.3f");
 		ImGui::DragFloat("Cut off", &component.cut_off, 0.0001f, 0.f, 1.f, "%.5f");
 		ImGui::DragFloat("Outer cut off", &component.outer_cut_off, 0.0001f, 0.f, component.cut_off, "%.5f");
+		// Shadow
+		ImGui::Text("Shadow Setting");
+		const char *const shadow_mode[] = {"No Shadow", "Hard Shadow", "PCF", "PCSS"};
+		ImGui::Combo("Shadow Mode", &component.shadow_mode, shadow_mode, 4);
+		const char *const sample_method[] = {"Uniform", "Possion"};
+		ImGui::Combo("Sample method", &component.sample_method, sample_method, 2);
+		ImGui::DragInt("Samples", &component.filter_sample, 0.1f, 0, std::numeric_limits<int32_t>::max());
+		ImGui::DragFloat("Scale", &component.filter_scale, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
+		ImGui::DragFloat("Light size", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
 	});
 }
 
@@ -771,6 +788,15 @@ inline void draw_component<cmpt::PointLight>(Entity entity)
 		ImGui::DragFloat("Constant", &component.constant, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
 		ImGui::DragFloat("Linear", &component.linear, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
 		ImGui::DragFloat("Quadratic", &component.quadratic, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
+		// Shadow
+		ImGui::Text("Shadow Setting");
+		const char *const shadow_mode[] = {"No Shadow", "Hard Shadow", "PCF", "PCSS"};
+		ImGui::Combo("Shadow Mode", &component.shadow_mode, shadow_mode, 4);
+		const char *const sample_method[] = {"Uniform", "Possion"};
+		ImGui::Combo("Sample method", &component.sample_method, sample_method, 2);
+		ImGui::DragInt("Samples", &component.filter_sample, 0.1f, 0, std::numeric_limits<int32_t>::max());
+		ImGui::DragFloat("Scale", &component.filter_scale, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
+		ImGui::DragFloat("Light size", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
 	});
 }
 

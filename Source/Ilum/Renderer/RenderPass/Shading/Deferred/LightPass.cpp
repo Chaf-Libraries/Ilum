@@ -107,24 +107,5 @@ void LightPass::render(RenderPassState &state)
 void LightPass::onImGui()
 {
 	ImGui::Checkbox("Enable Kulla Conty Multi-Bounce Approximation", reinterpret_cast<bool *>(&m_push_block.enable_multi_bounce));
-	if (ImGui::TreeNode("Soft Shadow"))
-	{
-		const char *const filter_method[] = {"None", "PCF", "PCSS"};
-		ImGui::Combo("Filter method", &m_push_block.filter_method, filter_method, 3);
-		if (m_push_block.filter_method == 1 || m_push_block.filter_method == 2)
-		{
-			ImGui::DragInt("Number of Samples", &m_push_block.sample_num, 0.1f, 0);
-			ImGui::DragFloat("Filter scale", &m_push_block.sample_scale, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
-			if (m_push_block.filter_method == 2)
-			{
-				ImGui::DragFloat("Light size", &m_push_block.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
-			}
-
-			const char *const sample_method[] = {"Uniform", "Possion"};
-			ImGui::Combo("Sample method", &m_push_block.sample_method, sample_method, 2);
-		}
-
-		ImGui::TreePop();
-	}
 }
 }        // namespace Ilum::pass
