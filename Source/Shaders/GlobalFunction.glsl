@@ -20,35 +20,55 @@ vec2 Hammersley(uint i, uint N)
 
 float rand_1to1(float x)
 {
-	return fract(sin(x) * 10000.0);
+	return fract(sin(x) * 43758.5453123);
 }
 
 float rand_2to1(vec2 uv)
 {
-	// 0 - 1
-	const float a = 12.9898, b = 78.233, c = 43758.5453;
-	float       dt = dot(uv.xy, vec2(a, b));
-	float       sn = mod(dt, PI);
-	return fract(sin(sn) * c);
+	return fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453);
 }
 
-vec2 poisson_disk_samples(vec2 seed, int samples_num, int rings_num, int step)
+float rand_3to1(vec3 uvw)
+{
+	return fract(sin(dot(uvw, vec3(12.9898, 78.233, 144.7272))) * 43758.5453);
+}
+
+vec2 poisson_disk_samples_2d(vec2 seed, int samples_num, int rings_num, int step)
 {
 	float angle  = rand_2to1(seed) * PI * 2.0 + step * PI * 2.0 * float(rings_num) / float(samples_num);
 	float radius = (float(step) + 1.0) / float(samples_num);
-	return vec2(cos(angle), sin(angle)) * pow(radius, 0.75);
+	return vec2(cos(angle) * sin(angle), cos(angle)) * pow(radius, 0.75);
 }
 
-vec2 uniform_disk_samples(vec2 seed)
+vec3 poisson_disk_samples_3d(vec3 seed, int samples_num, int rings_num, vec2 step)
+{
+	vec2  angle  = rand_3to1(seed) * PI * 2.0 + step * PI * 2.0 * float(rings_num) / float(samples_num);
+	float radius = (length(step) + 1.0) / float(samples_num);
+	return vec3(sin(angle.x) * cos(angle.y), sin(angle.x) * sin(angle.y), cos(angle.x)) * pow(radius, 0.75);
+}
+
+vec2 uniform_disk_samples_2d(vec2 seed)
 {
 	float rand_num = rand_2to1(seed);
 	float sample_x = rand_1to1(rand_num);
 	float sample_y = rand_1to1(sample_x);
 
-	float angle = sample_x * PI * PI;
-	float radius = sqrt(sample_y);
+	float radius = sqrt(sample_x);
+	float angle  = sample_y * PI * 2;
 
 	return vec2(radius * cos(angle), radius * sin(angle));
+}
+
+vec3 uniform_disk_samples_3d(vec3 seed)
+{
+	float sample_x = rand_3to1(seed);
+	float sample_y = rand_1to1(sample_x);
+	float sample_z = rand_1to1(sample_y);
+
+	float radius = sqrt(sample_x);
+	vec2  angle  = vec2(sample_y * PI * 2, sample_z * PI * 2);
+
+	return vec3(sin(angle.y) * cos(angle.x), sin(angle.y) * sin(angle.x), cos(angle.y)) * radius;
 }
 
 #endif

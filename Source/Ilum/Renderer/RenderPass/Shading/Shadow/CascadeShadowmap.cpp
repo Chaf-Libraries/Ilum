@@ -112,7 +112,12 @@ void CascadeShadowmapPass::render(RenderPassState &state)
 
 	for (uint32_t light = 0; light < directional_lights.size(); light++)
 	{
-		auto spot_light = Entity(directional_lights[light]);
+		auto directional_light = Entity(directional_lights[light]);
+
+		if (directional_light.getComponent<cmpt::DirectionalLight>().shadow_mode == 0)
+		{
+			continue;
+		}
 
 		// Draw static mesh
 		{

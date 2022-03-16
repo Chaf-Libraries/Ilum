@@ -1,7 +1,7 @@
 #include "Shadowmap.hpp"
 
-#include "Renderer/Renderer.hpp"
 #include "Renderer/RenderGraph/RenderGraph.hpp"
+#include "Renderer/Renderer.hpp"
 
 #include "Scene/Component/Camera.hpp"
 #include "Scene/Component/Renderable.hpp"
@@ -113,6 +113,11 @@ void ShadowmapPass::render(RenderPassState &state)
 	for (uint32_t light = 0; light < spot_lights.size(); light++)
 	{
 		auto spot_light = Entity(spot_lights[light]);
+
+		if (spot_light.getComponent<cmpt::SpotLight>().shadow_mode == 0)
+		{
+			continue;
+		}
 
 		// Draw static mesh
 		{

@@ -84,6 +84,7 @@ cmake --build ./ --target ALL_BUILD --config Release
   * Shadow
     * Shadow Map -> Spot Light
     * Cascade Shadow Map -> Directional Light
+    * Omnidirectional Shadow Map -> Point Light
 * Post Processing
   * Temporal Anti-Alias
   * Blooming
@@ -142,6 +143,10 @@ cmake --build ./ --target ALL_BUILD --config Release
 #### Directional Light Shadow
 
 ![directional_light_shadow](README/directional_light_shadow.png)
+
+### Omnidirectional Shadow Map(Point Light Shadow)
+
+![point_light_shadow](README/point_light_shadow.png)
 
 ### Soft Shadow Filter
 

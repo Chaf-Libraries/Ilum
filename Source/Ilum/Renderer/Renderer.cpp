@@ -26,8 +26,8 @@
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
-#include "RenderPass/Copy/CopyLastFrame.hpp"
 #include "RenderPass/Copy/CopyHizBuffer.hpp"
+#include "RenderPass/Copy/CopyLastFrame.hpp"
 #include "RenderPass/CopyPass.hpp"
 
 #include "RenderPass/Culling/HizPass.hpp"
@@ -51,8 +51,9 @@
 
 #include "RenderPass/Shading/Deferred/GeometryPass.hpp"
 #include "RenderPass/Shading/Deferred/LightPass.hpp"
-#include "RenderPass/Shading/Shadow/Shadowmap.hpp"
 #include "RenderPass/Shading/Shadow/CascadeShadowmap.hpp"
+#include "RenderPass/Shading/Shadow/OmniShadowmap.hpp"
+#include "RenderPass/Shading/Shadow/Shadowmap.hpp"
 #include "RenderPass/Shading/SkyboxPass.hpp"
 
 #include "BufferUpdate/CameraUpdate.hpp"
@@ -88,6 +89,7 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("GeometryPass", std::make_unique<pass::GeometryPass>())
 		    .addRenderPass("ShadowmapPass", std::make_unique<pass::ShadowmapPass>())
 		    .addRenderPass("CascadeShadowmapPass", std::make_unique<pass::CascadeShadowmapPass>())
+		    .addRenderPass("OmniShadowmapPass", std::make_unique<pass::OmniShadowmapPass>())
 		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
 		    .addRenderPass("Skybox", std::make_unique<pass::SkyboxPass>())
 		    .addRenderPass("TAAPass", std::make_unique<pass::TAAPass>())

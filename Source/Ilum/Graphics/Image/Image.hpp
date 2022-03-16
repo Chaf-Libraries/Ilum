@@ -11,6 +11,8 @@ class CommandBuffer;
 enum class ImageViewType
 {
 	Native = 0,
+	Cube,
+	ArrayCube,
 	Depth_Only,
 	Stencil_Only
 };
@@ -83,7 +85,9 @@ class Image
   private:
 	struct ImageViews
 	{
-		VkImageView native  = VK_NULL_HANDLE;
+		VkImageView native     = VK_NULL_HANDLE;
+		VkImageView cube     = VK_NULL_HANDLE;
+		VkImageView array_cube  = VK_NULL_HANDLE;
 		VkImageView depth   = VK_NULL_HANDLE;
 		VkImageView stencil = VK_NULL_HANDLE;
 	};
