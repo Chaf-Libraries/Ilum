@@ -27,7 +27,6 @@ class CascadeShadowmapPass : public TRenderPass<CascadeShadowmapPass>
 		glm::mat4 transform;
 		uint32_t  dynamic;
 		uint32_t  light_id;
-		uint32_t  cascaded_id;
 	} m_push_block;
 
 	int32_t m_light_index = 0;

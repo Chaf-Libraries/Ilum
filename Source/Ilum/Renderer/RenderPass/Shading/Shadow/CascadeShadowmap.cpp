@@ -23,6 +23,7 @@ namespace Ilum::pass
 void CascadeShadowmapPass::setupPipeline(PipelineState &state)
 {
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Shadow/CascadeShadowmap.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Shadow/CascadeShadowmap.geom", VK_SHADER_STAGE_GEOMETRY_BIT, Shader::Type::GLSL);
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,
@@ -133,16 +134,11 @@ void CascadeShadowmapPass::render(RenderPassState &state)
 				m_push_block.dynamic  = 0;
 				m_push_block.light_id = light;
 
-				for (uint32_t i = 0; i < 4; i++)
-				{
-					m_push_block.cascaded_id = i;
+				vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_GEOMETRY_BIT, 0, sizeof(m_push_block), &m_push_block);
 
-					vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(m_push_block), &m_push_block);
-
-					auto &draw_buffer  = Renderer::instance()->Render_Buffer.Command_Buffer;
-					auto &count_buffer = Renderer::instance()->Render_Buffer.Count_Buffer;
-					vkCmdDrawIndexedIndirectCount(cmd_buffer, draw_buffer, 0, count_buffer, sizeof(uint32_t), Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count, sizeof(VkDrawIndexedIndirectCommand));
-				}
+				auto &draw_buffer  = Renderer::instance()->Render_Buffer.Command_Buffer;
+				auto &count_buffer = Renderer::instance()->Render_Buffer.Count_Buffer;
+				vkCmdDrawIndexedIndirectCount(cmd_buffer, draw_buffer, 0, count_buffer, sizeof(uint32_t), Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count, sizeof(VkDrawIndexedIndirectCommand));
 			}
 		}
 
@@ -170,13 +166,8 @@ void CascadeShadowmapPass::render(RenderPassState &state)
 						m_push_block.transform = transform.world_transform;
 						m_push_block.light_id  = light;
 
-						for (uint32_t i = 0; i < 4; i++)
-						{
-							m_push_block.cascaded_id = i;
-
-							vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(m_push_block), &m_push_block);
-							vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(mesh_renderer.index_buffer.getSize() / sizeof(uint32_t)), 1, 0, 0, instance_id++);
-						}
+						vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(m_push_block), &m_push_block);
+						vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(mesh_renderer.index_buffer.getSize() / sizeof(uint32_t)), 1, 0, 0, instance_id++);
 					}
 				});
 			}
