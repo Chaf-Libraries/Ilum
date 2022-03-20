@@ -1,0 +1,93 @@
+#version 460
+
+#extension GL_KHR_vulkan_glsl : enable
+#extension GL_GOOGLE_include_directive: enable
+
+#define POSITIVE_X 0
+#define NEGATIVE_X 1
+#define POSITIVE_Y 2
+#define NEGATIVE_Y 3
+#define POSITIVE_Z 4
+#define NEGATIVE_Z 5
+
+layout(local_size_x = 8, local_size_y = 9, local_size_z = 1) in;
+
+layout(set = 0, binding = 0, rgba16f) uniform image2DArray SHIntermediate;
+
+layout(set = 0, binding = 1) uniform samplerCube Skybox;
+
+layout(push_constant) uniform PushBlock{
+	uvec2 extent;
+}push_data;
+
+struct SH9
+{
+	float wights[9];
+};
+
+struct SH9Color
+{
+	float wights[9];
+};
+
+float area_integration(float x, float y)
+{
+	return atan(x * y, sqrt(x * x + y * y + 1));
+}
+
+void project_sh9(in vec3 dir, inout SH9 sh)
+{
+	sh.wights[0] = 0.282095;
+
+	sh.wights[1] = 0.488603 * dir.x;
+	sh.wights[2] = 0.488603 * dir.y;
+	sh.wights[3] = 0.488603 * dir.z;
+
+	sh.wights[4] = 1.092548 * dir.x * dir.z;
+	sh.wights[5] = 1.092548 * dir.y * dir.z;
+	sh.wights[6] = 1.092548 * dir.x * dir.y;
+	sh.wights[7] = 0.315392 * (3.0 * dir.z * dir.z - 1.0);
+	sh.wights[8] = 0.546274 * (dir.x * dir.x - dir.y * dir.y);
+}
+
+float calculate_solid_angle(uint x, uint y)
+{
+	float u = 2.0 * (float(x) + 0.5) / float(push_data.extent.x) - 1.0;
+	float v = 2.0 * (float(y) + 0.5) / float(push_data.extent.y) - 1.0;
+
+	float x0 = u - 1.0 / float(push_data.extent.x);
+	float x1 = u + 1.0 / float(push_data.extent.x);
+	float y0 = v - 1.0 / float(push_data.extent.y);
+	float y1 = v + 1.0 / float(push_data.extent.y);
+
+	return area_integration(x0, y0) - area_integration(x0, y1) - area_integration(x1, y0) + area_integration(x1, y1);
+}
+
+vec3 calculate_direction(uint face_idx, uint face_x, uint face_y)
+{
+	float u = 2.0 * (float(face_x) + 0.5) / float(push_data.extent.x) - 1.0;
+	float v = 2.0 * (float(face_y) + 0.5) / float(push_data.extent.y) - 1.0;
+	float x, y, z;
+
+	switch(face_idx)
+	{
+		case POSITIVE_X:
+			x = 1;
+			y = u;
+			z = v;
+	}
+
+	float inv_len = 1.0 / sqrt(x * x + y * y + z * z);
+
+	return vec3(x * inv_len, y * inv_len, z * inv_len);
+}
+
+void main()
+{
+	for(int i = 0; i < 6; i++)
+	{
+		vec2 uv = vec2(gl_LocalInvocationID.xy);
+
+		imageStore(SHIntermediate, ivec3(uv, i), texture(Skybox, vec3(uv, i)));
+	}
+}

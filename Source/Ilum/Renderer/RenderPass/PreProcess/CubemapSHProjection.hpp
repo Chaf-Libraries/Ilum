@@ -20,5 +20,8 @@ class CubemapSHProjection : public TRenderPass<CubemapSHProjection>
 	virtual void render(RenderPassState &state) override;
 
 	virtual void onImGui() override;
+
+  private:
+	int32_t m_face_id = 0;
 };
 }        // namespace Ilum::pass

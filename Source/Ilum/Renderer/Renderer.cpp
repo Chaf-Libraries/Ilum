@@ -48,6 +48,7 @@
 #include "RenderPass/PreProcess/KullaContyAverage.hpp"
 #include "RenderPass/PreProcess/KullaContyEnergy.hpp"
 #include "RenderPass/Preprocess/EquirectangularToCubemap.hpp"
+#include "RenderPass/PreProcess/CubemapSHProjection.hpp"
 
 #include "RenderPass/Shading/Deferred/GeometryPass.hpp"
 #include "RenderPass/Shading/Deferred/LightPass.hpp"
@@ -83,6 +84,7 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("KullaContyEnergy", std::make_unique<pass::KullaContyEnergy>())
 		    .addRenderPass("KullaContyAverage", std::make_unique<pass::KullaContyAverage>())
 		    .addRenderPass("EquirectangularToCubemap", std::make_unique<pass::EquirectangularToCubemap>())
+		    .addRenderPass("CubemapSHProjection", std::make_unique<pass::CubemapSHProjection>())
 		    .addRenderPass("HizPass", std::make_unique<pass::HizPass>())
 		    .addRenderPass("InstanceCulling", std::make_unique<pass::InstanceCullingPass>())
 		    .addRenderPass("MeshletCulling", std::make_unique<pass::MeshletCullingPass>())

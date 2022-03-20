@@ -1,5 +1,7 @@
 #version 450
 
+#extension GL_KHR_vulkan_glsl : enable
+
 #include "../GlobalFunction.glsl"
 
 #define PI 3.141592653589793
