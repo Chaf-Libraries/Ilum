@@ -220,10 +220,10 @@ void OmniShadowmapPass::onImGui()
 
 	std::string face_id = "+X\0-X\0+Y\0-Y\0+Z\0-Z\0";
 
-	ImGui::Text("Cascade Shadowmap: ");
+	ImGui::Text("Omnidirectional Shadowmap: ");
 	ImGui::PushItemWidth(100.f);
-	ImGui::Combo("Directional Light Index", &m_light_id, light_id.data());
-	ImGui::Combo("Directional Cascade Index", &m_face_id, face_id.data());
+	ImGui::Combo("Point Light Index", &m_light_id, light_id.data());
+	ImGui::Combo("Shadow Cubemap Face", &m_face_id, face_id.data());
 	ImGui::PopItemWidth();
 	ImGui::Image(ImGuiContext::textureID(shadowmap.getView(m_light_id * 4 + m_face_id), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), ImVec2(100, 100));
 }
