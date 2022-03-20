@@ -9,7 +9,7 @@ namespace Ilum::pass
 class KullaContyAverage : public TRenderPass<KullaContyAverage>
 {
   public:
-	KullaContyAverage();
+	KullaContyAverage() = default;
 
 	~KullaContyAverage() = default;
 
@@ -22,8 +22,6 @@ class KullaContyAverage : public TRenderPass<KullaContyAverage>
 	virtual void onImGui() override;
 
   private:
-	const uint32_t Resolution = 128;
 	bool           m_finish   = false;
-	Image          m_kulla_conty_average;
 };
 }        // namespace Ilum::pass

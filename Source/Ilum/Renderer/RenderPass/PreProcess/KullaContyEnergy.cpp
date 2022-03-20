@@ -1,5 +1,6 @@
 #include "KullaContyEnergy.hpp"
 
+#include "Renderer/RenderGraph/RenderGraph.hpp"
 #include "Renderer/Renderer.hpp"
 
 #include "Graphics/Vulkan/VK_Debugger.h"
@@ -10,31 +11,18 @@
 
 namespace Ilum::pass
 {
-KullaContyEnergy::KullaContyEnergy()
-{
-	m_kulla_conty_energy = Image(1024, 1024, VK_FORMAT_R16_SFLOAT, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-	VK_Debugger::setName(m_kulla_conty_energy, "m_kulla_conty_energy");
-	VK_Debugger::setName(m_kulla_conty_energy.getView(), "m_kulla_conty_energy");
-
-	{
-		CommandBuffer cmd_buffer;
-		cmd_buffer.begin();
-		cmd_buffer.transferLayout(m_kulla_conty_energy, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_SAMPLED_BIT);
-		cmd_buffer.end();
-		cmd_buffer.submitIdle();
-	}
-}
-
 void KullaContyEnergy::setupPipeline(PipelineState &state)
 {
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/KullaContyEnergy.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
 
-	state.descriptor_bindings.bind(0, 0, "EmuLut", ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	state.declareAttachment("EmuLut", VK_FORMAT_R16_SFLOAT, 1024, 1024);
+	state.addOutputAttachment("EmuLut", AttachmentState::Clear_Color);
+
+	state.descriptor_bindings.bind(0, 0, "EmuLut", VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 }
 
 void KullaContyEnergy::resolveResources(ResolveState &resolve)
 {
-	resolve.resolve("EmuLut", m_kulla_conty_energy);
 }
 
 void KullaContyEnergy::render(RenderPassState &state)
@@ -58,10 +46,8 @@ void KullaContyEnergy::render(RenderPassState &state)
 
 void KullaContyEnergy::onImGui()
 {
-	if (m_kulla_conty_energy)
-	{
-		ImGui::Text("Kulla Conty Energy Emu Precompute Result: ");
-		ImGui::Image(ImGuiContext::textureID(m_kulla_conty_energy.getView(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), ImVec2(100, 100));
-	}
+	const auto &EmuLut = Renderer::instance()->getRenderGraph()->getAttachment("EmuLut");
+	ImGui::Text("Kulla Conty Energy Emu Precompute Result: ");
+	ImGui::Image(ImGuiContext::textureID(EmuLut.getView(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), ImVec2(100, 100));
 }
 }        // namespace Ilum::pass

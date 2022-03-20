@@ -9,7 +9,7 @@ namespace Ilum::pass
 class KullaContyEnergy : public TRenderPass<KullaContyEnergy>
 {
   public:
-	KullaContyEnergy();
+	KullaContyEnergy() = default;
 
 	~KullaContyEnergy() = default;
 
@@ -22,8 +22,6 @@ class KullaContyEnergy : public TRenderPass<KullaContyEnergy>
 	virtual void onImGui() override;
 
   private:
-	const uint32_t Resolution = 128;
-	bool           m_finish   = false;
-	Image          m_kulla_conty_energy;
+	bool m_finish = false;
 };
 }        // namespace Ilum::pass
