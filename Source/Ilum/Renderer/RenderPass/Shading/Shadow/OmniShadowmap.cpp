@@ -209,7 +209,7 @@ void OmniShadowmapPass::onImGui()
 {
 	ImGui::DragFloat("Depth Bias", &m_push_block.depth_bias, 0.001f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 
-	const auto &shadowmap = Renderer::instance()->getRenderGraph()->getAttachment("CascadeShadowmap");
+	const auto &shadowmap = Renderer::instance()->getRenderGraph()->getAttachment("OmniShadowmap");
 
 	std::string light_id = "";
 	for (size_t i = 0; i < shadowmap.getLayerCount() / 4; i++)
@@ -218,12 +218,10 @@ void OmniShadowmapPass::onImGui()
 	}
 	light_id += '\0';
 
-	std::string face_id = "+X\0-X\0+Y\0-Y\0+Z\0-Z\0";
-
 	ImGui::Text("Omnidirectional Shadowmap: ");
 	ImGui::PushItemWidth(100.f);
 	ImGui::Combo("Point Light Index", &m_light_id, light_id.data());
-	ImGui::Combo("Shadow Cubemap Face", &m_face_id, face_id.data());
+	ImGui::Combo("Shadow Cubemap Face", &m_face_id, "+X\0-X\0+Y\0-Y\0+Z\0-Z\0\0");
 	ImGui::PopItemWidth();
 	ImGui::Image(ImGuiContext::textureID(shadowmap.getView(m_light_id * 4 + m_face_id), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), ImVec2(100, 100));
 }

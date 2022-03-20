@@ -10,7 +10,7 @@
 #define POSITIVE_Z 4
 #define NEGATIVE_Z 5
 
-layout(local_size_x = 8, local_size_y = 9, local_size_z = 1) in;
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 layout(set = 0, binding = 0, rgba16f) uniform image2DArray SHIntermediate;
 
@@ -73,21 +73,98 @@ vec3 calculate_direction(uint face_idx, uint face_x, uint face_y)
 	{
 		case POSITIVE_X:
 			x = 1;
-			y = u;
+			y = -v;
+			z = -u;
+			break;
+		case NEGATIVE_X:
+			x = -1;
+			y = -v;
+			z = u;
+			break;
+		case POSITIVE_Y:
+			x = u;
+			y = 1;
 			z = v;
+			break;
+		case NEGATIVE_Y:
+			x = u;
+			y = -1;
+			z =  -v;
+			break;
+		case POSITIVE_Z:
+			x = u;
+			y = -v;
+			z = 1;
+			break;
+		case NEGATIVE_Z:
+			x = -u;
+			y = -v;
+			z = -1;
+			break;
 	}
 
-	float inv_len = 1.0 / sqrt(x * x + y * y + z * z);
-
-	return vec3(x * inv_len, y * inv_len, z * inv_len);
+	return normalize(vec3(x, y, z));
 }
+
+shared SH9Color shared_sh_coeffs[8][8];
+shared float shared_weights[8][8];
 
 void main()
 {
-	for(int i = 0; i < 6; i++)
+	for(int i = 0; i < 9; i++)
 	{
-		vec2 uv = vec2(gl_LocalInvocationID.xy);
+		shared_sh_coeffs[gl_LocalInvocationID.x][gl_LocalInvocationID.y].weights[i] = vec3(0.0);
+	}
 
-		imageStore(SHIntermediate, ivec3(uv, i), texture(Skybox, vec3(uv, i)));
+	barrier();
+
+	SH9 basis;
+
+	vec3 dir = calculate_direction(gl_GlobalInvocationID.z, gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
+	float solid_angle = calculate_solid_angle(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
+	vec3 texel = texture(Skybox, dir).rgb;
+
+	project_sh9(dir, basis);
+
+	shared_weights[gl_LocalInvocationID.x][gl_LocalInvocationID.y] = solid_angle;
+
+	for(int i = 0; i < 9; i++)
+	{
+		shared_sh_coeffs[gl_LocalInvocationID.x][gl_LocalInvocationID.y].weights[i] += texel * basis.weights[i] * solid_angle;
+	}
+
+	barrier();
+
+	// Add up all coefficients and weights along the X axis
+	if(gl_LocalInvocationID.x == 0)
+	{
+		for(int i = 1; i < 8; i++)
+		{
+			shared_weights[0][gl_LocalInvocationID.y] +=shared_weights[i][gl_LocalInvocationID.y];
+			for(int j = 0; j < 9; j++)
+			{
+				shared_sh_coeffs[0][gl_LocalInvocationID.y].weights[j] += shared_sh_coeffs[i][gl_LocalInvocationID.y].weights[j]
+			}
+		}
+	}
+
+	barrier();
+
+	// Add up all coefficients and weights along the Y axis
+	if(gl_LocalInvocationID.x == 0 && gl_LocalInvocationID.y == 0)
+	{
+		for(int i = 1; i < 8; i++)
+		{
+			shared_weights[0][0] + shared_weights[0][i];
+			for(int j = 0; j < 9; j++)
+			{
+				shared_sh_coeffs[0][0].weights[j] += shared_sh_coeffs[0][i].weights[j];
+			}
+		}
+
+		for(int j = 0; j < 9; j++)
+		{
+			ivec3 p = ivec3()
+		}
 	}
 }

@@ -40,6 +40,10 @@ void CubemapSHProjection::render(RenderPassState &state)
 		vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
 	}
 
+	VkExtent2D extent = {1024, 1024};
+
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(extent), &extent);
+
 	vkCmdDispatch(cmd_buffer, 1024 / 8, 1024 / 8, 1);
 }
 
@@ -48,10 +52,8 @@ void CubemapSHProjection::onImGui()
 	const auto &SHIntermediate = Renderer::instance()->getRenderGraph()->getAttachment("SHIntermediate");
 	ImGui::Text("SHIntermediate Result: ");
 
-	std::string face_id = "+X\0-X\0+Y\0-Y\0+Z\0-Z\0";
-
 	ImGui::PushItemWidth(100.f);
-	ImGui::Combo("Face index", &m_face_id, face_id.data());
+	ImGui::Combo("Face index", &m_face_id, "+X\0-X\0+Y\0-Y\0+Z\0-Z\0\0");
 	ImGui::PopItemWidth();
 	ImGui::Image(ImGuiContext::textureID(SHIntermediate.getView(m_face_id), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)), ImVec2(100, 100));
 }
