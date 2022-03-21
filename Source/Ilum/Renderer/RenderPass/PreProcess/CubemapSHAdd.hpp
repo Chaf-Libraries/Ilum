@@ -6,12 +6,12 @@
 
 namespace Ilum::pass
 {
-class KullaContyEnergy : public TRenderPass<KullaContyEnergy>
+class CubemapSHAdd : public TRenderPass<CubemapSHAdd>
 {
   public:
-	KullaContyEnergy() = default;
+	CubemapSHAdd() = default;
 
-	~KullaContyEnergy() = default;
+	~CubemapSHAdd() = default;
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -22,6 +22,7 @@ class KullaContyEnergy : public TRenderPass<KullaContyEnergy>
 	virtual void onImGui() override;
 
   private:
-	bool m_finish = false;
+	int32_t m_face_id = 0;
+	bool    m_update  = false;
 };
 }        // namespace Ilum::pass

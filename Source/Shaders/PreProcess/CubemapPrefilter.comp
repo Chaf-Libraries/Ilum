@@ -1,0 +1,16 @@
+#version 450
+
+#extension GL_KHR_vulkan_glsl : enable
+
+// Cubemap Direction
+#define POSITIVE_X 0
+#define NEGATIVE_X 1
+#define POSITIVE_Y 2
+#define NEGATIVE_Y 3
+#define POSITIVE_Z 4
+#define NEGATIVE_Z 5
+
+layout (local_size_x = 32, local_size_y = 32) in;
+
+layout(set = 0, binding = 0, rgba16f) uniform imageCube CubemapPrefiltered;
+

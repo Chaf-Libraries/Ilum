@@ -11,25 +11,10 @@ layout(location = 2) in vec3 inNormal;
 layout(location = 3) in vec3 inTangent;
 layout(location = 4) in vec3 inBiTangent;
 
-layout(set = 0, binding = 0) buffer PerInstanceBuffer
-{
-	PerInstanceData instance_data[ ];
-};
-
-layout(set = 0, binding = 1) buffer DirectionalLights{
-    DirectionalLight directional_lights[ ];
-};
-
-layout(push_constant) uniform PushBlock{
-	mat4 transform;
-	uint dynamic;
-	uint light_id;
-	uint cascaded_id;
-}push_data;
+layout(location = 0) out int outInstanceIndex;
 
 void main()
 {
-	mat4 trans = push_data.dynamic == 1? push_data.transform : instance_data[gl_InstanceIndex].transform;
-	gl_Position =  directional_lights[push_data.light_id].view_projection[push_data.cascaded_id] * trans * vec4(inPos, 1.0);
-	gl_Layer = int(push_data.light_id * 4 + push_data.cascaded_id);
+	outInstanceIndex = gl_InstanceIndex;
+	gl_Position =  vec4(inPos, 1.0);
 }

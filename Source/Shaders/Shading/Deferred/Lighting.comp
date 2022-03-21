@@ -7,6 +7,10 @@
 #include "../../GlobalFunction.glsl"
 #include "../../BxDF.glsl"
 
+const float CosineA0 = PI;
+const float CosineA1 = (2.0 * PI) / 3.0;
+const float CosineA2 = PI * 0.25;
+
 layout(local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
 layout(set = 0, binding = 0) uniform sampler2D GBuffer0;
@@ -39,7 +43,9 @@ layout(set = 0, binding = 15) uniform CameraBuffer
 	CameraData camera_data;
 };
 
-layout(set = 0, binding = 16, rgba16f) writeonly uniform image2D Lighting;
+layout(set = 0, binding = 16) uniform sampler2D IrradianceSH;
+
+layout(set = 0, binding = 17, rgba16f) writeonly uniform image2D Lighting;
 
 layout(push_constant) uniform PushBlock{
     uint directional_light_count;
@@ -48,6 +54,16 @@ layout(push_constant) uniform PushBlock{
     uint enable_multi_bounce;
     uvec2 extent;
 }push_data;
+
+struct SH9
+{
+	float weights[9];
+};
+
+struct SH9Color
+{
+	vec3 weights[9];
+};
 
 float linearize_depth(float depth, float znear, float zfar)
 {
@@ -332,6 +348,83 @@ float sample_shadowmap_cube_pcss(samplerCubeArray shadowmap, vec3 L, float layer
     return shadow_factor / float(filter_sample);
 }
 
+// Shadow for spot light
+vec3 spot_light_shadow(SpotLight light, vec3 frag_color, vec3 frag_pos, float layer)
+{
+    vec4 shadow_clip = light.view_projection * vec4(frag_pos, 1.0);
+    vec4 shadow_coord = vec4(shadow_clip.xyz / shadow_clip.w, shadow_clip.w);
+	shadow_coord.st = shadow_coord.st * 0.5 + 0.5;
+    shadow_coord.t = 1.0 - shadow_coord.t;
+
+    switch(light.shadow_mode)
+    {
+        case 0:
+            return frag_color;
+        case 1:
+            return frag_color * sample_shadowmap(ShadowMaps, shadow_coord, layer, vec2(0.0));
+        case 2:
+            return frag_color * sample_shadowmap_pcf(ShadowMaps, shadow_coord, layer, light.filter_sample, light.filter_scale, light.sample_method);
+        case 3:
+            return frag_color * sample_shadowmap_pcss(ShadowMaps, shadow_coord, layer, light.filter_scale, light.filter_sample, light.sample_method, light.light_size);
+    }
+
+    return frag_color;
+}
+
+// Shadow for directional light
+vec3 directional_light_shadow(DirectionalLight light, vec3 frag_color, vec3 frag_pos, vec3 view_pos, float layer)
+{
+    uint cascade_index = 0;
+    // Select cascade
+    for(uint i = 0; i < 3; ++i)
+    {
+        if(light.split_depth[i] > view_pos.z)
+        {
+            cascade_index = i + 1;
+        }
+    }
+
+    vec4 shadow_clip = light.view_projection[cascade_index] * vec4(frag_pos, 1.0);
+    vec4 shadow_coord = vec4(shadow_clip.xyz / shadow_clip.w, shadow_clip.w);
+	shadow_coord.st = shadow_coord.st * 0.5 + 0.5;
+    shadow_coord.t = 1.0 - shadow_coord.t;
+
+    layer = layer * 4 + cascade_index;
+    switch(light.shadow_mode)
+    {
+        case 0:
+            return frag_color;
+        case 1:
+            return frag_color * sample_shadowmap(CascadeShadowMaps, shadow_coord, layer, vec2(0.0));
+        case 2:
+            return frag_color * sample_shadowmap_pcf(CascadeShadowMaps, shadow_coord, layer, light.filter_sample, light.filter_scale, light.sample_method);
+        case 3:
+            return frag_color * sample_shadowmap_pcss(CascadeShadowMaps, shadow_coord, layer, light.filter_scale, light.filter_sample, light.sample_method, light.light_size);
+    }
+
+    return frag_color;
+}
+
+// Shadow for point light
+vec3 point_light_shadow(PointLight light, vec3 frag_color, vec3 frag_pos, float layer)
+{
+    vec3 L = frag_pos - light.position;
+   
+    switch(light.shadow_mode)
+    {
+        case 0:
+            return frag_color;
+        case 1:
+            return frag_color * sample_shadowmap_cube(OmniShadowMaps, L, layer, vec3(0.0));
+        case 2:
+            return frag_color * sample_shadowmap_cube_pcf(OmniShadowMaps, L, layer, light.filter_scale, light.filter_sample, light.sample_method);
+        case 3:
+            return frag_color * sample_shadowmap_cube_pcss(OmniShadowMaps, L, layer, light.filter_scale, light.filter_sample, light.sample_method, light.light_size);
+    }
+
+    return frag_color;
+}
+
 // Calculate BRDF contribution for specific parameter
 vec3 brdf_contribution(vec3 L, vec3 V, vec3 N, vec3 radiance, MaterialData material)
 {
@@ -392,84 +485,51 @@ vec3 point_light_contribution(PointLight light, vec3 V, vec3 N, vec3 frag_pos, M
        return brdf_contribution(L, V, N, radiance, material);
 }
 
-// Shadow for spot light
-vec3 spot_light_shadow(SpotLight light, vec3 frag_color, vec3 frag_pos, float layer)
+SH9 project_sh9(vec3 dir)
 {
-    vec4 shadow_clip = light.view_projection * vec4(frag_pos, 1.0);
-    vec4 shadow_coord = vec4(shadow_clip.xyz / shadow_clip.w, shadow_clip.w);
-	shadow_coord.st = shadow_coord.st * 0.5 + 0.5;
-    shadow_coord.t = 1.0 - shadow_coord.t;
+	SH9 sh;
 
-    float shadow_factor = 0.0;
-    switch(light.shadow_mode)
-    {
-        case 0:
-            return frag_color;
-        case 1:
-            return frag_color * sample_shadowmap(ShadowMaps, shadow_coord, layer, vec2(0.0));
-        case 2:
-            return frag_color * sample_shadowmap_pcf(ShadowMaps, shadow_coord, layer, light.filter_sample, light.filter_scale, light.sample_method);
-        case 3:
-            return frag_color * sample_shadowmap_pcss(ShadowMaps, shadow_coord, layer, light.filter_scale, light.filter_sample, light.sample_method, light.light_size);
-    }
+	sh.weights[0] = 0.282095;
 
-    return frag_color;
+	sh.weights[1] = -0.488603 * dir.y;
+	sh.weights[2] = 0.488603 * dir.z;
+	sh.weights[3] = -0.488603 * dir.x;
+
+	sh.weights[4] = 1.092548 * dir.x * dir.y;
+	sh.weights[5] = -1.092548 * dir.y * dir.z;
+	sh.weights[7] = 0.315392 * (3.0 * dir.z * dir.z - 1.0);
+	sh.weights[6] = -1.092548 * dir.x * dir.z;
+	sh.weights[8] = 0.546274 * (dir.x * dir.x - dir.y * dir.y);
+
+	return sh;
 }
 
-// Shadow for directional light
-vec3 directional_light_shadow(DirectionalLight light, vec3 frag_color, vec3 frag_pos, vec3 view_pos, float layer)
+vec3 evaluate_sh_irradiance(vec3 dir)
 {
-    uint cascade_index = 0;
-    // Select cascade
-    for(uint i = 0; i < 3; ++i)
+    SH9 basis = project_sh9(dir);
+
+    basis.weights[0] *= CosineA0;
+
+    basis.weights[1] *= CosineA1;
+    basis.weights[2] *= CosineA1;
+    basis.weights[3] *= CosineA1;
+
+    basis.weights[4] *= CosineA2;
+    basis.weights[5] *= CosineA2;
+    basis.weights[6] *= CosineA2;
+    basis.weights[7] *= CosineA2;
+    basis.weights[8] *= CosineA2;
+
+    vec3 color = vec3(0.0);
+
+    for(int i = 0; i < 9; i++)
     {
-        if(light.split_depth[i] > view_pos.z)
-        {
-            cascade_index = i + 1;
-        }
+        color += texelFetch(IrradianceSH, ivec2(i, 0), 0).rgb * basis.weights[i];
     }
 
-    vec4 shadow_clip = light.view_projection[cascade_index] * vec4(frag_pos, 1.0);
-    vec4 shadow_coord = vec4(shadow_clip.xyz / shadow_clip.w, shadow_clip.w);
-	shadow_coord.st = shadow_coord.st * 0.5 + 0.5;
-    shadow_coord.t = 1.0 - shadow_coord.t;
+    color = max(vec3(0.0), color);
 
-    float shadow_factor = 0.0;
-    layer = layer * 4 + cascade_index;
-    switch(light.shadow_mode)
-    {
-        case 0:
-            return frag_color;
-        case 1:
-            return frag_color * sample_shadowmap(CascadeShadowMaps, shadow_coord, layer, vec2(0.0));
-        case 2:
-            return frag_color * sample_shadowmap_pcf(CascadeShadowMaps, shadow_coord, layer, light.filter_sample, light.filter_scale, light.sample_method);
-        case 3:
-            return frag_color * sample_shadowmap_pcss(CascadeShadowMaps, shadow_coord, layer, light.filter_scale, light.filter_sample, light.sample_method, light.light_size);
-    }
-
-    return frag_color;
-}
-
-// Shadow for point light
-vec3 point_light_shadow(PointLight light, vec3 frag_color, vec3 frag_pos, float layer)
-{
-    vec3 L = frag_pos - light.position;
-   
-    float shadow_factor = 0.0;
-    switch(light.shadow_mode)
-    {
-        case 0:
-            return frag_color;
-        case 1:
-            return frag_color * sample_shadowmap_cube(OmniShadowMaps, L, layer, vec3(0.0));
-        case 2:
-            return frag_color * sample_shadowmap_cube_pcf(OmniShadowMaps, L, layer, light.filter_scale, light.filter_sample, light.sample_method);
-        case 3:
-            return frag_color * sample_shadowmap_cube_pcss(OmniShadowMaps, L, layer, light.filter_scale, light.filter_sample, light.sample_method, light.light_size);
-    }
-
-    return frag_color;
+    return color / PI;
 }
 
 void main()
@@ -521,7 +581,19 @@ void main()
    vec4 out_color = vec4(0.0, 0.0, 0.0,1.0);
    vec3 V = normalize(camera_data.position - frag_pos);
    vec3 N = normalize(normal);
-      
+
+   // Environment lighting
+   // Fresnel Schlick Roughness
+   vec3 F0 = vec3(0.0);
+   F0 = mix(F0, material.base_color.rgb, material.metallic);
+   vec3 F = F0 + (max(vec3(1.0 - material.roughness), F0)*pow(1.0 - max(dot(N, V), 0.0), 5.0));
+   vec3 Kd = (1.0 - F) * (1.0 - material.metallic);
+
+   vec3 irradiance = evaluate_sh_irradiance(N);
+   vec3 diffuse = irradiance * material.base_color.rgb;
+
+   vec3 ambient = Kd * diffuse;
+
    // Directional light
    for(uint i = 0; i < push_data.directional_light_count; i++)
    {
@@ -540,7 +612,7 @@ void main()
         Lo += point_light_shadow(point_lights[i], point_light_contribution(point_lights[i], V, N, frag_pos, material), frag_pos, float(i));
    }
    
-   vec3 color = Lo + material.emissive_color;
+   vec3 color = ambient + Lo + material.emissive_color;
    
     imageStore(Lighting, ivec2(gl_GlobalInvocationID.xy), vec4(color, 1.0));
 }

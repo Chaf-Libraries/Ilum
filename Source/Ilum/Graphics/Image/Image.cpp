@@ -133,7 +133,7 @@ Image::Image(uint32_t width, uint32_t height, VkFormat format, VkImageUsageFlags
 	image_create_info.sharingMode       = VK_SHARING_MODE_EXCLUSIVE;
 	image_create_info.initialLayout     = VK_IMAGE_LAYOUT_UNDEFINED;
 
-	if (layer_count % 6 == 0)
+	if (layer_count % 6 == 0 && width ==height)
 	{
 		image_create_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 	}
@@ -327,7 +327,7 @@ void Image::createImageViews()
 	view_create_info.subresourceRange = native_range;
 	vkCreateImageView(GraphicsContext::instance()->getLogicalDevice(), &view_create_info, nullptr, &m_views.native);
 
-	if (getLayerCount() % 6 == 0)
+	if (getLayerCount() % 6 == 0 && m_extent.width == m_extent.height)
 	{
 		if (getLayerCount() > 6)
 		{

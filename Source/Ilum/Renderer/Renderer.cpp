@@ -45,6 +45,8 @@
 #include "RenderPass/PostProcess/TAA.hpp"
 #include "RenderPass/PostProcess/Tonemapping.hpp"
 
+#include "RenderPass/PreProcess/CubemapSHAdd.hpp"
+#include "RenderPass/PreProcess/CubemapSHProjection.hpp"
 #include "RenderPass/PreProcess/KullaContyAverage.hpp"
 #include "RenderPass/PreProcess/KullaContyEnergy.hpp"
 #include "RenderPass/Preprocess/EquirectangularToCubemap.hpp"
@@ -83,6 +85,8 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("KullaContyEnergy", std::make_unique<pass::KullaContyEnergy>())
 		    .addRenderPass("KullaContyAverage", std::make_unique<pass::KullaContyAverage>())
 		    .addRenderPass("EquirectangularToCubemap", std::make_unique<pass::EquirectangularToCubemap>())
+		    .addRenderPass("CubemapSHProjection", std::make_unique<pass::CubemapSHProjection>())
+		    .addRenderPass("CubemapSHAdd", std::make_unique<pass::CubemapSHAdd>())
 		    .addRenderPass("HizPass", std::make_unique<pass::HizPass>())
 		    .addRenderPass("InstanceCulling", std::make_unique<pass::InstanceCullingPass>())
 		    .addRenderPass("MeshletCulling", std::make_unique<pass::MeshletCullingPass>())

@@ -9,7 +9,7 @@ namespace Ilum::pass
 class CubemapSHProjection : public TRenderPass<CubemapSHProjection>
 {
   public:
-	CubemapSHProjection();
+	CubemapSHProjection() = default;
 
 	~CubemapSHProjection() = default;
 
@@ -20,5 +20,9 @@ class CubemapSHProjection : public TRenderPass<CubemapSHProjection>
 	virtual void render(RenderPassState &state) override;
 
 	virtual void onImGui() override;
+
+  private:
+	int32_t m_face_id = 0;
+	bool    m_update  = false;
 };
 }        // namespace Ilum::pass
