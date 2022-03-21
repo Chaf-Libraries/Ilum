@@ -10,7 +10,9 @@
 #define POSITIVE_Z 4
 #define NEGATIVE_Z 5
 
-layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+#define LOCAL_SIZE 8
+
+layout(local_size_x = LOCAL_SIZE, local_size_y = LOCAL_SIZE, local_size_z = 1) in;
 
 layout(set = 0, binding = 0, rgba16f) uniform image2DArray SHIntermediate;
 
@@ -22,12 +24,12 @@ layout(push_constant) uniform PushBlock{
 
 struct SH9
 {
-	float wights[9];
+	float weights[9];
 };
 
 struct SH9Color
 {
-	float wights[9];
+	vec3 weights[9];
 };
 
 float area_integration(float x, float y)
@@ -35,19 +37,23 @@ float area_integration(float x, float y)
 	return atan(x * y, sqrt(x * x + y * y + 1));
 }
 
-void project_sh9(in vec3 dir, inout SH9 sh)
+SH9 project_sh9(vec3 dir)
 {
-	sh.wights[0] = 0.282095;
+	SH9 sh;
 
-	sh.wights[1] = 0.488603 * dir.x;
-	sh.wights[2] = 0.488603 * dir.y;
-	sh.wights[3] = 0.488603 * dir.z;
+	sh.weights[0] = 0.282095;
 
-	sh.wights[4] = 1.092548 * dir.x * dir.z;
-	sh.wights[5] = 1.092548 * dir.y * dir.z;
-	sh.wights[6] = 1.092548 * dir.x * dir.y;
-	sh.wights[7] = 0.315392 * (3.0 * dir.z * dir.z - 1.0);
-	sh.wights[8] = 0.546274 * (dir.x * dir.x - dir.y * dir.y);
+	sh.weights[1] = -0.488603 * dir.y;
+	sh.weights[2] = 0.488603 * dir.z;
+	sh.weights[3] = -0.488603 * dir.x;
+
+	sh.weights[4] = 1.092548 * dir.x * dir.y;
+	sh.weights[5] = -1.092548 * dir.y * dir.z;
+	sh.weights[7] = 0.315392 * (3.0 * dir.z * dir.z - 1.0);
+	sh.weights[6] = -1.092548 * dir.x * dir.z;
+	sh.weights[8] = 0.546274 * (dir.x * dir.x - dir.y * dir.y);
+
+	return sh;
 }
 
 float calculate_solid_angle(uint x, uint y)
@@ -106,8 +112,8 @@ vec3 calculate_direction(uint face_idx, uint face_x, uint face_y)
 	return normalize(vec3(x, y, z));
 }
 
-shared SH9Color shared_sh_coeffs[8][8];
-shared float shared_weights[8][8];
+shared SH9Color shared_sh_coeffs[LOCAL_SIZE][LOCAL_SIZE];
+shared float shared_weights[LOCAL_SIZE][LOCAL_SIZE];
 
 void main()
 {
@@ -124,7 +130,7 @@ void main()
 	float solid_angle = calculate_solid_angle(gl_GlobalInvocationID.x, gl_GlobalInvocationID.y);
 	vec3 texel = texture(Skybox, dir).rgb;
 
-	project_sh9(dir, basis);
+	basis = project_sh9(dir);
 
 	shared_weights[gl_LocalInvocationID.x][gl_LocalInvocationID.y] = solid_angle;
 
@@ -138,12 +144,12 @@ void main()
 	// Add up all coefficients and weights along the X axis
 	if(gl_LocalInvocationID.x == 0)
 	{
-		for(int i = 1; i < 8; i++)
+		for(int i = 1; i < LOCAL_SIZE; i++)
 		{
 			shared_weights[0][gl_LocalInvocationID.y] +=shared_weights[i][gl_LocalInvocationID.y];
 			for(int j = 0; j < 9; j++)
 			{
-				shared_sh_coeffs[0][gl_LocalInvocationID.y].weights[j] += shared_sh_coeffs[i][gl_LocalInvocationID.y].weights[j]
+				shared_sh_coeffs[0][gl_LocalInvocationID.y].weights[j] += shared_sh_coeffs[i][gl_LocalInvocationID.y].weights[j];
 			}
 		}
 	}
@@ -153,9 +159,9 @@ void main()
 	// Add up all coefficients and weights along the Y axis
 	if(gl_LocalInvocationID.x == 0 && gl_LocalInvocationID.y == 0)
 	{
-		for(int i = 1; i < 8; i++)
+		for(int i = 1; i < LOCAL_SIZE; i++)
 		{
-			shared_weights[0][0] + shared_weights[0][i];
+			shared_weights[0][0] += shared_weights[0][i];
 			for(int j = 0; j < 9; j++)
 			{
 				shared_sh_coeffs[0][0].weights[j] += shared_sh_coeffs[0][i].weights[j];
@@ -164,7 +170,8 @@ void main()
 
 		for(int j = 0; j < 9; j++)
 		{
-			ivec3 p = ivec3()
+			ivec3 p = ivec3(push_data.extent.x / LOCAL_SIZE * j + gl_GlobalInvocationID.x / LOCAL_SIZE, gl_GlobalInvocationID.y / LOCAL_SIZE, gl_GlobalInvocationID.z);
+			imageStore(SHIntermediate, p, vec4(shared_sh_coeffs[0][0].weights[j], shared_weights[0][0]));
 		}
 	}
 }

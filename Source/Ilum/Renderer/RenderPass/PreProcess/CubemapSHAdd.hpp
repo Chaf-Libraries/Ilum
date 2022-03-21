@@ -6,12 +6,12 @@
 
 namespace Ilum::pass
 {
-class CubemapSHProjection : public TRenderPass<CubemapSHProjection>
+class CubemapSHAdd : public TRenderPass<CubemapSHAdd>
 {
   public:
-	CubemapSHProjection() = default;
+	CubemapSHAdd() = default;
 
-	~CubemapSHProjection() = default;
+	~CubemapSHAdd() = default;
 
 	virtual void setupPipeline(PipelineState &state) override;
 
