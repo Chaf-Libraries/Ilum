@@ -11,18 +11,19 @@ Sampler::Sampler(VkSampler sampler):
 {
 }
 
-Sampler::Sampler(VkFilter min_filter, VkFilter mag_filter, VkSamplerAddressMode address_mode, VkFilter mip_filter)
+Sampler::Sampler(VkFilter min_filter, VkFilter mag_filter, VkSamplerAddressMode address_mode, VkSamplerMipmapMode mipmap_mode)
 {
 	VkSamplerCreateInfo create_info = {};
 	create_info.sType               = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 	create_info.minFilter           = min_filter;
 	create_info.magFilter           = mag_filter;
+	create_info.mipmapMode          = mipmap_mode;
 	create_info.addressModeU        = address_mode;
 	create_info.addressModeV        = address_mode;
 	create_info.addressModeW        = address_mode;
 	create_info.mipLodBias          = 0;
 	create_info.minLod              = 0;
-	create_info.maxLod              = 1000;
+	create_info.maxLod              = 10;
 
 	auto result = vkCreateSampler(GraphicsContext::instance()->getLogicalDevice(), &create_info, nullptr, &m_handle);
 }

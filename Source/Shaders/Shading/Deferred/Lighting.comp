@@ -44,8 +44,10 @@ layout(set = 0, binding = 15) uniform CameraBuffer
 };
 
 layout(set = 0, binding = 16) uniform sampler2D IrradianceSH;
+layout(set = 0, binding = 17) uniform samplerCube PrefilterMap;
+layout(set = 0, binding = 18) uniform sampler2D BRDFPreIntegrate;
 
-layout(set = 0, binding = 17, rgba16f) writeonly uniform image2D Lighting;
+layout(set = 0, binding = 19, rgba16f) writeonly uniform image2D Lighting;
 
 layout(push_constant) uniform PushBlock{
     uint directional_light_count;
@@ -581,6 +583,7 @@ void main()
    vec4 out_color = vec4(0.0, 0.0, 0.0,1.0);
    vec3 V = normalize(camera_data.position - frag_pos);
    vec3 N = normalize(normal);
+   vec3 R = reflect(-V, N);
 
    // Environment lighting
    // Fresnel Schlick Roughness
@@ -592,7 +595,12 @@ void main()
    vec3 irradiance = evaluate_sh_irradiance(N);
    vec3 diffuse = irradiance * material.base_color.rgb;
 
-   vec3 ambient = Kd * diffuse;
+   const float MAX_PREFILTER_MAP_LOD = 4.0;
+   vec3 prefiltered_color = textureLod(PrefilterMap, R, material.roughness * MAX_PREFILTER_MAP_LOD).rgb;
+   vec2 brdf = texture(BRDFPreIntegrate, vec2(clamp(dot(N, V), 0.0, 1.0), material.roughness)).rg;
+   vec3 specular = prefiltered_color * (F * brdf.x + brdf.y);
+
+   vec3 ambient = Kd * diffuse + specular;
 
    // Directional light
    for(uint i = 0; i < push_data.directional_light_count; i++)

@@ -11,7 +11,7 @@ class Sampler
 
 	Sampler(VkSampler sampler);
 
-	Sampler(VkFilter min_filter, VkFilter mag_filter, VkSamplerAddressMode address_mode, VkFilter mip_filter);
+	Sampler(VkFilter min_filter, VkFilter mag_filter, VkSamplerAddressMode address_mode, VkSamplerMipmapMode mipmap_mode);
 
 	~Sampler();
 
