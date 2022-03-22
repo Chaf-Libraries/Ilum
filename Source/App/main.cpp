@@ -11,32 +11,34 @@
 #include "Geometry/Mesh/FMesh.hpp"
 #include "Geometry/Mesh/HEMesh.hpp"
 
+#include <numeric>
+
 int main()
 {
 	Ilum::Engine engine;
 
 	Ilum::Window::instance()->setIcon(std::string(PROJECT_SOURCE_DIR) + "Asset/Texture/Icon/logo.bmp");
 
-	auto model = Ilum::Renderer::instance()->getResourceCache().loadModel(std::string(PROJECT_SOURCE_DIR) + "Asset/Model/head.obj");
-	std::vector<glm::vec3> vertices;
-	vertices.reserve(model.get().vertices.size());
-	for (auto &v : model.get().vertices)
-	{
-		vertices.push_back(v.position);
-	}
-	Ilum::geometry::HEMesh hemesh(vertices, model.get().indices);
+	//auto model = Ilum::Renderer::instance()->getResourceCache().loadModel(std::string(PROJECT_SOURCE_DIR) + "Asset/Model/head.obj");
+	//std::vector<glm::vec3> vertices;
+	//vertices.reserve(model.get().vertices.size());
+	//for (auto &v : model.get().vertices)
+	//{
+	//	vertices.push_back(v.position);
+	//}
+	//Ilum::geometry::HEMesh hemesh(vertices, model.get().indices);
 
-	uint32_t boundary_count = 0;
+	//uint32_t boundary_count = 0;
 
-	for (auto* v : hemesh.vertices())
-	{
-		if (hemesh.onBoundary(v))
-		{
-			boundary_count++;
-		}
-	}
+	//for (auto* v : hemesh.vertices())
+	//{
+	//	if (hemesh.onBoundary(v))
+	//	{
+	//		boundary_count++;
+	//	}
+	//}
 
-	auto boundaries = hemesh.boundary();
+	//auto boundaries = hemesh.boundary();
 
 	while (!Ilum::Window::instance()->shouldClose())
 	{
