@@ -57,6 +57,10 @@ function(ExpandSrc res src)
                 ${item}/*.tese
                 ${item}/*.geom
                 ${item}/*.comp
+                ${item}/*.rgen
+                ${item}/*.rhit
+                ${item}/*.rmiss
+                ${item}/*.rcall
 
                 # ...
             )
