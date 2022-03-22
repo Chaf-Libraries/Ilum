@@ -81,6 +81,7 @@ cmake --build ./ --target ALL_BUILD --config Release
   * PBR
     * Cook-Torrance BRDF
     * Kulla-Conty Approximation
+    * IBL
   * Shadow
     * Shadow Map -> Spot Light
     * Cascade Shadow Map -> Directional Light
@@ -161,6 +162,10 @@ cmake --build ./ --target ALL_BUILD --config Release
 |           PCSS OFF           |             Uniform Sampling             |             Poisson Sampling             |
 | :--------------------------: | :--------------------------------------: | :--------------------------------------: |
 | ![no_pcf](README/no_pcf.png) | ![uniform_pcss](README/uniform_pcss.png) | ![poisson_pcss](README/poisson_pcss.png) |
+
+### Image Based Lighting (Spherical Harmonic Diffuse + Split Sum Specular)
+
+![IBL](README/IBL.png)
 
 ### Curve Modeling
 
