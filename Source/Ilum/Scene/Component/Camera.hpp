@@ -24,6 +24,8 @@ struct Camera
 
 	glm::vec3 position;
 
+	uint32_t frame_count = 0;
+
 	inline static bool update = true;
 
 	inline glm::vec4 world2Screen(glm::vec3 position, glm::vec2 extent, glm::vec2 offset)

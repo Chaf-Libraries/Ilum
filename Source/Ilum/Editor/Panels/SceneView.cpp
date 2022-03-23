@@ -754,6 +754,8 @@ __pragma(warning(push, 0))
                                             static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
                                             static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
 
+			main_camera->frame_count = 0;
+
 			auto &camera_transform = Renderer::instance()->Main_Camera.getComponent<cmpt::Transform>();
 
 			float yaw   = std::atan2f(-main_camera->view[2][2], -main_camera->view[0][2]);

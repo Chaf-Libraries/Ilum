@@ -58,7 +58,9 @@ function(ExpandSrc res src)
                 ${item}/*.geom
                 ${item}/*.comp
                 ${item}/*.rgen
-                ${item}/*.rhit
+                ${item}/*.rchit
+                ${item}/*.rahit
+                ${item}/*.rint
                 ${item}/*.rmiss
                 ${item}/*.rcall
 
