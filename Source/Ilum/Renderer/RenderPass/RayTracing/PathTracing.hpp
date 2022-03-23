@@ -23,5 +23,12 @@ class PathTracing : public TRenderPass<PathTracing>
 
   private:
 	bool m_finish = false;
+
+	struct
+	{
+		uint32_t   directional_light_count = 0;
+		uint32_t   spot_light_count        = 0;
+		uint32_t   point_light_count       = 0;
+	} m_push_block;
 };
 }        // namespace Ilum::pass

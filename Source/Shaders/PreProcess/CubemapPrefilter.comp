@@ -67,7 +67,7 @@ vec3 calculate_direction(uint face_idx, uint face_x, uint face_y)
 			z = -1;
 			break;
 	}
-
+	
 	return normalize(vec3(x, y, z));
 }
 

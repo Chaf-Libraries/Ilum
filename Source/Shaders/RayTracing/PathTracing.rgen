@@ -1,0 +1,53 @@
+#version 460
+#extension GL_EXT_ray_tracing : enable
+
+#include "../GlobalBuffer.glsl"
+#include "../GlobalFunction.glsl"
+#include "RayTracing.glsl"
+
+layout(set = 0, binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
+layout(set = 0, binding = 1, set = 0, rgba16f) uniform image2D image;
+layout(set = 0, binding = 2) uniform CameraBuffer
+{
+	CameraData camera_data;
+};
+
+/*layout(push_constant) uniform PushBlock
+{
+	uint num_frames;
+	uint max_ray_bounces;
+}push_data;*/
+
+layout(location = 0) rayPayloadEXT HitPayLoad prd;
+
+void main() 
+{
+	const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
+	const vec2 inUV = pixelCenter / vec2(gl_LaunchSizeEXT.xy);
+	vec2 d = inUV * 2.0 - 1.0;
+
+	vec4 origin = camera_data.view_inverse * vec4(0,0,0,1);
+	vec4 target = camera_data.projection_inverse * vec4(d.x, d.y, 1, 1) ;
+	vec4 direction = camera_data.view_inverse*vec4(normalize(target.xyz), 0) ;
+
+	float tmin = 0.001;
+	float tmax = 10000.0;
+
+    prd.hitValue = vec3(0.0);
+
+    traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xff, 0, 0, 0, origin.xyz, tmin, direction.xyz, tmax, 0);
+
+	ivec2 launch_id = ivec2(gl_LaunchIDEXT.x, gl_LaunchSizeEXT.y - gl_LaunchIDEXT.y);
+
+	if(camera_data.frame_num == 0)
+	{
+		imageStore(image, launch_id, vec4(prd.hitValue, 1.0));
+	}
+	else
+	{
+		vec3 prev_color = imageLoad(image, launch_id).rgb;
+		vec3 accumulated_color = prev_color + (prd.hitValue - prev_color) / float(camera_data.frame_num);
+
+		imageStore(image, launch_id, vec4(accumulated_color, 1.0));
+	}
+}

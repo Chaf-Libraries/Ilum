@@ -1,5 +1,6 @@
 #include "TransformUpdate.hpp"
 
+#include "Scene/Component/Camera.hpp"
 #include "Scene/Component/Hierarchy.hpp"
 #include "Scene/Component/Renderable.hpp"
 #include "Scene/Component/Transform.hpp"
@@ -178,6 +179,17 @@ void TransformUpdate::run()
 		if (Renderer::instance()->Render_Buffer.Top_Level_AS.build(geometry_info, range_info))
 		{
 			Renderer::instance()->rebuild();
+		}
+
+		auto &camera_entity = Renderer::instance()->Main_Camera;
+
+		if (camera_entity && (camera_entity.hasComponent<cmpt::PerspectiveCamera>() || camera_entity.hasComponent<cmpt::OrthographicCamera>()))
+		{
+			cmpt::Camera *camera = camera_entity.hasComponent<cmpt::PerspectiveCamera>() ?
+                                       static_cast<cmpt::Camera *>(&camera_entity.getComponent<cmpt::PerspectiveCamera>()) :
+                                       static_cast<cmpt::Camera *>(&camera_entity.getComponent<cmpt::OrthographicCamera>());
+
+			camera->frame_count = 0;
 		}
 	}
 

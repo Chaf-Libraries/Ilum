@@ -63,7 +63,6 @@ void CameraUpdate::run()
 	{
 		auto &camera = camera_entity.getComponent<cmpt::PerspectiveCamera>();
 
-		camera.frame_count++;
 		camera.view            = glm::inverse(transform.world_transform);
 		camera.projection      = glm::perspective(glm::radians(camera.fov), camera.aspect, camera.near_plane, camera.far_plane);
 		camera.view_projection = camera.projection * camera.view;
@@ -81,6 +80,7 @@ void CameraUpdate::run()
 		camera_data->last_view_projection = camera.last_view_projection;
 		camera_data->view_inverse         = transform.world_transform;
 		camera_data->projection_inverse   = glm::inverse(camera.projection);
+		camera_data->frame_num            = camera.frame_count;
 
 		for (size_t i = 0; i < 6; i++)
 		{
@@ -88,12 +88,12 @@ void CameraUpdate::run()
 		}
 
 		camera.last_view_projection = camera.view_projection;
+		camera.frame_count++;
 	}
 	else if (camera_entity.hasComponent<cmpt::OrthographicCamera>())
 	{
 		auto &camera = camera_entity.getComponent<cmpt::OrthographicCamera>();
 
-		camera.frame_count++;
 		camera.view            = glm::inverse(transform.world_transform);
 		camera.projection      = glm::ortho(camera.left, camera.right, camera.bottom, camera.top, camera.near_plane, camera.far_plane);
 		camera.view_projection = camera.projection * camera.view;
@@ -111,6 +111,7 @@ void CameraUpdate::run()
 		camera_data->last_view_projection = camera.last_view_projection;
 		camera_data->view_inverse         = transform.world_transform;
 		camera_data->projection_inverse   = glm::inverse(camera.projection);
+		camera_data->frame_num            = camera.frame_count;
 
 		for (size_t i = 0; i < 6; i++)
 		{
@@ -118,6 +119,7 @@ void CameraUpdate::run()
 		}
 
 		camera.last_view_projection = camera.view_projection;
+		camera.frame_count++;
 	}
 
 	culling_data->meshlet_count  = Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count;

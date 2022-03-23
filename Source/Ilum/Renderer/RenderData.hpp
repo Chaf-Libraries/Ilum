@@ -100,7 +100,8 @@ struct CameraData
 	glm::mat4 view_inverse;
 	glm::mat4 projection_inverse;
 	glm::vec4 frustum[6];
-	alignas(16) glm::vec3 position;
+	glm::vec3 position;
+	uint32_t  frame_num;
 };
 
 struct RenderBuffer
@@ -232,10 +233,10 @@ struct RenderBuffer
 	Buffer Camera_Buffer = Buffer(sizeof(CameraData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	// Static Vertex Buffer for meshlet rendering
-	Buffer Static_Vertex_Buffer;
+	Buffer Static_Vertex_Buffer = Buffer(1000 * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_GPU_ONLY);
 
 	// Static Index Buffer for meshlet rendering
-	Buffer Static_Index_Buffer;
+	Buffer Static_Index_Buffer = Buffer(1000 * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_GPU_ONLY);
 
 	// Dynamic Vertex Buffer for dynamic mesh rendering
 	Buffer Dynamic_Vertex_Buffer;

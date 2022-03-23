@@ -22,16 +22,16 @@ void GeometryUpdate::run()
 	auto &static_vertex_buffer = Renderer::instance()->Render_Buffer.Static_Vertex_Buffer;
 	auto &static_index_buffer  = Renderer::instance()->Render_Buffer.Static_Index_Buffer;
 
-	if (resource_cache.getVerticesCount() * sizeof(Vertex) != static_vertex_buffer.getSize() ||
-	    resource_cache.getIndicesCount() * sizeof(uint32_t) != static_index_buffer.getSize())
+	if (resource_cache.getVerticesCount() * sizeof(Vertex) > static_vertex_buffer.getSize() ||
+	    resource_cache.getIndicesCount() * sizeof(uint32_t) > static_index_buffer.getSize())
 	{
 		cmpt::StaticMeshRenderer::update = true;
 
 		GraphicsContext::instance()->getQueueSystem().waitAll();
 
 		// Resize buffer
-		static_vertex_buffer = Buffer(resource_cache.getVerticesCount() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_GPU_ONLY);
-		static_index_buffer  = Buffer(resource_cache.getIndicesCount() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_GPU_ONLY);
+		static_vertex_buffer = Buffer(resource_cache.getVerticesCount() * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_GPU_ONLY);
+		static_index_buffer  = Buffer(resource_cache.getIndicesCount() * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_GPU_ONLY);
 
 		if (static_vertex_buffer.getSize() == 0 || static_index_buffer.getSize() == 0)
 		{
@@ -95,6 +95,8 @@ void GeometryUpdate::run()
 				submesh.bottom_level_as.build(geometry_info, range_info);
 			}
 		}
+
+		Renderer::instance()->rebuild();
 	}
 
 	// Update dynamic mesh

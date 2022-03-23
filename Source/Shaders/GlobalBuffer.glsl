@@ -9,6 +9,7 @@ struct CameraData
 	mat4 projection_inverse;
 	vec4 frustum[6];
 	vec3 position;
+	uint frame_num;
 };
 
 struct PerInstanceData
