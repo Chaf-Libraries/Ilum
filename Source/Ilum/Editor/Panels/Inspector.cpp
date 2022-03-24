@@ -275,6 +275,17 @@ inline void draw_material<BxDFType::CookTorrance>(Material &material)
 	Material::update = draw_texture(material.textures[TextureType::Displacement], "Displacement Map") || Material::update;
 }
 
+template <>
+inline void draw_material<BxDFType::Glass>(Material& material)
+{
+
+}
+
+template <>
+inline void draw_material<BxDFType::Mirror>(Material &material)
+{
+}
+
 inline void draw_material(Material &material)
 {
 	const char *const BxDF_types[] = {
@@ -289,6 +300,12 @@ inline void draw_material(Material &material)
 			break;
 		case BxDFType::CookTorrance:
 			draw_material<BxDFType::CookTorrance>(material);
+			break;
+		case BxDFType::Glass:
+			draw_material<BxDFType::Glass>(material);
+			break;
+		case BxDFType::Mirror:
+			draw_material<BxDFType::Mirror>(material);
 			break;
 		default:
 			break;

@@ -9,7 +9,9 @@ namespace Ilum
 enum class BxDFType : uint32_t
 {
 	CookTorrance,
-	Disney
+	Disney,
+	Mirror,
+	Glass
 };
 
 enum TextureType
