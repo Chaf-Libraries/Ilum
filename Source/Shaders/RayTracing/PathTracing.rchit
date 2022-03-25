@@ -79,20 +79,7 @@ void main()
 	const vec3 W0 = -gl_WorldRayDirectionEXT;
 	const vec3 R = reflect(-W0, N);
 
-	vec3 base_color = material_data[inIndex].textures[TEXTURE_BASE_COLOR] < MAX_TEXTURE_ARRAY_SIZE?
-        texture(texture_array[nonuniformEXT(material_data[inIndex].textures[TEXTURE_BASE_COLOR])], inUV) .rgb
-        * material_data[inIndex].base_color.rgb : material_data[inIndex].base_color.rgb;
 
-	float roughness = material_data[inIndex].textures[TEXTURE_ROUGHNESS] < 1024?
-         texture(texture_array[nonuniformEXT(material_data[inIndex].textures[TEXTURE_ROUGHNESS])], inUV).g * material_data[inIndex].roughness : 
-         material_data[inIndex].roughness;
-
-	float metallic = material_data[inIndex].textures[TEXTURE_METALLIC] < 1024?
-         texture(texture_array[nonuniformEXT(material_data[inIndex].textures[TEXTURE_METALLIC])], inUV).r * material_data[inIndex].metallic : 
-         material_data[inIndex].metallic;
-
-	const vec3 F0 = mix(vec3(0.04), base_color, metallic),
-	const vec3 diffuse = mix(base_color * (vec3(1.0) - F0), vec3(0.0), metallic);
 
 
 

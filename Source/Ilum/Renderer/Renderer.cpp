@@ -89,16 +89,14 @@ Renderer::Renderer(Context *context) :
 	DeferredRendering = [this](RenderGraphBuilder &builder) {
 		builder
 
-		    /*.addRenderPass("EquirectangularToCubemap", std::make_unique<pass::EquirectangularToCubemap>())
-		    .addRenderPass("CubemapSHProjection", std::make_unique<pass::CubemapSHProjection>())
-		    .addRenderPass("CubemapSHAdd", std::make_unique<pass::CubemapSHAdd>())
-		    .addRenderPass("CubemapPrefilter", std::make_unique<pass::CubemapPrefilter>())
-		    .addRenderPass("HizPass", std::make_unique<pass::HizPass>())
-		    .addRenderPass("InstanceCulling", std::make_unique<pass::InstanceCullingPass>())
-		    .addRenderPass("MeshletCulling", std::make_unique<pass::MeshletCullingPass>())
-		    .addRenderPass("GeometryPass", std::make_unique<pass::GeometryPass>())
-		    .addRenderPass("CopyHizBuffer", std::make_unique<pass::CopyHizBuffer>())*/
-
+		    //.addRenderPass("EquirectangularToCubemap", std::make_unique<pass::EquirectangularToCubemap>())
+		    //.addRenderPass("CubemapSHProjection", std::make_unique<pass::CubemapSHProjection>())
+		    //.addRenderPass("CubemapSHAdd", std::make_unique<pass::CubemapSHAdd>())
+		    //.addRenderPass("CubemapPrefilter", std::make_unique<pass::CubemapPrefilter>())
+		    //.addRenderPass("HizPass", std::make_unique<pass::HizPass>())
+		    //.addRenderPass("InstanceCulling", std::make_unique<pass::InstanceCullingPass>())
+		    //.addRenderPass("MeshletCulling", std::make_unique<pass::MeshletCullingPass>())
+		    //.addRenderPass("GeometryPass", std::make_unique<pass::GeometryPass>())
 		    //.addRenderPass("KullaContyEnergy", std::make_unique<pass::KullaContyEnergy>())
 		    //.addRenderPass("KullaContyAverage", std::make_unique<pass::KullaContyAverage>())
 		    //.addRenderPass("BRDFPreIntegrate", std::make_unique<pass::BRDFPreIntegrate>())
