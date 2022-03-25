@@ -3,7 +3,7 @@
 
 // https://dl.acm.org/doi/10.5555/1921479.1921500 
 /*GPU Random Numbers via the Tiny Encryption Algorithm*/
-uint Tea(in uint val0, in uint val1)
+uint tea(in uint val0, in uint val1)
 {
 	uint v0 = val0;
 	uint v1 = val1;
@@ -19,9 +19,9 @@ uint Tea(in uint val0, in uint val1)
 	return v0;
 }
 
-uint InitRandom(in uvec2 resolution, in uvec2 screen_coord, in uint frame)
+uint init_random(in uvec2 resolution, in uvec2 screen_coord, in uint frame)
 {
-	return Tea(screen_coord.y * resolution.x + screen_coord.x, frame);
+	return tea(screen_coord.y * resolution.x + screen_coord.x, frame);
 }
 
 // https://www.pcg-random.org/
@@ -67,6 +67,11 @@ float rand(inout uint seed)
 vec2 rand2(inout uint prev)
 {
 	return vec2(rand(prev), rand(prev));
+}
+
+vec3 rand3(inout uint prev)
+{
+	return vec3(rand(prev), rand(prev), rand(prev));
 }
 
 #endif

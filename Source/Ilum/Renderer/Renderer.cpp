@@ -62,6 +62,8 @@
 
 #include "RenderPass/RayTracing/PathTracing.hpp"
 
+#include "RenderPass/Test/RandomVis.hpp"
+
 #include "BufferUpdate/CameraUpdate.hpp"
 #include "BufferUpdate/CurveUpdate.hpp"
 #include "BufferUpdate/GeometryUpdate.hpp"
@@ -87,7 +89,7 @@ Renderer::Renderer(Context *context) :
 	DeferredRendering = [this](RenderGraphBuilder &builder) {
 		builder
 
-		    .addRenderPass("EquirectangularToCubemap", std::make_unique<pass::EquirectangularToCubemap>())
+		    /*.addRenderPass("EquirectangularToCubemap", std::make_unique<pass::EquirectangularToCubemap>())
 		    .addRenderPass("CubemapSHProjection", std::make_unique<pass::CubemapSHProjection>())
 		    .addRenderPass("CubemapSHAdd", std::make_unique<pass::CubemapSHAdd>())
 		    .addRenderPass("CubemapPrefilter", std::make_unique<pass::CubemapPrefilter>())
@@ -95,7 +97,7 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("InstanceCulling", std::make_unique<pass::InstanceCullingPass>())
 		    .addRenderPass("MeshletCulling", std::make_unique<pass::MeshletCullingPass>())
 		    .addRenderPass("GeometryPass", std::make_unique<pass::GeometryPass>())
-		    .addRenderPass("CopyHizBuffer", std::make_unique<pass::CopyHizBuffer>())
+		    .addRenderPass("CopyHizBuffer", std::make_unique<pass::CopyHizBuffer>())*/
 
 		    //.addRenderPass("KullaContyEnergy", std::make_unique<pass::KullaContyEnergy>())
 		    //.addRenderPass("KullaContyAverage", std::make_unique<pass::KullaContyAverage>())
@@ -120,6 +122,7 @@ Renderer::Renderer(Context *context) :
 		    //.setView("TAAOutput")
 		    //.setOutput("TAAOutput");
 
+		    .addRenderPass("RandomVis", std::make_unique<pass::RandomVis>())
 		    .addRenderPass("PathTracing", std::make_unique<pass::PathTracing>())
 		    .setView("PathTracing")
 		    .setOutput("PathTracing");

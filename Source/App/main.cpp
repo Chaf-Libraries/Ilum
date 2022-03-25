@@ -13,6 +13,17 @@
 
 #include <numeric>
 
+float halton2(uint32_t index)
+{
+	index = (index << 16) | (index >> 16);
+	index = ((index & 0x00ff00ff) << 8) | ((index & 0xff00ff00) >> 8);
+	index = ((index & 0x0f0f0f0f) << 4) | ((index & 0xf0f0f0f0) >> 4);
+	index = ((index & 0x33333333) << 2) | ((index & 0xcccccccc) >> 2);
+	index = ((index & 0x55555555) << 1) | ((index & 0xaaaaaaaa) >> 1);
+	index = 0x3f800000u | (index >> 9);
+	return float(index) - 1.f;
+}
+
 int main()
 {
 	Ilum::Engine engine;
@@ -39,6 +50,7 @@ int main()
 	//}
 
 	//auto boundaries = hemesh.boundary();
+
 
 	while (!Ilum::Window::instance()->shouldClose())
 	{
