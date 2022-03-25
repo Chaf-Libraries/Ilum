@@ -60,6 +60,8 @@ void EquirectangularToCubemap::resolveResources(ResolveState &resolve)
 
 void EquirectangularToCubemap::render(RenderPassState &state)
 {
+	Renderer::instance()->Render_Stats.cubemap_update = false;
+
 	if (!m_update)
 	{
 		return;
@@ -152,6 +154,7 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 	}
 
 	m_update = false;
+	Renderer::instance()->Render_Stats.cubemap_update = true;
 }
 
 void EquirectangularToCubemap::onImGui()

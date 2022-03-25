@@ -27,7 +27,7 @@ void CubemapSHAdd::resolveResources(ResolveState &resolve)
 
 void CubemapSHAdd::render(RenderPassState &state)
 {
-	if (!m_update)
+	if (!m_update && !Renderer::instance()->Render_Stats.cubemap_update)
 	{
 		return;
 	}

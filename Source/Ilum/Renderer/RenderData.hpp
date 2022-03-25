@@ -292,5 +292,7 @@ struct RenderStats
 		uint32_t instance_count = 0;
 		uint32_t vertices_count = 0;
 	} curve_count;
+
+	bool cubemap_update = false;
 };
 }        // namespace Ilum

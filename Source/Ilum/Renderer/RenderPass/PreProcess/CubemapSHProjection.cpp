@@ -27,7 +27,7 @@ void CubemapSHProjection::resolveResources(ResolveState &resolve)
 
 void CubemapSHProjection::render(RenderPassState &state)
 {
-	if (!m_update)
+	if (!m_update && !Renderer::instance()->Render_Stats.cubemap_update)
 	{
 		return;
 	}

@@ -31,7 +31,6 @@ class CubemapPrefilter : public TRenderPass<CubemapPrefilter>
 
 	struct
 	{
-		VkExtent2D cubemap_extent = {1024, 1024};
 		VkExtent2D mip_extent = {};
 		float      roughness      = 0.f;
 	} m_push_data;

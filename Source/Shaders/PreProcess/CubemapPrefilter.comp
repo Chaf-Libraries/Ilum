@@ -23,7 +23,6 @@ layout(set = 0, binding = 0, rgba16f) uniform imageCube PrefilterMap;
 layout(set = 0, binding = 1) uniform samplerCube Skybox;
 
 layout(push_constant) uniform PushBlock{
-	uvec2 cubemap_extent;
 	uvec2 mip_extent;
 	float roughness;
 }push_data;
