@@ -3,8 +3,8 @@
 
 #include "Geometry.glsl"
 #include "Interaction.glsl"
-#include "Random.glsl"
 #include "Lights.glsl"
+#include "Random.glsl"
 
 // Sampling Disk
 // Polar Mapping
@@ -80,20 +80,22 @@ float PowerHeuristic(int nf, float fPdf, int ng, float gPdf)
 }
 
 // Sampling Point Light
-/* vec3 Sample_Li(PointLight light, Interaction interaction, vec3 u, out vec3 wi, out float pdf, out VisibilityTester vis)
+vec3 Sample_Li(PointLight light, Interaction interaction, vec3 u, out vec3 wi, out float pdf, out VisibilityTester vis)
 {
-	wi  = normalize(light.position - interaction.p);
+	wi  = normalize(light.position - interaction.position);
 	pdf = 1.0;
 
-	vis.I0      = interaction;
+	vis.from = interaction;
+	vis.to.position = light.position;
 
-	vis.I1.p = light.position;
-	vis.I1.wo   = vec3(0.0);
-	vis.I1.n  = vec3(0.0);
-
-	float d = length(light.position - interaction.p);
-	float Fatt     = 1.0 / (light.constant + light.linear_ * d + light.quadratic * d * d);
+	float d    = length(light.position - interaction.position);
+	float Fatt = 1.0 / (light.constant + light.linear_ * d + light.quadratic * d * d);
 	return light.color.rgb * light.intensity * Fatt;
-}*/
+}
+
+float Pdf_Li(Interaction interaction, vec3 wi)
+{
+	return 0.0;
+}
 
 #endif

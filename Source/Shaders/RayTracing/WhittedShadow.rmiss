@@ -7,5 +7,5 @@ layout(location = 1) rayPayloadInEXT ShadowPayload prd;
 
 void main()
 {
-    prd.visibility = 0.0;
+    prd.visibility = false;
 }

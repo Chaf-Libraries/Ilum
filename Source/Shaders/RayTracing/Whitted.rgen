@@ -16,6 +16,32 @@ push_data;
 layout(location = 0) rayPayloadEXT RayPayload ray_payload;
 layout(location = 1) rayPayloadEXT ShadowPayload shadow_payload;
 
+bool Unoccluded(VisibilityTester vis)
+{
+	shadow_payload.visibility = true;
+	Ray shadow_ray;
+	shadow_ray.direction = normalize(vis.to.position - vis.from.position);
+	shadow_ray.origin    = OffsetRay(vis.from.position, dot(shadow_ray.direction, vis.from.normal) > 0 ? vis.from.normal : -vis.from.normal);
+	shadow_ray.tmin      = 0.0;
+	shadow_ray.tmax      = length(vis.to.position - vis.from.position)-1.0;
+
+	// Trace shadow ray
+	traceRayEXT(topLevelAS,                                                                                                            // acceleration structure
+	            gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT | gl_RayFlagsCullBackFacingTrianglesEXT,        // rayFlags
+	            0xFF,                                                                                                                  // cullMask
+	            0,                                                                                                                     // sbtRecordOffset
+	            0,                                                                                                                     // sbtRecordStride
+	            1,                                                                                                                     // missIndex
+	            shadow_ray.origin,                                                                                                     // ray origin
+	            shadow_ray.tmin,                                                                                                       // ray min range
+	            shadow_ray.direction,                                                                                                  // ray direction
+	            shadow_ray.tmax,                                                                                                       // ray max range
+	            1                                                                                                                      // payload (location = 1)
+	);
+
+	return shadow_payload.visibility;
+}
+
 void main() 
 {
 	const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
@@ -47,13 +73,42 @@ void main()
 		if(ray_payload.hitT == Infinity)
 		{
 			Result += 10 * texture(Skybox, ray.direction).rgb;
-			depth=5;
+			break;
 		}
 		else
 		{
 			Interaction interaction = GetInteraction(ray_payload);
 
+			// Add contribution of each point light source
 			for(uint i = 0; i < push_data.point_light_count; i++)
+			{
+				vec3 wi;
+				float pdf;
+				VisibilityTester vis;
+				vec3 Li = Sample_Li(point_lights[i], interaction, rand3(ray_payload.seed), wi, pdf, vis);
+				if(Li == vec3(0.0) || pdf == 0)
+				{
+					continue;
+				}
+				vec3 base_color = vec3(0.0);
+				if(interaction.material.textures[TEXTURE_BASE_COLOR] < 1024)
+				{
+					base_color = texture(texture_array[nonuniformEXT(interaction.material.textures[TEXTURE_BASE_COLOR])], interaction.texcoord).rgb;
+				}
+				else
+				{
+					base_color = interaction.material.base_color.rgb;
+				}
+				if(Li != vec3(0.0) && !Unoccluded(vis))
+				{
+					Result += base_color * Li * abs(dot(wi, interaction.normal)) / pdf;
+				}
+			}
+
+			ray.direction = SampleCosineHemisphere(rand2(ray_payload.seed));
+			ray.origin = OffsetRay(interaction.position, dot(ray.direction, interaction.normal) > 0 ? interaction.normal : -interaction.normal);
+
+			/*for(uint i = 0; i < push_data.point_light_count; i++)
 			{
 				PointLight light = point_lights[i];
 
@@ -105,7 +160,7 @@ void main()
 				//ray.direction = reflect(ray.direction, interaction.normal);
 				ray.direction = SampleCosineHemisphere(rand2(ray_payload.seed));
 				ray.origin = OffsetRay(interaction.position, dot(ray.direction, interaction.normal) > 0 ? interaction.normal : -interaction.normal);
-			}
+			}*/
 		}
 		
 	}

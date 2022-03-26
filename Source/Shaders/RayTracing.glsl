@@ -68,7 +68,7 @@ struct RayPayload
 
 struct ShadowPayload
 {
-	float visibility;
+	bool visibility;
 };
 
 Ray CameraCastRay(CameraData camera, vec2 screen_coords)
@@ -85,23 +85,23 @@ Ray CameraCastRay(CameraData camera, vec2 screen_coords)
 	return ray;
 }
 
-vec3 OffsetRay(vec3 p, vec3 n)
+vec3 OffsetRay(in vec3 p, in vec3 n)
 {
-	float origin      = 1.0 / 32.0;
-	float float_scale = 1.0 / 65536.0;
-	float int_scale   = 256.0;
+	const float intScale   = 256.0f;
+	const float floatScale = 1.0f / 65536.0f;
+	const float origin     = 1.0f / 32.0f;
 
-	ivec3 of_i = ivec3(int_scale * n.x, int_scale * n.y, int_scale * n.z);
+	ivec3 of_i = ivec3(intScale * n.x, intScale * n.y, intScale * n.z);
 
-	vec3 p_i = vec3(
-	    intBitsToFloat(floatBitsToInt(p.x) + ((p.x < 0) ? -of_i.x : of_i.x)),
-	    intBitsToFloat(floatBitsToInt(p.y) + ((p.y < 0) ? -of_i.y : of_i.y)),
-	    intBitsToFloat(floatBitsToInt(p.z) + ((p.z < 0) ? -of_i.z : of_i.z)));
+	vec3 p_i = vec3(intBitsToFloat(floatBitsToInt(p.x) + ((p.x < 0) ? -of_i.x : of_i.x)),
+	                intBitsToFloat(floatBitsToInt(p.y) + ((p.y < 0) ? -of_i.y : of_i.y)),
+	                intBitsToFloat(floatBitsToInt(p.z) + ((p.z < 0) ? -of_i.z : of_i.z)));
 
-	return vec3(abs(p.x) < origin ? p.x + float_scale * n.x : p_i.x,
-	            abs(p.y) < origin ? p.y + float_scale * n.y : p_i.y,
-	            abs(p.z) < origin ? p.z + float_scale * n.z : p_i.z);
+	return vec3(abs(p.x) < origin ? p.x + floatScale * n.x : p_i.x,
+	            abs(p.y) < origin ? p.y + floatScale * n.y : p_i.y,
+	            abs(p.z) < origin ? p.z + floatScale * n.z : p_i.z);
 }
+
 
 Interaction GetInteraction(in RayPayload prd)
 {

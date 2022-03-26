@@ -16,9 +16,10 @@ struct Interaction
 	MaterialData material;
 };
 
-/*RayTracing Gems Chapter 06*/
-// Offset current point p along normal n
-
-
+struct VisibilityTester
+{
+	Interaction from;
+	Interaction to;
+};
 
 #endif
