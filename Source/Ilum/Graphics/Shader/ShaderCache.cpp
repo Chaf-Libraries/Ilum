@@ -43,12 +43,15 @@ inline std::vector<std::string> precompile_shader(const std::string &source, con
 			}
 
 			std::vector<uint8_t> raw_data;
-			FileSystem::read(include_dir + include_path, raw_data);
+			if (FileSystem::isExist(include_dir + include_path))
+			{
+				FileSystem::read(include_dir + include_path, raw_data);
+			}
 			std::string str;
 			str.resize(raw_data.size());
 			std::memcpy(str.data(), raw_data.data(), raw_data.size());
 
-			auto include_file = precompile_shader(str, include_dir);
+			auto include_file = precompile_shader(str, include_dir + FileSystem::getFileDirectory(include_path));
 			for (auto &include_file_line : include_file)
 			{
 				include_file_line.erase(std::remove(include_file_line.begin(), include_file_line.end(), '\0'), include_file_line.end());
