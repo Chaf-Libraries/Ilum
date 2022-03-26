@@ -1,8 +1,17 @@
 #version 460
 #extension GL_EXT_ray_tracing : enable
+#extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_GOOGLE_include_directive : enable
 
 #include "../RayTracing.glsl"
+
+layout(push_constant) uniform PushBlock
+{
+	uint directional_light_count;
+	uint spot_light_count;
+	uint point_light_count;
+}
+push_data;
 
 layout(location = 0) rayPayloadEXT RayPayload ray_payload;
 layout(location = 1) rayPayloadEXT ShadowPayload shadow_payload;
@@ -11,15 +20,16 @@ void main()
 {
 	const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
 	const vec2 screen_coords = pixelCenter / vec2(gl_LaunchSizeEXT.xy) * 2.0 - 1.0;
+	ray_payload.seed = init_random(gl_LaunchSizeEXT.xy, gl_LaunchIDEXT.xy, camera_data.frame_num);
 
 	Ray ray = CameraCastRay(camera_data, screen_coords);
 
-	vec3 L = vec3(0.0, 0.0, 0.0);
+	vec3 Result = vec3(0.0, 0.0, 0.0);
 
-	//for(int depth = 0; depth < 5; depth++)
+	for(int depth = 0; depth < 5; depth++)
 	{
 		// Spawn a ray
-		ray_payload.hitT = 100000.0;
+		ray_payload.hitT = Infinity;
 		traceRayEXT(topLevelAS,   // acceleration structure
 				gl_RayFlagsCullBackFacingTrianglesEXT,     // rayFlags
 				0xFF,         // cullMask
@@ -33,21 +43,83 @@ void main()
 				0             // payload (location = 0)
 		);
 
-		Interaction interaction = GetInteraction(ray_payload);
+		// Hit environment
+		if(ray_payload.hitT == Infinity)
+		{
+			Result += 10 * texture(Skybox, ray.direction).rgb;
+			depth=5;
+		}
+		else
+		{
+			Interaction interaction = GetInteraction(ray_payload);
 
-		L = interaction.normal;
+			for(uint i = 0; i < push_data.point_light_count; i++)
+			{
+				PointLight light = point_lights[i];
+
+				// Prepare shadow ray
+				shadow_payload.visibility = 1.0;
+				Ray shadow_ray;
+				shadow_ray.direction = normalize(light.position - interaction.position);
+				shadow_ray.origin = OffsetRay(interaction.position, dot(shadow_ray.direction, interaction.normal) > 0 ? interaction.normal : -interaction.normal);
+				shadow_ray.tmin = 0.0;
+				shadow_ray.tmax = length(light.position - interaction.position);
+
+				// Trace shadow ray
+				traceRayEXT(topLevelAS,   // acceleration structure
+					gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsSkipClosestHitShaderEXT | gl_RayFlagsCullBackFacingTrianglesEXT,     // rayFlags
+					0xFF,         // cullMask
+					0,            // sbtRecordOffset
+					0,            // sbtRecordStride
+					1,            // missIndex
+					shadow_ray.origin,     // ray origin
+					shadow_ray.tmin,          // ray min range
+					shadow_ray.direction,  // ray direction
+					shadow_ray.tmax,     // ray max range
+					1             // payload (location = 1)
+				);
+
+				// Light contribution
+				if(shadow_payload.visibility == 0.0)
+				{
+					vec3 L = normalize(light.position - interaction.position);
+					float d = length(light.position - interaction.position);
+					float NoL = max(0.0, dot(interaction.normal, L));
+					float Fatt = 1.0/(light.constant + light.linear_ * d + light.quadratic * d * d);
+					vec3 radiance = light.color.rgb * light.intensity * Fatt;
+
+					vec3 base_color = vec3(0.0);
+					if(interaction.material.textures[TEXTURE_BASE_COLOR] < 1024)
+					{
+						base_color = texture(texture_array[nonuniformEXT(interaction.material.textures[TEXTURE_BASE_COLOR])], interaction.texcoord).rgb;
+					}
+					else
+					{
+						base_color = interaction.material.base_color.rgb;
+					}
+
+					Result += radiance * NoL/5.0*base_color;
+				}
+
+				// Trace next ray
+				//ray.direction = reflect(ray.direction, interaction.normal);
+				ray.direction = SampleCosineHemisphere(rand2(ray_payload.seed));
+				ray.origin = OffsetRay(interaction.position, dot(ray.direction, interaction.normal) > 0 ? interaction.normal : -interaction.normal);
+			}
+		}
+		
 	}
 	
 	ivec2 launch_id = ivec2(gl_LaunchIDEXT.x, gl_LaunchSizeEXT.y - gl_LaunchIDEXT.y);
 
 	if(camera_data.frame_num == 0)
 	{
-		imageStore(Image, launch_id, vec4(L, 1.0));
+		imageStore(Image, launch_id, vec4(Result, 1.0));
 	}
 	else
 	{
 		vec3 prev_color = imageLoad(Image, launch_id).rgb;
-		vec3 accumulated_color = prev_color + (L - prev_color) / float(camera_data.frame_num);
+		vec3 accumulated_color = prev_color + (Result - prev_color) / float(camera_data.frame_num);
 
 		imageStore(Image, launch_id, vec4(accumulated_color, 1.0));
 	}

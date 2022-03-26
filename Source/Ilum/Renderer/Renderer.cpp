@@ -90,7 +90,7 @@ Renderer::Renderer(Context *context) :
 	DeferredRendering = [this](RenderGraphBuilder &builder) {
 		builder
 
-		    //.addRenderPass("EquirectangularToCubemap", std::make_unique<pass::EquirectangularToCubemap>())
+		    .addRenderPass("EquirectangularToCubemap", std::make_unique<pass::EquirectangularToCubemap>())
 		    //.addRenderPass("CubemapSHProjection", std::make_unique<pass::CubemapSHProjection>())
 		    //.addRenderPass("CubemapSHAdd", std::make_unique<pass::CubemapSHAdd>())
 		    //.addRenderPass("CubemapPrefilter", std::make_unique<pass::CubemapPrefilter>())
@@ -122,6 +122,11 @@ Renderer::Renderer(Context *context) :
 		    //.setOutput("TAAOutput");
 
 		    .addRenderPass("Whitted", std::make_unique<pass::Whitted>())
+
+		    .addRenderPass("TAAPass", std::make_unique<pass::TAAPass>("Whitted"))
+		    .addRenderPass("CopyLastFrame", std::make_unique<pass::CopyLastFrame>("TAAOutput"))
+
+
 		    .setView("Whitted")
 		    .setOutput("Whitted");
 	};

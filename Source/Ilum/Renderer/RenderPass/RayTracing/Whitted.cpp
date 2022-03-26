@@ -17,7 +17,8 @@ void Whitted::setupPipeline(PipelineState &state)
 {
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Whitted.rgen", VK_SHADER_STAGE_RAYGEN_BIT_KHR, Shader::Type::GLSL);
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Whitted.rchit", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::GLSL);
-	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Whitted.rmiss", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Whitted.rmiss", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/WhittedShadow.rmiss", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::GLSL);
 
 	state.declareAttachment("Whitted", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.addOutputAttachment("Whitted", AttachmentState::Clear_Color);
@@ -70,7 +71,7 @@ void Whitted::render(RenderPassState &state)
 		m_push_block.spot_light_count        = Renderer::instance()->Render_Stats.light_count.spot_light_count;
 		m_push_block.point_light_count       = Renderer::instance()->Render_Stats.light_count.point_light_count;
 
-		//vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 0, sizeof(m_push_block), &m_push_block);
+		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(m_push_block), &m_push_block);
 
 		vkCmdTraceRaysKHR(
 		    cmd_buffer,

@@ -1,8 +1,8 @@
 #ifndef _RAYTRACING_H
 #define _RAYTRACING_H
 
-#include "GlobalBuffer.glsl"
 #include "Geometry.glsl"
+#include "GlobalBuffer.glsl"
 #include "Interaction.glsl"
 #include "Random.glsl"
 #include "Sampling.glsl"
@@ -152,7 +152,7 @@ Interaction GetInteraction(in RayPayload prd)
 	const vec2 uv0      = v0.texcoord.xy;
 	const vec2 uv1      = v1.texcoord.xy;
 	const vec2 uv2      = v2.texcoord.xy;
-	const vec2 texcoord = normalize(uv0 * bary.x + uv1 * bary.y + uv2 * bary.z);
+	const vec2 texcoord = uv0 * bary.x + uv1 * bary.y + uv2 * bary.z;
 
 	interaction.normal      = world_normal;
 	interaction.geom_normal = wgeom_normal;

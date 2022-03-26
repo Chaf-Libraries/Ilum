@@ -29,19 +29,9 @@ inline float halton_sequence(uint32_t base, uint32_t index)
 	return result;
 }
 
-TAAPass::TAAPass()
+TAAPass::TAAPass(const std::string &input) :
+    m_input(input)
 {
-	m_last_frame = Image(Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height,
-	                     VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
-
-	{
-		CommandBuffer cmd_buffer;
-		cmd_buffer.begin();
-		cmd_buffer.transferLayout(m_last_frame, VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM, VK_IMAGE_USAGE_SAMPLED_BIT);
-		cmd_buffer.end();
-		cmd_buffer.submitIdle();
-	}
-
 	for (uint32_t i = 1; i <= HALTION_SAMPLES; i++)
 	{
 		m_jitter_samples.push_back(glm::vec2(2.f * halton_sequence(2, i) - 1.f, 2.f * halton_sequence(3, i) - 1.f));
@@ -83,7 +73,7 @@ void TAAPass::setupPipeline(PipelineState &state)
 	state.addOutputAttachment("LastFrame", AttachmentState::Clear_Color);
 
 	state.descriptor_bindings.bind(0, 0, "LastFrame", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	state.descriptor_bindings.bind(0, 1, "Lighting", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 1, m_input, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 2, "GBuffer1", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 3, "GBuffer4", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 4, "TAAOutput", ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);

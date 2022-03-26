@@ -12,7 +12,7 @@ namespace Ilum::pass
 class TAAPass : public TRenderPass<TAAPass>
 {
   public:
-	TAAPass();
+	TAAPass(const std::string& input);
 
 	virtual void onUpdate() override;
 
@@ -25,6 +25,8 @@ class TAAPass : public TRenderPass<TAAPass>
 	virtual void onImGui() override;
 
   private:
+	std::string m_input;
+
 	bool m_enable = true;
 	uint32_t m_sharpen        = true;
 
