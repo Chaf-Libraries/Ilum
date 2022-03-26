@@ -61,6 +61,7 @@
 #include "RenderPass/Shading/SkyboxPass.hpp"
 
 #include "RenderPass/RayTracing/PathTracing.hpp"
+#include "RenderPass/RayTracing/Whitted.hpp"
 
 #include "RenderPass/Test/RandomVis.hpp"
 
@@ -93,10 +94,10 @@ Renderer::Renderer(Context *context) :
 		    //.addRenderPass("CubemapSHProjection", std::make_unique<pass::CubemapSHProjection>())
 		    //.addRenderPass("CubemapSHAdd", std::make_unique<pass::CubemapSHAdd>())
 		    //.addRenderPass("CubemapPrefilter", std::make_unique<pass::CubemapPrefilter>())
-		    //.addRenderPass("HizPass", std::make_unique<pass::HizPass>())
-		    //.addRenderPass("InstanceCulling", std::make_unique<pass::InstanceCullingPass>())
-		    //.addRenderPass("MeshletCulling", std::make_unique<pass::MeshletCullingPass>())
-		    //.addRenderPass("GeometryPass", std::make_unique<pass::GeometryPass>())
+		    .addRenderPass("HizPass", std::make_unique<pass::HizPass>())
+		    .addRenderPass("InstanceCulling", std::make_unique<pass::InstanceCullingPass>())
+		    .addRenderPass("MeshletCulling", std::make_unique<pass::MeshletCullingPass>())
+		    .addRenderPass("GeometryPass", std::make_unique<pass::GeometryPass>())
 		    //.addRenderPass("KullaContyEnergy", std::make_unique<pass::KullaContyEnergy>())
 		    //.addRenderPass("KullaContyAverage", std::make_unique<pass::KullaContyAverage>())
 		    //.addRenderPass("BRDFPreIntegrate", std::make_unique<pass::BRDFPreIntegrate>())
@@ -110,7 +111,7 @@ Renderer::Renderer(Context *context) :
 		    //.addRenderPass("BloomBlur1", std::make_unique<pass::BloomBlur>("PostTex1", "PostTex2", false))
 		    //.addRenderPass("BloomBlur2", std::make_unique<pass::BloomBlur>("PostTex2", "PostTex1", true))
 		    //.addRenderPass("Blend", std::make_unique<pass::BloomBlend>("PostTex1", "TAAOutput"))
-		    //.addRenderPass("CopyHizBuffer", std::make_unique<pass::CopyHizBuffer>())
+		    .addRenderPass("CopyHizBuffer", std::make_unique<pass::CopyHizBuffer>())
 		    //.addRenderPass("CopyLastFrame", std::make_unique<pass::CopyLastFrame>("TAAOutput"))
 		    //.addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("TAAOutput"))
 		    //.addRenderPass("CurvePass", std::make_unique<pass::CurvePass>())
@@ -120,10 +121,9 @@ Renderer::Renderer(Context *context) :
 		    //.setView("TAAOutput")
 		    //.setOutput("TAAOutput");
 
-		    .addRenderPass("RandomVis", std::make_unique<pass::RandomVis>())
-		    .addRenderPass("PathTracing", std::make_unique<pass::PathTracing>())
-		    .setView("PathTracing")
-		    .setOutput("PathTracing");
+		    .addRenderPass("Whitted", std::make_unique<pass::Whitted>())
+		    .setView("Whitted")
+		    .setOutput("Whitted");
 	};
 
 	buildRenderGraph = DeferredRendering;

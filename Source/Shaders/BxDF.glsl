@@ -1,7 +1,8 @@
 #ifndef _BXDF_GLSL_
 #define _BXDF_GLSL_
 
-#define PI 3.141592653589793
+#include "Geometry.glsl"
+
 /*
 struct BxDFContext
 {
@@ -419,5 +420,16 @@ vec3 CookTorranceBRDF(vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y, MaterialData mater
 
 	return Kd * LambertianDiffuse(Cdlin) + specular;
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////
+// BxDF
+// vec3 f(vec3 wo, vec3 wi)
+
+
+
+
+
+
+
 
 #endif

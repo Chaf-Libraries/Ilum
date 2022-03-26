@@ -6,15 +6,6 @@
 #include "../GlobalBuffer.glsl"
 #include "RayTracing.glsl"
 
-struct Vertex
-{
-	vec4 position;
-	vec4 texcoord;
-	vec4 normal;
-	vec4 tangent;
-	vec4 bitangent;
-};
-
 layout(set = 0, binding = 3) readonly buffer Vertices 
 {
 	Vertex vertices[]; 

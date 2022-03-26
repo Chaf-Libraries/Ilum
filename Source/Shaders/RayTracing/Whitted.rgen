@@ -1,0 +1,54 @@
+#version 460
+#extension GL_EXT_ray_tracing : enable
+#extension GL_GOOGLE_include_directive : enable
+
+#include "../RayTracing.glsl"
+
+layout(location = 0) rayPayloadEXT RayPayload ray_payload;
+layout(location = 1) rayPayloadEXT ShadowPayload shadow_payload;
+
+void main() 
+{
+	const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
+	const vec2 screen_coords = pixelCenter / vec2(gl_LaunchSizeEXT.xy) * 2.0 - 1.0;
+
+	Ray ray = CameraCastRay(camera_data, screen_coords);
+
+	vec3 L = vec3(0.0, 0.0, 0.0);
+
+	//for(int depth = 0; depth < 5; depth++)
+	{
+		// Spawn a ray
+		ray_payload.hitT = 100000.0;
+		traceRayEXT(topLevelAS,   // acceleration structure
+				gl_RayFlagsCullBackFacingTrianglesEXT,     // rayFlags
+				0xFF,         // cullMask
+				0,            // sbtRecordOffset
+				0,            // sbtRecordStride
+				0,            // missIndex
+				ray.origin,     // ray origin
+				ray.tmin,          // ray min range
+				ray.direction,  // ray direction
+				ray.tmax,     // ray max range
+				0             // payload (location = 0)
+		);
+
+		Interaction interaction = GetInteraction(ray_payload);
+
+		L = interaction.normal;
+	}
+	
+	ivec2 launch_id = ivec2(gl_LaunchIDEXT.x, gl_LaunchSizeEXT.y - gl_LaunchIDEXT.y);
+
+	if(camera_data.frame_num == 0)
+	{
+		imageStore(Image, launch_id, vec4(L, 1.0));
+	}
+	else
+	{
+		vec3 prev_color = imageLoad(Image, launch_id).rgb;
+		vec3 accumulated_color = prev_color + (L - prev_color) / float(camera_data.frame_num);
+
+		imageStore(Image, launch_id, vec4(accumulated_color, 1.0));
+	}
+}

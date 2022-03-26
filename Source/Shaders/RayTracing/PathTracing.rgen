@@ -12,12 +12,6 @@ layout(set = 0, binding = 2) uniform CameraBuffer
 	CameraData camera_data;
 };
 
-/*layout(push_constant) uniform PushBlock
-{
-	uint num_frames;
-	uint max_ray_bounces;
-}push_data;*/
-
 layout(location = 0) rayPayloadEXT HitPayLoad prd;
 
 void main() 
