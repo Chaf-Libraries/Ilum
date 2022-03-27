@@ -18,12 +18,12 @@ layout(location = 1) rayPayloadEXT ShadowPayload shadow_payload;
 
 bool Unoccluded(VisibilityTester vis)
 {
-	shadow_payload.visibility = true;
+	shadow_payload.visibility = false;
 	Ray shadow_ray;
 	shadow_ray.direction = normalize(vis.to.position - vis.from.position);
 	shadow_ray.origin    = OffsetRay(vis.from.position, dot(shadow_ray.direction, vis.from.normal) > 0 ? vis.from.normal : -vis.from.normal);
 	shadow_ray.tmin      = 0.0;
-	shadow_ray.tmax      = length(vis.to.position - vis.from.position)-1.0;
+	shadow_ray.tmax      = length(vis.to.position - vis.from.position);
 
 	// Trace shadow ray
 	traceRayEXT(topLevelAS,                                                                                                            // acceleration structure
@@ -42,6 +42,52 @@ bool Unoccluded(VisibilityTester vis)
 	return shadow_payload.visibility;
 }
 
+bool Unoccluded(Interaction from, vec3 dir, float dist)
+{
+	shadow_payload.visibility = false;
+	Ray shadow_ray;
+	shadow_ray.direction = normalize(dir);
+	shadow_ray.origin    = OffsetRay(from.position, dot(shadow_ray.direction, from.normal) > 0 ? from.normal : -from.normal);
+	shadow_ray.tmin      = 0.0;
+	shadow_ray.tmax      = dist;
+
+	// Trace shadow ray
+	traceRayEXT(topLevelAS,                                                                                                            // acceleration structure
+	            gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT | gl_RayFlagsSkipClosestHitShaderEXT | gl_RayFlagsCullBackFacingTrianglesEXT,        // rayFlags
+	            0xFF,                                                                                                                  // cullMask
+	            0,                                                                                                                     // sbtRecordOffset
+	            0,                                                                                                                     // sbtRecordStride
+	            1,                                                                                                                     // missIndex
+	            shadow_ray.origin,                                                                                                     // ray origin
+	            shadow_ray.tmin,                                                                                                       // ray min range
+	            shadow_ray.direction,                                                                                                  // ray direction
+	            shadow_ray.tmax,                                                                                                       // ray max range
+	            1                                                                                                                      // payload (location = 1)
+	);
+
+	return shadow_payload.visibility;
+}
+
+bool IntersectScene(Ray ray)
+{
+	// Spawn a ray
+	ray_payload.hitT = Infinity;
+	traceRayEXT(topLevelAS,   // acceleration structure
+			gl_RayFlagsCullBackFacingTrianglesEXT,     // rayFlags
+			0xFF,         // cullMask
+			0,            // sbtRecordOffset
+			0,            // sbtRecordStride
+			0,            // missIndex
+			ray.origin,     // ray origin
+			ray.tmin,          // ray min range
+			ray.direction,  // ray direction
+			ray.tmax,     // ray max range
+			0             // payload (location = 0)
+	);
+
+	return ray_payload.hitT != Infinity;
+}
+
 void main() 
 {
 	const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
@@ -50,118 +96,93 @@ void main()
 
 	Ray ray = CameraCastRay(camera_data, screen_coords);
 
-	vec3 Result = vec3(0.0, 0.0, 0.0);
+	vec3 radiance = vec3(0.0);
+	vec3 throughout = vec3(1.0);
+	vec3 absorption = vec3(0.0);
 
 	for(int depth = 0; depth < 5; depth++)
 	{
-		// Spawn a ray
-		ray_payload.hitT = Infinity;
-		traceRayEXT(topLevelAS,   // acceleration structure
-				gl_RayFlagsCullBackFacingTrianglesEXT,     // rayFlags
-				0xFF,         // cullMask
-				0,            // sbtRecordOffset
-				0,            // sbtRecordStride
-				0,            // missIndex
-				ray.origin,     // ray origin
-				ray.tmin,          // ray min range
-				ray.direction,  // ray direction
-				ray.tmax,     // ray max range
-				0             // payload (location = 0)
-		);
-
 		// Hit environment
-		if(ray_payload.hitT == Infinity)
+		if(!IntersectScene(ray))
 		{
-			Result += 10 * texture(Skybox, ray.direction).rgb;
+			radiance += texture(Skybox, ray.direction).rgb;
 			break;
+		}
+
+		Interaction interaction = GetInteraction(ray_payload);
+
+		vec3 n = interaction.normal;
+		vec3 wo = -ray.direction;
+
+		LambertianReflection bxdf;
+		if(interaction.material.textures[TEXTURE_BASE_COLOR] < 1024)
+		{
+			bxdf.R = texture(texture_array[nonuniformEXT(interaction.material.textures[TEXTURE_BASE_COLOR])], interaction.texcoord).rgb;
 		}
 		else
 		{
-			Interaction interaction = GetInteraction(ray_payload);
+			bxdf.R = interaction.material.base_color.rgb;
+		}
 
-			// Add contribution of each point light source
-			for(uint i = 0; i < push_data.point_light_count; i++)
+		// Add contribution of each point light source
+		for(uint i = 0; i < push_data.point_light_count; i++)
+		{
+			vec3 wi;
+			float pdf;
+			VisibilityTester vis;
+			vec3 Li = Sample_Li(point_lights[i], interaction, rand2(ray_payload.seed), wi, pdf, vis);
+			if(Li == vec3(0.0) || pdf == 0)
 			{
-				vec3 wi;
-				float pdf;
-				VisibilityTester vis;
-				vec3 Li = Sample_Li(point_lights[i], interaction, rand3(ray_payload.seed), wi, pdf, vis);
-				if(Li == vec3(0.0) || pdf == 0)
-				{
-					continue;
-				}
-				vec3 base_color = vec3(0.0);
-				if(interaction.material.textures[TEXTURE_BASE_COLOR] < 1024)
-				{
-					base_color = texture(texture_array[nonuniformEXT(interaction.material.textures[TEXTURE_BASE_COLOR])], interaction.texcoord).rgb;
-				}
-				else
-				{
-					base_color = interaction.material.base_color.rgb;
-				}
-				if(Li != vec3(0.0) && !Unoccluded(vis))
-				{
-					Result += base_color * Li * abs(dot(wi, interaction.normal)) / pdf;
-				}
+				continue;
 			}
 
-			ray.direction = SampleCosineHemisphere(rand2(ray_payload.seed));
-			ray.origin = OffsetRay(interaction.position, dot(ray.direction, interaction.normal) > 0 ? interaction.normal : -interaction.normal);
-
-			/*for(uint i = 0; i < push_data.point_light_count; i++)
+			if(Li != vec3(0.0) && Unoccluded(vis))
 			{
-				PointLight light = point_lights[i];
-
-				// Prepare shadow ray
-				shadow_payload.visibility = 1.0;
-				Ray shadow_ray;
-				shadow_ray.direction = normalize(light.position - interaction.position);
-				shadow_ray.origin = OffsetRay(interaction.position, dot(shadow_ray.direction, interaction.normal) > 0 ? interaction.normal : -interaction.normal);
-				shadow_ray.tmin = 0.0;
-				shadow_ray.tmax = length(light.position - interaction.position);
-
-				// Trace shadow ray
-				traceRayEXT(topLevelAS,   // acceleration structure
-					gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsSkipClosestHitShaderEXT | gl_RayFlagsCullBackFacingTrianglesEXT,     // rayFlags
-					0xFF,         // cullMask
-					0,            // sbtRecordOffset
-					0,            // sbtRecordStride
-					1,            // missIndex
-					shadow_ray.origin,     // ray origin
-					shadow_ray.tmin,          // ray min range
-					shadow_ray.direction,  // ray direction
-					shadow_ray.tmax,     // ray max range
-					1             // payload (location = 1)
-				);
-
-				// Light contribution
-				if(shadow_payload.visibility == 0.0)
-				{
-					vec3 L = normalize(light.position - interaction.position);
-					float d = length(light.position - interaction.position);
-					float NoL = max(0.0, dot(interaction.normal, L));
-					float Fatt = 1.0/(light.constant + light.linear_ * d + light.quadratic * d * d);
-					vec3 radiance = light.color.rgb * light.intensity * Fatt;
-
-					vec3 base_color = vec3(0.0);
-					if(interaction.material.textures[TEXTURE_BASE_COLOR] < 1024)
-					{
-						base_color = texture(texture_array[nonuniformEXT(interaction.material.textures[TEXTURE_BASE_COLOR])], interaction.texcoord).rgb;
-					}
-					else
-					{
-						base_color = interaction.material.base_color.rgb;
-					}
-
-					Result += radiance * NoL/5.0*base_color;
-				}
-
-				// Trace next ray
-				//ray.direction = reflect(ray.direction, interaction.normal);
-				ray.direction = SampleCosineHemisphere(rand2(ray_payload.seed));
-				ray.origin = OffsetRay(interaction.position, dot(ray.direction, interaction.normal) > 0 ? interaction.normal : -interaction.normal);
-			}*/
+				vec3 f = Distribution(bxdf, wo, wi);
+				radiance += f * Li * abs(dot(wi, interaction.normal)) / pdf;
+			}
 		}
+
+		// Add contribution of each point light source
+		for(uint i = 0; i < push_data.spot_light_count; i++)
+		{
+			vec3 wi;
+			float pdf;
+			VisibilityTester vis;
+			vec3 Li = Sample_Li(spot_lights[i], interaction, rand2(ray_payload.seed), wi, pdf, vis);
+			if(Li == vec3(0.0) || pdf == 0)
+			{
+				continue;
+			}
+
+			if(Li != vec3(0.0) && Unoccluded(vis))
+			{
+				vec3 f = Distribution(bxdf, wo, wi);
+				radiance += f * Li * abs(dot(wi, interaction.normal)) / pdf;
+			}
+		}
+
+		// Add contribution of each point light source
+		for(uint i = 0; i < push_data.directional_light_count; i++)
+		{
+			vec3 wi;
+			float pdf;
+			VisibilityTester vis;
+			vec3 Li = Sample_Li(directional_lights[i], interaction, rand2(ray_payload.seed), wi, pdf, vis);
+			if(Li == vec3(0.0) || pdf == 0)
+			{
+				continue;
+			}
+
+			if(Li != vec3(0.0) && Unoccluded(interaction, -directional_lights[i].direction, Infinity))
+			{
+				vec3 f = Distribution(bxdf, wo, wi);
+				radiance += f * Li * abs(dot(wi, interaction.normal)) / pdf;
+			}
+		}
+
+		ray.direction = SampleCosineHemisphere(rand2(ray_payload.seed));
+		ray.origin = OffsetRay(interaction.position, dot(ray.direction, interaction.normal) > 0 ? interaction.normal : -interaction.normal);
 		
 	}
 	
@@ -169,12 +190,12 @@ void main()
 
 	if(camera_data.frame_num == 0)
 	{
-		imageStore(Image, launch_id, vec4(Result, 1.0));
+		imageStore(Image, launch_id, vec4(radiance, 1.0));
 	}
 	else
 	{
 		vec3 prev_color = imageLoad(Image, launch_id).rgb;
-		vec3 accumulated_color = prev_color + (Result - prev_color) / float(camera_data.frame_num);
+		vec3 accumulated_color = prev_color + (radiance - prev_color) / float(camera_data.frame_num);
 
 		imageStore(Image, launch_id, vec4(accumulated_color, 1.0));
 	}

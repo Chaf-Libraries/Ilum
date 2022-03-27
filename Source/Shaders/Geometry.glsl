@@ -8,7 +8,7 @@ const float Inv4PI         = 0.07957747154594766788;
 const float PIOver2        = 1.57079632679489661923;
 const float PIOver4        = 0.78539816339744830961;
 const float Sqrt2          = 1.41421356237309504880;
-const float Infinity        = 1.0 / 0.0;
+const float Infinity       = 1e32;
 
 const float ShadowEpsilon = 0.0001;
 
@@ -28,5 +28,20 @@ struct Vertex
 	vec4 tangent;
 	vec4 bitangent;
 };
+
+float AbsCosTheta(vec3 w)
+{
+	return abs(w.z);
+}
+
+float CosTheta(vec3 w)
+{
+	return w.z;
+}
+
+bool SameHemisphere(vec3 w, vec3 wp)
+{
+	return w.z * wp.z > 0;
+}
 
 #endif

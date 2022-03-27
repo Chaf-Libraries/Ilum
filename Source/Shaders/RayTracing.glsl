@@ -5,6 +5,7 @@
 #include "GlobalBuffer.glsl"
 #include "Interaction.glsl"
 #include "Random.glsl"
+#include "BxDF.glsl"
 #include "Sampling.glsl"
 
 layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;

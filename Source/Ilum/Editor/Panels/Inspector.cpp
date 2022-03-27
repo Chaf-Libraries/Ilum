@@ -123,7 +123,7 @@ inline void select_material()
 }
 
 template <typename T, typename Callback>
-inline void draw_component(const std::string &name, Entity entity, Callback callback, bool static_mode = false)
+inline bool draw_component(const std::string &name, Entity entity, Callback callback, bool static_mode = false)
 {
 	const ImGuiTreeNodeFlags tree_node_flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
 	if (entity.hasComponent<T>())
@@ -146,17 +146,24 @@ inline void draw_component(const std::string &name, Entity entity, Callback call
 			}
 		}
 
+		bool update = false;
+
 		if (open)
 		{
-			callback(component);
+			update = callback(component);
 			ImGui::TreePop();
 		}
 
 		if (remove_component)
 		{
 			entity.removeComponent<T>();
+			update = true;
 		}
+
+		return update;
 	}
+
+	return false;
 }
 
 template <typename T>
@@ -276,9 +283,8 @@ inline void draw_material<BxDFType::CookTorrance>(Material &material)
 }
 
 template <>
-inline void draw_material<BxDFType::Glass>(Material& material)
+inline void draw_material<BxDFType::Glass>(Material &material)
 {
-
 }
 
 template <>
@@ -357,20 +363,24 @@ inline void add_component()
 }
 
 template <typename T>
-inline void draw_component(Entity entity)
+inline bool draw_component(Entity entity)
 {
+	return false;
 }
 
 template <typename T1, typename T2, typename... Tn>
-inline void draw_component(Entity entity)
+inline bool draw_component(Entity entity)
 {
-	draw_component<T1>(entity);
-	draw_component<T2, Tn...>(entity);
+	bool update = false;
+	update      = draw_component<T1>(entity) || update;
+	update      = draw_component<T2, Tn...>(entity) || update;
+	return update;
 }
 
 template <>
-inline void draw_component<cmpt::Tag>(Entity entity)
+inline bool draw_component<cmpt::Tag>(Entity entity)
 {
+	bool update = false;
 	if (entity.hasComponent<cmpt::Tag>())
 	{
 		ImGui::Text("Tag");
@@ -383,40 +393,44 @@ inline void draw_component<cmpt::Tag>(Entity entity)
 		ImGui::PushItemWidth(150.f);
 		if (ImGui::InputText("##Tag", buffer, sizeof(buffer)))
 		{
-			tag = std::string(buffer);
+			tag    = std::string(buffer);
+			update = true;
 		}
 		ImGui::PopItemWidth();
 	}
+	return update;
 }
 
 template <>
-inline void draw_component<cmpt::Transform>(Entity entity)
+inline bool draw_component<cmpt::Transform>(Entity entity)
 {
-	draw_component<cmpt::Transform>(
+	return draw_component<cmpt::Transform>(
 	    "Transform", entity, [](cmpt::Transform &component) {
 		    component.update = draw_vec3_control("Translation", component.translation, 0.f) || component.update;
 		    component.update = draw_vec3_control("Rotation", component.rotation, 0.f) || component.update;
 		    component.update = draw_vec3_control("Scale", component.scale, 1.f) || component.update;
+		    return component.update;
 	    },
 	    true);
 }
 
 template <>
-inline void draw_component<cmpt::Hierarchy>(Entity entity)
+inline bool draw_component<cmpt::Hierarchy>(Entity entity)
 {
-	draw_component<cmpt::Hierarchy>(
+	return draw_component<cmpt::Hierarchy>(
 	    "Hierarchy", entity, [](auto &component) {
 		    ImGui::Text("Parent: %s", component.parent == entt::null ? "false" : "true");
 		    ImGui::Text("Children: %s", component.first == entt::null ? "false" : "true");
 		    ImGui::Text("Siblings: %s", component.next == entt::null && component.prev == entt::null ? "false" : "true");
+		    return false;
 	    },
 	    true);
 }
 
 template <>
-inline void draw_component<cmpt::StaticMeshRenderer>(Entity entity)
+inline bool draw_component<cmpt::StaticMeshRenderer>(Entity entity)
 {
-	draw_component<cmpt::StaticMeshRenderer>(
+	return draw_component<cmpt::StaticMeshRenderer>(
 	    "StaticMeshRenderer", entity, [](cmpt::StaticMeshRenderer &component) {
 		    ImGui::Text("Model: ");
 		    ImGui::SameLine();
@@ -491,13 +505,14 @@ inline void draw_component<cmpt::StaticMeshRenderer>(Entity entity)
 				    }
 			    }
 		    }
+		    return cmpt::StaticMeshRenderer::update || Material::update;
 	    });
 }
 
 template <>
-inline void draw_component<cmpt::DynamicMeshRenderer>(Entity entity)
+inline bool draw_component<cmpt::DynamicMeshRenderer>(Entity entity)
 {
-	draw_component<cmpt::DynamicMeshRenderer>("DynamicMeshRenderer", entity, [](cmpt::DynamicMeshRenderer &component) {
+	return draw_component<cmpt::DynamicMeshRenderer>("DynamicMeshRenderer", entity, [](cmpt::DynamicMeshRenderer &component) {
 		const char *const mesh_names[] = {"None", "Model", "Sphere", "Plane"};
 		int               current      = static_cast<int>(component.type);
 		if (ImGui::Combo("Type", &current, mesh_names, 4) && current != static_cast<int>(component.type))
@@ -545,13 +560,15 @@ inline void draw_component<cmpt::DynamicMeshRenderer>(Entity entity)
 		ImGui::Text("indices count: %d", component.indices.size());
 
 		draw_material(component.material);
+
+		return component.need_update || Material::update;
 	});
 }
 
 template <>
-inline void draw_component<cmpt::CurveRenderer>(Entity entity)
+inline bool draw_component<cmpt::CurveRenderer>(Entity entity)
 {
-	draw_component<cmpt::CurveRenderer>("CurveRenderer", entity, [](cmpt::CurveRenderer &component) {
+	return draw_component<cmpt::CurveRenderer>("CurveRenderer", entity, [](cmpt::CurveRenderer &component) {
 		const char *const curve_names[] = {"None", "Bezier Curve", "B Spline", "Cubic Spline", "Rational Bezier", "Rational B Spline"};
 		int               current       = static_cast<int>(component.type);
 		if (ImGui::Combo("Type", &current, curve_names, 6) && current != static_cast<int>(component.type))
@@ -619,13 +636,15 @@ inline void draw_component<cmpt::CurveRenderer>(Entity entity)
 			component.weights.push_back(1.f);
 			component.need_update = true;
 		}
+
+		return component.need_update;
 	});
 }
 
 template <>
-inline void draw_component<cmpt::SurfaceRenderer>(Entity entity)
+inline bool draw_component<cmpt::SurfaceRenderer>(Entity entity)
 {
-	draw_component<cmpt::SurfaceRenderer>("SurfaceRenderer", entity, [](cmpt::SurfaceRenderer &component) {
+	return draw_component<cmpt::SurfaceRenderer>("SurfaceRenderer", entity, [](cmpt::SurfaceRenderer &component) {
 		const char *const surface_names[] = {
 		    "None",
 		    "Bezier Surface",
@@ -753,78 +772,94 @@ inline void draw_component<cmpt::SurfaceRenderer>(Entity entity)
 				component.need_update = true;
 			}
 		}
+
+		return component.need_update;
 	});
 }
 
 template <>
-inline void draw_component<cmpt::DirectionalLight>(Entity entity)
+inline bool draw_component<cmpt::DirectionalLight>(Entity entity)
 {
-	draw_component<cmpt::DirectionalLight>("Directional Light", entity, [](cmpt::DirectionalLight &component) {
-		ImGui::DragFloat("Intensity", &component.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-		ImGui::ColorEdit3("Color", glm::value_ptr(component.color));
-		ImGui::DragFloat3("Direction", glm::value_ptr(component.direction), 0.01f, -1.f, 1.f, "%.3f");
-		// Shadow
-		ImGui::Text("Shadow Setting");
-		const char *const shadow_mode[] = {"No Shadow", "Hard Shadow", "PCF", "PCSS"};
-		ImGui::Combo("Shadow Mode", &component.shadow_mode, shadow_mode, 4);
+	return draw_component<cmpt::DirectionalLight>("Directional Light", entity, [](cmpt::DirectionalLight &component) {
 		const char *const sample_method[] = {"Uniform", "Possion"};
-		ImGui::Combo("Sample method", &component.sample_method, sample_method, 2);
-		ImGui::DragInt("Samples", &component.filter_sample, 0.1f, 0, std::numeric_limits<int32_t>::max());
-		ImGui::DragFloat("Scale", &component.filter_scale, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
-		ImGui::DragFloat("Light size", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
-	});
-}
+		const char *const shadow_mode[]   = {"No Shadow", "Hard Shadow", "PCF", "PCSS"};
 
-template <>
-inline void draw_component<cmpt::SpotLight>(Entity entity)
-{
-	draw_component<cmpt::SpotLight>("Spot Light", entity, [](cmpt::SpotLight &component) {
-		ImGui::DragFloat("Intensity", &component.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-		ImGui::ColorEdit3("Color", glm::value_ptr(component.color));
-		ImGui::DragFloat3("Direction", glm::value_ptr(component.direction), 0.01f, -1.f, 1.f, "%.3f");
-		ImGui::DragFloat("Cut off", &component.cut_off, 0.0001f, 0.f, 1.f, "%.5f");
-		ImGui::DragFloat("Outer cut off", &component.outer_cut_off, 0.0001f, 0.f, component.cut_off, "%.5f");
-		// Shadow
+		bool update = false;
+
+		update = ImGui::DragFloat("Intensity", &component.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
+		update = ImGui::ColorEdit3("Color", glm::value_ptr(component.color)) || update;
+		update = ImGui::DragFloat3("Direction", glm::value_ptr(component.direction), 0.01f, -1.f, 1.f, "%.3f") || update;
 		ImGui::Text("Shadow Setting");
-		const char *const shadow_mode[] = {"No Shadow", "Hard Shadow", "PCF", "PCSS"};
-		ImGui::Combo("Shadow Mode", &component.shadow_mode, shadow_mode, 4);
-		const char *const sample_method[] = {"Uniform", "Possion"};
-		ImGui::Combo("Sample method", &component.sample_method, sample_method, 2);
-		ImGui::DragInt("Samples", &component.filter_sample, 0.1f, 0, std::numeric_limits<int32_t>::max());
-		ImGui::DragFloat("Scale", &component.filter_scale, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
-		ImGui::DragFloat("Light size", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
+		update = ImGui::Combo("Shadow Mode", &component.shadow_mode, shadow_mode, 4) || update;
+		update = ImGui::Combo("Sample method", &component.sample_method, sample_method, 2) || update;
+		update = ImGui::DragInt("Samples", &component.filter_sample, 0.1f, 0, std::numeric_limits<int32_t>::max()) || update;
+		update = ImGui::DragFloat("Scale", &component.filter_scale, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
+		update = ImGui::DragFloat("Light size", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
+
+		return update;
 	});
 }
 
 template <>
-inline void draw_component<cmpt::PointLight>(Entity entity)
+inline bool draw_component<cmpt::SpotLight>(Entity entity)
 {
-	draw_component<cmpt::PointLight>("Point Light", entity, [](cmpt::PointLight &component) {
-		ImGui::DragFloat("Intensity", &component.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-		ImGui::ColorEdit3("Color", glm::value_ptr(component.color));
-		ImGui::DragFloat("Constant", &component.constant, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
-		ImGui::DragFloat("Linear", &component.linear, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
-		ImGui::DragFloat("Quadratic", &component.quadratic, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f");
-		// Shadow
+	return draw_component<cmpt::SpotLight>("Spot Light", entity, [](cmpt::SpotLight &component) {
+		const char *const shadow_mode[]   = {"No Shadow", "Hard Shadow", "PCF", "PCSS"};
+		const char *const sample_method[] = {"Uniform", "Possion"};
+
+		bool update = false;
+
+		update = ImGui::DragFloat("Intensity", &component.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
+		update = ImGui::ColorEdit3("Color", glm::value_ptr(component.color)) || update;
+		update = ImGui::DragFloat3("Direction", glm::value_ptr(component.direction), 0.01f, -1.f, 1.f, "%.3f") || update;
+		update = ImGui::DragFloat("Cut off", &component.cut_off, 0.0001f, 0.f, 1.f, "%.5f") || update;
+		update = ImGui::DragFloat("Outer cut off", &component.outer_cut_off, 0.0001f, 0.f, component.cut_off, "%.5f") || update;
 		ImGui::Text("Shadow Setting");
-		const char *const shadow_mode[] = {"No Shadow", "Hard Shadow", "PCF", "PCSS"};
-		ImGui::Combo("Shadow Mode", &component.shadow_mode, shadow_mode, 4);
-		const char *const sample_method[] = {"Uniform", "Possion"};
-		ImGui::Combo("Sample method", &component.sample_method, sample_method, 2);
-		ImGui::DragInt("Samples", &component.filter_sample, 0.1f, 0, std::numeric_limits<int32_t>::max());
-		ImGui::DragFloat("Scale", &component.filter_scale, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
-		ImGui::DragFloat("Light size", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
+		update = ImGui::Combo("Shadow Mode", &component.shadow_mode, shadow_mode, 4) || update;
+		update = ImGui::Combo("Sample method", &component.sample_method, sample_method, 2) || update;
+		update = ImGui::DragInt("Samples", &component.filter_sample, 0.1f, 0, std::numeric_limits<int32_t>::max()) || update;
+		update = ImGui::DragFloat("Scale", &component.filter_scale, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
+		update = ImGui::DragFloat("Light size", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
+
+		return update;
 	});
 }
 
 template <>
-inline void draw_component<cmpt::PerspectiveCamera>(Entity entity)
+inline bool draw_component<cmpt::PointLight>(Entity entity)
 {
-	draw_component<cmpt::PerspectiveCamera>("Perspective Camera", entity, [entity](cmpt::PerspectiveCamera &component) {
-		ImGui::DragFloat("Aspect", &component.aspect, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-		ImGui::DragFloat("Fov", &component.fov, 0.01f, 0.f, 90.f, "%.3f");
-		ImGui::DragFloat("Near Plane", &component.near_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-		ImGui::DragFloat("Far Plane", &component.far_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	return draw_component<cmpt::PointLight>("Point Light", entity, [](cmpt::PointLight &component) {
+		const char *const shadow_mode[]   = {"No Shadow", "Hard Shadow", "PCF", "PCSS"};
+		const char *const sample_method[] = {"Uniform", "Possion"};
+
+		bool update = false;
+
+		update = ImGui::DragFloat("Intensity", &component.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
+		update = ImGui::ColorEdit3("Color", glm::value_ptr(component.color)) || update;
+		update = ImGui::DragFloat("Constant", &component.constant, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f") || update;
+		update = ImGui::DragFloat("Linear", &component.linear, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f") || update;
+		update = ImGui::DragFloat("Quadratic", &component.quadratic, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f") || update;
+		ImGui::Text("Shadow Setting");
+		update = ImGui::Combo("Shadow Mode", &component.shadow_mode, shadow_mode, 4) || update;
+		update = ImGui::Combo("Sample method", &component.sample_method, sample_method, 2) || update;
+		update = ImGui::DragInt("Samples", &component.filter_sample, 0.1f, 0, std::numeric_limits<int32_t>::max()) || update;
+		update = ImGui::DragFloat("Scale", &component.filter_scale, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
+		update = ImGui::DragFloat("Light size", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
+
+		return update;
+	});
+}
+
+template <>
+inline bool draw_component<cmpt::PerspectiveCamera>(Entity entity)
+{
+	return draw_component<cmpt::PerspectiveCamera>("Perspective Camera", entity, [entity](cmpt::PerspectiveCamera &component) {
+		bool update = false;
+
+		update = ImGui::DragFloat("Aspect", &component.aspect, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
+		update = ImGui::DragFloat("Fov", &component.fov, 0.01f, 0.f, 90.f, "%.3f") || update;
+		update = ImGui::DragFloat("Near Plane", &component.near_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
+		update = ImGui::DragFloat("Far Plane", &component.far_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
 		bool select = entity == Renderer::instance()->Main_Camera;
 		if (ImGui::Checkbox("Main Camera", &select))
 		{
@@ -839,25 +874,34 @@ inline void draw_component<cmpt::PerspectiveCamera>(Entity entity)
 			{
 				Renderer::instance()->Main_Camera = Entity();
 			}
+
+			update = true;
 		}
+
+		return update;
 	});
 }
 
 template <>
-inline void draw_component<cmpt::OrthographicCamera>(Entity entity)
+inline bool draw_component<cmpt::OrthographicCamera>(Entity entity)
 {
-	draw_component<cmpt::OrthographicCamera>("Orthographic Camera", entity, [entity](cmpt::OrthographicCamera &component) {
-		ImGui::DragFloat("Left", &component.left, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f");
-		ImGui::DragFloat("Right", &component.right, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f");
-		ImGui::DragFloat("Bottom", &component.bottom, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f");
-		ImGui::DragFloat("Top", &component.top, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f");
-		ImGui::DragFloat("Near Plane", &component.near_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
-		ImGui::DragFloat("Far Plane", &component.far_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	return draw_component<cmpt::OrthographicCamera>("Orthographic Camera", entity, [entity](cmpt::OrthographicCamera &component) {
+		bool update = false;
+
+		update = ImGui::DragFloat("Left", &component.left, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f") || update;
+		update = ImGui::DragFloat("Right", &component.right, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f") || update;
+		update = ImGui::DragFloat("Bottom", &component.bottom, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f") || update;
+		update = ImGui::DragFloat("Top", &component.top, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f") || update;
+		update = ImGui::DragFloat("Near Plane", &component.near_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
+		update = ImGui::DragFloat("Far Plane", &component.far_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
 		bool select = entity == Renderer::instance()->Main_Camera;
 		if (ImGui::Checkbox("Main Camera", &select))
 		{
 			Renderer::instance()->Main_Camera = select ? entity : Entity();
+			update                            = true;
 		}
+
+		return update;
 	});
 }
 
@@ -898,8 +942,20 @@ void Inspector::draw(float delta_time)
 		ImGui::EndPopup();
 	}
 
-	draw_component<cmpt::Transform, cmpt::Hierarchy, cmpt::StaticMeshRenderer, cmpt::DynamicMeshRenderer, cmpt::CurveRenderer, cmpt::SurfaceRenderer,
-	               cmpt::DirectionalLight, cmpt::PointLight, cmpt::SpotLight, cmpt::PerspectiveCamera, cmpt::OrthographicCamera>(entity);
+	if (draw_component<cmpt::Transform, cmpt::Hierarchy, cmpt::StaticMeshRenderer, cmpt::DynamicMeshRenderer, cmpt::CurveRenderer, cmpt::SurfaceRenderer,
+	                   cmpt::DirectionalLight, cmpt::PointLight, cmpt::SpotLight, cmpt::PerspectiveCamera, cmpt::OrthographicCamera>(entity))
+	{
+		auto &camera_entity = Renderer::instance()->Main_Camera;
+
+		if (camera_entity && (camera_entity.hasComponent<cmpt::PerspectiveCamera>() || camera_entity.hasComponent<cmpt::OrthographicCamera>()))
+		{
+			cmpt::Camera *camera = camera_entity.hasComponent<cmpt::PerspectiveCamera>() ?
+                                       static_cast<cmpt::Camera *>(&camera_entity.getComponent<cmpt::PerspectiveCamera>()) :
+                                       static_cast<cmpt::Camera *>(&camera_entity.getComponent<cmpt::OrthographicCamera>());
+
+			camera->frame_count = 0;
+		}
+	}
 
 	ImGui::End();
 }

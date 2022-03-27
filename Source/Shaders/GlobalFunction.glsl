@@ -1,7 +1,7 @@
 #ifndef _GLOBAL_FUNCTION_GLSL_
 #define _GLOBAL_FUNCTION_GLSL_
 
-#define PI 3.141592653589793
+#include "Geometry.glsl"
 
 float RadicalInverse_VdC(uint bits)
 {

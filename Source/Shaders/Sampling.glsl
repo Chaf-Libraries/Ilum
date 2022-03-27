@@ -3,7 +3,7 @@
 
 #include "Geometry.glsl"
 #include "Interaction.glsl"
-#include "Lights.glsl"
+#include "GlobalBuffer.glsl"
 #include "Random.glsl"
 
 // Sampling Disk
@@ -80,7 +80,7 @@ float PowerHeuristic(int nf, float fPdf, int ng, float gPdf)
 }
 
 // Sampling Point Light
-vec3 Sample_Li(PointLight light, Interaction interaction, vec3 u, out vec3 wi, out float pdf, out VisibilityTester vis)
+vec3 Sample_Li(PointLight light, Interaction interaction, vec2 u, out vec3 wi, out float pdf, out VisibilityTester vis)
 {
 	wi  = normalize(light.position - interaction.position);
 	pdf = 1.0;
@@ -93,9 +93,63 @@ vec3 Sample_Li(PointLight light, Interaction interaction, vec3 u, out vec3 wi, o
 	return light.color.rgb * light.intensity * Fatt;
 }
 
-float Pdf_Li(Interaction interaction, vec3 wi)
+float Pdf_Li(PointLight light, Interaction interaction, vec3 wi)
 {
 	return 0.0;
 }
+
+float Power(PointLight light)
+{
+	return 4 * PI * light.intensity;
+}
+
+// Sampling Spot Light
+vec3 Sample_Li(SpotLight light, Interaction interaction, vec2 u, out vec3 wi, out float pdf, out VisibilityTester vis)
+{
+	wi  = normalize(light.position - interaction.position);
+	pdf = 1.0;
+
+	vis.from        = interaction;
+	vis.to.position = light.position;
+
+	vec3  L         = normalize(light.position - interaction.position);
+	float NoL       = max(0.0, dot(interaction.normal, L));
+	float theta     = dot(L, normalize(-light.direction));
+	float epsilon   = light.cut_off - light.outer_cut_off;
+	return light.color * light.intensity * clamp((theta - light.outer_cut_off) / epsilon, 0.0, 1.0);
+}
+
+float Pdf_Li(SpotLight light, Interaction interaction, vec3 wi)
+{
+	return 0.0;
+}
+
+float Power(SpotLight light)
+{
+	return light.intensity * 2.0 * PI * (1.0 - 0.5 * (light.cut_off - light.outer_cut_off));
+}
+
+// Sampling Directional Light
+vec3 Sample_Li(DirectionalLight light, Interaction interaction, vec2 u, out vec3 wi, out float pdf, out VisibilityTester vis)
+{
+	wi  = normalize(-light.direction);
+	pdf = 1.0;
+
+	vis.from        = interaction;
+	vis.to.position = interaction.position - normalize(light.direction) * Infinity;
+
+	return light.color.rgb * light.intensity;
+}
+
+float Pdf_Li(DirectionalLight light, Interaction interaction, vec3 wi)
+{
+	return 0.0;
+}
+
+float Power(DirectionalLight light)
+{
+	return Infinity;
+}
+
 
 #endif

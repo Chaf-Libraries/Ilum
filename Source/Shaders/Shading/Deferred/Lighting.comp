@@ -5,7 +5,6 @@
 
 #include "../../GlobalBuffer.glsl"
 #include "../../GlobalFunction.glsl"
-#include "../../Lights.glsl"
 #include "../../BxDF.glsl"
 
 const float CosineA0 = PI;
