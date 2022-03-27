@@ -10,6 +10,7 @@ layout(push_constant) uniform PushBlock
 	uint directional_light_count;
 	uint spot_light_count;
 	uint point_light_count;
+	int max_bounce;
 }
 push_data;
 
@@ -100,7 +101,7 @@ void main()
 	vec3 throughout = vec3(1.0);
 	vec3 absorption = vec3(0.0);
 
-	for(int depth = 0; depth < 5; depth++)
+	for(int depth = 0; depth < push_data.max_bounce; depth++)
 	{
 		// Hit environment
 		if(!IntersectScene(ray))

@@ -95,7 +95,12 @@ void Whitted::onImGui()
                                    static_cast<cmpt::Camera *>(&camera_entity.getComponent<cmpt::PerspectiveCamera>()) :
                                    static_cast<cmpt::Camera *>(&camera_entity.getComponent<cmpt::OrthographicCamera>());
 
-		ImGui::Text("Frames Number: %d", camera->frame_count);
+		ImGui::Text("SPP: %d", camera->frame_count);
+
+		if (ImGui::SliderInt("Max Bounce", &m_push_block.max_bounce, 1, 20))
+		{
+			camera->frame_count = 0;
+		}
 	}
 }
 }        // namespace Ilum::pass
