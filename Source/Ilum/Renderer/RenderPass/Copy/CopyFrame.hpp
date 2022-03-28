@@ -6,12 +6,12 @@
 
 namespace Ilum::pass
 {
-class CopyLastFrame : public TRenderPass<CopyLastFrame>
+class CopyFrame : public TRenderPass<CopyFrame>
 {
   public:
-	CopyLastFrame(const std::string &last_frame_name);
+	CopyFrame(const std::string &from, const std::string& to);
 
-	~CopyLastFrame() = default;
+	~CopyFrame() = default;
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -20,6 +20,7 @@ class CopyLastFrame : public TRenderPass<CopyLastFrame>
 	virtual void render(RenderPassState &state) override;
 
   private:
-	std::string m_last_frame_name;
+	std::string m_from;
+	std::string m_to;
 };
 }        // namespace Ilum::pass
