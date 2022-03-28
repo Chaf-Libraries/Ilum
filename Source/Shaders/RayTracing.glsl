@@ -1,60 +1,61 @@
 #ifndef _RAYTRACING_H
 #define _RAYTRACING_H
 
+#include "BxDF.glsl"
 #include "Geometry.glsl"
 #include "GlobalBuffer.glsl"
 #include "Interaction.glsl"
 #include "Random.glsl"
-#include "BxDF.glsl"
 #include "Sampling.glsl"
 
 layout(set = 0, binding = 0) uniform accelerationStructureEXT topLevelAS;
 
-layout(set = 0, binding = 1, rgba16f) uniform image2D Image;
+layout(set = 0, binding = 1, rgba16f) writeonly uniform image2D Image;
+layout(set = 0, binding = 2, rgba16f) readonly uniform image2D PrevImage;
 
-layout(set = 0, binding = 2) uniform CameraBuffer
+layout(set = 0, binding = 3) uniform CameraBuffer
 {
 	CameraData camera_data;
 };
 
-layout(set = 0, binding = 3) readonly buffer Vertices
+layout(set = 0, binding = 4) readonly buffer Vertices
 {
 	Vertex vertices[];
 };
 
-layout(set = 0, binding = 4) readonly buffer Indices
+layout(set = 0, binding = 5) readonly buffer Indices
 {
 	uint indices[];
 };
 
-layout(set = 0, binding = 5) buffer PerInstanceBuffer
+layout(set = 0, binding = 6) buffer PerInstanceBuffer
 {
 	PerInstanceData instance_data[];
 };
 
-layout(set = 0, binding = 6) buffer MaterialBuffer
+layout(set = 0, binding = 7) buffer MaterialBuffer
 {
 	MaterialData material_data[];
 };
 
-layout(set = 0, binding = 7) uniform sampler2D texture_array[];
+layout(set = 0, binding = 8) uniform sampler2D texture_array[];
 
-layout(set = 0, binding = 8) buffer DirectionalLights
+layout(set = 0, binding = 9) buffer DirectionalLights
 {
 	DirectionalLight directional_lights[];
 };
 
-layout(set = 0, binding = 9) buffer PointLights
+layout(set = 0, binding = 10) buffer PointLights
 {
 	PointLight point_lights[];
 };
 
-layout(set = 0, binding = 10) buffer SpotLights
+layout(set = 0, binding = 11) buffer SpotLights
 {
 	SpotLight spot_lights[];
 };
 
-layout(set = 0, binding = 11) uniform samplerCube Skybox;
+layout(set = 0, binding = 12) uniform samplerCube Skybox;
 
 struct RayPayload
 {
@@ -101,6 +102,20 @@ vec3 OffsetRay(in vec3 p, in vec3 n)
 	return vec3(abs(p.x) < origin ? p.x + floatScale * n.x : p_i.x,
 	            abs(p.y) < origin ? p.y + floatScale * n.y : p_i.y,
 	            abs(p.z) < origin ? p.z + floatScale * n.z : p_i.z);
+}
+
+void CreateCoordinateSystem(in vec3 N, out vec3 Nt, out vec3 Nb)
+{
+	// http://www.pbr-book.org/3ed-2018/Geometry_and_Transformations/Vectors.html#CoordinateSystemfromaVector
+	//if(abs(N.x) > abs(N.y))
+	//  Nt = vec3(-N.z, 0, N.x) / sqrt(N.x * N.x + N.z * N.z);
+	//else
+	//  Nt = vec3(0, N.z, -N.y) / sqrt(N.y * N.y + N.z * N.z);
+	//Nb = cross(N, Nt);
+
+	Nt = normalize(((abs(N.z) > 0.99999f) ? vec3(-N.x * N.y, 1.0f - N.y * N.y, -N.y * N.z) :
+                                            vec3(-N.x * N.z, -N.y * N.z, 1.0f - N.z * N.z)));
+	Nb = cross(Nt, N);
 }
 
 
@@ -162,6 +177,14 @@ Interaction GetInteraction(in RayPayload prd)
 	interaction.tangent     = world_tangent;
 	interaction.bitangent   = world_bitangent;
 	interaction.material    = material_data[instance_id];
+
+	// Update normal from normal map
+	if (interaction.material.textures[TEXTURE_NORMAL] < 1024)
+	{
+		vec3 normal        = normalize(textureLod(texture_array[nonuniformEXT(interaction.material.textures[TEXTURE_NORMAL])], interaction.texcoord, 0).xyz * 2.0 - 1.0);
+		mat3 TBN           = mat3(interaction.tangent, interaction.bitangent, interaction.normal);
+		interaction.normal = normalize(TBN * normal);
+	}
 
 	if (dot(interaction.normal, interaction.geom_normal) <= 0)
 	{

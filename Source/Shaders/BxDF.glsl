@@ -441,14 +441,14 @@ struct FresnelDielectric
 
 vec3 Evaluate(FresnelConductor fresnel, float cosThetaI)
 {
-	cosThetaI     = clamp(cosThetaI, -1, 1);
+	cosThetaI = clamp(cosThetaI, -1, 1);
 	vec3 eta  = fresnel.etaT / fresnel.etaI;
-	vec3 etak     = fresnel.k / fresnel.etaI;
+	vec3 etak = fresnel.k / fresnel.etaI;
 
-	float    cosThetaI2 = cosThetaI * cosThetaI;
+	float cosThetaI2 = cosThetaI * cosThetaI;
 	float sinThetaI2 = 1. - cosThetaI2;
-	vec3 eta2       = eta * eta;
-	vec3 etak2      = etak * etak;
+	vec3  eta2       = eta * eta;
+	vec3  etak2      = etak * etak;
 
 	vec3 t0       = eta2 - etak2 - sinThetaI2;
 	vec3 a2plusb2 = sqrt(t0 * t0 + 4 * eta2 * etak2);
@@ -472,7 +472,7 @@ vec3 Evaluate(FresnelDielectric fresnel, float cosThetaI)
 	if (cosThetaI > 0.f)
 	{
 		// Swap
-		float temp = fresnel.etaI;
+		float temp   = fresnel.etaI;
 		fresnel.etaI = fresnel.etaT;
 		fresnel.etaT = temp;
 		cosThetaI    = abs(cosThetaI);
@@ -500,12 +500,17 @@ vec3 Evaluate(float cosThetaI)
 	return vec3(1.0);
 }
 
-////////////// Reflection //////////////
+////////////// Reflection Model //////////////
 // Lambertian Reflection
 struct LambertianReflection
 {
 	vec3 R;
 };
+
+void Init(out LambertianReflection bxdf, vec3 base_color)
+{
+	bxdf.R = base_color;
+}
 
 vec3 Distribution(LambertianReflection bxdf, vec3 wo, vec3 wi)
 {
@@ -520,7 +525,71 @@ float Pdf(LambertianReflection bxdf, vec3 wo, vec3 wi)
 vec3 SampleDistribution(in LambertianReflection bxdf, in vec3 wo, uint seed, out vec3 wi, out float pdf)
 {
 	wi = SampleCosineHemisphere(rand2(seed));
-	if (wo.z > 0.0)
+	if (wo.z < 0.0)
+	{
+		wi.z *= -1.0;
+	}
+	pdf = Pdf(bxdf, wo, wi);
+	return Distribution(bxdf, wo, wi);
+}
+
+// OrenNayar Reflection
+struct OrenNayar
+{
+	vec3  R;
+	float A, B;
+};
+
+void Init(out OrenNayar bxdf, vec3 R, float sigma)
+{
+	bxdf.R       = R;
+	sigma        = Radians(sigma);
+	float sigma2 = sigma * sigma;
+	bxdf.A       = 1.0 - sigma2 / (2.0 * (sigma2 + 0.33));
+	bxdf.B       = 0.45 * sigma2 / (sigma2 + 0.09);
+}
+
+vec3 Distribution(OrenNayar bxdf, vec3 wo, vec3 wi)
+{
+	float sinThetaI = SinTheta(wi);
+	float sinThetaO = SinTheta(wo);
+
+	float maxCos = 0;
+	if (sinThetaI > 1e-4 && sinThetaO > 1e-4)
+	{
+		float sinPhiI = SinPhi(wi);
+		float cosPhiI = CosPhi(wi);
+		float sinPhiO = SinPhi(wo);
+		float cosPhiO = CosPhi(wo);
+
+		float dCos = cosPhiI * cosPhiO + sinPhiI * sinPhiO;
+		maxCos     = max(0.0, dCos);
+	}
+
+	float sinAlpha, tanBeta;
+	if (AbsCosTheta(wi) > AbsCosTheta(wo))
+	{
+		sinAlpha = sinThetaO;
+		tanBeta  = sinThetaI / AbsCosTheta(wi);
+	}
+	else
+	{
+		sinAlpha = sinThetaI;
+		tanBeta  = sinThetaO / AbsCosTheta(wo);
+	}
+
+	return bxdf.R * InvPI * (bxdf.A + bxdf.B * maxCos * sinAlpha * tanBeta);
+}
+
+float Pdf(OrenNayar bxdf, vec3 wo, vec3 wi)
+{
+	return SameHemisphere(wo, wi) ? AbsCosTheta(wi) * InvPI : 0.0;
+}
+
+vec3 SampleDistribution(in OrenNayar bxdf, in vec3 wo, uint seed, out vec3 wi, out float pdf)
+{
+	wi = SampleCosineHemisphere(rand2(seed));
+	if (wo.z < 0.0)
 	{
 		wi.z *= -1.0;
 	}

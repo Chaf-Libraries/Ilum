@@ -39,9 +39,56 @@ float CosTheta(vec3 w)
 	return w.z;
 }
 
+float Cos2Theta(vec3 w)
+{
+	return w.z * w.z;
+}
+
+float Sin2Theta(vec3 w)
+{
+	return max(0.0, 1.0 - Cos2Theta(w));
+}
+
+float SinTheta(vec3 w)
+{
+	return sqrt(Sin2Theta(w));
+}
+
+float SinPhi(vec3 w)
+{
+	float sinTheta = SinTheta(w);
+	return sinTheta == 0.0 ? 0.0 : clamp(w.y / sinTheta, -1.0, 1.0);
+}
+
+float CosPhi(vec3 w)
+{
+	float sinTheta = SinTheta(w);
+	return sinTheta == 0.0 ? 1.0 : clamp(w.x / sinTheta, -1.0, 1.0);
+}
+
 bool SameHemisphere(vec3 w, vec3 wp)
 {
 	return w.z * wp.z > 0;
+}
+
+vec3 WorldToLocal(vec3 w, vec3 normal, vec3 tangent, vec3 bitangent)
+{
+	return vec3(dot(w, tangent), dot(w, bitangent), dot(w, normal));
+}
+
+vec3 LocalToWorld(vec3 w, vec3 normal, vec3 tangent, vec3 bitangent)
+{
+	return tangent * w.x + bitangent * w.y + normal * w.z;
+}
+
+float Radians(float deg)
+{
+	return PI / 180.0 * deg;
+}
+
+float Degrees(float rad)
+{
+	return rad * 180.0 / PI;
 }
 
 #endif

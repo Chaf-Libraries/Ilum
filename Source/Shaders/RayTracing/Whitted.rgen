@@ -4,13 +4,16 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #include "../RayTracing.glsl"
+#include "../Material.glsl"
 
 layout(push_constant) uniform PushBlock
 {
+	uint anti_alias;
 	uint directional_light_count;
 	uint spot_light_count;
 	uint point_light_count;
 	int max_bounce;
+	float parameter;
 }
 push_data;
 
@@ -92,8 +95,16 @@ bool IntersectScene(Ray ray)
 void main() 
 {
 	const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(0.5);
-	const vec2 screen_coords = pixelCenter / vec2(gl_LaunchSizeEXT.xy) * 2.0 - 1.0;
 	ray_payload.seed = init_random(gl_LaunchSizeEXT.xy, gl_LaunchIDEXT.xy, camera_data.frame_num);
+
+	vec2 jitter = vec2(0.0);
+
+	if(push_data.anti_alias == 1)
+	{
+		jitter = rand2(ray_payload.seed) - vec2(0.5);
+	}
+
+	const vec2 screen_coords = (pixelCenter + jitter) / vec2(gl_LaunchSizeEXT.xy) * 2.0 - 1.0;
 
 	Ray ray = CameraCastRay(camera_data, screen_coords);
 
@@ -111,19 +122,24 @@ void main()
 		}
 
 		Interaction interaction = GetInteraction(ray_payload);
+		interaction.normal = dot(interaction.normal, ray.direction) <= 0.0 ? interaction.normal : -interaction.normal;
+		CreateCoordinateSystem(interaction.normal, interaction.tangent, interaction.bitangent);
 
 		vec3 n = interaction.normal;
 		vec3 wo = -ray.direction;
 
-		LambertianReflection bxdf;
+		//LambertianReflection mat;
+		MatteMaterial mat;
+		vec3 base_color = vec3(0.0);
 		if(interaction.material.textures[TEXTURE_BASE_COLOR] < 1024)
 		{
-			bxdf.R = texture(texture_array[nonuniformEXT(interaction.material.textures[TEXTURE_BASE_COLOR])], interaction.texcoord).rgb;
+			base_color = texture(texture_array[nonuniformEXT(interaction.material.textures[TEXTURE_BASE_COLOR])], interaction.texcoord).rgb;
 		}
 		else
 		{
-			bxdf.R = interaction.material.base_color.rgb;
+			base_color = interaction.material.base_color.rgb;
 		}
+		Init(mat, base_color, push_data.parameter);
 
 		// Add contribution of each point light source
 		for(uint i = 0; i < push_data.point_light_count; i++)
@@ -139,8 +155,8 @@ void main()
 
 			if(Li != vec3(0.0) && Unoccluded(vis))
 			{
-				vec3 f = Distribution(bxdf, wo, wi);
-				radiance += f * Li * abs(dot(wi, interaction.normal)) / pdf;
+				vec3 f = Distribution(mat, wo, wi);
+				radiance += throughout * f * Li * abs(dot(wi, interaction.normal)) / pdf;
 			}
 		}
 
@@ -158,8 +174,8 @@ void main()
 
 			if(Li != vec3(0.0) && Unoccluded(vis))
 			{
-				vec3 f = Distribution(bxdf, wo, wi);
-				radiance += f * Li * abs(dot(wi, interaction.normal)) / pdf;
+				vec3 f = Distribution(mat, wo, wi);
+				radiance += throughout * f * Li * abs(dot(wi, interaction.normal)) / pdf;
 			}
 		}
 
@@ -177,14 +193,28 @@ void main()
 
 			if(Li != vec3(0.0) && Unoccluded(interaction, -directional_lights[i].direction, Infinity))
 			{
-				vec3 f = Distribution(bxdf, wo, wi);
-				radiance += f * Li * abs(dot(wi, interaction.normal)) / pdf;
+				vec3 f = Distribution(mat, wo, wi);
+				radiance += throughout * f * Li * abs(dot(wi, interaction.normal)) / pdf;
 			}
 		}
 
-		ray.direction = SampleCosineHemisphere(rand2(ray_payload.seed));
-		ray.origin = OffsetRay(interaction.position, dot(ray.direction, interaction.normal) > 0 ? interaction.normal : -interaction.normal);
+		vec3 wi;
+		float pdf;
 		
+		wo = WorldToLocal(wo, interaction.normal, interaction.tangent, interaction.bitangent);
+		vec3 f = SampleDistribution(mat, wo, ray_payload.seed, wi, pdf);
+		wi = LocalToWorld(wo, interaction.normal, interaction.tangent, interaction.bitangent);
+
+		if(pdf > 0.0 && f != vec3(0.0) && abs(dot(wi, interaction.normal)) != 0.0)
+		{
+			throughout *= f * abs(dot(wi, interaction.normal)) / pdf;
+			ray.direction = wi;
+			ray.origin = OffsetRay(interaction.position, dot(ray.direction, interaction.normal) > 0 ? interaction.normal : -interaction.normal);
+		}
+		else
+		{
+			break;
+		}
 	}
 	
 	ivec2 launch_id = ivec2(gl_LaunchIDEXT.x, gl_LaunchSizeEXT.y - gl_LaunchIDEXT.y);
@@ -195,8 +225,17 @@ void main()
 	}
 	else
 	{
-		vec3 prev_color = imageLoad(Image, launch_id).rgb;
-		vec3 accumulated_color = prev_color + (radiance - prev_color) / float(camera_data.frame_num);
+		vec3 prev_color = imageLoad(PrevImage, launch_id).rgb;
+		vec3 accumulated_color = vec3(0.0);
+		
+		if((isnan(prev_color.x) && isnan(prev_color.y) && isnan(prev_color.z)))
+		{
+			accumulated_color = radiance;
+		}
+		else
+		{
+			accumulated_color =mix(prev_color, radiance, 1.0 / float(camera_data.frame_num + 1));
+		}
 
 		imageStore(Image, launch_id, vec4(accumulated_color, 1.0));
 	}

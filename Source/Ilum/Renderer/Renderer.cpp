@@ -27,7 +27,7 @@
 #include "Scene/Scene.hpp"
 
 #include "RenderPass/Copy/CopyHizBuffer.hpp"
-#include "RenderPass/Copy/CopyLastFrame.hpp"
+#include "RenderPass/Copy/CopyFrame.hpp"
 #include "RenderPass/CopyPass.hpp"
 
 #include "RenderPass/Culling/HizPass.hpp"
@@ -90,30 +90,30 @@ Renderer::Renderer(Context *context) :
 	DeferredRendering = [this](RenderGraphBuilder &builder) {
 		builder
 
-		    .addRenderPass("KullaContyEnergy", std::make_unique<pass::KullaContyEnergy>())
-		    .addRenderPass("KullaContyAverage", std::make_unique<pass::KullaContyAverage>())
-		    .addRenderPass("BRDFPreIntegrate", std::make_unique<pass::BRDFPreIntegrate>())
+		    //.addRenderPass("KullaContyEnergy", std::make_unique<pass::KullaContyEnergy>())
+		    //.addRenderPass("KullaContyAverage", std::make_unique<pass::KullaContyAverage>())
+		    //.addRenderPass("BRDFPreIntegrate", std::make_unique<pass::BRDFPreIntegrate>())
 		    .addRenderPass("EquirectangularToCubemap", std::make_unique<pass::EquirectangularToCubemap>())
-		    .addRenderPass("CubemapSHProjection", std::make_unique<pass::CubemapSHProjection>())
-		    .addRenderPass("CubemapSHAdd", std::make_unique<pass::CubemapSHAdd>())
-		    .addRenderPass("CubemapPrefilter", std::make_unique<pass::CubemapPrefilter>())
+		    //.addRenderPass("CubemapSHProjection", std::make_unique<pass::CubemapSHProjection>())
+		    //.addRenderPass("CubemapSHAdd", std::make_unique<pass::CubemapSHAdd>())
+		    //.addRenderPass("CubemapPrefilter", std::make_unique<pass::CubemapPrefilter>())
 		    .addRenderPass("HizPass", std::make_unique<pass::HizPass>())
 		    .addRenderPass("InstanceCulling", std::make_unique<pass::InstanceCullingPass>())
 		    .addRenderPass("MeshletCulling", std::make_unique<pass::MeshletCullingPass>())
 		    .addRenderPass("GeometryPass", std::make_unique<pass::GeometryPass>())
-		    .addRenderPass("ShadowmapPass", std::make_unique<pass::ShadowmapPass>())
-		    .addRenderPass("CascadeShadowmapPass", std::make_unique<pass::CascadeShadowmapPass>())
-		    .addRenderPass("OmniShadowmapPass", std::make_unique<pass::OmniShadowmapPass>())
-		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
-		    .addRenderPass("Skybox", std::make_unique<pass::SkyboxPass>())
+		    //.addRenderPass("ShadowmapPass", std::make_unique<pass::ShadowmapPass>())
+		    //.addRenderPass("CascadeShadowmapPass", std::make_unique<pass::CascadeShadowmapPass>())
+		    //.addRenderPass("OmniShadowmapPass", std::make_unique<pass::OmniShadowmapPass>())
+		    //.addRenderPass("LightPass", std::make_unique<pass::LightPass>())
+		    //.addRenderPass("Skybox", std::make_unique<pass::SkyboxPass>())
 		    //.addRenderPass("TAAPass", std::make_unique<pass::TAAPass>())
 		    //.addRenderPass("BloomMask", std::make_unique<pass::BloomMask>("TAAOutput", "PostTex1"))
 		    //.addRenderPass("BloomBlur1", std::make_unique<pass::BloomBlur>("PostTex1", "PostTex2", false))
 		    //.addRenderPass("BloomBlur2", std::make_unique<pass::BloomBlur>("PostTex2", "PostTex1", true))
 		    //.addRenderPass("Blend", std::make_unique<pass::BloomBlend>("PostTex1", "TAAOutput"))
-		    .addRenderPass("CopyHizBuffer", std::make_unique<pass::CopyHizBuffer>())
+		    //.addRenderPass("CopyHizBuffer", std::make_unique<pass::CopyHizBuffer>())
 		    //.addRenderPass("CopyLastFrame", std::make_unique<pass::CopyLastFrame>("TAAOutput"))
-		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Lighting"))
+		    //.addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Lighting"))
 		    //.addRenderPass("CurvePass", std::make_unique<pass::CurvePass>())
 		    //.addRenderPass("SurfacePass", std::make_unique<pass::SurfacePass>())
 		    //.addRenderPass("MeshPass", std::make_unique<pass::MeshPass>())
@@ -122,10 +122,7 @@ Renderer::Renderer(Context *context) :
 		    //.setOutput("TAAOutput")
 
 		    .addRenderPass("Whitted", std::make_unique<pass::Whitted>())
-
-		    .addRenderPass("TAAPass", std::make_unique<pass::TAAPass>("Whitted"))
-		    .addRenderPass("CopyLastFrame", std::make_unique<pass::CopyLastFrame>("TAAOutput"))
-
+		    .addRenderPass("CopyFrame", std::make_unique<pass::CopyFrame>("Whitted", "PrevWhitted"))
 
 		    .setView("Whitted")
 		    .setOutput("Whitted");
