@@ -31,6 +31,7 @@ class Whitted : public TRenderPass<Whitted>
 		uint32_t spot_light_count        = 0;
 		uint32_t point_light_count       = 0;
 		int32_t max_bounce              = 5;
+		float    firefly_clamp_threshold = 4.f;
 		float    parameter               = 0.1f;
 	} m_push_block;
 

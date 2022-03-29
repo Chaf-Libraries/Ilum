@@ -128,6 +128,11 @@ void Whitted::onImGui()
 		                   ImVec2(0.f, 0.f),
 		                   (std::to_string(camera->frame_count) + "/" + std::to_string(m_max_spp)).c_str());
 
+		if (ImGui::DragFloat("Clamp Threshold", &m_push_block.firefly_clamp_threshold, 0.1f, 0.0f, std::numeric_limits<float>::max()))
+		{
+			camera->frame_count = 0;
+		}
+
 		if (ImGui::DragFloat("Parameter", &m_push_block.parameter, 0.1f, 0.0f, std::numeric_limits<float>::max()))
 		{
 			camera->frame_count = 0;

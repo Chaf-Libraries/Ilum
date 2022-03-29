@@ -99,7 +99,7 @@ vec3 Distribution(PlasticMaterial mat, vec3 wo, vec3 wi)
 	{
 		TrowbridgeReitzDistribution dist;
 		float rough = RoughnessToAlpha(mat.roughness);
-		Init(dist, rough, rough, false);
+		Init(dist, rough, rough, true);
 
 		MicrofacetReflection bxdf;
 		Init(bxdf, mat.Ks);
@@ -138,7 +138,7 @@ vec3 SampleDistribution(in PlasticMaterial mat, in vec3 wo, inout uint seed, out
 		// Choose microfacet term
 		TrowbridgeReitzDistribution dist;
 		float                       rough = RoughnessToAlpha(mat.roughness);
-		Init(dist, rough, rough, false);
+		Init(dist, rough, rough, true);
 
 		MicrofacetReflection bxdf;
 		Init(bxdf, mat.Ks);

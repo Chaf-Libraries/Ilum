@@ -13,6 +13,7 @@ layout(push_constant) uniform PushBlock
 	uint spot_light_count;
 	uint point_light_count;
 	int max_bounce;
+	float firefly_clamp_threshold;
 	float parameter;
 }
 push_data;
@@ -195,6 +196,13 @@ void main()
 		{
 			break;
 		}
+	}
+
+	// Removing fireflies
+	float lum = dot(radiance, vec3(0.212671, 0.715160, 0.072169));
+	if(lum > push_data.firefly_clamp_threshold)
+	{
+		radiance *= push_data.firefly_clamp_threshold / lum;
 	}
 	
 	ivec2 launch_id = ivec2(gl_LaunchIDEXT.x, gl_LaunchSizeEXT.y - gl_LaunchIDEXT.y);
