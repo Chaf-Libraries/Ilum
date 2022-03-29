@@ -10,7 +10,8 @@ enum class BxDFType : uint32_t
 {
 	CookTorrance,
 	Disney,
-	Mirror,
+	Matte,
+	Plastic,
 	Glass
 };
 

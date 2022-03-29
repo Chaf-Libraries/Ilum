@@ -93,6 +93,8 @@ struct CountData
 
 #define BxDF_CookTorrance 0
 #define BxDF_Disney 1
+#define BxDF_Matte 2
+#define BxDF_Plastic 3
 
 #define MAX_TEXTURE_ARRAY_SIZE 1024
 
@@ -122,6 +124,24 @@ struct MaterialData
 	uint  textures[TEXTURE_MAX_NUM];
 
 	uint material_type;
+};
+
+struct Material
+{
+	vec4 base_color;
+	vec3 emissive;
+	float subsurface;
+	float metallic;
+	float specular;
+	float specular_tint;
+	float roughness;
+	float anisotropic;
+	float sheen;
+	float sheen_tint;
+	float clearcoat;
+	float clearcoat_gloss;
+	float transmission;
+	uint  material_type;
 };
 
 // Light Source
@@ -179,6 +199,82 @@ struct SpotLight
 	int   filter_sample;
 	int   sample_method;        // 0 - Uniform, 1 - Poisson Disk
 	float light_size;
+};
+
+// Ray
+struct Ray
+{
+	vec3 origin;
+	vec3 direction;
+	float tmin;
+	float tmax;
+};
+
+struct Vertex
+{
+	vec4 position;
+	vec4 texcoord;
+	vec4 normal;
+	vec4 tangent;
+	vec4 bitangent;
+};
+
+struct RayPayload
+{
+	uint   seed;
+	float  hitT;
+	int    primitiveID;
+	int    instanceID;
+	vec2   baryCoord;
+	mat4x3 objectToWorld;
+	mat4x3 worldToObject;
+};
+
+struct ShadowPayload
+{
+	bool visibility;
+};
+
+struct ShadeState
+{
+	vec3 normal;
+	vec3 geom_normal;
+	vec3 position;
+	vec2 tex_coord;
+	vec3 tangent_u;
+	vec3 tangent_v;
+	uint matIndex;
+};
+
+struct Interaction
+{
+	int   depth;
+	float eta;
+
+	vec3 position;
+	vec3 normal;
+	vec3 ffnormal;
+	vec3 tangent;
+	vec3 bitangent;
+	vec2 texCoord;
+
+	uint     matID;
+	Material mat;
+};
+
+struct BxdfSampleRec
+{
+	vec3  L;
+	vec3  f;
+	float pdf;
+};
+
+struct LightSampleRec
+{
+	vec3  surfacePos;
+	vec3  normal;
+	vec3  emission;
+	float pdf;
 };
 
 #endif

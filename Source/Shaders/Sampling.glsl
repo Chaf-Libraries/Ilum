@@ -2,9 +2,9 @@
 #define _SAMPLING_GLSL
 
 #include "Geometry.glsl"
-#include "Interaction.glsl"
 #include "GlobalBuffer.glsl"
 #include "Random.glsl"
+#include "Math.glsl"
 
 // Sampling Disk
 // Polar Mapping
@@ -80,13 +80,10 @@ float PowerHeuristic(int nf, float fPdf, int ng, float gPdf)
 }
 
 // Sampling Point Light
-vec3 Sample_Li(PointLight light, Interaction interaction, vec2 u, out vec3 wi, out float pdf, out VisibilityTester vis)
+vec3 Sample_Li(PointLight light, Interaction interaction, vec2 u, out vec3 wi, out float pdf)
 {
 	wi  = normalize(light.position - interaction.position);
 	pdf = 1.0;
-
-	vis.from = interaction;
-	vis.to.position = light.position;
 
 	float d    = length(light.position - interaction.position);
 	float Fatt = 1.0 / (light.constant + light.linear_ * d + light.quadratic * d * d);
@@ -104,13 +101,10 @@ float Power(PointLight light)
 }
 
 // Sampling Spot Light
-vec3 Sample_Li(SpotLight light, Interaction interaction, vec2 u, out vec3 wi, out float pdf, out VisibilityTester vis)
+vec3 Sample_Li(SpotLight light, Interaction interaction, vec2 u, out vec3 wi, out float pdf)
 {
 	wi  = normalize(light.position - interaction.position);
 	pdf = 1.0;
-
-	vis.from        = interaction;
-	vis.to.position = light.position;
 
 	vec3  L         = normalize(light.position - interaction.position);
 	float NoL       = max(0.0, dot(interaction.normal, L));
@@ -130,13 +124,10 @@ float Power(SpotLight light)
 }
 
 // Sampling Directional Light
-vec3 Sample_Li(DirectionalLight light, Interaction interaction, vec2 u, out vec3 wi, out float pdf, out VisibilityTester vis)
+vec3 Sample_Li(DirectionalLight light, Interaction interaction, vec2 u, out vec3 wi, out float pdf)
 {
 	wi  = normalize(-light.direction);
 	pdf = 1.0;
-
-	vis.from        = interaction;
-	vis.to.position = interaction.position - normalize(light.direction) * Infinity;
 
 	return light.color.rgb * light.intensity;
 }

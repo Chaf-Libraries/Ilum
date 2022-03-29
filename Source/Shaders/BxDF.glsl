@@ -423,6 +423,169 @@ vec3 CookTorranceBRDF(vec3 L, vec3 V, vec3 N, vec3 X, vec3 Y, MaterialData mater
 	return Kd * LambertianDiffuse(Cdlin) + specular;
 }
 
+////////////// Beckmann Sample //////////////
+void BeckmannSample11(float cosThetaI, float U1, float U2, out float slope_x, out float slope_y)
+{
+	if (cosThetaI > .9999)
+	{
+		float r      = sqrt(-log(1.0 - U1));
+		float sinPhi = sin(2 * PI * U2);
+		float cosPhi = cos(2 * PI * U2);
+		slope_x      = r * cosPhi;
+		slope_y      = r * sinPhi;
+		return;
+	}
+
+	float sinThetaI = sqrt(max(0.0, 1.0 - cosThetaI * cosThetaI));
+	float tanThetaI = sinThetaI / cosThetaI;
+	float cotThetaI = 1.0 / tanThetaI;
+
+	float a        = -1.0;
+	float c        = Erf(cotThetaI);
+	float sample_x = max(U1, float(1e-6));
+
+	float thetaI = acos(cosThetaI);
+	float fit    = 1 + thetaI * (-0.876 + thetaI * (0.4265 - 0.0594 * thetaI));
+	float b      = c - (1 + c) * pow(1 - sample_x, fit);
+
+	const float sqrt_inv_PI   = 1.0 / sqrt(PI);
+	float       normalization = 1.0 / (1.0 + c + sqrt_inv_PI * tanThetaI * exp(-cotThetaI * cotThetaI));
+
+	int it = 0;
+	while (++it < 10)
+	{
+		if (!(b >= a && b <= c))
+		{
+			b = 0.5 * (a + c);
+		}
+
+		float invErf     = ErfInv(b);
+		float value      = normalization * (1 + b + sqrt_inv_PI * tanThetaI * exp(-invErf * invErf)) - sample_x;
+		float derivative = normalization * (1 - invErf * tanThetaI);
+
+		if (abs(value) < 1e-5)
+		{
+			break;
+		}
+
+		if (value > 0)
+		{
+			c = b;
+		}
+		else
+		{
+			a = b;
+		}
+
+		b -= value / derivative;
+	}
+
+	slope_x = ErfInv(b);
+	slope_y = ErfInv(2.0 * max(U2, float(1e-6)) - 1.0);
+}
+
+vec3 BeckmannSample(vec3 wi, float alpha_x, float alpha_y, float U1, float U2)
+{
+	// stretch wi
+	vec3 wiStretched = normalize(vec3(alpha_x * wi.x, alpha_y * wi.y, wi.z));
+
+	// simulate P22_{wi}(x_slope, y_slope, 1, 1)
+	float slope_x, slope_y;
+	BeckmannSample11(CosTheta(wiStretched), U1, U2, slope_x, slope_y);
+
+	// rotate
+	float tmp = CosPhi(wiStretched) * slope_x - SinPhi(wiStretched) * slope_y;
+	slope_y   = SinPhi(wiStretched) * slope_x + CosPhi(wiStretched) * slope_y;
+	slope_x   = tmp;
+
+	// unstretch
+	slope_x = alpha_x * slope_x;
+	slope_y = alpha_y * slope_y;
+
+	// compute normal
+	return normalize(vec3(-slope_x, -slope_y, 1.0));
+}
+
+////////////// Trowbridge Reitz Sample //////////////
+void TrowbridgeReitzSample11(float cosTheta, float U1, float U2, out float slope_x, out float slope_y)
+{
+	if (cosTheta > .9999)
+	{
+		float r   = sqrt(U1 / (1 - U1));
+		float phi = 6.28318530718 * U2;
+		slope_x   = r * cos(phi);
+		slope_y   = r * sin(phi);
+		return;
+	}
+
+	float sinTheta = sqrt(max(0.0, 1.0 - cosTheta * cosTheta));
+	float tanTheta = sinTheta / cosTheta;
+	float a        = 1.0 / tanTheta;
+	float G1       = 2.0 / (1.0 + sqrt(1.0 + 1.0 / (a * a)));
+
+	float A   = 2 * U1 / G1 - 1;
+	float tmp = 1.f / (A * A - 1.f);
+	if (tmp > 1e10)
+	{
+		tmp = 1e10;
+	}
+	float B = tanTheta;
+	float D = sqrt(
+	    max(float(B * B * tmp * tmp - (A * A - B * B) * tmp), float(0)));
+	float slope_x_1 = B * tmp - D;
+	float slope_x_2 = B * tmp + D;
+	slope_x         = (A < 0 || slope_x_2 > 1.f / tanTheta) ? slope_x_1 : slope_x_2;
+
+	float S;
+	if (U2 > 0.5)
+	{
+		S  = 1.0;
+		U2 = 2.0 * (U2 - 0.5);
+	}
+	else
+	{
+		S  = -1.0;
+		U2 = 2.0 * (0.5 - U2);
+	}
+
+	float z =
+	    (U2 * (U2 * (U2 * 0.27385 - 0.73369) + 0.46341)) /
+	    (U2 * (U2 * (U2 * 0.093073 + 0.309420) - 1.000000) + 0.597999);
+
+	slope_y = S * z * sqrt(1.0 + slope_x * slope_x);
+}
+
+vec3 TrowbridgeReitzSample(vec3 wi, float alpha_x, float alpha_y, float U1, float U2)
+{
+	// stretch wi
+	vec3 wiStretched = normalize(vec3(alpha_x * wi.x, alpha_y * wi.y, wi.z));
+
+	// simulate P22_{wi}(x_slope, y_slope, 1, 1)
+	float slope_x, slope_y;
+	TrowbridgeReitzSample11(CosTheta(wiStretched), U1, U2, slope_x, slope_y);
+
+	// rotate
+	float tmp = CosPhi(wiStretched) * slope_x - SinPhi(wiStretched) * slope_y;
+	slope_y   = SinPhi(wiStretched) * slope_x + CosPhi(wiStretched) * slope_y;
+	slope_x   = tmp;
+
+	// unstretch
+	slope_x = alpha_x * slope_x;
+	slope_y = alpha_y * slope_y;
+
+	// compute normal
+	return normalize(vec3(-slope_x, -slope_y, 1.0));
+}
+
+////////////// Microfacet Roughness to Alpha //////////////
+float RoughnessToAlpha(float roughness)
+{
+	roughness = max(roughness, float(1e-3));
+	float x   = log(roughness);
+	return 1.62142f + 0.819955f * x + 0.1734f * x * x +
+	       0.0171201f * x * x * x + 0.000640711f * x * x * x * x;
+}
+
 ////////////// Fresnel //////////////
 struct FresnelConductor
 {
@@ -431,15 +594,28 @@ struct FresnelConductor
 	vec3 k;
 };
 
+void Init(out FresnelConductor fresnel, vec3 etaI, vec3 etaT, vec3 k)
+{
+	fresnel.etaI = etaI;
+	fresnel.etaT = etaT;
+	fresnel.k = k;
+}
+
 struct FresnelDielectric
 {
 	float etaI;
 	float etaT;
 };
 
+void Init(out FresnelDielectric fresnel, float etaI, float etaT)
+{
+	fresnel.etaI = etaI;
+	fresnel.etaT = etaT;
+}
+
 // FresnelOp
 
-vec3 Evaluate(FresnelConductor fresnel, float cosThetaI)
+vec3 FresnelEvaluate(FresnelConductor fresnel, float cosThetaI)
 {
 	cosThetaI = clamp(cosThetaI, -1, 1);
 	vec3 eta  = fresnel.etaT / fresnel.etaI;
@@ -464,12 +640,12 @@ vec3 Evaluate(FresnelConductor fresnel, float cosThetaI)
 	return vec3(0.5 * (Rp + Rs));
 }
 
-vec3 Evaluate(FresnelDielectric fresnel, float cosThetaI)
+vec3 FresnelEvaluate(FresnelDielectric fresnel, float cosThetaI)
 {
 	cosThetaI = clamp(cosThetaI, -1.0, 1.0);
 
 	// Potentially swap indices of refraction
-	if (cosThetaI > 0.f)
+	if (cosThetaI <= 0.f)
 	{
 		// Swap
 		float temp   = fresnel.etaI;
@@ -477,10 +653,9 @@ vec3 Evaluate(FresnelDielectric fresnel, float cosThetaI)
 		fresnel.etaT = temp;
 		cosThetaI    = abs(cosThetaI);
 	}
-
+	
 	float sinThetaI = sqrt(max(0.0, 1.0 - cosThetaI * cosThetaI));
 	float sinThetaT = fresnel.etaI / fresnel.etaT * sinThetaI;
-
 	if (sinThetaT >= 1.0)
 	{
 		return vec3(1.0);
@@ -491,17 +666,18 @@ vec3 Evaluate(FresnelDielectric fresnel, float cosThetaI)
 	              ((fresnel.etaT * cosThetaI) + (fresnel.etaI * cosThetaT));
 	float Rperp = ((fresnel.etaI * cosThetaI) - (fresnel.etaT * cosThetaT)) /
 	              ((fresnel.etaI * cosThetaI) + (fresnel.etaT * cosThetaT));
+
+	
 	return vec3(Rparl * Rparl + Rperp * Rperp) / 2;
 }
 
 // Evaluate FresnelOp
-vec3 Evaluate(float cosThetaI)
+vec3 FresnelEvaluate(float cosThetaI)
 {
 	return vec3(1.0);
 }
 
-////////////// Reflection Model //////////////
-// Lambertian Reflection
+////////////// Lambertian Reflection //////////////
 struct LambertianReflection
 {
 	vec3 R;
@@ -522,7 +698,7 @@ float Pdf(LambertianReflection bxdf, vec3 wo, vec3 wi)
 	return SameHemisphere(wo, wi) ? AbsCosTheta(wi) * InvPI : 0.0;
 }
 
-vec3 SampleDistribution(in LambertianReflection bxdf, in vec3 wo, uint seed, out vec3 wi, out float pdf)
+vec3 SampleDistribution(in LambertianReflection bxdf, in vec3 wo, inout uint seed, out vec3 wi, out float pdf)
 {
 	wi = SampleCosineHemisphere(rand2(seed));
 	if (wo.z < 0.0)
@@ -533,7 +709,7 @@ vec3 SampleDistribution(in LambertianReflection bxdf, in vec3 wo, uint seed, out
 	return Distribution(bxdf, wo, wi);
 }
 
-// OrenNayar Reflection
+////////////// OrenNayar Reflection //////////////
 struct OrenNayar
 {
 	vec3  R;
@@ -566,6 +742,9 @@ vec3 Distribution(OrenNayar bxdf, vec3 wo, vec3 wi)
 		maxCos     = max(0.0, dCos);
 	}
 
+	float tanThetaI = sinThetaI / AbsCosTheta(wi);
+	float tanThetaO = sinThetaO / AbsCosTheta(wo);
+
 	float sinAlpha, tanBeta;
 	if (AbsCosTheta(wi) > AbsCosTheta(wo))
 	{
@@ -577,7 +756,6 @@ vec3 Distribution(OrenNayar bxdf, vec3 wo, vec3 wi)
 		sinAlpha = sinThetaI;
 		tanBeta  = sinThetaO / AbsCosTheta(wo);
 	}
-
 	return bxdf.R * InvPI * (bxdf.A + bxdf.B * maxCos * sinAlpha * tanBeta);
 }
 
@@ -586,7 +764,7 @@ float Pdf(OrenNayar bxdf, vec3 wo, vec3 wi)
 	return SameHemisphere(wo, wi) ? AbsCosTheta(wi) * InvPI : 0.0;
 }
 
-vec3 SampleDistribution(in OrenNayar bxdf, in vec3 wo, uint seed, out vec3 wi, out float pdf)
+vec3 SampleDistribution(in OrenNayar bxdf, in vec3 wo, inout uint seed, out vec3 wi, out float pdf)
 {
 	wi = SampleCosineHemisphere(rand2(seed));
 	if (wo.z < 0.0)
@@ -595,6 +773,307 @@ vec3 SampleDistribution(in OrenNayar bxdf, in vec3 wo, uint seed, out vec3 wi, o
 	}
 	pdf = Pdf(bxdf, wo, wi);
 	return Distribution(bxdf, wo, wi);
+}
+
+////////////// Beckmann Distribution //////////////
+struct BeckmannDistribution
+{
+	float alpha_x;
+	float alpha_y;
+	bool  sample_visible_area;
+};
+
+void Init(out BeckmannDistribution distribution, float alpha_x, float alpha_y, bool vis)
+{
+	distribution.alpha_x = alpha_x;
+	distribution.alpha_y = alpha_y;
+	distribution.sample_visible_area = vis;
+}
+
+float Distribution(BeckmannDistribution distribution, vec3 wh)
+{
+	float tan2Theta = Tan2Theta(wh);
+	if (isinf(tan2Theta))
+	{
+		return 0.0;
+	}
+
+	float cos4Theta = Cos2Theta(wh) * Cos2Theta(wh);
+	return exp(-tan2Theta * (Cos2Phi(wh) / (distribution.alpha_x * distribution.alpha_x) +
+	                         Sin2Phi(wh) / (distribution.alpha_y * distribution.alpha_y))) /
+	       (PI * distribution.alpha_x * distribution.alpha_y * cos4Theta);
+}
+
+vec3 SampleWh(BeckmannDistribution distribution, vec3 wo, inout uint seed)
+{
+	vec2 u = rand2(seed);
+
+	if (!distribution.sample_visible_area)
+	{
+		float tan2Theta, phi;
+		if (distribution.alpha_x == distribution.alpha_y)
+		{
+			float log_sample = log(1 - u.x);
+			tan2Theta        = -distribution.alpha_x * distribution.alpha_x * log_sample;
+			phi              = u.y * 2 * PI;
+		}
+		else
+		{
+			float log_sample = log(1 - u.x);
+			phi              = atan(distribution.alpha_y / distribution.alpha_x * tan(2.0 * PI * u.y + 0.5 * PI));
+			if (u.y > 0.5)
+			{
+				phi += PI;
+			}
+
+			float sinPhi  = sin(phi);
+			float cosPhi  = cos(phi);
+			float alphax2 = distribution.alpha_x * distribution.alpha_x;
+			float alphay2 = distribution.alpha_y * distribution.alpha_y;
+			tan2Theta     = -log_sample / (cosPhi * cosPhi / alphax2 + sinPhi * sinPhi / alphay2);
+		}
+
+		float cosTheta = 1.0 / sqrt(1.0 + tan2Theta);
+		float sinTheta = sqrt(max(0.0, 1.0 - cosTheta * cosTheta));
+		vec3  wh       = SphericalDirection(sinTheta, cosTheta, phi);
+		if (!SameHemisphere(wo, wh))
+		{
+			wh = -wh;
+		}
+		return wh;
+	}
+	else
+	{
+		vec3 wh;
+		bool flip = wo.z < 0.0;
+		wh        = BeckmannSample(flip ? -wo : wo, distribution.alpha_x, distribution.alpha_y, u.x, u.y);
+		if (flip)
+		{
+			wh = -wh;
+		}
+
+		return wh;
+	}
+
+	return vec3(0.0);
+}
+
+float Lambda(BeckmannDistribution distribution, vec3 w)
+{
+	float absTanTheta = abs(TanTheta(w));
+	if (isinf(absTanTheta))
+	{
+		return 0.;
+	}
+
+	float alpha = sqrt(Cos2Phi(w) * distribution.alpha_x * distribution.alpha_x + Sin2Phi(w) * distribution.alpha_y * distribution.alpha_y);
+	float a     = 1.0 / (alpha * absTanTheta);
+	if (a >= 1.6)
+	{
+		return 0;
+	}
+	return (1.0 - 1.259 * a + 0.396 * a * a) / (3.535 * a + 2.181 * a * a);
+}
+
+float G1(BeckmannDistribution distribution, vec3 w)
+{
+	return 1.0 / (1.0 + Lambda(distribution, w));
+}
+
+float G(BeckmannDistribution distribution, vec3 wo, vec3 wi)
+{
+	return 1.0 / (1.0 + Lambda(distribution, wo) + Lambda(distribution, wi));
+}
+
+float Pdf(BeckmannDistribution distribution, vec3 wo, vec3 wh)
+{
+	if (distribution.sample_visible_area)
+	{
+		return Distribution(distribution, wh) * G1(distribution, wo) * abs(dot(wo, wh)) / AbsCosTheta(wo);
+	}
+	else
+	{
+		return Distribution(distribution, wh) * AbsCosTheta(wh);
+	}
+}
+
+////////////// Trowbridge Reitz Distribution //////////////
+struct TrowbridgeReitzDistribution
+{
+	float alpha_x;
+	float alpha_y;
+	bool  sample_visible_area;
+};
+
+void Init(out TrowbridgeReitzDistribution distribution, float alpha_x, float alpha_y, bool vis)
+{
+	distribution.alpha_x = alpha_x;
+	distribution.alpha_y = alpha_y;
+	distribution.sample_visible_area = vis;
+}
+
+float Distribution(TrowbridgeReitzDistribution distribution, vec3 wh)
+{
+	float tan2Theta = Tan2Theta(wh);
+	if (isinf(tan2Theta))
+	{
+		return 0.0;
+	}
+	const float cos4Theta = Cos2Theta(wh) * Cos2Theta(wh);
+
+	//return 1 / (PI * distribution.alpha_x * distribution.alpha_y * cos4Theta);
+
+	float e = (Cos2Phi(wh) / (distribution.alpha_x * distribution.alpha_x) + Sin2Phi(wh) / (distribution.alpha_y * distribution.alpha_y)) * tan2Theta;
+	return 1 / (PI * distribution.alpha_x * distribution.alpha_y * cos4Theta * (1 + e) * (1 + e));
+}
+
+vec3 SampleWh(TrowbridgeReitzDistribution distribution, vec3 wo, inout uint seed)
+{
+	vec3 wh = vec3(0.0);
+	vec2 u  = rand2(seed);
+
+	if (!distribution.sample_visible_area)
+	{
+		float cosTheta = 0.0;
+		float phi      = 2.0 * PI * u.y;
+
+		if (distribution.alpha_x == distribution.alpha_y)
+		{
+			float tanTheta2 = distribution.alpha_x * distribution.alpha_x * u.x * (1.0 - u.y);
+			cosTheta        = 1.0 / sqrt(1.0 + tanTheta2);
+		}
+		else
+		{
+			phi = atan(distribution.alpha_y / distribution.alpha_x * tan(2.0 * PI * u.y + 0.5 * PI));
+			if (u.y > 0.5)
+			{
+				phi += PI;
+			}
+			float sinPhi = sin(phi);
+			float cosPhi = cos(phi);
+
+			const float alpha_x2 = distribution.alpha_x * distribution.alpha_x;
+			const float alpha_y2 = distribution.alpha_y * distribution.alpha_y;
+
+			const float alpha_2   = 1.0 / (cosPhi * cosPhi / alpha_x2 + sinPhi * sinPhi / alpha_y2);
+			float       tanTheta2 = alpha_2 * u.x / (1.0 - u.x);
+			cosTheta              = 1.0 / sqrt(1 + tanTheta2);
+		}
+
+		float sinTheta = sqrt(max(0.0, 1.0 - cosTheta * cosTheta));
+		vec3  wh       = SphericalDirection(sinTheta, cosTheta, phi);
+		if (!SameHemisphere(wo, wh))
+		{
+			wh = -wh;
+		}
+	}
+	else
+	{
+		bool flip = wo.z < 0.0;
+		wh        = TrowbridgeReitzSample(flip ? -wo : wo, distribution.alpha_x, distribution.alpha_y, u.x, u.y);
+		if (flip)
+		{
+			wh = -wh;
+		}
+	}
+	return wh;
+}
+
+float Lambda(TrowbridgeReitzDistribution distribution, vec3 w)
+{
+	float absTanTheta = abs(TanTheta(w));
+	if (isinf(absTanTheta))
+	{
+		return 0.;
+	}
+	float alpha           = sqrt(Cos2Phi(w) * distribution.alpha_x * distribution.alpha_x + Sin2Phi(w) * distribution.alpha_y * distribution.alpha_y);
+	float alpha2Tan2Theta = (alpha * absTanTheta) * (alpha * absTanTheta);
+	return (-1.0 + sqrt(1.0 + alpha2Tan2Theta)) / 2.0;
+}
+
+float G1(TrowbridgeReitzDistribution distribution, vec3 w)
+{
+	return 1.0 / (1.0 + Lambda(distribution, w));
+}
+
+float G(TrowbridgeReitzDistribution distribution, vec3 wo, vec3 wi)
+{
+	return 1.0 / (1.0 + Lambda(distribution, wo) + Lambda(distribution, wi));
+}
+
+float Pdf(TrowbridgeReitzDistribution distribution, vec3 wo, vec3 wh)
+{
+	if (distribution.sample_visible_area)
+	{
+		return Distribution(distribution, wh) * G1(distribution, wo) * abs(dot(wo, wh)) / AbsCosTheta(wo);
+	}
+	else
+	{
+		return Distribution(distribution, wh) * AbsCosTheta(wh);
+	}
+}
+
+////////////// Microfacet Reflection //////////////
+struct MicrofacetReflection
+{
+	vec3 R;
+};
+
+void Init(out MicrofacetReflection bxdf, vec3 base_color)
+{
+	bxdf.R = base_color;
+}
+
+vec3 Distribution(MicrofacetReflection bxdf, vec3 F, float D, float G, vec3 wo, vec3 wi)
+{
+	float cosThetaO = AbsCosTheta(wo);
+	float cosThetaI = AbsCosTheta(wi);
+
+	vec3 wh = wi + wo;
+
+	if (cosThetaI == 0.0 || cosThetaO == 0.0)
+	{
+		return vec3(0.0);
+	}
+	if (wh.x == 0.0 && wh.y == 0.0 && wh.z == 0.0)
+	{
+		return vec3(0.0);
+	}
+
+	return bxdf.R * D * G * F / (4.0 * cosThetaI * cosThetaO);
+}
+
+float Pdf(MicrofacetReflection bxdf, vec3 wo, vec3 wi, vec3 wh, float distribution_pdf)
+{
+	if (!SameHemisphere(wo, wi))
+	{
+		return 0;
+	}
+
+	return distribution_pdf / (4.0 * dot(wo, wh));
+}
+
+vec3 SampleDistribution(in MicrofacetReflection bxdf, in vec3 wo, in vec3 wh, in vec3 F, in float D, in float G, in float distribution_pdf, inout uint seed, out vec3 wi, out float pdf)
+{
+	if (wo.z < 0.0)
+	{
+		return vec3(0.0);
+	}
+
+	if (dot(wo, wh) < 0.0)
+	{
+		return vec3(0.0);
+	}
+
+	wi = reflect(wo, wh);
+
+	if (!SameHemisphere(wo, wi))
+	{
+		return vec3(0.0);
+	}
+
+	pdf = distribution_pdf / (4.0 * dot(wo, wh));
+	return Distribution(bxdf, F, D, G, wo, wi);
 }
 
 #endif

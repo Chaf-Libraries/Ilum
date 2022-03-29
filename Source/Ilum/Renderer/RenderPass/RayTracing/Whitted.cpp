@@ -57,6 +57,11 @@ void Whitted::resolveResources(ResolveState &resolve)
 
 void Whitted::render(RenderPassState &state)
 {
+	if (!m_update)
+	{
+		return;
+	}
+
 	const auto &vertex_buffer = Renderer::instance()->Render_Buffer.Static_Vertex_Buffer;
 	const auto &index_buffer  = Renderer::instance()->Render_Buffer.Static_Index_Buffer;
 
@@ -99,16 +104,30 @@ void Whitted::onImGui()
                                    static_cast<cmpt::Camera *>(&camera_entity.getComponent<cmpt::PerspectiveCamera>()) :
                                    static_cast<cmpt::Camera *>(&camera_entity.getComponent<cmpt::OrthographicCamera>());
 
+		m_update = static_cast<int32_t>(camera->frame_count) - 1 < m_max_spp;
+
+		camera->frame_count = glm::clamp(static_cast<int32_t>(camera->frame_count), 0, m_max_spp);
+
 		ImGui::Text("SPP: %d", camera->frame_count);
 
 		if (ImGui::Checkbox("Anti-Aliasing", reinterpret_cast<bool *>(&m_push_block.anti_alias)))
 		{
 			camera->frame_count = 0;
 		}
-		if (ImGui::SliderInt("Max Bounce", &m_push_block.max_bounce, 1, 20))
+		if (ImGui::SliderInt("Max Bounce", &m_push_block.max_bounce, 0, 100))
 		{
 			camera->frame_count = 0;
 		}
+
+		if (ImGui::DragInt("Max SPP", &m_max_spp, 0.1f, 0, std::numeric_limits<int32_t>::max()))
+		{
+			camera->frame_count = 0;
+		}
+
+		ImGui::ProgressBar(static_cast<float>(camera->frame_count) / static_cast<float>(m_max_spp),
+		                   ImVec2(0.f, 0.f),
+		                   (std::to_string(camera->frame_count) + "/" + std::to_string(m_max_spp)).c_str());
+
 		if (ImGui::DragFloat("Parameter", &m_push_block.parameter, 0.1f, 0.0f, std::numeric_limits<float>::max()))
 		{
 			camera->frame_count = 0;

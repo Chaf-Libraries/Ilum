@@ -283,21 +283,36 @@ inline void draw_material<BxDFType::CookTorrance>(Material &material)
 }
 
 template <>
+inline void draw_material<BxDFType::Matte>(Material &material)
+{
+	Material::update = ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color)) || Material::update;
+	Material::update = ImGui::DragFloat("Roughness", &material.roughness, 0.001f, 0.f, 90.f, "%.3f") || Material::update;
+	Material::update = draw_texture(material.textures[TextureType::BaseColor], "Albedo Map") || Material::update;
+}
+
+template <>
+inline void draw_material<BxDFType::Plastic>(Material &material)
+{
+	Material::update = ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color)) || Material::update;
+	Material::update = ImGui::DragFloat("Specular", &material.specular, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Roughness", &material.roughness, 0.001f, 0.f, 90.f, "%.3f") || Material::update;
+}
+
+template <>
 inline void draw_material<BxDFType::Glass>(Material &material)
 {
 }
 
-template <>
-inline void draw_material<BxDFType::Mirror>(Material &material)
-{
-}
+
 
 inline void draw_material(Material &material)
 {
 	const char *const BxDF_types[] = {
 	    "CookTorrance",
-	    "Disney"};
-	Material::update = ImGui::Combo("BxDF", reinterpret_cast<int *>(&material.type), BxDF_types, 2) || Material::update;
+	    "Disney",
+	    "Matte",
+	    "Plastic"};
+	Material::update = ImGui::Combo("BxDF", reinterpret_cast<int *>(&material.type), BxDF_types, 4) || Material::update;
 
 	switch (material.type)
 	{
@@ -307,11 +322,14 @@ inline void draw_material(Material &material)
 		case BxDFType::CookTorrance:
 			draw_material<BxDFType::CookTorrance>(material);
 			break;
+		case BxDFType::Matte:
+			draw_material<BxDFType::Matte>(material);
+			break;
+		case BxDFType::Plastic:
+			draw_material<BxDFType::Plastic>(material);
+			break;
 		case BxDFType::Glass:
 			draw_material<BxDFType::Glass>(material);
-			break;
-		case BxDFType::Mirror:
-			draw_material<BxDFType::Mirror>(material);
 			break;
 		default:
 			break;

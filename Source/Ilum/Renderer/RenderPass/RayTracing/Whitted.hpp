@@ -33,5 +33,8 @@ class Whitted : public TRenderPass<Whitted>
 		int32_t max_bounce              = 5;
 		float    parameter               = 0.1f;
 	} m_push_block;
+
+	int32_t m_max_spp = 100;
+	bool    m_update  = true;
 };
 }        // namespace Ilum::pass

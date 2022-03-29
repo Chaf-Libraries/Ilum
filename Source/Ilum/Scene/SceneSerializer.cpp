@@ -280,20 +280,21 @@ void deserialize_component<cmpt::Hierarchy>(Entity entity, const YAML::Node &dat
 
 void deserialize_material(Entity entity, const YAML::Node &data)
 {
-	auto &material                = entity.getComponent<cmpt::StaticMeshRenderer>().materials.emplace_back(Material());
-	material.base_color          = data["base_color"].as<glm::vec4>();
-	material.emissive_color      = data["emissive_color"].as<glm::vec3>();
-	material.emissive_intensity  = data["emissive_intensity"].as<float>();
-	material.metallic     = data["metallic"].as<float>();
-	material.roughness    = data["roughness"].as<float>();
-	material.displacement = data["displacement"].as<float>();
-	material.textures[TextureType::BaseColor] = data["albedo_map"].as<std::string>();
-	material.textures[TextureType::Normal] = data["normal_map"].as<std::string>();
-	material.textures[TextureType::Metallic] = data["metallic_map"].as<std::string>();
-	material.textures[TextureType::Roughness] = data["roughness_map"].as<std::string>();
-	material.textures[TextureType::Emissive] = data["emissive_map"].as<std::string>();
+	auto &material                                   = entity.getComponent<cmpt::StaticMeshRenderer>().materials.emplace_back(Material());
+	material.type                                    = static_cast<BxDFType>(data["type"].as<uint32_t>());
+	material.base_color                              = data["base_color"].as<glm::vec4>();
+	material.emissive_color                          = data["emissive_color"].as<glm::vec3>();
+	material.emissive_intensity                      = data["emissive_intensity"].as<float>();
+	material.metallic                                = data["metallic"].as<float>();
+	material.roughness                               = data["roughness"].as<float>();
+	material.displacement                            = data["displacement"].as<float>();
+	material.textures[TextureType::BaseColor]        = data["albedo_map"].as<std::string>();
+	material.textures[TextureType::Normal]           = data["normal_map"].as<std::string>();
+	material.textures[TextureType::Metallic]         = data["metallic_map"].as<std::string>();
+	material.textures[TextureType::Roughness]        = data["roughness_map"].as<std::string>();
+	material.textures[TextureType::Emissive]         = data["emissive_map"].as<std::string>();
 	material.textures[TextureType::AmbientOcclusion] = data["ao_map"].as<std::string>();
-	material.textures[TextureType::Displacement] = data["displacement_map"].as<std::string>();
+	material.textures[TextureType::Displacement]     = data["displacement_map"].as<std::string>();
 
 	Renderer::instance()->getResourceCache().loadImageAsync(material.textures[TextureType::BaseColor]);
 	Renderer::instance()->getResourceCache().loadImageAsync(material.textures[TextureType::Normal]);
