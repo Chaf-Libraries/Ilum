@@ -333,6 +333,18 @@ inline void draw_material<BxDFType::Metal>(Material &material)
 	Material::update = draw_texture(material.textures[TextureType::Roughness], "Roughness Map") || Material::update;
 }
 
+template <>
+inline void draw_material<BxDFType::Mirror>(Material &material)
+{
+	Material::update = ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color)) || Material::update;
+
+	ImGui::Text("Albedo Map");
+	Material::update = draw_texture(material.textures[TextureType::BaseColor], "Albedo Map") || Material::update;
+
+	ImGui::Text("Normal Map");
+	Material::update = draw_texture(material.textures[TextureType::Normal], "Normal Map") || Material::update;
+}
+
 inline void draw_material(Material &material)
 {
 	const char *const BxDF_types[] = {
@@ -340,8 +352,9 @@ inline void draw_material(Material &material)
 	    "Disney",
 	    "Matte",
 	    "Plastic",
-	    "Metal"};
-	Material::update = ImGui::Combo("BxDF", reinterpret_cast<int *>(&material.type), BxDF_types, 5) || Material::update;
+	    "Metal",
+	    "Mirror"};
+	Material::update = ImGui::Combo("BxDF", reinterpret_cast<int *>(&material.type), BxDF_types, 6) || Material::update;
 
 	switch (material.type)
 	{
@@ -359,6 +372,9 @@ inline void draw_material(Material &material)
 			break;
 		case BxDFType::Metal:
 			draw_material<BxDFType::Metal>(material);
+			break;
+		case BxDFType::Mirror:
+			draw_material<BxDFType::Mirror>(material);
 			break;
 		default:
 			break;

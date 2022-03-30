@@ -228,6 +228,37 @@ vec3 SampleDistribution(in MetalMaterial mat, in vec3 wo, inout uint seed, out v
 	return SampleDistribution(bxdf, wo, wh, F, D, G, Pdf(dist, wo, wh), seed, wi, pdf);
 }
 
+////////////// Mirror MaterialData //////////////
+struct MirrorMaterial
+{
+	vec3  R;
+};
+
+void Init(out MirrorMaterial mat, vec3 base_color)
+{
+	mat.R           = base_color;
+}
+
+vec3 Distribution(MirrorMaterial mat, vec3 wo, vec3 wi)
+{
+	vec3  F = FresnelEvaluate();
+
+	SpecularReflection bxdf;
+	Init(bxdf, mat.R);
+
+	return Distribution(bxdf, F, wo, wi);
+}
+
+vec3 SampleDistribution(in MirrorMaterial mat, in vec3 wo, inout uint seed, out vec3 wi, out float pdf)
+{
+	vec3 F = FresnelEvaluate();
+
+	SpecularReflection bxdf;
+	Init(bxdf, mat.R);
+
+	return SampleDistribution(bxdf, wo, F, seed, wi, pdf);
+}
+
 ////////////// Material Sampling//////////////
 vec3 Distribution(Material mat, vec3 wo, vec3 wi)
 {
@@ -248,6 +279,12 @@ vec3 Distribution(Material mat, vec3 wo, vec3 wi)
 		MetalMaterial metal;
 		Init(metal, mat.base_color.rgb, mat.anisotropic, mat.roughness);
 		return Distribution(metal, wo, wi);
+	}
+	else if (mat.material_type == BxDF_Mirror)
+	{
+		MirrorMaterial mirror;
+		Init(mirror, mat.base_color.rgb);
+		return Distribution(mirror, wo, wi);
 	}
 
 	return vec3(0.0);
@@ -271,7 +308,13 @@ vec3 SampleDistribution(in Material mat, in vec3 wo, inout uint seed, out vec3 w
 	{
 		MetalMaterial metal;
 		Init(metal, mat.base_color.rgb, mat.anisotropic, mat.roughness);
-		return Distribution(metal, wo, wi);
+		return SampleDistribution(metal, wo, seed, wi, pdf);
+	}
+	else if (mat.material_type == BxDF_Mirror)
+	{
+		MirrorMaterial mirror;
+		Init(mirror, mat.base_color.rgb);
+		return SampleDistribution(mirror, wo, seed, wi, pdf);
 	}
 
 	return vec3(0.0);

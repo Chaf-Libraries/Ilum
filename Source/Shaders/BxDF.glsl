@@ -673,7 +673,7 @@ vec3 FresnelEvaluate(FresnelDielectric fresnel, float cosThetaI)
 }
 
 // Evaluate FresnelOp
-vec3 FresnelEvaluate(float cosThetaI)
+vec3 FresnelEvaluate()
 {
 	return vec3(1.0);
 }
@@ -1075,6 +1075,34 @@ vec3 SampleDistribution(in MicrofacetReflection bxdf, in vec3 wo, in vec3 wh, in
 
 	pdf = distribution_pdf / (4.0 * dot(wo, wh));
 	return Distribution(bxdf, F, D, G, wo, wi);
+}
+
+////////////// Specular Reflection //////////////
+struct SpecularReflection
+{
+	vec3 R;
+};
+
+void Init(out SpecularReflection bxdf, vec3 base_color)
+{
+	bxdf.R = base_color;
+}
+
+vec3 Distribution(SpecularReflection bxdf, vec3 F, vec3 wo, vec3 wi)
+{
+	return vec3(0.0);
+}
+
+float Pdf(SpecularReflection bxdf, vec3 wo, vec3 wi)
+{
+	return 0.0;
+}
+
+vec3 SampleDistribution(in SpecularReflection bxdf, in vec3 wo, in vec3 F, inout uint seed, out vec3 wi, out float pdf)
+{
+	wi = vec3(-wo.x, -wo.y, wo.z);
+	pdf = 1.0;
+	return F * bxdf.R / AbsCosTheta(wi);
 }
 
 #endif

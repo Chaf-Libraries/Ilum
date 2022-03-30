@@ -111,8 +111,7 @@ void main()
 
 		vec3 n = interaction.ffnormal;
 		vec3 wo = -ray.direction;
-		//radiance = interaction.tangent;
-
+		
 		wo = normalize(WorldToLocal(wo, interaction.ffnormal, interaction.tangent, interaction.bitangent));
 
 		// Add contribution of each point light source

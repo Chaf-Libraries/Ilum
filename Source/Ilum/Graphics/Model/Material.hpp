@@ -12,7 +12,8 @@ enum class BxDFType : uint32_t
 	Disney,
 	Matte,
 	Plastic,
-	Metal
+	Metal,
+	Mirror
 };
 
 enum TextureType
