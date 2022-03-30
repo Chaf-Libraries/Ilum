@@ -169,7 +169,7 @@ struct MetalMaterial
 void Init(out MetalMaterial mat, vec3 base_color, float anisotropic, float roughness)
 {
 	mat.R           = base_color;
-	mat.eta  = vec3(10);
+	mat.eta         = vec3(10);
 	mat.k           = vec3(3.90463543, 2.44763327, 2.13765264);
 	mat.anisotropic = anisotropic;
 	mat.roughness   = roughness;
@@ -220,7 +220,7 @@ vec3 SampleDistribution(in MetalMaterial mat, in vec3 wo, inout uint seed, out v
 
 	vec3 wh = normalize(wi + wo);
 
-	vec3  F = FresnelEvaluate(fresnel, abs(dot(wi, Faceforward(wh, vec3(0.0, 0.0, 1.0)))));
+	vec3 F = FresnelEvaluate(fresnel, abs(dot(wi, Faceforward(wh, vec3(0.0, 0.0, 1.0)))));
 
 	float D = Distribution(dist, wh);
 	float G = G(dist, wo, wi);
@@ -231,17 +231,17 @@ vec3 SampleDistribution(in MetalMaterial mat, in vec3 wo, inout uint seed, out v
 ////////////// Mirror MaterialData //////////////
 struct MirrorMaterial
 {
-	vec3  R;
+	vec3 R;
 };
 
 void Init(out MirrorMaterial mat, vec3 base_color)
 {
-	mat.R           = base_color;
+	mat.R = base_color;
 }
 
 vec3 Distribution(MirrorMaterial mat, vec3 wo, vec3 wi)
 {
-	vec3  F = FresnelEvaluate();
+	vec3 F = FresnelEvaluate();
 
 	SpecularReflection bxdf;
 	Init(bxdf, mat.R);
@@ -257,6 +257,57 @@ vec3 SampleDistribution(in MirrorMaterial mat, in vec3 wo, inout uint seed, out 
 	Init(bxdf, mat.R);
 
 	return SampleDistribution(bxdf, wo, F, seed, wi, pdf);
+}
+
+////////////// Substrate MaterialData //////////////
+struct SubstrateMaterial
+{
+	vec3  Kd;
+	vec3 Rs;
+	float anisotropic;
+	float roughness;
+};
+
+void Init(out SubstrateMaterial mat, vec3 base_color, vec3 glossy, float anisotropic, float roughness)
+{
+	mat.Kd          = base_color;
+	mat.Rs          = glossy;
+	mat.anisotropic = anisotropic;
+	mat.roughness   = roughness;
+}
+
+vec3 Distribution(SubstrateMaterial mat, vec3 wo, vec3 wi)
+{
+	FresnelBlend bxdf;
+	Init(bxdf, mat.Kd, vec3(mat.Rs));
+
+	float urough = max(mat.roughness * (1.0 + mat.anisotropic), 0.00001);
+	float vrough = max(mat.roughness * (1.0 - mat.anisotropic), 0.00001);
+
+	urough = RoughnessToAlpha(urough);
+	vrough = RoughnessToAlpha(vrough);
+
+	TrowbridgeReitzDistribution dist;
+	Init(dist, urough, vrough, true);
+
+	return Distribution(bxdf, dist, wo, wi);
+}
+
+vec3 SampleDistribution(in SubstrateMaterial mat, in vec3 wo, inout uint seed, out vec3 wi, out float pdf)
+{
+	FresnelBlend bxdf;
+	Init(bxdf, mat.Kd, vec3(mat.Rs));
+
+	float urough = max(mat.roughness * (1.0 + mat.anisotropic), 0.00001);
+	float vrough = max(mat.roughness * (1.0 - mat.anisotropic), 0.00001);
+
+	urough = RoughnessToAlpha(urough);
+	vrough = RoughnessToAlpha(vrough);
+
+	TrowbridgeReitzDistribution dist;
+	Init(dist, urough, vrough, true);
+
+	return SampleDistribution(bxdf, wo, dist, seed, wi, pdf);
 }
 
 ////////////// Material Sampling//////////////
@@ -285,6 +336,12 @@ vec3 Distribution(Material mat, vec3 wo, vec3 wi)
 		MirrorMaterial mirror;
 		Init(mirror, mat.base_color.rgb);
 		return Distribution(mirror, wo, wi);
+	}
+	else if (mat.material_type == BxDF_Substrate)
+	{
+		SubstrateMaterial substrate;
+		Init(substrate, mat.base_color.rgb, mat.emissive, mat.anisotropic, mat.roughness);
+		return Distribution(substrate, wo, wi);
 	}
 
 	return vec3(0.0);
@@ -315,6 +372,12 @@ vec3 SampleDistribution(in Material mat, in vec3 wo, inout uint seed, out vec3 w
 		MirrorMaterial mirror;
 		Init(mirror, mat.base_color.rgb);
 		return SampleDistribution(mirror, wo, seed, wi, pdf);
+	}
+	else if (mat.material_type == BxDF_Substrate)
+	{
+		SubstrateMaterial substrate;
+		Init(substrate, mat.base_color.rgb, mat.emissive, mat.anisotropic, mat.roughness);
+		return SampleDistribution(substrate, wo, seed, wi, pdf);
 	}
 
 	return vec3(0.0);

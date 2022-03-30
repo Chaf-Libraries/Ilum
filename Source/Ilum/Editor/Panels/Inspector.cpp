@@ -345,6 +345,23 @@ inline void draw_material<BxDFType::Mirror>(Material &material)
 	Material::update = draw_texture(material.textures[TextureType::Normal], "Normal Map") || Material::update;
 }
 
+template <>
+inline void draw_material<BxDFType::Substrate>(Material &material)
+{
+	Material::update = ImGui::ColorEdit3("Diffuse Color", glm::value_ptr(material.base_color)) || Material::update;
+	Material::update = ImGui::ColorEdit3("Glossy Color", glm::value_ptr(material.emissive_color)) || Material::update;
+	Material::update = ImGui::DragFloat("Roughness", &material.roughness, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Anisotropic", &material.anisotropic, 0.001f, -1.f, 1.f, "%.3f") || Material::update;
+
+	ImGui::Text("Albedo Map");
+	Material::update = draw_texture(material.textures[TextureType::BaseColor], "Albedo Map") || Material::update;
+
+	ImGui::Text("Normal Map");
+	Material::update = draw_texture(material.textures[TextureType::Normal], "Normal Map") || Material::update;
+
+	material.emissive_intensity = 1.f;
+}
+
 inline void draw_material(Material &material)
 {
 	const char *const BxDF_types[] = {
@@ -353,8 +370,9 @@ inline void draw_material(Material &material)
 	    "Matte",
 	    "Plastic",
 	    "Metal",
-	    "Mirror"};
-	Material::update = ImGui::Combo("BxDF", reinterpret_cast<int *>(&material.type), BxDF_types, 6) || Material::update;
+	    "Mirror",
+	    "Substrate"};
+	Material::update = ImGui::Combo("BxDF", reinterpret_cast<int *>(&material.type), BxDF_types, 7) || Material::update;
 
 	switch (material.type)
 	{
@@ -375,6 +393,9 @@ inline void draw_material(Material &material)
 			break;
 		case BxDFType::Mirror:
 			draw_material<BxDFType::Mirror>(material);
+			break;
+		case BxDFType::Substrate:
+			draw_material<BxDFType::Substrate>(material);
 			break;
 		default:
 			break;

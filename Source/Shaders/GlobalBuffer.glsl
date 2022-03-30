@@ -97,6 +97,7 @@ struct CountData
 #define BxDF_Plastic 3
 #define BxDF_Metal 4
 #define BxDF_Mirror 5
+#define BxDF_Substrate 6
 
 #define MAX_TEXTURE_ARRAY_SIZE 1024
 

@@ -13,7 +13,8 @@ enum class BxDFType : uint32_t
 	Matte,
 	Plastic,
 	Metal,
-	Mirror
+	Mirror,
+	Substrate
 };
 
 enum TextureType

@@ -598,7 +598,7 @@ void Init(out FresnelConductor fresnel, vec3 etaI, vec3 etaT, vec3 k)
 {
 	fresnel.etaI = etaI;
 	fresnel.etaT = etaT;
-	fresnel.k = k;
+	fresnel.k    = k;
 }
 
 struct FresnelDielectric
@@ -618,7 +618,7 @@ void Init(out FresnelDielectric fresnel, float etaI, float etaT)
 vec3 FresnelEvaluate(FresnelConductor fresnel, float cosThetaI)
 {
 	cosThetaI = clamp(cosThetaI, -1.0, 1.0);
-	
+
 	vec3 eta  = fresnel.etaT / fresnel.etaI;
 	vec3 etak = fresnel.k / fresnel.etaI;
 
@@ -654,7 +654,7 @@ vec3 FresnelEvaluate(FresnelDielectric fresnel, float cosThetaI)
 		fresnel.etaT = temp;
 		cosThetaI    = abs(cosThetaI);
 	}
-	
+
 	float sinThetaI = sqrt(max(0.0, 1.0 - cosThetaI * cosThetaI));
 	float sinThetaT = fresnel.etaI / fresnel.etaT * sinThetaI;
 	if (sinThetaT >= 1.0)
@@ -668,7 +668,6 @@ vec3 FresnelEvaluate(FresnelDielectric fresnel, float cosThetaI)
 	float Rperp = ((fresnel.etaI * cosThetaI) - (fresnel.etaT * cosThetaT)) /
 	              ((fresnel.etaI * cosThetaI) + (fresnel.etaT * cosThetaT));
 
-	
 	return vec3(Rparl * Rparl + Rperp * Rperp) / 2;
 }
 
@@ -786,8 +785,8 @@ struct BeckmannDistribution
 
 void Init(out BeckmannDistribution distribution, float alpha_x, float alpha_y, bool vis)
 {
-	distribution.alpha_x = alpha_x;
-	distribution.alpha_y = alpha_y;
+	distribution.alpha_x             = alpha_x;
+	distribution.alpha_y             = alpha_y;
 	distribution.sample_visible_area = vis;
 }
 
@@ -908,8 +907,8 @@ struct TrowbridgeReitzDistribution
 
 void Init(out TrowbridgeReitzDistribution distribution, float alpha_x, float alpha_y, bool vis)
 {
-	distribution.alpha_x = alpha_x;
-	distribution.alpha_y = alpha_y;
+	distribution.alpha_x             = alpha_x;
+	distribution.alpha_y             = alpha_y;
 	distribution.sample_visible_area = vis;
 }
 
@@ -1100,9 +1099,150 @@ float Pdf(SpecularReflection bxdf, vec3 wo, vec3 wi)
 
 vec3 SampleDistribution(in SpecularReflection bxdf, in vec3 wo, in vec3 F, inout uint seed, out vec3 wi, out float pdf)
 {
-	wi = vec3(-wo.x, -wo.y, wo.z);
+	wi  = vec3(-wo.x, -wo.y, wo.z);
 	pdf = 1.0;
 	return F * bxdf.R / AbsCosTheta(wi);
 }
 
+////////////// Fresnel Blend //////////////
+struct FresnelBlend
+{
+	vec3 Rd;
+	vec3 Rs;
+};
+
+void Init(out FresnelBlend bxdf, vec3 Rd, vec3 Rs)
+{
+	bxdf.Rd = Rd;
+	bxdf.Rs = Rs;
+}
+
+vec3 SchlickFresnel(FresnelBlend bxdf, float cosTheta)
+{
+	return bxdf.Rs + pow(1 - cosTheta, 5.0) * (vec3(1.0) - bxdf.Rs);
+}
+
+vec3 Distribution(FresnelBlend bxdf, TrowbridgeReitzDistribution distribution, vec3 wo, vec3 wi)
+{
+	vec3 diffuse = (28.0 / (23.0 * PI)) * bxdf.Rd * (1.0 - bxdf.Rs) *
+	               (1.0 - pow(1.0 - 0.5 * AbsCosTheta(wi), 5.0)) *
+	               (1.0 - pow(1.0 - 0.5 * AbsCosTheta(wo), 5.0));
+
+	vec3 wh = wi + wo;
+
+	if (wh.x == 0.0 && wh.y == 0.0 && wh.z == 0.0)
+	{
+		return vec3(0.0);
+	}
+	wh = normalize(wh);
+
+	float D = Distribution(distribution, wh);
+
+	vec3 specular = D / (4.0 * abs(dot(wi, wh) * max(AbsCosTheta(wi), AbsCosTheta(wo)))) *
+	                SchlickFresnel(bxdf, dot(wi, wh));
+
+	return diffuse + specular;
+}
+
+vec3 Distribution(FresnelBlend bxdf, BeckmannDistribution distribution, vec3 wo, vec3 wi)
+{
+	vec3 diffuse = (28.0 / (23.0 * PI)) * bxdf.Rd * (1.0 - bxdf.Rs) *
+	               (1.0 - pow(1.0 - 0.5 * AbsCosTheta(wi), 5.0)) *
+	               (1.0 - pow(1.0 - 0.5 * AbsCosTheta(wo), 5.0));
+
+	vec3 wh = wi + wo;
+
+	if (wh.x == 0.0 && wh.y == 0.0 && wh.z == 0.0)
+	{
+		return vec3(0.0);
+	}
+	wh = normalize(wh);
+
+	float D = Distribution(distribution, wh);
+
+	vec3 specular = D / (4.0 * abs(dot(wi, wh) * max(AbsCosTheta(wi), AbsCosTheta(wo)))) *
+	                SchlickFresnel(bxdf, dot(wi, wh));
+
+	return diffuse + specular;
+}
+
+float Pdf(FresnelBlend bxdf, TrowbridgeReitzDistribution distribution, vec3 wo, vec3 wi)
+{
+	if (!SameHemisphere(wo, wi))
+	{
+		return 0.0;
+	}
+
+	vec3 wh = normalize(wo + wi);
+	float pdf_wh = Pdf(distribution, wo, wh);
+	return 0.5 * (AbsCosTheta(wi) * InvPI + pdf_wh / (4.0 * dot(wo, wh)));
+}
+
+float Pdf(FresnelBlend bxdf, BeckmannDistribution distribution, vec3 wo, vec3 wi)
+{
+	if (!SameHemisphere(wo, wi))
+	{
+		return 0.0;
+	}
+
+	vec3  wh     = normalize(wo + wi);
+	float pdf_wh = Pdf(distribution, wo, wh);
+	return 0.5 * (AbsCosTheta(wi) * InvPI + pdf_wh / (4.0 * dot(wo, wh)));
+}
+
+vec3 SampleDistribution(in FresnelBlend bxdf, in vec3 wo, in TrowbridgeReitzDistribution distribution, inout uint seed, out vec3 wi, out float pdf)
+{
+	vec2 u = rand2(seed);
+
+	if (u.x < 0.5)
+	{
+		u.x = min(2.0 * u.x, 0.999999);
+		wi  = SampleCosineHemisphere(u);
+		if (wo.z < 0.0)
+		{
+			wi.z *= -1.0;
+		}
+	}
+	else
+	{
+		u.x = min(2.0 * (u.x - 0.5), 0.999999);
+		vec3 wh = SampleWh(distribution, wo, seed);
+		wi      = reflect(wo, wh);
+		if (!SameHemisphere(wo, wi))
+		{
+			return vec3(0.0);
+		}
+	}
+
+	pdf = Pdf(bxdf, distribution, wo, wi);
+	return Distribution(bxdf, distribution, wo, wi);
+}
+
+vec3 SampleDistribution(in FresnelBlend bxdf, in vec3 wo, in BeckmannDistribution distribution, inout uint seed, out vec3 wi, out float pdf)
+{
+	vec2 u = rand2(seed);
+
+	if (u.x < 0.5)
+	{
+		u.x = min(2.0 * u.x, 0.999999);
+		wi  = SampleCosineHemisphere(u);
+		if (wo.z < 0.0)
+		{
+			wi.z *= -1.0;
+		}
+	}
+	else
+	{
+		u.x     = min(2.0 * (u.x - 0.5), 0.999999);
+		vec3 wh = SampleWh(distribution, wo, seed);
+		wi      = reflect(wo, wh);
+		if (!SameHemisphere(wo, wi))
+		{
+			return vec3(0.0);
+		}
+	}
+
+	pdf = Pdf(bxdf, distribution, wo, wi);
+	return Distribution(bxdf, distribution, wo, wi);
+}
 #endif
