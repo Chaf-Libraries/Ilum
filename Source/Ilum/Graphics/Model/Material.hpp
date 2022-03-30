@@ -14,7 +14,8 @@ enum class BxDFType : uint32_t
 	Plastic,
 	Metal,
 	Mirror,
-	Substrate
+	Substrate,
+	Glass
 };
 
 enum TextureType
@@ -33,6 +34,8 @@ struct Material
 {
 	BxDFType type = BxDFType::CookTorrance;
 
+	glm::vec3 data;
+
 	glm::vec4 base_color = {1.f, 1.f, 1.f, 1.f};
 
 	glm::vec3 emissive_color     = {0.f, 0.f, 0.f};
@@ -42,14 +45,17 @@ struct Material
 	float subsurface             = 0.f;
 	float metallic               = 1.f;
 	float specular               = 0.f;
+
 	float specular_tint          = 0.f;
 	float roughness              = 1.f;
 	float anisotropic            = 0.f;
 	float sheen                  = 0.f;
+
 	float sheen_tint             = 0.f;
 	float clearcoat              = 0.f;
 	float clearcoat_gloss        = 0.f;
 	float transmission           = 0.f;
+
 	float transmission_roughness = 0.f;
 
 	std::string textures[TextureType::MaxNum];

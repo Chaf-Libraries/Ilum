@@ -46,41 +46,42 @@ void MaterialUpdate::run()
 		// Update static mesh material
 		//tbb::parallel_for(tbb::blocked_range<size_t>(0, static_mesh_view.size()), [&static_mesh_view, &material_data, material_offset](const tbb::blocked_range<size_t> &r) {
 		for (size_t i = 0; i != static_mesh_view.size(); i++)
-			//for (size_t i = r.begin(); i != r.end(); i++)
+		//for (size_t i = r.begin(); i != r.end(); i++)
+		{
+			auto  entity               = Entity(static_mesh_view[i]);
+			auto &static_mesh_renderer = entity.getComponent<cmpt::StaticMeshRenderer>();
+
+			for (uint32_t material_id = 0; material_id < static_mesh_renderer.materials.size(); material_id++)
 			{
-				auto  entity               = Entity(static_mesh_view[i]);
-				auto &static_mesh_renderer = entity.getComponent<cmpt::StaticMeshRenderer>();
+				auto &material = material_data[material_offset[i] + material_id];
 
-				for (uint32_t material_id = 0; material_id < static_mesh_renderer.materials.size(); material_id++)
+				auto &material_ptr = static_mesh_renderer.materials[material_id];
+
+				material.base_color             = material_ptr.base_color;
+				material.emissive_color         = material_ptr.emissive_color;
+				material.emissive_intensity     = material_ptr.emissive_intensity;
+				material.displacement           = material_ptr.displacement;
+				material.subsurface             = material_ptr.subsurface;
+				material.metallic               = material_ptr.metallic;
+				material.specular               = material_ptr.specular;
+				material.specular_tint          = material_ptr.specular_tint;
+				material.roughness              = material_ptr.roughness;
+				material.anisotropic            = material_ptr.anisotropic;
+				material.sheen                  = material_ptr.sheen;
+				material.sheen_tint             = material_ptr.sheen_tint;
+				material.clearcoat              = material_ptr.clearcoat;
+				material.clearcoat_gloss        = material_ptr.clearcoat_gloss;
+				material.transmission           = material_ptr.transmission;
+				material.transmission_roughness = material_ptr.transmission_roughness;
+				material.data                   = material_ptr.data;
+				material.material_type          = static_cast<uint32_t>(material_ptr.type);
+
+				for (uint32_t i = 0; i < static_cast<uint32_t>(TextureType::MaxNum); i++)
 				{
-					auto &material = material_data[material_offset[i] + material_id];
-
-					auto &material_ptr = static_mesh_renderer.materials[material_id];
-
-					material.base_color             = material_ptr.base_color;
-					material.emissive_color         = material_ptr.emissive_color;
-					material.emissive_intensity     = material_ptr.emissive_intensity;
-					material.displacement           = material_ptr.displacement;
-					material.subsurface             = material_ptr.subsurface;
-					material.metallic               = material_ptr.metallic;
-					material.specular               = material_ptr.specular;
-					material.specular_tint          = material_ptr.specular_tint;
-					material.roughness              = material_ptr.roughness;
-					material.anisotropic            = material_ptr.anisotropic;
-					material.sheen                  = material_ptr.sheen;
-					material.sheen_tint             = material_ptr.sheen_tint;
-					material.clearcoat              = material_ptr.clearcoat;
-					material.clearcoat_gloss        = material_ptr.clearcoat_gloss;
-					material.transmission           = material_ptr.transmission;
-					material.transmission_roughness = material_ptr.transmission_roughness;
-					material.material_type          = static_cast<uint32_t>(material_ptr.type);
-
-					for (uint32_t i = 0; i < static_cast<uint32_t>(TextureType::MaxNum); i++)
-					{
-						material.textures[i] = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.textures[i]));
-					}
+					material.textures[i] = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.textures[i]));
 				}
 			}
+		}
 		//});
 
 		// Update dynamic mesh material
@@ -110,6 +111,7 @@ void MaterialUpdate::run()
 				material.clearcoat_gloss        = material_ptr.clearcoat_gloss;
 				material.transmission           = material_ptr.transmission;
 				material.transmission_roughness = material_ptr.transmission_roughness;
+				material.data                   = material_ptr.data;
 				material.material_type          = static_cast<uint32_t>(material_ptr.type);
 
 				for (uint32_t i = 0; i < static_cast<uint32_t>(TextureType::MaxNum); i++)

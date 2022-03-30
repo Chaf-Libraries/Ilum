@@ -90,7 +90,8 @@ struct MaterialData
 	float    transmission_roughness;
 	uint32_t textures[TextureType::MaxNum];
 
-	alignas(16) uint32_t material_type;
+	glm::vec3 data;
+	uint32_t material_type;
 };
 
 struct CameraData

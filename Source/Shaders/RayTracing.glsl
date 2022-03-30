@@ -189,6 +189,7 @@ void GetMaterial(inout Interaction interaction, in Ray r)
 	interaction.mat.clearcoat_gloss = material.clearcoat_gloss;
 	interaction.mat.transmission    = material.transmission;
 	interaction.mat.material_type   = material.material_type;
+	interaction.mat.data            = material.data;
 
 	if (material.textures[TEXTURE_BASE_COLOR] < MAX_TEXTURE_ARRAY_SIZE)
 	{

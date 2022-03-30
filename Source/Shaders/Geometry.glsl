@@ -78,6 +78,23 @@ vec3 Faceforward(vec3 v, vec3 v2)
 	return dot(v, v2) < 0.0 ? -v : v;
 }
 
+bool Refract(vec3 wi, vec3 n, float eta, out vec3 wt)
+{
+	float cosThetaI  = dot(wi, n);
+	float sin2ThetaI = max(0.0, 1.0 - cosThetaI * cosThetaI);
+	float sin2ThetaT = eta * eta * sin2ThetaI;
+
+	if (sin2ThetaT >= 1.0)
+	{
+		return false;
+	}
+
+	float cosThetaT = sqrt(1.0 - sin2ThetaT);
+	wt              = eta * (-wi) + (eta * cosThetaI - cosThetaI) * n;
+
+	return true;
+}
+
 float ErfInv(float x)
 {
 	float w, p;

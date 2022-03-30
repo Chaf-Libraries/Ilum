@@ -106,22 +106,6 @@ inline bool draw_vec3_control(const std::string &label, glm::vec3 &values, float
 	return update;
 }
 
-template <typename T>
-void select_material(scope<Material> &material)
-{
-	if ((!material || (material && material->type() != typeid(T))) && ImGui::MenuItem(typeid(T).name()))
-	{
-		material = createScope<T>();
-	}
-}
-
-template <typename T1, typename T2, typename... Tn>
-inline void select_material()
-{
-	select_material<T1>();
-	select_material<T2, Tn...>();
-}
-
 template <typename T, typename Callback>
 inline bool draw_component(const std::string &name, Entity entity, Callback callback, bool static_mode = false)
 {
@@ -349,7 +333,7 @@ template <>
 inline void draw_material<BxDFType::Substrate>(Material &material)
 {
 	Material::update = ImGui::ColorEdit3("Diffuse Color", glm::value_ptr(material.base_color)) || Material::update;
-	Material::update = ImGui::ColorEdit3("Glossy Color", glm::value_ptr(material.emissive_color)) || Material::update;
+	Material::update = ImGui::ColorEdit3("Glossy Color", glm::value_ptr(material.data)) || Material::update;
 	Material::update = ImGui::DragFloat("Roughness", &material.roughness, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Anisotropic", &material.anisotropic, 0.001f, -1.f, 1.f, "%.3f") || Material::update;
 
@@ -358,8 +342,22 @@ inline void draw_material<BxDFType::Substrate>(Material &material)
 
 	ImGui::Text("Normal Map");
 	Material::update = draw_texture(material.textures[TextureType::Normal], "Normal Map") || Material::update;
+}
 
-	material.emissive_intensity = 1.f;
+template <>
+inline void draw_material<BxDFType::Glass>(Material &material)
+{
+	Material::update = ImGui::ColorEdit3("Reflection Color", glm::value_ptr(material.base_color)) || Material::update;
+	Material::update = ImGui::ColorEdit3("Transmission Color", glm::value_ptr(material.data)) || Material::update;
+	Material::update = ImGui::DragFloat("Refraction", &material.transmission, 0.001f, 1.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Roughness", &material.roughness, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Anisotropic", &material.anisotropic, 0.001f, -1.f, 1.f, "%.3f") || Material::update;
+
+	ImGui::Text("Albedo Map");
+	Material::update = draw_texture(material.textures[TextureType::BaseColor], "Albedo Map") || Material::update;
+
+	ImGui::Text("Normal Map");
+	Material::update = draw_texture(material.textures[TextureType::Normal], "Normal Map") || Material::update;
 }
 
 inline void draw_material(Material &material)
@@ -371,8 +369,9 @@ inline void draw_material(Material &material)
 	    "Plastic",
 	    "Metal",
 	    "Mirror",
-	    "Substrate"};
-	Material::update = ImGui::Combo("BxDF", reinterpret_cast<int *>(&material.type), BxDF_types, 7) || Material::update;
+	    "Substrate",
+	    "Glass"};
+	Material::update = ImGui::Combo("BxDF", reinterpret_cast<int *>(&material.type), BxDF_types, 8) || Material::update;
 
 	switch (material.type)
 	{
@@ -396,6 +395,9 @@ inline void draw_material(Material &material)
 			break;
 		case BxDFType::Substrate:
 			draw_material<BxDFType::Substrate>(material);
+			break;
+		case BxDFType::Glass:
+			draw_material<BxDFType::Glass>(material);
 			break;
 		default:
 			break;

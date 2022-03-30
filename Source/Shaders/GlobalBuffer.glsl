@@ -98,6 +98,7 @@ struct CountData
 #define BxDF_Metal 4
 #define BxDF_Mirror 5
 #define BxDF_Substrate 6
+#define BxDF_Glass 7
 
 #define MAX_TEXTURE_ARRAY_SIZE 1024
 
@@ -126,6 +127,7 @@ struct MaterialData
 	float transmission_roughness;
 	uint  textures[TEXTURE_MAX_NUM];
 
+	vec3 data;
 	uint material_type;
 };
 
@@ -144,6 +146,7 @@ struct Material
 	float clearcoat;
 	float clearcoat_gloss;
 	float transmission;
+	vec3  data;
 	uint  material_type;
 };
 

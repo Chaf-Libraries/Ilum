@@ -5,227 +5,8 @@
 #include "Random.glsl"
 #include "Sampling.glsl"
 
-/*
-struct BxDFContext
-{
-	float NoV;
-	float NoL;
-	float VoL;
-	float NoH;
-	float VoH;
-	float XoV;
-	float XoL;
-	float XoH;
-	float YoV;
-	float YoL;
-	float YoH;
-};
-
-void InitBxDF(inout BxDFContext context, vec3 N, vec3 V, vec3 L)
-{
-	context.NoL   = dot(N, L);
-	context.NoV   = dot(N, V);
-	context.VoL   = dot(V, L);
-	float InvLenH = sqrt(2 + 2 * context.VoL);
-	context.NoH   = clamp((context.NoL + context.NoV) * InvLenH, 0.0, 1.0);
-	context.VoH   = clamp(InvLenH + InvLenH * context.VoL, 0.0, 1.0);
-
-	context.XoV = 0.0f;
-	context.XoL = 0.0f;
-	context.XoH = 0.0f;
-	context.YoV = 0.0f;
-	context.YoL = 0.0f;
-	context.YoH = 0.0f;
-}
-
-void InitBxDF(inout BxDFContext context, vec3 N, vec3 X, vec3 Y, vec3 V, vec3 L)
-{
-	context.NoL   = dot(N, L);
-	context.NoV   = dot(N, V);
-	context.VoL   = dot(V, L);
-	float InvLenH = sqrt(2 + 2 * context.VoL);
-	context.NoH   = clamp((context.NoL + context.NoV) * InvLenH, 0.0, 1.0);
-	context.VoH   = clamp(InvLenH + InvLenH * context.VoL, 0.0, 1.0);
-
-	context.XoV = dot(X, V);
-	context.XoL = dot(X, L);
-	context.XoH = (context.XoL + context.XoV) * InvLenH;
-	context.YoV = dot(Y, V);
-	context.YoL = dot(Y, L);
-	context.YoH = (context.YoL + context.YoV) * InvLenH;
-}
-
-// Physical based shading model
-// Diffuse Term
-
-// Lambert
-vec3 Diffuse_Lambert(vec3 diffuse_color)
-{
-	return diffuse_color * (1 / PI);
-}
-
-// [Burley 2012, "Physically-Based Shading at Disney"]
-vec3 Diffuse_Burley(vec3 diffuse_color, float roughness, float NoV, float NoL, float VoH)
-{
-	float FD90 = 0.5 + 2.0 * VoH * VoH * roughness;
-	float FdV  = 1 + (FD90 - 1) * pow(1 - NoV, 5.0);
-	float FdL  = 1 + (FD90 - 1) * pow(1 - NoL, 5.0);
-	return diffuse_color * ((1 / PI) * FdV * FdL);
-}
-
-// [Gotanda 2012, "Beyond a Simple Physically Based Blinn-Phong Model in Real-Time"]
-vec3 Diffuse_OrenNayar(vec3 diffuse_color, float roughness, float NoV, float NoL, float VoH)
-{
-	float a     = roughness * roughness;
-	float s     = a;        // 1.29 + 0.5 * a
-	float s2    = s * s;
-	float VoL   = 2.0 * VoH * VoH - 1.0;
-	float Cosri = VoL - NoV * NoL;
-	float C1    = 1 - 0.5 * s2 / (s2 + 0.33);
-	float C2    = 0.45 * s2 / (s2 + 0.09) * Cosri * (Cosri >= 0 ? 1 / (max(NoV, NoL)) : 1.0);
-	return diffuse_color / PI * (C1 + C2) * (1 + roughness * 0.5);
-}
-
-// [Gotanda 2014, "Designing Reflectance Models for New Consoles"]
-vec3 Diffuse_Gotanda(vec3 diffuse_color, float roughness, float NoV, float NoL, float VoH)
-{
-	float a     = roughness * roughness;
-	float a2    = a * a;
-	float F0    = 0.04;
-	float VoL   = 2 * VoH * VoH - 1;        // double angle identity
-	float Cosri = VoL - NoV * NoL;
-	float a2_13 = a2 + 1.36053;
-	float Fr    = (1 - (0.542026 * a2 + 0.303573 * a) / a2_13) * (1 - pow(1 - NoV, 5 - 4 * a2) / a2_13) * ((-0.733996 * a2 * a + 1.50912 * a2 - 1.16402 * a) * pow(1 - NoV, 1 + 1.0/(39 * a2 * a2 + 1)) + 1);
-	//float Fr = ( 1 - 0.36 * a ) * ( 1 - pow( 1 - NoV, 5 - 4*a2 ) / a2_13 ) * ( -2.5 * Roughness * ( 1 - NoV ) + 1 );
-	float Lm = (max(1 - 2 * a, 0) * (1 - pow(1 - NoL, 5.0)) + min(2 * a, 1)) * (1 - 0.5 * a * (NoL - 1)) * NoL;
-	float Vd = (a2 / ((a2 + 0.09) * (1.31072 + 0.995584 * NoV))) * (1 - pow(1 - NoL, (1 - 0.3726732 * NoV * NoV) / (0.188566 + 0.38841 * NoV)));
-	float Bp = Cosri < 0 ? 1.4 * NoV * NoL * Cosri : Cosri;
-	float Lr = (21.0 / 20.0) * (1 - F0) * (Fr * Lm + Vd + Bp);
-	return diffuse_color / PI * Lr;
-}
-
-// Normal Distribute Function
-
-// [Blinn 1977, "Models of light reflection for computer synthesized pictures"]
-float D_Blinn(float a2, float NoH)
-{
-	float n = 2 / a2 - 2;
-	return (n + 2) / (2 * PI) * pow(NoH, n); 
-}
-
-// [Beckmann 1963, "The scattering of electromagnetic waves from rough surfaces"]
-float D_Beckmann(float a2, float NoH)
-{
-	float NoH2 = NoH * NoH;
-	return exp((NoH2 - 1) / (a2 * NoH2)) / (PI * a2 * NoH2 * NoH2);
-}
-
-// GGX / Trowbridge-Reitz
-// [Walter et al. 2007, "Microfacet models for refraction through rough surfaces"]
-float D_GGX(float a2, float NoH)
-{
-	float d = (NoH * a2 - NoH) * NoH + 1;        // 2 mad
-	return a2 / (PI * d * d);                    // 4 mul, 1 rcp
-}
-
-// Anisotropic GGX
-// [Burley 2012, "Physically-Based Shading at Disney"]
-float D_GGXaniso(float ax, float ay, float NoH, float XoH, float YoH)
-{
-	float  a2 = ax * ay;
-	vec3 V  = vec3(ay * XoH, ax * YoH, a2 * NoH);
-	float  S  = dot(V, V);
-
-	return (1.0f / PI) * a2 * pow(a2 / S, 2.0);
-}
-
-// Geometry Visibility Term
-float Vis_Implicit()
-{
-	return 0.25;
-}
-
-// [Neumann et al. 1999, "Compact metallic reflectance models"]
-float Vis_Neumann(float NoV, float NoL)
-{
-	return 1 / (4 * max(NoL, NoV));
-}
-
-// [Kelemen 2001, "A microfacet based coupled specular-matte brdf model with importance sampling"]
-float Vis_Kelemen(float VoH)
-{
-	// constant to prevent NaN
-	return 1.0 / (4 * VoH * VoH + 1e-5);
-}
-
-// Tuned to match behavior of Vis_Smith
-// [Schlick 1994, "An Inexpensive BRDF Model for Physically-Based Rendering"]
-float Vis_Schlick(float a2, float NoV, float NoL)
-{
-	float k            = sqrt(a2) * 0.5;
-	float Vis_SchlickV = NoV * (1 - k) + k;
-	float Vis_SchlickL = NoL * (1 - k) + k;
-	return 0.25 / (Vis_SchlickV * Vis_SchlickL);
-}
-
-// Smith term for GGX
-// [Smith 1967, "Geometrical shadowing of a random rough surface"]
-float Vis_Smith(float a2, float NoV, float NoL)
-{
-	float Vis_SmithV = NoV + sqrt(NoV * (NoV - NoV * a2) + a2);
-	float Vis_SmithL = NoL + sqrt(NoL * (NoL - NoL * a2) + a2);
-	return 1.0 / (Vis_SmithV * Vis_SmithL);
-}
-
-// Appoximation of joint Smith term for GGX
-// [Heitz 2014, "Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs"]
-float Vis_SmithJointApprox(float a2, float NoV, float NoL)
-{
-	float a          = sqrt(a2);
-	float Vis_SmithV = NoL * (NoV * (1 - a) + a);
-	float Vis_SmithL = NoV * (NoL * (1 - a) + a);
-	return 0.5 * 1.0 / (Vis_SmithV + Vis_SmithL);
-}
-
-// [Heitz 2014, "Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs"]
-float Vis_SmithJoint(float a2, float NoV, float NoL)
-{
-	float Vis_SmithV = NoL * sqrt(NoV * (NoV - NoV * a2) + a2);
-	float Vis_SmithL = NoV * sqrt(NoL * (NoL - NoL * a2) + a2);
-	return 0.5 * 1.0 / (Vis_SmithV + Vis_SmithL);
-}
-
-// [Heitz 2014, "Understanding the Masking-Shadowing Function in Microfacet-Based BRDFs"]
-float Vis_SmithJointAniso(float ax, float ay, float NoV, float NoL, float XoV, float XoL, float YoV, float YoL)
-{
-	float Vis_SmithV = NoL * length(vec3(ax * XoV, ay * YoV, NoV));
-	float Vis_SmithL = NoV * length(vec3(ax * XoL, ay * YoL, NoL));
-	return 0.5 * 1.0 / (Vis_SmithV + Vis_SmithL);
-}
-
-vec3 F_None(vec3 specular_color)
-{
-	return specular_color;
-}
-
-// [Schlick 1994, "An Inexpensive BRDF Model for Physically-Based Rendering"]
-vec3 F_Schlick(vec3 specular_color, float VoH)
-{
-	float Fc = pow(1 - VoH, 5.0);        // 1 sub, 3 mul
-	//return Fc + (1 - Fc) * specular_color;		// 1 add, 3 mad
-
-	// Anything less than 2% is physically impossible and is instead considered to be shadowing
-	return clamp(50.0 * specular_color.g, 0.0, 1.0) * Fc + (1 - Fc) * specular_color;
-}
-
-vec3 F_Fresnel(vec3 specular_color, float VoH)
-{
-	vec3 SpecularColorSqrt = sqrt(clamp(vec3(0, 0, 0), vec3(0.99, 0.99, 0.99), specular_color));
-	vec3 n                 = (1 + SpecularColorSqrt) / (1 - SpecularColorSqrt);
-	vec3 g                 = sqrt(n * n + VoH * VoH - 1);
-	return 0.5 * pow((g - VoH) / (g + VoH), 2.0) * (1 + pow(((g + VoH) * VoH - 1) / ((g - VoH) * VoH + 1), 2.0));
-}
-*/
+const uint TransportMode_Radiance = 0;
+const uint TransportMode_Importance = 1;
 
 // Diffuse Term
 // Lambertian Diffuse
@@ -1024,7 +805,7 @@ void Init(out MicrofacetReflection bxdf, vec3 base_color)
 	bxdf.R = base_color;
 }
 
-vec3 Distribution(MicrofacetReflection bxdf, vec3 F, float D, float G, vec3 wo, vec3 wi)
+/* vec3 Distribution(MicrofacetReflection bxdf, vec3 F, float D, float G, vec3 wo, vec3 wi)
 {
 	float cosThetaO = AbsCosTheta(wo);
 	float cosThetaI = AbsCosTheta(wi);
@@ -1041,6 +822,106 @@ vec3 Distribution(MicrofacetReflection bxdf, vec3 F, float D, float G, vec3 wo, 
 	}
 
 	return bxdf.R * D * G * F / (4.0 * cosThetaI * cosThetaO);
+}*/
+
+vec3 Distribution(MicrofacetReflection bxdf, FresnelConductor fresnel, TrowbridgeReitzDistribution distribution, vec3 wo, vec3 wi)
+{
+	float cosThetaO = AbsCosTheta(wo);
+	float cosThetaI = AbsCosTheta(wi);
+
+	vec3 wh = wi + wo;
+
+	if (cosThetaI == 0.0 || cosThetaO == 0.0)
+	{
+		return vec3(0.0);
+	}
+	if (wh.x == 0.0 && wh.y == 0.0 && wh.z == 0.0)
+	{
+		return vec3(0.0);
+	}
+
+	wh = normalize(wh);
+
+	vec3 F = FresnelEvaluate(fresnel, dot(wi, Faceforward(wh, vec3(0.0, 0.0, 1.0))));
+	float D = Distribution(distribution, wh);
+	float G = G(distribution, wo, wi);
+
+	return bxdf.R * D * G * F / (4.0 * cosThetaI * cosThetaO);
+}
+
+vec3 Distribution(MicrofacetReflection bxdf, FresnelConductor fresnel, BeckmannDistribution distribution, vec3 wo, vec3 wi)
+{
+	float cosThetaO = AbsCosTheta(wo);
+	float cosThetaI = AbsCosTheta(wi);
+
+	vec3 wh = wi + wo;
+
+	if (cosThetaI == 0.0 || cosThetaO == 0.0)
+	{
+		return vec3(0.0);
+	}
+	if (wh.x == 0.0 && wh.y == 0.0 && wh.z == 0.0)
+	{
+		return vec3(0.0);
+	}
+
+	wh = normalize(wh);
+
+	vec3  F = FresnelEvaluate(fresnel, dot(wi, Faceforward(wh, vec3(0.0, 0.0, 1.0))));
+	float D = Distribution(distribution, wh);
+	float G = G(distribution, wo, wi);
+
+	return bxdf.R * D * G * F / (4.0 * cosThetaI * cosThetaO);
+}
+
+vec3 Distribution(MicrofacetReflection bxdf, FresnelDielectric fresnel, TrowbridgeReitzDistribution distribution, vec3 wo, vec3 wi)
+{
+	float cosThetaO = AbsCosTheta(wo);
+	float cosThetaI = AbsCosTheta(wi);
+
+	vec3 wh = wi + wo;
+
+	if (cosThetaI == 0.0 || cosThetaO == 0.0)
+	{
+		return vec3(0.0);
+	}
+	if (wh.x == 0.0 && wh.y == 0.0 && wh.z == 0.0)
+	{
+		return vec3(0.0);
+	}
+
+	wh = normalize(wh);
+
+	vec3  F = FresnelEvaluate(fresnel, dot(wi, Faceforward(wh, vec3(0.0, 0.0, 1.0))));
+	float D = Distribution(distribution, wh);
+	float G = G(distribution, wo, wi);
+
+	return bxdf.R * D * G * F / (4.0 * cosThetaI * cosThetaO);
+}
+
+vec3 Distribution(MicrofacetReflection bxdf, FresnelDielectric fresnel, BeckmannDistribution distribution, vec3 wo, vec3 wi)
+{
+	float cosThetaO = AbsCosTheta(wo);
+	float cosThetaI = AbsCosTheta(wi);
+
+	vec3 wh = wi + wo;
+
+	if (cosThetaI == 0.0 || cosThetaO == 0.0)
+	{
+		return vec3(0.0);
+	}
+	if (wh.x == 0.0 && wh.y == 0.0 && wh.z == 0.0)
+	{
+		return vec3(0.0);
+	}
+
+	wh = normalize(wh);
+
+	vec3  F = FresnelEvaluate(fresnel, dot(wi, Faceforward(wh, vec3(0.0, 0.0, 1.0))));
+	float D = Distribution(distribution, wh);
+	float G = G(distribution, wo, wi);
+
+	return bxdf.R * D * G * F / (4.0 * cosThetaI * cosThetaO);
 }
 
 float Pdf(MicrofacetReflection bxdf, vec3 wo, vec3 wi, vec3 wh, float distribution_pdf)
@@ -1053,7 +934,7 @@ float Pdf(MicrofacetReflection bxdf, vec3 wo, vec3 wi, vec3 wh, float distributi
 	return distribution_pdf / (4.0 * dot(wo, wh));
 }
 
-vec3 SampleDistribution(in MicrofacetReflection bxdf, in vec3 wo, in vec3 wh, in vec3 F, in float D, in float G, in float distribution_pdf, inout uint seed, out vec3 wi, out float pdf)
+/* vec3 SampleDistribution(in MicrofacetReflection bxdf, in vec3 wo, in vec3 wh, in vec3 F, in float D, in float G, in float distribution_pdf, inout uint seed, out vec3 wi, out float pdf)
 {
 	if (wo.z < 0.0)
 	{
@@ -1074,6 +955,110 @@ vec3 SampleDistribution(in MicrofacetReflection bxdf, in vec3 wo, in vec3 wh, in
 
 	pdf = distribution_pdf / (4.0 * dot(wo, wh));
 	return Distribution(bxdf, F, D, G, wo, wi);
+}*/
+
+vec3 SampleDistribution(in MicrofacetReflection bxdf, in vec3 wo, in FresnelConductor fresnel, in TrowbridgeReitzDistribution distribution, inout uint seed, out vec3 wi, out float pdf)
+{
+	if (wo.z < 0.0)
+	{
+		return vec3(0.0);
+	}
+
+	vec3 wh = SampleWh(distribution, wo, seed);
+
+	if (dot(wo, wh) < 0.0)
+	{
+		return vec3(0.0);
+	}
+
+	wi = reflect(wo, wh);
+
+	if (!SameHemisphere(wo, wi))
+	{
+		return vec3(0.0);
+	}
+
+	pdf = Pdf(distribution, wo, wh) / (4.0 * dot(wo, wh));
+
+	return Distribution(bxdf, fresnel, distribution, wo, wi);
+}
+
+vec3 SampleDistribution(in MicrofacetReflection bxdf, in vec3 wo, in FresnelConductor fresnel, in BeckmannDistribution distribution, inout uint seed, out vec3 wi, out float pdf)
+{
+	if (wo.z < 0.0)
+	{
+		return vec3(0.0);
+	}
+
+	vec3 wh = SampleWh(distribution, wo, seed);
+
+	if (dot(wo, wh) < 0.0)
+	{
+		return vec3(0.0);
+	}
+
+	wi = reflect(wo, wh);
+
+	if (!SameHemisphere(wo, wi))
+	{
+		return vec3(0.0);
+	}
+
+	pdf = Pdf(distribution, wo, wh) / (4.0 * dot(wo, wh));
+
+	return Distribution(bxdf, fresnel, distribution, wo, wi);
+}
+
+vec3 SampleDistribution(in MicrofacetReflection bxdf, in vec3 wo, in FresnelDielectric fresnel, in TrowbridgeReitzDistribution distribution, inout uint seed, out vec3 wi, out float pdf)
+{
+	if (wo.z < 0.0)
+	{
+		return vec3(0.0);
+	}
+
+	vec3 wh = SampleWh(distribution, wo, seed);
+
+	if (dot(wo, wh) < 0.0)
+	{
+		return vec3(0.0);
+	}
+
+	wi = reflect(wo, wh);
+
+	if (!SameHemisphere(wo, wi))
+	{
+		return vec3(0.0);
+	}
+
+	pdf = Pdf(distribution, wo, wh) / (4.0 * dot(wo, wh));
+
+	return Distribution(bxdf, fresnel, distribution, wo, wi);
+}
+
+vec3 SampleDistribution(in MicrofacetReflection bxdf, in vec3 wo, in FresnelDielectric fresnel, in BeckmannDistribution distribution, inout uint seed, out vec3 wi, out float pdf)
+{
+	if (wo.z < 0.0)
+	{
+		return vec3(0.0);
+	}
+
+	vec3 wh = SampleWh(distribution, wo, seed);
+
+	if (dot(wo, wh) < 0.0)
+	{
+		return vec3(0.0);
+	}
+
+	wi = reflect(wo, wh);
+
+	if (!SameHemisphere(wo, wi))
+	{
+		return vec3(0.0);
+	}
+
+	pdf = Pdf(distribution, wo, wh) / (4.0 * dot(wo, wh));
+
+	return Distribution(bxdf, fresnel, distribution, wo, wi);
 }
 
 ////////////// Specular Reflection //////////////
@@ -1087,7 +1072,7 @@ void Init(out SpecularReflection bxdf, vec3 base_color)
 	bxdf.R = base_color;
 }
 
-vec3 Distribution(SpecularReflection bxdf, vec3 F, vec3 wo, vec3 wi)
+vec3 Distribution(SpecularReflection bxdf, vec3 wo, vec3 wi)
 {
 	return vec3(0.0);
 }
@@ -1097,7 +1082,15 @@ float Pdf(SpecularReflection bxdf, vec3 wo, vec3 wi)
 	return 0.0;
 }
 
-vec3 SampleDistribution(in SpecularReflection bxdf, in vec3 wo, in vec3 F, inout uint seed, out vec3 wi, out float pdf)
+vec3 SampleDistribution(in SpecularReflection bxdf, in vec3 wo, inout uint seed, out vec3 wi, out float pdf)
+{
+	wi  = vec3(-wo.x, -wo.y, wo.z);
+	pdf = 1.0;
+	return bxdf.R / AbsCosTheta(wi);
+}
+
+// TODO:
+vec3 SampleDistribution(in SpecularReflection bxdf, in vec3 wo, FresnelConductor fresnel, inout uint seed, out vec3 wi, out float pdf)
 {
 	wi  = vec3(-wo.x, -wo.y, wo.z);
 	pdf = 1.0;
@@ -1245,4 +1238,53 @@ vec3 SampleDistribution(in FresnelBlend bxdf, in vec3 wo, in BeckmannDistributio
 	pdf = Pdf(bxdf, distribution, wo, wi);
 	return Distribution(bxdf, distribution, wo, wi);
 }
+
+////////////// Specular Transmission //////////////
+struct SpecularTransmission
+{
+	vec3 T;
+	float etaA, etaB;
+	uint  mode;
+};
+
+void Init(out SpecularTransmission bxdf, vec3 T, float etaA, float etaB)
+{
+	bxdf.T = T;
+	bxdf.etaA = etaA;
+	bxdf.etaB = etaB;
+}
+
+vec3 Distribution(SpecularTransmission bxdf, vec3 wo, vec3 wi)
+{
+	return vec3(0.0);
+}
+
+float Pdf(SpecularTransmission bxdf, vec3 wo, vec3 wi)
+{
+	return 0.0;
+}
+
+vec3 SampleDistribution(in SpecularTransmission bxdf, in vec3 wo, in FresnelDielectric fresnel, inout uint seed, out vec3 wi, out float pdf)
+{
+	bool entering = CosTheta(wo) > 0.0;
+	float etaI     = entering ? bxdf.etaA : bxdf.etaB;
+	float etaT     = entering ? bxdf.etaB : bxdf.etaA;
+
+	if (!Refract(wo, Faceforward(vec3(0.0, 0.0, 1.0), wo), etaI / etaT, wi))
+	{
+		return vec3(0.0);
+	}
+
+	pdf = 1.0;
+
+	vec3 ft = bxdf.T * (vec3(1.0) - FresnelEvaluate(fresnel, CosTheta(wi)));
+
+	if (bxdf.mode == TransportMode_Radiance)
+	{
+		ft *= (etaI * etaI) / (etaT * etaT);
+	}
+
+	return ft / AbsCosTheta(wi);
+}
+
 #endif
