@@ -288,6 +288,15 @@ inline void draw_material<BxDFType::Matte>(Material &material)
 	Material::update = ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color)) || Material::update;
 	Material::update = ImGui::DragFloat("Roughness", &material.roughness, 0.001f, 0.f, 90.f, "%.3f") || Material::update;
 	Material::update = draw_texture(material.textures[TextureType::BaseColor], "Albedo Map") || Material::update;
+
+	ImGui::Text("Albedo Map");
+	Material::update = draw_texture(material.textures[TextureType::BaseColor], "Albedo Map") || Material::update;
+
+	ImGui::Text("Normal Map");
+	Material::update = draw_texture(material.textures[TextureType::Normal], "Normal Map") || Material::update;
+
+	ImGui::Text("Roughness Map");
+	Material::update = draw_texture(material.textures[TextureType::Roughness], "Roughness Map") || Material::update;
 }
 
 template <>
@@ -295,15 +304,34 @@ inline void draw_material<BxDFType::Plastic>(Material &material)
 {
 	Material::update = ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color)) || Material::update;
 	Material::update = ImGui::DragFloat("Specular", &material.specular, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
-	Material::update = ImGui::DragFloat("Roughness", &material.roughness, 0.001f, 0.f, 90.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Roughness", &material.roughness, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+
+	ImGui::Text("Albedo Map");
+	Material::update = draw_texture(material.textures[TextureType::BaseColor], "Albedo Map") || Material::update;
+
+	ImGui::Text("Normal Map");
+	Material::update = draw_texture(material.textures[TextureType::Normal], "Normal Map") || Material::update;
+
+	ImGui::Text("Roughness Map");
+	Material::update = draw_texture(material.textures[TextureType::Roughness], "Roughness Map") || Material::update;
 }
 
 template <>
-inline void draw_material<BxDFType::Glass>(Material &material)
+inline void draw_material<BxDFType::Metal>(Material &material)
 {
+	Material::update = ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color)) || Material::update;
+	Material::update = ImGui::DragFloat("Roughness", &material.roughness, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Anisotropic", &material.anisotropic, 0.001f, -1.f, 1.f, "%.3f") || Material::update;
+
+	ImGui::Text("Albedo Map");
+	Material::update = draw_texture(material.textures[TextureType::BaseColor], "Albedo Map") || Material::update;
+
+	ImGui::Text("Normal Map");
+	Material::update = draw_texture(material.textures[TextureType::Normal], "Normal Map") || Material::update;
+
+	ImGui::Text("Roughness Map");
+	Material::update = draw_texture(material.textures[TextureType::Roughness], "Roughness Map") || Material::update;
 }
-
-
 
 inline void draw_material(Material &material)
 {
@@ -311,8 +339,9 @@ inline void draw_material(Material &material)
 	    "CookTorrance",
 	    "Disney",
 	    "Matte",
-	    "Plastic"};
-	Material::update = ImGui::Combo("BxDF", reinterpret_cast<int *>(&material.type), BxDF_types, 4) || Material::update;
+	    "Plastic",
+	    "Metal"};
+	Material::update = ImGui::Combo("BxDF", reinterpret_cast<int *>(&material.type), BxDF_types, 5) || Material::update;
 
 	switch (material.type)
 	{
@@ -328,8 +357,8 @@ inline void draw_material(Material &material)
 		case BxDFType::Plastic:
 			draw_material<BxDFType::Plastic>(material);
 			break;
-		case BxDFType::Glass:
-			draw_material<BxDFType::Glass>(material);
+		case BxDFType::Metal:
+			draw_material<BxDFType::Metal>(material);
 			break;
 		default:
 			break;
@@ -874,10 +903,10 @@ inline bool draw_component<cmpt::PerspectiveCamera>(Entity entity)
 	return draw_component<cmpt::PerspectiveCamera>("Perspective Camera", entity, [entity](cmpt::PerspectiveCamera &component) {
 		bool update = false;
 
-		update = ImGui::DragFloat("Aspect", &component.aspect, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
-		update = ImGui::DragFloat("Fov", &component.fov, 0.01f, 0.f, 90.f, "%.3f") || update;
-		update = ImGui::DragFloat("Near Plane", &component.near_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
-		update = ImGui::DragFloat("Far Plane", &component.far_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
+		update      = ImGui::DragFloat("Aspect", &component.aspect, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
+		update      = ImGui::DragFloat("Fov", &component.fov, 0.01f, 0.f, 90.f, "%.3f") || update;
+		update      = ImGui::DragFloat("Near Plane", &component.near_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
+		update      = ImGui::DragFloat("Far Plane", &component.far_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
 		bool select = entity == Renderer::instance()->Main_Camera;
 		if (ImGui::Checkbox("Main Camera", &select))
 		{
@@ -906,12 +935,12 @@ inline bool draw_component<cmpt::OrthographicCamera>(Entity entity)
 	return draw_component<cmpt::OrthographicCamera>("Orthographic Camera", entity, [entity](cmpt::OrthographicCamera &component) {
 		bool update = false;
 
-		update = ImGui::DragFloat("Left", &component.left, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f") || update;
-		update = ImGui::DragFloat("Right", &component.right, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f") || update;
-		update = ImGui::DragFloat("Bottom", &component.bottom, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f") || update;
-		update = ImGui::DragFloat("Top", &component.top, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f") || update;
-		update = ImGui::DragFloat("Near Plane", &component.near_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
-		update = ImGui::DragFloat("Far Plane", &component.far_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
+		update      = ImGui::DragFloat("Left", &component.left, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f") || update;
+		update      = ImGui::DragFloat("Right", &component.right, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f") || update;
+		update      = ImGui::DragFloat("Bottom", &component.bottom, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f") || update;
+		update      = ImGui::DragFloat("Top", &component.top, 0.01f, -std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f") || update;
+		update      = ImGui::DragFloat("Near Plane", &component.near_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
+		update      = ImGui::DragFloat("Far Plane", &component.far_plane, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
 		bool select = entity == Renderer::instance()->Main_Camera;
 		if (ImGui::Checkbox("Main Camera", &select))
 		{

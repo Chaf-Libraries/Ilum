@@ -617,19 +617,20 @@ void Init(out FresnelDielectric fresnel, float etaI, float etaT)
 
 vec3 FresnelEvaluate(FresnelConductor fresnel, float cosThetaI)
 {
-	cosThetaI = clamp(cosThetaI, -1, 1);
+	cosThetaI = clamp(cosThetaI, -1.0, 1.0);
+	
 	vec3 eta  = fresnel.etaT / fresnel.etaI;
 	vec3 etak = fresnel.k / fresnel.etaI;
 
 	float cosThetaI2 = cosThetaI * cosThetaI;
-	float sinThetaI2 = 1. - cosThetaI2;
+	float sinThetaI2 = 1.0 - cosThetaI2;
 	vec3  eta2       = eta * eta;
 	vec3  etak2      = etak * etak;
 
 	vec3 t0       = eta2 - etak2 - sinThetaI2;
-	vec3 a2plusb2 = sqrt(t0 * t0 + 4 * eta2 * etak2);
+	vec3 a2plusb2 = sqrt(t0 * t0 + 4.0 * eta2 * etak2);
 	vec3 t1       = a2plusb2 + cosThetaI2;
-	vec3 a        = sqrt(0.5f * (a2plusb2 + t0));
+	vec3 a        = sqrt(0.5 * (a2plusb2 + t0));
 	vec3 t2       = 2.0 * cosThetaI * a;
 	vec3 Rs       = (t1 - t2) / (t1 + t2);
 
@@ -637,7 +638,7 @@ vec3 FresnelEvaluate(FresnelConductor fresnel, float cosThetaI)
 	vec3 t4 = t2 * sinThetaI2;
 	vec3 Rp = Rs * (t3 - t4) / (t3 + t4);
 
-	return vec3(0.5 * (Rp + Rs));
+	return 0.5 * (Rp + Rs);
 }
 
 vec3 FresnelEvaluate(FresnelDielectric fresnel, float cosThetaI)

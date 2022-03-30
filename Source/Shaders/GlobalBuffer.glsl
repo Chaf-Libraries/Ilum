@@ -95,6 +95,7 @@ struct CountData
 #define BxDF_Disney 1
 #define BxDF_Matte 2
 #define BxDF_Plastic 3
+#define BxDF_Metal 4
 
 #define MAX_TEXTURE_ARRAY_SIZE 1024
 

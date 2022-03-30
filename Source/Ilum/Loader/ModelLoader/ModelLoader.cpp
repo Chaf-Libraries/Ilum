@@ -131,11 +131,11 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 	const auto importer_flag =
 	    aiProcess_FlipUVs |
 	    aiProcess_FlipWindingOrder |
-	    aiProcess_CalcTangentSpace |
+	    aiProcess_JoinIdenticalVertices |
 	    aiProcess_GenSmoothNormals |
+	    aiProcess_CalcTangentSpace |
 	    aiProcess_Triangulate |
 	    aiProcess_GenBoundingBoxes |
-	    aiProcess_JoinIdenticalVertices |
 	    aiProcess_OptimizeGraph |
 	    aiProcess_OptimizeMeshes |
 	    aiProcess_GenUVCoords |

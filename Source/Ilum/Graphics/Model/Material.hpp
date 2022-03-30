@@ -12,7 +12,7 @@ enum class BxDFType : uint32_t
 	Disney,
 	Matte,
 	Plastic,
-	Glass
+	Metal
 };
 
 enum TextureType
@@ -34,7 +34,7 @@ struct Material
 	glm::vec4 base_color = {1.f, 1.f, 1.f, 1.f};
 
 	glm::vec3 emissive_color     = {0.f, 0.f, 0.f};
-	float     emissive_intensity = 0.f;
+	float     emissive_intensity = 1.f;
 
 	float displacement           = 0.f;
 	float subsurface             = 0.f;

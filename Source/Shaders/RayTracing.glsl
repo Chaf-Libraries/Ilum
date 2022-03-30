@@ -136,14 +136,17 @@ ShadeState GetShadeState(in RayPayload ray_payload)
 	vec3 wgeom_normal = normalize(vec3(geom_normal * ray_payload.worldToObject));
 
 	// Tangent and Binormal
-	const vec3 tng0     = v0.tangent.xyz;
+	/* const vec3 tng0     = v0.tangent.xyz;
 	const vec3 tng1     = v1.tangent.xyz;
 	const vec3 tng2     = v2.tangent.xyz;
 	vec3       tangent  = (tng0.xyz * bary.x + tng1.xyz * bary.y + tng2.xyz * bary.z);
 	tangent.xyz         = normalize(tangent.xyz);
 	vec3 world_tangent  = normalize(vec3(mat4(ray_payload.objectToWorld) * vec4(tangent.xyz, 0)));
 	world_tangent       = normalize(world_tangent - dot(world_tangent, world_normal) * world_normal);
-	vec3 world_binormal = normalize(cross(world_normal, world_tangent));
+	vec3 world_binormal = normalize(cross(world_normal, world_tangent));*/
+	vec3 world_tangent;
+	vec3 world_binormal;
+	CreateCoordinateSystem(world_normal, world_tangent, world_binormal);
 
 	// Tex Coord
 	const vec2 uv0       = v0.texcoord.xy;

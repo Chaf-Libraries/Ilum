@@ -98,7 +98,7 @@ vec3 Distribution(PlasticMaterial mat, vec3 wo, vec3 wi)
 	if (mat.Ks != vec3(0.0))
 	{
 		TrowbridgeReitzDistribution dist;
-		float rough = RoughnessToAlpha(mat.roughness);
+		float                       rough = RoughnessToAlpha(mat.roughness);
 		Init(dist, rough, rough, true);
 
 		MicrofacetReflection bxdf;
@@ -109,7 +109,7 @@ vec3 Distribution(PlasticMaterial mat, vec3 wo, vec3 wi)
 
 		vec3 wh = normalize(wi + wo);
 
-		vec3 F = FresnelEvaluate(fresnel, dot(wi, Faceforward(wh, vec3(0.0, 0.0, 1.0))));
+		vec3  F = FresnelEvaluate(fresnel, dot(wi, Faceforward(wh, vec3(0.0, 0.0, 1.0))));
 		float D = Distribution(dist, wh);
 		float G = G(dist, wo, wi);
 
@@ -144,7 +144,7 @@ vec3 SampleDistribution(in PlasticMaterial mat, in vec3 wo, inout uint seed, out
 		Init(bxdf, mat.Ks);
 
 		FresnelDielectric fresnel;
-		Init(fresnel, 1.5, 1.0);
+		Init(fresnel, 1.0, 1.5);
 
 		vec3 wh = normalize(wi + wo);
 
@@ -154,6 +154,78 @@ vec3 SampleDistribution(in PlasticMaterial mat, in vec3 wo, inout uint seed, out
 
 		return SampleDistribution(bxdf, wo, wh, F, D, G, Pdf(dist, wo, wh), seed, wi, pdf);
 	}
+}
+
+////////////// Metal MaterialData //////////////
+struct MetalMaterial
+{
+	vec3  R;
+	vec3  eta;
+	vec3  k;
+	float anisotropic;
+	float roughness;
+};
+
+void Init(out MetalMaterial mat, vec3 base_color, float anisotropic, float roughness)
+{
+	mat.R           = base_color;
+	mat.eta  = vec3(10);
+	mat.k           = vec3(3.90463543, 2.44763327, 2.13765264);
+	mat.anisotropic = anisotropic;
+	mat.roughness   = roughness;
+}
+
+vec3 Distribution(MetalMaterial mat, vec3 wo, vec3 wi)
+{
+	float urough = max(mat.roughness * (1.0 + mat.anisotropic), 0.00001);
+	float vrough = max(mat.roughness * (1.0 - mat.anisotropic), 0.00001);
+
+	urough = RoughnessToAlpha(urough);
+	vrough = RoughnessToAlpha(vrough);
+
+	FresnelConductor fresnel;
+	Init(fresnel, vec3(1.0), mat.eta, mat.k);
+
+	TrowbridgeReitzDistribution dist;
+	Init(dist, urough, vrough, true);
+
+	MicrofacetReflection bxdf;
+	Init(bxdf, mat.R);
+
+	vec3 wh = normalize(wi + wo);
+
+	vec3  F = FresnelEvaluate(fresnel, abs(dot(wi, Faceforward(wh, vec3(0.0, 0.0, 1.0)))));
+	float D = Distribution(dist, wh);
+	float G = G(dist, wo, wi);
+
+	return Distribution(bxdf, F, D, G, wo, wi);
+}
+
+vec3 SampleDistribution(in MetalMaterial mat, in vec3 wo, inout uint seed, out vec3 wi, out float pdf)
+{
+	float urough = max(mat.roughness * (1.0 + mat.anisotropic), 0.00001);
+	float vrough = max(mat.roughness * (1.0 - mat.anisotropic), 0.00001);
+
+	urough = RoughnessToAlpha(urough);
+	vrough = RoughnessToAlpha(vrough);
+
+	FresnelConductor fresnel;
+	Init(fresnel, vec3(1.0), mat.eta, mat.k);
+
+	TrowbridgeReitzDistribution dist;
+	Init(dist, urough, vrough, true);
+
+	MicrofacetReflection bxdf;
+	Init(bxdf, mat.R);
+
+	vec3 wh = normalize(wi + wo);
+
+	vec3  F = FresnelEvaluate(fresnel, abs(dot(wi, Faceforward(wh, vec3(0.0, 0.0, 1.0)))));
+
+	float D = Distribution(dist, wh);
+	float G = G(dist, wo, wi);
+
+	return SampleDistribution(bxdf, wo, wh, F, D, G, Pdf(dist, wo, wh), seed, wi, pdf);
 }
 
 ////////////// Material Sampling//////////////
@@ -170,6 +242,12 @@ vec3 Distribution(Material mat, vec3 wo, vec3 wi)
 		PlasticMaterial plastic;
 		Init(plastic, mat.base_color.rgb, vec3(mat.specular), mat.roughness);
 		return Distribution(plastic, wo, wi);
+	}
+	else if (mat.material_type == BxDF_Metal)
+	{
+		MetalMaterial metal;
+		Init(metal, mat.base_color.rgb, mat.anisotropic, mat.roughness);
+		return Distribution(metal, wo, wi);
 	}
 
 	return vec3(0.0);
@@ -188,6 +266,12 @@ vec3 SampleDistribution(in Material mat, in vec3 wo, inout uint seed, out vec3 w
 		PlasticMaterial plastic;
 		Init(plastic, mat.base_color.rgb, vec3(mat.specular), mat.roughness);
 		return SampleDistribution(plastic, wo, seed, wi, pdf);
+	}
+	else if (mat.material_type == BxDF_Metal)
+	{
+		MetalMaterial metal;
+		Init(metal, mat.base_color.rgb, mat.anisotropic, mat.roughness);
+		return Distribution(metal, wo, wi);
 	}
 
 	return vec3(0.0);
