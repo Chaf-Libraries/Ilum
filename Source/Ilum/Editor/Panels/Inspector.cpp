@@ -349,7 +349,7 @@ inline void draw_material<BxDFType::Glass>(Material &material)
 {
 	Material::update = ImGui::ColorEdit3("Reflection Color", glm::value_ptr(material.base_color)) || Material::update;
 	Material::update = ImGui::ColorEdit3("Transmission Color", glm::value_ptr(material.data)) || Material::update;
-	Material::update = ImGui::DragFloat("Refraction", &material.transmission, 0.001f, 1.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Refraction", &material.transmission, 0.001f, std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Roughness", &material.roughness, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Anisotropic", &material.anisotropic, 0.001f, -1.f, 1.f, "%.3f") || Material::update;
 
@@ -564,7 +564,8 @@ inline bool draw_component<cmpt::StaticMeshRenderer>(Entity entity)
 				    }
 				    auto &material = component.materials[i];
 
-				    if (ImGui::TreeNode((std::string("Submesh #") + std::to_string(idx++)).c_str()))
+					ImGui::PushID((std::to_string(idx) + "Submesh").c_str());
+				    if (ImGui::TreeNode(submesh.name.c_str()))
 				    {
 					    // Submesh attributes
 					    if (ImGui::TreeNode("Mesh Attributes"))
@@ -589,6 +590,7 @@ inline bool draw_component<cmpt::StaticMeshRenderer>(Entity entity)
 					    }
 					    ImGui::TreePop();
 				    }
+				    ImGui::PopID();
 			    }
 		    }
 		    return cmpt::StaticMeshRenderer::update || Material::update;

@@ -261,10 +261,10 @@ void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform,
 		uint32_t    index_offset = 0;
 		aiMesh *    mesh         = scene->mMeshes[node->mMeshes[i]];
 		aiMaterial *material     = scene->mMaterials[mesh->mMaterialIndex];
-
 		parseMaterial(file_path, material, submesh_material);
 
 		SubMesh submesh;
+		submesh.name          = mesh->mName.C_Str();
 		submesh.index         = node->mMeshes[i];
 		submesh.material      = submesh_material;
 		submesh.pre_transform = to_matrix(transform);

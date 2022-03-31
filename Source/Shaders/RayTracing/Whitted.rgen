@@ -106,13 +106,13 @@ void main()
 		interaction.texCoord = sstate.tex_coord;
 		interaction.matID = sstate.matIndex;
 		interaction.ffnormal       = dot(interaction.normal, ray.direction) <= 0.0 ? interaction.normal : -interaction.normal;
-
+		//interaction.ffnormal=interaction.normal;
 		GetMaterial(interaction, ray);
 
 		vec3 n = interaction.ffnormal;
 		vec3 wo = -ray.direction;
 		
-		wo = normalize(WorldToLocal(wo, interaction.ffnormal, interaction.tangent, interaction.bitangent));
+		wo = normalize(WorldToLocal(wo, interaction.normal, interaction.tangent, interaction.bitangent));
 
 		// Add contribution of each point light source
 		for(uint i = 0; i < push_data.point_light_count; i++)
@@ -236,7 +236,9 @@ void main()
 		float pdf;
 		
 		vec3 f = SampleDistribution(interaction.mat, wo, ray_payload.seed, wi, pdf);
-		wi = LocalToWorld(wi, interaction.ffnormal, interaction.tangent, interaction.bitangent);
+		wi = LocalToWorld(wi, interaction.normal, interaction.tangent, interaction.bitangent);
+
+		//radiance = interaction.normal;
 
 		if(pdf > 0.0 && f != vec3(0.0) && abs(dot(wi, interaction.ffnormal)) != 0.0)
 		{

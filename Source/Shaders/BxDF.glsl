@@ -696,13 +696,12 @@ void Init(out TrowbridgeReitzDistribution distribution, float alpha_x, float alp
 float Distribution(TrowbridgeReitzDistribution distribution, vec3 wh)
 {
 	float tan2Theta = Tan2Theta(wh);
+
 	if (isinf(tan2Theta))
 	{
 		return 0.0;
 	}
 	const float cos4Theta = Cos2Theta(wh) * Cos2Theta(wh);
-
-	//return 1 / (PI * distribution.alpha_x * distribution.alpha_y * cos4Theta);
 
 	float e = (Cos2Phi(wh) / (distribution.alpha_x * distribution.alpha_x) + Sin2Phi(wh) / (distribution.alpha_y * distribution.alpha_y)) * tan2Theta;
 	return 1 / (PI * distribution.alpha_x * distribution.alpha_y * cos4Theta * (1 + e) * (1 + e));
@@ -946,7 +945,7 @@ float Pdf(MicrofacetReflection bxdf, vec3 wo, vec3 wi, vec3 wh, float distributi
 		return vec3(0.0);
 	}
 
-	wi = reflect(wo, wh);
+	wi = reflect(-wo, wh);
 
 	if (!SameHemisphere(wo, wi))
 	{
@@ -971,7 +970,7 @@ vec3 SampleDistribution(in MicrofacetReflection bxdf, in vec3 wo, in FresnelCond
 		return vec3(0.0);
 	}
 
-	wi = reflect(wo, wh);
+	wi = reflect(-wo, wh);
 
 	if (!SameHemisphere(wo, wi))
 	{
@@ -997,7 +996,7 @@ vec3 SampleDistribution(in MicrofacetReflection bxdf, in vec3 wo, in FresnelCond
 		return vec3(0.0);
 	}
 
-	wi = reflect(wo, wh);
+	wi = reflect(-wo, wh);
 
 	if (!SameHemisphere(wo, wi))
 	{
@@ -1023,7 +1022,7 @@ vec3 SampleDistribution(in MicrofacetReflection bxdf, in vec3 wo, in FresnelDiel
 		return vec3(0.0);
 	}
 
-	wi = reflect(wo, wh);
+	wi = reflect(-wo, wh);
 
 	if (!SameHemisphere(wo, wi))
 	{
@@ -1049,7 +1048,7 @@ vec3 SampleDistribution(in MicrofacetReflection bxdf, in vec3 wo, in FresnelDiel
 		return vec3(0.0);
 	}
 
-	wi = reflect(wo, wh);
+	wi = reflect(-wo, wh);
 
 	if (!SameHemisphere(wo, wi))
 	{
@@ -1089,11 +1088,19 @@ vec3 SampleDistribution(in SpecularReflection bxdf, in vec3 wo, inout uint seed,
 	return bxdf.R / AbsCosTheta(wi);
 }
 
-// TODO:
 vec3 SampleDistribution(in SpecularReflection bxdf, in vec3 wo, FresnelConductor fresnel, inout uint seed, out vec3 wi, out float pdf)
 {
 	wi  = vec3(-wo.x, -wo.y, wo.z);
 	pdf = 1.0;
+	vec3 F =FresnelEvaluate(fresnel, dot(wi, vec3(0.0, 0.0, 1.0)));
+	return F * bxdf.R / AbsCosTheta(wi);
+}
+
+vec3 SampleDistribution(in SpecularReflection bxdf, in vec3 wo, FresnelDielectric fresnel, inout uint seed, out vec3 wi, out float pdf)
+{
+	wi     = vec3(-wo.x, -wo.y, wo.z);
+	pdf    = 1.0;
+	vec3 F = FresnelEvaluate(fresnel, dot(wi, vec3(0.0, 0.0, 1.0)));
 	return F * bxdf.R / AbsCosTheta(wi);
 }
 
@@ -1269,6 +1276,7 @@ vec3 SampleDistribution(in SpecularTransmission bxdf, in vec3 wo, in FresnelDiel
 	bool entering = CosTheta(wo) > 0.0;
 	float etaI     = entering ? bxdf.etaA : bxdf.etaB;
 	float etaT     = entering ? bxdf.etaB : bxdf.etaA;
+
 
 	if (!Refract(wo, Faceforward(vec3(0.0, 0.0, 1.0), wo), etaI / etaT, wi))
 	{

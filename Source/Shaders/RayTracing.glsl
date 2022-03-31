@@ -132,7 +132,7 @@ ShadeState GetShadeState(in RayPayload ray_payload)
 	vec3 nrm2         = v2.normal.xyz;
 	vec3 normal       = normalize(nrm0 * bary.x + nrm1 * bary.y + nrm2 * bary.z);
 	vec3 world_normal = normalize(vec3(normal * ray_payload.worldToObject));
-	vec3 geom_normal  = normalize(cross(pos1 - pos0, pos2 - pos0));
+	vec3 geom_normal  = normalize(cross(pos2 - pos0, pos1 - pos0));
 	vec3 wgeom_normal = normalize(vec3(geom_normal * ray_payload.worldToObject));
 
 	// Tangent and Binormal

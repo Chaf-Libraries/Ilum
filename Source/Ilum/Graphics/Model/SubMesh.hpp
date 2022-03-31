@@ -14,6 +14,8 @@ class CommandBuffer;
 struct SubMesh
 {
   public:
+	std::string name = "";
+
 	uint32_t index = 0;
 
 	glm::mat4 pre_transform = glm::mat4(1.f);

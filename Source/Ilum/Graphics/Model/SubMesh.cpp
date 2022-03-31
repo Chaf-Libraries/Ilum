@@ -5,6 +5,7 @@
 namespace Ilum
 {
 SubMesh::SubMesh(SubMesh &&other) noexcept :
+    name(other.name),
     indices_offset(other.indices_offset),
     vertices_offset(other.vertices_offset),
     indices_count(other.indices_count),
@@ -20,6 +21,7 @@ SubMesh::SubMesh(SubMesh &&other) noexcept :
 
 SubMesh &SubMesh::operator=(SubMesh &&other) noexcept
 {
+	name            = other.name;
 	indices_offset  = other.indices_offset;
 	vertices_offset = other.vertices_offset;
 	indices_count   = other.indices_count;
