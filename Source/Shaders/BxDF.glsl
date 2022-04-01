@@ -367,6 +367,28 @@ float RoughnessToAlpha(float roughness)
 	       0.0171201f * x * x * x + 0.000640711f * x * x * x * x;
 }
 
+////////////// Schlick Fresnel approximation //////////////
+float SchlickWeight(float cosTheta)
+{
+	float m = clamp(1 - cosTheta, 0.0, 1.0);
+	return pow(m, 5.0);
+}
+
+float FrSchlick(float R0, float cosTheta)
+{
+	return mix(R0, 1.0, SchlickWeight(cosTheta));
+}
+
+vec3 FrSchlick(vec3 R0, float cosTheta)
+{
+	return mix(R0, vec3(1.0), SchlickWeight(cosTheta));
+}
+
+float SchlickR0FromEta(float eta)
+{
+	return ((eta - 1.0) * (eta - 1.0)) / ((eta + 1.0) * (eta + 1.0));
+}
+
 ////////////// Fresnel //////////////
 struct FresnelConductor
 {
@@ -1385,7 +1407,7 @@ vec3 SampleDistribution(in FresnelSpecular bxdf, in vec3 wo, inout uint seed, ou
 
 	if (u.x < F.x)
 	{
-		wi = vec3(-wo.x, -wo.y, wo.z);
+		wi  = vec3(-wo.x, -wo.y, wo.z);
 		pdf = F.x;
 		return F * bxdf.R / AbsCosTheta(wi);
 	}
@@ -1412,4 +1434,40 @@ vec3 SampleDistribution(in FresnelSpecular bxdf, in vec3 wo, inout uint seed, ou
 		return ft / AbsCosTheta(wi);
 	}
 }
+
+////////////// Disney Diffuse //////////////
+struct DisneyDiffuse
+{
+	vec3 R;
+};
+
+void Init(out DisneyDiffuse bxdf, vec3 R)
+{
+	bxdf.R = R;
+}
+
+vec3 Distribution(DisneyDiffuse bxdf, vec3 wo, vec3 wi)
+{
+	float Fo = SchlickWeight(AbsCosTheta(wo));
+	float Fi = SchlickWeight(AbsCosTheta(wi));
+
+	return bxdf.R * InvPI * (1.0 - Fo / 2.0) * (1.0 - Fi / 2.0);
+}
+
+float Pdf(DisneyDiffuse bxdf, vec3 wo, vec3 wi)
+{
+	return SameHemisphere(wo, wi) ? AbsCosTheta(wi) * InvPI : 0.0;
+}
+
+vec3 SampleDistribution(in DisneyDiffuse bxdf, in vec3 wo, inout uint seed, out vec3 wi, out float pdf)
+{
+	wi = SampleCosineHemisphere(rand2(seed));
+	if (wo.z < 0.0)
+	{
+		wi.z *= -1.0;
+	}
+	pdf = Pdf(bxdf, wo, wi);
+	return Distribution(bxdf, wo, wi);
+}
+
 #endif

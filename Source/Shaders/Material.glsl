@@ -428,6 +428,29 @@ vec3 SampleDistribution(in GlassMaterial mat, in vec3 wo, inout uint seed, out v
 	return distribution;
 }
 
+////////////// Disney MaterialData //////////////
+struct DisneyMaterial
+{
+	vec3 color;
+	float metallic;
+	float refraction;
+	float roughness;
+	float specularTint;
+	float anisotropic;
+	float sheen;
+	float sheenTint;
+	float clearcoat;
+	float clearcoatGloss;
+	float specTrans;
+	vec3  scatterDistance;
+	float flatness;
+	float diffTrans;
+	bool  thin;
+};
+
+
+
+
 ////////////// Material Sampling//////////////
 vec3 Distribution(Material mat, vec3 wo, vec3 wi)
 {
