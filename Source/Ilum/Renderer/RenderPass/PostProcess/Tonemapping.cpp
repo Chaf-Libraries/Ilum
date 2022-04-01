@@ -6,8 +6,8 @@
 
 namespace Ilum::pass
 {
-Tonemapping::Tonemapping(const std::string &result) :
-    m_result(result)
+Tonemapping::Tonemapping(const std::string &from, const std::string &to) :
+    m_from(from), m_to(to)
 {
 }
 
@@ -15,7 +15,12 @@ void Tonemapping::setupPipeline(PipelineState &state)
 {
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PostProcess/Tonemapping.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
 
-	state.descriptor_bindings.bind(0, 0, m_result, ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	state.descriptor_bindings.bind(0, 0, m_from, ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+
+	state.declareAttachment(m_to, VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.addOutputAttachment(m_to, AttachmentState::Clear_Color);
+
+	state.descriptor_bindings.bind(0, 1, m_to, ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 }
 
 void Tonemapping::resolveResources(ResolveState &resolve)

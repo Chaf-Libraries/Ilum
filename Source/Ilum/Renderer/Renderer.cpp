@@ -123,6 +123,7 @@ Renderer::Renderer(Context *context) :
 
 		    .addRenderPass("Whitted", std::make_unique<pass::Whitted>())
 		    .addRenderPass("CopyFrame", std::make_unique<pass::CopyFrame>("Whitted", "PrevWhitted"))
+		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Whitted", "Tonemapping"))
 
 		    .setView("Whitted")
 		    .setOutput("Whitted");
