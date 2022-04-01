@@ -174,6 +174,8 @@ bool AccelerationStructure::build(VkAccelerationStructureGeometryKHR &geometry, 
 	    &as_build_range_infos);
 	cmd_buffer.end();
 	cmd_buffer.submitIdle();
+	
+	GraphicsContext::instance()->getQueueSystem().waitAll();
 
 	return rebuild;
 }
