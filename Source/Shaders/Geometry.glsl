@@ -80,13 +80,6 @@ vec3 Faceforward(vec3 v, vec3 v2)
 
 bool Refract(vec3 wi, vec3 n, float eta, out vec3 wt)
 {
-	//vec3 r_perp = eta * (wi + min(dot(-wi, n), 1.0) * n);
-	//vec3 r_parallel = -sqrt(abs(1.0 - dot(r_perp, r_perp))) * n;
-
-	//wt = r_perp + r_parallel;
-
-	//return true;
-
 	float cosThetaI  = dot(wi, n);
 	float sin2ThetaI = max(0.0, 1.0 - cosThetaI * cosThetaI);
 	float sin2ThetaT = eta * eta * sin2ThetaI;

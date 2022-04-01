@@ -5,7 +5,7 @@
 #include "Random.glsl"
 #include "Sampling.glsl"
 
-const uint TransportMode_Radiance = 0;
+const uint TransportMode_Radiance   = 0;
 const uint TransportMode_Importance = 1;
 
 // Diffuse Term
@@ -804,25 +804,6 @@ void Init(out MicrofacetReflection bxdf, vec3 base_color)
 	bxdf.R = base_color;
 }
 
-/* vec3 Distribution(MicrofacetReflection bxdf, vec3 F, float D, float G, vec3 wo, vec3 wi)
-{
-	float cosThetaO = AbsCosTheta(wo);
-	float cosThetaI = AbsCosTheta(wi);
-
-	vec3 wh = wi + wo;
-
-	if (cosThetaI == 0.0 || cosThetaO == 0.0)
-	{
-		return vec3(0.0);
-	}
-	if (wh.x == 0.0 && wh.y == 0.0 && wh.z == 0.0)
-	{
-		return vec3(0.0);
-	}
-
-	return bxdf.R * D * G * F / (4.0 * cosThetaI * cosThetaO);
-}*/
-
 vec3 Distribution(MicrofacetReflection bxdf, FresnelConductor fresnel, TrowbridgeReitzDistribution distribution, vec3 wo, vec3 wi)
 {
 	float cosThetaO = AbsCosTheta(wo);
@@ -841,7 +822,7 @@ vec3 Distribution(MicrofacetReflection bxdf, FresnelConductor fresnel, Trowbridg
 
 	wh = normalize(wh);
 
-	vec3 F = FresnelEvaluate(fresnel, dot(wi, Faceforward(wh, vec3(0.0, 0.0, 1.0))));
+	vec3  F = FresnelEvaluate(fresnel, dot(wi, Faceforward(wh, vec3(0.0, 0.0, 1.0))));
 	float D = Distribution(distribution, wh);
 	float G = G(distribution, wo, wi);
 
@@ -932,29 +913,6 @@ float Pdf(MicrofacetReflection bxdf, vec3 wo, vec3 wi, vec3 wh, float distributi
 
 	return distribution_pdf / (4.0 * dot(wo, wh));
 }
-
-/* vec3 SampleDistribution(in MicrofacetReflection bxdf, in vec3 wo, in vec3 wh, in vec3 F, in float D, in float G, in float distribution_pdf, inout uint seed, out vec3 wi, out float pdf)
-{
-	if (wo.z < 0.0)
-	{
-		return vec3(0.0);
-	}
-
-	if (dot(wo, wh) < 0.0)
-	{
-		return vec3(0.0);
-	}
-
-	wi = reflect(-wo, wh);
-
-	if (!SameHemisphere(wo, wi))
-	{
-		return vec3(0.0);
-	}
-
-	pdf = distribution_pdf / (4.0 * dot(wo, wh));
-	return Distribution(bxdf, F, D, G, wo, wi);
-}*/
 
 vec3 SampleDistribution(in MicrofacetReflection bxdf, in vec3 wo, in FresnelConductor fresnel, in TrowbridgeReitzDistribution distribution, inout uint seed, out vec3 wi, out float pdf)
 {
@@ -1090,9 +1048,9 @@ vec3 SampleDistribution(in SpecularReflection bxdf, in vec3 wo, inout uint seed,
 
 vec3 SampleDistribution(in SpecularReflection bxdf, in vec3 wo, FresnelConductor fresnel, inout uint seed, out vec3 wi, out float pdf)
 {
-	wi  = vec3(-wo.x, -wo.y, wo.z);
-	pdf = 1.0;
-	vec3 F =FresnelEvaluate(fresnel, dot(wi, vec3(0.0, 0.0, 1.0)));
+	wi     = vec3(-wo.x, -wo.y, wo.z);
+	pdf    = 1.0;
+	vec3 F = FresnelEvaluate(fresnel, dot(wi, vec3(0.0, 0.0, 1.0)));
 	return F * bxdf.R / AbsCosTheta(wi);
 }
 
@@ -1173,7 +1131,7 @@ float Pdf(FresnelBlend bxdf, TrowbridgeReitzDistribution distribution, vec3 wo, 
 		return 0.0;
 	}
 
-	vec3 wh = normalize(wo + wi);
+	vec3  wh     = normalize(wo + wi);
 	float pdf_wh = Pdf(distribution, wo, wh);
 	return 0.5 * (AbsCosTheta(wi) * InvPI + pdf_wh / (4.0 * dot(wo, wh)));
 }
@@ -1205,7 +1163,7 @@ vec3 SampleDistribution(in FresnelBlend bxdf, in vec3 wo, in TrowbridgeReitzDist
 	}
 	else
 	{
-		u.x = min(2.0 * (u.x - 0.5), 0.999999);
+		u.x     = min(2.0 * (u.x - 0.5), 0.999999);
 		vec3 wh = SampleWh(distribution, wo, seed);
 		wi      = reflect(wo, wh);
 		if (!SameHemisphere(wo, wi))
@@ -1249,14 +1207,14 @@ vec3 SampleDistribution(in FresnelBlend bxdf, in vec3 wo, in BeckmannDistributio
 ////////////// Specular Transmission //////////////
 struct SpecularTransmission
 {
-	vec3 T;
+	vec3  T;
 	float etaA, etaB;
 	uint  mode;
 };
 
 void Init(out SpecularTransmission bxdf, vec3 T, float etaA, float etaB)
 {
-	bxdf.T = T;
+	bxdf.T    = T;
 	bxdf.etaA = etaA;
 	bxdf.etaB = etaB;
 }
@@ -1273,10 +1231,9 @@ float Pdf(SpecularTransmission bxdf, vec3 wo, vec3 wi)
 
 vec3 SampleDistribution(in SpecularTransmission bxdf, in vec3 wo, in FresnelDielectric fresnel, inout uint seed, out vec3 wi, out float pdf)
 {
-	bool entering = CosTheta(wo) > 0.0;
+	bool  entering = CosTheta(wo) > 0.0;
 	float etaI     = entering ? bxdf.etaA : bxdf.etaB;
 	float etaT     = entering ? bxdf.etaB : bxdf.etaA;
-
 
 	if (!Refract(wo, Faceforward(vec3(0.0, 0.0, 1.0), wo), etaI / etaT, wi))
 	{
@@ -1295,4 +1252,164 @@ vec3 SampleDistribution(in SpecularTransmission bxdf, in vec3 wo, in FresnelDiel
 	return ft / AbsCosTheta(wi);
 }
 
+////////////// Microfacet Transmission //////////////
+struct MicrofacetTransmission
+{
+	vec3  T;
+	float etaA, etaB;
+	uint  mode;
+};
+
+void Init(out MicrofacetTransmission bxdf, vec3 T, float etaA, float etaB)
+{
+	bxdf.T    = T;
+	bxdf.etaA = etaA;
+	bxdf.etaB = etaB;
+}
+
+vec3 Distribution(MicrofacetTransmission bxdf, FresnelDielectric fresnel, TrowbridgeReitzDistribution distribution, vec3 wo, vec3 wi)
+{
+	if (SameHemisphere(wo, wi))
+	{
+		return vec3(0.0);
+	}
+
+	float cosThetaO = CosTheta(wo);
+	float cosThetaI = CosTheta(wi);
+
+	if (cosThetaO == 0.0 || cosThetaI == 0.0)
+	{
+		return vec3(0.0);
+	}
+
+	float eta = CosTheta(wo) > 0.0 ? (bxdf.etaB / bxdf.etaA) : (bxdf.etaA / bxdf.etaB);
+	vec3  wh  = normalize(wo + wi * eta);
+
+	if (wh.z < 0.0)
+	{
+		wh = -wh;
+	}
+	if (dot(wo, wh) * dot(wi, wh) > 0.0)
+	{
+		return vec3(0.0);
+	}
+
+	vec3  F = FresnelEvaluate(fresnel, dot(wo, wh));
+	float D = Distribution(distribution, wh);
+	float G = G(distribution, wo, wi);
+
+	float sqrt_denom = dot(wo, wh) + eta * dot(wi, wh);
+	float factor     = (bxdf.mode == TransportMode_Radiance) ? (1.0 / eta) : 1.0;
+
+	return (vec3(1.0) - F) * bxdf.T *
+	       abs(D * G * eta * eta * abs(dot(wi, wh)) * abs(dot(wo, wh)) * factor * factor /
+	           (cosThetaI * cosThetaO * sqrt_denom * sqrt_denom));
+}
+
+float Pdf(MicrofacetTransmission bxdf, TrowbridgeReitzDistribution distribution, vec3 wo, vec3 wi)
+{
+	if (SameHemisphere(wo, wi))
+	{
+		return 0.0;
+	}
+
+	float eta = CosTheta(wo) > 0.0 ? (bxdf.etaB / bxdf.etaA) : (bxdf.etaA / bxdf.etaB);
+	vec3  wh  = normalize(wo + wi * eta);
+
+	if (dot(wo, wh) * dot(wi, wh) > 0.0)
+	{
+		return 0.0;
+	}
+
+	float sqrt_denom = dot(wo, wh) + eta * dot(wi, wh);
+	float dwh_dwi    = abs((eta * eta * dot(wi, wh)) / (sqrt_denom * sqrt_denom));
+
+	float pdf = Pdf(distribution, wo, wh);
+
+	return pdf * dwh_dwi;
+}
+
+vec3 SampleDistribution(in MicrofacetTransmission bxdf, in vec3 wo, in FresnelDielectric fresnel, in TrowbridgeReitzDistribution distribution, inout uint seed, out vec3 wi, out float pdf)
+{
+	bool  entering = CosTheta(wo) > 0.0;
+	float etaI     = entering ? bxdf.etaA : bxdf.etaB;
+	float etaT     = entering ? bxdf.etaB : bxdf.etaA;
+
+	vec3 wh = SampleWh(distribution, wo, seed);
+
+	if (!Refract(wo, Faceforward(wh, wo), etaI / etaT, wi))
+	{
+		return vec3(0.0);
+	}
+
+	pdf = Pdf(bxdf, distribution, wo, wi);
+
+	return Distribution(bxdf, fresnel, distribution, wo, wi);
+}
+
+////////////// Fresnel Specular //////////////
+struct FresnelSpecular
+{
+	vec3  R;
+	vec3  T;
+	float etaA;
+	float etaB;
+	uint  mode;
+};
+
+void Init(out FresnelSpecular bxdf, vec3 R, vec3 T, float etaA, float etaB)
+{
+	bxdf.R    = R;
+	bxdf.T    = T;
+	bxdf.etaA = etaA;
+	bxdf.etaB = etaB;
+}
+
+vec3 Distribution(FresnelSpecular bxdf, vec3 wo, vec3 wi)
+{
+	return vec3(0.0);
+}
+
+float Pdf(FresnelSpecular bxdf, vec3 wo, vec3 wi)
+{
+	return 0.0;
+}
+
+vec3 SampleDistribution(in FresnelSpecular bxdf, in vec3 wo, inout uint seed, out vec3 wi, out float pdf)
+{
+	FresnelDielectric fresnel;
+	Init(fresnel, bxdf.etaA, bxdf.etaB);
+	vec3 F = FresnelEvaluate(fresnel, CosTheta(wo));
+
+	vec2 u = rand2(seed);
+
+	if (u.x < F.x)
+	{
+		wi = vec3(-wo.x, -wo.y, wo.z);
+		pdf = F.x;
+		return F * bxdf.R / AbsCosTheta(wi);
+	}
+	else
+	{
+		bool  entering = CosTheta(wo) > 0.0;
+		float etaI     = entering ? bxdf.etaA : bxdf.etaB;
+		float etaT     = entering ? bxdf.etaB : bxdf.etaA;
+
+		if (!Refract(wo, Faceforward(vec3(0.0, 0.0, 1.0), wo), etaI / etaT, wi))
+		{
+			return vec3(0.0);
+		}
+
+		pdf = 1.0 - F.x;
+
+		vec3 ft = bxdf.T * (vec3(1.0) - F);
+
+		if (bxdf.mode == TransportMode_Radiance)
+		{
+			ft *= (etaI * etaI) / (etaT * etaT);
+		}
+
+		return ft / AbsCosTheta(wi);
+	}
+}
 #endif

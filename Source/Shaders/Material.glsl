@@ -98,7 +98,7 @@ vec3 Distribution(PlasticMaterial mat, vec3 wo, vec3 wi)
 	if (mat.Ks != vec3(0.0))
 	{
 		TrowbridgeReitzDistribution dist;
-		float                       rough = RoughnessToAlpha(mat.roughness);
+		float                       rough = (mat.roughness);
 		Init(dist, rough, rough, true);
 
 		MicrofacetReflection bxdf;
@@ -131,7 +131,7 @@ vec3 SampleDistribution(in PlasticMaterial mat, in vec3 wo, inout uint seed, out
 	{
 		// Choose microfacet term
 		TrowbridgeReitzDistribution dist;
-		float                       rough = RoughnessToAlpha(mat.roughness);
+		float                       rough = (mat.roughness);
 		Init(dist, rough, rough, true);
 
 		MicrofacetReflection bxdf;
@@ -168,8 +168,8 @@ vec3 Distribution(MetalMaterial mat, vec3 wo, vec3 wi)
 	float urough = max(mat.roughness * (1.0 + mat.anisotropic), 0.00001);
 	float vrough = max(mat.roughness * (1.0 - mat.anisotropic), 0.00001);
 
-	urough = RoughnessToAlpha(urough);
-	vrough = RoughnessToAlpha(vrough);
+	urough = urough;
+	vrough = vrough;
 
 	FresnelConductor fresnel;
 	Init(fresnel, vec3(1.0), mat.eta, mat.k);
@@ -188,6 +188,9 @@ vec3 SampleDistribution(in MetalMaterial mat, in vec3 wo, inout uint seed, out v
 	float urough = max(mat.roughness * (1.0 + mat.anisotropic), 0.00001);
 	float vrough = max(mat.roughness * (1.0 - mat.anisotropic), 0.00001);
 
+	urough = urough;
+	vrough = vrough;
+
 	FresnelConductor fresnel;
 	Init(fresnel, vec3(1.0), mat.eta, mat.k);
 
@@ -196,8 +199,6 @@ vec3 SampleDistribution(in MetalMaterial mat, in vec3 wo, inout uint seed, out v
 
 	MicrofacetReflection bxdf;
 	Init(bxdf, mat.R);
-
-	vec3 wh = normalize(wi + wo);
 
 	return SampleDistribution(bxdf, wo, fresnel, dist, seed, wi, pdf);
 }
@@ -254,8 +255,8 @@ vec3 Distribution(SubstrateMaterial mat, vec3 wo, vec3 wi)
 	float urough = max(mat.roughness * (1.0 + mat.anisotropic), 0.00001);
 	float vrough = max(mat.roughness * (1.0 - mat.anisotropic), 0.00001);
 
-	urough = RoughnessToAlpha(urough);
-	vrough = RoughnessToAlpha(vrough);
+	urough = urough;
+	vrough = vrough;
 
 	TrowbridgeReitzDistribution dist;
 	Init(dist, urough, vrough, true);
@@ -271,8 +272,8 @@ vec3 SampleDistribution(in SubstrateMaterial mat, in vec3 wo, inout uint seed, o
 	float urough = max(mat.roughness * (1.0 + mat.anisotropic), 0.00001);
 	float vrough = max(mat.roughness * (1.0 - mat.anisotropic), 0.00001);
 
-	urough = RoughnessToAlpha(urough);
-	vrough = RoughnessToAlpha(vrough);
+	urough = urough;
+	vrough = vrough;
 
 	TrowbridgeReitzDistribution dist;
 	Init(dist, urough, vrough, true);
@@ -310,53 +311,39 @@ vec3 Distribution(GlassMaterial mat, vec3 wo, vec3 wi)
 
 	bool isSpecular = (mat.roughness == 0.0);
 
-	//if (isSpecular)
-	//{
-	// TODO: Fresnel Specular
-	//}
-	//else
+	float urough = max(mat.roughness * (1.0 + mat.anisotropic), 0.00001);
+	float vrough = max(mat.roughness * (1.0 - mat.anisotropic), 0.00001);
+
+	urough = urough;
+	vrough = vrough;
+
+	TrowbridgeReitzDistribution dist;
+	Init(dist, urough, vrough, true);
+
+	FresnelDielectric fresnel;
+	Init(fresnel, 1.0, mat.refraction);
+
+	if (isSpecular)
 	{
-		float urough = max(mat.roughness * (1.0 + mat.anisotropic), 0.00001);
-		float vrough = max(mat.roughness * (1.0 - mat.anisotropic), 0.00001);
-
-		urough = RoughnessToAlpha(urough);
-		vrough = RoughnessToAlpha(vrough);
-
-		TrowbridgeReitzDistribution dist;
-		Init(dist, urough, vrough, true);
-
+		FresnelSpecular bxdf;
+		Init(bxdf, mat.R, mat.T, 1.0, mat.refraction);
+		distribution += Distribution(bxdf, wo, wi);
+	}
+	else
+	{
 		if (mat.R != vec3(0.0))
 		{
-			FresnelDielectric fresnel;
-			Init(fresnel, 1.0, mat.refraction);
+			MicrofacetReflection bxdf;
+			Init(bxdf, mat.R);
 
-			if (isSpecular)
-			{
-				SpecularReflection bxdf;
-				Init(bxdf, mat.R);
-
-				distribution += Distribution(bxdf, wo, wi);
-			}
-			else
-			{
-				TrowbridgeReitzDistribution dist;
-				Init(dist, urough, vrough, true);
-
-				MicrofacetReflection bxdf;
-				Init(bxdf, mat.R);
-
-				distribution += Distribution(bxdf, fresnel, dist, wo, wi);
-			}
+			distribution += Distribution(bxdf, fresnel, dist, wo, wi);
 		}
 		if (mat.T != vec3(0.0))
 		{
-			if (isSpecular)
-			{
-				SpecularTransmission bxdf;
-				Init(bxdf, mat.T, 1.0, mat.refraction);
+			MicrofacetTransmission bxdf;
+			Init(bxdf, mat.T, 1.0, mat.refraction);
 
-				distribution += Distribution(bxdf, wo, wi);
-			}
+			distribution += Distribution(bxdf, fresnel, dist, wo, wi);
 		}
 	}
 
@@ -370,87 +357,71 @@ vec3 SampleDistribution(in GlassMaterial mat, in vec3 wo, inout uint seed, out v
 		return vec3(0.0);
 	}
 
+	vec3 distribution = vec3(0.0);
+
+	float u = rand(seed);
+
 	bool isSpecular = (mat.roughness == 0.0);
 
 	float urough = max(mat.roughness * (1.0 + mat.anisotropic), 0.00001);
 	float vrough = max(mat.roughness * (1.0 - mat.anisotropic), 0.00001);
 
-	urough = RoughnessToAlpha(urough);
-	vrough = RoughnessToAlpha(vrough);
+	urough = urough;
+	vrough = vrough;
 
 	TrowbridgeReitzDistribution dist;
 	Init(dist, urough, vrough, true);
 
-	vec3 distribution = vec3(0.0);
-
-	float u = rand(seed);
-
 	FresnelDielectric fresnel;
 	Init(fresnel, 1.0, mat.refraction);
 
-	SpecularTransmission bxdf;
-	Init(bxdf, mat.T, 1.0, mat.refraction);
-
-	return SampleDistribution(bxdf, wo, fresnel, seed, wi, pdf);
-
-	if (mat.R != vec3(0.0) && mat.T != vec3(0.0))
+	if (isSpecular)
 	{
-		if (isSpecular)
+		FresnelSpecular bxdf;
+		Init(bxdf, mat.R, mat.T, 1.0, mat.refraction);
+		distribution = SampleDistribution(bxdf, wo, seed, wi, pdf);
+		return distribution;
+	}
+	else
+	{
+		if (mat.R != vec3(0.0) && mat.T == vec3(0.0))
 		{
-			if (u < 0.5)
-			{
-				SpecularReflection bxdf;
-				Init(bxdf, mat.R);
-
-				//return SampleDistribution(bxdf, wo, fresnel, seed, wi, pdf);
-			}
-			//else
-			{
-				SpecularTransmission bxdf;
-				Init(bxdf, mat.T, 1.0, mat.refraction);
-
-				return SampleDistribution(bxdf, wo, fresnel, seed, wi, pdf);
-			}
-		}
-		else
-		{
-			TrowbridgeReitzDistribution dist;
-			Init(dist, urough, vrough, true);
-
 			MicrofacetReflection bxdf;
 			Init(bxdf, mat.R);
-
-			return SampleDistribution(bxdf, wo, fresnel, dist, seed, wi, pdf);
+			distribution = SampleDistribution(bxdf, wo, fresnel, dist, seed, wi, pdf);
+			return distribution;
 		}
-	}
-	else if (mat.R != vec3(0.0) && mat.T == vec3(0.0))
-	{
-		if (isSpecular)
+		else if (mat.R == vec3(0.0) && mat.T != vec3(0.0))
 		{
-			SpecularReflection bxdf;
-			Init(bxdf, mat.R);
-
-			return SampleDistribution(bxdf, wo, seed, wi, pdf);
-		}
-		else
-		{
-			TrowbridgeReitzDistribution dist;
-			Init(dist, urough, vrough, true);
-
-			MicrofacetReflection bxdf;
-			Init(bxdf, mat.R);
-
-			return SampleDistribution(bxdf, wo, fresnel, dist, seed, wi, pdf);
-		}
-	}
-	else if (mat.R == vec3(0.0) && mat.T != vec3(0.0))
-	{
-		if (isSpecular)
-		{
-			SpecularTransmission bxdf;
+			MicrofacetTransmission bxdf;
 			Init(bxdf, mat.T, 1.0, mat.refraction);
+			distribution = SampleDistribution(bxdf, wo, fresnel, dist, seed, wi, pdf);
+			return distribution;
+		}
+		else
+		{
+			float eta = CosTheta(wo) > 0.0 ? (mat.refraction / 1.0) : (1.0 / mat.refraction);
+			vec3  wh  = normalize(wo + wi * eta);
+			vec3  F   = FresnelEvaluate(fresnel, dot(wo, wh));
 
-			return SampleDistribution(bxdf, wo, fresnel, seed, wi, pdf);
+			if (u.x < F.x)
+			{
+				// Reflection
+				MicrofacetReflection bxdf;
+				Init(bxdf, mat.R);
+				distribution = SampleDistribution(bxdf, wo, fresnel, dist, seed, wi, pdf);
+				pdf *= F.x;
+				return distribution;
+			}
+			else
+			{
+				// Refraction
+				MicrofacetTransmission bxdf;
+				Init(bxdf, mat.T, 1.0, mat.refraction);
+				distribution = SampleDistribution(bxdf, wo, fresnel, dist, seed, wi, pdf);
+				pdf *= 1.0 - F.x;
+				return distribution;
+			}
 		}
 	}
 

@@ -92,7 +92,7 @@ void main()
 		// Hit environment
 		if(!IntersectScene(ray))
 		{
-			//radiance += texture(Skybox, ray.direction).rgb;
+			radiance += texture(Skybox, ray.direction).rgb;
 			break;
 		}
 
@@ -238,8 +238,6 @@ void main()
 		vec3 f = SampleDistribution(interaction.mat, wo, ray_payload.seed, wi, pdf);
 		wi = LocalToWorld(wi, interaction.normal, interaction.tangent, interaction.bitangent);
 
-		//radiance = interaction.normal;
-
 		if(pdf > 0.0 && f != vec3(0.0) && abs(dot(wi, interaction.ffnormal)) != 0.0)
 		{
 			throughout *= f * abs(dot(wi, interaction.ffnormal)) / pdf;
@@ -248,7 +246,7 @@ void main()
 		}
 		else
 		{
-			break;
+			//break;
 		}
 	}
 
