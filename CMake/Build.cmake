@@ -64,6 +64,9 @@ function(ExpandSrc res src)
                 ${item}/*.rmiss
                 ${item}/*.rcall
 
+                # hlsl
+                ${item}/*.hlsl
+                ${item}/*.hlsli
                 # ...
             )
             list(APPEND tmp_res ${itemSrc})

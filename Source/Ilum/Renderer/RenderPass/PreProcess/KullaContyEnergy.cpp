@@ -13,7 +13,7 @@ namespace Ilum::pass
 {
 void KullaContyEnergy::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/KullaContyEnergy.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/KullaContyEnergy.hlsl", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::HLSL);
 
 	state.declareAttachment("EmuLut", VK_FORMAT_R16_SFLOAT, 1024, 1024);
 	state.addOutputAttachment("EmuLut", AttachmentState::Clear_Color);

@@ -28,8 +28,10 @@ EquirectangularToCubemap::~EquirectangularToCubemap()
 
 void EquirectangularToCubemap::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/EquirectangularToCubemap.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/EquirectangularToCubemap.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
+	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/EquirectangularToCubemap.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
+	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/EquirectangularToCubemap.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/EquirectangularToCubemap.hlsl", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::HLSL, "VSmain");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/EquirectangularToCubemap.hlsl", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::HLSL, "PSmain");
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,
@@ -64,7 +66,7 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 
 	if (!m_update)
 	{
-		return;
+		//return;
 	}
 
 	auto &cmd_buffer = state.command_buffer;
@@ -113,7 +115,7 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
 	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f))};
 
-	uint32_t texID = Renderer::instance()->getResourceCache().imageID(m_filename);
+	m_push_data.tex_idx = Renderer::instance()->getResourceCache().imageID(m_filename);
 
 	vkCmdBindPipeline(cmd_buffer, state.pass.bind_point, state.pass.pipeline);
 
@@ -140,13 +142,12 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 		begin_info.framebuffer = m_framebuffers[i];
 		vkCmdBeginRenderPass(cmd_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-		glm::mat4 view_projection = projection_matrix * views_matrix[i];
+		m_push_data.inverse_view_projection = glm::inverse(projection_matrix * views_matrix[i]);
 
 		vkCmdSetViewport(cmd_buffer, 0, 1, &viewport);
 		vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
 
-		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &view_projection);
-		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::mat4), sizeof(uint32_t), &texID);
+		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(m_push_data), &m_push_data);
 
 		vkCmdDraw(cmd_buffer, 3, 1, 0, 0);
 

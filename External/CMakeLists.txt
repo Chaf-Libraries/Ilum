@@ -201,3 +201,8 @@ SET(BUILD_SHARED_LIBS    OFF)
 
 execute_process(COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/shaderc/utils/git-sync-deps)
 add_subdirectory(shaderc)
+target_link_libraries(shaderc PRIVATE glslc)
+target_include_directories(shaderc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/shaderc/libshaderc_util/include/)
+
+#dxcompiler
+add_subdirectory(dxcompiler)

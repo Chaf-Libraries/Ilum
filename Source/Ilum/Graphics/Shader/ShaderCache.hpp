@@ -10,7 +10,7 @@ namespace Ilum
 class ShaderCache
 {
   public:
-	ShaderCache() = default;
+	ShaderCache();
 
 	~ShaderCache();
 

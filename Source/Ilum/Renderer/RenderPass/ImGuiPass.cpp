@@ -35,8 +35,10 @@ void ImGuiPass::setupPipeline(PipelineState &state)
 	Renderer::instance()->buildRenderGraph(builder);
 	auto &rg = builder.build();
 
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/ImGui.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/ImGui.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/ImGui.hlsl", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::HLSL, "VSmain");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/ImGui.hlsl", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::HLSL, "PSmain");
+	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/ImGui.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
+	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/ImGui.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,

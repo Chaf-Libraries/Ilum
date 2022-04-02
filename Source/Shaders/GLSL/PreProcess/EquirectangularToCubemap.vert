@@ -8,7 +8,6 @@ layout(location = 1) out vec2 outUV;
 
 layout(push_constant) uniform PushBlock{
     mat4 view_projection;
-    uint idx;
 }push_data;
 
 void main()
@@ -18,6 +17,6 @@ void main()
 
     outUV=uv;
 
-    outPos = ((push_data.view_projection) * gl_Position).xyz;
+    outPos = (inverse(push_data.view_projection) * gl_Position).xyz;
 }
 

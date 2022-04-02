@@ -13,9 +13,9 @@ namespace Ilum::pass
 {
 void KullaContyAverage::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/KullaContyEnergyAverage.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/KullaContyEnergyAverage.hlsl", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::HLSL);
 
-	state.descriptor_bindings.bind(0, 0, "EmuLut", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 0, "EmuLut", ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
 	state.declareAttachment("EavgLut", VK_FORMAT_R16_SFLOAT, 1024, 1024);
 	state.addOutputAttachment("EavgLut", AttachmentState::Clear_Color);

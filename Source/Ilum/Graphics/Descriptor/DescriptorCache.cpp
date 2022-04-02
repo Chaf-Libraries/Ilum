@@ -14,7 +14,7 @@ VkDescriptorSetLayout DescriptorCache::getDescriptorLayout(const Shader &shader,
 	{
 		for (auto& shader_module : shader_modules)
 		{
-			hash_combine(hash, shader_module);
+			hash_combine(hash, shader_module.first);
 		}
 	}
 	hash_combine(hash, set_index);

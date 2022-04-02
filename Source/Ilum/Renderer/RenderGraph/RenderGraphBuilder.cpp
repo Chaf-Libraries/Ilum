@@ -257,8 +257,8 @@ inline void createGraphicsPipeline(const PipelineState &pipeline_state, PassNati
 
 		shader_stage_create_info.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		shader_stage_create_info.stage  = stage;
-		shader_stage_create_info.pName  = "main";
-		shader_stage_create_info.module = shader[0];
+		shader_stage_create_info.module = shader[0].first;
+		shader_stage_create_info.pName  = shader[0].second.c_str();
 		pipeline_shader_stage_create_infos.push_back(shader_stage_create_info);
 	}
 
@@ -298,8 +298,8 @@ inline void createComputePipeline(const PipelineState &pipeline_state, PassNativ
 	VkPipelineShaderStageCreateInfo shader_stage_create_info = {};
 	shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	shader_stage_create_info.stage                           = VK_SHADER_STAGE_COMPUTE_BIT;
-	shader_stage_create_info.pName                           = "main";
-	shader_stage_create_info.module                          = pipeline_state.shader.getShaders().at(VK_SHADER_STAGE_COMPUTE_BIT)[0];
+	shader_stage_create_info.module                          = pipeline_state.shader.getShaders().at(VK_SHADER_STAGE_COMPUTE_BIT)[0].first;
+	shader_stage_create_info.pName                           = pipeline_state.shader.getShaders().at(VK_SHADER_STAGE_COMPUTE_BIT)[0].second.c_str();
 
 	VkComputePipelineCreateInfo compute_pipeline_create_info = {};
 	compute_pipeline_create_info.sType                       = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
@@ -326,8 +326,8 @@ inline void createRayTracingPipeline(const PipelineState &pipeline_state, PassNa
 				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
 				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 				pipeline_shader_stage_create_info.stage                           = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-				pipeline_shader_stage_create_info.module                          = raygen_shader;
-				pipeline_shader_stage_create_info.pName                           = "main";
+				pipeline_shader_stage_create_info.module                          = raygen_shader.first;
+				pipeline_shader_stage_create_info.pName                           = raygen_shader.second.c_str();
 				pipeline_shader_stage_create_infos.push_back(pipeline_shader_stage_create_info);
 
 				VkRayTracingShaderGroupCreateInfoKHR shader_group = {};
@@ -352,8 +352,8 @@ inline void createRayTracingPipeline(const PipelineState &pipeline_state, PassNa
 				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
 				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 				pipeline_shader_stage_create_info.stage                           = VK_SHADER_STAGE_MISS_BIT_KHR;
-				pipeline_shader_stage_create_info.module                          = miss_shader;
-				pipeline_shader_stage_create_info.pName                           = "main";
+				pipeline_shader_stage_create_info.module                          = miss_shader.first;
+				pipeline_shader_stage_create_info.pName                           = miss_shader.second.c_str();
 				pipeline_shader_stage_create_infos.push_back(pipeline_shader_stage_create_info);
 
 				VkRayTracingShaderGroupCreateInfoKHR shader_group = {};
@@ -378,8 +378,8 @@ inline void createRayTracingPipeline(const PipelineState &pipeline_state, PassNa
 				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
 				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 				pipeline_shader_stage_create_info.stage                           = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-				pipeline_shader_stage_create_info.module                          = closest_hit_shader;
-				pipeline_shader_stage_create_info.pName                           = "main";
+				pipeline_shader_stage_create_info.module                          = closest_hit_shader.first;
+				pipeline_shader_stage_create_info.pName                           = closest_hit_shader.second.c_str();
 				pipeline_shader_stage_create_infos.push_back(pipeline_shader_stage_create_info);
 
 				VkRayTracingShaderGroupCreateInfoKHR shader_group = {};
@@ -404,8 +404,8 @@ inline void createRayTracingPipeline(const PipelineState &pipeline_state, PassNa
 				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
 				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 				pipeline_shader_stage_create_info.stage                           = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
-				pipeline_shader_stage_create_info.module                          = any_hit_shader;
-				pipeline_shader_stage_create_info.pName                           = "main";
+				pipeline_shader_stage_create_info.module                          = any_hit_shader.first;
+				pipeline_shader_stage_create_info.pName                           = any_hit_shader.second.c_str();
 				pipeline_shader_stage_create_infos.push_back(pipeline_shader_stage_create_info);
 
 				VkRayTracingShaderGroupCreateInfoKHR shader_group = {};
@@ -430,8 +430,8 @@ inline void createRayTracingPipeline(const PipelineState &pipeline_state, PassNa
 				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
 				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 				pipeline_shader_stage_create_info.stage                           = VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
-				pipeline_shader_stage_create_info.module                          = intersection_shader;
-				pipeline_shader_stage_create_info.pName                           = "main";
+				pipeline_shader_stage_create_info.module                          = intersection_shader.first;
+				pipeline_shader_stage_create_info.pName                           = intersection_shader.second.c_str();
 				pipeline_shader_stage_create_infos.push_back(pipeline_shader_stage_create_info);
 
 				VkRayTracingShaderGroupCreateInfoKHR shader_group = {};
@@ -456,8 +456,8 @@ inline void createRayTracingPipeline(const PipelineState &pipeline_state, PassNa
 				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
 				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 				pipeline_shader_stage_create_info.stage                           = VK_SHADER_STAGE_CALLABLE_BIT_KHR;
-				pipeline_shader_stage_create_info.module                          = callable_shader;
-				pipeline_shader_stage_create_info.pName                           = "main";
+				pipeline_shader_stage_create_info.module                          = callable_shader.first;
+				pipeline_shader_stage_create_info.pName                           = callable_shader.second.c_str();
 				pipeline_shader_stage_create_infos.push_back(pipeline_shader_stage_create_info);
 
 				VkRayTracingShaderGroupCreateInfoKHR shader_group = {};

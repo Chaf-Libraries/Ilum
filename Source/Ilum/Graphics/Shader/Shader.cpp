@@ -43,7 +43,7 @@ Shader &Shader::load(const std::string &filename, VkShaderStageFlagBits stage, T
 
 	VK_Debugger::setName(shader_module, FileSystem::getFileName(filename).c_str());
 
-	m_shader_modules[stage].emplace_back(shader_module);
+	m_shader_modules[stage].emplace_back(std::make_pair(shader_module, entry_point));
 	m_relection_data += GraphicsContext::instance()->getShaderCache().reflect(shader_module);
 	m_stage |= stage;
 
@@ -91,8 +91,9 @@ VkPipelineBindPoint Shader::getBindPoint() const
 	return VK_PIPELINE_BIND_POINT_MAX_ENUM;
 }
 
-const std::unordered_map<VkShaderStageFlagBits, std::vector<VkShaderModule>> &Shader::getShaders() const
+const std::unordered_map<VkShaderStageFlagBits, std::vector<std::pair<VkShaderModule, std::string>>> &Shader::getShaders() const
 {
 	return m_shader_modules;
 }
+
 }        // namespace Ilum

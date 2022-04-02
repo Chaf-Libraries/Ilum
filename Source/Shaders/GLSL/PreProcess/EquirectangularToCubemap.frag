@@ -12,7 +12,7 @@ layout(location = 0) out vec4 outColor;
 layout (set = 0, binding = 0) uniform sampler2D textureArray[];
 
 layout(push_constant) uniform PushBlock{
-    mat4 view_projection;
+    layout(offset = 64)
     uint idx;
 }push_data;
 

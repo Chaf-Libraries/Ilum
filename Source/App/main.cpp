@@ -3,6 +3,8 @@
 #include <Ilum/Engine/Context.hpp>
 #include <Ilum/Engine/Engine.hpp>
 #include <Ilum/Graphics/Shader/Shader.hpp>
+#include <Ilum/Graphics/Shader/ShaderCache.hpp>
+#include <Ilum/Graphics/GraphicsContext.hpp>
 #include <Ilum/Renderer/Renderer.hpp>
 #include <Ilum/Scene/Scene.hpp>
 #include <Ilum/Scene/System.hpp>
@@ -50,7 +52,6 @@ int main()
 	//}
 
 	//auto boundaries = hemesh.boundary();
-
 
 	while (!Ilum::Window::instance()->shouldClose())
 	{

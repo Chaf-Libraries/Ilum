@@ -4,6 +4,8 @@
 
 #include "Renderer/RenderGraph/RenderPass.hpp"
 
+#include <glm/glm.hpp>
+
 namespace Ilum::pass
 {
 class EquirectangularToCubemap : public TRenderPass<EquirectangularToCubemap>
@@ -25,6 +27,12 @@ class EquirectangularToCubemap : public TRenderPass<EquirectangularToCubemap>
 	std::string m_filename = "";
 
 	bool m_update = false;
+
+	struct
+	{
+		glm::mat4 inverse_view_projection;
+		uint32_t  tex_idx;
+	}m_push_data;
 
 	std::vector<VkFramebuffer> m_framebuffers;
 };

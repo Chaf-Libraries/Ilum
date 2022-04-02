@@ -28,7 +28,6 @@
 
 #include "RenderPass/Copy/CopyHizBuffer.hpp"
 #include "RenderPass/Copy/CopyFrame.hpp"
-#include "RenderPass/CopyPass.hpp"
 
 #include "RenderPass/Culling/HizPass.hpp"
 #include "RenderPass/Culling/InstanceCullingPass.hpp"
@@ -89,18 +88,17 @@ Renderer::Renderer(Context *context) :
 
 	DeferredRendering = [this](RenderGraphBuilder &builder) {
 		builder
-
-		    //.addRenderPass("KullaContyEnergy", std::make_unique<pass::KullaContyEnergy>())
-		    //.addRenderPass("KullaContyAverage", std::make_unique<pass::KullaContyAverage>())
-		    //.addRenderPass("BRDFPreIntegrate", std::make_unique<pass::BRDFPreIntegrate>())
+		    .addRenderPass("KullaContyEnergy", std::make_unique<pass::KullaContyEnergy>())
+		    .addRenderPass("KullaContyAverage", std::make_unique<pass::KullaContyAverage>())
+		    .addRenderPass("BRDFPreIntegrate", std::make_unique<pass::BRDFPreIntegrate>())
 		    .addRenderPass("EquirectangularToCubemap", std::make_unique<pass::EquirectangularToCubemap>())
 		    //.addRenderPass("CubemapSHProjection", std::make_unique<pass::CubemapSHProjection>())
 		    //.addRenderPass("CubemapSHAdd", std::make_unique<pass::CubemapSHAdd>())
 		    //.addRenderPass("CubemapPrefilter", std::make_unique<pass::CubemapPrefilter>())
-		    .addRenderPass("HizPass", std::make_unique<pass::HizPass>())
-		    .addRenderPass("InstanceCulling", std::make_unique<pass::InstanceCullingPass>())
-		    .addRenderPass("MeshletCulling", std::make_unique<pass::MeshletCullingPass>())
-		    .addRenderPass("GeometryPass", std::make_unique<pass::GeometryPass>())
+		    //.addRenderPass("HizPass", std::make_unique<pass::HizPass>())
+		    //.addRenderPass("InstanceCulling", std::make_unique<pass::InstanceCullingPass>())
+		    //.addRenderPass("MeshletCulling", std::make_unique<pass::MeshletCullingPass>())
+		    //.addRenderPass("GeometryPass", std::make_unique<pass::GeometryPass>())
 		    //.addRenderPass("ShadowmapPass", std::make_unique<pass::ShadowmapPass>())
 		    //.addRenderPass("CascadeShadowmapPass", std::make_unique<pass::CascadeShadowmapPass>())
 		    //.addRenderPass("OmniShadowmapPass", std::make_unique<pass::OmniShadowmapPass>())
@@ -121,12 +119,12 @@ Renderer::Renderer(Context *context) :
 		    //.setView("TAAOutput")
 		    //.setOutput("TAAOutput")
 
-		    .addRenderPass("Whitted", std::make_unique<pass::Whitted>())
-		    .addRenderPass("CopyFrame", std::make_unique<pass::CopyFrame>("Whitted", "PrevWhitted"))
-		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Whitted", "Tonemapping"))
+		    //.addRenderPass("Whitted", std::make_unique<pass::Whitted>())
+		    //.addRenderPass("CopyFrame", std::make_unique<pass::CopyFrame>("Whitted", "PrevWhitted"))
+		    //.addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Whitted", "Tonemapping"))
 
-		    .setView("Whitted")
-		    .setOutput("Whitted");
+		    .setView("BRDFPreIntegrate")
+		    .setOutput("BRDFPreIntegrate");
 	};
 
 	buildRenderGraph = DeferredRendering;

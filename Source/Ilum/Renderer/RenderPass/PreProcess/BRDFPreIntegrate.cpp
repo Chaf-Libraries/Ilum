@@ -11,7 +11,7 @@ namespace Ilum::pass
 {
 void BRDFPreIntegrate::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/BRDFPreIntegrate.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/BRDFPreIntegrate.hlsl", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::HLSL);
 
 	state.declareAttachment("BRDFPreIntegrate", VK_FORMAT_R16G16_SFLOAT, 512, 512, false, 1);
 	state.addOutputAttachment("BRDFPreIntegrate", AttachmentState::Clear_Color);

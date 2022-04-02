@@ -1,6 +1,6 @@
 #include "ShaderReflection.hpp"
 
-#include <spirv_glsl.hpp>
+#include <spirv_reflect.hpp>
 
 namespace Ilum
 {
@@ -70,6 +70,13 @@ ReflectionData &ReflectionData::operator+=(const ReflectionData &rhs)
 		else
 		{
 			iter->stage |= image.stage;
+
+			// image + sampler combined
+			if ((iter->type == Image::Type::Image && image.type == Image::Type::Sampler) ||
+				(iter->type == Image::Type::Sampler && image.type == Image::Type::Image))
+			{
+				iter->type = Image::Type::ImageSampler;
+			}
 		}
 	}
 
@@ -546,11 +553,11 @@ ReflectionData ShaderReflection::reflect(const std::vector<uint32_t> &spirv, VkS
 {
 	ReflectionData data;
 
-	spirv_cross::CompilerGLSL compiler(spirv);
+	spirv_cross::CompilerReflection compiler(spirv);
 
-	auto opts                     = compiler.get_common_options();
-	opts.enable_420pack_extension = true;
+	auto opts = compiler.get_common_options();
 
+	opts.vulkan_semantics = true;
 	compiler.set_common_options(opts);
 
 	data.stage                   = stage;
@@ -564,6 +571,26 @@ ReflectionData ShaderReflection::reflect(const std::vector<uint32_t> &spirv, VkS
 	std::for_each(data.input_attachments.begin(), data.input_attachments.end(), [&data](const ReflectionData::InputAttachment &input) { data.sets.insert(input.set); });
 	std::for_each(data.images.begin(), data.images.end(), [&data](const ReflectionData::Image &image) { data.sets.insert(image.set); });
 	std::for_each(data.buffers.begin(), data.buffers.end(), [&data](const ReflectionData::Buffer &buffer) { data.sets.insert(buffer.set); });
+
+	for (auto iter = data.images.begin(); iter != data.images.end(); iter++)
+	{
+		auto next = iter + 1;
+		while (next != data.images.end())
+		{
+			if (iter->set == next->set &&
+			    next->binding == iter->binding)
+			{
+				if ((iter->type == ReflectionData::Image::Type::Image && next->type == ReflectionData::Image::Type::Sampler) ||
+				    (iter->type == ReflectionData::Image::Type::Sampler && next->type == ReflectionData::Image::Type::Image))
+				{
+					iter->type = ReflectionData::Image::Type::ImageSampler;
+					next       = data.images.erase(next);
+					continue;
+				}
+			}
+			next++;
+		}
+	}
 
 	return data;
 }
