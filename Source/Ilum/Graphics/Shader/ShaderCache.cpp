@@ -80,7 +80,7 @@ ShaderCache::~ShaderCache()
 	m_shader_modules.clear();
 }
 
-VkShaderModule ShaderCache::load(const std::string &filename, VkShaderStageFlagBits stage, Shader::Type type)
+VkShaderModule ShaderCache::load(const std::string &filename, VkShaderStageFlagBits stage, Shader::Type type, const std::string &entry_point)
 {
 	// Look for shader module
 	if (m_lookup.find(filename) != m_lookup.end())
@@ -118,7 +118,7 @@ VkShaderModule ShaderCache::load(const std::string &filename, VkShaderStageFlagB
 	}
 	else
 	{
-		spirv = ShaderCompiler::compile(raw_data, stage, type);
+		spirv = ShaderCompiler::compile(filename, raw_data, stage, type, entry_point);
 
 		std::vector<uint8_t> write_data(spirv.size() * 4);
 		std::memcpy(write_data.data(), spirv.data(), write_data.size());

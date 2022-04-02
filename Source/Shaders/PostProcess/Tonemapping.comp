@@ -2,7 +2,8 @@
 
 layout (local_size_x = 32, local_size_y = 32) in;
 
-layout (binding = 0, rgba16f) uniform image2D Image;
+layout (binding = 0, rgba16f) readonly uniform image2D Image;
+layout (binding = 1, rgba16f) writeonly uniform image2D Result;
 
 layout(push_constant) uniform PushBlock{
 	uvec2 extent;
@@ -33,6 +34,6 @@ void main()
 		// Gamma correction
 		color.xyz = pow(color.xyz, vec3(1.0 / 2.2));
 
-		imageStore(Image, ivec2(gl_GlobalInvocationID.xy), color);
+		imageStore(Result, ivec2(gl_GlobalInvocationID.xy), color);
 	}
 }

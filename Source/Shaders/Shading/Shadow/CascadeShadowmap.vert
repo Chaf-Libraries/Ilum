@@ -1,6 +1,6 @@
 #version 450
 
-#extension GL_KHR_vulkan_glsl : enable
+
 #extension GL_ARB_shader_viewport_layer_array : enable
 
 #include "../../GlobalBuffer.glsl"

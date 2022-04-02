@@ -14,7 +14,7 @@ class ShaderCache
 
 	~ShaderCache();
 
-	VkShaderModule load(const std::string &filename, VkShaderStageFlagBits stage, Shader::Type type = Shader::Type::GLSL);
+	VkShaderModule load(const std::string &filename, VkShaderStageFlagBits stage, Shader::Type type = Shader::Type::GLSL, const std::string &entry_point = "main");
 
 	VkShaderModule getShader(const std::string &filename);
 

@@ -11,8 +11,6 @@ SetTarget(
         SDL2::SDL2
         spdlog
         volk
-        glslang
-        SPIRV
         spirv-cross-glsl
         vulkan
         stb
@@ -28,6 +26,7 @@ SetTarget(
         meshoptimizer
         TBB::tbb
         Eigen
+        shaderc
 )
 
 target_precompile_headers(Ilum

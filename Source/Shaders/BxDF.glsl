@@ -484,11 +484,13 @@ vec3 FresnelEvaluate()
 struct LambertianReflection
 {
 	vec3 R;
+	uint BxDF_Type;
 };
 
 void Init(out LambertianReflection bxdf, vec3 base_color)
 {
 	bxdf.R = base_color;
+	bxdf.BxDF_Type = BSDF_REFLECTION | BSDF_DIFFUSE;
 }
 
 vec3 Distribution(LambertianReflection bxdf, vec3 wo, vec3 wi)
@@ -517,6 +519,7 @@ struct OrenNayar
 {
 	vec3  R;
 	float A, B;
+	uint  BxDF_Type;
 };
 
 void Init(out OrenNayar bxdf, vec3 R, float sigma)
@@ -526,6 +529,7 @@ void Init(out OrenNayar bxdf, vec3 R, float sigma)
 	float sigma2 = sigma * sigma;
 	bxdf.A       = 1.0 - sigma2 / (2.0 * (sigma2 + 0.33));
 	bxdf.B       = 0.45 * sigma2 / (sigma2 + 0.09);
+	bxdf.BxDF_Type = BSDF_REFLECTION | BSDF_DIFFUSE;
 }
 
 vec3 Distribution(OrenNayar bxdf, vec3 wo, vec3 wi)

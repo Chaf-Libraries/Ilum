@@ -269,7 +269,7 @@ inline void draw_material<BxDFType::CookTorrance>(Material &material)
 template <>
 inline void draw_material<BxDFType::Matte>(Material &material)
 {
-	Material::update = ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color)) || Material::update;
+	Material::update = ImGui::ColorEdit3("Base Color", glm::value_ptr(material.base_color)) || Material::update;
 	Material::update = ImGui::DragFloat("Roughness", &material.roughness, 0.001f, 0.f, 90.f, "%.3f") || Material::update;
 	Material::update = draw_texture(material.textures[TextureType::BaseColor], "Albedo Map") || Material::update;
 
@@ -286,8 +286,8 @@ inline void draw_material<BxDFType::Matte>(Material &material)
 template <>
 inline void draw_material<BxDFType::Plastic>(Material &material)
 {
-	Material::update = ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color)) || Material::update;
-	Material::update = ImGui::DragFloat("Specular", &material.specular, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::ColorEdit3("Base Color", glm::value_ptr(material.base_color)) || Material::update;
+	Material::update = ImGui::ColorEdit3("Specular", glm::value_ptr(material.data)) || Material::update;
 	Material::update = ImGui::DragFloat("Roughness", &material.roughness, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
 
 	ImGui::Text("Albedo Map");
@@ -303,7 +303,7 @@ inline void draw_material<BxDFType::Plastic>(Material &material)
 template <>
 inline void draw_material<BxDFType::Metal>(Material &material)
 {
-	Material::update = ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color)) || Material::update;
+	Material::update = ImGui::ColorEdit3("Base Color", glm::value_ptr(material.base_color)) || Material::update;
 	Material::update = ImGui::DragFloat("Roughness", &material.roughness, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Anisotropic", &material.anisotropic, 0.001f, -1.f, 1.f, "%.3f") || Material::update;
 
@@ -320,7 +320,7 @@ inline void draw_material<BxDFType::Metal>(Material &material)
 template <>
 inline void draw_material<BxDFType::Mirror>(Material &material)
 {
-	Material::update = ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color)) || Material::update;
+	Material::update = ImGui::ColorEdit3("Base Color", glm::value_ptr(material.base_color)) || Material::update;
 
 	ImGui::Text("Albedo Map");
 	Material::update = draw_texture(material.textures[TextureType::BaseColor], "Albedo Map") || Material::update;

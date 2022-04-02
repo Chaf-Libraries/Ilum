@@ -4,17 +4,17 @@
 #include "BxDf.glsl"
 #include "GlobalBuffer.glsl"
 
-////////////// Matte MaterialData //////////////
+////////////// Matte Material //////////////
 struct MatteMaterial
 {
 	vec3  Kd;
 	float sigma;
 };
 
-void Init(out MatteMaterial mat, vec3 base_color, float roughness)
+void Init(out MatteMaterial mat, Material data)
 {
-	mat.Kd    = base_color;
-	mat.sigma = roughness;
+	mat.Kd    = data.base_color.rgb;
+	mat.sigma = data.roughness;
 }
 
 vec3 Distribution(MatteMaterial mat, vec3 wo, vec3 wi)
@@ -67,7 +67,7 @@ vec3 SampleDistribution(in MatteMaterial mat, in vec3 wo, inout uint seed, out v
 	}
 }
 
-////////////// Plastic MaterialData //////////////
+////////////// Plastic Material //////////////
 struct PlasticMaterial
 {
 	vec3  Kd;
@@ -75,11 +75,11 @@ struct PlasticMaterial
 	float roughness;
 };
 
-void Init(out PlasticMaterial mat, vec3 diffuse, vec3 specular, float roughness)
+void Init(out PlasticMaterial mat, Material data)
 {
-	mat.Kd        = diffuse;
-	mat.Ks        = specular;
-	mat.roughness = roughness;
+	mat.Kd        = data.base_color.rgb;
+	mat.Ks        = data.data;
+	mat.roughness = data.roughness;
 }
 
 vec3 Distribution(PlasticMaterial mat, vec3 wo, vec3 wi)
@@ -144,7 +144,7 @@ vec3 SampleDistribution(in PlasticMaterial mat, in vec3 wo, inout uint seed, out
 	}
 }
 
-////////////// Metal MaterialData //////////////
+////////////// Metal Material //////////////
 struct MetalMaterial
 {
 	vec3  R;
@@ -154,22 +154,20 @@ struct MetalMaterial
 	float roughness;
 };
 
-void Init(out MetalMaterial mat, vec3 base_color, float anisotropic, float roughness)
+void Init(out MetalMaterial mat, Material data)
 {
-	mat.R           = base_color;
+	mat.R           = data.base_color.rgb;
 	mat.eta         = vec3(1, 10, 11);
 	mat.k           = vec3(3.90463543, 2.44763327, 2.13765264);
-	mat.anisotropic = anisotropic;
-	mat.roughness   = roughness;
+	mat.anisotropic = data.anisotropic;
+	mat.roughness   = data.roughness;
 }
 
 vec3 Distribution(MetalMaterial mat, vec3 wo, vec3 wi)
 {
-	float urough = max(mat.roughness * (1.0 + mat.anisotropic), 0.00001);
-	float vrough = max(mat.roughness * (1.0 - mat.anisotropic), 0.00001);
-
-	urough = urough;
-	vrough = vrough;
+	float aspect = sqrt(1.0 - mat.anisotropic * 0.9);
+	float urough = max(0.001, mat.roughness / aspect);
+	float vrough = max(0.001, mat.roughness * aspect);
 
 	FresnelConductor fresnel;
 	Init(fresnel, vec3(1.0), mat.eta, mat.k);
@@ -185,11 +183,9 @@ vec3 Distribution(MetalMaterial mat, vec3 wo, vec3 wi)
 
 vec3 SampleDistribution(in MetalMaterial mat, in vec3 wo, inout uint seed, out vec3 wi, out float pdf)
 {
-	float urough = max(mat.roughness * (1.0 + mat.anisotropic), 0.00001);
-	float vrough = max(mat.roughness * (1.0 - mat.anisotropic), 0.00001);
-
-	urough = urough;
-	vrough = vrough;
+	float aspect = sqrt(1.0 - mat.anisotropic * 0.9);
+	float urough = max(0.001, mat.roughness / aspect);
+	float vrough = max(0.001, mat.roughness * aspect);
 
 	FresnelConductor fresnel;
 	Init(fresnel, vec3(1.0), mat.eta, mat.k);
@@ -203,15 +199,15 @@ vec3 SampleDistribution(in MetalMaterial mat, in vec3 wo, inout uint seed, out v
 	return SampleDistribution(bxdf, wo, fresnel, dist, seed, wi, pdf);
 }
 
-////////////// Mirror MaterialData //////////////
+////////////// Mirror Material //////////////
 struct MirrorMaterial
 {
 	vec3 R;
 };
 
-void Init(out MirrorMaterial mat, vec3 base_color)
+void Init(out MirrorMaterial mat, Material data)
 {
-	mat.R = base_color;
+	mat.R = data.base_color.rgb;
 }
 
 vec3 Distribution(MirrorMaterial mat, vec3 wo, vec3 wi)
@@ -230,7 +226,7 @@ vec3 SampleDistribution(in MirrorMaterial mat, in vec3 wo, inout uint seed, out 
 	return SampleDistribution(bxdf, wo, seed, wi, pdf);
 }
 
-////////////// Substrate MaterialData //////////////
+////////////// Substrate Material //////////////
 struct SubstrateMaterial
 {
 	vec3  Kd;
@@ -239,12 +235,12 @@ struct SubstrateMaterial
 	float roughness;
 };
 
-void Init(out SubstrateMaterial mat, vec3 base_color, vec3 glossy, float anisotropic, float roughness)
+void Init(out SubstrateMaterial mat, Material data)
 {
-	mat.Kd          = base_color;
-	mat.Rs          = glossy;
-	mat.anisotropic = anisotropic;
-	mat.roughness   = roughness;
+	mat.Kd          = data.base_color.rgb;
+	mat.Rs          = data.data;
+	mat.anisotropic = data.anisotropic;
+	mat.roughness   = data.roughness;
 }
 
 vec3 Distribution(SubstrateMaterial mat, vec3 wo, vec3 wi)
@@ -252,11 +248,9 @@ vec3 Distribution(SubstrateMaterial mat, vec3 wo, vec3 wi)
 	FresnelBlend bxdf;
 	Init(bxdf, mat.Kd, vec3(mat.Rs));
 
-	float urough = max(mat.roughness * (1.0 + mat.anisotropic), 0.00001);
-	float vrough = max(mat.roughness * (1.0 - mat.anisotropic), 0.00001);
-
-	urough = urough;
-	vrough = vrough;
+	float aspect = sqrt(1.0 - mat.anisotropic * 0.9);
+	float urough = max(0.001, mat.roughness / aspect);
+	float vrough = max(0.001, mat.roughness * aspect);
 
 	TrowbridgeReitzDistribution dist;
 	Init(dist, urough, vrough, true);
@@ -269,11 +263,9 @@ vec3 SampleDistribution(in SubstrateMaterial mat, in vec3 wo, inout uint seed, o
 	FresnelBlend bxdf;
 	Init(bxdf, mat.Kd, vec3(mat.Rs));
 
-	float urough = max(mat.roughness * (1.0 + mat.anisotropic), 0.00001);
-	float vrough = max(mat.roughness * (1.0 - mat.anisotropic), 0.00001);
-
-	urough = urough;
-	vrough = vrough;
+	float aspect = sqrt(1.0 - mat.anisotropic * 0.9);
+	float urough = max(0.001, mat.roughness / aspect);
+	float vrough = max(0.001, mat.roughness * aspect);
 
 	TrowbridgeReitzDistribution dist;
 	Init(dist, urough, vrough, true);
@@ -281,7 +273,7 @@ vec3 SampleDistribution(in SubstrateMaterial mat, in vec3 wo, inout uint seed, o
 	return SampleDistribution(bxdf, wo, dist, seed, wi, pdf);
 }
 
-////////////// Glass MaterialData //////////////
+////////////// Glass Material //////////////
 struct GlassMaterial
 {
 	float refraction;
@@ -291,13 +283,13 @@ struct GlassMaterial
 	float roughness;
 };
 
-void Init(out GlassMaterial mat, vec3 reflection_color, vec3 transmission_color, float anisotropic, float roughness, float refraction)
+void Init(out GlassMaterial mat, Material data)
 {
-	mat.refraction  = refraction;
-	mat.R           = reflection_color;
-	mat.T           = transmission_color;
-	mat.anisotropic = anisotropic;
-	mat.roughness   = roughness;
+	mat.refraction  = data.transmission;
+	mat.R           = data.base_color.rgb;
+	mat.T           = data.data;
+	mat.anisotropic = data.anisotropic;
+	mat.roughness   = data.roughness;
 }
 
 vec3 Distribution(GlassMaterial mat, vec3 wo, vec3 wi)
@@ -311,11 +303,9 @@ vec3 Distribution(GlassMaterial mat, vec3 wo, vec3 wi)
 
 	bool isSpecular = (mat.roughness == 0.0);
 
-	float urough = max(mat.roughness * (1.0 + mat.anisotropic), 0.00001);
-	float vrough = max(mat.roughness * (1.0 - mat.anisotropic), 0.00001);
-
-	urough = urough;
-	vrough = vrough;
+	float aspect = sqrt(1.0 - mat.anisotropic * 0.9);
+	float urough = max(0.001, mat.roughness / aspect);
+	float vrough = max(0.001, mat.roughness * aspect);
 
 	TrowbridgeReitzDistribution dist;
 	Init(dist, urough, vrough, true);
@@ -363,11 +353,9 @@ vec3 SampleDistribution(in GlassMaterial mat, in vec3 wo, inout uint seed, out v
 
 	bool isSpecular = (mat.roughness == 0.0);
 
-	float urough = max(mat.roughness * (1.0 + mat.anisotropic), 0.00001);
-	float vrough = max(mat.roughness * (1.0 - mat.anisotropic), 0.00001);
-
-	urough = urough;
-	vrough = vrough;
+	float aspect = sqrt(1.0 - mat.anisotropic * 0.9);
+	float urough = max(0.001, mat.roughness / aspect);
+	float vrough = max(0.001, mat.roughness * aspect);
 
 	TrowbridgeReitzDistribution dist;
 	Init(dist, urough, vrough, true);
@@ -428,10 +416,10 @@ vec3 SampleDistribution(in GlassMaterial mat, in vec3 wo, inout uint seed, out v
 	return distribution;
 }
 
-////////////// Disney MaterialData //////////////
+////////////// Disney Material //////////////
 struct DisneyMaterial
 {
-	vec3 color;
+	vec3  color;
 	float metallic;
 	float refraction;
 	float roughness;
@@ -448,8 +436,116 @@ struct DisneyMaterial
 	bool  thin;
 };
 
+void Init(out DisneyMaterial mat, Material data)
+{
+	mat.color = data.base_color.rgb;
+}
 
+vec3 Distribution(DisneyMaterial mat, vec3 wo, vec3 wi)
+{
+	vec3 distribution = vec3(0.0);
 
+	// Initialize
+	vec3  c              = mat.color;
+	float metallicWeight = mat.metallic;
+	float e              = mat.refraction;
+	float strans         = mat.specTrans;
+	float diffuseWeight  = (1.0 - metallicWeight) * (1.0 - strans);
+	float dt             = mat.diffTrans / 2.0;
+	float rough          = mat.roughness;
+	float lum            = dot(vec3(0.212671, 0.715160, 0.072169), c);
+	vec3  Ctint          = lum > 0.0 ? (c / lum) : vec3(1.0);
+
+	float sheenWeight = mat.sheen;
+	vec3  Csheen;
+	if (sheenWeight > 0.0)
+	{
+		float stint = mat.sheenTint;
+		Csheen      = mix(vec3(1.0), Ctint, stint);
+	}
+
+	if (diffuseWeight > 0.0)
+	{
+		if (mat.thin)
+		{
+			float flat_ = mat.flatness;
+
+			// TODO: Add Disney Diffuse
+			// TODO: Add Disney Fake SS
+		}
+		else
+		{
+			vec3 sd = mat.scatterDistance;
+
+			if (sd == vec3(0.0))
+			{
+				// TODO: Add Disney Diffuse
+			}
+			else
+			{
+				// TODO: Add Specular Transmission
+				// TODO: Add Disney BSSRDF
+			}
+		}
+
+		// TODO: Add Disney Retro
+
+		if (sheenWeight > 0)
+		{
+			// TODO: Add Disney Sheen
+		}
+	}
+
+	float aspect = sqrt(1.0 - mat.anisotropic * 0.9);
+	float ax     = max(0.001, rough / aspect);
+	float ay     = max(0.001, rough * aspect);
+
+	// TODO: Define Disney Microfacet Distribution
+
+	float specTint = mat.specularTint;
+	vec3  Cspec0   = mix(SchlickR0FromEta(e) * mix(vec3(1.0), Ctint, specTint), c, metallicWeight);
+
+	// TODO: Define Disney Fresnel
+	// TODO: Add Microfacet Reflection
+
+	float cc = mat.clearcoat;
+	if (cc > 0.0)
+	{
+		// TODO: Add Disney Clearcoat
+	}
+
+	if (strans > 0.0)
+	{
+		vec3 T = strans * sqrt(c);
+		if (mat.thin)
+		{
+			float rscaled = (0.65 * e - 0.35) * rough;
+			float ax      = max(0.001, (rscaled * rscaled) / aspect);
+			float ay      = max(0.001, (rscaled * rscaled) * aspect);
+
+			TrowbridgeReitzDistribution dist;
+			Init(dist, ax, ay, true);
+
+			// TODO: Add Microfacet Transmission
+		}
+		else
+		{
+			// TODO: Add Microfacet Transmission
+		}
+	}
+
+	if (mat.thin)
+	{
+		// Add Lambertian Transmission
+	}
+
+	return vec3(0.0);
+}
+
+vec3 SampleDistribution(in DisneyMaterial mat, in vec3 wo, inout uint seed, out vec3 wi, out float pdf)
+{
+	return vec3(0.0);
+}
 
 ////////////// Material Sampling//////////////
 vec3 Distribution(Material mat, vec3 wo, vec3 wi)
@@ -457,37 +553,37 @@ vec3 Distribution(Material mat, vec3 wo, vec3 wi)
 	if (mat.material_type == BxDF_Matte)
 	{
 		MatteMaterial matte;
-		Init(matte, mat.base_color.rgb, mat.roughness);
+		Init(matte, mat);
 		return Distribution(matte, wo, wi);
 	}
 	else if (mat.material_type == BxDF_Plastic)
 	{
 		PlasticMaterial plastic;
-		Init(plastic, mat.base_color.rgb, vec3(mat.specular), mat.roughness);
+		Init(plastic, mat);
 		return Distribution(plastic, wo, wi);
 	}
 	else if (mat.material_type == BxDF_Metal)
 	{
 		MetalMaterial metal;
-		Init(metal, mat.base_color.rgb, mat.anisotropic, mat.roughness);
+		Init(metal, mat);
 		return Distribution(metal, wo, wi);
 	}
 	else if (mat.material_type == BxDF_Mirror)
 	{
 		MirrorMaterial mirror;
-		Init(mirror, mat.base_color.rgb);
+		Init(mirror, mat);
 		return Distribution(mirror, wo, wi);
 	}
 	else if (mat.material_type == BxDF_Substrate)
 	{
 		SubstrateMaterial substrate;
-		Init(substrate, mat.base_color.rgb, mat.data, mat.anisotropic, mat.roughness);
+		Init(substrate, mat);
 		return Distribution(substrate, wo, wi);
 	}
 	else if (mat.material_type == BxDF_Substrate)
 	{
 		GlassMaterial glass;
-		Init(glass, mat.base_color.rgb, mat.data, mat.anisotropic, mat.roughness, mat.transmission);
+		Init(glass, mat);
 		return Distribution(glass, wo, wi);
 	}
 
@@ -499,37 +595,37 @@ vec3 SampleDistribution(in Material mat, in vec3 wo, inout uint seed, out vec3 w
 	if (mat.material_type == BxDF_Matte)
 	{
 		MatteMaterial matte;
-		Init(matte, mat.base_color.rgb, mat.roughness);
+		Init(matte, mat);
 		return SampleDistribution(matte, wo, seed, wi, pdf);
 	}
 	else if (mat.material_type == BxDF_Plastic)
 	{
 		PlasticMaterial plastic;
-		Init(plastic, mat.base_color.rgb, vec3(mat.specular), mat.roughness);
+		Init(plastic, mat);
 		return SampleDistribution(plastic, wo, seed, wi, pdf);
 	}
 	else if (mat.material_type == BxDF_Metal)
 	{
 		MetalMaterial metal;
-		Init(metal, mat.base_color.rgb, mat.anisotropic, mat.roughness);
+		Init(metal, mat);
 		return SampleDistribution(metal, wo, seed, wi, pdf);
 	}
 	else if (mat.material_type == BxDF_Mirror)
 	{
 		MirrorMaterial mirror;
-		Init(mirror, mat.base_color.rgb);
+		Init(mirror, mat);
 		return SampleDistribution(mirror, wo, seed, wi, pdf);
 	}
 	else if (mat.material_type == BxDF_Substrate)
 	{
 		SubstrateMaterial substrate;
-		Init(substrate, mat.base_color.rgb, mat.data, mat.anisotropic, mat.roughness);
+		Init(substrate, mat);
 		return SampleDistribution(substrate, wo, seed, wi, pdf);
 	}
 	else if (mat.material_type == BxDF_Glass)
 	{
 		GlassMaterial glass;
-		Init(glass, mat.base_color.rgb, mat.data, mat.anisotropic, mat.roughness, mat.transmission);
+		Init(glass, mat);
 		return SampleDistribution(glass, wo, seed, wi, pdf);
 	}
 

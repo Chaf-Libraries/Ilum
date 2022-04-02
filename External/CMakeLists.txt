@@ -71,35 +71,35 @@ add_library(imgui STATIC ${IMGUI_FILES})
 target_include_directories(imgui PUBLIC ${IMGUI_DIR} ${IMGUI_DIR}/backends)
 target_link_libraries(imgui SDL2 volk)
 
-# glslang
-option(ENABLE_SPVREMAPPER OFF)
-option(ENABLE_GLSLANG_BINARIES OFF)
-option(ENABLE_HLSL ON)
-option(ENABLE_OPT OFF)
-option(BUILD_TESTING OFF)
-option(BUILD_EXTERNAL OFF)
+# # glslang
+# option(ENABLE_SPVREMAPPER OFF)
+# option(ENABLE_GLSLANG_BINARIES OFF)
+# option(ENABLE_HLSL ON)
+# option(ENABLE_OPT OFF)
+# option(BUILD_TESTING OFF)
+# option(BUILD_EXTERNAL OFF)
 
-add_subdirectory(glslang)
+# add_subdirectory(glslang)
 
-if (NOT TARGET glslang-default-resource-limits)
-    add_library(glslang-default-resource-limits
-                glslang/StandAlone/ResourceLimits.cpp)
+# if (NOT TARGET glslang-default-resource-limits)
+#     add_library(glslang-default-resource-limits
+#                 glslang/StandAlone/ResourceLimits.cpp)
 
-    # set_property(TARGET glslang-default-resource-limits PROPERTY FOLDER "Extern/glslang")
+#     # set_property(TARGET glslang-default-resource-limits PROPERTY FOLDER "Extern/glslang")
     
-    target_include_directories(glslang-default-resource-limits
-                                PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/glslang/StandAlone)
-endif()
+#     target_include_directories(glslang-default-resource-limits
+#                                 PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/glslang/StandAlone)
+# endif()
 
-if(NOT MSVC)
-    target_compile_options(glslang PRIVATE
-        "-Wno-logical-op-parentheses"
-        "-Wno-unused-parameter")
+# if(NOT MSVC)
+#     target_compile_options(glslang PRIVATE
+#         "-Wno-logical-op-parentheses"
+#         "-Wno-unused-parameter")
 
-    target_compile_options(SPIRV PRIVATE
-        "-Wno-logical-op-parentheses"
-        "-Wno-unused-parameter")
-endif()
+#     target_compile_options(SPIRV PRIVATE
+#         "-Wno-logical-op-parentheses"
+#         "-Wno-unused-parameter")
+# endif()
 
 # spirv-cross
 add_subdirectory(spirv_cross)
@@ -118,6 +118,8 @@ add_library(stb INTERFACE)
 target_include_directories(stb INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/stb")
 
 # yaml-cpp
+option(YAML_BUILD_SHARED_LIBS OFF)
+option(YAML_MSVC_SHARED_RT OFF)
 add_subdirectory(yaml-cpp)
 
 # glm
@@ -189,3 +191,13 @@ add_subdirectory(oneTBB)
 add_library(Eigen INTERFACE)
 set(EIGEN_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/Eigen)
 target_include_directories(vulkan INTERFACE ${EIGEN_INCLUDE_DIR})
+
+#shaderc
+SET(SHADERC_SKIP_EXAMPLES ON)
+SET(SHADERC_SKIP_INSTALL  ON)
+SET(SHADERC_SKIP_TESTS    ON)
+SET(ENABLE_HLSL    ON)
+SET(BUILD_SHARED_LIBS    OFF)
+
+execute_process(COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/shaderc/utils/git-sync-deps)
+add_subdirectory(shaderc)

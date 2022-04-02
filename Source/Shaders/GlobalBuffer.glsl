@@ -100,6 +100,13 @@ struct CountData
 #define BxDF_Substrate 6
 #define BxDF_Glass 7
 
+#define BSDF_REFLECTION 1 << 0
+#define BSDF_TRANSMISSION 1 << 0
+#define BSDF_DIFFUSE 1 << 0
+#define BSDF_GLOSSY 1 << 0
+#define BSDF_SPECULAR 1 << 0
+#define BSDF_ALL BSDF_DIFFUSE | BSDF_GLOSSY | BSDF_SPECULAR | BSDF_REFLECTION | BSDF_TRANSMISSION
+
 #define MAX_TEXTURE_ARRAY_SIZE 1024
 
 struct MaterialData
@@ -133,8 +140,8 @@ struct MaterialData
 
 struct Material
 {
-	vec4 base_color;
-	vec3 emissive;
+	vec4  base_color;
+	vec3  emissive;
 	float subsurface;
 	float metallic;
 	float specular;
@@ -210,8 +217,8 @@ struct SpotLight
 // Ray
 struct Ray
 {
-	vec3 origin;
-	vec3 direction;
+	vec3  origin;
+	vec3  direction;
 	float tmin;
 	float tmax;
 };

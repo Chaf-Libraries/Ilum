@@ -11,19 +11,13 @@
 #include "Graphics/GraphicsContext.hpp"
 #include "Graphics/Vulkan/VK_Debugger.h"
 
-#include <SPIRV/GLSL.std.450.h>
-#include <SPIRV/GlslangToSpv.h>
-#include <glslang/Include/ResourceLimits.h>
-
-#include <spirv_glsl.hpp>
-
 #include "ShaderCache.hpp"
 #include "ShaderCompiler.hpp"
 #include "ShaderReflection.hpp"
 
 namespace Ilum
 {
-Shader &Shader::load(const std::string &filename, VkShaderStageFlagBits stage, Type type)
+Shader &Shader::load(const std::string &filename, VkShaderStageFlagBits stage, Type type, const std::string &entry_point)
 {
 	if (!FileSystem::isExist("Shader/"))
 	{
@@ -35,11 +29,11 @@ Shader &Shader::load(const std::string &filename, VkShaderStageFlagBits stage, T
 	VkShaderModule shader_module = VK_NULL_HANDLE;
 	if (FileSystem::isExist(spv_path))
 	{
-		shader_module = GraphicsContext::instance()->getShaderCache().load(spv_path, stage, Type::SPIRV);
+		shader_module = GraphicsContext::instance()->getShaderCache().load(spv_path, stage, Type::SPIRV, entry_point);
 	}
 	else
 	{
-		shader_module = GraphicsContext::instance()->getShaderCache().load(filename, stage, type);
+		shader_module = GraphicsContext::instance()->getShaderCache().load(filename, stage, type, entry_point);
 	}
 
 	if (!shader_module)

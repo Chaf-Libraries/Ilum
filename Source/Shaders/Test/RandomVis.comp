@@ -1,6 +1,6 @@
 #version 450
 
-#extension GL_KHR_vulkan_glsl : enable
+
 
 #include "../Random.glsl"
 #include "../Sampling.glsl"
