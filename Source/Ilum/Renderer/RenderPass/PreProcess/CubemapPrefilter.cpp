@@ -27,7 +27,7 @@ CubemapPrefilter::~CubemapPrefilter()
 
 void CubemapPrefilter::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/CubemapPrefilter.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/CubemapPrefilter.hlsl", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::HLSL);
 
 	state.descriptor_bindings.bind(0, 1, "SkyBox", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Cube, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 
@@ -64,7 +64,7 @@ void CubemapPrefilter::render(RenderPassState &state)
 		VkImageViewCreateInfo view_create_info = {};
 		view_create_info.sType                 = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		view_create_info.image                 = prefilter_map;
-		view_create_info.viewType              = VK_IMAGE_VIEW_TYPE_CUBE;
+		view_create_info.viewType              = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
 		view_create_info.format                = VK_FORMAT_R16G16B16A16_SFLOAT;
 		view_create_info.components            = {
             VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -75,7 +75,6 @@ void CubemapPrefilter::render(RenderPassState &state)
 		VkDescriptorImageInfo image_info[2];
 
 		image_info[0].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-		//image_info[1].imageView   = m_views;
 		image_info[0].sampler = Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp);
 
 		image_info[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -85,7 +84,6 @@ void CubemapPrefilter::render(RenderPassState &state)
 		std::array<VkWriteDescriptorSet, 2> write_descriptor_sets;
 		write_descriptor_sets[0]       = {};
 		write_descriptor_sets[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		//write_descriptor_sets[0].dstSet           = m_descriptor_sets[level];
 		write_descriptor_sets[0].descriptorType   = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 		write_descriptor_sets[0].dstBinding       = 0;
 		write_descriptor_sets[0].pImageInfo       = &image_info[0];
@@ -96,7 +94,6 @@ void CubemapPrefilter::render(RenderPassState &state)
 
 		write_descriptor_sets[1]       = {};
 		write_descriptor_sets[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		//write_descriptor_sets[1].dstSet           = m_descriptor_sets[level];
 		write_descriptor_sets[1].descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 		write_descriptor_sets[1].dstBinding       = 1;
 		write_descriptor_sets[1].pImageInfo       = &image_info[1];

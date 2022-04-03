@@ -667,7 +667,7 @@ __pragma(warning(push, 0))
 
 			// Mouse picking via g-buffer
 			{
-				ImageReference entity_id_buffer = Renderer::instance()->getRenderGraph()->getAttachment("GBuffer2");
+				ImageReference entity_id_buffer = Renderer::instance()->getRenderGraph()->getAttachment("GBuffer1");
 
 				CommandBuffer cmd_buffer;
 				cmd_buffer.begin();

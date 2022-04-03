@@ -3,15 +3,12 @@
 Texture2D textureArray[] : register(t0);
 SamplerState texSampler : register(s0);
 
-struct PushConstants
+[[vk::push_constant]]
+struct
 {
     float4x4 inverse_view_projection;
     uint tex_idx;
-};
-
-[[vk::push_constant]]
-PushConstants push_constants;
-
+} push_constants;
 
 struct VSInput
 {
@@ -36,9 +33,7 @@ struct FSOutput
     [[vk::location(0)]] float4 Color : SV_Target0;
 };
 
-
-
-float2 sampleSphericalMap(float3 v)
+float2 SampleSphericalMap(float3 v)
 {
     float2 uv = float2(atan2(v.x, v.z), asin(v.y));
     uv.x /= 2 * PI;
@@ -63,8 +58,7 @@ FSOutput PSmain(FSInput input)
 {
     FSOutput output;
     
-    float2 uv = sampleSphericalMap(normalize(input.Pos));
-    output.Color = float4(textureArray[NonUniformResourceIndex(push_constants.tex_idx)].Sample(texSampler, input.UV).rgb, 1.0);
-    
+    float2 uv = SampleSphericalMap(normalize(input.Pos));
+    output.Color = float4(textureArray[NonUniformResourceIndex(push_constants.tex_idx)].Sample(texSampler, uv).rgb, 1.0);
     return output;
 }

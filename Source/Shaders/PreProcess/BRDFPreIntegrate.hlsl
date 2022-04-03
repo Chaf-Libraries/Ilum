@@ -4,12 +4,12 @@
 #define SAMPLE_COUNT 4096
 #define LUT_SIZE 516
 
+RWTexture2D<float2> BRDFPreIntegrate : register(u0);
+
 struct CSParam
 {
     uint3 DispatchThreadID : SV_DispatchThreadID;
 };
-
-RWTexture2D<float2> BRDFPreIntegrate : register(u0);
 
 float3 ImportanceSampleGGX(float2 Xi, float3 N, float roughness)
 {

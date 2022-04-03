@@ -1,6 +1,5 @@
 #version 450
 
-
 #extension GL_EXT_nonuniform_qualifier : require
 #extension GL_ARB_shader_draw_parameters : require
 #extension GL_GOOGLE_include_directive : enable

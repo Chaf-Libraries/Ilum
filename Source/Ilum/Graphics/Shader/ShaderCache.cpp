@@ -90,9 +90,9 @@ ShaderCache::~ShaderCache()
 VkShaderModule ShaderCache::load(const std::string &filename, VkShaderStageFlagBits stage, Shader::Type type, const std::string &entry_point)
 {
 	// Look for shader module
-	if (m_lookup.find(FileSystem::getFileName(filename, false) + entry_point) != m_lookup.end())
+	if (m_lookup.find(filename + entry_point) != m_lookup.end())
 	{
-		return m_shader_modules.at(m_lookup[FileSystem::getFileName(filename, false) + entry_point]);
+		return m_shader_modules.at(m_lookup[filename + entry_point]);
 	}
 
 	VK_INFO("Loading Shader {}", filename);
@@ -147,7 +147,7 @@ VkShaderModule ShaderCache::load(const std::string &filename, VkShaderStageFlagB
 	}
 
 	m_shader_modules.push_back(shader_module);
-	m_lookup[FileSystem::getFileName(filename, false) + entry_point] = m_shader_modules.size() - 1;
+	m_lookup[filename + entry_point] = m_shader_modules.size() - 1;
 	m_mapping[shader_module] = m_shader_modules.size() - 1;
 
 	return shader_module;

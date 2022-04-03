@@ -28,8 +28,6 @@ EquirectangularToCubemap::~EquirectangularToCubemap()
 
 void EquirectangularToCubemap::setupPipeline(PipelineState &state)
 {
-	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/EquirectangularToCubemap.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/EquirectangularToCubemap.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/EquirectangularToCubemap.hlsl", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::HLSL, "VSmain");
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/EquirectangularToCubemap.hlsl", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::HLSL, "PSmain");
 
@@ -66,7 +64,7 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 
 	if (!m_update)
 	{
-		//return;
+		return;
 	}
 
 	auto &cmd_buffer = state.command_buffer;
