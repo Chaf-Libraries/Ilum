@@ -35,7 +35,7 @@ void CameraUpdate::run()
 		if (perspective_cameras.size() != 0)
 		{
 			camera_entity                                                = Entity(perspective_cameras.front());
-			auto extent                                                  = Renderer::instance()->getRenderTargetExtent();
+			auto extent                                                  = Renderer::instance()->getViewportExtent();
 			camera_entity.getComponent<cmpt::PerspectiveCamera>().aspect = static_cast<float>(extent.width) / static_cast<float>(extent.height);
 		}
 		else
@@ -124,8 +124,8 @@ void CameraUpdate::run()
 
 	culling_data->meshlet_count  = Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count;
 	culling_data->instance_count = Renderer::instance()->Render_Stats.static_mesh_count.instance_count;
-	culling_data->zbuffer_width  = static_cast<float>(Renderer::instance()->getRenderTargetExtent().width);
-	culling_data->zbuffer_height = static_cast<float>(Renderer::instance()->getRenderTargetExtent().height);
+	culling_data->zbuffer_width  = static_cast<float>(Renderer::instance()->getViewportExtent().width);
+	culling_data->zbuffer_height = static_cast<float>(Renderer::instance()->getViewportExtent().height);
 
 	Renderer::instance()->Render_Buffer.Camera_Buffer.unmap();
 	Renderer::instance()->Render_Buffer.Culling_Buffer.unmap();

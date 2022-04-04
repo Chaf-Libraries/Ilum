@@ -41,7 +41,7 @@ void RandomVis::render(RenderPassState &state)
 			vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
 		}
 
-		m_push_data.extent = Renderer::instance()->getRenderTargetExtent();
+		m_push_data.extent = Renderer::instance()->getViewportExtent();
 		m_push_data.frame++;
 
 		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(m_push_data), &m_push_data);

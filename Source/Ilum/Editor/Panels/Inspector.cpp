@@ -955,7 +955,7 @@ inline bool draw_component<cmpt::PerspectiveCamera>(Entity entity)
 			{
 				Renderer::instance()->Main_Camera = entity;
 
-				auto extent      = Renderer::instance()->getRenderTargetExtent();
+				auto extent      = Renderer::instance()->getViewportExtent();
 				component.aspect = static_cast<float>(extent.width) / static_cast<float>(extent.height);
 			}
 			else

@@ -88,8 +88,8 @@ void Whitted::render(RenderPassState &state)
 		    state.pass.shader_binding_table.miss->getHandle(),
 		    state.pass.shader_binding_table.hit->getHandle(),
 		    state.pass.shader_binding_table.callable->getHandle(),
-		    Renderer::instance()->getRenderTargetExtent().width,
-		    Renderer::instance()->getRenderTargetExtent().height,
+		    Renderer::instance()->getViewportExtent().width,
+		    Renderer::instance()->getViewportExtent().height,
 		    1);
 	}
 }

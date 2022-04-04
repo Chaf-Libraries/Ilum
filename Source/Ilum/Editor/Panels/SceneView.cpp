@@ -157,7 +157,7 @@ __pragma(warning(push, 0))
 				continue;
 			}
 
-			glm::vec2 screen_pos = main_camera->world2Screen(position, {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x), static_cast<float>(offset.y)});
+			glm::vec2 screen_pos = main_camera->world2Screen(position, {static_cast<float>(Renderer::instance()->getViewportExtent().width), static_cast<float>(Renderer::instance()->getViewportExtent().height)}, {static_cast<float>(offset.x), static_cast<float>(offset.y)});
 			ImGui::SetCursorPos({screen_pos.x - 20.f, screen_pos.y - ImGui::GetFontSize() - 20.f});
 			ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.7f, 0.7f, 0.7f, 0.0f));
 
@@ -211,7 +211,7 @@ __pragma(warning(push, 0))
 			    glm::vec3(bbox.max_.x, bbox.min_.y, bbox.max_.z),
 			};
 
-			ImVec2 extent = ImVec2(static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height));
+			ImVec2 extent = ImVec2(static_cast<float>(Renderer::instance()->getViewportExtent().width), static_cast<float>(Renderer::instance()->getViewportExtent().height));
 
 			auto *draw_list = ImGui::GetWindowDrawList();
 			draw_line(draw_list, main_camera, cube_vertex[0], cube_vertex[1], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
@@ -306,12 +306,12 @@ __pragma(warning(push, 0))
 
 			for (uint32_t i = 0; i < 8; i++)
 			{
-				glm::vec3 screen_pos = main_camera->world2Screen(frustum_vertex[i], {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x), static_cast<float>(offset.y)});
+				glm::vec3 screen_pos = main_camera->world2Screen(frustum_vertex[i], {static_cast<float>(Renderer::instance()->getViewportExtent().width), static_cast<float>(Renderer::instance()->getViewportExtent().height)}, {static_cast<float>(offset.x), static_cast<float>(offset.y)});
 
 				frustum_screen_vertex[i] = glm::vec3(screen_pos.x + ImGui::GetWindowPos().x, screen_pos.y + ImGui::GetWindowPos().y, screen_pos.z);
 			}
 
-			ImVec2 extent = ImVec2(static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height));
+			ImVec2 extent = ImVec2(static_cast<float>(Renderer::instance()->getViewportExtent().width), static_cast<float>(Renderer::instance()->getViewportExtent().height));
 
 			auto *draw_list = ImGui::GetWindowDrawList();
 
@@ -359,7 +359,7 @@ __pragma(warning(push, 0))
 			{
 				control_points[i] = transform.world_transform * glm::vec4(curve_renderer.control_points[i], 1.f);
 
-				screen_vertices[i] = main_camera->world2Screen(control_points[i], {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x + ImGui::GetWindowPos().x), static_cast<float>(offset.y + ImGui::GetWindowPos().y)});
+				screen_vertices[i] = main_camera->world2Screen(control_points[i], {static_cast<float>(Renderer::instance()->getViewportExtent().width), static_cast<float>(Renderer::instance()->getViewportExtent().height)}, {static_cast<float>(offset.x + ImGui::GetWindowPos().x), static_cast<float>(offset.y + ImGui::GetWindowPos().y)});
 
 				if (main_camera->frustum.isInside(control_points[i]))
 				{
@@ -375,7 +375,7 @@ __pragma(warning(push, 0))
 					// Select
 					if (ImGui::IsMouseDragging(ImGuiMouseButton_Left) && curve_renderer.select_point == i)
 					{
-						curve_renderer.control_points[i] = main_camera->screen2World(glm::vec4(click_pos.x, click_pos.y, screen_vertices[i].z, screen_vertices[i].w), {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x + ImGui::GetWindowPos().x), static_cast<float>(offset.y + ImGui::GetWindowPos().y)});
+						curve_renderer.control_points[i] = main_camera->screen2World(glm::vec4(click_pos.x, click_pos.y, screen_vertices[i].z, screen_vertices[i].w), {static_cast<float>(Renderer::instance()->getViewportExtent().width), static_cast<float>(Renderer::instance()->getViewportExtent().height)}, {static_cast<float>(offset.x + ImGui::GetWindowPos().x), static_cast<float>(offset.y + ImGui::GetWindowPos().y)});
 						curve_renderer.need_update       = true;
 					}
 				}
@@ -386,7 +386,7 @@ __pragma(warning(push, 0))
 				curve_renderer.select_point = std::numeric_limits<uint32_t>::max();
 			}
 
-			ImVec2 extent = ImVec2(static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height));
+			ImVec2 extent = ImVec2(static_cast<float>(Renderer::instance()->getViewportExtent().width), static_cast<float>(Renderer::instance()->getViewportExtent().height));
 
 			for (uint32_t i = 1; i < screen_vertices.size(); i++)
 			{
@@ -430,7 +430,7 @@ __pragma(warning(push, 0))
 				for (uint32_t j = 0; j < screen_vertices[0].size(); j++)
 				{
 					control_points[i][j]  = transform.world_transform * glm::vec4(surface_renderer.control_points[i][j], 1.f);
-					screen_vertices[i][j] = main_camera->world2Screen(control_points[i][j], {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x + ImGui::GetWindowPos().x), static_cast<float>(offset.y + ImGui::GetWindowPos().y)});
+					screen_vertices[i][j] = main_camera->world2Screen(control_points[i][j], {static_cast<float>(Renderer::instance()->getViewportExtent().width), static_cast<float>(Renderer::instance()->getViewportExtent().height)}, {static_cast<float>(offset.x + ImGui::GetWindowPos().x), static_cast<float>(offset.y + ImGui::GetWindowPos().y)});
 
 					if (main_camera->frustum.isInside(control_points[i][j]))
 					{
@@ -447,7 +447,7 @@ __pragma(warning(push, 0))
 						// Select
 						if (ImGui::IsMouseDragging(ImGuiMouseButton_Left) && surface_renderer.select_point[0] == i && surface_renderer.select_point[1] == j)
 						{
-							surface_renderer.control_points[i][j] = main_camera->screen2World(glm::vec4(click_pos.x, click_pos.y, screen_vertices[i][j].z, screen_vertices[i][j].w), {static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height)}, {static_cast<float>(offset.x + ImGui::GetWindowPos().x), static_cast<float>(offset.y + ImGui::GetWindowPos().y)});
+							surface_renderer.control_points[i][j] = main_camera->screen2World(glm::vec4(click_pos.x, click_pos.y, screen_vertices[i][j].z, screen_vertices[i][j].w), {static_cast<float>(Renderer::instance()->getViewportExtent().width), static_cast<float>(Renderer::instance()->getViewportExtent().height)}, {static_cast<float>(offset.x + ImGui::GetWindowPos().x), static_cast<float>(offset.y + ImGui::GetWindowPos().y)});
 							surface_renderer.need_update          = true;
 						}
 					}
@@ -460,7 +460,7 @@ __pragma(warning(push, 0))
 				surface_renderer.select_point[1] = std::numeric_limits<uint32_t>::max();
 			}
 
-			ImVec2 extent = ImVec2(static_cast<float>(Renderer::instance()->getRenderTargetExtent().width), static_cast<float>(Renderer::instance()->getRenderTargetExtent().height));
+			ImVec2 extent = ImVec2(static_cast<float>(Renderer::instance()->getViewportExtent().width), static_cast<float>(Renderer::instance()->getViewportExtent().height));
 
 			for (uint32_t i = 0; i < screen_vertices.size(); i++)
 			{
@@ -1060,8 +1060,8 @@ __pragma(warning(push, 0))
 
 	void SceneView::onResize(VkExtent2D extent)
 	{
-		if (extent.width != Renderer::instance()->getRenderTargetExtent().width ||
-		    extent.height != Renderer::instance()->getRenderTargetExtent().height)
+		if (extent.width != Renderer::instance()->getViewportExtent().width ||
+		    extent.height != Renderer::instance()->getViewportExtent().height)
 		{
 			Renderer::instance()->resizeRenderTarget(extent);
 

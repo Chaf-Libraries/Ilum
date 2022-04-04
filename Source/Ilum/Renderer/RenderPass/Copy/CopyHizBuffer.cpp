@@ -38,8 +38,8 @@ void CopyHizBuffer::render(RenderPassState &state)
 		vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
 	}
 
-	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(VkExtent2D), &Renderer::instance()->getRenderTargetExtent());
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(VkExtent2D), &Renderer::instance()->getViewportExtent());
 
-	vkCmdDispatch(cmd_buffer, (Renderer::instance()->getRenderTargetExtent().width + 32 - 1) / 32, (Renderer::instance()->getRenderTargetExtent().height + 32 - 1) / 32, 1);
+	vkCmdDispatch(cmd_buffer, (Renderer::instance()->getViewportExtent().width + 32 - 1) / 32, (Renderer::instance()->getViewportExtent().height + 32 - 1) / 32, 1);
 }
 }        // namespace Ilum::pass

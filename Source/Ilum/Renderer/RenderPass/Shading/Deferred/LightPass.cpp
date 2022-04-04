@@ -101,7 +101,7 @@ void LightPass::render(RenderPassState &state)
 	m_push_block.directional_light_count = Renderer::instance()->Render_Stats.light_count.directional_light_count;
 	m_push_block.spot_light_count        = Renderer::instance()->Render_Stats.light_count.spot_light_count;
 	m_push_block.point_light_count       = Renderer::instance()->Render_Stats.light_count.point_light_count;
-	m_push_block.extent                  = Renderer::instance()->getRenderTargetExtent();
+	m_push_block.extent                  = Renderer::instance()->getViewportExtent();
 
 	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(m_push_block), &m_push_block);
 	vkCmdDispatch(cmd_buffer, (m_push_block.extent.width + 32 - 1) / 32, (m_push_block.extent.height + 32 - 1) / 32, 1);

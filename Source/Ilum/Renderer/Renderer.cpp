@@ -26,8 +26,8 @@
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
-#include "RenderPass/Copy/CopyHizBuffer.hpp"
 #include "RenderPass/Copy/CopyFrame.hpp"
+#include "RenderPass/Copy/CopyHizBuffer.hpp"
 
 #include "RenderPass/Culling/HizPass.hpp"
 #include "RenderPass/Culling/InstanceCullingPass.hpp"
@@ -266,6 +266,11 @@ const Sampler &Renderer::getSampler(SamplerType type) const
 	return m_samplers.at(type);
 }
 
+const VkExtent2D &Renderer::getViewportExtent() const
+{
+	return m_viewport_extent;
+}
+
 const VkExtent2D &Renderer::getRenderTargetExtent() const
 {
 	return m_render_target_extent;
@@ -273,11 +278,13 @@ const VkExtent2D &Renderer::getRenderTargetExtent() const
 
 void Renderer::resizeRenderTarget(VkExtent2D extent)
 {
-	if (m_render_target_extent.height != extent.height || m_render_target_extent.width != extent.width)
+	if (m_render_target_extent.height < extent.height || m_render_target_extent.width < extent.width)
 	{
-		m_render_target_extent = extent;
 		m_update               = true;
+		m_render_target_extent = extent;
 	}
+
+	m_viewport_extent = extent;
 }
 
 const ImageReference Renderer::getDefaultTexture() const

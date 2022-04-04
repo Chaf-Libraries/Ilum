@@ -74,6 +74,8 @@ class Renderer : public TSubsystem<Renderer>
 
 	const Sampler &getSampler(SamplerType type) const;
 
+	const VkExtent2D &getViewportExtent() const;
+
 	const VkExtent2D &getRenderTargetExtent() const;
 
 	void resizeRenderTarget(VkExtent2D extent);
@@ -100,6 +102,8 @@ class Renderer : public TSubsystem<Renderer>
 	scope<ResourceCache> m_resource_cache = nullptr;
 
 	std::unordered_map<SamplerType, Sampler> m_samplers;
+
+	VkExtent2D m_viewport_extent;
 
 	VkExtent2D m_render_target_extent;
 

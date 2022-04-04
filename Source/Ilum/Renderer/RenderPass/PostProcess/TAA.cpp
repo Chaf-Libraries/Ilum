@@ -50,7 +50,7 @@ void TAAPass::onUpdate()
 		uint32_t  sample_idx = static_cast<uint32_t>(GraphicsContext::instance()->getFrameCount() % m_jitter_samples.size());
 		glm::vec2 halton     = m_jitter_samples[sample_idx];
 
-		auto rt_extent = Renderer::instance()->getRenderTargetExtent();
+		auto rt_extent = Renderer::instance()->getViewportExtent();
 
 		m_current_jitter = glm::vec2(halton.x / static_cast<float>(rt_extent.width), halton.y / static_cast<float>(rt_extent.height));
 	}
@@ -97,7 +97,7 @@ void TAAPass::render(RenderPassState &state)
 			vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
 		}
 
-		auto &rt_extent = Renderer::instance()->getRenderTargetExtent();
+		auto &rt_extent = Renderer::instance()->getViewportExtent();
 
 		glm::vec4 jitter = glm::vec4(m_current_jitter, m_prev_jitter);
 
