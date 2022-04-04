@@ -127,9 +127,9 @@ void main(CSParam param)
 
     bool visible = true;
 
-    if (visible && push_constants.enable_frustum_culling == 1)
+    if (push_constants.enable_frustum_culling == 1)
     {
-        visible = visible && CheckFrustum(instance);
+        visible = CheckFrustum(instance);
     }
 
     if (visible)
@@ -160,6 +160,7 @@ void main(CSParam param)
 
         visibilities[idx] = 0;
     }
+    
     InterlockedAdd(count_info[0].instance_total_count, 1, temp);
     InterlockedAdd(count_info[0].total_draw, 1, temp);
 }

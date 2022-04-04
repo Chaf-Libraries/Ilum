@@ -14,6 +14,7 @@ SetTarget(
         volk::volk
         spirv-cross-reflect
         spirv-cross-glsl
+        spirv-cross-hlsl
         vulkan
         stb
         VulkanMemoryAllocator
