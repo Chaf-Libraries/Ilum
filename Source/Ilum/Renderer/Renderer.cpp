@@ -99,7 +99,7 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("InstanceCulling", std::make_unique<pass::InstanceCullingPass>())
 		    .addRenderPass("MeshletCulling", std::make_unique<pass::MeshletCullingPass>())
 		    .addRenderPass("GeometryPass", std::make_unique<pass::GeometryPass>())
-		    //.addRenderPass("ShadowmapPass", std::make_unique<pass::ShadowmapPass>())
+		    .addRenderPass("ShadowmapPass", std::make_unique<pass::ShadowmapPass>())
 		    //.addRenderPass("CascadeShadowmapPass", std::make_unique<pass::CascadeShadowmapPass>())
 		    //.addRenderPass("OmniShadowmapPass", std::make_unique<pass::OmniShadowmapPass>())
 		    //.addRenderPass("LightPass", std::make_unique<pass::LightPass>())

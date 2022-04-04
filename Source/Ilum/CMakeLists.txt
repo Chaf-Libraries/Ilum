@@ -7,10 +7,11 @@ SetTarget(
         ENTT_USE_ATOMIC
     INC
         ${PROJECT_SOURCE_DIR}/Source/Ilum
+        ${PROJECT_SOURCE_DIR}/Dependencies/dxcompiler/inc
     LIB
         SDL2::SDL2
-        spdlog
-        volk
+        spdlog::spdlog
+        volk::volk
         spirv-cross-reflect
         spirv-cross-glsl
         vulkan
@@ -24,12 +25,13 @@ SetTarget(
         ImGuizmo
         imgui-node-editor
         ImFileDialog
-        meshoptimizer
+        meshoptimizer::meshoptimizer
         TBB::tbb
         Eigen
-        shaderc
-        glslc
-        dxcompiler
+        glslang
+        SPIRV
+        cereal
+        ${PROJECT_SOURCE_DIR}/Dependencies/dxcompiler/lib/x64/dxcompiler.lib
 )
 
 target_precompile_headers(Ilum
