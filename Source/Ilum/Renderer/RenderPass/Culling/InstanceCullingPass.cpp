@@ -14,8 +14,8 @@ namespace Ilum::pass
 {
 void InstanceCullingPass::setupPipeline(PipelineState &state)
 {
-	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Culling/InstanceCulling.hlsl", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::HLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GLSL/Culling/InstanceCulling.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Culling/InstanceCulling.hlsl", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::HLSL);
+	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GLSL/Culling/InstanceCulling_.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
 
 	state.descriptor_bindings.bind(0, 0, "PerInstanceBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 1, "InstanceVisibility", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
