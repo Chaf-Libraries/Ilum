@@ -8,6 +8,8 @@
 
 #include <glm/glm.hpp>
 
+#include <cereal/cereal.hpp>
+
 namespace Ilum::cmpt
 {
 struct Camera
@@ -64,6 +66,12 @@ struct PerspectiveCamera : public Camera
 {
 	float aspect = 1.f;
 	float fov    = 45.f;
+
+	template <class Archive>
+	void serialize(Archive &ar)
+	{
+		ar(fov, aspect, near_plane, far_plane);
+	}
 };
 
 struct OrthographicCamera : public Camera
@@ -72,5 +80,11 @@ struct OrthographicCamera : public Camera
 	float right  = 1.f;
 	float bottom = -1.f;
 	float top    = 1.f;
+
+	template <class Archive>
+	void serialize(Archive &ar)
+	{
+		ar(left, right, bottom, top, near_plane, far_plane);
+	}
 };
 }        // namespace Ilum::cmpt

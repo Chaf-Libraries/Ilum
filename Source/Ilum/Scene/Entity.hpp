@@ -59,6 +59,9 @@ class Entity
 
 	bool valid();
 
+	template <class Archive>
+	void serialize(Archive &ar);
+
   private:
 	entt::entity m_handle = entt::null;
 	bool         m_active = true;

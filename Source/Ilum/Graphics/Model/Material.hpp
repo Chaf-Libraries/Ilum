@@ -4,6 +4,8 @@
 
 #include <string>
 
+#include <cereal/cereal.hpp>
+
 namespace Ilum
 {
 enum class BxDFType : uint32_t
@@ -61,6 +63,30 @@ struct Material
 	std::string textures[TextureType::MaxNum];
 
 	inline static bool update = false;
+
+	template<class Archive>
+	void serialize(Archive& ar)
+	{
+		ar(type,
+		   emissive_intensity,
+		   displacement,
+		   subsurface,
+		   metallic,
+		   specular,
+		   specular_tint,
+		   roughness,
+		   anisotropic,
+		   sheen,
+		   sheen_tint,
+		   clearcoat,
+		   clearcoat_gloss,
+		   transmission,
+		   transmission_roughness,
+		   data.x, data.y, data.z,
+		   base_color.x, base_color.y, base_color.z, base_color.w,
+		   emissive_color.x, emissive_color.y, emissive_color.z,
+		   textures);
+	}
 };
 
 }        // namespace Ilum

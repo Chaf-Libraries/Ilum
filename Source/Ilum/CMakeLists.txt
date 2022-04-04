@@ -16,11 +16,10 @@ SetTarget(
         spirv-cross-glsl
         vulkan
         stb
-        vma
+        VulkanMemoryAllocator
         assimp::assimp
         entt
         imgui
-        yaml-cpp
         glm
         ImGuizmo
         imgui-node-editor

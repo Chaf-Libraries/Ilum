@@ -1,6 +1,9 @@
 #pragma once
 
+#include "ComponentSerializer.hpp"
+
 #include "Graphics/Image/Image.hpp"
+
 #include <glm/glm.hpp>
 
 namespace Ilum::cmpt
@@ -28,6 +31,13 @@ struct DirectionalLight : public Light
 	float   light_size    = 10.f;
 
 	alignas(16) glm::vec3 position = {0.f, 0.f, 0.f};
+
+	template <class Archive>
+	void serialize(Archive &ar)
+	{
+		glm::serialize(ar, color, direction, position);
+		ar(intensity, shadow_mode, filter_scale, filter_sample, sample_method, light_size);
+	}
 };
 
 struct PointLight : public Light
@@ -44,8 +54,15 @@ struct PointLight : public Light
 	float   filter_scale = 3.f;
 
 	alignas(16) int32_t filter_sample = 20;
-	int32_t sample_method = 1;        // 0 - Uniform, 1 - Poisson Disk
-	float   light_size    = 10.f;
+	int32_t sample_method             = 1;        // 0 - Uniform, 1 - Poisson Disk
+	float   light_size                = 10.f;
+
+	template <class Archive>
+	void serialize(Archive &ar)
+	{
+		glm::serialize(ar, color, position);
+		ar(intensity, constant, linear, quadratic, shadow_mode, filter_scale, filter_sample, sample_method, light_size);
+	}
 };
 
 struct SpotLight : public Light
@@ -67,5 +84,12 @@ struct SpotLight : public Light
 	int32_t sample_method = 1;        // 0 - Uniform, 1 - Poisson Disk
 
 	alignas(16) float light_size = 10.f;
+
+	template <class Archive>
+	void serialize(Archive &ar)
+	{
+		glm::serialize(ar, color, position, direction);
+		ar(intensity, cut_off, outer_cut_off, shadow_mode, filter_scale, filter_sample, sample_method, light_size);
+	}
 };
 }        // namespace Ilum::cmpt

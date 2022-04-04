@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 
+#include <cereal/cereal.hpp>
+
 namespace Ilum
 {
 struct Vertex
@@ -21,6 +23,16 @@ struct Vertex
 	    tangent(tangent),
 	    bitangent(bitangent)
 	{
+	}
+
+	template<class Archive>
+	void serialize(Archive& ar)
+	{
+		ar(position.x, position.y, position.z,
+		   texcoord.x, texcoord.y,
+		   normal.x, normal.y, normal.z,
+		   tangent.x, tangent.y, tangent.z,
+		   bitangent.x, bitangent.y, bitangent.z);
 	}
 };
 }        // namespace Ilum
