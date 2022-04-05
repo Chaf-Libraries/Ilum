@@ -94,6 +94,7 @@ void MeshletUpdate::run()
 			}
 		});
 		Renderer::instance()->Render_Buffer.Meshlet_Buffer.unmap();
+		Material::update = true;
 	}
 	cmpt::StaticMeshRenderer::update = false;
 	GraphicsContext::instance()->getProfiler().endSample("Meshlet Update");

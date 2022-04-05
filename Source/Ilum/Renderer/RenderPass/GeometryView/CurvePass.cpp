@@ -18,8 +18,10 @@ namespace Ilum::pass
 {
 void CurvePass::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GLSL/GeometryView/Curve.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GLSL/GeometryView/Curve.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
+	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GLSL/GeometryView/Curve.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
+	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GLSL/GeometryView/Curve.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GeometryView/Curve.hlsl", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::HLSL, "VSmain");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GeometryView/Curve.hlsl", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::HLSL, "PSmain");
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,
@@ -120,7 +122,7 @@ void CurvePass::render(RenderPassState &state)
 			push_block.entity_id   = static_cast<uint32_t>(entity);
 			push_block.instance_id = instance_id++;
 
-			vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(push_block), &push_block);
+			vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(push_block), &push_block);
 			vkCmdDraw(cmd_buffer, static_cast<uint32_t>(curve_renderer.vertices.size()), 1, 0, 0);
 		}
 	});

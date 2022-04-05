@@ -680,8 +680,10 @@ __pragma(warning(push, 0))
 				std::vector<uint16_t> image_data(static_cast<size_t>(entity_id_buffer.get().getWidth() * entity_id_buffer.get().getHeight() * 4));
 				std::memcpy(image_data.data(), staging_buffer.map(), image_data.size() * sizeof(uint16_t));
 
-				click_pos.x = glm::clamp(click_pos.x, 0.f, static_cast<float>(entity_id_buffer.get().getWidth()));
-				click_pos.y = glm::clamp(click_pos.y, 0.f, static_cast<float>(entity_id_buffer.get().getHeight()));
+				click_pos.x = glm::clamp(click_pos.x, 0.f, static_cast<float>(Renderer::instance()->getViewportExtent().width));
+				click_pos.y = glm::clamp(click_pos.y, 0.f, static_cast<float>(Renderer::instance()->getViewportExtent().height));
+				click_pos.x *= static_cast<float>(entity_id_buffer.get().getWidth()) / static_cast<float>(Renderer::instance()->getViewportExtent().width);
+				click_pos.y *= static_cast<float>(entity_id_buffer.get().getHeight()) / static_cast<float>(Renderer::instance()->getViewportExtent().height);
 
 				auto entity = Entity(static_cast<entt::entity>(float16Tofloat32(image_data[(static_cast<size_t>(click_pos.y) * static_cast<size_t>(entity_id_buffer.get().getWidth()) + static_cast<size_t>(click_pos.x)) * 4 + 3])));
 				Editor::instance()->select(entity);
@@ -995,6 +997,12 @@ __pragma(warning(push, 0))
 			ImGui::EndPopup();
 		}
 
+		ImGui::SameLine();
+		if (ImGui::Button("Flush"))
+		{
+			Renderer::instance()->resizeRenderTarget(Renderer::instance()->getViewportExtent());
+		}
+
 		ImGui::PopStyleColor();
 		ImGui::PopStyleVar();
 		ImGui::PopStyleVar();
@@ -1063,7 +1071,7 @@ __pragma(warning(push, 0))
 		if (extent.width != Renderer::instance()->getViewportExtent().width ||
 		    extent.height != Renderer::instance()->getViewportExtent().height)
 		{
-			Renderer::instance()->resizeRenderTarget(extent);
+			Renderer::instance()->resizeViewport(extent);
 
 			// Reset camera aspect
 

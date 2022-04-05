@@ -133,7 +133,6 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 	    aiProcess_FlipWindingOrder |
 	    aiProcess_JoinIdenticalVertices |
 	    aiProcess_GenSmoothNormals |
-	    aiProcess_CalcTangentSpace |
 	    aiProcess_Triangulate |
 	    aiProcess_GenBoundingBoxes |
 	    aiProcess_OptimizeGraph |
@@ -173,10 +172,8 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 				aiVector3D position  = mesh->mVertices[j];
 				aiVector3D normal    = mesh->mNormals ? mesh->mNormals[j] : aiVector3D(0.f, 0.f, 0.f);
 				aiVector2D texcoords = mesh->mTextureCoords[0] ? aiVector2D(mesh->mTextureCoords[0][j].x, mesh->mTextureCoords[0][j].y) : aiVector2D(0.f, 0.f);
-				aiVector3D tangent   = mesh->mTangents ? mesh->mTangents[j] : aiVector3D(0.f, 0.f, 0.f);
-				aiVector3D bitangent = mesh->mBitangents ? mesh->mBitangents[j] : aiVector3D(0.f, 0.f, 0.f);
 
-				vertices.emplace_back(to_vector(position), to_vector(texcoords), to_vector(normal), to_vector(tangent), to_vector(bitangent));
+				vertices.emplace_back(to_vector(position), to_vector(texcoords), to_vector(normal));
 			}
 
 			for (uint32_t j = 0; j < mesh->mNumFaces; j++)

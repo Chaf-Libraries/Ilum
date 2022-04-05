@@ -1,6 +1,7 @@
 #ifndef __COMMON_HLSL__
 #define __COMMON_HLSL__
 
+// Camera Data
 struct Camera
 {
     float4x4 view_projection;
@@ -12,6 +13,7 @@ struct Camera
     uint frame_count;
 };
 
+// Per Instance Data
 struct Instance
 {
     float4x4 transform;
@@ -28,6 +30,7 @@ struct Instance
     uint index_count;
 };
 
+// Per Meshlet Data
 struct Meshlet
 {
     uint instance_id;
@@ -44,6 +47,7 @@ struct Meshlet
     float3 cone_axis;
 };
 
+// Info for Culling
 struct CullingInfo
 {
     float4x4 view;
@@ -61,6 +65,7 @@ struct CullingInfo
     uint instance_count;
 };
 
+// Indirect Draw Command
 struct DrawIndexedIndirectCommand
 {
     uint indexCount;
@@ -70,6 +75,7 @@ struct DrawIndexedIndirectCommand
     uint firstInstance;
 };
 
+// Infod for Count
 struct CountInfo
 {
     uint actual_draw;
@@ -80,6 +86,59 @@ struct CountInfo
     uint instance_invisible_count;
     uint meshlet_total_count;
     uint instance_total_count;
+};
+
+// DIrectional Light Source
+struct DirectionalLight
+{
+    float4 split_depth;
+    float4x4 view_projection[4];
+    float3 color;
+    float intensity;
+    float3 direction;
+
+    int shadow_mode; // 0 - no shadow, 1 - hard shadow, 2 - PCF, 3 - PCSS
+    float filter_scale;
+    int filter_sample;
+    int sample_method; // 0 - Uniform, 1 - Poisson Disk
+    float light_size;
+
+    float3 position;
+};
+
+// Point Light Source
+struct PointLight
+{
+    float3 color;
+    float intensity;
+    float3 position;
+    float constant;
+    float linear_;
+    float quadratic;
+
+    int shadow_mode; // 0 - no shadow, 1 - hard shadow, 2 - PCF, 3 - PCSS
+    float filter_scale;
+    int filter_sample;
+    int sample_method; // 0 - Uniform, 1 - Poisson Disk
+    float light_size;
+};
+
+// Spot Light Source
+struct SpotLight
+{
+    float4x4 view_projection;
+    float3 color;
+    float intensity;
+    float3 position;
+    float cut_off;
+    float3 direction;
+    float outer_cut_off;
+
+    int shadow_mode; // 0 - no shadow, 1 - hard shadow, 2 - PCF, 3 - PCSS
+    float filter_scale;
+    int filter_sample;
+    int sample_method; // 0 - Uniform, 1 - Poisson Disk
+    float light_size;
 };
 
 #endif

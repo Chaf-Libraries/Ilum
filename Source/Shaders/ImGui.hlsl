@@ -1,3 +1,13 @@
+Texture2D fontTexture : register(t0);
+SamplerState fontSampler : register(s0);
+
+[[vk::push_constant]]
+struct
+{
+    float2 scale;
+    float2 translate;
+} push_constants;
+
 struct VSInput
 {
     [[vk::location(0)]] float2 Pos : POSITION0;
@@ -22,16 +32,6 @@ struct PSOutput
 {
     [[vk::location(0)]] float4 Color : SV_Target0;
 };
-
-Texture2D fontTexture : register(t0);
-SamplerState fontSampler : register(s0);
-
-[[vk::push_constant]]
-struct
-{
-    float2 scale;
-    float2 translate;
-} push_constants;
 
 VSOutput VSmain(VSInput input)
 {

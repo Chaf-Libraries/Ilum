@@ -22,8 +22,10 @@ namespace Ilum::pass
 {
 void CascadeShadowmapPass::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Shadow/CascadeShadowmap.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Shadow/CascadeShadowmap.geom", VK_SHADER_STAGE_GEOMETRY_BIT, Shader::Type::GLSL);
+	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Shadow/CascadeShadowmap.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
+	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Shadow/CascadeShadowmap.geom", VK_SHADER_STAGE_GEOMETRY_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Shadow/CascadeShadowmap.hlsl", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::HLSL, "VSmain");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Shadow/CascadeShadowmap.hlsl", VK_SHADER_STAGE_GEOMETRY_BIT, Shader::Type::HLSL, "GSmain");
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,
@@ -33,9 +35,7 @@ void CascadeShadowmapPass::setupPipeline(PipelineState &state)
 	state.vertex_input_state.attribute_descriptions = {
 	    VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position)},
 	    VkVertexInputAttributeDescription{1, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, texcoord)},
-	    VkVertexInputAttributeDescription{2, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)},
-	    VkVertexInputAttributeDescription{3, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, tangent)},
-	    VkVertexInputAttributeDescription{4, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, bitangent)}};
+	    VkVertexInputAttributeDescription{2, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)}};
 
 	state.vertex_input_state.binding_descriptions = {
 	    VkVertexInputBindingDescription{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX}};
@@ -134,7 +134,7 @@ void CascadeShadowmapPass::render(RenderPassState &state)
 				m_push_block.dynamic  = 0;
 				m_push_block.light_id = light;
 
-				vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_GEOMETRY_BIT, 0, sizeof(m_push_block), &m_push_block);
+				vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_GEOMETRY_BIT, 0, sizeof(m_push_block), &m_push_block);
 
 				auto &draw_buffer  = Renderer::instance()->Render_Buffer.Command_Buffer;
 				auto &count_buffer = Renderer::instance()->Render_Buffer.Count_Buffer;
@@ -166,7 +166,7 @@ void CascadeShadowmapPass::render(RenderPassState &state)
 						m_push_block.transform = transform.world_transform;
 						m_push_block.light_id  = light;
 
-						vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(m_push_block), &m_push_block);
+						vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_GEOMETRY_BIT, 0, sizeof(m_push_block), &m_push_block);
 						vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(mesh_renderer.index_buffer.getSize() / sizeof(uint32_t)), 1, 0, 0, instance_id++);
 					}
 				});

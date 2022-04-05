@@ -24,8 +24,8 @@ void GeometryPass::setupPipeline(PipelineState &state)
 {
 	/*state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GLSL/Shading/Deferred/Geometry.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GLSL/Shading/Deferred/Geometry.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);*/
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Geometry.hlsl", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::HLSL, "VSmain");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Geometry.hlsl", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::HLSL, "PSmain");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Deferred/Geometry.hlsl", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::HLSL, "VSmain");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Deferred/Geometry.hlsl", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::HLSL, "PSmain");
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,
@@ -34,14 +34,12 @@ void GeometryPass::setupPipeline(PipelineState &state)
 	state.vertex_input_state.attribute_descriptions = {
 	    VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position)},
 	    VkVertexInputAttributeDescription{1, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, texcoord)},
-	    VkVertexInputAttributeDescription{2, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)},
-	    VkVertexInputAttributeDescription{3, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, tangent)},
-	    VkVertexInputAttributeDescription{4, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, bitangent)}};
+	    VkVertexInputAttributeDescription{2, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)}};
 
 	state.vertex_input_state.binding_descriptions = {
 	    VkVertexInputBindingDescription{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX}};
 
-	state.color_blend_attachment_states.resize(3);
+	state.color_blend_attachment_states.resize(6);
 	state.depth_stencil_state.stencil_test_enable = false;
 
 	// Disable blending
@@ -82,17 +80,12 @@ void GeometryPass::setupPipeline(PipelineState &state)
 	// GBuffer 4: RG - Velocity, B - Specular, A - Specular Tint
 	// GBuffer 5: RGB - Emissive, A - Material Type
 
-
-	// GBuffer 0: RGB - Normal, A - Linear Depth
-	// GBuffer 1: RG - Velocity, B - Instance ID, A - Entity ID,
-	// GBuffer 2: RG - UV
-
 	state.declareAttachment("GBuffer0", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("GBuffer1", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("GBuffer2", VK_FORMAT_R16G16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	/*state.declareAttachment("GBuffer3", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("GBuffer3", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("GBuffer4", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	state.declareAttachment("GBuffer5", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);*/
+	state.declareAttachment("GBuffer5", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("DepthStencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 
 	VkClearColorValue clear_color = {};
@@ -102,9 +95,9 @@ void GeometryPass::setupPipeline(PipelineState &state)
 	state.addOutputAttachment("GBuffer0", AttachmentState::Clear_Color);
 	state.addOutputAttachment("GBuffer1", clear_color);
 	state.addOutputAttachment("GBuffer2", clear_color);
-	//state.addOutputAttachment("GBuffer3", AttachmentState::Clear_Color);
-	//state.addOutputAttachment("GBuffer4", AttachmentState::Clear_Color);
-	//state.addOutputAttachment("GBuffer5", AttachmentState::Clear_Color);
+	state.addOutputAttachment("GBuffer3", AttachmentState::Clear_Color);
+	state.addOutputAttachment("GBuffer4", AttachmentState::Clear_Color);
+	state.addOutputAttachment("GBuffer5", AttachmentState::Clear_Color);
 
 	state.addOutputAttachment("DepthStencil", VkClearDepthStencilValue{1.f, 0u});
 }

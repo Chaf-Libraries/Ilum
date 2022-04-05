@@ -100,10 +100,10 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("MeshletCulling", std::make_unique<pass::MeshletCullingPass>())
 		    .addRenderPass("GeometryPass", std::make_unique<pass::GeometryPass>())
 		    .addRenderPass("ShadowmapPass", std::make_unique<pass::ShadowmapPass>())
-		    //.addRenderPass("CascadeShadowmapPass", std::make_unique<pass::CascadeShadowmapPass>())
-		    //.addRenderPass("OmniShadowmapPass", std::make_unique<pass::OmniShadowmapPass>())
-		    //.addRenderPass("LightPass", std::make_unique<pass::LightPass>())
-		    //.addRenderPass("Skybox", std::make_unique<pass::SkyboxPass>())
+		    .addRenderPass("CascadeShadowmapPass", std::make_unique<pass::CascadeShadowmapPass>())
+		    .addRenderPass("OmniShadowmapPass", std::make_unique<pass::OmniShadowmapPass>())
+		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
+		    .addRenderPass("Skybox", std::make_unique<pass::SkyboxPass>())
 		    //.addRenderPass("TAAPass", std::make_unique<pass::TAAPass>())
 		    //.addRenderPass("BloomMask", std::make_unique<pass::BloomMask>("TAAOutput", "PostTex1"))
 		    //.addRenderPass("BloomBlur1", std::make_unique<pass::BloomBlur>("PostTex1", "PostTex2", false))
@@ -114,8 +114,8 @@ Renderer::Renderer(Context *context) :
 		    //.addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Lighting"))
 		    .addRenderPass("CurvePass", std::make_unique<pass::CurvePass>())
 		    .addRenderPass("SurfacePass", std::make_unique<pass::SurfacePass>())
-		    //.addRenderPass("MeshPass", std::make_unique<pass::MeshPass>())
-		    //.addRenderPass("WireFramePass", std::make_unique<pass::WireFramePass>())
+		    .addRenderPass("MeshPass", std::make_unique<pass::MeshPass>())
+		    .addRenderPass("WireFramePass", std::make_unique<pass::WireFramePass>())
 		    //.setView("TAAOutput")
 		    //.setOutput("TAAOutput")
 
@@ -276,7 +276,7 @@ const VkExtent2D &Renderer::getRenderTargetExtent() const
 	return m_render_target_extent;
 }
 
-void Renderer::resizeRenderTarget(VkExtent2D extent)
+void Renderer::resizeViewport(VkExtent2D extent)
 {
 	if (m_render_target_extent.height < extent.height || m_render_target_extent.width < extent.width)
 	{
@@ -285,6 +285,12 @@ void Renderer::resizeRenderTarget(VkExtent2D extent)
 	}
 
 	m_viewport_extent = extent;
+}
+
+void Renderer::resizeRenderTarget(VkExtent2D extent)
+{
+	m_update               = true;
+	m_render_target_extent = extent;
 }
 
 const ImageReference Renderer::getDefaultTexture() const

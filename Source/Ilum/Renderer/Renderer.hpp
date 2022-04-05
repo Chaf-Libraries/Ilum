@@ -78,6 +78,8 @@ class Renderer : public TSubsystem<Renderer>
 
 	const VkExtent2D &getRenderTargetExtent() const;
 
+	void resizeViewport(VkExtent2D extent);
+
 	void resizeRenderTarget(VkExtent2D extent);
 
 	const ImageReference getDefaultTexture() const;

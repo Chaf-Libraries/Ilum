@@ -68,5 +68,4 @@ struct Material
     float3 data;
     uint material_type;
 };
-
 #endif

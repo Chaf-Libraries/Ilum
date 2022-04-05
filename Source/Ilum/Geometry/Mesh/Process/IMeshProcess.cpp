@@ -35,8 +35,6 @@ const std::vector<Vertex> IMeshProcess::postprocess(const std::vector<glm::vec3>
 		{
 			result[i].texcoord = texcoords[i];
 		}
-		result[i].tangent   = glm::normalize(glm::cross(glm::vec3(0, 1, 0), result[i].normal));
-		result[i].bitangent = glm::normalize(glm::cross(result[i].normal, result[i].tangent));
 	}
 
 	return result;

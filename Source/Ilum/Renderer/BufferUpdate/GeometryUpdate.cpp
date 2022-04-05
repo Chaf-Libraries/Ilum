@@ -22,8 +22,8 @@ void GeometryUpdate::run()
 	auto &static_vertex_buffer = Renderer::instance()->Render_Buffer.Static_Vertex_Buffer;
 	auto &static_index_buffer  = Renderer::instance()->Render_Buffer.Static_Index_Buffer;
 
-	if (resource_cache.getVerticesCount() * sizeof(Vertex) > static_vertex_buffer.getSize() ||
-	    resource_cache.getIndicesCount() * sizeof(uint32_t) > static_index_buffer.getSize())
+	if (resource_cache.getVerticesCount() * sizeof(Vertex) != static_vertex_buffer.getSize() ||
+	    resource_cache.getIndicesCount() * sizeof(uint32_t) != static_index_buffer.getSize())
 	{
 		cmpt::StaticMeshRenderer::update = true;
 
@@ -97,10 +97,18 @@ void GeometryUpdate::run()
 		}
 
 		Renderer::instance()->rebuild();
+
+		Material::update = true;
 	}
 
 	// Update dynamic mesh
 	auto mesh_view = Scene::instance()->getRegistry().view<cmpt::DynamicMeshRenderer>();
+
+	if (!mesh_view.empty())
+	{
+		Material::update = true;
+	}
+
 	tbb::parallel_for_each(mesh_view.begin(), mesh_view.end(), [](entt::entity entity) {
 		auto &mesh_renderer = Entity(entity).getComponent<cmpt::DynamicMeshRenderer>();
 		if (mesh_renderer.vertices.size() * sizeof(Vertex) != mesh_renderer.vertex_buffer.getSize())

@@ -48,6 +48,7 @@ cmake --build ./ --target ALL_BUILD --config Release
   * Runtime Shader Compilation
     * GLSL -> `glslang` -> SPIR-V
     * HLSL -> `DXC` -> SPIR-V
+    * SPIR-V -> `spirv-cross` -> Reflection Info
   * Entity Component System
   * Asynchronous Resource Loading
   * Scene Loading/Saving

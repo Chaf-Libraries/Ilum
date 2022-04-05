@@ -31,6 +31,12 @@ void MeshModifier::draw(float delta_time)
 
 	auto &dynamic_mesh = entity.getComponent<cmpt::DynamicMeshRenderer>();
 
+	if (dynamic_mesh.vertices.empty())
+	{
+		ImGui::End();
+		return;
+	}
+
 	if (ImGui::TreeNode("Subdivision"))
 	{
 		if (ImGui::Button("Loop Subdivision"))

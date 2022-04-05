@@ -377,6 +377,7 @@ inline std::vector<uint32_t> dxc_compile(const std::string &filename, const std:
 	arguments.emplace_back(L"-fspv-extension=SPV_KHR_ray_tracing");
 	arguments.emplace_back(L"-fspv-extension=SPV_KHR_shader_draw_parameters");
 	arguments.emplace_back(L"-fspv-extension=SPV_EXT_descriptor_indexing");
+	arguments.emplace_back(L"-fspv-extension=SPV_EXT_shader_viewport_index_layer");
 
 #ifdef _DEBUG
 	arguments.emplace_back(L"-Od");        // Disable optimizations
