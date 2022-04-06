@@ -1,4 +1,5 @@
 #include "../../Common.hlsli"
+#include "../../Light.hlsli"
 
 StructuredBuffer<Instance> instances : register(t0);
 StructuredBuffer<DirectionalLight> directionl_lights : register(t1);

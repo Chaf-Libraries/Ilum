@@ -15,10 +15,15 @@ namespace Ilum::pass
 {
 void Whitted::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Whitted.rgen", VK_SHADER_STAGE_RAYGEN_BIT_KHR, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Whitted.rchit", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Whitted.rmiss", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/WhittedShadow.rmiss", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::GLSL);
+	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Whitted.rgen", VK_SHADER_STAGE_RAYGEN_BIT_KHR, Shader::Type::GLSL);
+	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Whitted.rchit", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::GLSL);
+	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Whitted.rmiss", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::GLSL);
+	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/WhittedShadow.rmiss", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::GLSL);
+
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Whitted.hlsl", VK_SHADER_STAGE_RAYGEN_BIT_KHR, Shader::Type::HLSL, "main");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/ClosestHit.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "main");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Miss.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "main");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/ShadowMiss.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "main");
 
 	state.declareAttachment("Whitted", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.addOutputAttachment("Whitted", AttachmentState::Clear_Color);
@@ -88,8 +93,8 @@ void Whitted::render(RenderPassState &state)
 		    state.pass.shader_binding_table.miss->getHandle(),
 		    state.pass.shader_binding_table.hit->getHandle(),
 		    state.pass.shader_binding_table.callable->getHandle(),
-		    Renderer::instance()->getViewportExtent().width,
-		    Renderer::instance()->getViewportExtent().height,
+		    Renderer::instance()->getRenderTargetExtent().width,
+		    Renderer::instance()->getRenderTargetExtent().height,
 		    1);
 	}
 }

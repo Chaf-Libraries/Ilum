@@ -159,7 +159,7 @@ inline std::string get_target_profile(VkShaderStageFlags stage)
 		case VK_SHADER_STAGE_MISS_BIT_KHR:
 		case VK_SHADER_STAGE_INTERSECTION_BIT_KHR:
 		case VK_SHADER_STAGE_CALLABLE_BIT_KHR:
-			return "lib_6_7";
+			return "lib_6_6";
 		case VK_SHADER_STAGE_TASK_BIT_NV:
 			return "ms_6_7";
 		case VK_SHADER_STAGE_MESH_BIT_NV:
@@ -372,7 +372,6 @@ inline std::vector<uint32_t> dxc_compile(const std::string &filename, const std:
 	arguments.emplace_back(to_wstring(FileSystem::getFileDirectory(filename)));
 	arguments.emplace_back(L"-H");
 	arguments.emplace_back(L"-spirv");
-	//arguments.emplace_back(L"-fspv-reflect");
 	arguments.emplace_back(L"-fspv-target-env=vulkan1.2");
 	arguments.emplace_back(L"-fspv-extension=SPV_KHR_ray_tracing");
 	arguments.emplace_back(L"-fspv-extension=SPV_KHR_shader_draw_parameters");

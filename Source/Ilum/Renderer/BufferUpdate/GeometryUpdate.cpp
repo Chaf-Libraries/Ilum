@@ -22,8 +22,9 @@ void GeometryUpdate::run()
 	auto &static_vertex_buffer = Renderer::instance()->Render_Buffer.Static_Vertex_Buffer;
 	auto &static_index_buffer  = Renderer::instance()->Render_Buffer.Static_Index_Buffer;
 
-	if (resource_cache.getVerticesCount() * sizeof(Vertex) != static_vertex_buffer.getSize() ||
-	    resource_cache.getIndicesCount() * sizeof(uint32_t) != static_index_buffer.getSize())
+	if (resource_cache.getVerticesCount() != 0 &&
+	    (resource_cache.getVerticesCount() * sizeof(Vertex) != static_vertex_buffer.getSize() ||
+	     resource_cache.getIndicesCount() * sizeof(uint32_t) != static_index_buffer.getSize()))
 	{
 		cmpt::StaticMeshRenderer::update = true;
 

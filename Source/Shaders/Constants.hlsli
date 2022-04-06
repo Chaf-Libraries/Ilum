@@ -11,4 +11,6 @@ static const float Sqrt2 = 1.41421356237309504880f;
 
 static const float ShadowEpsilon = 0.0001f;
 
+static const float Infinity = 1e32;
+
 #endif

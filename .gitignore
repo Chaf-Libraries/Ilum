@@ -35,5 +35,3 @@
 /build/*
 /bin/*
 /lib/*
-
-!*dxcompiler*.lib

@@ -1,5 +1,6 @@
 #include "../../Common.hlsli"
 #include "../../Material.hlsli"
+#include "../../Light.hlsli"
 
 #define LOCAL_SIZE 32
 

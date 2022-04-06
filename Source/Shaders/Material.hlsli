@@ -1,71 +1,95 @@
 #ifndef __MATERIAL_HLSL__
 #define __MATERIAL_HLSL__
 
-#define TEXTURE_BASE_COLOR 0
-#define TEXTURE_NORMAL 1
-#define TEXTURE_METALLIC 2
-#define TEXTURE_ROUGHNESS 3
-#define TEXTURE_EMISSIVE 4
-#define TEXTURE_AO 5
-#define TEXTURE_DISPLACEMENT 6
-#define TEXTURE_MAX_NUM 7
+#include "BxDF.hlsli"
+#include "Common.hlsli"
 
-#define MAX_TEXTURE_ARRAY_SIZE 1024
-
-#define BxDF_CookTorrance 0
-#define BxDF_Disney 1
-#define BxDF_Matte 2
-#define BxDF_Plastic 3
-#define BxDF_Metal 4
-#define BxDF_Mirror 5
-#define BxDF_Substrate 6
-#define BxDF_Glass 7
-
-struct MaterialData
+////////////// Matte Material //////////////
+struct MatteMaterial
 {
-    float4 base_color;
+    float3 Kd;
+    float sigma;
+    
+    LambertianReflection lambertian;
+    OrenNayar oren_nayar;
+    
+    void Init(Material mat)
+    {
+        Kd = mat.base_color.rgb;
+        sigma = mat.roughness;
+        
+        lambertian.R = Kd;
+        oren_nayar.Init(Kd, sigma);
+    }
+    
+    float3 f(float3 wo, float3 wi)
+    {
+        if (wo.z == 0.0)
+        {
+            return float3(0.0, 0.0, 0.0);
+        }
 
-    float3 emissive_color;
-    float emissive_intensity;
+        if (sigma == 0)
+        {
+            return lambertian.f(wo, wi);
+        }
+        else
+        {
+            return oren_nayar.f(wo, wi);
+        }
+    }
+    
+    float3 Samplef(float3 wo, Sampler _sampler, out float3 wi, out float pdf)
+    {
+        if (wo.z == 0.0)
+        {
+            return float3(0.0, 0.0, 0.0);
+        }
 
-    float displacement;
-    float subsurface;
-    float metallic;
-    float specular;
-
-    float specular_tint;
-    float roughness;
-    float anisotropic;
-    float sheen;
-
-    float sheen_tint;
-    float clearcoat;
-    float clearcoat_gloss;
-    float transmission;
-
-    float transmission_roughness;
-    uint textures[TEXTURE_MAX_NUM];
-
-    float3 data;
-    uint material_type;
+        if (sigma == 0)
+        {
+            return lambertian.Samplef(wo, _sampler, wi, pdf);
+        }
+        else
+        {
+            return oren_nayar.Samplef(wo, _sampler, wi, pdf);
+        }
+    }
 };
 
-struct Material
+////////////// BSDF //////////////
+struct BSDF
 {
-    float4 base_color;
-    float3 emissive;
-    float subsurface;
-    float metallic;
-    float specular;
-    float specular_tint;
-    float roughness;
-    float anisotropic;
-    float sheen;
-    float sheen_tint;
-    float clearcoat;
-    float clearcoat_gloss;
-    float transmission;
-    float3 data;
-    uint material_type;
+    Material mat;
+    
+    void Init(Material mat_)
+    {
+        mat = mat_;
+    }
+    
+    float3 f(float3 wo, float3 wi)
+    {
+        if (mat.material_type == BxDF_Matte)
+        {
+            MatteMaterial bsdf;
+            bsdf.Init(mat);
+            return bsdf.f(wo, wi);
+        }
+        
+        return float3(0.0, 0.0, 0.0);
+    }
+    
+    float3 Samplef(float3 wo, Sampler _sampler, out float3 wi, out float pdf)
+    {
+        if (mat.material_type == BxDF_Matte)
+        {
+            MatteMaterial bsdf;
+            bsdf.Init(mat);
+            return bsdf.Samplef(wo, _sampler, wi, pdf);
+        }
+        
+        return float3(0.0, 0.0, 0.0);
+    }
 };
+
 #endif
