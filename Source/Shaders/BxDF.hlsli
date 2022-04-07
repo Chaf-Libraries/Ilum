@@ -627,7 +627,7 @@ struct MicrofacetReflection
         {
             return float3(0.0, 0.0, 0.0);
         }
-        if (wh.x == 0.0 && wh.y == 0.0 && wh.z == 0.0)
+        if (IsBlack(wh))
         {
             return float3(0.0, 0.0, 0.0);
         }
@@ -646,7 +646,7 @@ struct MicrofacetReflection
         else if (Distribution_Type == DistributionType_TrowbridgeReitz)
         {
             D = trowbridgereitz_distribution.D(wh);
-            G = beckmann_distribution.G(wo, wi);
+            G = trowbridgereitz_distribution.G(wo, wi);
         }
 
         if(Fresnel_Type==FresnelType_Conductor)
@@ -661,7 +661,6 @@ struct MicrofacetReflection
         {
             F = fresnel_op.Evaluate(dot(wi, Faceforward(wh, float3(0.0, 0.0, 1.0))));
         }
-
         return R * D * G * F / (4.0 * cosThetaI * cosThetaO);
     }
     
@@ -669,7 +668,7 @@ struct MicrofacetReflection
     {
         if (!SameHemisphere(wo, wi))
         {
-            return 0;
+            return 0.0;
         }
         
         float3 wh = normalize(wo + wi);
@@ -687,7 +686,7 @@ struct MicrofacetReflection
     }
     
     float3 Samplef(float3 wo, Sampler _sampler, out float3 wi, out float pdf)
-    {
+    {        
         if (wo.z < 0.0)
         {
             return float3(0.0, 0.0, 0.0);
@@ -724,7 +723,7 @@ struct MicrofacetReflection
         {
             pdf = trowbridgereitz_distribution.Pdf(wo, wh) / (4.0 * dot(wo, wh));
         }
-
+        
         return f(wo, wi);
     }
 };
@@ -732,13 +731,7 @@ struct MicrofacetReflection
 ////////////// Specular Reflection //////////////
 struct SpecularReflection
 {
-    uint Fresnel_Type;
-    
     float3 R;
-    
-    FresnelConductor fresnel_conductor;
-    FresnelDielectric fresnel_dielectric;
-    FresnelOp fresnel_op;
     
     float3 f(float3 wo, float3 wi)
     {
@@ -754,23 +747,8 @@ struct SpecularReflection
     {
         wi = float3(-wo.x, -wo.y, wo.z);
         pdf = 1.0;
-        
-        float3 F = float3(0.0, 0.0, 0.0);
-        
-        if (Fresnel_Type == FresnelType_Conductor)
-        {
-            F = fresnel_conductor.Evaluate(dot(wi, dot(wi, float3(0.0, 0.0, 1.0))));
-        }
-        else if (Fresnel_Type == FresnelType_Dielectric)
-        {
-            F = fresnel_dielectric.Evaluate(dot(wi, dot(wi, float3(0.0, 0.0, 1.0))));
-        }
-        else if (Fresnel_Type == FresnelType_Op)
-        {
-            F = fresnel_op.Evaluate(dot(wi, dot(wi, float3(0.0, 0.0, 1.0))));
-        }
-        
-        return F * R / AbsCosTheta(wi);
+                
+        return R / AbsCosTheta(wi);
     }
 };
 
@@ -981,7 +959,7 @@ struct MicrofacetTransmission
         else if (Distribution_Type == DistributionType_TrowbridgeReitz)
         {
             D = trowbridgereitz_distribution.D(wh);
-            G = beckmann_distribution.G(wo, wi);
+            G = trowbridgereitz_distribution.G(wo, wi);
         }
 
         if (Fresnel_Type == FresnelType_Conductor)
@@ -1024,6 +1002,7 @@ struct MicrofacetTransmission
         float dwh_dwi = abs((eta * eta * dot(wi, wh)) / (sqrt_denom * sqrt_denom));
 
         float pdf = 0.0;
+        
         if (Distribution_Type == DistributionType_Beckmann)
         {
             pdf = beckmann_distribution.Pdf(wo, wh);
@@ -1037,11 +1016,11 @@ struct MicrofacetTransmission
     }
     
     float3 Samplef(float3 wo, Sampler _sampler, out float3 wi, out float pdf)
-    {
+    {                
         bool entering = CosTheta(wo) > 0.0;
         float etaI = entering ? etaA : etaB;
         float etaT = entering ? etaB : etaA;
-        
+
         float3 wh = float3(0.0, 0.0, 0.0);
         
         if (Distribution_Type == DistributionType_Beckmann)
@@ -1057,7 +1036,7 @@ struct MicrofacetTransmission
         {
             return float3(0.0, 0.0, 0.0);
         }
-        
+
         pdf = Pdf(wo, wi);
 
         return f(wo, wi);

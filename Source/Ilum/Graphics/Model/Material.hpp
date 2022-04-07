@@ -36,7 +36,7 @@ struct Material
 {
 	BxDFType type = BxDFType::CookTorrance;
 
-	glm::vec3 data;
+	glm::vec3 data = {0.f, 0.f, 0.f};
 
 	glm::vec4 base_color = {1.f, 1.f, 1.f, 1.f};
 

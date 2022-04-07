@@ -17,7 +17,7 @@ struct WhittedIntegrator
             {
                 // Sample environment light
                 float3 w = normalize(ray.Direction);
-                radiance += Skybox.SampleLevel(SkyboxSampler, w, 0.0).rgb;
+                radiance += throughout * Skybox.SampleLevel(SkyboxSampler, w, 0.0).rgb;
                 break;
             }
         
