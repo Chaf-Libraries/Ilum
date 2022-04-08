@@ -379,7 +379,7 @@ inline std::vector<uint32_t> dxc_compile(const std::string &filename, const std:
 	arguments.emplace_back(L"-fspv-extension=SPV_EXT_shader_viewport_index_layer");
 
 #ifdef _DEBUG
-	arguments.emplace_back(L"-Od");        // Disable optimizations
+	//arguments.emplace_back(L"-Od");        // Disable optimizations
 	arguments.emplace_back(L"-Zi");        // Enable debug information
 #endif
 

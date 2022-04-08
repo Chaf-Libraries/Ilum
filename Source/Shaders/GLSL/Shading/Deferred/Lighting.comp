@@ -435,11 +435,11 @@ vec3 brdf_contribution(vec3 L, vec3 V, vec3 N, vec3 radiance, MaterialData mater
 
     vec3 BRDF = vec3(0.0);
 
-    if(material.material_type == BxDF_Disney)
+    if(material.material_type == Material_Disney)
     {
         BRDF += DisneyBRDF(L, V, N, tangent, bitangent, material);
     }
-    else if(material.material_type == BxDF_CookTorrance)
+    else if(material.material_type == Material_CookTorrance)
     {
         BRDF += CookTorranceBRDF(L, V, N, tangent, bitangent, material);
 

@@ -4,7 +4,306 @@
 #include "BxDF.hlsli"
 #include "Common.hlsli"
 
+static OrenNayar oren_nayar;
+static LambertianReflection lambertian_reflection;
+static MicrofacetReflection microfacet_reflection;
+static SpecularReflection specular_reflection;
+static FresnelBlend fresnel_blend;
+static FresnelSpecular fresnel_specular;
+static MicrofacetTransmission microfacet_transmission;
+
+////////////// BxDF //////////////
+struct BxDF
+{
+    uint BxDF_Flag;
+        
+    float3 f(float3 wo, float3 wi)
+    {
+        switch (BxDF_Flag)
+        {
+            case BxDF_OrenNayar:
+                return oren_nayar.f(wo, wi);
+            case BxDF_LambertianReflection:
+                return lambertian_reflection.f(wo, wi);
+            case BxDF_MicrofacetReflection:
+                return microfacet_reflection.f(wo, wi);
+            case BxDF_SpecularReflection:
+                return specular_reflection.f(wo, wi);
+            case BxDF_FresnelBlend:
+                return fresnel_blend.f(wo, wi);
+            case BxDF_FresnelSpecular:
+                return fresnel_specular.f(wo, wi);
+            case BxDF_MicrofacetTransmission:
+                return microfacet_transmission.f(wo, wi);
+        }
+        return float3(0.0, 0.0, 0.0);
+    }
+    
+    float Pdf(float3 wo, float3 wi)
+    {
+        switch (BxDF_Flag)
+        {
+            case BxDF_OrenNayar:
+                return oren_nayar.Pdf(wo, wi);
+            case BxDF_LambertianReflection:
+                return lambertian_reflection.Pdf(wo, wi);
+            case BxDF_MicrofacetReflection:
+                return microfacet_reflection.Pdf(wo, wi);
+            case BxDF_SpecularReflection:
+                return specular_reflection.Pdf(wo, wi);
+            case BxDF_FresnelBlend:
+                return fresnel_blend.Pdf(wo, wi);
+            case BxDF_FresnelSpecular:
+                return fresnel_specular.Pdf(wo, wi);
+            case BxDF_MicrofacetTransmission:
+                return microfacet_transmission.Pdf(wo, wi);
+        }
+        return 0.0;
+    }
+    
+    float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
+    {
+        switch (BxDF_Flag)
+        {
+            case BxDF_OrenNayar:
+                return oren_nayar.Samplef(wo, u, wi, pdf);
+            case BxDF_LambertianReflection:
+                return lambertian_reflection.Samplef(wo, u, wi, pdf);
+            case BxDF_MicrofacetReflection:
+                return microfacet_reflection.Samplef(wo, u, wi, pdf);
+            case BxDF_SpecularReflection:
+                return specular_reflection.Samplef(wo, u, wi, pdf);
+            case BxDF_FresnelBlend:
+                return fresnel_blend.Samplef(wo, u, wi, pdf);
+            case BxDF_FresnelSpecular:
+                return fresnel_specular.Samplef(wo, u, wi, pdf);
+            case BxDF_MicrofacetTransmission:
+                return microfacet_transmission.Samplef(wo, u, wi, pdf);
+        }
+        return float3(0.0, 0.0, 0.0);
+    }
+    
+    uint GetBxDFType()
+    {
+        switch (BxDF_Flag)
+        {
+            case BxDF_OrenNayar:
+                return oren_nayar.BxDF_Type;
+            case BxDF_LambertianReflection:
+                return lambertian_reflection.BxDF_Type;
+            case BxDF_MicrofacetReflection:
+                return microfacet_reflection.BxDF_Type;
+            case BxDF_SpecularReflection:
+                return specular_reflection.BxDF_Type;
+            case BxDF_FresnelBlend:
+                return fresnel_blend.BxDF_Type;
+            case BxDF_FresnelSpecular:
+                return fresnel_specular.BxDF_Type;
+            case BxDF_MicrofacetTransmission:
+                return microfacet_transmission.BxDF_Type;
+        }
+        return 0;
+    }
+    
+    bool MatchesType(uint type)
+    {
+        return (GetBxDFType() & type) == GetBxDFType();
+    }
+};
+
+////////////// BSDFs //////////////
+struct BSDFs
+{
+    uint BxDF_Flags;
+    BxDF bxdfs[5];
+    uint nBxDFs;
+    
+    Interaction isect;
+    
+    void Init()
+    {
+        BxDF_Flags = 0;
+        nBxDFs = 0;
+    }
+    
+    void AddBxDF(uint flag)
+    {
+        BxDF_Flags |= flag;
+        bxdfs[nBxDFs].BxDF_Flag = flag;
+        nBxDFs++;
+    }
+    
+    int NumComponents(uint BxDF_type)
+    {
+        int num = 0;
+        for (int i = 0; i < nBxDFs; i++)
+        {
+            if (bxdfs[i].MatchesType(BxDF_type))
+            {
+                num++;
+            }
+        }
+        return num;
+    }
+    
+    float3 f(float3 woW, float3 wiW, uint BxDF_type)
+    {
+        float3 wi = isect.WorldToLocal(wiW);
+        float3 wo = isect.WorldToLocal(woW);
+
+        if (wo.z == 0.0)
+        {
+            return float3(0.0, 0.0, 0.0);
+        }
+        bool reflect = dot(wiW, isect.ffnormal) * dot(woW, isect.ffnormal) > 0;
+        float3 f = { 0.0, 0.0, 0.0 };
+        for (uint i = 0; i < nBxDFs; i++)
+        {
+            if (bxdfs[i].MatchesType(BxDF_type) &&
+                ((reflect && (bxdfs[i].GetBxDFType() & BSDF_REFLECTION)) ||
+                (!reflect && (bxdfs[i].GetBxDFType() & BSDF_TRANSMISSION))))
+            {
+                f += bxdfs[i].f(wo, wi);
+            }
+        }
+        return f;
+    }
+    
+    float Pdf(float3 woW, float3 wiW, uint BxDF_type)
+    {
+        if (nBxDFs == 0)
+        {
+            return 0.0;
+        }
+        float3 wi = isect.WorldToLocal(wiW);
+        float3 wo = isect.WorldToLocal(woW);
+        if (wo.z == 0.0)
+        {
+            return 0.0;
+        }
+        float pdf = 0.0;
+        int matching_cmpts = 0;
+        for (uint i = 0; i < nBxDFs; i++)
+        {
+            if (bxdfs[i].MatchesType(BxDF_type))
+            {
+                matching_cmpts++;
+                pdf += bxdfs[i].Pdf(wo, wi);
+            }
+        }
+        return matching_cmpts > 0 ? pdf / matching_cmpts : 0.0;
+    }
+    
+    float3 Samplef(float3 woW, Sampler _sampler, out float3 wiW, out float pdf, uint BxDF_type, out uint sampled_type)
+    {
+        float2 u = _sampler.Get2D();
+        int matching_compts = NumComponents(BxDF_type);
+        if (matching_compts == 0)
+        {
+            pdf = 0.0;
+            sampled_type = 0.0;
+            return float3(0.0, 0.0, 0.0);
+        }
+        int comp = min((int) (u.x * matching_compts), matching_compts - 1);
+
+        uint bxdf_idx = 0;
+        int count = comp;
+        for (int i = 0; i < nBxDFs; i++)
+        {
+            if (bxdfs[i].MatchesType(BxDF_type) && count-- == 0)
+            {
+                bxdf_idx = i;
+                break;
+            }
+        }
+                        
+        BxDF bxdf = bxdfs[bxdf_idx];
+                
+        float3 wi = { 0.0, 0.0, 0.0 };
+        float3 wo = isect.WorldToLocal(woW);
+        if (wo.z == 0.0)
+        {
+            return float3(0.0, 0.0, 0.0);
+        }
+        
+        {
+            float3 f = bxdf.Samplef(wo, _sampler.Get2D(), wiW, pdf);
+            wiW = isect.LocalToWorld(wiW);
+            return f;
+        }
+                
+
+        
+        pdf = 0.0;
+        sampled_type = bxdf.GetBxDFType();
+        float3 f = bxdf.Samplef(wo, _sampler.Get2D(), wi, pdf);
+
+        if (pdf == 0.0)
+        {
+            sampled_type = 0;
+            return float3(0.0, 0.0, 0.0);
+        }
+        wiW = isect.LocalToWorldDir(wi);
+        
+        if (!(bxdf.GetBxDFType() & BSDF_SPECULAR) && matching_compts > 1)
+        {
+            for (int i = 0; i < nBxDFs; i++)
+            {
+                if (i != bxdf_idx && bxdfs[i].MatchesType(BxDF_type))
+                {
+                    pdf += bxdfs[i].Pdf(wo, wi);
+                }
+            }
+        }
+        
+        if (matching_compts > 1)
+        {
+            pdf /= matching_compts;
+        }
+
+        if (!(bxdf.GetBxDFType() & BSDF_SPECULAR))
+        {
+            bool reflect = dot(wiW, isect.ffnormal) * dot(woW, isect.ffnormal) > 0;
+            f = 0;
+            for (int i = 0; i < nBxDFs; i++)
+            {
+                if (bxdfs[i].MatchesType(BxDF_type) &&
+                    ((reflect && (bxdfs[i].GetBxDFType() & BSDF_REFLECTION)) ||
+                    (!reflect && (bxdfs[i].GetBxDFType() & BSDF_TRANSMISSION))))
+                {
+                    f += bxdfs[i].f(wo, wi);
+                }
+            }
+        }
+
+        return f;;
+    }
+};
+/*
 ////////////// Matte Material //////////////
+BSDFs InitMatteMaterial(Interaction isect)
+{
+    BSDFs bsdfs;
+    bsdfs.Init();
+    bsdfs.isect = isect;
+    
+    if (!IsBlack(isect.material.base_color.rgb))
+    {
+        if (isect.material.roughness == 0.0)
+        {
+            lambertian_reflection.R = isect.material.base_color.rgb;
+            bsdfs.AddBxDF(BxDF_LambertianReflection);
+        }
+        else
+        {
+            oren_nayar.Init(isect.material.base_color.rgb, isect.material.roughness);
+            bsdfs.AddBxDF(BxDF_OrenNayar);
+        }
+    }
+    return bsdfs;
+}
+
+
 struct MatteMaterial
 {
     float3 Kd;
@@ -48,11 +347,11 @@ struct MatteMaterial
 
         if (sigma == 0)
         {
-            return lambertian.Samplef(wo, _sampler, wi, pdf);
+            return lambertian.Samplef(wo, _sampler.Get2D(), wi, pdf);
         }
         else
         {
-            return oren_nayar.Samplef(wo, _sampler, wi, pdf);
+            return oren_nayar.Samplef(wo, _sampler.Get2D(), wi, pdf);
         }
     }
 };
@@ -116,12 +415,12 @@ struct PlasticMaterial
         if (u < 0.5)
         {
 		    // Choose Lambertian term
-            return lambertian.Samplef(wo, _sampler, wi, pdf);
+            return lambertian.Samplef(wo, _sampler.Get2D(), wi, pdf);
         }
         else
         {
 		    // Choose microfacet term
-            return microfacet.Samplef(wo, _sampler, wi, pdf);
+            return microfacet.Samplef(wo, _sampler.Get2D(), wi, pdf);
         }
         
         return float3(0.0, 0.0, 0.0);
@@ -129,6 +428,31 @@ struct PlasticMaterial
 };
 
 ////////////// Metal Material //////////////
+BSDFs InitMetalMaterial(Interaction isect)
+{
+    BSDFs bsdfs;
+    bsdfs.Init();
+    bsdfs.isect = isect;
+    
+    bsdfs.AddBxDF(BxDF_MicrofacetReflection);
+    
+    float aspect = sqrt(1.0 - isect.material.anisotropic * 0.9);
+    float urough = max(0.001, isect.material.roughness / aspect);
+    float vrough = max(0.001, isect.material.roughness * aspect);
+        
+    microfacet_reflection.Fresnel_Type = FresnelType_Conductor;
+    microfacet_reflection.Distribution_Type = DistributionType_TrowbridgeReitz;
+    microfacet_reflection.R = isect.material.base_color.rgb;
+    microfacet_reflection.fresnel_conductor.etaI = float3(1.0, 1.0, 1.0);
+    microfacet_reflection.fresnel_conductor.etaT = float3(1, 10, 11);
+    microfacet_reflection.fresnel_conductor.k = float3(3.90463543, 2.44763327, 2.13765264);
+    microfacet_reflection.trowbridgereitz_distribution.alpha_x = urough;
+    microfacet_reflection.trowbridgereitz_distribution.alpha_y = vrough;
+    microfacet_reflection.trowbridgereitz_distribution.sample_visible_area = true;
+    
+    return bsdfs;
+}
+
 struct MetalMaterial
 {
     float3 R;
@@ -169,11 +493,21 @@ struct MetalMaterial
     
     float3 Samplef(float3 wo, Sampler _sampler, out float3 wi, out float pdf)
     {
-        return microfacet.Samplef(wo, _sampler, wi, pdf);
+        return microfacet.Samplef(wo, _sampler.Get2D(), wi, pdf);
     }
 };
 
 ////////////// Mirror Material //////////////
+BSDFs InitMirrorMaterial(Interaction isect)
+{
+    BSDFs bsdfs;
+    bsdfs.Init();
+    bsdfs.isect = isect;
+    bsdfs.AddBxDF(BxDF_SpecularReflection);
+    specular_reflection.R = isect.material.base_color.rgb;
+    return bsdfs;
+}
+
 struct MirrorMaterial
 {
     SpecularReflection specular;
@@ -190,7 +524,7 @@ struct MirrorMaterial
     
     float3 Samplef(float3 wo, Sampler _sampler, out float3 wi, out float pdf)
     {
-        return specular.Samplef(wo, _sampler, wi, pdf);
+        return specular.Samplef(wo, _sampler.Get2D(), wi, pdf);
     }
 };
 
@@ -230,7 +564,7 @@ struct SubstrateMaterial
     
     float3 Samplef(float3 wo, Sampler _sampler, out float3 wi, out float pdf)
     {
-        return fresnel_blend.Samplef(wo, _sampler, wi, pdf);
+        return fresnel_blend.Samplef(wo, _sampler.Get2D(), wi, pdf);
     }
 };
 
@@ -266,7 +600,7 @@ struct GlassMaterial
         fresnel_specular.mode = TransportMode_Radiance;
         
         microfacet_reflection.Distribution_Type = DistributionType_TrowbridgeReitz;
-        microfacet_reflection.Fresnel_Type = FresnelType_Dielectric;        
+        microfacet_reflection.Fresnel_Type = FresnelType_Dielectric;
         microfacet_reflection.R = R;
         microfacet_reflection.fresnel_dielectric.etaI = 1.0;
         microfacet_reflection.fresnel_dielectric.etaT = refraction;
@@ -287,20 +621,20 @@ struct GlassMaterial
     {
         float3 distribution = float3(0.0, 0.0, 0.0);
         
-        if(IsBlack(R) && IsBlack(T))
+        if (IsBlack(R) && IsBlack(T))
         {
             return float3(0.0, 0.0, 0.0);
         }
         
         bool isSpecular = (roughness == 0.0);
         
-        if(isSpecular)
+        if (isSpecular)
         {
             distribution += fresnel_specular.f(wo, wi);
         }
         else
         {
-            if(!IsBlack(R))
+            if (!IsBlack(R))
             {
                 distribution += microfacet_reflection.f(wo, wi);
             }
@@ -323,19 +657,19 @@ struct GlassMaterial
         
         bool isSpecular = (roughness == 0.0);
         
-        if(isSpecular)
+        if (isSpecular)
         {
-            return fresnel_specular.Samplef(wo, _sampler, wi, pdf);
+            return fresnel_specular.Samplef(wo, _sampler.Get2D(), wi, pdf);
         }
         else
         {
             if (!IsBlack(R) && IsBlack(T))
             {
-                return microfacet_reflection.Samplef(wo, _sampler, wi, pdf);
+                return microfacet_reflection.Samplef(wo, _sampler.Get2D(), wi, pdf);
             }
             else if (IsBlack(R) && !IsBlack(T))
             {
-                return microfacet_transmission.Samplef(wo, _sampler, wi, pdf);
+                return microfacet_transmission.Samplef(wo, _sampler.Get2D(), wi, pdf);
             }
             else
             {
@@ -344,13 +678,13 @@ struct GlassMaterial
                 
                 if (u.x < F.x)
                 {
-                    float3 distribution = microfacet_reflection.Samplef(wo, _sampler, wi, pdf);
+                    float3 distribution = microfacet_reflection.Samplef(wo, _sampler.Get2D(), wi, pdf);
                     pdf *= F.x;
                     return distribution;
                 }
                 else
                 {
-                    float3 distribution = microfacet_transmission.Samplef(wo, _sampler, wi, pdf);
+                    float3 distribution = microfacet_transmission.Samplef(wo, _sampler.Get2D(), wi, pdf);
                     pdf *= 1.0 - F.x;
                     return distribution;
                 }
@@ -360,49 +694,98 @@ struct GlassMaterial
     }
 };
 
+////////////// Disney Material //////////////
+struct DisneyMaterial
+{
+    //  Parameters
+    float3 color;
+    float metallic;
+    float eta;
+    float roughness;
+    float specularTint;
+    float anisotropic;
+    float sheen;
+    float sheenTint;
+    float clearcoat;
+    float clearcoatGloss;
+    float specularTransmission;
+    float3 scatterDistance;
+    float flatness;
+    float diffuseTransmission;
+    bool thin;
+    
+    // Weights
+    float metallicWeight;
+    float diffuseWeight;
+    float sheenWeight;
+    
+    DisneyDiffuse disney_diffuse;
+    
+    void Init(Material mat)
+    {
+        color = mat.base_color.rgb;
+        metallic = mat.metallic;
+        eta = mat.transmission;
+        roughness = mat.roughness;
+        specularTint = mat.specular_tint;
+        sheen = mat.sheen;
+        sheenTint = mat.sheen_tint;
+        clearcoat = mat.clearcoat;
+        clearcoatGloss = mat.clearcoat_gloss;
+        
+        // DIffuse
+        metallicWeight = metallic;
+        diffuseWeight = (1.0 - metallicWeight) * (1.0 - specularTransmission);
+
+        disney_diffuse.R = color;
+    }
+};
+
 ////////////// BSDF //////////////
 struct BSDF
 {
     Material mat;
+    Interaction isect;
     
-    void Init(Material mat_)
+    void Init(Interaction isect_)
     {
-        mat = mat_;
+        mat = isect_.material;
+        isect = isect_;
     }
     
     float3 f(float3 wo, float3 wi)
     {
-        if (mat.material_type == BxDF_Matte)
+        if (mat.material_type == Material_Matte)
         {
-            MatteMaterial bsdf;
-            bsdf.Init(mat);
-            return bsdf.f(wo, wi);
+            BSDFs bsdf = InitMatteMaterial(isect);
+            return bsdf.f(wo, wi, BSDF_ALL);
         }
-        else if (mat.material_type == BxDF_Plastic)
+        else if (mat.material_type == Material_Plastic)
         {
             PlasticMaterial bsdf;
             bsdf.Init(mat);
             return bsdf.f(wo, wi);
         }
-        else if (mat.material_type == BxDF_Metal)
+        else if (mat.material_type == Material_Metal)
         {
+            //BSDFs bsdf = InitMetalMaterial(isect);
+            //return bsdf.f(wo, wi, BSDF_ALL);
             MetalMaterial bsdf;
             bsdf.Init(mat);
             return bsdf.f(wo, wi);
         }
-        else if (mat.material_type == BxDF_Mirror)
+        else if (mat.material_type == Material_Mirror)
         {
-            MirrorMaterial bsdf;
-            bsdf.Init(mat);
-            return bsdf.f(wo, wi);
+            BSDFs bsdf = InitMirrorMaterial(isect);
+            return bsdf.f(wo, wi, BSDF_ALL);
         }
-        else if (mat.material_type == BxDF_Substrate)
+        else if (mat.material_type == Material_Substrate)
         {
             SubstrateMaterial bsdf;
             bsdf.Init(mat);
             return bsdf.f(wo, wi);
         }
-        else if (mat.material_type == BxDF_Glass)
+        else if (mat.material_type == Material_Glass)
         {
             GlassMaterial bsdf;
             bsdf.Init(mat);
@@ -414,37 +797,40 @@ struct BSDF
     
     float3 Samplef(float3 wo, Sampler _sampler, out float3 wi, out float pdf)
     {
-        if (mat.material_type == BxDF_Matte)
+        if (mat.material_type == Material_Matte)
+        {  
+            BSDFs bsdf = InitMatteMaterial(isect);
+            uint sampled_type = 0;
+            return bsdf.Samplef(wo, _sampler, wi, pdf, BSDF_ALL, sampled_type);
+        }
+        else if (mat.material_type == Material_Plastic)
         {
-            MatteMaterial bsdf;
+            PlasticMaterial bsdf;
             bsdf.Init(mat);
             return bsdf.Samplef(wo, _sampler, wi, pdf);
         }
-        else if (mat.material_type == BxDF_Plastic)
-        {
-            MatteMaterial bsdf;
-            bsdf.Init(mat);
-            return bsdf.Samplef(wo, _sampler, wi, pdf);
-        }
-        else if (mat.material_type == BxDF_Metal)
+        else if (mat.material_type == Material_Metal)
         {
             MetalMaterial bsdf;
             bsdf.Init(mat);
             return bsdf.Samplef(wo, _sampler, wi, pdf);
+            BSDFs bsdf = InitMetalMaterial(isect);
+            uint sampled_type = 0;
+            return bsdf.Samplef(wo, _sampler, wi, pdf, BSDF_ALL, sampled_type);
         }
-        else if (mat.material_type == BxDF_Mirror)
+        else if (mat.material_type == Material_Mirror)
         {
-            MirrorMaterial bsdf;
-            bsdf.Init(mat);
-            return bsdf.Samplef(wo, _sampler, wi, pdf);
+            BSDFs bsdf = InitMirrorMaterial(isect);
+            uint sampled_type = 0;
+            return bsdf.Samplef(wo, _sampler, wi, pdf, BSDF_ALL, sampled_type);
         }
-        else if (mat.material_type == BxDF_Substrate)
+        else if (mat.material_type == Material_Substrate)
         {
             SubstrateMaterial bsdf;
             bsdf.Init(mat);
             return bsdf.Samplef(wo, _sampler, wi, pdf);
         }
-        else if (mat.material_type == BxDF_Glass)
+        else if (mat.material_type == Material_Glass)
         {
             GlassMaterial bsdf;
             bsdf.Init(mat);
@@ -452,6 +838,226 @@ struct BSDF
         }
         
         return float3(0.0, 0.0, 0.0);
+    }
+};*/
+
+BSDFs CreateMatteMaterial(Interaction isect)
+{
+    BSDFs bsdfs;
+    bsdfs.Init();
+    bsdfs.isect = isect;
+    
+    if (!IsBlack(isect.material.base_color.rgb))
+    {
+        if (isect.material.roughness == 0.0)
+        {
+            lambertian_reflection.R = isect.material.base_color.rgb;
+            bsdfs.AddBxDF(BxDF_LambertianReflection);
+        }
+        else
+        {
+            oren_nayar.Init(isect.material.base_color.rgb, isect.material.roughness);
+            bsdfs.AddBxDF(BxDF_OrenNayar);
+        }
+    }
+    return bsdfs;
+}
+
+BSDFs CreatePlasticMaterial(Interaction isect)
+{
+    BSDFs bsdfs;
+    bsdfs.Init();
+    bsdfs.isect = isect;
+    
+    float rough = max(isect.material.roughness, 0.001);
+    float aspect = sqrt(1.0 - isect.material.anisotropic * 0.9);
+    float urough = max(0.001, isect.material.roughness / aspect);
+    float vrough = max(0.001, isect.material.roughness * aspect);
+
+    lambertian_reflection.R = isect.material.base_color.rgb;
+
+    microfacet_reflection.Distribution_Type = DistributionType_TrowbridgeReitz;
+    microfacet_reflection.Fresnel_Type = FresnelType_Dielectric;
+    microfacet_reflection.R = isect.material.data;
+    microfacet_reflection.trowbridgereitz_distribution.alpha_x = rough;
+    microfacet_reflection.trowbridgereitz_distribution.alpha_y = rough;
+    microfacet_reflection.trowbridgereitz_distribution.sample_visible_area = true;
+    microfacet_reflection.fresnel_dielectric.etaI = 1.0;
+    microfacet_reflection.fresnel_dielectric.etaT = 1.5;
+    
+    bsdfs.AddBxDF(BxDF_MicrofacetReflection);
+    bsdfs.AddBxDF(BxDF_LambertianReflection);
+    
+    return bsdfs;
+}
+
+BSDFs CreateMirrorMaterial(Interaction isect)
+{
+    BSDFs bsdfs;
+    bsdfs.Init();
+    bsdfs.isect = isect;
+    bsdfs.AddBxDF(BxDF_SpecularReflection);
+    specular_reflection.R = isect.material.base_color.rgb;
+    return bsdfs;
+}
+
+BSDFs CreateMetalMaterial(Interaction isect)
+{
+    BSDFs bsdfs;
+    bsdfs.Init();
+    bsdfs.isect = isect;
+    
+    bsdfs.AddBxDF(BxDF_MicrofacetReflection);
+    
+    float aspect = sqrt(1.0 - isect.material.anisotropic * 0.9);
+    float urough = max(0.001, isect.material.roughness / aspect);
+    float vrough = max(0.001, isect.material.roughness * aspect);
+        
+    microfacet_reflection.Fresnel_Type = FresnelType_Conductor;
+    microfacet_reflection.Distribution_Type = DistributionType_TrowbridgeReitz;
+    microfacet_reflection.R = isect.material.base_color.rgb;
+    microfacet_reflection.fresnel_conductor.etaI = float3(1.0, 1.0, 1.0);
+    microfacet_reflection.fresnel_conductor.etaT = float3(1, 10, 11);
+    microfacet_reflection.fresnel_conductor.k = float3(3.90463543, 2.44763327, 2.13765264);
+    microfacet_reflection.trowbridgereitz_distribution.alpha_x = urough;
+    microfacet_reflection.trowbridgereitz_distribution.alpha_y = vrough;
+    microfacet_reflection.trowbridgereitz_distribution.sample_visible_area = true;
+    
+    return bsdfs;
+}
+
+BSDFs CreateSubstrateMaterial(Interaction isect)
+{
+    BSDFs bsdfs;
+    bsdfs.Init();
+    bsdfs.isect = isect;
+    
+    bsdfs.AddBxDF(BxDF_FresnelBlend);
+    
+    float aspect = sqrt(1.0 - isect.material.anisotropic * 0.9);
+    float urough = max(0.001, isect.material.roughness / aspect);
+    float vrough = max(0.001, isect.material.roughness * aspect);
+    
+    fresnel_blend.Distribution_Type = DistributionType_TrowbridgeReitz;
+    fresnel_blend.Rd = isect.material.base_color.rgb;
+    fresnel_blend.Rs = isect.material.data;
+    fresnel_blend.trowbridgereitz_distribution.alpha_x = urough;
+    fresnel_blend.trowbridgereitz_distribution.alpha_y = vrough;
+    fresnel_blend.trowbridgereitz_distribution.sample_visible_area = true;
+    
+    return bsdfs;
+}
+
+BSDFs CreateGlassMaterial(Interaction isect)
+{
+    BSDFs bsdfs;
+    bsdfs.Init();
+    bsdfs.isect = isect;
+    
+    float aspect = sqrt(1.0 - isect.material.anisotropic * 0.9);
+    float urough = max(0.001, isect.material.roughness / aspect);
+    float vrough = max(0.001, isect.material.roughness * aspect);
+    
+    float3 R = isect.material.base_color.rgb;
+    float3 T = isect.material.data;
+    
+    float refraction = isect.material.transmission;
+    float anisotropic = isect.material.anisotropic;
+    float roughness = isect.material.roughness;
+        
+    if (IsBlack(R) && IsBlack(T))
+    {
+        return bsdfs;
+    }
+    
+    bool isSpecular = (urough == 0 && vrough == 0);
+    
+    if(isSpecular)
+    {
+        bsdfs.AddBxDF(BxDF_FresnelSpecular);
+    }
+    else
+    {
+        if(!IsBlack(R))
+        {
+            bsdfs.AddBxDF(BxDF_MicrofacetReflection);
+        }
+        if (!IsBlack(T))
+        {
+            bsdfs.AddBxDF(BxDF_MicrofacetTransmission);
+        }
+    }
+            
+    fresnel_specular.R = R;
+    fresnel_specular.T = T;
+    fresnel_specular.etaA = 1.0;
+    fresnel_specular.etaB = refraction;
+    fresnel_specular.mode = TransportMode_Radiance;
+        
+    microfacet_reflection.Distribution_Type = DistributionType_TrowbridgeReitz;
+    microfacet_reflection.Fresnel_Type = FresnelType_Dielectric;
+    microfacet_reflection.R = R;
+    microfacet_reflection.fresnel_dielectric.etaI = 1.0;
+    microfacet_reflection.fresnel_dielectric.etaT = refraction;
+    microfacet_reflection.trowbridgereitz_distribution.alpha_x = urough;
+    microfacet_reflection.trowbridgereitz_distribution.alpha_y = vrough;
+    microfacet_reflection.trowbridgereitz_distribution.sample_visible_area = true;
+        
+    microfacet_transmission.Distribution_Type = DistributionType_TrowbridgeReitz;
+    microfacet_transmission.Fresnel_Type = FresnelType_Dielectric;
+    microfacet_transmission.T = T;
+    microfacet_transmission.etaA = 1.0;
+    microfacet_transmission.etaB = refraction;
+    microfacet_transmission.fresnel_dielectric = microfacet_reflection.fresnel_dielectric;
+    microfacet_transmission.trowbridgereitz_distribution = microfacet_reflection.trowbridgereitz_distribution;
+    
+    return bsdfs;
+}
+
+////////////// BSDF //////////////
+struct BSDF
+{
+    Material mat;
+    Interaction isect;
+    BSDFs bsdf;
+    
+    void Init(Interaction isect_)
+    {
+        mat = isect_.material;
+        isect = isect_;
+        
+        switch (mat.material_type)
+        {
+            case Material_Matte:
+                bsdf = CreateMatteMaterial(isect);
+                break;
+            case Material_Plastic:
+                bsdf = CreatePlasticMaterial(isect);
+                break;
+            case Material_Mirror:
+                bsdf = CreateMirrorMaterial(isect);
+                break;
+            case Material_Metal:
+                bsdf = CreateMetalMaterial(isect);
+                break;
+            case Material_Substrate:
+                bsdf = CreateSubstrateMaterial(isect);
+                break;
+            case Material_Glass:
+                bsdf = CreateGlassMaterial(isect);
+                break;
+        }
+    }
+    
+    float3 f(float3 wo, float3 wi)
+    {
+        return bsdf.f(wo, wi, BSDF_ALL);
+    }
+    
+    float3 Samplef(float3 wo, Sampler _sampler, out float3 wi, out float pdf)
+    {
+        uint type;
+        return bsdf.Samplef(wo, _sampler, wi, pdf, BSDF_ALL, type);
     }
 };
 

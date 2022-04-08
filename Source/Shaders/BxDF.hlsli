@@ -20,6 +20,21 @@ static const uint FresnelType_Op = 1 << 2;
 static const uint TransportMode_Radiance = 1 << 0;
 static const uint TransportMode_Importance = 1 << 1;
 
+static const uint BSDF_REFLECTION = 1 << 0;
+static const uint BSDF_TRANSMISSION = 1 << 1;
+static const uint BSDF_DIFFUSE = 1 << 2;
+static const uint BSDF_GLOSSY = 1 << 3;
+static const uint BSDF_SPECULAR = 1 << 4;
+static const uint BSDF_ALL = BSDF_DIFFUSE | BSDF_GLOSSY | BSDF_SPECULAR | BSDF_REFLECTION | BSDF_TRANSMISSION;
+
+static const uint BxDF_OrenNayar = 1 << 0;
+static const uint BxDF_LambertianReflection = 1 << 1;
+static const uint BxDF_MicrofacetReflection = 1 << 2;
+static const uint BxDF_SpecularReflection = 1 << 3;
+static const uint BxDF_FresnelBlend = 1 << 4;
+static const uint BxDF_FresnelSpecular = 1 << 5;
+static const uint BxDF_MicrofacetTransmission = 1 << 6;
+
 ////////////// Beckmann Sample //////////////
 void BeckmannSample11(float cosThetaI, float U1, float U2, out float slope_x, out float slope_y)
 {
@@ -289,7 +304,8 @@ struct FresnelOp
 struct LambertianReflection
 {
     float3 R;
-    
+    static const uint BxDF_Type = BSDF_REFLECTION | BSDF_DIFFUSE;
+        
     float3 f(float3 wo, float3 wi)
     {
         return R * InvPI;
@@ -300,9 +316,9 @@ struct LambertianReflection
         return SameHemisphere(wo, wi) ? AbsCosTheta(wi) * InvPI : 0.0;
     }
     
-    float3 Samplef(float3 wo, Sampler _sampler, out float3 wi, out float pdf)
+    float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
     {
-        wi = SampleCosineHemisphere(_sampler.Get2D());
+        wi = SampleCosineHemisphere(u);
         if (wo.z < 0.0)
         {
             wi.z *= -1.0;
@@ -317,6 +333,7 @@ struct OrenNayar
 {
     float3 R;
     float A, B;
+    static const uint BxDF_Type = BSDF_REFLECTION | BSDF_DIFFUSE;
 
     void Init(float3 R_, float sigma)
     {
@@ -366,9 +383,9 @@ struct OrenNayar
         return SameHemisphere(wo, wi) ? AbsCosTheta(wi) * InvPI : 0.0;
     }
     
-    float3 Samplef(float3 wo, Sampler _sampler, out float3 wi, out float pdf)
+    float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
     {
-        wi = SampleCosineHemisphere(_sampler.Get2D());
+        wi = SampleCosineHemisphere(u);
         if (wo.z < 0.0)
         {
             wi.z *= -1.0;
@@ -399,10 +416,8 @@ struct BeckmannDistribution
 	       (PI * alpha_x * alpha_y * cos4Theta);
     }
     
-    float3 SampleWh(float3 wo, Sampler _sampler)
-    {
-        float2 u = _sampler.Get2D();
-
+    float3 SampleWh(float3 wo, float2 u)
+    {   
         if (!sample_visible_area)
         {
             float tan2Theta, phi;
@@ -514,10 +529,10 @@ struct TrowbridgeReitzDistribution
         return 1 / (PI * alpha_x * alpha_y * cos4Theta * (1 + e) * (1 + e));
     }
     
-    float3 SampleWh(float3 wo, Sampler _sampler)
+    float3 SampleWh(float3 wo, float2 u)
     {
         float3 wh = float3(0.0, 0.0, 0.0);
-        float2 u = _sampler.Get2D();
+        
 
         if (!sample_visible_area)
         {
@@ -606,6 +621,7 @@ struct MicrofacetReflection
 {
     uint Distribution_Type;
     uint Fresnel_Type;
+    static const uint BxDF_Type = BSDF_REFLECTION | BSDF_GLOSSY;
     
     float3 R;
     
@@ -615,7 +631,7 @@ struct MicrofacetReflection
     
     BeckmannDistribution beckmann_distribution;
     TrowbridgeReitzDistribution trowbridgereitz_distribution;
-    
+        
     float3 f(float3 wo, float3 wi)
     {
         float cosThetaO = AbsCosTheta(wo);
@@ -685,7 +701,7 @@ struct MicrofacetReflection
         return 0.0;
     }
     
-    float3 Samplef(float3 wo, Sampler _sampler, out float3 wi, out float pdf)
+    float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
     {        
         if (wo.z < 0.0)
         {
@@ -696,11 +712,11 @@ struct MicrofacetReflection
         
         if (Distribution_Type == DistributionType_Beckmann)
         {
-            wh = beckmann_distribution.SampleWh(wo, _sampler);
+            wh = beckmann_distribution.SampleWh(wo, u);
         }
         else if (Distribution_Type == DistributionType_TrowbridgeReitz)
         {
-            wh = trowbridgereitz_distribution.SampleWh(wo, _sampler);
+            wh = trowbridgereitz_distribution.SampleWh(wo, u);
         }
 
         if (dot(wo, wh) < 0.0)
@@ -732,6 +748,7 @@ struct MicrofacetReflection
 struct SpecularReflection
 {
     float3 R;
+    static const uint BxDF_Type = BSDF_REFLECTION | BSDF_SPECULAR;
     
     float3 f(float3 wo, float3 wi)
     {
@@ -743,7 +760,7 @@ struct SpecularReflection
         return 0.0;
     }
     
-    float3 Samplef(float3 wo, Sampler _sampler, out float3 wi, out float pdf)
+    float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
     {
         wi = float3(-wo.x, -wo.y, wo.z);
         pdf = 1.0;
@@ -757,6 +774,8 @@ struct FresnelBlend
 {
     float3 Rd;
     float3 Rs;
+    
+    static const uint BxDF_Type = BSDF_REFLECTION | BSDF_GLOSSY;
     
     uint Distribution_Type;
         
@@ -822,9 +841,9 @@ struct FresnelBlend
         return 0.5 * (AbsCosTheta(wi) * InvPI + pdf_wh / (4.0 * dot(wo, wh)));
     }
     
-    float3 Samplef(float3 wo, Sampler _sampler, out float3 wi, out float pdf)
+    float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
     {
-        float2 u = _sampler.Get2D();
+        
 
         if (u.x < 0.5)
         {
@@ -842,11 +861,11 @@ struct FresnelBlend
         
             if (Distribution_Type == DistributionType_Beckmann)
             {
-                wh = beckmann_distribution.SampleWh(wo, _sampler);
+                wh = beckmann_distribution.SampleWh(wo, u);
             }
             else if (Distribution_Type == DistributionType_TrowbridgeReitz)
             {
-                wh = trowbridgereitz_distribution.SampleWh(wo, _sampler);
+                wh = trowbridgereitz_distribution.SampleWh(wo, u);
             }
             
             wi = reflect(wo, wh);
@@ -879,7 +898,7 @@ struct SpecularTransmission
         return 0.0;
     }
     
-    float3 Samplef(float3 wo, Sampler _sampler, out float3 wi, out float pdf)
+    float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
     {
         bool entering = CosTheta(wo) > 0.0;
         float etaI = entering ? etaA : etaB;
@@ -909,6 +928,8 @@ struct MicrofacetTransmission
     float3 T;
     float etaA, etaB;
     uint mode;
+    
+    static const uint BxDF_Type = BSDF_TRANSMISSION | BSDF_GLOSSY;
     
     uint Distribution_Type;
     uint Fresnel_Type;
@@ -1015,7 +1036,7 @@ struct MicrofacetTransmission
         return pdf * dwh_dwi;
     }
     
-    float3 Samplef(float3 wo, Sampler _sampler, out float3 wi, out float pdf)
+    float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
     {                
         bool entering = CosTheta(wo) > 0.0;
         float etaI = entering ? etaA : etaB;
@@ -1025,11 +1046,11 @@ struct MicrofacetTransmission
         
         if (Distribution_Type == DistributionType_Beckmann)
         {
-            wh = beckmann_distribution.SampleWh(wo, _sampler);
+            wh = beckmann_distribution.SampleWh(wo, u);
         }
         else if (Distribution_Type == DistributionType_TrowbridgeReitz)
         {
-            wh = trowbridgereitz_distribution.SampleWh(wo, _sampler);
+            wh = trowbridgereitz_distribution.SampleWh(wo, u);
         }
 
         if (!Refract(wo, Faceforward(wh, wo), etaI / etaT, wi))
@@ -1052,6 +1073,8 @@ struct FresnelSpecular
     float etaB;
     uint mode;
     
+    static const uint BxDF_Type = BSDF_REFLECTION | BSDF_TRANSMISSION | BSDF_SPECULAR;
+    
     float3 f(float3 wo, float3 wi)
     {
         return float3(0.0, 0.0, 0.0);
@@ -1062,12 +1085,12 @@ struct FresnelSpecular
         return 0.0;
     }
     
-    float3 Samplef(float3 wo, Sampler _sampler, out float3 wi, out float pdf)
+    float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
     {
         FresnelDielectric fresnel = { etaA, etaB };
         float3 F = fresnel.Evaluate(CosTheta(wo));
 
-        float2 u = _sampler.Get2D();
+        
 
         if (u.x < F.x)
         {
@@ -1099,5 +1122,36 @@ struct FresnelSpecular
         }
     }
 };
+
+////////////// Disney Diffuse //////////////
+struct DisneyDiffuse
+{
+    float3 R;
+    
+    float3 f(float3 wo, float3 wi)
+    {
+        float Fo = SchlickWeight(AbsCosTheta(wo));
+        float Fi = SchlickWeight(AbsCosTheta(wi));
+        return R * InvPI * (1.0 - Fo / 2.0) * (1.0 - Fi / 2.0);
+    }
+    
+    float Pdf(float3 wo, float3 wi)
+    {
+        return SameHemisphere(wo, wi) ? AbsCosTheta(wi) * InvPI : 0;
+    }
+    
+    float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
+    {
+        wi = SampleCosineHemisphere(u);
+        if (wo.z < 0)
+        {
+            wi.z *= -1;
+        }
+        pdf = Pdf(wo, wi);
+        return f(wo, wi);
+    }
+};
+
+////////////// Disney Material //////////////
 
 #endif

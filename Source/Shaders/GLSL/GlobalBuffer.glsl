@@ -91,14 +91,14 @@ struct CountData
 #define TEXTURE_DISPLACEMENT 6
 #define TEXTURE_MAX_NUM 7
 
-#define BxDF_CookTorrance 0
-#define BxDF_Disney 1
-#define BxDF_Matte 2
-#define BxDF_Plastic 3
-#define BxDF_Metal 4
-#define BxDF_Mirror 5
-#define BxDF_Substrate 6
-#define BxDF_Glass 7
+#define Material_CookTorrance 0
+#define Material_Disney 1
+#define Material_Matte 2
+#define Material_Plastic 3
+#define Material_Metal 4
+#define Material_Mirror 5
+#define Material_Substrate 6
+#define Material_Glass 7
 
 #define BSDF_REFLECTION 1 << 0
 #define BSDF_TRANSMISSION 1 << 0

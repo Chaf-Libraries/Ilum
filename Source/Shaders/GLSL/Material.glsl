@@ -550,37 +550,37 @@ vec3 SampleDistribution(in DisneyMaterial mat, in vec3 wo, inout uint seed, out 
 ////////////// Material Sampling//////////////
 vec3 Distribution(Material mat, vec3 wo, vec3 wi)
 {
-	if (mat.material_type == BxDF_Matte)
+	if (mat.material_type == Material_Matte)
 	{
 		MatteMaterial matte;
 		Init(matte, mat);
 		return Distribution(matte, wo, wi);
 	}
-	else if (mat.material_type == BxDF_Plastic)
+	else if (mat.material_type == Material_Plastic)
 	{
 		PlasticMaterial plastic;
 		Init(plastic, mat);
 		return Distribution(plastic, wo, wi);
 	}
-	else if (mat.material_type == BxDF_Metal)
+	else if (mat.material_type == Material_Metal)
 	{
 		MetalMaterial metal;
 		Init(metal, mat);
 		return Distribution(metal, wo, wi);
 	}
-	else if (mat.material_type == BxDF_Mirror)
+	else if (mat.material_type == Material_Mirror)
 	{
 		MirrorMaterial mirror;
 		Init(mirror, mat);
 		return Distribution(mirror, wo, wi);
 	}
-	else if (mat.material_type == BxDF_Substrate)
+	else if (mat.material_type == Material_Substrate)
 	{
 		SubstrateMaterial substrate;
 		Init(substrate, mat);
 		return Distribution(substrate, wo, wi);
 	}
-	else if (mat.material_type == BxDF_Substrate)
+	else if (mat.material_type == Material_Substrate)
 	{
 		GlassMaterial glass;
 		Init(glass, mat);
@@ -592,37 +592,37 @@ vec3 Distribution(Material mat, vec3 wo, vec3 wi)
 
 vec3 SampleDistribution(in Material mat, in vec3 wo, inout uint seed, out vec3 wi, out float pdf)
 {
-	if (mat.material_type == BxDF_Matte)
+	if (mat.material_type == Material_Matte)
 	{
 		MatteMaterial matte;
 		Init(matte, mat);
 		return SampleDistribution(matte, wo, seed, wi, pdf);
 	}
-	else if (mat.material_type == BxDF_Plastic)
+	else if (mat.material_type == Material_Plastic)
 	{
 		PlasticMaterial plastic;
 		Init(plastic, mat);
 		return SampleDistribution(plastic, wo, seed, wi, pdf);
 	}
-	else if (mat.material_type == BxDF_Metal)
+	else if (mat.material_type == Material_Metal)
 	{
 		MetalMaterial metal;
 		Init(metal, mat);
 		return SampleDistribution(metal, wo, seed, wi, pdf);
 	}
-	else if (mat.material_type == BxDF_Mirror)
+	else if (mat.material_type == Material_Mirror)
 	{
 		MirrorMaterial mirror;
 		Init(mirror, mat);
 		return SampleDistribution(mirror, wo, seed, wi, pdf);
 	}
-	else if (mat.material_type == BxDF_Substrate)
+	else if (mat.material_type == Material_Substrate)
 	{
 		SubstrateMaterial substrate;
 		Init(substrate, mat);
 		return SampleDistribution(substrate, wo, seed, wi, pdf);
 	}
-	else if (mat.material_type == BxDF_Glass)
+	else if (mat.material_type == Material_Glass)
 	{
 		GlassMaterial glass;
 		Init(glass, mat);

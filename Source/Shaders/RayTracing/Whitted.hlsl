@@ -23,9 +23,7 @@ struct WhittedIntegrator
         
             const float3 n = isect.ffnormal;
             float3 wo = isect.wo;
-            
-            wo = normalize(isect.WorldToLocal(wo));
-        
+                    
             // TODO: Sampling emissive
             // TODO: Handle area light
             
@@ -47,10 +45,11 @@ struct WhittedIntegrator
                 
                 if (!IsBlack(Li) && VisibilityTest(isect, dir, dist))
                 {
-                    wi = isect.WorldToLocalDir(wi);
-                    BSDF bsdf = { isect.material };
+                    //wi = isect.WorldToLocalDir(wi);
+                    BSDF bsdf;
+                    bsdf.Init(isect);
                     float3 f = bsdf.f(wo, wi);
-                    wi = isect.LocalToWorldDir(wi);
+                    //wi = isect.LocalToWorldDir(wi);
                     radiance += throughout * f * Li * abs(dot(wi, isect.ffnormal)) / pdf;
                 }
             }
@@ -73,7 +72,8 @@ struct WhittedIntegrator
                 if (!IsBlack(Li) && VisibilityTest(isect, dir, dist))
                 {
                     wi = isect.WorldToLocalDir(wi);
-                    BSDF bsdf = { isect.material };
+                    BSDF bsdf;
+                    bsdf.Init(isect);
                     float3 f = bsdf.f(wo, wi);
                     wi = isect.LocalToWorldDir(wi);
                     radiance += throughout * f * Li * abs(dot(wi, isect.ffnormal)) / pdf;
@@ -98,7 +98,8 @@ struct WhittedIntegrator
                 if (!IsBlack(Li) && VisibilityTest(isect, dir, dist))
                 {
                     wi = isect.WorldToLocalDir(wi);
-                    BSDF bsdf = { isect.material };
+                    BSDF bsdf;
+                    bsdf.Init(isect);
                     float3 f = bsdf.f(wo, wi);
                     wi = isect.LocalToWorldDir(wi);
                     radiance += throughout * f * Li * abs(dot(wi, isect.ffnormal)) / pdf;
@@ -109,9 +110,10 @@ struct WhittedIntegrator
             float3 wi;
             float pdf;
 		    
-            BSDF bsdf = { isect.material };
+            BSDF bsdf;
+            bsdf.Init(isect);
             float3 f = bsdf.Samplef(wo, _sampler, wi, pdf);
-            wi = isect.LocalToWorld(wi);
+            //wi = isect.LocalToWorld(wi);
             
             //radiance = f;
 
