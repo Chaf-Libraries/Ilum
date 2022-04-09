@@ -85,13 +85,17 @@ struct MaterialData
 	float sheen_tint;
 	float clearcoat;
 	float clearcoat_gloss;
-	float transmission;
+	float specular_transmission;
 
-	float    transmission_roughness;
+	float    diffuse_transmission;
 	uint32_t textures[TextureType::MaxNum];
 
 	glm::vec3 data;
-	uint32_t material_type;
+	uint32_t  material_type;
+
+	alignas(16)float refraction;
+	float flatness;
+	float thin;
 };
 
 struct CameraData

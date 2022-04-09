@@ -985,15 +985,15 @@ struct MicrofacetTransmission
 
         if (Fresnel_Type == FresnelType_Conductor)
         {
-            F = fresnel_conductor.Evaluate(dot(wi, Faceforward(wh, float3(0.0, 0.0, 1.0))));
+            F = fresnel_conductor.Evaluate(dot(wo, wh));
         }
         else if (Fresnel_Type == FresnelType_Dielectric)
         {
-            F = fresnel_dielectric.Evaluate(dot(wi, Faceforward(wh, float3(0.0, 0.0, 1.0))));
+            F = fresnel_dielectric.Evaluate(dot(wo, wh));
         }
         else if (Fresnel_Type == FresnelType_Op)
         {
-            F = fresnel_op.Evaluate(dot(wi, Faceforward(wh, float3(0.0, 0.0, 1.0))));
+            F = fresnel_op.Evaluate(dot(wo, wh));
         }
 
         float sqrt_denom = dot(wo, wh) + eta * dot(wi, wh);
@@ -1037,7 +1037,12 @@ struct MicrofacetTransmission
     }
     
     float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
-    {                
+    {
+        if(wo.z == 0.0)
+        {
+            return float3(0.0, 0.0, 0.0);
+        }
+        
         bool entering = CosTheta(wo) > 0.0;
         float etaI = entering ? etaA : etaB;
         float etaT = entering ? etaB : etaA;
@@ -1089,8 +1094,6 @@ struct FresnelSpecular
     {
         FresnelDielectric fresnel = { etaA, etaB };
         float3 F = fresnel.Evaluate(CosTheta(wo));
-
-        
 
         if (u.x < F.x)
         {
@@ -1151,7 +1154,5 @@ struct DisneyDiffuse
         return f(wo, wi);
     }
 };
-
-////////////// Disney Material //////////////
 
 #endif

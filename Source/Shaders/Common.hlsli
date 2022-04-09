@@ -144,13 +144,17 @@ struct MaterialData
     float sheen_tint;
     float clearcoat;
     float clearcoat_gloss;
-    float transmission;
+    float specular_transmission;
 
-    float transmission_roughness;
+    float diffuse_transmission;
     uint textures[TEXTURE_MAX_NUM];
 
     float3 data;
     uint material_type;
+    
+    float refraction;
+    float flatness;
+    float thin;
 };
 
 struct Material
@@ -167,7 +171,11 @@ struct Material
     float sheen_tint;
     float clearcoat;
     float clearcoat_gloss;
-    float transmission;
+    float specular_transmission;
+    float diffuse_transmission;
+    float refraction;
+    float flatness;
+    float thin;
     float3 data;
     uint material_type;
 };

@@ -131,7 +131,11 @@ void GetMaterial(inout Interaction interaction, RayDesc r, uint matID)
     interaction.material.sheen_tint = material.sheen_tint;
     interaction.material.clearcoat = material.clearcoat;
     interaction.material.clearcoat_gloss = material.clearcoat_gloss;
-    interaction.material.transmission = material.transmission;
+    interaction.material.specular_transmission = material.specular_transmission;
+    interaction.material.diffuse_transmission = material.diffuse_transmission;
+    interaction.material.refraction = material.refraction;
+    interaction.material.flatness = material.flatness;
+    interaction.material.thin = material.thin;
     interaction.material.material_type = material.material_type;
     interaction.material.data = material.data;
 

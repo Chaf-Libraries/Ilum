@@ -208,9 +208,12 @@ inline void draw_material<BxDFType::Disney>(Material &material)
 	Material::update = ImGui::DragFloat("Sheen Tint", &material.sheen_tint, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Clearcoat", &material.clearcoat, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Clearcoat Gloss", &material.clearcoat_gloss, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
-	Material::update = ImGui::DragFloat("Transmission", &material.transmission, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
-	Material::update = ImGui::DragFloat("Transmission Roughness", &material.transmission_roughness, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Specular Transmission", &material.specular_transmission, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Diffuse Transmission", &material.diffuse_transmission, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Flatness", &material.flatness, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Refraction", &material.refraction, 0.001f, 0.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Displacement", &material.displacement, 0.001f, 0.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
+	Material::update = ImGui::Checkbox("Thin", reinterpret_cast<bool*>(&material.flatness)) || Material::update;
 
 	ImGui::Text("Albedo Map");
 	Material::update = draw_texture(material.textures[TextureType::BaseColor], "Albedo Map") || Material::update;
@@ -349,7 +352,7 @@ inline void draw_material<BxDFType::Glass>(Material &material)
 {
 	Material::update = ImGui::ColorEdit3("Reflection Color", glm::value_ptr(material.base_color)) || Material::update;
 	Material::update = ImGui::ColorEdit3("Transmission Color", glm::value_ptr(material.data)) || Material::update;
-	Material::update = ImGui::DragFloat("Refraction", &material.transmission, 0.001f, std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f") || Material::update;
+	Material::update = ImGui::DragFloat("Refraction", &material.refraction, 0.001f, std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Roughness", &material.roughness, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Anisotropic", &material.anisotropic, 0.001f, -1.f, 1.f, "%.3f") || Material::update;
 

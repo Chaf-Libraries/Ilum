@@ -71,8 +71,11 @@ void MaterialUpdate::run()
 				material.sheen_tint             = material_ptr.sheen_tint;
 				material.clearcoat              = material_ptr.clearcoat;
 				material.clearcoat_gloss        = material_ptr.clearcoat_gloss;
-				material.transmission           = material_ptr.transmission;
-				material.transmission_roughness = material_ptr.transmission_roughness;
+				material.specular_transmission  = material_ptr.specular_transmission;
+				material.diffuse_transmission   = material_ptr.diffuse_transmission;
+				material.flatness               = material_ptr.flatness;
+				material.thin                   = material_ptr.thin;
+				material.refraction             = material_ptr.refraction;
 				material.data                   = material_ptr.data;
 				material.material_type          = static_cast<uint32_t>(material_ptr.type);
 
@@ -109,8 +112,11 @@ void MaterialUpdate::run()
 				material.sheen_tint             = material_ptr.sheen_tint;
 				material.clearcoat              = material_ptr.clearcoat;
 				material.clearcoat_gloss        = material_ptr.clearcoat_gloss;
-				material.transmission           = material_ptr.transmission;
-				material.transmission_roughness = material_ptr.transmission_roughness;
+				material.specular_transmission  = material_ptr.specular_transmission;
+				material.diffuse_transmission   = material_ptr.diffuse_transmission;
+				material.flatness               = material_ptr.flatness;
+				material.thin                   = material_ptr.thin;
+				material.refraction             = material_ptr.refraction;
 				material.data                   = material_ptr.data;
 				material.material_type          = static_cast<uint32_t>(material_ptr.type);
 

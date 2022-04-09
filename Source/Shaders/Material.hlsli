@@ -226,14 +226,6 @@ struct BSDFs
             return float3(0.0, 0.0, 0.0);
         }
         
-        {
-            float3 f = bxdf.Samplef(wo, _sampler.Get2D(), wiW, pdf);
-            wiW = isect.LocalToWorld(wiW);
-            return f;
-        }
-                
-
-        
         pdf = 0.0;
         sampled_type = bxdf.GetBxDFType();
         float3 f = bxdf.Samplef(wo, _sampler.Get2D(), wi, pdf);
@@ -243,7 +235,7 @@ struct BSDFs
             sampled_type = 0;
             return float3(0.0, 0.0, 0.0);
         }
-        wiW = isect.LocalToWorldDir(wi);
+        wiW = isect.LocalToWorld(wi);
         
         if (!(bxdf.GetBxDFType() & BSDF_SPECULAR) && matching_compts > 1)
         {
@@ -394,13 +386,13 @@ BSDFs CreateGlassMaterial(Interaction isect)
     bsdfs.isect = isect;
     
     float aspect = sqrt(1.0 - isect.material.anisotropic * 0.9);
-    float urough = max(0.001, isect.material.roughness / aspect);
-    float vrough = max(0.001, isect.material.roughness * aspect);
+    float urough = isect.material.roughness / aspect;
+    float vrough = isect.material.roughness * aspect;
     
     float3 R = isect.material.base_color.rgb;
     float3 T = isect.material.data;
     
-    float refraction = isect.material.transmission;
+    float refraction = isect.material.refraction;
     float anisotropic = isect.material.anisotropic;
     float roughness = isect.material.roughness;
         
@@ -449,6 +441,19 @@ BSDFs CreateGlassMaterial(Interaction isect)
     microfacet_transmission.etaB = refraction;
     microfacet_transmission.fresnel_dielectric = microfacet_reflection.fresnel_dielectric;
     microfacet_transmission.trowbridgereitz_distribution = microfacet_reflection.trowbridgereitz_distribution;
+    
+    return bsdfs;
+}
+
+BSDFs CreateDisneyMaterial(Interaction isect)
+{
+    BSDFs bsdfs;
+    bsdfs.Init();
+    bsdfs.isect = isect;
+    
+    float3 c = isect.material.base_color.rgb;
+    float metallicWeight = isect.material.metallic;
+    float e = isect.material.refraction;
     
     return bsdfs;
 }
