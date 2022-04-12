@@ -31,9 +31,11 @@ static const uint BxDF_OrenNayar = 1 << 0;
 static const uint BxDF_LambertianReflection = 1 << 1;
 static const uint BxDF_MicrofacetReflection = 1 << 2;
 static const uint BxDF_SpecularReflection = 1 << 3;
-static const uint BxDF_FresnelBlend = 1 << 4;
-static const uint BxDF_FresnelSpecular = 1 << 5;
-static const uint BxDF_MicrofacetTransmission = 1 << 6;
+static const uint BxDF_SpecularTransmission = 1 << 4;
+static const uint BxDF_FresnelBlend = 1 << 5;
+static const uint BxDF_FresnelSpecular = 1 << 6;
+static const uint BxDF_MicrofacetTransmission = 1 << 7;
+static const uint BxDF_DisneyDiffuse = 1 << 8;
 
 ////////////// Beckmann Sample //////////////
 void BeckmannSample11(float cosThetaI, float U1, float U2, out float slope_x, out float slope_y)
@@ -417,7 +419,7 @@ struct BeckmannDistribution
     }
     
     float3 SampleWh(float3 wo, float2 u)
-    {   
+    {
         if (!sample_visible_area)
         {
             float tan2Theta, phi;
@@ -654,7 +656,7 @@ struct MicrofacetReflection
         float D = 0.0;
         float G = 0.0;
         
-        if(Distribution_Type == DistributionType_Beckmann)
+        if (Distribution_Type == DistributionType_Beckmann)
         {
             D = beckmann_distribution.D(wh);
             G = beckmann_distribution.G(wo, wi);
@@ -665,11 +667,11 @@ struct MicrofacetReflection
             G = trowbridgereitz_distribution.G(wo, wi);
         }
 
-        if(Fresnel_Type==FresnelType_Conductor)
+        if (Fresnel_Type == FresnelType_Conductor)
         {
             F = fresnel_conductor.Evaluate(dot(wi, Faceforward(wh, float3(0.0, 0.0, 1.0))));
         }
-        else if(Fresnel_Type == FresnelType_Dielectric)
+        else if (Fresnel_Type == FresnelType_Dielectric)
         {
             F = fresnel_dielectric.Evaluate(dot(wi, Faceforward(wh, float3(0.0, 0.0, 1.0))));
         }
@@ -702,7 +704,7 @@ struct MicrofacetReflection
     }
     
     float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
-    {        
+    {
         if (wo.z < 0.0)
         {
             return float3(0.0, 0.0, 0.0);
@@ -843,8 +845,6 @@ struct FresnelBlend
     
     float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
     {
-        
-
         if (u.x < 0.5)
         {
             u.x = min(2.0 * u.x, 0.999999);
@@ -887,6 +887,8 @@ struct SpecularTransmission
     float etaA, etaB;
     FresnelDielectric fresnel;
     uint mode;
+    
+    static const uint BxDF_Type = BSDF_TRANSMISSION | BSDF_SPECULAR; 
     
     float3 f(float3 wo, float3 wi)
     {
@@ -1038,7 +1040,7 @@ struct MicrofacetTransmission
     
     float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
     {
-        if(wo.z == 0.0)
+        if (wo.z == 0.0)
         {
             return float3(0.0, 0.0, 0.0);
         }
@@ -1130,6 +1132,8 @@ struct FresnelSpecular
 struct DisneyDiffuse
 {
     float3 R;
+    
+    static const uint BxDF_Type = BSDF_REFLECTION | BSDF_DIFFUSE;
     
     float3 f(float3 wo, float3 wi)
     {
