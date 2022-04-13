@@ -196,6 +196,7 @@ template <>
 inline void draw_material<BxDFType::Disney>(Material &material)
 {
 	Material::update = ImGui::ColorEdit4("Base Color", glm::value_ptr(material.base_color)) || Material::update;
+	Material::update = ImGui::ColorEdit3("Scatter Distance", glm::value_ptr(material.data)) || Material::update;
 	Material::update = ImGui::ColorEdit3("Emissive", glm::value_ptr(material.emissive_color)) || Material::update;
 	Material::update = ImGui::DragFloat("Emissive Intensity", &material.emissive_intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Metallic", &material.metallic, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
@@ -213,7 +214,10 @@ inline void draw_material<BxDFType::Disney>(Material &material)
 	Material::update = ImGui::DragFloat("Flatness", &material.flatness, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Refraction", &material.refraction, 0.001f, 0.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Displacement", &material.displacement, 0.001f, 0.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
-	Material::update = ImGui::Checkbox("Thin", reinterpret_cast<bool*>(&material.flatness)) || Material::update;
+	
+	bool thin        = material.thin > 0.0;
+	Material::update = ImGui::Checkbox("Thin", &thin) || Material::update;
+	material.thin    = thin ? 1.f : 0.f;
 
 	ImGui::Text("Albedo Map");
 	Material::update = draw_texture(material.textures[TextureType::BaseColor], "Albedo Map") || Material::update;

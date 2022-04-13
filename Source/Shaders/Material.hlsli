@@ -13,6 +13,9 @@ static FresnelBlend fresnel_blend;
 static FresnelSpecular fresnel_specular;
 static MicrofacetTransmission microfacet_transmission;
 static DisneyDiffuse disney_diffuse;
+static DisneyFakeSS disney_fakess;
+static DisneyRetro disney_retro;
+static DisneySheen disney_sheen;
 
 ////////////// BxDF //////////////
 struct BxDF
@@ -41,6 +44,12 @@ struct BxDF
                 return microfacet_transmission.f(wo, wi);
             case BxDF_DisneyDiffuse:
                 return disney_diffuse.f(wo, wi);
+            case BxDF_DisneyFakeSS:
+                return disney_fakess.f(wo, wi);
+            case BxDF_DisneyRetro:
+                return disney_retro.f(wo, wi);
+            case BxDF_DisneySheen:
+                return disney_sheen.f(wo, wi);
         }
         return float3(0.0, 0.0, 0.0);
     }
@@ -67,6 +76,12 @@ struct BxDF
                 return microfacet_transmission.Pdf(wo, wi);
             case BxDF_DisneyDiffuse:
                 return disney_diffuse.Pdf(wo, wi);
+            case BxDF_DisneyFakeSS:
+                return disney_fakess.Pdf(wo, wi);
+            case BxDF_DisneyRetro:
+                return disney_retro.Pdf(wo, wi);
+            case BxDF_DisneySheen:
+                return disney_sheen.Pdf(wo, wi);
         }
         return 0.0;
     }
@@ -93,6 +108,12 @@ struct BxDF
                 return microfacet_transmission.Samplef(wo, u, wi, pdf);
             case BxDF_DisneyDiffuse:
                 return disney_diffuse.Samplef(wo, u, wi, pdf);
+            case BxDF_DisneyFakeSS:
+                return disney_fakess.Samplef(wo, u, wi, pdf);
+            case BxDF_DisneyRetro:
+                return disney_retro.Samplef(wo, u, wi, pdf);
+            case BxDF_DisneySheen:
+                return disney_sheen.Samplef(wo, u, wi, pdf);
         }
         return float3(0.0, 0.0, 0.0);
     }
@@ -119,6 +140,12 @@ struct BxDF
                 return microfacet_transmission.BxDF_Type;
             case BxDF_DisneyDiffuse:
                 return disney_diffuse.BxDF_Type;
+            case BxDF_DisneyFakeSS:
+                return disney_fakess.BxDF_Type;
+            case BxDF_DisneyRetro:
+                return disney_retro.BxDF_Type;
+            case BxDF_DisneySheen:
+                return disney_sheen.BxDF_Type;
         }
         return 0;
     }
@@ -212,7 +239,7 @@ struct BSDFs
         return matching_cmpts > 0 ? pdf / matching_cmpts : 0.0;
     }
     
-    float3 Samplef(float3 woW, Sampler _sampler, out float3 wiW, out float pdf, uint BxDF_type, out uint sampled_type)
+    float3 Samplef(float3 woW, inout Sampler _sampler, out float3 wiW, out float pdf, uint BxDF_type, out uint sampled_type)
     {
         float2 u = _sampler.Get2D();
         int matching_compts = NumComponents(BxDF_type);
@@ -253,6 +280,7 @@ struct BSDFs
             sampled_type = 0;
             return float3(0.0, 0.0, 0.0);
         }
+        
         wiW = isect.LocalToWorld(wi);
         
         if (!(bxdf.GetBxDFType() & BSDF_SPECULAR) && matching_compts > 1)
@@ -476,7 +504,7 @@ BSDFs CreateDisneyMaterial(Interaction isect)
     float diffuseWeight = (1.0 - metallicWeight) * (1.0 - strans);
     float dt = isect.material.diffuse_transmission * 0.5;
     float rough = isect.material.roughness;
-    float lum = c.y;
+    float lum = dot(float3(0.212671, 0.715160, 0.072169), c);
     float3 Ctint = lum > 0.0 ? (c / lum) : float3(1.0, 1.0, 1.0);
     float sheenWeight = isect.material.sheen;
     float3 Csheen = float3(0.0, 0.0, 0.0);
@@ -493,9 +521,12 @@ BSDFs CreateDisneyMaterial(Interaction isect)
             float flat = isect.material.flatness;
             // Add Disney Diffuse
             bsdfs.AddBxDF(BxDF_DisneyDiffuse);
-            disney_diffuse.R = diffuseWeight * (1.0 - flat) * (1.0 - dt) * c;
+            disney_diffuse.R = Csheen;
             
-            // TODO: Add Disney FakeSS
+            // Add Disney FakeSS
+            bsdfs.AddBxDF(BxDF_DisneyFakeSS);
+            disney_fakess.R = Csheen;
+            disney_fakess.roughness = rough;
         }
         else
         {
@@ -515,17 +546,28 @@ BSDFs CreateDisneyMaterial(Interaction isect)
                 specular_transmission.T = float3(1.0, 1.0, 1.0);
                 specular_transmission.etaA = 1.0;
                 specular_transmission.etaB = e;
+                specular_transmission.fresnel.etaI = specular_transmission.etaA;
+                specular_transmission.fresnel.etaT = specular_transmission.etaB;
+                
+                // Add Disney Diffuse
+                bsdfs.AddBxDF(BxDF_DisneyDiffuse);
+                disney_diffuse.R = diffuseWeight * c;
                 
                 // TODO: Add Disney BSSRDF
             }
         }
         
-        // TODO: Add Disney Retro Reflection
+        // Add Disney Retro Reflection
+        bsdfs.AddBxDF(BxDF_DisneyRetro);
+        disney_retro.R = diffuseWeight * sheenWeight * Csheen;
+        disney_retro.roughness = rough;
         
         // Sheen
         if(sheenWeight>0.0)
         {
-            // TODO: Add Disney Sheen
+            // Add Disney Sheen
+            bsdfs.AddBxDF(BxDF_DisneySheen);
+            disney_sheen.R = diffuseWeight * sheenWeight * Csheen;
         }
     }
     
@@ -613,7 +655,7 @@ struct BSDF
         return bsdf.f(wo, wi, BSDF_ALL);
     }
     
-    float3 Samplef(float3 wo, Sampler _sampler, out float3 wi, out float pdf)
+    float3 Samplef(float3 wo, inout Sampler _sampler, out float3 wi, out float pdf)
     {
         uint type;
         return bsdf.Samplef(wo, _sampler, wi, pdf, BSDF_ALL, type);

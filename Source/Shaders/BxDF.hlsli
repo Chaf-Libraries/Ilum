@@ -36,6 +36,9 @@ static const uint BxDF_FresnelBlend = 1 << 5;
 static const uint BxDF_FresnelSpecular = 1 << 6;
 static const uint BxDF_MicrofacetTransmission = 1 << 7;
 static const uint BxDF_DisneyDiffuse = 1 << 8;
+static const uint BxDF_DisneyFakeSS = 1 << 9;
+static const uint BxDF_DisneyRetro = 1 << 10;
+static const uint BxDF_DisneySheen = 1 << 11;
 
 ////////////// Beckmann Sample //////////////
 void BeckmannSample11(float cosThetaI, float U1, float U2, out float slope_x, out float slope_y)
@@ -888,7 +891,7 @@ struct SpecularTransmission
     FresnelDielectric fresnel;
     uint mode;
     
-    static const uint BxDF_Type = BSDF_TRANSMISSION | BSDF_SPECULAR; 
+    static const uint BxDF_Type = BSDF_TRANSMISSION | BSDF_SPECULAR;
     
     float3 f(float3 wo, float3 wi)
     {
@@ -1139,7 +1142,128 @@ struct DisneyDiffuse
     {
         float Fo = SchlickWeight(AbsCosTheta(wo));
         float Fi = SchlickWeight(AbsCosTheta(wi));
-        return R * InvPI * (1.0 - Fo / 2.0) * (1.0 - Fi / 2.0);
+        return R * InvPI * (1.0 - Fo * 0.5) * (1.0 - Fi * 0.5);
+    }
+    
+    float Pdf(float3 wo, float3 wi)
+    {
+        return SameHemisphere(wo, wi) ? AbsCosTheta(wi) * InvPI : 0;
+    }
+    
+    float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
+    {
+        wi = SampleCosineHemisphere(u);
+        if (wo.z < 0)
+        {
+            wi.z *= -1;
+        }
+        pdf = Pdf(wo, wi);
+        return f(wo, wi);
+    }
+};
+
+////////////// Disney FakeSS //////////////
+struct DisneyFakeSS
+{
+    float3 R;
+    float roughness;
+    
+    static const uint BxDF_Type = BSDF_REFLECTION | BSDF_DIFFUSE;
+    
+    float3 f(float3 wo, float3 wi)
+    {
+        float3 wh = wi + wo;
+        if (IsBlack(wh))
+        {
+            return float3(0.0, 0.0, 0.0);
+        }
+        wh = normalize(wh);
+        float cosThetaD = dot(wi, wh);
+        float Fss90 = cosThetaD * cosThetaD * roughness;
+        float Fo = SchlickWeight(AbsCosTheta(wo));
+        float Fi = SchlickWeight(AbsCosTheta(wi));
+        float Fss = lerp(1.0, Fss90, Fo) * lerp(1.0, Fss90, Fi);
+        float ss = 1.25 * (Fss * (1.0 / (AbsCosTheta(wo) + AbsCosTheta(wi)) - 0.5) + 0.5);
+        
+        return R * InvPI * ss;
+    }
+    
+    float Pdf(float3 wo, float3 wi)
+    {
+        return SameHemisphere(wo, wi) ? AbsCosTheta(wi) * InvPI : 0;
+    }
+    
+    float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
+    {
+        wi = SampleCosineHemisphere(u);
+        if (wo.z < 0)
+        {
+            wi.z *= -1;
+        }
+        pdf = Pdf(wo, wi);
+        return f(wo, wi);
+    }
+};
+
+////////////// Disney Retro //////////////
+struct DisneyRetro
+{
+    float3 R;
+    float roughness;
+    
+    static const uint BxDF_Type = BSDF_REFLECTION | BSDF_DIFFUSE;
+    
+    float3 f(float3 wo, float3 wi)
+    {
+        float3 wh = wi + wo;
+        if (IsBlack(wh))
+        {
+            return float3(0.0, 0.0, 0.0);
+        }
+        wh = normalize(wh);
+        float cosThetaD = dot(wi, wh);
+        float Fss90 = cosThetaD * cosThetaD * roughness;
+        float Fo = SchlickWeight(AbsCosTheta(wo));
+        float Fi = SchlickWeight(AbsCosTheta(wi));
+        float Rr = 2.0 * roughness * cosThetaD * cosThetaD;
+        
+        return R * InvPI * Rr * (Fo + Fi + Fo * Fi * (Rr - 1.0));
+    }
+    
+    float Pdf(float3 wo, float3 wi)
+    {
+        return SameHemisphere(wo, wi) ? AbsCosTheta(wi) * InvPI : 0;
+    }
+    
+    float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
+    {
+        wi = SampleCosineHemisphere(u);
+        if (wo.z < 0)
+        {
+            wi.z *= -1;
+        }
+        pdf = Pdf(wo, wi);
+        return f(wo, wi);
+    }
+};
+
+////////////// Disney Sheen //////////////
+struct DisneySheen
+{
+    float3 R;
+    
+    static const uint BxDF_Type = BSDF_REFLECTION | BSDF_DIFFUSE;
+    
+    float3 f(float3 wo, float3 wi)
+    {
+        float3 wh = wi + wo;
+        if (IsBlack(wh))
+        {
+            return float3(0.0, 0.0, 0.0);
+        }
+        wh = normalize(wh);
+        float cosThetaD = dot(wi, wh);
+        return R * SchlickWeight(cosThetaD);
     }
     
     float Pdf(float3 wo, float3 wi)
