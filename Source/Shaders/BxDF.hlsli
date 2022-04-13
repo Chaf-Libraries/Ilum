@@ -12,10 +12,12 @@ typedef PCGSampler Sampler;
 
 static const uint DistributionType_Beckmann = 1 << 0;
 static const uint DistributionType_TrowbridgeReitz = 1 << 1;
+static const uint DistributionType_Disney = 1 << 2;
 
 static const uint FresnelType_Conductor = 1 << 0;
 static const uint FresnelType_Dielectric = 1 << 1;
 static const uint FresnelType_Op = 1 << 2;
+static const uint FresnelType_Disney = 1 << 3;
 
 static const uint TransportMode_Radiance = 1 << 0;
 static const uint TransportMode_Importance = 1 << 1;
@@ -39,6 +41,7 @@ static const uint BxDF_DisneyDiffuse = 1 << 8;
 static const uint BxDF_DisneyFakeSS = 1 << 9;
 static const uint BxDF_DisneyRetro = 1 << 10;
 static const uint BxDF_DisneySheen = 1 << 11;
+static const uint BxDF_DisneyClearcoat = 1 << 12;
 
 ////////////// Beckmann Sample //////////////
 void BeckmannSample11(float cosThetaI, float U1, float U2, out float slope_x, out float slope_y)
@@ -203,7 +206,7 @@ float RoughnessToAlpha(float roughness)
 	       0.0171201f * x * x * x + 0.000640711f * x * x * x * x;
 }
 
-////////////// Schlick Fresnel approximation //////////////
+////////////// Schlick Fresnel Approximation //////////////
 float SchlickWeight(float cosTheta)
 {
     float m = clamp(1 - cosTheta, 0.0, 1.0);
@@ -223,6 +226,20 @@ float3 FrSchlick(float3 R0, float cosTheta)
 float SchlickR0FromEta(float eta)
 {
     return ((eta - 1.0) * (eta - 1.0)) / ((eta + 1.0) * (eta + 1.0));
+}
+
+////////////// Distribution Approximation //////////////
+float GTR1(float cosTheta, float alpha)
+{
+    float alpha2 = alpha * alpha;
+    return (alpha2 - 1.0) / (PI * log(alpha2) * (1.0 + (alpha2 - 1.0) * cosTheta * cosTheta));
+}
+
+float smithG_GGX(float cosTheta, float alpha)
+{
+    float alpha2 = alpha * alpha;
+    float cosTheta2 = cosTheta * cosTheta;
+    return 1.0 / (cosTheta + sqrt(alpha2 + cosTheta2 - alpha2 * cosTheta2));
 }
 
 ////////////// Fresnel //////////////
@@ -302,6 +319,22 @@ struct FresnelOp
     float3 Evaluate(float cosThetaI)
     {
         return float3(1.0, 1.0, 1.0);
+    }
+};
+
+struct FresnelDisney
+{
+    float3 R0;
+    float metallic;
+    float eta;
+    
+    float3 Evaluate(float cosI)
+    {
+        FresnelDielectric fresnel_dielectric;
+        fresnel_dielectric.etaI = 1.0;
+        fresnel_dielectric.etaT = eta;
+        
+        return lerp(fresnel_dielectric.Evaluate(cosI), FrSchlick(R0, cosI), metallic);
     }
 };
 
@@ -621,6 +654,114 @@ struct TrowbridgeReitzDistribution
     }
 };
 
+////////////// Disney Microfacet Distribution //////////////
+struct DisneyMicrofacetDistribution
+{
+    float alpha_x;
+    float alpha_y;
+    bool sample_visible_area;
+    
+    float D(float3 wh)
+    {
+        float tan2Theta = Tan2Theta(wh);
+
+        if (isinf(tan2Theta))
+        {
+            return 0.0;
+        }
+        const float cos4Theta = Cos2Theta(wh) * Cos2Theta(wh);
+
+        float e = (Cos2Phi(wh) / (alpha_x * alpha_x) + Sin2Phi(wh) / (alpha_y * alpha_y)) * tan2Theta;
+        return 1 / (PI * alpha_x * alpha_y * cos4Theta * (1 + e) * (1 + e));
+    }
+    
+    float3 SampleWh(float3 wo, float2 u)
+    {
+        float3 wh = float3(0.0, 0.0, 0.0);
+        
+
+        if (!sample_visible_area)
+        {
+            float cosTheta = 0.0;
+            float phi = 2.0 * PI * u.y;
+
+            if (alpha_x == alpha_y)
+            {
+                float tanTheta2 = alpha_x * alpha_x * u.x * (1.0 - u.y);
+                cosTheta = 1.0 / sqrt(1.0 + tanTheta2);
+            }
+            else
+            {
+                phi = atan(alpha_y / alpha_x * tan(2.0 * PI * u.y + 0.5 * PI));
+                if (u.y > 0.5)
+                {
+                    phi += PI;
+                }
+                float sinPhi = sin(phi);
+                float cosPhi = cos(phi);
+
+                const float alpha_x2 = alpha_x * alpha_x;
+                const float alpha_y2 = alpha_y * alpha_y;
+
+                const float alpha_2 = 1.0 / (cosPhi * cosPhi / alpha_x2 + sinPhi * sinPhi / alpha_y2);
+                float tanTheta2 = alpha_2 * u.x / (1.0 - u.x);
+                cosTheta = 1.0 / sqrt(1 + tanTheta2);
+            }
+
+            float sinTheta = sqrt(max(0.0, 1.0 - cosTheta * cosTheta));
+            float3 wh = SphericalDirection(sinTheta, cosTheta, phi);
+            if (!SameHemisphere(wo, wh))
+            {
+                wh = -wh;
+            }
+        }
+        else
+        {
+            bool flip = wo.z < 0.0;
+            wh = TrowbridgeReitzSample(flip ? -wo : wo, alpha_x, alpha_y, u.x, u.y);
+            if (flip)
+            {
+                wh = -wh;
+            }
+        }
+        return wh;
+    }
+
+    float Lambda(float3 w)
+    {
+        float absTanTheta = abs(TanTheta(w));
+        if (isinf(absTanTheta))
+        {
+            return 0.;
+        }
+        float alpha = sqrt(Cos2Phi(w) * alpha_x * alpha_x + Sin2Phi(w) * alpha_y * alpha_y);
+        float alpha2Tan2Theta = (alpha * absTanTheta) * (alpha * absTanTheta);
+        return (-1.0 + sqrt(1.0 + alpha2Tan2Theta)) / 2.0;
+    }
+
+    float G1(float3 w)
+    {
+        return 1.0 / (1.0 + Lambda(w));
+    }
+
+    float G(float3 wo, float3 wi)
+    {
+        return G1(wo) * G1(wi);
+    }
+
+    float Pdf(float3 wo, float3 wh)
+    {
+        if (sample_visible_area)
+        {
+            return D(wh) * G1(wo) * abs(dot(wo, wh)) / AbsCosTheta(wo);
+        }
+        else
+        {
+            return D(wh) * AbsCosTheta(wh);
+        }
+    }
+};
+
 ////////////// Microfacet Reflection //////////////
 struct MicrofacetReflection
 {
@@ -633,9 +774,11 @@ struct MicrofacetReflection
     FresnelConductor fresnel_conductor;
     FresnelDielectric fresnel_dielectric;
     FresnelOp fresnel_op;
+    FresnelDisney fresnel_disney;
     
     BeckmannDistribution beckmann_distribution;
     TrowbridgeReitzDistribution trowbridgereitz_distribution;
+    DisneyMicrofacetDistribution disney_distribution;
         
     float3 f(float3 wo, float3 wi)
     {
@@ -659,29 +802,38 @@ struct MicrofacetReflection
         float D = 0.0;
         float G = 0.0;
         
-        if (Distribution_Type == DistributionType_Beckmann)
+        switch (Distribution_Type)
         {
-            D = beckmann_distribution.D(wh);
-            G = beckmann_distribution.G(wo, wi);
-        }
-        else if (Distribution_Type == DistributionType_TrowbridgeReitz)
-        {
-            D = trowbridgereitz_distribution.D(wh);
-            G = trowbridgereitz_distribution.G(wo, wi);
+            case DistributionType_Beckmann:
+                D = beckmann_distribution.D(wh);
+                G = beckmann_distribution.G(wo, wi);
+                break;
+            case DistributionType_TrowbridgeReitz:
+                D = trowbridgereitz_distribution.D(wh);
+                G = trowbridgereitz_distribution.G(wo, wi);
+                break;
+            case DistributionType_Disney:
+                D = disney_distribution.D(wh);
+                G = disney_distribution.G(wo, wi);
+                break;
         }
 
-        if (Fresnel_Type == FresnelType_Conductor)
+        switch (Fresnel_Type)
         {
-            F = fresnel_conductor.Evaluate(dot(wi, Faceforward(wh, float3(0.0, 0.0, 1.0))));
+            case FresnelType_Conductor:
+                F = fresnel_conductor.Evaluate(dot(wi, Faceforward(wh, float3(0.0, 0.0, 1.0))));
+                break;
+            case FresnelType_Dielectric:
+                F = fresnel_dielectric.Evaluate(dot(wi, Faceforward(wh, float3(0.0, 0.0, 1.0))));
+                break;
+            case FresnelType_Op:
+                F = fresnel_op.Evaluate(dot(wi, Faceforward(wh, float3(0.0, 0.0, 1.0))));
+                break;
+            case FresnelType_Disney:
+                F = fresnel_disney.Evaluate(dot(wi, Faceforward(wh, float3(0.0, 0.0, 1.0))));
+                break;
         }
-        else if (Fresnel_Type == FresnelType_Dielectric)
-        {
-            F = fresnel_dielectric.Evaluate(dot(wi, Faceforward(wh, float3(0.0, 0.0, 1.0))));
-        }
-        else if (Fresnel_Type == FresnelType_Op)
-        {
-            F = fresnel_op.Evaluate(dot(wi, Faceforward(wh, float3(0.0, 0.0, 1.0))));
-        }
+        
         return R * D * G * F / (4.0 * cosThetaI * cosThetaO);
     }
     
@@ -693,14 +845,15 @@ struct MicrofacetReflection
         }
         
         float3 wh = normalize(wo + wi);
-
-        if (Distribution_Type == DistributionType_Beckmann)
+        
+        switch (Distribution_Type)
         {
-            return beckmann_distribution.Pdf(wo, wh) / (4.0 * dot(wo, wh));
-        }
-        else if (Distribution_Type == DistributionType_TrowbridgeReitz)
-        {
-            return trowbridgereitz_distribution.Pdf(wo, wh) / (4.0 * dot(wo, wh));
+            case DistributionType_Beckmann:
+                return beckmann_distribution.Pdf(wo, wh) / (4.0 * dot(wo, wh));
+            case DistributionType_TrowbridgeReitz:
+                return trowbridgereitz_distribution.Pdf(wo, wh) / (4.0 * dot(wo, wh));
+            case DistributionType_Disney:
+                return disney_distribution.Pdf(wo, wh) / (4.0 * dot(wo, wh));
         }
         
         return 0.0;
@@ -714,14 +867,18 @@ struct MicrofacetReflection
         }
         
         float3 wh = float3(0.0, 0.0, 0.0);
-        
-        if (Distribution_Type == DistributionType_Beckmann)
+                
+        switch (Distribution_Type)
         {
-            wh = beckmann_distribution.SampleWh(wo, u);
-        }
-        else if (Distribution_Type == DistributionType_TrowbridgeReitz)
-        {
-            wh = trowbridgereitz_distribution.SampleWh(wo, u);
+            case DistributionType_Beckmann:
+                wh = beckmann_distribution.SampleWh(wo, u);
+                break;
+            case DistributionType_TrowbridgeReitz:
+                wh = trowbridgereitz_distribution.SampleWh(wo, u);
+                break;
+            case DistributionType_Disney:
+                wh = disney_distribution.SampleWh(wo, u);
+                break;
         }
 
         if (dot(wo, wh) < 0.0)
@@ -735,14 +892,18 @@ struct MicrofacetReflection
         {
             return float3(0.0, 0.0, 0.0);
         }
-                
-        if (Distribution_Type == DistributionType_Beckmann)
+      
+        switch (Distribution_Type)
         {
-            pdf = beckmann_distribution.Pdf(wo, wh) / (4.0 * dot(wo, wh));
-        }
-        else if (Distribution_Type == DistributionType_TrowbridgeReitz)
-        {
-            pdf = trowbridgereitz_distribution.Pdf(wo, wh) / (4.0 * dot(wo, wh));
+            case DistributionType_Beckmann:
+                pdf = beckmann_distribution.Pdf(wo, wh) / (4.0 * dot(wo, wh));
+                break;
+            case DistributionType_TrowbridgeReitz:
+                pdf = trowbridgereitz_distribution.Pdf(wo, wh) / (4.0 * dot(wo, wh));
+                break;
+            case DistributionType_Disney:
+                pdf = disney_distribution.Pdf(wo, wh) / (4.0 * dot(wo, wh));
+                break;
         }
         
         return f(wo, wi);
@@ -1279,6 +1440,79 @@ struct DisneySheen
             wi.z *= -1;
         }
         pdf = Pdf(wo, wi);
+        return f(wo, wi);
+    }
+};
+
+////////////// Disney Clearcoat //////////////
+struct DisneyClearcoat
+{
+    float weight;
+    float gloss;
+    
+    static const uint BxDF_Type = BSDF_REFLECTION | BSDF_GLOSSY;
+    
+    float3 f(float3 wo, float3 wi)
+    {
+        float3 wh = wi + wo;
+        if (IsBlack(wh))
+        {
+            return float3(0.0, 0.0, 0.0);
+        }
+        wh = normalize(wh);
+
+        float Dr = GTR1(AbsCosTheta(wh), gloss);
+        float Fr = FrSchlick(0.04, dot(wo, wh));
+        float Gr = smithG_GGX(AbsCosTheta(wo), 0.25) * smithG_GGX(AbsCosTheta(wi), 0.25);
+
+        return weight * Gr * Fr * Dr / 4.0;
+    }
+    
+    float Pdf(float3 wo, float3 wi)
+    {
+        if (!SameHemisphere(wo, wi))
+        {
+            return 0.0;
+        }
+        
+        float3 wh = wo + wi;
+        if (IsBlack(wh))
+        {
+            return 0.0;
+        }
+        wh = normalize(wh);
+        
+        float Dr = GTR1(AbsCosTheta(wh), gloss);
+        return Dr * AbsCosTheta(wh) / (4.0 * dot(wo, wh));
+    }
+    
+    float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
+    {
+        if(wo.z==0.0)
+        {
+            return 0.0;
+        }
+        
+        float alpha2 = gloss * gloss;
+        float cosTheta = sqrt(max(0.0, (1.0 - pow(alpha2, 1.0 - u.x)) / (1.0 - alpha2)));
+        float sinTheta = sqrt(max(0.0, 1.0 - cosTheta * cosTheta));
+        float phi = 2.0 * PI * u.y;
+        float3 wh = SphericalDirection(sinTheta, cosTheta, phi);
+        
+        if(!SameHemisphere(wo,wh))
+        {
+            wh = -wh;
+        }
+        
+        wi = reflect(wo, wh);
+        
+        if (!SameHemisphere(wo, wi))
+        {
+            return 0.0;
+        }
+        
+        pdf = Pdf(wo, wi);
+        
         return f(wo, wi);
     }
 };

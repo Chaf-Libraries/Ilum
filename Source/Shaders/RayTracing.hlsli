@@ -2,7 +2,8 @@
 #define __RAYTRACING_HLSL__
 
 #include "Math.hlsli"
-#include "Material.hlsli"
+#include "BxDF.hlsli"
+//#include "Material.hlsli"
 #include "Common.hlsli"
 #include "Light.hlsli"
 #include "Random.hlsli"

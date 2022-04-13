@@ -629,42 +629,6 @@ __pragma(warning(push, 0))
 			auto [mouse_x, mouse_y] = Input::instance()->getMousePosition();
 			auto click_pos          = ImVec2(static_cast<float>(mouse_x) - scene_view_position.x, static_cast<float>(mouse_y) - scene_view_position.y);
 
-			// Mouse picking via ray casting
-			//{
-			//	auto &main_camera = Renderer::instance()->Main_Camera_;
-
-			//	float x = (click_pos.x / scene_view_size.x) * 2.f - 1.f;
-			//	float y = -((click_pos.y / scene_view_size.y) * 2.f - 1.f);
-
-			//	glm::mat4 inv = glm::inverse(main_camera.view_projection);
-
-			//	glm::vec4 near_point = inv * glm::vec4(x, y, 0.f, 1.f);
-			//	near_point /= near_point.w;
-			//	glm::vec4 far_point = inv * glm::vec4(x, y, 1.f, 1.f);
-			//	far_point /= far_point.w;
-
-			//	geometry::Ray ray;
-			//	ray.origin    = main_camera.position;
-			//	ray.direction = glm::normalize(glm::vec3(far_point - near_point));
-
-			//	Editor::instance()->select(Entity());
-			//	float      distance = std::numeric_limits<float>::infinity();
-			//	const auto group    = Scene::instance()->getRegistry().group<>(entt::get<cmpt::StaticMeshRenderer, cmpt::Transform>);
-			//	group.each([&](const entt::entity &entity, const cmpt::StaticMeshRenderer &mesh_renderer, const cmpt::Transform &transform) {
-			//		if (!Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model))
-			//		{
-			//			return;
-			//		}
-			//		auto &model        = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
-			//		float hit_distance = ray.hit(model.get().bounding_box.transform(transform.world_transform));
-			//		if (distance > hit_distance)
-			//		{
-			//			distance = hit_distance;
-			//			Editor::instance()->select(Entity(entity));
-			//		}
-			//	});
-			//}
-
 			// Mouse picking via g-buffer
 			if (Renderer::instance()->getRenderGraph()->hasAttachment("GBuffer1"))
 			{
@@ -691,6 +655,41 @@ __pragma(warning(push, 0))
 
 				staging_buffer.unmap();
 			}
+			// Mouse picking via ray casting
+			else
+			{
+				float x = (click_pos.x / scene_view_size.x) * 2.f - 1.f;
+				float y = -((click_pos.y / scene_view_size.y) * 2.f - 1.f);
+
+				glm::mat4 inv = glm::inverse(main_camera->view_projection);
+
+				glm::vec4 near_point = inv * glm::vec4(x, y, 0.f, 1.f);
+				near_point /= near_point.w;
+				glm::vec4 far_point = inv * glm::vec4(x, y, 1.f, 1.f);
+				far_point /= far_point.w;
+
+				geometry::Ray ray;
+				ray.origin    = main_camera->position;
+				ray.direction = glm::normalize(glm::vec3(far_point - near_point));
+
+				Editor::instance()->select(Entity());
+				float      distance = std::numeric_limits<float>::infinity();
+				const auto group    = Scene::instance()->getRegistry().group<>(entt::get<cmpt::StaticMeshRenderer, cmpt::Transform>);
+				group.each([&](const entt::entity &entity, const cmpt::StaticMeshRenderer &mesh_renderer, const cmpt::Transform &transform) {
+					if (!Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model))
+					{
+						return;
+					}
+					auto &model        = Renderer::instance()->getResourceCache().loadModel(mesh_renderer.model);
+					float hit_distance = ray.hit(model.get().bounding_box.transform(transform.world_transform));
+					if (distance > hit_distance)
+					{
+						distance = hit_distance;
+						Editor::instance()->select(Entity(entity));
+					}
+				});
+			}
+
 		}
 
 		draw_gizmo<cmpt::DirectionalLight>(offset, m_icons["light"], m_gizmo["Light"]);

@@ -10,14 +10,14 @@ namespace Ilum
 {
 enum class BxDFType : uint32_t
 {
-	CookTorrance,
-	Disney,
 	Matte,
 	Plastic,
 	Metal,
 	Mirror,
 	Substrate,
-	Glass
+	Glass,
+	Disney,
+	CookTorrance
 };
 
 enum TextureType
@@ -34,7 +34,7 @@ enum TextureType
 
 struct Material
 {
-	BxDFType type = BxDFType::CookTorrance;
+	BxDFType type = BxDFType::Disney;
 
 	glm::vec3 data = {0.f, 0.f, 0.f};
 

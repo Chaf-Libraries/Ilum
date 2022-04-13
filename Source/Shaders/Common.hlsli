@@ -115,14 +115,14 @@ struct CountInfo
 
 #define MAX_TEXTURE_ARRAY_SIZE 1024
 
-#define Material_CookTorrance 0
-#define Material_Disney 1
-#define Material_Matte 2
-#define Material_Plastic 3
-#define Material_Metal 4
-#define Material_Mirror 5
-#define Material_Substrate 6
-#define Material_Glass 7
+#define Material_Matte 0
+#define Material_Plastic 1
+#define Material_Metal 2
+#define Material_Mirror 3
+#define Material_Substrate 4
+#define Material_Glass 5
+#define Material_Disney 6
+#define Material_CookTorrance 7
 
 struct MaterialData
 {
@@ -256,4 +256,22 @@ struct Interaction
         return tangent * w.x + bitangent * w.y + ffnormal * w.z;
     }
 };
+
+static const uint BSDF_Evaluate = 0;
+static const uint BSDF_Sample = 1;
+static const uint BSDF_Pdf = 2;
+
+struct BSDFSampleDesc
+{
+    float3 woW;
+    float3 wiW;
+    Interaction isect;
+    float2 rnd;
+    float pdf;
+    float3 f;
+    uint mode;
+    uint BxDF_Type;
+    uint sampled_type;
+};
+
 #endif

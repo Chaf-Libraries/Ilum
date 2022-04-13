@@ -13,7 +13,7 @@ Tonemapping::Tonemapping(const std::string &from, const std::string &to) :
 
 void Tonemapping::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PostProcess/Tonemapping.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GLSL/PostProcess/Tonemapping.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
 
 	state.descriptor_bindings.bind(0, 0, m_from, ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 

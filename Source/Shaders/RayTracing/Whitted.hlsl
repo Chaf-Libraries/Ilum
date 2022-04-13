@@ -23,9 +23,15 @@ struct WhittedIntegrator
         
             const float3 n = isect.ffnormal;
             float3 wo = isect.wo;
+            
+            BSDFSampleDesc bsdf;
+            bsdf.BxDF_Type = BSDF_ALL;
+            bsdf.isect = isect;
+            bsdf.woW = wo;
                     
             // TODO: Sampling emissive
             // TODO: Handle area light
+            radiance += throughout * isect.material.emissive;
             
             // Sampling Lights
             // Sampling Point Light
@@ -45,12 +51,12 @@ struct WhittedIntegrator
                 
                 if (!IsBlack(Li) && VisibilityTest(isect, dir, dist))
                 {
-                    //wi = isect.WorldToLocalDir(wi);
-                    BSDF bsdf;
-                    bsdf.Init(isect);
-                    float3 f = bsdf.f(wo, wi);
-                    //wi = isect.LocalToWorldDir(wi);
-                    radiance += throughout * f * Li * abs(dot(wi, isect.ffnormal)) / pdf;
+                    bsdf.mode = BSDF_Evaluate;
+                    bsdf.rnd = _sampler.Get2D();
+                    bsdf.wiW = wi;
+                    CallShader(isect.material.material_type, bsdf);
+
+                    radiance += throughout * bsdf.f * Li * abs(dot(wi, isect.ffnormal)) / pdf;
                 }
             }
             
@@ -70,13 +76,13 @@ struct WhittedIntegrator
                 float dist = Infinity;
                 
                 if (!IsBlack(Li) && VisibilityTest(isect, dir, dist))
-                {
-                    wi = isect.WorldToLocalDir(wi);
-                    BSDF bsdf;
-                    bsdf.Init(isect);
-                    float3 f = bsdf.f(wo, wi);
-                    wi = isect.LocalToWorldDir(wi);
-                    radiance += throughout * f * Li * abs(dot(wi, isect.ffnormal)) / pdf;
+                { 
+                    bsdf.mode = BSDF_Evaluate;
+                    bsdf.rnd = _sampler.Get2D();
+                    bsdf.wiW = wi;
+                    CallShader(isect.material.material_type, bsdf);
+
+                    radiance += throughout * bsdf.f * Li * abs(dot(wi, isect.ffnormal)) / pdf;
                 }
             }
             
@@ -97,25 +103,23 @@ struct WhittedIntegrator
                 
                 if (!IsBlack(Li) && VisibilityTest(isect, dir, dist))
                 {
-                    wi = isect.WorldToLocalDir(wi);
-                    BSDF bsdf;
-                    bsdf.Init(isect);
-                    float3 f = bsdf.f(wo, wi);
-                    wi = isect.LocalToWorldDir(wi);
-                    radiance += throughout * f * Li * abs(dot(wi, isect.ffnormal)) / pdf;
+                    bsdf.mode = BSDF_Evaluate;
+                    bsdf.rnd = _sampler.Get2D();
+                    bsdf.wiW = wi;
+                    CallShader(isect.material.material_type, bsdf);
+
+                    radiance += throughout * bsdf.f * Li * abs(dot(wi, isect.ffnormal)) / pdf;
                 }
             }
             
             // Sampling next bounce
-            float3 wi;
-            float pdf;
-		    
-            BSDF bsdf;
-            bsdf.Init(isect);
-            float3 f = bsdf.Samplef(wo, _sampler, wi, pdf);
-            //wi = isect.LocalToWorld(wi);
+            bsdf.mode = BSDF_Sample;
+            bsdf.rnd = _sampler.Get2D();
+            CallShader(isect.material.material_type, bsdf);
             
-            //radiance = f;
+            float pdf = bsdf.pdf;
+            float3 f = bsdf.f;
+            float3 wi = bsdf.wiW;
 
             if (pdf > 0.0 && !IsBlack(f) && abs(dot(wi, isect.ffnormal)) != 0.0)
             {
@@ -125,7 +129,7 @@ struct WhittedIntegrator
             }
             else
             {
-			    break;
+                break;
             }
         }
 

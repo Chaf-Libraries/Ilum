@@ -370,14 +370,15 @@ inline void draw_material<BxDFType::Glass>(Material &material)
 inline void draw_material(Material &material)
 {
 	const char *const BxDF_types[] = {
-	    "CookTorrance",
-	    "Disney",
 	    "Matte",
 	    "Plastic",
 	    "Metal",
 	    "Mirror",
 	    "Substrate",
-	    "Glass"};
+	    "Glass",
+	    "Disney",
+	    "CookTorrance",
+	};
 	Material::update = ImGui::Combo("BxDF", reinterpret_cast<int *>(&material.type), BxDF_types, 8) || Material::update;
 
 	switch (material.type)
