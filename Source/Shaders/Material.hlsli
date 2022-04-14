@@ -542,4 +542,23 @@ struct BSDFs
         return f;
     }
 };
+
+static const uint BSDF_None = 0;
+static const uint BSDF_Evaluate = 1;
+static const uint BSDF_Sample = 2;
+static const uint BSDF_Pdf = 3;
+
+struct BSDFSampleDesc
+{
+    float3 woW;
+    float3 wiW;
+    Interaction isect;
+    float2 rnd;
+    float pdf;
+    float3 f;
+    uint mode;
+    uint BxDF_Type;
+    uint sampled_type;
+    BSDFs bsdf;
+};
 #endif

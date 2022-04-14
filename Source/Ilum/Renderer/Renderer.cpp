@@ -59,7 +59,7 @@
 #include "RenderPass/Shading/Shadow/Shadowmap.hpp"
 #include "RenderPass/Shading/SkyboxPass.hpp"
 
-#include "RenderPass/RayTracing/PathTracing.hpp"
+#include "RenderPass/RayTracing/Path.hpp"
 #include "RenderPass/RayTracing/Whitted.hpp"
 
 #include "RenderPass/Test/RandomVis.hpp"
@@ -119,12 +119,13 @@ Renderer::Renderer(Context *context) :
 		    //.setView("TAAOutput")
 		    //.setOutput("TAAOutput")
 
+		    //.addRenderPass("Whitted", std::make_unique<pass::Whitted>())
 		    .addRenderPass("Whitted", std::make_unique<pass::Whitted>())
 		    .addRenderPass("CopyFrame", std::make_unique<pass::CopyFrame>("Whitted", "PrevWhitted"))
 		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Whitted", "Tonemapping"))
 
-		    .setView("Whitted")
-		    .setOutput("Whitted");
+		    .setView("Tonemapping")
+		    .setOutput("Tonemapping");
 	};
 
 	buildRenderGraph = DeferredRendering;

@@ -1,13 +1,57 @@
 #include "../RayTracing.hlsli"
 
-struct WhittedIntegrator
+struct PathIntegrator
 {
     float3 Li(RayDesc ray, Sampler _sampler, uint maxDepth)
     {
         float3 radiance = float3(0.0, 0.0, 0.0);
         float3 throughout = float3(1.0, 1.0, 1.0);
+        bool specularBounce = false;
+        uint bounces;
+        float etaScale = 1.0;
         
-        Interaction isect;
+        uint light_count = push_constants.directional_light_count + push_constants.point_light_count + push_constants.spot_light_count;
+        
+        for (bounces = 0; bounces < maxDepth; bounces++)
+        {
+            Interaction isect;
+            bool foundIntersection = SceneIntersection(ray, isect);
+            
+            if (bounces == 0 || specularBounce)
+            {
+                if (foundIntersection)
+                {
+                    // TODO: Sampling
+                    radiance += throughout * isect.material.emissive;
+                }
+                else
+                {
+                    // Sample environment light
+                    // TODO: Importance Sampling
+                    float3 w = normalize(ray.Direction);
+                    radiance += throughout * Skybox.SampleLevel(SkyboxSampler, w, 0.0).rgb;
+                }
+            }
+
+            if (!foundIntersection || bounces >= maxDepth)
+            {
+                break;
+            }
+            
+            BSDFSampleDesc bsdf;
+            bsdf.mode = BSDF_None;
+            CallShader(isect.material.material_type, bsdf);
+            
+            if (bsdf.bsdf.NumComponents(BSDF_ALL & ~BSDF_SPECULAR) > 0)
+            {
+                float3 Ld = throughout * 
+            }
+            
+            
+        }
+        
+
+        /*Interaction isect;
 
         for (uint bounce = 0; bounce < maxDepth; bounce++)
         {
@@ -76,7 +120,7 @@ struct WhittedIntegrator
                 float dist = Infinity;
                 
                 if (!IsBlack(Li) && VisibilityTest(isect, dir, dist))
-                { 
+                {
                     bsdf.mode = BSDF_Evaluate;
                     bsdf.rnd = _sampler.Get2D();
                     bsdf.wiW = wi;
@@ -131,7 +175,7 @@ struct WhittedIntegrator
             {
                 break;
             }
-        }
+        }*/
 
         return radiance;
     }
@@ -154,7 +198,7 @@ void main()
     
     float3 radiance = float3(0.0, 0.0, 0.0);
 
-    WhittedIntegrator integrator;
+    PathIntegrator integrator;
     radiance = integrator.Li(ray, sampler_, push_constants.max_bounce);
     
     // Clamp firefly

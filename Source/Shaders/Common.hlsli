@@ -255,23 +255,11 @@ struct Interaction
     {
         return tangent * w.x + bitangent * w.y + ffnormal * w.z;
     }
-};
-
-static const uint BSDF_Evaluate = 0;
-static const uint BSDF_Sample = 1;
-static const uint BSDF_Pdf = 2;
-
-struct BSDFSampleDesc
-{
-    float3 woW;
-    float3 wiW;
-    Interaction isect;
-    float2 rnd;
-    float pdf;
-    float3 f;
-    uint mode;
-    uint BxDF_Type;
-    uint sampled_type;
+    
+    bool IsSurfaceInteraction()
+    {
+        return normal.x != 0.0 || normal.y != 0.0 || normal.z != 0.0;
+    }
 };
 
 #endif

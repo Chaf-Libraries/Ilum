@@ -1,10 +1,8 @@
-#include "../../RayTracing.hlsli"
-
 #define USE_FresnelSpecular
 #define USE_MicrofacetReflection
 #define USE_MicrofacetTransmission
 
-#include "../../Material.hlsli"
+#include "../../RayTracing.hlsli"
 
 BSDFs CreateGlassMaterial(Interaction isect)
 {
@@ -73,17 +71,17 @@ BSDFs CreateGlassMaterial(Interaction isect)
 [shader("callable")]
 void main(inout BSDFSampleDesc bsdf)
 {
-    BSDFs mat = CreateGlassMaterial(bsdf.isect);
+    bsdf.bsdf = CreateGlassMaterial(bsdf.isect);
     if (bsdf.mode == BSDF_Evaluate)
     {
-        bsdf.f = mat.f(bsdf.woW, bsdf.wiW, bsdf.BxDF_Type);
+        bsdf.f = bsdf.bsdf.f(bsdf.woW, bsdf.wiW, bsdf.BxDF_Type);
     }
     else if (bsdf.mode == BSDF_Sample)
     {
-        bsdf.f = mat.Samplef(bsdf.woW, bsdf.rnd, bsdf.wiW, bsdf.pdf, bsdf.BxDF_Type, bsdf.sampled_type);
+        bsdf.f = bsdf.bsdf.Samplef(bsdf.woW, bsdf.rnd, bsdf.wiW, bsdf.pdf, bsdf.BxDF_Type, bsdf.sampled_type);
     }
     else if (bsdf.mode == BSDF_Pdf)
     {
-        bsdf.pdf = mat.Pdf(bsdf.woW, bsdf.wiW, bsdf.BxDF_Type);
+        bsdf.pdf = bsdf.bsdf.Pdf(bsdf.woW, bsdf.wiW, bsdf.BxDF_Type);
     }
 }

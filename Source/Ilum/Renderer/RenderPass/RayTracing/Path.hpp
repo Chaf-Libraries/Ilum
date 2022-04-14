@@ -6,12 +6,12 @@
 
 namespace Ilum::pass
 {
-class PathTracing : public TRenderPass<PathTracing>
+class Path : public TRenderPass<Path>
 {
   public:
-	PathTracing() = default;
+	Path() = default;
 
-	~PathTracing() = default;
+	~Path() = default;
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -26,9 +26,16 @@ class PathTracing : public TRenderPass<PathTracing>
 
 	struct
 	{
-		uint32_t   directional_light_count = 0;
-		uint32_t   spot_light_count        = 0;
-		uint32_t   point_light_count       = 0;
+		uint32_t anti_alias              = 0;
+		uint32_t directional_light_count = 0;
+		uint32_t spot_light_count        = 0;
+		uint32_t point_light_count       = 0;
+		int32_t  max_bounce              = 5;
+		float    firefly_clamp_threshold = 4.f;
+		float    parameter               = 0.1f;
 	} m_push_block;
+
+	int32_t m_max_spp = 100;
+	bool    m_update  = true;
 };
 }        // namespace Ilum::pass

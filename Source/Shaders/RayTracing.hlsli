@@ -3,7 +3,7 @@
 
 #include "Math.hlsli"
 #include "BxDF.hlsli"
-//#include "Material.hlsli"
+#include "Material.hlsli"
 #include "Common.hlsli"
 #include "Light.hlsli"
 #include "Random.hlsli"
@@ -75,7 +75,7 @@ ShadeState GetShadeState(RayPayload ray_payload)
     const float3 pos1 = v1.position.xyz;
     const float3 pos2 = v2.position.xyz;
     const float3 position = pos0 * bary.x + pos1 * bary.y + pos2 * bary.z;
-    const float3 world_position = mul(float4(position, 1.0),ray_payload.objectToWorld).xyz;
+    const float3 world_position = mul(float4(position, 1.0), ray_payload.objectToWorld).xyz;
 
 	// Normal
     float3 nrm0 = v0.normal.xyz;
@@ -230,6 +230,35 @@ bool VisibilityTest(Interaction from, float3 dir, float dist)
     
     return payload.visibility;
 }
+
+/*float3 EstimateDirect(Interaction isect, float2 uScattering, PointLight light, float2 uLight, inout Sampler _sampler, bool handleMedia, bool specular)
+{
+    uint bxdfFlags = specular ? BSDF_ALL : BSDF_ALL & ~BSDF_SPECULAR;
+    float3 Ld = float3(0.0, 0.0, 0.0);
+    float3 wi;
+    float lightPdf = 0.0, scatteringPdf = 0.0;
+    float3 Li = light.SampleLi(isect, _sampler.Get2D(), wi, lightPdf);
+    if (lightPdf > 0.0 && !IsBlack(Li))
+    {
+        float3 f;
+        if (isect.IsSurfaceInteraction())
+        {
+            BSDFSampleDesc bsdf;
+            bsdf.BxDF_Type = bxdfFlags;
+            bsdf.isect = isect;
+            bsdf.woW = isect.wo;
+            bsdf.mode = BSDF_Evaluate;
+            bsdf.rnd = _sampler.Get2D();
+            bsdf.wiW = wi;
+            CallShader(isect.material.material_type, bsdf);
+            
+            f = bsdf.f * abs(dot(wi, isect.ffnormal));
+            // TODO: Fuck
+        }
+
+    }
+    return float3(0.0, 0.0, 0.0);
+}*/
 
 // Environment Sampling (HDR)
 // See:  https://arxiv.org/pdf/1901.05423.pdf
