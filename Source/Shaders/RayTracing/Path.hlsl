@@ -44,9 +44,10 @@ struct PathIntegrator
             
             if (bsdf.bsdf.NumComponents(BSDF_ALL & ~BSDF_SPECULAR) > 0)
             {
-                float3 Ld = throughout * 
+                radiance += throughout * UniformSampleOneLight(isect, _sampler, false);
             }
             
+
             
         }
         

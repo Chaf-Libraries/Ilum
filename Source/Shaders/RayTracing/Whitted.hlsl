@@ -4,6 +4,7 @@ struct WhittedIntegrator
 {
     float3 Li(RayDesc ray, Sampler _sampler, uint maxDepth)
     {
+        uint light_count = push_constants.directional_light_count + push_constants.point_light_count + push_constants.spot_light_count;
         float3 radiance = float3(0.0, 0.0, 0.0);
         float3 throughout = float3(1.0, 1.0, 1.0);
         
@@ -34,74 +35,19 @@ struct WhittedIntegrator
             radiance += throughout * isect.material.emissive;
             
             // Sampling Lights
-            // Sampling Point Light
-            for (uint i = 0; i < push_constants.point_light_count; i++)
+            for (uint i = 0; i < light_count; i++)
             {
+                Light light = GetLight(i);
                 float3 wi;
                 float pdf;
-                PointLight light = point_lights[i];
-                float3 Li = light.SampleLi(isect, _sampler.Get2D(), wi, pdf);
+                VisibilityTester visibility;
+                float3 Li = light.SampleLi(isect, _sampler.Get2D(), wi, pdf, visibility);
                 if (IsBlack(Li) || pdf == 0)
                 {
                     continue;
                 }
-                
-                float3 dir = normalize(light.position - isect.position);
-                float dist = length(light.position - isect.position);
-                
-                if (!IsBlack(Li) && VisibilityTest(isect, dir, dist))
-                {
-                    bsdf.mode = BSDF_Evaluate;
-                    bsdf.rnd = _sampler.Get2D();
-                    bsdf.wiW = wi;
-                    CallShader(isect.material.material_type, bsdf);
-
-                    radiance += throughout * bsdf.f * Li * abs(dot(wi, isect.ffnormal)) / pdf;
-                }
-            }
-            
-            // Sampling Directional Light
-            for (i = 0; i < push_constants.directional_light_count; i++)
-            {
-                float3 wi;
-                float pdf;
-                DirectionalLight light = directional_lights[i];
-                float3 Li = light.SampleLi(isect, _sampler.Get2D(), wi, pdf);
-                if (IsBlack(Li) || pdf == 0)
-                {
-                    continue;
-                }
-                
-                float3 dir = -light.direction;
-                float dist = Infinity;
-                
-                if (!IsBlack(Li) && VisibilityTest(isect, dir, dist))
-                { 
-                    bsdf.mode = BSDF_Evaluate;
-                    bsdf.rnd = _sampler.Get2D();
-                    bsdf.wiW = wi;
-                    CallShader(isect.material.material_type, bsdf);
-
-                    radiance += throughout * bsdf.f * Li * abs(dot(wi, isect.ffnormal)) / pdf;
-                }
-            }
-            
-            // Sampling Point Light
-            for (i = 0; i < push_constants.spot_light_count; i++)
-            {
-                float3 wi;
-                float pdf;
-                SpotLight light = spot_lights[i];
-                float3 Li = light.SampleLi(isect, _sampler.Get2D(), wi, pdf);
-                if (IsBlack(Li) || pdf == 0)
-                {
-                    continue;
-                }
-                
-                float3 dir = normalize(light.position - isect.position);
-                float dist = length(light.position - isect.position);
-                
-                if (!IsBlack(Li) && VisibilityTest(isect, dir, dist))
+                                
+                if (!IsBlack(Li) && Unoccluded(visibility))
                 {
                     bsdf.mode = BSDF_Evaluate;
                     bsdf.rnd = _sampler.Get2D();

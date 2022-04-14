@@ -207,15 +207,15 @@ bool SceneIntersection(RayDesc ray, inout Interaction isect)
     return payload.hitT != Infinity;
 }
 
-bool VisibilityTest(Interaction from, float3 dir, float dist)
+bool Unoccluded(VisibilityTester visibility)
 {
     ShadowPayload payload;
     payload.visibility = false;
     RayDesc shadow_ray;
-    shadow_ray.Direction = normalize(dir);
-    shadow_ray.Origin = OffsetRay(from.position, dot(shadow_ray.Direction, from.normal) > 0 ? from.normal : -from.normal);
+    shadow_ray.Direction = normalize(visibility.dir);
+    shadow_ray.Origin = OffsetRay(visibility.from.position, dot(shadow_ray.Direction, visibility.from.normal) > 0 ? visibility.from.normal : -visibility.from.normal);
     shadow_ray.TMin = 0.0;
-    shadow_ray.TMax = dist;
+    shadow_ray.TMax = visibility.dist;
     
     TraceRay(
         topLevelAS, // RaytracingAccelerationStructure
@@ -231,13 +231,40 @@ bool VisibilityTest(Interaction from, float3 dir, float dist)
     return payload.visibility;
 }
 
-/*float3 EstimateDirect(Interaction isect, float2 uScattering, PointLight light, float2 uLight, inout Sampler _sampler, bool handleMedia, bool specular)
+Light GetLight(uint idx)
+{
+    // directional - spot - point
+    uint count1 = push_constants.directional_light_count + push_constants.spot_light_count;
+    uint count2 = push_constants.directional_light_count;
+    
+    if (idx >= count1)
+    {
+        Light light;
+        light.light_type = LightType_Point;
+        light.point_light = point_lights[idx - count1];
+        return light;
+    }
+    if (idx > count2)
+    {
+        Light light;
+        light.light_type = LightType_Spot;
+        light.spot_light = spot_lights[idx - count2];
+        return light;
+    }
+    Light light;
+    light.light_type = LightType_Directional;
+    light.directional_light = directional_lights[idx];
+    return light;
+}
+
+float3 EstimateDirect(Interaction isect, float2 uScattering, Light light, float2 uLight, inout Sampler _sampler, bool handleMedia, bool specular)
 {
     uint bxdfFlags = specular ? BSDF_ALL : BSDF_ALL & ~BSDF_SPECULAR;
     float3 Ld = float3(0.0, 0.0, 0.0);
     float3 wi;
     float lightPdf = 0.0, scatteringPdf = 0.0;
-    float3 Li = light.SampleLi(isect, _sampler.Get2D(), wi, lightPdf);
+    VisibilityTester visibility;
+    float3 Li = light.SampleLi(isect, _sampler.Get2D(), wi, lightPdf, visibility);
     if (lightPdf > 0.0 && !IsBlack(Li))
     {
         float3 f;
@@ -253,12 +280,62 @@ bool VisibilityTest(Interaction from, float3 dir, float dist)
             CallShader(isect.material.material_type, bsdf);
             
             f = bsdf.f * abs(dot(wi, isect.ffnormal));
-            // TODO: Fuck
+            
+            bsdf.mode = BSDF_Pdf;
+            bsdf.rnd = _sampler.Get2D();
+            CallShader(isect.material.material_type, bsdf);
+            
+            scatteringPdf = bsdf.pdf;
         }
-
+        else
+        {
+            // TODO: Medium interaction
+        }
+        if (!IsBlack(f))
+        {
+            if (handleMedia)
+            {
+                // TODO: handle media
+            }
+            else
+            {
+                if (!Unoccluded(visibility))
+                {
+                    Li = float3(0.0, 0.0, 0.0);
+                }
+            }
+            
+            if (IsDeltaLight(light))
+            {
+                Ld += f * Li / lightPdf;
+            }
+            else
+            {
+                float weight = PowerHeuristic(1, lightPdf, 1, scatteringPdf);
+                Ld += f * Li * weight / lightPdf;
+            }
+        }
     }
-    return float3(0.0, 0.0, 0.0);
-}*/
+    
+    // TODO: Area light
+    return Ld;
+}
+
+float3 UniformSampleOneLight(Interaction isect, inout Sampler _sampler, bool handleMedia)
+{
+    uint light_count = push_constants.directional_light_count + push_constants.point_light_count + push_constants.spot_light_count;
+    if (light_count == 0)
+    {
+        return float3(0.0, 0.0, 0.0);
+    }
+    uint lightNum = min(light_count - 1, (uint) (_sampler.Get1D() * (float) light_count));
+    float lightPdf = 1.0 / (float) light_count;
+    
+    float2 uLight = _sampler.Get2D();
+    float2 uScattering = _sampler.Get2D();
+
+    return EstimateDirect(isect, uScattering, GetLight(lightNum), uLight, _sampler, handleMedia, false) / lightPdf;
+}
 
 // Environment Sampling (HDR)
 // See:  https://arxiv.org/pdf/1901.05423.pdf
