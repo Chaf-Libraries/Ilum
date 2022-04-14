@@ -16,6 +16,7 @@ struct WhittedIntegrator
             if (!SceneIntersection(ray, isect))
             {
                 // Sample environment light
+                // TODO: Importance Sampling
                 float3 w = normalize(ray.Direction);
                 radiance += throughout * Skybox.SampleLevel(SkyboxSampler, w, 0.0).rgb;
                 break;

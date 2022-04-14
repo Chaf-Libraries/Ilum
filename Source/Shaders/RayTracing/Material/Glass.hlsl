@@ -62,11 +62,9 @@ BSDFs CreateGlassMaterial(Interaction isect)
     microfacet_reflection.trowbridgereitz_distribution.sample_visible_area = true;
         
     microfacet_transmission.Distribution_Type = DistributionType_TrowbridgeReitz;
-    microfacet_transmission.Fresnel_Type = FresnelType_Dielectric;
     microfacet_transmission.T = T;
     microfacet_transmission.etaA = 1.0;
     microfacet_transmission.etaB = refraction;
-    microfacet_transmission.fresnel_dielectric = microfacet_reflection.fresnel_dielectric;
     microfacet_transmission.trowbridgereitz_distribution = microfacet_reflection.trowbridgereitz_distribution;
     
     return bsdfs;

@@ -56,6 +56,10 @@ static DisneySheen disney_sheen;
 static DisneyClearcoat disney_clearcoat;
 #endif
 
+#ifdef USE_LambertianTransmission
+static LambertianTransmission lambertian_transmission;
+#endif
+
 ////////////// BxDF //////////////
 struct BxDF
 {
@@ -129,6 +133,11 @@ struct BxDF
             case BxDF_DisneyClearcoat:
                 return disney_clearcoat.f(wo, wi);
 #endif
+            
+#ifdef USE_LambertianTransmission
+            case BxDF_LambertianTransmission:
+                return lambertian_transmission.f(wo, wi);
+#endif
         }
         return float3(0.0, 0.0, 0.0);
     }
@@ -200,6 +209,11 @@ struct BxDF
 #ifdef USE_DisneyClearcoat
             case BxDF_DisneyClearcoat:
                 return disney_clearcoat.Pdf(wo, wi);
+#endif
+            
+#ifdef USE_LambertianTransmission
+            case BxDF_LambertianTransmission:
+                return lambertian_transmission.Pdf(wo, wi);
 #endif
         }
         return 0.0;
@@ -273,6 +287,11 @@ struct BxDF
             case BxDF_DisneyClearcoat:
                 return disney_clearcoat.Samplef(wo, u, wi, pdf);
 #endif
+            
+#ifdef USE_LambertianTransmission
+            case BxDF_LambertianTransmission:
+                return lambertian_transmission.Samplef(wo, u, wi, pdf);
+#endif
         }
         return float3(0.0, 0.0, 0.0);
     }
@@ -345,6 +364,11 @@ struct BxDF
             case BxDF_DisneyClearcoat:
                 return disney_clearcoat.BxDF_Type;
 #endif
+            
+#ifdef USE_LambertianTransmission
+            case BxDF_LambertianTransmission:
+                return lambertian_transmission.BxDF_Type;
+#endif
         }
         return 0;
     }
@@ -359,7 +383,7 @@ struct BxDF
 struct BSDFs
 {
     uint BxDF_Flags;
-    BxDF bxdfs[7];
+    BxDF bxdfs[10];
     uint nBxDFs;
     
     Interaction isect;

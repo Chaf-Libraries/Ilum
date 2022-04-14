@@ -7,6 +7,8 @@
 #define USE_DisneySheen
 #define USE_DisneyClearcoat
 #define USE_MicrofacetReflection
+#define USE_MicrofacetTransmission
+#define USE_LambertianTransmission
 
 #include "../../Material.hlsli"
 
@@ -104,6 +106,7 @@ BSDFs CreateDisneyMaterial(Interaction isect)
     microfacet_reflection.Distribution_Type = DistributionType_Disney;
     microfacet_reflection.disney_distribution.alpha_x = ax;
     microfacet_reflection.disney_distribution.alpha_y = ay;
+    microfacet_reflection.disney_distribution.sample_visible_area = true;
     
     // Clearcoat
     float cc = isect.material.clearcoat;
@@ -125,15 +128,35 @@ BSDFs CreateDisneyMaterial(Interaction isect)
             float ax = max(0.001, rscaled * rscaled / aspect);
             float ay = max(0.001, rscaled * rscaled * aspect);
             // Add Microfacet Transmission with GGX
+            bsdfs.AddBxDF(BxDF_MicrofacetTransmission);
+            microfacet_transmission.Distribution_Type = DistributionType_TrowbridgeReitz;
+            microfacet_transmission.etaA = 1.0;
+            microfacet_transmission.etaB = e;
+            microfacet_transmission.T = T;
+            microfacet_transmission.trowbridgereitz_distribution.alpha_x = ax;
+            microfacet_transmission.trowbridgereitz_distribution.alpha_y = ay;
+            microfacet_transmission.trowbridgereitz_distribution.sample_visible_area = true;
+            microfacet_transmission.mode = TransportMode_Radiance;
         }
         else
         {
-            // TODO: Add Microfacet Transmission with Disney Distribution
+            // Add Microfacet Transmission with Disney Distribution
+            bsdfs.AddBxDF(BxDF_MicrofacetTransmission);
+            microfacet_transmission.Distribution_Type = DistributionType_Disney;
+            microfacet_transmission.etaA = 1.0;
+            microfacet_transmission.etaB = e;
+            microfacet_transmission.T = T;
+            microfacet_transmission.disney_distribution.alpha_x = ax;
+            microfacet_transmission.disney_distribution.alpha_y = ay;
+            microfacet_transmission.disney_distribution.sample_visible_area = true;
+            microfacet_transmission.mode = TransportMode_Radiance;
         }
     }
     if (isect.material.thin > 0.0)
     {
-        // TODO: Add Lambertian Transmission
+        // Add Lambertian Transmission
+        bsdfs.AddBxDF(BxDF_LambertianTransmission);
+        lambertian_transmission.T = dt * c;
     }
     
     return bsdfs;

@@ -42,6 +42,7 @@ static const uint BxDF_DisneyFakeSS = 1 << 9;
 static const uint BxDF_DisneyRetro = 1 << 10;
 static const uint BxDF_DisneySheen = 1 << 11;
 static const uint BxDF_DisneyClearcoat = 1 << 12;
+static const uint BxDF_LambertianTransmission = 1 << 13;
 
 ////////////// Beckmann Sample //////////////
 void BeckmannSample11(float cosThetaI, float U1, float U2, out float slope_x, out float slope_y)
@@ -333,7 +334,6 @@ struct FresnelDisney
         FresnelDielectric fresnel_dielectric;
         fresnel_dielectric.etaI = 1.0;
         fresnel_dielectric.etaT = eta;
-        
         return lerp(fresnel_dielectric.Evaluate(cosI), FrSchlick(R0, cosI), metallic);
     }
 };
@@ -1044,6 +1044,35 @@ struct FresnelBlend
     }
 };
 
+////////////// Lambertian Transmission //////////////
+struct LambertianTransmission
+{
+    float3 T;
+    
+    static const uint BxDF_Type = BSDF_TRANSMISSION | BSDF_DIFFUSE;
+    
+    float3 f(float3 wo, float3 wi)
+    {
+        return T * InvPI;
+    }
+    
+    float Pdf(float3 wo, float3 wi)
+    {
+        return !SameHemisphere(wo, wi) ? AbsCosTheta(wi) * InvPI : 0.0;
+    }
+    
+    float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
+    {
+        wi = SampleCosineHemisphere(u);
+        if (wo.z > 0)
+        {
+            wi.z *= -1;
+        }
+        pdf = Pdf(wo, wi);
+        return f(wo, wi);
+    }
+};
+
 ////////////// Specular Transmission //////////////
 struct SpecularTransmission
 {
@@ -1098,14 +1127,10 @@ struct MicrofacetTransmission
     static const uint BxDF_Type = BSDF_TRANSMISSION | BSDF_GLOSSY;
     
     uint Distribution_Type;
-    uint Fresnel_Type;
-    
-    FresnelConductor fresnel_conductor;
-    FresnelDielectric fresnel_dielectric;
-    FresnelOp fresnel_op;
-    
+        
     BeckmannDistribution beckmann_distribution;
     TrowbridgeReitzDistribution trowbridgereitz_distribution;
+    DisneyMicrofacetDistribution disney_distribution;
     
     float3 f(float3 wo, float3 wi)
     {
@@ -1148,19 +1173,16 @@ struct MicrofacetTransmission
             D = trowbridgereitz_distribution.D(wh);
             G = trowbridgereitz_distribution.G(wo, wi);
         }
-
-        if (Fresnel_Type == FresnelType_Conductor)
+        else if(Distribution_Type==DistributionType_Disney)
         {
-            F = fresnel_conductor.Evaluate(dot(wo, wh));
+            D = disney_distribution.D(wh);
+            G = disney_distribution.G(wo, wi);
         }
-        else if (Fresnel_Type == FresnelType_Dielectric)
-        {
-            F = fresnel_dielectric.Evaluate(dot(wo, wh));
-        }
-        else if (Fresnel_Type == FresnelType_Op)
-        {
-            F = fresnel_op.Evaluate(dot(wo, wh));
-        }
+        
+        FresnelDielectric fresnel;
+        fresnel.etaI = etaA;
+        fresnel.etaT = etaB;
+        F = fresnel.Evaluate(dot(wo, wh));
 
         float sqrt_denom = dot(wo, wh) + eta * dot(wi, wh);
         float factor = (mode == TransportMode_Radiance) ? (1.0 / eta) : 1.0;
@@ -1198,6 +1220,10 @@ struct MicrofacetTransmission
         {
             pdf = trowbridgereitz_distribution.Pdf(wo, wh);
         }
+        else if (Distribution_Type == DistributionType_Disney)
+        {
+            pdf = disney_distribution.Pdf(wo, wh);
+        }
 
         return pdf * dwh_dwi;
     }
@@ -1222,6 +1248,10 @@ struct MicrofacetTransmission
         else if (Distribution_Type == DistributionType_TrowbridgeReitz)
         {
             wh = trowbridgereitz_distribution.SampleWh(wo, u);
+        }
+        else if (Distribution_Type == DistributionType_Disney)
+        {
+            wh = disney_distribution.SampleWh(wo, u);
         }
 
         if (!Refract(wo, Faceforward(wh, wo), etaI / etaT, wi))
@@ -1488,7 +1518,7 @@ struct DisneyClearcoat
     
     float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
     {
-        if(wo.z==0.0)
+        if (wo.z == 0.0)
         {
             return 0.0;
         }
@@ -1499,7 +1529,7 @@ struct DisneyClearcoat
         float phi = 2.0 * PI * u.y;
         float3 wh = SphericalDirection(sinTheta, cosTheta, phi);
         
-        if(!SameHemisphere(wo,wh))
+        if (!SameHemisphere(wo, wh))
         {
             wh = -wh;
         }

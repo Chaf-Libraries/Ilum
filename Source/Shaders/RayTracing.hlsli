@@ -76,7 +76,6 @@ ShadeState GetShadeState(RayPayload ray_payload)
     const float3 pos2 = v2.position.xyz;
     const float3 position = pos0 * bary.x + pos1 * bary.y + pos2 * bary.z;
     const float3 world_position = mul(float4(position, 1.0),ray_payload.objectToWorld).xyz;
-    //const float3 world_position = position;
 
 	// Normal
     float3 nrm0 = v0.normal.xyz;
@@ -231,6 +230,9 @@ bool VisibilityTest(Interaction from, float3 dir, float dist)
     
     return payload.visibility;
 }
+
+// Environment Sampling (HDR)
+// See:  https://arxiv.org/pdf/1901.05423.pdf
 
 
 #endif
