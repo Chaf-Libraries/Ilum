@@ -10,7 +10,7 @@ namespace Ilum::pass
 class Tonemapping : public TRenderPass<Tonemapping>
 {
   public:
-	Tonemapping(const std::string &from, const std::string& to);
+	Tonemapping(const std::string &from, const std::string &to);
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -26,9 +26,14 @@ class Tonemapping : public TRenderPass<Tonemapping>
 
 	struct
 	{
-		VkExtent2D extent   = {};
-		float exposure = 2.f;
-		float gamma    = 5.f;
-	} m_tonemapping_data;
+		float   brightness = 1.f;
+		float   contrast   = 1.f;
+		float   saturation = 1.f;
+		float   vignette   = 0.f;
+		float   avgLum     = 1.f;
+		int32_t autoExposure = 0;
+		float   Ywhite = 0.5f;        // Burning white
+		float   key    = 0.5f;        // Log-average luminance
+	} m_push_data;
 };
 }        // namespace Ilum::pass
