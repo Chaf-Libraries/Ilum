@@ -134,59 +134,7 @@ void main()
 				vec3 f = Distribution(interaction.mat, wo, wi);
 				wi = LocalToWorld(wi, interaction.ffnormal, interaction.tangent, interaction.bitangent);
 				radiance += throughout * f * Li * abs(dot(wi, interaction.ffnormal)) / pdf;
-
-				if(depth == push_data.max_bounce - 1)
-				{
-					//wi = normalize(WorldToLocal(wi, interaction.ffnormal, interaction.tangent, interaction.bitangent));
-					float aspect = sqrt(1.0 - interaction.mat.anisotropic * 0.99);
-					float rough  = sqrt(RoughnessToAlpha(interaction.mat.roughness));
-					float urough = sqrt(rough) / aspect;
-					float vrough = sqrt(rough) * aspect;
-
-					vec3 wh = normalize(wi + wo);
-
-					vec3  F;
-
-					if(push_data.parameter < 1.0)
-					{
-						FresnelConductor fresnel;
-						Init(fresnel, vec3(1.0), interaction.mat.base_color.rgb, interaction.mat.emissive);
-						F = FresnelEvaluate(fresnel, abs(dot(wi, Faceforward(wh, vec3(0.0, 0.0, 1.0)))));
-					}
-					else
-					{
-						FresnelDielectric fresnel;
-						Init(fresnel, 1.0, 1.5);
-						F = FresnelEvaluate(fresnel, dot(wi, Faceforward(wh, vec3(0.0, 0.0, 1.0))));
-					}
-
-
-
-					TrowbridgeReitzDistribution dist;
-					Init(dist, urough, vrough, true);
-
-					MicrofacetReflection bxdf;
-					Init(bxdf, vec3(1.0));
-
-
-					
-					float D = Distribution(dist, wh);
-					float G = G(dist, wo, wi);
-
-					float cosThetaO = AbsCosTheta(wo);
-					float cosThetaI = AbsCosTheta(wi);
-
-					//bxdf.R * D * G * F / (4.0 * cosThetaI * cosThetaO);
-
-					//radiance = f;
-					//break;
-				}
 			}
-		}
-
-		if(depth == push_data.max_bounce - 1)
-		{
-			//break;
 		}
 
 		// Add contribution of each point light source
@@ -246,7 +194,7 @@ void main()
 		}
 		else
 		{
-			//break;
+			break;
 		}
 	}
 

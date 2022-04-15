@@ -36,6 +36,94 @@ struct
     float parameter;
 } push_constants;
 
+static const uint LightFlag_None = 1;
+static const uint LightFlag_DeltaPosition = 1 << 1;
+static const uint LightFlag_DeltaDirection = 1 << 2;
+
+static const uint LightType_None = 0;
+static const uint LightType_Directional = 1;
+static const uint LightType_Point = 2;
+static const uint LightType_Spot = 3;
+
+struct Light
+{
+    uint idx;
+    
+    float3 SampleLi(Interaction interaction, float2 u, out float3 wi, out float pdf, out VisibilityTester visibility)
+    {
+        // directional - spot - point
+        uint count1 = push_constants.directional_light_count + push_constants.spot_light_count;
+        uint count2 = push_constants.directional_light_count;
+    
+        if (idx >= count1)
+        {
+            return point_lights[idx - count1].SampleLi(interaction, u, wi, pdf, visibility);
+        }
+        if (idx > count2)
+        {
+            return spot_lights[idx - count2].SampleLi(interaction, u, wi, pdf, visibility);
+        }
+        return directional_lights[idx].SampleLi(interaction, u, wi, pdf, visibility);
+    }
+    
+    float PdfLi(Interaction interaction, float3 wi)
+    {
+        // directional - spot - point
+        uint count1 = push_constants.directional_light_count + push_constants.spot_light_count;
+        uint count2 = push_constants.directional_light_count;
+    
+        if (idx >= count1)
+        {
+            return point_lights[idx - count1].PdfLi(interaction, wi);
+        }
+        if (idx > count2)
+        {
+            return spot_lights[idx - count2].PdfLi(interaction, wi);
+        }
+        return directional_lights[idx].PdfLi(interaction, wi);
+    }
+
+    float Power()
+    {
+        // directional - spot - point
+        uint count1 = push_constants.directional_light_count + push_constants.spot_light_count;
+        uint count2 = push_constants.directional_light_count;
+    
+        if (idx >= count1)
+        {
+            return point_lights[idx - count1].Power();
+        }
+        if (idx > count2)
+        {
+            return spot_lights[idx - count2].Power();
+        }
+        return directional_lights[idx].Power();
+    }
+    
+    uint GetLightFlag()
+    {
+    // directional - spot - point
+        uint count1 = push_constants.directional_light_count + push_constants.spot_light_count;
+        uint count2 = push_constants.directional_light_count;
+    
+        if (idx >= count1)
+        {
+            return LightFlag_DeltaPosition;
+        }
+        if (idx > count2)
+        {
+            return LightFlag_DeltaPosition;
+        }
+        return LightFlag_DeltaDirection;
+    }
+    
+    bool IsDeltaLight()
+    {
+        return GetLightFlag() & LightFlag_DeltaPosition ||
+           GetLightFlag() & LightFlag_DeltaDirection;
+    }
+};
+
 float3 OffsetRay(float3 p, float3 n)
 {
     const float intScale = 256.0f;
@@ -51,6 +139,14 @@ float3 OffsetRay(float3 p, float3 n)
     return float3(abs(p.x) < origin ? p.x + floatScale * n.x : p_i.x,
 	            abs(p.y) < origin ? p.y + floatScale * n.y : p_i.y,
 	            abs(p.z) < origin ? p.z + floatScale * n.z : p_i.z);
+}
+
+RayDesc SpawnRay(Interaction isect, float3 wi)
+{
+    RayDesc ray;
+    ray.Direction = wi;
+    ray.Origin = OffsetRay(isect.position, dot(wi, isect.ffnormal) > 0.0 ? isect.ffnormal : -isect.ffnormal);
+    return ray;
 }
 
 ShadeState GetShadeState(RayPayload ray_payload)
@@ -231,32 +327,6 @@ bool Unoccluded(VisibilityTester visibility)
     return payload.visibility;
 }
 
-Light GetLight(uint idx)
-{
-    // directional - spot - point
-    uint count1 = push_constants.directional_light_count + push_constants.spot_light_count;
-    uint count2 = push_constants.directional_light_count;
-    
-    if (idx >= count1)
-    {
-        Light light;
-        light.light_type = LightType_Point;
-        light.point_light = point_lights[idx - count1];
-        return light;
-    }
-    if (idx > count2)
-    {
-        Light light;
-        light.light_type = LightType_Spot;
-        light.spot_light = spot_lights[idx - count2];
-        return light;
-    }
-    Light light;
-    light.light_type = LightType_Directional;
-    light.directional_light = directional_lights[idx];
-    return light;
-}
-
 float3 EstimateDirect(Interaction isect, float2 uScattering, Light light, float2 uLight, inout Sampler _sampler, bool handleMedia, bool specular)
 {
     uint bxdfFlags = specular ? BSDF_ALL : BSDF_ALL & ~BSDF_SPECULAR;
@@ -273,10 +343,10 @@ float3 EstimateDirect(Interaction isect, float2 uScattering, Light light, float2
             BSDFSampleDesc bsdf;
             bsdf.BxDF_Type = bxdfFlags;
             bsdf.isect = isect;
-            bsdf.woW = isect.wo;
             bsdf.mode = BSDF_Evaluate;
             bsdf.rnd = _sampler.Get2D();
             bsdf.wiW = wi;
+            bsdf.woW = isect.wo;
             CallShader(isect.material.material_type, bsdf);
             
             f = bsdf.f * abs(dot(wi, isect.ffnormal));
@@ -305,7 +375,7 @@ float3 EstimateDirect(Interaction isect, float2 uScattering, Light light, float2
                 }
             }
             
-            if (IsDeltaLight(light))
+            if (light.IsDeltaLight())
             {
                 Ld += f * Li / lightPdf;
             }
@@ -333,8 +403,11 @@ float3 UniformSampleOneLight(Interaction isect, inout Sampler _sampler, bool han
     
     float2 uLight = _sampler.Get2D();
     float2 uScattering = _sampler.Get2D();
+    
+    Light light;
+    light.idx = lightNum;
 
-    return EstimateDirect(isect, uScattering, GetLight(lightNum), uLight, _sampler, handleMedia, false) / lightPdf;
+    return EstimateDirect(isect, uScattering, light, uLight, _sampler, handleMedia, false) / lightPdf;
 }
 
 // Environment Sampling (HDR)

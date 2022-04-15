@@ -559,6 +559,7 @@ struct BSDFSampleDesc
     uint mode;
     uint BxDF_Type;
     uint sampled_type;
+    float eta;
     BSDFs bsdf;
 };
 #endif

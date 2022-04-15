@@ -72,6 +72,8 @@ BSDFs CreateGlassMaterial(Interaction isect)
 void main(inout BSDFSampleDesc bsdf)
 {
     bsdf.bsdf = CreateGlassMaterial(bsdf.isect);
+    bsdf.eta = bsdf.isect.material.refraction;
+    
     if (bsdf.mode == BSDF_Evaluate)
     {
         bsdf.f = bsdf.bsdf.f(bsdf.woW, bsdf.wiW, bsdf.BxDF_Type);

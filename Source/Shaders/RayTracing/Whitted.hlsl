@@ -9,6 +9,7 @@ struct WhittedIntegrator
         float3 throughout = float3(1.0, 1.0, 1.0);
         
         Interaction isect;
+        isect.normal = float3(0.0, 0.0, 0.0);
 
         for (uint bounce = 0; bounce < maxDepth; bounce++)
         {
@@ -37,7 +38,8 @@ struct WhittedIntegrator
             // Sampling Lights
             for (uint i = 0; i < light_count; i++)
             {
-                Light light = GetLight(i);
+                Light light;
+                light.idx = i;
                 float3 wi;
                 float pdf;
                 VisibilityTester visibility;
@@ -70,8 +72,7 @@ struct WhittedIntegrator
             if (pdf > 0.0 && !IsBlack(f) && abs(dot(wi, isect.ffnormal)) != 0.0)
             {
                 throughout *= f * abs(dot(wi, isect.ffnormal)) / pdf;
-                ray.Direction = wi;
-                ray.Origin = OffsetRay(isect.position, dot(wi, isect.ffnormal) > 0.0 ? isect.ffnormal : -isect.ffnormal);
+                ray = SpawnRay(isect, bsdf.wiW);
             }
             else
             {

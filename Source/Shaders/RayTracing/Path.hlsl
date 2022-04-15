@@ -4,65 +4,31 @@ struct PathIntegrator
 {
     float3 Li(RayDesc ray, Sampler _sampler, uint maxDepth)
     {
+        uint light_count = push_constants.directional_light_count + push_constants.point_light_count + push_constants.spot_light_count;
         float3 radiance = float3(0.0, 0.0, 0.0);
         float3 throughout = float3(1.0, 1.0, 1.0);
         bool specularBounce = false;
-        uint bounces;
         float etaScale = 1.0;
-        
-        uint light_count = push_constants.directional_light_count + push_constants.point_light_count + push_constants.spot_light_count;
-        
-        for (bounces = 0; bounces < maxDepth; bounces++)
-        {
-            Interaction isect;
-            bool foundIntersection = SceneIntersection(ray, isect);
-            
-            if (bounces == 0 || specularBounce)
-            {
-                if (foundIntersection)
-                {
-                    // TODO: Sampling
-                    radiance += throughout * isect.material.emissive;
-                }
-                else
-                {
-                    // Sample environment light
-                    // TODO: Importance Sampling
-                    float3 w = normalize(ray.Direction);
-                    radiance += throughout * Skybox.SampleLevel(SkyboxSampler, w, 0.0).rgb;
-                }
-            }
-
-            if (!foundIntersection || bounces >= maxDepth)
-            {
-                break;
-            }
-            
-            BSDFSampleDesc bsdf;
-            bsdf.mode = BSDF_None;
-            CallShader(isect.material.material_type, bsdf);
-            
-            if (bsdf.bsdf.NumComponents(BSDF_ALL & ~BSDF_SPECULAR) > 0)
-            {
-                radiance += throughout * UniformSampleOneLight(isect, _sampler, false);
-            }
-            
-
-            
-        }
-        
-
-        /*Interaction isect;
-
+               
         for (uint bounce = 0; bounce < maxDepth; bounce++)
         {
-            // Hit miss
-            if (!SceneIntersection(ray, isect))
+            Interaction isect;
+            isect.normal = float3(0.0, 0.0, 0.0);
+            
+            bool foundIntersection = SceneIntersection(ray, isect);
+           
+            if (!foundIntersection)
             {
-                // Sample environment light
-                // TODO: Importance Sampling
                 float3 w = normalize(ray.Direction);
                 radiance += throughout * Skybox.SampleLevel(SkyboxSampler, w, 0.0).rgb;
+                break;
+            }
+            // TODO: Area light sampling
+
+            radiance += throughout * isect.material.emissive;
+            
+            if (!foundIntersection || bounce >= maxDepth)
+            {
                 break;
             }
         
@@ -73,111 +39,46 @@ struct PathIntegrator
             bsdf.BxDF_Type = BSDF_ALL;
             bsdf.isect = isect;
             bsdf.woW = wo;
-                    
-            // TODO: Sampling emissive
-            // TODO: Handle area light
-            radiance += throughout * isect.material.emissive;
             
-            // Sampling Lights
-            // Sampling Point Light
-            for (uint i = 0; i < push_constants.point_light_count; i++)
-            {
-                float3 wi;
-                float pdf;
-                PointLight light = point_lights[i];
-                float3 Li = light.SampleLi(isect, _sampler.Get2D(), wi, pdf);
-                if (IsBlack(Li) || pdf == 0)
-                {
-                    continue;
-                }
-                
-                float3 dir = normalize(light.position - isect.position);
-                float dist = length(light.position - isect.position);
-                
-                if (!IsBlack(Li) && VisibilityTest(isect, dir, dist))
-                {
-                    bsdf.mode = BSDF_Evaluate;
-                    bsdf.rnd = _sampler.Get2D();
-                    bsdf.wiW = wi;
-                    CallShader(isect.material.material_type, bsdf);
-
-                    radiance += throughout * bsdf.f * Li * abs(dot(wi, isect.ffnormal)) / pdf;
-                }
-            }
-            
-            // Sampling Directional Light
-            for (i = 0; i < push_constants.directional_light_count; i++)
-            {
-                float3 wi;
-                float pdf;
-                DirectionalLight light = directional_lights[i];
-                float3 Li = light.SampleLi(isect, _sampler.Get2D(), wi, pdf);
-                if (IsBlack(Li) || pdf == 0)
-                {
-                    continue;
-                }
-                
-                float3 dir = -light.direction;
-                float dist = Infinity;
-                
-                if (!IsBlack(Li) && VisibilityTest(isect, dir, dist))
-                {
-                    bsdf.mode = BSDF_Evaluate;
-                    bsdf.rnd = _sampler.Get2D();
-                    bsdf.wiW = wi;
-                    CallShader(isect.material.material_type, bsdf);
-
-                    radiance += throughout * bsdf.f * Li * abs(dot(wi, isect.ffnormal)) / pdf;
-                }
-            }
-            
-            // Sampling Point Light
-            for (i = 0; i < push_constants.spot_light_count; i++)
-            {
-                float3 wi;
-                float pdf;
-                SpotLight light = spot_lights[i];
-                float3 Li = light.SampleLi(isect, _sampler.Get2D(), wi, pdf);
-                if (IsBlack(Li) || pdf == 0)
-                {
-                    continue;
-                }
-                
-                float3 dir = normalize(light.position - isect.position);
-                float dist = length(light.position - isect.position);
-                
-                if (!IsBlack(Li) && VisibilityTest(isect, dir, dist))
-                {
-                    bsdf.mode = BSDF_Evaluate;
-                    bsdf.rnd = _sampler.Get2D();
-                    bsdf.wiW = wi;
-                    CallShader(isect.material.material_type, bsdf);
-
-                    radiance += throughout * bsdf.f * Li * abs(dot(wi, isect.ffnormal)) / pdf;
-                }
-            }
-            
-            // Sampling next bounce
+            // Sample BSDF to get new path direction
             bsdf.mode = BSDF_Sample;
             bsdf.rnd = _sampler.Get2D();
             CallShader(isect.material.material_type, bsdf);
             
-            float pdf = bsdf.pdf;
-            float3 f = bsdf.f;
-            float3 wi = bsdf.wiW;
-
-            if (pdf > 0.0 && !IsBlack(f) && abs(dot(wi, isect.ffnormal)) != 0.0)
+            if (bsdf.bsdf.NumComponents(BSDF_ALL & ~BSDF_SPECULAR) > 0)
             {
-                throughout *= f * abs(dot(wi, isect.ffnormal)) / pdf;
-                ray.Direction = wi;
-                ray.Origin = OffsetRay(isect.position, dot(wi, isect.ffnormal) > 0.0 ? isect.ffnormal : -isect.ffnormal);
+                radiance += throughout * UniformSampleOneLight(isect, _sampler, false);
+            }
+
+            if (bsdf.pdf > 0.0 && !IsBlack(bsdf.f) && abs(dot(bsdf.wiW, isect.ffnormal)) != 0.0)
+            {
+                throughout *= bsdf.f * abs(dot(bsdf.wiW, isect.ffnormal)) / bsdf.pdf;
+                ray = SpawnRay(isect, bsdf.wiW);
             }
             else
             {
                 break;
             }
-        }*/
-
+            
+            specularBounce = (bsdf.sampled_type & BSDF_SPECULAR) != 0;
+            if ((bsdf.sampled_type & BSDF_SPECULAR) && (bsdf.sampled_type & BSDF_TRANSMISSION))
+            {
+                float eta = bsdf.eta;
+                etaScale *= (dot(bsdf.woW, isect.ffnormal) > 0) ? (eta * eta) : 1.0 / (eta * eta);
+            }
+            
+            float3 rrBeta = throughout * etaScale;
+            float max_val = max(rrBeta.x, max(rrBeta.y, rrBeta.z));
+            if (max_val < 1.0 && bounce > 3)
+            {
+                float q = max(0.05, 1.0-max_val);
+                if (_sampler.Get1D()<q)
+                {
+                    break;
+                }
+                throughout /= 1.0 - q;
+            }
+        }
         return radiance;
     }
 };
@@ -227,7 +128,7 @@ void main()
         }
         else
         {
-            accumulated_color = lerp(prev_color, radiance, 1.0 / float(camera.frame_count));
+            accumulated_color = lerp(prev_color, radiance, 1.0 / float(camera.frame_count + 1));
         }
 
         Image[launch_id] = float4(accumulated_color, 1.0);

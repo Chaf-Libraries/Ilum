@@ -35,7 +35,7 @@ void Path::setupPipeline(PipelineState &state)
 
 	state.descriptor_bindings.bind(0, 0, "TLAS", VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR);
 	state.descriptor_bindings.bind(0, 1, "Path", VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
-	state.descriptor_bindings.bind(0, 2, "PrevWhitted", VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	state.descriptor_bindings.bind(0, 2, "PrevPath", VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 	state.descriptor_bindings.bind(0, 3, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	state.descriptor_bindings.bind(0, 4, "Vertices", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 5, "Indices", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);

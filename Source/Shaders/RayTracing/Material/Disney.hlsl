@@ -164,6 +164,8 @@ BSDFs CreateDisneyMaterial(Interaction isect)
 void main(inout BSDFSampleDesc bsdf)
 {
     bsdf.bsdf = CreateDisneyMaterial(bsdf.isect);
+    bsdf.eta = 1.0;
+    
     if (bsdf.mode == BSDF_Evaluate)
     {
         bsdf.f = bsdf.bsdf.f(bsdf.woW, bsdf.wiW, bsdf.BxDF_Type);
