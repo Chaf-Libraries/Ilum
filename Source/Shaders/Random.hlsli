@@ -29,7 +29,8 @@ struct PCGSampler
         uint prev = seed * 747796405u + 2891336453u;
         uint word = ((prev >> ((prev >> 28u) + 4u)) ^ prev) * 277803737u;
         seed = prev;
-        return asfloat(0x3f800000 | (((word >> 22u) ^ word) >> 9)) - 1.0f;
+        uint r = (word >> 22u) ^ word;
+        return asfloat(0x3f800000 | (r >> 9)) - 1.0f;
     }
     
     float2 Get2D()

@@ -83,7 +83,7 @@ void TransformUpdate::run()
 	}
 
 	// Update all transform and update last transform for another time
-	if (m_motionless_count <= 1)
+	if (m_motionless_count <= 1 || Material::update)
 	{
 		m_motionless_count++;
 
@@ -137,6 +137,7 @@ void TransformUpdate::run()
 				uint32_t submesh_index = 0;
 				for (auto &submesh : model.get().submeshes)
 				{
+					uint32_t material_idx = static_cast<uint32_t>(meshlet_renderer.materials[submesh_index].type);
 					size_t instance_idx = instance_offset[i] + submesh_index++;
 
 					auto &instance          = instance_data[instance_idx];
@@ -153,7 +154,7 @@ void TransformUpdate::run()
 					std::memcpy(&as_instance_data[instance_idx].transform, &transform, sizeof(VkTransformMatrixKHR));
 					as_instance_data[instance_idx].instanceCustomIndex                    = 0;
 					as_instance_data[instance_idx].mask                                   = 0xFF;
-					as_instance_data[instance_idx].instanceShaderBindingTableRecordOffset = 0;
+					as_instance_data[instance_idx].instanceShaderBindingTableRecordOffset = material_idx;
 					as_instance_data[instance_idx].flags                                  = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
 					as_instance_data[instance_idx].accelerationStructureReference         = submesh.bottom_level_as.getDeviceAddress();
 				}

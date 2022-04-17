@@ -4,6 +4,46 @@
 #include "BxDF.hlsli"
 #include "Common.hlsli"
 
+#ifdef USE_Matte
+#define USE_OrenNayar
+#define USE_LambertianReflection
+#endif
+
+#ifdef USE_Plastic
+#define USE_MicrofacetReflection
+#define USE_LambertianReflection
+#endif
+
+#ifdef USE_Metal
+#define USE_MicrofacetReflection
+#endif
+
+#ifdef USE_Substrate
+#define USE_FresnelBlend
+#endif
+
+#ifdef USE_Mirror
+#define USE_SpecularReflection
+#endif
+
+#ifdef USE_Glass
+#define USE_FresnelSpecular
+#define USE_MicrofacetReflection
+#define USE_MicrofacetTransmission
+#endif
+
+#ifdef USE_Disney
+#define USE_DisneyDiffuse
+#define USE_DisneyFakeSS
+#define USE_SpecularTransmission
+#define USE_DisneyRetro
+#define USE_DisneySheen
+#define USE_DisneyClearcoat
+#define USE_MicrofacetReflection
+#define USE_MicrofacetTransmission
+#define USE_LambertianTransmission
+#endif
+
 #ifdef USE_OrenNayar
 static OrenNayar oren_nayar;
 #endif
@@ -562,4 +602,333 @@ struct BSDFSampleDesc
     float eta;
     BSDFs bsdf;
 };
+
+#ifdef USE_Matte
+BSDFs CreateMatteMaterial(Material material)
+{
+    BSDFs bsdfs;
+    bsdfs.Init();
+    
+    if (!IsBlack(material.base_color.rgb))
+    {
+        if (material.roughness == 0.0)
+        {
+            lambertian_reflection.R = material.base_color.rgb;
+            bsdfs.AddBxDF(BxDF_LambertianReflection);
+        }
+        else
+        {
+            oren_nayar.Init(material.base_color.rgb, material.roughness);
+            bsdfs.AddBxDF(BxDF_OrenNayar);
+        }
+    }
+    return bsdfs;
+}
+#endif
+
+#ifdef USE_Plastic
+BSDFs CreatePlasticMaterial(Material material)
+{
+    BSDFs bsdfs;
+    bsdfs.Init();
+    
+    float rough = max(material.roughness, 0.001);
+    float aspect = sqrt(1.0 - material.anisotropic * 0.9);
+    float urough = max(0.001, material.roughness / aspect);
+    float vrough = max(0.001, material.roughness * aspect);
+
+    lambertian_reflection.R = material.base_color.rgb;
+
+    microfacet_reflection.Distribution_Type = DistributionType_TrowbridgeReitz;
+    microfacet_reflection.Fresnel_Type = FresnelType_Dielectric;
+    microfacet_reflection.R = material.data;
+    microfacet_reflection.trowbridgereitz_distribution.alpha_x = rough;
+    microfacet_reflection.trowbridgereitz_distribution.alpha_y = rough;
+    microfacet_reflection.trowbridgereitz_distribution.sample_visible_area = true;
+    microfacet_reflection.fresnel_dielectric.etaI = 1.0;
+    microfacet_reflection.fresnel_dielectric.etaT = 1.5;
+    
+    bsdfs.AddBxDF(BxDF_MicrofacetReflection);
+    bsdfs.AddBxDF(BxDF_LambertianReflection);
+    
+    return bsdfs;
+}
+#endif
+
+#ifdef USE_Metal
+BSDFs CreateMetalMaterial(Material material)
+{
+    BSDFs bsdfs;
+    bsdfs.Init();
+    
+    bsdfs.AddBxDF(BxDF_MicrofacetReflection);
+    
+    float aspect = sqrt(1.0 - material.anisotropic * 0.9);
+    float urough = max(0.001, material.roughness / aspect);
+    float vrough = max(0.001, material.roughness * aspect);
+        
+    microfacet_reflection.Fresnel_Type = FresnelType_Conductor;
+    microfacet_reflection.Distribution_Type = DistributionType_TrowbridgeReitz;
+    microfacet_reflection.R = material.base_color.rgb;
+    microfacet_reflection.fresnel_conductor.etaI = float3(1.0, 1.0, 1.0);
+    microfacet_reflection.fresnel_conductor.etaT = float3(1, 10, 11);
+    microfacet_reflection.fresnel_conductor.k = float3(3.90463543, 2.44763327, 2.13765264);
+    microfacet_reflection.trowbridgereitz_distribution.alpha_x = urough;
+    microfacet_reflection.trowbridgereitz_distribution.alpha_y = vrough;
+    microfacet_reflection.trowbridgereitz_distribution.sample_visible_area = true;
+    
+    return bsdfs;
+}
+#endif
+
+#ifdef USE_Substrate
+BSDFs CreateSubstrateMaterial(Material material)
+{
+    BSDFs bsdfs;
+    bsdfs.Init();
+    
+    bsdfs.AddBxDF(BxDF_FresnelBlend);
+    
+    float aspect = sqrt(1.0 - material.anisotropic * 0.9);
+    float urough = max(0.001, material.roughness / aspect);
+    float vrough = max(0.001, material.roughness * aspect);
+    
+    fresnel_blend.Distribution_Type = DistributionType_TrowbridgeReitz;
+    fresnel_blend.Rd = material.base_color.rgb;
+    fresnel_blend.Rs = material.data;
+    fresnel_blend.trowbridgereitz_distribution.alpha_x = urough;
+    fresnel_blend.trowbridgereitz_distribution.alpha_y = vrough;
+    fresnel_blend.trowbridgereitz_distribution.sample_visible_area = true;
+    
+    return bsdfs;
+}
+#endif
+
+#ifdef USE_Mirror
+BSDFs CreateMirrorMaterial(Material material)
+{
+    BSDFs bsdfs;
+    bsdfs.Init();
+    bsdfs.AddBxDF(BxDF_SpecularReflection);
+    specular_reflection.R = material.base_color.rgb;
+    return bsdfs;
+}
+#endif
+
+#ifdef USE_Glass
+BSDFs CreateGlassMaterial(Material material)
+{
+    BSDFs bsdfs;
+    bsdfs.Init();
+    
+    float aspect = sqrt(1.0 - material.anisotropic * 0.9);
+    float urough = material.roughness / aspect;
+    float vrough = material.roughness * aspect;
+    
+    float3 R = material.base_color.rgb;
+    float3 T = material.data;
+    
+    float refraction = material.refraction;
+    float anisotropic = material.anisotropic;
+    float roughness = material.roughness;
+        
+    if (IsBlack(R) && IsBlack(T))
+    {
+        return bsdfs;
+    }
+    
+    bool isSpecular = (urough == 0 && vrough == 0);
+    
+    if (isSpecular)
+    {
+        bsdfs.AddBxDF(BxDF_FresnelSpecular);
+    }
+    else
+    {
+        if (!IsBlack(R))
+        {
+            bsdfs.AddBxDF(BxDF_MicrofacetReflection);
+        }
+        if (!IsBlack(T))
+        {
+            bsdfs.AddBxDF(BxDF_MicrofacetTransmission);
+        }
+    }
+            
+    fresnel_specular.R = R;
+    fresnel_specular.T = T;
+    fresnel_specular.etaA = 1.0;
+    fresnel_specular.etaB = refraction;
+    fresnel_specular.mode = TransportMode_Radiance;
+        
+    microfacet_reflection.Distribution_Type = DistributionType_TrowbridgeReitz;
+    microfacet_reflection.Fresnel_Type = FresnelType_Dielectric;
+    microfacet_reflection.R = R;
+    microfacet_reflection.fresnel_dielectric.etaI = 1.0;
+    microfacet_reflection.fresnel_dielectric.etaT = refraction;
+    microfacet_reflection.trowbridgereitz_distribution.alpha_x = urough;
+    microfacet_reflection.trowbridgereitz_distribution.alpha_y = vrough;
+    microfacet_reflection.trowbridgereitz_distribution.sample_visible_area = true;
+        
+    microfacet_transmission.Distribution_Type = DistributionType_TrowbridgeReitz;
+    microfacet_transmission.T = T;
+    microfacet_transmission.etaA = 1.0;
+    microfacet_transmission.etaB = refraction;
+    microfacet_transmission.trowbridgereitz_distribution = microfacet_reflection.trowbridgereitz_distribution;
+    
+    return bsdfs;
+}
+#endif
+
+#ifdef USE_Disney
+BSDFs CreateDisneyMaterial(Material material)
+{
+    BSDFs bsdfs;
+    bsdfs.Init();
+    
+    float3 c = material.base_color.rgb;
+    float metallicWeight = material.metallic;
+    float e = material.refraction;
+    float strans = material.specular_transmission;
+    float diffuseWeight = (1.0 - metallicWeight) * (1.0 - strans);
+    float dt = material.diffuse_transmission * 0.5;
+    float rough = material.roughness;
+    float lum = dot(float3(0.212671, 0.715160, 0.072169), c);
+    float3 Ctint = lum > 0.0 ? (c / lum) : float3(1.0, 1.0, 1.0);
+    float sheenWeight = material.sheen;
+    float3 Csheen = float3(0.0, 0.0, 0.0);
+    if (sheenWeight > 0.0)
+    {
+        float stint = material.sheen_tint;
+        Csheen = lerp(float3(1.0, 1.0, 1.0), Ctint, stint);
+    }
+    
+    if (diffuseWeight > 0.0)
+    {
+        if (material.thin > 0)
+        {
+            float flat = material.flatness;
+            // Add Disney Diffuse
+            bsdfs.AddBxDF(BxDF_DisneyDiffuse);
+            disney_diffuse.R = diffuseWeight * (1.0 - flat) * (1.0 - dt) * c;
+            
+            // Add Disney FakeSS
+            bsdfs.AddBxDF(BxDF_DisneyFakeSS);
+            disney_fakess.R = diffuseWeight * flat * (1.0 - dt) * c;
+            disney_fakess.roughness = rough;
+        }
+        else
+        {
+            float3 scatter_distance = material.data;
+            if (IsBlack(scatter_distance))
+            {
+                // No subsurface scattering
+                // Add Disney Diffuse
+                bsdfs.AddBxDF(BxDF_DisneyDiffuse);
+                disney_diffuse.R = diffuseWeight * c;
+            }
+            else
+            {
+                // Use BSSRDF
+                // Add Specular Transmission
+                bsdfs.AddBxDF(BxDF_SpecularTransmission);
+                specular_transmission.T = float3(1.0, 1.0, 1.0);
+                specular_transmission.etaA = 1.0;
+                specular_transmission.etaB = e;
+                specular_transmission.fresnel.etaI = specular_transmission.etaA;
+                specular_transmission.fresnel.etaT = specular_transmission.etaB;
+                specular_transmission.mode = TransportMode_Radiance;
+                                
+                // TODO: Add Disney BSSRDF
+            }
+        }
+        
+        // Add Disney Retro Reflection
+        bsdfs.AddBxDF(BxDF_DisneyRetro);
+        disney_retro.R = diffuseWeight * c;
+        disney_retro.roughness = rough;
+        
+        // Sheen
+        if (sheenWeight > 0.0)
+        {
+            // Add Disney Sheen
+            bsdfs.AddBxDF(BxDF_DisneySheen);
+            disney_sheen.R = diffuseWeight * sheenWeight * Csheen;
+        }
+    }
+    
+    float aspect = sqrt(1.0 - material.anisotropic * 0.9);
+    float ax = max(0.001, sqrt(rough) / aspect);
+    float ay = max(0.001, sqrt(rough) * aspect);
+    
+    float specTint = material.specular_tint;
+    float3 Cspec0 = lerp(SchlickR0FromEta(e) * lerp(float3(1.0, 1.0, 1.0), Ctint, specTint), c, metallicWeight);
+    
+    // Add Microfacet Reflection
+    bsdfs.AddBxDF(BxDF_MicrofacetReflection);
+    microfacet_reflection.R = float3(1.0, 1.0, 1.0);
+    microfacet_reflection.Fresnel_Type = FresnelType_Disney;
+    microfacet_reflection.fresnel_disney.R0 = Cspec0;
+    microfacet_reflection.fresnel_disney.metallic = metallicWeight;
+    microfacet_reflection.fresnel_disney.eta = e;
+    microfacet_reflection.Distribution_Type = DistributionType_Disney;
+    microfacet_reflection.disney_distribution.alpha_x = ax;
+    microfacet_reflection.disney_distribution.alpha_y = ay;
+    microfacet_reflection.disney_distribution.sample_visible_area = true;
+    
+    // Clearcoat
+    float cc = material.clearcoat;
+    if (cc > 0.0)
+    {
+        // Add Disney Clear Coat
+        bsdfs.AddBxDF(BxDF_DisneyClearcoat);
+        disney_clearcoat.weight = cc;
+        disney_clearcoat.gloss = lerp(0.1, 0.001, material.clearcoat_gloss);
+    }
+    
+    // BTDF
+    if (strans > 0.0)
+    {
+        float3 T = strans * sqrt(c);
+        if (material.thin > 0.0)
+        {
+            float rscaled = (0.65 * e - 0.35) * rough;
+            float ax = max(0.001, rscaled * rscaled / aspect);
+            float ay = max(0.001, rscaled * rscaled * aspect);
+            // Add Microfacet Transmission with GGX
+            bsdfs.AddBxDF(BxDF_MicrofacetTransmission);
+            microfacet_transmission.Distribution_Type = DistributionType_TrowbridgeReitz;
+            microfacet_transmission.etaA = 1.0;
+            microfacet_transmission.etaB = e;
+            microfacet_transmission.T = T;
+            microfacet_transmission.trowbridgereitz_distribution.alpha_x = ax;
+            microfacet_transmission.trowbridgereitz_distribution.alpha_y = ay;
+            microfacet_transmission.trowbridgereitz_distribution.sample_visible_area = true;
+            microfacet_transmission.mode = TransportMode_Radiance;
+        }
+        else
+        {
+            // Add Microfacet Transmission with Disney Distribution
+            bsdfs.AddBxDF(BxDF_MicrofacetTransmission);
+            microfacet_transmission.Distribution_Type = DistributionType_Disney;
+            microfacet_transmission.etaA = 1.0;
+            microfacet_transmission.etaB = e;
+            microfacet_transmission.T = T;
+            microfacet_transmission.disney_distribution.alpha_x = ax;
+            microfacet_transmission.disney_distribution.alpha_y = ay;
+            microfacet_transmission.disney_distribution.sample_visible_area = true;
+            microfacet_transmission.mode = TransportMode_Radiance;
+        }
+    }
+    if (material.thin > 0.0)
+    {
+        // Add Lambertian Transmission
+        bsdfs.AddBxDF(BxDF_LambertianTransmission);
+        lambertian_transmission.T = dt * c;
+    }
+    
+    return bsdfs;
+}
+#endif
+
 #endif

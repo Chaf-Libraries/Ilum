@@ -15,27 +15,29 @@ namespace Ilum::pass
 {
 void Whitted::setupPipeline(PipelineState &state)
 {
-	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GLSL/RayTracing/Whitted.rgen", VK_SHADER_STAGE_RAYGEN_BIT_KHR, Shader::Type::GLSL);
-	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GLSL/RayTracing/Whitted.rchit", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::GLSL);
-	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GLSL/RayTracing/Whitted.rmiss", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::GLSL);
-	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GLSL/RayTracing/WhittedShadow.rmiss", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::GLSL);
-
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Whitted.hlsl", VK_SHADER_STAGE_RAYGEN_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/ClosestHit.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Miss.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/ShadowMiss.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Material/Matte.hlsl", VK_SHADER_STAGE_CALLABLE_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Material/Plastic.hlsl", VK_SHADER_STAGE_CALLABLE_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Material/Metal.hlsl", VK_SHADER_STAGE_CALLABLE_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Material/Mirror.hlsl", VK_SHADER_STAGE_CALLABLE_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Material/Substrate.hlsl", VK_SHADER_STAGE_CALLABLE_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Material/Glass.hlsl", VK_SHADER_STAGE_CALLABLE_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Material/Disney.hlsl", VK_SHADER_STAGE_CALLABLE_BIT_KHR, Shader::Type::HLSL, "main");
 
-	state.declareAttachment("Whitted", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/ClosestHit/Matte.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "main");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/ClosestHit/Plastic.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "main");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/ClosestHit/Metal.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "main");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/ClosestHit/Mirror.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "main");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/ClosestHit/Substrate.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "main");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/ClosestHit/Glass.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "main");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/ClosestHit/Disney.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "main");
+
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Miss/Matte.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "main");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Miss/Plastic.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "main");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Miss/Metal.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "main");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Miss/Mirror.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "main");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Miss/Substrate.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "main");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Miss/Glass.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "main");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Miss/Disney.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "main");
+
+
+	state.declareAttachment("Whitted", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.addOutputAttachment("Whitted", AttachmentState::Clear_Color);
 
-	state.declareAttachment("PrevWhitted", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("PrevWhitted", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.addOutputAttachment("PrevWhitted", AttachmentState::Clear_Color);
 
 	state.descriptor_bindings.bind(0, 0, "TLAS", VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR);

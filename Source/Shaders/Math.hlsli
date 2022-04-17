@@ -3,11 +3,20 @@
 
 #include "Constants.hlsli"
 
-void CreateCoordinateSystem(in float3 N, out float3 Nt, out float3 Nb)
+/*void CreateCoordinateSystem(in float3 N, out float3 Nt, out float3 Nb)
 {
     Nt = normalize(((abs(N.z) > 0.99999f) ? float3(-N.x * N.y, 1.0f - N.y * N.y, -N.y * N.z) :
                                             float3(-N.x * N.z, -N.y * N.z, 1.0f - N.z * N.z)));
     Nb = cross(Nt, N);
+}*/
+
+void CoordinateSystem(in float3 N, out float3 Nt, out float3 Nb)
+{
+    float sign = (N.z >= 0.0f) * 2.0f - 1.0f; // copysign(1.0f, v1.z); // No HLSL support yet
+    float a = -1.0f / (sign + N.z);
+    float b = N.x * N.y * a;
+    Nt = float3(1.0f + sign * N.x * N.x * a, sign * b, -sign * N.x);
+    Nb = float3(b, sign + N.y * N.y * a, -N.y);
 }
 
 // Sampling Disk

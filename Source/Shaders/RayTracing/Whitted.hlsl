@@ -3,18 +3,18 @@
 struct WhittedIntegrator
 {
     float3 Li(RayDesc ray, Sampler _sampler, uint maxDepth)
-    {
+    {       
         uint light_count = push_constants.directional_light_count + push_constants.point_light_count + push_constants.spot_light_count;
         float3 radiance = float3(0.0, 0.0, 0.0);
         float3 throughout = float3(1.0, 1.0, 1.0);
-        
-        Interaction isect;
-        isect.normal = float3(0.0, 0.0, 0.0);
-
+                
         for (uint bounce = 0; bounce < maxDepth; bounce++)
-        {
-            // Hit miss
-            if (!SceneIntersection(ray, isect))
+        {            
+            RayPayload ray_payload;
+            ray_payload.rnd = _sampler.Get2D();
+            ray_payload.isect.ffnormal = float3(0.0, 0.0, 0.0);
+
+            if (!SceneIntersection(ray, ray_payload))
             {
                 // Sample environment light
                 // TODO: Importance Sampling
@@ -22,20 +22,18 @@ struct WhittedIntegrator
                 radiance += throughout * Skybox.SampleLevel(SkyboxSampler, w, 0.0).rgb;
                 break;
             }
-        
-            const float3 n = isect.ffnormal;
-            float3 wo = isect.wo;
             
-            BSDFSampleDesc bsdf;
-            bsdf.BxDF_Type = BSDF_ALL;
-            bsdf.isect = isect;
-            bsdf.woW = wo;
+            // Sampling next bounce               
+            float sample_pdf = ray_payload.pdf;
+            float3 sample_f = ray_payload.f;
+            float3 sample_wi = ray_payload.wi;
                     
-            // TODO: Sampling emissive
-            // TODO: Handle area light
-            radiance += throughout * isect.material.emissive;
+            const float3 n = ray_payload.isect.ffnormal;
+            float3 wo = ray_payload.isect.wo;
+
+            radiance += throughout * ray_payload.emission;
             
-            // Sampling Lights
+            // Sampling all lights
             for (uint i = 0; i < light_count; i++)
             {
                 Light light;
@@ -43,36 +41,23 @@ struct WhittedIntegrator
                 float3 wi;
                 float pdf;
                 VisibilityTester visibility;
-                float3 Li = light.SampleLi(isect, _sampler.Get2D(), wi, pdf, visibility);
+                float3 Li = light.SampleLi(ray_payload.isect, _sampler.Get2D(), wi, pdf, visibility);
                 if (IsBlack(Li) || pdf == 0)
                 {
                     continue;
                 }
-                                
-                if (!IsBlack(Li) && Unoccluded(visibility))
-                {
-                    bsdf.mode = BSDF_Evaluate;
-                    bsdf.rnd = _sampler.Get2D();
-                    bsdf.wiW = wi;
-                    CallShader(isect.material.material_type, bsdf);
 
-                    radiance += throughout * bsdf.f * Li * abs(dot(wi, isect.ffnormal)) / pdf;
+                ray_payload.wi = wi;
+                if (!IsBlack(Li) && Unoccluded(ray_payload, visibility))
+                {
+                    radiance += throughout * ray_payload.f * Li * abs(dot(wi, ray_payload.isect.ffnormal)) / pdf;
                 }
             }
-            
-            // Sampling next bounce
-            bsdf.mode = BSDF_Sample;
-            bsdf.rnd = _sampler.Get2D();
-            CallShader(isect.material.material_type, bsdf);
-            
-            float pdf = bsdf.pdf;
-            float3 f = bsdf.f;
-            float3 wi = bsdf.wiW;
-
-            if (pdf > 0.0 && !IsBlack(f) && abs(dot(wi, isect.ffnormal)) != 0.0)
+ 
+            if (sample_pdf > 0.0 && !IsBlack(sample_f) && abs(dot(sample_wi, ray_payload.isect.ffnormal)) != 0.0)
             {
-                throughout *= f * abs(dot(wi, isect.ffnormal)) / pdf;
-                ray = SpawnRay(isect, bsdf.wiW);
+                throughout *= sample_f * abs(dot(sample_wi, ray_payload.isect.ffnormal)) / sample_pdf;
+                ray = SpawnRay(ray_payload.isect, sample_wi);
             }
             else
             {
@@ -121,17 +106,14 @@ void main()
     else
     {
         float3 prev_color = PrevImage[launch_id].rgb;
-        float3 accumulated_color = float3(0.0, 0.0, 0.0);
 		
         if ((isnan(prev_color.x) || isnan(prev_color.y) || isnan(prev_color.z)))
         {
-            accumulated_color = radiance;
+            Image[launch_id] = float4(radiance, 1.0);
         }
         else
         {
-            accumulated_color = lerp(prev_color, radiance, 1.0 / float(camera.frame_count));
+            Image[launch_id] = float4(lerp(prev_color, radiance, 1.0 / float(camera.frame_count)), 1.0);
         }
-
-        Image[launch_id] = float4(accumulated_color, 1.0);
     }
 }

@@ -356,7 +356,7 @@ struct LambertianReflection
     
     float3 Samplef(float3 wo, float2 u, out float3 wi, out float pdf)
     {
-        wi = SampleCosineHemisphere(u);
+        wi = UniformSampleHemisphere(u);
         if (wo.z < 0.0)
         {
             wi.z *= -1.0;

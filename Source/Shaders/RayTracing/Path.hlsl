@@ -2,7 +2,7 @@
 
 struct PathIntegrator
 {
-    float3 Li(RayDesc ray, Sampler _sampler, uint maxDepth)
+    float3 Li(RayDesc ray, inout Sampler _sampler, uint maxDepth)
     {
         uint light_count = push_constants.directional_light_count + push_constants.point_light_count + push_constants.spot_light_count;
         float3 radiance = float3(0.0, 0.0, 0.0);

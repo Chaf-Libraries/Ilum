@@ -187,38 +187,13 @@ struct Vertex
     float4 normal;
 };
 
-struct RayPayload
-{
-    uint seed;
-    float hitT;
-    int primitiveID;
-    int instanceID;
-    float2 baryCoord;
-    float4x3 objectToWorld;
-    float4x3 worldToObject;
-};
-
 struct ShadowPayload
 {
     bool visibility;
 };
 
-struct ShadeState
-{
-    float3 normal;
-    float3 geom_normal;
-    float3 position;
-    float2 tex_coord;
-    float3 tangent_u;
-    float3 tangent_v;
-    uint matIndex;
-};
-
 struct Interaction
 {
-    int depth;
-    float eta;
-
     float3 position;
     float3 normal;
     float3 ffnormal;
@@ -226,14 +201,13 @@ struct Interaction
     float3 bitangent;
     float2 texCoord;
     float3 wo;
-
-    Material material;
     
     void CreateCoordinateSystem()
     {
-        tangent = normalize(((abs(ffnormal.z) > 0.99999f) ? float3(-ffnormal.x * ffnormal.y, 1.0f - ffnormal.y * ffnormal.y, -ffnormal.y * ffnormal.z) :
-                                            float3(-ffnormal.x * ffnormal.z, -ffnormal.y * ffnormal.z, 1.0f - ffnormal.z * ffnormal.z)));
-        bitangent = cross(tangent, ffnormal);
+        const float3 ref = abs(dot(ffnormal, float3(0, 1, 0))) > 0.99f ? float3(0, 0, 1) : float3(0, 1, 0);
+
+        tangent = normalize(cross(ref, ffnormal));
+        bitangent = cross(ffnormal, tangent);
     }
     
     float3 WorldToLocal(float3 w)
