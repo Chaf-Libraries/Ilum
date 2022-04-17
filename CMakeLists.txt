@@ -1,5 +1,16 @@
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
+set(_change_MSVC_flags FALSE)
+if(WIN32)
+  if(CMAKE_VERSION VERSION_LESS 3.15.0)
+    set(_change_MSVC_flags TRUE)
+  else()
+    # Set MSVC runtime to MultiThreaded (/MT)
+    cmake_policy(SET CMP0091 NEW)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  endif()
+endif()
+
 project(IlumEngine VERSION 0.0.1)
 message(STATUS "[Project] ${PROJECT_NAME} ${PROJECT_VERSION}")
 
@@ -15,7 +26,6 @@ find_package(tbb REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/tbb/lib
 find_package(assimp REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/assimp/lib/cmake/assimp)
 find_package(glslang REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/glslang/lib/cmake)
 find_package(spirv_cross REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/spirv_cross/share)
-find_package(volk REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/volk/lib/cmake/volk)
 find_package(meshoptimizer REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/meshoptimizer/lib/cmake/meshoptimizer)
 find_package(spdlog REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/spdlog/lib/cmake/spdlog)
 

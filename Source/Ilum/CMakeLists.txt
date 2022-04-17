@@ -11,7 +11,7 @@ SetTarget(
     LIB
         SDL2::SDL2
         spdlog::spdlog
-        volk::volk
+        volk
         spirv-cross-reflect
         spirv-cross-glsl
         spirv-cross-hlsl
