@@ -41,6 +41,7 @@ struct RayPayload
     Interaction isect;
         
     uint sampled_type;
+    uint bxdf_flags;
     float2 rnd;
     float hitT;
     float2 baryCoord;
@@ -49,6 +50,7 @@ struct RayPayload
     float3 f;
     float pdf;
     float3 wi;
+    float eta;
     
     float3 emission;
     bool visibility;
@@ -322,92 +324,13 @@ bool Unoccluded(inout RayPayload ray_payload, VisibilityTester visibility)
     
     return ray_payload.visibility;
 }
-/*
-float3 EstimateDirect(Interaction isect, float2 uScattering, Light light, float2 uLight, inout Sampler _sampler, bool handleMedia, bool specular)
-{
-    uint bxdfFlags = specular ? BSDF_ALL : BSDF_ALL & ~BSDF_SPECULAR;
-    float3 Ld = float3(0.0, 0.0, 0.0);
-    float3 wi;
-    float lightPdf = 0.0, scatteringPdf = 0.0;
-    VisibilityTester visibility;
-    float3 Li = light.SampleLi(isect, _sampler.Get2D(), wi, lightPdf, visibility);
-    if (lightPdf > 0.0 && !IsBlack(Li))
-    {
-        float3 f;
-        if (isect.IsSurfaceInteraction())
-        {
-            BSDFSampleDesc bsdf;
-            bsdf.BxDF_Type = bxdfFlags;
-            bsdf.isect = isect;
-            bsdf.mode = BSDF_Evaluate;
-            bsdf.rnd = _sampler.Get2D();
-            bsdf.wiW = wi;
-            bsdf.woW = isect.wo;
-            //CallShader(isect.material.material_type, bsdf);
-            
-            f = bsdf.f * abs(dot(wi, isect.ffnormal));
-            
-            bsdf.mode = BSDF_Pdf;
-            bsdf.rnd = _sampler.Get2D();
-            //CallShader(isect.material.material_type, bsdf);
-            
-            scatteringPdf = bsdf.pdf;
-        }
-        else
-        {
-            // TODO: Medium interaction
-        }
-        if (!IsBlack(f))
-        {
-            if (handleMedia)
-            {
-                // TODO: handle media
-            }
-            else
-            {
-                if (!Unoccluded(visibility))
-                {
-                    Li = float3(0.0, 0.0, 0.0);
-                }
-            }
-            
-            if (light.IsDeltaLight())
-            {
-                Ld += f * Li / lightPdf;
-            }
-            else
-            {
-                float weight = PowerHeuristic(1, lightPdf, 1, scatteringPdf);
-                Ld += f * Li * weight / lightPdf;
-            }
-        }
-    }
-    
-    // TODO: Area light
-    return Ld;
-}
 
-float3 UniformSampleOneLight(Interaction isect, inout Sampler _sampler, bool handleMedia)
-{
-    uint light_count = push_constants.directional_light_count + push_constants.point_light_count + push_constants.spot_light_count;
-    if (light_count == 0)
-    {
-        return float3(0.0, 0.0, 0.0);
-    }
-    uint lightNum = min(light_count - 1, (uint) (_sampler.Get1D() * (float) light_count));
-    float lightPdf = 1.0 / (float) light_count;
-    
-    float2 uLight = _sampler.Get2D();
-    float2 uScattering = _sampler.Get2D();
-    
-    Light light;
-    light.idx = lightNum;
-
-    return EstimateDirect(isect, uScattering, light, uLight, _sampler, handleMedia, false) / lightPdf;
-}
-*/
 // Environment Sampling (HDR)
 // See:  https://arxiv.org/pdf/1901.05423.pdf
-
+float3 EnvironmentSampling(Interaction isect, float3 u, float3 wi, out float pdf)
+{
+    pdf = 1.0;
+    return Skybox.SampleLevel(SkyboxSampler, wi, 0.0).rgb;
+}
 
 #endif

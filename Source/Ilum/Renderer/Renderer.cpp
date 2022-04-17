@@ -119,13 +119,13 @@ Renderer::Renderer(Context *context) :
 		    //.setView("TAAOutput")
 		    //.setOutput("TAAOutput")
 
-		    .addRenderPass("Whitted", std::make_unique<pass::Whitted>())
-		    .addRenderPass("CopyFrame", std::make_unique<pass::CopyFrame>("Whitted", "PrevWhitted"))
-		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Whitted", "Tonemapping"))
+		    //.addRenderPass("Whitted", std::make_unique<pass::Whitted>())
+		    //.addRenderPass("CopyFrame", std::make_unique<pass::CopyFrame>("Whitted", "PrevWhitted"))
+		    //.addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Whitted", "Tonemapping"))
 
-		    //.addRenderPass("Path", std::make_unique<pass::Path>())
-		    //.addRenderPass("CopyFrame", std::make_unique<pass::CopyFrame>("Path", "PrevPath"))
-		    //.addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Path", "Tonemapping"))
+		    .addRenderPass("Path", std::make_unique<pass::Path>())
+		    .addRenderPass("CopyFrame", std::make_unique<pass::CopyFrame>("Path", "PrevPath"))
+		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Path", "Tonemapping"))
 
 		    .setView("Tonemapping")
 		    .setOutput("Tonemapping");

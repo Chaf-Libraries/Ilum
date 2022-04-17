@@ -2,83 +2,85 @@
 
 struct PathIntegrator
 {
+    float3 UniformSampleOneLight(inout RayPayload ray_payload, inout Sampler _sampler)
+    {
+        uint light_count = push_constants.directional_light_count + push_constants.point_light_count + push_constants.spot_light_count;
+        if (light_count == 0)
+        {
+            return float3(0.0, 0.0, 0.0);
+        }
+        
+        uint lightNum = (uint) (_sampler.Get1D() * (float) light_count);
+        float lightPdf = 1.0 / (float) light_count;
+        
+        Light light;
+        light.idx = lightNum;
+
+        float3 wi;
+        float pdf;
+        VisibilityTester visibility;
+        float3 Li = light.SampleLi(ray_payload.isect, _sampler.Get2D(), wi, pdf, visibility);
+        if (IsBlack(Li) || pdf == 0)
+        {
+            return float3(0.0, 0.0, 0.0);
+        }
+
+        ray_payload.wi = wi;
+        if (!IsBlack(Li) && Unoccluded(ray_payload, visibility))
+        {
+            return ray_payload.f * Li * abs(dot(wi, ray_payload.isect.ffnormal)) / pdf;
+        }
+        
+        return float3(0.0, 0.0, 0.0);
+    }
+    
     float3 Li(RayDesc ray, inout Sampler _sampler, uint maxDepth)
     {
         uint light_count = push_constants.directional_light_count + push_constants.point_light_count + push_constants.spot_light_count;
         float3 radiance = float3(0.0, 0.0, 0.0);
         float3 throughout = float3(1.0, 1.0, 1.0);
-        bool specularBounce = false;
-        float etaScale = 1.0;
-               
+                
         for (uint bounce = 0; bounce < maxDepth; bounce++)
         {
-            Interaction isect;
-            isect.normal = float3(0.0, 0.0, 0.0);
-            
-            bool foundIntersection = SceneIntersection(ray, isect);
-           
-            if (!foundIntersection)
+            RayPayload ray_payload;
+            ray_payload.rnd = _sampler.Get2D();
+            ray_payload.isect.ffnormal = float3(0.0, 0.0, 0.0);
+
+            if (!SceneIntersection(ray, ray_payload))
             {
-                float3 w = normalize(ray.Direction);
-                radiance += throughout * Skybox.SampleLevel(SkyboxSampler, w, 0.0).rgb;
+                // Sample environment light
+                float pdf = 0;
+                radiance += throughout * EnvironmentSampling(ray_payload.isect, _sampler.Get3D(), normalize(ray.Direction), pdf);
                 break;
             }
-            // TODO: Area light sampling
+            
+            // Sampling next bounce               
+            float sample_pdf = ray_payload.pdf;
+            float3 sample_f = ray_payload.f;
+            float3 sample_wi = ray_payload.wi;
+                    
+            const float3 n = ray_payload.isect.ffnormal;
+            float3 wo = ray_payload.isect.wo;
 
-            radiance += throughout * isect.material.emissive;
+            radiance += throughout * ray_payload.emission;
             
-            if (!foundIntersection || bounce >= maxDepth)
+            // Sampling all lights
+            for (uint i = 0; i < light_count; i++)
             {
-                break;
+                radiance += throughout * UniformSampleOneLight(ray_payload, _sampler);
             }
-        
-            const float3 n = isect.ffnormal;
-            float3 wo = isect.wo;
-            
-            BSDFSampleDesc bsdf;
-            bsdf.BxDF_Type = BSDF_ALL;
-            bsdf.isect = isect;
-            bsdf.woW = wo;
-            
-            // Sample BSDF to get new path direction
-            bsdf.mode = BSDF_Sample;
-            bsdf.rnd = _sampler.Get2D();
-            CallShader(isect.material.material_type, bsdf);
-            
-            if (bsdf.bsdf.NumComponents(BSDF_ALL & ~BSDF_SPECULAR) > 0)
+ 
+            if (sample_pdf > 0.0 && !IsBlack(sample_f) && abs(dot(sample_wi, ray_payload.isect.ffnormal)) != 0.0)
             {
-                radiance += throughout * UniformSampleOneLight(isect, _sampler, false);
-            }
-
-            if (bsdf.pdf > 0.0 && !IsBlack(bsdf.f) && abs(dot(bsdf.wiW, isect.ffnormal)) != 0.0)
-            {
-                throughout *= bsdf.f * abs(dot(bsdf.wiW, isect.ffnormal)) / bsdf.pdf;
-                ray = SpawnRay(isect, bsdf.wiW);
+                throughout *= sample_f * abs(dot(sample_wi, ray_payload.isect.ffnormal)) / sample_pdf;
+                ray = SpawnRay(ray_payload.isect, sample_wi);
             }
             else
             {
                 break;
             }
-            
-            specularBounce = (bsdf.sampled_type & BSDF_SPECULAR) != 0;
-            if ((bsdf.sampled_type & BSDF_SPECULAR) && (bsdf.sampled_type & BSDF_TRANSMISSION))
-            {
-                float eta = bsdf.eta;
-                etaScale *= (dot(bsdf.woW, isect.ffnormal) > 0) ? (eta * eta) : 1.0 / (eta * eta);
-            }
-            
-            float3 rrBeta = throughout * etaScale;
-            float max_val = max(rrBeta.x, max(rrBeta.y, rrBeta.z));
-            if (max_val < 1.0 && bounce > 3)
-            {
-                float q = max(0.05, 1.0-max_val);
-                if (_sampler.Get1D()<q)
-                {
-                    break;
-                }
-                throughout /= 1.0 - q;
-            }
         }
+
         return radiance;
     }
 };

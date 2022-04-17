@@ -232,7 +232,7 @@ struct Interaction
     
     bool IsSurfaceInteraction()
     {
-        return normal.x != 0.0 || normal.y != 0.0 || normal.z != 0.0;
+        return ffnormal.x != 0.0 || ffnormal.y != 0.0 || ffnormal.z != 0.0;
     }
 };
 

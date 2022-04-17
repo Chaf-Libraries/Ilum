@@ -454,6 +454,16 @@ struct BSDFs
         return num;
     }
     
+    uint GetComponents()
+    {
+        uint cmpts = 0;
+        for (int i = 0; i < nBxDFs; i++)
+        {
+            cmpts |= bxdfs[i].GetBxDFType();
+        }
+        return cmpts;
+    }
+    
     float3 f(float3 woW, float3 wiW, uint BxDF_type)
     {
         float3 wi = isect.WorldToLocal(wiW);
@@ -581,26 +591,6 @@ struct BSDFs
 
         return f;
     }
-};
-
-static const uint BSDF_None = 0;
-static const uint BSDF_Evaluate = 1;
-static const uint BSDF_Sample = 2;
-static const uint BSDF_Pdf = 3;
-
-struct BSDFSampleDesc
-{
-    float3 woW;
-    float3 wiW;
-    Interaction isect;
-    float2 rnd;
-    float pdf;
-    float3 f;
-    uint mode;
-    uint BxDF_Type;
-    uint sampled_type;
-    float eta;
-    BSDFs bsdf;
 };
 
 #ifdef USE_Matte

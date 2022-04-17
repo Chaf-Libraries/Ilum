@@ -17,4 +17,7 @@ void main(inout RayPayload ray_payload : SV_RayPayload)
     BSDFs bsdf = CreatePlasticMaterial(material);
     bsdf.isect = ray_payload.isect;
     ray_payload.f = bsdf.f(ray_payload.isect.wo, ray_payload.wi, BSDF_ALL);
+    ray_payload.pdf = bsdf.Pdf(ray_payload.isect.wo, ray_payload.wi, BSDF_ALL);
+    ray_payload.eta = 1.0;
+    ray_payload.bxdf_flags = bsdf.GetComponents();
 }
