@@ -10,7 +10,7 @@ struct PathIntegrator
             return float3(0.0, 0.0, 0.0);
         }
         
-        uint lightNum = (uint) (_sampler.Get1D() * (float) light_count);
+        uint lightNum = (uint) min(light_count - 1, _sampler.Get1D() * (float) light_count);
         float lightPdf = 1.0 / (float) light_count;
         
         Light light;
@@ -20,13 +20,9 @@ struct PathIntegrator
         float pdf;
         VisibilityTester visibility;
         float3 Li = light.SampleLi(ray_payload.isect, _sampler.Get2D(), wi, pdf, visibility);
-        if (IsBlack(Li) || pdf == 0)
-        {
-            return float3(0.0, 0.0, 0.0);
-        }
 
         ray_payload.wi = wi;
-        if (!IsBlack(Li) && Unoccluded(ray_payload, visibility))
+        if (!IsBlack(Li) && Unoccluded(ray_payload, visibility) && pdf != 0.0)
         {
             return ray_payload.f * Li * abs(dot(wi, ray_payload.isect.ffnormal)) / pdf;
         }
@@ -65,10 +61,7 @@ struct PathIntegrator
             radiance += throughout * ray_payload.emission;
             
             // Sampling all lights
-            for (uint i = 0; i < light_count; i++)
-            {
-                radiance += throughout * UniformSampleOneLight(ray_payload, _sampler);
-            }
+            radiance += throughout * UniformSampleOneLight(ray_payload, _sampler);
  
             if (sample_pdf > 0.0 && !IsBlack(sample_f) && abs(dot(sample_wi, ray_payload.isect.ffnormal)) != 0.0)
             {

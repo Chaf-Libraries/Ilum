@@ -33,10 +33,10 @@ void Path::setupPipeline(PipelineState &state)
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Miss/Glass.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "main");
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Miss/Disney.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "main");
 
-	state.declareAttachment("Path", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("Path", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.addOutputAttachment("Path", AttachmentState::Clear_Color);
 
-	state.declareAttachment("PrevPath", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("PrevPath", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.addOutputAttachment("PrevPath", AttachmentState::Clear_Color);
 
 	state.descriptor_bindings.bind(0, 0, "TLAS", VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR);
