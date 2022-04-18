@@ -92,4 +92,25 @@ struct SpotLight : public Light
 		ar(intensity, cut_off, outer_cut_off, shadow_mode, filter_scale, filter_sample, sample_method, light_size);
 	}
 };
+
+struct AreaLight : public Light
+{
+	glm::vec3 color     = {1.f, 1.f, 1.f};
+	float     intensity = 1.f;
+	glm::vec4 corners[4];
+
+	alignas(16) enum class AreaLightType : uint32_t {
+		Rectangle,
+		Ellipse
+	} shape             = AreaLightType::Rectangle;
+
+	uint32_t texture_id;
+
+	template <class Archive>
+	void serialize(Archive &ar)
+	{
+		glm::serialize(ar, color, corners[0], corners[1], corners[2], corners[3]);
+		ar(intensity, shape);
+	}
+};
 }        // namespace Ilum::cmpt

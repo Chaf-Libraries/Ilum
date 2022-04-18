@@ -13,6 +13,8 @@
 #include "Renderer/Renderer.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include <tbb/tbb.h>
 
@@ -26,6 +28,7 @@ void LightUpdate::run()
 	auto directional_lights = Scene::instance()->getRegistry().group<cmpt::DirectionalLight>(entt::get<cmpt::Tag, cmpt::Transform>);
 	auto point_lights       = Scene::instance()->getRegistry().group<cmpt::PointLight>(entt::get<cmpt::Tag, cmpt::Transform>);
 	auto spot_lights        = Scene::instance()->getRegistry().group<cmpt::SpotLight>(entt::get<cmpt::Tag, cmpt::Transform>);
+	auto area_lights        = Scene::instance()->getRegistry().group<cmpt::AreaLight>(entt::get<cmpt::Tag, cmpt::Transform>);
 
 	// Enlarge buffer
 	if (Renderer::instance()->Render_Buffer.Directional_Light_Buffer.getSize() / sizeof(cmpt::SpotLight) < directional_lights.size())
@@ -46,11 +49,18 @@ void LightUpdate::run()
 		Renderer::instance()->Render_Buffer.Point_Light_Buffer = Buffer(point_lights.size() * sizeof(cmpt::PointLight), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 		Renderer::instance()->update();
 	}
+	if (Renderer::instance()->Render_Buffer.Area_Light_Buffer.getSize() / (sizeof(cmpt::AreaLight)) < area_lights.size())
+	{
+		GraphicsContext::instance()->getQueueSystem().waitAll();
+		Renderer::instance()->Render_Buffer.Area_Light_Buffer = Buffer(area_lights.size() * (sizeof(cmpt::AreaLight)), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+		Renderer::instance()->update();
+	}
 
 	// Copy Buffer
 	Renderer::instance()->Render_Stats.light_count.directional_light_count = 0;
 	directional_lights.each([](entt::entity entity, cmpt::DirectionalLight &light, cmpt::Tag &tag, cmpt::Transform &transform) {
-		light.position = transform.world_transform[3];
+		light.position  = transform.world_transform[3];
+		light.direction = glm::mat3_cast(glm::qua<float>(glm::radians(transform.rotation))) * glm::vec3(0.f, -1.f, 0.f);
 		// Update Cascade
 		auto &camera_entity = Renderer::instance()->Main_Camera;
 		if (camera_entity && (camera_entity.hasComponent<cmpt::PerspectiveCamera>() || camera_entity.hasComponent<cmpt::OrthographicCamera>()))
@@ -163,14 +173,26 @@ void LightUpdate::run()
 	Renderer::instance()->Render_Stats.light_count.spot_light_count = 0;
 	spot_lights.each([](entt::entity entity, cmpt::SpotLight &light, cmpt::Tag &tag, cmpt::Transform &transform) {
 		light.position        = transform.world_transform[3];
+		light.direction       = glm::mat3_cast(glm::qua<float>(glm::radians(transform.rotation))) * glm::vec3(0.f, -1.f, 0.f);
 		light.view_projection = glm::perspective(2.f * glm::acos(light.outer_cut_off), 1.0f, 0.01f, 1000.f) * glm::lookAt(transform.translation, transform.translation + light.direction, glm::vec3(0.f, 1.f, 0.f));
 		std::memcpy(reinterpret_cast<cmpt::SpotLight *>(Renderer::instance()->Render_Buffer.Spot_Light_Buffer.map()) + Renderer::instance()->Render_Stats.light_count.spot_light_count++,
 		            &light, sizeof(cmpt::SpotLight));
 	});
 
+	Renderer::instance()->Render_Stats.light_count.area_light_count = 0;
+	area_lights.each([](entt::entity entity, cmpt::AreaLight &light, cmpt::Tag &tag, cmpt::Transform &transform) {
+		light.corners[0] = transform.world_transform * glm::vec4(-1.f, -1.f, 0.f, 1.f);
+		light.corners[1] = transform.world_transform * glm::vec4(1.f, -1.f, 0.f, 1.f);
+		light.corners[2] = transform.world_transform * glm::vec4(1.f, 1.f, 0.f, 1.f);
+		light.corners[3] = transform.world_transform * glm::vec4(-1.f, 1.f, 0.f, 1.f);
+		std::memcpy(reinterpret_cast<cmpt::SpotLight *>(Renderer::instance()->Render_Buffer.Area_Light_Buffer.map()) + Renderer::instance()->Render_Stats.light_count.area_light_count++,
+		            &light, sizeof(cmpt::AreaLight));
+	});
+
 	Renderer::instance()->Render_Buffer.Directional_Light_Buffer.unmap();
 	Renderer::instance()->Render_Buffer.Spot_Light_Buffer.unmap();
 	Renderer::instance()->Render_Buffer.Point_Light_Buffer.unmap();
+	Renderer::instance()->Render_Buffer.Area_Light_Buffer.unmap();
 
 	GraphicsContext::instance()->getProfiler().endSample("Light Update");
 }

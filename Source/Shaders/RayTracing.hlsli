@@ -21,8 +21,9 @@
 [[vk::binding(9)]] StructuredBuffer<DirectionalLight> directional_lights;
 [[vk::binding(10)]] StructuredBuffer<PointLight> point_lights;
 [[vk::binding(11)]] StructuredBuffer<SpotLight> spot_lights;
-[[vk::binding(12)]] TextureCube Skybox;
-[[vk::binding(12)]] SamplerState SkyboxSampler;
+[[vk::binding(12)]] StructuredBuffer<AreaLight> area_lights;
+[[vk::binding(13)]] TextureCube Skybox;
+[[vk::binding(13)]] SamplerState SkyboxSampler;
 
 [[vk::push_constant]]
 struct
@@ -31,6 +32,7 @@ struct
     uint directional_light_count;
     uint spot_light_count;
     uint point_light_count;
+    uint area_light_count;
     int max_bounce;
     float firefly_clamp_threshold;
     float parameter;
@@ -64,6 +66,7 @@ static const uint LightType_None = 0;
 static const uint LightType_Directional = 1;
 static const uint LightType_Point = 2;
 static const uint LightType_Spot = 3;
+static const uint LightType_Area = 3;
 
 struct Light
 {
@@ -71,103 +74,108 @@ struct Light
     
     float3 SampleLi(Interaction interaction, float2 u, out float3 wi, out float pdf, out VisibilityTester visibility)
     {
-        // directional - spot - point
-        uint count1 = push_constants.directional_light_count + push_constants.spot_light_count;
-        uint count2 = push_constants.directional_light_count;
-    
-        if (idx >= count1 && push_constants.point_light_count > 0)
+        uint count = push_constants.directional_light_count + push_constants.spot_light_count + push_constants.point_light_count;
+        
+        // Area Light
+        if(idx >=count)
         {
-            return point_lights[idx - count1].SampleLi(interaction, u, wi, pdf, visibility);
+            return area_lights[idx - count].SampleLi(interaction, u, wi, pdf, visibility);
         }
-        if (idx >= count2 && push_constants.spot_light_count > 0)
+        count -= push_constants.point_light_count;
+        // Point Light
+        if (idx >= count)
         {
-            return spot_lights[idx - count2].SampleLi(interaction, u, wi, pdf, visibility);
+            return point_lights[idx - count].SampleLi(interaction, u, wi, pdf, visibility);
         }
-        return directional_lights[idx].SampleLi(interaction, u, wi, pdf, visibility);
+        count -= push_constants.spot_light_count;
+        // Spot Light
+        if (idx >= count)
+        {
+            return spot_lights[idx - count].SampleLi(interaction, u, wi, pdf, visibility);
+        }
+        count -= push_constants.directional_light_count;
+        // Directional Light
+        return directional_lights[idx - count].SampleLi(interaction, u, wi, pdf, visibility);
     }
     
     float PdfLi(Interaction interaction, float3 wi)
-    {
-        // directional - spot - point
-        uint count1 = push_constants.directional_light_count + push_constants.spot_light_count;
-        uint count2 = push_constants.directional_light_count;
-    
-        if (idx >= count1 && push_constants.point_light_count > 0)
+    {        
+        uint count = push_constants.directional_light_count + push_constants.spot_light_count + push_constants.point_light_count;
+        
+        // Area Light
+        if (idx >= count)
         {
-            return point_lights[idx - count1].PdfLi(interaction, wi);
+            return area_lights[idx - count].PdfLi(interaction, wi);
         }
-        if (idx >= count2 && push_constants.spot_light_count > 0)
+        count -= push_constants.point_light_count;
+        // Point Light
+        if (idx >= count)
         {
-            return spot_lights[idx - count2].PdfLi(interaction, wi);
+            return point_lights[idx - count].PdfLi(interaction, wi);
         }
-        return directional_lights[idx].PdfLi(interaction, wi);
+        count -= push_constants.spot_light_count;
+        // Spot Light
+        if (idx >= count)
+        {
+            return spot_lights[idx - count].PdfLi(interaction, wi);
+        }
+        count -= push_constants.directional_light_count;
+        // Directional Light
+        return directional_lights[idx - count].PdfLi(interaction, wi);
     }
 
     float Power()
     {
-        // directional - spot - point
-        uint count1 = push_constants.directional_light_count + push_constants.spot_light_count;
-        uint count2 = push_constants.directional_light_count;
-    
-        if (idx >= count1 && push_constants.point_light_count > 0)
+        uint count = push_constants.directional_light_count + push_constants.spot_light_count + push_constants.point_light_count;
+        
+        // Area Light
+        if (idx >= count)
         {
-            return point_lights[idx - count1].Power();
+            return area_lights[idx - count].Power();
         }
-        if (idx >= count2 && push_constants.spot_light_count > 0)
+        count -= push_constants.point_light_count;
+        // Point Light
+        if (idx >= count)
         {
-            return spot_lights[idx - count2].Power();
+            return point_lights[idx - count].Power();
         }
-        return directional_lights[idx].Power();
+        count -= push_constants.spot_light_count;
+        // Spot Light
+        if (idx >= count)
+        {
+            return spot_lights[idx - count].Power();
+        }
+        count -= push_constants.directional_light_count;
+        // Directional Light
+        return directional_lights[idx - count].Power();
     }
     
-    uint GetLightFlag()
+    bool IsDelta()
     {
-    // directional - spot - point
-        uint count1 = push_constants.directional_light_count + push_constants.spot_light_count;
-        uint count2 = push_constants.directional_light_count;
-    
-        if (idx >= count1)
+        uint count = push_constants.directional_light_count + push_constants.spot_light_count + push_constants.point_light_count;
+        
+        // Area Light
+        if (idx >= count)
         {
-            return LightFlag_DeltaPosition;
+            return area_lights[idx - count].IsDelta();
         }
-        if (idx > count2)
+        count -= push_constants.point_light_count;
+        // Point Light
+        if (idx >= count)
         {
-            return LightFlag_DeltaPosition;
+            return point_lights[idx - count].IsDelta();
         }
-        return LightFlag_DeltaDirection;
-    }
-    
-    bool IsDeltaLight()
-    {
-        return GetLightFlag() & LightFlag_DeltaPosition ||
-           GetLightFlag() & LightFlag_DeltaDirection;
+        count -= push_constants.spot_light_count;
+        // Spot Light
+        if (idx >= count)
+        {
+            return spot_lights[idx - count].IsDelta();
+        }
+        count -= push_constants.directional_light_count;
+        // Directional Light
+        return directional_lights[idx - count].IsDelta();
     }
 };
-
-float3 OffsetRay(float3 p, float3 n)
-{
-    const float intScale = 256.0f;
-    const float floatScale = 1.0f / 65536.0f;
-    const float origin = 1.0f / 32.0f;
-
-    int3 of_i = int3(intScale * n.x, intScale * n.y, intScale * n.z);
-
-    float3 p_i = float3(asfloat(asint(p.x) + ((p.x < 0) ? -of_i.x : of_i.x)),
-                  asfloat(asint(p.y) + ((p.y < 0) ? -of_i.y : of_i.y)),
-                  asfloat(asint(p.z) + ((p.z < 0) ? -of_i.z : of_i.z)));
-
-    return float3(abs(p.x) < origin ? p.x + floatScale * n.x : p_i.x, //
-              abs(p.y) < origin ? p.y + floatScale * n.y : p_i.y, //
-              abs(p.z) < origin ? p.z + floatScale * n.z : p_i.z);
-}
-
-RayDesc SpawnRay(Interaction isect, float3 wi)
-{
-    RayDesc ray;
-    ray.Direction = wi;
-    ray.Origin = OffsetRay(isect.position, dot(wi, isect.ffnormal) > 0.0 ? isect.ffnormal : -isect.ffnormal);
-    return ray;
-}
 
 void GetInteraction(inout RayPayload ray_payload, RayDesc ray)
 {

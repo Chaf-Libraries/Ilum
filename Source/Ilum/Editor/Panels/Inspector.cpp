@@ -112,7 +112,7 @@ inline bool draw_component(const std::string &name, Entity entity, Callback call
 	const ImGuiTreeNodeFlags tree_node_flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
 	if (entity.hasComponent<T>())
 	{
-		auto & component                = entity.getComponent<T>();
+		auto  &component                = entity.getComponent<T>();
 		ImVec2 content_region_available = ImGui::GetContentRegionAvail();
 
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{4, 4});
@@ -161,7 +161,7 @@ bool draw_texture(std::string &texture, const std::string &name)
 	bool update = false;
 	ImGui::PushID(name.c_str());
 	if (ImGui::ImageButton(Renderer::instance()->getResourceCache().hasImage(FileSystem::getRelativePath(texture)) ?
-                               ImGuiContext::textureID(Renderer::instance()->getResourceCache().loadImage(FileSystem::getRelativePath(texture)), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)) :
+	                           ImGuiContext::textureID(Renderer::instance()->getResourceCache().loadImage(FileSystem::getRelativePath(texture)), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)) :
                                ImGuiContext::textureID(Renderer::instance()->getDefaultTexture(), Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp)),
 	                       ImVec2{100.f, 100.f}))
 	{
@@ -214,7 +214,7 @@ inline void draw_material<BxDFType::Disney>(Material &material)
 	Material::update = ImGui::DragFloat("Flatness", &material.flatness, 0.001f, 0.f, 1.f, "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Refraction", &material.refraction, 0.001f, 0.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
 	Material::update = ImGui::DragFloat("Displacement", &material.displacement, 0.001f, 0.f, std::numeric_limits<float>::max(), "%.3f") || Material::update;
-	
+
 	bool thin        = material.thin > 0.0;
 	Material::update = ImGui::Checkbox("Thin", &thin) || Material::update;
 	material.thin    = thin ? 1.f : 0.f;
@@ -572,7 +572,7 @@ inline bool draw_component<cmpt::StaticMeshRenderer>(Entity entity)
 				    }
 				    auto &material = component.materials[i];
 
-					ImGui::PushID((std::to_string(idx) + "Submesh").c_str());
+				    ImGui::PushID((std::to_string(idx) + "Submesh").c_str());
 				    if (ImGui::TreeNode(submesh.name.c_str()))
 				    {
 					    // Submesh attributes
@@ -633,7 +633,7 @@ inline bool draw_component<cmpt::DynamicMeshRenderer>(Entity entity)
 				{
 					ASSERT(pay_load->DataSize == sizeof(std::string));
 					std::string new_model = *static_cast<std::string *>(pay_load->Data);
-					auto &      model     = Renderer::instance()->getResourceCache().loadModel(new_model);
+					auto       &model     = Renderer::instance()->getResourceCache().loadModel(new_model);
 					if (model.get().submeshes.size() > 1)
 					{
 						LOG_WARN("Dynamic meshrenderer only support single submesh");
@@ -884,13 +884,12 @@ inline bool draw_component<cmpt::DirectionalLight>(Entity entity)
 
 		update = ImGui::DragFloat("Intensity", &component.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
 		update = ImGui::ColorEdit3("Color", glm::value_ptr(component.color)) || update;
-		update = ImGui::DragFloat3("Direction", glm::value_ptr(component.direction), 0.01f, -1.f, 1.f, "%.3f") || update;
+		update = ImGui::DragFloat("Light size", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
 		ImGui::Text("Shadow Setting");
 		update = ImGui::Combo("Shadow Mode", &component.shadow_mode, shadow_mode, 4) || update;
 		update = ImGui::Combo("Sample method", &component.sample_method, sample_method, 2) || update;
 		update = ImGui::DragInt("Samples", &component.filter_sample, 0.1f, 0, std::numeric_limits<int32_t>::max()) || update;
 		update = ImGui::DragFloat("Scale", &component.filter_scale, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
-		update = ImGui::DragFloat("Light size", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
 
 		return update;
 	});
@@ -907,15 +906,14 @@ inline bool draw_component<cmpt::SpotLight>(Entity entity)
 
 		update = ImGui::DragFloat("Intensity", &component.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
 		update = ImGui::ColorEdit3("Color", glm::value_ptr(component.color)) || update;
-		update = ImGui::DragFloat3("Direction", glm::value_ptr(component.direction), 0.01f, -1.f, 1.f, "%.3f") || update;
 		update = ImGui::DragFloat("Cut off", &component.cut_off, 0.0001f, 0.f, 1.f, "%.5f") || update;
 		update = ImGui::DragFloat("Outer cut off", &component.outer_cut_off, 0.0001f, 0.f, component.cut_off, "%.5f") || update;
+		update = ImGui::DragFloat("Light size", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
 		ImGui::Text("Shadow Setting");
 		update = ImGui::Combo("Shadow Mode", &component.shadow_mode, shadow_mode, 4) || update;
 		update = ImGui::Combo("Sample method", &component.sample_method, sample_method, 2) || update;
 		update = ImGui::DragInt("Samples", &component.filter_sample, 0.1f, 0, std::numeric_limits<int32_t>::max()) || update;
 		update = ImGui::DragFloat("Scale", &component.filter_scale, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
-		update = ImGui::DragFloat("Light size", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
 
 		return update;
 	});
@@ -935,12 +933,41 @@ inline bool draw_component<cmpt::PointLight>(Entity entity)
 		update = ImGui::DragFloat("Constant", &component.constant, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f") || update;
 		update = ImGui::DragFloat("Linear", &component.linear, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f") || update;
 		update = ImGui::DragFloat("Quadratic", &component.quadratic, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f") || update;
+		update = ImGui::DragFloat("Light size", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
 		ImGui::Text("Shadow Setting");
 		update = ImGui::Combo("Shadow Mode", &component.shadow_mode, shadow_mode, 4) || update;
 		update = ImGui::Combo("Sample method", &component.sample_method, sample_method, 2) || update;
 		update = ImGui::DragInt("Samples", &component.filter_sample, 0.1f, 0, std::numeric_limits<int32_t>::max()) || update;
 		update = ImGui::DragFloat("Scale", &component.filter_scale, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
-		update = ImGui::DragFloat("Light size", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
+
+		return update;
+	});
+}
+
+template <>
+inline bool draw_component<cmpt::AreaLight>(Entity entity)
+{
+	return draw_component<cmpt::AreaLight>("Area Light", entity, [](cmpt::AreaLight &component) {
+		const char *const shape[] = {"Rectangle", "Ellipse"};
+
+		bool update = false;
+
+		update = ImGui::DragFloat("Intensity", &component.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
+		update = ImGui::ColorEdit3("Color", glm::value_ptr(component.color)) || update;
+		update = ImGui::Combo("Shape", reinterpret_cast<int *>(&component.shape), shape, 2) || update;
+
+		std::string texture = "";
+		for (auto& [name, idx] : Renderer::instance()->getResourceCache().getImages())
+		{
+			if (idx == component.texture_id)
+			{
+				texture = name;
+				break;
+			}
+		}
+		ImGui::Text("Texture");
+		update = draw_texture(texture, "Texture") || update;
+		component.texture_id = Renderer::instance()->getResourceCache().imageID(texture);
 
 		return update;
 	});
@@ -1032,21 +1059,21 @@ void Inspector::draw(float delta_time)
 
 	if (ImGui::BeginPopup("AddComponent"))
 	{
-		add_component<cmpt::Light, cmpt::DirectionalLight, cmpt::PointLight, cmpt::SpotLight>();
+		add_component<cmpt::Light, cmpt::DirectionalLight, cmpt::PointLight, cmpt::SpotLight, cmpt::AreaLight>();
 		add_component<cmpt::Renderable, cmpt::StaticMeshRenderer, cmpt::DynamicMeshRenderer, cmpt::CurveRenderer, cmpt::SurfaceRenderer>();
 		add_component<cmpt::Camera, cmpt::PerspectiveCamera, cmpt::OrthographicCamera>();
 		ImGui::EndPopup();
 	}
 
 	if (draw_component<cmpt::Transform, cmpt::Hierarchy, cmpt::StaticMeshRenderer, cmpt::DynamicMeshRenderer, cmpt::CurveRenderer, cmpt::SurfaceRenderer,
-	                   cmpt::DirectionalLight, cmpt::PointLight, cmpt::SpotLight, cmpt::PerspectiveCamera, cmpt::OrthographicCamera>(entity))
+	                   cmpt::DirectionalLight, cmpt::PointLight, cmpt::SpotLight, cmpt::AreaLight, cmpt::PerspectiveCamera, cmpt::OrthographicCamera>(entity))
 	{
 		auto &camera_entity = Renderer::instance()->Main_Camera;
 
 		if (camera_entity && (camera_entity.hasComponent<cmpt::PerspectiveCamera>() || camera_entity.hasComponent<cmpt::OrthographicCamera>()))
 		{
 			cmpt::Camera *camera = camera_entity.hasComponent<cmpt::PerspectiveCamera>() ?
-                                       static_cast<cmpt::Camera *>(&camera_entity.getComponent<cmpt::PerspectiveCamera>()) :
+			                           static_cast<cmpt::Camera *>(&camera_entity.getComponent<cmpt::PerspectiveCamera>()) :
                                        static_cast<cmpt::Camera *>(&camera_entity.getComponent<cmpt::OrthographicCamera>());
 
 			camera->frame_count = 0;

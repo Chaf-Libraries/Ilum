@@ -4,7 +4,7 @@ struct PathIntegrator
 {
     float3 UniformSampleOneLight(inout RayPayload ray_payload, inout Sampler _sampler)
     {
-        uint light_count = push_constants.directional_light_count + push_constants.point_light_count + push_constants.spot_light_count;
+        uint light_count = push_constants.directional_light_count + push_constants.point_light_count + push_constants.spot_light_count + push_constants.area_light_count;
         if (light_count == 0)
         {
             return float3(0.0, 0.0, 0.0);
@@ -17,22 +17,29 @@ struct PathIntegrator
         light.idx = lightNum;
 
         float3 wi;
-        float pdf;
+        float light_pdf, scattering_pdf;
         VisibilityTester visibility;
-        float3 Li = light.SampleLi(ray_payload.isect, _sampler.Get2D(), wi, pdf, visibility);
+        float3 Li = light.SampleLi(ray_payload.isect, _sampler.Get2D(), wi, light_pdf, visibility);
 
+        float3 Ld = float3(0.0, 0.0, 0.0);
+        
         ray_payload.wi = wi;
-        if (!IsBlack(Li) && Unoccluded(ray_payload, visibility) && pdf != 0.0)
+        if (!IsBlack(Li) && Unoccluded(ray_payload, visibility) && light_pdf != 0.0)
         {
-            return ray_payload.f * Li * abs(dot(wi, ray_payload.isect.ffnormal)) / pdf;
+            Ld += ray_payload.f * Li / light_pdf;
         }
         
-        return float3(0.0, 0.0, 0.0);
+        // Sample BSDF with multiple importance sampling
+        if (!light.IsDelta())
+        {
+            float3 f = float3(0.0, 0.0, 0.0);
+        }
+        
+        return Ld;
     }
     
     float3 Li(RayDesc ray, inout Sampler _sampler, uint maxDepth)
     {
-        uint light_count = push_constants.directional_light_count + push_constants.point_light_count + push_constants.spot_light_count;
         float3 radiance = float3(0.0, 0.0, 0.0);
         float3 throughout = float3(1.0, 1.0, 1.0);
                 
@@ -104,7 +111,7 @@ void main()
     {
         radiance *= push_constants.firefly_clamp_threshold / lum;
     }
-
+    
     int2 launch_id = int2(launchIndex.x, launchDimensions.y - launchIndex.y);
     
     // Temporal Accumulation

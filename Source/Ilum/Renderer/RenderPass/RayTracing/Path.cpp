@@ -51,7 +51,8 @@ void Path::setupPipeline(PipelineState &state)
 	state.descriptor_bindings.bind(0, 9, "DirectionalLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 10, "PointLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 11, "SpotLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 12, "SkyBox", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Cube, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 12, "AreaLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 13, "SkyBox", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Cube, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 }
 
 void Path::resolveResources(ResolveState &resolve)
@@ -66,6 +67,7 @@ void Path::resolveResources(ResolveState &resolve)
 	resolve.resolve("DirectionalLights", Renderer::instance()->Render_Buffer.Directional_Light_Buffer);
 	resolve.resolve("PointLights", Renderer::instance()->Render_Buffer.Point_Light_Buffer);
 	resolve.resolve("SpotLights", Renderer::instance()->Render_Buffer.Spot_Light_Buffer);
+	resolve.resolve("AreaLights", Renderer::instance()->Render_Buffer.Area_Light_Buffer);
 }
 
 void Path::render(RenderPassState &state)
@@ -92,6 +94,7 @@ void Path::render(RenderPassState &state)
 		m_push_block.directional_light_count = Renderer::instance()->Render_Stats.light_count.directional_light_count;
 		m_push_block.spot_light_count        = Renderer::instance()->Render_Stats.light_count.spot_light_count;
 		m_push_block.point_light_count       = Renderer::instance()->Render_Stats.light_count.point_light_count;
+		m_push_block.area_light_count        = Renderer::instance()->Render_Stats.light_count.area_light_count;
 
 		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(m_push_block), &m_push_block);
 

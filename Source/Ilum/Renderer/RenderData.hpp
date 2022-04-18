@@ -93,7 +93,7 @@ struct MaterialData
 	glm::vec3 data;
 	uint32_t  material_type;
 
-	alignas(16)float refraction;
+	alignas(16) float refraction;
 	float flatness;
 	float thin;
 };
@@ -195,11 +195,11 @@ struct RenderBuffer
 	uint actual_draw;
 	uint total_draw;
 	uint meshlet_visible_count;
-    uint instance_visible_count;
-    uint meshlet_invisible_count;
-    uint instance_invisible_count;
-    uint meshlet_total_count;
-    uint instance_total_count;
+	uint instance_visible_count;
+	uint meshlet_invisible_count;
+	uint instance_invisible_count;
+	uint meshlet_total_count;
+	uint instance_total_count;
 };
 */
 	Buffer Count_Buffer = Buffer(sizeof(uint32_t) * 8, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
@@ -210,26 +210,26 @@ struct RenderBuffer
 {
 	mat4 view;
 
-    mat4 last_view;
+	mat4 last_view;
 
-    float P00;
-    float P11;
-    float znear;
-    float zfar;
+	float P00;
+	float P11;
+	float znear;
+	float zfar;
 
-    float zbuffer_width;
-    float zbuffer_height;
-    uint meshlet_count;
-    uint instance_count;
+	float zbuffer_width;
+	float zbuffer_height;
+	uint meshlet_count;
+	uint instance_count;
 };
 	*/
 	Buffer Culling_Buffer = Buffer(sizeof(CullingData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	// Camera buffer
 	/*
-	struct CameraData 
+	struct CameraData
 {
-    mat4 view_projection;
+	mat4 view_projection;
 	mat4 last_view_projection;
 	vec4 frustum[6];
 	vec3 position;
@@ -258,7 +258,10 @@ struct RenderBuffer
 	// Spot Light Buffer
 	Buffer Spot_Light_Buffer = Buffer(sizeof(cmpt::SpotLight) * 5, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
-	//RTX Instance Buffer
+	// Area Light Buffer
+	Buffer Area_Light_Buffer = Buffer((sizeof(cmpt::AreaLight)) * 5, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+	// RTX Instance Buffer
 	Buffer RTXInstance_Buffer = Buffer(1024 * sizeof(VkAccelerationStructureInstanceKHR), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_CPU_TO_GPU);
 
 	// Top Level Acceleration Structure
@@ -273,6 +276,7 @@ struct RenderStats
 		uint32_t directional_light_count = 0;
 		uint32_t spot_light_count        = 0;
 		uint32_t point_light_count       = 0;
+		uint32_t area_light_count        = 0;
 	} light_count;
 
 	uint32_t model_count = 0;

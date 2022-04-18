@@ -229,6 +229,32 @@ __pragma(warning(push, 0))
 		}
 	}
 
+	inline void draw_area_light_gizmo(const ImVec2 &offset, bool enable)
+	{
+		if (!enable || !Renderer::instance()->hasMainCamera() || Renderer::instance()->Main_Camera == Editor::instance()->getSelect())
+		{
+			return;
+		}
+
+		if (Editor::instance()->getSelect() && Editor::instance()->getSelect().hasComponent<cmpt::AreaLight>())
+		{
+			const auto &area_light = Editor::instance()->getSelect().getComponent<cmpt::AreaLight>();
+			const auto &trans         = Editor::instance()->getSelect().getComponent<cmpt::Transform>();
+
+			cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
+			                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
+                                            static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
+
+			ImVec2 extent = ImVec2(static_cast<float>(Renderer::instance()->getViewportExtent().width), static_cast<float>(Renderer::instance()->getViewportExtent().height));
+
+			auto *draw_list = ImGui::GetWindowDrawList();
+			draw_line(draw_list, main_camera, area_light.corners[0], area_light.corners[1], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, area_light.corners[1], area_light.corners[2], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, area_light.corners[2], area_light.corners[3], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+			draw_line(draw_list, main_camera, area_light.corners[3], area_light.corners[0], offset + ImGui::GetWindowPos(), extent, ImColor(255.f, 0.f, 0.f), 1.f);
+		}
+	}
+
 	inline void draw_frustum_gizmo(const ImVec2 &offset, bool enable)
 	{
 		if (!enable || !Renderer::instance()->hasMainCamera() || Renderer::instance()->Main_Camera == Editor::instance()->getSelect())
@@ -695,6 +721,8 @@ __pragma(warning(push, 0))
 		draw_gizmo<cmpt::DirectionalLight>(offset, m_icons["light"], m_gizmo["Light"]);
 		draw_gizmo<cmpt::SpotLight>(offset, m_icons["light"], m_gizmo["Light"]);
 		draw_gizmo<cmpt::PointLight>(offset, m_icons["light"], m_gizmo["Light"]);
+		draw_gizmo<cmpt::AreaLight>(offset, m_icons["light"], m_gizmo["Light"]);
+		draw_area_light_gizmo(offset, true);
 		draw_gizmo<cmpt::PerspectiveCamera>(offset, m_icons["camera"], m_gizmo["Camera"]);
 		draw_gizmo<cmpt::OrthographicCamera>(offset, m_icons["camera"], m_gizmo["Camera"]);
 		draw_frustum_gizmo(offset, m_gizmo["Frustum"]);

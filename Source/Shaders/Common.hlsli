@@ -236,4 +236,29 @@ struct Interaction
     }
 };
 
+float3 OffsetRay(float3 p, float3 n)
+{
+    const float intScale = 256.0f;
+    const float floatScale = 1.0f / 65536.0f;
+    const float origin = 1.0f / 32.0f;
+
+    int3 of_i = int3(intScale * n.x, intScale * n.y, intScale * n.z);
+
+    float3 p_i = float3(asfloat(asint(p.x) + ((p.x < 0) ? -of_i.x : of_i.x)),
+                  asfloat(asint(p.y) + ((p.y < 0) ? -of_i.y : of_i.y)),
+                  asfloat(asint(p.z) + ((p.z < 0) ? -of_i.z : of_i.z)));
+
+    return float3(abs(p.x) < origin ? p.x + floatScale * n.x : p_i.x, //
+              abs(p.y) < origin ? p.y + floatScale * n.y : p_i.y, //
+              abs(p.z) < origin ? p.z + floatScale * n.z : p_i.z);
+}
+
+RayDesc SpawnRay(Interaction isect, float3 wi)
+{
+    RayDesc ray;
+    ray.Direction = wi;
+    ray.Origin = OffsetRay(isect.position, dot(wi, isect.ffnormal) > 0.0 ? isect.ffnormal : -isect.ffnormal);
+    return ray;
+}
+
 #endif

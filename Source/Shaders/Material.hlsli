@@ -4,6 +4,14 @@
 #include "BxDF.hlsli"
 #include "Common.hlsli"
 
+#define USE_Matte
+#define USE_Plastic
+#define USE_Metal
+#define USE_Substrate
+#define USE_Mirror
+#define USE_Glass
+#define USE_Disney
+
 #ifdef USE_Matte
 #define USE_OrenNayar
 #define USE_LambertianReflection
