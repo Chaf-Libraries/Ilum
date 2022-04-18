@@ -23,7 +23,7 @@ class Shader
 
 	~Shader() = default;
 
-	Shader &load(const std::string &filename, VkShaderStageFlagBits stage, Type type, const std::string &entry_point = "main");
+	Shader &load(const std::string &filename, VkShaderStageFlagBits stage, Type type, const std::string &entry_point = "main", const std::vector<std::string> &macros = {});
 
 	const ReflectionData &getReflectionData() const;
 

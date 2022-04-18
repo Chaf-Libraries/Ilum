@@ -11,6 +11,6 @@ class ShaderCompiler
 
 	static void destroy();
 
-	static std::vector<uint32_t> compile(const std::string &filename, const std::vector<uint8_t> &data, VkShaderStageFlags stage, Shader::Type type, const std::string &entry_point = "main");
+	static std::vector<uint32_t> compile(const std::string &filename, const std::vector<uint8_t> &data, VkShaderStageFlagBits stage, Shader::Type type, const std::string &entry_point = "main", const std::vector<std::string> &macros = {});
 };
 }        // namespace Ilum

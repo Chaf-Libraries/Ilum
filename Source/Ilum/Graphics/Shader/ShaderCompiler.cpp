@@ -1,13 +1,15 @@
 #include "ShaderCompiler.hpp"
 
+#include "Graphics/Vulkan/Vulkan.hpp"
+
 #include "File/FileSystem.hpp"
 
 #include <atlbase.h>
 #include <dxcapi.h>
 
+#include <glslang/Include/ResourceLimits.h>
 #include <glslang/SPIRV/GLSL.std.450.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
-#include <glslang/Include/ResourceLimits.h>
 
 namespace glslang
 {
@@ -268,7 +270,7 @@ inline void init_dxc_compiler()
 	s_dxc_utils->CreateDefaultIncludeHandler(&s_pDefaultIncludeHandler);
 }
 
-inline std::vector<uint32_t> glslang_compile(const std::string &filename, const std::vector<uint8_t> &data, VkShaderStageFlags stage, Shader::Type type, const std::string &entry_point)
+inline std::vector<uint32_t> glslang_compile(const std::string &filename, const std::vector<uint8_t> &data, VkShaderStageFlagBits stage, Shader::Type type, const std::string &entry_point, const std::vector<std::string> &macros)
 {
 	EShMessages msgs = static_cast<EShMessages>(EShMsgDefault | EShMsgVulkanRules | EShMsgSpvRules);
 
@@ -285,6 +287,10 @@ inline std::vector<uint32_t> glslang_compile(const std::string &filename, const 
 	shader.setSourceEntryPoint("main");
 	shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_5);
 	shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_2);
+	for (const auto& macro : macros)
+	{
+		shader.setPreamble(macro.c_str());
+	}
 
 	if (!shader.parse(&glslang::DefaultTBuiltInResource, 100, false, msgs))
 	{
@@ -339,7 +345,7 @@ inline std::vector<uint32_t> glslang_compile(const std::string &filename, const 
 	return spirv;
 }
 
-inline std::vector<uint32_t> dxc_compile(const std::string &filename, const std::vector<uint8_t> &data, VkShaderStageFlags stage, Shader::Type type, const std::string &entry_point)
+inline std::vector<uint32_t> dxc_compile(const std::string &filename, const std::vector<uint8_t> &data, VkShaderStageFlagBits stage, Shader::Type type, const std::string &entry_point, const std::vector<std::string> &macros)
 {
 	std::string source;
 	source.resize(data.size());
@@ -377,11 +383,13 @@ inline std::vector<uint32_t> dxc_compile(const std::string &filename, const std:
 	arguments.emplace_back(L"-fspv-extension=SPV_KHR_shader_draw_parameters");
 	arguments.emplace_back(L"-fspv-extension=SPV_EXT_descriptor_indexing");
 	arguments.emplace_back(L"-fspv-extension=SPV_EXT_shader_viewport_index_layer");
+	arguments.emplace_back(to_wstring(std::string("-D") + std::to_string(stage)));
+	arguments.emplace_back(to_wstring(std::string("-DRUNTIME")));
 
-#ifdef _DEBUG
-	//arguments.emplace_back(L"-Od");        // Disable optimizations
-	arguments.emplace_back(L"-Zi");        // Enable debug information
-#endif
+	for (const auto& macro : macros)
+	{
+		arguments.emplace_back(to_wstring(std::string("-D") + macro));
+	}
 
 	// Convert arguments to LPCWSTR
 	std::vector<LPCWSTR> arguments_lpcwstr;
@@ -437,15 +445,15 @@ void ShaderCompiler::destroy()
 	destroy_glslang_compiler();
 }
 
-std::vector<uint32_t> ShaderCompiler::compile(const std::string &filename, const std::vector<uint8_t> &data, VkShaderStageFlags stage, Shader::Type type, const std::string &entry_point)
+std::vector<uint32_t> ShaderCompiler::compile(const std::string &filename, const std::vector<uint8_t> &data, VkShaderStageFlagBits stage, Shader::Type type, const std::string &entry_point, const std::vector<std::string> &macros)
 {
 	if (type == Shader::Type::HLSL)
 	{
-		return dxc_compile(filename, data, stage, type, entry_point);
+		return dxc_compile(filename, data, stage, type, entry_point, macros);
 	}
 	else
 	{
-		return glslang_compile(filename, data, stage, type, entry_point);
+		return glslang_compile(filename, data, stage, type, entry_point, macros);
 	}
 }
 }        // namespace Ilum

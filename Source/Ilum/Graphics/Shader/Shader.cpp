@@ -17,23 +17,29 @@
 
 namespace Ilum
 {
-Shader &Shader::load(const std::string &filename, VkShaderStageFlagBits stage, Type type, const std::string &entry_point)
+Shader &Shader::load(const std::string &filename, VkShaderStageFlagBits stage, Type type, const std::string &entry_point, const std::vector<std::string> &macros)
 {
 	if (!FileSystem::isExist("Shader/"))
 	{
 		FileSystem::createPath("Shader/");
 	}
 
-	std::string spv_path = "Shader/" + FileSystem::getFileName(filename, false) + "_" + std::to_string(stage) + ".spv";
+	size_t define_hash = 0;
+	for (auto& macro : macros)
+	{
+		hash_combine(define_hash, macro);
+	}
+
+	std::string spv_path = "Shader/" + FileSystem::getFileName(filename, false) + "_" + std::to_string(stage) + "_" + entry_point + "_" + std::to_string(define_hash) + ".spv ";
 
 	VkShaderModule shader_module = VK_NULL_HANDLE;
 	if (FileSystem::isExist(spv_path))
 	{
-		shader_module = GraphicsContext::instance()->getShaderCache().load(spv_path, stage, Type::SPIRV, entry_point);
+		shader_module = GraphicsContext::instance()->getShaderCache().load(spv_path, stage, Type::SPIRV, entry_point, macros);
 	}
 	else
 	{
-		shader_module = GraphicsContext::instance()->getShaderCache().load(filename, stage, type, entry_point);
+		shader_module = GraphicsContext::instance()->getShaderCache().load(filename, stage, type, entry_point, macros);
 	}
 
 	if (!shader_module)

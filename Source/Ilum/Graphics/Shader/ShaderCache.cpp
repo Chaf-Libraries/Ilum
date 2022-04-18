@@ -87,12 +87,18 @@ ShaderCache::~ShaderCache()
 	ShaderCompiler::destroy();
 }
 
-VkShaderModule ShaderCache::load(const std::string &filename, VkShaderStageFlagBits stage, Shader::Type type, const std::string &entry_point)
+VkShaderModule ShaderCache::load(const std::string &filename, VkShaderStageFlagBits stage, Shader::Type type, const std::string &entry_point, const std::vector<std::string> &macros)
 {
-	// Look for shader module
-	if (m_lookup.find(filename + entry_point) != m_lookup.end())
+	size_t define_hash = 0;
+	for (auto &macro : macros)
 	{
-		return m_shader_modules.at(m_lookup[filename + entry_point]);
+		hash_combine(define_hash, macro);
+	}
+
+	// Look for shader module
+	if (m_lookup.find(filename + entry_point + std::to_string(define_hash)) != m_lookup.end())
+	{
+		return m_shader_modules.at(m_lookup[filename + entry_point + std::to_string(define_hash)]);
 	}
 
 	VK_INFO("Loading Shader {}", filename);
@@ -129,7 +135,10 @@ VkShaderModule ShaderCache::load(const std::string &filename, VkShaderStageFlagB
 
 		std::vector<uint8_t> write_data(spirv.size() * 4);
 		std::memcpy(write_data.data(), spirv.data(), write_data.size());
-		FileSystem::save("Shader/" + FileSystem::getFileName(filename, false) + "_" + std::to_string(stage) + ".spv", write_data, true);
+
+		std::string spv_path = "Shader/" + FileSystem::getFileName(filename, false) + "_" + std::to_string(stage) + "_" + entry_point + "_" + std::to_string(define_hash) + ".spv ";
+		
+		FileSystem::save(spv_path, write_data, true);
 	}
 
 	m_reflection_data.emplace_back(std::move(ShaderReflection::reflect(spirv, stage)));
@@ -147,7 +156,7 @@ VkShaderModule ShaderCache::load(const std::string &filename, VkShaderStageFlagB
 	}
 
 	m_shader_modules.push_back(shader_module);
-	m_lookup[filename + entry_point] = m_shader_modules.size() - 1;
+	m_lookup[filename + entry_point + std::to_string(define_hash)] = m_shader_modules.size() - 1;
 	m_mapping[shader_module] = m_shader_modules.size() - 1;
 
 	return shader_module;
