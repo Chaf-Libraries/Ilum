@@ -131,7 +131,7 @@ VkShaderModule ShaderCache::load(const std::string &filename, VkShaderStageFlagB
 	}
 	else
 	{
-		spirv = ShaderCompiler::compile(filename, raw_data, stage, type, entry_point);
+		spirv = ShaderCompiler::compile(filename, raw_data, stage, type, entry_point, macros);
 
 		std::vector<uint8_t> write_data(spirv.size() * 4);
 		std::memcpy(write_data.data(), spirv.data(), write_data.size());

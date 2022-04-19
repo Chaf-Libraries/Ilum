@@ -62,6 +62,21 @@ ReflectionData &ReflectionData::operator+=(const ReflectionData &rhs)
 	input_attachments.insert(input_attachments.end(), rhs.input_attachments.begin(), rhs.input_attachments.end());
 	constants.insert(constants.end(), rhs.constants.begin(), rhs.constants.end());
 
+	// Erase duplicate push constant
+	std::unordered_set<VkShaderStageFlagBits> stage_set;
+	for (auto iter = constants.begin(); iter != constants.end();)
+	{
+		if (iter->type == ReflectionData::Constant::Type::Push&&stage_set.find(iter->stage)!=stage_set.end())
+		{
+			iter = constants.erase(iter);
+		}
+		else
+		{
+			stage_set.insert(iter->stage);
+			iter++;
+		}
+	}
+
 	for (auto &image : rhs.images)
 	{
 		auto iter = std::find_if(images.begin(), images.end(), [image](const Image &img) { return image.binding == img.binding && image.set == img.set; });
