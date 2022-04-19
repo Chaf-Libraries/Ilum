@@ -149,6 +149,13 @@ void Editor::onTick(float delta_time)
 
 					entity.addComponent<cmpt::SpotLight>();
 				}
+				if (ImGui::MenuItem("Area Light"))
+				{
+					auto entity     = Scene::instance()->createEntity("Area Light");
+					m_select_entity = entity;
+
+					entity.addComponent<cmpt::AreaLight>();
+				}
 				ImGui::EndMenu();
 			}
 			if (ImGui::BeginMenu("Camera"))
