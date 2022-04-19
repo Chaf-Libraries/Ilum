@@ -72,7 +72,6 @@ void RayGen()
     {
         float3 prev_color = PrevImage[launch_id].rgb;
         float3 accumulated_color = float3(0.0, 0.0, 0.0);
-		
         if ((isnan(prev_color.x) || isnan(prev_color.y) || isnan(prev_color.z)))
         {
             accumulated_color = ray_payload.radiance;
@@ -188,12 +187,11 @@ void Closesthit(inout RayPayload ray_payload : SV_RayPayload, BuiltInTriangleInt
                         if (pdf_li != 0.0)
                         {
                             weight = PowerHeuristic(1, scattering_pdf, 1, light_pdf);
-                            Ld += light.Le() * f * weight / scattering_pdf;
+                            Ld += light.Le(p) * f * weight / scattering_pdf;
                         }
                     }
                 }
             }
-            
         }
         
         // Add direct light

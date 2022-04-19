@@ -884,7 +884,7 @@ inline bool draw_component<cmpt::DirectionalLight>(Entity entity)
 
 		update = ImGui::DragFloat("Intensity", &component.intensity, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f") || update;
 		update = ImGui::ColorEdit3("Color", glm::value_ptr(component.color)) || update;
-		update = ImGui::DragFloat("Light size", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
+		update = ImGui::DragFloat("Radius", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
 		ImGui::Text("Shadow Setting");
 		update = ImGui::Combo("Shadow Mode", &component.shadow_mode, shadow_mode, 4) || update;
 		update = ImGui::Combo("Sample method", &component.sample_method, sample_method, 2) || update;
@@ -908,7 +908,7 @@ inline bool draw_component<cmpt::SpotLight>(Entity entity)
 		update = ImGui::ColorEdit3("Color", glm::value_ptr(component.color)) || update;
 		update = ImGui::DragFloat("Cut off", &component.cut_off, 0.0001f, 0.f, 1.f, "%.5f") || update;
 		update = ImGui::DragFloat("Outer cut off", &component.outer_cut_off, 0.0001f, 0.f, component.cut_off, "%.5f") || update;
-		update = ImGui::DragFloat("Light size", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
+		update = ImGui::DragFloat("Radius", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
 		ImGui::Text("Shadow Setting");
 		update = ImGui::Combo("Shadow Mode", &component.shadow_mode, shadow_mode, 4) || update;
 		update = ImGui::Combo("Sample method", &component.sample_method, sample_method, 2) || update;
@@ -933,7 +933,7 @@ inline bool draw_component<cmpt::PointLight>(Entity entity)
 		update = ImGui::DragFloat("Constant", &component.constant, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f") || update;
 		update = ImGui::DragFloat("Linear", &component.linear, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f") || update;
 		update = ImGui::DragFloat("Quadratic", &component.quadratic, 0.0001f, 0.f, std::numeric_limits<float>::max(), "%.5f") || update;
-		update = ImGui::DragFloat("Light size", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
+		update = ImGui::DragFloat("Radius", &component.light_size, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f") || update;
 		ImGui::Text("Shadow Setting");
 		update = ImGui::Combo("Shadow Mode", &component.shadow_mode, shadow_mode, 4) || update;
 		update = ImGui::Combo("Sample method", &component.sample_method, sample_method, 2) || update;
@@ -965,8 +965,8 @@ inline bool draw_component<cmpt::AreaLight>(Entity entity)
 				break;
 			}
 		}
-		ImGui::Text("Texture");
-		update = draw_texture(texture, "Texture") || update;
+		ImGui::Text("Area Light Texture");
+		update = draw_texture(texture, "Area Light Texture") || update;
 		component.texture_id = Renderer::instance()->getResourceCache().imageID(texture);
 
 		return update;

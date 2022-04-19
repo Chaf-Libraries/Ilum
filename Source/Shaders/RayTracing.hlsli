@@ -97,14 +97,30 @@ struct Light
         return false;
     }
     
-    float3 Le()
+    float3 Le(float3 p)
     {
         uint count = push_constants.directional_light_count + push_constants.spot_light_count + push_constants.point_light_count;
         
         // Area Light
         if (idx >= count)
         {
-            return area_lights[idx - count].Le();
+            AreaLight light = area_lights[idx - count];
+            
+            float3 tex_color = float3(1.0, 1.0, 1.0);
+            if (light.tex_id < MAX_TEXTURE_ARRAY_SIZE)
+            {
+                float3 x_axis = (light.corners[1] - light.corners[0]).xyz;
+                float3 y_axis = (light.corners[3] - light.corners[0]).xyz;
+                
+                float a = length(x_axis);
+                float b = length(y_axis);
+                            
+                float2 uv = float2(dot(p - light.corners[0].xyz, normalize(x_axis)), dot(p - light.corners[0].xyz, normalize(y_axis)));
+                uv = float2(uv.x / a, 1.0 - uv.y / b);
+                tex_color = textureArray[NonUniformResourceIndex(light.tex_id)].SampleLevel(texSampler, uv, 0.0).rgb;
+            }
+                                   
+            return light.Le() * tex_color;
         }
         count -= push_constants.point_light_count;
         // Point Light
@@ -158,7 +174,15 @@ struct Light
         // Area Light
         if (idx >= count)
         {
-            return area_lights[idx - count].SampleLi(interaction, u, wi, pdf, visibility);
+            AreaLight light = area_lights[idx - count];
+            
+            float3 tex_color = float3(1.0, 1.0, 1.0);
+            if(light.tex_id<MAX_TEXTURE_ARRAY_SIZE)
+            {
+                tex_color = textureArray[NonUniformResourceIndex(light.tex_id)].SampleLevel(texSampler, u, 0.0).rgb;
+            }
+            
+            return tex_color * area_lights[idx - count].SampleLi(interaction, u, wi, pdf, visibility);
         }
         count -= push_constants.point_light_count;
         // Point Light

@@ -390,7 +390,7 @@ struct AreaLight
         visibility.from = interaction;
         visibility.dir = normalize(p - interaction.position);
         visibility.dist = length(p - interaction.position);
-
+        
         return color * intensity;
     }
 
