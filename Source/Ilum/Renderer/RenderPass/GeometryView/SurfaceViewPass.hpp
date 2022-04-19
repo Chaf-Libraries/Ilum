@@ -6,22 +6,15 @@
 
 namespace Ilum::pass
 {
-class MeshPass : public TRenderPass<MeshPass>
+class SurfaceViewPass : public TRenderPass<SurfaceViewPass>
 {
   public:
-	MeshPass() = default;
+	SurfaceViewPass() = default;
 
 	virtual void setupPipeline(PipelineState &state) override;
 
 	virtual void resolveResources(ResolveState &resolve) override;
 
 	virtual void render(RenderPassState &state) override;
-
-	virtual void onImGui() override;
-
-  private:
-	std::string m_texture    = "";
-	uint32_t    m_texture_id = std::numeric_limits<uint32_t>::max();
-	uint32_t    m_parameterization = 0;
 };
 }        // namespace Ilum::pass

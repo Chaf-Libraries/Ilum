@@ -1,4 +1,4 @@
-#include "WireFrame.hpp"
+#include "WireFrameView.hpp"
 
 #include "Scene/Component/Renderable.hpp"
 #include "Scene/Component/Tag.hpp"
@@ -12,12 +12,10 @@
 
 namespace Ilum::pass
 {
-void WireFramePass::setupPipeline(PipelineState &state)
+void WireFrameViewPass::setupPipeline(PipelineState &state)
 {
-	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GeometryView/WireFrame.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GeometryView/WireFrame.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GeometryView/WireFrame.hlsl", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::HLSL, "VSmain");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GeometryView/WireFrame.hlsl", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::HLSL, "PSmain");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GeometryView/WireFrameView.hlsl", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::HLSL, "VSmain");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GeometryView/WireFrameView.hlsl", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::HLSL, "PSmain");
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,
@@ -56,13 +54,13 @@ void WireFramePass::setupPipeline(PipelineState &state)
 	state.addOutputAttachment("GeometryDepthStencil", AttachmentState::Load_Depth_Stencil);
 }
 
-void WireFramePass::resolveResources(ResolveState &resolve)
+void WireFrameViewPass::resolveResources(ResolveState &resolve)
 {
 	resolve.resolve("Camera", Renderer::instance()->Render_Buffer.Camera_Buffer);
 	resolve.resolve("PerInstanceBuffer", Renderer::instance()->Render_Buffer.Instance_Buffer);
 }
 
-void WireFramePass::render(RenderPassState &state)
+void WireFrameViewPass::render(RenderPassState &state)
 {
 	auto &cmd_buffer = state.command_buffer;
 
@@ -193,7 +191,7 @@ void WireFramePass::render(RenderPassState &state)
 	vkCmdEndRenderPass(cmd_buffer);
 }
 
-void WireFramePass::onImGui()
+void WireFrameViewPass::onImGui()
 {
 	ImGui::Checkbox("Enable", &m_enable);
 	ImGui::Checkbox("Show Parameterization", reinterpret_cast<bool*>(&m_parameterization));

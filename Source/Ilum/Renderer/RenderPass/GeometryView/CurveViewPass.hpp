@@ -6,22 +6,15 @@
 
 namespace Ilum::pass
 {
-class WireFramePass : public TRenderPass<WireFramePass>
+class CurveViewPass : public TRenderPass<CurveViewPass>
 {
   public:
-	WireFramePass() = default;
+	CurveViewPass() = default;
 
 	virtual void setupPipeline(PipelineState &state) override;
 
 	virtual void resolveResources(ResolveState &resolve) override;
 
 	virtual void render(RenderPassState &state) override;
-
-	virtual void onImGui() override;
-
-  private:
-	bool  m_enable     = false;
-	float m_line_width = 2.f;
-	uint32_t m_parameterization = 0;
 };
 }        // namespace Ilum::pass

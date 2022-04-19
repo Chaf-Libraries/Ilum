@@ -1,4 +1,4 @@
-#include "MeshPass.hpp"
+#include "MeshViewPass.hpp"
 
 #include "Scene/Component/Renderable.hpp"
 #include "Scene/Component/Tag.hpp"
@@ -16,12 +16,10 @@
 
 namespace Ilum::pass
 {
-void MeshPass::setupPipeline(PipelineState &state)
+void MeshViewPass::setupPipeline(PipelineState &state)
 {
-	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GeometryView/Mesh.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GeometryView/Mesh.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GeometryView/Mesh.hlsl", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::HLSL, "VSmain");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GeometryView/Mesh.hlsl", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::HLSL,"PSmain");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GeometryView/MeshView.hlsl", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::HLSL, "VSmain");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GeometryView/MeshView.hlsl", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::HLSL,"PSmain");
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,
@@ -58,13 +56,13 @@ void MeshPass::setupPipeline(PipelineState &state)
 	state.addOutputAttachment("GeometryDepthStencil", AttachmentState::Load_Depth_Stencil);
 }
 
-void MeshPass::resolveResources(ResolveState &resolve)
+void MeshViewPass::resolveResources(ResolveState &resolve)
 {
 	resolve.resolve("Camera", Renderer::instance()->Render_Buffer.Camera_Buffer);
 	resolve.resolve("TextureArray", Renderer::instance()->getResourceCache().getImageReferences());
 }
 
-void MeshPass::render(RenderPassState &state)
+void MeshViewPass::render(RenderPassState &state)
 {
 	auto &cmd_buffer = state.command_buffer;
 
@@ -121,7 +119,7 @@ void MeshPass::render(RenderPassState &state)
 	}
 }
 
-void MeshPass::onImGui()
+void MeshViewPass::onImGui()
 {
 	ImGui::Checkbox("Show Parameterization", reinterpret_cast<bool *>(&m_parameterization));
 
