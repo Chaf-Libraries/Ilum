@@ -33,10 +33,10 @@
 #include "RenderPass/Culling/InstanceCullingPass.hpp"
 #include "RenderPass/Culling/MeshletCullingPass.hpp"
 
-#include "RenderPass/GeometryView/CurvePass.hpp"
-#include "RenderPass/GeometryView/MeshPass.hpp"
-#include "RenderPass/GeometryView/SurfacePass.hpp"
-#include "RenderPass/GeometryView/WireFrame.hpp"
+#include "RenderPass/GeometryView/CurveViewPass.hpp"
+#include "RenderPass/GeometryView/MeshViewPass.hpp"
+#include "RenderPass/GeometryView/SurfaceViewPass.hpp"
+#include "RenderPass/GeometryView/WireFrameView.hpp"
 
 #include "RenderPass/PostProcess/BloomBlend.hpp"
 #include "RenderPass/PostProcess/BloomBlur.hpp"
@@ -111,10 +111,10 @@ Renderer::Renderer(Context *context) :
 		    //.addRenderPass("CopyHizBuffer", std::make_unique<pass::CopyHizBuffer>())
 		    //.addRenderPass("CopyLastFrame", std::make_unique<pass::CopyLastFrame>("TAAOutput"))
 		    //.addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Lighting"))
-		    //.addRenderPass("CurvePass", std::make_unique<pass::CurvePass>())
-		    //.addRenderPass("SurfacePass", std::make_unique<pass::SurfacePass>())
-		    //.addRenderPass("MeshPass", std::make_unique<pass::MeshPass>())
-		    //.addRenderPass("WireFramePass", std::make_unique<pass::WireFramePass>())
+		    //.addRenderPass("CurveViewPass", std::make_unique<pass::CurveViewPass>())
+		    //.addRenderPass("SurfaceViewPass", std::make_unique<pass::SurfaceViewPass>())
+		    //.addRenderPass("MeshViewPass", std::make_unique<pass::MeshViewPass>())
+		    //.addRenderPass("WireFrameViewPass", std::make_unique<pass::WireFrameViewPass>())
 		    //.setView("TAAOutput")
 		    //.setOutput("TAAOutput")
 
