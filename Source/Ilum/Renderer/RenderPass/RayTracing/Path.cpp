@@ -15,23 +15,23 @@ namespace Ilum::pass
 {
 void Path::setupPipeline(PipelineState &state)
 {
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Path.hlsl", VK_SHADER_STAGE_RAYGEN_BIT_KHR, Shader::Type::HLSL, "main");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Path.hlsl", VK_SHADER_STAGE_RAYGEN_BIT_KHR, Shader::Type::HLSL, "RayGen");
 
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/ClosestHit/Matte.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/ClosestHit/Plastic.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/ClosestHit/Metal.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/ClosestHit/Mirror.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/ClosestHit/Substrate.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/ClosestHit/Glass.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/ClosestHit/Disney.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "main");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Path.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "Closesthit", {"USE_Matte"});
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Path.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "Closesthit", {"USE_Plastic"});
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Path.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "Closesthit", {"USE_Metal"});
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Path.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "Closesthit", {"USE_Mirror"});
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Path.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "Closesthit", {"USE_Substrate"});
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Path.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "Closesthit", {"USE_Glass"});
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Path.hlsl", VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, Shader::Type::HLSL, "Closesthit", {"USE_Disney"});
 
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Miss/Matte.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Miss/Plastic.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Miss/Metal.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Miss/Mirror.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Miss/Substrate.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Miss/Glass.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "main");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Miss/Disney.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "main");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Path.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "Miss", {"USE_Matte"});
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Path.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "Miss", {"USE_Plastic"});
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Path.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "Miss", {"USE_Metal"});
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Path.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "Miss", {"USE_Mirror"});
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Path.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "Miss", {"USE_Substrate"});
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Path.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "Miss", {"USE_Glass"});
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/RayTracing/Path.hlsl", VK_SHADER_STAGE_MISS_BIT_KHR, Shader::Type::HLSL, "Miss", {"USE_Disney"});
 
 	state.declareAttachment("Path", VK_FORMAT_R32G32B32A32_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.addOutputAttachment("Path", AttachmentState::Clear_Color);
@@ -96,7 +96,7 @@ void Path::render(RenderPassState &state)
 		m_push_block.point_light_count       = Renderer::instance()->Render_Stats.light_count.point_light_count;
 		m_push_block.area_light_count        = Renderer::instance()->Render_Stats.light_count.area_light_count;
 
-		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_RAYGEN_BIT_KHR, 0, sizeof(m_push_block), &m_push_block);
+		vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, 0, sizeof(m_push_block), &m_push_block);
 
 		vkCmdTraceRaysKHR(
 		    cmd_buffer,
@@ -117,7 +117,7 @@ void Path::onImGui()
 	if (camera_entity && (camera_entity.hasComponent<cmpt::PerspectiveCamera>() || camera_entity.hasComponent<cmpt::OrthographicCamera>()))
 	{
 		cmpt::Camera *camera = camera_entity.hasComponent<cmpt::PerspectiveCamera>() ?
-                                   static_cast<cmpt::Camera *>(&camera_entity.getComponent<cmpt::PerspectiveCamera>()) :
+		                           static_cast<cmpt::Camera *>(&camera_entity.getComponent<cmpt::PerspectiveCamera>()) :
                                    static_cast<cmpt::Camera *>(&camera_entity.getComponent<cmpt::OrthographicCamera>());
 
 		m_update = static_cast<int32_t>(camera->frame_count) - 1 < m_max_spp;

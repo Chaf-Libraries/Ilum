@@ -29,6 +29,11 @@ struct DirectionalLight
 
     float3 position;
     
+    bool IsIntersect(RayDesc ray, out float3 p)
+    {
+        return false;
+    }
+    
     float3 SampleLi(Interaction interaction, float2 u, out float3 wi, out float pdf, out VisibilityTester visibility)
     {
         wi = normalize(-direction);
@@ -39,11 +44,6 @@ struct DirectionalLight
         visibility.dist = Infinity;
         
         return color.rgb * intensity;
-    }
-
-    float PdfLi(Interaction interaction, float3 wi)
-    {
-        return 0.0;
     }
 
     float Power()
@@ -64,6 +64,11 @@ struct DirectionalLight
     {
         return 2.0 * PI * radius;
     }
+    
+    float3 Le()
+    {
+        return float3(0.0, 0.0, 0.0);
+    }
 };
 
 // Point Light Source
@@ -81,6 +86,27 @@ struct PointLight
     int filter_sample;
     int sample_method; // 0 - Uniform, 1 - Poisson Disk
     float radius;
+    
+    bool IsIntersect(RayDesc ray, out float3 p)
+    {
+        float a = dot(ray.Direction, ray.Direction);
+        float b = 2.0 * dot(ray.Origin - position, ray.Direction);
+        float c = dot(ray.Origin - position, ray.Origin - position) - radius * radius;
+        
+        float t1 = (-b + sqrt(b * b - 4 * a * c)) / (2 * a);
+        float t2 = (-b - sqrt(b * b - 4 * a * c)) / (2 * a);
+        
+        if (t1 < 0.0)
+        {
+            return false;
+        }
+        
+        float t = t1 < 0 ? t2 : t1;
+        
+        p = ray.Origin + t * ray.Direction;
+        
+        return true;
+    }
     
     float3 SampleLi(Interaction interaction, float2 u, out float3 wi, out float pdf, out VisibilityTester visibility)
     {
@@ -113,17 +139,12 @@ struct PointLight
             visibility.dir = normalize(p - interaction.position);
             visibility.dist = length(p - interaction.position);
         
-            return color.rgb * intensity * Fatt / (2 * PI * radius * radius);
+            return color.rgb * intensity * Fatt;
         }
         
         return float3(0.0, 0.0, 0.0);
     }
     
-    float PdfLi(Interaction interaction, float3 wi)
-    {
-        return 0.0;
-    }
-
     float Power()
     {
         return 4 * PI * intensity;
@@ -141,6 +162,11 @@ struct PointLight
     float Area()
     {
         return 2.0 * PI * radius;
+    }
+    
+    float3 Le()
+    {
+        return color * intensity / (2 * PI * radius * radius);
     }
 };
 
@@ -160,6 +186,29 @@ struct SpotLight
     int filter_sample;
     int sample_method; // 0 - Uniform, 1 - Poisson Disk
     float radius;
+    
+    bool IsIntersect(RayDesc ray, out float3 p)
+    {
+        float a = dot(ray.Direction, ray.Direction);
+        float b = 2.0 * dot(ray.Origin - position, ray.Direction);
+        float c = dot(ray.Origin - position, ray.Origin - position) - radius * radius;
+        
+        float delta = sqrt(b * b - 4 * a * c);
+        
+        float t1 = (-b + delta) / (2 * a);
+        float t2 = (-b - delta) / (2 * a);
+        
+        if (t1 < 0.0)
+        {
+            return false;
+        }
+        
+        float t = t2 < 0 ? t1 : t2;
+        
+        p = ray.Origin + t * ray.Direction;
+        
+        return true;
+    }
     
     float3 SampleLi(Interaction interaction, float2 u, out float3 wi, out float pdf, out VisibilityTester visibility)
     {
@@ -194,13 +243,8 @@ struct SpotLight
             visibility.dir = normalize(p - interaction.position);
             visibility.dist = length(p - interaction.position);
         
-            return color * intensity * clamp((theta - outer_cut_off) / epsilon, 0.0, 1.0) / (2 * PI * radius * radius);
+            return color * intensity * clamp((theta - outer_cut_off) / epsilon, 0.0, 1.0);
         }
-    }
-
-    float PdfLi(Interaction interaction, float3 wi)
-    {
-        return 0.0;
     }
 
     float Power()
@@ -221,6 +265,11 @@ struct SpotLight
     {
         return 2.0 * PI * radius;
     }
+    
+    float3 Le()
+    {
+        return color * intensity / (2 * PI * radius * radius);
+    }
 };
 
 static const uint AreaLightType_Rectangle = 0;
@@ -238,6 +287,52 @@ struct AreaLight
     
     uint tex_id;
     
+    bool IsIntersect(RayDesc ray, out float3 p)
+    {
+        float3 x_axis = (corners[1] - corners[0]).xyz;
+        float3 y_axis = (corners[3] - corners[0]).xyz;
+        
+        float3 center = 0.5 * (corners[0].xyz + corners[2].xyz);
+        
+        float a = length(x_axis) * 0.5;
+        float b = length(y_axis) * 0.5;
+        
+        float3 normal = normalize(cross(x_axis, y_axis));
+        
+        if (dot(ray.Direction, normal) == 0.0)
+        {
+            return false;
+        }
+        
+        float t = (dot(corners[0].xyz - ray.Origin, normal) / dot(ray.Direction, normal));
+        
+        if (t < 0.0)
+        {
+            return false;
+        }
+        
+        p = ray.Origin + ray.Direction * t;
+        
+        float2 r = float2(dot(p - center, normalize(x_axis)), dot(p - center, normalize(y_axis)));
+        
+        if (shape == AreaLightType_Rectangle)
+        {
+            if (abs(r.x) <= a && abs(r.y) <= b)
+            {
+                return true;
+            }
+        }
+        else if (shape == AreaLightType_Ellipse)
+        {
+            if (r.x * r.x / (a * a) + r.y * r.y / (b * b) <= 1.0)
+            {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
     float Area()
     {
         if (shape == AreaLightType_Rectangle)
@@ -254,7 +349,7 @@ struct AreaLight
         }
         return 0.0;
     }
-    
+        
     float3 SampleLi(Interaction interaction, float2 u, out float3 wi, out float pdf, out VisibilityTester visibility)
     {
         float3 n;
@@ -299,45 +394,19 @@ struct AreaLight
         return color * intensity;
     }
 
-    float PdfLi(Interaction interaction, float3 wi)
-    {
-        float3 normal = normalize(cross(corners[1].xyz - corners[0].xyz, corners[2].xyz - corners[0].xyz));
-        
-        // Check Intersection
-        RayDesc ray = SpawnRay(interaction, wi);
-        if (dot(ray.Direction, normal) == 0.0)
-        {
-            return 0.0;
-        }
-
-        float t = abs(dot(interaction.position - ray.Origin, normal) / (ray.Direction, normal));
-        float3 p = ray.Origin + t * ray.Direction;
-        
-        float3 v = p - corners[0].xyz;
-        
-        if (dot(v, corners[1].xyz - corners[0].xyz) < 0.0 || dot(v, corners[3].xyz - corners[0].xyz) < 0.0)
-        {
-            return 0.0;
-        }
-        
-        float pdf = dot(interaction.position - p, interaction.position - p) / abs(dot(interaction.ffnormal, wi)) * Area();
-        
-        if (isinf(pdf))
-        {
-            return 0.0;
-        }
-        
-        return pdf;
-    }
-    
     bool IsDelta()
     {
-        return true;
+        return false;
     }
 
     float Power()
     {
         return intensity * Area() * PI;
+    }
+    
+    float3 Le()
+    {
+        return color * intensity;
     }
 };
 

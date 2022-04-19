@@ -60,7 +60,6 @@
 #include "RenderPass/Shading/SkyboxPass.hpp"
 
 #include "RenderPass/RayTracing/Path.hpp"
-#include "RenderPass/RayTracing/Whitted.hpp"
 
 #include "RenderPass/Test/RandomVis.hpp"
 

@@ -4,13 +4,13 @@
 #include "BxDF.hlsli"
 #include "Common.hlsli"
 
-#define USE_Matte
-#define USE_Plastic
-#define USE_Metal
-#define USE_Substrate
-#define USE_Mirror
-#define USE_Glass
-#define USE_Disney
+//#define USE_Matte
+//#define USE_Plastic
+//#define USE_Metal
+//#define USE_Substrate
+//#define USE_Mirror
+//#define USE_Glass
+//#define USE_Disney
 
 #ifdef USE_Matte
 #define USE_OrenNayar
@@ -434,6 +434,8 @@ struct BSDFs
     BxDF bxdfs[10];
     uint nBxDFs;
     
+    float eta;
+    
     Interaction isect;
     
     void Init()
@@ -607,6 +609,8 @@ BSDFs CreateMatteMaterial(Material material)
     BSDFs bsdfs;
     bsdfs.Init();
     
+    bsdfs.eta = 1.0;
+    
     if (!IsBlack(material.base_color.rgb))
     {
         if (material.roughness == 0.0)
@@ -629,6 +633,8 @@ BSDFs CreatePlasticMaterial(Material material)
 {
     BSDFs bsdfs;
     bsdfs.Init();
+
+    bsdfs.eta = 1.0;
     
     float rough = max(material.roughness, 0.001);
     float aspect = sqrt(1.0 - material.anisotropic * 0.9);
@@ -658,6 +664,8 @@ BSDFs CreateMetalMaterial(Material material)
 {
     BSDFs bsdfs;
     bsdfs.Init();
+
+    bsdfs.eta = 1.0;
     
     bsdfs.AddBxDF(BxDF_MicrofacetReflection);
     
@@ -685,6 +693,8 @@ BSDFs CreateSubstrateMaterial(Material material)
     BSDFs bsdfs;
     bsdfs.Init();
     
+    bsdfs.eta = 1.0;
+    
     bsdfs.AddBxDF(BxDF_FresnelBlend);
     
     float aspect = sqrt(1.0 - material.anisotropic * 0.9);
@@ -707,6 +717,7 @@ BSDFs CreateMirrorMaterial(Material material)
 {
     BSDFs bsdfs;
     bsdfs.Init();
+    bsdfs.eta = 1.0;
     bsdfs.AddBxDF(BxDF_SpecularReflection);
     specular_reflection.R = material.base_color.rgb;
     return bsdfs;
@@ -719,6 +730,8 @@ BSDFs CreateGlassMaterial(Material material)
     BSDFs bsdfs;
     bsdfs.Init();
     
+    bsdfs.eta = material.refraction;
+
     float aspect = sqrt(1.0 - material.anisotropic * 0.9);
     float urough = material.roughness / aspect;
     float vrough = material.roughness * aspect;
@@ -783,6 +796,8 @@ BSDFs CreateDisneyMaterial(Material material)
 {
     BSDFs bsdfs;
     bsdfs.Init();
+
+    bsdfs.eta = 1.0;
     
     float3 c = material.base_color.rgb;
     float metallicWeight = material.metallic;

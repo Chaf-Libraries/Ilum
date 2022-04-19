@@ -41,21 +41,19 @@ struct
 struct RayPayload
 {
     Interaction isect;
+    Sampler _sampler;
         
-    uint sampled_type;
-    uint bxdf_flags;
-    float2 rnd;
-    float hitT;
-    float2 baryCoord;
     uint material_idx;
     
-    float3 f;
-    float pdf;
+    float3 radiance;
+    float3 throughout;
+    
     float3 wi;
     float eta;
     
-    float3 emission;
     bool visibility;
+    bool terminate;
+    bool ishit;
 };
 
 static const uint LightFlag_None = 1;
@@ -72,12 +70,93 @@ struct Light
 {
     uint idx;
     
+    bool IsIntersect(RayDesc ray, out float3 p)
+    {
+        uint count = push_constants.directional_light_count + push_constants.spot_light_count + push_constants.point_light_count;
+        
+        // Area Light
+        if (idx >= count)
+        {
+            return area_lights[idx - count].IsIntersect(ray, p);
+        }
+        count -= push_constants.point_light_count;
+        // Point Light
+        if (idx >= count)
+        {
+            return point_lights[idx - count].IsIntersect(ray, p);
+        }
+        count -= push_constants.spot_light_count;
+        // Spot Light
+        if (idx >= count)
+        {
+            return spot_lights[idx - count].IsIntersect(ray, p);
+        }
+        count -= push_constants.directional_light_count;
+        // Directional Light
+        return directional_lights[idx - count].IsIntersect(ray, p);
+        return false;
+    }
+    
+    float3 Le()
+    {
+        uint count = push_constants.directional_light_count + push_constants.spot_light_count + push_constants.point_light_count;
+        
+        // Area Light
+        if (idx >= count)
+        {
+            return area_lights[idx - count].Le();
+        }
+        count -= push_constants.point_light_count;
+        // Point Light
+        if (idx >= count)
+        {
+            return point_lights[idx - count].Le();
+        }
+        count -= push_constants.spot_light_count;
+        // Spot Light
+        if (idx >= count)
+        {
+            return spot_lights[idx - count].Le();
+        }
+        count -= push_constants.directional_light_count;
+        // Directional Light
+        return directional_lights[idx - count].Le();
+        return float3(0.0, 0.0, 0.0);
+    }
+    
+    float Area()
+    {
+        uint count = push_constants.directional_light_count + push_constants.spot_light_count + push_constants.point_light_count;
+        
+        // Area Light
+        if (idx >= count)
+        {
+            return area_lights[idx - count].Area();
+
+        }
+        count -= push_constants.point_light_count;
+        // Point Light
+        if (idx >= count)
+        {
+            return point_lights[idx - count].Area();
+        }
+        count -= push_constants.spot_light_count;
+        // Spot Light
+        if (idx >= count)
+        {
+            return spot_lights[idx - count].Area();
+        }
+        count -= push_constants.directional_light_count;
+        // Directional Light
+        return directional_lights[idx - count].Area();
+    }
+    
     float3 SampleLi(Interaction interaction, float2 u, out float3 wi, out float pdf, out VisibilityTester visibility)
     {
         uint count = push_constants.directional_light_count + push_constants.spot_light_count + push_constants.point_light_count;
         
         // Area Light
-        if(idx >=count)
+        if (idx >= count)
         {
             return area_lights[idx - count].SampleLi(interaction, u, wi, pdf, visibility);
         }
@@ -98,32 +177,6 @@ struct Light
         return directional_lights[idx - count].SampleLi(interaction, u, wi, pdf, visibility);
     }
     
-    float PdfLi(Interaction interaction, float3 wi)
-    {        
-        uint count = push_constants.directional_light_count + push_constants.spot_light_count + push_constants.point_light_count;
-        
-        // Area Light
-        if (idx >= count)
-        {
-            return area_lights[idx - count].PdfLi(interaction, wi);
-        }
-        count -= push_constants.point_light_count;
-        // Point Light
-        if (idx >= count)
-        {
-            return point_lights[idx - count].PdfLi(interaction, wi);
-        }
-        count -= push_constants.spot_light_count;
-        // Spot Light
-        if (idx >= count)
-        {
-            return spot_lights[idx - count].PdfLi(interaction, wi);
-        }
-        count -= push_constants.directional_light_count;
-        // Directional Light
-        return directional_lights[idx - count].PdfLi(interaction, wi);
-    }
-
     float Power()
     {
         uint count = push_constants.directional_light_count + push_constants.spot_light_count + push_constants.point_light_count;
@@ -177,11 +230,11 @@ struct Light
     }
 };
 
-void GetInteraction(inout RayPayload ray_payload, RayDesc ray)
+void GetInteraction(inout RayPayload ray_payload, RayDesc ray, BuiltInTriangleIntersectionAttributes Attributes)
 {
     const uint instance_id = InstanceIndex();
     const uint primitive_id = PrimitiveIndex();
-    const float3 bary = float3(1.0 - ray_payload.baryCoord.x - ray_payload.baryCoord.y, ray_payload.baryCoord.x, ray_payload.baryCoord.y);
+    const float3 bary = float3(1.0 - Attributes.barycentrics.x - Attributes.barycentrics.y, Attributes.barycentrics.x, Attributes.barycentrics.y);
 
     Instance instance = instances[instance_id];
 
@@ -294,7 +347,7 @@ void GetMaterial(inout Interaction interaction, out Material mat, RayDesc r, uin
 
 bool SceneIntersection(RayDesc ray, inout RayPayload ray_payload)
 {
-    ray_payload.hitT = Infinity;
+    ray_payload.ishit = false;
         
     TraceRay(
         topLevelAS, // RaytracingAccelerationStructure
@@ -307,7 +360,7 @@ bool SceneIntersection(RayDesc ray, inout RayPayload ray_payload)
         ray_payload // Payload
     );
     
-    return ray_payload.hitT != Infinity;
+    return ray_payload.ishit;
 }
 
 bool Unoccluded(inout RayPayload ray_payload, VisibilityTester visibility)
@@ -333,9 +386,45 @@ bool Unoccluded(inout RayPayload ray_payload, VisibilityTester visibility)
     return ray_payload.visibility;
 }
 
+/*float3 UniformSampleOneLight(inout RayPayload ray_payload, inout Sampler _sampler)
+{
+    uint light_count = push_constants.directional_light_count + push_constants.point_light_count + push_constants.spot_light_count + push_constants.area_light_count;
+    if (light_count == 0)
+    {
+        return float3(0.0, 0.0, 0.0);
+    }
+        
+    uint lightNum = (uint) min(light_count - 1, _sampler.Get1D() * (float) light_count);
+    float lightPdf = 1.0 / (float) light_count;
+        
+    Light light;
+    light.idx = lightNum;
+
+    float3 wi;
+    float light_pdf, scattering_pdf;
+    VisibilityTester visibility;
+    float3 Li = light.SampleLi(ray_payload.isect, _sampler.Get2D(), wi, light_pdf, visibility);
+
+    float3 Ld = float3(0.0, 0.0, 0.0);
+        
+    ray_payload.wi = wi;
+    if (!IsBlack(Li) && Unoccluded(ray_payload, visibility) && light_pdf != 0.0)
+    {
+        Ld += ray_payload.f * Li / light_pdf;
+    }
+        
+    // Sample BSDF with multiple importance sampling
+    if (!light.IsDelta())
+    {
+        float3 f = float3(0.0, 0.0, 0.0);
+    }
+        
+    return Ld;
+}
+*/
 // Environment Sampling (HDR)
 // See:  https://arxiv.org/pdf/1901.05423.pdf
-float3 EnvironmentSampling(Interaction isect, float3 u, float3 wi, out float pdf)
+float3 EnvironmentSampling(RayPayload ray_payload, float3 wi, out float pdf)
 {
     pdf = 1.0;
     return Skybox.SampleLevel(SkyboxSampler, wi, 0.0).rgb;
