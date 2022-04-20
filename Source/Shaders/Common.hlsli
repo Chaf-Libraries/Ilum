@@ -29,6 +29,35 @@ struct Camera
     }
 };
 
+struct BoundingSphere
+{
+    float3 center;
+    float radius;
+    
+    void Transform(float4x4 trans)
+    {
+        center = mul(trans, float4(center, 1.0)).xyz;
+        float3 edge = float3(1.0, 1.0, 1.0) * sqrt(radius * radius / 3.0);
+        radius = length(float3(
+            abs(trans[0][0]) * edge.x + abs(trans[1][0]) * edge.y + abs(trans[2][0]) * edge.z,
+            abs(trans[0][1]) * edge.x + abs(trans[1][1]) * edge.y + abs(trans[2][1]) * edge.z,
+            abs(trans[0][2]) * edge.x + abs(trans[1][2]) * edge.y + abs(trans[2][2]) * edge.z
+        ));
+    }
+    
+    bool IsVisible(Camera camera)
+    {
+        for (uint i = 0; i < 6; i++)
+        {
+            if (dot(camera.frustum[i], float4(center, 1)) + length(radius) < 0.0)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+};
+
 // Per Instance Data
 struct Instance
 {
@@ -54,8 +83,7 @@ struct Meshlet
     uint index_offset;
     uint index_count;
 
-    float3 center;
-    float radius;
+    BoundingSphere bound;
 
     float3 cone_apex;
     float cone_cutoff;
