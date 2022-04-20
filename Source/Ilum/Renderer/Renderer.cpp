@@ -54,6 +54,7 @@
 
 #include "RenderPass/Shading/Deferred/GeometryPass.hpp"
 #include "RenderPass/Shading/Deferred/LightPass.hpp"
+#include "RenderPass/Shading/Deferred/MeshPass.hpp"
 #include "RenderPass/Shading/Shadow/CascadeShadowmap.hpp"
 #include "RenderPass/Shading/Shadow/OmniShadowmap.hpp"
 #include "RenderPass/Shading/Shadow/Shadowmap.hpp"
@@ -90,7 +91,7 @@ Renderer::Renderer(Context *context) :
 		    //.addRenderPass("KullaContyEnergy", std::make_unique<pass::KullaContyEnergy>())
 		    //.addRenderPass("KullaContyAverage", std::make_unique<pass::KullaContyAverage>())
 		    //.addRenderPass("BRDFPreIntegrate", std::make_unique<pass::BRDFPreIntegrate>())
-		    .addRenderPass("EquirectangularToCubemap", std::make_unique<pass::EquirectangularToCubemap>())
+		    //.addRenderPass("EquirectangularToCubemap", std::make_unique<pass::EquirectangularToCubemap>())
 		    //.addRenderPass("CubemapSHProjection", std::make_unique<pass::CubemapSHProjection>())
 		    //.addRenderPass("CubemapSHAdd", std::make_unique<pass::CubemapSHAdd>())
 		    //.addRenderPass("CubemapPrefilter", std::make_unique<pass::CubemapPrefilter>())
@@ -122,12 +123,14 @@ Renderer::Renderer(Context *context) :
 		    //.addRenderPass("CopyFrame", std::make_unique<pass::CopyFrame>("Whitted", "PrevWhitted"))
 		    //.addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Whitted", "Tonemapping"))
 
-		    .addRenderPass("Path", std::make_unique<pass::Path>())
-		    .addRenderPass("CopyFrame", std::make_unique<pass::CopyFrame>("Path", "PrevPath"))
-		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Path", "Tonemapping"))
+		    //.addRenderPass("Path", std::make_unique<pass::Path>())
+		    //.addRenderPass("CopyFrame", std::make_unique<pass::CopyFrame>("Path", "PrevPath"))
+		    //.addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Path", "Tonemapping"))
 
-		    .setView("Tonemapping")
-		    .setOutput("Tonemapping");
+			.addRenderPass("MeshPass", std::make_unique<pass::MeshPass>())
+
+		    .setView("GBuffer0")
+		    .setOutput("GBuffer0");
 	};
 
 	buildRenderGraph = DeferredRendering;

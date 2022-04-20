@@ -163,9 +163,9 @@ inline std::string get_target_profile(VkShaderStageFlags stage)
 		case VK_SHADER_STAGE_CALLABLE_BIT_KHR:
 			return "lib_6_6";
 		case VK_SHADER_STAGE_TASK_BIT_NV:
-			return "ms_6_7";
-		case VK_SHADER_STAGE_MESH_BIT_NV:
 			return "as_6_7";
+		case VK_SHADER_STAGE_MESH_BIT_NV:
+			return "ms_6_7";
 		default:
 			return "";
 	}
@@ -383,6 +383,7 @@ inline std::vector<uint32_t> dxc_compile(const std::string &filename, const std:
 	arguments.emplace_back(L"-fspv-extension=SPV_KHR_shader_draw_parameters");
 	arguments.emplace_back(L"-fspv-extension=SPV_EXT_descriptor_indexing");
 	arguments.emplace_back(L"-fspv-extension=SPV_EXT_shader_viewport_index_layer");
+	arguments.emplace_back(L"-fspv-extension=SPV_NV_mesh_shader");
 	arguments.emplace_back(to_wstring(std::string("-D") + std::to_string(stage)));
 	arguments.emplace_back(to_wstring(std::string("-DRUNTIME")));
 

@@ -275,4 +275,26 @@ bool IsBlack(float3 v)
     return v.x == 0.0 && v.y == 0.0 && v.z == 0.0;
 }
 
+struct AABB
+{
+    float3 center;
+    float3 extent;
+    
+    void Transform(float4x4 trans)
+    {
+        float t = trans[3].xyz;
+        
+        center = t;
+        extent = float3(0.0, 0.0, 0.0);
+        for (int i = 0; i < 3;i++)
+        {
+            for (int j = 0; j < 3;j++)
+            {
+                center[i] += trans[i][j] * center[j];
+                extent[i] += abs(trans[i][j]) * extent[j];
+            }
+        }
+    }
+};
+
 #endif

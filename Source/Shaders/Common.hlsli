@@ -49,7 +49,7 @@ struct Instance
 // Per Meshlet Data
 struct Meshlet
 {
-    uint instance_id;
+    uint vertex_count;
     uint vertex_offset;
     uint index_offset;
     uint index_count;
@@ -61,6 +61,7 @@ struct Meshlet
     float cone_cutoff;
 
     float3 cone_axis;
+    uint instance_id;
 };
 
 // Info for Culling
@@ -82,13 +83,16 @@ struct CullingInfo
 };
 
 // Indirect Draw Command
-struct DrawIndexedIndirectCommand
+struct MeshDrawCommand
 {
+    uint drawID;
     uint indexCount;
     uint instanceCount;
     uint firstIndex;
     int vertexOffset;
     uint firstInstance;
+    uint taskCount;
+    uint firstTask;
 };
 
 // Infod for Count

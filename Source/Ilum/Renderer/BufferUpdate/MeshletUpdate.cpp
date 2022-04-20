@@ -81,6 +81,7 @@ void MeshletUpdate::run()
 						meshlet.vertex_offset   = model.get().vertices_offset + meshlet_raw.vertices_offset;
 						meshlet.index_offset    = model.get().indices_offset + meshlet_raw.indices_offset;
 						meshlet.index_count     = meshlet_raw.indices_count;
+						meshlet.vertex_count     = meshlet_raw.vertices_count;
 						std::memcpy(&meshlet.center, meshlet_raw.bounds.center, 3 * sizeof(float));
 						meshlet.radius = meshlet_raw.bounds.radius;
 						std::memcpy(&meshlet.cone_apex, meshlet_raw.bounds.cone_apex, 3 * sizeof(float));

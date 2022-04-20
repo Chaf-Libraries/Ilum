@@ -12,7 +12,10 @@ const std::vector<const char *> LogicalDevice::extensions = {
     VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
     VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
     VK_KHR_RAY_QUERY_EXTENSION_NAME,
+	VK_NV_MESH_SHADER_EXTENSION_NAME,
+	VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
     VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME,
+	VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
     VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
     VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME};
 
@@ -240,6 +243,13 @@ LogicalDevice::LogicalDevice()
 	raty_tracing_pipeline_feature.rayTracingPipeline                            = VK_TRUE;
 	raty_tracing_pipeline_feature.pNext                                         = &acceleration_structure_feature;
 
+	// Enable Mesh Shader Extension
+	VkPhysicalDeviceMeshShaderFeaturesNV mesh_shader_feature = {};
+	mesh_shader_feature.sType                                = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV;
+	mesh_shader_feature.meshShader                           = VK_TRUE;
+	mesh_shader_feature.taskShader                           = VK_TRUE;
+	mesh_shader_feature.pNext                                = &raty_tracing_pipeline_feature;
+
 	// Enable Vulkan 1.2 Features
 	VkPhysicalDeviceVulkan12Features vulkan12_features          = {};
 	vulkan12_features.sType                                     = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
@@ -251,7 +261,7 @@ LogicalDevice::LogicalDevice()
 	vulkan12_features.bufferDeviceAddress                       = VK_TRUE;
 	vulkan12_features.shaderOutputLayer                         = VK_TRUE;
 	vulkan12_features.shaderOutputViewportIndex                 = VK_TRUE;
-	vulkan12_features.pNext                                     = &raty_tracing_pipeline_feature;
+	vulkan12_features.pNext                                     = &mesh_shader_feature;
 
 	// Get support extensions
 	auto support_extensions = get_device_extension_support(GraphicsContext::instance()->getPhysicalDevice(), extensions);

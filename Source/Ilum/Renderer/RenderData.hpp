@@ -26,7 +26,7 @@ struct PerInstanceData
 
 struct PerMeshletData
 {
-	uint32_t instance_id   = 0;
+	uint32_t vertex_count  = 0;
 	uint32_t vertex_offset = 0;
 	uint32_t index_offset  = 0;
 	uint32_t index_count   = 0;
@@ -37,7 +37,8 @@ struct PerMeshletData
 	glm::vec3 cone_apex   = {};
 	float     cone_cutoff = 0.f;
 
-	alignas(16) glm::vec3 cone_axis = {};
+	glm::vec3 cone_axis = {};
+	uint32_t  instance_id = 0;
 };
 
 struct CullingData
@@ -107,6 +108,13 @@ struct CameraData
 	glm::vec4 frustum[6];
 	glm::vec3 position;
 	uint32_t  frame_num;
+};
+
+struct MeshDrawCommand
+{
+	uint32_t draw_id;
+	VkDrawIndexedIndirectCommand indirect;
+	VkDrawMeshTasksIndirectCommandNV indirect_ms;
 };
 
 struct RenderBuffer
@@ -186,7 +194,7 @@ struct RenderBuffer
 	Buffer Draw_Buffer = Buffer(1024 * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
 	// Indirect draw command
-	Buffer Command_Buffer = Buffer(1024 * sizeof(VkDrawIndexedIndirectCommand), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+	Buffer Command_Buffer = Buffer(1024 * sizeof(MeshDrawCommand), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
 	// Draw count buffer:
 	/*

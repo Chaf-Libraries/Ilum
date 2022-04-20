@@ -16,6 +16,7 @@ struct Meshlet
 	uint32_t       indices_offset;
 	uint32_t       indices_count;
 	uint32_t       vertices_offset;
+	uint32_t       vertices_count;
 };
 
 struct Model
