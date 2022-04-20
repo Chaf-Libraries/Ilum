@@ -159,7 +159,6 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 
 		std::vector<uint32_t> meshlet_offsets;
 		std::vector<uint32_t> meshlet_counts;
-		uint32_t              meshlet_indices_offset = 0;
 
 		for (uint32_t i = 0; i < scene->mNumMeshes; i++)
 		{
@@ -195,7 +194,7 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 			std::vector<uint32_t>        meshlet_vertices(max_meshlets * max_vertices);
 			std::vector<uint8_t>         meshlet_triangles(max_meshlets * max_triangles * 3);
 			size_t                       meshlet_count = meshopt_buildMeshlets(meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(), indices.data(),
-                                                         indices.size(), &vertices[0].position.x, vertices.size(), sizeof(Vertex), max_vertices, max_triangles, cone_weight);
+			                                                                   indices.size(), &vertices[0].position.x, vertices.size(), sizeof(Vertex), max_vertices, max_triangles, cone_weight);
 
 			// Merge meshlets
 			const meshopt_Meshlet &last = meshlets[meshlet_count - 1];
@@ -215,10 +214,10 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 			for (auto &meshlet : meshlets)
 			{
 				Meshlet tmp_meshlet;
-				tmp_meshlet.vertices_offset = static_cast<uint32_t>(model.vertices.size());
-				tmp_meshlet.indices_offset  = meshlet_indices_offset;
-				tmp_meshlet.indices_count   = static_cast<uint32_t>(meshlet.triangle_count * 3);
-				meshlet_indices_offset += tmp_meshlet.indices_count;
+				tmp_meshlet.vertices_offset = meshlet.vertex_offset;
+				tmp_meshlet.vertices_count = meshlet.vertex_count;
+				tmp_meshlet.indices_offset  = meshlet.triangle_offset * 3;
+				tmp_meshlet.indices_count   = meshlet.triangle_count * 3;
 
 				for (uint32_t j = 0; j < meshlet.triangle_count * 3; j++)
 				{
@@ -256,7 +255,7 @@ void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform,
 		Material submesh_material;
 
 		uint32_t    index_offset = 0;
-		aiMesh *    mesh         = scene->mMeshes[node->mMeshes[i]];
+		aiMesh     *mesh         = scene->mMeshes[node->mMeshes[i]];
 		aiMaterial *material     = scene->mMaterials[mesh->mMaterialIndex];
 		parseMaterial(file_path, material, submesh_material);
 

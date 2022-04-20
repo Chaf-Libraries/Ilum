@@ -109,7 +109,7 @@ void MeshPass::render(RenderPassState &state)
 
 	// vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(uint32_t), &m_frustum_culling_enable);
 	// auto &cmd = Renderer::instance()->Render_Buffer.Command_Buffer;
-	vkCmdDrawMeshTasksNV(cmd_buffer, (Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count + 32 - 1) / 32, 0);
+	vkCmdDrawMeshTasksNV(cmd_buffer, Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count, 0);
 
 	vkCmdEndRenderPass(cmd_buffer);
 }

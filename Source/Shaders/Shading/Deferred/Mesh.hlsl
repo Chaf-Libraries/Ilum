@@ -1,4 +1,5 @@
 #include "../../Common.hlsli"
+#include "../../Math.hlsli"
 
 #ifndef RUNTIME
 #define TASK
@@ -12,6 +13,7 @@ ConstantBuffer<Camera> camera : register(b2);
 StructuredBuffer<Vertex> vertices : register(t3);
 StructuredBuffer<uint> indices : register(t4);
 ConstantBuffer<CullingInfo> culling_info : register(b5);
+//RWStructuredBuffer<uint> debug : register(u6);
 
 struct CSParam
 {
@@ -25,7 +27,8 @@ struct VertexOut
     float4 PositionHS : SV_Position;
     float3 PositionVS : POSITION0;
     float3 Normal : NORMAL0;
-    uint MeshletIndex : COLOR0;
+    float3 Color : COLOR0;
+    uint MeshletIndex : COLOR1;
 };
 
 struct MSOutput
@@ -38,6 +41,17 @@ struct Payload
     uint meshletIndices[32];
 };
 
+uint hash(uint a)
+{
+    a = (a + 0x7ed55d16) + (a << 12);
+    a = (a ^ 0xc761c23c) ^ (a >> 19);
+    a = (a + 0x165667b1) + (a << 5);
+    a = (a + 0xd3a2646c) ^ (a << 9);
+    a = (a + 0xfd7046c5) + (a << 3);
+    a = (a ^ 0xb55a4f09) ^ (a >> 16);
+    return a;
+}
+
 #ifdef TASK
 groupshared Payload shared_payload;
 [numthreads(32, 1, 1)]
@@ -47,28 +61,47 @@ void ASmain(CSParam param)
     
     if (param.DispatchThreadID.x < culling_info.meshlet_count)
     {
+        Meshlet meshlet = meshlets[param.DispatchThreadID.x];
+        Instance instance = instances[meshlet.instance_id];
+        
+        float4x4 transform = instance.transform;
+        
+        BoundingSphere bound = meshlet.bound;
+        bound.Transform(transform);
+        
+        Camera cam = camera;
+        //visible = bound.IsVisible(cam);
         visible = true;
     }
     
-    if(visible)
+    if (visible)
     {
         uint index = WavePrefixCountBits(visible);
         shared_payload.meshletIndices[index] = param.DispatchThreadID.x;
     }
 
     uint visible_count = WaveActiveCountBits(visible);
-    DispatchMesh(visible_count, 1, 1, shared_payload);
+    DispatchMesh(1, 1, 1, shared_payload);
 }
 #endif
 
 #ifdef MESH
-[NumThreads(128, 1, 1)]
-[OutputTopology("triangle")]
+/*[[vk::push_constant]]
+struct
+{
+    int primitive_count;
+} push_constants;
+*/
+[outputtopology("triangle")]
+[numthreads(32, 1, 1)]
 void MSmain(CSParam param, in payload Payload pay_load, out vertices VertexOut verts[64], out indices uint3 tris[126])
 {
+    
     uint meshlet_index = pay_load.meshletIndices[param.GroupID.x];
     
-    if(meshlet_index>=culling_info.meshlet_count)
+    meshlet_index = 0;
+    
+    if (meshlet_index >= culling_info.meshlet_count)
     {
         return;
     }
@@ -79,20 +112,31 @@ void MSmain(CSParam param, in payload Payload pay_load, out vertices VertexOut v
     float4x4 transform = instance.transform;
     
     SetMeshOutputCounts(meshlet.vertex_count, meshlet.index_count / 3);
-
-    if (param.GroupThreadID.x<meshlet.vertex_count)
+    
+    for (uint i = param.GroupThreadID.x; i < meshlet.vertex_count; i += 32)
     {
-        Vertex vertex = vertices[meshlet.vertex_offset + param.GroupThreadID.x];
+        Vertex vertex = vertices[i];
+        //Vertex vertex = vertices[indices[meshlet.index_offset + param.GroupThreadID.x]];
         
-        verts[param.GroupThreadID.x].MeshletIndex = meshlet_index;
-        verts[param.GroupThreadID.x].PositionHS = mul(camera.view_projection, mul(transform, float4(vertex.position.xyz, 1.0)));
-        verts[param.GroupThreadID.x].PositionVS = mul(camera.view_projection, float4(vertex.position.xyz, 1.0)).xyz;
-        verts[param.GroupThreadID.x].Normal = vertex.normal.xyz;
+        //verts[param.GroupThreadID.x].MeshletIndex = meshlet_index;
+        verts[i].PositionHS = mul(camera.view_projection, mul(transform, float4(vertex.position.xyz, 1.0)));
+        //verts[param.GroupThreadID.x].PositionVS = mul(camera.view_projection, float4(vertex.position.xyz, 1.0)).xyz;
+        //verts[param.GroupThreadID.x].Normal = vertex.normal.xyz;
+        uint mhash = hash(meshlet_index);
+        verts[i].Color = float3(float(mhash & 255), float((mhash >> 8) & 255), float((mhash >> 16) & 255)) / 255.0;
+        
+        
     }
-    if (param.GroupThreadID.x < meshlet.index_count)
+
+    for (i = param.GroupThreadID.x; i < meshlet.index_count / 3; i += 32)
     {
-        uint idx = param.GroupThreadID.x * 3;
-        tris[param.GroupThreadID.x] = uint3(indices[meshlet.index_offset + idx], indices[meshlet.index_offset + idx + 1], indices[meshlet.index_offset + idx + 2]);
+        uint idx1 = indices[i * 3];
+        uint idx2 = indices[i * 3 + 1];
+        uint idx3 = indices[i * 3 + 2];
+        //debug[i * 3] = i * 3;
+        //debug[i * 3 + 1] = i * 3 + 1;
+        //debug[i * 3 + 2] = i * 3 + 2;
+        tris[i] = uint3(idx1, idx2, idx3);
     }
 }
 #endif
@@ -101,7 +145,7 @@ void MSmain(CSParam param, in payload Payload pay_load, out vertices VertexOut v
 MSOutput PSmain(VertexOut input)
 {
     MSOutput output;
-    output.GBuffer0 = float4(input.Normal, 1.0);
+    output.GBuffer0 = float4(input.Color, 1.0);
     return output;
 }
 #endif
