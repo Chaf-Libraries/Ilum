@@ -26,19 +26,22 @@ struct PerInstanceData
 
 struct PerMeshletData
 {
-	uint32_t vertex_count  = 0;
-	uint32_t vertex_offset = 0;
-	uint32_t index_offset  = 0;
-	uint32_t index_count   = 0;
-
 	glm::vec3 center = {};
 	float     radius = 0.f;
 
 	glm::vec3 cone_apex   = {};
 	float     cone_cutoff = 0.f;
 
-	glm::vec3 cone_axis = {};
+	glm::vec3 cone_axis   = {};
 	uint32_t  instance_id = 0;
+
+	uint32_t vertex_count  = 0;
+	uint32_t vertex_offset = 0;
+	uint32_t index_offset  = 0;
+	uint32_t index_count   = 0;
+
+	alignas(16) uint32_t meshlet_vertex_offset = 0;
+	uint32_t meshlet_index_offset = 0;
 };
 
 struct CullingData
@@ -112,8 +115,8 @@ struct CameraData
 
 struct MeshDrawCommand
 {
-	uint32_t draw_id;
-	VkDrawIndexedIndirectCommand indirect;
+	uint32_t                         draw_id;
+	VkDrawIndexedIndirectCommand     indirect;
 	VkDrawMeshTasksIndirectCommandNV indirect_ms;
 };
 
@@ -250,6 +253,12 @@ struct RenderBuffer
 
 	// Static Index Buffer for meshlet rendering
 	Buffer Static_Index_Buffer = Buffer(1000 * sizeof(uint32_t), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_GPU_ONLY);
+
+	// Meshlet Vertex Buffer
+	Buffer Meshlet_Vertex_Buffer = Buffer(1000 * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
+
+	// Meshlet Index Buffer
+	Buffer Meshlet_Index_Buffer = Buffer(1000 * sizeof(uint8_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
 	// Dynamic Vertex Buffer for dynamic mesh rendering
 	Buffer Dynamic_Vertex_Buffer;

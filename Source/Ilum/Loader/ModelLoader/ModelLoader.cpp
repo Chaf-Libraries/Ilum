@@ -160,6 +160,10 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 		std::vector<uint32_t> meshlet_offsets;
 		std::vector<uint32_t> meshlet_counts;
 
+		uint32_t meshlet_indices_offset  = 0;
+		uint32_t meshlet_vertices_offset = 0;
+		uint32_t meshlet_triangle_offset = 0;
+
 		for (uint32_t i = 0; i < scene->mNumMeshes; i++)
 		{
 			std::vector<Vertex>   vertices;
@@ -213,11 +217,16 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 
 			for (auto &meshlet : meshlets)
 			{
-				Meshlet tmp_meshlet;
-				tmp_meshlet.vertices_offset = meshlet.vertex_offset;
-				tmp_meshlet.vertices_count = meshlet.vertex_count;
-				tmp_meshlet.indices_offset  = meshlet.triangle_offset * 3;
+				Meshlet tmp_meshlet         = {};
+				tmp_meshlet.vertices_offset = static_cast<uint32_t>(model.vertices.size());
+				tmp_meshlet.vertices_count  = meshlet.vertex_count;
+				tmp_meshlet.indices_offset  = meshlet_indices_offset;
 				tmp_meshlet.indices_count   = meshlet.triangle_count * 3;
+
+				tmp_meshlet.meshlet_vertices_offset = meshlet_vertices_offset + meshlet.vertex_offset;
+				tmp_meshlet.meshlet_indices_offset  = meshlet_triangle_offset + meshlet.triangle_offset;
+
+				meshlet_indices_offset += tmp_meshlet.indices_count;
 
 				for (uint32_t j = 0; j < meshlet.triangle_count * 3; j++)
 				{
@@ -229,12 +238,19 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 				model.meshlets.emplace_back(std::move(tmp_meshlet));
 			}
 
+			meshlet_vertices_offset += static_cast<uint32_t>(meshlet_vertices.size());
+			meshlet_triangle_offset += static_cast<uint32_t>(meshlet_triangles.size());
+
+			model.meshlet_vertices.insert(model.meshlet_vertices.end(), std::make_move_iterator(meshlet_vertices.begin()), std::make_move_iterator(meshlet_vertices.end()));
+			model.meshlet_indices.insert(model.meshlet_indices.end(), std::make_move_iterator(meshlet_triangles.begin()), std::make_move_iterator(meshlet_triangles.end()));
 			model.vertices.insert(model.vertices.end(), std::make_move_iterator(vertices.begin()), std::make_move_iterator(vertices.end()));
 			model.indices.insert(model.indices.end(), std::make_move_iterator(meshlet_indices.begin()), std::make_move_iterator(meshlet_indices.end()));
 		}
 
-		model.vertices_count = static_cast<uint32_t>(model.vertices.size());
-		model.indices_count  = static_cast<uint32_t>(model.indices.size());
+		model.vertices_count         = static_cast<uint32_t>(model.vertices.size());
+		model.indices_count          = static_cast<uint32_t>(model.indices.size());
+		model.meshlet_vertices_count = static_cast<uint32_t>(model.meshlet_vertices.size());
+		model.meshlet_indices_count  = static_cast<uint32_t>(model.meshlet_indices.size());
 
 		aiMatrix4x4 identity;
 		parseNode(file_path, identity, scene->mRootNode, scene, model, meshlet_offsets, meshlet_counts);

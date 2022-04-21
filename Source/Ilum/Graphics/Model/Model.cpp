@@ -16,22 +16,30 @@ Model::Model(Model &&other) noexcept :
     bounding_box(other.bounding_box),
     vertices_count(other.vertices_count),
     indices_count(other.indices_count),
+    meshlet_vertices_count(other.meshlet_vertices_count),
+    meshlet_indices_count(other.meshlet_indices_count),
     vertices(std::move(other.vertices)),
     indices(std::move(other.indices)),
-    meshlets(std::move(other.meshlets))
+    meshlets(std::move(other.meshlets)),
+    meshlet_vertices(std::move(other.meshlet_vertices)),
+    meshlet_indices(std::move(other.meshlet_indices))
 {
 	other.submeshes.clear();
 }
 
 Model &Model::operator=(Model &&other) noexcept
 {
-	submeshes      = std::move(other.submeshes);
-	bounding_box   = other.bounding_box;
-	vertices_count = other.vertices_count;
-	indices_count  = other.indices_count;
-	vertices       = std::move(other.vertices);
-	indices        = std::move(other.indices);
-	meshlets       = std::move(other.meshlets);
+	submeshes              = std::move(other.submeshes);
+	bounding_box           = other.bounding_box;
+	vertices_count         = other.vertices_count;
+	indices_count          = other.indices_count;
+	meshlet_vertices_count = other.meshlet_vertices_count;
+	meshlet_indices_count  = other.meshlet_indices_count;
+	vertices               = std::move(other.vertices);
+	indices                = std::move(other.indices);
+	meshlets               = std::move(other.meshlets);
+	meshlet_vertices       = std::move(other.meshlet_vertices);
+	meshlet_indices        = std::move(other.meshlet_indices);
 
 	other.submeshes.clear();
 

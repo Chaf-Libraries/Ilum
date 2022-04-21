@@ -78,11 +78,6 @@ struct Instance
 // Per Meshlet Data
 struct Meshlet
 {
-    uint vertex_count;
-    uint vertex_offset;
-    uint index_offset;
-    uint index_count;
-
     BoundingSphere bound;
 
     float3 cone_apex;
@@ -90,6 +85,14 @@ struct Meshlet
 
     float3 cone_axis;
     uint instance_id;
+    
+    uint vertex_count;
+    uint vertex_offset;
+    uint index_offset;
+    uint index_count;
+
+    uint meshlet_vertex_offset;
+    uint meshlet_index_offset;
 };
 
 // Info for Culling

@@ -15,7 +15,9 @@ struct Meshlet
 	meshopt_Bounds bounds;
 	uint32_t       indices_offset;
 	uint32_t       indices_count;
-	uint32_t       vertices_offset;
+	uint32_t       vertices_offset;                // Global offset
+	uint32_t       meshlet_vertices_offset;        // Meshlet offset
+	uint32_t       meshlet_indices_offset;        // Meshlet offset
 	uint32_t       vertices_count;
 };
 
@@ -24,11 +26,15 @@ struct Model
   public:
 	std::vector<SubMesh> submeshes;
 
-	uint32_t vertices_count = 0;
-	uint32_t indices_count  = 0;
+	uint32_t vertices_count         = 0;
+	uint32_t indices_count          = 0;
+	uint32_t meshlet_vertices_count = 0;
+	uint32_t meshlet_indices_count  = 0;
 
-	uint32_t vertices_offset = 0;
-	uint32_t indices_offset  = 0;
+	uint32_t vertices_offset         = 0;
+	uint32_t indices_offset          = 0;
+	uint32_t meshlet_vertices_offset = 0;
+	uint32_t meshlet_indices_offset  = 0;
 
 	// Raw geometry, original data
 	std::vector<Vertex>   vertices;
@@ -36,6 +42,8 @@ struct Model
 
 	// Meshlet, for mesh shading & cluster culling
 	std::vector<Meshlet>  meshlets;
+	std::vector<uint32_t> meshlet_vertices;
+	std::vector<uint8_t>  meshlet_indices;
 
 	geometry::BoundingBox bounding_box;
 

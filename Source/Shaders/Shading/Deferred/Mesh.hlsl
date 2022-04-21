@@ -11,9 +11,11 @@ StructuredBuffer<Instance> instances : register(t0);
 StructuredBuffer<Meshlet> meshlets : register(t1);
 ConstantBuffer<Camera> camera : register(b2);
 StructuredBuffer<Vertex> vertices : register(t3);
-StructuredBuffer<uint> indices : register(t4);
+//StructuredBuffer<uint> indices : register(t4);
 ConstantBuffer<CullingInfo> culling_info : register(b5);
-//RWStructuredBuffer<uint> debug : register(u6);
+StructuredBuffer<uint> meshlet_vertices : register(t6);
+StructuredBuffer<uint> meshlet_indices : register(t7);
+RWStructuredBuffer<uint> debug : register(u8);
 
 struct CSParam
 {
@@ -70,8 +72,8 @@ void ASmain(CSParam param)
         bound.Transform(transform);
         
         Camera cam = camera;
-        //visible = bound.IsVisible(cam);
-        visible = true;
+        visible = bound.IsVisible(cam);
+        //visible = true;
     }
     
     if (visible)
@@ -81,7 +83,7 @@ void ASmain(CSParam param)
     }
 
     uint visible_count = WaveActiveCountBits(visible);
-    DispatchMesh(1, 1, 1, shared_payload);
+    DispatchMesh(visible_count, 1, 1, shared_payload);
 }
 #endif
 
@@ -90,16 +92,14 @@ void ASmain(CSParam param)
 struct
 {
     int primitive_count;
-} push_constants;
-*/
+} push_constants;*/
+
 [outputtopology("triangle")]
 [numthreads(32, 1, 1)]
 void MSmain(CSParam param, in payload Payload pay_load, out vertices VertexOut verts[64], out indices uint3 tris[126])
 {
     
     uint meshlet_index = pay_load.meshletIndices[param.GroupID.x];
-    
-    meshlet_index = 0;
     
     if (meshlet_index >= culling_info.meshlet_count)
     {
@@ -112,31 +112,35 @@ void MSmain(CSParam param, in payload Payload pay_load, out vertices VertexOut v
     float4x4 transform = instance.transform;
     
     SetMeshOutputCounts(meshlet.vertex_count, meshlet.index_count / 3);
+    //SetMeshOutputCounts(meshlet.vertex_count, push_constants.primitive_count);
     
     for (uint i = param.GroupThreadID.x; i < meshlet.vertex_count; i += 32)
     {
-        Vertex vertex = vertices[i];
-        //Vertex vertex = vertices[indices[meshlet.index_offset + param.GroupThreadID.x]];
-        
-        //verts[param.GroupThreadID.x].MeshletIndex = meshlet_index;
+        Vertex vertex = vertices[meshlet.vertex_offset + meshlet_vertices[meshlet.meshlet_vertex_offset + i]];
         verts[i].PositionHS = mul(camera.view_projection, mul(transform, float4(vertex.position.xyz, 1.0)));
-        //verts[param.GroupThreadID.x].PositionVS = mul(camera.view_projection, float4(vertex.position.xyz, 1.0)).xyz;
-        //verts[param.GroupThreadID.x].Normal = vertex.normal.xyz;
         uint mhash = hash(meshlet_index);
         verts[i].Color = float3(float(mhash & 255), float((mhash >> 8) & 255), float((mhash >> 16) & 255)) / 255.0;
+        
+        if (meshlet_index==1)
+        {
+            debug[i] = meshlet.vertex_offset;
+            //+meshlet_vertices[meshlet.meshlet_vertex_offset + i];
+        }
         
         
     }
 
     for (i = param.GroupThreadID.x; i < meshlet.index_count / 3; i += 32)
     {
-        uint idx1 = indices[i * 3];
-        uint idx2 = indices[i * 3 + 1];
-        uint idx3 = indices[i * 3 + 2];
-        //debug[i * 3] = i * 3;
-        //debug[i * 3 + 1] = i * 3 + 1;
-        //debug[i * 3 + 2] = i * 3 + 2;
-        tris[i] = uint3(idx1, idx2, idx3);
+        for (int j = i * 3; j < i * 3 + 3; j++)
+        {
+            uint a = (meshlet.meshlet_index_offset + j) / 4;
+            uint b = (meshlet.meshlet_index_offset + j) % 4;
+            uint idx = (meshlet_indices[a] & 0x000000ffU << (8 * b)) >> (8 * b);
+            tris[i][j % 3] = idx;
+            
+        }
+        
     }
 }
 #endif

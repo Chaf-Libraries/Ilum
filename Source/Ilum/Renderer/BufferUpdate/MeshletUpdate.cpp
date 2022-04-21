@@ -17,8 +17,8 @@ void MeshletUpdate::run()
 
 	if (cmpt::StaticMeshRenderer::update)
 	{
-		auto static_mesh_view = Scene::instance()->getRegistry().view<cmpt::StaticMeshRenderer>();
-		auto dynamic_mesh_view    = Scene::instance()->getRegistry().view<cmpt::DynamicMeshRenderer>();
+		auto static_mesh_view  = Scene::instance()->getRegistry().view<cmpt::StaticMeshRenderer>();
+		auto dynamic_mesh_view = Scene::instance()->getRegistry().view<cmpt::DynamicMeshRenderer>();
 
 		// Collect instance data
 		std::vector<size_t> meshlet_offset(static_mesh_view.size());
@@ -26,7 +26,7 @@ void MeshletUpdate::run()
 
 		Renderer::instance()->Render_Stats.static_mesh_count.instance_count = 0;
 		Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count  = 0;
-		Renderer::instance()->Render_Stats.static_mesh_count.triangle_count  = 0;
+		Renderer::instance()->Render_Stats.static_mesh_count.triangle_count = 0;
 
 		for (size_t i = 0; i < static_mesh_view.size(); i++)
 		{
@@ -76,12 +76,14 @@ void MeshletUpdate::run()
 					const auto &submesh = model.get().submeshes[submesh_id];
 					for (uint32_t meshlet_id = submesh.meshlet_offset; meshlet_id < submesh.meshlet_offset + submesh.meshlet_count; meshlet_id++)
 					{
-						auto &      meshlet     = meshlet_data[meshlet_offset[i] + meshlet_index++];
-						const auto &meshlet_raw = model.get().meshlets[meshlet_id];
-						meshlet.vertex_offset   = model.get().vertices_offset + meshlet_raw.vertices_offset;
-						meshlet.index_offset    = model.get().indices_offset + meshlet_raw.indices_offset;
-						meshlet.index_count     = meshlet_raw.indices_count;
-						meshlet.vertex_count     = meshlet_raw.vertices_count;
+						auto       &meshlet           = meshlet_data[meshlet_offset[i] + meshlet_index++];
+						const auto &meshlet_raw       = model.get().meshlets[meshlet_id];
+						meshlet.meshlet_vertex_offset = model.get().meshlet_vertices_offset + meshlet_raw.meshlet_vertices_offset;
+						meshlet.meshlet_index_offset  = model.get().meshlet_indices_offset + meshlet_raw.meshlet_indices_offset;
+						meshlet.vertex_offset         = model.get().vertices_offset + meshlet_raw.vertices_offset;
+						meshlet.index_offset          = model.get().indices_offset + meshlet_raw.indices_offset;
+						meshlet.index_count           = meshlet_raw.indices_count;
+						meshlet.vertex_count          = meshlet_raw.vertices_count;
 						std::memcpy(&meshlet.center, meshlet_raw.bounds.center, 3 * sizeof(float));
 						meshlet.radius = meshlet_raw.bounds.radius;
 						std::memcpy(&meshlet.cone_apex, meshlet_raw.bounds.cone_apex, 3 * sizeof(float));

@@ -2,8 +2,15 @@
 
 #include "Renderer/Renderer.hpp"
 
+#include <imgui.h>
+
 namespace Ilum::pass
 {
+MeshPass::MeshPass()
+{
+	m_debug_buffer = Buffer(10000 * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
+}
+
 void MeshPass::setupPipeline(PipelineState &state)
 {
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Deferred/Mesh.hlsl", VK_SHADER_STAGE_TASK_BIT_NV, Shader::Type::HLSL, "ASmain");
@@ -36,8 +43,11 @@ ConstantBuffer<CullingInfo> culling_info : register(b5);*/
 	state.descriptor_bindings.bind(0, 1, "PerMeshletBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 2, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	state.descriptor_bindings.bind(0, 3, "Vertices", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 4, "Indices", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	//state.descriptor_bindings.bind(0, 4, "Indices", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 5, "CullingBuffer", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	state.descriptor_bindings.bind(0, 6, "MeshletVertexBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 7, "MeshletIndexBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 8, "DebugBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
 	// GBuffer 0: RGB - Albedo, A - Anisotropic
 	// GBuffer 1: RGB - Normal, A - LinearDepth
@@ -74,13 +84,19 @@ void MeshPass::resolveResources(ResolveState &resolve)
 	resolve.resolve("PerMeshletBuffer", Renderer::instance()->Render_Buffer.Meshlet_Buffer);
 	resolve.resolve("Camera", Renderer::instance()->Render_Buffer.Camera_Buffer);
 	resolve.resolve("Vertices", Renderer::instance()->Render_Buffer.Static_Vertex_Buffer);
-	resolve.resolve("Indices", Renderer::instance()->Render_Buffer.Static_Index_Buffer);
+	//resolve.resolve("Indices", Renderer::instance()->Render_Buffer.Static_Index_Buffer);
 	resolve.resolve("CullingBuffer", Renderer::instance()->Render_Buffer.Culling_Buffer);
+	resolve.resolve("MeshletVertexBuffer", Renderer::instance()->Render_Buffer.Meshlet_Vertex_Buffer);
+	resolve.resolve("MeshletIndexBuffer", Renderer::instance()->Render_Buffer.Meshlet_Index_Buffer);
+	resolve.resolve("DebugBuffer", m_debug_buffer);
 }
 
 void MeshPass::render(RenderPassState &state)
 {
-	auto &cmd_buffer = state.command_buffer;
+	std::memcpy(m_debug_data.data(), m_debug_buffer.map(), m_debug_buffer.getSize());
+	m_debug_buffer.unmap();
+
+auto &cmd_buffer = state.command_buffer;
 
 	VkRenderPassBeginInfo begin_info = {};
 	begin_info.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -107,7 +123,7 @@ void MeshPass::render(RenderPassState &state)
 		vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
 	}
 
-	// vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(uint32_t), &m_frustum_culling_enable);
+	 //vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_MESH_BIT_NV, 0, sizeof(uint32_t), &m_primitive_count);
 	// auto &cmd = Renderer::instance()->Render_Buffer.Command_Buffer;
 	vkCmdDrawMeshTasksNV(cmd_buffer, Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count, 0);
 
@@ -116,5 +132,6 @@ void MeshPass::render(RenderPassState &state)
 
 void MeshPass::onImGui()
 {
+	ImGui::SliderInt("Primitive count", &m_primitive_count, 0, 20);
 }
 }        // namespace Ilum::pass

@@ -50,7 +50,11 @@ class ResourceCache
 
 	const uint32_t getVerticesCount() const;
 
+	const uint32_t getMeshletVerticesCount() const;
+
 	const uint32_t getIndicesCount() const;
+
+	const uint32_t getMeshletIndicesCount() const;
 
 	void clear();
 
@@ -74,6 +78,8 @@ class ResourceCache
 
 	uint32_t m_vertices_count = 0;
 	uint32_t m_indices_count  = 0;
+	uint32_t m_meshlet_vertices_count = 0;
+	uint32_t m_meshlet_indices_count = 0;
 
 	std::mutex m_image_mutex;
 	std::mutex m_model_mutex;
