@@ -119,7 +119,6 @@ void MaterialUpdate::run()
 				material.refraction             = material_ptr.refraction;
 				material.data                   = material_ptr.data;
 				material.material_type          = static_cast<uint32_t>(material_ptr.type);
-
 				for (uint32_t i = 0; i < static_cast<uint32_t>(TextureType::MaxNum); i++)
 				{
 					material.textures[i] = Renderer::instance()->getResourceCache().imageID(FileSystem::getRelativePath(material_ptr.textures[i]));

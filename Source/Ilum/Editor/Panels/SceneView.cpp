@@ -149,7 +149,7 @@ __pragma(warning(push, 0))
 			glm::decompose(trans.world_transform, scale, rotation, position, skew, perspective);
 
 			cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
-                                            static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
+			                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
                                             static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
 
 			if (Renderer::instance()->Main_Camera == entity || !main_camera->frustum.isInside(position))
@@ -185,7 +185,7 @@ __pragma(warning(push, 0))
 			const auto &trans         = Editor::instance()->getSelect().getComponent<cmpt::Transform>();
 
 			cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
-                                            static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
+			                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
                                             static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
 
 			if (!Renderer::instance()->getResourceCache().hasModel(mesh_renderer.model))
@@ -239,7 +239,7 @@ __pragma(warning(push, 0))
 		if (Editor::instance()->getSelect() && Editor::instance()->getSelect().hasComponent<cmpt::AreaLight>())
 		{
 			const auto &area_light = Editor::instance()->getSelect().getComponent<cmpt::AreaLight>();
-			const auto &trans         = Editor::instance()->getSelect().getComponent<cmpt::Transform>();
+			const auto &trans      = Editor::instance()->getSelect().getComponent<cmpt::Transform>();
 
 			cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
 			                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
@@ -265,11 +265,11 @@ __pragma(warning(push, 0))
 		if (Editor::instance()->getSelect() && (Editor::instance()->getSelect().hasComponent<cmpt::PerspectiveCamera>() || Editor::instance()->getSelect().hasComponent<cmpt::OrthographicCamera>()))
 		{
 			cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
-                                            static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
+			                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
                                             static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
 
 			cmpt::Camera *camera = Editor::instance()->getSelect().hasComponent<cmpt::PerspectiveCamera>() ?
-                                       static_cast<cmpt::Camera *>(&Editor::instance()->getSelect().getComponent<cmpt::PerspectiveCamera>()) :
+			                           static_cast<cmpt::Camera *>(&Editor::instance()->getSelect().getComponent<cmpt::PerspectiveCamera>()) :
                                        static_cast<cmpt::Camera *>(&Editor::instance()->getSelect().getComponent<cmpt::OrthographicCamera>());
 
 			const auto &trans = Editor::instance()->getSelect().getComponent<cmpt::Transform>();
@@ -313,7 +313,7 @@ __pragma(warning(push, 0))
 			glm::mat4 inv = glm::inverse(camera->view_projection);
 			for (uint32_t i = 0; i < 8; i++)
 			{
-				glm::vec4 point = inv * glm::vec4(frustum_camera_vertex[i], 1.f);
+				glm::vec4 point   = inv * glm::vec4(frustum_camera_vertex[i], 1.f);
 				frustum_vertex[i] = point /= point.w;
 			}
 
@@ -366,7 +366,7 @@ __pragma(warning(push, 0))
 		if (Editor::instance()->getSelect() && Editor::instance()->getSelect().hasComponent<cmpt::CurveRenderer>())
 		{
 			cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
-                                            static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
+			                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
                                             static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
 
 			auto &curve_renderer = Editor::instance()->getSelect().getComponent<cmpt::CurveRenderer>();
@@ -431,7 +431,7 @@ __pragma(warning(push, 0))
 		if (Editor::instance()->getSelect() && Editor::instance()->getSelect().hasComponent<cmpt::SurfaceRenderer>())
 		{
 			cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
-                                            static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
+			                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
                                             static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
 
 			auto &surface_renderer = Editor::instance()->getSelect().getComponent<cmpt::SurfaceRenderer>();
@@ -540,12 +540,12 @@ __pragma(warning(push, 0))
 		ImGui::Begin("SceneView", &active, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
 		// Acquire main camera
-		auto &        camera_entity = Renderer::instance()->Main_Camera;
+		auto         &camera_entity = Renderer::instance()->Main_Camera;
 		cmpt::Camera *main_camera   = nullptr;
 		if (Renderer::instance()->hasMainCamera())
 		{
 			main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
-                              static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
+			                  static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
                               static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
 		}
 
@@ -633,7 +633,7 @@ __pragma(warning(push, 0))
 		{
 			if (view != main_camera->view)
 			{
-				auto &    transform         = Renderer::instance()->Main_Camera.getComponent<cmpt::Transform>();
+				auto     &transform         = Renderer::instance()->Main_Camera.getComponent<cmpt::Transform>();
 				glm::mat4 related_transform = transform.world_transform * glm::inverse(transform.local_transform);
 
 				main_camera->view = view;
@@ -656,9 +656,9 @@ __pragma(warning(push, 0))
 			auto click_pos          = ImVec2(static_cast<float>(mouse_x) - scene_view_position.x, static_cast<float>(mouse_y) - scene_view_position.y);
 
 			// Mouse picking via g-buffer
-			if (Renderer::instance()->getRenderGraph()->hasAttachment("GBuffer1"))
+			if (Renderer::instance()->getRenderGraph()->hasAttachment("GBuffer3"))
 			{
-				ImageReference entity_id_buffer = Renderer::instance()->getRenderGraph()->getAttachment("GBuffer1");
+				ImageReference entity_id_buffer = Renderer::instance()->getRenderGraph()->getAttachment("GBuffer3");
 
 				CommandBuffer cmd_buffer;
 				cmd_buffer.begin();
@@ -676,9 +676,8 @@ __pragma(warning(push, 0))
 				click_pos.x *= static_cast<float>(entity_id_buffer.get().getWidth()) / static_cast<float>(Renderer::instance()->getViewportExtent().width);
 				click_pos.y *= static_cast<float>(entity_id_buffer.get().getHeight()) / static_cast<float>(Renderer::instance()->getViewportExtent().height);
 
-				auto entity = Entity(static_cast<entt::entity>(float16Tofloat32(image_data[(static_cast<size_t>(click_pos.y) * static_cast<size_t>(entity_id_buffer.get().getWidth()) + static_cast<size_t>(click_pos.x)) * 4 + 3])));
+				auto entity = Entity(static_cast<entt::entity>(float16Tofloat32(image_data[(static_cast<size_t>(click_pos.y) * static_cast<size_t>(entity_id_buffer.get().getWidth()) + static_cast<size_t>(click_pos.x)) * 4])));
 				Editor::instance()->select(entity);
-
 				staging_buffer.unmap();
 			}
 			// Mouse picking via ray casting
@@ -715,7 +714,6 @@ __pragma(warning(push, 0))
 					}
 				});
 			}
-
 		}
 
 		draw_gizmo<cmpt::DirectionalLight>(offset, m_icons["light"], m_gizmo["Light"]);
@@ -781,7 +779,7 @@ __pragma(warning(push, 0))
 			Input::instance()->setMousePosition(m_last_position.first, m_last_position.second);
 
 			cmpt::Camera *main_camera = Renderer::instance()->Main_Camera.hasComponent<cmpt::PerspectiveCamera>() ?
-                                            static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
+			                                static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::PerspectiveCamera>()) :
                                             static_cast<cmpt::Camera *>(&Renderer::instance()->Main_Camera.getComponent<cmpt::OrthographicCamera>());
 
 			main_camera->frame_count = 0;

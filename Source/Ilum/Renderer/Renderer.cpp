@@ -91,7 +91,7 @@ Renderer::Renderer(Context *context) :
 		    //.addRenderPass("KullaContyEnergy", std::make_unique<pass::KullaContyEnergy>())
 		    //.addRenderPass("KullaContyAverage", std::make_unique<pass::KullaContyAverage>())
 		    //.addRenderPass("BRDFPreIntegrate", std::make_unique<pass::BRDFPreIntegrate>())
-		    //.addRenderPass("EquirectangularToCubemap", std::make_unique<pass::EquirectangularToCubemap>())
+		    .addRenderPass("EquirectangularToCubemap", std::make_unique<pass::EquirectangularToCubemap>())
 		    //.addRenderPass("CubemapSHProjection", std::make_unique<pass::CubemapSHProjection>())
 		    //.addRenderPass("CubemapSHAdd", std::make_unique<pass::CubemapSHAdd>())
 		    //.addRenderPass("CubemapPrefilter", std::make_unique<pass::CubemapPrefilter>())
@@ -128,6 +128,12 @@ Renderer::Renderer(Context *context) :
 		    //.addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Path", "Tonemapping"))
 
 			.addRenderPass("MeshPass", std::make_unique<pass::MeshPass>())
+
+		    //.addRenderPass("ShadowmapPass", std::make_unique<pass::ShadowmapPass>())
+
+
+		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
+		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Lighting", "Tonemapping"))
 
 		    .setView("GBuffer0")
 		    .setOutput("GBuffer0");

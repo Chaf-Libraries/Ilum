@@ -6,11 +6,6 @@
 
 namespace Ilum::pass
 {
-MeshPass::MeshPass()
-{
-	m_debug_buffer = Buffer(10000 * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU);
-}
-
 void MeshPass::setupPipeline(PipelineState &state)
 {
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Deferred/Mesh.hlsl", VK_SHADER_STAGE_TASK_BIT_NV, Shader::Type::HLSL, "ASmain");
@@ -21,7 +16,7 @@ void MeshPass::setupPipeline(PipelineState &state)
 	    VK_DYNAMIC_STATE_VIEWPORT,
 	    VK_DYNAMIC_STATE_SCISSOR};
 
-	state.color_blend_attachment_states.resize(1);
+	state.color_blend_attachment_states.resize(4);
 	state.depth_stencil_state.stencil_test_enable = false;
 
 	// Disable blending
@@ -32,36 +27,26 @@ void MeshPass::setupPipeline(PipelineState &state)
 
 	state.rasterization_state.polygon_mode = VK_POLYGON_MODE_FILL;
 
-	/*StructuredBuffer<Instance> instances : register(t0);
-StructuredBuffer<Meshlet> meshlets : register(t1);
-ConstantBuffer<Camera> camera : register(b2);
-StructuredBuffer<Vertex> vertices : register(t3);
-StructuredBuffer<uint> indices : register(t4);
-ConstantBuffer<CullingInfo> culling_info : register(b5);*/
-
-	 state.descriptor_bindings.bind(0, 0, "PerInstanceBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 0, "PerInstanceBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 1, "PerMeshletBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 2, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	state.descriptor_bindings.bind(0, 3, "Vertices", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	//state.descriptor_bindings.bind(0, 4, "Indices", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 5, "CullingBuffer", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	state.descriptor_bindings.bind(0, 6, "MeshletVertexBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 7, "MeshletIndexBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 8, "DebugBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 8, "CountBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 9, "MaterialBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 10, "TextureArray", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 11, "TexSampler", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Wrap), VK_DESCRIPTOR_TYPE_SAMPLER);
 
-	// GBuffer 0: RGB - Albedo, A - Anisotropic
-	// GBuffer 1: RGB - Normal, A - LinearDepth
-	// GBuffer 2: R - Metallic, G - Roughness, B - Subsurface, A - EntityID
-	// GBuffer 3: R - Sheen, G - Sheen Tint, B - Clearcoat, A - Clearcoat Gloss
-	// GBuffer 4: RG - Velocity, B - Specular, A - Specular Tint
-	// GBuffer 5: RGB - Emissive, A - Material Type
-
-	state.declareAttachment("GBuffer0", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	// state.declareAttachment("GBuffer1", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	// state.declareAttachment("GBuffer2", VK_FORMAT_R16G16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	// state.declareAttachment("GBuffer3", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	// state.declareAttachment("GBuffer4", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	// state.declareAttachment("GBuffer5", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	// GBuffer0: RGB - Albedo, A - metallic
+	// GBuffer1: RGA - normal, A - linear depth
+	// GBuffer2: RGB - emissive, A - roughness
+	// GBuffer3: R - entity id, G - instance id, BA - motion vector
+	state.declareAttachment("GBuffer0", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("GBuffer1", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("GBuffer2", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("GBuffer3", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("DepthStencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 
 	VkClearColorValue clear_color = {};
@@ -69,34 +54,32 @@ ConstantBuffer<CullingInfo> culling_info : register(b5);*/
 	clear_color.float32[3]        = std::numeric_limits<float>::max();
 
 	state.addOutputAttachment("GBuffer0", AttachmentState::Clear_Color);
-	// state.addOutputAttachment("GBuffer1", clear_color);
-	// state.addOutputAttachment("GBuffer2", clear_color);
-	// state.addOutputAttachment("GBuffer3", AttachmentState::Clear_Color);
-	// state.addOutputAttachment("GBuffer4", AttachmentState::Clear_Color);
-	// state.addOutputAttachment("GBuffer5", AttachmentState::Clear_Color);
-
+	state.addOutputAttachment("GBuffer1", AttachmentState::Clear_Color);
+	state.addOutputAttachment("GBuffer2", AttachmentState::Clear_Color);
+	state.addOutputAttachment("GBuffer3", AttachmentState::Clear_Color);
 	state.addOutputAttachment("DepthStencil", VkClearDepthStencilValue{1.f, 0u});
 }
 
 void MeshPass::resolveResources(ResolveState &resolve)
 {
-	 resolve.resolve("PerInstanceBuffer", Renderer::instance()->Render_Buffer.Instance_Buffer);
+	resolve.resolve("PerInstanceBuffer", Renderer::instance()->Render_Buffer.Instance_Buffer);
 	resolve.resolve("PerMeshletBuffer", Renderer::instance()->Render_Buffer.Meshlet_Buffer);
 	resolve.resolve("Camera", Renderer::instance()->Render_Buffer.Camera_Buffer);
 	resolve.resolve("Vertices", Renderer::instance()->Render_Buffer.Static_Vertex_Buffer);
-	//resolve.resolve("Indices", Renderer::instance()->Render_Buffer.Static_Index_Buffer);
 	resolve.resolve("CullingBuffer", Renderer::instance()->Render_Buffer.Culling_Buffer);
 	resolve.resolve("MeshletVertexBuffer", Renderer::instance()->Render_Buffer.Meshlet_Vertex_Buffer);
 	resolve.resolve("MeshletIndexBuffer", Renderer::instance()->Render_Buffer.Meshlet_Index_Buffer);
-	resolve.resolve("DebugBuffer", m_debug_buffer);
+	resolve.resolve("CountBuffer", Renderer::instance()->Render_Buffer.Count_Buffer);
+	resolve.resolve("MaterialBuffer", Renderer::instance()->Render_Buffer.Material_Buffer);
 }
 
 void MeshPass::render(RenderPassState &state)
 {
-	std::memcpy(m_debug_data.data(), m_debug_buffer.map(), m_debug_buffer.getSize());
-	m_debug_buffer.unmap();
+	std::memcpy(&Renderer::instance()->Render_Stats.static_mesh_count.instance_visible, reinterpret_cast<uint32_t *>(Renderer::instance()->Render_Buffer.Count_Buffer.map()) + 3, sizeof(uint32_t));
+	std::memcpy(&Renderer::instance()->Render_Stats.static_mesh_count.meshlet_visible, reinterpret_cast<uint32_t *>(Renderer::instance()->Render_Buffer.Count_Buffer.map()) + 2, sizeof(uint32_t));
+	Renderer::instance()->Render_Buffer.Count_Buffer.unmap();
 
-auto &cmd_buffer = state.command_buffer;
+	auto &cmd_buffer = state.command_buffer;
 
 	VkRenderPassBeginInfo begin_info = {};
 	begin_info.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -123,15 +106,13 @@ auto &cmd_buffer = state.command_buffer;
 		vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
 	}
 
-	 //vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_MESH_BIT_NV, 0, sizeof(uint32_t), &m_primitive_count);
-	// auto &cmd = Renderer::instance()->Render_Buffer.Command_Buffer;
-	vkCmdDrawMeshTasksNV(cmd_buffer, Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count, 0);
+	vkCmdDrawMeshTasksNV(cmd_buffer, (Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count + 32 - 1) / 32, 0);
 
 	vkCmdEndRenderPass(cmd_buffer);
 }
 
 void MeshPass::onImGui()
 {
-	ImGui::SliderInt("Primitive count", &m_primitive_count, 0, 20);
+
 }
 }        // namespace Ilum::pass

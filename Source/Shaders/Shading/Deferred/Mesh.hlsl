@@ -11,11 +11,13 @@ StructuredBuffer<Instance> instances : register(t0);
 StructuredBuffer<Meshlet> meshlets : register(t1);
 ConstantBuffer<Camera> camera : register(b2);
 StructuredBuffer<Vertex> vertices : register(t3);
-//StructuredBuffer<uint> indices : register(t4);
 ConstantBuffer<CullingInfo> culling_info : register(b5);
 StructuredBuffer<uint> meshlet_vertices : register(t6);
 StructuredBuffer<uint> meshlet_indices : register(t7);
-RWStructuredBuffer<uint> debug : register(u8);
+RWStructuredBuffer<CountInfo> count_info : register(u8);
+StructuredBuffer<MaterialData> materials : register(t9);
+Texture2D textureArray[] : register(t10);
+SamplerState texSampler : register(s11);
 
 struct CSParam
 {
@@ -27,15 +29,20 @@ struct CSParam
 struct VertexOut
 {
     float4 PositionHS : SV_Position;
-    float3 PositionVS : POSITION0;
+    float4 ScreenPos : POSITIONT0;
+    float4 PrevScreenPos : POSITIONT1;
     float3 Normal : NORMAL0;
-    float3 Color : COLOR0;
-    uint MeshletIndex : COLOR1;
+    float2 TexCoord : COLOR0;
+    uint EntityID : COLOR1;
+    uint InstanceID : COLOR2;
 };
 
 struct MSOutput
 {
-    float4 GBuffer0 : SV_Target0;
+    float4 GBuffer0 : SV_Target0; // GBuffer0: RGB - Albedo, A - metallic
+    float4 GBuffer1 : SV_Target1; // GBuffer1: RGA - normal, A - linear depth
+    float4 GBuffer2 : SV_Target2; // GBuffer2: RGB - emissive, A - roughness
+    float4 GBuffer3 : SV_Target3; // GBuffer3: R - entity id, G - instance id, BA - motion vector
 };
 
 struct Payload
@@ -43,57 +50,42 @@ struct Payload
     uint meshletIndices[32];
 };
 
-uint hash(uint a)
-{
-    a = (a + 0x7ed55d16) + (a << 12);
-    a = (a ^ 0xc761c23c) ^ (a >> 19);
-    a = (a + 0x165667b1) + (a << 5);
-    a = (a + 0xd3a2646c) ^ (a << 9);
-    a = (a + 0xfd7046c5) + (a << 3);
-    a = (a ^ 0xb55a4f09) ^ (a >> 16);
-    return a;
-}
-
 #ifdef TASK
 groupshared Payload shared_payload;
 [numthreads(32, 1, 1)]
 void ASmain(CSParam param)
 {
+    uint temp;
+    if (param.DispatchThreadID.x == 0)
+    {
+        InterlockedExchange(count_info[0].meshlet_visible_count, 0, temp);
+    }
+    
     bool visible = false;
     
     if (param.DispatchThreadID.x < culling_info.meshlet_count)
     {
         Meshlet meshlet = meshlets[param.DispatchThreadID.x];
         Instance instance = instances[meshlet.instance_id];
-        
-        float4x4 transform = instance.transform;
-        
-        BoundingSphere bound = meshlet.bound;
-        bound.Transform(transform);
-        
         Camera cam = camera;
-        visible = bound.IsVisible(cam);
-        //visible = true;
+        
+        visible = meshlet.IsVisible(cam, instance.transform);
     }
     
     if (visible)
     {
         uint index = WavePrefixCountBits(visible);
         shared_payload.meshletIndices[index] = param.DispatchThreadID.x;
+        InterlockedAdd(count_info[0].meshlet_visible_count, 1, temp);
     }
 
     uint visible_count = WaveActiveCountBits(visible);
+    
     DispatchMesh(visible_count, 1, 1, shared_payload);
 }
 #endif
 
 #ifdef MESH
-/*[[vk::push_constant]]
-struct
-{
-    int primitive_count;
-} push_constants;*/
-
 [outputtopology("triangle")]
 [numthreads(32, 1, 1)]
 void MSmain(CSParam param, in payload Payload pay_load, out vertices VertexOut verts[64], out indices uint3 tris[126])
@@ -112,22 +104,19 @@ void MSmain(CSParam param, in payload Payload pay_load, out vertices VertexOut v
     float4x4 transform = instance.transform;
     
     SetMeshOutputCounts(meshlet.vertex_count, meshlet.index_count / 3);
-    //SetMeshOutputCounts(meshlet.vertex_count, push_constants.primitive_count);
     
     for (uint i = param.GroupThreadID.x; i < meshlet.vertex_count; i += 32)
     {
-        Vertex vertex = vertices[meshlet.vertex_offset + meshlet_vertices[meshlet.meshlet_vertex_offset + i]];
+        uint vertex_index = meshlet.vertex_offset + meshlet_vertices[meshlet.meshlet_vertex_offset + i];
+        Vertex vertex = vertices[vertex_index];
         verts[i].PositionHS = mul(camera.view_projection, mul(transform, float4(vertex.position.xyz, 1.0)));
-        uint mhash = hash(meshlet_index);
-        verts[i].Color = float3(float(mhash & 255), float((mhash >> 8) & 255), float((mhash >> 16) & 255)) / 255.0;
+        verts[i].Normal = normalize(mul((float3x3) transform, vertex.normal.xyz));
+        verts[i].TexCoord = vertex.uv.rg;
+        verts[i].EntityID = instance.entity_id;
+        verts[i].InstanceID = meshlet.instance_id;
         
-        if (meshlet_index==1)
-        {
-            debug[i] = meshlet.vertex_offset;
-            //+meshlet_vertices[meshlet.meshlet_vertex_offset + i];
-        }
-        
-        
+        verts[i].ScreenPos = mul(camera.view_projection, mul(instance.transform, float4(vertex.position.xyz, 1.0)));
+        verts[i].PrevScreenPos = mul(camera.last_view_projection, mul(instance.last_transform, float4(vertex.position.xyz, 1.0)));
     }
 
     for (i = param.GroupThreadID.x; i < meshlet.index_count / 3; i += 32)
@@ -138,18 +127,108 @@ void MSmain(CSParam param, in payload Payload pay_load, out vertices VertexOut v
             uint b = (meshlet.meshlet_index_offset + j) % 4;
             uint idx = (meshlet_indices[a] & 0x000000ffU << (8 * b)) >> (8 * b);
             tris[i][j % 3] = idx;
-            
         }
-        
     }
 }
 #endif
 
 #ifdef FRAGMENT
+
+float2 ComputeMotionVector(float4 prev_pos, float4 current_pos)
+{
+    // Clip space -> NDC
+    float2 current = current_pos.xy / current_pos.w;
+    float2 prev = prev_pos.xy / prev_pos.w;
+
+    current = current * 0.5 + 0.5;
+    prev = prev * 0.5 + 0.5;
+
+    current.y = 1 - current.y;
+    prev.y = 1 - prev.y;
+
+    return current - prev;
+}
+
 MSOutput PSmain(VertexOut input)
 {
     MSOutput output;
-    output.GBuffer0 = float4(input.Color, 1.0);
+    
+    float3 N = normalize(input.Normal);
+    float3 T, B;
+    const float3 ref = abs(dot(N, float3(0, 1, 0))) > 0.99f ? float3(0, 0, 1) : float3(0, 1, 0);
+    T = normalize(cross(ref, N));
+    B = cross(N, T);
+    float3x3 TBN = float3x3(T, B, N);
+    
+    // GBuffer0: RGB - Albedo
+    if (materials[input.InstanceID].textures[TEXTURE_BASE_COLOR] < MAX_TEXTURE_ARRAY_SIZE)
+    {
+        output.GBuffer0.rgb = textureArray[NonUniformResourceIndex(materials[input.InstanceID].textures[TEXTURE_BASE_COLOR])].Sample(texSampler, input.TexCoord).rgb
+                                        * materials[input.InstanceID].base_color.rgb;
+    }
+    else
+    {
+        output.GBuffer0.rgb = materials[input.InstanceID].base_color.rgb;
+    }
+    
+    // GBuffer0: A - Metallic
+    if (materials[input.InstanceID].textures[TEXTURE_METALLIC] < MAX_TEXTURE_ARRAY_SIZE)
+    {
+        output.GBuffer0.a = textureArray[NonUniformResourceIndex(materials[input.InstanceID].textures[TEXTURE_METALLIC])].Sample(texSampler, input.TexCoord).r
+                                    * materials[input.InstanceID].metallic;
+    }
+    else
+    {
+        output.GBuffer0.a = materials[input.InstanceID].metallic;
+    }
+    
+    // GBuffer1: RGB - Normal
+    if (materials[input.InstanceID].textures[TEXTURE_NORMAL] < MAX_TEXTURE_ARRAY_SIZE)
+    {
+        float3 normal = textureArray[NonUniformResourceIndex(materials[input.InstanceID].textures[TEXTURE_NORMAL])].Sample(texSampler, input.TexCoord).rgb;
+        normal = normalize(mul(normalize(normal * 2.0 - float3(1.0, 1.0, 1.0)), TBN));
+        output.GBuffer1.rgb = normal;
+
+    }
+    else
+    {
+        output.GBuffer1.rgb = N;
+    }
+        
+    // GBuffer1: A - Linear Depth
+    output.GBuffer1.a = input.ScreenPos.z;
+    
+    // GBuffer2: RGB - Emissive
+    if (materials[input.InstanceID].textures[TEXTURE_EMISSIVE] < MAX_TEXTURE_ARRAY_SIZE)
+    {
+        output.GBuffer2.rgb = textureArray[NonUniformResourceIndex(materials[input.InstanceID].textures[TEXTURE_EMISSIVE])].Sample(texSampler, input.TexCoord).rgb
+                                    * materials[input.InstanceID].emissive_color * materials[input.InstanceID].emissive_intensity;
+    }
+    else
+    {
+        output.GBuffer2.rgb = materials[input.InstanceID].emissive_color * materials[input.InstanceID].emissive_intensity;
+    }
+    
+    // GBuffer2: A - Roughness
+    if (materials[input.InstanceID].textures[TEXTURE_ROUGHNESS] < MAX_TEXTURE_ARRAY_SIZE)
+    {
+        output.GBuffer2.a = textureArray[NonUniformResourceIndex(materials[input.InstanceID].textures[TEXTURE_ROUGHNESS])].Sample(texSampler, input.TexCoord).g
+                                    * materials[input.InstanceID].roughness;
+    }
+    else
+    {
+        output.GBuffer2.a = materials[input.InstanceID].roughness;
+    }
+    
+    // GBuffer3: R - Entity ID
+    output.GBuffer3.r = input.EntityID;
+    
+    // GBuffer3: G - Instance ID
+    output.GBuffer3.g = input.InstanceID;
+    
+    // GBuffer3: BA - Motion Vector
+    output.GBuffer3.ba = ComputeMotionVector(input.PrevScreenPos, input.ScreenPos);
+   
     return output;
 }
 #endif

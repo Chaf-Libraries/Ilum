@@ -476,8 +476,10 @@ struct BSDFs
     
     float3 f(float3 woW, float3 wiW, uint BxDF_type)
     {
-        float3 wi = isect.WorldToLocal(wiW);
-        float3 wo = isect.WorldToLocal(woW);
+        //float3 wi = isect.WorldToLocal(wiW);
+        //float3 wo = isect.WorldToLocal(woW);
+        float3 wi = wiW;
+        float3 wo = woW;
 
         if (wo.z == 0.0)
         {

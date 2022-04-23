@@ -27,35 +27,58 @@ struct Camera
 
         return ray;
     }
+    
+    void BuildFrustum()
+    {
+        // Left
+        frustum[0].x = view_projection[0].w + view_projection[0].x;
+        frustum[0].y = view_projection[1].w + view_projection[1].x;
+        frustum[0].z = view_projection[2].w + view_projection[2].x;
+        frustum[0].w = view_projection[3].w + view_projection[3].x;
+
+	    // Right
+        frustum[1].x = view_projection[0].w - view_projection[0].x;
+        frustum[1].y = view_projection[1].w - view_projection[1].x;
+        frustum[1].z = view_projection[2].w - view_projection[2].x;
+        frustum[1].w = view_projection[3].w - view_projection[3].x;
+
+	    // Top
+        frustum[2].x = view_projection[0].w - view_projection[0].y;
+        frustum[2].y = view_projection[1].w - view_projection[1].y;
+        frustum[2].z = view_projection[2].w - view_projection[2].y;
+        frustum[2].w = view_projection[3].w - view_projection[3].y;
+
+	    // Bottom
+        frustum[3].x = view_projection[0].w + view_projection[0].y;
+        frustum[3].y = view_projection[1].w + view_projection[1].y;
+        frustum[3].z = view_projection[2].w + view_projection[2].y;
+        frustum[3].w = view_projection[3].w + view_projection[3].y;
+
+	    // Near
+        frustum[4].x = view_projection[0].w + view_projection[0].z;
+        frustum[4].y = view_projection[1].w + view_projection[1].z;
+        frustum[4].z = view_projection[2].w + view_projection[2].z;
+        frustum[4].w = view_projection[3].w + view_projection[3].z;
+
+	    // Far
+        frustum[5].x = view_projection[0].w - view_projection[0].z;
+        frustum[5].y = view_projection[1].w - view_projection[1].z;
+        frustum[5].z = view_projection[2].w - view_projection[2].z;
+        frustum[5].w = view_projection[3].w - view_projection[3].z;
+
+        for (uint i = 0; i < 6; i++)
+        {
+            float len = length(frustum[i]);
+            frustum[i] /= len;
+            frustum[i].w /= len;
+        }
+    }
 };
 
 struct BoundingSphere
 {
     float3 center;
     float radius;
-    
-    void Transform(float4x4 trans)
-    {
-        center = mul(trans, float4(center, 1.0)).xyz;
-        float3 edge = float3(1.0, 1.0, 1.0) * sqrt(radius * radius / 3.0);
-        radius = length(float3(
-            abs(trans[0][0]) * edge.x + abs(trans[1][0]) * edge.y + abs(trans[2][0]) * edge.z,
-            abs(trans[0][1]) * edge.x + abs(trans[1][1]) * edge.y + abs(trans[2][1]) * edge.z,
-            abs(trans[0][2]) * edge.x + abs(trans[1][2]) * edge.y + abs(trans[2][2]) * edge.z
-        ));
-    }
-    
-    bool IsVisible(Camera camera)
-    {
-        for (uint i = 0; i < 6; i++)
-        {
-            if (dot(camera.frustum[i], float4(center, 1)) + length(radius) < 0.0)
-            {
-                return false;
-            }
-        }
-        return true;
-    }
 };
 
 // Per Instance Data
@@ -93,6 +116,37 @@ struct Meshlet
 
     uint meshlet_vertex_offset;
     uint meshlet_index_offset;
+    
+    bool IsVisible(Camera camera, float4x4 trans)
+    {
+        float sx = length(float3(trans[0][0], trans[0][1], trans[0][2]));
+        float sy = length(float3(trans[1][0], trans[1][1], trans[1][2]));
+        float sz = length(float3(trans[2][0], trans[2][1], trans[2][2]));
+        
+        float3 radius = bound.radius * float3(sx, sy, sz);
+        float3 center = mul(trans, float4(bound.center, 1.0)).xyz;
+        
+        // Frustum Culling
+        for (uint i = 0; i < 6; i++)
+        {
+            if (dot(camera.frustum[i], float4(center, 1)) + length(radius) < 0.0)
+            {
+                return false;
+            }
+        }
+
+        // Cone Culling
+        cone_apex = mul(trans, float4(cone_apex, 1.0)).xyz;
+        
+        float3x3 rotation = float3x3(
+            trans[0].xyz / sx,
+            trans[1].xyz / sy,
+            trans[2].xyz / sz
+        );
+
+        cone_axis = mul(rotation, cone_axis);
+        return dot(normalize(camera.position - cone_apex), cone_axis) < cone_cutoff;;
+    }
 };
 
 // Info for Culling
@@ -157,7 +211,6 @@ struct CountInfo
 #define Material_Substrate 4
 #define Material_Glass 5
 #define Material_Disney 6
-#define Material_CookTorrance 7
 
 struct MaterialData
 {

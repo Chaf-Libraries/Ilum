@@ -6,8 +6,6 @@ namespace Ilum::geometry
 {
 Frustum::Frustum(const glm::mat4 &view_projection)
 {
-	glm::mat4 inverse = glm::inverse(view_projection);
-
 	// Left
 	planes[0].normal.x = view_projection[0].w + view_projection[0].x;
 	planes[0].normal.y = view_projection[1].w + view_projection[1].x;

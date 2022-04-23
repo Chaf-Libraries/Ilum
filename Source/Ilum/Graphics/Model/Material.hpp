@@ -16,8 +16,7 @@ enum class BxDFType : uint32_t
 	Mirror,
 	Substrate,
 	Glass,
-	Disney,
-	CookTorrance
+	Disney
 };
 
 enum TextureType

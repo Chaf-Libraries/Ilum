@@ -28,7 +28,7 @@ class LightPass : public TRenderPass<LightPass>
 		uint32_t   spot_light_count        = 0;
 		uint32_t   point_light_count       = 0;
 		uint32_t   enable_multi_bounce     = 0;
-		VkExtent2D extent                  = {};
+		//VkExtent2D extent                  = {};
 	} m_push_block;
 
 	Sampler m_shadowmap_sampler;

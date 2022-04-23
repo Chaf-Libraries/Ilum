@@ -11,7 +11,7 @@ namespace Ilum::pass
 class MeshPass : public TRenderPass<MeshPass>
 {
   public:
-	MeshPass();
+	MeshPass() = default;
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -20,11 +20,5 @@ class MeshPass : public TRenderPass<MeshPass>
 	virtual void render(RenderPassState &state) override;
 
 	virtual void onImGui() override;
-
-  private:
-	int32_t m_primitive_count = 1;
-
-	Buffer m_debug_buffer;
-	std::array<uint32_t, 10000> m_debug_data;
 };
 }        // namespace Ilum::pass

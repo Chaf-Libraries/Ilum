@@ -21,8 +21,8 @@ struct Vertex
 	{
 	}
 
-	template<class Archive>
-	void serialize(Archive& ar)
+	template <class Archive>
+	void serialize(Archive &ar)
 	{
 		ar(position.x, position.y, position.z,
 		   texcoord.x, texcoord.y,

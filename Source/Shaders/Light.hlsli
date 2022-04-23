@@ -34,6 +34,12 @@ struct DirectionalLight
         return false;
     }
     
+    float3 Li(float3 frag_pos, out float3 wi)
+    {
+        wi = normalize(-direction);
+        return color.rgb * intensity;
+    }
+    
     float3 SampleLi(Interaction interaction, float2 u, out float3 wi, out float pdf, out VisibilityTester visibility)
     {
         wi = normalize(-direction);
@@ -106,6 +112,16 @@ struct PointLight
         p = ray.Origin + t * ray.Direction;
         
         return true;
+    }
+    
+    float3 Li(float3 frag_pos, out float3 wi)
+    {
+        wi = normalize(position - frag_pos);
+
+        float d = length(position - frag_pos);
+        float Fatt = 1.0 / (constant + linear_ * d + quadratic * d * d);
+                
+        return color.rgb * intensity * Fatt;
     }
     
     float3 SampleLi(Interaction interaction, float2 u, out float3 wi, out float pdf, out VisibilityTester visibility)
@@ -208,6 +224,17 @@ struct SpotLight
         p = ray.Origin + t * ray.Direction;
         
         return true;
+    }
+    
+    float3 Li(float3 frag_pos, out float3 wi)
+    {
+        wi = normalize(position - frag_pos);
+
+        float3 L = normalize(position - frag_pos);
+        float theta = dot(L, normalize(-direction));
+        float epsilon = cut_off - outer_cut_off;
+                
+        return color * intensity * clamp((theta - outer_cut_off) / epsilon, 0.0, 1.0);
     }
     
     float3 SampleLi(Interaction interaction, float2 u, out float3 wi, out float pdf, out VisibilityTester visibility)
