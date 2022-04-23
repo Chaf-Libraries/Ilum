@@ -24,10 +24,7 @@ class OmniShadowmapPass : public TRenderPass<OmniShadowmapPass>
   private:
 	struct
 	{
-		glm::mat4 transform       = {};
 		glm::mat4 view_projection = glm::mat4(1.f);
-		glm::vec3 light_pos       = {};
-		uint32_t  dynamic         = {};
 		uint32_t  light_id        = {};
 		uint32_t  face_id         = {};
 		float     depth_bias      = 0.01f;

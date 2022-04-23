@@ -127,16 +127,17 @@ Renderer::Renderer(Context *context) :
 		    //.addRenderPass("CopyFrame", std::make_unique<pass::CopyFrame>("Path", "PrevPath"))
 		    //.addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Path", "Tonemapping"))
 
-			.addRenderPass("MeshPass", std::make_unique<pass::MeshPass>())
+		    .addRenderPass("MeshPass", std::make_unique<pass::MeshPass>())
 
-		    //.addRenderPass("ShadowmapPass", std::make_unique<pass::ShadowmapPass>())
-
+		    .addRenderPass("ShadowmapPass", std::make_unique<pass::ShadowmapPass>())
+		    .addRenderPass("CascadeShadowmapPass", std::make_unique<pass::CascadeShadowmapPass>())
+		    .addRenderPass("OmniShadowmapPass", std::make_unique<pass::OmniShadowmapPass>())
 
 		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
 		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Lighting", "Tonemapping"))
 
-		    .setView("GBuffer0")
-		    .setOutput("GBuffer0");
+		    .setView("Tonemapping")
+		    .setOutput("Tonemapping");
 	};
 
 	buildRenderGraph = DeferredRendering;

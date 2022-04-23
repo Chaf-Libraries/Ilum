@@ -18,6 +18,7 @@ struct DirectionalLight : public Light
 	glm::vec4 split_depth = {};
 
 	glm::mat4 view_projection[4] = {glm::mat4(1.f)};
+	glm::vec4 shadow_cam_pos[4]  = {glm::vec4(1.f)};
 
 	glm::vec3 color     = {1.f, 1.f, 1.f};
 	float     intensity = 1.f;

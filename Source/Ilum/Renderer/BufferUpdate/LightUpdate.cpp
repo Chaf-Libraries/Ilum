@@ -136,7 +136,9 @@ void LightUpdate::run()
 
 				glm::vec3 light_dir = glm::normalize(light.direction);
 
-				glm::mat4 light_view_matrix  = glm::lookAt(frustum_center - light_dir * max_extents.z, frustum_center, glm::vec3(0.0f, 1.0f, 0.0f));
+				light.shadow_cam_pos[i] = glm::vec4(frustum_center - light_dir * max_extents.z, 1.0);
+
+				glm::mat4 light_view_matrix  = glm::lookAt(glm::vec3(light.shadow_cam_pos[i]), frustum_center, glm::vec3(0.0f, 1.0f, 0.0f));
 				glm::mat4 light_ortho_matrix = glm::ortho(min_extents.x, max_extents.x, min_extents.y, max_extents.y, -2.f * (max_extents.z - min_extents.z), max_extents.z - min_extents.z);
 
 				// Store split distance and matrix in cascade

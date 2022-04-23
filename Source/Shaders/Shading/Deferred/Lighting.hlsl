@@ -1,9 +1,11 @@
 #include "../../Common.hlsli"
+#include "../../Random.hlsli"
 #include "../../Light.hlsli"
 
 #define LOCAL_SIZE 32
 
 ConstantBuffer<Camera> camera : register(b0);
+SamplerState ShadowMapSampler : register(s1);
 Texture2D GBuffer0 : register(t2);
 Texture2D GBuffer1 : register(t3);
 Texture2D GBuffer2 : register(t4);
@@ -13,7 +15,10 @@ StructuredBuffer<MaterialData> materials : register(t7);
 StructuredBuffer<DirectionalLight> directional_lights : register(t8);
 StructuredBuffer<PointLight> point_lights : register(t9);
 StructuredBuffer<SpotLight> spot_lights : register(t10);
-RWTexture2D<float4> Lighting : register(u11);
+Texture2DArray ShadowMaps : register(t12);
+Texture2DArray CascadeShadowMaps : register(t13);
+TextureCubeArray OmniShadowMaps : register(t14);
+RWTexture2D<float4> Lighting : register(u15);
 
 [[vk::push_constant]]
 struct
@@ -24,6 +29,13 @@ struct
     uint enable_multi_bounce;
 } push_constants;
 
+static const int Sample_Method_Uniform = 0;
+static const int Sample_Method_Poisson = 1;
+
+static const int Shadow_Mode_None = 0;
+static const int Shadow_Mode_Hard = 1;
+static const int Shadow_Mode_PCF = 2;
+static const int Shadow_Mode_PCSS = 3;
 
 struct CSParam
 {
@@ -40,6 +52,12 @@ float3 WorldPositionFromDepth(float2 uv, float depth, float4x4 view_projection_i
     float4 world_pos = mul(view_projection_inverse, ndc_pos);
     world_pos = world_pos / world_pos.w;
     return world_pos.xyz;
+}
+
+float LinearizeDepth(float depth, float znear, float zfar)
+{
+    float z = depth * 2.0 - 1.0;
+    return znear * zfar / (zfar + depth * (znear - zfar));
 }
 
 float SchlickFresnel(float u)
@@ -210,6 +228,371 @@ float3 BRDF(float3 L, float3 V, float3 N, Material material)
     return float3(0.0, 0.0, 0.0);
 }
 
+// PCSS find block
+float FindBlock(Texture2DArray shadowmap, float4 shadow_coord, float layer, float filter_scale, int filter_sample, int sample_method)
+{
+    uint2 tex_dim;
+    uint layers;
+    shadowmap.GetDimensions(tex_dim.x, tex_dim.y, layers);
+
+    // Find blocker
+    float z_blocker = 0.0;
+    float num_blockers = 0.0;
+    float2 offset = float2(0.0, 0.0);
+    for (int i = 0; i < filter_sample; i++)
+    {
+        if (sample_method == Sample_Method_Uniform)
+        {
+            // Uniform sampling
+            offset = UniformDiskSamples2D(shadow_coord.xy + offset);
+        }
+        else if (sample_method == Sample_Method_Poisson)
+        {
+            // Poisson sampling
+            offset = PoissonDiskSamples2D(shadow_coord.xy + offset, filter_sample, 10, i);
+        }
+        
+        offset = offset * filter_scale / float2(tex_dim);
+        float dist = shadowmap.SampleLevel(ShadowMapSampler, float3(shadow_coord.xy + offset, layer), 0.0).r;
+        if (dist < shadow_coord.z)
+        {
+            num_blockers += 1.0;
+            z_blocker += dist;
+        }
+    }
+
+    if (num_blockers == 0.0)
+    {
+        return 0.0;
+    }
+
+    return num_blockers == 0.0 ? 0.0 : z_blocker / num_blockers;
+}
+
+// PCSS find block cube
+float FindBlockCube(TextureCubeArray shadowmap, float3 L, float layer, float filter_scale, int filter_sample, int sample_method)
+{
+    uint2 tex_dim;
+    uint layers;
+    shadowmap.GetDimensions(tex_dim.x, tex_dim.y, layers);
+    
+    float light_depth = length(L);
+
+    // Find blocker
+    float z_blocker = 0.0;
+    float num_blockers = 0.0;
+    float disk_radius = filter_scale / 100.0;
+    float3 offset = float3(0.0, 0.0, 0.0);
+
+    if (sample_method == 0)
+    {
+        for (int i = 0; i < filter_sample; i++)
+        {
+            // Uniform sampling
+            offset = UniformDiskSamples3D(L + offset) * disk_radius;
+            float dist = shadowmap.SampleLevel(ShadowMapSampler, float4(L + offset, layer), 0.0).r;
+            if (light_depth > dist)
+            {
+                num_blockers += 1.0;
+                z_blocker += dist;
+            }
+        }
+    }
+    else if (sample_method == 1)
+    {
+        int x = int(sqrt(filter_sample));
+        int y = filter_sample / x;
+        for (int i = 0; i < x; i++)
+        {
+            for (int j = 0; j < y; j++)
+            {
+                // Poisson sampling
+                offset = PoissonDiskSamples3D(L + offset, x * y, 10, float2(i, j)) * disk_radius;
+                float dist = shadowmap.SampleLevel(ShadowMapSampler, float4(L + offset, layer), 0.0).r;
+                if (light_depth > dist)
+                {
+                    num_blockers += 1.0;
+                    z_blocker += dist;
+                }
+            }
+        }
+    }
+
+    if (num_blockers == 0.0)
+    {
+        return 0.0;
+    }
+
+    return num_blockers == 0.0 ? 0.0 : z_blocker / num_blockers;
+}
+
+// Sample shadow map
+float SampleShadowmap(Texture2DArray shadowmap, float4 shadow_coord, float layer, float2 offset)
+{
+    float shadow = 1.0;
+	
+    if (shadow_coord.z > -1.0 && shadow_coord.z < 1.0)
+    {
+        float dist = shadowmap.SampleLevel(ShadowMapSampler, float3(shadow_coord.xy + offset, layer), 0.0).r;
+        if (shadow_coord.w > 0.0 && dist < shadow_coord.z)
+        {
+            shadow = 0.0;
+        }
+    }
+    return shadow;
+}
+
+// Sample shadow map via PCF
+float SampleShadowmapPCF(Texture2DArray shadowmap, float4 shadow_coord, float layer, int filter_sample, float filter_scale, int sample_method)
+{
+    uint2 tex_dim;
+    uint layers;
+    shadowmap.GetDimensions(tex_dim.x, tex_dim.y, layers);
+
+    float shadow_factor = 0.0;
+
+    float2 offset = float2(0.0, 0.0);
+    for (int i = 0; i < filter_sample; i++)
+    {
+        if (sample_method == Sample_Method_Uniform)
+        {
+            // Uniform sampling
+            offset = UniformDiskSamples2D(shadow_coord.xy + offset);
+        }
+        else if (sample_method == Sample_Method_Poisson)
+        {
+            // Poisson sampling
+            offset = PoissonDiskSamples2D(shadow_coord.xy + offset, filter_sample, 10, i);
+        }
+        offset = offset * filter_scale / float2(tex_dim);
+        shadow_factor += SampleShadowmap(shadowmap, shadow_coord, layer, offset);
+    }
+
+    return shadow_factor / float(filter_sample);
+}
+
+// Sample shadow map via PCSS
+float SampleShadowmapPCSS(Texture2DArray shadowmap, float4 shadow_coord, float layer, float filter_scale, int filter_sample, int sample_method, float light_size)
+{
+    uint2 tex_dim;
+    uint layers;
+    shadowmap.GetDimensions(tex_dim.x, tex_dim.y, layers);
+    
+    float z_receiver = LinearizeDepth(shadow_coord.z, 0.01, 1000.0);
+
+    // Penumbra size
+    float z_blocker = LinearizeDepth(FindBlock(shadowmap, shadow_coord, layer, filter_scale, filter_sample, sample_method), 0.01, 1000.0);
+    float w_light = 0.1;
+    float w_penumbra = (z_receiver - z_blocker) * light_size / z_blocker;
+
+    // Filtering
+    float shadow_factor = 0.0;
+    float2 offset = float2(0.0, 0.0);
+    for (int i = 0; i < filter_sample; i++)
+    {
+        if (sample_method == Sample_Method_Uniform)
+        {
+            // Uniform sampling
+            offset = UniformDiskSamples2D(shadow_coord.xy + offset);
+        }
+        else if (sample_method == Sample_Method_Poisson)
+        {
+            // Poisson sampling
+            offset = PoissonDiskSamples2D(shadow_coord.xy + offset, filter_sample, 10, i);
+        }
+        offset = offset * w_penumbra / float2(tex_dim);
+        shadow_factor += SampleShadowmap(shadowmap, shadow_coord, layer, offset);
+    }
+
+    return shadow_factor / float(filter_sample);
+}
+
+// Sample shadow cubemap
+float SampleShadowmapCube(TextureCubeArray shadowmap, float3 L, float layer, float3 offset)
+{
+    float shadow = 1.0;
+    float light_depth = length(L);
+    L.z = -L.z;
+    // Reconstruct depth
+    float dist = shadowmap.SampleLevel(ShadowMapSampler, float4(L + offset, layer), 0.0).r;
+    dist *= 100.0;
+
+    if (light_depth > dist)
+    {
+        shadow = 0.0;
+    }
+
+    return shadow;
+}
+
+// Sample shadow cubemap via PCF
+float SampleShadowmapCubePCF(TextureCubeArray shadowmap, float3 L, float layer, float filter_scale, int filter_sample, int sample_method)
+{
+    uint2 tex_dim;
+    uint layers;
+    shadowmap.GetDimensions(tex_dim.x, tex_dim.y, layers);
+
+    float shadow_factor = 0.0;
+    float light_depth = length(L);
+    
+    float disk_radius = filter_scale / 100.0;
+
+    float3 offset = float3(0.0, 0.0, 0.0);
+    int count = 0;
+    if (sample_method == 0)
+    {
+        for (int i = 0; i < filter_sample; i++)
+        {
+            // Uniform sampling
+            offset = UniformDiskSamples3D(L + offset) * disk_radius;
+            shadow_factor += SampleShadowmapCube(shadowmap, L, layer, offset);
+        }
+        count = filter_sample;
+    }
+    else if (sample_method == 1)
+    {
+        int x = int(sqrt(filter_sample));
+        int y = filter_sample / x;
+        count = x * y;
+        for (int i = 0; i < x; i++)
+        {
+            for (int j = 0; j < y; j++)
+            {
+                // Poisson sampling
+                offset = PoissonDiskSamples3D(L + offset, count, 10, float2(i, j)) * disk_radius;
+                shadow_factor += SampleShadowmapCube(shadowmap, L, layer, offset);
+            }
+        }
+    }
+
+    return shadow_factor / float(count);
+}
+
+// Sample shadow cubemap via PCSS
+float SampleShadowmapCubePCSS(TextureCubeArray shadowmap, float3 L, float layer, float filter_scale, int filter_sample, int sample_method, float light_size)
+{
+    uint2 tex_dim;
+    uint layers;
+    shadowmap.GetDimensions(tex_dim.x, tex_dim.y, layers);
+    
+    float light_depth = length(L);
+    float z_receiver = LinearizeDepth(light_depth, 0.01, 1000.0);
+
+    // Penumbra size
+    float z_blocker = LinearizeDepth(FindBlockCube(shadowmap, L, layer, filter_scale, filter_sample, sample_method), 0.01, 1000.0);
+    float w_light = 0.1;
+    float w_penumbra = (z_receiver - z_blocker) * light_size / z_blocker;
+
+    // Filtering
+    float shadow_factor = 0.0;
+    float3 offset = float3(0.0, 0.0, 0.0);
+    float disk_radius = filter_scale / 100.0;
+    int count = 0;
+
+    if (sample_method == 0)
+    {
+        for (int i = 0; i < filter_sample; i++)
+        {
+            // Uniform sampling
+            offset = UniformDiskSamples3D(L + offset) * w_penumbra / float(tex_dim.x);
+            shadow_factor += SampleShadowmapCube(shadowmap, L, layer, offset);
+        }
+        count = filter_sample;
+    }
+    else if (sample_method == 1)
+    {
+        int x = int(sqrt(filter_sample));
+        int y = filter_sample / x;
+        count = x * y;
+        for (int i = 0; i < x; i++)
+        {
+            for (int j = 0; j < y; j++)
+            {
+                // Poisson sampling
+                offset = PoissonDiskSamples3D(L + offset, count, 10, float2(i, j)) * w_penumbra / float(tex_dim.x);
+                shadow_factor += SampleShadowmapCube(shadowmap, L, layer, offset);
+            }
+        }
+    }
+    return shadow_factor / float(filter_sample);
+}
+
+// Shadow for spot light
+float3 SpotLightShadow(SpotLight light, float3 frag_color, float3 frag_pos, float layer)
+{
+    float4 shadow_clip = mul(light.view_projection, float4(frag_pos, 1.0));
+    float4 shadow_coord = float4(shadow_clip.xyz / shadow_clip.w, shadow_clip.w);
+    shadow_coord.xy = shadow_coord.xy * 0.5 + 0.5;
+    shadow_coord.y = 1.0 - shadow_coord.y;
+
+    switch (light.shadow_mode)
+    {
+        case Shadow_Mode_None:
+            return frag_color;
+        case Shadow_Mode_Hard:
+            return frag_color * SampleShadowmap(ShadowMaps, shadow_coord, layer, float2(0.0, 0.0));
+        case Shadow_Mode_PCF:
+            return frag_color * SampleShadowmapPCF(ShadowMaps, shadow_coord, layer, light.filter_sample, light.filter_scale, light.sample_method);
+        case Shadow_Mode_PCSS:
+            return frag_color * SampleShadowmapPCSS(ShadowMaps, shadow_coord, layer, light.filter_scale, light.filter_sample, light.sample_method, light.radius);
+    }
+    
+    return frag_color;
+}
+
+// Shadow for directional light
+float3 DirectionalLightShadow(DirectionalLight light, float3 frag_color, float3 frag_pos, float linear_z, float layer)
+{
+    uint cascade_index = 0;
+    // Select cascade
+    for (uint i = 0; i < 3; ++i)
+    {
+        if (light.split_depth[i] > -linear_z)
+        {
+            cascade_index = i + 1;
+        }
+    }
+
+    float4 shadow_clip = mul(light.view_projection[cascade_index], float4(frag_pos, 1.0));
+    float4 shadow_coord = float4(shadow_clip.xyz / shadow_clip.w, shadow_clip.w);
+    shadow_coord.xy = shadow_coord.xy * 0.5 + 0.5;
+    shadow_coord.y = 1.0 - shadow_coord.y;
+
+    layer = layer * 4 + cascade_index;
+    switch (light.shadow_mode)
+    {
+        case Shadow_Mode_None:
+            return frag_color;
+        case Shadow_Mode_Hard:
+            return frag_color * SampleShadowmap(CascadeShadowMaps, shadow_coord, layer, float2(0.0, 0.0));
+        case Shadow_Mode_PCF:
+            return frag_color * SampleShadowmapPCF(CascadeShadowMaps, shadow_coord, layer, light.filter_sample, light.filter_scale, light.sample_method);
+        case Shadow_Mode_PCSS:
+            return frag_color * SampleShadowmapPCSS(CascadeShadowMaps, shadow_coord, layer, light.filter_scale, light.filter_sample, light.sample_method, light.radius);
+    }
+
+    return frag_color;
+}
+
+// Shadow for point light
+float3 PointLightShadow(PointLight light, float3 frag_color, float3 frag_pos, float layer)
+{
+    float3 L = frag_pos - light.position;
+   
+    switch (light.shadow_mode)
+    {
+        case Shadow_Mode_None:
+            return frag_color;
+        case Shadow_Mode_Hard:
+            return frag_color * SampleShadowmapCube(OmniShadowMaps, L, layer, float3(0.0, 0.0, 0.0));
+        case Shadow_Mode_PCF:
+            return frag_color * SampleShadowmapCubePCF(OmniShadowMaps, L, layer, light.filter_scale, light.filter_sample, light.sample_method);
+        case Shadow_Mode_PCSS:
+            return frag_color * SampleShadowmapCubePCSS(OmniShadowMaps, L, layer, light.filter_scale, light.filter_sample, light.sample_method, light.radius);
+    }
+
+    return frag_color;
+}
 
 [numthreads(LOCAL_SIZE, LOCAL_SIZE, 1)]
 void main(CSParam param)
@@ -225,10 +608,12 @@ void main(CSParam param)
     float2 uv = (float2(param.DispatchThreadID.xy) + float2(0.5, 0.5)) / float2(extent);
     
     float4 gbuffer0 = GBuffer0.Load(uint3(param.DispatchThreadID.xy, 0.0)); // GBuffer0: RGB - Albedo, A - metallic
-    float4 gbuffer1 = GBuffer1.Load(uint3(param.DispatchThreadID.xy, 0.0)); // GBuffer1: RGA - normal, A - linear depth
+    float4 gbuffer1 = GBuffer1.Load(uint3(param.DispatchThreadID.xy, 0.0)); // GBuffer1: RGB - normal, A - linear depth
     float4 gbuffer2 = GBuffer2.Load(uint3(param.DispatchThreadID.xy, 0.0)); // GBuffer2: RGB - emissive, A - roughness
     float4 gbuffer3 = GBuffer3.Load(uint3(param.DispatchThreadID.xy, 0.0)); // GBuffer3: R - entity id, G - instance id, BA - motion vector
     float depth = DepthBuffer.Load(uint3(param.DispatchThreadID.xy, 0.0)).r;
+    
+    float linear_z = gbuffer1.a;
     
     MaterialData material_data = materials[gbuffer3.g];
     
@@ -248,37 +633,40 @@ void main(CSParam param)
     material.material_type = material_data.material_type;
     
     float3 frag_pos = WorldPositionFromDepth(uv, depth, mul(camera.inverse_view, camera.inverse_projection));
+        
     float3 V = normalize(camera.position - frag_pos);
     float3 N = gbuffer1.rgb;
     
     float3 radiance = float3(0.0, 0.0, 0.0);
     
-    // Handle Point Light
+    // Handle point light
     for (uint i = 0; i < push_constants.point_light_count; i++)
     {
         PointLight light = point_lights[i];
         float3 L;
         float3 Li = light.Li(frag_pos, L);
         float3 f = BRDF(L, V, N, material);
-        radiance += Li * f * abs(dot(L, N));
+        radiance += PointLightShadow(light, Li * f * abs(dot(L, N)), frag_pos, i);
     }
     
+    // Handle directional light
     for (i = 0; i < push_constants.directional_light_count; i++)
     {
         DirectionalLight light = directional_lights[i];
         float3 L;
         float3 Li = light.Li(frag_pos, L);
         float3 f = BRDF(L, V, N, material);
-        radiance += Li * f * abs(dot(L, N));
+        radiance += DirectionalLightShadow(light, Li * f * abs(dot(L, N)), frag_pos, linear_z, i);
     }
     
+    // Handle spot light
     for (i = 0; i < push_constants.spot_light_count; i++)
     {
         SpotLight light = spot_lights[i];
         float3 L;
         float3 Li = light.Li(frag_pos, L);
         float3 f = BRDF(L, V, N, material);
-        radiance += Li * f * abs(dot(L, N));
+        radiance += SpotLightShadow(light, Li * f * abs(dot(L, N)), frag_pos, i);
     }
    
     Lighting[int2(param.DispatchThreadID.xy)] = float4(radiance, 1.0);

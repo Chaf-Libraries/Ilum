@@ -22,23 +22,14 @@ namespace Ilum::pass
 {
 void CascadeShadowmapPass::setupPipeline(PipelineState &state)
 {
-	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Shadow/CascadeShadowmap.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Shadow/CascadeShadowmap.geom", VK_SHADER_STAGE_GEOMETRY_BIT, Shader::Type::GLSL);
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Shadow/CascadeShadowmap.hlsl", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::HLSL, "VSmain");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Shadow/CascadeShadowmap.hlsl", VK_SHADER_STAGE_GEOMETRY_BIT, Shader::Type::HLSL, "GSmain");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Shadow/CascadeShadowmap.hlsl", VK_SHADER_STAGE_TASK_BIT_NV, Shader::Type::HLSL, "ASmain");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Shadow/CascadeShadowmap.hlsl", VK_SHADER_STAGE_MESH_BIT_NV, Shader::Type::HLSL, "MSmain");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Shadow/CascadeShadowmap.hlsl", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::HLSL, "PSmain");
 
 	state.dynamic_state.dynamic_states = {
 	    VK_DYNAMIC_STATE_VIEWPORT,
 	    VK_DYNAMIC_STATE_SCISSOR,
 	    VK_DYNAMIC_STATE_DEPTH_BIAS};
-
-	state.vertex_input_state.attribute_descriptions = {
-	    VkVertexInputAttributeDescription{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, position)},
-	    VkVertexInputAttributeDescription{1, 0, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, texcoord)},
-	    VkVertexInputAttributeDescription{2, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, normal)}};
-
-	state.vertex_input_state.binding_descriptions = {
-	    VkVertexInputBindingDescription{0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX}};
 
 	state.color_blend_attachment_states.resize(1);
 	state.depth_stencil_state.stencil_test_enable = false;
@@ -50,7 +41,12 @@ void CascadeShadowmapPass::setupPipeline(PipelineState &state)
 	}
 
 	state.descriptor_bindings.bind(0, 0, "PerInstanceBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 1, "DirectionalLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 1, "PerMeshletBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 2, "Vertices", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 3, "MeshletVertexBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 4, "MeshletIndexBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 5, "DirectionalLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 6, "CullingBuffer", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
 	state.declareAttachment("CascadeShadowmap", VK_FORMAT_D32_SFLOAT, m_resolution.width, m_resolution.height, false, static_cast<uint32_t>(Renderer::instance()->Render_Buffer.Spot_Light_Buffer.getSize()) / sizeof(cmpt::SpotLight) * 4);
 	state.addOutputAttachment("CascadeShadowmap", VkClearDepthStencilValue{1.f, 0u});
@@ -59,26 +55,17 @@ void CascadeShadowmapPass::setupPipeline(PipelineState &state)
 void CascadeShadowmapPass::resolveResources(ResolveState &resolve)
 {
 	resolve.resolve("PerInstanceBuffer", Renderer::instance()->Render_Buffer.Instance_Buffer);
+	resolve.resolve("PerMeshletBuffer", Renderer::instance()->Render_Buffer.Meshlet_Buffer);
+	resolve.resolve("Vertices", Renderer::instance()->Render_Buffer.Static_Vertex_Buffer);
+	resolve.resolve("MeshletVertexBuffer", Renderer::instance()->Render_Buffer.Meshlet_Vertex_Buffer);
+	resolve.resolve("MeshletIndexBuffer", Renderer::instance()->Render_Buffer.Meshlet_Index_Buffer);
+	resolve.resolve("CullingBuffer", Renderer::instance()->Render_Buffer.Culling_Buffer);
 	resolve.resolve("DirectionalLights", Renderer::instance()->Render_Buffer.Directional_Light_Buffer);
 }
 
 void CascadeShadowmapPass::render(RenderPassState &state)
 {
 	auto &cmd_buffer = state.command_buffer;
-
-	uint32_t directional_light_count = Renderer::instance()->Render_Stats.light_count.directional_light_count;
-
-	auto &camera_entity = Renderer::instance()->Main_Camera;
-
-	if (!camera_entity || (!camera_entity.hasComponent<cmpt::PerspectiveCamera>() && !camera_entity.hasComponent<cmpt::OrthographicCamera>()))
-	{
-		return;
-	}
-
-	if (directional_light_count == 0)
-	{
-		return;
-	}
 
 	VkRenderPassBeginInfo begin_info = {};
 	begin_info.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -92,11 +79,6 @@ void CascadeShadowmapPass::render(RenderPassState &state)
 
 	vkCmdBindPipeline(cmd_buffer, state.pass.bind_point, state.pass.pipeline);
 
-	for (auto &descriptor_set : state.pass.descriptor_sets)
-	{
-		vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
-	}
-
 	VkViewport viewport = {0, static_cast<float>(m_resolution.height), static_cast<float>(m_resolution.width), -static_cast<float>(m_resolution.height), 0, 1};
 	VkRect2D   scissor  = {0, 0, m_resolution.width, m_resolution.height};
 
@@ -109,6 +91,11 @@ void CascadeShadowmapPass::render(RenderPassState &state)
 	    0.0f,
 	    m_depth_bias_slope);
 
+	for (auto &descriptor_set : state.pass.descriptor_sets)
+	{
+		vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
+	}
+
 	const auto &directional_lights = Scene::instance()->getRegistry().group<cmpt::DirectionalLight>(entt::get<cmpt::Transform, cmpt::Tag>);
 
 	for (uint32_t light = 0; light < directional_lights.size(); light++)
@@ -120,57 +107,13 @@ void CascadeShadowmapPass::render(RenderPassState &state)
 			continue;
 		}
 
-		// Draw static mesh
+		m_push_block.light_id = light;
+
+		for (uint32_t camera_id = 0; camera_id < 4; camera_id++)
 		{
-			const auto &vertex_buffer = Renderer::instance()->Render_Buffer.Static_Vertex_Buffer;
-			const auto &index_buffer  = Renderer::instance()->Render_Buffer.Static_Index_Buffer;
-
-			if (Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count > 0 && vertex_buffer.getBuffer() && index_buffer.getBuffer())
-			{
-				VkDeviceSize offsets[1] = {0};
-				vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &vertex_buffer.getBuffer(), offsets);
-				vkCmdBindIndexBuffer(cmd_buffer, index_buffer.getBuffer(), 0, VK_INDEX_TYPE_UINT32);
-
-				m_push_block.dynamic  = 0;
-				m_push_block.light_id = light;
-
-				vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_GEOMETRY_BIT, 0, sizeof(m_push_block), &m_push_block);
-
-				auto &draw_buffer  = Renderer::instance()->Render_Buffer.Command_Buffer;
-				auto &count_buffer = Renderer::instance()->Render_Buffer.Count_Buffer;
-				vkCmdDrawIndexedIndirectCount(cmd_buffer, draw_buffer, 0, count_buffer, sizeof(uint32_t), Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count, sizeof(VkDrawIndexedIndirectCommand));
-			}
-		}
-
-		// Draw dynamic mesh
-		{
-			Renderer::instance()->Render_Stats.dynamic_mesh_count.instance_count = 0;
-			Renderer::instance()->Render_Stats.dynamic_mesh_count.triangle_count = 0;
-
-			const auto group = Scene::instance()->getRegistry().group<cmpt::DynamicMeshRenderer>(entt::get<cmpt::Transform, cmpt::Tag>);
-
-			if (!group.empty())
-			{
-				uint32_t instance_id = Renderer::instance()->Render_Stats.static_mesh_count.instance_count;
-				group.each([&](const entt::entity &entity, const cmpt::DynamicMeshRenderer &mesh_renderer, const cmpt::Transform &transform, const cmpt::Tag &tag) {
-					if (mesh_renderer.vertex_buffer && mesh_renderer.index_buffer)
-					{
-						Renderer::instance()->Render_Stats.dynamic_mesh_count.instance_count++;
-						Renderer::instance()->Render_Stats.dynamic_mesh_count.triangle_count += static_cast<uint32_t>(mesh_renderer.indices.size()) / 3;
-
-						VkDeviceSize offsets[1] = {0};
-						vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &mesh_renderer.vertex_buffer.getBuffer(), offsets);
-						vkCmdBindIndexBuffer(cmd_buffer, mesh_renderer.index_buffer, 0, VK_INDEX_TYPE_UINT32);
-
-						m_push_block.dynamic   = 1;
-						m_push_block.transform = transform.world_transform;
-						m_push_block.light_id  = light;
-
-						vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_GEOMETRY_BIT, 0, sizeof(m_push_block), &m_push_block);
-						vkCmdDrawIndexed(cmd_buffer, static_cast<uint32_t>(mesh_renderer.index_buffer.getSize() / sizeof(uint32_t)), 1, 0, 0, instance_id++);
-					}
-				});
-			}
+			m_push_block.camera_id = camera_id;
+			vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_TASK_BIT_NV | VK_SHADER_STAGE_MESH_BIT_NV, 0, sizeof(m_push_block), &m_push_block);
+			vkCmdDrawMeshTasksNV(cmd_buffer, (Renderer::instance()->Render_Stats.static_mesh_count.meshlet_count + 32 - 1) / 32, 0);
 		}
 	}
 

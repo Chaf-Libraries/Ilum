@@ -24,9 +24,8 @@ class CascadeShadowmapPass : public TRenderPass<CascadeShadowmapPass>
   private:
 	struct
 	{
-		glm::mat4 transform;
-		uint32_t  dynamic;
 		uint32_t  light_id;
+		uint32_t  camera_id;
 	} m_push_block;
 
 	int32_t m_light_index = 0;

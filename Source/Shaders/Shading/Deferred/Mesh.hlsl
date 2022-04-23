@@ -68,7 +68,6 @@ void ASmain(CSParam param)
         Meshlet meshlet = meshlets[param.DispatchThreadID.x];
         Instance instance = instances[meshlet.instance_id];
         Camera cam = camera;
-        
         visible = meshlet.IsVisible(cam, instance.transform);
     }
     

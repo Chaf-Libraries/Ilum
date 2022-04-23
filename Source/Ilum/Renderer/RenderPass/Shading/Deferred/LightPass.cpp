@@ -47,8 +47,7 @@ void LightPass::setupPipeline(PipelineState &state)
 	state.color_blend_attachment_states[0].blend_enable = false;
 
 	state.descriptor_bindings.bind(0, 0, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-	// state.descriptor_bindings.bind(0, 1, "TextureArray", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-	// state.descriptor_bindings.bind(0, 1, "TexSampler", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Wrap), VK_DESCRIPTOR_TYPE_SAMPLER);
+	state.descriptor_bindings.bind(0, 1, "ShadowmapSampler", m_shadowmap_sampler, VK_DESCRIPTOR_TYPE_SAMPLER);
 	state.descriptor_bindings.bind(0, 2, "GBuffer0", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 	state.descriptor_bindings.bind(0, 3, "GBuffer1", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 	state.descriptor_bindings.bind(0, 4, "GBuffer2", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
@@ -59,7 +58,11 @@ void LightPass::setupPipeline(PipelineState &state)
 	state.descriptor_bindings.bind(0, 9, "PointLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 10, "SpotLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
-	state.descriptor_bindings.bind(0, 11, "Lighting", VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	state.descriptor_bindings.bind(0, 12, "Shadowmap", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 13, "CascadeShadowmap", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 14, "OmniShadowmap", ImageViewType::ArrayCube, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+
+	state.descriptor_bindings.bind(0, 15, "Lighting", VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
 	// state.descriptor_bindings.bind(0, 0, "texSampler", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), VK_DESCRIPTOR_TYPE_SAMPLER);
 	// state.descriptor_bindings.bind(0, 1, "shadowmapSampler", m_shadowmap_sampler, VK_DESCRIPTOR_TYPE_SAMPLER);
@@ -90,8 +93,6 @@ void LightPass::setupPipeline(PipelineState &state)
 void LightPass::resolveResources(ResolveState &resolve)
 {
 	resolve.resolve("Camera", Renderer::instance()->Render_Buffer.Camera_Buffer);
-	// resolve.resolve("TextureArray", Renderer::instance()->getResourceCache().getImageReferences());
-	// resolve.resolve("Vertices", Renderer::instance()->Render_Buffer.Static_Vertex_Buffer);
 	resolve.resolve("DirectionalLights", Renderer::instance()->Render_Buffer.Directional_Light_Buffer);
 	resolve.resolve("PointLights", Renderer::instance()->Render_Buffer.Point_Light_Buffer);
 	resolve.resolve("SpotLights", Renderer::instance()->Render_Buffer.Spot_Light_Buffer);
