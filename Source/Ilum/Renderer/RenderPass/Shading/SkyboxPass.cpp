@@ -10,8 +10,6 @@ namespace Ilum::pass
 {
 void SkyboxPass::setupPipeline(PipelineState &state)
 {
-	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Skybox.vert", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::GLSL);
-	//state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Skybox.frag", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::GLSL);
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Skybox.hlsl", VK_SHADER_STAGE_VERTEX_BIT, Shader::Type::HLSL, "VSmain");
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Skybox.hlsl", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::HLSL, "PSmain");
 
@@ -51,7 +49,7 @@ void SkyboxPass::render(RenderPassState &state)
 {
 	auto &cmd_buffer = state.command_buffer;
 
-	if (m_type == EnvLightType::None || !Renderer::instance()->hasMainCamera())
+	if (!Renderer::instance()->hasMainCamera())
 	{
 		return;
 	}
@@ -88,7 +86,5 @@ void SkyboxPass::render(RenderPassState &state)
 
 void SkyboxPass::onImGui()
 {
-	const char *const skybox_option[] = {"None", "HDRI"};
-	ImGui::Combo("Skybox Option", reinterpret_cast<int *>(&m_type), skybox_option, 2);
 }
 }        // namespace Ilum::pass

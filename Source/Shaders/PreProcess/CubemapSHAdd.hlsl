@@ -5,7 +5,6 @@
 
 RWTexture2D<float4> IrradianceSH : register(u0);
 Texture2DArray SHIntermediate : register(t1);
-SamplerState SHSampler : register(s1);
 
 struct CSParam
 {

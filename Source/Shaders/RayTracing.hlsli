@@ -410,42 +410,6 @@ bool Unoccluded(inout RayPayload ray_payload, VisibilityTester visibility)
     return ray_payload.visibility;
 }
 
-/*float3 UniformSampleOneLight(inout RayPayload ray_payload, inout Sampler _sampler)
-{
-    uint light_count = push_constants.directional_light_count + push_constants.point_light_count + push_constants.spot_light_count + push_constants.area_light_count;
-    if (light_count == 0)
-    {
-        return float3(0.0, 0.0, 0.0);
-    }
-        
-    uint lightNum = (uint) min(light_count - 1, _sampler.Get1D() * (float) light_count);
-    float lightPdf = 1.0 / (float) light_count;
-        
-    Light light;
-    light.idx = lightNum;
-
-    float3 wi;
-    float light_pdf, scattering_pdf;
-    VisibilityTester visibility;
-    float3 Li = light.SampleLi(ray_payload.isect, _sampler.Get2D(), wi, light_pdf, visibility);
-
-    float3 Ld = float3(0.0, 0.0, 0.0);
-        
-    ray_payload.wi = wi;
-    if (!IsBlack(Li) && Unoccluded(ray_payload, visibility) && light_pdf != 0.0)
-    {
-        Ld += ray_payload.f * Li / light_pdf;
-    }
-        
-    // Sample BSDF with multiple importance sampling
-    if (!light.IsDelta())
-    {
-        float3 f = float3(0.0, 0.0, 0.0);
-    }
-        
-    return Ld;
-}
-*/
 // Environment Sampling (HDR)
 // See:  https://arxiv.org/pdf/1901.05423.pdf
 float3 EnvironmentSampling(RayPayload ray_payload, float3 wi, out float pdf)

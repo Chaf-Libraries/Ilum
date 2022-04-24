@@ -16,15 +16,5 @@ class SkyboxPass : public TRenderPass<SkyboxPass>
 	virtual void render(RenderPassState &state) override;
 
 	virtual void onImGui() override;
-
-  private:
-	enum class EnvLightType
-	{
-		None,
-		HDR,
-		// Atmospheric
-	};
-
-	EnvLightType m_type = EnvLightType::None;
 };
 }        // namespace Ilum::pass

@@ -1,24 +1,32 @@
 #include "../../Common.hlsli"
 #include "../../Random.hlsli"
+#include "../../Math.hlsli"
+#include "../../SphericalHarmonic.hlsli"
 #include "../../Light.hlsli"
 
 #define LOCAL_SIZE 32
 
 ConstantBuffer<Camera> camera : register(b0);
 SamplerState ShadowMapSampler : register(s1);
-Texture2D GBuffer0 : register(t2);
-Texture2D GBuffer1 : register(t3);
-Texture2D GBuffer2 : register(t4);
-Texture2D GBuffer3 : register(t5);
-Texture2D DepthBuffer : register(t6);
-StructuredBuffer<MaterialData> materials : register(t7);
-StructuredBuffer<DirectionalLight> directional_lights : register(t8);
-StructuredBuffer<PointLight> point_lights : register(t9);
-StructuredBuffer<SpotLight> spot_lights : register(t10);
+SamplerState TextureSampler : register(s2);
+Texture2D GBuffer0 : register(t3);
+Texture2D GBuffer1 : register(t4);
+Texture2D GBuffer2 : register(t5);
+Texture2D GBuffer3 : register(t6);
+Texture2D DepthBuffer : register(t7);
+StructuredBuffer<MaterialData> materials : register(t8);
+StructuredBuffer<DirectionalLight> directional_lights : register(t9);
+StructuredBuffer<PointLight> point_lights : register(t10);
+StructuredBuffer<SpotLight> spot_lights : register(t11);
 Texture2DArray ShadowMaps : register(t12);
 Texture2DArray CascadeShadowMaps : register(t13);
 TextureCubeArray OmniShadowMaps : register(t14);
-RWTexture2D<float4> Lighting : register(u15);
+Texture2D EmuLut : register(t15);
+Texture2D EavgLut : register(t16);
+Texture2D IrradianceSH : register(t17);
+TextureCube PrefilterMap : register(t18);
+Texture2D BRDFPreIntegrate : register(t19);
+RWTexture2D<float4> Lighting : register(u20);
 
 [[vk::push_constant]]
 struct
@@ -107,6 +115,23 @@ float3 mon2lin(float3 x)
     return pow(x, float3(2.2, 2.2, 2.2));
 }
 
+float3 AverageFresnel(float3 r, float3 g)
+{
+    return float3(0.087237, 0.087237, 0.087237) + 0.0230685 * g - 0.0864902 * g * g + 0.0774594 * g * g * g + 0.782654 * r - 0.136432 * r * r + 0.278708 * r * r * r + 0.19744 * g * r + 0.0360605 * g * g * r - 0.2586 * g * r * r;
+}
+
+float3 MultiScatterBRDF(float3 albedo, float3 Eo, float3 Ei, float Eavg)
+{
+	// copper
+    float3 edgetint = float3(0.827, 0.792, 0.678);
+    float3 F_avg = AverageFresnel(albedo, edgetint);
+
+    float3 f_add = F_avg * Eavg / (1.0 - F_avg * (1.0 - Eavg));
+    float3 f_ms = (1.0 - Eo) * (1.0 - Ei) / (PI * (1.0 - Eavg.r));
+
+    return f_ms * f_add;
+}
+
 float3 MatteBRDF(float3 L, float3 V, float3 N, Material material)
 {
     if (material.roughness == 0.0)
@@ -171,8 +196,8 @@ float3 DisneyBRDF(float3 L, float3 V, float3 N, Material material)
     float3 Cdlin = mon2lin(material.base_color.rgb);
     float Cdlum = dot(Cdlin, float3(0.3, 0.6, 0.1)); // luminance approx.
 
-    float3 Ctint = Cdlum > 0 ? Cdlin / Cdlum : float3(1.0, 1.0, 1.0); // normalize lum. to isolate hue+sat
-    float3 Cspec0 = lerp(material.specular * .08 * lerp(float3(1.0, 1.0, 1.0), Ctint, material.specular_tint), Cdlin, material.metallic);
+    float3 Ctint = Cdlum > 0.0 ? Cdlin / Cdlum : float3(1.0, 1.0, 1.0); // normalize lum. to isolate hue+sat
+    float3 Cspec0 = lerp(material.specular * 0.08 * lerp(float3(1.0, 1.0, 1.0), Ctint, material.specular_tint), Cdlin, material.metallic);
     float3 Csheen = lerp(float3(1.0, 1.0, 1.0), Ctint, material.sheen_tint);
 
     // Diffuse fresnel - go from 1 at normal incidence to .5 at grazing
@@ -186,12 +211,12 @@ float3 DisneyBRDF(float3 L, float3 V, float3 N, Material material)
     // Fss90 used to "flatten" retroreflection based on roughness
     float Fss90 = LdotH * LdotH * material.roughness;
     float Fss = lerp(1.0, Fss90, FL) * lerp(1.0, Fss90, FV);
-    float ss = 1.25 * (Fss * (1 / (NdotL + NdotV) - .5) + .5);
+    float ss = 1.25 * (Fss * (1 / (NdotL + NdotV) - 0.5) + 0.5);
 
     // specular
     float aspect = sqrt(1 - material.anisotropic * .9);
-    float ax = max(.001, sqr(material.roughness) / aspect);
-    float ay = max(.001, sqr(material.roughness) * aspect);
+    float ax = max(0.001, sqr(material.roughness) / aspect);
+    float ay = max(0.001, sqr(material.roughness) * aspect);
     float Ds = GTR2_aniso(NdotH, dot(H, X), dot(H, Y), ax, ay);
     float FH = SchlickFresnel(LdotH);
     float3 Fs = lerp(Cspec0, float3(1.0, 1.0, 1.0), FH);
@@ -203,13 +228,21 @@ float3 DisneyBRDF(float3 L, float3 V, float3 N, Material material)
     float3 Fsheen = FH * material.sheen * Csheen;
 
     // clearcoat (ior = 1.5 -> F0 = 0.04)
-    float Dr = GTR1(NdotH, lerp(.1, .001, material.clearcoat_gloss));
-    float Fr = lerp(.04, 1.0, FH);
-    float Gr = smithG_GGX(NdotL, .25) * smithG_GGX(NdotV, .25);
+    float Dr = GTR1(NdotH, lerp(0.1, 0.001, material.clearcoat_gloss));
+    float Fr = lerp(0.04, 1.0, FH);
+    float Gr = smithG_GGX(NdotL, 0.25) * smithG_GGX(NdotV, 0.25);
+    
+    float3 Fms = float3(0.0, 0.0, 0.0);
+    if (push_constants.enable_multi_bounce)
+    {
+        float3 Eo = EmuLut.SampleLevel(TextureSampler, float2(dot(N, L), material.roughness), 0.0).rrr;
+        float3 Ei = EmuLut.SampleLevel(TextureSampler, float2(dot(N, V), material.roughness), 0.0).rrr;
+        float Eavg = EavgLut.SampleLevel(TextureSampler, float2(0.0, material.roughness), 0.0).r;
+        
+        Fms = MultiScatterBRDF(pow(material.base_color.rgb, float3(2.2, 2.2, 2.2)), Eo, Ei, Eavg);
+    }
 
-    return ((1 / PI) * lerp(Fd, ss, material.subsurface) * Cdlin + Fsheen)
-        * (1 - material.metallic)
-        + Gs * Fs * Ds + .25 * material.clearcoat * Gr * Fr * Dr;
+    return ((1.0 / PI) * lerp(Fd, ss, material.subsurface) * Cdlin + Fsheen) * (1.0 - material.metallic) + Gs * Fs * Ds + 0.25 * material.clearcoat * Gr * Fr * Dr + Fms;
 }
 
 
@@ -637,7 +670,7 @@ void main(CSParam param)
     float3 V = normalize(camera.position - frag_pos);
     float3 N = gbuffer1.rgb;
     
-    float3 radiance = float3(0.0, 0.0, 0.0);
+    float3 radiance = material.emissive;
     
     // Handle point light
     for (uint i = 0; i < push_constants.point_light_count; i++)
@@ -668,6 +701,33 @@ void main(CSParam param)
         float3 f = BRDF(L, V, N, material);
         radiance += SpotLightShadow(light, Li * f * abs(dot(L, N)), frag_pos, i);
     }
+    
+    // Handle environment light
+    {
+        float3 F0 = float3(0.0, 0.0, 0.0);
+        F0 = lerp(F0, material.base_color.rgb, material.metallic);
+        float3 F = F0 + (max(float3(1.0 - material.roughness, 1.0 - material.roughness, 1.0 - material.roughness), F0) * pow(1.0 - max(dot(N, V), 0.0), 5.0));
+        float3 Kd = (1.0 - F) * (1.0 - material.metallic);
+
+        float3 irradiance = float3(0.0, 0.0, 0.0);
+        SH9 basis = EvaluateSH(N);
+        for (uint i = 0; i < 9; i++)
+        {
+            irradiance += IrradianceSH.Load(uint3(i, 0, 0)).rgb * basis.weights[i];
+        }
+        irradiance = max(float3(0.0, 0.0, 0.0), irradiance) * InvPI;
+        
+        float3 diffuse = irradiance * material.base_color.rgb;
+
+        const float MAX_PREFILTER_MAP_LOD = 4.0;
+        float3 prefiltered_color = PrefilterMap.SampleLevel(TextureSampler, reflect(-V, N), material.roughness * MAX_PREFILTER_MAP_LOD).rgb;
+        float2 brdf = BRDFPreIntegrate.SampleLevel(TextureSampler, float2(clamp(dot(N, V), 0.0, 1.0), material.roughness), 0.0).rg;
+        float3 specular = prefiltered_color * (F * brdf.x + brdf.y);
+
+        float3 ambient = Kd * diffuse + specular;
+        radiance += ambient;
+    }
+
    
     Lighting[int2(param.DispatchThreadID.xy)] = float4(radiance, 1.0);
 }

@@ -41,28 +41,37 @@ LightPass::LightPass()
 
 void LightPass::setupPipeline(PipelineState &state)
 {
-	// state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/GLSL/Shading/Deferred/Lighting.comp", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::GLSL);
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Deferred/Lighting.hlsl", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::HLSL);
 
 	state.color_blend_attachment_states[0].blend_enable = false;
 
 	state.descriptor_bindings.bind(0, 0, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+
 	state.descriptor_bindings.bind(0, 1, "ShadowmapSampler", m_shadowmap_sampler, VK_DESCRIPTOR_TYPE_SAMPLER);
-	state.descriptor_bindings.bind(0, 2, "GBuffer0", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-	state.descriptor_bindings.bind(0, 3, "GBuffer1", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-	state.descriptor_bindings.bind(0, 4, "GBuffer2", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-	state.descriptor_bindings.bind(0, 5, "GBuffer3", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-	state.descriptor_bindings.bind(0, 6, "DepthStencil", ImageViewType::Depth_Only, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-	state.descriptor_bindings.bind(0, 7, "MaterialBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 8, "DirectionalLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 9, "PointLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 10, "SpotLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 2, "texSampler", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), VK_DESCRIPTOR_TYPE_SAMPLER);
+
+	state.descriptor_bindings.bind(0, 3, "GBuffer0", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 4, "GBuffer1", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 5, "GBuffer2", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 6, "GBuffer3", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 7, "DepthStencil", ImageViewType::Depth_Only, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 8, "MaterialBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 9, "DirectionalLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 10, "PointLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 11, "SpotLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
 	state.descriptor_bindings.bind(0, 12, "Shadowmap", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 	state.descriptor_bindings.bind(0, 13, "CascadeShadowmap", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 	state.descriptor_bindings.bind(0, 14, "OmniShadowmap", ImageViewType::ArrayCube, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 
-	state.descriptor_bindings.bind(0, 15, "Lighting", VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	state.descriptor_bindings.bind(0, 15, "EmuLut", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 16, "EavgLut", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+
+	state.descriptor_bindings.bind(0, 17, "IrradianceSH", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 18, "PrefilterMap", ImageViewType::Cube, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 19, "BRDFPreIntegrate", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+
+	state.descriptor_bindings.bind(0, 20, "Lighting", VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
 	// state.descriptor_bindings.bind(0, 0, "texSampler", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), VK_DESCRIPTOR_TYPE_SAMPLER);
 	// state.descriptor_bindings.bind(0, 1, "shadowmapSampler", m_shadowmap_sampler, VK_DESCRIPTOR_TYPE_SAMPLER);

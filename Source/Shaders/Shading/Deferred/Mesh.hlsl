@@ -154,9 +154,7 @@ MSOutput PSmain(VertexOut input)
     
     float3 N = normalize(input.Normal);
     float3 T, B;
-    const float3 ref = abs(dot(N, float3(0, 1, 0))) > 0.99f ? float3(0, 0, 1) : float3(0, 1, 0);
-    T = normalize(cross(ref, N));
-    B = cross(N, T);
+    CreateCoordinateSystem(N, T, B);
     float3x3 TBN = float3x3(T, B, N);
     
     // GBuffer0: RGB - Albedo

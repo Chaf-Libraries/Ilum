@@ -3,20 +3,12 @@
 
 #include "Constants.hlsli"
 
-/*void CreateCoordinateSystem(in float3 N, out float3 Nt, out float3 Nb)
+void CreateCoordinateSystem(in float3 N, out float3 Nt, out float3 Nb)
 {
-    Nt = normalize(((abs(N.z) > 0.99999f) ? float3(-N.x * N.y, 1.0f - N.y * N.y, -N.y * N.z) :
-                                            float3(-N.x * N.z, -N.y * N.z, 1.0f - N.z * N.z)));
-    Nb = cross(Nt, N);
-}*/
+    const float3 ref = abs(dot(N, float3(0, 1, 0))) > 0.99f ? float3(0, 0, 1) : float3(0, 1, 0);
 
-void CoordinateSystem(in float3 N, out float3 Nt, out float3 Nb)
-{
-    float sign = (N.z >= 0.0f) * 2.0f - 1.0f; // copysign(1.0f, v1.z); // No HLSL support yet
-    float a = -1.0f / (sign + N.z);
-    float b = N.x * N.y * a;
-    Nt = float3(1.0f + sign * N.x * N.x * a, sign * b, -sign * N.x);
-    Nb = float3(b, sign + N.y * N.y * a, -N.y);
+    Nt = normalize(cross(ref, N));
+    Nb = cross(N, Nt);
 }
 
 // Sampling Disk
@@ -273,6 +265,75 @@ float Degrees(float rad)
 bool IsBlack(float3 v)
 {
     return v.x == 0.0 && v.y == 0.0 && v.z == 0.0;
+}
+
+/*https://www.rorydriscoll.com/2012/01/15/cubemap-texel-solid-angle/*/
+float AreaIntegration(float x, float y)
+{
+    return atan2(sqrt(x * x + y * y + 1), x * y);
+}
+
+float CalculateSolidAngle(uint x, uint y, uint width, uint height)
+{
+    float u = 2.0 * (float(x) + 0.5) / float(width) - 1.0;
+    float v = 2.0 * (float(y) + 0.5) / float(height) - 1.0;
+
+    float x0 = u - 1.0 / float(width);
+    float x1 = u + 1.0 / float(width);
+    float y0 = v - 1.0 / float(height);
+    float y1 = v + 1.0 / float(height);
+
+    return AreaIntegration(x0, y0) - AreaIntegration(x0, y1) - AreaIntegration(x1, y0) + AreaIntegration(x1, y1);
+}
+
+float3 CalculateCubemapDirection(uint face_idx, uint face_x, uint face_y, uint width, uint height)
+{
+    float u = 2.0 * (float(face_x) + 0.5) / float(width) - 1.0;
+    float v = 2.0 * (float(face_y) + 0.5) / float(height) - 1.0;
+    float x, y, z;
+
+    // POSITIVE_X 0
+    // NEGATIVE_X 1
+    // POSITIVE_Y 2
+    // NEGATIVE_Y 3
+    // POSITIVE_Z 4
+    // NEGATIVE_Z 5
+    
+    switch (face_idx)
+    {
+        case 0:
+            x = 1;
+            y = -v;
+            z = -u;
+            break;
+        case 1:
+            x = -1;
+            y = -v;
+            z = u;
+            break;
+        case 2:
+            x = u;
+            y = 1;
+            z = v;
+            break;
+        case 3:
+            x = u;
+            y = -1;
+            z = -v;
+            break;
+        case 4:
+            x = u;
+            y = -v;
+            z = 1;
+            break;
+        case 5:
+            x = -u;
+            y = -v;
+            z = -1;
+            break;
+    }
+
+    return normalize(float3(x, y, z));
 }
 
 #endif

@@ -835,6 +835,7 @@ __pragma(warning(push, 0))
 			{
 				direction -= up;
 			}
+
 			camera_transform.translation += direction * delta_time * m_camera_speed;
 
 			glm::mat4 related_transform      = camera_transform.world_transform * glm::inverse(camera_transform.local_transform);

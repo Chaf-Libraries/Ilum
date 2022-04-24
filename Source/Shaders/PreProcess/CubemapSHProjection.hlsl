@@ -1,3 +1,6 @@
+#include "../SphericalHarmonic.hlsli"
+#include "../Math.hlsli"
+
 #define POSITIVE_X 0
 #define NEGATIVE_X 1
 #define POSITIVE_Y 2
@@ -23,96 +26,6 @@ struct CSParam
     uint3 GroupThreadID : SV_GroupThreadID;
 };
 
-struct SH9
-{
-    float weights[9];
-};
-
-struct SH9Color
-{
-    float3 weights[9];
-};
-
-float AreaIntegration(float x, float y)
-{
-    return atan2(sqrt(x * x + y * y + 1), x * y);
-}
-
-SH9 ProjectSH9(float3 dir)
-{
-    SH9 sh;
-
-    sh.weights[0] = 0.282095;
-
-    sh.weights[1] = -0.488603 * dir.y;
-    sh.weights[2] = 0.488603 * dir.z;
-    sh.weights[3] = -0.488603 * dir.x;
-
-    sh.weights[4] = 1.092548 * dir.x * dir.y;
-    sh.weights[5] = -1.092548 * dir.y * dir.z;
-    sh.weights[7] = 0.315392 * (3.0 * dir.z * dir.z - 1.0);
-    sh.weights[6] = -1.092548 * dir.x * dir.z;
-    sh.weights[8] = 0.546274 * (dir.x * dir.x - dir.y * dir.y);
-
-    return sh;
-}
-
-float CalculateSolidAngle(uint x, uint y)
-{
-    float u = 2.0 * (float(x) + 0.5) / float(push_constants.extent.x) - 1.0;
-    float v = 2.0 * (float(y) + 0.5) / float(push_constants.extent.y) - 1.0;
-
-    float x0 = u - 1.0 / float(push_constants.extent.x);
-    float x1 = u + 1.0 / float(push_constants.extent.x);
-    float y0 = v - 1.0 / float(push_constants.extent.y);
-    float y1 = v + 1.0 / float(push_constants.extent.y);
-
-    return AreaIntegration(x0, y0) - AreaIntegration(x0, y1) - AreaIntegration(x1, y0) + AreaIntegration(x1, y1);
-}
-
-float3 CalculateDirection(uint face_idx, uint face_x, uint face_y)
-{
-    float u = 2.0 * (float(face_x) + 0.5) / float(push_constants.extent.x) - 1.0;
-    float v = 2.0 * (float(face_y) + 0.5) / float(push_constants.extent.y) - 1.0;
-    float x, y, z;
-
-    switch (face_idx)
-    {
-        case POSITIVE_X:
-            x = 1;
-            y = -v;
-            z = -u;
-            break;
-        case NEGATIVE_X:
-            x = -1;
-            y = -v;
-            z = u;
-            break;
-        case POSITIVE_Y:
-            x = u;
-            y = 1;
-            z = v;
-            break;
-        case NEGATIVE_Y:
-            x = u;
-            y = -1;
-            z = -v;
-            break;
-        case POSITIVE_Z:
-            x = u;
-            y = -v;
-            z = 1;
-            break;
-        case NEGATIVE_Z:
-            x = -u;
-            y = -v;
-            z = -1;
-            break;
-    }
-
-    return normalize(float3(x, y, z));
-}
-
 groupshared SH9Color shared_sh_coeffs[LOCAL_SIZE][LOCAL_SIZE];
 groupshared float shared_weights[LOCAL_SIZE][LOCAL_SIZE];
 
@@ -128,8 +41,8 @@ void main(CSParam param)
 
     SH9 basis;
 
-    float3 dir = CalculateDirection(param.DispatchThreadID.z, param.DispatchThreadID.x, param.DispatchThreadID.y);
-    float solid_angle = CalculateSolidAngle(param.DispatchThreadID.x, param.DispatchThreadID.y);
+    float3 dir = CalculateCubemapDirection(param.DispatchThreadID.z, param.DispatchThreadID.x, param.DispatchThreadID.y, push_constants.extent.x, push_constants.extent.y);
+    float solid_angle = CalculateSolidAngle(param.DispatchThreadID.x, param.DispatchThreadID.y, push_constants.extent.x, push_constants.extent.y);
     float3 texel = Skybox.SampleLevel(SkyboxSampler, dir, 0.0).rgb;
 
     basis = ProjectSH9(dir);

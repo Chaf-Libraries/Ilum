@@ -13,7 +13,7 @@ void CubemapSHAdd::setupPipeline(PipelineState &state)
 {
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PreProcess/CubemapSHAdd.hlsl", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::HLSL);
 
-	state.descriptor_bindings.bind(0, 1, "SHIntermediate", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 1, "SHIntermediate", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 
 	state.declareAttachment("IrradianceSH", VK_FORMAT_R16G16B16A16_SFLOAT, 9, 1, false, 1);
 	state.addOutputAttachment("IrradianceSH", AttachmentState::Clear_Color);
