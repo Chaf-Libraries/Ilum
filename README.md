@@ -2,63 +2,122 @@
 
 [![Windows](https://github.com/Chaf-Libraries/Ilum/actions/workflows/windows.yml/badge.svg)](https://github.com/Chaf-Libraries/Ilum/actions/workflows/windows.yml) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/b0cb3a2729ee4be783dd5feb2cc67eb6)](https://www.codacy.com/gh/Chaf-Libraries/IlumEngine/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Chaf-Libraries/IlumEngine&amp;utm_campaign=Badge_Grade)
 
-Ilum Graphics Playground, name after *Planet Ilum* from [Star Wars](https://starwars.fandom.com/es/wiki/Ilum)
+Ilum Graphics Playground, name after *Planet Ilum* from [Star Wars](
 
-![image-20220313211708122](README/image-20220313211708122.png)
+![image-20220424103827290](README/image-20220424103827290.png)
 
 ## Build
 
 * Windows 10
-* Visual Studio 2019
+* Visual Studio 2022
 * C++17
 * CMake 3.14+
 
-Run:
+Run script `build.bat`
 
-```shell
-git clone https://github.com/Chaf-Libraries/Ilum --recursive
-mkdir build
-cd build
-cmake ..
-cmake --build ./ --target ALL_BUILD --config Release
-```
+## Hardware requirement
 
-## Vulkan Requirement
+NVIDIA Turing GPUs (GeForce RTX 30/20 Series, GeForce GTX 16 Series) are the best, due to supporting for
 
-* Instance Extension
-  * `VK_KHR_surface`
-  * `VK_KHR_win32_surface`
-  * `VK_EXT_debug_report`
-  * `VK_EXT_debug_utils`
-* Validation Layers
-  * `VK_LAYER_KHRONOS_validation`
-* Device Extension
-  * `VK_KHR_swapchain`
-  * `VK_KHR_acceleration_structure`
-  * `VK_KHR_ray_tracing_pipeline`
+* Mesh Shader
+* Ray Tracing Pipeline
+* GPU Acceleration Structure
+* Descriptor Indexing
 
 ## Feature
 
 * Architecture
-  * Render Graph
+
+  * Render Dependency Graph
     * Customize Render Pass (Graphics, Compute, Ray Tracing)
+    * Render Pass Visualization
     * Auto Resource Transition
-    * Render Passes Visualization
-    * Render Pass Setting
-  * Runtime Shader Compilation
+  * Runtime Shader Compilation and Reflection
     * GLSL -> `glslang` -> SPIR-V
     * HLSL -> `DXC` -> SPIR-V
     * SPIR-V -> `spirv-cross` -> Reflection Info
   * Entity Component System
   * Asynchronous Resource Loading
-  * Scene Loading/Saving
-* Rendering Feature For Performance
-  * Multi-Draw Indirect
-  * Bindless Texture
-  * Vertex/Index Buffer Packing
-  * GPU Frustum Culling
-  * GPU Back-Face Cone Culling
-  * GPU Hierarchy Z Buffer Occlusion Culling
+  * Scene Serialization
+
+* Rendering
+
+  * Mesh Shading Pipeline
+
+    * Meshlet Rendering
+    * GPU Frustum Culling
+    * GPU Back-Face Cone Culling
+    * Bindless Texture
+    * GPU Hierarchy Z Buffer Occlusion Culling (Deprecated)
+
+  * Deferred Shading
+
+    |            | Format |      R      |       G       |        B        |        A        |
+    | :--------: | :-----------------------------: | :---------: | :-----------: | :-------------: | :-------------: |
+    | `GBuffer0` |   `R8G8B8A8_UNORM`    | `Albedo.r`  |   `Albedo.g`    |    `Albedo.b`     |   `Metallic`    |
+    | `GBuffer1` | `R16G16B16A16_SFLOAT` |  `Normal.x`   |   `Normal.y`    |    `Normal.z`     | `Linear Depth`  |
+    | `GBuffer2` |   `R8G8B8A8_UNORM`    | `Emissive.x`  |  `Emissive.y`   |   `Emissive.z`    |   `Roughness`   |
+    | `GBuffer3` | `R16G16B16A16_SFLOAT` | `Entity ID` | `Instance ID` | `Motion Vector.x` | `Motion Vector.y` |
+
+  * Material
+  
+    * For Real Time
+      * Lambert Diffuse BRDF
+        * Lambertian Reflection
+      * Matte BRDF
+        * Oren Nayar Reflection
+        * Lambertian Reflection
+      * Disney Principle BRDF
+        * Kulla-Conty Approximation for Multi-Bounce Correction
+    * For Offline
+      * Matte BRDF
+        * Oren Nayar Reflection
+        * Lambertian Reflection
+      * Plastic BRDF
+        * Microfacet Reflection
+        * Lambertian Reflection
+      * Metal BRDF
+        * Microfacet Reflection
+      * Mirror BRDF
+        * Specular Reflection
+      * Glass BSDF
+        * Fresnel Specular
+        * Microfacet Reflection
+        * Microfacet Transmission
+      * Disney Principle BSDF
+        * Disney Diffuse
+        * Disney Fake Subsurface Scattering
+        * Specular Transmission
+        * Disney Retro
+        * Disney Sheen
+        * Disney Clearcoat
+        * Microfacet Reflection
+        * Microfacet Transmission
+        * Lambertian Transmission
+  
+  * Image Based Lighting
+  
+    * Diffuse Term: Spherical Harmonics Projection
+    * Specular Term: Split Sum Method
+  
+  * Shadow Mapping
+  
+    * Spot Light: Shadow Map
+    * Directional Light: Cascade Shadow Map
+    * Point Light: Omnidirectional Shadow Map
+  
+  * Soft Shadow
+  
+    * Percentage Closer Filtering
+    * Percentage Closer Soft Shadows
+  
+  * Path Tracing
+  
+    * Next Event Estimation
+    * Light Source & BSDF Importance Sampling
+    * Multi Importance Sampling
+    * Russian Roulette
+
 * Geometry
   * Curve Modeling
     * Bézier Curve
@@ -78,117 +137,100 @@ cmake --build ./ --target ALL_BUILD --config Release
       * Half-Edge Mesh
     * Subdivision
       * Loop Subdivision
-* Lighting Model
-  * PBR
-    * Cook-Torrance BRDF
-    * Kulla-Conty Approximation
-    * IBL
-  * Shadow
-    * Shadow Map -> Spot Light
-    * Cascade Shadow Map -> Directional Light
-    * Omnidirectional Shadow Map -> Point Light
-* Post Processing
-  * Temporal Anti-Alias
-  * Blooming
-
 
 ## Demo
 
-### Cook-Torrance BRDF
+**Render Pass Visualization**
 
-![image-20211120113603895](README/image-20211120113603895.png)
+![image-20220424111033580](README/image-20220424111033580.png)
 
-### Kulla-Conty Mutli-Bounce Approximation
-
-| Multi-Bounce OFF                               | Multi-Bounce ON                              |
-| ---------------------------------------------- | -------------------------------------------- |
-| ![kulla_conty_off](README/kulla_conty_off.png) | ![kulla_conty_on](README/kulla_conty_on.png) |
-
-### Render Passes Visualization
-
-![image-20211120113259237](README/image-20211120113259237.png)
-
-### Meshlet
+**Mesh Shading**
 
 ![image-20211130105935862](README/image-20211130105935862.png)
 
-### Hierarchy Z Buffer Generation
+**Hierarchy Z Buffer Generation**
 
-![image-20211210113933024](README/image-20211210113933024.png)
+![image-20220424111109937](README/image-20220424111109937.png)
 
-### Massive Scene Rendering
+**Deferred Shading**
 
-![image-20220302110444007](README/image-20220302110444007.png)
+|                           GBuffer0                           |                           GBuffer1                           |                           GBuffer2                           |                            Result                            |
+| :----------------------------------------------------------: | :----------------------------------------------------------: | :----------------------------------------------------------: | :----------------------------------------------------------: |
+| ![image-20220424114224795](README/image-20220424114224795.png) | ![image-20220424114147426](README/image-20220424114147426.png) | ![image-20220424114309646](README/image-20220424114309646.png) | ![image-20220424114350879](README/image-20220424114350879.png) |
 
-### Temporal Anti-Alias
+**Shadow Map(Spot Light Shadow)**
 
-|           TAA OFF            |         TAA ON         |
-| :--------------------------: | :--------------------: |
-| ![no_taa](README/no_taa.png) | ![taa](README/taa.png) |
+![image-20220424114606665](README/image-20220424114606665.png)
 
-### Blooming
+**Cascade Shadow Map(Directional Light Shadow)**
 
-| Blooming OFF                       | Blooming ON                      |
-| ---------------------------------- | -------------------------------- |
-| ![bloom_off](README/bloom_off.png) | ![bloom_on](README/bloom_on.png) |
+![image-20220424114627387](README/image-20220424114627387.png)
 
-### Shadow Map(Spot Light Shadow)
+**Omnidirectional Shadow Map(Point Light Shadow)**
 
-![spot_light_shadow](README/spot_light_shadow.png)
+![image-20220424114641418](README/image-20220424114641418.png)
 
-### Cascade Shadow Map(Directional Light Shadow)
-
-#### Frustum Split
-
-![frustum_split](README/frustum_split.png)
-
-#### Directional Light Shadow
-
-![directional_light_shadow](README/directional_light_shadow.png)
-
-### Omnidirectional Shadow Map(Point Light Shadow)
-
-![point_light_shadow](README/point_light_shadow.png)
-
-### Soft Shadow Filter
-
-#### PCF
+**Percentage Closer Filtering**
 
 |           PCF OFF            |            Uniform Sampling            |            Poisson Sampling            |
 | :--------------------------: | :------------------------------------: | :------------------------------------: |
 | ![no_pcf](README/no_pcf.png) | ![uniform_pcf](README/uniform_pcf.png) | ![poisson_pcf](README/poisson_pcf.png) |
 
-#### PCSS
+**Percentage Closer Soft Shadows**
 
 |           PCSS OFF           |             Uniform Sampling             |             Poisson Sampling             |
 | :--------------------------: | :--------------------------------------: | :--------------------------------------: |
 | ![no_pcf](README/no_pcf.png) | ![uniform_pcss](README/uniform_pcss.png) | ![poisson_pcss](README/poisson_pcss.png) |
 
-### Image Based Lighting (Spherical Harmonic Diffuse + Split Sum Specular)
+**Image Based Lighting**
 
-![IBL](README/IBL.png)
+![IBL](README/IBL-16507723592991.png)
 
-### Curve Modeling
+**Spherical Harmonic Projection**
+
+![sh](README/sh.png)
+
+**Split Sum**
+
+|              Roughness=0.8               |              Roughness=0.6               |              Roughness=0.4               |              Roughness=0.2               |              Roughness=0.0               |
+| :--------------------------------------: | :--------------------------------------: | :--------------------------------------: | :--------------------------------------: | :--------------------------------------: |
+| ![roughness0.8](README/roughness0.8.png) | ![roughness0.6](README/roughness0.6.png) | ![roughness0.4](README/roughness0.4.png) | ![roughness0.2](README/roughness0.2.png) | ![roughness0.0](README/roughness0.0.png) |
+
+**Path Tracing (Render in 1000 SPP)**
+
+|           Matte            |           Metal            |            Plastic             |            Mirror            |
+| :------------------------: | :------------------------: | :----------------------------: | :--------------------------: |
+| ![matte](README/matte.png) | ![metal](README/metal.png) | ![plastic](README/plastic.png) | ![mirror](README/mirror.png) |
+
+|             Substrate              |           Glass            |            Disney            |
+| :--------------------------------: | :------------------------: | :--------------------------: |
+| ![substrate](README/substrate.png) | ![glass](README/glass.png) | ![disney](README/disney.png) |
+
+![spaceship](README/spaceship.png)
+
+![coffee](README/coffee.png)
+
+**Curve Modeling**
 
 ![image-20220108150839809](README/image-20220108150839809.png)
 
-### Surface Modeling
+**Surface Modeling**
 
 ![image-20220108151149909](README/image-20220108151149909.png)
 
-### Loop Subdivision
+**Loop Subdivision**
 
 |           Origin           |        Iteration #1        |        Iteration #2        |        Iteration #3        |        Iteration #4        |
 | :------------------------: | :------------------------: | :------------------------: | :------------------------: | :------------------------: |
 | ![loop0](README/loop0.png) | ![loop1](README/loop1.png) | ![loop2](README/loop2.png) | ![loop3](README/loop3.png) | ![loop4](README/loop4.png) |
 
-### Minimum Surface
+**Minimum Surface**
 
 |          Origin          |             Minimum Surface              |
 | :----------------------: | :--------------------------------------: |
 | ![face](README/face.png) | ![mini_surface](README/mini_surface.png) |
 
-### Tutte Parameterization
+**Tutte Parameterization**
 
 **Origin Mesh**
 
@@ -200,4 +242,6 @@ cmake --build ./ --target ALL_BUILD --config Release
 |  Rectangle Boundary + Uniform Weight  |       ![uniform_rectange](README/uniform_rectange.png)       | ![uniform_rectange_vis](README/uniform_rectange_vis.png) |
 |  Circle Boundary + Cotangent Weight   |       ![cotangent_circle](README/cotangent_circle.png)       | ![cotangent_circle_vis](README/cotangent_circle_vis.png) |
 | Rectangle Boundary + Cotangent Weight | ![cotangent_rectange_vis](README/cotangent_rectange_vis.png) |   ![cotangent_rectange](README/cotangent_rectange.png)   |
+
+## Reference
 
