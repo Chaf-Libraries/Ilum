@@ -17,6 +17,7 @@ struct DirectionalLight
 {
     float4 split_depth;
     float4x4 view_projection[4];
+    float4 shadow_cam_pos[4];
     float3 color;
     float intensity;
     float3 direction;

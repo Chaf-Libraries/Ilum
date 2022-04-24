@@ -49,4 +49,57 @@ struct PCGSampler
     }
 };
 
+float Rand1To1(float x)
+{
+    return frac(sin(x) * 43758.5453123);
+}
+
+float Rand2To1(float2 uv)
+{
+    return frac(sin(dot(uv, float2(12.9898, 78.233))) * 43758.5453);
+}
+
+float Rand3To1(float3 uvw)
+{
+    return frac(sin(dot(uvw, float3(12.9898, 78.233, 144.7272))) * 43758.5453);
+}
+
+float2 PoissonDiskSamples2D(float2 seed, int samples_num, int rings_num, int step)
+{
+    float angle = Rand2To1(seed) * PI * 2.0 + step * PI * 2.0 * float(rings_num) / float(samples_num);
+    float radius = (float(step) + 1.0) / float(samples_num);
+    return float2(cos(angle) * sin(angle), cos(angle)) * pow(radius, 0.75);
+}
+
+float3 PoissonDiskSamples3D(float3 seed, int samples_num, int rings_num, float2 step)
+{
+    float2 angle = Rand3To1(seed) * PI * 2.0 + step * PI * 2.0 * float(rings_num) / float(samples_num);
+    float radius = (length(step) + 1.0) / float(samples_num);
+    return float3(sin(angle.x) * cos(angle.y), sin(angle.x) * sin(angle.y), cos(angle.x)) * pow(radius, 0.75);
+}
+
+float2 UniformDiskSamples2D(float2 seed)
+{
+    float rand_num = Rand2To1(seed);
+    float sample_x = Rand1To1(rand_num);
+    float sample_y = Rand1To1(sample_x);
+
+    float radius = sqrt(sample_x);
+    float angle = sample_y * PI * 2;
+
+    return float2(radius * cos(angle), radius * sin(angle));
+}
+
+float3 UniformDiskSamples3D(float3 seed)
+{
+    float sample_x = Rand3To1(seed);
+    float sample_y = Rand1To1(sample_x);
+    float sample_z = Rand1To1(sample_y);
+
+    float radius = sqrt(sample_x);
+    float2 angle = float2(sample_y * PI * 2, sample_z * PI * 2);
+
+    return float3(sin(angle.y) * cos(angle.x), sin(angle.y) * sin(angle.x), cos(angle.y)) * radius;
+}
+
 #endif
