@@ -55,7 +55,7 @@ void RayGen()
     }
     
     // Clamp firefly
-    float lum = dot(ray_payload.radiance, float3(0.212671, 0.715160, 0.072169));
+    float lum = Luminance(ray_payload.radiance);
     if (lum > push_constants.firefly_clamp_threshold)
     {
         ray_payload.radiance *= push_constants.firefly_clamp_threshold / lum;

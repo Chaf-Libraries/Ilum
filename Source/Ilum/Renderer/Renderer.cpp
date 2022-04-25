@@ -27,9 +27,6 @@
 #include "Scene/Scene.hpp"
 
 #include "RenderPass/Copy/CopyFrame.hpp"
-#include "RenderPass/Copy/CopyHizBuffer.hpp"
-
-#include "RenderPass/Culling/HizPass.hpp"
 
 #include "RenderPass/GeometryView/CurveViewPass.hpp"
 #include "RenderPass/GeometryView/MeshViewPass.hpp"
@@ -60,8 +57,6 @@
 
 #include "RenderPass/RayTracing/Path.hpp"
 
-#include "RenderPass/Test/RandomVis.hpp"
-
 #include "BufferUpdate/CameraUpdate.hpp"
 #include "BufferUpdate/CurveUpdate.hpp"
 #include "BufferUpdate/GeometryUpdate.hpp"
@@ -86,13 +81,13 @@ Renderer::Renderer(Context *context) :
 
 	DeferredRendering = [this](RenderGraphBuilder &builder) {
 		builder
-		    .addRenderPass("KullaContyEnergy", std::make_unique<pass::KullaContyEnergy>())
-		    .addRenderPass("KullaContyAverage", std::make_unique<pass::KullaContyAverage>())
-		    .addRenderPass("BRDFPreIntegrate", std::make_unique<pass::BRDFPreIntegrate>())
+		    //.addRenderPass("KullaContyEnergy", std::make_unique<pass::KullaContyEnergy>())
+		    //.addRenderPass("KullaContyAverage", std::make_unique<pass::KullaContyAverage>())
+		    //.addRenderPass("BRDFPreIntegrate", std::make_unique<pass::BRDFPreIntegrate>())
 		    .addRenderPass("EquirectangularToCubemap", std::make_unique<pass::EquirectangularToCubemap>())
-		    .addRenderPass("CubemapSHProjection", std::make_unique<pass::CubemapSHProjection>())
-		    .addRenderPass("CubemapSHAdd", std::make_unique<pass::CubemapSHAdd>())
-		    .addRenderPass("CubemapPrefilter", std::make_unique<pass::CubemapPrefilter>())
+		    //.addRenderPass("CubemapSHProjection", std::make_unique<pass::CubemapSHProjection>())
+		    //.addRenderPass("CubemapSHAdd", std::make_unique<pass::CubemapSHAdd>())
+		    //.addRenderPass("CubemapPrefilter", std::make_unique<pass::CubemapPrefilter>())
 
 		    //.addRenderPass("HizPass", std::make_unique<pass::HizPass>())
 		    //.addRenderPass("TAAPass", std::make_unique<pass::TAAPass>())
@@ -119,15 +114,17 @@ Renderer::Renderer(Context *context) :
 		    //.addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Path", "Tonemapping"))
 
 		    .addRenderPass("MeshPass", std::make_unique<pass::MeshPass>())
-
 		    .addRenderPass("ShadowmapPass", std::make_unique<pass::ShadowmapPass>())
 		    .addRenderPass("CascadeShadowmapPass", std::make_unique<pass::CascadeShadowmapPass>())
 		    .addRenderPass("OmniShadowmapPass", std::make_unique<pass::OmniShadowmapPass>())
-
 		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
 		    .addRenderPass("Skybox", std::make_unique<pass::SkyboxPass>())
-
 		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Lighting", "Tonemapping"))
+
+			.addRenderPass("CurveViewPass", std::make_unique<pass::CurveViewPass>())
+		    .addRenderPass("SurfaceViewPass", std::make_unique<pass::SurfaceViewPass>())
+		    .addRenderPass("MeshViewPass", std::make_unique<pass::MeshViewPass>())
+		    .addRenderPass("WireFrameViewPass", std::make_unique<pass::WireFrameViewPass>())
 
 		    .setView("Tonemapping")
 		    .setOutput("Tonemapping");

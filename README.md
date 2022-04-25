@@ -52,12 +52,12 @@ NVIDIA Turing GPUs (GeForce RTX 30/20 Series, GeForce GTX 16 Series) are the bes
 
   * Deferred Shading
 
-    |            | Format |      R      |       G       |        B        |        A        |
+    | GBuffer | Format |      R      |       G       |        B        |        A        |
     | :--------: | :-----------------------------: | :---------: | :-----------: | :-------------: | :-------------: |
-    | `GBuffer0` |   `R8G8B8A8_UNORM`    | `Albedo.r`  |   `Albedo.g`    |    `Albedo.b`     |   `Metallic`    |
-    | `GBuffer1` | `R16G16B16A16_SFLOAT` |  `Normal.x`   |   `Normal.y`    |    `Normal.z`     | `Linear Depth`  |
-    | `GBuffer2` |   `R8G8B8A8_UNORM`    | `Emissive.x`  |  `Emissive.y`   |   `Emissive.z`    |   `Roughness`   |
-    | `GBuffer3` | `R16G16B16A16_SFLOAT` | `Entity ID` | `Instance ID` | `Motion Vector.x` | `Motion Vector.y` |
+    | `0` |   `RGBA8U`   | `Albedo.r`  |   `Albedo.g`    |    `Albedo.b`     |   `Metallic`    |
+    | `1` | `RGBA16F` |  `Normal.x`   |   `Normal.y`    |    `Normal.z`     | `Linear Depth`  |
+    | `2` | `RGBA8U` | `Emissive.r`  |  `Emissive.g`   |   `Emissive.b`    |   `Roughness`   |
+    | `3` | `RGBA16F` | `Entity ID` | `Instance ID` | `Motion Vector.x` | `Motion Vector.y` |
 
   * Material
   
@@ -243,5 +243,39 @@ NVIDIA Turing GPUs (GeForce RTX 30/20 Series, GeForce GTX 16 Series) are the bes
 |  Circle Boundary + Cotangent Weight   |       ![cotangent_circle](README/cotangent_circle.png)       | ![cotangent_circle_vis](README/cotangent_circle_vis.png) |
 | Rectangle Boundary + Cotangent Weight | ![cotangent_rectange_vis](README/cotangent_rectange_vis.png) |   ![cotangent_rectange](README/cotangent_rectange.png)   |
 
+## Dependencies
+
+* [ImFileDialog](https://github.com/dfranx/ImFileDialog)
+* [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo)
+* [assimp](https://github.com/assimp/assimp)
+* [cereal](https://github.com/USCiLab/cereal)
+* [DirectXCompiler](https://github.com/microsoft/DirectXShaderCompiler)
+* [eigen](https://gitlab.com/libeigen/eigen)
+* [entt](https://github.com/skypjack/entt)
+* [glm](https://github.com/g-truc/glm)
+* [glslang](https://github.com/KhronosGroup/glslang)
+* [imgui](https://github.com/ocornut/imgui)
+* [imgui-node-editor](https://github.com/thedmd/imgui-node-editor)
+* [stb](https://github.com/nothings/stb)
+* [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
+* [volk](https://github.com/zeux/volk)
+* [Vulkan-Headers](https://github.com/KhronosGroup/Vulkan-Headers)
+* [oneTBB](https://github.com/oneapi-src/oneTBB)
+* [meshoptimizer](https://github.com/zeux/meshoptimizer)
+* [spdlog](https://github.com/gabime/spdlog)
+* [SDL](https://github.com/libsdl-org/SDL)
+* [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross)
+
 ## Reference
+
+* [https://www.pbr-book.org/](https://www.pbr-book.org/)
+* [http://www.realtimerendering.com/](http://www.realtimerendering.com/)
+* [https://learnopengl-cn.github.io/](https://learnopengl-cn.github.io/)
+* [https://hazelengine.com/](https://hazelengine.com/)
+* [https://advances.realtimerendering.com/s2015/aaltonenhaar_siggraph2015_combined_final_footer_220dpi.pdf](https://advances.realtimerendering.com/s2015/aaltonenhaar_siggraph2015_combined_final_footer_220dpi.pdf)
+* [https://www.gdcvault.com/play/1024612/FrameGraph-Extensible-Rendering-Architecture-in](https://www.gdcvault.com/play/1024612/FrameGraph-Extensible-Rendering-Architecture-in)
+* [https://github.com/SaschaWillems/Vulkan](https://github.com/SaschaWillems/Vulkan)
+* [https://github.com/KhronosGroup/Vulkan-Samples](https://github.com/KhronosGroup/Vulkan-Samples)
+* [https://github.com/wdas/brdf](https://github.com/wdas/brdf)
+* [http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf.](http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf.)
 

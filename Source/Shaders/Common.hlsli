@@ -349,4 +349,9 @@ RayDesc SpawnRay(Interaction isect, float3 wi)
     return ray;
 }
 
+float Luminance(float3 x)
+{
+    return dot(x, float3(0.212671, 0.715160, 0.072169)); // Defined by sRGB/Rec.709 gamut
+}
+
 #endif
