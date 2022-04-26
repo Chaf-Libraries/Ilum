@@ -210,6 +210,12 @@ NVIDIA Turing GPUs (GeForce RTX 30/20 Series, GeForce GTX 16 Series) are the bes
 
 ![coffee](README/coffee.png)
 
+**Bloom**
+
+|                     Bloom Off                     |                    Bloom On                     |
+| :-----------------------------------------------: | :---------------------------------------------: |
+| ![bloom_off](README/bloom_off-16509578159532.png) | ![bloom_on](README/bloom_on-16509578198833.png) |
+
 **Curve Modeling**
 
 ![image-20220108150839809](README/image-20220108150839809.png)
@@ -278,4 +284,5 @@ NVIDIA Turing GPUs (GeForce RTX 30/20 Series, GeForce GTX 16 Series) are the bes
 * [https://github.com/KhronosGroup/Vulkan-Samples](https://github.com/KhronosGroup/Vulkan-Samples)
 * [https://github.com/wdas/brdf](https://github.com/wdas/brdf)
 * [http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf.](http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf.)
+* [https://www.froyok.fr/blog/2021-12-ue4-custom-bloom/](https://www.froyok.fr/blog/2021-12-ue4-custom-bloom/)
 
