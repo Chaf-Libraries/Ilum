@@ -97,17 +97,19 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
 		    .addRenderPass("Skybox", std::make_unique<pass::SkyboxPass>())
 
-		    .addRenderPass("BloomMask", std::make_unique<pass::BloomMask>("Lighting", "BloomMask"))
-		    .addRenderPass("BloomDownSample1", std::make_unique<pass::BloomDownSample>("BloomMask", "BloomLevel_1", 1))
-		    .addRenderPass("BloomDownSample2", std::make_unique<pass::BloomDownSample>("BloomLevel_1", "BloomLevel_2", 2))
-		    .addRenderPass("BloomDownSample3", std::make_unique<pass::BloomDownSample>("BloomLevel_2", "BloomLevel_3", 3))
-		    .addRenderPass("BloomDownSample4", std::make_unique<pass::BloomDownSample>("BloomLevel_3", "BloomLevel_4", 4))
-
-		    .addRenderPass("BloomUpSample1", std::make_unique<pass::BloomUpSample>("BloomLevel_4", "BloomLevel_3", "BloomCombine1", 3))
-		    .addRenderPass("BloomUpSample2", std::make_unique<pass::BloomUpSample>("BloomCombine1", "BloomLevel_2", "BloomCombine2", 2))
-		    .addRenderPass("BloomUpSample3", std::make_unique<pass::BloomUpSample>("BloomCombine2", "BloomLevel_1", "BloomCombine3", 1))
-
-		    .addRenderPass("BloomBlend", std::make_unique<pass::BloomBlend>("Lighting", "BloomCombine3", "BloomResult"))
+		    .addRenderPass("BloomMask", std::make_unique<pass::BloomMask>("Lighting"))
+		    .addRenderPass("BloomDownSample1", std::make_unique<pass::BloomDownSample>(1))
+		    .addRenderPass("BloomDownSample2", std::make_unique<pass::BloomDownSample>(2))
+		    .addRenderPass("BloomDownSample3", std::make_unique<pass::BloomDownSample>(3))
+		    .addRenderPass("BloomDownSample4", std::make_unique<pass::BloomDownSample>(4))
+		    .addRenderPass("BloomBlur1", std::make_unique<pass::BloomBlur>(1))
+		    .addRenderPass("BloomBlur2", std::make_unique<pass::BloomBlur>(2))
+		    .addRenderPass("BloomBlur3", std::make_unique<pass::BloomBlur>(3))
+		    .addRenderPass("BloomBlur4", std::make_unique<pass::BloomBlur>(4))
+		    .addRenderPass("BloomUpSample1", std::make_unique<pass::BloomUpSample>(4, true))
+		    .addRenderPass("BloomUpSample2", std::make_unique<pass::BloomUpSample>(3))
+		    .addRenderPass("BloomUpSample3", std::make_unique<pass::BloomUpSample>(2))
+		    .addRenderPass("BloomBlend", std::make_unique<pass::BloomBlend>("Lighting", "BloomResult"))
 
 		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("BloomResult", "Tonemapping"))
 

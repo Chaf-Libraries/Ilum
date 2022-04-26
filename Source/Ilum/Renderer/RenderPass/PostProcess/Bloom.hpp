@@ -9,7 +9,7 @@ namespace Ilum::pass
 class BloomMask : public TRenderPass<BloomMask>
 {
   public:
-	BloomMask(const std::string &input, const std::string &output);
+	BloomMask(const std::string &input);
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -21,13 +21,12 @@ class BloomMask : public TRenderPass<BloomMask>
 
   private:
 	std::string m_input;
-	std::string m_output;
 };
 
 class BloomDownSample : public TRenderPass<BloomDownSample>
 {
   public:
-	BloomDownSample(const std::string &input, const std::string &output, uint32_t level);
+	BloomDownSample(uint32_t level);
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -38,15 +37,30 @@ class BloomDownSample : public TRenderPass<BloomDownSample>
 	virtual void onImGui() override;
 
   private:
-	std::string m_input;
-	std::string m_output;
-	uint32_t    m_level;
+	uint32_t m_level;
+};
+
+class BloomBlur : public TRenderPass<BloomBlur>
+{
+  public:
+	BloomBlur(uint32_t level);
+
+	virtual void setupPipeline(PipelineState &state) override;
+
+	virtual void resolveResources(ResolveState &resolve) override;
+
+	virtual void render(RenderPassState &state) override;
+
+	virtual void onImGui() override;
+
+  private:
+	uint32_t m_level;
 };
 
 class BloomUpSample : public TRenderPass<BloomUpSample>
 {
   public:
-	BloomUpSample(const std::string &low_resolution, const std::string &high_resolution, const std::string &output, uint32_t level);
+	BloomUpSample(uint32_t level, bool start = false);
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -57,16 +71,14 @@ class BloomUpSample : public TRenderPass<BloomUpSample>
 	virtual void onImGui() override;
 
   private:
-	uint32_t    m_level;
-	std::string m_low_resolution;
-	std::string m_high_resolution;
-	std::string m_output;
+	uint32_t m_level;
+	bool     m_start = false;
 };
 
 class BloomBlend : public TRenderPass<BloomBlend>
 {
   public:
-	BloomBlend(const std::string &input, const std::string &bloom, const std::string &output);
+	BloomBlend(const std::string &input, const std::string &output);
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -78,7 +90,6 @@ class BloomBlend : public TRenderPass<BloomBlend>
 
   private:
 	std::string m_input;
-	std::string m_bloom;
 	std::string m_output;
 };
 }        // namespace Ilum::pass
