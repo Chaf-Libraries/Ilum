@@ -24,4 +24,23 @@ class KullaContyEnergy : public TRenderPass<KullaContyEnergy>
   private:
 	bool m_finish = false;
 };
+
+class KullaContyAverage : public TRenderPass<KullaContyAverage>
+{
+  public:
+	KullaContyAverage() = default;
+
+	~KullaContyAverage() = default;
+
+	virtual void setupPipeline(PipelineState &state) override;
+
+	virtual void resolveResources(ResolveState &resolve) override;
+
+	virtual void render(RenderPassState &state) override;
+
+	virtual void onImGui() override;
+
+  private:
+	bool m_finish = false;
+};
 }        // namespace Ilum::pass

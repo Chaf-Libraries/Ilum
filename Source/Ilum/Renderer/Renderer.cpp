@@ -33,19 +33,12 @@
 #include "RenderPass/GeometryView/SurfaceViewPass.hpp"
 #include "RenderPass/GeometryView/WireFrameView.hpp"
 
-#include "RenderPass/PostProcess/BloomBlend.hpp"
-#include "RenderPass/PostProcess/BloomBlur.hpp"
-#include "RenderPass/PostProcess/BloomMask.hpp"
+#include "RenderPass/PostProcess/Bloom.hpp"
 #include "RenderPass/PostProcess/TAA.hpp"
 #include "RenderPass/PostProcess/Tonemapping.hpp"
 
-#include "RenderPass/PreProcess/CubemapPrefilter.hpp"
-#include "RenderPass/PreProcess/CubemapSHAdd.hpp"
-#include "RenderPass/PreProcess/CubemapSHProjection.hpp"
-#include "RenderPass/PreProcess/KullaContyAverage.hpp"
-#include "RenderPass/PreProcess/KullaContyEnergy.hpp"
-#include "RenderPass/Preprocess/BRDFPreIntegrate.hpp"
-#include "RenderPass/Preprocess/EquirectangularToCubemap.hpp"
+#include "RenderPass/PreProcess/IBL.hpp"
+#include "RenderPass/PreProcess/KullaConty.hpp"
 
 #include "RenderPass/Shading/Deferred/GeometryPass.hpp"
 #include "RenderPass/Shading/Deferred/LightPass.hpp"
@@ -81,29 +74,13 @@ Renderer::Renderer(Context *context) :
 
 	DeferredRendering = [this](RenderGraphBuilder &builder) {
 		builder
-		    //.addRenderPass("KullaContyEnergy", std::make_unique<pass::KullaContyEnergy>())
-		    //.addRenderPass("KullaContyAverage", std::make_unique<pass::KullaContyAverage>())
-		    //.addRenderPass("BRDFPreIntegrate", std::make_unique<pass::BRDFPreIntegrate>())
+		    .addRenderPass("KullaContyEnergy", std::make_unique<pass::KullaContyEnergy>())
+		    .addRenderPass("KullaContyAverage", std::make_unique<pass::KullaContyAverage>())
+		    .addRenderPass("BRDFPreIntegrate", std::make_unique<pass::BRDFPreIntegrate>())
 		    .addRenderPass("EquirectangularToCubemap", std::make_unique<pass::EquirectangularToCubemap>())
-		    //.addRenderPass("CubemapSHProjection", std::make_unique<pass::CubemapSHProjection>())
-		    //.addRenderPass("CubemapSHAdd", std::make_unique<pass::CubemapSHAdd>())
-		    //.addRenderPass("CubemapPrefilter", std::make_unique<pass::CubemapPrefilter>())
-
-		    //.addRenderPass("HizPass", std::make_unique<pass::HizPass>())
-		    //.addRenderPass("TAAPass", std::make_unique<pass::TAAPass>())
-		    //.addRenderPass("BloomMask", std::make_unique<pass::BloomMask>("TAAOutput", "PostTex1"))
-		    //.addRenderPass("BloomBlur1", std::make_unique<pass::BloomBlur>("PostTex1", "PostTex2", false))
-		    //.addRenderPass("BloomBlur2", std::make_unique<pass::BloomBlur>("PostTex2", "PostTex1", true))
-		    //.addRenderPass("Blend", std::make_unique<pass::BloomBlend>("PostTex1", "TAAOutput"))
-		    //.addRenderPass("CopyHizBuffer", std::make_unique<pass::CopyHizBuffer>())
-		    //.addRenderPass("CopyLastFrame", std::make_unique<pass::CopyLastFrame>("TAAOutput"))
-		    //.addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Lighting"))
-		    //.addRenderPass("CurveViewPass", std::make_unique<pass::CurveViewPass>())
-		    //.addRenderPass("SurfaceViewPass", std::make_unique<pass::SurfaceViewPass>())
-		    //.addRenderPass("MeshViewPass", std::make_unique<pass::MeshViewPass>())
-		    //.addRenderPass("WireFrameViewPass", std::make_unique<pass::WireFrameViewPass>())
-		    //.setView("TAAOutput")
-		    //.setOutput("TAAOutput")
+		    .addRenderPass("CubemapSHProjection", std::make_unique<pass::CubemapSHProjection>())
+		    .addRenderPass("CubemapSHAdd", std::make_unique<pass::CubemapSHAdd>())
+		    .addRenderPass("CubemapPrefilter", std::make_unique<pass::CubemapPrefilter>())
 
 		    //.addRenderPass("Whitted", std::make_unique<pass::Whitted>())
 		    //.addRenderPass("CopyFrame", std::make_unique<pass::CopyFrame>("Whitted", "PrevWhitted"))
@@ -119,12 +96,25 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("OmniShadowmapPass", std::make_unique<pass::OmniShadowmapPass>())
 		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
 		    .addRenderPass("Skybox", std::make_unique<pass::SkyboxPass>())
-		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Lighting", "Tonemapping"))
 
-			.addRenderPass("CurveViewPass", std::make_unique<pass::CurveViewPass>())
-		    .addRenderPass("SurfaceViewPass", std::make_unique<pass::SurfaceViewPass>())
-		    .addRenderPass("MeshViewPass", std::make_unique<pass::MeshViewPass>())
-		    .addRenderPass("WireFrameViewPass", std::make_unique<pass::WireFrameViewPass>())
+		    .addRenderPass("BloomMask", std::make_unique<pass::BloomMask>("Lighting", "BloomMask"))
+		    .addRenderPass("BloomDownSample1", std::make_unique<pass::BloomDownSample>("BloomMask", "BloomLevel_1", 1))
+		    .addRenderPass("BloomDownSample2", std::make_unique<pass::BloomDownSample>("BloomLevel_1", "BloomLevel_2", 2))
+		    .addRenderPass("BloomDownSample3", std::make_unique<pass::BloomDownSample>("BloomLevel_2", "BloomLevel_3", 3))
+		    .addRenderPass("BloomDownSample4", std::make_unique<pass::BloomDownSample>("BloomLevel_3", "BloomLevel_4", 4))
+
+		    .addRenderPass("BloomUpSample1", std::make_unique<pass::BloomUpSample>("BloomLevel_4", "BloomLevel_3", "BloomCombine1", 3))
+		    .addRenderPass("BloomUpSample2", std::make_unique<pass::BloomUpSample>("BloomCombine1", "BloomLevel_2", "BloomCombine2", 2))
+		    .addRenderPass("BloomUpSample3", std::make_unique<pass::BloomUpSample>("BloomCombine2", "BloomLevel_1", "BloomCombine3", 1))
+
+		    .addRenderPass("BloomBlend", std::make_unique<pass::BloomBlend>("Lighting", "BloomCombine3", "BloomResult"))
+
+		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("BloomResult", "Tonemapping"))
+
+		    //.addRenderPass("CurveViewPass", std::make_unique<pass::CurveViewPass>())
+		    //.addRenderPass("SurfaceViewPass", std::make_unique<pass::SurfaceViewPass>())
+		    //.addRenderPass("MeshViewPass", std::make_unique<pass::MeshViewPass>())
+		    //.addRenderPass("WireFrameViewPass", std::make_unique<pass::WireFrameViewPass>())
 
 		    .setView("Tonemapping")
 		    .setOutput("Tonemapping");
