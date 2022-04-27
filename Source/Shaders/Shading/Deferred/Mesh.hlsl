@@ -108,14 +108,19 @@ void MSmain(CSParam param, in payload Payload pay_load, out vertices VertexOut v
     {
         uint vertex_index = meshlet.vertex_offset + meshlet_vertices[meshlet.meshlet_vertex_offset + i];
         Vertex vertex = vertices[vertex_index];
-        verts[i].PositionHS = mul(camera.view_projection, mul(transform, float4(vertex.position.xyz, 1.0)));
+
         verts[i].Normal = normalize(mul((float3x3) transform, vertex.normal.xyz));
         verts[i].TexCoord = vertex.uv.rg;
         verts[i].EntityID = instance.entity_id;
         verts[i].InstanceID = meshlet.instance_id;
         
-        verts[i].ScreenPos = mul(camera.view_projection, mul(instance.transform, float4(vertex.position.xyz, 1.0)));
-        verts[i].PrevScreenPos = mul(camera.last_view_projection, mul(instance.last_transform, float4(vertex.position.xyz, 1.0)));
+        float4 clipPos = mul(camera.view_projection, mul(transform, float4(vertex.position.xyz, 1.0)));
+        float4 prevClipPos = mul(camera.last_view_projection, mul(instance.last_transform, float4(vertex.position.xyz, 1.0)));
+        
+        verts[i].PositionHS = clipPos;
+        verts[i].ScreenPos = clipPos;
+        verts[i].PrevScreenPos = prevClipPos;
+
     }
 
     for (i = param.GroupThreadID.x; i < meshlet.index_count / 3; i += 32)
@@ -144,7 +149,7 @@ float2 ComputeMotionVector(float4 prev_pos, float4 current_pos)
 
     current.y = 1 - current.y;
     prev.y = 1 - prev.y;
-
+    
     return current - prev;
 }
 

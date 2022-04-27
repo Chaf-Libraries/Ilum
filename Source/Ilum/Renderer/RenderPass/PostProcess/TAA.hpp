@@ -12,9 +12,7 @@ namespace Ilum::pass
 class TAAPass : public TRenderPass<TAAPass>
 {
   public:
-	TAAPass(const std::string& input);
-
-	virtual void onUpdate() override;
+	TAAPass(const std::string &input, const std::string &prev, const std::string &output);
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -26,16 +24,7 @@ class TAAPass : public TRenderPass<TAAPass>
 
   private:
 	std::string m_input;
-
-	bool m_enable = true;
-	uint32_t m_sharpen        = true;
-
-	glm::vec2 m_current_jitter = glm::vec2(0.f);
-	glm::vec2 m_prev_jitter    = glm::vec2(0.f);
-	glm::vec2 m_feedback       = glm::vec2(0.925f, 0.987f);
-
-	std::vector<glm::vec2> m_jitter_samples;
-
-	Image m_last_frame;
+	std::string m_prev;
+	std::string m_output;
 };
 }        // namespace Ilum::pass

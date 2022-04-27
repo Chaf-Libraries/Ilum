@@ -111,6 +111,8 @@ struct CameraData
 	glm::vec4 frustum[6];
 	glm::vec3 position;
 	uint32_t  frame_num;
+	glm::vec2 jitter;
+	glm::vec2 prev_jitter;
 };
 
 struct MeshDrawCommand

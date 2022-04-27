@@ -16,5 +16,9 @@ class CameraUpdate : public System
 	~CameraUpdate() = default;
 
 	virtual void run() override;
+
+  private:
+	std::array<glm::vec2, 16> m_halton_sequence;
+	uint32_t                  m_frame_count = 0;
 };
 }        // namespace Ilum::sym

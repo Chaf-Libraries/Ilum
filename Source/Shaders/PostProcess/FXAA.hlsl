@@ -216,9 +216,6 @@ float GetEdgeBlendFactor(LumaNeighborhood luma, FXAAEdge edge, float2 uv, float2
 [numthreads(8, 8, 1)]
 void main(CSParam param)
 {
-    
-    
-    
     uint2 extent;
     InImage.GetDimensions(extent.x, extent.y);
     float2 texel_size = 1.0 / float2(extent);

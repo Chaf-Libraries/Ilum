@@ -13,6 +13,8 @@ struct Camera
     float4 frustum[6];
     float3 position;
     uint frame_count;
+    float2 jitter;
+    float2 prev_jitter;
     
     RayDesc CastRay(float2 screen_coords)
     {

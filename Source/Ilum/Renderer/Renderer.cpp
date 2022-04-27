@@ -90,29 +90,32 @@ Renderer::Renderer(Context *context) :
 		    //.addRenderPass("CopyFrame", std::make_unique<pass::CopyFrame>("Path", "PrevPath"))
 		    //.addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Path", "Tonemapping"))
 
-		    .addRenderPass("MeshPass", std::make_unique<pass::MeshPass>())
+		    .addRenderPass("MeshPass", std::make_unique<pass::MeshPass>(true))
 		    .addRenderPass("ShadowmapPass", std::make_unique<pass::ShadowmapPass>())
 		    .addRenderPass("CascadeShadowmapPass", std::make_unique<pass::CascadeShadowmapPass>())
 		    .addRenderPass("OmniShadowmapPass", std::make_unique<pass::OmniShadowmapPass>())
 		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
 		    .addRenderPass("Skybox", std::make_unique<pass::SkyboxPass>())
-		    .addRenderPass("FXAA", std::make_unique<pass::FXAA>("Lighting", "FXAAResult"))
 
-		    .addRenderPass("BloomMask", std::make_unique<pass::BloomMask>("FXAAResult"))
-		    .addRenderPass("BloomDownSample1", std::make_unique<pass::BloomDownSample>(1))
-		    .addRenderPass("BloomDownSample2", std::make_unique<pass::BloomDownSample>(2))
-		    .addRenderPass("BloomDownSample3", std::make_unique<pass::BloomDownSample>(3))
-		    .addRenderPass("BloomDownSample4", std::make_unique<pass::BloomDownSample>(4))
-		    .addRenderPass("BloomBlur1", std::make_unique<pass::BloomBlur>(1))
-		    .addRenderPass("BloomBlur2", std::make_unique<pass::BloomBlur>(2))
-		    .addRenderPass("BloomBlur3", std::make_unique<pass::BloomBlur>(3))
-		    .addRenderPass("BloomBlur4", std::make_unique<pass::BloomBlur>(4))
-		    .addRenderPass("BloomUpSample1", std::make_unique<pass::BloomUpSample>(4, true))
-		    .addRenderPass("BloomUpSample2", std::make_unique<pass::BloomUpSample>(3))
-		    .addRenderPass("BloomUpSample3", std::make_unique<pass::BloomUpSample>(2))
-		    .addRenderPass("BloomBlend", std::make_unique<pass::BloomBlend>("FXAAResult", "BloomResult"))
+		    .addRenderPass("TAA", std::make_unique<pass::TAAPass>("Lighting", "History", "TAAResult"))
+		    .addRenderPass("CopyFrame", std::make_unique<pass::CopyFrame>("TAAResult", "History"))
+		    //.addRenderPass("FXAA", std::make_unique<pass::FXAA>("Lighting", "FXAAResult"))
 
-		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("BloomResult", "Tonemapping"))
+		    //.addRenderPass("BloomMask", std::make_unique<pass::BloomMask>("FXAAResult"))
+		    //.addRenderPass("BloomDownSample1", std::make_unique<pass::BloomDownSample>(1))
+		    //.addRenderPass("BloomDownSample2", std::make_unique<pass::BloomDownSample>(2))
+		    //.addRenderPass("BloomDownSample3", std::make_unique<pass::BloomDownSample>(3))
+		    //.addRenderPass("BloomDownSample4", std::make_unique<pass::BloomDownSample>(4))
+		    //.addRenderPass("BloomBlur1", std::make_unique<pass::BloomBlur>(1))
+		    //.addRenderPass("BloomBlur2", std::make_unique<pass::BloomBlur>(2))
+		    //.addRenderPass("BloomBlur3", std::make_unique<pass::BloomBlur>(3))
+		    //.addRenderPass("BloomBlur4", std::make_unique<pass::BloomBlur>(4))
+		    //.addRenderPass("BloomUpSample1", std::make_unique<pass::BloomUpSample>(4, true))
+		    //.addRenderPass("BloomUpSample2", std::make_unique<pass::BloomUpSample>(3))
+		    //.addRenderPass("BloomUpSample3", std::make_unique<pass::BloomUpSample>(2))
+		    //.addRenderPass("BloomBlend", std::make_unique<pass::BloomBlend>("FXAAResult", "BloomResult"))
+
+		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("TAAResult", "Tonemapping"))
 
 		    //.addRenderPass("CurveViewPass", std::make_unique<pass::CurveViewPass>())
 		    //.addRenderPass("SurfaceViewPass", std::make_unique<pass::SurfaceViewPass>())
@@ -140,8 +143,8 @@ bool Renderer::onInitialize()
 	Scene::instance()->addSystem<sym::CurveUpdate>();
 	Scene::instance()->addSystem<sym::SurfaceUpdate>();
 	Scene::instance()->addSystem<sym::TransformUpdate>();
-	Scene::instance()->addSystem<sym::LightUpdate>();
 	Scene::instance()->addSystem<sym::CameraUpdate>();
+	Scene::instance()->addSystem<sym::LightUpdate>();
 	Scene::instance()->addSystem<sym::MeshletUpdate>();
 	Scene::instance()->addSystem<sym::MaterialUpdate>();
 

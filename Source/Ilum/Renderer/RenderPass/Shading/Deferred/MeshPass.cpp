@@ -6,10 +6,21 @@
 
 namespace Ilum::pass
 {
+MeshPass::MeshPass(bool jitter):
+    m_jitter(jitter)
+{
+}
+
 void MeshPass::setupPipeline(PipelineState &state)
 {
+	std::vector<std::string> macros;
+	if (m_jitter)
+	{
+		macros.push_back(USE_JITTER);
+	}
+
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Deferred/Mesh.hlsl", VK_SHADER_STAGE_TASK_BIT_NV, Shader::Type::HLSL, "ASmain");
-	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Deferred/Mesh.hlsl", VK_SHADER_STAGE_MESH_BIT_NV, Shader::Type::HLSL, "MSmain");
+	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Deferred/Mesh.hlsl", VK_SHADER_STAGE_MESH_BIT_NV, Shader::Type::HLSL, "MSmain", macros);
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Deferred/Mesh.hlsl", VK_SHADER_STAGE_FRAGMENT_BIT, Shader::Type::HLSL, "PSmain");
 
 	state.dynamic_state.dynamic_states = {

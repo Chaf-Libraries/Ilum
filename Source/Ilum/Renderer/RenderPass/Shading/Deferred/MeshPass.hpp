@@ -6,12 +6,14 @@
 
 #include <glm/glm.hpp>
 
+#define USE_JITTER "USE_JITTER"
+
 namespace Ilum::pass
 {
 class MeshPass : public TRenderPass<MeshPass>
 {
   public:
-	MeshPass() = default;
+	MeshPass(bool jitter = false);
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -20,5 +22,8 @@ class MeshPass : public TRenderPass<MeshPass>
 	virtual void render(RenderPassState &state) override;
 
 	virtual void onImGui() override;
+
+  private:
+	bool m_jitter = false;
 };
 }        // namespace Ilum::pass
