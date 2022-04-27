@@ -16,7 +16,7 @@ void MeshPass::setupPipeline(PipelineState &state)
 	std::vector<std::string> macros;
 	if (m_jitter)
 	{
-		macros.push_back(USE_JITTER);
+		macros.push_back("USE_JITTER");
 	}
 
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Deferred/Mesh.hlsl", VK_SHADER_STAGE_TASK_BIT_NV, Shader::Type::HLSL, "ASmain");

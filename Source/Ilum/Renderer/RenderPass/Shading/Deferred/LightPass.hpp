@@ -11,7 +11,7 @@ namespace Ilum::pass
 class LightPass : public TRenderPass<LightPass>
 {
   public:
-	LightPass();
+	LightPass(bool luma = false);
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -24,13 +24,15 @@ class LightPass : public TRenderPass<LightPass>
   private:
 	struct
 	{
-		uint32_t   directional_light_count = 0;
-		uint32_t   spot_light_count        = 0;
-		uint32_t   point_light_count       = 0;
-		uint32_t   enable_multi_bounce     = 0;
-		//VkExtent2D extent                  = {};
+		uint32_t directional_light_count = 0;
+		uint32_t spot_light_count        = 0;
+		uint32_t point_light_count       = 0;
+		uint32_t enable_multi_bounce     = 0;
+		// VkExtent2D extent                  = {};
 	} m_push_block;
 
 	Sampler m_shadowmap_sampler;
+
+	bool m_luma = false;
 };
 }        // namespace Ilum::pass

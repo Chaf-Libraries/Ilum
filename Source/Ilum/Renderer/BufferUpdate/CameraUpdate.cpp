@@ -106,7 +106,7 @@ void CameraUpdate::run()
 		glm::mat4 projection     = camera.projection;
 		projection[2][0] += camera_data->jitter.x;
 		projection[2][1] += camera_data->jitter.y;
-		camera_data->view_projection = projection * camera.view;
+		camera_data->view_projection = camera.view_projection;
 
 		for (size_t i = 0; i < 6; i++)
 		{
@@ -146,7 +146,7 @@ void CameraUpdate::run()
 		glm::mat4 projection     = camera.projection;
 		projection[2][0] += camera_data->jitter.x;
 		projection[2][1] += camera_data->jitter.y;
-		camera_data->view_projection = projection * camera.view;
+		camera_data->view_projection = camera.view_projection;
 
 		for (size_t i = 0; i < 6; i++)
 		{

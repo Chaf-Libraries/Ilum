@@ -16,3 +16,7 @@ add_custom_command(TARGET App POST_BUILD
         "${PROJECT_SOURCE_DIR}/Dependencies/assimp/bin"
         "${PROJECT_SOURCE_DIR}/Dependencies/sdl2/bin"
         $<TARGET_FILE_DIR:App>)
+
+set_property(TARGET App PROPERTY
+  MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+message("fuck")

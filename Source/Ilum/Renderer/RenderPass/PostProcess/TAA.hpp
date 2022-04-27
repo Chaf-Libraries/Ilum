@@ -26,5 +26,12 @@ class TAAPass : public TRenderPass<TAAPass>
 	std::string m_input;
 	std::string m_prev;
 	std::string m_output;
+
+	struct
+	{
+		float    feedback_min = 0.925f;
+		float    feedback_max = 0.987f;
+		uint32_t sharpen      = 0;
+	} m_push_constants;
 };
 }        // namespace Ilum::pass

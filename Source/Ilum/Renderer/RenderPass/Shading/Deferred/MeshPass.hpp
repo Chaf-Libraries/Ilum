@@ -6,8 +6,6 @@
 
 #include <glm/glm.hpp>
 
-#define USE_JITTER "USE_JITTER"
-
 namespace Ilum::pass
 {
 class MeshPass : public TRenderPass<MeshPass>

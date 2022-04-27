@@ -20,7 +20,8 @@
 
 namespace Ilum::pass
 {
-LightPass::LightPass()
+LightPass::LightPass(bool luma) :
+    m_luma(luma)
 {
 	VkSamplerCreateInfo create_info = {};
 	create_info.sType               = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -41,6 +42,12 @@ LightPass::LightPass()
 
 void LightPass::setupPipeline(PipelineState &state)
 {
+	std::vector<std::string> macros;
+	if (m_luma)
+	{
+		macros.push_back("USE_LUMINANCE");
+	}
+
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/Shading/Deferred/Lighting.hlsl", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::HLSL);
 
 	state.color_blend_attachment_states[0].blend_enable = false;

@@ -52,12 +52,15 @@ void TAAPass::setupPipeline(PipelineState &state)
 
 	state.descriptor_bindings.bind(0, 0, m_prev, Renderer::instance()->getSampler(Renderer::SamplerType::Bilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
 	state.descriptor_bindings.bind(0, 1, m_input, Renderer::instance()->getSampler(Renderer::SamplerType::Point_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
-	state.descriptor_bindings.bind(0, 2, "GBuffer3", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-	state.descriptor_bindings.bind(0, 3, m_output, ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	state.descriptor_bindings.bind(0, 2, "GBuffer1", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 3, "GBuffer3", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 4, m_output, ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	state.descriptor_bindings.bind(0, 5, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 }
 
 void TAAPass::resolveResources(ResolveState &resolve)
 {
+	resolve.resolve("Camera", Renderer::instance()->Render_Buffer.Camera_Buffer);
 }
 
 void TAAPass::render(RenderPassState &state)
@@ -73,11 +76,14 @@ void TAAPass::render(RenderPassState &state)
 
 	auto &extent = Renderer::instance()->getRenderTargetExtent();
 
-	// vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(m_push_constants), &m_push_constants);
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(m_push_constants), &m_push_constants);
 	vkCmdDispatch(cmd_buffer, (extent.width + 32 - 1) / 32, (extent.height + 32 - 1) / 32, 1);
 }
 
 void TAAPass::onImGui()
 {
+	ImGui::Checkbox("Sharpen", reinterpret_cast<bool *>(&m_push_constants.sharpen));
+	ImGui::SliderFloat("Feedback Min", &m_push_constants.feedback_min, 0.f, 1.f, "%.3f");
+	ImGui::SliderFloat("Feedback Max", &m_push_constants.feedback_max, m_push_constants.feedback_min, 1.f, "%.3f");
 }
 }        // namespace Ilum::pass
