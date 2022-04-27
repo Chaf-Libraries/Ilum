@@ -60,7 +60,7 @@ NVIDIA Turing GPUs (GeForce RTX 30/20 Series, GeForce GTX 16 Series) are the bes
     | `3` | `RGBA16F` | `Entity ID` | `Instance ID` | `Motion Vector.x` | `Motion Vector.y` |
 
   * Material
-  
+
     * For Real Time
       * Lambert Diffuse BRDF
         * Lambertian Reflection
@@ -94,25 +94,29 @@ NVIDIA Turing GPUs (GeForce RTX 30/20 Series, GeForce GTX 16 Series) are the bes
         * Microfacet Reflection
         * Microfacet Transmission
         * Lambertian Transmission
-  
+
   * Image Based Lighting
-  
+
     * Diffuse Term: Spherical Harmonics Projection
     * Specular Term: Split Sum Method
-  
+
   * Shadow Mapping
-  
+
     * Spot Light: Shadow Map
     * Directional Light: Cascade Shadow Map
     * Point Light: Omnidirectional Shadow Map
-  
+
   * Soft Shadow
-  
-    * Percentage Closer Filtering
-    * Percentage Closer Soft Shadows
-  
+
+    * Percentage Closer Filtering (PCF)
+    * Percentage Closer Soft Shadows (PCSS)
+
+  * Anti-Aliasing
+
+    * Fast approximate Anti-Aliasing (FXAA)
+
   * Path Tracing
-  
+
     * Next Event Estimation
     * Light Source & BSDF Importance Sampling
     * Multi Importance Sampling
@@ -212,9 +216,15 @@ NVIDIA Turing GPUs (GeForce RTX 30/20 Series, GeForce GTX 16 Series) are the bes
 
 **Bloom**
 
-|                     Bloom Off                     |                    Bloom On                     |
+|                     Bloom OFF                     |                    Bloom ON                     |
 | :-----------------------------------------------: | :---------------------------------------------: |
 | ![bloom_off](README/bloom_off-16509578159532.png) | ![bloom_on](README/bloom_on-16509578198833.png) |
+
+**Fast Approximate Anti-Aliasing (FXAA)**
+
+|             FXAA OFF             |            FXAA ON             |
+| :------------------------------: | :----------------------------: |
+| ![fxaa_off](README/fxaa_off.png) | ![fxaa_on](README/fxaa_on.png) |
 
 **Curve Modeling**
 

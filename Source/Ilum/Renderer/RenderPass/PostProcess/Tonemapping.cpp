@@ -8,8 +8,8 @@
 
 namespace Ilum::pass
 {
-Tonemapping::Tonemapping(const std::string &from, const std::string &to) :
-    m_from(from), m_to(to)
+Tonemapping::Tonemapping(const std::string &input, const std::string &output) :
+    m_input(input), m_output(output)
 {
 }
 
@@ -17,12 +17,11 @@ void Tonemapping::setupPipeline(PipelineState &state)
 {
 	state.shader.load(std::string(PROJECT_SOURCE_DIR) + "Source/Shaders/PostProcess/Tonemapping.hlsl", VK_SHADER_STAGE_COMPUTE_BIT, Shader::Type::HLSL);
 
-	state.descriptor_bindings.bind(0, 0, m_from, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.declareAttachment(m_output, VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.addOutputAttachment(m_output, AttachmentState::Clear_Color);
 
-	state.declareAttachment(m_to, VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
-	state.addOutputAttachment(m_to, AttachmentState::Clear_Color);
-
-	state.descriptor_bindings.bind(0, 1, m_to, ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	state.descriptor_bindings.bind(0, 0, m_input, Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), ImageViewType::Native, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+	state.descriptor_bindings.bind(0, 1, m_output, ImageViewType::Native, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 }
 
 void Tonemapping::resolveResources(ResolveState &resolve)

@@ -669,7 +669,7 @@ void main(CSParam param)
         
     float3 V = normalize(camera.position - frag_pos);
     float3 N = gbuffer1.rgb;
-    
+
     float3 radiance = material.emissive;
     
     // Handle point light
@@ -728,6 +728,6 @@ void main(CSParam param)
         radiance += ambient;
     }
 
-   
-    Lighting[int2(param.DispatchThreadID.xy)] = float4(radiance, 1.0);
+   // Alpha channel for luminance
+    Lighting[int2(param.DispatchThreadID.xy)] = float4(radiance, sqrt(Luminance(radiance)));
 }

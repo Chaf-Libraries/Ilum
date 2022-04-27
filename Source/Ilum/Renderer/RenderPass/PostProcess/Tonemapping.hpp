@@ -10,7 +10,7 @@ namespace Ilum::pass
 class Tonemapping : public TRenderPass<Tonemapping>
 {
   public:
-	Tonemapping(const std::string &from, const std::string &to);
+	Tonemapping(const std::string &input, const std::string &output);
 
 	virtual void setupPipeline(PipelineState &state) override;
 
@@ -21,8 +21,8 @@ class Tonemapping : public TRenderPass<Tonemapping>
 	virtual void onImGui() override;
 
   private:
-	std::string m_from;
-	std::string m_to;
+	std::string m_input;
+	std::string m_output;
 
 	struct
 	{

@@ -34,13 +34,13 @@
 #include "RenderPass/GeometryView/WireFrameView.hpp"
 
 #include "RenderPass/PostProcess/Bloom.hpp"
+#include "RenderPass/PostProcess/FXAA.hpp"
 #include "RenderPass/PostProcess/TAA.hpp"
 #include "RenderPass/PostProcess/Tonemapping.hpp"
 
 #include "RenderPass/PreProcess/IBL.hpp"
 #include "RenderPass/PreProcess/KullaConty.hpp"
 
-#include "RenderPass/Shading/Deferred/GeometryPass.hpp"
 #include "RenderPass/Shading/Deferred/LightPass.hpp"
 #include "RenderPass/Shading/Deferred/MeshPass.hpp"
 #include "RenderPass/Shading/Shadow/CascadeShadowmap.hpp"
@@ -96,8 +96,9 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("OmniShadowmapPass", std::make_unique<pass::OmniShadowmapPass>())
 		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
 		    .addRenderPass("Skybox", std::make_unique<pass::SkyboxPass>())
+		    .addRenderPass("FXAA", std::make_unique<pass::FXAA>("Lighting", "FXAAResult"))
 
-		    .addRenderPass("BloomMask", std::make_unique<pass::BloomMask>("Lighting"))
+		    .addRenderPass("BloomMask", std::make_unique<pass::BloomMask>("FXAAResult"))
 		    .addRenderPass("BloomDownSample1", std::make_unique<pass::BloomDownSample>(1))
 		    .addRenderPass("BloomDownSample2", std::make_unique<pass::BloomDownSample>(2))
 		    .addRenderPass("BloomDownSample3", std::make_unique<pass::BloomDownSample>(3))
@@ -109,7 +110,7 @@ Renderer::Renderer(Context *context) :
 		    .addRenderPass("BloomUpSample1", std::make_unique<pass::BloomUpSample>(4, true))
 		    .addRenderPass("BloomUpSample2", std::make_unique<pass::BloomUpSample>(3))
 		    .addRenderPass("BloomUpSample3", std::make_unique<pass::BloomUpSample>(2))
-		    .addRenderPass("BloomBlend", std::make_unique<pass::BloomBlend>("Lighting", "BloomResult"))
+		    .addRenderPass("BloomBlend", std::make_unique<pass::BloomBlend>("FXAAResult", "BloomResult"))
 
 		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("BloomResult", "Tonemapping"))
 
