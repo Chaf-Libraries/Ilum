@@ -1,4 +1,4 @@
-#include "LightPass.hpp"
+#include "LightPass_.hpp"
 
 #include "Renderer/Renderer.hpp"
 
@@ -20,7 +20,7 @@
 
 namespace Ilum::pass
 {
-LightPass::LightPass(bool luma) :
+LightPass_::LightPass_(bool luma) :
     m_luma(luma)
 {
 	VkSamplerCreateInfo create_info = {};
@@ -40,7 +40,7 @@ LightPass::LightPass(bool luma) :
 	m_shadowmap_sampler = Sampler(sampler);
 }
 
-void LightPass::setupPipeline(PipelineState &state)
+void LightPass_::setupPipeline(PipelineState &state)
 {
 	std::vector<std::string> macros;
 	if (m_luma)
@@ -52,40 +52,33 @@ void LightPass::setupPipeline(PipelineState &state)
 
 	state.color_blend_attachment_states[0].blend_enable = false;
 
-	//state.descriptor_bindings.bind(0, 0, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+	state.descriptor_bindings.bind(0, 0, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
-	//state.descriptor_bindings.bind(0, 1, "ShadowmapSampler", m_shadowmap_sampler, VK_DESCRIPTOR_TYPE_SAMPLER);
-	//state.descriptor_bindings.bind(0, 2, "texSampler", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), VK_DESCRIPTOR_TYPE_SAMPLER);
+	state.descriptor_bindings.bind(0, 1, "ShadowmapSampler", m_shadowmap_sampler, VK_DESCRIPTOR_TYPE_SAMPLER);
+	state.descriptor_bindings.bind(0, 2, "texSampler", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), VK_DESCRIPTOR_TYPE_SAMPLER);
 
-	//state.descriptor_bindings.bind(0, 3, "GBuffer0", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-	//state.descriptor_bindings.bind(0, 4, "GBuffer1", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-	//state.descriptor_bindings.bind(0, 5, "GBuffer2", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-	//state.descriptor_bindings.bind(0, 6, "GBuffer3", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-	//state.descriptor_bindings.bind(0, 7, "DepthStencil", ImageViewType::Depth_Only, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-	//state.descriptor_bindings.bind(0, 8, "MaterialBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	//state.descriptor_bindings.bind(0, 9, "DirectionalLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	//state.descriptor_bindings.bind(0, 10, "PointLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	//state.descriptor_bindings.bind(0, 11, "SpotLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 3, "GBuffer0", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 4, "GBuffer1", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 5, "GBuffer2", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 6, "GBuffer3", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 7, "DepthStencil", ImageViewType::Depth_Only, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 8, "MaterialBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 9, "DirectionalLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 10, "PointLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 11, "SpotLights", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 
-	//state.descriptor_bindings.bind(0, 12, "Shadowmap", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-	//state.descriptor_bindings.bind(0, 13, "CascadeShadowmap", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-	//state.descriptor_bindings.bind(0, 14, "OmniShadowmap", ImageViewType::ArrayCube, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 12, "Shadowmap", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 13, "CascadeShadowmap", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 14, "OmniShadowmap", ImageViewType::ArrayCube, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 
-	//state.descriptor_bindings.bind(0, 15, "EmuLut", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-	//state.descriptor_bindings.bind(0, 16, "EavgLut", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 15, "EmuLut", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 16, "EavgLut", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 
-	//state.descriptor_bindings.bind(0, 17, "IrradianceSH", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-	//state.descriptor_bindings.bind(0, 18, "PrefilterMap", ImageViewType::Cube, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-	//state.descriptor_bindings.bind(0, 19, "BRDFPreIntegrate", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 17, "IrradianceSH", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 18, "PrefilterMap", ImageViewType::Cube, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 19, "BRDFPreIntegrate", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
 
-	state.descriptor_bindings.bind(0, 0, "VBuffer", VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
-	state.descriptor_bindings.bind(0, 1, "Camera", VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-	state.descriptor_bindings.bind(0, 2, "PerInstanceBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 3, "PerMeshletBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 4, "Vertices", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 5, "MeshletVertexBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 6, "MeshletIndexBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
-	state.descriptor_bindings.bind(0, 7, "Lighting", VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
+	state.descriptor_bindings.bind(0, 20, "Lighting", VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
 
 	// state.descriptor_bindings.bind(0, 0, "texSampler", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Clamp), VK_DESCRIPTOR_TYPE_SAMPLER);
 	// state.descriptor_bindings.bind(0, 1, "shadowmapSampler", m_shadowmap_sampler, VK_DESCRIPTOR_TYPE_SAMPLER);
@@ -113,21 +106,16 @@ void LightPass::setupPipeline(PipelineState &state)
 	state.addOutputAttachment("Lighting", AttachmentState::Clear_Color);
 }
 
-void LightPass::resolveResources(ResolveState &resolve)
+void LightPass_::resolveResources(ResolveState &resolve)
 {
-	//resolve.resolve("Camera", Renderer::instance()->Render_Buffer.Camera_Buffer);
-	//resolve.resolve("DirectionalLights", Renderer::instance()->Render_Buffer.Directional_Light_Buffer);
-	//resolve.resolve("PointLights", Renderer::instance()->Render_Buffer.Point_Light_Buffer);
-	//resolve.resolve("SpotLights", Renderer::instance()->Render_Buffer.Spot_Light_Buffer);
-	//resolve.resolve("MaterialBuffer", Renderer::instance()->Render_Buffer.Material_Buffer);
-	resolve.resolve("PerInstanceBuffer", Renderer::instance()->Render_Buffer.Instance_Buffer);
-	resolve.resolve("PerMeshletBuffer", Renderer::instance()->Render_Buffer.Meshlet_Buffer);
-	resolve.resolve("Vertices", Renderer::instance()->Render_Buffer.Static_Vertex_Buffer);
-	resolve.resolve("MeshletVertexBuffer", Renderer::instance()->Render_Buffer.Meshlet_Vertex_Buffer);
-	resolve.resolve("MeshletIndexBuffer", Renderer::instance()->Render_Buffer.Meshlet_Index_Buffer);
+	resolve.resolve("Camera", Renderer::instance()->Render_Buffer.Camera_Buffer);
+	resolve.resolve("DirectionalLights", Renderer::instance()->Render_Buffer.Directional_Light_Buffer);
+	resolve.resolve("PointLights", Renderer::instance()->Render_Buffer.Point_Light_Buffer);
+	resolve.resolve("SpotLights", Renderer::instance()->Render_Buffer.Spot_Light_Buffer);
+	resolve.resolve("MaterialBuffer", Renderer::instance()->Render_Buffer.Material_Buffer);
 }
 
-void LightPass::render(RenderPassState &state)
+void LightPass_::render(RenderPassState &state)
 {
 	auto &cmd_buffer = state.command_buffer;
 
@@ -149,11 +137,11 @@ void LightPass::render(RenderPassState &state)
 
 	const auto &target_extent = Renderer::instance()->getRenderTargetExtent();
 
-	//vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(m_push_block), &m_push_block);
+	vkCmdPushConstants(cmd_buffer, state.pass.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(m_push_block), &m_push_block);
 	vkCmdDispatch(cmd_buffer, (target_extent.width + 32 - 1) / 32, (target_extent.height + 32 - 1) / 32, 1);
 }
 
-void LightPass::onImGui()
+void LightPass_::onImGui()
 {
 	ImGui::Checkbox("Enable Kulla Conty Multi-Bounce Approximation", reinterpret_cast<bool *>(&m_push_block.enable_multi_bounce));
 }

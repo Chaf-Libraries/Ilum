@@ -31,7 +31,7 @@ struct Camera
     }
     
     void BuildFrustum()
-    {        
+    {
         float4x4 view_projection_transpose = transpose(view_projection);
         
         // Left
@@ -356,4 +356,25 @@ float Luminance(float3 x)
     return dot(x, float3(0.212671, 0.715160, 0.072169)); // Defined by sRGB/Rec.709 gamut
 }
 
+uint PackVBuffer(uint instance_id, uint meshlet_id, uint primitive_id)
+{
+    // Primitive ID 7
+    // Meshlet ID 11
+    // Instance ID 14
+    uint vbuffer = 0;
+    vbuffer += primitive_id & 0x7f;
+    vbuffer += (meshlet_id & 0x7ff) << 7;
+    vbuffer += (instance_id & 0x3fff) << 18;
+    return vbuffer;
+}
+
+void UnPackVBuffer(uint vbuffer, out uint instance_id, out uint meshlet_id, out uint primitive_id)
+{
+    // Primitive ID 7
+    // Meshlet ID 11
+    // Instance ID 14
+    primitive_id = vbuffer & 0x7f;
+    meshlet_id = (vbuffer >> 7) & 0x7ff;
+    instance_id = (vbuffer >> 18) & 0x3fff;
+}
 #endif

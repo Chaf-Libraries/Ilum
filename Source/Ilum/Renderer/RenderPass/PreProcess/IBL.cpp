@@ -18,7 +18,7 @@
 
 namespace Ilum::pass
 {
-static bool Update = false;
+static bool Update = true;
 
 EquirectangularToCubemap::~EquirectangularToCubemap()
 {
@@ -122,19 +122,6 @@ void EquirectangularToCubemap::render(RenderPassState &state)
 	for (auto &descriptor_set : state.pass.descriptor_sets)
 	{
 		vkCmdBindDescriptorSets(cmd_buffer, state.pass.bind_point, state.pass.pipeline_layout, descriptor_set.index(), 1, &descriptor_set.getDescriptorSet(), 0, nullptr);
-	}
-
-	if (!Renderer::instance()->getResourceCache().hasImage(m_filename))
-	{
-		for (uint32_t i = 0; i < 6; i++)
-		{
-			begin_info.framebuffer = m_framebuffers[i];
-			vkCmdBeginRenderPass(cmd_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
-			vkCmdEndRenderPass(cmd_buffer);
-		}
-
-		Update = false;
-		return;
 	}
 
 	for (uint32_t i = 0; i < 6; i++)

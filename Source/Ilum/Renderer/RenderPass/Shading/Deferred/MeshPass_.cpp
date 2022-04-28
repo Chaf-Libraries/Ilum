@@ -1,4 +1,4 @@
-#include "MeshPass.hpp"
+#include "MeshPass_.hpp"
 
 #include "Renderer/Renderer.hpp"
 
@@ -6,12 +6,12 @@
 
 namespace Ilum::pass
 {
-MeshPass::MeshPass(bool jitter) :
+MeshPass_::MeshPass_(bool jitter):
     m_jitter(jitter)
 {
 }
 
-void MeshPass::setupPipeline(PipelineState &state)
+void MeshPass_::setupPipeline(PipelineState &state)
 {
 	std::vector<std::string> macros;
 	if (m_jitter)
@@ -27,7 +27,7 @@ void MeshPass::setupPipeline(PipelineState &state)
 	    VK_DYNAMIC_STATE_VIEWPORT,
 	    VK_DYNAMIC_STATE_SCISSOR};
 
-	state.color_blend_attachment_states.resize(1);
+	state.color_blend_attachment_states.resize(4);
 	state.depth_stencil_state.stencil_test_enable = false;
 
 	// Disable blending
@@ -46,23 +46,34 @@ void MeshPass::setupPipeline(PipelineState &state)
 	state.descriptor_bindings.bind(0, 6, "MeshletVertexBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 7, "MeshletIndexBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
 	state.descriptor_bindings.bind(0, 8, "CountBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 9, "MaterialBuffer", VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+	state.descriptor_bindings.bind(0, 10, "TextureArray", ImageViewType::Native, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE);
+	state.descriptor_bindings.bind(0, 11, "TexSampler", Renderer::instance()->getSampler(Renderer::SamplerType::Trilinear_Wrap), VK_DESCRIPTOR_TYPE_SAMPLER);
 
 	// GBuffer0: RGB - Albedo, A - metallic
 	// GBuffer1: RGA - normal, A - linear depth
 	// GBuffer2: RGB - emissive, A - roughness
 	// GBuffer3: R - entity id, G - instance id, BA - motion vector
-	state.declareAttachment("VBuffer", VK_FORMAT_R32_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("GBuffer0", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("GBuffer1", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("GBuffer2", VK_FORMAT_R8G8B8A8_UNORM, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("GBuffer3", VK_FORMAT_R16G16B16A16_SFLOAT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
+	state.declareAttachment("VBuffer", VK_FORMAT_R32G32B32_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 	state.declareAttachment("DepthStencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 
 	VkClearColorValue clear_color = {};
 	clear_color.uint32[3]         = static_cast<uint32_t>(entt::null);
 	clear_color.float32[3]        = std::numeric_limits<float>::max();
 
+	state.addOutputAttachment("GBuffer0", AttachmentState::Clear_Color);
+	state.addOutputAttachment("GBuffer1", AttachmentState::Clear_Color);
+	state.addOutputAttachment("GBuffer2", AttachmentState::Clear_Color);
+	state.addOutputAttachment("GBuffer3", AttachmentState::Clear_Color);
 	state.addOutputAttachment("VBuffer", AttachmentState::Clear_Color);
 	state.addOutputAttachment("DepthStencil", VkClearDepthStencilValue{1.f, 0u});
 }
 
-void MeshPass::resolveResources(ResolveState &resolve)
+void MeshPass_::resolveResources(ResolveState &resolve)
 {
 	resolve.resolve("PerInstanceBuffer", Renderer::instance()->Render_Buffer.Instance_Buffer);
 	resolve.resolve("PerMeshletBuffer", Renderer::instance()->Render_Buffer.Meshlet_Buffer);
@@ -72,9 +83,10 @@ void MeshPass::resolveResources(ResolveState &resolve)
 	resolve.resolve("MeshletVertexBuffer", Renderer::instance()->Render_Buffer.Meshlet_Vertex_Buffer);
 	resolve.resolve("MeshletIndexBuffer", Renderer::instance()->Render_Buffer.Meshlet_Index_Buffer);
 	resolve.resolve("CountBuffer", Renderer::instance()->Render_Buffer.Count_Buffer);
+	resolve.resolve("MaterialBuffer", Renderer::instance()->Render_Buffer.Material_Buffer);
 }
 
-void MeshPass::render(RenderPassState &state)
+void MeshPass_::render(RenderPassState &state)
 {
 	std::memcpy(&Renderer::instance()->Render_Stats.static_mesh_count.instance_visible, reinterpret_cast<uint32_t *>(Renderer::instance()->Render_Buffer.Count_Buffer.map()) + 3, sizeof(uint32_t));
 	std::memcpy(&Renderer::instance()->Render_Stats.static_mesh_count.meshlet_visible, reinterpret_cast<uint32_t *>(Renderer::instance()->Render_Buffer.Count_Buffer.map()) + 2, sizeof(uint32_t));
@@ -112,7 +124,8 @@ void MeshPass::render(RenderPassState &state)
 	vkCmdEndRenderPass(cmd_buffer);
 }
 
-void MeshPass::onImGui()
+void MeshPass_::onImGui()
 {
+
 }
 }        // namespace Ilum::pass

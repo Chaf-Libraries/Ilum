@@ -1,4 +1,5 @@
 #include "../Constants.hlsli"
+#include "../Common.hlsli"
 
 Texture2D textureArray[] : register(t0);
 SamplerState texSampler : register(s0);
@@ -59,6 +60,13 @@ FSOutput PSmain(FSInput input)
     FSOutput output;
     
     float2 uv = SampleSphericalMap(normalize(input.Pos));
-    output.Color = float4(textureArray[NonUniformResourceIndex(push_constants.tex_idx)].Sample(texSampler, uv).rgb, 1.0);
+    if (push_constants.tex_idx<MAX_TEXTURE_ARRAY_SIZE)
+    {
+        output.Color = float4(textureArray[NonUniformResourceIndex(push_constants.tex_idx)].Sample(texSampler, uv).rgb, 1.0);
+    }
+    else
+    {
+        output.Color = float4(0.0, 0.0, 0.0, 1.0);
+    }
     return output;
 }
