@@ -275,6 +275,7 @@ struct Vertex
     float4 position;
     float4 uv;
     float4 normal;
+    float4 tangent;
 };
 
 struct ShadowPayload
@@ -356,25 +357,42 @@ float Luminance(float3 x)
     return dot(x, float3(0.212671, 0.715160, 0.072169)); // Defined by sRGB/Rec.709 gamut
 }
 
-uint PackVBuffer(uint instance_id, uint meshlet_id, uint primitive_id)
+uint PackVBuffer(uint meshlet_id, uint primitive_id)
 {
     // Primitive ID 7
-    // Meshlet ID 11
-    // Instance ID 14
+    // Meshlet ID 25
     uint vbuffer = 0;
     vbuffer += primitive_id & 0x7f;
-    vbuffer += (meshlet_id & 0x7ff) << 7;
-    vbuffer += (instance_id & 0x3fff) << 18;
+    vbuffer += (meshlet_id & 0x1ffffff) << 7;
     return vbuffer;
 }
 
-void UnPackVBuffer(uint vbuffer, out uint instance_id, out uint meshlet_id, out uint primitive_id)
+void UnPackVBuffer(uint vbuffer, out uint meshlet_id, out uint primitive_id)
 {
     // Primitive ID 7
-    // Meshlet ID 11
-    // Instance ID 14
+    // Meshlet ID 25
     primitive_id = vbuffer & 0x7f;
-    meshlet_id = (vbuffer >> 7) & 0x7ff;
-    instance_id = (vbuffer >> 18) & 0x3fff;
+    meshlet_id = (vbuffer >> 7) & 0x1ffffff;
+}
+
+float2 OctWrap(float2 v)
+{
+    return float2((1.0f - abs(v.y)) * (v.x >= 0.0f ? 1.0f : -1.0f), (1.0f - abs(v.x)) * (v.y >= 0.0f ? 1.0f : -1.0f));
+}
+
+float2 PackNormal(float3 n)
+{
+    float2 p = float2(n.x, n.y) * (1.0f / (abs(n.x) + abs(n.y) + abs(n.z)));
+    p = (n.z < 0.0f) ? OctWrap(p) : p;
+    return p;
+}
+
+float3 UnPackNormal(float2 p)
+{
+    float3 n = float3(p.x, p.y, 1.0f - abs(p.x) - abs(p.y));
+    float2 tmp = (n.z < 0.0f) ? OctWrap(float2(n.x, n.y)) : float2(n.x, n.y);
+    n.x = tmp.x;
+    n.y = tmp.y;
+    return normalize(n);
 }
 #endif

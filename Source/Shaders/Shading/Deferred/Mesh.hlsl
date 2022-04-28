@@ -26,14 +26,14 @@ struct CSParam
 struct VertexOut
 {
     float4 PositionHS : SV_Position;
-    uint EntityID : COLOR1;
-    uint InstanceID : COLOR2;
 };
 
 struct PrimitiveOut
 {
-    uint PrimitiveID : COLOR3;
-    uint MeshletID : COLOR4;
+    uint EntityID : COLOR0;
+    uint InstanceID : COLOR1;
+    uint PrimitiveID : COLOR2;
+    uint MeshletID : COLOR3;
 };
 
 struct Payload
@@ -97,9 +97,6 @@ groupshared Payload shared_payload;
         uint vertex_index = meshlet.vertex_offset + meshlet_vertices[meshlet.meshlet_vertex_offset + i];
         Vertex vertex = vertices[vertex_index];
 
-        verts[i].EntityID = instance.entity_id;
-        verts[i].InstanceID = meshlet.instance_id;
-
         verts[i].PositionHS = mul(camera.view_projection, mul(transform, float4(vertex.position.xyz, 1.0)));
     }
 
@@ -113,6 +110,8 @@ groupshared Payload shared_payload;
             tris[i][j % 3] = idx;
         }
         
+        prims[i].EntityID = instance.entity_id;
+        prims[i].InstanceID = meshlet.instance_id;
         prims[i].MeshletID = meshlet_index;
         prims[i].PrimitiveID = i;
     }
@@ -120,10 +119,10 @@ groupshared Payload shared_payload;
 #endif
 
 #ifdef FRAGMENT
-uint PSmain(VertexOut vert, PrimitiveOut prims) : SV_TARGET0
+uint PSmain(PrimitiveOut prims) : SV_TARGET0
 {
     uint output;
-    output = PackVBuffer(vert.InstanceID, prims.MeshletID, prims.PrimitiveID);
+    output = PackVBuffer(prims.MeshletID, prims.PrimitiveID);
     return output;
 }
 #endif
