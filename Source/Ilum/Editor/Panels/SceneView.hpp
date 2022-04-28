@@ -6,6 +6,8 @@
 
 #include "Graphics/Image/Image.hpp"
 
+#include <glm/glm.hpp>
+
 namespace Ilum::panel
 {
 class SceneView : public Panel
@@ -37,6 +39,7 @@ class SceneView : public Panel
 	std::pair<int32_t, int32_t> m_last_position;
 
 	float m_camera_speed     = 5.f;
+	glm::vec3 m_camera_velocity  = glm::vec3(0.f);
 	float m_camera_sensitity = 0.5f;
 
 	uint32_t m_guizmo_operation = 0;

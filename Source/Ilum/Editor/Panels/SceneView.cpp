@@ -70,6 +70,14 @@ __pragma(warning(push, 0))
 		return result;
 	}
 
+	glm::vec3 smooth_step(const glm::vec3 &v1, const glm::vec3 &v2, float t)
+	{
+		t = glm::clamp(t, 0.f, 1.f);
+		t = t * t * (3.f - 2.f * t);
+		glm::vec3 v = glm::mix(v1, v2, t);
+		return v;
+	}
+
 	inline void draw_line(ImDrawList * draw_list, const ImVec2 &x1, const ImVec2 &x2, const ImVec2 &offset, ImColor color, float line_width)
 	{
 		ImVec2 p1 = x1;
@@ -836,7 +844,10 @@ __pragma(warning(push, 0))
 				direction -= up;
 			}
 
-			camera_transform.translation += direction * delta_time * m_camera_speed;
+			glm::vec3 translation = direction;
+			m_camera_velocity     = smooth_step(m_camera_velocity, translation, 0.2f);
+
+			camera_transform.translation += m_camera_velocity * delta_time * m_camera_speed;
 
 			glm::mat4 related_transform      = camera_transform.world_transform * glm::inverse(camera_transform.local_transform);
 			camera_transform.local_transform = glm::scale(glm::translate(glm::mat4(1.f), camera_transform.translation) * glm::mat4_cast(glm::qua<float>(glm::radians(camera_transform.rotation))), camera_transform.scale);
