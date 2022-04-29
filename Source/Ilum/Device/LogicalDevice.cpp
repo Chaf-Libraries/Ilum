@@ -232,6 +232,7 @@ LogicalDevice::LogicalDevice()
 	ENABLE_DEVICE_FEATURE(robustBufferAccess);
 	ENABLE_DEVICE_FEATURE(multiDrawIndirect);
 	ENABLE_DEVICE_FEATURE(drawIndirectFirstInstance);
+	ENABLE_DEVICE_FEATURE(shaderInt64);
 
 	// Enable Ray Tracing Extension
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_feature = {};
