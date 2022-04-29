@@ -55,10 +55,9 @@ void MeshPass::setupPipeline(PipelineState &state)
 	state.declareAttachment("DepthStencil", VK_FORMAT_D32_SFLOAT_S8_UINT, Renderer::instance()->getRenderTargetExtent().width, Renderer::instance()->getRenderTargetExtent().height);
 
 	VkClearColorValue clear_color = {};
-	clear_color.uint32[3]         = static_cast<uint32_t>(entt::null);
-	clear_color.float32[3]        = std::numeric_limits<float>::max();
+	clear_color.uint32[0]         = 0xffffffff;
 
-	state.addOutputAttachment("VBuffer", AttachmentState::Clear_Color);
+	state.addOutputAttachment("VBuffer", clear_color);
 	state.addOutputAttachment("DepthStencil", VkClearDepthStencilValue{1.f, 0u});
 }
 

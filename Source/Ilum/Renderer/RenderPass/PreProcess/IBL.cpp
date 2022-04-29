@@ -18,7 +18,7 @@
 
 namespace Ilum::pass
 {
-static bool Update = true;
+static bool Update = false;
 
 EquirectangularToCubemap::~EquirectangularToCubemap()
 {

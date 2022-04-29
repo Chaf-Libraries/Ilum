@@ -92,7 +92,7 @@ void CameraUpdate::run()
 		culling_data->znear = camera.near_plane;
 		culling_data->zfar  = camera.far_plane;
 
-		camera_data->position = transform.world_transform[3];
+		camera_data->position             = transform.world_transform[3];
 		camera_data->last_view_projection = camera.last_view_projection;
 		camera_data->view_inverse         = transform.world_transform;
 		camera_data->projection_inverse   = glm::inverse(camera.projection);
@@ -106,7 +106,7 @@ void CameraUpdate::run()
 		glm::mat4 projection     = camera.projection;
 		projection[2][0] += camera_data->jitter.x;
 		projection[2][1] += camera_data->jitter.y;
-		camera_data->view_projection = camera.view_projection;
+		camera_data->view_projection = projection * camera.view;
 
 		for (size_t i = 0; i < 6; i++)
 		{
@@ -146,7 +146,7 @@ void CameraUpdate::run()
 		glm::mat4 projection     = camera.projection;
 		projection[2][0] += camera_data->jitter.x;
 		projection[2][1] += camera_data->jitter.y;
-		camera_data->view_projection = camera.view_projection;
+		camera_data->view_projection = projection * camera.view;
 
 		for (size_t i = 0; i < 6; i++)
 		{

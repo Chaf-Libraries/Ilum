@@ -173,7 +173,7 @@ VBufferAttribute GetVBufferAttribute(uint vbuffer_data, float2 uv)
     attribute.normal = v0.normal.xyz * barycentrics.x + v1.normal.xyz * barycentrics.y + v2.normal.xyz * barycentrics.z;
     attribute.normal = v0.normal.xyz * barycentrics.x + v1.normal.xyz * barycentrics.y + v2.normal.xyz * barycentrics.z;
     attribute.normal = normalize(mul((float3x3) instance.transform, attribute.normal));
-    attribute.tangent = float4(v0.tangent * barycentrics.x + v1.tangent * barycentrics.y + v2.tangent * barycentrics.z);
+    attribute.tangent = v0.tangent.xyz * barycentrics.x + v1.tangent.xyz * barycentrics.y + v2.tangent.xyz * barycentrics.z;
     attribute.tangent = normalize(mul((float3x3) instance.transform, attribute.tangent.xyz));
     attribute.dx = v0.uv.xy * ddx_barycentrics.x + v1.uv.xy * ddx_barycentrics.y + v2.uv.xy * ddx_barycentrics.z;
     attribute.dy = v0.uv.xy * ddy_barycentrics.x + v1.uv.xy * ddy_barycentrics.y + v2.uv.xy * ddy_barycentrics.z;
@@ -209,9 +209,9 @@ Material GetMaterial(inout VBufferAttribute attribute)
 
     if (material.textures[TEXTURE_BASE_COLOR] < MAX_TEXTURE_ARRAY_SIZE)
     {
-        float3 base_color = textureArray[NonUniformResourceIndex(material.textures[TEXTURE_BASE_COLOR])].SampleGrad(TextureSampler, attribute.uv, attribute.dx, attribute.dy).rgb;
-        base_color = pow(base_color, float3(2.2, 2.2, 2.2));
-        mat.base_color.rgb *= base_color;
+        float4 base_color = textureArray[NonUniformResourceIndex(material.textures[TEXTURE_BASE_COLOR])].SampleGrad(TextureSampler, attribute.uv, attribute.dx, attribute.dy).rgba;
+        base_color.xyz = pow(base_color.xyz, float3(2.2, 2.2, 2.2));
+        mat.base_color.rgba *= base_color;
     }
     
     if (material.textures[TEXTURE_EMISSIVE] < MAX_TEXTURE_ARRAY_SIZE)
@@ -264,6 +264,90 @@ float LinearizeDepth(float depth, float znear, float zfar)
     return znear * zfar / (zfar + depth * (znear - zfar));
 }
 
+float DistributeGGX(float NoH, float roughness)
+{
+    float alpha = roughness * roughness;
+    float alpha2 = alpha * alpha;
+    float denom = NoH * NoH * (alpha2 - 1.0) + 1.0;
+    return alpha2 / (PI * denom * denom);
+}
+
+float GeometrySchlickGGX(float NoV, float roughness)
+{
+    float r = (roughness + 1.0);
+    float k = (r * r) / 8.0;
+    return NoV / (NoV * (1.0 - k) + k);
+}
+
+float GeometrySmith(float NoL, float NoV, float roughness)
+{
+    float ggx1 = GeometrySchlickGGX(NoL, roughness);
+    float ggx2 = GeometrySchlickGGX(NoV, roughness);
+
+    return ggx1 * ggx2;
+}
+
+float3 FresnelSchlick(float LoH, float3 F0)
+{
+    return F0 + (1.0 - F0) * pow(clamp(1 - LoH, 0, 1), 5.0);
+}
+
+float3 LambertianDiffuse(float3 albedo)
+{
+    return albedo / PI;
+}
+
+
+float3 AverageFresnel(float3 r, float3 g)
+{
+    return float3(0.087237, 0.087237, 0.087237) + 0.0230685 * g - 0.0864902 * g * g + 0.0774594 * g * g * g + 0.782654 * r - 0.136432 * r * r + 0.278708 * r * r * r + 0.19744 * g * r + 0.0360605 * g * g * r - 0.2586 * g * r * r;
+}
+
+float3 MultiScatterBRDF(float3 albedo, float3 Eo, float3 Ei, float Eavg)
+{
+	// copper
+    float3 edgetint = float3(0.827, 0.792, 0.678);
+    float3 F_avg = AverageFresnel(albedo, edgetint);
+
+    float3 f_add = F_avg * Eavg / (1.0 - F_avg * (1.0 - Eavg));
+    float3 f_ms = (1.0 - Eo) * (1.0 - Ei) / (PI * (1.0 - Eavg.r));
+
+    return f_ms * f_add;
+}
+
+/*float3 BRDF(float3 L, float3 V, float3 N, Material material)
+{
+    float3 Cdlin = pow(material.base_color.rgb, float3(2.2, 2.2, 2.2));
+    float3 F0 = float3(0.04, 0.04, 0.04);
+    F0 = lerp(F0, Cdlin, material.metallic);
+
+    float3 H = normalize(V + L);
+    float NoV = saturate(dot(N, V));
+    float NoL = saturate(dot(N, L));
+    float NoH = saturate(dot(N, H));
+    float HoV = saturate(dot(H, V));
+
+    float D = DistributeGGX(NoH, material.roughness);
+    float G = GeometrySmith(NoL, NoV, material.roughness);
+    float3 F = FresnelSchlick(HoV, F0);
+
+    float3 specular = D * F * G / (4.0 * NoL * NoV + 0.001);
+    float3 Kd = lerp(float3(1.0, 1.0, 1.0) - F, float3(0.0, 0.0, 0.0), material.metallic);
+    
+    float3 Fms = float3(0.0, 0.0, 0.0);
+    
+    if (push_constants.enable_multi_bounce)
+    {
+        float3 Eo = EmuLut.SampleLevel(TextureSampler, float2(dot(N, L), material.roughness), 0.0).rrr;
+        float3 Ei = EmuLut.SampleLevel(TextureSampler, float2(dot(N, V), material.roughness), 0.0).rrr;
+        float Eavg = EavgLut.SampleLevel(TextureSampler, float2(0.0, material.roughness), 0.0).r;
+        
+        Fms = MultiScatterBRDF(pow(material.base_color.rgb, float3(2.2, 2.2, 2.2)), Eo, Ei, Eavg);
+    }
+
+    return Kd * LambertianDiffuse(Cdlin) + specular + Fms;
+}*/
+
 float SchlickFresnel(float u)
 {
     float m = clamp(1 - u, 0, 1);
@@ -309,23 +393,6 @@ float smithG_GGX_aniso(float NdotV, float VdotX, float VdotY, float ax, float ay
 float3 mon2lin(float3 x)
 {
     return pow(x, float3(2.2, 2.2, 2.2));
-}
-
-float3 AverageFresnel(float3 r, float3 g)
-{
-    return float3(0.087237, 0.087237, 0.087237) + 0.0230685 * g - 0.0864902 * g * g + 0.0774594 * g * g * g + 0.782654 * r - 0.136432 * r * r + 0.278708 * r * r * r + 0.19744 * g * r + 0.0360605 * g * g * r - 0.2586 * g * r * r;
-}
-
-float3 MultiScatterBRDF(float3 albedo, float3 Eo, float3 Ei, float Eavg)
-{
-	// copper
-    float3 edgetint = float3(0.827, 0.792, 0.678);
-    float3 F_avg = AverageFresnel(albedo, edgetint);
-
-    float3 f_add = F_avg * Eavg / (1.0 - F_avg * (1.0 - Eavg));
-    float3 f_ms = (1.0 - Eo) * (1.0 - Ei) / (PI * (1.0 - Eavg.r));
-
-    return f_ms * f_add;
 }
 
 float3 MatteBRDF(float3 L, float3 V, float3 N, Material material)
@@ -401,7 +468,7 @@ float3 DisneyBRDF(float3 L, float3 V, float3 N, Material material)
     float FL = SchlickFresnel(NdotL), FV = SchlickFresnel(NdotV);
     float Fd90 = 0.5 + 2 * LdotH * LdotH * material.roughness;
     float Fd = lerp(1.0, Fd90, FL) * lerp(1.0, Fd90, FV);
-
+    
     // Based on Hanrahan-Krueger brdf approximation of isotropic bssrdf
     // 1.25 scale is used to (roughly) preserve albedo
     // Fss90 used to "flatten" retroreflection based on roughness
@@ -838,7 +905,16 @@ void main(CSParam param)
 
     float2 uv = (float2(param.DispatchThreadID.xy + float2(0.5, 0.5))) / float2(extent);
     
-    VBufferAttribute attribute = GetVBufferAttribute(VBuffer[param.DispatchThreadID.xy], uv);
+    uint vdata = VBuffer[param.DispatchThreadID.xy];
+    
+    if (vdata == 0xffffffff)
+    {
+        Lighting[param.DispatchThreadID.xy] = float4(0.0, 0.0, 0.0, 1.0);
+        Normal[param.DispatchThreadID.xy] = PackNormal(float3(0.0, 0.0, 0.0));
+        return;
+    }
+    
+    VBufferAttribute attribute = GetVBufferAttribute(vdata, uv);
     Material material = GetMaterial(attribute);
     
     float3 frag_pos = attribute.position;
@@ -901,10 +977,9 @@ void main(CSParam param)
         float3 specular = prefiltered_color * (F * brdf.x + brdf.y);
 
         float3 ambient = Kd * diffuse + specular;
-        radiance += ambient;
+        radiance += 0.000000000001 * ambient;
     }
-    
-    Lighting[param.DispatchThreadID.xy] = float4(radiance, 1.0);
-    Normal[param.DispatchThreadID.xy] = PackNormal(attribute.normal.rgb);
 
+    Lighting[param.DispatchThreadID.xy] = float4(radiance, material.base_color.a);
+    Normal[param.DispatchThreadID.xy] = PackNormal(attribute.normal.rgb);
 }
