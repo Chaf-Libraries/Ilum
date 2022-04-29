@@ -265,6 +265,11 @@ inline void destroy_glslang_compiler()
 
 inline void init_dxc_compiler()
 {
+	HMODULE lib = LoadLibraryA((std::string(PROJECT_SOURCE_DIR) +"Dependencies/dxcompiler/bin/x64/dxcompiler.dll").c_str());
+	if (lib)
+	{
+		GetProcAddress(lib, "DxcCreateInstance");
+	}
 	DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&s_dxc_utils));
 	DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&s_dxc_compiler));
 	s_dxc_utils->CreateDefaultIncludeHandler(&s_pDefaultIncludeHandler);
@@ -384,6 +389,8 @@ inline std::vector<uint32_t> dxc_compile(const std::string &filename, const std:
 	arguments.emplace_back(L"-fspv-extension=SPV_EXT_descriptor_indexing");
 	arguments.emplace_back(L"-fspv-extension=SPV_EXT_shader_viewport_index_layer");
 	arguments.emplace_back(L"-fspv-extension=SPV_NV_mesh_shader");
+	arguments.emplace_back(L"-fspv-extension=SPV_KHR_physical_storage_buffer");
+	arguments.emplace_back(L"-fspv-extension=SPV_EXT_shader_image_int64");
 	arguments.emplace_back(to_wstring(std::string("-D") + std::to_string(stage)));
 	arguments.emplace_back(to_wstring(std::string("-DRUNTIME")));
 
