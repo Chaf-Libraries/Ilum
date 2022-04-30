@@ -1,49 +1,15 @@
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
-set(_change_MSVC_flags FALSE)
-if(WIN32)
-  if(CMAKE_VERSION VERSION_LESS 3.15.0)
-    set(_change_MSVC_flags TRUE)
-  else()
-    # Set MSVC runtime to MultiThreaded (/MT)
-    cmake_policy(SET CMP0091 NEW)
-    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-  endif()
-endif()
-
 project(IlumEngine VERSION 0.0.1)
 message(STATUS "[Project] ${PROJECT_NAME} ${PROJECT_VERSION}")
 
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/CMake")
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(BUILD_SHARED_LIBS OFF)
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
 
-include(Init)
-Init_Project()
-
-add_definitions(-DENGINE_VERSION="0.0.1")
-
-find_package(sdl2 REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/sdl2/cmake)
-find_package(tbb REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/tbb/lib/cmake/TBB)
-find_package(assimp REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/assimp/lib/cmake/assimp)
-find_package(glslang REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/glslang/lib/cmake)
-find_package(spirv_cross REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/spirv_cross/share)
-find_package(meshoptimizer REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/meshoptimizer/lib/cmake/meshoptimizer)
-find_package(spdlog REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Dependencies/spdlog/lib/cmake/spdlog)
-
-add_subdirectory(Dependencies)
-
-macro(GET_ALL_TARGETS TARGETS DIR)
-    get_property(SUBDIRECTORIES DIRECTORY ${DIR} PROPERTY SUBDIRECTORIES)
-    foreach(SUBDIR ${SUBDIRECTORIES})
-        GET_ALL_TARGETS(${TARGETS} ${SUBDIR})
-    endforeach()
-    get_property(CUR_TARGETS DIRECTORY ${DIR} PROPERTY BUILDSYSTEM_TARGETS)
-    LIST(APPEND ${TARGETS} ${CUR_TARGETS})
-endmacro()
-
-GET_ALL_TARGETS(ALL_TARGETS ${CMAKE_CURRENT_SOURCE_DIR})
-
-FOREACH(T IN ITEMS ${ALL_TARGETS})
-	SET_TARGET_PROPERTIES(${T} PROPERTIES FOLDER "External")
-ENDFOREACH()
+set(ILUM_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+set(CMAKE_INSTALL_PREFIX "${ILUM_ROOT_DIR}/bin")
+set(BINARY_ROOT_DIR "${CMAKE_INSTALL_PREFIX}/")
 
 add_subdirectory(Source)
