@@ -12,13 +12,18 @@ namespace Ilum
 {
 struct Meshlet
 {
-	meshopt_Bounds bounds;
-	uint32_t       indices_offset;
-	uint32_t       indices_count;
-	uint32_t       vertices_offset;                // Global offset
-	uint32_t       meshlet_vertices_offset;        // Meshlet offset
-	uint32_t       meshlet_indices_offset;        // Meshlet offset
-	uint32_t       vertices_count;
+	glm::vec3 center;
+	float     radius;
+
+	glm::vec3 cone_apex;
+	float     cone_cutoff;
+
+	uint32_t indices_offset;
+	uint32_t indices_count;
+	uint32_t vertices_offset;
+	uint32_t vertices_count;
+
+	alignas(16)glm::vec3 cone_axis;
 };
 
 struct Model
@@ -26,24 +31,17 @@ struct Model
   public:
 	std::vector<SubMesh> submeshes;
 
-	uint32_t vertices_count         = 0;
-	uint32_t indices_count          = 0;
-	uint32_t meshlet_vertices_count = 0;
-	uint32_t meshlet_indices_count  = 0;
+	uint32_t vertices_count = 0;
+	uint32_t indices_count  = 0;
+	uint32_t meshlet_count  = 0;
 
-	uint32_t vertices_offset         = 0;
-	uint32_t indices_offset          = 0;
-	uint32_t meshlet_vertices_offset = 0;
-	uint32_t meshlet_indices_offset  = 0;
+	uint32_t vertices_offset = 0;
+	uint32_t indices_offset  = 0;
+	uint32_t meshlet_offset  = 0;
 
-	// Raw geometry, original data
-	std::vector<Vertex>   vertices;
-	std::vector<uint32_t> indices;
-
-	// Meshlet, for mesh shading & cluster culling
-	std::vector<Meshlet>  meshlets;
-	std::vector<uint32_t> meshlet_vertices;
-	std::vector<uint8_t>  meshlet_indices;
+	Buffer meshlets_buffer;
+	Buffer vertices_buffer;
+	Buffer indices_buffer;
 
 	geometry::BoundingBox bounding_box;
 

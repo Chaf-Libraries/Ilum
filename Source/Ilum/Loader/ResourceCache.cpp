@@ -123,8 +123,8 @@ ModelReference ResourceCache::loadModel(const std::string &name)
 
 	m_vertices_count += m_model_cache.back().vertices_count;
 	m_indices_count += m_model_cache.back().indices_count;
-	m_meshlet_vertices_count += m_model_cache.back().meshlet_vertices_count;
-	m_meshlet_indices_count += m_model_cache.back().meshlet_indices_count;
+	//m_meshlet_vertices_count += m_model_cache.back().meshlet_vertices_count;
+	//m_meshlet_indices_count += m_model_cache.back().meshlet_indices_count;
 
 	LOG_INFO("Import Model: {}", name);
 
@@ -231,8 +231,8 @@ void ResourceCache::flush()
 			auto &model = m_model_cache.begin() + m_model_cache.size() - 1;
 			m_vertices_count -= model->vertices_count;
 			m_indices_count -= model->indices_count;
-			m_meshlet_vertices_count -= model->meshlet_vertices_count;
-			m_meshlet_indices_count -= model->meshlet_indices_count;
+			//m_meshlet_vertices_count -= model->meshlet_vertices_count;
+			//m_meshlet_indices_count -= model->meshlet_indices_count;
 
 			m_model_cache.erase(model);
 			m_model_map.erase(name);
@@ -265,8 +265,8 @@ void ResourceCache::flush()
 				m_model_cache.push_back(std::move(future.get()));
 				m_vertices_count += m_model_cache.back().vertices_count;
 				m_indices_count += m_model_cache.back().indices_count;
-				m_meshlet_vertices_count += m_model_cache.back().meshlet_vertices_count;
-				m_meshlet_indices_count += m_model_cache.back().meshlet_indices_count;
+				//m_meshlet_vertices_count += m_model_cache.back().meshlet_vertices_count;
+				//m_meshlet_indices_count += m_model_cache.back().meshlet_indices_count;
 				iter = m_model_futures.erase(iter);
 			}
 			else
@@ -288,14 +288,14 @@ void ResourceCache::flush()
 				model.vertices_offset = vertices_offset;
 				model.indices_offset  = indices_offset;
 
-				model.meshlet_vertices_offset = meshlet_vertices_offset;
-				model.meshlet_indices_offset  = meshlet_indices_offset;
+				//model.meshlet_vertices_offset = meshlet_vertices_offset;
+				//model.meshlet_indices_offset  = meshlet_indices_offset;
 
 				vertices_offset += model.vertices_count;
 				indices_offset += model.indices_count;
 
-				meshlet_vertices_offset += model.meshlet_vertices_count;
-				meshlet_indices_offset += model.meshlet_indices_count;
+				//meshlet_vertices_offset += model.meshlet_vertices_count;
+				//meshlet_indices_offset += model.meshlet_indices_count;
 			}
 		}
 	}

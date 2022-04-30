@@ -4,6 +4,8 @@
 
 #include "Renderer/Renderer.hpp"
 
+#include "Graphics/Command/CommandBuffer.hpp"
+
 #include <assimp/DefaultLogger.hpp>
 #include <assimp/Importer.hpp>
 #include <assimp/pbrmaterial.h>
@@ -149,20 +151,15 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 		LOG_INFO("Model {} preprocess finish", file_path);
 		std::unordered_set<std::string> loaded_textures;
 
-		model.vertices.clear();
-		model.indices.clear();
-		model.meshlets.clear();
+		std::vector<Vertex>   model_vertices;
+		std::vector<uint32_t> model_indices;
+		std::vector<Meshlet>  model_meshlets;
 
 		const size_t max_vertices  = 64;
 		const size_t max_triangles = 124;
 		const float  cone_weight   = 0.5f;
 
-		std::vector<uint32_t> meshlet_offsets;
-		std::vector<uint32_t> meshlet_counts;
-
-		uint32_t meshlet_indices_offset  = 0;
-		uint32_t meshlet_vertices_offset = 0;
-		uint32_t meshlet_triangle_offset = 0;
+		ModelInfo info;
 
 		for (uint32_t i = 0; i < scene->mNumMeshes; i++)
 		{
@@ -207,60 +204,88 @@ void ModelLoader::load(Model &model, const std::string &file_path)
 			meshlet_triangles.resize(last.triangle_offset + ((last.triangle_count * 3 + 3) & ~3));
 			meshlets.resize(meshlet_count);
 
-			meshlet_offsets.push_back(meshlet_offsets.empty() ? 0 : meshlet_offsets.back() + meshlet_counts.back());
-			meshlet_counts.push_back(static_cast<uint32_t>(meshlet_count));
-
-			// Process meshlets
-			std::vector<uint32_t> meshlet_indices;
-			meshlet_indices.reserve(meshlet_triangles.size());
-
 			std::vector<meshopt_Bounds> meshlet_bounds;
+
+			uint32_t vertices_count = 0;
+			uint32_t indices_count = 0;
 
 			for (auto &meshlet : meshlets)
 			{
 				Meshlet tmp_meshlet         = {};
-				tmp_meshlet.vertices_offset = static_cast<uint32_t>(model.vertices.size());
-				tmp_meshlet.vertices_count  = meshlet.vertex_count;
-				tmp_meshlet.indices_offset  = meshlet_indices_offset;
-				tmp_meshlet.indices_count   = meshlet.triangle_count * 3;
-
-				tmp_meshlet.meshlet_vertices_offset = meshlet_vertices_offset + meshlet.vertex_offset;
-				tmp_meshlet.meshlet_indices_offset  = meshlet_triangle_offset + meshlet.triangle_offset;
-
-				meshlet_indices_offset += tmp_meshlet.indices_count;
+				tmp_meshlet.vertices_offset = static_cast<uint32_t>(model_vertices.size());
+				tmp_meshlet.vertices_count  = static_cast<uint32_t>(meshlet.vertex_count);
+				tmp_meshlet.indices_offset  = static_cast<uint32_t>(model_indices.size());
+				tmp_meshlet.indices_count   = static_cast<uint32_t>(meshlet.triangle_count * 3);
 
 				for (uint32_t j = 0; j < meshlet.triangle_count * 3; j++)
 				{
-					meshlet_indices.push_back(meshlet_vertices[meshlet.vertex_offset + meshlet_triangles[meshlet.triangle_offset + j]]);
+					model_indices.push_back(meshlet.vertex_offset + meshlet_triangles[meshlet.triangle_offset + j]);
+					indices_count++;
 				}
 
-				tmp_meshlet.bounds = meshopt_computeMeshletBounds(&meshlet_vertices[meshlet.vertex_offset], &meshlet_triangles[meshlet.triangle_offset],
+				for (uint32_t j = 0; j < meshlet.vertex_count; j++)
+				{
+					model_vertices.push_back(vertices[meshlet_vertices[meshlet.vertex_offset + j]]);
+					vertices_count++;
+				}
+
+				auto bounds = meshopt_computeMeshletBounds(&meshlet_vertices[meshlet.vertex_offset], &meshlet_triangles[meshlet.triangle_offset],
 				                                                  meshlet.triangle_count, &vertices[0].position.x, vertices.size(), sizeof(Vertex));
-				model.meshlets.emplace_back(std::move(tmp_meshlet));
+				std::memcpy(glm::value_ptr(tmp_meshlet.center), bounds.center, sizeof(glm::vec3));
+				tmp_meshlet.radius = bounds.radius;
+				std::memcpy(glm::value_ptr(tmp_meshlet.cone_apex), bounds.cone_apex, sizeof(glm::vec3));
+				tmp_meshlet.cone_cutoff = bounds.cone_cutoff;
+				std::memcpy(glm::value_ptr(tmp_meshlet.cone_axis), bounds.cone_axis, sizeof(glm::vec3));
+			
+				model_meshlets.emplace_back(std::move(tmp_meshlet));
 			}
 
-			meshlet_vertices_offset += static_cast<uint32_t>(meshlet_vertices.size());
-			meshlet_triangle_offset += static_cast<uint32_t>(meshlet_triangles.size());
+			info.meshlets_offsets.push_back(info.meshlets_offsets.empty() ? 0 : info.meshlets_offsets.back() + info.meshlets_counts.back());
+			info.meshlets_counts.push_back(static_cast<uint32_t>(meshlet_count));
 
-			model.meshlet_vertices.insert(model.meshlet_vertices.end(), std::make_move_iterator(meshlet_vertices.begin()), std::make_move_iterator(meshlet_vertices.end()));
-			model.meshlet_indices.insert(model.meshlet_indices.end(), std::make_move_iterator(meshlet_triangles.begin()), std::make_move_iterator(meshlet_triangles.end()));
-			model.vertices.insert(model.vertices.end(), std::make_move_iterator(vertices.begin()), std::make_move_iterator(vertices.end()));
-			model.indices.insert(model.indices.end(), std::make_move_iterator(meshlet_indices.begin()), std::make_move_iterator(meshlet_indices.end()));
+			info.vertices_offsets.push_back(info.vertices_offsets.empty() ? 0 : info.vertices_offsets.back() + info.vertices_counts.back());
+			info.vertices_counts.push_back(vertices_count);
+
+			info.indices_offsets.push_back(info.indices_offsets.empty() ? 0 : info.indices_offsets.back() + info.indices_counts.back());
+			info.indices_counts.push_back(indices_count);
 		}
 
-		model.vertices_count         = static_cast<uint32_t>(model.vertices.size());
-		model.indices_count          = static_cast<uint32_t>(model.indices.size());
-		model.meshlet_vertices_count = static_cast<uint32_t>(model.meshlet_vertices.size());
-		model.meshlet_indices_count  = static_cast<uint32_t>(model.meshlet_indices.size());
+		model.vertices_count = static_cast<uint32_t>(model_vertices.size());
+		model.indices_count  = static_cast<uint32_t>(model_indices.size());
+		model.meshlet_count  = static_cast<uint32_t>(model_meshlets.size());
+
+		{
+			Buffer vertex_staging = Buffer(model.vertices_count * sizeof(Vertex), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			std::memcpy(vertex_staging.map(), model_vertices.data(), model.vertices_count * sizeof(Vertex));
+
+			Buffer index_staging = Buffer(model.indices_count * sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			std::memcpy(index_staging.map(), model_indices.data(), model.indices_count * sizeof(uint32_t));
+
+			Buffer meshlet_staging = Buffer(model.meshlet_count * sizeof(Meshlet), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			std::memcpy(meshlet_staging.map(), model_meshlets.data(), model.meshlet_count * sizeof(Meshlet));
+
+			model.vertices_buffer = Buffer(model.vertices_count * sizeof(Vertex), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			model.indices_buffer  = Buffer(model.indices_count * sizeof(uint32_t), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, VMA_MEMORY_USAGE_CPU_TO_GPU);
+			model.meshlets_buffer = Buffer(model.meshlet_count * sizeof(Meshlet), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+
+			CommandBuffer cmd_buffer(QueueUsage::Transfer);
+			cmd_buffer.begin();
+			cmd_buffer.copyBuffer(BufferInfo{vertex_staging}, BufferInfo{model.vertices_buffer}, vertex_staging.getSize());
+			cmd_buffer.copyBuffer(BufferInfo{index_staging}, BufferInfo{model.indices_buffer}, index_staging.getSize());
+			cmd_buffer.copyBuffer(BufferInfo{meshlet_staging}, BufferInfo{model.meshlets_buffer}, meshlet_staging.getSize());
+			cmd_buffer.end();
+			cmd_buffer.submitIdle();
+		}
 
 		aiMatrix4x4 identity;
-		parseNode(file_path, identity, scene->mRootNode, scene, model, meshlet_offsets, meshlet_counts);
+
+		parseNode(file_path, identity, scene->mRootNode, scene, model, info);
 	}
 
 	LOG_INFO("Model {} loaded!", file_path);
 }
 
-void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform, aiNode *node, const aiScene *scene, Model &model, std::vector<uint32_t> &meshlet_offsets, std::vector<uint32_t> &meshlet_counts)
+void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform, aiNode *node, const aiScene *scene, Model &model, const ModelInfo &info)
 {
 	transform = transform * node->mTransformation;
 
@@ -284,27 +309,42 @@ void ModelLoader::parseNode(const std::string &file_path, aiMatrix4x4 transform,
 		submesh.bounding_box  = geometry::BoundingBox(to_vector(mesh->mAABB.mMin), to_vector(mesh->mAABB.mMax));
 		model.bounding_box.merge(submesh.bounding_box);
 
-		submesh.vertices_count = mesh->mNumVertices;
-		submesh.indices_count  = mesh->mNumFaces * 3;
+		submesh.vertices_count  = info.vertices_counts[node->mMeshes[i]];
+		submesh.vertices_offset = info.vertices_offsets[node->mMeshes[i]];
+		submesh.indices_count   = info.indices_counts[node->mMeshes[i]];
+		submesh.indices_offset  = info.indices_offsets[node->mMeshes[i]];
+		submesh.meshlet_count   = info.meshlets_counts[node->mMeshes[i]];
+		submesh.meshlet_offset  = info.meshlets_offsets[node->mMeshes[i]];
 
-		uint32_t vertices_offset = 0;
-		uint32_t indices_offset  = 0;
-		for (uint32_t j = 0; j < node->mMeshes[i]; j++)
-		{
-			vertices_offset += scene->mMeshes[j]->mNumVertices;
-			indices_offset += scene->mMeshes[j]->mNumFaces * 3;
-		}
-		submesh.vertices_offset = vertices_offset;
-		submesh.indices_offset  = indices_offset;
-		submesh.meshlet_count   = meshlet_counts[node->mMeshes[i]];
-		submesh.meshlet_offset  = meshlet_offsets[node->mMeshes[i]];
+		VkAccelerationStructureGeometryKHR geometry_info             = {};
+		geometry_info.sType                                          = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+		geometry_info.flags                                          = VK_GEOMETRY_OPAQUE_BIT_KHR;
+		geometry_info.geometryType                                   = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
+		geometry_info.geometry.triangles.sType                       = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
+		geometry_info.geometry.triangles.vertexFormat                = VK_FORMAT_R32G32B32_SFLOAT;
+		geometry_info.geometry.triangles.vertexData.deviceAddress    = model.vertices_buffer.getDeviceAddress();
+		geometry_info.geometry.triangles.maxVertex                   = submesh.vertices_count;
+		geometry_info.geometry.triangles.vertexStride                = sizeof(Vertex);
+		geometry_info.geometry.triangles.indexType                   = VK_INDEX_TYPE_UINT32;
+		geometry_info.geometry.triangles.indexData.deviceAddress     = model.indices_buffer.getDeviceAddress();
+		geometry_info.geometry.triangles.transformData.deviceAddress = 0;
+		geometry_info.geometry.triangles.transformData.hostAddress   = nullptr;
+
+		VkAccelerationStructureBuildRangeInfoKHR range_info = {};
+
+		range_info.primitiveCount  = submesh.indices_count / 3;
+		range_info.primitiveOffset = (submesh.indices_offset) * sizeof(uint32_t);
+		range_info.firstVertex     = submesh.vertices_offset;
+		range_info.transformOffset = 0;
+
+		submesh.bottom_level_as.build(geometry_info, range_info);
 
 		model.submeshes.emplace_back(std::move(submesh));
 	}
 
 	for (uint32_t i = 0; i < node->mNumChildren; i++)
 	{
-		parseNode(file_path, transform, node->mChildren[i], scene, model, meshlet_offsets, meshlet_counts);
+		parseNode(file_path, transform, node->mChildren[i], scene, model, info);
 	}
 }
 

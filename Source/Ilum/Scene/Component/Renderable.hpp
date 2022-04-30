@@ -21,6 +21,11 @@ struct Renderable
 		update = true;
 	}
 
+	bool update()
+	{
+		return false;
+	}
+
 	inline static bool update = false;
 };
 
@@ -30,6 +35,14 @@ struct StaticMeshRenderer : public Renderable
 	std::string model;
 
 	std::vector<Material> materials;
+
+	Buffer instance_buffer;
+	Buffer material_buffer;
+
+	bool update()
+	{
+
+	}
 
 	template <class Archive>
 	void serialize(Archive &ar)

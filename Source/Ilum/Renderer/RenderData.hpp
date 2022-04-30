@@ -10,38 +10,12 @@ namespace Ilum
 {
 struct PerInstanceData
 {
-	glm::mat4 transform      = {};
-	glm::mat4 last_transform = {};
+	glm::mat4 transform = {};
 
-	glm::vec3 bbox_min  = {};
-	uint32_t  entity_id = 0;
-
-	glm::vec3 bbox_max    = {};
-	uint32_t  material_id = std::numeric_limits<uint32_t>::max();
-
-	alignas(16) uint32_t vertex_offset = 0;
-	uint32_t index_offset              = 0;
-	uint32_t index_count               = 0;
-};
-
-struct PerMeshletData
-{
-	glm::vec3 center = {};
-	float     radius = 0.f;
-
-	glm::vec3 cone_apex   = {};
-	float     cone_cutoff = 0.f;
-
-	glm::vec3 cone_axis   = {};
-	uint32_t  instance_id = 0;
-
-	uint32_t vertex_count  = 0;
-	uint32_t vertex_offset = 0;
-	uint32_t index_offset  = 0;
-	uint32_t index_count   = 0;
-
-	alignas(16) uint32_t meshlet_vertex_offset = 0;
-	uint32_t meshlet_index_offset = 0;
+	uint64_t vertex_address              = 0;
+	uint64_t index_address               = 0;
+	alignas(16) uint64_t meshlet_address = 0;
+	uint32_t entity_id                   = 0;
 };
 
 struct CullingData
@@ -193,7 +167,7 @@ struct RenderBuffer
 };
 
 	*/
-	Buffer Meshlet_Buffer = Buffer(1024 * sizeof(PerMeshletData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+	Buffer Meshlet_Buffer = Buffer(16384 * sizeof(uint64_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VMA_MEMORY_USAGE_GPU_ONLY);
 
 	// Meshlet - index instance from meshlet
 	Buffer Draw_Buffer = Buffer(1024 * sizeof(uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY);

@@ -95,9 +95,9 @@ struct Instance
     float3 bbox_max;
     uint material_id;
 
-    uint vertex_offset;
-    uint index_offset;
-    uint index_count;
+    uint64_t vertex_address;
+    uint64_t index_address;
+    uint64_t meshlet_address;
 };
 
 // Per Meshlet Data
@@ -108,16 +108,12 @@ struct Meshlet
     float3 cone_apex;
     float cone_cutoff;
 
-    float3 cone_axis;
-    uint instance_id;
+    uint indices_offset;
+    uint indices_count;
+    uint vertices_offset;
+    uint vertices_count;
     
-    uint vertex_count;
-    uint vertex_offset;
-    uint index_offset;
-    uint index_count;
-
-    uint meshlet_vertex_offset;
-    uint meshlet_index_offset;
+    float3 cone_axis;
     
     bool IsVisible(Camera camera, float4x4 trans)
     {

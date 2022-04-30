@@ -22,12 +22,11 @@ struct SubMesh
 
 	uint32_t vertices_count = 0;
 	uint32_t indices_count  = 0;
+	uint32_t meshlet_count  = 0;
 
 	uint32_t vertices_offset = 0;
 	uint32_t indices_offset  = 0;
-
 	uint32_t meshlet_offset = 0;
-	uint32_t meshlet_count  = 0;
 
 	Material material;
 

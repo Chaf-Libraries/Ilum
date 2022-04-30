@@ -48,6 +48,8 @@
 #include "RenderPass/Shading/Shadow/Shadowmap.hpp"
 #include "RenderPass/Shading/SkyboxPass.hpp"
 
+#include "RenderPass/Test.hpp"
+
 #include "RenderPass/RayTracing/Path.hpp"
 
 #include "BufferUpdate/CameraUpdate.hpp"
@@ -74,13 +76,13 @@ Renderer::Renderer(Context *context) :
 
 	DeferredRendering = [this](RenderGraphBuilder &builder) {
 		builder
-		    .addRenderPass("KullaContyEnergy", std::make_unique<pass::KullaContyEnergy>())
-		    .addRenderPass("KullaContyAverage", std::make_unique<pass::KullaContyAverage>())
-		    .addRenderPass("BRDFPreIntegrate", std::make_unique<pass::BRDFPreIntegrate>())
-		    .addRenderPass("EquirectangularToCubemap", std::make_unique<pass::EquirectangularToCubemap>())
-		    .addRenderPass("CubemapSHProjection", std::make_unique<pass::CubemapSHProjection>())
-		    .addRenderPass("CubemapSHAdd", std::make_unique<pass::CubemapSHAdd>())
-		    .addRenderPass("CubemapPrefilter", std::make_unique<pass::CubemapPrefilter>())
+		    //.addRenderPass("KullaContyEnergy", std::make_unique<pass::KullaContyEnergy>())
+		    //.addRenderPass("KullaContyAverage", std::make_unique<pass::KullaContyAverage>())
+		    //.addRenderPass("BRDFPreIntegrate", std::make_unique<pass::BRDFPreIntegrate>())
+		    //.addRenderPass("EquirectangularToCubemap", std::make_unique<pass::EquirectangularToCubemap>())
+		    //.addRenderPass("CubemapSHProjection", std::make_unique<pass::CubemapSHProjection>())
+		    //.addRenderPass("CubemapSHAdd", std::make_unique<pass::CubemapSHAdd>())
+		    //.addRenderPass("CubemapPrefilter", std::make_unique<pass::CubemapPrefilter>())
 
 		    //.addRenderPass("Whitted", std::make_unique<pass::Whitted>())
 		    //.addRenderPass("CopyFrame", std::make_unique<pass::CopyFrame>("Whitted", "PrevWhitted"))
@@ -90,11 +92,11 @@ Renderer::Renderer(Context *context) :
 		    //.addRenderPass("CopyFrame", std::make_unique<pass::CopyFrame>("Path", "PrevPath"))
 		    //.addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Path", "Tonemapping"))
 
-		    .addRenderPass("MeshPass", std::make_unique<pass::MeshPass>(true))
-		    .addRenderPass("ShadowmapPass", std::make_unique<pass::ShadowmapPass>())
-		    .addRenderPass("CascadeShadowmapPass", std::make_unique<pass::CascadeShadowmapPass>())
-		    .addRenderPass("OmniShadowmapPass", std::make_unique<pass::OmniShadowmapPass>())
-		    .addRenderPass("LightPass", std::make_unique<pass::LightPass>())
+		    //.addRenderPass("MeshPass", std::make_unique<pass::MeshPass>(true))
+		    //.addRenderPass("ShadowmapPass", std::make_unique<pass::ShadowmapPass>())
+		    //.addRenderPass("CascadeShadowmapPass", std::make_unique<pass::CascadeShadowmapPass>())
+		    //.addRenderPass("OmniShadowmapPass", std::make_unique<pass::OmniShadowmapPass>())
+		    //.addRenderPass("LightPass", std::make_unique<pass::LightPass>())
 		    //.addRenderPass("Skybox", std::make_unique<pass::SkyboxPass>())
 
 		    //.addRenderPass("TAA", std::make_unique<pass::TAAPass>("Lighting", "History", "TAAResult"))
@@ -115,15 +117,17 @@ Renderer::Renderer(Context *context) :
 		    //.addRenderPass("BloomUpSample3", std::make_unique<pass::BloomUpSample>(2))
 		    //.addRenderPass("BloomBlend", std::make_unique<pass::BloomBlend>("TAAResult", "BloomResult"))
 
-		    .addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Lighting", "Tonemapping"))
+		    //.addRenderPass("Tonemapping", std::make_unique<pass::Tonemapping>("Lighting", "Tonemapping"))
 
 		    //.addRenderPass("CurveViewPass", std::make_unique<pass::CurveViewPass>())
 		    //.addRenderPass("SurfaceViewPass", std::make_unique<pass::SurfaceViewPass>())
 		    //.addRenderPass("MeshViewPass", std::make_unique<pass::MeshViewPass>())
 		    //.addRenderPass("WireFrameViewPass", std::make_unique<pass::WireFrameViewPass>())
 
-		    .setView("Tonemapping")
-		    .setOutput("Tonemapping");
+			.addRenderPass("Test", std::make_unique<pass::TestPass>())
+
+		    .setView("Result")
+		    .setOutput("Result");
 	};
 
 	buildRenderGraph = DeferredRendering;
@@ -139,13 +143,13 @@ Renderer::~Renderer()
 
 bool Renderer::onInitialize()
 {
-	Scene::instance()->addSystem<sym::GeometryUpdate>();
+	//Scene::instance()->addSystem<sym::GeometryUpdate>();
 	Scene::instance()->addSystem<sym::CurveUpdate>();
 	Scene::instance()->addSystem<sym::SurfaceUpdate>();
 	Scene::instance()->addSystem<sym::TransformUpdate>();
 	Scene::instance()->addSystem<sym::CameraUpdate>();
 	Scene::instance()->addSystem<sym::LightUpdate>();
-	Scene::instance()->addSystem<sym::MeshletUpdate>();
+	//Scene::instance()->addSystem<sym::MeshletUpdate>();
 	Scene::instance()->addSystem<sym::MaterialUpdate>();
 
 	m_render_target_extent = GraphicsContext::instance()->getSwapchain().getExtent();

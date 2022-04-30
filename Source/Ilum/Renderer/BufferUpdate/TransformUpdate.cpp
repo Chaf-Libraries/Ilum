@@ -33,6 +33,35 @@ inline void transform_recrusive(entt::entity entity)
 	{
 		transform.local_transform = glm::scale(glm::translate(glm::mat4(1.f), transform.translation) * glm::mat4_cast(glm::qua<float>(glm::radians(transform.rotation))), transform.scale);
 		transform.world_transform = Entity(hierarchy.parent).getComponent<cmpt::Transform>().world_transform * transform.local_transform;
+
+		if (Entity(entity).hasComponent<cmpt::StaticMeshRenderer>())
+		{
+			auto &static_mesh_renderer = Entity(entity).getComponent<cmpt::StaticMeshRenderer>();
+
+			if (Renderer::instance()->getResourceCache().hasModel(static_mesh_renderer.model))
+			{
+				auto model = Renderer::instance()->getResourceCache().loadModel(static_mesh_renderer.model);
+
+				if (static_mesh_renderer.instance_buffer.getSize() != model.get().submeshes.size() * sizeof(PerInstanceData))
+				{
+					GraphicsContext::instance()->getQueueSystem().waitAll();
+					static_mesh_renderer.instance_buffer = Buffer(model.get().submeshes.size() * sizeof(PerInstanceData), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU);
+				}
+				PerInstanceData *data = reinterpret_cast<PerInstanceData *>(static_mesh_renderer.instance_buffer.map());
+
+				uint32_t submesh_index = 0;
+				for (auto& submesh : model.get().submeshes)
+				{
+					data[submesh_index].transform = transform.world_transform * submesh.pre_transform;
+					data[submesh_index].entity_id = static_cast<uint32_t>(entity);
+					data[submesh_index].vertex_address = model.get().vertices_buffer.getDeviceAddress();
+					data[submesh_index].index_address = model.get().indices_buffer.getDeviceAddress();
+					data[submesh_index].meshlet_address = model.get().meshlets_buffer.getDeviceAddress();
+				}
+			}
+
+			
+		}
 	}
 
 	auto child = hierarchy.first;

@@ -1,5 +1,6 @@
 #include "../../Common.hlsli"
 #include "../../Math.hlsli"
+#include "../../Fetch.hlsli"
 
 #ifndef RUNTIME
 #define TASK
@@ -8,12 +9,8 @@
 #endif
 
 StructuredBuffer<Instance> instances : register(t0);
-StructuredBuffer<Meshlet> meshlets : register(t1);
 ConstantBuffer<Camera> camera : register(b2);
-StructuredBuffer<Vertex> vertices : register(t3);
 ConstantBuffer<CullingInfo> culling_info : register(b5);
-StructuredBuffer<uint> meshlet_vertices : register(t6);
-StructuredBuffer<uint> meshlet_indices : register(t7);
 RWStructuredBuffer<CountInfo> count_info : register(u8);
 
 struct CSParam
@@ -42,6 +39,12 @@ struct Payload
 };
 
 #ifdef TASK
+[[vk::push_constant]]
+struct
+{
+    uint instance_idx;
+}task_push_constant;
+
 groupshared Payload shared_payload;
 [numthreads(32, 1, 1)]void ASmain(CSParam param)
 {
@@ -56,7 +59,8 @@ groupshared Payload shared_payload;
     if (param.DispatchThreadID.x < culling_info.meshlet_count)
     {
         Meshlet meshlet = meshlets[param.DispatchThreadID.x];
-        Instance instance = instances[meshlet.instance_id];
+        Instance instance = instances[task_push_constant.instance_idx];
+        
         Camera cam = camera;
         visible = meshlet.IsVisible(cam, instance.transform);
     }
@@ -94,7 +98,8 @@ groupshared Payload shared_payload;
 
     for (uint i = param.GroupThreadID.x; i < meshlet.vertex_count; i += 32)
     {
-        uint vertex_index = meshlet.vertex_offset + meshlet_vertices[meshlet.meshlet_vertex_offset + i];
+        
+        uint vertex_index = meshlet.vertex_offset + i;
         Vertex vertex = vertices[vertex_index];
 
         verts[i].PositionHS = mul(camera.view_projection, mul(transform, float4(vertex.position.xyz, 1.0)));

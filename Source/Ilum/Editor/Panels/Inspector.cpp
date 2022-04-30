@@ -605,8 +605,8 @@ inline bool draw_component<cmpt::DynamicMeshRenderer>(Entity entity)
 					}
 					else
 					{
-						component.vertices    = model.get().vertices;
-						component.indices     = model.get().indices;
+						//component.vertices    = model.get().vertices;
+						//component.indices     = model.get().indices;
 						component.material    = model.get().submeshes[0].material;
 						component.bbox        = model.get().bounding_box;
 						component.need_update = true;
