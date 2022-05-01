@@ -21,6 +21,7 @@ target_link_libraries(${TARGET_NAME} PUBLIC glm)
 target_link_libraries(${TARGET_NAME} PUBLIC vulkan)
 target_link_libraries(${TARGET_NAME} PUBLIC volk)
 target_link_libraries(${TARGET_NAME} PUBLIC vma)
+target_link_libraries(${TARGET_NAME} PUBLIC stb)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_compile_definitions(${TARGET_NAME} PUBLIC "-DNOMINMAX")

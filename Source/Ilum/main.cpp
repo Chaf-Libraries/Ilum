@@ -6,6 +6,8 @@
 #include <Core/Input.hpp>
 
 #include <RHI/Device.hpp>
+#include <RHI/Texture.hpp>
+#include <RHI/Buffer.hpp>
 
 #include <array>
 #include <iostream>
@@ -36,6 +38,20 @@ int main()
 	Input::GetInstance().Bind(&window);
 
 	RHIDevice device(&window);
+
+	TextureDesc desc;
+	desc.width = 100;
+	desc.height = 100;
+	desc.format = VK_FORMAT_R8G8B8A8_UNORM;
+	desc.usage  = VK_IMAGE_USAGE_SAMPLED_BIT;
+
+	BufferDesc buffer_desc = {};
+	buffer_desc.buffer_usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	buffer_desc.memory_usage = VMA_MEMORY_USAGE_GPU_ONLY;
+	buffer_desc.size         = 100;
+
+	auto texture = device.CreateTexture(desc);
+	auto buffer  = device.CreateBuffer(buffer_desc);
 
 	while (window.Tick())
 	{

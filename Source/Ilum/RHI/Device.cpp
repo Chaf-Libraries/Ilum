@@ -1,9 +1,19 @@
+#define GLFW_INCLUDE_VULKAN
+#include <Core/Window.hpp>
+
 #define VMA_IMPLEMENTATION
 #define VOLK_IMPLEMENTATION
-
+#include "AccelerateStructure.hpp"
+#include "Buffer.hpp"
 #include "Device.hpp"
+#include "Texture.hpp"
 
-#include <Core/Window.hpp>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+#include <map>
+#include <optional>
+#include <sstream>
 
 namespace Ilum
 {
@@ -29,7 +39,17 @@ const std::vector<const char *>                 RHIDevice::s_validation_layers  
 const std::vector<VkValidationFeatureEnableEXT> RHIDevice::s_validation_extensions = {};
 #endif        // _DEBUG
 
-inline const std::vector<const char *> get_instance_extension_supported(const std::vector<const char *> &extensions)
+const std::vector<const char *> RHIDevice::s_device_extensions = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+    VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+    VK_KHR_RAY_QUERY_EXTENSION_NAME,
+    VK_NV_MESH_SHADER_EXTENSION_NAME,
+    VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME,
+    VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+    VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME};
+
+inline const std::vector<const char *> GetInstanceExtensionSupported(const std::vector<const char *> &extensions)
 {
 	uint32_t extension_count = 0;
 	vkEnumerateInstanceExtensionProperties(nullptr, &extension_count, nullptr);
@@ -61,7 +81,7 @@ inline const std::vector<const char *> get_instance_extension_supported(const st
 	return result;
 }
 
-inline bool check_layer_supported(const char *layer_name)
+inline bool CheckLayerSupported(const char *layer_name)
 {
 	uint32_t layer_count;
 	vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
@@ -80,7 +100,7 @@ inline bool check_layer_supported(const char *layer_name)
 	return false;
 }
 
-static inline VKAPI_ATTR VkBool32 VKAPI_CALL validation_callback(VkDebugUtilsMessageSeverityFlagBitsEXT msg_severity, VkDebugUtilsMessageTypeFlagsEXT msg_type, const VkDebugUtilsMessengerCallbackDataEXT *callback_data, void *user_data)
+static inline VKAPI_ATTR VkBool32 VKAPI_CALL ValidationCallback(VkDebugUtilsMessageSeverityFlagBitsEXT msg_severity, VkDebugUtilsMessageTypeFlagsEXT msg_type, const VkDebugUtilsMessengerCallbackDataEXT *callback_data, void *user_data)
 {
 	if (msg_severity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
 	{
@@ -98,18 +118,298 @@ static inline VKAPI_ATTR VkBool32 VKAPI_CALL validation_callback(VkDebugUtilsMes
 	return VK_FALSE;
 }
 
-RHIDevice::RHIDevice(Window *window)
+inline uint32_t ScorePhysicalDevice(VkPhysicalDevice physical_device, const std::vector<const char *> &device_extensions)
+{
+	uint32_t score = 0;
+
+	// Check extensions
+	uint32_t device_extension_properties_count = 0;
+	vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &device_extension_properties_count, nullptr);
+
+	std::vector<VkExtensionProperties> extension_properties(device_extension_properties_count);
+	vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &device_extension_properties_count, extension_properties.data());
+
+	for (auto &device_extension : device_extensions)
+	{
+		for (auto &support_extension : extension_properties)
+		{
+			if (std::strcmp(device_extension, support_extension.extensionName) == 0)
+			{
+				score += 100;
+				break;
+			}
+		}
+	}
+
+	VkPhysicalDeviceProperties       properties        = {};
+	VkPhysicalDeviceFeatures         features          = {};
+	VkPhysicalDeviceMemoryProperties memory_properties = {};
+
+	vkGetPhysicalDeviceProperties(physical_device, &properties);
+	vkGetPhysicalDeviceFeatures(physical_device, &features);
+	vkGetPhysicalDeviceMemoryProperties(physical_device, &memory_properties);
+
+	// Logging gpu
+	std::stringstream ss;
+	ss << "\nFound physical device [" << properties.deviceID << "]\n";
+	ss << "Name: " << properties.deviceName << "\n";
+	ss << "Type: ";
+	switch (static_cast<int32_t>(properties.deviceType))
+	{
+		case 1:
+			ss << "Integrated\n";
+			break;
+		case 2:
+			ss << "Discrete\n";
+			break;
+		case 3:
+			ss << "Virtual\n";
+			break;
+		case 4:
+			ss << "CPU\n";
+			break;
+		default:
+			ss << "Other " << properties.deviceType << "\n";
+	}
+
+	ss << "Vendor: ";
+	switch (properties.vendorID)
+	{
+		case 0x8086:
+			ss << "Intel\n";
+			break;
+		case 0x10DE:
+			ss << "Nvidia\n";
+			break;
+		case 0x1002:
+			ss << "AMD\n";
+			break;
+		default:
+			ss << properties.vendorID << "\n";
+	}
+
+	uint32_t supportedVersion[3] = {
+	    VK_VERSION_MAJOR(properties.apiVersion),
+	    VK_VERSION_MINOR(properties.apiVersion),
+	    VK_VERSION_PATCH(properties.apiVersion)};
+
+	ss << "API Version: " << supportedVersion[0] << "." << supportedVersion[1] << "." << supportedVersion[2] << '\n';
+
+	// Score discrete gpu
+	if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+	{
+		score += 1000;
+	}
+
+	score += properties.limits.maxImageDimension2D;
+	return score;
+}
+
+inline VkPhysicalDevice SelectPhysicalDevice(const std::vector<VkPhysicalDevice> &physical_devices, const std::vector<const char *> &device_extensions)
+{
+	// Score - GPU
+	std::map<uint32_t, VkPhysicalDevice, std::greater<uint32_t>> scores;
+	for (auto &gpu : physical_devices)
+	{
+		scores.emplace(ScorePhysicalDevice(gpu, device_extensions), gpu);
+	}
+
+	if (scores.empty())
+	{
+		return VK_NULL_HANDLE;
+	}
+
+	return scores.begin()->second;
+}
+
+inline const std::vector<const char *> GetDeviceExtensionSupport(VkPhysicalDevice physical_device, const std::vector<const char *> &extensions)
+{
+	std::vector<const char *> result;
+
+	uint32_t device_extension_properties_count = 0;
+	vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &device_extension_properties_count, nullptr);
+
+	std::vector<VkExtensionProperties> extension_properties(device_extension_properties_count);
+	vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &device_extension_properties_count, extension_properties.data());
+
+	for (auto &device_extension : extensions)
+	{
+		bool enable = false;
+		for (auto &support_extension : extension_properties)
+		{
+			if (std::strcmp(device_extension, support_extension.extensionName) == 0)
+			{
+				result.push_back(device_extension);
+				enable = true;
+				LOG_INFO("Enable device extension: {}", device_extension);
+				break;
+			}
+		}
+
+		if (!enable)
+		{
+			LOG_WARN("Device extension {} is not supported", device_extension);
+		}
+	}
+
+	return result;
+}
+
+inline std::optional<uint32_t> GetQueueFamilyIndex(const std::vector<VkQueueFamilyProperties> &queue_family_properties, VkQueueFlagBits queue_flag)
+{
+	// Dedicated queue for compute
+	// Try to find a queue family index that supports compute but not graphics
+	if (queue_flag & VK_QUEUE_COMPUTE_BIT)
+	{
+		for (uint32_t i = 0; i < static_cast<uint32_t>(queue_family_properties.size()); i++)
+		{
+			if ((queue_family_properties[i].queueFlags & queue_flag) && ((queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0))
+			{
+				return i;
+				break;
+			}
+		}
+	}
+
+	// Dedicated queue for transfer
+	// Try to find a queue family index that supports transfer but not graphics and compute
+	if (queue_flag & VK_QUEUE_TRANSFER_BIT)
+	{
+		for (uint32_t i = 0; i < static_cast<uint32_t>(queue_family_properties.size()); i++)
+		{
+			if ((queue_family_properties[i].queueFlags & queue_flag) && ((queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0) && ((queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT) == 0))
+			{
+				return i;
+				break;
+			}
+		}
+	}
+
+	// For other queue types or if no separate compute queue is present, return the first one to support the requested flags
+	for (uint32_t i = 0; i < static_cast<uint32_t>(queue_family_properties.size()); i++)
+	{
+		if (queue_family_properties[i].queueFlags & queue_flag)
+		{
+			return i;
+			break;
+		}
+	}
+
+	return std::optional<uint32_t>();
+}
+
+RHIDevice::RHIDevice(Window *window) :
+    p_window(window)
 {
 	CreateInstance();
+	CreatePhysicalDevice();
+	CreateSurface();
+	CreateLogicalDevice();
+	CreateSwapchain();
+
+	p_window->OnWindowSizeFunc += [this](int32_t, int32_t) { CreateSwapchain(); };
 }
 
 RHIDevice::~RHIDevice()
 {
+	vkDeviceWaitIdle(m_device);
+
+	m_swapchain_image_views.clear();
+	m_swapchain_images.clear();
+
+	if (m_swapchain)
+	{
+		vkDestroySwapchainKHR(m_device, m_swapchain, nullptr);
+	}
+
+	if (m_surface)
+	{
+		vkDestroySurfaceKHR(m_instance, m_surface, nullptr);
+	}
+
+	if (m_allocator)
+	{
+		vmaDestroyAllocator(m_allocator);
+	}
+
+	if (m_device)
+	{
+		vkDestroyDevice(m_device, nullptr);
+	}
+
 	if (vkDestroyDebugUtilsMessengerEXT)
 	{
 		vkDestroyDebugUtilsMessengerEXT(m_instance, vkDebugUtilsMessengerEXT, nullptr);
 	}
 	vkDestroyInstance(m_instance, nullptr);
+}
+
+void RHIDevice::Tick()
+{
+}
+
+std::shared_ptr<Texture> RHIDevice::CreateTexture(const TextureDesc &desc, const std::string &name)
+{
+	auto texture = std::make_shared<Texture>(this, desc);
+	if (!name.empty())
+	{
+		texture->SetName(name);
+	}
+	return texture;
+}
+
+std::shared_ptr<Texture> RHIDevice::CreateTexture(const std::string &filepath)
+{
+	return std::shared_ptr<Texture>();
+}
+
+std::shared_ptr<TextureView> RHIDevice::CreateTextureView(Texture *texture, const TextureViewDesc &desc, const std::string &name)
+{
+	auto texture_view = std::make_shared<TextureView>(this, texture, desc);
+	if (!name.empty())
+	{
+		texture_view->SetName(name);
+	}
+	return texture_view;
+}
+
+std::shared_ptr<Buffer> RHIDevice::CreateBuffer(const BufferDesc &desc, const std::string &name)
+{
+	auto buffer = std::make_shared<Buffer>(this, desc);
+	if (!name.empty())
+	{
+		buffer->SetName(name);
+	}
+	return buffer;
+}
+
+std::shared_ptr<AccelerationStructure> RHIDevice::CreateAccelerationStructure(const AccelerationStructureDesc &desc, const std::string &name)
+{
+	auto acceleration_structure = std::make_shared<AccelerationStructure>(this);
+	if (!name.empty())
+	{
+		acceleration_structure->SetName(name);
+	}
+	return acceleration_structure;
+}
+
+Texture *RHIDevice::GetBackBuffer() const
+{
+	return m_swapchain_images[m_current_frame].get();
+}
+
+VkQueue RHIDevice::GetQueue(VkQueueFlagBits flag) const
+{
+	switch (flag)
+	{
+		case VK_QUEUE_GRAPHICS_BIT:
+			return m_graphics_queue;
+		case VK_QUEUE_COMPUTE_BIT:
+			return m_compute_queue;
+		case VK_QUEUE_TRANSFER_BIT:
+			return m_transfer_queue;
+	}
+	return m_graphics_queue;
 }
 
 void RHIDevice::CreateInstance()
@@ -148,7 +448,7 @@ void RHIDevice::CreateInstance()
 	app_info.apiVersion         = std::min(sdk_version, api_version);
 
 	// Check out extensions support
-	std::vector<const char *> extensions_support = get_instance_extension_supported(s_instance_extensions);
+	std::vector<const char *> extensions_support = GetInstanceExtensionSupported(s_instance_extensions);
 
 	// Config instance info
 	VkInstanceCreateInfo create_info{VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO};
@@ -167,7 +467,7 @@ void RHIDevice::CreateInstance()
 	// Enable validation layer
 	for (auto &layer : s_validation_layers)
 	{
-		if (check_layer_supported(layer))
+		if (CheckLayerSupported(layer))
 		{
 			LOG_INFO("Enable validation layer: {}", layer);
 			create_info.enabledLayerCount   = static_cast<uint32_t>(s_validation_layers.size());
@@ -210,7 +510,7 @@ void RHIDevice::CreateInstance()
 		VkDebugUtilsMessengerCreateInfoEXT create_info{VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
 		create_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 		create_info.messageType     = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-		create_info.pfnUserCallback = validation_callback;
+		create_info.pfnUserCallback = ValidationCallback;
 
 		vkCreateDebugUtilsMessengerEXT(m_instance, &create_info, nullptr, &vkDebugUtilsMessengerEXT);
 	}
@@ -219,6 +519,387 @@ void RHIDevice::CreateInstance()
 
 void RHIDevice::CreatePhysicalDevice()
 {
+	uint32_t physical_device_count = 0;
+	vkEnumeratePhysicalDevices(m_instance, &physical_device_count, nullptr);
+
+	// Get all physical devices
+	std::vector<VkPhysicalDevice> physical_devices(physical_device_count);
+	vkEnumeratePhysicalDevices(m_instance, &physical_device_count, physical_devices.data());
+
+	// Select suitable physical device
+	m_physical_device = SelectPhysicalDevice(physical_devices, s_device_extensions);
 }
 
+void RHIDevice::CreateSurface()
+{
+	if (glfwCreateWindowSurface(m_instance, p_window->m_handle, nullptr, &m_surface) != VK_SUCCESS)
+	{
+		LOG_FATAL("Failed to create window surface!");
+	}
+}
+
+void RHIDevice::CreateLogicalDevice()
+{
+	// Queue supporting
+	uint32_t queue_family_property_count = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(m_physical_device, &queue_family_property_count, nullptr);
+	std::vector<VkQueueFamilyProperties> queue_family_properties(queue_family_property_count);
+	vkGetPhysicalDeviceQueueFamilyProperties(m_physical_device, &queue_family_property_count, queue_family_properties.data());
+
+	std::optional<uint32_t> graphics_family, compute_family, transfer_family, present_family;
+
+	graphics_family = GetQueueFamilyIndex(queue_family_properties, VK_QUEUE_GRAPHICS_BIT);
+	transfer_family = GetQueueFamilyIndex(queue_family_properties, VK_QUEUE_TRANSFER_BIT);
+	compute_family  = GetQueueFamilyIndex(queue_family_properties, VK_QUEUE_COMPUTE_BIT);
+
+	VkQueueFlags support_queues = 0;
+
+	for (uint32_t i = 0; i < queue_family_property_count; i++)
+	{
+		// Check for presentation support
+		VkBool32 present_support;
+		vkGetPhysicalDeviceSurfaceSupportKHR(m_physical_device, i, m_surface, &present_support);
+
+		if (queue_family_properties[i].queueCount > 0 && present_support)
+		{
+			present_family   = i;
+			m_present_family = i;
+			break;
+		}
+	}
+
+	if (graphics_family.has_value())
+	{
+		m_graphics_family = graphics_family.value();
+		support_queues |= VK_QUEUE_GRAPHICS_BIT;
+	}
+
+	if (compute_family.has_value())
+	{
+		m_compute_family = compute_family.value();
+		support_queues |= VK_QUEUE_COMPUTE_BIT;
+	}
+
+	if (transfer_family.has_value())
+	{
+		m_transfer_family = transfer_family.value();
+		support_queues |= VK_QUEUE_TRANSFER_BIT;
+	}
+
+	if (!graphics_family)
+	{
+		throw std::runtime_error("Failed to find queue graphics family support!");
+	}
+
+	// Create device queue
+	std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
+
+	uint32_t max_count = 0;
+	for (auto &queue_family_property : queue_family_properties)
+	{
+		max_count = max_count < queue_family_property.queueCount ? queue_family_property.queueCount : max_count;
+	}
+
+	std::vector<float> queue_priorities(max_count, 1.f);
+
+	if (support_queues & VK_QUEUE_GRAPHICS_BIT)
+	{
+		VkDeviceQueueCreateInfo graphics_queue_create_info = {};
+		graphics_queue_create_info.sType                   = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		graphics_queue_create_info.queueFamilyIndex        = m_graphics_family;
+		graphics_queue_create_info.queueCount              = queue_family_properties[m_graphics_family].queueCount;
+		graphics_queue_create_info.pQueuePriorities        = queue_priorities.data();
+		queue_create_infos.emplace_back(graphics_queue_create_info);
+	}
+	else
+	{
+		m_graphics_family = 0;
+	}
+
+	if (support_queues & VK_QUEUE_COMPUTE_BIT && m_compute_family != m_graphics_family)
+	{
+		VkDeviceQueueCreateInfo compute_queue_create_info = {};
+		compute_queue_create_info.sType                   = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		compute_queue_create_info.queueFamilyIndex        = m_compute_family;
+		compute_queue_create_info.queueCount              = queue_family_properties[m_compute_family].queueCount;
+		compute_queue_create_info.pQueuePriorities        = queue_priorities.data();
+		queue_create_infos.emplace_back(compute_queue_create_info);
+	}
+	else
+	{
+		m_compute_family = m_graphics_family;
+	}
+
+	if (support_queues & VK_QUEUE_TRANSFER_BIT && m_transfer_family != m_graphics_family && m_transfer_family != m_compute_family)
+	{
+		VkDeviceQueueCreateInfo transfer_queue_create_info = {};
+		transfer_queue_create_info.sType                   = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+		transfer_queue_create_info.queueFamilyIndex        = m_transfer_family;
+		transfer_queue_create_info.queueCount              = queue_family_properties[m_transfer_family].queueCount;
+		transfer_queue_create_info.pQueuePriorities        = queue_priorities.data();
+		queue_create_infos.emplace_back(transfer_queue_create_info);
+	}
+	else
+	{
+		m_transfer_family = m_graphics_family;
+	}
+
+	// Enable logical device features
+	VkPhysicalDeviceFeatures physical_device_features;
+	vkGetPhysicalDeviceFeatures(m_physical_device, &physical_device_features);
+
+#define ENABLE_DEVICE_FEATURE(feature)                              \
+	if (physical_device_features.feature)                           \
+	{                                                               \
+		physical_device_features.feature = VK_TRUE;                 \
+		LOG_INFO("Physical device feature enable: {}", #feature)    \
+	}                                                               \
+	else                                                            \
+	{                                                               \
+		LOG_WARN("Physical device feature not found: {}", #feature) \
+	}
+
+	ENABLE_DEVICE_FEATURE(sampleRateShading);
+	ENABLE_DEVICE_FEATURE(fillModeNonSolid);
+	ENABLE_DEVICE_FEATURE(wideLines);
+	ENABLE_DEVICE_FEATURE(samplerAnisotropy);
+	ENABLE_DEVICE_FEATURE(vertexPipelineStoresAndAtomics);
+	ENABLE_DEVICE_FEATURE(fragmentStoresAndAtomics);
+	ENABLE_DEVICE_FEATURE(shaderStorageImageExtendedFormats);
+	ENABLE_DEVICE_FEATURE(shaderStorageImageWriteWithoutFormat);
+	ENABLE_DEVICE_FEATURE(geometryShader);
+	ENABLE_DEVICE_FEATURE(tessellationShader);
+	ENABLE_DEVICE_FEATURE(multiViewport);
+	ENABLE_DEVICE_FEATURE(imageCubeArray);
+	ENABLE_DEVICE_FEATURE(robustBufferAccess);
+	ENABLE_DEVICE_FEATURE(multiDrawIndirect);
+	ENABLE_DEVICE_FEATURE(drawIndirectFirstInstance);
+
+	// Enable Ray Tracing Extension
+	VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_feature = {};
+	acceleration_structure_feature.sType                                            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+	acceleration_structure_feature.accelerationStructure                            = VK_TRUE;
+
+	VkPhysicalDeviceRayTracingPipelineFeaturesKHR raty_tracing_pipeline_feature = {};
+	raty_tracing_pipeline_feature.sType                                         = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+	raty_tracing_pipeline_feature.rayTracingPipeline                            = VK_TRUE;
+	raty_tracing_pipeline_feature.pNext                                         = &acceleration_structure_feature;
+
+	// Enable Mesh Shader Extension
+	VkPhysicalDeviceMeshShaderFeaturesNV mesh_shader_feature = {};
+	mesh_shader_feature.sType                                = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV;
+	mesh_shader_feature.meshShader                           = VK_TRUE;
+	mesh_shader_feature.taskShader                           = VK_TRUE;
+	mesh_shader_feature.pNext                                = &raty_tracing_pipeline_feature;
+
+	// Enable Vulkan 1.2 Features
+	VkPhysicalDeviceVulkan12Features vulkan12_features          = {};
+	vulkan12_features.sType                                     = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+	vulkan12_features.drawIndirectCount                         = VK_TRUE;
+	vulkan12_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+	vulkan12_features.runtimeDescriptorArray                    = VK_TRUE;
+	vulkan12_features.descriptorBindingVariableDescriptorCount  = VK_TRUE;
+	vulkan12_features.descriptorBindingPartiallyBound           = VK_TRUE;
+	vulkan12_features.bufferDeviceAddress                       = VK_TRUE;
+	vulkan12_features.shaderOutputLayer                         = VK_TRUE;
+	vulkan12_features.shaderOutputViewportIndex                 = VK_TRUE;
+	vulkan12_features.pNext                                     = &mesh_shader_feature;
+
+	// Get support extensions
+	auto support_extensions = GetDeviceExtensionSupport(m_physical_device, s_device_extensions);
+
+	// Create device
+	VkDeviceCreateInfo device_create_info   = {};
+	device_create_info.sType                = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	device_create_info.queueCreateInfoCount = static_cast<uint32_t>(queue_create_infos.size());
+	device_create_info.pQueueCreateInfos    = queue_create_infos.data();
+	if (!s_validation_layers.empty())
+	{
+		device_create_info.enabledLayerCount   = static_cast<uint32_t>(s_validation_layers.size());
+		device_create_info.ppEnabledLayerNames = s_validation_layers.data();
+	}
+	device_create_info.enabledExtensionCount   = static_cast<uint32_t>(support_extensions.size());
+	device_create_info.ppEnabledExtensionNames = support_extensions.data();
+	device_create_info.pEnabledFeatures        = &physical_device_features;
+	device_create_info.pNext                   = &vulkan12_features;
+
+	if (vkCreateDevice(m_physical_device, &device_create_info, nullptr, &m_device) != VK_SUCCESS)
+	{
+		LOG_ERROR("Failed to create logical device!");
+		return;
+	}
+
+	// Volk load context
+	volkLoadDevice(m_device);
+
+	// Get device queues
+	vkGetDeviceQueue(m_device, m_graphics_family, 1, &m_graphics_queue);
+	vkGetDeviceQueue(m_device, m_compute_family, 1, &m_compute_queue);
+	vkGetDeviceQueue(m_device, m_transfer_family, 1, &m_transfer_queue);
+	vkGetDeviceQueue(m_device, m_present_family, 1, &m_present_queue);
+
+	// Create Vma allocator
+	VmaAllocatorCreateInfo allocator_info = {};
+	allocator_info.physicalDevice         = m_physical_device;
+	allocator_info.device                 = m_device;
+	allocator_info.instance               = m_instance;
+	allocator_info.vulkanApiVersion       = VK_API_VERSION_1_2;
+	allocator_info.flags                  = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+	if (vmaCreateAllocator(&allocator_info, &m_allocator) != VK_SUCCESS)
+	{
+		LOG_FATAL("Failed to create vulkan memory allocator");
+	}
+}
+
+void RHIDevice::CreateSwapchain()
+{
+	m_swapchain_image_views.clear();
+
+	// capabilities
+	VkSurfaceCapabilitiesKHR capabilities;
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_physical_device, m_surface, &capabilities);
+
+	// formats
+	uint32_t                        format_count;
+	std::vector<VkSurfaceFormatKHR> formats;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(m_physical_device, m_surface, &format_count, nullptr);
+	if (format_count != 0)
+	{
+		formats.resize(format_count);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(m_physical_device, m_surface, &format_count, formats.data());
+	}
+
+	// present modes
+	uint32_t                      presentmode_count;
+	std::vector<VkPresentModeKHR> presentmodes;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(m_physical_device, m_surface, &presentmode_count, nullptr);
+	if (presentmode_count != 0)
+	{
+		presentmodes.resize(presentmode_count);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(m_physical_device, m_surface, &presentmode_count, presentmodes.data());
+	}
+
+	// Choose swapchain surface format
+	VkSurfaceFormatKHR chosen_surface_format = {};
+	for (const auto &surface_format : formats)
+	{
+		if (surface_format.format == VK_FORMAT_B8G8R8A8_SRGB &&
+		    surface_format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+		{
+			chosen_surface_format = surface_format;
+		}
+	}
+	if (chosen_surface_format.format == VK_FORMAT_UNDEFINED)
+	{
+		chosen_surface_format = formats[0];
+	}
+
+	// Choose swapchain present mode
+	VkPresentModeKHR chosen_presentMode = VK_PRESENT_MODE_MAX_ENUM_KHR;
+	for (VkPresentModeKHR present_mode : presentmodes)
+	{
+		if (VK_PRESENT_MODE_MAILBOX_KHR == present_mode)
+		{
+			chosen_presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+		}
+	}
+	if (chosen_presentMode == VK_PRESENT_MODE_MAX_ENUM_KHR)
+	{
+		chosen_presentMode = VK_PRESENT_MODE_FIFO_KHR;
+	}
+
+	// Choose swapchain extent
+	VkExtent2D chosen_extent = {};
+	if (capabilities.currentExtent.width != UINT32_MAX)
+	{
+		chosen_extent = capabilities.currentExtent;
+	}
+	else
+	{
+		int32_t width, height;
+		glfwGetFramebufferSize(p_window->m_handle, &width, &height);
+
+		VkExtent2D actualExtent = {static_cast<uint32_t>(width), static_cast<uint32_t>(height)};
+
+		actualExtent.width =
+		    std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+		actualExtent.height =
+		    std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+
+		chosen_extent = actualExtent;
+	}
+
+	uint32_t image_count = capabilities.minImageCount + 1;
+	if (capabilities.maxImageCount > 0 && image_count > capabilities.maxImageCount)
+	{
+		image_count = capabilities.maxImageCount;
+	}
+
+	VkSwapchainCreateInfoKHR createInfo = {};
+	createInfo.sType                    = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	createInfo.surface                  = m_surface;
+
+	createInfo.minImageCount    = image_count;
+	createInfo.imageFormat      = chosen_surface_format.format;
+	createInfo.imageColorSpace  = chosen_surface_format.colorSpace;
+	createInfo.imageExtent      = chosen_extent;
+	createInfo.imageArrayLayers = 1;
+	createInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+	uint32_t queueFamilyIndices[] = {m_graphics_family, m_present_family};
+
+	if (m_graphics_family != m_graphics_family)
+	{
+		createInfo.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
+		createInfo.queueFamilyIndexCount = 2;
+		createInfo.pQueueFamilyIndices   = queueFamilyIndices;
+	}
+	else
+	{
+		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	}
+
+	createInfo.preTransform   = capabilities.currentTransform;
+	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	createInfo.presentMode    = chosen_presentMode;
+	createInfo.clipped        = VK_TRUE;
+
+	createInfo.oldSwapchain = m_swapchain;
+
+	if (vkCreateSwapchainKHR(m_device, &createInfo, nullptr, &m_swapchain) != VK_SUCCESS)
+	{
+		LOG_FATAL("Failed to create swapchain!");
+	}
+
+	std::vector<VkImage> images;
+	vkGetSwapchainImagesKHR(m_device, m_swapchain, &image_count, nullptr);
+	images.resize(image_count);
+	vkGetSwapchainImagesKHR(m_device, m_swapchain, &image_count, images.data());
+
+	TextureDesc swapchain_image_desc;
+	swapchain_image_desc.depth  = 1;
+	swapchain_image_desc.width  = chosen_extent.width;
+	swapchain_image_desc.height = chosen_extent.height;
+	swapchain_image_desc.format = chosen_surface_format.format;
+	swapchain_image_desc.usage  = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+	for (size_t i = 0; i < images.size(); i++)
+	{
+		m_swapchain_images.emplace_back(std::make_shared<Texture>(this, swapchain_image_desc, images[i]));
+		m_swapchain_images.back()->SetName(std::string("Swapchain Image #") + std::to_string(i));
+	}
+
+	// Create swapchain image view
+	TextureViewDesc swapchain_imageview_desc;
+	swapchain_imageview_desc.aspect           = VK_IMAGE_ASPECT_COLOR_BIT;
+	swapchain_imageview_desc.view_type        = VK_IMAGE_VIEW_TYPE_2D;
+	swapchain_imageview_desc.base_array_layer = 0;
+	swapchain_imageview_desc.base_mip_level   = 0;
+	swapchain_imageview_desc.layer_count      = 1;
+	swapchain_imageview_desc.level_count      = 1;
+	for (size_t i = 0; i < images.size(); i++)
+	{
+		m_swapchain_image_views.emplace_back(CreateTextureView(m_swapchain_images[i].get(), swapchain_imageview_desc, std::string("Swapchain Image View #") + std::to_string(i)));
+	}
+}
 }        // namespace Ilum

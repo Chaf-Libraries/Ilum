@@ -1,4 +1,7 @@
 #include "Window.hpp"
+#include "Path.hpp"
+
+#include <stb_image.h>
 
 namespace Ilum
 {
@@ -16,6 +19,14 @@ Window::Window(const std::string &title, const std::string &icon, uint32_t width
 	{
 		glfwTerminate();
 		return;
+	}
+
+	if (Path::GetInstance().IsFile(icon))
+	{
+		GLFWimage window_icon = {};
+		window_icon.pixels = stbi_load(icon.data(), &window_icon.width, &window_icon.height, 0, 4);
+		glfwSetWindowIcon(m_handle, 1, &window_icon);
+		stbi_image_free(window_icon.pixels);
 	}
 
 	glfwSetWindowUserPointer(m_handle, this);
@@ -63,8 +74,8 @@ Window::Window(const std::string &title, const std::string &icon, uint32_t width
 	glfwSetWindowSizeCallback(m_handle, [](GLFWwindow *window, int32_t width, int32_t height) {
 		Window *handle = (Window *) glfwGetWindowUserPointer(window);
 		handle->OnWindowSizeFunc.Invoke(width, height);
-		handle->m_width = static_cast<uint32_t>(width);
-		handle->m_height = static_cast<uint32_t>(height);		
+		handle->m_width  = static_cast<uint32_t>(width);
+		handle->m_height = static_cast<uint32_t>(height);
 	});
 
 	glfwSetWindowCloseCallback(m_handle, [](GLFWwindow *window) {
