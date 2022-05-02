@@ -107,6 +107,11 @@ bool Path::Copy(const std::string &src, const std::string &dst)
 	return false;
 }
 
+void Path::SetCurrent(const std::string &path)
+{
+	std::filesystem::current_path(path);
+}
+
 const std::string Path::GetFileName(const std::string &path, bool has_extension)
 {
 	auto filename = std::filesystem::path(path).filename().generic_string();

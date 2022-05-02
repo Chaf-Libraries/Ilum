@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Core/Hash.hpp>
+
 #include <volk.h>
 
 #include <vk_mem_alloc.h>
@@ -23,6 +25,20 @@ struct TextureDesc
 	VkSampleCountFlagBits sample_count = VK_SAMPLE_COUNT_1_BIT;
 	VkFormat              format       = VK_FORMAT_UNDEFINED;
 	VkImageUsageFlags     usage        = VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM;
+
+	size_t Hash() const
+	{
+		size_t hash = 0;
+		HashCombine(hash, width);
+		HashCombine(hash, height);
+		HashCombine(hash, depth);
+		HashCombine(hash, mips);
+		HashCombine(hash, layers);
+		HashCombine(hash, sample_count);
+		HashCombine(hash, format);
+		HashCombine(hash, usage);
+		return hash;
+	}
 };
 
 struct TextureViewDesc
@@ -33,6 +49,27 @@ struct TextureViewDesc
 	uint32_t           level_count      = 0;
 	uint32_t           base_array_layer = 0;
 	uint32_t           layer_count      = 0;
+
+	size_t Hash() const
+	{
+		size_t hash = 0;
+		HashCombine(hash, view_type);
+		HashCombine(hash, aspect);
+		HashCombine(hash, base_mip_level);
+		HashCombine(hash, level_count);
+		HashCombine(hash, base_array_layer);
+		HashCombine(hash, layer_count);
+		return hash;
+	}
+};
+
+struct TextureState
+{
+	VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
+	VkAccessFlags access_mask = VK_ACCESS_NONE;
+	VkPipelineStageFlags stage       = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+
+	TextureState(VkImageUsageFlagBits usage = VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM);
 };
 
 class Texture
@@ -62,26 +99,16 @@ class Texture
 
 	void SetName(const std::string &name);
 
+	VkImageView GetView(const TextureViewDesc &desc);
+
   private:
 	RHIDevice    *p_device = nullptr;
 	TextureDesc   m_desc;
-	VkImage       m_handle = VK_NULL_HANDLE;
+	VkImage       m_handle     = VK_NULL_HANDLE;
 	VmaAllocation m_allocation = VK_NULL_HANDLE;
+
+	std::unordered_map<size_t, VkImageView> m_views;
 };
 
-class TextureView
-{
-  public:
-	TextureView(RHIDevice *device, Texture *texture, const TextureViewDesc &desc);
-	~TextureView();
-
-	operator VkImageView() const;
-
-	void SetName(const std::string &name);
-
-  private:
-	RHIDevice      *p_device = nullptr;
-	TextureViewDesc m_desc;
-	VkImageView     m_handle = VK_NULL_HANDLE;
-};
+using TextureReference = std::reference_wrapper<Texture>;
 }        // namespace Ilum

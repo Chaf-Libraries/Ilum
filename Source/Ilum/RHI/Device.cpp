@@ -5,7 +5,11 @@
 #define VOLK_IMPLEMENTATION
 #include "AccelerateStructure.hpp"
 #include "Buffer.hpp"
+#include "Command.hpp"
+#include "DescriptorAllocator.hpp"
 #include "Device.hpp"
+#include "Frame.hpp"
+#include "ShaderAllocator.hpp"
 #include "Texture.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -298,6 +302,33 @@ inline std::optional<uint32_t> GetQueueFamilyIndex(const std::vector<VkQueueFami
 	return std::optional<uint32_t>();
 }
 
+VkFormat FindSupportedFormat(VkPhysicalDevice physical_device, const std::vector<VkFormat> &candidates, VkImageTiling tiling, VkFormatFeatureFlags features)
+{
+	for (VkFormat format : candidates)
+	{
+		VkFormatProperties props;
+		vkGetPhysicalDeviceFormatProperties(physical_device, format, &props);
+
+		if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
+		{
+			return format;
+		}
+		else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
+		{
+			return format;
+		}
+	}
+
+	throw std::runtime_error("findSupportedFormat failed");
+}
+
+VkFormat FindDepthFormat(VkPhysicalDevice physical_device)
+{
+	return FindSupportedFormat(physical_device, {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
+	                           VK_IMAGE_TILING_OPTIMAL,
+	                           VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+}
+
 RHIDevice::RHIDevice(Window *window) :
     p_window(window)
 {
@@ -308,14 +339,31 @@ RHIDevice::RHIDevice(Window *window) :
 	CreateSwapchain();
 
 	p_window->OnWindowSizeFunc += [this](int32_t, int32_t) { CreateSwapchain(); };
+
+	VkPipelineCacheCreateInfo create_info = {};
+	create_info.sType                     = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+	vkCreatePipelineCache(m_device, &create_info, nullptr, &m_pipeline_cache);
 }
 
 RHIDevice::~RHIDevice()
 {
 	vkDeviceWaitIdle(m_device);
 
-	m_swapchain_image_views.clear();
+	if (m_pipeline_cache)
+	{
+		vkDestroyPipelineCache(m_device, m_pipeline_cache, nullptr);
+	}
+
 	m_swapchain_images.clear();
+
+	for (size_t i = 0; i < m_frames.size(); i++)
+	{
+		m_frames[i]->ReleaseAllocatedSemaphore(m_render_complete[i]);
+		m_frames[i]->ReleaseAllocatedSemaphore(m_present_complete[i]);
+		m_frames[i]->Reset();
+	}
+
+	m_frames.clear();
 
 	if (m_swapchain)
 	{
@@ -344,55 +392,6 @@ RHIDevice::~RHIDevice()
 	vkDestroyInstance(m_instance, nullptr);
 }
 
-void RHIDevice::Tick()
-{
-}
-
-std::shared_ptr<Texture> RHIDevice::CreateTexture(const TextureDesc &desc, const std::string &name)
-{
-	auto texture = std::make_shared<Texture>(this, desc);
-	if (!name.empty())
-	{
-		texture->SetName(name);
-	}
-	return texture;
-}
-
-std::shared_ptr<Texture> RHIDevice::CreateTexture(const std::string &filepath)
-{
-	return std::shared_ptr<Texture>();
-}
-
-std::shared_ptr<TextureView> RHIDevice::CreateTextureView(Texture *texture, const TextureViewDesc &desc, const std::string &name)
-{
-	auto texture_view = std::make_shared<TextureView>(this, texture, desc);
-	if (!name.empty())
-	{
-		texture_view->SetName(name);
-	}
-	return texture_view;
-}
-
-std::shared_ptr<Buffer> RHIDevice::CreateBuffer(const BufferDesc &desc, const std::string &name)
-{
-	auto buffer = std::make_shared<Buffer>(this, desc);
-	if (!name.empty())
-	{
-		buffer->SetName(name);
-	}
-	return buffer;
-}
-
-std::shared_ptr<AccelerationStructure> RHIDevice::CreateAccelerationStructure(const AccelerationStructureDesc &desc, const std::string &name)
-{
-	auto acceleration_structure = std::make_shared<AccelerationStructure>(this);
-	if (!name.empty())
-	{
-		acceleration_structure->SetName(name);
-	}
-	return acceleration_structure;
-}
-
 Texture *RHIDevice::GetBackBuffer() const
 {
 	return m_swapchain_images[m_current_frame].get();
@@ -410,6 +409,158 @@ VkQueue RHIDevice::GetQueue(VkQueueFlagBits flag) const
 			return m_transfer_queue;
 	}
 	return m_graphics_queue;
+}
+
+VkFormat RHIDevice::GetSwapchainFormat() const
+{
+	return m_swapchain_format;
+}
+
+VkFormat RHIDevice::GetDepthStencilFormat() const
+{
+	return m_depth_format;
+}
+
+VkShaderModule RHIDevice::LoadShader(const ShaderDesc &desc)
+{
+	return m_shader_allocator->Load(desc);
+}
+
+ShaderReflectionData RHIDevice::ReflectShader(VkShaderModule shader)
+{
+	return m_shader_allocator->Reflect(shader);
+}
+
+CommandBuffer &RHIDevice::RequestCommandBuffer(VkCommandBufferLevel level, VkQueueFlagBits queue)
+{
+	return m_frames[m_current_frame]->RequestCommandBuffer(level, queue);
+}
+
+uint32_t RHIDevice::GetGraphicsFamily() const
+{
+	return m_graphics_family;
+}
+
+uint32_t RHIDevice::GetComputeFamily() const
+{
+	return m_compute_family;
+}
+
+uint32_t RHIDevice::GetTransferFamily() const
+{
+	return m_transfer_family;
+}
+
+uint32_t RHIDevice::GetPresentFamily() const
+{
+	return m_present_family;
+}
+
+uint32_t RHIDevice::GetCurrentFrame() const
+{
+	return m_current_frame;
+}
+
+void RHIDevice::NewFrame()
+{
+	auto result = vkAcquireNextImageKHR(m_device, m_swapchain, std::numeric_limits<uint64_t>::max(), m_present_complete[m_current_frame], VK_NULL_HANDLE, &m_current_frame);
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		CreateSwapchain();
+		return;
+	}
+
+	if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+	{
+		LOG_ERROR("Failed to acquire swapchain image!");
+		return;
+	}
+
+	m_frames[m_current_frame]->Reset();
+	m_cmd_buffer_for_submit.clear();
+}
+
+void RHIDevice::Submit(CommandBuffer &cmd_buffer)
+{
+	m_cmd_buffer_for_submit.push_back(cmd_buffer);
+}
+
+void RHIDevice::SubmitIdle(CommandBuffer &cmd_buffer, VkQueueFlagBits queue)
+{
+	VkSubmitInfo submit_info       = {};
+	submit_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submit_info.commandBufferCount = 1;
+	VkCommandBuffer cmd_buffer_handle = cmd_buffer;
+	submit_info.pCommandBuffers       = &cmd_buffer_handle;
+
+	VkFence fence = VK_NULL_HANDLE;
+
+	VkFenceCreateInfo fence_create_info = {};
+	fence_create_info.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+	vkCreateFence(m_device, &fence_create_info, nullptr, &fence);
+	vkResetFences(m_device, 1, &fence);
+
+	switch (queue)
+	{
+		case VK_QUEUE_GRAPHICS_BIT:
+			vkQueueSubmit(m_graphics_queue, 1, &submit_info, fence);
+			break;
+		case VK_QUEUE_COMPUTE_BIT:
+			vkQueueSubmit(m_compute_queue, 1, &submit_info, fence);
+			break;
+		case VK_QUEUE_TRANSFER_BIT:
+			vkQueueSubmit(m_transfer_queue, 1, &submit_info, fence);
+			break;
+		default:
+			break;
+	}
+
+	vkWaitForFences(m_device, 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+	vkDestroyFence(m_device, fence, nullptr);
+}
+
+void RHIDevice::EndFrame()
+{
+	VkSubmitInfo submit_info         = {};
+	submit_info.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submit_info.commandBufferCount   = static_cast<uint32_t>(m_cmd_buffer_for_submit.size());
+	submit_info.pCommandBuffers      = m_cmd_buffer_for_submit.data();
+	VkPipelineStageFlags wait_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+	submit_info.pWaitDstStageMask    = &wait_stages;
+
+	submit_info.waitSemaphoreCount = 1;
+	submit_info.pWaitSemaphores    = &m_present_complete[m_current_frame];
+
+	submit_info.signalSemaphoreCount = 1;
+	submit_info.pSignalSemaphores    = &m_render_complete[m_current_frame];
+
+	vkQueueSubmit(m_graphics_queue, 1, &submit_info, m_frames[m_current_frame]->RequestFence());
+
+	VkPresentInfoKHR present_info   = {};
+	present_info.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	present_info.waitSemaphoreCount = 1;
+	present_info.pWaitSemaphores    = &m_render_complete[m_current_frame];
+	present_info.swapchainCount     = 1;
+	present_info.pSwapchains        = &m_swapchain;
+	present_info.pImageIndices      = &m_current_frame;
+
+	auto result = vkQueuePresentKHR(m_present_queue, &present_info);
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		CreateSwapchain();
+		return;
+	}
+
+	if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+	{
+		LOG_ERROR("Failed to present swapchain image!");
+		return;
+	}
+
+	m_current_frame = (m_current_frame + 1) % static_cast<uint32_t>(m_swapchain_images.size());
 }
 
 void RHIDevice::CreateInstance()
@@ -528,6 +679,8 @@ void RHIDevice::CreatePhysicalDevice()
 
 	// Select suitable physical device
 	m_physical_device = SelectPhysicalDevice(physical_devices, s_device_extensions);
+
+	m_depth_format = FindDepthFormat(m_physical_device);
 }
 
 void RHIDevice::CreateSurface()
@@ -753,7 +906,9 @@ void RHIDevice::CreateLogicalDevice()
 
 void RHIDevice::CreateSwapchain()
 {
-	m_swapchain_image_views.clear();
+	vkDeviceWaitIdle(m_device);
+
+	m_swapchain_images.clear();
 
 	// capabilities
 	VkSurfaceCapabilitiesKHR capabilities;
@@ -783,7 +938,7 @@ void RHIDevice::CreateSwapchain()
 	VkSurfaceFormatKHR chosen_surface_format = {};
 	for (const auto &surface_format : formats)
 	{
-		if (surface_format.format == VK_FORMAT_B8G8R8A8_SRGB &&
+		if (surface_format.format == VK_FORMAT_B8G8R8A8_UNORM &&
 		    surface_format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 		{
 			chosen_surface_format = surface_format;
@@ -889,17 +1044,38 @@ void RHIDevice::CreateSwapchain()
 		m_swapchain_images.back()->SetName(std::string("Swapchain Image #") + std::to_string(i));
 	}
 
-	// Create swapchain image view
-	TextureViewDesc swapchain_imageview_desc;
-	swapchain_imageview_desc.aspect           = VK_IMAGE_ASPECT_COLOR_BIT;
-	swapchain_imageview_desc.view_type        = VK_IMAGE_VIEW_TYPE_2D;
-	swapchain_imageview_desc.base_array_layer = 0;
-	swapchain_imageview_desc.base_mip_level   = 0;
-	swapchain_imageview_desc.layer_count      = 1;
-	swapchain_imageview_desc.level_count      = 1;
-	for (size_t i = 0; i < images.size(); i++)
+	m_swapchain_format = chosen_surface_format.format;
+
+	if (m_frames.empty())
 	{
-		m_swapchain_image_views.emplace_back(CreateTextureView(m_swapchain_images[i].get(), swapchain_imageview_desc, std::string("Swapchain Image View #") + std::to_string(i)));
+		for (uint32_t i = 0; i < images.size(); i++)
+		{
+			m_frames.emplace_back(std::make_unique<Frame>(this));
+		}
 	}
+
+	if (m_present_complete.empty())
+	{
+		for (uint32_t i = 0; i < images.size(); i++)
+		{
+			m_present_complete.push_back(m_frames[i]->AllocateSemaphore());
+		}
+	}
+
+	if (m_render_complete.empty())
+	{
+		for (uint32_t i = 0; i < images.size(); i++)
+		{
+			m_render_complete.push_back(m_frames[i]->AllocateSemaphore());
+		}
+	}
+
+	m_current_frame = 0;
+}
+
+void RHIDevice::CreateAllocator()
+{
+	m_shader_allocator     = std::make_unique<ShaderAllocator>(this);
+	m_descriptor_allocator = std::make_unique<DescriptorAllocator>(this);
 }
 }        // namespace Ilum

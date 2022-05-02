@@ -51,6 +51,11 @@ Texture::~Texture()
 	{
 		vmaDestroyImage(p_device->m_allocator, m_handle, m_allocation);
 	}
+
+	for (auto &[hash, view] : m_views)
+	{
+		vkDestroyImageView(p_device->m_device, view, nullptr);
+	}
 }
 
 uint32_t Texture::GetWidth() const
@@ -107,13 +112,18 @@ void Texture::SetName(const std::string &name)
 	}
 }
 
-TextureView::TextureView(RHIDevice *device, Texture *texture, const TextureViewDesc &desc) :
-    p_device(device), m_desc(desc)
+VkImageView Texture::GetView(const TextureViewDesc &desc)
 {
+	size_t hash = desc.Hash();
+	if (m_views.find(hash) != m_views.end())
+	{
+		return m_views.at(hash);
+	}
+
 	VkImageViewCreateInfo view_create_info           = {};
 	view_create_info.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	view_create_info.format                          = texture->GetFormat();
-	view_create_info.image                           = *texture;
+	view_create_info.format                          = m_desc.format;
+	view_create_info.image                           = m_handle;
 	view_create_info.subresourceRange.aspectMask     = desc.aspect;
 	view_create_info.subresourceRange.baseArrayLayer = desc.base_array_layer;
 	view_create_info.subresourceRange.baseMipLevel   = desc.base_mip_level;
@@ -121,31 +131,106 @@ TextureView::TextureView(RHIDevice *device, Texture *texture, const TextureViewD
 	view_create_info.subresourceRange.levelCount     = desc.layer_count;
 	view_create_info.viewType                        = desc.view_type;
 
-	vkCreateImageView(p_device->m_device, &view_create_info, nullptr, &m_handle);
+	m_views[hash] = VK_NULL_HANDLE;
+	vkCreateImageView(p_device->m_device, &view_create_info, nullptr, &m_views[hash]);
+
+	return m_views.at(hash);
 }
 
-TextureView::~TextureView()
+TextureState::TextureState(VkImageUsageFlagBits usage)
 {
-	if (m_handle)
+	switch (usage)
 	{
-		vkDeviceWaitIdle(p_device->m_device);
-		vkDestroyImageView(p_device->m_device, m_handle, nullptr);
+		case VK_IMAGE_USAGE_TRANSFER_SRC_BIT:
+			layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+			break;
+		case VK_IMAGE_USAGE_TRANSFER_DST_BIT:
+			layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			break;
+		case VK_IMAGE_USAGE_SAMPLED_BIT:
+			layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			break;
+		case VK_IMAGE_USAGE_STORAGE_BIT:
+			layout = VK_IMAGE_LAYOUT_GENERAL;
+			break;
+		case VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT:
+			layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			break;
+		case VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT:
+			layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			break;
+		case VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT:
+			layout = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
+			break;
+		case VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR:
+			layout = VK_IMAGE_LAYOUT_FRAGMENT_SHADING_RATE_ATTACHMENT_OPTIMAL_KHR;
+			break;
+		default:
+			layout = VK_IMAGE_LAYOUT_UNDEFINED;
+			break;
+	}
+
+	switch (usage)
+	{
+		case VK_IMAGE_USAGE_TRANSFER_SRC_BIT:
+			access_mask = VK_ACCESS_TRANSFER_READ_BIT;
+			break;
+		case VK_IMAGE_USAGE_TRANSFER_DST_BIT:
+			access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			break;
+		case VK_IMAGE_USAGE_SAMPLED_BIT:
+			access_mask = VK_ACCESS_SHADER_READ_BIT;
+			break;
+		case VK_IMAGE_USAGE_STORAGE_BIT:
+			access_mask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+			break;
+		case VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT:
+			access_mask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			break;
+		case VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT:
+			access_mask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			break;
+		case VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT:
+			access_mask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+			break;
+		case VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR:
+			access_mask = VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR;
+			break;
+		default:
+			access_mask = VK_ACCESS_NONE_KHR;
+			break;
+	}
+
+	switch (usage)
+	{
+		case VK_IMAGE_USAGE_TRANSFER_SRC_BIT:
+			stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			break;
+		case VK_IMAGE_USAGE_TRANSFER_DST_BIT:
+			stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			break;
+		case VK_IMAGE_USAGE_SAMPLED_BIT:
+			stage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+			break;
+		case VK_IMAGE_USAGE_STORAGE_BIT:
+			stage = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+			break;
+		case VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT:
+			stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			break;
+		case VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT:
+			stage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+			break;
+		case VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT:
+			stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			break;
+		case VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR:
+			stage = VK_PIPELINE_STAGE_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR;
+			break;
+		default:
+			stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			break;
 	}
 }
 
-TextureView::operator VkImageView() const
-{
-	return m_handle;
-}
-
-void TextureView::SetName(const std::string &name)
-{
-	VkDebugUtilsObjectNameInfoEXT name_info = {};
-	name_info.sType                         = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-	name_info.pNext                         = nullptr;
-	name_info.objectType                    = VK_OBJECT_TYPE_IMAGE_VIEW;
-	name_info.objectHandle                  = (uint64_t) m_handle;
-	name_info.pObjectName                   = name.c_str();
-	vkSetDebugUtilsObjectNameEXT(p_device->m_device, &name_info);
-}
 }        // namespace Ilum

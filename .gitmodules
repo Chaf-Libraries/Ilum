@@ -1,0 +1,3 @@
+[submodule "Source/Dependencies"]
+	path = Source/Dependencies
+	url = https://github.com/Chaf-Libraries/Dependencies

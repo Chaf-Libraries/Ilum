@@ -64,11 +64,11 @@ void AccelerationStructure::Build(VkCommandBuffer cmd_buffer, AccelerationStruct
 	// Create a buffer for the acceleration structure
 	if (!m_buffer || m_buffer->GetSize() != build_sizes_info.accelerationStructureSize)
 	{
-		BufferDesc buffer_desc  = {};
-		buffer_desc.size        = build_sizes_info.accelerationStructureSize;
+		BufferDesc buffer_desc   = {};
+		buffer_desc.size         = build_sizes_info.accelerationStructureSize;
 		buffer_desc.buffer_usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR;
 		buffer_desc.memory_usage = VMA_MEMORY_USAGE_GPU_ONLY;
-		m_buffer                 = p_device->CreateBuffer(buffer_desc);
+		m_buffer                 = std::make_unique<Buffer>(p_device, buffer_desc);
 
 		if (m_handle)
 		{
@@ -94,11 +94,11 @@ void AccelerationStructure::Build(VkCommandBuffer cmd_buffer, AccelerationStruct
 	m_device_address                                                             = vkGetAccelerationStructureDeviceAddressKHR(p_device->m_device, &acceleration_device_address_info);
 
 	// Create a scratch buffer as a temporary storage for the acceleration structure build
-	BufferDesc scratch_buffer_desc = {};
-	scratch_buffer_desc.size       = build_sizes_info.accelerationStructureSize;
+	BufferDesc scratch_buffer_desc   = {};
+	scratch_buffer_desc.size         = build_sizes_info.accelerationStructureSize;
 	scratch_buffer_desc.buffer_usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 	scratch_buffer_desc.memory_usage = VMA_MEMORY_USAGE_GPU_ONLY;
-	auto   scratch_buffer = p_device->CreateBuffer(scratch_buffer_desc);
+	auto scratch_buffer              = std::make_unique<Buffer>(p_device, scratch_buffer_desc);
 
 	build_geometry_info.scratchData.deviceAddress = scratch_buffer->GetDeviceAddress();
 	build_geometry_info.dstAccelerationStructure  = m_handle;

@@ -53,5 +53,5 @@ class Buffer
 	uint64_t      m_device_address;
 	void	     *m_mapped_data = nullptr;
 };
-
+using BufferReference = std::reference_wrapper<Buffer>;
 }        // namespace Ilum

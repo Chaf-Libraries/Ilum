@@ -42,7 +42,7 @@ class AccelerationStructure
 	RHIDevice                 *p_device = nullptr;
 	VkAccelerationStructureKHR m_handle = VK_NULL_HANDLE;
 	uint64_t                   m_device_address = 0;
-	std::shared_ptr<Buffer>    m_buffer         = nullptr;
+	std::unique_ptr<Buffer>    m_buffer         = nullptr;
 };
-
+using AccelerationStructureReference= std::reference_wrapper<AccelerationStructure>;
 }        // namespace Ilum
