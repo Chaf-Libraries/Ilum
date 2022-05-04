@@ -11,6 +11,8 @@
 #include "Frame.hpp"
 #include "ShaderAllocator.hpp"
 #include "Texture.hpp"
+#include "PipelineState.hpp"
+#include "PipelineAllocator.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -343,6 +345,8 @@ RHIDevice::RHIDevice(Window *window) :
 	VkPipelineCacheCreateInfo create_info = {};
 	create_info.sType                     = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
 	vkCreatePipelineCache(m_device, &create_info, nullptr, &m_pipeline_cache);
+
+	CreateAllocator();
 }
 
 RHIDevice::~RHIDevice()
@@ -434,6 +438,11 @@ ShaderReflectionData RHIDevice::ReflectShader(VkShaderModule shader)
 CommandBuffer &RHIDevice::RequestCommandBuffer(VkCommandBufferLevel level, VkQueueFlagBits queue)
 {
 	return m_frames[m_current_frame]->RequestCommandBuffer(level, queue);
+}
+
+VkDescriptorSet RHIDevice::AllocateDescriptorSet(const PipelineState &pso, uint32_t set)
+{
+	return m_descriptor_allocator->AllocateDescriptorSet(pso.GetReflectionData(), set);
 }
 
 uint32_t RHIDevice::GetGraphicsFamily() const
@@ -1077,5 +1086,6 @@ void RHIDevice::CreateAllocator()
 {
 	m_shader_allocator     = std::make_unique<ShaderAllocator>(this);
 	m_descriptor_allocator = std::make_unique<DescriptorAllocator>(this);
+	m_pipeline_allocator   = std::make_unique<PipelineAllocator>(this);
 }
 }        // namespace Ilum

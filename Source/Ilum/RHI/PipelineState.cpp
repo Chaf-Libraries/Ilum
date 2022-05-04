@@ -73,6 +73,65 @@ PipelineState &PipelineState::LoadShader(const ShaderDesc &desc)
 	return *this;
 }
 
+const InputAssemblyState &PipelineState::GetInputAssemblyState() const
+{
+	return m_input_assembly_state;
+}
+
+const RasterizationState &PipelineState::GetRasterizationState() const
+{
+	return m_rasterization_state;
+}
+
+const DepthStencilState &PipelineState::GetDepthStencilState() const
+{
+	return m_depth_stencil_state;
+}
+
+const ViewportState &PipelineState::GetViewportState() const
+{
+	return m_viewport_state;
+}
+
+const MultisampleState &PipelineState::GetMultisampleState() const
+{
+	return m_multisample_state;
+}
+
+const DynamicState &PipelineState::GetDynamicState() const
+{
+	return m_dynamic_state;
+}
+
+const VertexInputState &PipelineState::GetVertexInputState() const
+{
+	return m_vertex_input_state;
+}
+
+const ColorBlendState &PipelineState::GetColorBlendState() const
+{
+	return m_color_blend_state;
+}
+
+const ShaderReflectionData &PipelineState::GetReflectionData() const
+{
+	return m_shader_meta;
+}
+
+VkPipelineBindPoint PipelineState::GetBindPoint() const
+{
+	if (m_shaders.find(VK_SHADER_STAGE_COMPUTE_BIT) != m_shaders.end())
+	{
+		return VK_PIPELINE_BIND_POINT_COMPUTE;
+	}
+	else if (m_shaders.find(VK_SHADER_STAGE_RAYGEN_BIT_KHR) != m_shaders.end())
+	{
+		return VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
+	}
+
+	return VK_PIPELINE_BIND_POINT_GRAPHICS;
+}
+
 size_t PipelineState::Hash()
 {
 	if (!m_dirty)
@@ -145,6 +204,8 @@ size_t PipelineState::Hash()
 	}
 
 	HashCombine(m_hash, m_shader_meta.Hash());
+
+	m_dirty = false;
 
 	return m_hash;
 }

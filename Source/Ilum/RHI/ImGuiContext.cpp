@@ -8,6 +8,7 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_vulkan.h>
+#include <imnodes.h>
 
 namespace Ilum
 {
@@ -20,6 +21,7 @@ ImGuiContext::ImGuiContext(Window *window, RHIDevice *device) :
 	CreateFramebuffer();
 
 	ImGui::CreateContext();
+	ImNodes::CreateContext();
 
 	SetStyle();
 
@@ -57,6 +59,7 @@ ImGuiContext::~ImGuiContext()
 
 	ImGui_ImplVulkan_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
+	ImNodes::DestroyContext();
 	ImGui::DestroyContext();
 
 	if (m_descriptor_pool)
@@ -116,12 +119,20 @@ void ImGuiContext::BeginFrame()
 
 void ImGuiContext::Render(CommandBuffer &cmd_buffer)
 {
-	VkRect2D area = {};
-	area.extent.width = p_window->m_width;
-	area.extent.height = p_window->m_height;
+	VkRect2D area            = {};
+	area.extent.width        = p_window->m_width;
+	area.extent.height       = p_window->m_height;
 	VkClearValue clear_value = {};
 
-	cmd_buffer.BeginRenderPass(m_render_pass, area, m_frame_buffers[p_device->GetCurrentFrame()], {clear_value});
+	VkRenderPassBeginInfo begin_info = {};
+	begin_info.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	begin_info.renderPass            = m_render_pass;
+	begin_info.renderArea            = area;
+	begin_info.framebuffer           = m_frame_buffers[p_device->GetCurrentFrame()];
+	begin_info.clearValueCount       = 1;
+	begin_info.pClearValues          = &clear_value;
+
+	vkCmdBeginRenderPass(cmd_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd_buffer);
 	cmd_buffer.EndRenderPass();
 }

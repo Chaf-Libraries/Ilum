@@ -83,6 +83,7 @@ struct ColorBlendState
 class PipelineState
 {
 	friend class CommandBuffer;
+	friend class PipelineAllocator;
 
   public:
 	PipelineState(RHIDevice *device);
@@ -98,6 +99,19 @@ class PipelineState
 	PipelineState &SetColorBlendState(const ColorBlendState &color_blend_state);
 	PipelineState &LoadShader(const ShaderDesc &desc);
 
+	const InputAssemblyState &GetInputAssemblyState() const;
+	const RasterizationState &GetRasterizationState() const;
+	const DepthStencilState  &GetDepthStencilState() const;
+	const ViewportState      &GetViewportState() const;
+	const MultisampleState   &GetMultisampleState() const;
+	const DynamicState       &GetDynamicState() const;
+	const VertexInputState   &GetVertexInputState() const;
+	const ColorBlendState    &GetColorBlendState() const;
+
+	const ShaderReflectionData &GetReflectionData() const;
+
+	VkPipelineBindPoint GetBindPoint() const;
+
 	size_t Hash();
 
   private:
@@ -112,7 +126,8 @@ class PipelineState
 	VertexInputState   m_vertex_input_state   = {};
 	ColorBlendState    m_color_blend_state    = {};
 
-	ShaderReflectionData                                                                 m_shader_meta;
+	ShaderReflectionData m_shader_meta;
+
 	std::map<VkShaderStageFlagBits, std::vector<std::pair<std::string, VkShaderModule>>> m_shaders;
 
 	bool m_dirty = false;

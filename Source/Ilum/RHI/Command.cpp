@@ -1,4 +1,6 @@
 #include "Command.hpp"
+#include "DescriptorState.hpp"
+#include "PipelineAllocator.hpp"
 #include "Device.hpp"
 
 #include "Command.hpp"
@@ -182,15 +184,19 @@ void CommandBuffer::End()
 	vkEndCommandBuffer(m_handle);
 }
 
-void CommandBuffer::BeginRenderPass(VkRenderPass pass, const VkRect2D &area, VkFramebuffer framebuffer, const std::vector<VkClearValue> &clear_values)
+void CommandBuffer::BeginRenderPass(FrameBuffer &frame_buffer)
 {
+	VkRect2D rect = {};
+	rect.extent.width = frame_buffer.m_width;
+	rect.extent.height = frame_buffer.m_height;
+
 	VkRenderPassBeginInfo begin_info = {};
 	begin_info.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	begin_info.renderPass            = pass;
-	begin_info.renderArea            = area;
-	begin_info.framebuffer           = framebuffer;
-	begin_info.clearValueCount       = static_cast<uint32_t>(clear_values.size());
-	begin_info.pClearValues          = clear_values.data();
+	begin_info.renderPass            = p_device->m_pipeline_allocator->CreateRenderPass(frame_buffer);
+	begin_info.renderArea            = rect;
+	begin_info.framebuffer           = p_device->m_pipeline_allocator->CreateFrameBuffer(frame_buffer);
+	begin_info.clearValueCount       = static_cast<uint32_t>(frame_buffer.m_clear_values.size());
+	begin_info.pClearValues          = frame_buffer.m_clear_values.data();
 
 	vkCmdBeginRenderPass(m_handle, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
 }
@@ -198,6 +204,22 @@ void CommandBuffer::BeginRenderPass(VkRenderPass pass, const VkRect2D &area, VkF
 void CommandBuffer::EndRenderPass()
 {
 	vkCmdEndRenderPass(m_handle);
+}
+
+void CommandBuffer::Bind(PipelineState &pso)
+{
+	m_current_pso = &pso;
+	vkCmdBindPipeline(m_handle, pso.GetBindPoint(), p_device->m_pipeline_allocator->CreatePipeline(*m_current_pso));
+}
+
+void CommandBuffer::Bind(DescriptorState &descriptor_state)
+{
+	ASSERT(m_current_pso);
+	descriptor_state.Write();
+	for (auto& [set, descriptor_set] : descriptor_state.m_descriptor_sets)
+	{
+		vkCmdBindDescriptorSets(m_handle, m_current_pso->GetBindPoint(), p_device->m_pipeline_allocator->CreatePipelineLayout(*m_current_pso), set, 1, &descriptor_set, 0, nullptr);
+	}
 }
 
 void CommandBuffer::Transition(Texture *texture, const TextureState &src, const TextureState &dst, const VkImageSubresourceRange &range)
@@ -214,6 +236,61 @@ void CommandBuffer::Transition(Texture *texture, const TextureState &src, const 
 	barrier.subresourceRange     = range;
 
 	vkCmdPipelineBarrier(*this, src.stage, dst.stage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+}
+
+void CommandBuffer::Transition(Buffer *buffer, const BufferState &src, const BufferState &dst)
+{
+	VkBufferMemoryBarrier barrier = {};
+	barrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.srcAccessMask        = src.access_mask;
+	barrier.dstAccessMask        = dst.access_mask;
+	barrier.srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+	barrier.buffer                = *buffer;
+	barrier.offset                = 0;
+	barrier.size                  = buffer->GetSize();
+
+	vkCmdPipelineBarrier(*this, src.stage, dst.stage, 0, 0, nullptr, 1, &barrier, 0, nullptr);
+}
+
+void CommandBuffer::Transition(const std::vector<BufferTransition> &buffer_transitions, const std::vector<TextureTransition> &texture_transitions)
+{
+	std::vector<VkBufferMemoryBarrier> buffer_barriers(buffer_transitions.size());
+	std::vector<VkImageMemoryBarrier>  image_barriers(texture_transitions.size());
+
+	VkPipelineStageFlags src_stage = 0;
+	VkPipelineStageFlags dst_stage = 0;
+
+	for (uint32_t i = 0; i < buffer_barriers.size(); i++)
+	{
+		buffer_barriers[i].sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		buffer_barriers[i].srcAccessMask       = buffer_transitions[i].src.access_mask;
+		buffer_barriers[i].dstAccessMask       = buffer_transitions[i] .dst.access_mask;
+		buffer_barriers[i].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		buffer_barriers[i].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		buffer_barriers[i].buffer              = *buffer_transitions[i].buffer;
+		buffer_barriers[i].offset              = 0;
+		buffer_barriers[i].size                = buffer_transitions[i].buffer->GetSize();
+		src_stage |= buffer_transitions[i].src.stage;
+		dst_stage |= buffer_transitions[i].dst.stage;
+	}
+
+	for (uint32_t i = 0; i < image_barriers.size(); i++)
+	{
+		image_barriers[i].sType       = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		image_barriers[i].srcAccessMask        = texture_transitions[i].src.access_mask;
+		image_barriers[i].dstAccessMask        = texture_transitions[i].dst.access_mask;
+		image_barriers[i].oldLayout            = texture_transitions[i].src.layout;
+		image_barriers[i].newLayout            = texture_transitions[i].dst.layout;
+		image_barriers[i].srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+		image_barriers[i].dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+		image_barriers[i].image                = *texture_transitions[i].texture;
+		image_barriers[i].subresourceRange     = texture_transitions[i].range;
+		src_stage |= texture_transitions[i].src.stage;
+		dst_stage |= texture_transitions[i].dst.stage;
+	}
+
+	vkCmdPipelineBarrier(*this, src_stage, dst_stage, 0, 0, nullptr, static_cast<uint32_t>(buffer_barriers.size()), buffer_barriers.data(), static_cast<uint32_t>(image_barriers.size()), image_barriers.data());
 }
 
 CommandBuffer::operator const VkCommandBuffer &() const

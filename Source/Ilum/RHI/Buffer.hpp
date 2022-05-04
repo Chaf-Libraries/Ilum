@@ -22,6 +22,14 @@ struct BufferDesc
 	VmaMemoryUsage     memory_usage;
 };
 
+struct BufferState
+{
+	VkAccessFlags        access_mask = VK_ACCESS_NONE;
+	VkPipelineStageFlags stage       = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+
+	BufferState(VkBufferUsageFlagBits usage = VK_BUFFER_USAGE_FLAG_BITS_MAX_ENUM);
+};
+
 class Buffer
 {
   public:
@@ -44,6 +52,8 @@ class Buffer
 	operator VkBuffer() const;
 
 	void SetName(const std::string &name);
+
+	const BufferDesc &GetDesc() const;
 
   private:
 	RHIDevice    *p_device;

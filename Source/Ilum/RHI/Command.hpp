@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Texture.hpp"
+#include "Buffer.hpp"
 
 #include <volk.h>
 
@@ -11,6 +12,24 @@ namespace Ilum
 {
 class CommandBuffer;
 class RHIDevice;
+class DescriptorState;
+class PipelineState;
+class FrameBuffer;
+
+struct BufferTransition
+{
+	Buffer     *buffer = nullptr;
+	BufferState src    = {};
+	BufferState dst    = {};
+};
+
+struct TextureTransition
+{
+	Texture                *texture = nullptr;
+	TextureState            src     = {};
+	TextureState            dst     = {};
+	VkImageSubresourceRange range   = {};
+};
 
 class CommandPool
 {
@@ -71,10 +90,15 @@ class CommandBuffer
 	void Begin(VkCommandBufferUsageFlagBits usage = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, VkCommandBufferInheritanceInfo *inheritanceInfo = nullptr);
 	void End();
 
-	void BeginRenderPass(VkRenderPass pass, const VkRect2D& area, VkFramebuffer framebuffer, const std::vector<VkClearValue>& clear_values);
+	void BeginRenderPass(FrameBuffer &frame_buffer);
 	void EndRenderPass();
 
+	void Bind(PipelineState &pso);
+	void Bind(DescriptorState &descriptor_state);
+
 	void Transition(Texture *texture, const TextureState &src, const TextureState &dst, const VkImageSubresourceRange &range);
+	void Transition(Buffer *buffer, const BufferState &src, const BufferState &dst);
+	void Transition(const std::vector<BufferTransition> &buffer_transitions, const std::vector<TextureTransition> &texture_transitions);
 
 	operator const VkCommandBuffer &() const;
 
@@ -83,6 +107,8 @@ class CommandBuffer
 	CommandPool *p_pool   = nullptr;
 
 	VkCommandBuffer m_handle = VK_NULL_HANDLE;
+
+	PipelineState *m_current_pso = nullptr;
 };
 
 }        // namespace Ilum

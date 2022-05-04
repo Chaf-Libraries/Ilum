@@ -137,6 +137,11 @@ VkImageView Texture::GetView(const TextureViewDesc &desc)
 	return m_views.at(hash);
 }
 
+const TextureDesc &Texture::GetDesc() const
+{
+	return m_desc;
+}
+
 TextureState::TextureState(VkImageUsageFlagBits usage)
 {
 	switch (usage)

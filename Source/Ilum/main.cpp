@@ -11,6 +11,8 @@
 #include <RHI/ImGuiContext.hpp>
 #include <RHI/Command.hpp>
 
+#include <Render/RenderGraph.hpp>
+
 #include <array>
 #include <iostream>
 
@@ -44,6 +46,9 @@ int main()
 	Input::GetInstance().Bind(&window);
 
 	RHIDevice device(&window);
+
+	RenderGraph rg(&device);
+
 	Ilum::ImGuiContext imgui_context(&window, &device);
 
 	uint32_t count = 0;
@@ -53,7 +58,11 @@ int main()
 		Timer::GetInstance().Tick();
 		device.NewFrame();
 		imgui_context.BeginFrame();
+		
 		ImGui::ShowDemoWindow();
+
+		rg.OnImGui();
+
 		imgui_context.EndFrame();
 
 		auto& cmd_buffer=device.RequestCommandBuffer();

@@ -12,8 +12,6 @@
 namespace Ilum
 {
 class RHIDevice;
-class Texture;
-class TextureView;
 
 struct TextureDesc
 {
@@ -65,8 +63,8 @@ struct TextureViewDesc
 
 struct TextureState
 {
-	VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
-	VkAccessFlags access_mask = VK_ACCESS_NONE;
+	VkImageLayout        layout      = VK_IMAGE_LAYOUT_UNDEFINED;
+	VkAccessFlags        access_mask = VK_ACCESS_NONE;
 	VkPipelineStageFlags stage       = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
 
 	TextureState(VkImageUsageFlagBits usage = VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM);
@@ -100,6 +98,8 @@ class Texture
 	void SetName(const std::string &name);
 
 	VkImageView GetView(const TextureViewDesc &desc);
+
+	const TextureDesc &GetDesc() const;
 
   private:
 	RHIDevice    *p_device = nullptr;

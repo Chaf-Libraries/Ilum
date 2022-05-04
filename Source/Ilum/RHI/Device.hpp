@@ -13,7 +13,6 @@ class Window;
 struct TextureDesc;
 class Texture;
 struct TextureViewDesc;
-class TextureView;
 struct BufferDesc;
 class Buffer;
 struct AccelerationStructureDesc;
@@ -24,12 +23,14 @@ enum class ShaderType;
 class ShaderAllocator;
 class DescriptorAllocator;
 class Frame;
+class CommandBuffer;
+class PipelineState;
+class PipelineAllocator;
 
 class RHIDevice
 {
 	friend class Buffer;
 	friend class Texture;
-	friend class TextureView;
 	friend class AccelerationStructure;
 	friend class ShaderBindingTable;
 	friend class DescriptorLayout;
@@ -42,6 +43,8 @@ class RHIDevice
 	friend class Frame;
 	friend class Sampler;
 	friend class ImGuiContext;
+	friend class DescriptorState;
+	friend class PipelineAllocator;
 
   public:
 	RHIDevice(Window *window);
@@ -60,6 +63,8 @@ class RHIDevice
 
 	CommandBuffer &RequestCommandBuffer(VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY, VkQueueFlagBits queue = VK_QUEUE_GRAPHICS_BIT);
 
+	VkDescriptorSet AllocateDescriptorSet(const PipelineState &pso, uint32_t set);
+
 	uint32_t GetGraphicsFamily() const;
 	uint32_t GetComputeFamily() const;
 	uint32_t GetTransferFamily() const;
@@ -68,7 +73,7 @@ class RHIDevice
 	uint32_t GetCurrentFrame() const;
 
 	void NewFrame();
-	void Submit(CommandBuffer& cmd_buffer);
+	void Submit(CommandBuffer &cmd_buffer);
 	void SubmitIdle(CommandBuffer &cmd_buffer, VkQueueFlagBits queue = VK_QUEUE_GRAPHICS_BIT);
 	void EndFrame();
 
@@ -120,10 +125,11 @@ class RHIDevice
 	std::vector<std::shared_ptr<Texture>> m_swapchain_images;
 
 	VkFormat m_swapchain_format = VK_FORMAT_UNDEFINED;
-	VkFormat m_depth_format = VK_FORMAT_UNDEFINED;
+	VkFormat m_depth_format     = VK_FORMAT_UNDEFINED;
 
 	std::unique_ptr<ShaderAllocator>     m_shader_allocator     = nullptr;
 	std::unique_ptr<DescriptorAllocator> m_descriptor_allocator = nullptr;
+	std::unique_ptr<PipelineAllocator>   m_pipeline_allocator   = nullptr;
 
 	std::vector<std::unique_ptr<Frame>> m_frames;
 
