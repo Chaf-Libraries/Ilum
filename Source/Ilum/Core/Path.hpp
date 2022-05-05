@@ -15,6 +15,7 @@ namespace Ilum
 	    bool Copy(const std::string &src, const std::string &dst);
 	    void SetCurrent(const std::string &path);
 
+		const std::string GetCurrent();
 	    const std::string GetFileName(const std::string &path, bool has_extension = true);
 	    const std::string GetFileDirectory(const std::string &path);
 	    const std::string GetFileExtension(const std::string &path);

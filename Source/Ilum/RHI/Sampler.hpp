@@ -8,11 +8,11 @@ class RHIDevice;
 
 struct SamplerDesc
 {
-	VkFilter min_filter;
-	VkFilter mag_filter;
+	VkFilter min_filter = VK_FILTER_LINEAR;
+	VkFilter mag_filter = VK_FILTER_LINEAR;
 
-	VkSamplerAddressMode address_mode;
-	VkSamplerMipmapMode  mipmap_mode;
+	VkSamplerAddressMode address_mode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	VkSamplerMipmapMode  mipmap_mode  = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
 	float mip_lod_bias = 0.f;
 	float min_lod      = 0.f;

@@ -1,7 +1,8 @@
 #include "Command.hpp"
 #include "DescriptorState.hpp"
-#include "PipelineAllocator.hpp"
 #include "Device.hpp"
+#include "FrameBuffer.hpp"
+#include "PipelineState.hpp"
 
 #include "Command.hpp"
 #include <Core/Hash.hpp>
@@ -50,14 +51,14 @@ CommandPool::CommandPool(RHIDevice *device, VkQueueFlagBits queue, ResetMode res
 			break;
 	}
 
-	vkCreateCommandPool(p_device->m_device, &create_info, nullptr, &m_handle);
+	vkCreateCommandPool(p_device->GetDevice(), &create_info, nullptr, &m_handle);
 }
 
 CommandPool::~CommandPool()
 {
 	m_primary_cmd_buffers.clear();
 	m_secondary_cmd_buffers.clear();
-	vkDestroyCommandPool(p_device->m_device, m_handle, nullptr);
+	vkDestroyCommandPool(p_device->GetDevice(), m_handle, nullptr);
 }
 
 CommandPool::operator const VkCommandPool &() const
@@ -85,7 +86,7 @@ void CommandPool::Reset()
 			}
 			break;
 		case ResetMode::ResetPool:
-			vkResetCommandPool(p_device->m_device, m_handle, 0);
+			vkResetCommandPool(p_device->GetDevice(), m_handle, 0);
 			for (auto &cmd_buffer : m_primary_cmd_buffers)
 			{
 				cmd_buffer->Reset();
@@ -150,14 +151,14 @@ CommandBuffer::CommandBuffer(RHIDevice *device, CommandPool *pool, VkCommandBuff
 	command_buffer_allocate_info.commandPool                 = *pool;
 	command_buffer_allocate_info.level                       = level;
 	command_buffer_allocate_info.commandBufferCount          = 1;
-	vkAllocateCommandBuffers(p_device->m_device, &command_buffer_allocate_info, &m_handle);
+	vkAllocateCommandBuffers(p_device->GetDevice(), &command_buffer_allocate_info, &m_handle);
 }
 
 CommandBuffer::~CommandBuffer()
 {
 	if (m_handle)
 	{
-		vkFreeCommandBuffers(p_device->m_device, *p_pool, 1, &m_handle);
+		vkFreeCommandBuffers(p_device->GetDevice(), *p_pool, 1, &m_handle);
 	}
 }
 
@@ -186,17 +187,19 @@ void CommandBuffer::End()
 
 void CommandBuffer::BeginRenderPass(FrameBuffer &frame_buffer)
 {
-	VkRect2D rect = {};
-	rect.extent.width = frame_buffer.m_width;
-	rect.extent.height = frame_buffer.m_height;
+	m_current_fb = &frame_buffer;
+
+	VkRect2D rect      = {};
+	rect.extent.width  = frame_buffer.GetWidth();
+	rect.extent.height = frame_buffer.GetHeight();
 
 	VkRenderPassBeginInfo begin_info = {};
 	begin_info.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	begin_info.renderPass            = p_device->m_pipeline_allocator->CreateRenderPass(frame_buffer);
+	begin_info.renderPass            = p_device->AllocateRenderPass(frame_buffer);
 	begin_info.renderArea            = rect;
-	begin_info.framebuffer           = p_device->m_pipeline_allocator->CreateFrameBuffer(frame_buffer);
-	begin_info.clearValueCount       = static_cast<uint32_t>(frame_buffer.m_clear_values.size());
-	begin_info.pClearValues          = frame_buffer.m_clear_values.data();
+	begin_info.framebuffer           = p_device->AllocateFrameBuffer(frame_buffer);
+	begin_info.clearValueCount       = static_cast<uint32_t>(frame_buffer.GetClearValue().size());
+	begin_info.pClearValues          = frame_buffer.GetClearValue().data();
 
 	vkCmdBeginRenderPass(m_handle, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
 }
@@ -209,17 +212,23 @@ void CommandBuffer::EndRenderPass()
 void CommandBuffer::Bind(PipelineState &pso)
 {
 	m_current_pso = &pso;
-	vkCmdBindPipeline(m_handle, pso.GetBindPoint(), p_device->m_pipeline_allocator->CreatePipeline(*m_current_pso));
+	vkCmdBindPipeline(m_handle, pso.GetBindPoint(), p_device->AllocatePipeline(*m_current_pso, m_current_fb == nullptr ? VK_NULL_HANDLE : p_device->AllocateRenderPass(*m_current_fb)));
 }
 
 void CommandBuffer::Bind(DescriptorState &descriptor_state)
 {
 	ASSERT(m_current_pso);
 	descriptor_state.Write();
-	for (auto& [set, descriptor_set] : descriptor_state.m_descriptor_sets)
+	for (auto &[set, descriptor_set] : descriptor_state.m_descriptor_sets)
 	{
-		vkCmdBindDescriptorSets(m_handle, m_current_pso->GetBindPoint(), p_device->m_pipeline_allocator->CreatePipelineLayout(*m_current_pso), set, 1, &descriptor_set, 0, nullptr);
+		vkCmdBindDescriptorSets(m_handle, m_current_pso->GetBindPoint(), p_device->AllocatePipelineLayout(*m_current_pso), set, 1, &descriptor_set, 0, nullptr);
 	}
+}
+
+DescriptorState &CommandBuffer::GetDescriptorState() const
+{
+	ASSERT(m_current_pso);
+	return p_device->AllocateDescriptorState(*m_current_pso);
 }
 
 void CommandBuffer::Transition(Texture *texture, const TextureState &src, const TextureState &dst, const VkImageSubresourceRange &range)
@@ -241,11 +250,11 @@ void CommandBuffer::Transition(Texture *texture, const TextureState &src, const 
 void CommandBuffer::Transition(Buffer *buffer, const BufferState &src, const BufferState &dst)
 {
 	VkBufferMemoryBarrier barrier = {};
-	barrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	barrier.srcAccessMask        = src.access_mask;
-	barrier.dstAccessMask        = dst.access_mask;
-	barrier.srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
-	barrier.dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+	barrier.sType                 = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.srcAccessMask         = src.access_mask;
+	barrier.dstAccessMask         = dst.access_mask;
+	barrier.srcQueueFamilyIndex   = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex   = VK_QUEUE_FAMILY_IGNORED;
 	barrier.buffer                = *buffer;
 	barrier.offset                = 0;
 	barrier.size                  = buffer->GetSize();
@@ -265,7 +274,7 @@ void CommandBuffer::Transition(const std::vector<BufferTransition> &buffer_trans
 	{
 		buffer_barriers[i].sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		buffer_barriers[i].srcAccessMask       = buffer_transitions[i].src.access_mask;
-		buffer_barriers[i].dstAccessMask       = buffer_transitions[i] .dst.access_mask;
+		buffer_barriers[i].dstAccessMask       = buffer_transitions[i].dst.access_mask;
 		buffer_barriers[i].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		buffer_barriers[i].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		buffer_barriers[i].buffer              = *buffer_transitions[i].buffer;
@@ -277,20 +286,42 @@ void CommandBuffer::Transition(const std::vector<BufferTransition> &buffer_trans
 
 	for (uint32_t i = 0; i < image_barriers.size(); i++)
 	{
-		image_barriers[i].sType       = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		image_barriers[i].srcAccessMask        = texture_transitions[i].src.access_mask;
-		image_barriers[i].dstAccessMask        = texture_transitions[i].dst.access_mask;
-		image_barriers[i].oldLayout            = texture_transitions[i].src.layout;
-		image_barriers[i].newLayout            = texture_transitions[i].dst.layout;
-		image_barriers[i].srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
-		image_barriers[i].dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
-		image_barriers[i].image                = *texture_transitions[i].texture;
-		image_barriers[i].subresourceRange     = texture_transitions[i].range;
+		image_barriers[i].sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		image_barriers[i].srcAccessMask       = texture_transitions[i].src.access_mask;
+		image_barriers[i].dstAccessMask       = texture_transitions[i].dst.access_mask;
+		image_barriers[i].oldLayout           = texture_transitions[i].src.layout;
+		image_barriers[i].newLayout           = texture_transitions[i].dst.layout;
+		image_barriers[i].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		image_barriers[i].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		image_barriers[i].image               = *texture_transitions[i].texture;
+		image_barriers[i].subresourceRange    = texture_transitions[i].range;
 		src_stage |= texture_transitions[i].src.stage;
 		dst_stage |= texture_transitions[i].dst.stage;
 	}
 
 	vkCmdPipelineBarrier(*this, src_stage, dst_stage, 0, 0, nullptr, static_cast<uint32_t>(buffer_barriers.size()), buffer_barriers.data(), static_cast<uint32_t>(image_barriers.size()), image_barriers.data());
+}
+
+void CommandBuffer::Dispatch(uint32_t group_count_x, uint32_t group_count_y, uint32_t group_count_z)
+{
+	vkCmdDispatch(m_handle, group_count_x, group_count_y, group_count_z);
+}
+
+void CommandBuffer::Draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance)
+{
+	vkCmdDraw(m_handle, vertex_count, instance_count, first_vertex, first_instance);
+}
+
+void CommandBuffer::SetViewport(float width, float height, float x, float y, float min_depth, float max_depth)
+{
+	VkViewport viewport = {x, y, width, height, min_depth, max_depth};
+	vkCmdSetViewport(m_handle, 0, 1, &viewport);
+}
+
+void CommandBuffer::SetScissor(uint32_t width, uint32_t height, int32_t x, int32_t y)
+{
+	VkRect2D rect = {x, y, width, height};
+	vkCmdSetScissor(m_handle, 0, 1, &rect);
 }
 
 CommandBuffer::operator const VkCommandBuffer &() const

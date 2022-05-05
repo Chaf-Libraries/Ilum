@@ -18,14 +18,14 @@ Sampler::Sampler(RHIDevice *device, const SamplerDesc &desc):
 	create_info.minLod              = desc.min_lod;
 	create_info.maxLod              = desc.max_lod;
 
-	vkCreateSampler(p_device->m_device, &create_info, nullptr, &m_handle);
+	vkCreateSampler(p_device->GetDevice(), &create_info, nullptr, &m_handle);
 }
 
 Sampler::~Sampler()
 {
 	if (m_handle)
 	{
-		vkDestroySampler(p_device->m_device, m_handle, nullptr);
+		vkDestroySampler(p_device->GetDevice(), m_handle, nullptr);
 	}
 }
 

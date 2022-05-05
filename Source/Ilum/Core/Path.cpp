@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <algorithm>
 
 namespace Ilum
 {
@@ -110,6 +111,13 @@ bool Path::Copy(const std::string &src, const std::string &dst)
 void Path::SetCurrent(const std::string &path)
 {
 	std::filesystem::current_path(path);
+}
+
+const std::string Path::GetCurrent()
+{
+	std::string current = std::filesystem::current_path().string();
+	std::replace(current.begin(), current.end(), '\\', '/');
+	return current;
 }
 
 const std::string Path::GetFileName(const std::string &path, bool has_extension)

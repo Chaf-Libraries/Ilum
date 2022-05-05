@@ -1,2 +1,3 @@
 add_subdirectory(Dependencies)
 add_subdirectory(Ilum)
+add_subdirectory(Shaders)

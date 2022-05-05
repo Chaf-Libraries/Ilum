@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Texture.hpp"
 #include "Buffer.hpp"
+#include "Texture.hpp"
 
 #include <volk.h>
 
@@ -96,9 +96,17 @@ class CommandBuffer
 	void Bind(PipelineState &pso);
 	void Bind(DescriptorState &descriptor_state);
 
+	DescriptorState &GetDescriptorState() const;
+
 	void Transition(Texture *texture, const TextureState &src, const TextureState &dst, const VkImageSubresourceRange &range);
 	void Transition(Buffer *buffer, const BufferState &src, const BufferState &dst);
 	void Transition(const std::vector<BufferTransition> &buffer_transitions, const std::vector<TextureTransition> &texture_transitions);
+
+	void Dispatch(uint32_t group_count_x = 1, uint32_t group_count_y = 1, uint32_t group_count_z = 1);
+	void Draw(uint32_t vertex_count, uint32_t instance_count = 1, uint32_t first_vertex = 0, uint32_t first_instance = 0);
+
+	void SetViewport(float width, float height, float x = 0.f, float y = 0.f, float min_depth = 0.f, float max_depth = 1.f);
+	void SetScissor(uint32_t width, uint32_t height, int32_t x = 0, int32_t y = 0);
 
 	operator const VkCommandBuffer &() const;
 
@@ -109,6 +117,7 @@ class CommandBuffer
 	VkCommandBuffer m_handle = VK_NULL_HANDLE;
 
 	PipelineState *m_current_pso = nullptr;
+	FrameBuffer   *m_current_fb  = nullptr;
 };
 
 }        // namespace Ilum

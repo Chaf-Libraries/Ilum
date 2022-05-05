@@ -56,12 +56,16 @@ DescriptorState::DescriptorState(RHIDevice *device, PipelineState *pso) :
 {
 	m_bind_point = pso->GetBindPoint();
 
-	const auto &meta = pso->GetReflectionData();
+	ShaderReflectionData meta = {};
+	for (auto &shader : pso->GetShaders())
+	{
+		meta += device->ReflectShader(device->LoadShader(shader));
+	}
+
+	m_descriptor_sets = p_device->AllocateDescriptorSet(*pso);
 
 	for (auto &set : meta.sets)
 	{
-		m_descriptor_sets[set] = p_device->AllocateDescriptorSet(*pso, set);
-
 		for (auto &image : meta.images)
 		{
 			if (image.set == set)
@@ -277,12 +281,12 @@ void DescriptorState::Write()
 			resolve.descriptorCount = static_cast<uint32_t>(acceleration_structure_handles.size());
 		}
 
-		std::vector<VkWriteDescriptorSet> write_info(m_resolves.size());
+		std::vector<VkWriteDescriptorSet> write_info(m_resolves[set].size());
 		for (uint32_t i = 0; i < write_info.size(); i++)
 		{
 			write_info[i] = m_resolves[set][i];
 		}
-		vkUpdateDescriptorSets(p_device->m_device, static_cast<uint32_t>(write_info.size()), write_info.data(), 0, nullptr);
+		vkUpdateDescriptorSets(p_device->GetDevice(), static_cast<uint32_t>(write_info.size()), write_info.data(), 0, nullptr);
 	}
 
 	m_dirty = false;

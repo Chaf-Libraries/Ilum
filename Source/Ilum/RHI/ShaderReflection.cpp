@@ -574,14 +574,10 @@ ShaderReflectionData ShaderReflection::Reflect(const std::vector<uint32_t> &spir
 	ShaderReflectionData data;
 
 	spirv_cross::CompilerReflection compiler(spirv);
-	spirv_cross::CompilerGLSL       glsl_compiler(spirv);
 
 	auto opts    = compiler.get_common_options();
 	opts.es      = false;
 	opts.version = 460;
-
-	glsl_compiler.set_common_options(opts);
-	auto test = glsl_compiler.compile();
 
 	opts.vulkan_semantics = true;
 	compiler.set_common_options(opts);

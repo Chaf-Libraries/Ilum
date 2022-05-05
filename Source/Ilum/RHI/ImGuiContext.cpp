@@ -30,22 +30,22 @@ ImGuiContext::ImGuiContext(Window *window, RHIDevice *device) :
 	ImGui_ImplGlfw_InitForVulkan(p_window->m_handle, true);
 
 	ImGui_ImplVulkan_InitInfo init_info = {};
-	init_info.Instance                  = p_device->m_instance;
-	init_info.PhysicalDevice            = p_device->m_physical_device;
-	init_info.Device                    = p_device->m_device;
-	init_info.QueueFamily               = p_device->m_graphics_family;
-	init_info.Queue                     = p_device->m_graphics_queue;
-	init_info.PipelineCache             = p_device->m_pipeline_cache;
+	init_info.Instance                  = p_device->GetVulkanInstance();
+	init_info.PhysicalDevice            = p_device->GetPhysicalDevice();
+	init_info.Device                    = p_device->GetDevice();
+	init_info.QueueFamily               = p_device->GetGraphicsFamily();
+	init_info.Queue                     = p_device->GetQueue(VK_QUEUE_GRAPHICS_BIT);;
+	init_info.PipelineCache             = p_device->GetPipelineCache();
 	init_info.DescriptorPool            = m_descriptor_pool;
-	init_info.MinImageCount             = static_cast<uint32_t>(p_device->m_swapchain_images.size());
-	init_info.ImageCount                = static_cast<uint32_t>(p_device->m_swapchain_images.size());
+	init_info.MinImageCount             = static_cast<uint32_t>(p_device->GetSwapchainImages().size());
+	init_info.ImageCount                = static_cast<uint32_t>(p_device->GetSwapchainImages().size());
 
 	ImGui_ImplVulkan_Init(&init_info, m_render_pass);
 
 	// Upload fonts
 	auto &cmd_buffer = p_device->RequestCommandBuffer();
 
-	vkDeviceWaitIdle(p_device->m_device);
+	vkDeviceWaitIdle(p_device->GetDevice());
 	cmd_buffer.Begin();
 	ImGui_ImplVulkan_CreateFontsTexture(cmd_buffer);
 	cmd_buffer.End();
@@ -55,7 +55,7 @@ ImGuiContext::ImGuiContext(Window *window, RHIDevice *device) :
 
 ImGuiContext::~ImGuiContext()
 {
-	vkDeviceWaitIdle(p_device->m_device);
+	vkDeviceWaitIdle(p_device->GetDevice());
 
 	ImGui_ImplVulkan_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
@@ -64,21 +64,21 @@ ImGuiContext::~ImGuiContext()
 
 	if (m_descriptor_pool)
 	{
-		vkDestroyDescriptorPool(p_device->m_device, m_descriptor_pool, nullptr);
+		vkDestroyDescriptorPool(p_device->GetDevice(), m_descriptor_pool, nullptr);
 	}
 
 	if (!m_frame_buffers.empty())
 	{
 		for (auto &frame_buffer : m_frame_buffers)
 		{
-			vkDestroyFramebuffer(p_device->m_device, frame_buffer, nullptr);
+			vkDestroyFramebuffer(p_device->GetDevice(), frame_buffer, nullptr);
 		}
 		m_frame_buffers.clear();
 	}
 
 	if (m_render_pass)
 	{
-		vkDestroyRenderPass(p_device->m_device, m_render_pass, nullptr);
+		vkDestroyRenderPass(p_device->GetDevice(), m_render_pass, nullptr);
 	}
 
 	m_texture_id_mapping.clear();
@@ -154,7 +154,7 @@ void ImGuiContext::EndFrame()
 	}
 }
 
-void *ImGuiContext::TextureID(VkImageView &view, VkSampler &sampler)
+void *ImGuiContext::TextureID(VkImageView view, VkSampler sampler)
 {
 	size_t hash = 0;
 	HashCombine(hash, (uint64_t) view);
@@ -178,7 +178,7 @@ void ImGuiContext::Flush()
 		{
 			descriptor_sets.push_back(set);
 		}
-		vkFreeDescriptorSets(p_device->m_device, m_descriptor_pool, static_cast<uint32_t>(descriptor_sets.size()), descriptor_sets.data());
+		vkFreeDescriptorSets(p_device->GetDevice(), m_descriptor_pool, static_cast<uint32_t>(descriptor_sets.size()), descriptor_sets.data());
 		m_texture_id_mapping.clear();
 	}
 }
@@ -187,7 +187,7 @@ void ImGuiContext::CreateDescriptorPool()
 {
 	if (m_descriptor_pool)
 	{
-		vkDestroyDescriptorPool(p_device->m_device, m_descriptor_pool, nullptr);
+		vkDestroyDescriptorPool(p_device->GetDevice(), m_descriptor_pool, nullptr);
 		m_descriptor_pool = VK_NULL_HANDLE;
 	}
 
@@ -198,14 +198,14 @@ void ImGuiContext::CreateDescriptorPool()
 	pool_info.maxSets                       = 4096 * IM_ARRAYSIZE(pool_sizes);
 	pool_info.poolSizeCount                 = (uint32_t) IM_ARRAYSIZE(pool_sizes);
 	pool_info.pPoolSizes                    = pool_sizes;
-	vkCreateDescriptorPool(p_device->m_device, &pool_info, nullptr, &m_descriptor_pool);
+	vkCreateDescriptorPool(p_device->GetDevice(), &pool_info, nullptr, &m_descriptor_pool);
 }
 
 void ImGuiContext::CreateRenderPass()
 {
 	if (m_render_pass)
 	{
-		vkDestroyRenderPass(p_device->m_device, m_render_pass, nullptr);
+		vkDestroyRenderPass(p_device->GetDevice(), m_render_pass, nullptr);
 		m_render_pass = VK_NULL_HANDLE;
 	}
 
@@ -263,7 +263,7 @@ void ImGuiContext::CreateRenderPass()
 	renderPassInfo.dependencyCount        = static_cast<uint32_t>(dependencies.size());
 	renderPassInfo.pDependencies          = dependencies.data();
 
-	vkCreateRenderPass(p_device->m_device, &renderPassInfo, nullptr, &m_render_pass);
+	vkCreateRenderPass(p_device->GetDevice(), &renderPassInfo, nullptr, &m_render_pass);
 }
 
 void ImGuiContext::CreateFramebuffer()
@@ -272,7 +272,7 @@ void ImGuiContext::CreateFramebuffer()
 	{
 		for (auto &frame_buffer : m_frame_buffers)
 		{
-			vkDestroyFramebuffer(p_device->m_device, frame_buffer, nullptr);
+			vkDestroyFramebuffer(p_device->GetDevice(), frame_buffer, nullptr);
 			frame_buffer = VK_NULL_HANDLE;
 		}
 		m_frame_buffers.clear();
@@ -293,15 +293,15 @@ void ImGuiContext::CreateFramebuffer()
 	view_desc.level_count      = 1;
 
 	// Create frame buffers for every swap chain image
-	m_frame_buffers.resize(p_device->m_swapchain_images.size());
+	m_frame_buffers.resize(p_device->GetSwapchainImages().size());
 	for (uint32_t i = 0; i < m_frame_buffers.size(); i++)
 	{
-		VkImageView view         = p_device->m_swapchain_images[i]->GetView(view_desc);
+		VkImageView view         = p_device->GetSwapchainImages()[i]->GetView(view_desc);
 		create_info.pAttachments = &view;
-		create_info.width        = p_device->m_swapchain_images[i]->GetWidth();
-		create_info.height       = p_device->m_swapchain_images[i]->GetHeight();
+		create_info.width        = p_device->GetSwapchainImages()[i]->GetWidth();
+		create_info.height       = p_device->GetSwapchainImages()[i]->GetHeight();
 		create_info.layers       = 1;
-		vkCreateFramebuffer(p_device->m_device, &create_info, nullptr, &m_frame_buffers[i]);
+		vkCreateFramebuffer(p_device->GetDevice(), &create_info, nullptr, &m_frame_buffers[i]);
 	}
 }
 

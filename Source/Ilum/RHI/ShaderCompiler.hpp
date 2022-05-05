@@ -1,7 +1,7 @@
 #pragma once
 
-#include <Core/Singleton.hpp>
 #include <Core/Hash.hpp>
+#include <Core/Singleton.hpp>
 
 #include <volk.h>
 
@@ -22,8 +22,8 @@ struct ShaderDesc
 	std::string              filename;
 	VkShaderStageFlagBits    stage;
 	ShaderType               type;
-	std::string              entry_point;
-	std::vector<std::string> macros;
+	std::string              entry_point = "main";
+	std::vector<std::string> macros      = {};
 
 	size_t Hash() const
 	{
@@ -32,7 +32,7 @@ struct ShaderDesc
 		HashCombine(hash, stage);
 		HashCombine(hash, type);
 		HashCombine(hash, entry_point);
-		for (auto& macro : macros)
+		for (auto &macro : macros)
 		{
 			HashCombine(hash, macro);
 		}
@@ -46,6 +46,6 @@ class ShaderCompiler : public Singleton<ShaderCompiler>
 	ShaderCompiler();
 	~ShaderCompiler();
 
-	std::vector<uint32_t> Compile(const ShaderDesc& desc);
+	std::vector<uint32_t> Compile(const ShaderDesc &desc);
 };
 }        // namespace Ilum

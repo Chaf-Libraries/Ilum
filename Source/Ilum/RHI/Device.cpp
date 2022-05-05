@@ -7,12 +7,14 @@
 #include "Buffer.hpp"
 #include "Command.hpp"
 #include "DescriptorAllocator.hpp"
+#include "DescriptorState.hpp"
 #include "Device.hpp"
 #include "Frame.hpp"
-#include "ShaderAllocator.hpp"
-#include "Texture.hpp"
+#include "FrameBuffer.hpp"
 #include "PipelineState.hpp"
-#include "PipelineAllocator.hpp"
+#include "ShaderAllocator.hpp"
+#include "ShaderBindingTable.hpp"
+#include "Texture.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -353,6 +355,47 @@ RHIDevice::~RHIDevice()
 {
 	vkDeviceWaitIdle(m_device);
 
+	/*
+	    std::map<size_t, VkPipeline>                          m_pipelines;
+	std::map<size_t, VkRenderPass>                        m_render_passes;
+	std::map<size_t, VkFramebuffer>                       m_frame_buffers;
+	std::map<size_t, VkPipelineLayout>                    m_pipeline_layouts;
+	std::map<size_t, std::map<uint32_t, VkDescriptorSet>>        m_descriptor_sets;
+	std::map<size_t, std::unique_ptr<ShaderBindingTable>> m_shader_binding_tables;
+	std::map<size_t, std::unique_ptr<DescriptorState>> m_descriptor_states;
+	*/
+
+	for (auto &[hash, pipeline] : m_pipelines)
+	{
+		vkDestroyPipeline(m_device, pipeline, nullptr);
+	}
+
+	for (auto &[hash, pipeline_layout] : m_pipeline_layouts)
+	{
+		vkDestroyPipelineLayout(m_device, pipeline_layout, nullptr);
+	}
+
+	for (auto &[hash, render_pass] : m_render_passes)
+	{
+		vkDestroyRenderPass(m_device, render_pass, nullptr);
+	}
+
+	for (auto &[hash, frame_buffer] : m_frame_buffers)
+	{
+		vkDestroyFramebuffer(m_device, frame_buffer, nullptr);
+	}
+
+	m_pipelines.clear();
+	m_frame_buffers.clear();
+	m_render_passes.clear();
+	m_pipeline_layouts.clear();
+	m_descriptor_sets.clear();
+	m_shader_binding_tables.clear();
+	m_descriptor_states.clear();
+
+	m_shader_allocator.reset();
+	m_descriptor_allocator.reset();
+
 	if (m_pipeline_cache)
 	{
 		vkDestroyPipelineCache(m_device, m_pipeline_cache, nullptr);
@@ -394,6 +437,41 @@ RHIDevice::~RHIDevice()
 		vkDestroyDebugUtilsMessengerEXT(m_instance, vkDebugUtilsMessengerEXT, nullptr);
 	}
 	vkDestroyInstance(m_instance, nullptr);
+}
+
+VkInstance RHIDevice::GetVulkanInstance() const
+{
+	return m_instance;
+}
+
+VkPhysicalDevice RHIDevice::GetPhysicalDevice() const
+{
+	return m_physical_device;
+}
+
+VkDevice RHIDevice::GetDevice() const
+{
+	return m_device;
+}
+
+VmaAllocator RHIDevice::GetAllocator() const
+{
+	return m_allocator;
+}
+
+VkPipelineCache RHIDevice::GetPipelineCache() const
+{
+	return m_pipeline_cache;
+}
+
+std::vector<Texture *> RHIDevice::GetSwapchainImages() const
+{
+	std::vector<Texture *> swapchain_images(m_swapchain_images.size());
+	for (size_t i = 0; i < swapchain_images.size(); i++)
+	{
+		swapchain_images[i] = m_swapchain_images[i].get();
+	}
+	return swapchain_images;
 }
 
 Texture *RHIDevice::GetBackBuffer() const
@@ -440,9 +518,204 @@ CommandBuffer &RHIDevice::RequestCommandBuffer(VkCommandBufferLevel level, VkQue
 	return m_frames[m_current_frame]->RequestCommandBuffer(level, queue);
 }
 
-VkDescriptorSet RHIDevice::AllocateDescriptorSet(const PipelineState &pso, uint32_t set)
+VkPipelineLayout RHIDevice::AllocatePipelineLayout(PipelineState &pso)
 {
-	return m_descriptor_allocator->AllocateDescriptorSet(pso.GetReflectionData(), set);
+	size_t hash = pso.Hash();
+	if (m_pipeline_layouts.find(hash) != m_pipeline_layouts.end())
+	{
+		return m_pipeline_layouts.at(hash);
+	}
+
+	m_pipeline_layouts[hash] = VK_NULL_HANDLE;
+
+	ShaderReflectionData meta = {};
+	for (auto &shader : pso.GetShaders())
+	{
+		meta += ReflectShader(LoadShader(shader));
+	}
+
+	std::vector<VkDescriptorSetLayout> descriptor_set_layouts;
+	// Create descriptor layout & set
+	for (auto &set : meta.sets)
+	{
+		descriptor_set_layouts.push_back(m_descriptor_allocator->GetDescriptorLayout(meta, set));
+		m_descriptor_sets[hash][set] = m_descriptor_allocator->AllocateDescriptorSet(meta, set);
+	}
+
+	// Create pipeline layout
+	std::vector<VkPushConstantRange> push_constants;
+	for (auto &constant : meta.constants)
+	{
+		if (constant.type == ShaderReflectionData::Constant::Type::Push)
+		{
+			VkPushConstantRange push_constant_range = {};
+			push_constant_range.stageFlags          = constant.stage;
+			push_constant_range.size                = constant.size;
+			push_constant_range.offset              = constant.offset;
+			push_constants.push_back(push_constant_range);
+		}
+	}
+
+	VkPipelineLayoutCreateInfo pipeline_layout_create_info = {};
+	pipeline_layout_create_info.sType                      = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+	pipeline_layout_create_info.pushConstantRangeCount     = static_cast<uint32_t>(push_constants.size());
+	pipeline_layout_create_info.pPushConstantRanges        = push_constants.data();
+	pipeline_layout_create_info.setLayoutCount             = static_cast<uint32_t>(descriptor_set_layouts.size());
+	pipeline_layout_create_info.pSetLayouts                = descriptor_set_layouts.data();
+
+	vkCreatePipelineLayout(m_device, &pipeline_layout_create_info, nullptr, &m_pipeline_layouts[hash]);
+	return m_pipeline_layouts[hash];
+}
+
+VkPipeline RHIDevice::AllocatePipeline(PipelineState &pso, VkRenderPass render_pass)
+{
+	size_t hash = pso.Hash();
+	if (m_pipelines.find(hash) != m_pipelines.end())
+	{
+		return m_pipelines.at(hash);
+	}
+
+	switch (pso.GetBindPoint())
+	{
+		case VK_PIPELINE_BIND_POINT_GRAPHICS:
+			return AllocateGraphicsPipeline(pso, render_pass);
+		case VK_PIPELINE_BIND_POINT_COMPUTE:
+			return AllocateComputePipeline(pso);
+		case VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR:
+			return AllocateRayTracingPipeline(pso);
+		default:
+			break;
+	}
+
+	return m_pipelines.at(hash);
+}
+
+VkRenderPass RHIDevice::AllocateRenderPass(FrameBuffer &framebuffer)
+{
+	size_t hash = framebuffer.Hash();
+
+	if (m_render_passes.find(hash) != m_render_passes.end())
+	{
+		return m_render_passes[hash];
+	}
+
+	m_render_passes[hash] = VK_NULL_HANDLE;
+
+	VkSubpassDescription subpass_description    = {};
+	subpass_description.pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass_description.colorAttachmentCount    = static_cast<uint32_t>(framebuffer.m_attachment_references.size());
+	subpass_description.pColorAttachments       = framebuffer.m_attachment_references.data();
+	subpass_description.pDepthStencilAttachment = framebuffer.m_depth_stencil_attachment_reference.has_value() ? &framebuffer.m_depth_stencil_attachment_reference.value() : nullptr;
+
+	std::array<VkSubpassDependency, 2> subpass_dependencies;
+
+	subpass_dependencies[0].srcSubpass      = VK_SUBPASS_EXTERNAL;
+	subpass_dependencies[0].dstSubpass      = 0;
+	subpass_dependencies[0].srcStageMask    = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	subpass_dependencies[0].dstStageMask    = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	subpass_dependencies[0].srcAccessMask   = VK_ACCESS_MEMORY_READ_BIT;
+	subpass_dependencies[0].dstAccessMask   = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+	subpass_dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+	subpass_dependencies[1].srcSubpass      = 0;
+	subpass_dependencies[1].dstSubpass      = VK_SUBPASS_EXTERNAL;
+	subpass_dependencies[1].srcStageMask    = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	subpass_dependencies[1].dstStageMask    = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+	subpass_dependencies[1].srcAccessMask   = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+	subpass_dependencies[1].dstAccessMask   = VK_ACCESS_MEMORY_READ_BIT;
+	subpass_dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+	// Create render pass
+	VkRenderPassCreateInfo render_pass_create_info = {};
+	render_pass_create_info.sType                  = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	render_pass_create_info.attachmentCount        = static_cast<uint32_t>(framebuffer.m_attachment_descriptions.size());
+	render_pass_create_info.pAttachments           = framebuffer.m_attachment_descriptions.data();
+	render_pass_create_info.subpassCount           = 1;
+	render_pass_create_info.pSubpasses             = &subpass_description;
+	render_pass_create_info.dependencyCount        = static_cast<uint32_t>(subpass_dependencies.size());
+	render_pass_create_info.pDependencies          = subpass_dependencies.data();
+
+	vkCreateRenderPass(m_device, &render_pass_create_info, nullptr, &m_render_passes[hash]);
+
+	return m_render_passes[hash];
+}
+
+VkFramebuffer RHIDevice::AllocateFrameBuffer(FrameBuffer &framebuffer)
+{
+	size_t hash = framebuffer.Hash();
+
+	if (m_frame_buffers.find(hash) != m_frame_buffers.end())
+	{
+		return m_frame_buffers[hash];
+	}
+
+	m_frame_buffers[hash] = VK_NULL_HANDLE;
+
+	VkFramebufferCreateInfo frame_buffer_create_info = {};
+	frame_buffer_create_info.sType                   = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	frame_buffer_create_info.renderPass              = AllocateRenderPass(framebuffer);
+	frame_buffer_create_info.attachmentCount         = static_cast<uint32_t>(framebuffer.m_views.size());
+	frame_buffer_create_info.pAttachments            = framebuffer.m_views.data();
+	frame_buffer_create_info.width                   = framebuffer.m_width;
+	frame_buffer_create_info.height                  = framebuffer.m_height;
+	frame_buffer_create_info.layers                  = framebuffer.m_layer;
+
+	vkCreateFramebuffer(m_device, &frame_buffer_create_info, nullptr, &m_frame_buffers[hash]);
+
+	return m_frame_buffers[hash];
+}
+
+ShaderBindingTable &RHIDevice::AllocateSBT(PipelineState &pso)
+{
+	size_t hash = pso.Hash();
+	if (m_shader_binding_tables.find(hash) != m_shader_binding_tables.end())
+	{
+		return *m_shader_binding_tables.at(hash);
+	}
+
+	AllocatePipeline(pso);
+
+	return *m_shader_binding_tables.at(hash);
+}
+
+const std::map<uint32_t, VkDescriptorSet> &RHIDevice::AllocateDescriptorSet(PipelineState &pso)
+{
+	size_t hash = pso.Hash();
+	if (m_descriptor_sets.find(hash) != m_descriptor_sets.end())
+	{
+		return m_descriptor_sets.at(hash);
+	}
+
+	m_descriptor_sets[hash] = {};
+
+	ShaderReflectionData meta = {};
+	for (auto &shader : pso.GetShaders())
+	{
+		meta += ReflectShader(LoadShader(shader));
+	}
+
+	std::vector<VkDescriptorSetLayout> descriptor_set_layouts;
+	// Create descriptor layout & set
+	for (auto &set : meta.sets)
+	{
+		descriptor_set_layouts.push_back(m_descriptor_allocator->GetDescriptorLayout(meta, set));
+		m_descriptor_sets[hash][set] = m_descriptor_allocator->AllocateDescriptorSet(meta, set);
+	}
+
+	return m_descriptor_sets.at(hash);
+}
+
+DescriptorState &RHIDevice::AllocateDescriptorState(PipelineState &pso)
+{
+	size_t hash = pso.Hash();
+	if (m_descriptor_states.find(hash) != m_descriptor_states.end())
+	{
+		return *m_descriptor_states.at(hash);
+	}
+
+	m_descriptor_states[hash] = std::make_unique<DescriptorState>(this, &pso);
+
+	return *m_descriptor_states.at(hash);
 }
 
 uint32_t RHIDevice::GetGraphicsFamily() const
@@ -497,9 +770,9 @@ void RHIDevice::Submit(CommandBuffer &cmd_buffer)
 
 void RHIDevice::SubmitIdle(CommandBuffer &cmd_buffer, VkQueueFlagBits queue)
 {
-	VkSubmitInfo submit_info       = {};
-	submit_info.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submit_info.commandBufferCount = 1;
+	VkSubmitInfo submit_info          = {};
+	submit_info.sType                 = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submit_info.commandBufferCount    = 1;
 	VkCommandBuffer cmd_buffer_handle = cmd_buffer;
 	submit_info.pCommandBuffers       = &cmd_buffer_handle;
 
@@ -1049,7 +1322,7 @@ void RHIDevice::CreateSwapchain()
 
 	for (size_t i = 0; i < images.size(); i++)
 	{
-		m_swapchain_images.emplace_back(std::make_shared<Texture>(this, swapchain_image_desc, images[i]));
+		m_swapchain_images.emplace_back(std::make_unique<Texture>(this, swapchain_image_desc, images[i]));
 		m_swapchain_images.back()->SetName(std::string("Swapchain Image #") + std::to_string(i));
 	}
 
@@ -1086,6 +1359,424 @@ void RHIDevice::CreateAllocator()
 {
 	m_shader_allocator     = std::make_unique<ShaderAllocator>(this);
 	m_descriptor_allocator = std::make_unique<DescriptorAllocator>(this);
-	m_pipeline_allocator   = std::make_unique<PipelineAllocator>(this);
+}
+
+VkPipeline RHIDevice::AllocateGraphicsPipeline(PipelineState &pso, VkRenderPass render_pass)
+{
+	size_t hash = pso.Hash();
+
+	if (m_pipelines.find(hash) != m_pipelines.end())
+	{
+		return m_pipelines[hash];
+	}
+
+	m_pipelines[hash] = VK_NULL_HANDLE;
+
+	ASSERT(render_pass);
+
+	// Input Assembly State
+	VkPipelineInputAssemblyStateCreateInfo input_assembly_state_create_info = {};
+	input_assembly_state_create_info.sType                                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+	input_assembly_state_create_info.topology                               = pso.GetInputAssemblyState().topology;
+	input_assembly_state_create_info.flags                                  = 0;
+	input_assembly_state_create_info.primitiveRestartEnable                 = pso.GetInputAssemblyState().primitive_restart_enable;
+
+	// Rasterization State
+	VkPipelineRasterizationStateCreateInfo rasterization_state_create_info = {};
+	rasterization_state_create_info.sType                                  = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+	rasterization_state_create_info.polygonMode                            = pso.GetRasterizationState().polygon_mode;
+	rasterization_state_create_info.cullMode                               = pso.GetRasterizationState().cull_mode;
+	rasterization_state_create_info.frontFace                              = pso.GetRasterizationState().front_face;
+	rasterization_state_create_info.flags                                  = 0;
+	rasterization_state_create_info.depthBiasEnable                        = VK_TRUE;
+	rasterization_state_create_info.lineWidth                              = 1.0f;
+
+	// Color Blend Attachment State
+	std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachment_states(pso.GetColorBlendState().attachment_states.size());
+
+	for (uint32_t i = 0; i < color_blend_attachment_states.size(); i++)
+	{
+		color_blend_attachment_states[i].blendEnable         = pso.GetColorBlendState().attachment_states[i].blend_enable;
+		color_blend_attachment_states[i].srcColorBlendFactor = pso.GetColorBlendState().attachment_states[i].src_color_blend_factor;
+		color_blend_attachment_states[i].dstColorBlendFactor = pso.GetColorBlendState().attachment_states[i].dst_color_blend_factor;
+		color_blend_attachment_states[i].colorBlendOp        = pso.GetColorBlendState().attachment_states[i].color_blend_op;
+		color_blend_attachment_states[i].srcAlphaBlendFactor = pso.GetColorBlendState().attachment_states[i].src_alpha_blend_factor;
+		color_blend_attachment_states[i].dstAlphaBlendFactor = pso.GetColorBlendState().attachment_states[i].dst_alpha_blend_factor;
+		color_blend_attachment_states[i].alphaBlendOp        = pso.GetColorBlendState().attachment_states[i].alpha_blend_op;
+		color_blend_attachment_states[i].colorWriteMask      = pso.GetColorBlendState().attachment_states[i].color_write_mask;
+	}
+
+	VkPipelineColorBlendStateCreateInfo color_blend_state_create_info = {};
+	color_blend_state_create_info.sType                               = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+	color_blend_state_create_info.logicOpEnable                       = VK_FALSE;
+	color_blend_state_create_info.logicOp                             = VK_LOGIC_OP_COPY;
+	color_blend_state_create_info.attachmentCount                     = static_cast<uint32_t>(color_blend_attachment_states.size());
+	color_blend_state_create_info.pAttachments                        = color_blend_attachment_states.data();
+	color_blend_state_create_info.blendConstants[0]                   = 0.0f;
+	color_blend_state_create_info.blendConstants[1]                   = 0.0f;
+	color_blend_state_create_info.blendConstants[2]                   = 0.0f;
+	color_blend_state_create_info.blendConstants[3]                   = 0.0f;
+
+	// Depth Stencil State
+	VkPipelineDepthStencilStateCreateInfo depth_stencil_state_create_info = {};
+	depth_stencil_state_create_info.sType                                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depth_stencil_state_create_info.depthTestEnable                       = pso.GetDepthStencilState().depth_test_enable;
+	depth_stencil_state_create_info.depthWriteEnable                      = pso.GetDepthStencilState().depth_write_enable;
+	depth_stencil_state_create_info.depthCompareOp                        = pso.GetDepthStencilState().depth_compare_op;
+	depth_stencil_state_create_info.back                                  = pso.GetDepthStencilState().back;
+	depth_stencil_state_create_info.front                                 = pso.GetDepthStencilState().front;
+	depth_stencil_state_create_info.stencilTestEnable                     = pso.GetDepthStencilState().stencil_test_enable;
+
+	// Viewport State
+	VkPipelineViewportStateCreateInfo viewport_state_create_info = {};
+	viewport_state_create_info.sType                             = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+	viewport_state_create_info.viewportCount                     = pso.GetViewportState().viewport_count;
+	viewport_state_create_info.scissorCount                      = pso.GetViewportState().scissor_count;
+	viewport_state_create_info.flags                             = 0;
+
+	// Multisample State
+	VkPipelineMultisampleStateCreateInfo multisample_state_create_info = {};
+	multisample_state_create_info.sType                                = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+	multisample_state_create_info.rasterizationSamples                 = pso.GetMultisampleState().sample_count;
+	multisample_state_create_info.flags                                = 0;
+
+	// Dynamic State
+	VkPipelineDynamicStateCreateInfo dynamic_state_create_info = {};
+	dynamic_state_create_info.sType                            = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+	dynamic_state_create_info.pDynamicStates                   = pso.GetDynamicState().dynamic_states.data();
+	dynamic_state_create_info.dynamicStateCount                = static_cast<uint32_t>(pso.GetDynamicState().dynamic_states.size());
+	dynamic_state_create_info.flags                            = 0;
+
+	std::vector<VkPipelineShaderStageCreateInfo> pipeline_shader_stage_create_infos;
+	for (auto &shader_desc : pso.GetShaders())
+	{
+		VkPipelineShaderStageCreateInfo shader_stage_create_info = {};
+
+		shader_stage_create_info.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		shader_stage_create_info.stage  = shader_desc.stage;
+		shader_stage_create_info.module = LoadShader(shader_desc);
+		shader_stage_create_info.pName  = shader_desc.entry_point.c_str();
+		pipeline_shader_stage_create_infos.push_back(shader_stage_create_info);
+	}
+
+	// Vertex Input State
+	VkPipelineVertexInputStateCreateInfo vertex_input_state_create_info = {};
+	vertex_input_state_create_info.sType                                = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	vertex_input_state_create_info.vertexAttributeDescriptionCount      = static_cast<uint32_t>(pso.GetVertexInputState().attribute_descriptions.size());
+	vertex_input_state_create_info.pVertexAttributeDescriptions         = pso.GetVertexInputState().attribute_descriptions.data();
+	vertex_input_state_create_info.vertexBindingDescriptionCount        = static_cast<uint32_t>(pso.GetVertexInputState().binding_descriptions.size());
+	vertex_input_state_create_info.pVertexBindingDescriptions           = pso.GetVertexInputState().binding_descriptions.data();
+
+	VkGraphicsPipelineCreateInfo graphics_pipeline_create_info = {};
+	graphics_pipeline_create_info.sType                        = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	graphics_pipeline_create_info.stageCount                   = static_cast<uint32_t>(pipeline_shader_stage_create_infos.size());
+	graphics_pipeline_create_info.pStages                      = pipeline_shader_stage_create_infos.data();
+
+	graphics_pipeline_create_info.pInputAssemblyState = &input_assembly_state_create_info;
+	graphics_pipeline_create_info.pRasterizationState = &rasterization_state_create_info;
+	graphics_pipeline_create_info.pColorBlendState    = &color_blend_state_create_info;
+	graphics_pipeline_create_info.pDepthStencilState  = &depth_stencil_state_create_info;
+	graphics_pipeline_create_info.pViewportState      = &viewport_state_create_info;
+	graphics_pipeline_create_info.pMultisampleState   = &multisample_state_create_info;
+	graphics_pipeline_create_info.pDynamicState       = &dynamic_state_create_info;
+	graphics_pipeline_create_info.pVertexInputState   = &vertex_input_state_create_info;
+
+	graphics_pipeline_create_info.layout             = AllocatePipelineLayout(pso);
+	graphics_pipeline_create_info.renderPass         = render_pass;
+	graphics_pipeline_create_info.subpass            = 0;
+	graphics_pipeline_create_info.basePipelineHandle = VK_NULL_HANDLE;
+	graphics_pipeline_create_info.basePipelineIndex  = -1;
+
+	vkCreateGraphicsPipelines(m_device, m_pipeline_cache, 1, &graphics_pipeline_create_info, nullptr, &m_pipelines[hash]);
+
+	return m_pipelines[hash];
+}
+
+VkPipeline RHIDevice::AllocateComputePipeline(PipelineState &pso)
+{
+	size_t hash = pso.Hash();
+
+	if (m_pipelines.find(hash) != m_pipelines.end())
+	{
+		return m_pipelines[hash];
+	}
+
+	m_pipelines[hash] = VK_NULL_HANDLE;
+
+	VkPipelineShaderStageCreateInfo shader_stage_create_info = {};
+	shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	shader_stage_create_info.stage                           = VK_SHADER_STAGE_COMPUTE_BIT;
+	shader_stage_create_info.module                          = LoadShader(pso.GetShaders()[0]);
+	shader_stage_create_info.pName                           = pso.GetShaders()[0].entry_point.c_str();
+
+	VkComputePipelineCreateInfo compute_pipeline_create_info = {};
+	compute_pipeline_create_info.sType                       = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+	compute_pipeline_create_info.stage                       = shader_stage_create_info;
+	compute_pipeline_create_info.layout                      = AllocatePipelineLayout(pso);
+	compute_pipeline_create_info.basePipelineIndex           = 0;
+	compute_pipeline_create_info.basePipelineHandle          = VK_NULL_HANDLE;
+
+	vkCreateComputePipelines(m_device, m_pipeline_cache, 1, &compute_pipeline_create_info, nullptr, &m_pipelines[hash]);
+
+	return m_pipelines[hash];
+}
+
+VkPipeline RHIDevice::AllocateRayTracingPipeline(PipelineState &pso)
+{
+	size_t hash = pso.Hash();
+
+	if (m_pipelines.find(hash) != m_pipelines.end())
+	{
+		return m_pipelines[hash];
+	}
+
+	m_pipelines[hash] = VK_NULL_HANDLE;
+
+	std::vector<VkRayTracingShaderGroupCreateInfoKHR> shader_group_create_infos;
+	std::vector<VkPipelineShaderStageCreateInfo>      pipeline_shader_stage_create_infos;
+
+	uint32_t raygen_count   = 0;
+	uint32_t raymiss_count  = 0;
+	uint32_t rayhit_count   = 0;
+	uint32_t callable_count = 0;
+
+	// Ray Generation Group
+	{
+		for (auto &shader : pso.GetShaders())
+		{
+			if (shader.stage == VK_SHADER_STAGE_RAYGEN_BIT_KHR)
+			{
+				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
+				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+				pipeline_shader_stage_create_info.stage                           = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+				pipeline_shader_stage_create_info.module                          = LoadShader(shader);
+				pipeline_shader_stage_create_info.pName                           = shader.entry_point.c_str();
+				pipeline_shader_stage_create_infos.push_back(pipeline_shader_stage_create_info);
+
+				VkRayTracingShaderGroupCreateInfoKHR shader_group = {};
+				shader_group.sType                                = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+				shader_group.type                                 = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+				shader_group.generalShader                        = static_cast<uint32_t>(pipeline_shader_stage_create_infos.size()) - 1;
+				shader_group.closestHitShader                     = VK_SHADER_UNUSED_KHR;
+				shader_group.anyHitShader                         = VK_SHADER_UNUSED_KHR;
+				shader_group.intersectionShader                   = VK_SHADER_UNUSED_KHR;
+				shader_group_create_infos.push_back(shader_group);
+
+				raygen_count++;
+			}
+		}
+	}
+
+	// Ray Miss Group
+	{
+		for (auto &shader : pso.GetShaders())
+		{
+			if (shader.stage == VK_SHADER_STAGE_MISS_BIT_KHR)
+			{
+				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
+				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+				pipeline_shader_stage_create_info.stage                           = VK_SHADER_STAGE_MISS_BIT_KHR;
+				pipeline_shader_stage_create_info.module                          = LoadShader(shader);
+				pipeline_shader_stage_create_info.pName                           = shader.entry_point.c_str();
+				pipeline_shader_stage_create_infos.push_back(pipeline_shader_stage_create_info);
+
+				VkRayTracingShaderGroupCreateInfoKHR shader_group = {};
+				shader_group.sType                                = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+				shader_group.type                                 = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+				shader_group.generalShader                        = static_cast<uint32_t>(pipeline_shader_stage_create_infos.size()) - 1;
+				shader_group.closestHitShader                     = VK_SHADER_UNUSED_KHR;
+				shader_group.anyHitShader                         = VK_SHADER_UNUSED_KHR;
+				shader_group.intersectionShader                   = VK_SHADER_UNUSED_KHR;
+				shader_group_create_infos.push_back(shader_group);
+
+				raymiss_count++;
+			}
+		}
+	}
+
+	// Closest Hit Group
+	{
+		for (auto &shader : pso.GetShaders())
+		{
+			if (shader.stage == VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR)
+			{
+				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
+				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+				pipeline_shader_stage_create_info.stage                           = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+				pipeline_shader_stage_create_info.module                          = LoadShader(shader);
+				pipeline_shader_stage_create_info.pName                           = shader.entry_point.c_str();
+				pipeline_shader_stage_create_infos.push_back(pipeline_shader_stage_create_info);
+
+				VkRayTracingShaderGroupCreateInfoKHR shader_group = {};
+				shader_group.sType                                = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+				shader_group.type                                 = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
+				shader_group.generalShader                        = VK_SHADER_UNUSED_KHR;
+				shader_group.closestHitShader                     = static_cast<uint32_t>(pipeline_shader_stage_create_infos.size()) - 1;
+				shader_group.anyHitShader                         = VK_SHADER_UNUSED_KHR;
+				shader_group.intersectionShader                   = VK_SHADER_UNUSED_KHR;
+				shader_group_create_infos.push_back(shader_group);
+
+				rayhit_count++;
+			}
+		}
+	}
+
+	// Any Hit Group
+	{
+		for (auto &shader : pso.GetShaders())
+		{
+			if (shader.stage == VK_SHADER_STAGE_ANY_HIT_BIT_KHR)
+			{
+				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
+				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+				pipeline_shader_stage_create_info.stage                           = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
+				pipeline_shader_stage_create_info.module                          = LoadShader(shader);
+				pipeline_shader_stage_create_info.pName                           = shader.entry_point.c_str();
+				pipeline_shader_stage_create_infos.push_back(pipeline_shader_stage_create_info);
+
+				VkRayTracingShaderGroupCreateInfoKHR shader_group = {};
+				shader_group.sType                                = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+				shader_group.type                                 = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
+				shader_group.generalShader                        = VK_SHADER_UNUSED_KHR;
+				shader_group.closestHitShader                     = VK_SHADER_UNUSED_KHR;
+				shader_group.anyHitShader                         = static_cast<uint32_t>(pipeline_shader_stage_create_infos.size()) - 1;
+				shader_group.intersectionShader                   = VK_SHADER_UNUSED_KHR;
+				shader_group_create_infos.push_back(shader_group);
+
+				rayhit_count++;
+			}
+		}
+	}
+
+	// Intersection Group
+	{
+		for (auto &shader : pso.GetShaders())
+		{
+			if (shader.stage == VK_SHADER_STAGE_INTERSECTION_BIT_KHR)
+			{
+				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
+				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+				pipeline_shader_stage_create_info.stage                           = VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
+				pipeline_shader_stage_create_info.module                          = LoadShader(shader);
+				pipeline_shader_stage_create_info.pName                           = shader.entry_point.c_str();
+				pipeline_shader_stage_create_infos.push_back(pipeline_shader_stage_create_info);
+
+				VkRayTracingShaderGroupCreateInfoKHR shader_group = {};
+				shader_group.sType                                = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+				shader_group.type                                 = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
+				shader_group.generalShader                        = VK_SHADER_UNUSED_KHR;
+				shader_group.closestHitShader                     = VK_SHADER_UNUSED_KHR;
+				shader_group.anyHitShader                         = VK_SHADER_UNUSED_KHR;
+				shader_group.intersectionShader                   = static_cast<uint32_t>(pipeline_shader_stage_create_infos.size()) - 1;
+				shader_group_create_infos.push_back(shader_group);
+
+				rayhit_count++;
+			}
+		}
+	}
+
+	// Callable Group
+	{
+		for (auto &shader : pso.GetShaders())
+		{
+			if (shader.stage == VK_SHADER_STAGE_CALLABLE_BIT_KHR)
+			{
+				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
+				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+				pipeline_shader_stage_create_info.stage                           = VK_SHADER_STAGE_CALLABLE_BIT_KHR;
+				pipeline_shader_stage_create_info.module                          = LoadShader(shader);
+				pipeline_shader_stage_create_info.pName                           = shader.entry_point.c_str();
+				pipeline_shader_stage_create_infos.push_back(pipeline_shader_stage_create_info);
+
+				VkRayTracingShaderGroupCreateInfoKHR shader_group = {};
+				shader_group.sType                                = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+				shader_group.type                                 = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+				shader_group.generalShader                        = static_cast<uint32_t>(pipeline_shader_stage_create_infos.size()) - 1;
+				shader_group.closestHitShader                     = VK_SHADER_UNUSED_KHR;
+				shader_group.anyHitShader                         = VK_SHADER_UNUSED_KHR;
+				shader_group.intersectionShader                   = VK_SHADER_UNUSED_KHR;
+				shader_group_create_infos.push_back(shader_group);
+
+				callable_count++;
+			}
+		}
+	}
+
+	VkRayTracingPipelineCreateInfoKHR raytracing_pipeline_create_info = {};
+	raytracing_pipeline_create_info.sType                             = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
+	raytracing_pipeline_create_info.stageCount                        = static_cast<uint32_t>(pipeline_shader_stage_create_infos.size());
+	raytracing_pipeline_create_info.pStages                           = pipeline_shader_stage_create_infos.data();
+	raytracing_pipeline_create_info.groupCount                        = static_cast<uint32_t>(shader_group_create_infos.size());
+	raytracing_pipeline_create_info.pGroups                           = shader_group_create_infos.data();
+	raytracing_pipeline_create_info.maxPipelineRayRecursionDepth      = 4;
+	raytracing_pipeline_create_info.layout                            = AllocatePipelineLayout(pso);
+
+	vkCreateRayTracingPipelinesKHR(m_device, VK_NULL_HANDLE, m_pipeline_cache, 1, &raytracing_pipeline_create_info, nullptr, &m_pipelines[hash]);
+
+	// Create shader binding table
+	/*
+	    SBT Layout:
+
+	        /-----------\
+	        | raygen    |
+	        |-----------|
+	        | miss        |
+	        |-----------|
+	        | hit           |
+	        |-----------|
+	        | callable   |
+	        \-----------/
+
+	*/
+
+	m_shader_binding_tables[hash] = std::make_unique<ShaderBindingTable>();
+
+	VkPhysicalDeviceRayTracingPipelinePropertiesKHR raytracing_properties = {};
+	raytracing_properties.sType                                           = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+	VkPhysicalDeviceProperties2 deviceProperties2                         = {};
+	deviceProperties2.sType                                               = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+	deviceProperties2.pNext                                               = &raytracing_properties;
+	vkGetPhysicalDeviceProperties2(m_physical_device, &deviceProperties2);
+
+	const uint32_t handle_size         = raytracing_properties.shaderGroupHandleSize;
+	const uint32_t handle_size_aligned = (raytracing_properties.shaderGroupHandleSize + raytracing_properties.shaderGroupHandleAlignment - 1) & ~(raytracing_properties.shaderGroupHandleAlignment - 1);
+	const uint32_t group_count         = static_cast<uint32_t>(shader_group_create_infos.size());
+	const uint32_t sbt_size            = group_count * handle_size_aligned;
+
+	std::vector<uint8_t> shader_handle_storage(sbt_size);
+
+	auto result = vkGetRayTracingShaderGroupHandlesKHR(m_device, m_pipelines[hash], 0, group_count, sbt_size, shader_handle_storage.data());
+
+	uint32_t handle_offset = 0;
+
+	// Gen Group
+	{
+		m_shader_binding_tables[hash]->raygen = std::make_unique<ShaderBindingTableInfo>(this, raygen_count);
+		std::memcpy(m_shader_binding_tables[hash]->raygen->GetData(), shader_handle_storage.data() + handle_offset, handle_size * raygen_count);
+		handle_offset += raygen_count * handle_size_aligned;
+	}
+
+	// Miss Group
+	{
+		m_shader_binding_tables[hash]->miss = std::make_unique<ShaderBindingTableInfo>(this, raymiss_count);
+		std::memcpy(m_shader_binding_tables[hash]->miss->GetData(), shader_handle_storage.data() + handle_offset, handle_size * raymiss_count);
+		handle_offset += raymiss_count * handle_size_aligned;
+	}
+
+	// Hit Group
+	{
+		m_shader_binding_tables[hash]->hit = std::make_unique<ShaderBindingTableInfo>(this, rayhit_count);
+		std::memcpy(m_shader_binding_tables[hash]->hit->GetData(), shader_handle_storage.data() + handle_offset, handle_size * rayhit_count);
+		handle_offset += rayhit_count * handle_size_aligned;
+	}
+
+	// Callable Group
+	{
+		m_shader_binding_tables[hash]->callable = std::make_unique<ShaderBindingTableInfo>(this, callable_count);
+		std::memcpy(m_shader_binding_tables[hash]->callable->GetData(), shader_handle_storage.data() + handle_offset, handle_size * callable_count);
+		handle_offset += callable_count * handle_size_aligned;
+	}
+
+	return m_pipelines[hash];
 }
 }        // namespace Ilum

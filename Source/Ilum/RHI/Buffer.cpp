@@ -16,21 +16,21 @@ Buffer::Buffer(RHIDevice *device, const BufferDesc &desc) :
 	allocation_create_info.usage                   = desc.memory_usage;
 
 	VmaAllocationInfo allocation_info = {};
-	vmaCreateBuffer(p_device->m_allocator, &buffer_create_info, &allocation_create_info, &m_handle, &m_allocation, &allocation_info);
+	vmaCreateBuffer(p_device->GetAllocator(), &buffer_create_info, &allocation_create_info, &m_handle, &m_allocation, &allocation_info);
 
 	VkBufferDeviceAddressInfoKHR buffer_device_address_info = {};
 	buffer_device_address_info.sType                        = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
 	buffer_device_address_info.buffer                       = m_handle;
 
-	m_device_address = vkGetBufferDeviceAddress(p_device->m_device, &buffer_device_address_info);
+	m_device_address = vkGetBufferDeviceAddress(p_device->GetDevice(), &buffer_device_address_info);
 }
 
 Buffer::~Buffer()
 {
 	if (m_handle && m_allocation)
 	{
-		vkDeviceWaitIdle(p_device->m_device);
-		vmaDestroyBuffer(p_device->m_allocator, m_handle, m_allocation);
+		vkDeviceWaitIdle(p_device->GetDevice());
+		vmaDestroyBuffer(p_device->GetAllocator(), m_handle, m_allocation);
 	}
 }
 
@@ -53,7 +53,7 @@ void *Buffer::Map()
 {
 	if (!m_mapped_data)
 	{
-		vmaMapMemory(p_device->m_allocator, m_allocation, reinterpret_cast<void **>(&m_mapped_data));
+		vmaMapMemory(p_device->GetAllocator(), m_allocation, reinterpret_cast<void **>(&m_mapped_data));
 	}
 	return m_mapped_data;
 }
@@ -62,13 +62,13 @@ void Buffer::Unmap()
 {
 	if (m_mapped_data)
 	{
-		vmaUnmapMemory(p_device->m_allocator, m_allocation);
+		vmaUnmapMemory(p_device->GetAllocator(), m_allocation);
 		m_mapped_data = nullptr;
 	}
 }
 void Buffer::Flush(VkDeviceSize size, VkDeviceSize offset)
 {
-	vmaFlushAllocation(p_device->m_allocator, m_allocation, offset, size);
+	vmaFlushAllocation(p_device->GetAllocator(), m_allocation, offset, size);
 }
 
 Buffer::operator VkBuffer() const
@@ -86,7 +86,7 @@ void Buffer::SetName(const std::string &name)
 		name_info.objectType                    = VK_OBJECT_TYPE_BUFFER;
 		name_info.objectHandle                  = (uint64_t) m_handle;
 		name_info.pObjectName                   = name.c_str();
-		vkSetDebugUtilsObjectNameEXT(p_device->m_device, &name_info);
+		vkSetDebugUtilsObjectNameEXT(p_device->GetDevice(), &name_info);
 	}
 }
 

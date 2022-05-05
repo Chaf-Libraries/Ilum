@@ -17,7 +17,7 @@ struct BufferDesc;
 class Buffer;
 struct AccelerationStructureDesc;
 class AccelerationStructure;
-class ShaderBindingTable;
+struct ShaderBindingTable;
 class DescriptorSetLayout;
 enum class ShaderType;
 class ShaderAllocator;
@@ -25,11 +25,12 @@ class DescriptorAllocator;
 class Frame;
 class CommandBuffer;
 class PipelineState;
-class PipelineAllocator;
+class FrameBuffer;
+class DescriptorState;
 
 class RHIDevice
 {
-	friend class Buffer;
+	/*friend class Buffer;
 	friend class Texture;
 	friend class AccelerationStructure;
 	friend class ShaderBindingTable;
@@ -44,12 +45,19 @@ class RHIDevice
 	friend class Sampler;
 	friend class ImGuiContext;
 	friend class DescriptorState;
-	friend class PipelineAllocator;
+	friend class PipelineAllocator;*/
 
   public:
 	RHIDevice(Window *window);
 
 	~RHIDevice();
+
+	VkInstance             GetVulkanInstance() const;
+	VkPhysicalDevice       GetPhysicalDevice() const;
+	VkDevice               GetDevice() const;
+	VmaAllocator           GetAllocator() const;
+	VkPipelineCache        GetPipelineCache() const;
+	std::vector<Texture *> GetSwapchainImages() const;
 
 	Texture *GetBackBuffer() const;
 
@@ -63,7 +71,16 @@ class RHIDevice
 
 	CommandBuffer &RequestCommandBuffer(VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY, VkQueueFlagBits queue = VK_QUEUE_GRAPHICS_BIT);
 
-	VkDescriptorSet AllocateDescriptorSet(const PipelineState &pso, uint32_t set);
+	VkPipelineLayout AllocatePipelineLayout(PipelineState &pso);
+	VkPipeline       AllocatePipeline(PipelineState &pso, VkRenderPass render_pass = VK_NULL_HANDLE);
+	VkRenderPass     AllocateRenderPass(FrameBuffer &framebuffer);
+	VkFramebuffer    AllocateFrameBuffer(FrameBuffer &framebuffer);
+
+	ShaderBindingTable &AllocateSBT(PipelineState &pso);
+
+	const std::map<uint32_t, VkDescriptorSet> &AllocateDescriptorSet(PipelineState &pso);
+
+	DescriptorState &AllocateDescriptorState(PipelineState &pso);
 
 	uint32_t GetGraphicsFamily() const;
 	uint32_t GetComputeFamily() const;
@@ -84,6 +101,11 @@ class RHIDevice
 	void CreateLogicalDevice();
 	void CreateSwapchain();
 	void CreateAllocator();
+
+  private:
+	VkPipeline AllocateGraphicsPipeline(PipelineState &pso, VkRenderPass render_pass);
+	VkPipeline AllocateComputePipeline(PipelineState &pso);
+	VkPipeline AllocateRayTracingPipeline(PipelineState &pso);
 
   private:
 	// Extension functions
@@ -122,14 +144,13 @@ class RHIDevice
 	uint32_t m_present_family;
 
 	VkSwapchainKHR                        m_swapchain = VK_NULL_HANDLE;
-	std::vector<std::shared_ptr<Texture>> m_swapchain_images;
+	std::vector<std::unique_ptr<Texture>> m_swapchain_images;
 
 	VkFormat m_swapchain_format = VK_FORMAT_UNDEFINED;
 	VkFormat m_depth_format     = VK_FORMAT_UNDEFINED;
 
 	std::unique_ptr<ShaderAllocator>     m_shader_allocator     = nullptr;
 	std::unique_ptr<DescriptorAllocator> m_descriptor_allocator = nullptr;
-	std::unique_ptr<PipelineAllocator>   m_pipeline_allocator   = nullptr;
 
 	std::vector<std::unique_ptr<Frame>> m_frames;
 
@@ -141,5 +162,13 @@ class RHIDevice
 	VkPipelineCache m_pipeline_cache = VK_NULL_HANDLE;
 
 	uint32_t m_current_frame = 0;
+
+	std::map<size_t, VkPipeline>                          m_pipelines;
+	std::map<size_t, VkRenderPass>                        m_render_passes;
+	std::map<size_t, VkFramebuffer>                       m_frame_buffers;
+	std::map<size_t, VkPipelineLayout>                    m_pipeline_layouts;
+	std::map<size_t, std::map<uint32_t, VkDescriptorSet>>        m_descriptor_sets;
+	std::map<size_t, std::unique_ptr<ShaderBindingTable>> m_shader_binding_tables;
+	std::map<size_t, std::unique_ptr<DescriptorState>> m_descriptor_states;
 };
 }        // namespace Ilum

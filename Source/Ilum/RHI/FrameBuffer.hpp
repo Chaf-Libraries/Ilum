@@ -4,30 +4,45 @@
 
 #include <optional>
 
-struct StoreInfo
+struct ColorAttachmentInfo
 {
 	VkSampleCountFlagBits samples          = VK_SAMPLE_COUNT_1_BIT;
 	VkAttachmentLoadOp    load_op          = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	VkAttachmentStoreOp   store_op         = VK_ATTACHMENT_STORE_OP_STORE;
 	VkAttachmentLoadOp    stencil_load_op  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	VkAttachmentStoreOp   stencil_store_op = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	VkClearValue          clear_value      = {};
+	VkClearColorValue     clear_value      = {};
+};
+
+struct DepthStencilAttachmentInfo
+{
+	VkSampleCountFlagBits samples          = VK_SAMPLE_COUNT_1_BIT;
+	VkAttachmentLoadOp    load_op          = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	VkAttachmentStoreOp   store_op         = VK_ATTACHMENT_STORE_OP_STORE;
+	VkAttachmentLoadOp    stencil_load_op  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	VkAttachmentStoreOp   stencil_store_op = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	VkClearDepthStencilValue clear_value      = {};
 };
 
 namespace Ilum
 {
 class FrameBuffer
 {
-	friend class PipelineAllocator;
-	friend class CommandBuffer;
+	friend class RHIDevice;
 
   public:
 	FrameBuffer()  = default;
 	~FrameBuffer() = default;
 
-	FrameBuffer &Bind(Texture *render_target, const TextureViewDesc &view_desc, const VkClearColorValue &clear = {});
+	uint32_t GetWidth() const;
+	uint32_t GetHeight() const;
+	uint32_t GetLayer() const;
 
-	void Bind(Texture *depth_stencil, const TextureViewDesc &view_desc, const VkClearDepthStencilValue &clear = {});
+	const std::vector<VkClearValue> &GetClearValue() const;
+
+	FrameBuffer &Bind(Texture *render_target, const TextureViewDesc &view_desc, const ColorAttachmentInfo &info);
+
+	FrameBuffer &Bind(Texture *depth_stencil, const TextureViewDesc &view_desc, const DepthStencilAttachmentInfo &info);
 
 	size_t Hash();
 

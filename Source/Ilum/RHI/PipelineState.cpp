@@ -3,11 +3,6 @@
 
 namespace Ilum
 {
-PipelineState::PipelineState(RHIDevice *device):
-    p_device(device)
-{
-}
-
 PipelineState &PipelineState::SetInputAssemblyState(const InputAssemblyState &input_assembly_state)
 {
 	m_input_assembly_state = input_assembly_state;
@@ -66,9 +61,23 @@ PipelineState &PipelineState::SetColorBlendState(const ColorBlendState &color_bl
 
 PipelineState &PipelineState::LoadShader(const ShaderDesc &desc)
 {
-	VkShaderModule shader = p_device->LoadShader(desc);
-	m_shaders[desc.stage].push_back(std::make_pair(desc.entry_point, shader));
-	m_shader_meta += p_device->ReflectShader(shader);
+	if (m_bind_point == VK_PIPELINE_BIND_POINT_MAX_ENUM)
+	{
+		if (desc.stage == VK_SHADER_STAGE_RAYGEN_BIT_KHR)
+		{
+			m_bind_point = VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
+		}
+		else if (desc.stage == VK_SHADER_STAGE_COMPUTE_BIT)
+		{
+			m_bind_point = VK_PIPELINE_BIND_POINT_COMPUTE;
+		}
+		else
+		{
+			m_bind_point = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		}
+	}
+
+	m_shaders.push_back(desc);
 	m_dirty = true;
 	return *this;
 }
@@ -113,23 +122,14 @@ const ColorBlendState &PipelineState::GetColorBlendState() const
 	return m_color_blend_state;
 }
 
-const ShaderReflectionData &PipelineState::GetReflectionData() const
+const std::vector<ShaderDesc> &PipelineState::GetShaders() const
 {
-	return m_shader_meta;
+	return m_shaders;
 }
 
 VkPipelineBindPoint PipelineState::GetBindPoint() const
 {
-	if (m_shaders.find(VK_SHADER_STAGE_COMPUTE_BIT) != m_shaders.end())
-	{
-		return VK_PIPELINE_BIND_POINT_COMPUTE;
-	}
-	else if (m_shaders.find(VK_SHADER_STAGE_RAYGEN_BIT_KHR) != m_shaders.end())
-	{
-		return VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
-	}
-
-	return VK_PIPELINE_BIND_POINT_GRAPHICS;
+	return m_bind_point;
 }
 
 size_t PipelineState::Hash()
@@ -140,70 +140,18 @@ size_t PipelineState::Hash()
 	}
 
 	m_hash = 0;
-	HashCombine(m_hash, m_input_assembly_state.topology);
-	HashCombine(m_hash, m_input_assembly_state.primitive_restart_enable);
-
-	HashCombine(m_hash, m_rasterization_state.polygon_mode);
-	HashCombine(m_hash, m_rasterization_state.cull_mode);
-	HashCombine(m_hash, m_rasterization_state.front_face);
-
-	HashCombine(m_hash, m_depth_stencil_state.depth_test_enable);
-	HashCombine(m_hash, m_depth_stencil_state.depth_write_enable);
-	HashCombine(m_hash, m_depth_stencil_state.stencil_test_enable);
-	HashCombine(m_hash, m_depth_stencil_state.depth_compare_op);
-	HashCombine(m_hash, m_depth_stencil_state.front.compareMask);
-	HashCombine(m_hash, m_depth_stencil_state.front.compareOp);
-	HashCombine(m_hash, m_depth_stencil_state.front.depthFailOp);
-	HashCombine(m_hash, m_depth_stencil_state.front.failOp);
-	HashCombine(m_hash, m_depth_stencil_state.front.passOp);
-	HashCombine(m_hash, m_depth_stencil_state.front.reference);
-	HashCombine(m_hash, m_depth_stencil_state.front.writeMask);
-	HashCombine(m_hash, m_depth_stencil_state.back.compareMask);
-	HashCombine(m_hash, m_depth_stencil_state.back.compareOp);
-	HashCombine(m_hash, m_depth_stencil_state.back.depthFailOp);
-	HashCombine(m_hash, m_depth_stencil_state.back.failOp);
-	HashCombine(m_hash, m_depth_stencil_state.back.passOp);
-	HashCombine(m_hash, m_depth_stencil_state.back.reference);
-	HashCombine(m_hash, m_depth_stencil_state.back.writeMask);
-
-	HashCombine(m_hash, m_viewport_state.scissor_count);
-	HashCombine(m_hash, m_viewport_state.viewport_count);
-
-	HashCombine(m_hash, m_multisample_state.sample_count);
-
-	for (auto &state : m_dynamic_state.dynamic_states)
+	HashCombine(m_hash, m_input_assembly_state.Hash());
+	HashCombine(m_hash, m_rasterization_state.Hash());
+	HashCombine(m_hash, m_depth_stencil_state.Hash());
+	HashCombine(m_hash, m_viewport_state.Hash());
+	HashCombine(m_hash, m_multisample_state.Hash());
+	HashCombine(m_hash, m_dynamic_state.Hash());
+	HashCombine(m_hash, m_vertex_input_state.Hash());
+	HashCombine(m_hash, m_color_blend_state.Hash());
+	for (auto& desc : m_shaders)
 	{
-		HashCombine(m_hash, state);
+		HashCombine(m_hash, desc.Hash());
 	}
-
-	for (auto &description : m_vertex_input_state.binding_descriptions)
-	{
-		HashCombine(m_hash, description.binding);
-		HashCombine(m_hash, description.inputRate);
-		HashCombine(m_hash, description.stride);
-	}
-
-	for (auto &description : m_vertex_input_state.attribute_descriptions)
-	{
-		HashCombine(m_hash, description.binding);
-		HashCombine(m_hash, description.format);
-		HashCombine(m_hash, description.location);
-		HashCombine(m_hash, description.offset);
-	}
-
-	for (auto& state : m_color_blend_state.attachment_states)
-	{
-		HashCombine(m_hash, state.blend_enable);
-		HashCombine(m_hash, state.src_color_blend_factor);
-		HashCombine(m_hash, state.dst_color_blend_factor);
-		HashCombine(m_hash, state.color_blend_op);
-		HashCombine(m_hash, state.src_alpha_blend_factor);
-		HashCombine(m_hash, state.dst_alpha_blend_factor);
-		HashCombine(m_hash, state.alpha_blend_op);
-		HashCombine(m_hash, state.color_write_mask);
-	}
-
-	HashCombine(m_hash, m_shader_meta.Hash());
 
 	m_dirty = false;
 

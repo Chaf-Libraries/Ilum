@@ -15,7 +15,7 @@ FenceAllocator::~FenceAllocator()
 
 	for (auto &fence : m_fences)
 	{
-		vkDestroyFence(p_device->m_device, fence, nullptr);
+		vkDestroyFence(p_device->GetDevice(), fence, nullptr);
 	}
 
 	m_fences.clear();
@@ -35,7 +35,7 @@ VkFence &FenceAllocator::RequestFence()
 	VkFenceCreateInfo create_info = {};
 	create_info.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 
-	vkCreateFence(p_device->m_device, &create_info, nullptr, &fence);
+	vkCreateFence(p_device->GetDevice(), &create_info, nullptr, &fence);
 
 	m_fences.push_back(fence);
 	m_active_fence_count++;
@@ -50,7 +50,7 @@ void FenceAllocator::Wait(uint32_t timeout) const
 		return;
 	}
 
-	vkWaitForFences(p_device->m_device, m_active_fence_count, m_fences.data(), true, timeout);
+	vkWaitForFences(p_device->GetDevice(), m_active_fence_count, m_fences.data(), true, timeout);
 }
 
 void FenceAllocator::Reset()
@@ -60,7 +60,7 @@ void FenceAllocator::Reset()
 		return;
 	}
 
-	vkResetFences(p_device->m_device, m_active_fence_count, m_fences.data());
+	vkResetFences(p_device->GetDevice(), m_active_fence_count, m_fences.data());
 
 	m_active_fence_count = 0;
 }
@@ -76,7 +76,7 @@ SemaphoreAllocator::~SemaphoreAllocator()
 
 	for (auto &semaphore : m_semaphores)
 	{
-		vkDestroySemaphore(p_device->m_device, semaphore, nullptr);
+		vkDestroySemaphore(p_device->GetDevice(), semaphore, nullptr);
 	}
 
 	m_semaphores.clear();
@@ -98,7 +98,7 @@ VkSemaphore SemaphoreAllocator::RequestSemaphore()
 	VkSemaphoreCreateInfo create_info = {};
 	create_info.sType                 = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-	vkCreateSemaphore(p_device->m_device, &create_info, nullptr, &semaphore);
+	vkCreateSemaphore(p_device->GetDevice(), &create_info, nullptr, &semaphore);
 
 	m_semaphores.push_back(semaphore);
 
@@ -123,7 +123,7 @@ VkSemaphore SemaphoreAllocator::AllocateSemaphore()
 	VkSemaphoreCreateInfo create_info = {};
 	create_info.sType                 = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-	vkCreateSemaphore(p_device->m_device, &create_info, nullptr, &semaphore);
+	vkCreateSemaphore(p_device->GetDevice(), &create_info, nullptr, &semaphore);
 	return semaphore;
 }
 

@@ -13,8 +13,8 @@ AccelerationStructure::~AccelerationStructure()
 {
 	if (m_handle)
 	{
-		vkDeviceWaitIdle(p_device->m_device);
-		vkDestroyAccelerationStructureKHR(p_device->m_device, m_handle, nullptr);
+		vkDeviceWaitIdle(p_device->GetDevice());
+		vkDestroyAccelerationStructureKHR(p_device->GetDevice(), m_handle, nullptr);
 		m_handle = VK_NULL_HANDLE;
 	}
 }
@@ -55,7 +55,7 @@ void AccelerationStructure::Build(VkCommandBuffer cmd_buffer, AccelerationStruct
 	VkAccelerationStructureBuildSizesInfoKHR build_sizes_info = {};
 	build_sizes_info.sType                                    = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
 	vkGetAccelerationStructureBuildSizesKHR(
-	    p_device->m_device,
+	    p_device->GetDevice(),
 	    VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
 	    &build_geometry_info,
 	    &max_primitive_count,
@@ -72,8 +72,8 @@ void AccelerationStructure::Build(VkCommandBuffer cmd_buffer, AccelerationStruct
 
 		if (m_handle)
 		{
-			vkDeviceWaitIdle(p_device->m_device);
-			vkDestroyAccelerationStructureKHR(p_device->m_device, m_handle, nullptr);
+			vkDeviceWaitIdle(p_device->GetDevice());
+			vkDestroyAccelerationStructureKHR(p_device->GetDevice(), m_handle, nullptr);
 		}
 
 		VkAccelerationStructureCreateInfoKHR acceleration_structure_create_info = {};
@@ -81,7 +81,7 @@ void AccelerationStructure::Build(VkCommandBuffer cmd_buffer, AccelerationStruct
 		acceleration_structure_create_info.buffer                               = *m_buffer;
 		acceleration_structure_create_info.size                                 = build_sizes_info.accelerationStructureSize;
 		acceleration_structure_create_info.type                                 = desc.type;
-		vkCreateAccelerationStructureKHR(p_device->m_device, &acceleration_structure_create_info, nullptr, &m_handle);
+		vkCreateAccelerationStructureKHR(p_device->GetDevice(), &acceleration_structure_create_info, nullptr, &m_handle);
 
 		build_geometry_info.mode                     = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
 		build_geometry_info.srcAccelerationStructure = VK_NULL_HANDLE;
@@ -91,7 +91,7 @@ void AccelerationStructure::Build(VkCommandBuffer cmd_buffer, AccelerationStruct
 	VkAccelerationStructureDeviceAddressInfoKHR acceleration_device_address_info = {};
 	acceleration_device_address_info.sType                                       = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
 	acceleration_device_address_info.accelerationStructure                       = m_handle;
-	m_device_address                                                             = vkGetAccelerationStructureDeviceAddressKHR(p_device->m_device, &acceleration_device_address_info);
+	m_device_address                                                             = vkGetAccelerationStructureDeviceAddressKHR(p_device->GetDevice(), &acceleration_device_address_info);
 
 	// Create a scratch buffer as a temporary storage for the acceleration structure build
 	BufferDesc scratch_buffer_desc   = {};
@@ -120,7 +120,7 @@ void AccelerationStructure::SetName(const std::string &name)
 	name_info.objectType                    = VK_OBJECT_TYPE_IMAGE_VIEW;
 	name_info.objectHandle                  = (uint64_t) m_handle;
 	name_info.pObjectName                   = name.c_str();
-	vkSetDebugUtilsObjectNameEXT(p_device->m_device, &name_info);
+	vkSetDebugUtilsObjectNameEXT(p_device->GetDevice(), &name_info);
 
 	m_buffer->SetName(name + "_buffer");
 }

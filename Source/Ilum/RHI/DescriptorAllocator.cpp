@@ -155,15 +155,15 @@ DescriptorLayout::DescriptorLayout(RHIDevice *device, const ShaderReflectionData
 	descriptor_set_layout_binding_flag_create_info.pBindingFlags = descriptor_binding_flags.data();
 	descriptor_set_layout_create_info.pNext                      = bindless ? &descriptor_set_layout_binding_flag_create_info : nullptr;
 
-	vkCreateDescriptorSetLayout(p_device->m_device, &descriptor_set_layout_create_info, nullptr, &m_handle);
+	vkCreateDescriptorSetLayout(p_device->GetDevice(), &descriptor_set_layout_create_info, nullptr, &m_handle);
 }
 
 DescriptorLayout::~DescriptorLayout()
 {
 	if (m_handle)
 	{
-		vkDeviceWaitIdle(p_device->m_device);
-		vkDestroyDescriptorSetLayout(p_device->m_device, m_handle, nullptr);
+		vkDeviceWaitIdle(p_device->GetDevice());
+		vkDestroyDescriptorSetLayout(p_device->GetDevice(), m_handle, nullptr);
 	}
 }
 
@@ -240,7 +240,7 @@ DescriptorPool::~DescriptorPool()
 {
 	for (auto &pool : m_descriptor_pools)
 	{
-		vkDestroyDescriptorPool(p_device->m_device, pool, nullptr);
+		vkDestroyDescriptorPool(p_device->GetDevice(), pool, nullptr);
 	}
 }
 
@@ -275,7 +275,7 @@ void DescriptorPool::Reset()
 {
 	for (auto &pool : m_descriptor_pools)
 	{
-		vkResetDescriptorPool(p_device->m_device, pool, 0);
+		vkResetDescriptorPool(p_device->GetDevice(), pool, 0);
 	}
 
 	std::fill(m_pool_sets_count.begin(), m_pool_sets_count.end(), 0);
@@ -303,7 +303,7 @@ VkDescriptorSet DescriptorPool::Allocate(const DescriptorLayout &descriptor_layo
 
 	VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
 
-	if (vkAllocateDescriptorSets(p_device->m_device, &allocate_info, &descriptor_set) != VK_SUCCESS)
+	if (vkAllocateDescriptorSets(p_device->GetDevice(), &allocate_info, &descriptor_set) != VK_SUCCESS)
 	{
 		LOG_FATAL("Failed to allocate descriptor set!");
 
@@ -327,7 +327,7 @@ void DescriptorPool::Free(VkDescriptorSet descriptor_set)
 
 	auto desc_pool_index = it->second;
 
-	vkFreeDescriptorSets(p_device->m_device, m_descriptor_pools[desc_pool_index], 1, &descriptor_set);
+	vkFreeDescriptorSets(p_device->GetDevice(), m_descriptor_pools[desc_pool_index], 1, &descriptor_set);
 
 	m_set_pool_mapping.erase(it);
 
@@ -359,7 +359,7 @@ uint32_t DescriptorPool::FindAvaliablePool(const DescriptorLayout &descriptor_la
 
 		VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
 
-		if (vkCreateDescriptorPool(p_device->m_device, &descriptor_pool_create_info, nullptr, &descriptor_pool) != VK_SUCCESS)
+		if (vkCreateDescriptorPool(p_device->GetDevice(), &descriptor_pool_create_info, nullptr, &descriptor_pool) != VK_SUCCESS)
 		{
 			LOG_FATAL("Failed to create descriptor pool!");
 			return 0;

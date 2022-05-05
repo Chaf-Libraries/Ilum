@@ -37,7 +37,7 @@ Texture::Texture(RHIDevice *device, const TextureDesc &desc) :
 
 	VmaAllocationCreateInfo allocation_create_info = {};
 	allocation_create_info.usage                   = VMA_MEMORY_USAGE_GPU_ONLY;
-	vmaCreateImage(p_device->m_allocator, &image_create_info, &allocation_create_info, &m_handle, &m_allocation, nullptr);
+	vmaCreateImage(p_device->GetAllocator(), &image_create_info, &allocation_create_info, &m_handle, &m_allocation, nullptr);
 }
 
 Texture::Texture(RHIDevice *device, const TextureDesc &desc, VkImage handle) :
@@ -47,14 +47,15 @@ Texture::Texture(RHIDevice *device, const TextureDesc &desc, VkImage handle) :
 
 Texture::~Texture()
 {
+	vkDeviceWaitIdle(p_device->GetDevice());
 	if (m_handle && m_allocation)
 	{
-		vmaDestroyImage(p_device->m_allocator, m_handle, m_allocation);
+		vmaDestroyImage(p_device->GetAllocator(), m_handle, m_allocation);
 	}
 
 	for (auto &[hash, view] : m_views)
 	{
-		vkDestroyImageView(p_device->m_device, view, nullptr);
+		vkDestroyImageView(p_device->GetDevice(), view, nullptr);
 	}
 }
 
@@ -108,7 +109,7 @@ void Texture::SetName(const std::string &name)
 		name_info.objectType                    = VK_OBJECT_TYPE_IMAGE;
 		name_info.objectHandle                  = (uint64_t) m_handle;
 		name_info.pObjectName                   = name.c_str();
-		vkSetDebugUtilsObjectNameEXT(p_device->m_device, &name_info);
+		vkSetDebugUtilsObjectNameEXT(p_device->GetDevice(), &name_info);
 	}
 }
 
@@ -132,7 +133,7 @@ VkImageView Texture::GetView(const TextureViewDesc &desc)
 	view_create_info.viewType                        = desc.view_type;
 
 	m_views[hash] = VK_NULL_HANDLE;
-	vkCreateImageView(p_device->m_device, &view_create_info, nullptr, &m_views[hash]);
+	vkCreateImageView(p_device->GetDevice(), &view_create_info, nullptr, &m_views[hash]);
 
 	return m_views.at(hash);
 }

@@ -8,17 +8,17 @@ namespace Ilum
 {
 class RHIDevice;
 
-class ShaderBindingTable
+class ShaderBindingTableInfo
 {
   public:
-	ShaderBindingTable(RHIDevice *device, uint32_t handle_count);
+	ShaderBindingTableInfo(RHIDevice *device, uint32_t handle_count);
 
-	~ShaderBindingTable();
+	~ShaderBindingTableInfo();
 
-	ShaderBindingTable(const ShaderBindingTable &) = delete;
-	ShaderBindingTable &operator=(const ShaderBindingTable &) = delete;
-	ShaderBindingTable(ShaderBindingTable &&other)            = delete;
-	ShaderBindingTable &operator=(ShaderBindingTable &&other) = delete;
+	ShaderBindingTableInfo(const ShaderBindingTableInfo &) = delete;
+	ShaderBindingTableInfo &operator=(const ShaderBindingTableInfo &) = delete;
+	ShaderBindingTableInfo(ShaderBindingTableInfo &&other)            = delete;
+	ShaderBindingTableInfo &operator=(ShaderBindingTableInfo &&other) = delete;
 
 	uint8_t *GetData();
 
@@ -34,5 +34,13 @@ class ShaderBindingTable
 	VkBuffer                        m_buffer     = VK_NULL_HANDLE;
 	VmaAllocation                   m_allocation = VK_NULL_HANDLE;
 	VkDeviceMemory                  m_memory     = VK_NULL_HANDLE;
+};
+
+struct ShaderBindingTable
+{
+	std::unique_ptr<ShaderBindingTableInfo> raygen   = nullptr;
+	std::unique_ptr<ShaderBindingTableInfo> miss     = nullptr;
+	std::unique_ptr<ShaderBindingTableInfo> hit      = nullptr;
+	std::unique_ptr<ShaderBindingTableInfo> callable = nullptr;
 };
 }        // namespace Ilum

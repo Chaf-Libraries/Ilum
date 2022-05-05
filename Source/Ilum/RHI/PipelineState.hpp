@@ -16,6 +16,15 @@ struct InputAssemblyState
 {
 	VkPrimitiveTopology topology                 = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 	bool                primitive_restart_enable = false;
+
+	size_t Hash() const
+	{
+		size_t hash = 0;
+		HashCombine(hash, topology);
+		HashCombine(hash, primitive_restart_enable);
+
+		return hash;
+	}
 };
 
 struct RasterizationState
@@ -23,6 +32,16 @@ struct RasterizationState
 	VkPolygonMode   polygon_mode = VK_POLYGON_MODE_FILL;
 	VkCullModeFlags cull_mode    = VK_CULL_MODE_BACK_BIT;
 	VkFrontFace     front_face   = VK_FRONT_FACE_CLOCKWISE;
+
+	size_t Hash() const
+	{
+		size_t hash = 0;
+		HashCombine(hash, polygon_mode);
+		HashCombine(hash, cull_mode);
+		HashCombine(hash, front_face);
+
+		return hash;
+	}
 };
 
 struct DepthStencilState
@@ -39,28 +58,96 @@ struct DepthStencilState
                               0xff,
                               1};
 	VkStencilOpState back                = front;
+
+	size_t Hash() const
+	{
+		size_t hash = 0;
+		HashCombine(hash, depth_test_enable);
+		HashCombine(hash, depth_write_enable);
+		HashCombine(hash, stencil_test_enable);
+		HashCombine(hash, depth_compare_op);
+		HashCombine(hash, front.compareMask);
+		HashCombine(hash, front.compareOp);
+		HashCombine(hash, front.depthFailOp);
+		HashCombine(hash, front.failOp);
+		HashCombine(hash, front.passOp);
+		HashCombine(hash, front.reference);
+		HashCombine(hash, front.writeMask);
+		HashCombine(hash, back.compareMask);
+		HashCombine(hash, back.compareOp);
+		HashCombine(hash, back.depthFailOp);
+		HashCombine(hash, back.failOp);
+		HashCombine(hash, back.passOp);
+		HashCombine(hash, back.reference);
+		HashCombine(hash, back.writeMask);
+		return hash;
+	}
 };
 
 struct ViewportState
 {
 	uint32_t viewport_count = 1;
 	uint32_t scissor_count  = 1;
+
+	size_t Hash() const
+	{
+		size_t hash = 0;
+		HashCombine(hash, viewport_count);
+		HashCombine(hash, scissor_count);
+		return hash;
+	}
 };
 
 struct MultisampleState
 {
 	VkSampleCountFlagBits sample_count = VK_SAMPLE_COUNT_1_BIT;
+
+	size_t Hash() const
+	{
+		size_t hash = 0;
+		HashCombine(hash, sample_count);
+		return hash;
+	}
 };
 
 struct DynamicState
 {
 	std::vector<VkDynamicState> dynamic_states;
+
+	size_t Hash() const
+	{
+		size_t hash = 0;
+		for (auto &state : dynamic_states)
+		{
+			HashCombine(hash, state);
+		}
+		return hash;
+	}
 };
 
 struct VertexInputState
 {
 	std::vector<VkVertexInputBindingDescription>   binding_descriptions;
 	std::vector<VkVertexInputAttributeDescription> attribute_descriptions;
+
+	size_t Hash() const
+	{
+		size_t hash = 0;
+		for (auto &description : binding_descriptions)
+		{
+			HashCombine(hash, description.binding);
+			HashCombine(hash, description.inputRate);
+			HashCombine(hash, description.stride);
+		}
+		for (auto &description : attribute_descriptions)
+		{
+			HashCombine(hash, description.binding);
+			HashCombine(hash, description.format);
+			HashCombine(hash, description.location);
+			HashCombine(hash, description.offset);
+		}
+		return hash;
+	}
 };
 
 struct ColorBlendAttachmentState
@@ -73,20 +160,45 @@ struct ColorBlendAttachmentState
 	VkBlendFactor         dst_alpha_blend_factor = VK_BLEND_FACTOR_ZERO;
 	VkBlendOp             alpha_blend_op         = VK_BLEND_OP_ADD;
 	VkColorComponentFlags color_write_mask       = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+
+	size_t Hash() const
+	{
+		size_t hash = 0;
+
+		HashCombine(hash, blend_enable);
+		HashCombine(hash, src_color_blend_factor);
+		HashCombine(hash, dst_color_blend_factor);
+		HashCombine(hash, color_blend_op);
+		HashCombine(hash, src_alpha_blend_factor);
+		HashCombine(hash, dst_alpha_blend_factor);
+		HashCombine(hash, alpha_blend_op);
+		HashCombine(hash, color_write_mask);
+
+		return hash;
+	}
 };
 
 struct ColorBlendState
 {
 	std::vector<ColorBlendAttachmentState> attachment_states;
+
+	size_t Hash() const
+	{
+		size_t hash = 0;
+
+		for (auto& state : attachment_states)
+		{
+			HashCombine(hash, state.Hash());
+		}
+
+		return hash;
+	}
 };
 
 class PipelineState
 {
-	friend class CommandBuffer;
-	friend class PipelineAllocator;
-
   public:
-	PipelineState(RHIDevice *device);
+	PipelineState()  = default;
 	~PipelineState() = default;
 
 	PipelineState &SetInputAssemblyState(const InputAssemblyState &input_assembly_state);
@@ -108,15 +220,13 @@ class PipelineState
 	const VertexInputState   &GetVertexInputState() const;
 	const ColorBlendState    &GetColorBlendState() const;
 
-	const ShaderReflectionData &GetReflectionData() const;
+	const std::vector<ShaderDesc> &GetShaders() const;
 
 	VkPipelineBindPoint GetBindPoint() const;
 
 	size_t Hash();
 
   private:
-	RHIDevice *p_device;
-
 	InputAssemblyState m_input_assembly_state = {};
 	RasterizationState m_rasterization_state  = {};
 	DepthStencilState  m_depth_stencil_state  = {};
@@ -126,9 +236,9 @@ class PipelineState
 	VertexInputState   m_vertex_input_state   = {};
 	ColorBlendState    m_color_blend_state    = {};
 
-	ShaderReflectionData m_shader_meta;
+	std::vector<ShaderDesc> m_shaders;
 
-	std::map<VkShaderStageFlagBits, std::vector<std::pair<std::string, VkShaderModule>>> m_shaders;
+	VkPipelineBindPoint m_bind_point = VK_PIPELINE_BIND_POINT_MAX_ENUM;
 
 	bool m_dirty = false;
 

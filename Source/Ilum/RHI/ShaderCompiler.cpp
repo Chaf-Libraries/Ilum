@@ -210,50 +210,7 @@ inline EShLanguage GetShaderLanguage(VkShaderStageFlags stage)
 	}
 }
 
-inline bool error_check(IDxcResult *dxc_result)
-{
-	// Get error buffer
-	IDxcBlobEncoding *error_buffer = nullptr;
-	HRESULT           result       = dxc_result->GetErrorBuffer(&error_buffer);
-	if (SUCCEEDED(result))
-	{
-		// Log info, warnings and errors
-		std::stringstream ss(std::string(static_cast<char *>(error_buffer->GetBufferPointer()), error_buffer->GetBufferSize()));
-		std::string       line;
-		while (getline(ss, line, '\n'))
-		{
-			if (line.find("error") != std::string::npos)
-			{
-				LOG_ERROR(line);
-			}
-			else if (line.find("warning") != std::string::npos)
-			{
-				LOG_WARN(line);
-			}
-			else if (!line.empty())
-			{
-				LOG_INFO(line);
-			}
-		}
-	}
-	else
-	{
-		LOG_ERROR("Failed to get error buffer");
-	}
-
-	// Release error buffer
-	if (error_buffer)
-	{
-		error_buffer->Release();
-		error_buffer = nullptr;
-	}
-
-	// Return status
-	dxc_result->GetStatus(&result);
-	return result == S_OK;
-}
-
-inline std::vector<uint32_t> CompileGLSL(const std::string &filename, const std::vector<uint8_t> &data, VkShaderStageFlagBits stage, const std::string &entry_point, const std::vector<std::string> &macros)
+inline std::vector<uint32_t> CompileGLSL(const std::string &filename, const std::string &data, VkShaderStageFlagBits stage, const std::string &entry_point, const std::vector<std::string> &macros)
 {
 	EShMessages msgs = static_cast<EShMessages>(EShMsgDefault | EShMsgVulkanRules | EShMsgSpvRules);
 
@@ -371,17 +328,12 @@ inline std::vector<std::string> PreprocessGLSL(const std::string &source, const 
 	return final_file;
 }
 
-inline std::vector<uint32_t> CompileHLSL(const std::string& filename, const std::vector<uint8_t> &data, VkShaderStageFlagBits stage, const std::string &entry_point, const std::vector<std::string> &macros)
+inline std::vector<uint32_t> CompileHLSL(const std::string &filename, const std::string &data, VkShaderStageFlagBits stage, const std::string &entry_point, const std::vector<std::string> &macros)
 {
-	std::string source;
-	source.resize(data.size());
-	std::memcpy(source.data(), data.data(), data.size());
-	source = std::string(source.c_str());
-
 	DxcBuffer                 dxc_buffer;
 	CComPtr<IDxcBlobEncoding> blob_encoding = nullptr;
 	{
-		if (FAILED(s_dxc_utils->CreateBlobFromPinned(source.c_str(), static_cast<uint32_t>(source.size()), CP_UTF8, &blob_encoding)))
+		if (FAILED(s_dxc_utils->CreateBlobFromPinned(data.c_str(), static_cast<uint32_t>(data.size()), CP_UTF8, &blob_encoding)))
 		{
 			LOG_ERROR("Failed to load shader source.");
 			return {};
@@ -410,7 +362,6 @@ inline std::vector<uint32_t> CompileHLSL(const std::string& filename, const std:
 	arguments.emplace_back(L"-fspv-extension=SPV_EXT_descriptor_indexing");
 	arguments.emplace_back(L"-fspv-extension=SPV_EXT_shader_viewport_index_layer");
 	arguments.emplace_back(L"-fspv-extension=SPV_NV_mesh_shader");
-	arguments.emplace_back(to_wstring(std::string("-D") + std::to_string(stage)));
 	arguments.emplace_back(to_wstring(std::string("-DRUNTIME")));
 
 	for (const auto &macro : macros)
@@ -436,8 +387,47 @@ inline std::vector<uint32_t> CompileHLSL(const std::string& filename, const std:
 	    IID_PPV_ARGS(&dxc_result)                               // IDxcResult: status, buffer, and errors
 	);
 
+	// Get error buffer
+	IDxcBlobEncoding *error_buffer = nullptr;
+	HRESULT           result       = dxc_result->GetErrorBuffer(&error_buffer);
+	if (SUCCEEDED(result))
+	{
+		// Log info, warnings and errors
+		std::stringstream ss(std::string(static_cast<char *>(error_buffer->GetBufferPointer()), error_buffer->GetBufferSize()));
+		std::string       line;
+		while (getline(ss, line, '\n'))
+		{
+			if (line.find("error") != std::string::npos)
+			{
+				LOG_ERROR("{}", line);
+			}
+			else if (line.find("warning") != std::string::npos)
+			{
+				LOG_WARN("{}", line);
+			}
+			else if (!line.empty())
+			{
+				LOG_INFO("{}", line);
+			}
+		}
+	}
+	else
+	{
+		LOG_ERROR("Failed to get error buffer");
+	}
+
+	// Release error buffer
+	if (error_buffer)
+	{
+		error_buffer->Release();
+		error_buffer = nullptr;
+	}
+
+	// Return status
+	dxc_result->GetStatus(&result);
+
 	// Check for errors
-	if (!error_check(dxc_result))
+	if (result != S_OK)
 	{
 		LOG_ERROR("Failed to compile");
 
@@ -511,9 +501,14 @@ std::vector<uint32_t> ShaderCompiler::Compile(const ShaderDesc &desc)
 	}
 	else
 	{
+		std::string source;
+		source.resize(raw_data.size());
+		std::memcpy(source.data(), raw_data.data(), raw_data.size());
+		source = std::string(source.c_str());
+
 		spirv = desc.type == ShaderType::GLSL ?
-		            CompileGLSL(desc.filename, raw_data, desc.stage, desc.entry_point, desc.macros) :
-                    CompileHLSL(desc.filename, raw_data, desc.stage, desc.entry_point, desc.macros);
+		            CompileGLSL(desc.filename, source, desc.stage, desc.entry_point, desc.macros) :
+                    CompileHLSL(desc.filename, source, desc.stage, desc.entry_point, desc.macros);
 	}
 
 	return spirv;

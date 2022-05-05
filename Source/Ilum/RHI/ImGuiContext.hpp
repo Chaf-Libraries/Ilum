@@ -23,7 +23,7 @@ class ImGuiContext
 	void Render(CommandBuffer &cmd_buffer);
 	void EndFrame();
 
-	void *TextureID(VkImageView &view, VkSampler &sampler);
+	void *TextureID(VkImageView view, VkSampler sampler);
 
   private:
 	void Flush();
