@@ -1,207 +1,163 @@
 #pragma once
 
-#include <RHI/Buffer.hpp>
+#include "RGHandle.hpp"
+
 #include <RHI/Command.hpp>
 #include <RHI/PipelineState.hpp>
-#include <RHI/Texture.hpp>
 
 namespace Ilum
 {
-class RGPass;
+class RHIDevice;
 class RenderGraph;
-
-enum class RGResourceType
-{
-	None,
-	Texture,
-	Buffer,
-};
-
-class RGResourceHandle
-{
-  public:
-	RGResourceHandle();
-	~RGResourceHandle() = default;
-
-	operator uint32_t() const;
-
-	void Invalidate();
-	bool IsInvalid() const;
-
-  private:
-	inline static uint32_t INVALID_ID = ~0U;
-	inline static uint32_t CURRENT_ID = 0U;
-	uint32_t               m_index    = INVALID_ID;
-};
+class RGPass;
+class ImGuiContext;
 
 class RGResource
 {
   public:
-	RGResource(const std::string &name, RGResourceType type) :
-	    m_name(name), m_type(type)
-	{}
+	RGResource(ResourceType type = ResourceType::None) :
+	    m_type(type)
+	{
+	}
 
-	~RGResource() = default;
+	virtual ~RGResource() = default;
 
-	RGResourceType GetType() const
+	inline ResourceType GetType() const
 	{
 		return m_type;
 	}
 
-	virtual void *GetResource() = 0;
-
   private:
-	const std::string m_name;
-	RGResourceType    m_type = RGResourceType::None;
+	ResourceType m_type;
 };
 
 class RGTexture : public RGResource
 {
   public:
-	RGTexture(const std::string &name, const TextureDesc &desc) :
-	    RGResource(name, RGResourceType::Texture), m_desc(desc)
-	{}
-
-	~RGTexture() = default;
-
-	const TextureDesc &GetDesc() const
+	RGTexture(RHIDevice *device, const TextureDesc &desc) :
+	    RGResource(ResourceType::Texture)
 	{
-		return m_desc;
+		m_handle = std::make_unique<Texture>(device, desc);
 	}
 
-	virtual void *GetResource() override
-	{
-		return m_resource.get();
-	}
+	virtual ~RGTexture() = default;
 
-	void CreateResource(std::unique_ptr<Texture> &&resource)
+	Texture *GetHandle() const
 	{
-		m_resource = std::move(resource);
+		return m_handle.get();
 	}
 
   private:
-	TextureDesc              m_desc;
-	std::unique_ptr<Texture> m_resource = nullptr;
+	std::unique_ptr<Texture> m_handle;
 };
 
-struct RGNode
-{
-	explicit RGNode(RGResource *resource) :
-	    p_resource(resource)
-	{}
-
-	RGResource *p_resource = nullptr;
-};
-
-class RGPassResources
+class RGBuffer : public RGResource
 {
   public:
-	RGPassResources(RGPass &pass, RenderGraph &graph);
-	~RGPassResources();
+	RGBuffer(RHIDevice *device, const BufferDesc &desc) :
+	    RGResource(ResourceType::Buffer)
+	{
+		m_handle = std::make_unique<Buffer>(device, desc);
+	}
 
-	RGPassResources(const RGPassResources &) = delete;
-	RGPassResources &operator=(const RGPassResources &) = delete;
-	RGPassResources(RGPassResources &&)                 = delete;
-	RGPassResources &operator=(RGPassResources &&) = delete;
+	virtual ~RGBuffer() = default;
 
-	Texture &GetTexture(RGResourceHandle handle) const;
-	Buffer  &GetBuffer(RGResourceHandle handle) const;
+	Buffer *GetHandle() const
+	{
+		return m_handle.get();
+	}
+
+  private:
+	std::unique_ptr<Buffer> m_handle;
+};
+
+class RGNode
+{
+	friend class RGBuilder;
+
+  public:
+	RGNode(RenderGraph &graph, RGPass &pass, RGResource *resource);
+	~RGNode() = default;
+
+	RGResource *GetResource();
+
+	const TextureState &GetCurrentState() const;
+	const TextureState &GetLastState() const;
 
   private:
 	RenderGraph &m_graph;
 	RGPass      &m_pass;
+	RGResource  *p_resource;
+	TextureState m_current_state;
+	TextureState m_last_state;
 };
 
-class RGPassBuilder
+class RGResources
 {
   public:
-	RGPassBuilder(RGPass &pass, RenderGraph &graph);
-	~RGPassBuilder() = default;
+	RGResources(RenderGraph &graph, RGPass &pass);
+	~RGResources() = default;
 
-	void Bind(std::function<void(CommandBuffer &, const RGPassResources &)> &&callback);
-
-	RGResourceHandle Write(RGResourceHandle &resource);
-	RGResourceHandle CreateTexture(const std::string &name, const TextureDesc &desc);
-	RGResourceHandle CreateBuffer(const std::string &name, const BufferDesc &desc);
-
-	PipelineState &GetPipelineState();
-
+	Texture *GetTexture(const RGHandle &handle) const;
+	Buffer  *GetBuffer(const RGHandle &handle) const;
 
   private:
-	RGPass      &m_pass;
 	RenderGraph &m_graph;
+	RGPass      &m_pass;
 };
 
 class RGPass
 {
+	friend class RGBuilder;
+	friend class RenderPass;
+
   public:
-	friend class RenderGraph;
-	friend class RGPassBuilder;
+	RGPass(RHIDevice *device, const std::string &name);
+	~RGPass();
 
-	RGPass(RenderGraph &graph, const std::string &name);
+	void Execute(CommandBuffer &cmd_buffer, const RGResources &resources);
 
-	void Execute(CommandBuffer &cmd_buffer, const RGPassResources &resource);
-
-	void SetCallback(std::function<void(CommandBuffer &, const RGPassResources &)> &&callback);
-
-	bool ReadFrom(RGResourceHandle handle) const;
-
-	bool WriteTo(RGResourceHandle handle) const;
+	void OnImGui(ImGuiContext &context, const RGResources &resources);
 
 	const std::string &GetName() const;
 
   private:
-	std::function<void(CommandBuffer &, const RGPassResources &)> m_callback;
+	RHIDevice *p_device = nullptr;
 
 	std::string m_name;
 
-	RenderGraph &m_graph;
+	bool m_begin = false;
 
-	struct
-	{
-		VkPipeline          pipeline        = VK_NULL_HANDLE;
-		VkRenderPass        pass            = VK_NULL_HANDLE;
-		VkPipelineLayout    pipeline_layout = VK_NULL_HANDLE;
-		VkPipelineBindPoint bind_point      = VK_PIPELINE_BIND_POINT_MAX_ENUM;
-		std::vector<VkDescriptorSet> descriptor_sets;
-	} m_pass_info;
+	PipelineState m_pso;
 
-	std::vector<RGResourceHandle> m_reads;
-	std::vector<RGResourceHandle> m_writes;
+	std::function<void(CommandBuffer &, PipelineState &, const RGResources &)> m_execute_callback;
+
+	std::function<void(CommandBuffer &)> m_barrier_callback;
+	std::function<void(CommandBuffer &)> m_barrier_initialize;
+
+	std::function<void(ImGuiContext &, const RGResources &)> m_imgui_callback;
 };
 
 class RenderGraph
 {
+	friend class RGBuilder;
+	friend class RGResources;
+
   public:
 	RenderGraph(RHIDevice *device);
 	~RenderGraph();
 
-	RenderGraph(const RenderGraph &) = delete;
-	RenderGraph &operator=(const RenderGraph &) = delete;
-	RenderGraph(RenderGraph &&)                 = delete;
-	RenderGraph &operator=(RenderGraph &&) = delete;
+	void Execute();
 
-	RGPassBuilder AddPass(const std::string &name);
+	void OnImGui(ImGuiContext &context);
 
-	RGResourceHandle CreateTexture(const std::string &name, const TextureDesc &desc);
-	RGResourceHandle CreateBuffer(const std::string &name, const BufferDesc &desc);
-
-	void OnImGui();
-
-  private:
-	RGResourceHandle CreateResourceNode(RGResource *resource);
+	Texture *GetPresent() const;
 
   private:
 	RHIDevice *p_device = nullptr;
 
-	std::vector<std::unique_ptr<RGPass>>     m_passes;
-	std::vector<std::unique_ptr<RGResource>> m_resources;
-	std::vector<RGNode>                      m_nodes;
-
-	std::vector<std::pair<RGResourceHandle, RGResourceHandle>> m_edges;
-
-  private:
-	static std::vector<std::string> s_avaliable_passes;
+	std::vector<RGPass>                         m_passes;
+	std::map<RGHandle, std::unique_ptr<RGNode>> m_nodes;
+	std::vector<std::unique_ptr<RGResource>>    m_resources;
 };
-
 }        // namespace Ilum

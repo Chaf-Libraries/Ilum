@@ -35,15 +35,15 @@ void Renderer::OnImGui(ImGuiContext &context)
 	view_desc.level_count      = 1;
 
 	ImGui::Begin("Emu");
-	ImGui::Image(context.TextureID(m_kulla_conty_EmuLut->GetView(view_desc), *m_trilinear_clamp_sampler), ImGui::GetContentRegionAvail());
+	ImGui::Image(context.TextureID(m_kulla_conty_EmuLut->GetView(view_desc)), ImGui::GetContentRegionAvail());
 	ImGui::End();
 
 	ImGui::Begin("Eavg");
-	ImGui::Image(context.TextureID(m_kulla_conty_EavgLut->GetView(view_desc), *m_trilinear_clamp_sampler), ImGui::GetContentRegionAvail());
+	ImGui::Image(context.TextureID(m_kulla_conty_EavgLut->GetView(view_desc)), ImGui::GetContentRegionAvail());
 	ImGui::End();
 
 	ImGui::Begin("BRDF PreIntegration");
-	ImGui::Image(context.TextureID(m_brdf_preintegration->GetView(view_desc), *m_trilinear_clamp_sampler), ImGui::GetContentRegionAvail());
+	ImGui::Image(context.TextureID(m_brdf_preintegration->GetView(view_desc)), ImGui::GetContentRegionAvail());
 	ImGui::End();
 }
 

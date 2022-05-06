@@ -1,82 +1,41 @@
 #include "RenderGraph.hpp"
 
-#include "Pass/Triangle.hpp"
+#include <RHI/Device.hpp>
 
 #include <imgui.h>
-#include <imnodes.h>
-
-#include <rttr/registration.h>
 
 namespace Ilum
 {
-std::vector<std::string> RenderGraph::s_avaliable_passes = {
-    "TrianglePass"};
-
-RGResourceHandle::RGResourceHandle():
-    m_index(CURRENT_ID++)
+RGPass::RGPass(RHIDevice *device, const std::string &name) :
+    p_device(device), m_name(name)
 {
 }
 
-RGResourceHandle::operator uint32_t() const
-{
-	return m_index;
-}
-
-void RGResourceHandle::Invalidate()
-{
-	m_index = INVALID_ID;
-}
-
-bool RGResourceHandle::IsInvalid() const
-{
-	return m_index != INVALID_ID;
-}
-
-RGPassBuilder::RGPassBuilder(RGPass &pass, RenderGraph &graph) :
-    m_pass(pass), m_graph(graph)
+RGPass::~RGPass()
 {
 }
 
-void RGPassBuilder::Bind(std::function<void(CommandBuffer &, const RGPassResources &)> &&callback)
+void RGPass::Execute(CommandBuffer &cmd_buffer, const RGResources &resources)
 {
+	if (!m_begin)
+	{
+		m_barrier_initialize(cmd_buffer);
+		m_begin = true;
+	}
+
+	m_barrier_callback(cmd_buffer);
+	if (m_execute_callback)
+	{
+		m_execute_callback(cmd_buffer, m_pso, resources);
+	}
 }
 
-RGResourceHandle RGPassBuilder::Write(RGResourceHandle &resource)
+void RGPass::OnImGui(ImGuiContext &context, const RGResources &resources)
 {
-	return RGResourceHandle();
-}
-
-RGResourceHandle RGPassBuilder::CreateTexture(const std::string &name, const TextureDesc &desc)
-{
-	return m_graph.CreateTexture(name, desc);
-}
-
-RGResourceHandle RGPassBuilder::CreateBuffer(const std::string &name, const BufferDesc &desc)
-{
-	return RGResourceHandle();
-}
-
-RGPass::RGPass(RenderGraph &graph, const std::string &name) :
-    m_graph(graph), m_name(name)
-{
-}
-
-void RGPass::Execute(CommandBuffer &cmd_buffer, const RGPassResources &resource)
-{
-}
-
-void RGPass::SetCallback(std::function<void(CommandBuffer &, const RGPassResources &)> &&callback)
-{
-}
-
-bool RGPass::ReadFrom(RGResourceHandle handle) const
-{
-	return false;
-}
-
-bool RGPass::WriteTo(RGResourceHandle handle) const
-{
-	return false;
+	if (m_imgui_callback)
+	{
+		m_imgui_callback(context, resources);
+	}
 }
 
 const std::string &RGPass::GetName() const
@@ -84,99 +43,91 @@ const std::string &RGPass::GetName() const
 	return m_name;
 }
 
-RGPassResources::RGPassResources(RGPass &pass, RenderGraph &graph):
-    m_pass(pass), m_graph(graph)
+RGNode::RGNode(RenderGraph &graph, RGPass &pass, RGResource *resource) :
+    m_graph(graph), m_pass(pass), p_resource(resource)
 {
 }
 
-RGPassResources::~RGPassResources()
+RGResource *RGNode::GetResource()
 {
+	return p_resource;
 }
 
-//Texture &RGPassResources::GetTexture(RGResourceHandle handle) const
-//{
-//	
-//}
-//
-//Buffer &RGPassResources::GetBuffer(RGResourceHandle handle) const
-//{
-//	// TODO: 在此处插入 return 语句
-//}
+const TextureState &RGNode::GetCurrentState() const
+{
+	return m_current_state;
+}
+
+const TextureState &RGNode::GetLastState() const
+{
+	return m_last_state;
+}
 
 RenderGraph::RenderGraph(RHIDevice *device) :
     p_device(device)
 {
 }
 
-RenderGraph::~RenderGraph()
+RenderGraph ::~RenderGraph()
 {
+	m_passes.clear();
+	m_nodes.clear();
+	m_resources.clear();
 }
 
-RGPassBuilder RenderGraph::AddPass(const std::string &name)
+void RenderGraph::Execute()
 {
-	m_passes.emplace_back(std::make_unique<RGPass>(*this, name));
-	return RGPassBuilder(*m_passes.back(), *this);
-}
-
-RGResourceHandle RenderGraph::CreateTexture(const std::string &name, const TextureDesc &desc)
-{
-	m_resources.emplace_back(std::make_unique<RGTexture>(name, desc));
-	return CreateResourceNode(m_resources.back().get());
-}
-
-RGResourceHandle RenderGraph::CreateBuffer(const std::string &name, const BufferDesc &desc)
-{
-	return RGResourceHandle();
-}
-
-void RenderGraph::OnImGui()
-{
-	ImGui::Begin("Render Graph Editor");
-	ImNodes::BeginNodeEditor();
-
-	if (ImGui::BeginPopupContextWindow(0, 1, false))
+	for (auto &pass : m_passes)
 	{
-		ImGui::MenuItem("Add Pass", NULL, false, false);
+		auto &cmd_buffer = p_device->RequestCommandBuffer();
+		cmd_buffer.Begin();
+		auto resources = RGResources(*this, pass);
+		pass.Execute(cmd_buffer, resources);
+		cmd_buffer.End();
+		p_device->Submit(cmd_buffer);
+	}
+}
 
-		for (auto &avaliable_pass : s_avaliable_passes)
+Texture *RenderGraph::GetPresent() const
+{
+	return nullptr;
+}
+
+void RenderGraph::OnImGui(ImGuiContext &context)
+{
+	ImGui::Begin("Render Graph Inspector");
+	int32_t current_id = 0;
+	for (auto &pass : m_passes)
+	{
+		ImGui::PushID(current_id++);
+		if (ImGui::TreeNode(pass.GetName().c_str()))
 		{
-			if (ImGui::MenuItem(avaliable_pass.c_str()))
-			{
-				rttr::variant pass_builder = rttr::type::get_by_name(avaliable_pass.c_str()).create();
-				rttr::method  meth         = rttr::type::get_by_name(avaliable_pass.c_str()).get_method("BuildPass");
-				meth.invoke(pass_builder, *this);
-			}
+			auto resources = RGResources(*this, pass);
+			pass.OnImGui(context, resources);
+			ImGui::TreePop();
 		}
-
-		ImGui::EndPopup();
-	}
-
-	// Draw Pass
-	for (auto& pass : m_passes)
-	{
-		std::hash<void*> hasher;
-		ImNodes::BeginNode(static_cast<int32_t>(hasher(pass.get())));
-
-		ImGui::PushID(1);
-		const int output_attr_id = 2;
-		ImNodes::BeginOutputAttribute(output_attr_id);
-		// in between Begin|EndAttribute calls, you can call ImGui
-		// UI functions
-		ImGui::Text("output pin");
-		ImNodes::EndOutputAttribute();
 		ImGui::PopID();
-		ImNodes::EndNode();
 	}
-
-	ImNodes::MiniMap();
-	ImNodes::EndNodeEditor();
 	ImGui::End();
 }
 
-RGResourceHandle RenderGraph::CreateResourceNode(RGResource *resource)
+RGResources::RGResources(RenderGraph &graph, RGPass &pass) :
+    m_graph(graph), m_pass(pass)
 {
-	m_nodes.push_back(RGNode(resource));
-	return RGResourceHandle();
+}
+
+Texture *RGResources::GetTexture(const RGHandle &handle) const
+{
+	auto &node = m_graph.m_nodes[handle];
+	ASSERT(node->GetResource()->GetType() == ResourceType::Texture);
+	return static_cast<RGTexture *>(node->GetResource())->GetHandle();
+}
+
+Buffer *RGResources::GetBuffer(const RGHandle &handle) const
+{
+	auto &node = m_graph.m_nodes[handle];
+	ASSERT(node->GetResource()->GetType() == ResourceType::Buffer);
+	return static_cast<RGBuffer *>(node->GetResource())->GetHandle();
 }
 
 }        // namespace Ilum
