@@ -1,4 +1,5 @@
 #include "RenderGraph.hpp"
+#include "Renderer.hpp"
 
 #include <RHI/Device.hpp>
 
@@ -15,7 +16,7 @@ RGPass::~RGPass()
 {
 }
 
-void RGPass::Execute(CommandBuffer &cmd_buffer, const RGResources &resources)
+void RGPass::Execute(CommandBuffer &cmd_buffer, const RGResources &resources, Renderer &renderer)
 {
 	if (!m_begin)
 	{
@@ -28,7 +29,7 @@ void RGPass::Execute(CommandBuffer &cmd_buffer, const RGResources &resources)
 	}
 	if (m_execute_callback)
 	{
-		m_execute_callback(cmd_buffer, m_pso, resources);
+		m_execute_callback(cmd_buffer, m_pso, resources, renderer);
 	}
 }
 
@@ -65,8 +66,8 @@ const TextureState &RGNode::GetLastState() const
 	return m_last_state;
 }
 
-RenderGraph::RenderGraph(RHIDevice *device) :
-    p_device(device)
+RenderGraph::RenderGraph(RHIDevice *device, Renderer &renderer) :
+    p_device(device), m_renderer(renderer)
 {
 }
 
@@ -84,7 +85,7 @@ void RenderGraph::Execute()
 		auto &cmd_buffer = p_device->RequestCommandBuffer();
 		cmd_buffer.Begin();
 		auto resources = RGResources(*this, pass);
-		pass.Execute(cmd_buffer, resources);
+		pass.Execute(cmd_buffer, resources, m_renderer);
 		cmd_buffer.End();
 		p_device->Submit(cmd_buffer);
 	}

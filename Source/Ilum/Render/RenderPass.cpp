@@ -32,7 +32,7 @@ const std::vector<RGHandle> &RenderPass::GetResources() const
 	return m_resources;
 }
 
-void RenderPass::BindCallback(std::function<void(CommandBuffer &, PipelineState &, const RGResources &)> &&callback)
+void RenderPass::BindCallback(std::function<void(CommandBuffer &, PipelineState &, const RGResources &, Renderer &)> &&callback)
 {
 	m_callback = std::move(callback);
 }

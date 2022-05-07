@@ -9,6 +9,27 @@
 
 namespace Ilum
 {
+enum class SamplerType : size_t
+{
+	PointClamp,
+	PointWarp,
+	BilinearClamp,
+	BilinearWarp,
+	TrilinearClamp,
+	TrilinearWarp,
+	AnisptropicClamp,
+	AnisptropicWarp,
+	MAX_NUM
+};
+
+enum class PrecomputeType
+{
+	KullaContyEnergy,
+	KullaContyAverage,
+	BRDFPreIntegration,
+	MAX_NUM
+};
+
 class Renderer
 {
   public:
@@ -18,6 +39,14 @@ class Renderer
 	void Tick();
 
 	void OnImGui(ImGuiContext &context);
+
+	Sampler &GetSampler(SamplerType type);
+
+	Texture &GetPrecompute(PrecomputeType type);
+
+	const VkExtent2D GetExtent() const;
+
+	void SetPresent(Texture *present);
 
   private:
 	void CreateSampler();
@@ -29,22 +58,18 @@ class Renderer
   private:
 	RHIDevice *p_device = nullptr;
 
-	RGBuilder m_rg_builder;
+	RGBuilder   m_rg_builder;
 	RenderGraph m_rg;
 
+	VkExtent2D m_extent = {1920, 1080};
+	VkExtent2D m_viewport = {};
+
+	Texture *p_present = nullptr;
+
 	// LUT
-	std::unique_ptr<Texture> m_kulla_conty_EmuLut  = nullptr;
-	std::unique_ptr<Texture> m_kulla_conty_EavgLut = nullptr;
-	std::unique_ptr<Texture> m_brdf_preintegration = nullptr;
+	std::array<std::unique_ptr<Texture>, 3> m_precomputes;
 
 	// Sampler
-	std::unique_ptr<Sampler> m_point_clamp_sampler       = nullptr;
-	std::unique_ptr<Sampler> m_point_warp_sampler        = nullptr;
-	std::unique_ptr<Sampler> m_bilinear_clamp_sampler    = nullptr;
-	std::unique_ptr<Sampler> m_bilinear_warp_sampler     = nullptr;
-	std::unique_ptr<Sampler> m_trilinear_clamp_sampler   = nullptr;
-	std::unique_ptr<Sampler> m_trilinear_warp_sampler    = nullptr;
-	std::unique_ptr<Sampler> m_anisptropic_warp_sampler  = nullptr;
-	std::unique_ptr<Sampler> m_anisptropic_clamp_sampler = nullptr;
+	std::array<std::unique_ptr<Sampler>, 8> m_samplers;
 };
 }        // namespace Ilum

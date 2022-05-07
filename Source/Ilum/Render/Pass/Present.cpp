@@ -1,5 +1,6 @@
 #include "Present.hpp"
 #include "../RGBuilder.hpp"
+#include "../Renderer.hpp"
 
 #include <RHI/ImGuiContext.hpp>
 
@@ -27,21 +28,11 @@ void Present::Create(RGBuilder &builder)
 
 	pass->AddResource(render_target);
 
-	pass->BindCallback([=](CommandBuffer &cmd_buffer, PipelineState &pso, const RGResources &resource) {
-
+	pass->BindCallback([=](CommandBuffer &cmd_buffer, PipelineState &pso, const RGResources &resource, Renderer & renderer) {
+		renderer.SetPresent(resource.GetTexture(render_target));
 	});
 
 	pass->BindImGui([=](ImGuiContext &context, const RGResources &resources) {
-		ImGui::Begin("Present");
-		TextureViewDesc desc  = {};
-		desc.view_type        = VK_IMAGE_VIEW_TYPE_2D;
-		desc.aspect           = VK_IMAGE_ASPECT_COLOR_BIT;
-		desc.base_mip_level   = 0;
-		desc.base_array_layer = 0;
-		desc.level_count      = resources.GetTexture(render_target)->GetMipLevels();
-		desc.layer_count      = resources.GetTexture(render_target)->GetLayerCount();
-		ImGui::Image(context.TextureID(resources.GetTexture(render_target)->GetView(desc)), ImGui::GetContentRegionAvail());
-		ImGui::End();
 	});
 
 	builder.AddPass(std::move(pass));

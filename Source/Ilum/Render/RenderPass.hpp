@@ -26,7 +26,7 @@ class RenderPass
 
 	const std::vector<RGHandle> &GetResources() const;
 
-	void BindCallback(std::function<void(CommandBuffer &, PipelineState &, const RGResources &)> &&callback);
+	void BindCallback(std::function<void(CommandBuffer &, PipelineState &, const RGResources &, Renderer &)> &&callback);
 
 	void BindImGui(std::function<void(ImGuiContext &, const RGResources &)> &&callback);
 
@@ -41,7 +41,7 @@ class RenderPass
 
 	std::vector<RGHandle> m_resources;
 
-	std::function<void(CommandBuffer &, PipelineState &, const RGResources &)> m_callback;
+	std::function<void(CommandBuffer &, PipelineState &, const RGResources &, Renderer&)> m_callback;
 
 	std::function<void(ImGuiContext &, const RGResources &)> m_imgui_callback;
 

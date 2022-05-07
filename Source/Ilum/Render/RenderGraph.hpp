@@ -11,6 +11,7 @@ class RHIDevice;
 class RenderGraph;
 class RGPass;
 class ImGuiContext;
+class Renderer;
 
 class RGResource
 {
@@ -115,7 +116,7 @@ class RGPass
 	RGPass(RHIDevice *device, const std::string &name);
 	~RGPass();
 
-	void Execute(CommandBuffer &cmd_buffer, const RGResources &resources);
+	void Execute(CommandBuffer &cmd_buffer, const RGResources &resources, Renderer &renderer);
 
 	void OnImGui(ImGuiContext &context, const RGResources &resources);
 
@@ -130,7 +131,7 @@ class RGPass
 
 	PipelineState m_pso;
 
-	std::function<void(CommandBuffer &, PipelineState &, const RGResources &)> m_execute_callback;
+	std::function<void(CommandBuffer &, PipelineState &, const RGResources &, Renderer& renderer)> m_execute_callback;
 
 	std::function<void(CommandBuffer &)> m_barrier_callback;
 	std::function<void(CommandBuffer &)> m_barrier_initialize;
@@ -144,7 +145,7 @@ class RenderGraph
 	friend class RGResources;
 
   public:
-	RenderGraph(RHIDevice *device);
+	RenderGraph(RHIDevice *device, Renderer &renderer);
 	~RenderGraph();
 
 	void Execute();
@@ -155,6 +156,8 @@ class RenderGraph
 
   private:
 	RHIDevice *p_device = nullptr;
+
+	Renderer &m_renderer;
 
 	std::vector<RGPass>                         m_passes;
 	std::map<RGHandle, std::unique_ptr<RGNode>> m_nodes;

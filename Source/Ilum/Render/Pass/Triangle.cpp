@@ -68,7 +68,7 @@ void Triangle::Create(RGBuilder &builder)
 	view_desc.layer_count      = 1;
 	view_desc.level_count      = 1;
 
-	pass->BindCallback([=](CommandBuffer &cmd_buffer, PipelineState &pso, const RGResources &resource) {
+	pass->BindCallback([=](CommandBuffer &cmd_buffer, PipelineState &pso, const RGResources &resource, Renderer &) {
 		FrameBuffer framebuffer;
 		framebuffer.Bind(resource.GetTexture(texture), view_desc, ColorAttachmentInfo{});
 		cmd_buffer.BeginRenderPass(framebuffer);

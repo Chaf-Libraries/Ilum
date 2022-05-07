@@ -16,6 +16,9 @@ class Present : public RenderPass
 
 	virtual void Prepare(PipelineState &pso) override;
 	virtual void Create(RGBuilder &builder) override;
+
+  private:
+	bool test = false;
 };
 
 RTTR_REGISTRATION
@@ -25,4 +28,4 @@ RTTR_REGISTRATION
 	    .method("Prepare", &Present::Prepare)
 	    .method("Create", &Present::Create);
 }
-}
+}        // namespace Ilum
