@@ -9,6 +9,8 @@
 
 namespace Ilum
 {
+class Scene;
+
 enum class SamplerType : size_t
 {
 	PointClamp,
@@ -33,7 +35,7 @@ enum class PrecomputeType
 class Renderer
 {
   public:
-	Renderer(RHIDevice *device);
+	Renderer(RHIDevice *device, Scene *p_scene = nullptr);
 	~Renderer();
 
 	void Tick();
@@ -46,6 +48,10 @@ class Renderer
 
 	const VkExtent2D GetExtent() const;
 
+	Scene *GetScene();
+
+	void SetScene(Scene *scene);
+
 	void SetPresent(Texture *present);
 
   private:
@@ -57,12 +63,14 @@ class Renderer
 
   private:
 	RHIDevice *p_device = nullptr;
+	Scene     *p_scene  = nullptr;
 
 	RGBuilder   m_rg_builder;
 	RenderGraph m_rg;
 
-	VkExtent2D m_extent = {1920, 1080};
+	VkExtent2D m_extent   = {1920, 1080};
 	VkExtent2D m_viewport = {};
+	bool       m_viewport_update = false;
 
 	Texture *p_present = nullptr;
 

@@ -4,12 +4,15 @@
 #include <RHI/DescriptorState.hpp>
 #include <RHI/PipelineState.hpp>
 
+#include <Scene/Scene.hpp>
+
 #include <imgui.h>
 
 namespace Ilum
 {
-Renderer::Renderer(RHIDevice *device) :
+Renderer::Renderer(RHIDevice *device, Scene *scene) :
     p_device(device),
+    p_scene(scene),
     m_rg(device, *this),
     m_rg_builder(device, m_rg)
 {
@@ -41,6 +44,10 @@ void Renderer::OnImGui(ImGuiContext &context)
 
 	// Renderer Inspector
 	ImGui::Begin("Renderer");
+
+	ImGui::Text("Render Target Size: (%ld, %ld)", m_extent.width, m_extent.height);
+	ImGui::Text("Viewport Size: (%ld, %ld)", m_viewport.width, m_viewport.height);
+
 	if (ImGui::TreeNode("LUT"))
 	{
 		if (ImGui::TreeNode("Kulla Conty Energy"))
@@ -74,6 +81,10 @@ void Renderer::OnImGui(ImGuiContext &context)
 	ImGui::Begin("Present");
 	if (p_present)
 	{
+		m_viewport = VkExtent2D{
+		    static_cast<uint32_t>(ImGui::GetContentRegionAvail().x),
+		    static_cast<uint32_t>(ImGui::GetContentRegionAvail().y)};
+
 		TextureViewDesc desc  = {};
 		desc.view_type        = VK_IMAGE_VIEW_TYPE_2D;
 		desc.aspect           = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -84,6 +95,12 @@ void Renderer::OnImGui(ImGuiContext &context)
 		ImGui::Image(context.TextureID(p_present->GetView(desc)), ImGui::GetContentRegionAvail());
 	}
 	ImGui::End();
+
+	// Scene UI
+	if (p_scene)
+	{
+		p_scene->OnImGui(context);
+	}
 }
 
 Sampler &Renderer::GetSampler(SamplerType type)
@@ -99,6 +116,16 @@ Texture &Renderer::GetPrecompute(PrecomputeType type)
 const VkExtent2D Renderer::GetExtent() const
 {
 	return m_extent;
+}
+
+Scene *Renderer::GetScene()
+{
+	return p_scene;
+}
+
+void Renderer::SetScene(Scene *scene)
+{
+	p_scene = scene;
 }
 
 void Renderer::SetPresent(Texture *present)

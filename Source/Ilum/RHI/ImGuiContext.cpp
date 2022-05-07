@@ -171,7 +171,7 @@ void ImGuiContext::BeginFrame()
 	}
 }
 
-void ImGuiContext::Render(CommandBuffer &cmd_buffer)
+void ImGuiContext::Render()
 {
 	VkRect2D area            = {};
 	area.extent.width        = p_window->m_width;
@@ -186,9 +186,13 @@ void ImGuiContext::Render(CommandBuffer &cmd_buffer)
 	begin_info.clearValueCount       = 1;
 	begin_info.pClearValues          = &clear_value;
 
+	auto &cmd_buffer = p_device->RequestCommandBuffer();
+	cmd_buffer.Begin();
 	vkCmdBeginRenderPass(cmd_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd_buffer);
 	cmd_buffer.EndRenderPass();
+	cmd_buffer.End();
+	p_device->Submit(cmd_buffer);
 }
 
 void ImGuiContext::EndFrame()
@@ -254,7 +258,7 @@ void ImGuiContext::Flush()
 	}
 	if (!m_deprecated_filedialog_id.empty())
 	{
-		for (auto& id : m_deprecated_filedialog_id)
+		for (auto &id : m_deprecated_filedialog_id)
 		{
 			m_filedialog_textures.erase(id);
 		}

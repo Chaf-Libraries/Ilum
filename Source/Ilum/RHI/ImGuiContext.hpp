@@ -20,7 +20,7 @@ class ImGuiContext
 	~ImGuiContext();
 
 	void BeginFrame();
-	void Render(CommandBuffer &cmd_buffer);
+	void Render();
 	void EndFrame();
 
 	void OpenFileDialog(const std::string &key, const std::string &title, const std::string &filter);
