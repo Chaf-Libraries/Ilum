@@ -1,6 +1,9 @@
 #include "Texture.hpp"
 #include "Device.hpp"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb/stb_image.h>
+
 namespace Ilum
 {
 Texture::Texture(RHIDevice *device, const TextureDesc &desc) :
@@ -67,6 +70,16 @@ uint32_t Texture::GetWidth() const
 uint32_t Texture::GetHeight() const
 {
 	return m_desc.height;
+}
+
+uint32_t Texture::GetMipWidth(uint32_t level) const
+{
+	return std::max(m_desc.width, 1u << level) >> level;
+}
+
+uint32_t Texture::GetMipHeight(uint32_t level) const
+{
+	return std::max(m_desc.height, 1u << level) >> level;
 }
 
 uint32_t Texture::GetDepth() const
@@ -141,6 +154,16 @@ VkImageView Texture::GetView(const TextureViewDesc &desc)
 const TextureDesc &Texture::GetDesc() const
 {
 	return m_desc;
+}
+
+bool Texture::IsDepth() const
+{
+	return m_desc.format == VK_FORMAT_D32_SFLOAT || m_desc.format == VK_FORMAT_D32_SFLOAT_S8_UINT;
+}
+
+bool Texture::IsStencil() const
+{
+	return m_desc.format == VK_FORMAT_D32_SFLOAT_S8_UINT;
 }
 
 TextureState::TextureState(VkImageUsageFlagBits usage)

@@ -11,6 +11,7 @@ namespace Ilum
 {
 class RenderPass;
 class RenderGraph;
+class ImGuiContext;
 
 class RGBuilder
 {
@@ -27,7 +28,10 @@ class RGBuilder
 
 	void Compile();
 
-	void OnImGui();
+	void OnImGui(ImGuiContext &context);
+
+	void Save(const std::string &filename);
+	void Load(const std::string &filename);
 
   private:
 	RHIDevice *p_device = nullptr;

@@ -324,6 +324,19 @@ void CommandBuffer::SetScissor(uint32_t width, uint32_t height, int32_t x, int32
 	vkCmdSetScissor(m_handle, 0, 1, &rect);
 }
 
+void CommandBuffer::CopyBufferToImage(const BufferCopyInfo &buffer, const TextureCopyInfo &texture)
+{
+	VkBufferImageCopy copy_info = {};
+	copy_info.bufferOffset      = buffer.offset;
+	copy_info.bufferImageHeight = 0;
+	copy_info.bufferRowLength   = 0;
+	copy_info.imageSubresource  = texture.subresource;
+	copy_info.imageOffset       = {0, 0, 0};
+	copy_info.imageExtent       = {texture.texture->GetMipWidth(texture.subresource.mipLevel), texture.texture->GetMipHeight(texture.subresource.mipLevel), 1};
+
+	vkCmdCopyBufferToImage(*this, *buffer.buffer, *texture.texture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_info);
+}
+
 CommandBuffer::operator const VkCommandBuffer &() const
 {
 	return m_handle;

@@ -50,6 +50,8 @@ FrameBuffer &FrameBuffer::Bind(Texture *render_target, const TextureViewDesc &vi
 	reference.layout                = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	m_attachment_references.push_back(reference);
 
+	m_dirty = true;
+
 	return *this;
 }
 

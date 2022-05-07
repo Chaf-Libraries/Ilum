@@ -10,6 +10,8 @@
 #include <imgui_impl_vulkan.h>
 #include <imnodes.h>
 
+#include <ImFileDialog/ImFileDialog.h>
+
 namespace Ilum
 {
 ImGuiContext::ImGuiContext(Window *window, RHIDevice *device) :
@@ -19,6 +21,7 @@ ImGuiContext::ImGuiContext(Window *window, RHIDevice *device) :
 	CreateDescriptorPool();
 	CreateRenderPass();
 	CreateFramebuffer();
+	CreateSampler();
 
 	ImGui::CreateContext();
 	ImNodes::CreateContext();
@@ -34,11 +37,12 @@ ImGuiContext::ImGuiContext(Window *window, RHIDevice *device) :
 	init_info.PhysicalDevice            = p_device->GetPhysicalDevice();
 	init_info.Device                    = p_device->GetDevice();
 	init_info.QueueFamily               = p_device->GetGraphicsFamily();
-	init_info.Queue                     = p_device->GetQueue(VK_QUEUE_GRAPHICS_BIT);;
-	init_info.PipelineCache             = p_device->GetPipelineCache();
-	init_info.DescriptorPool            = m_descriptor_pool;
-	init_info.MinImageCount             = static_cast<uint32_t>(p_device->GetSwapchainImages().size());
-	init_info.ImageCount                = static_cast<uint32_t>(p_device->GetSwapchainImages().size());
+	init_info.Queue                     = p_device->GetQueue(VK_QUEUE_GRAPHICS_BIT);
+	;
+	init_info.PipelineCache  = p_device->GetPipelineCache();
+	init_info.DescriptorPool = m_descriptor_pool;
+	init_info.MinImageCount  = static_cast<uint32_t>(p_device->GetSwapchainImages().size());
+	init_info.ImageCount     = static_cast<uint32_t>(p_device->GetSwapchainImages().size());
 
 	ImGui_ImplVulkan_Init(&init_info, m_render_pass);
 
@@ -51,6 +55,49 @@ ImGuiContext::ImGuiContext(Window *window, RHIDevice *device) :
 	cmd_buffer.End();
 	p_device->SubmitIdle(cmd_buffer);
 	ImGui_ImplVulkan_DestroyFontUploadObjects();
+
+	// Setup Texture Create & Delete
+	ifd::FileDialog::Instance().CreateTexture = [this](uint8_t *data, int w, int h, char fmt) -> void * {
+		TextureDesc tex_desc = {};
+		tex_desc.width       = static_cast<uint32_t>(w);
+		tex_desc.height      = static_cast<uint32_t>(h);
+		tex_desc.format      = fmt == 1 ? VK_FORMAT_R8G8B8A8_UNORM : VK_FORMAT_B8G8R8A8_UNORM;
+		tex_desc.usage       = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+		BufferDesc buf_desc   = {};
+		buf_desc.size         = static_cast<size_t>(w) * static_cast<size_t>(h) * 4ull;
+		buf_desc.buffer_usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+		buf_desc.memory_usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+		std::unique_ptr<Texture> tex = std::make_unique<Texture>(p_device, tex_desc);
+
+		Buffer buffer(p_device, buf_desc);
+		std::memcpy(buffer.Map(), data, buffer.GetSize());
+		buffer.Flush(buf_desc.size);
+		buffer.Unmap();
+
+		BufferCopyInfo  buf_info = {&buffer, 0};
+		TextureCopyInfo tex_info = {tex.get(), VkImageSubresourceLayers{VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1}};
+
+		auto &cmd_buffer = p_device->RequestCommandBuffer();
+		cmd_buffer.Begin();
+		cmd_buffer.Transition(tex.get(), TextureState(), TextureState(VK_IMAGE_USAGE_TRANSFER_DST_BIT), VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
+		cmd_buffer.CopyBufferToImage(buf_info, tex_info);
+		cmd_buffer.Transition(tex.get(), TextureState(VK_IMAGE_USAGE_TRANSFER_DST_BIT), TextureState(VK_IMAGE_USAGE_SAMPLED_BIT), VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
+		cmd_buffer.End();
+		p_device->SubmitIdle(cmd_buffer);
+
+		void *tex_id = TextureID(tex->GetView(TextureViewDesc{VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT}));
+
+		m_filedialog_textures[tex_id] = std::move(tex);
+		return tex_id;
+	};
+	ifd::FileDialog::Instance().DeleteTexture = [this](void *tex) {
+		if (!m_destroy)
+		{
+			m_deprecated_filedialog_id.push_back(tex);
+		}
+	};
 }
 
 ImGuiContext::~ImGuiContext()
@@ -81,7 +128,14 @@ ImGuiContext::~ImGuiContext()
 		vkDestroyRenderPass(p_device->GetDevice(), m_render_pass, nullptr);
 	}
 
+	if (m_sampler)
+	{
+		vkDestroySampler(p_device->GetDevice(), m_sampler, nullptr);
+	}
+
 	m_texture_id_mapping.clear();
+	m_filedialog_textures.clear();
+	m_destroy = true;
 }
 
 void ImGuiContext::BeginFrame()
@@ -154,15 +208,32 @@ void ImGuiContext::EndFrame()
 	}
 }
 
-void *ImGuiContext::TextureID(VkImageView view, VkSampler sampler)
+void ImGuiContext::OpenFileDialog(const std::string &key, const std::string &title, const std::string &filter)
+{
+	ifd::FileDialog::Instance().Open(key, title, filter);
+}
+
+void ImGuiContext::GetFileDialogResult(const std::string &key, std::function<void(const std::string &)> &&callback)
+{
+	if (ifd::FileDialog::Instance().IsDone(key))
+	{
+		if (ifd::FileDialog::Instance().HasResult())
+		{
+			std::string res = ifd::FileDialog::Instance().GetResult().u8string();
+			callback(res);
+		}
+		ifd::FileDialog::Instance().Close();
+	}
+}
+
+void *ImGuiContext::TextureID(VkImageView view)
 {
 	size_t hash = 0;
 	HashCombine(hash, (uint64_t) view);
-	HashCombine(hash, (uint64_t) sampler);
 
 	if (m_texture_id_mapping.find(hash) == m_texture_id_mapping.end())
 	{
-		m_texture_id_mapping.emplace(hash, (VkDescriptorSet) ImGui_ImplVulkan_AddTexture(sampler, view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
+		m_texture_id_mapping.emplace(hash, (VkDescriptorSet) ImGui_ImplVulkan_AddTexture(m_sampler, view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL));
 	}
 
 	return (ImTextureID) m_texture_id_mapping.at(hash);
@@ -180,6 +251,14 @@ void ImGuiContext::Flush()
 		}
 		vkFreeDescriptorSets(p_device->GetDevice(), m_descriptor_pool, static_cast<uint32_t>(descriptor_sets.size()), descriptor_sets.data());
 		m_texture_id_mapping.clear();
+	}
+	if (!m_deprecated_filedialog_id.empty())
+	{
+		for (auto& id : m_deprecated_filedialog_id)
+		{
+			m_filedialog_textures.erase(id);
+		}
+		m_deprecated_filedialog_id.clear();
 	}
 }
 
@@ -303,6 +382,23 @@ void ImGuiContext::CreateFramebuffer()
 		create_info.layers       = 1;
 		vkCreateFramebuffer(p_device->GetDevice(), &create_info, nullptr, &m_frame_buffers[i]);
 	}
+}
+
+void ImGuiContext::CreateSampler()
+{
+	VkSamplerCreateInfo create_info = {};
+	create_info.sType               = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	create_info.minFilter           = VK_FILTER_LINEAR;
+	create_info.magFilter           = VK_FILTER_LINEAR;
+	create_info.mipmapMode          = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	create_info.addressModeU        = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	create_info.addressModeV        = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	create_info.addressModeW        = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	create_info.mipLodBias          = 0.f;
+	create_info.minLod              = 0.f;
+	create_info.maxLod              = 10.f;
+
+	vkCreateSampler(p_device->GetDevice(), &create_info, nullptr, &m_sampler);
 }
 
 void ImGuiContext::SetStyle()

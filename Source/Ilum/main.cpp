@@ -11,9 +11,12 @@
 #include <RHI/Device.hpp>
 #include <RHI/FrameBuffer.hpp>
 #include <RHI/ImGuiContext.hpp>
+#include <RHI/PipelineState.hpp>
 #include <RHI/Texture.hpp>
 
+#include <Render/RGBuilder.hpp>
 #include <Render/RenderGraph.hpp>
+#include <Render/RenderPass.hpp>
 #include <Render/Renderer.hpp>
 
 #include <array>
@@ -38,6 +41,15 @@ std::thread::id test_func()
 
 int main()
 {
+	std::function<void()> test;
+
+	{
+		int a = 100;
+		test  = [=]() { std::cout << a; };
+	}
+
+	test();
+
 	Path::GetInstance().SetCurrent(std::string(PROJECT_SOURCE_DIR));
 
 	Window window("Ilum", "Asset/Icon/logo.bmp", 500, 500);
@@ -45,8 +57,6 @@ int main()
 	Input::GetInstance().Bind(&window);
 
 	RHIDevice device(&window);
-
-	RenderGraph rg(&device);
 
 	Ilum::ImGuiContext imgui_context(&window, &device);
 
@@ -57,6 +67,9 @@ int main()
 	TextureDesc rt_desc = {};
 	rt_desc.width       = 500;
 	rt_desc.height      = 500;
+	rt_desc.depth       = 1;
+	rt_desc.mips        = 1;
+	rt_desc.layers      = 1;
 	rt_desc.format      = VK_FORMAT_R8G8B8A8_UNORM;
 	rt_desc.usage       = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
@@ -106,44 +119,24 @@ int main()
 		Timer::GetInstance().Tick();
 		device.NewFrame();
 
-		float width = 0;
+		float width  = 0;
 		float height = 0;
 
 		// Update ImGui
 		{
 			imgui_context.BeginFrame();
 
-			ImGui::ShowDemoWindow();
-
-			rg.OnImGui();
 			renderer.OnImGui(imgui_context);
-
-			ImGui::Begin("Triangle");
-			ImGui::Image(imgui_context.TextureID(render_target.GetView(view_desc), sampler), ImGui::GetContentRegionAvail());
-			width = ImGui::GetContentRegionAvail().x;
-			height = ImGui::GetContentRegionAvail().y;
-			ImGui::End();
 
 			imgui_context.EndFrame();
 		}
 
+		renderer.Tick();
+
 		// Bake command buffer
 		{
 			auto &cmd_buffer = device.RequestCommandBuffer();
-
 			cmd_buffer.Begin();
-
-			cmd_buffer.Transition(&render_target, TextureState{}, TextureState(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT), VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
-			cmd_buffer.BeginRenderPass(framebuffer);
-			cmd_buffer.Bind(pso);
-			VkViewport viewport = {0, 0, 500, 500, 0, 1};
-			VkRect2D   scissor  = {0, 0, 500, 500};
-			cmd_buffer.SetViewport(500, 500);
-			cmd_buffer.SetScissor(500, 500);
-			vkCmdDraw(cmd_buffer, 3, 1, 0, 0);
-			cmd_buffer.EndRenderPass();
-			cmd_buffer.Transition(&render_target, TextureState{VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT}, TextureState(VK_IMAGE_USAGE_SAMPLED_BIT), VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
-
 			// Render UI
 			imgui_context.Render(cmd_buffer);
 			cmd_buffer.End();

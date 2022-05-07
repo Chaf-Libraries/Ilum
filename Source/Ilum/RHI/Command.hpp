@@ -31,6 +31,18 @@ struct TextureTransition
 	VkImageSubresourceRange range   = {};
 };
 
+struct BufferCopyInfo
+{
+	Buffer      *buffer = nullptr;
+	VkDeviceSize offset = 0;
+};
+
+struct TextureCopyInfo
+{
+	Texture                 *texture = nullptr;
+	VkImageSubresourceLayers subresource  = {};
+};
+
 class CommandPool
 {
   public:
@@ -107,6 +119,8 @@ class CommandBuffer
 
 	void SetViewport(float width, float height, float x = 0.f, float y = 0.f, float min_depth = 0.f, float max_depth = 1.f);
 	void SetScissor(uint32_t width, uint32_t height, int32_t x = 0, int32_t y = 0);
+
+	void CopyBufferToImage(const BufferCopyInfo &buffer, const TextureCopyInfo &texture);
 
 	operator const VkCommandBuffer &() const;
 

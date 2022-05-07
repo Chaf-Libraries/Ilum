@@ -36,6 +36,8 @@ target_link_libraries(${TARGET_NAME} PUBLIC spirv-cross-glsl)
 target_link_libraries(${TARGET_NAME} PUBLIC imgui)
 target_link_libraries(${TARGET_NAME} PUBLIC imnode)
 target_link_libraries(${TARGET_NAME} PUBLIC rttr_core_lib)
+target_link_libraries(${TARGET_NAME} PUBLIC cereal)
+target_link_libraries(${TARGET_NAME} PUBLIC ImFileDialog)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_compile_definitions(${TARGET_NAME} PUBLIC "-DNOMINMAX")

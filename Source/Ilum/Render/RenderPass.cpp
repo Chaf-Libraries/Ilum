@@ -6,7 +6,7 @@
 namespace Ilum
 {
 RenderPass::RenderPass(const std::string &name) :
-    m_name(name)
+    m_name(name), m_handle(CURRENT_ID++)
 {
 }
 
@@ -40,5 +40,19 @@ void RenderPass::BindCallback(std::function<void(CommandBuffer &, PipelineState 
 void RenderPass::BindImGui(std::function<void(ImGuiContext &, const RGResources &)> &&callback)
 {
 	m_imgui_callback = std::move(callback);
+}
+
+uint32_t RenderPass::GetHandle() const
+{
+	return m_handle;
+}
+
+void RenderPass::SetHandle(uint32_t handle)
+{
+	m_handle = handle;
+	if (m_handle > CURRENT_ID)
+	{
+		CURRENT_ID = m_handle + 1;
+	}
 }
 }        // namespace Ilum

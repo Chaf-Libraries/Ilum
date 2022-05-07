@@ -16,9 +16,6 @@
 #include "ShaderBindingTable.hpp"
 #include "Texture.hpp"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
 #include <map>
 #include <optional>
 #include <sstream>
@@ -354,16 +351,6 @@ RHIDevice::RHIDevice(Window *window) :
 RHIDevice::~RHIDevice()
 {
 	vkDeviceWaitIdle(m_device);
-
-	/*
-	    std::map<size_t, VkPipeline>                          m_pipelines;
-	std::map<size_t, VkRenderPass>                        m_render_passes;
-	std::map<size_t, VkFramebuffer>                       m_frame_buffers;
-	std::map<size_t, VkPipelineLayout>                    m_pipeline_layouts;
-	std::map<size_t, std::map<uint32_t, VkDescriptorSet>>        m_descriptor_sets;
-	std::map<size_t, std::unique_ptr<ShaderBindingTable>> m_shader_binding_tables;
-	std::map<size_t, std::unique_ptr<DescriptorState>> m_descriptor_states;
-	*/
 
 	for (auto &[hash, pipeline] : m_pipelines)
 	{
@@ -787,12 +774,15 @@ void RHIDevice::SubmitIdle(CommandBuffer &cmd_buffer, VkQueueFlagBits queue)
 	switch (queue)
 	{
 		case VK_QUEUE_GRAPHICS_BIT:
+			vkQueueWaitIdle(m_graphics_queue);
 			vkQueueSubmit(m_graphics_queue, 1, &submit_info, fence);
 			break;
 		case VK_QUEUE_COMPUTE_BIT:
+			vkQueueWaitIdle(m_compute_queue);
 			vkQueueSubmit(m_compute_queue, 1, &submit_info, fence);
 			break;
 		case VK_QUEUE_TRANSFER_BIT:
+			vkQueueWaitIdle(m_transfer_queue);
 			vkQueueSubmit(m_transfer_queue, 1, &submit_info, fence);
 			break;
 		default:
@@ -843,6 +833,24 @@ void RHIDevice::EndFrame()
 	}
 
 	m_current_frame = (m_current_frame + 1) % static_cast<uint32_t>(m_swapchain_images.size());
+}
+
+void RHIDevice::Reset()
+{
+	vkDeviceWaitIdle(m_device);
+
+	for (auto &[hash, render_pass] : m_render_passes)
+	{
+		vkDestroyRenderPass(m_device, render_pass, nullptr);
+	}
+
+	for (auto &[hash, frame_buffer] : m_frame_buffers)
+	{
+		vkDestroyFramebuffer(m_device, frame_buffer, nullptr);
+	}
+
+	m_render_passes.clear();
+	m_frame_buffers.clear();
 }
 
 void RHIDevice::CreateInstance()

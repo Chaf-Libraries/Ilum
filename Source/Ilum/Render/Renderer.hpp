@@ -1,5 +1,8 @@
 #pragma once
 
+#include "RGBuilder.hpp"
+#include "RenderGraph.hpp"
+
 #include <RHI/Device.hpp>
 #include <RHI/ImGuiContext.hpp>
 #include <RHI/Texture.hpp>
@@ -25,6 +28,9 @@ class Renderer
 
   private:
 	RHIDevice *p_device = nullptr;
+
+	RGBuilder m_rg_builder;
+	RenderGraph m_rg;
 
 	// LUT
 	std::unique_ptr<Texture> m_kulla_conty_EmuLut  = nullptr;

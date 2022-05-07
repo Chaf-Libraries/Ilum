@@ -22,8 +22,10 @@ void RGPass::Execute(CommandBuffer &cmd_buffer, const RGResources &resources)
 		m_barrier_initialize(cmd_buffer);
 		m_begin = true;
 	}
-
-	m_barrier_callback(cmd_buffer);
+	else
+	{
+		m_barrier_callback(cmd_buffer);
+	}
 	if (m_execute_callback)
 	{
 		m_execute_callback(cmd_buffer, m_pso, resources);
@@ -95,7 +97,6 @@ Texture *RenderGraph::GetPresent() const
 
 void RenderGraph::OnImGui(ImGuiContext &context)
 {
-	ImGui::Begin("Render Graph Inspector");
 	int32_t current_id = 0;
 	for (auto &pass : m_passes)
 	{
@@ -108,7 +109,6 @@ void RenderGraph::OnImGui(ImGuiContext &context)
 		}
 		ImGui::PopID();
 	}
-	ImGui::End();
 }
 
 RGResources::RGResources(RenderGraph &graph, RGPass &pass) :

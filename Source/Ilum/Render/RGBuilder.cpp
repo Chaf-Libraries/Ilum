@@ -3,11 +3,23 @@
 #include "RenderPass.hpp"
 
 #include <RHI/Device.hpp>
+#include <RHI/ImGuiContext.hpp>
+
+#include <Core/Path.hpp>
 
 #include <imgui.h>
 #include <imnodes.h>
 
 #include <rttr/registration.h>
+
+#include <cereal/archives/binary.hpp>
+#include <cereal/archives/json.hpp>
+#include <cereal/cereal.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/types/vector.hpp>
+
+#include <fstream>
 
 namespace Ilum
 {
@@ -28,6 +40,20 @@ inline bool IsRead(VkAccessFlags access)
 	}
 	return true;
 }
+
+struct RGSerializeData
+{
+	std::vector<std::string>           passes;
+	std::vector<uint32_t>              pass_handles;
+	std::vector<std::vector<uint32_t>> nodes;
+	std::map<uint32_t, uint32_t>       edges;
+
+	template <class Archive>
+	void serialize(Archive &ar)
+	{
+		ar(passes, pass_handles, nodes, edges);
+	}
+};
 
 RGBuilder::RGBuilder(RHIDevice *device, RenderGraph &graph) :
     p_device(device), m_graph(graph)
@@ -294,18 +320,49 @@ void RGBuilder::Compile()
 						BufferState src = {};
 						BufferState dst = {};
 
-						dst.access_mask = resource_state.at(node->GetResource()).access_mask;
-						dst.stage       = resource_state.at(node->GetResource()).stage;
+						dst.access_mask = resource_initial_state.at(node).access_mask;
+						dst.stage       = resource_initial_state.at(node).stage;
 						buffer_transitions.push_back(BufferTransition{static_cast<RGBuffer *>(node->GetResource())->GetHandle(), src, dst});
 					}
 					if (node->GetResource()->GetType() == ResourceType::Texture)
 					{
 						TextureState src = {};
 						TextureState dst = {};
-
-						dst.access_mask            = resource_state.at(node->GetResource()).access_mask;
-						dst.stage                  = resource_state.at(node->GetResource()).stage;
-						dst.layout                 = resource_state.at(node->GetResource()).layout;
+						
+						dst.access_mask            = resource_initial_state.at(node).access_mask;
+						dst.stage                  = resource_initial_state.at(node).stage;
+						dst.layout                 = resource_initial_state.at(node).layout;
+						Texture           *texture = static_cast<RGTexture *>(node->GetResource())->GetHandle();
+						VkImageAspectFlags aspect  = texture->IsDepth() ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+						aspect |= texture->IsStencil() ? VK_IMAGE_ASPECT_STENCIL_BIT : 0;
+						texture_transitions.push_back(TextureTransition{
+						    texture,
+						    src, dst,
+						    VkImageSubresourceRange{aspect, 0, texture->GetMipLevels(), 0, texture->GetLayerCount()}});
+					}
+				}
+				else
+				{
+					if (node->GetResource()->GetType() == ResourceType::Buffer)
+					{
+						BufferState src = {};
+						BufferState dst = {};
+						src.access_mask = node->GetLastState().access_mask;
+						src.stage       = node->GetLastState().stage;
+						dst.access_mask = node->GetCurrentState().access_mask;
+						dst.stage       = node->GetCurrentState().stage;
+						buffer_transitions.push_back(BufferTransition{static_cast<RGBuffer *>(node->GetResource())->GetHandle(), src, dst});
+					}
+					if (node->GetResource()->GetType() == ResourceType::Texture)
+					{
+						TextureState src = {};
+						TextureState dst = {};
+						src.access_mask            = node->GetLastState().access_mask;
+						src.stage                  = node->GetLastState().stage;
+						src.layout                 = node->GetLastState().layout;
+						dst.access_mask            = node->GetCurrentState().access_mask;
+						dst.stage                  = node->GetCurrentState().stage;
+						dst.layout                 = node->GetCurrentState().layout;
 						Texture           *texture = static_cast<RGTexture *>(node->GetResource())->GetHandle();
 						VkImageAspectFlags aspect  = texture->IsDepth() ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 						aspect |= texture->IsStencil() ? VK_IMAGE_ASPECT_STENCIL_BIT : 0;
@@ -378,7 +435,7 @@ void RGBuilder::Compile()
 	}
 }
 
-void RGBuilder::OnImGui()
+void RGBuilder::OnImGui(ImGuiContext& context)
 {
 	ImGui::Begin("Render Graph Editor");
 
@@ -402,29 +459,26 @@ void RGBuilder::OnImGui()
 	// Popup Window
 	if (ImGui::BeginPopupContextWindow(0, 1, true))
 	{
-		// Remove Link
-		if (!selected_links.empty())
+		// Compile
+		if (ImGui::MenuItem("Compile"))
 		{
-			if (ImGui::MenuItem("Remove Link"))
+			Compile();
+		}
+
+		// Remove
+		if (!selected_links.empty() || !selected_nodes.empty())
+		{
+			if (ImGui::MenuItem("Remove"))
 			{
 				for (auto &id : selected_links)
 				{
 					m_edges.erase(static_cast<uint32_t>(id));
 				}
-			}
-		}
-
-		// Remove Node
-		if (!selected_nodes.empty())
-		{
-			if (ImGui::MenuItem("Remove Node"))
-			{
 				for (auto &id : selected_nodes)
 				{
 					for (auto iter = m_render_passes.begin(); iter != m_render_passes.end();)
 					{
-						std::hash<void *> hasher;
-						if (id == static_cast<int32_t>(hasher((*iter).get())))
+						if ((*iter)->GetHandle() == id)
 						{
 							for (auto edge_iter = m_edges.begin(); edge_iter != m_edges.end();)
 							{
@@ -454,12 +508,6 @@ void RGBuilder::OnImGui()
 			}
 		}
 
-		// Compile
-		if (ImGui::MenuItem("Compile"))
-		{
-			Compile();
-		}
-
 		// Add Pass
 		if (ImGui::BeginMenu("New Pass"))
 		{
@@ -474,6 +522,27 @@ void RGBuilder::OnImGui()
 			}
 			ImGui::EndMenu();
 		}
+
+		// Save Render Graph Config
+		if (ImGui::MenuItem("Save"))
+		{
+			context.OpenFileDialog("Save Render Graph", "Save Render Graph", "Render Graph file (*.rg;){.rg},.*");
+		}
+
+		// Save Render Graph Config
+		if (ImGui::MenuItem("Load"))
+		{
+			context.OpenFileDialog("Load Render Graph", "Load Render Graph", "Render Graph file (*.rg;){.rg},.*");
+		}
+
+		// Clear All Nodes & Links
+		if (ImGui::MenuItem("Clear"))
+		{
+			m_render_passes.clear();
+			m_resources.clear();
+			m_edges.clear();
+		}
+
 		ImGui::EndPopup();
 	}
 
@@ -482,8 +551,7 @@ void RGBuilder::OnImGui()
 	{
 		const float node_width = 200.0f;
 		// Inside ImNode context
-		std::hash<void *> hasher;
-		ImNodes::BeginNode(static_cast<int32_t>(hasher(pass.get())));
+		ImNodes::BeginNode(pass->GetHandle());
 		ImGui::Text(pass->GetName().c_str());
 
 		for (const auto &handle : pass->GetResources())
@@ -544,7 +612,6 @@ void RGBuilder::OnImGui()
 
 	ImNodes::MiniMap();
 	ImNodes::EndNodeEditor();
-
 	// Create Link
 	{
 		int32_t from = 0, to = 0;
@@ -555,6 +622,69 @@ void RGBuilder::OnImGui()
 	}
 
 	ImGui::End();
+
+	context.GetFileDialogResult("Save Render Graph", [this](const std::string &name) { Save(name); });
+	context.GetFileDialogResult("Load Render Graph", [this](const std::string &name) { Load(name); });
+}
+
+void RGBuilder::Save(const std::string &filename)
+{
+	auto name = Path::GetInstance().GetFileDirectory(filename) + Path::GetInstance().GetFileName(filename, false);
+
+	RGSerializeData data = {};
+	for (auto &pass : m_render_passes)
+	{
+		data.passes.push_back(pass->GetName());
+		data.pass_handles.push_back(pass->GetHandle());
+		data.nodes.push_back({});
+		for (auto &resource : pass->GetResources())
+		{
+			data.nodes.back().push_back(resource);
+		}
+	}
+	for (auto &[hash, edge] : m_edges)
+	{
+		data.edges.emplace(edge.first, edge.second);
+	}
+
+	std::ofstream             os(name + ".rg", std::ios::binary);
+	cereal::JSONOutputArchive archive(os);
+	archive(data);
+
+	ImNodes::SaveCurrentEditorStateToIniFile((name + ".ini").c_str());
+}
+
+void RGBuilder::Load(const std::string &filename)
+{
+	m_render_passes.clear();
+	m_resources.clear();
+	m_edges.clear();
+
+	RGHandle::Reset();
+
+	auto name = Path::GetInstance().GetFileDirectory(filename) + Path::GetInstance().GetFileName(filename, false);
+
+	std::ifstream is(name + ".rg");
+
+	cereal::JSONInputArchive archive(is);
+	RGSerializeData          data = {};
+	archive(data);
+
+	for (uint32_t i = 0; i < data.passes.size(); i++)
+	{
+		RGHandle::SetCurrent(data.nodes[i].front());
+		rttr::variant pass_builder = rttr::type::get_by_name(data.passes[i].c_str()).create();
+		rttr::method  meth         = rttr::type::get_by_name(data.passes[i].c_str()).get_method("Create");
+		meth.invoke(pass_builder, *this);
+		m_render_passes.back()->SetHandle(data.pass_handles[i]);
+	}
+
+	for (auto &[from, to] : data.edges)
+	{
+		Link(from, to);
+	}
+
+	ImNodes::LoadCurrentEditorStateFromIniFile((name + ".ini").c_str());
 }
 
 }        // namespace Ilum

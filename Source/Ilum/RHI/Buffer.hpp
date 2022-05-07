@@ -17,9 +17,9 @@ struct BufferDesc
 	    size(elements * elements_size), buffer_usage(buffer_usage), memory_usage(memory_usage)
 	{}
 
-	VkDeviceSize       size;
-	VkBufferUsageFlags buffer_usage;
-	VmaMemoryUsage     memory_usage;
+	VkDeviceSize       size         = 0;
+	VkBufferUsageFlags buffer_usage = 0;
+	VmaMemoryUsage     memory_usage = VMA_MEMORY_USAGE_UNKNOWN;
 };
 
 struct BufferState
@@ -47,7 +47,7 @@ class Buffer
 
 	void *Map();
 	void  Unmap();
-	void  Flush(VkDeviceSize size, VkDeviceSize offset);
+	void  Flush(VkDeviceSize size, VkDeviceSize offset = 0);
 
 	operator VkBuffer() const;
 

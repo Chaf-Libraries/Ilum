@@ -10,6 +10,8 @@ namespace Ilum
 class RGBuilder;
 class RenderPass
 {
+	friend class RGBuilder;
+
   public:
 	RenderPass(const std::string &name);
 	~RenderPass() = default;
@@ -28,13 +30,22 @@ class RenderPass
 
 	void BindImGui(std::function<void(ImGuiContext &, const RGResources &)> &&callback);
 
+	uint32_t GetHandle() const;
+
+	void SetHandle(uint32_t handle);
+
   protected:
 	std::string m_name;
+
+	uint32_t m_handle;
 
 	std::vector<RGHandle> m_resources;
 
 	std::function<void(CommandBuffer &, PipelineState &, const RGResources &)> m_callback;
 
 	std::function<void(ImGuiContext &, const RGResources &)> m_imgui_callback;
+
+  private:
+	inline static uint32_t CURRENT_ID = 0;
 };
 }        // namespace Ilum

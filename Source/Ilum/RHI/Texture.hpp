@@ -22,7 +22,7 @@ struct TextureDesc
 	uint32_t              layers       = 1;
 	VkSampleCountFlagBits sample_count = VK_SAMPLE_COUNT_1_BIT;
 	VkFormat              format       = VK_FORMAT_UNDEFINED;
-	VkImageUsageFlags     usage        = VK_IMAGE_USAGE_FLAG_BITS_MAX_ENUM;
+	VkImageUsageFlags     usage        = 0;
 
 	size_t Hash() const
 	{
@@ -87,6 +87,8 @@ class Texture
 
 	uint32_t          GetWidth() const;
 	uint32_t          GetHeight() const;
+	uint32_t          GetMipWidth(uint32_t level) const;
+	uint32_t          GetMipHeight(uint32_t level) const;
 	uint32_t          GetDepth() const;
 	uint32_t          GetMipLevels() const;
 	uint32_t          GetLayerCount() const;
@@ -100,6 +102,10 @@ class Texture
 	VkImageView GetView(const TextureViewDesc &desc);
 
 	const TextureDesc &GetDesc() const;
+
+	bool IsDepth() const;
+
+	bool IsStencil() const;
 
   private:
 	RHIDevice    *p_device = nullptr;

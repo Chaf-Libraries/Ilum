@@ -21,6 +21,10 @@ class RGHandle
 
 	bool operator==(const RGHandle &rhs);
 
+	static void Reset();
+
+	static void SetCurrent(uint32_t id);
+
   private:
 	inline static uint32_t INVALID_ID = ~0U;
 	inline static uint32_t CURRENT_ID = 0U;

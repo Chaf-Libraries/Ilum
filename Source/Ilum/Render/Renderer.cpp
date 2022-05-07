@@ -9,7 +9,9 @@
 namespace Ilum
 {
 Renderer::Renderer(RHIDevice *device) :
-    p_device(device)
+    p_device(device),
+    m_rg(device),
+    m_rg_builder(device, m_rg)
 {
 	CreateSampler();
 	KullaContyApprox();
@@ -22,6 +24,7 @@ Renderer::~Renderer()
 
 void Renderer::Tick()
 {
+	m_rg.Execute();
 }
 
 void Renderer::OnImGui(ImGuiContext &context)
@@ -34,16 +37,35 @@ void Renderer::OnImGui(ImGuiContext &context)
 	view_desc.layer_count      = 1;
 	view_desc.level_count      = 1;
 
-	ImGui::Begin("Emu");
-	ImGui::Image(context.TextureID(m_kulla_conty_EmuLut->GetView(view_desc)), ImGui::GetContentRegionAvail());
-	ImGui::End();
+	ImGui::Begin("Renderer");
+	if (ImGui::TreeNode("LUT"))
+	{
+		if (ImGui::TreeNode("Kulla Conty Energy"))
+		{
+			ImGui::Image(context.TextureID(m_kulla_conty_EmuLut->GetView(view_desc)), ImVec2(300, 300));
+			ImGui::TreePop();
+		}
+		if (ImGui::TreeNode("Kulla Conty Energy Average"))
+		{
+			ImGui::Image(context.TextureID(m_kulla_conty_EavgLut->GetView(view_desc)), ImVec2(300, 300));
+			ImGui::TreePop();
+		}
+		if (ImGui::TreeNode("BRDF PreIntegration"))
+		{
+			ImGui::Image(context.TextureID(m_brdf_preintegration->GetView(view_desc)), ImVec2(300, 300));
+			ImGui::TreePop();
+		}
+		ImGui::TreePop();
+	}
+	if (ImGui::TreeNode("Render Graph Nodes"))
+	{
+		m_rg.OnImGui(context);
+		ImGui::TreePop();
+	}
 
-	ImGui::Begin("Eavg");
-	ImGui::Image(context.TextureID(m_kulla_conty_EavgLut->GetView(view_desc)), ImGui::GetContentRegionAvail());
-	ImGui::End();
+	m_rg_builder.OnImGui(context);
 
-	ImGui::Begin("BRDF PreIntegration");
-	ImGui::Image(context.TextureID(m_brdf_preintegration->GetView(view_desc)), ImGui::GetContentRegionAvail());
+
 	ImGui::End();
 }
 

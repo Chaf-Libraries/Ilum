@@ -30,23 +30,6 @@ class DescriptorState;
 
 class RHIDevice
 {
-	/*friend class Buffer;
-	friend class Texture;
-	friend class AccelerationStructure;
-	friend class ShaderBindingTable;
-	friend class DescriptorLayout;
-	friend class DescriptorPool;
-	friend class ShaderAllocator;
-	friend class CommandPool;
-	friend class CommandBuffer;
-	friend class FenceAllocator;
-	friend class SemaphoreAllocator;
-	friend class Frame;
-	friend class Sampler;
-	friend class ImGuiContext;
-	friend class DescriptorState;
-	friend class PipelineAllocator;*/
-
   public:
 	RHIDevice(Window *window);
 
@@ -93,6 +76,8 @@ class RHIDevice
 	void Submit(CommandBuffer &cmd_buffer);
 	void SubmitIdle(CommandBuffer &cmd_buffer, VkQueueFlagBits queue = VK_QUEUE_GRAPHICS_BIT);
 	void EndFrame();
+
+	void Reset();
 
   private:
 	void CreateInstance();

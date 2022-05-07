@@ -40,4 +40,14 @@ bool RGHandle::operator==(const RGHandle &rhs)
 {
 	return m_index == rhs.m_index;
 }
+
+void RGHandle::Reset()
+{
+	CURRENT_ID = 0;
+}
+
+void RGHandle::SetCurrent(uint32_t id)
+{
+	CURRENT_ID = id;
+}
 }
