@@ -47,9 +47,9 @@ class FrameBuffer
 	size_t Hash();
 
   private:
-	uint32_t m_width  = 0;
-	uint32_t m_height = 0;
-	uint32_t m_layer  = 0;
+	uint32_t m_width  = 1;
+	uint32_t m_height = 1;
+	uint32_t m_layer  = 1;
 
 	std::vector<VkClearValue>            m_clear_values                       = {};
 	std::vector<VkImageView>             m_views                              = {};

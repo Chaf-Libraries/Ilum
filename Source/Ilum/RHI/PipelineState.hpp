@@ -186,7 +186,7 @@ struct ColorBlendState
 	{
 		size_t hash = 0;
 
-		for (auto& state : attachment_states)
+		for (auto &state : attachment_states)
 		{
 			HashCombine(hash, state.Hash());
 		}
@@ -200,6 +200,9 @@ class PipelineState
   public:
 	PipelineState()  = default;
 	~PipelineState() = default;
+
+	PipelineState(const PipelineState &) = default;
+	PipelineState &operator=(const PipelineState &) = default;
 
 	PipelineState &SetInputAssemblyState(const InputAssemblyState &input_assembly_state);
 	PipelineState &SetRasterizationState(const RasterizationState &rasterization_state);
@@ -224,7 +227,10 @@ class PipelineState
 
 	VkPipelineBindPoint GetBindPoint() const;
 
-	size_t Hash();
+	size_t Hash() const;
+
+  private:
+	void UpdateHash();
 
   private:
 	InputAssemblyState m_input_assembly_state = {};
@@ -239,8 +245,6 @@ class PipelineState
 	std::vector<ShaderDesc> m_shaders;
 
 	VkPipelineBindPoint m_bind_point = VK_PIPELINE_BIND_POINT_MAX_ENUM;
-
-	bool m_dirty = false;
 
 	size_t m_hash = 0;
 };

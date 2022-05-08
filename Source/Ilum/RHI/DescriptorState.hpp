@@ -19,7 +19,7 @@ class DescriptorState
 	friend class CommandBuffer;
 
   public:
-	DescriptorState(RHIDevice *device, PipelineState *pso);
+	DescriptorState(RHIDevice *device, const PipelineState *pso);
 	~DescriptorState() = default;
 
 	DescriptorState &Bind(uint32_t set, uint32_t binding, Buffer *buffer);
@@ -35,7 +35,7 @@ class DescriptorState
 
   private:
 	RHIDevice *p_device = nullptr;
-	PipelineState *p_pso = nullptr;
+	const PipelineState *p_pso = nullptr;
 
 	std::map<uint32_t, std::map<uint32_t, std::vector<VkDescriptorBufferInfo>>>  m_buffer_resolves;
 	std::map<uint32_t, std::map<uint32_t, std::vector<VkDescriptorImageInfo>>>   m_image_resolves;

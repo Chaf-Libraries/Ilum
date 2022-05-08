@@ -1,5 +1,8 @@
 #include "Scene.hpp"
+#include "AssetManager.hpp"
 #include "Entity.hpp"
+
+#include <Core/Path.hpp>
 
 #include "Component/Hierarchy.hpp"
 #include "Component/Tag.hpp"
@@ -9,6 +12,8 @@
 #include <cereal/archives/json.hpp>
 
 #include <imgui.h>
+
+#include <cgltf/cgltf.h>
 
 #include <fstream>
 
@@ -267,14 +272,29 @@ inline void AddComponents(Scene &scene, entt::entity entity)
 	}
 }
 
-Scene::Scene(RHIDevice *device, const std::string &name) :
-    p_device(device), m_name(name)
+Scene::Scene(RHIDevice *device, AssetManager &asset_manager, const std::string &name) :
+    p_device(device), m_asset_manager(asset_manager), m_name(name)
 {
 }
 
 entt::registry &Scene::GetRegistry()
 {
 	return m_registry;
+}
+
+AssetManager &Scene::GetAssetManager()
+{
+	return m_asset_manager;
+}
+
+const std::string &Scene::GetName() const
+{
+	return m_name;
+}
+
+const std::string &Scene::GetSavePath() const
+{
+	return m_save_path;
 }
 
 void Scene::Clear()
@@ -284,7 +304,7 @@ void Scene::Clear()
 
 entt::entity Scene::Create(const std::string &name)
 {
-	auto      entity = m_registry.create();
+	auto entity = m_registry.create();
 	m_registry.emplace<cmpt::Tag>(entity, name);
 	m_registry.emplace<cmpt::Transform>(entity);
 	m_registry.emplace<cmpt::Hierarchy>(entity);
@@ -300,7 +320,17 @@ void Scene::OnImGui(ImGuiContext &context)
 	// Scene Hierarchy
 	{
 		ImGui::Begin("Scene Hierarchy");
-		ImGui::TextUnformatted(m_name.c_str());
+
+		{
+			char buffer[64];
+			memset(buffer, 0, sizeof(buffer));
+			std::memcpy(buffer, m_name.data(), sizeof(buffer));
+			ImGui::PushItemWidth(150.f);
+			if (ImGui::InputText("##SceneName", buffer, sizeof(buffer)))
+			{
+				m_name = std::string(buffer);
+			}
+		}
 
 		if (ImGui::BeginDragDropTarget())
 		{
@@ -367,6 +397,9 @@ void Scene::OnImGui(ImGuiContext &context)
 
 void Scene::Save(const std::string &filename)
 {
+	m_save_path = filename;
+	m_name      = Path::GetInstance().GetFileName(filename, false);
+
 	std::ofstream os(filename, std::ios::binary);
 
 	cereal::JSONOutputArchive archive(os);
@@ -381,7 +414,10 @@ void Scene::Save(const std::string &filename)
 
 void Scene::Load(const std::string &filename)
 {
-	std::ifstream os(filename, std::ios::binary);
+	std::ifstream os(filename.empty() ? m_save_path : filename, std::ios::binary);
+
+	m_save_path = filename;
+	m_name      = Path::GetInstance().GetFileName(filename, false);
 
 	cereal::JSONInputArchive archive(os);
 
@@ -393,6 +429,43 @@ void Scene::Load(const std::string &filename)
 	        cmpt::Tag,
 	        cmpt::Transform,
 	        cmpt::Hierarchy>(archive);
+}
+
+void Scene::ImportGLTF(const std::string &filename)
+{
+	cgltf_options options  = {};
+	cgltf_data   *raw_data = nullptr;
+	cgltf_result  result   = cgltf_parse_file(&options, filename.c_str(), &raw_data);
+	if (result != cgltf_result_success)
+	{
+		LOG_WARN("Failed to load gltf {}", filename);
+		return;
+	}
+	result = cgltf_load_buffers(&options, raw_data, filename.c_str());
+	if (result != cgltf_result_success)
+	{
+		LOG_WARN("Failed to load gltf {}", filename);
+		return;
+	}
+
+	auto load_texture = [this](Texture *&texture, cgltf_texture *gltf_texture) {
+		if (gltf_texture->image->uri)
+		{
+
+		}
+	
+	};
+
+	// Load materials
+	for (uint32_t i = 0; i < raw_data->materials_count; i++)
+	{
+		auto &raw_material = raw_data->materials[i];
+		auto *material     = m_asset_manager.AddMaterial(std::make_unique<Material>());
+	}
+}
+
+void Scene::ExportGLTF(const std::string &filename)
+{
 }
 
 }        // namespace Ilum

@@ -339,7 +339,12 @@ RHIDevice::RHIDevice(Window *window) :
 	CreateLogicalDevice();
 	CreateSwapchain();
 
-	p_window->OnWindowSizeFunc += [this](int32_t, int32_t) { CreateSwapchain(); };
+	p_window->OnWindowSizeFunc += [this](int32_t width, int32_t height) { 
+		if (width != 0 && height != 0)
+		{
+			CreateSwapchain();
+		}
+	};
 
 	VkPipelineCacheCreateInfo create_info = {};
 	create_info.sType                     = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
@@ -505,7 +510,7 @@ CommandBuffer &RHIDevice::RequestCommandBuffer(VkCommandBufferLevel level, VkQue
 	return m_frames[m_current_frame]->RequestCommandBuffer(level, queue);
 }
 
-VkPipelineLayout RHIDevice::AllocatePipelineLayout(PipelineState &pso)
+VkPipelineLayout RHIDevice::AllocatePipelineLayout(const PipelineState &pso)
 {
 	size_t hash = pso.Hash();
 	if (m_pipeline_layouts.find(hash) != m_pipeline_layouts.end())
@@ -554,7 +559,7 @@ VkPipelineLayout RHIDevice::AllocatePipelineLayout(PipelineState &pso)
 	return m_pipeline_layouts[hash];
 }
 
-VkPipeline RHIDevice::AllocatePipeline(PipelineState &pso, VkRenderPass render_pass)
+VkPipeline RHIDevice::AllocatePipeline(const PipelineState &pso, VkRenderPass render_pass)
 {
 	size_t hash = pso.Hash();
 	if (m_pipelines.find(hash) != m_pipelines.end())
@@ -652,7 +657,7 @@ VkFramebuffer RHIDevice::AllocateFrameBuffer(FrameBuffer &framebuffer)
 	return m_frame_buffers[hash];
 }
 
-ShaderBindingTable &RHIDevice::AllocateSBT(PipelineState &pso)
+ShaderBindingTable &RHIDevice::AllocateSBT(const PipelineState &pso)
 {
 	size_t hash = pso.Hash();
 	if (m_shader_binding_tables.find(hash) != m_shader_binding_tables.end())
@@ -665,7 +670,7 @@ ShaderBindingTable &RHIDevice::AllocateSBT(PipelineState &pso)
 	return *m_shader_binding_tables.at(hash);
 }
 
-const std::map<uint32_t, VkDescriptorSet> &RHIDevice::AllocateDescriptorSet(PipelineState &pso)
+const std::map<uint32_t, VkDescriptorSet> &RHIDevice::AllocateDescriptorSet(const PipelineState &pso)
 {
 	size_t hash = pso.Hash();
 	if (m_descriptor_sets.find(hash) != m_descriptor_sets.end())
@@ -692,7 +697,7 @@ const std::map<uint32_t, VkDescriptorSet> &RHIDevice::AllocateDescriptorSet(Pipe
 	return m_descriptor_sets.at(hash);
 }
 
-DescriptorState &RHIDevice::AllocateDescriptorState(PipelineState &pso)
+DescriptorState &RHIDevice::AllocateDescriptorState(const PipelineState &pso)
 {
 	size_t hash = pso.Hash();
 	if (m_descriptor_states.find(hash) != m_descriptor_states.end())
@@ -1369,7 +1374,7 @@ void RHIDevice::CreateAllocator()
 	m_descriptor_allocator = std::make_unique<DescriptorAllocator>(this);
 }
 
-VkPipeline RHIDevice::AllocateGraphicsPipeline(PipelineState &pso, VkRenderPass render_pass)
+VkPipeline RHIDevice::AllocateGraphicsPipeline(const PipelineState &pso, VkRenderPass render_pass)
 {
 	size_t hash = pso.Hash();
 
@@ -1500,7 +1505,7 @@ VkPipeline RHIDevice::AllocateGraphicsPipeline(PipelineState &pso, VkRenderPass 
 	return m_pipelines[hash];
 }
 
-VkPipeline RHIDevice::AllocateComputePipeline(PipelineState &pso)
+VkPipeline RHIDevice::AllocateComputePipeline(const PipelineState &pso)
 {
 	size_t hash = pso.Hash();
 
@@ -1529,7 +1534,7 @@ VkPipeline RHIDevice::AllocateComputePipeline(PipelineState &pso)
 	return m_pipelines[hash];
 }
 
-VkPipeline RHIDevice::AllocateRayTracingPipeline(PipelineState &pso)
+VkPipeline RHIDevice::AllocateRayTracingPipeline(const PipelineState &pso)
 {
 	size_t hash = pso.Hash();
 

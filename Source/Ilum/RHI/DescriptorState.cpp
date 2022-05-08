@@ -51,7 +51,7 @@ VkImageUsageFlagBits GetImageUsage(ShaderReflectionData::Image::Type type)
 	}
 }
 
-DescriptorState::DescriptorState(RHIDevice *device, PipelineState *pso) :
+DescriptorState::DescriptorState(RHIDevice *device, const PipelineState *pso) :
     p_device(device), p_pso(pso)
 {
 	m_bind_point = pso->GetBindPoint();

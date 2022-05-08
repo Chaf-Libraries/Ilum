@@ -12,7 +12,6 @@ RenderPass::RenderPass(const std::string &name) :
 
 void RenderPass::Build(RGPass &pass)
 {
-	Prepare(pass.m_pso);
 	pass.m_execute_callback = m_callback;
 	pass.m_imgui_callback   = m_imgui_callback;
 }
@@ -32,7 +31,7 @@ const std::vector<RGHandle> &RenderPass::GetResources() const
 	return m_resources;
 }
 
-void RenderPass::BindCallback(std::function<void(CommandBuffer &, PipelineState &, const RGResources &, Renderer &)> &&callback)
+void RenderPass::BindCallback(std::function<void(CommandBuffer &, const RGResources &, Renderer &)> &&callback)
 {
 	m_callback = std::move(callback);
 }

@@ -122,7 +122,7 @@ const std::string Path::GetCurrent()
 
 const std::string Path::GetFileName(const std::string &path, bool has_extension)
 {
-	auto filename = std::filesystem::path(path).filename().generic_string();
+	auto filename = std::filesystem::u8path(path).filename().generic_string();
 
 	if (has_extension)
 	{
@@ -162,7 +162,7 @@ const std::string Path::GetFileExtension(const std::string &path)
 {
 	try
 	{
-		return std::filesystem::path(path).extension().generic_string();
+		return std::filesystem::u8path(path).extension().generic_string();
 	}
 	catch (std::system_error &e)
 	{

@@ -1,5 +1,7 @@
 #include "Renderer.hpp"
 
+#include <Core/Time.hpp>
+
 #include <RHI/Command.hpp>
 #include <RHI/DescriptorState.hpp>
 #include <RHI/PipelineState.hpp>
@@ -8,13 +10,15 @@
 
 #include <imgui.h>
 
+#include <IconsFontAwesome4.h>
+
 namespace Ilum
 {
 Renderer::Renderer(RHIDevice *device, Scene *scene) :
     p_device(device),
     p_scene(scene),
     m_rg(device, *this),
-    m_rg_builder(device, m_rg)
+    m_rg_builder(device, m_rg, *this)
 {
 	CreateSampler();
 	KullaContyApprox();
@@ -47,6 +51,7 @@ void Renderer::OnImGui(ImGuiContext &context)
 
 	ImGui::Text("Render Target Size: (%ld, %ld)", m_extent.width, m_extent.height);
 	ImGui::Text("Viewport Size: (%ld, %ld)", m_viewport.width, m_viewport.height);
+	ImGui::Text("FPS: %f", Timer::GetInstance().FrameRate());
 
 	if (ImGui::TreeNode("LUT"))
 	{
@@ -67,19 +72,20 @@ void Renderer::OnImGui(ImGuiContext &context)
 		}
 		ImGui::TreePop();
 	}
-	if (ImGui::TreeNode("Render Graph Nodes"))
+
+	// Render Graph Editor
+	bool recompile = m_rg_builder.OnImGui(context);
+
+	if (ImGui::TreeNode("Render Passes"))
 	{
 		m_rg.OnImGui(context);
 		ImGui::TreePop();
 	}
 	ImGui::End();
 
-	// Render Graph Editor
-	m_rg_builder.OnImGui(context);
-
 	// Scene View
 	ImGui::Begin("Present");
-	if (p_present)
+	if (p_present && !recompile)
 	{
 		m_viewport = VkExtent2D{
 		    static_cast<uint32_t>(ImGui::GetContentRegionAvail().x),
@@ -94,6 +100,12 @@ void Renderer::OnImGui(ImGuiContext &context)
 		desc.layer_count      = p_present->GetLayerCount();
 		ImGui::Image(context.TextureID(p_present->GetView(desc)), ImGui::GetContentRegionAvail());
 	}
+	ImGui::End();
+
+	ImGui::Begin("Font Test");
+	ImGui::Text(u8"Å£±Æ");
+	ImGui::Text("%s among %d items", ICON_FA_SEARCH, 2);
+	ImGui::Button(ICON_FA_SEARCH " Search");
 	ImGui::End();
 
 	// Scene UI
@@ -113,9 +125,14 @@ Texture &Renderer::GetPrecompute(PrecomputeType type)
 	return *m_precomputes[static_cast<size_t>(type)];
 }
 
-const VkExtent2D Renderer::GetExtent() const
+const VkExtent2D &Renderer::GetExtent() const
 {
 	return m_extent;
+}
+
+const VkExtent2D &Renderer::GetViewport() const
+{
+	return m_viewport;
 }
 
 Scene *Renderer::GetScene()

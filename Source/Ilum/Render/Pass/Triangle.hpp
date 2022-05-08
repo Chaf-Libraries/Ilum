@@ -14,7 +14,6 @@ class Triangle : public RenderPass
 	Triangle();
 	~Triangle() = default;
 
-	virtual void Prepare(PipelineState &pso) override;
 	virtual void Create(RGBuilder &builder) override;
 };
 
@@ -22,7 +21,6 @@ RTTR_REGISTRATION
 {
 	rttr::registration::class_<Triangle>("Triangle")
 	    .constructor<>()
-	    .method("Prepare", &Triangle::Prepare)
 	    .method("Create", &Triangle::Create);
 }
 

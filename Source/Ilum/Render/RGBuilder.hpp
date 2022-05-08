@@ -11,12 +11,13 @@ namespace Ilum
 {
 class RenderPass;
 class RenderGraph;
+class Renderer;
 class ImGuiContext;
 
 class RGBuilder
 {
   public:
-	RGBuilder(RHIDevice *device, RenderGraph &graph);
+	RGBuilder(RHIDevice *device, RenderGraph &graph, Renderer& renderer);
 	~RGBuilder();
 
 	RGHandle CreateTexture(const std::string &name, const TextureDesc &desc, const TextureState &state);
@@ -28,14 +29,17 @@ class RGBuilder
 
 	void Compile();
 
-	void OnImGui(ImGuiContext &context);
+	bool OnImGui(ImGuiContext &context);
 
 	void Save(const std::string &filename);
 	void Load(const std::string &filename);
 
+	Renderer &GetRenderer();
+
   private:
 	RHIDevice *p_device = nullptr;
 	RenderGraph &m_graph;
+	Renderer    &m_renderer;
 
 	std::vector<std::unique_ptr<RenderPass>> m_render_passes;
 

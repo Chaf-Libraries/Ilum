@@ -6,56 +6,56 @@ namespace Ilum
 PipelineState &PipelineState::SetInputAssemblyState(const InputAssemblyState &input_assembly_state)
 {
 	m_input_assembly_state = input_assembly_state;
-	m_dirty                = true;
+	UpdateHash();
 	return *this;
 }
 
 PipelineState &PipelineState::SetRasterizationState(const RasterizationState &rasterization_state)
 {
 	m_rasterization_state = rasterization_state;
-	m_dirty               = true;
+	UpdateHash();
 	return *this;
 }
 
 PipelineState &PipelineState::SetDepthStencilState(const DepthStencilState &depth_stencil_state)
 {
 	m_depth_stencil_state = depth_stencil_state;
-	m_dirty               = true;
+	UpdateHash();
 	return *this;
 }
 
 PipelineState &PipelineState::SetViewportState(const ViewportState &viewport_state)
 {
 	m_viewport_state = viewport_state;
-	m_dirty          = true;
+	UpdateHash();
 	return *this;
 }
 
 PipelineState &PipelineState::SetMultisampleState(const MultisampleState &multisample_state)
 {
 	m_multisample_state = multisample_state;
-	m_dirty             = true;
+	UpdateHash();
 	return *this;
 }
 
 PipelineState &PipelineState::SetDynamicState(const DynamicState &dynamic_state)
 {
 	m_dynamic_state = dynamic_state;
-	m_dirty         = true;
+	UpdateHash();
 	return *this;
 }
 
 PipelineState &PipelineState::SetVertexInputState(const VertexInputState &vertex_input_state)
 {
 	m_vertex_input_state = vertex_input_state;
-	m_dirty              = true;
+	UpdateHash();
 	return *this;
 }
 
 PipelineState &PipelineState::SetColorBlendState(const ColorBlendState &color_blend_state)
 {
 	m_color_blend_state = color_blend_state;
-	m_dirty             = true;
+	UpdateHash();
 	return *this;
 }
 
@@ -78,7 +78,7 @@ PipelineState &PipelineState::LoadShader(const ShaderDesc &desc)
 	}
 
 	m_shaders.push_back(desc);
-	m_dirty = true;
+	UpdateHash();
 	return *this;
 }
 
@@ -132,13 +132,8 @@ VkPipelineBindPoint PipelineState::GetBindPoint() const
 	return m_bind_point;
 }
 
-size_t PipelineState::Hash()
+void PipelineState::UpdateHash()
 {
-	if (!m_dirty)
-	{
-		return m_hash;
-	}
-
 	m_hash = 0;
 	HashCombine(m_hash, m_input_assembly_state.Hash());
 	HashCombine(m_hash, m_rasterization_state.Hash());
@@ -148,13 +143,14 @@ size_t PipelineState::Hash()
 	HashCombine(m_hash, m_dynamic_state.Hash());
 	HashCombine(m_hash, m_vertex_input_state.Hash());
 	HashCombine(m_hash, m_color_blend_state.Hash());
-	for (auto& desc : m_shaders)
+	for (auto &desc : m_shaders)
 	{
 		HashCombine(m_hash, desc.Hash());
 	}
+}
 
-	m_dirty = false;
-
+size_t PipelineState::Hash() const
+{
 	return m_hash;
 }
 

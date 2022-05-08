@@ -10,6 +10,8 @@
 #include <imgui_impl_vulkan.h>
 #include <imnodes.h>
 
+#include <IconsFontAwesome4.h>
+
 #include <ImFileDialog/ImFileDialog.h>
 
 namespace Ilum
@@ -28,7 +30,12 @@ ImGuiContext::ImGuiContext(Window *window, RHIDevice *device) :
 
 	SetStyle();
 
-	p_window->OnWindowSizeFunc += [this](int32_t, int32_t) { CreateFramebuffer(); };
+	p_window->OnWindowSizeFunc += [this](int32_t width, int32_t height) { 
+		if (width > 0 && height > 0)
+		{
+			CreateFramebuffer(); 
+		}
+	};
 
 	ImGui_ImplGlfw_InitForVulkan(p_window->m_handle, true);
 
@@ -212,9 +219,16 @@ void ImGuiContext::EndFrame()
 	}
 }
 
-void ImGuiContext::OpenFileDialog(const std::string &key, const std::string &title, const std::string &filter)
+void ImGuiContext::OpenFileDialog(const std::string &key, const std::string &title, const std::string &filter, bool open)
 {
-	ifd::FileDialog::Instance().Open(key, title, filter);
+	if (open)
+	{
+		ifd::FileDialog::Instance().Open(key, title, filter);
+	}
+	else
+	{
+		ifd::FileDialog::Instance().Save(key, title, filter);
+	}
 }
 
 void ImGuiContext::GetFileDialogResult(const std::string &key, std::function<void(const std::string &)> &&callback)
@@ -414,8 +428,13 @@ void ImGuiContext::SetStyle()
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;            // Enable Docking
 	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;          // Enable Multi-Viewport / Platform Windows
 
-	// Set a better fonts
-	io.Fonts->AddFontFromFileTTF("Asset/Font/arialbd.ttf", 20.0f);
+	// Set fonts
+	static const ImWchar icon_ranges[] = {ICON_MIN_FA, ICON_MAX_FA, 0};
+	ImFontConfig         config;
+	config.MergeMode = true;
+	config.GlyphMinAdvanceX = 13.0f;
+	io.Fonts->AddFontFromFileTTF("Asset/Font/ArialUnicodeMS.ttf", 25.0f, NULL, io.Fonts->GetGlyphRangesChineseFull());
+	io.Fonts->AddFontFromFileTTF("Asset/Font/fontawesome-webfont.ttf", 20.0f, &config, icon_ranges);
 
 	// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
 	ImGuiStyle &style  = ImGui::GetStyle();

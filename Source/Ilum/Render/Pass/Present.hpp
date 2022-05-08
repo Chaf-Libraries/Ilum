@@ -14,7 +14,6 @@ class Present : public RenderPass
 	Present();
 	~Present() = default;
 
-	virtual void Prepare(PipelineState &pso) override;
 	virtual void Create(RGBuilder &builder) override;
 
   private:
@@ -25,7 +24,6 @@ RTTR_REGISTRATION
 {
 	rttr::registration::class_<Present>("Present")
 	    .constructor<>()
-	    .method("Prepare", &Present::Prepare)
 	    .method("Create", &Present::Create);
 }
 }        // namespace Ilum

@@ -13,10 +13,6 @@ Present::Present() :
 {
 }
 
-void Present::Prepare(PipelineState &pso)
-{
-}
-
 void Present::Create(RGBuilder &builder)
 {
 	std::unique_ptr<RenderPass> pass = std::make_unique<Present>();
@@ -28,7 +24,7 @@ void Present::Create(RGBuilder &builder)
 
 	pass->AddResource(render_target);
 
-	pass->BindCallback([=](CommandBuffer &cmd_buffer, PipelineState &pso, const RGResources &resource, Renderer & renderer) {
+	pass->BindCallback([=](CommandBuffer &cmd_buffer, const RGResources &resource, Renderer & renderer) {
 		renderer.SetPresent(resource.GetTexture(render_target));
 	});
 

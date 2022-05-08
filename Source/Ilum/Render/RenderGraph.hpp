@@ -129,9 +129,7 @@ class RGPass
 
 	bool m_begin = false;
 
-	PipelineState m_pso;
-
-	std::function<void(CommandBuffer &, PipelineState &, const RGResources &, Renderer& renderer)> m_execute_callback;
+	std::function<void(CommandBuffer &, const RGResources &, Renderer& renderer)> m_execute_callback;
 
 	std::function<void(CommandBuffer &)> m_barrier_callback;
 	std::function<void(CommandBuffer &)> m_barrier_initialize;

@@ -46,7 +46,8 @@ class Renderer
 
 	Texture &GetPrecompute(PrecomputeType type);
 
-	const VkExtent2D GetExtent() const;
+	const VkExtent2D &GetExtent() const;
+	const VkExtent2D &GetViewport() const;
 
 	Scene *GetScene();
 
@@ -68,8 +69,8 @@ class Renderer
 	RGBuilder   m_rg_builder;
 	RenderGraph m_rg;
 
-	VkExtent2D m_extent   = {1920, 1080};
-	VkExtent2D m_viewport = {};
+	VkExtent2D m_extent          = {1920, 1080};
+	VkExtent2D m_viewport        = {1920, 1080};
 	bool       m_viewport_update = false;
 
 	Texture *p_present = nullptr;

@@ -54,16 +54,16 @@ class RHIDevice
 
 	CommandBuffer &RequestCommandBuffer(VkCommandBufferLevel level = VK_COMMAND_BUFFER_LEVEL_PRIMARY, VkQueueFlagBits queue = VK_QUEUE_GRAPHICS_BIT);
 
-	VkPipelineLayout AllocatePipelineLayout(PipelineState &pso);
-	VkPipeline       AllocatePipeline(PipelineState &pso, VkRenderPass render_pass = VK_NULL_HANDLE);
+	VkPipelineLayout AllocatePipelineLayout(const PipelineState &pso);
+	VkPipeline       AllocatePipeline(const PipelineState &pso, VkRenderPass render_pass = VK_NULL_HANDLE);
 	VkRenderPass     AllocateRenderPass(FrameBuffer &framebuffer);
 	VkFramebuffer    AllocateFrameBuffer(FrameBuffer &framebuffer);
 
-	ShaderBindingTable &AllocateSBT(PipelineState &pso);
+	ShaderBindingTable &AllocateSBT(const PipelineState &pso);
 
-	const std::map<uint32_t, VkDescriptorSet> &AllocateDescriptorSet(PipelineState &pso);
+	const std::map<uint32_t, VkDescriptorSet> &AllocateDescriptorSet(const PipelineState &pso);
 
-	DescriptorState &AllocateDescriptorState(PipelineState &pso);
+	DescriptorState &AllocateDescriptorState(const PipelineState &pso);
 
 	uint32_t GetGraphicsFamily() const;
 	uint32_t GetComputeFamily() const;
@@ -88,9 +88,9 @@ class RHIDevice
 	void CreateAllocator();
 
   private:
-	VkPipeline AllocateGraphicsPipeline(PipelineState &pso, VkRenderPass render_pass);
-	VkPipeline AllocateComputePipeline(PipelineState &pso);
-	VkPipeline AllocateRayTracingPipeline(PipelineState &pso);
+	VkPipeline AllocateGraphicsPipeline(const PipelineState &pso, VkRenderPass render_pass);
+	VkPipeline AllocateComputePipeline(const PipelineState &pso);
+	VkPipeline AllocateRayTracingPipeline(const PipelineState &pso);
 
   private:
 	// Extension functions

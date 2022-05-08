@@ -23,7 +23,7 @@ class ImGuiContext
 	void Render();
 	void EndFrame();
 
-	void OpenFileDialog(const std::string &key, const std::string &title, const std::string &filter);
+	void OpenFileDialog(const std::string &key, const std::string &title, const std::string &filter, bool open = true);
 	void GetFileDialogResult(const std::string &key, std::function<void(const std::string &)> &&callback);
 
 	void *TextureID(VkImageView view);

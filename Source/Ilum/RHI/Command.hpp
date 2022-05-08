@@ -39,8 +39,8 @@ struct BufferCopyInfo
 
 struct TextureCopyInfo
 {
-	Texture                 *texture = nullptr;
-	VkImageSubresourceLayers subresource  = {};
+	Texture                 *texture     = nullptr;
+	VkImageSubresourceLayers subresource = {};
 };
 
 class CommandPool
@@ -105,7 +105,7 @@ class CommandBuffer
 	void BeginRenderPass(FrameBuffer &frame_buffer);
 	void EndRenderPass();
 
-	void Bind(PipelineState &pso);
+	void Bind(const PipelineState &pso);
 	void Bind(DescriptorState &descriptor_state);
 
 	DescriptorState &GetDescriptorState() const;
@@ -120,6 +120,8 @@ class CommandBuffer
 	void SetViewport(float width, float height, float x = 0.f, float y = 0.f, float min_depth = 0.f, float max_depth = 1.f);
 	void SetScissor(uint32_t width, uint32_t height, int32_t x = 0, int32_t y = 0);
 
+	void GenerateMipmap(Texture *texture, const TextureState &initial_state, VkFilter filter);
+
 	void CopyBufferToImage(const BufferCopyInfo &buffer, const TextureCopyInfo &texture);
 
 	operator const VkCommandBuffer &() const;
@@ -130,8 +132,8 @@ class CommandBuffer
 
 	VkCommandBuffer m_handle = VK_NULL_HANDLE;
 
-	PipelineState *m_current_pso = nullptr;
-	FrameBuffer   *m_current_fb  = nullptr;
+	const PipelineState *m_current_pso = nullptr;
+	FrameBuffer         *m_current_fb  = nullptr;
 };
 
 }        // namespace Ilum

@@ -78,6 +78,8 @@ class Texture
 	Texture(RHIDevice *device, const TextureDesc &desc);
 	// Swaphcain Texture
 	Texture(RHIDevice *device, const TextureDesc &desc, VkImage handle);
+	// Load From File
+	Texture(RHIDevice *device, const std::string &filename);
 	~Texture();
 
 	Texture(const Texture &) = delete;
@@ -99,6 +101,8 @@ class Texture
 
 	void SetName(const std::string &name);
 
+	const std::string &GetName() const;
+
 	VkImageView GetView(const TextureViewDesc &desc);
 
 	const TextureDesc &GetDesc() const;
@@ -109,6 +113,7 @@ class Texture
 
   private:
 	RHIDevice    *p_device = nullptr;
+	std::string   m_name   = "";
 	TextureDesc   m_desc;
 	VkImage       m_handle     = VK_NULL_HANDLE;
 	VmaAllocation m_allocation = VK_NULL_HANDLE;

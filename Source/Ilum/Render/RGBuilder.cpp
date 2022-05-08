@@ -55,8 +55,8 @@ struct RGSerializeData
 	}
 };
 
-RGBuilder::RGBuilder(RHIDevice *device, RenderGraph &graph) :
-    p_device(device), m_graph(graph)
+RGBuilder::RGBuilder(RHIDevice *device, RenderGraph &graph, Renderer &renderer) :
+    p_device(device), m_graph(graph), m_renderer(renderer)
 {
 }
 
@@ -328,7 +328,7 @@ void RGBuilder::Compile()
 					{
 						TextureState src = {};
 						TextureState dst = {};
-						
+
 						dst.access_mask            = resource_initial_state.at(node).access_mask;
 						dst.stage                  = resource_initial_state.at(node).stage;
 						dst.layout                 = resource_initial_state.at(node).layout;
@@ -355,8 +355,8 @@ void RGBuilder::Compile()
 					}
 					if (node->GetResource()->GetType() == ResourceType::Texture)
 					{
-						TextureState src = {};
-						TextureState dst = {};
+						TextureState src           = {};
+						TextureState dst           = {};
 						src.access_mask            = node->GetLastState().access_mask;
 						src.stage                  = node->GetLastState().stage;
 						src.layout                 = node->GetLastState().layout;
@@ -435,8 +435,10 @@ void RGBuilder::Compile()
 	}
 }
 
-void RGBuilder::OnImGui(ImGuiContext& context)
+bool RGBuilder::OnImGui(ImGuiContext &context)
 {
+	bool recompile = false;
+
 	ImGui::Begin("Render Graph Editor");
 
 	std::vector<int32_t> selected_links;
@@ -463,6 +465,7 @@ void RGBuilder::OnImGui(ImGuiContext& context)
 		if (ImGui::MenuItem("Compile"))
 		{
 			Compile();
+			recompile = true;
 		}
 
 		// Remove
@@ -625,6 +628,8 @@ void RGBuilder::OnImGui(ImGuiContext& context)
 
 	context.GetFileDialogResult("Save Render Graph", [this](const std::string &name) { Save(name); });
 	context.GetFileDialogResult("Load Render Graph", [this](const std::string &name) { Load(name); });
+
+	return recompile;
 }
 
 void RGBuilder::Save(const std::string &filename)
@@ -685,6 +690,11 @@ void RGBuilder::Load(const std::string &filename)
 	}
 
 	ImNodes::LoadCurrentEditorStateFromIniFile((name + ".ini").c_str());
+}
+
+Renderer &RGBuilder::GetRenderer()
+{
+	return m_renderer;
 }
 
 }        // namespace Ilum

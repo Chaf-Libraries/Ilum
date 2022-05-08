@@ -209,7 +209,7 @@ void CommandBuffer::EndRenderPass()
 	vkCmdEndRenderPass(m_handle);
 }
 
-void CommandBuffer::Bind(PipelineState &pso)
+void CommandBuffer::Bind(const PipelineState &pso)
 {
 	m_current_pso = &pso;
 	vkCmdBindPipeline(m_handle, pso.GetBindPoint(), p_device->AllocatePipeline(*m_current_pso, m_current_fb == nullptr ? VK_NULL_HANDLE : p_device->AllocateRenderPass(*m_current_fb)));
@@ -322,6 +322,75 @@ void CommandBuffer::SetScissor(uint32_t width, uint32_t height, int32_t x, int32
 {
 	VkRect2D rect = {x, y, width, height};
 	vkCmdSetScissor(m_handle, 0, 1, &rect);
+}
+
+void CommandBuffer::GenerateMipmap(Texture *texture, const TextureState &initial_state, VkFilter filter)
+{
+	VkImageSubresourceRange  src_range  = {VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->GetMipLevels(), 0, texture->GetLayerCount()};
+	VkImageSubresourceRange  dst_range  = {VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->GetMipLevels(), 0, texture->GetLayerCount()};
+	VkImageSubresourceLayers src_layers = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+	VkImageSubresourceLayers dst_layers = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+	VkImageUsageFlagBits     src_usage  = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+	uint32_t src_width  = texture->GetWidth();
+	uint32_t src_height = texture->GetHeight();
+	uint32_t dst_width  = texture->GetWidth();
+	uint32_t dst_height = texture->GetHeight();
+
+	for (uint32_t i = 1; i < texture->GetMipLevels(); i++)
+	{
+		src_width  = dst_width;
+		src_height = dst_height;
+
+		dst_width  = std::max(src_width / 2, 1u);
+		dst_height = std::max(src_height / 2, 1u);
+
+		src_layers.mipLevel    = i - 1;
+		src_range.baseMipLevel = i - 1;
+		src_range.levelCount   = 1;
+
+		dst_layers.mipLevel    = i;
+		dst_range.baseMipLevel = i;
+		dst_range.levelCount   = 1;
+
+		std::vector<TextureTransition> transitions(2);
+		transitions[0].texture = texture;
+		transitions[0].src     = TextureState(src_usage);
+		transitions[0].dst     = TextureState(VK_IMAGE_USAGE_TRANSFER_SRC_BIT);
+		transitions[0].range   = src_range;
+		transitions[1].texture = texture;
+		transitions[1].src     = TextureState();
+		transitions[1].dst     = TextureState(VK_IMAGE_USAGE_TRANSFER_DST_BIT);
+		transitions[1].range   = dst_range;
+		Transition({}, transitions);
+
+		src_usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+		VkImageBlit blit_info    = {};
+		blit_info.srcOffsets[0]  = {0, 0, 0};
+		blit_info.srcOffsets[1]  = {static_cast<int32_t>(src_width), static_cast<int32_t>(src_height), 1};
+		blit_info.dstOffsets[0]  = {0, 0, 0};
+		blit_info.dstOffsets[1]  = {static_cast<int32_t>(dst_width), static_cast<int32_t>(dst_height), 1};
+		blit_info.srcSubresource = src_layers;
+		blit_info.dstSubresource = dst_layers;
+
+		vkCmdBlitImage(*this, *texture, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, *texture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit_info, filter);
+	}
+
+	VkImageSubresourceRange mip_level_range         = {VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->GetMipLevels(), 0, texture->GetLayerCount()};
+	mip_level_range.levelCount   = mip_level_range.levelCount - 1;
+	VkImageMemoryBarrier barrier = {};
+	barrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.srcAccessMask        = VK_ACCESS_TRANSFER_READ_BIT;
+	barrier.dstAccessMask        = VK_ACCESS_TRANSFER_WRITE_BIT;
+	barrier.oldLayout            = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	barrier.newLayout            = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+	barrier.srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image                = *texture;
+	barrier.subresourceRange     = mip_level_range;
+
+	vkCmdPipelineBarrier(*this, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
 void CommandBuffer::CopyBufferToImage(const BufferCopyInfo &buffer, const TextureCopyInfo &texture)

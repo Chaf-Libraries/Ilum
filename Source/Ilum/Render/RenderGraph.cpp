@@ -29,7 +29,7 @@ void RGPass::Execute(CommandBuffer &cmd_buffer, const RGResources &resources, Re
 	}
 	if (m_execute_callback)
 	{
-		m_execute_callback(cmd_buffer, m_pso, resources, renderer);
+		m_execute_callback(cmd_buffer, resources, renderer);
 	}
 }
 
