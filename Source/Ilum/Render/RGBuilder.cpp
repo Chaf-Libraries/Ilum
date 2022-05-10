@@ -24,6 +24,7 @@
 namespace Ilum
 {
 std::vector<std::string> RGBuilder::s_avaliable_passes = {
+    "VisibilityPass",
     "Triangle",
     "Present"};
 

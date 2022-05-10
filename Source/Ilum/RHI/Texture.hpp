@@ -80,6 +80,9 @@ class Texture
 	Texture(RHIDevice *device, const TextureDesc &desc, VkImage handle);
 	// Load From File
 	Texture(RHIDevice *device, const std::string &filename);
+	// Load From Buffer
+	Texture(RHIDevice *device, void *raw_data, int32_t raw_size);
+
 	~Texture();
 
 	Texture(const Texture &) = delete;

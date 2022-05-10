@@ -1,10 +1,15 @@
 #include "Scene.hpp"
-#include "AssetManager.hpp"
 #include "Entity.hpp"
 
 #include <Core/Path.hpp>
 
+#include <RHI/Texture.hpp>
+
+#include <Asset/AssetManager.hpp>
+#include <Asset/Material.hpp>
+
 #include "Component/Hierarchy.hpp"
+#include "Component/MeshRenderer.hpp"
 #include "Component/Tag.hpp"
 #include "Component/Transform.hpp"
 
@@ -14,6 +19,12 @@
 #include <imgui.h>
 
 #include <cgltf/cgltf.h>
+
+#include <glm/gtc/type_ptr.hpp>
+
+#include <meshoptimizer.h>
+
+#include <ImGuizmo.h>
 
 #include <fstream>
 
@@ -313,6 +324,7 @@ entt::entity Scene::Create(const std::string &name)
 
 void Scene::Tick()
 {
+
 }
 
 void Scene::OnImGui(ImGuiContext &context)
@@ -323,7 +335,7 @@ void Scene::OnImGui(ImGuiContext &context)
 
 		{
 			char buffer[64];
-			memset(buffer, 0, sizeof(buffer));
+			std::memset(buffer, 0, sizeof(buffer));
 			std::memcpy(buffer, m_name.data(), sizeof(buffer));
 			ImGui::PushItemWidth(150.f);
 			if (ImGui::InputText("##SceneName", buffer, sizeof(buffer)))
@@ -338,7 +350,7 @@ void Scene::OnImGui(ImGuiContext &context)
 			{
 				ASSERT(pay_load->DataSize == sizeof(Entity));
 				SetAsSon(*this, Entity(*this), *static_cast<Entity *>(pay_load->Data));
-				m_update_transform = true;
+				m_transform_update = true;
 			}
 		}
 
@@ -384,13 +396,14 @@ void Scene::OnImGui(ImGuiContext &context)
 
 		if (ImGui::BeginPopup("AddComponent"))
 		{
-			// AddComponents</*cmpt::Hierarchy*/>(*this, m_select);
+			AddComponents<cmpt::MeshRenderer>(*this, m_select);
 
 			ImGui::EndPopup();
 		}
 
-		m_update_transform = DrawComponent<cmpt::Transform>(*this, m_select, context, true);
+		m_transform_update = DrawComponent<cmpt::Transform>(*this, m_select, context, true);
 		DrawComponent<cmpt::Hierarchy>(*this, m_select, context, true);
+		m_mesh_update = DrawComponent<cmpt::MeshRenderer>(*this, m_select, context, true);
 	}
 	ImGui::End();
 }
@@ -448,20 +461,255 @@ void Scene::ImportGLTF(const std::string &filename)
 		return;
 	}
 
-	auto load_texture = [this](Texture *&texture, cgltf_texture *gltf_texture) {
+	std::map<cgltf_texture *, Texture *> texture_map;
+
+	auto load_texture = [this, &texture_map, filename](Texture *&texture, cgltf_texture *gltf_texture) {
+		if (!gltf_texture)
+		{
+			return;
+		}
+		if (texture_map.find(gltf_texture) != texture_map.end())
+		{
+			texture = texture_map[gltf_texture];
+			return;
+		}
 		if (gltf_texture->image->uri)
 		{
-
+			texture = m_asset_manager.LoadTexture(Path::GetInstance().GetFileDirectory(filename) + gltf_texture->image->uri);
 		}
-	
+		else if (gltf_texture->image->buffer_view)
+		{
+			auto new_texture = std::make_unique<Texture>(
+			    p_device,
+			    static_cast<char *>(gltf_texture->image->buffer_view->buffer->data) + gltf_texture->image->buffer_view->offset,
+			    static_cast<int32_t>(gltf_texture->image->buffer_view->size));
+			if (gltf_texture->image->name)
+			{
+				new_texture->SetName(gltf_texture->image->name);
+			}
+			texture = m_asset_manager.Add(std::move(new_texture));
+		}
 	};
+
+	std::map<cgltf_material *, Material *> material_map;
 
 	// Load materials
 	for (uint32_t i = 0; i < raw_data->materials_count; i++)
 	{
-		auto &raw_material = raw_data->materials[i];
-		auto *material     = m_asset_manager.AddMaterial(std::make_unique<Material>());
+		auto &raw_material          = raw_data->materials[i];
+		auto *material              = m_asset_manager.Add(std::make_unique<Material>(p_device, m_asset_manager));
+		material_map[&raw_material] = material;
+		if (raw_material.name)
+		{
+			material->m_name = raw_material.name;
+		}
+		else
+		{
+			material->m_name = Path::GetInstance().GetFileName(filename, false) + " Material #" + std::to_string(i);
+		}
+		material->m_alpha_mode        = static_cast<AlphaMode>(raw_material.alpha_mode);
+		material->m_alpha_cut_off     = raw_material.alpha_cutoff;
+		material->m_emissive_strength = raw_material.emissive_strength.emissive_strength;
+		load_texture(material->m_normal_texture, raw_material.normal_texture.texture);
+		load_texture(material->m_emissive_texture, raw_material.emissive_texture.texture);
+		std::memcpy(glm::value_ptr(material->m_emissive_factor), raw_material.emissive_factor, sizeof(material->m_emissive_factor));
+		if (raw_material.has_pbr_metallic_roughness)
+		{
+			std::memcpy(glm::value_ptr(material->m_albedo_factor), raw_material.pbr_metallic_roughness.base_color_factor, sizeof(material->m_albedo_factor));
+			material->m_metallic_factor  = raw_material.pbr_metallic_roughness.metallic_factor;
+			material->m_roughness_factor = raw_material.pbr_metallic_roughness.roughness_factor;
+			load_texture(material->m_metallic_roughness_texture, raw_material.pbr_metallic_roughness.metallic_roughness_texture.texture);
+			load_texture(material->m_albedo_texture, raw_material.pbr_metallic_roughness.base_color_texture.texture);
+		}
+		else if (raw_material.has_pbr_specular_glossiness)
+		{
+			std::memcpy(glm::value_ptr(material->m_albedo_factor), raw_material.pbr_specular_glossiness.diffuse_factor, sizeof(material->m_albedo_factor));
+			std::memcpy(glm::value_ptr(material->m_specular_factor), raw_material.pbr_specular_glossiness.specular_factor, sizeof(material->m_specular_factor));
+			material->m_glossiness_factor = raw_material.pbr_specular_glossiness.glossiness_factor;
+			load_texture(material->m_albedo_texture, raw_material.pbr_specular_glossiness.diffuse_texture.texture);
+			load_texture(material->m_specular_glossiness_texture, raw_material.pbr_specular_glossiness.specular_glossiness_texture.texture);
+			load_texture(material->m_albedo_texture, raw_material.pbr_specular_glossiness.diffuse_texture.texture);
+		}
 	}
+
+	std::map<cgltf_mesh *, Mesh *> mesh_map;
+
+	// Load mesh
+	for (uint32_t mesh_id = 0; mesh_id < raw_data->meshes_count; mesh_id++)
+	{
+		std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>(p_device);
+
+		auto &raw_mesh = raw_data->meshes[mesh_id];
+		if (raw_mesh.name)
+		{
+			mesh->m_name = raw_mesh.name;
+		}
+		else
+		{
+			mesh->m_name = Path::GetInstance().GetFileName(filename, false) + " Mesh #" + std::to_string(mesh_id);
+		}
+
+		for (uint32_t prim_id = 0; prim_id < raw_mesh.primitives_count; prim_id++)
+		{
+			const cgltf_primitive &primitive = raw_mesh.primitives[prim_id];
+
+			std::unique_ptr<Submesh> submesh = std::make_unique<Submesh>(p_device, m_asset_manager);
+			submesh->m_material              = material_map[primitive.material];
+			submesh->m_name                  = Path::GetInstance().GetFileName(filename, false) + " Mesh #" + std::to_string(mesh_id) + " SubMesh #" + std::to_string(prim_id);
+
+			submesh->m_indices.resize(primitive.indices->count);
+			for (size_t i = 0; i < primitive.indices->count; i += 3)
+			{
+				submesh->m_indices[i + 0] = static_cast<uint32_t>(cgltf_accessor_read_index(primitive.indices, i + 0));
+				submesh->m_indices[i + 1] = static_cast<uint32_t>(cgltf_accessor_read_index(primitive.indices, i + 2));
+				submesh->m_indices[i + 2] = static_cast<uint32_t>(cgltf_accessor_read_index(primitive.indices, i + 1));
+			}
+			for (size_t attr_id = 0; attr_id < primitive.attributes_count; attr_id++)
+			{
+				const cgltf_attribute &attribute = primitive.attributes[attr_id];
+				const char            *attr_name = attribute.name;
+				if (strcmp(attr_name, "POSITION") == 0)
+				{
+					submesh->m_vertices.resize(attribute.data->count);
+					for (size_t i = 0; i < attribute.data->count; ++i)
+					{
+						cgltf_accessor_read_float(attribute.data, i, &submesh->m_vertices[i].position.x, 3);
+						submesh->m_bounding_box.Merge(submesh->m_vertices[i].position);
+					}
+				}
+				else if (strcmp(attr_name, "NORMAL") == 0)
+				{
+					submesh->m_vertices.resize(attribute.data->count);
+					for (size_t i = 0; i < attribute.data->count; ++i)
+					{
+						cgltf_accessor_read_float(attribute.data, i, &submesh->m_vertices[i].normal.x, 3);
+					}
+				}
+				else if (strcmp(attr_name, "TANGENT") == 0)
+				{
+					submesh->m_vertices.resize(attribute.data->count);
+					for (size_t i = 0; i < attribute.data->count; ++i)
+					{
+						cgltf_accessor_read_float(attribute.data, i, &submesh->m_vertices[i].tangent.x, 3);
+					}
+				}
+				else if (strcmp(attr_name, "TEXCOORD_0") == 0)
+				{
+					submesh->m_vertices.resize(attribute.data->count);
+					for (size_t i = 0; i < attribute.data->count; ++i)
+					{
+						cgltf_accessor_read_float(attribute.data, i, &submesh->m_vertices[i].texcoord.x, 2);
+					}
+				}
+				else
+				{
+					LOG_WARN("GLTF - Attribute {} is unsupported", attr_name);
+				}
+			}
+			//	Optimize mesh
+			meshopt_optimizeVertexCache(submesh->m_indices.data(), submesh->m_indices.data(), submesh->m_indices.size(), submesh->m_vertices.size());
+			meshopt_optimizeOverdraw(submesh->m_indices.data(), submesh->m_indices.data(), submesh->m_indices.size(), &submesh->m_vertices[0].position.x, submesh->m_vertices.size(), sizeof(ShaderInterop::Vertex), 1.05f);
+			std::vector<uint32_t> remap(submesh->m_vertices.size());
+			meshopt_optimizeVertexFetchRemap(&remap[0], submesh->m_indices.data(), submesh->m_indices.size(), submesh->m_vertices.size());
+			meshopt_remapIndexBuffer(submesh->m_indices.data(), submesh->m_indices.data(), submesh->m_indices.size(), &remap[0]);
+			meshopt_remapVertexBuffer(submesh->m_vertices.data(), submesh->m_vertices.data(), submesh->m_vertices.size(), sizeof(ShaderInterop::Vertex), &remap[0]);
+
+			// Generate meshlet
+			const size_t max_vertices  = ShaderInterop::MESHLET_MAX_VERTICES;
+			const size_t max_triangles = ShaderInterop::MESHLET_MAX_TRIANGLES;
+			const float  cone_weight   = 0.5f;
+
+			size_t max_meshlets = meshopt_buildMeshletsBound(submesh->m_indices.size(), max_vertices, max_triangles);
+
+			submesh->m_meshlets.resize(max_meshlets);
+			submesh->m_meshlet_vertices.resize(max_meshlets * max_vertices);
+
+			std::vector<uint8_t>         meshlet_triangles(max_meshlets * max_triangles * 3);
+			std::vector<meshopt_Meshlet> meshlets(max_meshlets);
+
+			size_t meshlet_count = meshopt_buildMeshlets(meshlets.data(), submesh->m_meshlet_vertices.data(), meshlet_triangles.data(),
+			                                             submesh->m_indices.data(), submesh->m_indices.size(), &submesh->m_vertices[0].position.x, submesh->m_vertices.size(),
+			                                             sizeof(ShaderInterop::Vertex), max_vertices, max_triangles, cone_weight);
+
+			const meshopt_Meshlet &last = meshlets[meshlet_count - 1];
+			meshlet_triangles.resize(last.triangle_offset + ((last.triangle_count * 3 + 3) & ~3));
+			meshlets.resize(meshlet_count);
+
+			submesh->m_meshlet_vertices.resize(last.vertex_offset + last.vertex_count);
+			submesh->m_meshlets.resize(meshlet_count);
+			submesh->m_meshlet_bounds.resize(meshlet_count);
+			submesh->m_meshlet_triangles.resize(meshlet_triangles.size());
+
+			uint32_t triangle_offset = 0;
+			for (size_t i = 0; i < meshlet_count; i++)
+			{
+				const auto &meshlet = meshlets[i];
+				const auto  bound   = meshopt_computeMeshletBounds(&submesh->m_meshlet_vertices[meshlet.vertex_offset], &meshlet_triangles[meshlet.triangle_offset],
+				                                                   meshlet.triangle_count, &submesh->m_vertices[0].position.x, submesh->m_vertices.size(), sizeof(ShaderInterop::Vertex));
+
+				submesh->m_meshlets[i].bound.center       = glm::vec3(bound.center[0], bound.center[1], bound.center[2]);
+				submesh->m_meshlets[i].bound.radius       = bound.radius;
+				submesh->m_meshlets[i].bound.cone_axis    = glm::vec3(bound.cone_axis[0], bound.cone_axis[1], bound.cone_axis[2]);
+				submesh->m_meshlets[i].bound.cone_cut_off = bound.cone_cutoff;
+
+				for (uint32_t tri_idx = 0; tri_idx < meshlet.triangle_count; tri_idx++)
+				{
+					submesh->m_meshlet_triangles[tri_idx + triangle_offset] = ShaderInterop::PackTriangle(
+					    meshlet_triangles[tri_idx * 3 + 0 + meshlet.triangle_offset],
+					    meshlet_triangles[tri_idx * 3 + 1 + meshlet.triangle_offset],
+					    meshlet_triangles[tri_idx * 3 + 2 + meshlet.triangle_offset]);
+				}
+				submesh->m_meshlets[i].primitive_count  = meshlet.triangle_count;
+				submesh->m_meshlets[i].primitive_offset = triangle_offset;
+				submesh->m_meshlets[i].vertex_offset    = meshlet.vertex_offset;
+				submesh->m_meshlets[i].vertex_count     = meshlet.vertex_count;
+				triangle_offset += meshlet.triangle_count * 3;
+			}
+			submesh->m_meshlet_triangles.resize(triangle_offset);
+			submesh->UpdateBuffer();
+			mesh->m_submeshes.emplace_back(std::move(submesh));
+		}
+		mesh_map[&raw_mesh] = m_asset_manager.Add(std::move(mesh));
+	}
+
+	// Load node
+	std::unordered_map<const cgltf_node *, entt::entity> node_map;
+
+	auto root = Entity(*this, Create(Path::GetInstance().GetFileName(filename, false).c_str()));
+
+	for (size_t i = 0; i < raw_data->nodes_count; i++)
+	{
+		const cgltf_node &node = raw_data->nodes[i];
+
+		auto entity = Entity(*this, Create(node.name ? node.name : (Path::GetInstance().GetFileName(filename, false) + std::string(" Node #") + std::to_string(i)).c_str()));
+
+		SetAsSon(*this, root, entity);
+		node_map[&node] = entity;
+
+		auto &transform       = entity.GetComponent<cmpt::Transform>();
+		transform.translation = glm::vec3(node.translation[0], node.translation[1], node.translation[2]);
+		transform.rotation    = glm::vec3(node.rotation[0], node.rotation[1], node.rotation[2]);
+		transform.scale       = glm::vec3(node.scale[0], node.scale[1], node.scale[2]);
+
+		if (node.mesh)
+		{
+			auto &mesh_renderer   = entity.AddComponent<cmpt::MeshRenderer>();
+			mesh_renderer.manager = &m_asset_manager;
+			mesh_renderer.mesh    = mesh_map[node.mesh];
+		}
+	}
+	for (auto &[node, entity] : node_map)
+	{
+		if (node->parent)
+		{
+			SetAsSon(*this, Entity(*this, node_map[node->parent]), Entity(*this, entity));
+		}
+		for (size_t i = 0; i < node->children_count; i++)
+		{
+			SetAsSon(*this, Entity(*this, entity), Entity(*this, node_map[node->children[i]]));
+		}
+	}
+	cgltf_free(raw_data);
 }
 
 void Scene::ExportGLTF(const std::string &filename)

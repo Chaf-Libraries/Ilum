@@ -39,6 +39,8 @@ target_link_libraries(${TARGET_NAME} PRIVATE rttr_core_lib)
 target_link_libraries(${TARGET_NAME} PRIVATE cereal)
 target_link_libraries(${TARGET_NAME} PRIVATE ImFileDialog)
 target_link_libraries(${TARGET_NAME} PRIVATE entt)
+target_link_libraries(${TARGET_NAME} PRIVATE meshoptimizer)
+target_link_libraries(${TARGET_NAME} PRIVATE ImGuizmo)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Dependencies/dxc/inc")

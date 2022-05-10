@@ -312,6 +312,11 @@ void CommandBuffer::Draw(uint32_t vertex_count, uint32_t instance_count, uint32_
 	vkCmdDraw(m_handle, vertex_count, instance_count, first_vertex, first_instance);
 }
 
+void CommandBuffer::DrawIndexed(uint32_t index_count, uint32_t instance_count, uint32_t first_index, uint32_t vertex_offset, uint32_t first_instance)
+{
+	vkCmdDrawIndexed(m_handle, index_count, instance_count, first_index, vertex_offset, first_instance);
+}
+
 void CommandBuffer::SetViewport(float width, float height, float x, float y, float min_depth, float max_depth)
 {
 	VkViewport viewport = {x, y, width, height, min_depth, max_depth};
@@ -377,18 +382,18 @@ void CommandBuffer::GenerateMipmap(Texture *texture, const TextureState &initial
 		vkCmdBlitImage(*this, *texture, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, *texture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit_info, filter);
 	}
 
-	VkImageSubresourceRange mip_level_range         = {VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->GetMipLevels(), 0, texture->GetLayerCount()};
-	mip_level_range.levelCount   = mip_level_range.levelCount - 1;
-	VkImageMemoryBarrier barrier = {};
-	barrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	barrier.srcAccessMask        = VK_ACCESS_TRANSFER_READ_BIT;
-	barrier.dstAccessMask        = VK_ACCESS_TRANSFER_WRITE_BIT;
-	barrier.oldLayout            = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-	barrier.newLayout            = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-	barrier.srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
-	barrier.dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
-	barrier.image                = *texture;
-	barrier.subresourceRange     = mip_level_range;
+	VkImageSubresourceRange mip_level_range = {VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->GetMipLevels(), 0, texture->GetLayerCount()};
+	mip_level_range.levelCount              = mip_level_range.levelCount - 1;
+	VkImageMemoryBarrier barrier            = {};
+	barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.srcAccessMask                   = VK_ACCESS_TRANSFER_READ_BIT;
+	barrier.dstAccessMask                   = VK_ACCESS_TRANSFER_WRITE_BIT;
+	barrier.oldLayout                       = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	barrier.newLayout                       = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+	barrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+	barrier.image                           = *texture;
+	barrier.subresourceRange                = mip_level_range;
 
 	vkCmdPipelineBarrier(*this, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
@@ -404,6 +409,28 @@ void CommandBuffer::CopyBufferToImage(const BufferCopyInfo &buffer, const Textur
 	copy_info.imageExtent       = {texture.texture->GetMipWidth(texture.subresource.mipLevel), texture.texture->GetMipHeight(texture.subresource.mipLevel), 1};
 
 	vkCmdCopyBufferToImage(*this, *buffer.buffer, *texture.texture, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_info);
+}
+
+void CommandBuffer::CopyBuffer(const BufferCopyInfo &src, const BufferCopyInfo &dst, size_t size)
+{
+	VkBufferCopy copy_info = {};
+	copy_info.size         = size;
+	copy_info.srcOffset    = src.offset;
+	copy_info.dstOffset    = dst.offset;
+
+	vkCmdCopyBuffer(m_handle, *src.buffer, *dst.buffer, 1, &copy_info);
+}
+
+void CommandBuffer::BindVertexBuffer(Buffer *vertex_buffer)
+{
+	VkBuffer buffer_handle = *vertex_buffer;
+	VkDeviceSize offsets[1]    = {0};
+	vkCmdBindVertexBuffers(m_handle, 0, 1, &buffer_handle, offsets);
+}
+
+void CommandBuffer::BindIndexBuffer(Buffer *index_buffer)
+{
+	vkCmdBindIndexBuffer(m_handle, *index_buffer, 0, VK_INDEX_TYPE_UINT32);
 }
 
 CommandBuffer::operator const VkCommandBuffer &() const

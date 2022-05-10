@@ -116,6 +116,7 @@ class CommandBuffer
 
 	void Dispatch(uint32_t group_count_x = 1, uint32_t group_count_y = 1, uint32_t group_count_z = 1);
 	void Draw(uint32_t vertex_count, uint32_t instance_count = 1, uint32_t first_vertex = 0, uint32_t first_instance = 0);
+	void DrawIndexed(uint32_t index_count, uint32_t instance_count = 1, uint32_t first_index = 0, uint32_t vertex_offset = 0, uint32_t first_instance = 0);
 
 	void SetViewport(float width, float height, float x = 0.f, float y = 0.f, float min_depth = 0.f, float max_depth = 1.f);
 	void SetScissor(uint32_t width, uint32_t height, int32_t x = 0, int32_t y = 0);
@@ -123,6 +124,10 @@ class CommandBuffer
 	void GenerateMipmap(Texture *texture, const TextureState &initial_state, VkFilter filter);
 
 	void CopyBufferToImage(const BufferCopyInfo &buffer, const TextureCopyInfo &texture);
+	void CopyBuffer(const BufferCopyInfo &src, const BufferCopyInfo &dst, size_t size);
+
+	void BindVertexBuffer(Buffer *vertex_buffer);
+	void BindIndexBuffer(Buffer *index_buffer);
 
 	operator const VkCommandBuffer &() const;
 

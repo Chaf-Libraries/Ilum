@@ -9,6 +9,17 @@ namespace Ilum
 {
 class AssetManager;
 
+struct GeometryBatch
+{
+	std::vector<Buffer *> vertex_buffers;
+	std::vector<Buffer *> index_buffers;
+	std::vector<Buffer *> meshlet_vertex_buffers;
+	std::vector<Buffer *> meshlet_triangle_buffers;
+	std::vector<Buffer *> meshlet_buffers;
+	std::vector<Buffer *> meshlet_bound_buffers;
+	std::vector<AccelerationStructure *> bottom_level_acceleration_structures;
+};
+
 class Scene
 {
   public:
@@ -45,9 +56,15 @@ class Scene
 
 	entt::entity m_select = entt::null;
 
-	std::string m_name = "";
+	std::string m_name      = "";
 	std::string m_save_path = "";
 
-	bool m_update_transform = false;
+  private:
+	std::unique_ptr<Buffer> m_instance_buffer = nullptr;
+	std::unique_ptr<Buffer> m_transform_buffer = nullptr;
+	std::unique_ptr<AccelerationStructure> m_top_level_acceleration_structure = nullptr;
+
+	bool m_transform_update = false;
+	bool m_mesh_update      = false;
 };
 }        // namespace Ilum

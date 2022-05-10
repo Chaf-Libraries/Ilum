@@ -102,11 +102,7 @@ void Renderer::OnImGui(ImGuiContext &context)
 	}
 	ImGui::End();
 
-	ImGui::Begin("Font Test");
-	ImGui::Text(u8"Å£±Æ");
-	ImGui::Text("%s among %d items", ICON_FA_SEARCH, 2);
-	ImGui::Button(ICON_FA_SEARCH " Search");
-	ImGui::End();
+	ImGui::ShowDemoWindow();
 
 	// Scene UI
 	if (p_scene)
