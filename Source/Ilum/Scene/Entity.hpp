@@ -130,7 +130,7 @@ class Entity
 
 namespace std
 {
-std::string to_string(Ilum::Entity entity)
+inline std::string to_string(Ilum::Entity entity)
 {
 	return to_string(static_cast<uint32_t>(entity.GetHandle()));
 }

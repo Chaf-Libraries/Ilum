@@ -1,12 +1,19 @@
 #include "Renderer.hpp"
 
+#include <Core/Input.hpp>
 #include <Core/Time.hpp>
 
 #include <RHI/Command.hpp>
 #include <RHI/DescriptorState.hpp>
+#include <RHI/FrameBuffer.hpp>
 #include <RHI/PipelineState.hpp>
 
+#include <Scene/Component/Camera.hpp>
+#include <Scene/Component/Transform.hpp>
+#include <Scene/Entity.hpp>
 #include <Scene/Scene.hpp>
+
+#include <Asset/AssetManager.hpp>
 
 #include <imgui.h>
 
@@ -23,6 +30,7 @@ Renderer::Renderer(RHIDevice *device, Scene *scene) :
 	CreateSampler();
 	KullaContyApprox();
 	BRDFPreIntegration();
+	EquirectangularToCubemap(nullptr);
 }
 
 Renderer::~Renderer()
@@ -52,6 +60,25 @@ void Renderer::OnImGui(ImGuiContext &context)
 	ImGui::Text("Render Target Size: (%ld, %ld)", m_extent.width, m_extent.height);
 	ImGui::Text("Viewport Size: (%ld, %ld)", m_viewport.width, m_viewport.height);
 	ImGui::Text("FPS: %f", Timer::GetInstance().FrameRate());
+
+	if (ImGui::TreeNode("Skybox"))
+	{
+		const char *const faces[]         = {"+X", "-X", "+Y", "-Y", "+Z", "-Z"};
+		static int32_t    current_face_id = 0;
+		ImGui::Combo("Face", &current_face_id, faces, 6);
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const auto *pay_load = ImGui::AcceptDragDropPayload("Texture"))
+			{
+				ASSERT(pay_load->DataSize == sizeof(uint32_t));
+				auto *tex = p_scene->GetAssetManager().GetTexture(*static_cast<uint32_t *>(pay_load->Data));
+				EquirectangularToCubemap(tex);
+			}
+			ImGui::EndDragDropTarget();
+		}
+		ImGui::Image(context.TextureID(m_skybox->GetView(TextureViewDesc{VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, static_cast<uint32_t>(current_face_id), 1})), ImVec2(300, 300));
+		ImGui::TreePop();
+	}
 
 	if (ImGui::TreeNode("LUT"))
 	{
@@ -91,6 +118,12 @@ void Renderer::OnImGui(ImGuiContext &context)
 		    static_cast<uint32_t>(ImGui::GetContentRegionAvail().x),
 		    static_cast<uint32_t>(ImGui::GetContentRegionAvail().y)};
 
+		auto camera_entity = Entity(*p_scene, p_scene->GetMainCamera());
+		if (camera_entity.IsValid())
+		{
+			camera_entity.GetComponent<cmpt::Camera>().aspect = static_cast<float>(m_viewport.width) / static_cast<float>(m_viewport.height);
+		}
+
 		TextureViewDesc desc  = {};
 		desc.view_type        = VK_IMAGE_VIEW_TYPE_2D;
 		desc.aspect           = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -99,6 +132,81 @@ void Renderer::OnImGui(ImGuiContext &context)
 		desc.level_count      = p_present->GetMipLevels();
 		desc.layer_count      = p_present->GetLayerCount();
 		ImGui::Image(context.TextureID(p_present->GetView(desc)), ImGui::GetContentRegionAvail());
+
+		// Camera Controling
+		auto main_camera = Entity(*p_scene, p_scene->GetMainCamera());
+		if (ImGui::IsWindowFocused() && ImGui::IsWindowHovered() && main_camera.IsValid())
+		{
+			if (Input::GetInstance().IsMouseButtonPressed(MouseCode::ButtonRight))
+			{
+				auto &camera    = main_camera.GetComponent<cmpt::Camera>();
+				auto &transform = main_camera.GetComponent<cmpt::Transform>();
+
+				glm::vec2 delta = glm::vec2(p_device->GetWindow()->m_pos_delta_x, p_device->GetWindow()->m_pos_delta_y);
+
+				camera.frame_count = 0;
+
+				float yaw   = std::atan2f(-camera.view[2][2], -camera.view[0][2]);
+				float pitch = std::asinf(-glm::clamp(camera.view[1][2], -1.f, 1.f));
+
+				if (delta.x != 0.f)
+				{
+					yaw += 0.001f * Timer::GetInstance().DeltaTime() * delta.x;
+					transform.rotation.y = -glm::degrees(yaw) - 90.f;
+				}
+				if (delta.y != 0.f)
+				{
+					pitch -= 0.001f * Timer::GetInstance().DeltaTime() * static_cast<float>(delta.y);
+					transform.rotation.x = glm::degrees(pitch);
+				}
+
+				glm::vec3 forward = glm::vec3(0.f);
+				forward.x         = std::cosf(pitch) * std::cosf(yaw);
+				forward.y         = std::sinf(pitch);
+				forward.z         = std::cosf(pitch) * std::sinf(yaw);
+				forward           = glm::normalize(forward);
+
+				glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3{0.f, 1.f, 0.f}));
+				glm::vec3 up    = glm::normalize(glm::cross(right, forward));
+
+				glm::vec3 direction = glm::vec3(0.f);
+
+				if (Input::GetInstance().IsKeyPressed(KeyCode::W))
+				{
+					direction += forward;
+				}
+				if (Input::GetInstance().IsKeyPressed(KeyCode::S))
+				{
+					direction -= forward;
+				}
+				if (Input::GetInstance().IsKeyPressed(KeyCode::D))
+				{
+					direction += right;
+				}
+				if (Input::GetInstance().IsKeyPressed(KeyCode::A))
+				{
+					direction -= right;
+				}
+				if (Input::GetInstance().IsKeyPressed(KeyCode::Q))
+				{
+					direction += up;
+				}
+				if (Input::GetInstance().IsKeyPressed(KeyCode::E))
+				{
+					direction -= up;
+				}
+
+				float t = glm::clamp(0.2f, 0.f, 1.f);
+
+				m_translate_velocity = glm::mix(m_translate_velocity, direction, t * t * (3.f - 2.f * t));
+
+				transform.translation += m_translate_velocity * Timer::GetInstance().DeltaTime() * 0.005f;
+
+				glm::mat4 related_transform = transform.world_transform * glm::inverse(transform.local_transform);
+				transform.local_transform   = glm::scale(glm::translate(glm::mat4(1.f), transform.translation) * glm::mat4_cast(glm::qua<float>(glm::radians(transform.rotation))), transform.scale);
+				transform.world_transform   = related_transform * transform.local_transform;
+			}
+		}
 	}
 	ImGui::End();
 
@@ -119,6 +227,11 @@ Sampler &Renderer::GetSampler(SamplerType type)
 Texture &Renderer::GetPrecompute(PrecomputeType type)
 {
 	return *m_precomputes[static_cast<size_t>(type)];
+}
+
+Texture &Renderer::GetSkybox()
+{
+	return *m_skybox;
 }
 
 const VkExtent2D &Renderer::GetExtent() const
@@ -284,6 +397,120 @@ void Renderer::BRDFPreIntegration()
 		cmd_buffer.Transition(&GetPrecompute(PrecomputeType::BRDFPreIntegration), TextureState{VK_IMAGE_USAGE_STORAGE_BIT}, TextureState(VK_IMAGE_USAGE_SAMPLED_BIT), VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
 	}
 
+	cmd_buffer.End();
+
+	// Submit
+	p_device->SubmitIdle(cmd_buffer);
+}
+
+void Renderer::EquirectangularToCubemap(Texture *texture)
+{
+	// Declare render target
+	TextureDesc tex_desc  = {};
+	tex_desc.width        = 1024;
+	tex_desc.height       = 1024;
+	tex_desc.depth        = 1;
+	tex_desc.mips         = 1;
+	tex_desc.layers       = 6;
+	tex_desc.sample_count = VK_SAMPLE_COUNT_1_BIT;
+	tex_desc.format       = VK_FORMAT_R16G16B16A16_SFLOAT;
+	tex_desc.usage        = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+
+	TextureViewDesc view_desc  = {};
+	view_desc.aspect           = VK_IMAGE_ASPECT_COLOR_BIT;
+	view_desc.view_type        = VK_IMAGE_VIEW_TYPE_2D;
+	view_desc.base_array_layer = 0;
+	view_desc.base_mip_level   = 0;
+	view_desc.layer_count      = 1;
+	view_desc.level_count      = 1;
+
+	if (!m_skybox)
+	{
+		m_skybox = std::make_unique<Texture>(p_device, tex_desc);
+
+		auto &cmd_buffer = p_device->RequestCommandBuffer();
+		cmd_buffer.Begin();
+		cmd_buffer.Transition(m_skybox.get(), TextureState{}, TextureState(VK_IMAGE_USAGE_SAMPLED_BIT), VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 6});
+		cmd_buffer.End();
+		p_device->SubmitIdle(cmd_buffer);
+
+		m_skybox->SetName("Skybox");
+	}
+
+	if (!texture)
+	{
+		return;
+	}
+
+	// Setup PSO
+	ShaderDesc vertex_shader  = {};
+	vertex_shader.filename    = "./Source/Shaders/Precompute/EquirectangularToCubemap.hlsl";
+	vertex_shader.entry_point = "VSmain";
+	vertex_shader.stage       = VK_SHADER_STAGE_VERTEX_BIT;
+	vertex_shader.type        = ShaderType::HLSL;
+
+	ShaderDesc fragment_shader  = {};
+	fragment_shader.filename    = "./Source/Shaders/Precompute/EquirectangularToCubemap.hlsl";
+	fragment_shader.entry_point = "PSmain";
+	fragment_shader.stage       = VK_SHADER_STAGE_FRAGMENT_BIT;
+	fragment_shader.type        = ShaderType::HLSL;
+
+	ColorBlendState blend_state = {};
+	blend_state.attachment_states.resize(1);
+
+	DynamicState dynamic_state   = {};
+	dynamic_state.dynamic_states = {
+	    VK_DYNAMIC_STATE_VIEWPORT,
+	    VK_DYNAMIC_STATE_SCISSOR};
+
+	PipelineState pso;
+	pso.LoadShader(vertex_shader);
+	pso.LoadShader(fragment_shader);
+	pso.SetDynamicState(dynamic_state);
+	pso.SetColorBlendState(blend_state);
+
+	glm::mat4 projection_matrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+	glm::mat4 views_matrix[] =
+	    {
+	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
+	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)),
+	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f))};
+
+	// Record command buffer
+	auto &cmd_buffer = p_device->RequestCommandBuffer();
+	cmd_buffer.Begin();
+	cmd_buffer.Transition(m_skybox.get(), TextureState(VK_IMAGE_USAGE_SAMPLED_BIT), TextureState(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT), VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 6});
+	for (uint32_t i = 0; i < 6; i++)
+	{
+		FrameBuffer frame_buffer = {};
+		frame_buffer.Bind(
+		    m_skybox.get(),
+		    TextureViewDesc{
+		        VK_IMAGE_VIEW_TYPE_2D,
+		        VK_IMAGE_ASPECT_COLOR_BIT,
+		        0, 1, i, 1},
+		    ColorAttachmentInfo{});
+		cmd_buffer.BeginRenderPass(frame_buffer);
+
+		cmd_buffer.Bind(pso);
+		cmd_buffer.Bind(
+		    cmd_buffer.GetDescriptorState()
+		        .Bind(0, 0, texture->GetView(view_desc))
+		        .Bind(0, 1, *m_samplers[static_cast<uint32_t>(SamplerType::TrilinearClamp)]));
+
+		auto push_data = glm::inverse(projection_matrix * views_matrix[i]);
+
+		cmd_buffer.SetViewport(1024, 1024);
+		cmd_buffer.SetScissor(1024, 1024);
+		cmd_buffer.PushConstants(VK_SHADER_STAGE_VERTEX_BIT, &push_data, sizeof(glm::mat4), 0);
+		cmd_buffer.Draw(3, 1, 0, 0);
+
+		cmd_buffer.EndRenderPass();
+	}
+	cmd_buffer.Transition(m_skybox.get(), TextureState{VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT}, TextureState(VK_IMAGE_USAGE_SAMPLED_BIT), VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 6});
 	cmd_buffer.End();
 
 	// Submit

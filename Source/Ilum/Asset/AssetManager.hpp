@@ -16,7 +16,6 @@ class AssetManager
 	AssetManager(RHIDevice *device);
 	~AssetManager() = default;
 
-	Mesh    *LoadMesh(const std::string &filename);
 	Texture *LoadTexture(const std::string &filename);
 
 	Texture  *Add(std::unique_ptr<Texture> &&texture);
@@ -40,6 +39,8 @@ class AssetManager
 	Material *GetMaterial(uint32_t index);
 
 	bool OnImGui(ImGuiContext &context);
+
+	void OnTick();
 
   private:
 	RHIDevice *p_device = nullptr;

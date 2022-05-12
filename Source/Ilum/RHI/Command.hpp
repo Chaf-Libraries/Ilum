@@ -129,6 +129,11 @@ class CommandBuffer
 	void BindVertexBuffer(Buffer *vertex_buffer);
 	void BindIndexBuffer(Buffer *index_buffer);
 
+	void PushConstants(VkShaderStageFlags stage, void *data, uint32_t size, uint32_t offset);
+
+	void BeginMarker(const std::string &name, const glm::vec4 color);
+	void EndMarker();
+
 	operator const VkCommandBuffer &() const;
 
   private:

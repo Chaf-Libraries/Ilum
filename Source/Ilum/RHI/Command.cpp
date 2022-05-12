@@ -272,7 +272,7 @@ void CommandBuffer::Transition(const std::vector<BufferTransition> &buffer_trans
 
 	for (uint32_t i = 0; i < buffer_barriers.size(); i++)
 	{
-		buffer_barriers[i].sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		buffer_barriers[i].sType               = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
 		buffer_barriers[i].srcAccessMask       = buffer_transitions[i].src.access_mask;
 		buffer_barriers[i].dstAccessMask       = buffer_transitions[i].dst.access_mask;
 		buffer_barriers[i].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -431,6 +431,29 @@ void CommandBuffer::BindVertexBuffer(Buffer *vertex_buffer)
 void CommandBuffer::BindIndexBuffer(Buffer *index_buffer)
 {
 	vkCmdBindIndexBuffer(m_handle, *index_buffer, 0, VK_INDEX_TYPE_UINT32);
+}
+
+void CommandBuffer::PushConstants(VkShaderStageFlags stage, void *data, uint32_t size, uint32_t offset)
+{
+	vkCmdPushConstants(m_handle, p_device->AllocatePipelineLayout(*m_current_pso), stage, offset, size, data);
+}
+
+void CommandBuffer::BeginMarker(const std::string &name, const glm::vec4 color)
+{
+	VkDebugUtilsLabelEXT label = {};
+	label.sType                = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+	label.pLabelName           = name.c_str();
+	label.color[0]             = color.r;
+	label.color[1]             = color.g;
+	label.color[2]             = color.b;
+	label.color[3]             = color.a;
+	label.pNext      = nullptr;
+	vkCmdBeginDebugUtilsLabelEXT(m_handle, &label);
+}
+
+void CommandBuffer::EndMarker()
+{
+	vkCmdEndDebugUtilsLabelEXT(m_handle);
 }
 
 CommandBuffer::operator const VkCommandBuffer &() const

@@ -53,7 +53,11 @@ Window::Window(const std::string &title, const std::string &icon, uint32_t width
 
 	glfwSetCursorPosCallback(m_handle, [](GLFWwindow *window, double xpos, double ypos) {
 		Window *handle = (Window *) glfwGetWindowUserPointer(window);
+		handle->m_pos_delta_x = static_cast<float>(xpos) - handle->m_pos_last_x;
+		handle->m_pos_delta_y = static_cast<float>(ypos) - handle->m_pos_last_y;
 		handle->OnCursorPosFunc.Invoke(xpos, ypos);
+		handle->m_pos_last_x = static_cast<float>(xpos);
+		handle->m_pos_last_y = static_cast<float>(ypos);
 	});
 
 	glfwSetCursorEnterCallback(m_handle, [](GLFWwindow *window, int32_t entered) {
@@ -95,6 +99,8 @@ bool Window::Tick()
 {
 	if (!glfwWindowShouldClose(m_handle))
 	{
+		m_pos_delta_x = 0.f;
+		m_pos_delta_y = 0.f;
 		glfwPollEvents();
 		return true;
 	}

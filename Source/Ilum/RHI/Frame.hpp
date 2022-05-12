@@ -32,6 +32,8 @@ class Frame
 	std::map<size_t, std::unique_ptr<CommandPool>> m_command_pools;
 	std::unique_ptr<FenceAllocator>                m_fence_allocator     = nullptr;
 	std::unique_ptr<SemaphoreAllocator>            m_semaphore_allocator = nullptr;
+
+	uint32_t                 m_current_profile = 0;
 };
 
 }        // namespace Ilum

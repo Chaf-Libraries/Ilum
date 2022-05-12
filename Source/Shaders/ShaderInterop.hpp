@@ -2,7 +2,7 @@
 #ifndef SHADER_INTEROP_H
 #define SHADER_INTEROP_H
 #ifdef __cplusplus
-#	include <glm/glm.hpp>
+#include "../Dependencies/glm/glm/glm.hpp"
 
 namespace ShaderInterop
 {
@@ -80,11 +80,37 @@ struct Meshlet
 	MeshletBound bound;
 };
 
+struct Camera
+{
+	float4x4 view;
+	float4x4 projection;
+	float4x4 inv_view;
+	float4x4 inv_projection;
+	float4x4 view_projection;
+	float3   position;
+	uint     frame_count;
+
+#ifndef __cplusplus
+	/* RayDesc CastRay(float2 screen_coords)
+	{
+		RayDesc ray;
+		float4  target = mul(inv_projection, float4(screen_coords.x, screen_coords.y, 1, 1));
+		ray.Origin     = mul(inv_view, float4(0, 0, 0, 1)).xyz;
+		ray.Direction  = mul(inv_view, float4(normalize(target.xyz), 0)).xyz;
+		ray.TMin       = 0.0;
+		ray.TMax       = Infinity;
+		return ray;
+	}*/
+#endif        // !__cplusplus
+};
+
 struct Instance
 {
-	uint material;
-	uint mesh;
-	uint transform;
+	float4x4 transform;
+	uint     material;
+	uint     mesh;
+	uint     meshlet_count;
+	uint     padding2;
 };
 
 #ifdef __cplusplus

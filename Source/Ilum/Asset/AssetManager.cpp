@@ -21,26 +21,6 @@ AssetManager::AssetManager(RHIDevice *device) :
 {
 }
 
-Mesh *AssetManager::LoadMesh(const std::string &filename)
-{
-	cgltf_options options{};
-	cgltf_data   *raw_data = nullptr;
-	cgltf_result  result   = cgltf_parse_file(&options, filename.c_str(), &raw_data);
-	if (result != cgltf_result_success)
-	{
-		LOG_ERROR("Failed to load GLTF file: {}", filename);
-	}
-	result = cgltf_load_buffers(&options, raw_data, filename.c_str());
-	if (result != cgltf_result_success)
-	{
-		LOG_ERROR("Failed to load GLTF's buffer: {}", filename);
-	}
-
-	std::map<const cgltf_image *, Texture *> texture_map;
-
-	return nullptr;
-}
-
 Texture *AssetManager::LoadTexture(const std::string &filename)
 {
 	m_textures.emplace_back(std::make_unique<Texture>(p_device, filename));
@@ -331,6 +311,10 @@ bool AssetManager::OnImGui(ImGuiContext &context)
 
 	ImGui::End();
 	return is_update;
+}
+
+void AssetManager::OnTick()
+{
 }
 
 }        // namespace Ilum

@@ -3,11 +3,13 @@
 
 #include <Core/Path.hpp>
 
+#include <RHI/Command.hpp>
 #include <RHI/Texture.hpp>
 
 #include <Asset/AssetManager.hpp>
 #include <Asset/Material.hpp>
 
+#include "Component/Camera.hpp"
 #include "Component/Hierarchy.hpp"
 #include "Component/MeshRenderer.hpp"
 #include "Component/Tag.hpp"
@@ -21,6 +23,7 @@
 #include <cgltf/cgltf.h>
 
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/matrix.hpp>
 
 #include <meshoptimizer.h>
 
@@ -30,6 +33,30 @@
 
 namespace Ilum
 {
+inline void TransformRecursive(Scene &scene, entt::entity entity)
+{
+	if (entity == entt::null)
+	{
+		return;
+	}
+
+	auto &transform = Entity(scene, entity).GetComponent<cmpt::Transform>();
+	auto &hierarchy = Entity(scene, entity).GetComponent<cmpt::Hierarchy>();
+	if (hierarchy.parent != entt::null)
+	{
+		transform.local_transform = glm::scale(glm::translate(glm::mat4(1.f), transform.translation) * glm::mat4_cast(glm::qua<float>(glm::radians(transform.rotation))), transform.scale);
+		transform.world_transform = Entity(scene, hierarchy.parent).GetComponent<cmpt::Transform>().world_transform * transform.local_transform;
+	}
+
+	auto child = hierarchy.first;
+
+	while (child != entt::null)
+	{
+		TransformRecursive(scene, child);
+		child = Entity(scene, child).GetComponent<cmpt::Hierarchy>().next;
+	}
+}
+
 template <typename T>
 inline std::string GetComponentName()
 {
@@ -286,6 +313,15 @@ inline void AddComponents(Scene &scene, entt::entity entity)
 Scene::Scene(RHIDevice *device, AssetManager &asset_manager, const std::string &name) :
     p_device(device), m_asset_manager(asset_manager), m_name(name)
 {
+	m_top_level_acceleration_structure = std::make_unique<AccelerationStructure>(p_device);
+
+	m_main_camera_buffer = std::make_unique<Buffer>(
+	    p_device,
+	    BufferDesc(
+	        sizeof(ShaderInterop::Camera),
+	        1,
+	        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+	        VMA_MEMORY_USAGE_CPU_TO_GPU));
 }
 
 entt::registry &Scene::GetRegistry()
@@ -308,6 +344,21 @@ const std::string &Scene::GetSavePath() const
 	return m_save_path;
 }
 
+AccelerationStructure &Scene::GetTLAS()
+{
+	return *m_top_level_acceleration_structure;
+}
+
+Buffer &Scene::GetMainCameraBuffer()
+{
+	return *m_main_camera_buffer;
+}
+
+entt::entity Scene::GetMainCamera()
+{
+	return m_main_camera;
+}
+
 void Scene::Clear()
 {
 	m_registry.each([&](auto entity) { m_registry.destroy(entity); });
@@ -324,11 +375,168 @@ entt::entity Scene::Create(const std::string &name)
 
 void Scene::Tick()
 {
+	// Update camera
+	if (m_registry.valid(m_main_camera))
+	{
+		ShaderInterop::Camera *camera_data = static_cast<ShaderInterop::Camera *>(m_main_camera_buffer->Map());
 
+		Entity entity = Entity(*this, m_main_camera);
+
+		auto &camera    = entity.GetComponent<cmpt::Camera>();
+		auto &transform = entity.GetComponent<cmpt::Transform>();
+
+		camera.view            = glm::inverse(transform.world_transform);
+		camera.projection      = camera.type == cmpt::CameraType::Perspective ?
+		                             glm::perspective(glm::radians(camera.fov), camera.aspect, camera.near_plane, camera.far_plane) :
+                                     glm::ortho(camera.left, camera.right, camera.bottom, camera.top, camera.near_plane, camera.far_plane);
+		camera.view_projection = camera.projection * camera.view;
+		camera.frame_count++;
+
+		camera_data->view            = camera.view;
+		camera_data->projection      = camera.projection;
+		camera_data->inv_view        = transform.world_transform;
+		camera_data->inv_projection  = glm::inverse(camera.projection);
+		camera_data->view_projection = camera.projection * camera.view;
+		camera_data->position        = transform.translation;
+		camera_data->frame_count     = camera.frame_count;
+
+		m_main_camera_buffer->Flush(m_main_camera_buffer->GetSize());
+		m_main_camera_buffer->Unmap();
+	}
+
+	// Update scene
+	if (m_update)
+	{
+		// Update Transform
+		auto group = m_registry.group<>(entt::get<cmpt::Transform, cmpt::Hierarchy>);
+
+		std::vector<entt::entity> roots;
+
+		// Find roots
+		for (auto &entity : group)
+		{
+			auto &&[hierarchy, transform] = group.get<cmpt::Hierarchy, cmpt::Transform>(entity);
+
+			if (hierarchy.parent == entt::null)
+			{
+				transform.local_transform = glm::scale(glm::translate(glm::mat4(1.f), transform.translation) * glm::mat4_cast(glm::qua<float>(glm::radians(transform.rotation))), transform.scale);
+				transform.world_transform = transform.local_transform;
+				roots.emplace_back(entity);
+			}
+		}
+
+		for (auto &root : roots)
+		{
+			TransformRecursive(*this, root);
+		}
+
+		// Update buffer
+		std::vector<VkAccelerationStructureInstanceKHR> acceleration_structure_instances;
+		acceleration_structure_instances.reserve(100);
+		auto mesh_view = m_registry.view<cmpt::MeshRenderer>();
+		for (size_t i = 0; i < mesh_view.size(); i++)
+		{
+			Entity entity        = Entity(*this, mesh_view[i]);
+			auto  &mesh_renderer = entity.GetComponent<cmpt::MeshRenderer>();
+			auto  &transform     = entity.GetComponent<cmpt::Transform>();
+
+			if (!mesh_renderer.buffer)
+			{
+				BufferDesc desc      = {};
+				desc.size            = sizeof(ShaderInterop::Instance);
+				desc.buffer_usage    = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+				desc.memory_usage    = VMA_MEMORY_USAGE_CPU_TO_GPU;
+				mesh_renderer.buffer = std::make_unique<Buffer>(p_device, desc);
+			}
+
+			auto *instance_data      = static_cast<ShaderInterop::Instance *>(mesh_renderer.buffer->Map());
+			instance_data->transform = transform.world_transform;
+			instance_data->material  = m_asset_manager.GetIndex(mesh_renderer.mesh->GetMaterial());
+			instance_data->mesh      = m_asset_manager.GetIndex(mesh_renderer.mesh);
+			instance_data->meshlet_count = mesh_renderer.mesh->GetMeshletsCount();
+			mesh_renderer.buffer->Flush(mesh_renderer.buffer->GetSize());
+			mesh_renderer.buffer->Unmap();
+
+			VkAccelerationStructureInstanceKHR acceleration_structure_instance = {};
+
+			auto transform_transpose = glm::mat3x4(glm::transpose(transform.world_transform));
+			std::memcpy(&acceleration_structure_instance.transform, &transform_transpose, sizeof(VkTransformMatrixKHR));
+			acceleration_structure_instance.instanceCustomIndex                    = 0;
+			acceleration_structure_instance.mask                                   = 0xFF;
+			acceleration_structure_instance.instanceShaderBindingTableRecordOffset = 0;
+			acceleration_structure_instance.flags                                  = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+			acceleration_structure_instance.accelerationStructureReference         = mesh_renderer.mesh->GetBLAS().GetDeviceAddress();
+			acceleration_structure_instances.push_back(acceleration_structure_instance);
+		}
+
+		if (!acceleration_structure_instances.empty())
+		{
+			// Update TLAS
+			Buffer as_instance_buffer(
+			    p_device,
+			    BufferDesc(
+			        sizeof(VkAccelerationStructureInstanceKHR),
+			        static_cast<uint32_t>(acceleration_structure_instances.size()),
+			        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+			            VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+			            VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
+			        VMA_MEMORY_USAGE_CPU_TO_GPU));
+			std::memcpy(as_instance_buffer.Map(), acceleration_structure_instances.data(), as_instance_buffer.GetSize());
+			as_instance_buffer.Flush(as_instance_buffer.GetSize());
+			as_instance_buffer.Unmap();
+
+			AccelerationStructureDesc as_desc                      = {};
+			as_desc.type                                           = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
+			as_desc.geometry.sType                                 = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+			as_desc.geometry.geometryType                          = VK_GEOMETRY_TYPE_INSTANCES_KHR;
+			as_desc.geometry.flags                                 = VK_GEOMETRY_OPAQUE_BIT_KHR;
+			as_desc.geometry.geometry.instances.sType              = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
+			as_desc.geometry.geometry.instances.arrayOfPointers    = VK_FALSE;
+			as_desc.geometry.geometry.instances.data.deviceAddress = as_instance_buffer.GetDeviceAddress();
+			as_desc.range_info.primitiveCount                      = static_cast<uint32_t>(acceleration_structure_instances.size());
+			as_desc.range_info.primitiveOffset                     = 0;
+			as_desc.range_info.firstVertex                         = 0;
+			as_desc.range_info.transformOffset                     = 0;
+
+			{
+				auto &cmd_buffer = p_device->RequestCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, VK_QUEUE_COMPUTE_BIT);
+				cmd_buffer.Begin();
+				m_top_level_acceleration_structure->Build(cmd_buffer, as_desc);
+				cmd_buffer.End();
+				p_device->SubmitIdle(cmd_buffer, VK_QUEUE_COMPUTE_BIT);
+			}
+		}
+		m_update = false;
+	}
 }
 
 void Scene::OnImGui(ImGuiContext &context)
 {
+	if (ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::BeginMenu("Main Camera"))
+		{
+			auto camera_view = m_registry.view<cmpt::Camera>();
+			for (auto &camera : camera_view)
+			{
+				bool select_camera = (camera == m_main_camera);
+				if (ImGui::MenuItem(Entity(*this, camera).GetComponent<cmpt::Tag>().name.c_str(), nullptr, &select_camera))
+				{
+					if (select_camera)
+					{
+						m_main_camera = camera;
+					}
+					else
+					{
+						m_main_camera = entt::null;
+					}
+				}
+			}
+			ImGui::EndMenu();
+		}
+		ImGui::EndMainMenuBar();
+	}
+
 	// Scene Hierarchy
 	{
 		ImGui::Begin("Scene Hierarchy");
@@ -350,7 +558,7 @@ void Scene::OnImGui(ImGuiContext &context)
 			{
 				ASSERT(pay_load->DataSize == sizeof(Entity));
 				SetAsSon(*this, Entity(*this), *static_cast<Entity *>(pay_load->Data));
-				m_transform_update = true;
+				m_update = true;
 			}
 		}
 
@@ -397,13 +605,15 @@ void Scene::OnImGui(ImGuiContext &context)
 		if (ImGui::BeginPopup("AddComponent"))
 		{
 			AddComponents<cmpt::MeshRenderer>(*this, m_select);
+			AddComponents<cmpt::Camera>(*this, m_select);
 
 			ImGui::EndPopup();
 		}
 
-		m_transform_update = DrawComponent<cmpt::Transform>(*this, m_select, context, true);
-		DrawComponent<cmpt::Hierarchy>(*this, m_select, context, true);
-		m_mesh_update = DrawComponent<cmpt::MeshRenderer>(*this, m_select, context, true);
+		m_update |= DrawComponent<cmpt::Transform>(*this, m_select, context, true);
+		m_update |= DrawComponent<cmpt::Hierarchy>(*this, m_select, context, true);
+		m_update |= DrawComponent<cmpt::MeshRenderer>(*this, m_select, context, false);
+		DrawComponent<cmpt::Camera>(*this, m_select, context, false);
 	}
 	ImGui::End();
 }
@@ -532,30 +742,21 @@ void Scene::ImportGLTF(const std::string &filename)
 		}
 	}
 
-	std::map<cgltf_mesh *, Mesh *> mesh_map;
+	std::map<cgltf_mesh *, std::vector<Mesh *>> mesh_map;
 
 	// Load mesh
 	for (uint32_t mesh_id = 0; mesh_id < raw_data->meshes_count; mesh_id++)
 	{
-		std::unique_ptr<Mesh> mesh = std::make_unique<Mesh>(p_device);
-
-		auto &raw_mesh = raw_data->meshes[mesh_id];
-		if (raw_mesh.name)
-		{
-			mesh->m_name = raw_mesh.name;
-		}
-		else
-		{
-			mesh->m_name = Path::GetInstance().GetFileName(filename, false) + " Mesh #" + std::to_string(mesh_id);
-		}
+		auto       &raw_mesh  = raw_data->meshes[mesh_id];
+		std::string mesh_name = raw_mesh.name ? raw_mesh.name : Path::GetInstance().GetFileName(filename, false) + " Mesh #" + std::to_string(mesh_id);
 
 		for (uint32_t prim_id = 0; prim_id < raw_mesh.primitives_count; prim_id++)
 		{
 			const cgltf_primitive &primitive = raw_mesh.primitives[prim_id];
 
-			std::unique_ptr<Submesh> submesh = std::make_unique<Submesh>(p_device, m_asset_manager);
-			submesh->m_material              = material_map[primitive.material];
-			submesh->m_name                  = Path::GetInstance().GetFileName(filename, false) + " Mesh #" + std::to_string(mesh_id) + " SubMesh #" + std::to_string(prim_id);
+			std::unique_ptr<Mesh> submesh = std::make_unique<Mesh>(p_device, m_asset_manager);
+			submesh->m_material           = material_map[primitive.material];
+			submesh->m_name               = mesh_name + " SubMesh #" + std::to_string(prim_id);
 
 			submesh->m_indices.resize(primitive.indices->count);
 			for (size_t i = 0; i < primitive.indices->count; i += 3)
@@ -637,7 +838,6 @@ void Scene::ImportGLTF(const std::string &filename)
 
 			submesh->m_meshlet_vertices.resize(last.vertex_offset + last.vertex_count);
 			submesh->m_meshlets.resize(meshlet_count);
-			submesh->m_meshlet_bounds.resize(meshlet_count);
 			submesh->m_meshlet_triangles.resize(meshlet_triangles.size());
 
 			uint32_t triangle_offset = 0;
@@ -667,9 +867,8 @@ void Scene::ImportGLTF(const std::string &filename)
 			}
 			submesh->m_meshlet_triangles.resize(triangle_offset);
 			submesh->UpdateBuffer();
-			mesh->m_submeshes.emplace_back(std::move(submesh));
+			mesh_map[&raw_mesh].push_back(m_asset_manager.Add(std::move(submesh)));
 		}
-		mesh_map[&raw_mesh] = m_asset_manager.Add(std::move(mesh));
 	}
 
 	// Load node
@@ -681,7 +880,8 @@ void Scene::ImportGLTF(const std::string &filename)
 	{
 		const cgltf_node &node = raw_data->nodes[i];
 
-		auto entity = Entity(*this, Create(node.name ? node.name : (Path::GetInstance().GetFileName(filename, false) + std::string(" Node #") + std::to_string(i)).c_str()));
+		std::string node_name = node.name ? node.name : (Path::GetInstance().GetFileName(filename, false) + std::string(" Node #") + std::to_string(i));
+		auto        entity    = Entity(*this, Create(node_name.c_str()));
 
 		SetAsSon(*this, root, entity);
 		node_map[&node] = entity;
@@ -693,9 +893,15 @@ void Scene::ImportGLTF(const std::string &filename)
 
 		if (node.mesh)
 		{
-			auto &mesh_renderer   = entity.AddComponent<cmpt::MeshRenderer>();
-			mesh_renderer.manager = &m_asset_manager;
-			mesh_renderer.mesh    = mesh_map[node.mesh];
+			uint32_t mesh_id = 0;
+			for (auto &submesh : mesh_map[node.mesh])
+			{
+				auto  mesh_entity     = Entity(*this, Create((node_name + std::string(" Mesh #") + std::to_string(mesh_id++)).c_str()));
+				auto &mesh_renderer   = mesh_entity.AddComponent<cmpt::MeshRenderer>();
+				mesh_renderer.manager = &m_asset_manager;
+				mesh_renderer.mesh    = submesh;
+				SetAsSon(*this, entity, mesh_entity);
+			}
 		}
 	}
 	for (auto &[node, entity] : node_map)
@@ -710,6 +916,8 @@ void Scene::ImportGLTF(const std::string &filename)
 		}
 	}
 	cgltf_free(raw_data);
+
+	m_update = true;
 }
 
 void Scene::ExportGLTF(const std::string &filename)

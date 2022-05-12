@@ -26,6 +26,7 @@ namespace Ilum
 std::vector<std::string> RGBuilder::s_avaliable_passes = {
     "VisibilityPass",
     "Triangle",
+    "SkyboxPass",
     "Present"};
 
 inline bool IsRead(VkAccessFlags access)
@@ -466,6 +467,7 @@ bool RGBuilder::OnImGui(ImGuiContext &context)
 		if (ImGui::MenuItem("Compile"))
 		{
 			Compile();
+			p_device->ClearProfiler();
 			recompile = true;
 		}
 

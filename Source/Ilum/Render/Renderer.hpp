@@ -46,6 +46,8 @@ class Renderer
 
 	Texture &GetPrecompute(PrecomputeType type);
 
+	Texture &GetSkybox();
+
 	const VkExtent2D &GetExtent() const;
 	const VkExtent2D &GetViewport() const;
 
@@ -61,6 +63,7 @@ class Renderer
   private:
 	void KullaContyApprox();
 	void BRDFPreIntegration();
+	void EquirectangularToCubemap(Texture* texture);
 
   private:
 	RHIDevice *p_device = nullptr;
@@ -78,7 +81,14 @@ class Renderer
 	// LUT
 	std::array<std::unique_ptr<Texture>, 3> m_precomputes;
 
+	// Skybox Cubemap
+	std::unique_ptr<Texture> m_skybox;
+
 	// Sampler
 	std::array<std::unique_ptr<Sampler>, 8> m_samplers;
+
+  private:
+	glm::vec3 m_translate_velocity = glm::vec3(0.f);
+	glm::vec2 m_last_position   = glm::vec2(0.f);
 };
 }        // namespace Ilum

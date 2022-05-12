@@ -43,6 +43,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE meshoptimizer)
 target_link_libraries(${TARGET_NAME} PRIVATE ImGuizmo)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
+target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source")
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Dependencies/dxc/inc")
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Dependencies/FontAwesome")
 target_compile_definitions(${TARGET_NAME} PUBLIC "-DNOMINMAX")

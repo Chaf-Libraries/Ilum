@@ -40,5 +40,9 @@ class Window
 	std::string m_title;
 	float       m_mouse_wheel_h = 0.0f;
 	float       m_mouse_wheel   = 0.0f;
+	float       m_pos_delta_x     = 0.f;
+	float       m_pos_delta_y     = 0.f;
+	float       m_pos_last_x      = 0.f;
+	float       m_pos_last_y      = 0.f;
 };
 }        // namespace Ilum

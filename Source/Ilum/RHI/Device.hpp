@@ -27,6 +27,7 @@ class CommandBuffer;
 class PipelineState;
 class FrameBuffer;
 class DescriptorState;
+class Profiler;
 
 class RHIDevice
 {
@@ -43,6 +44,8 @@ class RHIDevice
 	std::vector<Texture *> GetSwapchainImages() const;
 
 	Texture *GetBackBuffer() const;
+
+	Window *GetWindow();
 
 	VkQueue GetQueue(VkQueueFlagBits flag = VK_QUEUE_GRAPHICS_BIT) const;
 
@@ -64,6 +67,9 @@ class RHIDevice
 	const std::map<uint32_t, VkDescriptorSet> &AllocateDescriptorSet(const PipelineState &pso);
 
 	DescriptorState &AllocateDescriptorState(const PipelineState &pso);
+
+	Profiler &AllocateProfiler(void *pass);
+	void      ClearProfiler();
 
 	uint32_t GetGraphicsFamily() const;
 	uint32_t GetComputeFamily() const;
@@ -152,8 +158,9 @@ class RHIDevice
 	std::map<size_t, VkRenderPass>                        m_render_passes;
 	std::map<size_t, VkFramebuffer>                       m_frame_buffers;
 	std::map<size_t, VkPipelineLayout>                    m_pipeline_layouts;
-	std::map<size_t, std::map<uint32_t, VkDescriptorSet>>        m_descriptor_sets;
+	std::map<size_t, std::map<uint32_t, VkDescriptorSet>> m_descriptor_sets;
 	std::map<size_t, std::unique_ptr<ShaderBindingTable>> m_shader_binding_tables;
-	std::map<size_t, std::unique_ptr<DescriptorState>> m_descriptor_states;
+	std::map<size_t, std::unique_ptr<DescriptorState>>    m_descriptor_states;
+	std::map<void *, std::unique_ptr<Profiler>>           m_profilers;
 };
 }        // namespace Ilum

@@ -3,22 +3,13 @@
 #include <RHI/Device.hpp>
 #include <RHI/ImGuiContext.hpp>
 
+#include <Asset/Material.hpp>
+
 #include <entt.hpp>
 
 namespace Ilum
 {
 class AssetManager;
-
-struct GeometryBatch
-{
-	std::vector<Buffer *> vertex_buffers;
-	std::vector<Buffer *> index_buffers;
-	std::vector<Buffer *> meshlet_vertex_buffers;
-	std::vector<Buffer *> meshlet_triangle_buffers;
-	std::vector<Buffer *> meshlet_buffers;
-	std::vector<Buffer *> meshlet_bound_buffers;
-	std::vector<AccelerationStructure *> bottom_level_acceleration_structures;
-};
 
 class Scene
 {
@@ -32,6 +23,11 @@ class Scene
 
 	const std::string &GetName() const;
 	const std::string &GetSavePath() const;
+
+	AccelerationStructure &GetTLAS();
+	Buffer                &GetMainCameraBuffer();
+
+	entt::entity GetMainCamera();
 
 	void Clear();
 
@@ -54,17 +50,19 @@ class Scene
 
 	entt::registry m_registry;
 
-	entt::entity m_select = entt::null;
+	entt::entity m_select      = entt::null;
+	entt::entity m_main_camera = entt::null;
 
 	std::string m_name      = "";
 	std::string m_save_path = "";
 
   private:
-	std::unique_ptr<Buffer> m_instance_buffer = nullptr;
-	std::unique_ptr<Buffer> m_transform_buffer = nullptr;
 	std::unique_ptr<AccelerationStructure> m_top_level_acceleration_structure = nullptr;
 
-	bool m_transform_update = false;
-	bool m_mesh_update      = false;
+	std::unique_ptr<Buffer> m_main_camera_buffer = nullptr;
+
+	uint32_t m_instance_count = 0;
+
+	bool m_update = false;
 };
 }        // namespace Ilum

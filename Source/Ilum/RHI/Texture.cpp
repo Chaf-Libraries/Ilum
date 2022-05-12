@@ -320,7 +320,7 @@ VkImageView Texture::GetView(const TextureViewDesc &desc)
 	view_create_info.subresourceRange.baseArrayLayer = desc.base_array_layer;
 	view_create_info.subresourceRange.baseMipLevel   = desc.base_mip_level;
 	view_create_info.subresourceRange.layerCount     = desc.layer_count;
-	view_create_info.subresourceRange.levelCount     = desc.layer_count;
+	view_create_info.subresourceRange.levelCount     = desc.level_count;
 	view_create_info.viewType                        = desc.view_type;
 
 	m_views[hash] = VK_NULL_HANDLE;

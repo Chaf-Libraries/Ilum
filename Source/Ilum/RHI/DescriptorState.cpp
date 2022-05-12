@@ -165,7 +165,7 @@ DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, VkSampler
 
 DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, AccelerationStructure *acceleration_structure)
 {
-	ASSERT(m_acceleration_structure_resolves[binding].size() == 1);
+	ASSERT(m_acceleration_structure_resolves[set][binding].size() == 1);
 	if (m_acceleration_structure_resolves[set][binding][0] != acceleration_structure)
 	{
 		m_acceleration_structure_resolves[set][binding][0] = acceleration_structure;
@@ -176,7 +176,11 @@ DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, Accelerat
 
 DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std::vector<Buffer *> &buffers)
 {
-	ASSERT(m_buffer_resolves[binding].size() == buffers.size());
+	ASSERT(m_buffer_resolves[set][binding].size() == buffers.size() || m_buffer_resolves[binding].size() == 0);
+	if (m_buffer_resolves[set][binding].size() < buffers.size())
+	{
+		m_buffer_resolves[set][binding].resize(buffers.size());
+	}
 	for (size_t i = 0; i < buffers.size(); i++)
 	{
 		if (m_buffer_resolves[set][binding][i].buffer != *buffers[i])
@@ -192,7 +196,11 @@ DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std
 
 DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std::vector<VkImageView> &views, VkSampler sampler)
 {
-	ASSERT(m_image_resolves[binding].size() == views.size());
+	ASSERT(m_image_resolves[set][binding].size() == views.size() || m_image_resolves[binding].size() == 0);
+	if (m_image_resolves[set][binding].size() < views.size())
+	{
+		m_image_resolves[set][binding].resize(views.size());
+	}
 	for (size_t i = 0; i < views.size(); i++)
 	{
 		if (m_image_resolves[set][binding][i].imageView != views[i] || m_image_resolves[set][binding][i].sampler != sampler)
@@ -207,7 +215,11 @@ DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std
 
 DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std::vector<VkSampler> &samplers)
 {
-	ASSERT(m_image_resolves[binding].size() == samplers.size());
+	ASSERT(m_image_resolves[set][binding].size() == samplers.size() || m_image_resolves[binding].size() == 0);
+	if (m_image_resolves[set][binding].size() < samplers.size())
+	{
+		m_image_resolves[set][binding].resize(samplers.size());
+	}
 	for (size_t i = 0; i < samplers.size(); i++)
 	{
 		if (m_image_resolves[set][binding][i].sampler != samplers[i])
@@ -222,7 +234,11 @@ DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std
 
 DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std::vector<AccelerationStructure *> &acceleration_structures)
 {
-	ASSERT(m_acceleration_structure_resolves[binding].size() == acceleration_structures.size());
+	ASSERT(m_acceleration_structure_resolves[set][binding].size() == acceleration_structures.size() || m_acceleration_structure_resolves[binding].size() == 0);
+	if (m_acceleration_structure_resolves[set][binding].size() < acceleration_structures.size())
+	{
+		m_acceleration_structure_resolves[set][binding].resize(acceleration_structures.size());
+	}
 	for (size_t i = 0; i < acceleration_structures.size(); i++)
 	{
 		if (m_acceleration_structure_resolves[set][binding][i] != acceleration_structures[i])
@@ -281,10 +297,11 @@ void DescriptorState::Write()
 			resolve.descriptorCount = static_cast<uint32_t>(acceleration_structure_handles.size());
 		}
 
-		std::vector<VkWriteDescriptorSet> write_info(m_resolves[set].size());
-		for (uint32_t i = 0; i < write_info.size(); i++)
+		std::vector<VkWriteDescriptorSet> write_info;
+		write_info.reserve(m_resolves[set].size());
+		for (auto &write : m_resolves[set])
 		{
-			write_info[i] = m_resolves[set][i];
+			write_info.push_back(write.second);
 		}
 		vkUpdateDescriptorSets(p_device->GetDevice(), static_cast<uint32_t>(write_info.size()), write_info.data(), 0, nullptr);
 	}

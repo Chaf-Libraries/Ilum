@@ -29,7 +29,7 @@ FrameBuffer &FrameBuffer::Bind(Texture *render_target, const TextureViewDesc &vi
 
 	m_width  = std::max(m_width, render_target->GetWidth());
 	m_height = std::max(m_height, render_target->GetHeight());
-	m_layer  = std::max(m_layer, render_target->GetLayerCount());
+	m_layer  = std::max(m_layer, view_desc.layer_count);
 
 	m_views.push_back(render_target->GetView(view_desc));
 	m_clear_values.push_back(clear_value);

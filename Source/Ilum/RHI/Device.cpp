@@ -12,6 +12,7 @@
 #include "Frame.hpp"
 #include "FrameBuffer.hpp"
 #include "PipelineState.hpp"
+#include "Profiler.hpp"
 #include "ShaderAllocator.hpp"
 #include "ShaderBindingTable.hpp"
 #include "Texture.hpp"
@@ -339,7 +340,7 @@ RHIDevice::RHIDevice(Window *window) :
 	CreateLogicalDevice();
 	CreateSwapchain();
 
-	p_window->OnWindowSizeFunc += [this](int32_t width, int32_t height) { 
+	p_window->OnWindowSizeFunc += [this](int32_t width, int32_t height) {
 		if (width != 0 && height != 0)
 		{
 			CreateSwapchain();
@@ -384,6 +385,7 @@ RHIDevice::~RHIDevice()
 	m_descriptor_sets.clear();
 	m_shader_binding_tables.clear();
 	m_descriptor_states.clear();
+	m_profilers.clear();
 
 	m_shader_allocator.reset();
 	m_descriptor_allocator.reset();
@@ -469,6 +471,11 @@ std::vector<Texture *> RHIDevice::GetSwapchainImages() const
 Texture *RHIDevice::GetBackBuffer() const
 {
 	return m_swapchain_images[m_current_frame].get();
+}
+
+Window *RHIDevice::GetWindow()
+{
+	return p_window;
 }
 
 VkQueue RHIDevice::GetQueue(VkQueueFlagBits flag) const
@@ -708,6 +715,21 @@ DescriptorState &RHIDevice::AllocateDescriptorState(const PipelineState &pso)
 	m_descriptor_states[hash] = std::make_unique<DescriptorState>(this, &pso);
 
 	return *m_descriptor_states.at(hash);
+}
+
+Profiler &RHIDevice::AllocateProfiler(void *pass)
+{
+	if (m_profilers.find(pass) != m_profilers.end())
+	{
+		return *m_profilers[pass];
+	}
+	m_profilers[pass] = std::make_unique<Profiler>(this);
+	return *m_profilers[pass];
+}
+
+void RHIDevice::ClearProfiler()
+{
+	m_profilers.clear();
 }
 
 uint32_t RHIDevice::GetGraphicsFamily() const
@@ -1153,6 +1175,12 @@ void RHIDevice::CreateLogicalDevice()
 	vulkan12_features.shaderOutputViewportIndex                 = VK_TRUE;
 	vulkan12_features.pNext                                     = &mesh_shader_feature;
 
+	// Enable Robustness
+	VkPhysicalDeviceRobustness2FeaturesEXT robustness2_features = {};
+	robustness2_features.sType                                  = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
+	robustness2_features.nullDescriptor                         = VK_TRUE;
+	robustness2_features.pNext                                  = &vulkan12_features;
+
 	// Get support extensions
 	auto support_extensions = GetDeviceExtensionSupport(m_physical_device, s_device_extensions);
 
@@ -1169,7 +1197,7 @@ void RHIDevice::CreateLogicalDevice()
 	device_create_info.enabledExtensionCount   = static_cast<uint32_t>(support_extensions.size());
 	device_create_info.ppEnabledExtensionNames = support_extensions.data();
 	device_create_info.pEnabledFeatures        = &physical_device_features;
-	device_create_info.pNext                   = &vulkan12_features;
+	device_create_info.pNext                   = &robustness2_features;
 
 	if (vkCreateDevice(m_physical_device, &device_create_info, nullptr, &m_device) != VK_SUCCESS)
 	{

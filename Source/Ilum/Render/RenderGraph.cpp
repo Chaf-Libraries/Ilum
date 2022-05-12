@@ -2,8 +2,11 @@
 #include "Renderer.hpp"
 
 #include <RHI/Device.hpp>
+#include <RHI/Profiler.hpp>
 
 #include <imgui.h>
+
+#include <glm/gtc/random.hpp>
 
 namespace Ilum
 {
@@ -27,6 +30,7 @@ void RGPass::Execute(CommandBuffer &cmd_buffer, const RGResources &resources, Re
 	{
 		m_barrier_callback(cmd_buffer);
 	}
+
 	if (m_execute_callback)
 	{
 		m_execute_callback(cmd_buffer, resources, renderer);
@@ -85,7 +89,11 @@ void RenderGraph::Execute()
 		auto &cmd_buffer = p_device->RequestCommandBuffer();
 		cmd_buffer.Begin();
 		auto resources = RGResources(*this, pass);
+		cmd_buffer.BeginMarker(pass.GetName(), glm::vec4(glm::linearRand(0.f, 1.f), glm::linearRand(0.f, 1.f), glm::linearRand(0.f, 1.f), 1.f));
+		p_device->AllocateProfiler(&pass).Begin(cmd_buffer);
 		pass.Execute(cmd_buffer, resources, m_renderer);
+		p_device->AllocateProfiler(&pass).End(cmd_buffer);
+		cmd_buffer.EndMarker();
 		cmd_buffer.End();
 		p_device->Submit(cmd_buffer);
 	}
@@ -104,6 +112,10 @@ void RenderGraph::OnImGui(ImGuiContext &context)
 		ImGui::PushID(current_id++);
 		if (ImGui::TreeNode(pass.GetName().c_str()))
 		{
+			auto &profiler_state = p_device->AllocateProfiler(&pass).GetProfileState();
+
+			ImGui::BulletText("CPU Time: %f ms", profiler_state.cpu_time);
+			ImGui::BulletText("GPU Time: %f ms", profiler_state.gpu_time);
 			auto resources = RGResources(*this, pass);
 			pass.OnImGui(context, resources);
 			ImGui::TreePop();

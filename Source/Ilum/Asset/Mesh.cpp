@@ -13,18 +13,18 @@
 
 namespace Ilum
 {
-Submesh::Submesh(RHIDevice *device, AssetManager &manager) :
+Mesh::Mesh(RHIDevice *device, AssetManager &manager) :
     p_device(device),
     m_manager(manager)
 {
 }
 
-const std::string &Submesh::GetName() const
+const std::string &Mesh::GetName() const
 {
 	return m_name;
 }
 
-bool Submesh::OnImGui(ImGuiContext &context)
+bool Mesh::OnImGui(ImGuiContext &context)
 {
 	ImGui::BulletText("Vertex Count: %ld", m_vertices.size());
 	ImGui::BulletText("Index Count: %ld", m_indices.size());
@@ -81,7 +81,7 @@ bool Submesh::OnImGui(ImGuiContext &context)
 	return is_update;
 }
 
-void Submesh::UpdateBuffer()
+void Mesh::UpdateBuffer()
 {
 	if (!m_bottom_level_acceleration_structure)
 	{
@@ -143,17 +143,6 @@ void Submesh::UpdateBuffer()
 		        VMA_MEMORY_USAGE_GPU_ONLY));
 	}
 
-	if (!m_meshlet_bound_buffer || m_meshlet_bound_buffer->GetSize() < m_meshlet_bounds.size() * sizeof(ShaderInterop::MeshletBound))
-	{
-		m_meshlet_bound_buffer = std::make_unique<Buffer>(
-		    p_device,
-		    BufferDesc(
-		        sizeof(ShaderInterop::MeshletBound),
-		        static_cast<uint32_t>(m_meshlet_bounds.size()),
-		        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-		        VMA_MEMORY_USAGE_GPU_ONLY));
-	}
-
 	Buffer vertex_buffer_staging(
 	    p_device,
 	    BufferDesc(
@@ -194,34 +183,23 @@ void Submesh::UpdateBuffer()
 	        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 	        VMA_MEMORY_USAGE_CPU_TO_GPU));
 
-	Buffer meshlet_bound_staging(
-	    p_device,
-	    BufferDesc(
-	        sizeof(ShaderInterop::MeshletBound),
-	        static_cast<uint32_t>(m_meshlet_bounds.size()),
-	        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-	        VMA_MEMORY_USAGE_CPU_TO_GPU));
-
 	std::memcpy(vertex_buffer_staging.Map(), m_vertices.data(), vertex_buffer_staging.GetSize());
 	std::memcpy(index_staging.Map(), m_indices.data(), index_staging.GetSize());
 	std::memcpy(meshlet_vertex_staging.Map(), m_meshlet_vertices.data(), meshlet_vertex_staging.GetSize());
 	std::memcpy(meshlet_triangle_staging.Map(), m_meshlet_triangles.data(), meshlet_triangle_staging.GetSize());
 	std::memcpy(meshlet_staging.Map(), m_meshlets.data(), meshlet_staging.GetSize());
-	std::memcpy(meshlet_bound_staging.Map(), m_meshlet_bounds.data(), meshlet_bound_staging.GetSize());
 
 	vertex_buffer_staging.Flush(vertex_buffer_staging.GetSize());
 	index_staging.Flush(index_staging.GetSize());
 	meshlet_vertex_staging.Flush(meshlet_vertex_staging.GetSize());
 	meshlet_triangle_staging.Flush(meshlet_triangle_staging.GetSize());
 	meshlet_staging.Flush(meshlet_staging.GetSize());
-	meshlet_bound_staging.Flush(meshlet_bound_staging.GetSize());
 
 	vertex_buffer_staging.Unmap();
 	index_staging.Unmap();
 	meshlet_vertex_staging.Unmap();
 	meshlet_triangle_staging.Unmap();
 	meshlet_staging.Unmap();
-	meshlet_bound_staging.Unmap();
 
 	{
 		auto &cmd_buffer = p_device->RequestCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, VK_QUEUE_TRANSFER_BIT);
@@ -231,7 +209,6 @@ void Submesh::UpdateBuffer()
 		cmd_buffer.CopyBuffer(BufferCopyInfo{&meshlet_vertex_staging}, BufferCopyInfo{m_meshlet_vertex_buffer.get()}, meshlet_vertex_staging.GetSize());
 		cmd_buffer.CopyBuffer(BufferCopyInfo{&meshlet_triangle_staging}, BufferCopyInfo{m_meshlet_triangle_buffer.get()}, meshlet_triangle_staging.GetSize());
 		cmd_buffer.CopyBuffer(BufferCopyInfo{&meshlet_staging}, BufferCopyInfo{m_meshlet_buffer.get()}, meshlet_staging.GetSize());
-		cmd_buffer.CopyBuffer(BufferCopyInfo{&meshlet_bound_staging}, BufferCopyInfo{m_meshlet_bound_buffer.get()}, meshlet_bound_staging.GetSize());
 		cmd_buffer.End();
 		p_device->SubmitIdle(cmd_buffer, VK_QUEUE_TRANSFER_BIT);
 	}
@@ -266,92 +243,69 @@ void Submesh::UpdateBuffer()
 	}
 }
 
-const BoundingBox &Submesh::GetBoundingBox()
+const BoundingBox &Mesh::GetBoundingBox()
 {
 	return m_bounding_box;
 }
 
-Material *Submesh::GetMaterial()
+Material *Mesh::GetMaterial()
 {
 	return m_material;
 }
 
-Buffer &Submesh::GetVertexBuffer()
+Buffer &Mesh::GetVertexBuffer()
 {
 	return *m_vertex_buffer;
 }
 
-Buffer &Submesh::GetIndexBuffer()
+Buffer &Mesh::GetIndexBuffer()
 {
 	return *m_index_buffer;
 }
 
-Buffer &Submesh::GetMeshletVertexBuffer()
+Buffer &Mesh::GetMeshletVertexBuffer()
 {
 	return *m_meshlet_vertex_buffer;
 }
 
-Buffer &Submesh::GetMeshletTriangleBuffer()
+Buffer &Mesh::GetMeshletTriangleBuffer()
 {
 	return *m_meshlet_triangle_buffer;
 }
 
-Buffer &Submesh::GetMeshletBuffer()
+Buffer &Mesh::GetMeshletBuffer()
 {
 	return *m_meshlet_buffer;
 }
 
-Buffer &Submesh::GetMeshletBoundBuffer()
+uint32_t Mesh::GetVerticesCount() const
 {
-	return *m_meshlet_bound_buffer;
+	return static_cast<uint32_t>(m_vertices.size());
 }
 
-AccelerationStructure &Submesh::GetBLAS()
+uint32_t Mesh::GetIndicesCount() const
+{
+	return static_cast<uint32_t>(m_indices.size());
+}
+
+uint32_t Mesh::GetMeshletVerticesCount() const
+{
+	return static_cast<uint32_t>(m_meshlet_vertices.size());
+}
+
+uint32_t Mesh::GetMeshletTrianglesCount() const
+{
+	return static_cast<uint32_t>(m_meshlet_triangles.size());
+}
+
+uint32_t Mesh::GetMeshletsCount() const
+{
+	return static_cast<uint32_t>(m_meshlets.size());
+}
+
+AccelerationStructure &Mesh::GetBLAS()
 {
 	return *m_bottom_level_acceleration_structure;
-}
-
-Mesh::Mesh(RHIDevice *device) :
-    p_device(device)
-{
-}
-
-const std::string &Mesh::GetName() const
-{
-	return m_name;
-}
-
-void Mesh::UpdateBuffer()
-{
-	for (auto &submesh : m_submeshes)
-	{
-		submesh->UpdateBuffer();
-	}
-}
-
-bool Mesh::OnImGui(ImGuiContext &context)
-{
-	bool     is_update  = false;
-	uint32_t submesh_id = 0;
-	for (auto &submesh : m_submeshes)
-	{
-		ImGui::PushID(submesh_id++);
-		if (ImGui::TreeNode(submesh->GetName().c_str()))
-		{
-			if (submesh->OnImGui(context))
-			{
-				is_update = true;
-			}
-			ImGui::TreePop();
-		}
-		ImGui::PopID();
-	}
-	return is_update;
-}
-
-const std::vector<std::unique_ptr<Submesh>> &Mesh::GetSubmeshes() const
-{
-	return m_submeshes;
 }
 
 }        // namespace Ilum

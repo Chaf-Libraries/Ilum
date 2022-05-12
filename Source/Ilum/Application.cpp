@@ -1,5 +1,6 @@
 #include "Application.hpp"
 
+#include <Core/Input.hpp>
 #include <Core/Path.hpp>
 #include <Core/Time.hpp>
 
@@ -16,19 +17,18 @@ Application::Application() :
 {
 	m_scene = std::make_unique<Scene>(&m_device, *m_asset_manager, "Untitle Scene");
 	m_renderer->SetScene(m_scene.get());
+	Input::GetInstance().Bind(&m_window);
 }
 
 void Application::Tick()
 {
 	while (m_window.Tick())
 	{
-		 Timer::GetInstance().Tick();
+		Timer::GetInstance().Tick();
 
 		if (m_window.m_height != 0 && m_window.m_width != 0)
 		{
 			m_device.NewFrame();
-
-			m_scene->Tick();
 
 			m_imgui_context.BeginFrame();
 			{
@@ -87,6 +87,7 @@ void Application::Tick()
 			}
 			m_imgui_context.EndFrame();
 
+			m_scene->Tick();
 			m_renderer->Tick();
 
 			m_imgui_context.Render();

@@ -5,7 +5,7 @@
 #include <RHI/ImGuiContext.hpp>
 #include <RHI/Texture.hpp>
 
-#include <Render/ShaderInterop.hpp>
+#include <Shaders/ShaderInterop.hpp>
 
 #include <Geometry/BoundingBox.hpp>
 
@@ -16,13 +16,13 @@ namespace Ilum
 class AssetManager;
 class Material;
 
-class Submesh
+class Mesh
 {
 	friend class Scene;
 
   public:
-	Submesh(RHIDevice *device, AssetManager &manager);
-	~Submesh() = default;
+	Mesh(RHIDevice *device, AssetManager &manager);
+	~Mesh() = default;
 
 	const std::string &GetName() const;
 
@@ -39,7 +39,12 @@ class Submesh
 	Buffer &GetMeshletVertexBuffer();
 	Buffer &GetMeshletTriangleBuffer();
 	Buffer &GetMeshletBuffer();
-	Buffer &GetMeshletBoundBuffer();
+
+	uint32_t GetVerticesCount() const;
+	uint32_t GetIndicesCount() const;
+	uint32_t GetMeshletVerticesCount() const;
+	uint32_t GetMeshletTrianglesCount() const;
+	uint32_t GetMeshletsCount() const;
 
 	AccelerationStructure &GetBLAS();
 
@@ -57,7 +62,6 @@ class Submesh
 	std::vector<uint32_t>                    m_meshlet_vertices;
 	std::vector<uint32_t>                    m_meshlet_triangles;
 	std::vector<ShaderInterop::Meshlet>      m_meshlets;
-	std::vector<ShaderInterop::MeshletBound> m_meshlet_bounds;
 
 	Material *m_material = nullptr;
 
@@ -66,32 +70,7 @@ class Submesh
 	std::unique_ptr<Buffer> m_meshlet_vertex_buffer   = nullptr;
 	std::unique_ptr<Buffer> m_meshlet_triangle_buffer = nullptr;
 	std::unique_ptr<Buffer> m_meshlet_buffer          = nullptr;
-	std::unique_ptr<Buffer> m_meshlet_bound_buffer    = nullptr;
 
 	std::unique_ptr<AccelerationStructure> m_bottom_level_acceleration_structure = nullptr;
-};
-
-class Mesh
-{
-	friend class Scene;
-
-  public:
-	Mesh(RHIDevice *device);
-	~Mesh() = default;
-
-	const std::string &GetName() const;
-
-	void UpdateBuffer();
-
-	bool OnImGui(ImGuiContext &context);
-
-	const std::vector<std::unique_ptr<Submesh>> &GetSubmeshes() const;
-
-  private:
-	std::string m_name;
-
-	RHIDevice *p_device = nullptr;
-
-	std::vector<std::unique_ptr<Submesh>> m_submeshes;
 };
 }        // namespace Ilum

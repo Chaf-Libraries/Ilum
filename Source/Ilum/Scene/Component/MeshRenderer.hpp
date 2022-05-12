@@ -13,6 +13,7 @@ struct MeshRenderer : public Component
 	Mesh *mesh = nullptr;
 	AssetManager *manager = nullptr;
 	
+	std::unique_ptr<Buffer> buffer;
 
 	template <class Archive>
 	void serialize(Archive &ar)

@@ -21,7 +21,7 @@ struct DepthStencilAttachmentInfo
 	VkAttachmentStoreOp   store_op         = VK_ATTACHMENT_STORE_OP_STORE;
 	VkAttachmentLoadOp    stencil_load_op  = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	VkAttachmentStoreOp   stencil_store_op = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	VkClearDepthStencilValue clear_value      = {};
+	VkClearDepthStencilValue clear_value      = {1.f, 0u};
 };
 
 namespace Ilum
