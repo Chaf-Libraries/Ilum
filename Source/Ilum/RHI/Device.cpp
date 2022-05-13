@@ -757,6 +757,11 @@ uint32_t RHIDevice::GetCurrentFrame() const
 	return m_current_frame;
 }
 
+void RHIDevice::WaitIdle() const
+{
+	vkDeviceWaitIdle(m_device);
+}
+
 void RHIDevice::NewFrame()
 {
 	auto result = vkAcquireNextImageKHR(m_device, m_swapchain, std::numeric_limits<uint64_t>::max(), m_present_complete[m_current_frame], VK_NULL_HANDLE, &m_current_frame);

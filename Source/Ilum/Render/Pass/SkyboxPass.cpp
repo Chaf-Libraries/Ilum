@@ -83,9 +83,9 @@ void SkyboxPass::Create(RGBuilder &builder)
 	ColorBlendState color_blend_state = {};
 	color_blend_state.attachment_states.push_back(ColorBlendAttachmentState{});
 
-	DepthStencilState depth_buffer_state = {};
-	depth_buffer_state.depth_compare_op  = VK_COMPARE_OP_LESS_OR_EQUAL;
-	depth_buffer_state.depth_write_enable  = VK_FALSE;
+	DepthStencilState depth_buffer_state  = {};
+	depth_buffer_state.depth_compare_op   = VK_COMPARE_OP_ALWAYS;
+	depth_buffer_state.depth_write_enable = VK_FALSE;
 
 	PipelineState pso;
 	pso.SetDynamicState(dynamic_state);
@@ -97,7 +97,15 @@ void SkyboxPass::Create(RGBuilder &builder)
 
 	pass->BindCallback([=](CommandBuffer &cmd_buffer, const RGResources &resource, Renderer &renderer) {
 		FrameBuffer framebuffer;
-		framebuffer.Bind(resource.GetTexture(output), output_view_desc, ColorAttachmentInfo{});
+		framebuffer.Bind(
+			resource.GetTexture(output), 
+			output_view_desc, 
+			ColorAttachmentInfo{
+				VK_SAMPLE_COUNT_1_BIT, 
+				VK_ATTACHMENT_LOAD_OP_LOAD, 
+				VK_ATTACHMENT_STORE_OP_STORE, 
+				VK_ATTACHMENT_LOAD_OP_DONT_CARE, 
+				VK_ATTACHMENT_STORE_OP_DONT_CARE});
 		cmd_buffer.BeginRenderPass(framebuffer);
 		cmd_buffer.Bind(pso);
 		cmd_buffer.Bind(

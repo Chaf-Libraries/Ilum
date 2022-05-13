@@ -177,7 +177,7 @@ DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, Accelerat
 DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std::vector<Buffer *> &buffers)
 {
 	ASSERT(m_buffer_resolves[set][binding].size() == buffers.size() || m_buffer_resolves[binding].size() == 0);
-	if (m_buffer_resolves[set][binding].size() < buffers.size())
+	if (m_buffer_resolves[set][binding].size() != buffers.size())
 	{
 		m_buffer_resolves[set][binding].resize(buffers.size());
 	}
@@ -197,7 +197,7 @@ DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std
 DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std::vector<VkImageView> &views, VkSampler sampler)
 {
 	ASSERT(m_image_resolves[set][binding].size() == views.size() || m_image_resolves[binding].size() == 0);
-	if (m_image_resolves[set][binding].size() < views.size())
+	if (m_image_resolves[set][binding].size() != views.size())
 	{
 		m_image_resolves[set][binding].resize(views.size());
 	}
@@ -216,7 +216,7 @@ DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std
 DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std::vector<VkSampler> &samplers)
 {
 	ASSERT(m_image_resolves[set][binding].size() == samplers.size() || m_image_resolves[binding].size() == 0);
-	if (m_image_resolves[set][binding].size() < samplers.size())
+	if (m_image_resolves[set][binding].size() != samplers.size())
 	{
 		m_image_resolves[set][binding].resize(samplers.size());
 	}

@@ -383,19 +383,9 @@ void CommandBuffer::GenerateMipmap(Texture *texture, const TextureState &initial
 	}
 
 	VkImageSubresourceRange mip_level_range = {VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->GetMipLevels(), 0, texture->GetLayerCount()};
-	mip_level_range.levelCount              = mip_level_range.levelCount - 1;
-	VkImageMemoryBarrier barrier            = {};
-	barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	barrier.srcAccessMask                   = VK_ACCESS_TRANSFER_READ_BIT;
-	barrier.dstAccessMask                   = VK_ACCESS_TRANSFER_WRITE_BIT;
-	barrier.oldLayout                       = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-	barrier.newLayout                       = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-	barrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-	barrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-	barrier.image                           = *texture;
-	barrier.subresourceRange                = mip_level_range;
 
-	vkCmdPipelineBarrier(*this, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+	mip_level_range.levelCount = mip_level_range.levelCount - 1;
+	Transition(texture, TextureState(VK_IMAGE_USAGE_TRANSFER_SRC_BIT), TextureState(VK_IMAGE_USAGE_TRANSFER_DST_BIT), mip_level_range);
 }
 
 void CommandBuffer::CopyBufferToImage(const BufferCopyInfo &buffer, const TextureCopyInfo &texture)
@@ -423,7 +413,7 @@ void CommandBuffer::CopyBuffer(const BufferCopyInfo &src, const BufferCopyInfo &
 
 void CommandBuffer::BindVertexBuffer(Buffer *vertex_buffer)
 {
-	VkBuffer buffer_handle = *vertex_buffer;
+	VkBuffer     buffer_handle = *vertex_buffer;
 	VkDeviceSize offsets[1]    = {0};
 	vkCmdBindVertexBuffers(m_handle, 0, 1, &buffer_handle, offsets);
 }
@@ -440,20 +430,26 @@ void CommandBuffer::PushConstants(VkShaderStageFlags stage, void *data, uint32_t
 
 void CommandBuffer::BeginMarker(const std::string &name, const glm::vec4 color)
 {
-	VkDebugUtilsLabelEXT label = {};
-	label.sType                = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
-	label.pLabelName           = name.c_str();
-	label.color[0]             = color.r;
-	label.color[1]             = color.g;
-	label.color[2]             = color.b;
-	label.color[3]             = color.a;
-	label.pNext      = nullptr;
-	vkCmdBeginDebugUtilsLabelEXT(m_handle, &label);
+	if (vkCmdBeginDebugUtilsLabelEXT)
+	{
+		VkDebugUtilsLabelEXT label = {};
+		label.sType                = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+		label.pLabelName           = name.c_str();
+		label.color[0]             = color.r;
+		label.color[1]             = color.g;
+		label.color[2]             = color.b;
+		label.color[3]             = color.a;
+		label.pNext                = nullptr;
+		vkCmdBeginDebugUtilsLabelEXT(m_handle, &label);
+	}
 }
 
 void CommandBuffer::EndMarker()
 {
-	vkCmdEndDebugUtilsLabelEXT(m_handle);
+	if (vkCmdEndDebugUtilsLabelEXT)
+	{
+		vkCmdEndDebugUtilsLabelEXT(m_handle);
+	}
 }
 
 CommandBuffer::operator const VkCommandBuffer &() const

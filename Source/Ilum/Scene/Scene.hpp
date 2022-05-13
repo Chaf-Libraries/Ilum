@@ -3,6 +3,12 @@
 #include <RHI/Device.hpp>
 #include <RHI/ImGuiContext.hpp>
 
+#include "Component/Camera.hpp"
+#include "Component/Hierarchy.hpp"
+#include "Component/MeshRenderer.hpp"
+#include "Component/Tag.hpp"
+#include "Component/Transform.hpp"
+
 #include <Asset/Material.hpp>
 
 #include <entt.hpp>
@@ -10,6 +16,12 @@
 namespace Ilum
 {
 class AssetManager;
+
+struct GeometryBatch
+{
+	std::vector<cmpt::MeshRenderer *> meshes;
+	std::vector<uint32_t>             order;
+};
 
 class Scene
 {
@@ -43,6 +55,8 @@ class Scene
 	void ImportGLTF(const std::string &filename);
 	void ExportGLTF(const std::string &filename);
 
+	GeometryBatch Batch(AlphaMode mode);
+
   private:
 	RHIDevice *p_device = nullptr;
 
@@ -62,6 +76,7 @@ class Scene
 	std::unique_ptr<Buffer> m_main_camera_buffer = nullptr;
 
 	uint32_t m_instance_count = 0;
+	uint32_t m_meshlet_count  = 0;
 
 	bool m_update = false;
 };

@@ -11,9 +11,9 @@ class AssetManager;
 
 enum class AlphaMode : uint32_t
 {
-	Opaque,
-	Masked,
-	Blend
+	Opaque = 1,
+	Masked = 1 << 1,
+	Blend  = 1 << 2
 };
 
 inline AlphaMode operator|(const AlphaMode &lhs, const AlphaMode &rhs)
@@ -21,9 +21,9 @@ inline AlphaMode operator|(const AlphaMode &lhs, const AlphaMode &rhs)
 	return static_cast<AlphaMode>(static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs));
 }
 
-inline AlphaMode operator&(const AlphaMode &lhs, const AlphaMode &rhs)
+inline bool operator&(const AlphaMode &lhs, const AlphaMode &rhs)
 {
-	return static_cast<AlphaMode>(static_cast<uint32_t>(lhs) & static_cast<uint32_t>(rhs));
+	return static_cast<uint32_t>(lhs) & static_cast<uint32_t>(rhs);
 }
 
 enum class MaterialType
@@ -42,6 +42,8 @@ class Material
 
 	Buffer &GetBuffer();
 
+	AlphaMode GetAlphaMode();
+
 	const std::string &GetName() const;
 
 	bool OnImGui(ImGuiContext &context);
@@ -51,6 +53,10 @@ class Material
 	template <class Archive>
 	void serialize(Archive ar)
 	{
+		ar(m_type, m_name, m_albedo_factor, m_specular_factor,
+		   m_glossiness_factor, m_metallic_factor, m_roughness_factor,
+		   m_emissive_factor, m_emissive_strength, m_alpha_cut_off,
+		   m_alpha_mode);
 	}
 
   private:

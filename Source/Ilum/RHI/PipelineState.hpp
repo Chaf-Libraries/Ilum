@@ -150,6 +150,19 @@ struct VertexInputState
 	}
 };
 
+enum class BlendMode
+{
+	Replace,
+	Additive,
+	Multiply,
+	Alpha,
+	AddAlpha,
+	PreMultiplyAlpha,
+	InverseDestinationAlpha,
+	Subtract,
+	SubtractAlpha
+};
+
 struct ColorBlendAttachmentState
 {
 	bool                  blend_enable           = true;
@@ -160,6 +173,88 @@ struct ColorBlendAttachmentState
 	VkBlendFactor         dst_alpha_blend_factor = VK_BLEND_FACTOR_ZERO;
 	VkBlendOp             alpha_blend_op         = VK_BLEND_OP_ADD;
 	VkColorComponentFlags color_write_mask       = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+
+	ColorBlendAttachmentState() = default;
+	ColorBlendAttachmentState(BlendMode mode)
+	{
+		switch (mode)
+		{
+			case BlendMode::Replace:
+				src_color_blend_factor = VK_BLEND_FACTOR_ONE;
+				dst_color_blend_factor = VK_BLEND_FACTOR_ZERO;
+				color_blend_op         = VK_BLEND_OP_ADD;
+				src_alpha_blend_factor = VK_BLEND_FACTOR_ONE;
+				dst_alpha_blend_factor = VK_BLEND_FACTOR_ZERO;
+				alpha_blend_op         = VK_BLEND_OP_ADD;
+				break;
+			case BlendMode::Additive:
+				src_color_blend_factor = VK_BLEND_FACTOR_SRC_ALPHA;
+				dst_color_blend_factor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+				color_blend_op         = VK_BLEND_OP_ADD;
+				src_alpha_blend_factor = VK_BLEND_FACTOR_SRC_ALPHA;
+				dst_alpha_blend_factor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+				alpha_blend_op         = VK_BLEND_OP_ADD;
+				break;
+			case BlendMode::Multiply:
+				src_color_blend_factor = VK_BLEND_FACTOR_DST_COLOR;
+				dst_color_blend_factor = VK_BLEND_FACTOR_ZERO;
+				color_blend_op         = VK_BLEND_OP_ADD;
+				src_alpha_blend_factor = VK_BLEND_FACTOR_DST_COLOR;
+				dst_alpha_blend_factor = VK_BLEND_FACTOR_ZERO;
+				alpha_blend_op         = VK_BLEND_OP_ADD;
+				break;
+			case BlendMode::Alpha:
+				src_color_blend_factor = VK_BLEND_FACTOR_SRC_ALPHA;
+				dst_color_blend_factor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+				color_blend_op         = VK_BLEND_OP_ADD;
+				src_alpha_blend_factor = VK_BLEND_FACTOR_SRC_ALPHA;
+				dst_alpha_blend_factor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+				alpha_blend_op         = VK_BLEND_OP_ADD;
+				break;
+			case BlendMode::AddAlpha:
+				src_color_blend_factor    = VK_BLEND_FACTOR_SRC_ALPHA;
+				dst_color_blend_factor    = VK_BLEND_FACTOR_ONE;
+				color_blend_op            = VK_BLEND_OP_ADD;
+				src_alpha_blend_factor    = VK_BLEND_FACTOR_SRC_ALPHA;
+				dst_alpha_blend_factor    = VK_BLEND_FACTOR_ONE;
+				alpha_blend_op            = VK_BLEND_OP_ADD;
+				break;
+			case BlendMode::PreMultiplyAlpha:
+				src_color_blend_factor  = VK_BLEND_FACTOR_ONE;
+				dst_color_blend_factor      = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+				color_blend_op        = VK_BLEND_OP_ADD;
+				src_alpha_blend_factor      = VK_BLEND_FACTOR_ONE;
+				dst_alpha_blend_factor      = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+				alpha_blend_op   = VK_BLEND_OP_ADD;
+				break;
+			case BlendMode::InverseDestinationAlpha:
+				src_color_blend_factor       = VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+				dst_color_blend_factor      = VK_BLEND_FACTOR_DST_ALPHA;
+				color_blend_op        = VK_BLEND_OP_ADD;
+				src_alpha_blend_factor       = VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+				dst_alpha_blend_factor       = VK_BLEND_FACTOR_DST_ALPHA;
+				alpha_blend_op   = VK_BLEND_OP_ADD;
+				break;
+			case BlendMode::Subtract:
+				src_color_blend_factor  = VK_BLEND_FACTOR_ONE;
+				dst_color_blend_factor  = VK_BLEND_FACTOR_ONE;
+				color_blend_op          = VK_BLEND_OP_REVERSE_SUBTRACT;
+				src_alpha_blend_factor  = VK_BLEND_FACTOR_ONE;
+				dst_alpha_blend_factor  = VK_BLEND_FACTOR_ONE;
+				alpha_blend_op          = VK_BLEND_OP_REVERSE_SUBTRACT;
+				break;
+			case BlendMode::SubtractAlpha:
+				src_color_blend_factor  = VK_BLEND_FACTOR_SRC_ALPHA;
+				dst_color_blend_factor      = VK_BLEND_FACTOR_ONE;
+				color_blend_op              = VK_BLEND_OP_REVERSE_SUBTRACT;
+				src_alpha_blend_factor      = VK_BLEND_FACTOR_SRC_ALPHA;
+				dst_alpha_blend_factor      = VK_BLEND_FACTOR_ONE;
+				alpha_blend_op              = VK_BLEND_OP_REVERSE_SUBTRACT;
+				break;
+			default:
+				break;
+		}
+	}
 
 	size_t Hash() const
 	{
@@ -204,6 +299,7 @@ class PipelineState
 	PipelineState(const PipelineState &) = default;
 	PipelineState &operator=(const PipelineState &) = default;
 
+	PipelineState &SetName(const std::string &name);
 	PipelineState &SetInputAssemblyState(const InputAssemblyState &input_assembly_state);
 	PipelineState &SetRasterizationState(const RasterizationState &rasterization_state);
 	PipelineState &SetDepthStencilState(const DepthStencilState &depth_stencil_state);
@@ -233,6 +329,8 @@ class PipelineState
 	void UpdateHash();
 
   private:
+	std::string m_name = "";
+
 	InputAssemblyState m_input_assembly_state = {};
 	RasterizationState m_rasterization_state  = {};
 	DepthStencilState  m_depth_stencil_state  = {};

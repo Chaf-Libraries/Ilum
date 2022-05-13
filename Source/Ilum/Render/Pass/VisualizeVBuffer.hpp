@@ -8,20 +8,20 @@
 
 namespace Ilum
 {
-class Triangle : public RenderPass
+class VisualizeVBuffer : public RenderPass
 {
   public:
-	Triangle();
-	~Triangle() = default;
+	VisualizeVBuffer();
+	~VisualizeVBuffer() = default;
 
 	virtual void Create(RGBuilder &builder) override;
 };
 
 RTTR_REGISTRATION
 {
-	rttr::registration::class_<Triangle>("Triangle")
+	rttr::registration::class_<VisualizeVBuffer>("VisualizeVBuffer")
 	    .constructor<>()
-	    .method("Create", &Triangle::Create);
+	    .method("Create", &VisualizeVBuffer::Create);
 }
 
 }        // namespace Ilum

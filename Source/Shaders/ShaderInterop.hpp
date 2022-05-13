@@ -2,7 +2,8 @@
 #ifndef SHADER_INTEROP_H
 #define SHADER_INTEROP_H
 #ifdef __cplusplus
-#include "../Dependencies/glm/glm/glm.hpp"
+#	include "../Dependencies/cereal/include/cereal/cereal.hpp"
+#	include "../Dependencies/glm/glm/glm.hpp"
 
 namespace ShaderInterop
 {
@@ -34,6 +35,14 @@ struct Vertex
 	float4 texcoord;
 	float4 normal;
 	float4 tangent;
+
+#ifdef __cplusplus
+	template <typename Archive>
+	void serialize(Archive ar)
+	{
+		ar(position, texcoord, normal, tangent);
+	}
+#endif
 };
 
 struct Material
@@ -78,6 +87,15 @@ struct Meshlet
 	uint         vertex_count;
 	uint         primitive_count;
 	MeshletBound bound;
+
+#ifdef __cplusplus
+	template <typename Archive>
+	void serialize(Archive ar)
+	{
+		ar(vertex_offset, primitive_offset, vertex_count, primitive_count,
+		   bound.center, bound.cone_axis, bound.cone_cut_off, bound.radius);
+	}
+#endif
 };
 
 struct Camera
@@ -93,13 +111,13 @@ struct Camera
 #ifndef __cplusplus
 	/* RayDesc CastRay(float2 screen_coords)
 	{
-		RayDesc ray;
-		float4  target = mul(inv_projection, float4(screen_coords.x, screen_coords.y, 1, 1));
-		ray.Origin     = mul(inv_view, float4(0, 0, 0, 1)).xyz;
-		ray.Direction  = mul(inv_view, float4(normalize(target.xyz), 0)).xyz;
-		ray.TMin       = 0.0;
-		ray.TMax       = Infinity;
-		return ray;
+	    RayDesc ray;
+	    float4  target = mul(inv_projection, float4(screen_coords.x, screen_coords.y, 1, 1));
+	    ray.Origin     = mul(inv_view, float4(0, 0, 0, 1)).xyz;
+	    ray.Direction  = mul(inv_view, float4(normalize(target.xyz), 0)).xyz;
+	    ray.TMin       = 0.0;
+	    ray.TMax       = Infinity;
+	    return ray;
 	}*/
 #endif        // !__cplusplus
 };
@@ -147,26 +165,30 @@ void UnPackTriangle(uint encode, out uint v0, out uint v1, out uint v2)
 	v2 = c;
 }
 
-inline uint PackVBuffer(uint meshlet_id, uint primitive_id)
+inline uint PackVBuffer(uint instance_id, uint meshlet_id, uint primitive_id)
 {
 	// Primitive ID 7
-	// Meshlet ID 25
+	// Meshlet ID 11
+	// Instance ID 14
 	uint vbuffer = 0;
 	vbuffer += primitive_id & 0x7f;
-	vbuffer += (meshlet_id & 0x1ffffff) << 7;
+	vbuffer += (meshlet_id & 0x3ff) << 7;
+	vbuffer += (instance_id & 0x3fff) << 18;
 	return vbuffer;
 }
 
 #ifdef __cplusplus
-inline void UnPackVBuffer(uint vbuffer, uint &meshlet_id, uint &primitive_id)
+inline void UnPackVBuffer(uint vbuffer, uint &instance_id, uint &meshlet_id, uint &primitive_id)
 #else
-void UnPackVBuffer(uint vbuffer, out uint meshlet_id, out uint primitive_id)
+void UnPackVBuffer(uint vbuffer, out uint instance_id, out uint meshlet_id, out uint primitive_id)
 #endif
 {
 	// Primitive ID 7
-	// Meshlet ID 25
+	// Meshlet ID 11
+	// Instance ID 14
 	primitive_id = vbuffer & 0x7f;
-	meshlet_id   = (vbuffer >> 7) & 0x1ffffff;
+	meshlet_id   = (vbuffer >> 7) & 0x3ff;
+	instance_id  = (vbuffer >> 18) & 0x3fff;
 }
 
 #ifdef __cplusplus

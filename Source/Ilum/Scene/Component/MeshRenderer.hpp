@@ -15,12 +15,6 @@ struct MeshRenderer : public Component
 	
 	std::unique_ptr<Buffer> buffer;
 
-	template <class Archive>
-	void serialize(Archive &ar)
-	{
-		// ar();
-	}
-
 	bool OnImGui(ImGuiContext &context) override;
 };
 }        // namespace Ilum::cmpt

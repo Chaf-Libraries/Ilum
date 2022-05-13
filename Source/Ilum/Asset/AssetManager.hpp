@@ -20,7 +20,7 @@ class AssetManager
 
 	Texture  *Add(std::unique_ptr<Texture> &&texture);
 	Material *Add(std::unique_ptr<Material> &&material);
-	Mesh *Add(std::unique_ptr<Mesh> &&mesh);
+	Mesh     *Add(std::unique_ptr<Mesh> &&mesh);
 
 	void Erase(Texture *texture);
 	void Erase(Mesh *mesh);
@@ -38,9 +38,25 @@ class AssetManager
 	Texture  *GetTexture(uint32_t index);
 	Material *GetMaterial(uint32_t index);
 
+	const std::vector<Buffer *> &GetVertexBuffer();
+	const std::vector<Buffer *> &GetIndexBuffer();
+	const std::vector<Buffer *> &GetMeshletVertexBuffer();
+	const std::vector<Buffer *> &GetMeshletTriangleBuffer();
+	const std::vector<Buffer *> &GetMeshletBuffer();
+	const std::vector<VkImageView> &GetTextureViews();
+	const std::vector<Buffer *> &GetMaterialBuffer();
+
+	void Clear();
+
 	bool OnImGui(ImGuiContext &context);
 
-	void OnTick();
+	template <class Archive>
+	void serialize(Archive &ar)
+	{
+		ar(m_meshes);
+	}
+
+	void Tick();
 
   private:
 	RHIDevice *p_device = nullptr;
@@ -52,5 +68,17 @@ class AssetManager
 	std::unordered_map<Mesh *, uint32_t>     m_mesh_lookup;
 	std::unordered_map<Texture *, uint32_t>  m_texture_lookup;
 	std::unordered_map<Material *, uint32_t> m_material_lookup;
+
+	bool m_update_mesh     = false;
+	bool m_update_texture  = false;
+	bool m_update_material = false;
+
+	std::vector<Buffer *>  m_vertex_buffer;
+	std::vector<Buffer *>  m_index_buffer;
+	std::vector<Buffer *>  m_meshlet_vertex_buffer;
+	std::vector<Buffer *>  m_meshlet_triangle_buffer;
+	std::vector<Buffer *>  m_meshlet_buffer;
+	std::vector<VkImageView> m_texture_views;
+	std::vector<Buffer *>  m_material_buffer;
 };
 }        // namespace Ilum

@@ -1,4 +1,4 @@
-#include "../Random.hlsli"
+#include "Random.hlsli"
 
 #define LOCAL_SIZE 32
 #define SAMPLE_COUNT 4096

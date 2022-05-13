@@ -57,11 +57,11 @@ class Mesh
 
 	BoundingBox m_bounding_box;
 
-	std::vector<ShaderInterop::Vertex>       m_vertices;
-	std::vector<uint32_t>                    m_indices;
-	std::vector<uint32_t>                    m_meshlet_vertices;
-	std::vector<uint32_t>                    m_meshlet_triangles;
-	std::vector<ShaderInterop::Meshlet>      m_meshlets;
+	std::vector<ShaderInterop::Vertex>  m_vertices;
+	std::vector<uint32_t>               m_indices;
+	std::vector<uint32_t>               m_meshlet_vertices;
+	std::vector<uint32_t>               m_meshlet_triangles;
+	std::vector<ShaderInterop::Meshlet> m_meshlets;
 
 	Material *m_material = nullptr;
 

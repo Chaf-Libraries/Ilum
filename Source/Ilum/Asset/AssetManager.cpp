@@ -26,6 +26,7 @@ Texture *AssetManager::LoadTexture(const std::string &filename)
 	m_textures.emplace_back(std::make_unique<Texture>(p_device, filename));
 	m_texture_lookup.emplace(m_textures.back().get(), static_cast<uint32_t>(m_textures.size()) - 1);
 	m_textures.back()->SetName(Path::GetInstance().GetFileName(filename, false));
+	m_update_texture = true;
 	return m_textures.back().get();
 }
 
@@ -33,6 +34,7 @@ Texture *AssetManager::Add(std::unique_ptr<Texture> &&texture)
 {
 	m_textures.emplace_back(std::move(texture));
 	m_texture_lookup.emplace(m_textures.back().get(), static_cast<uint32_t>(m_textures.size()) - 1);
+	m_update_texture = true;
 	return m_textures.back().get();
 }
 
@@ -40,6 +42,7 @@ Material *AssetManager::Add(std::unique_ptr<Material> &&material)
 {
 	m_materials.emplace_back(std::move(material));
 	m_material_lookup.emplace(m_materials.back().get(), static_cast<uint32_t>(m_materials.size()) - 1);
+	m_update_material = true;
 	return m_materials.back().get();
 }
 
@@ -47,6 +50,7 @@ Mesh *AssetManager::Add(std::unique_ptr<Mesh> &&mesh)
 {
 	m_meshes.emplace_back(std::move(mesh));
 	m_mesh_lookup.emplace(m_meshes.back().get(), static_cast<uint32_t>(m_meshes.size()) - 1);
+	m_update_mesh = true;
 	return m_meshes.back().get();
 }
 
@@ -62,6 +66,7 @@ void AssetManager::Erase(Texture *texture)
 		if (deprecated_index < m_textures.size())
 		{
 			m_texture_lookup[m_textures[deprecated_index].get()] = deprecated_index;
+			m_update_texture                                     = true;
 		}
 	}
 }
@@ -74,8 +79,12 @@ void AssetManager::Erase(Mesh *mesh)
 		std::unique_ptr<Mesh> deprecated       = std::move(m_meshes[deprecated_index]);
 		m_meshes[deprecated_index]             = std::move(m_meshes.back());
 		m_meshes.pop_back();
-		m_mesh_lookup[m_meshes[deprecated_index].get()] = deprecated_index;
 		m_mesh_lookup.erase(deprecated.get());
+		if (deprecated_index < m_meshes.size())
+		{
+			m_mesh_lookup[m_meshes[deprecated_index].get()] = deprecated_index;
+			m_update_mesh                                   = true;
+		}
 	}
 }
 
@@ -87,8 +96,12 @@ void AssetManager::Erase(Material *material)
 		std::unique_ptr<Material> deprecated       = std::move(m_materials[deprecated_index]);
 		m_materials[deprecated_index]              = std::move(m_materials.back());
 		m_materials.pop_back();
-		m_material_lookup[m_materials[deprecated_index].get()] = deprecated_index;
 		m_material_lookup.erase(deprecated.get());
+		if (deprecated_index < m_materials.size())
+		{
+			m_material_lookup[m_materials[deprecated_index].get()] = deprecated_index;
+			m_update_material                                      = true;
+		}
 	}
 }
 
@@ -159,6 +172,52 @@ Material *AssetManager::GetMaterial(uint32_t index)
 		return nullptr;
 	}
 	return m_materials[index].get();
+}
+
+const std::vector<Buffer *> &AssetManager::GetVertexBuffer()
+{
+	return m_vertex_buffer;
+}
+
+const std::vector<Buffer *> &AssetManager::GetIndexBuffer()
+{
+	return m_index_buffer;
+}
+
+const std::vector<Buffer *> &AssetManager::GetMeshletVertexBuffer()
+{
+	return m_meshlet_vertex_buffer;
+}
+
+const std::vector<Buffer *> &AssetManager::GetMeshletTriangleBuffer()
+{
+	return m_meshlet_triangle_buffer;
+}
+
+const std::vector<Buffer *> &AssetManager::GetMeshletBuffer()
+{
+	return m_meshlet_buffer;
+}
+
+const std::vector<VkImageView> &AssetManager::GetTextureViews()
+{
+	return m_texture_views;
+}
+
+const std::vector<Buffer *> &AssetManager::GetMaterialBuffer()
+{
+	return m_material_buffer;
+}
+
+void AssetManager::Clear()
+{
+	m_meshes.clear();
+	m_textures.clear();
+	m_materials.clear();
+
+	m_mesh_lookup.clear();
+	m_texture_lookup.clear();
+	m_material_lookup.clear();
 }
 
 bool AssetManager::OnImGui(ImGuiContext &context)
@@ -312,9 +371,48 @@ bool AssetManager::OnImGui(ImGuiContext &context)
 	ImGui::End();
 	return is_update;
 }
-
-void AssetManager::OnTick()
+void AssetManager::Tick()
 {
+	if (m_update_mesh)
+	{
+		m_vertex_buffer.clear();
+		m_index_buffer.clear();
+		m_meshlet_vertex_buffer.clear();
+		m_meshlet_triangle_buffer.clear();
+		m_meshlet_buffer.clear();
+		for (auto &mesh : m_meshes)
+		{
+			m_vertex_buffer.push_back(&mesh->GetVertexBuffer());
+			m_index_buffer.push_back(&mesh->GetIndexBuffer());
+			m_meshlet_vertex_buffer.push_back(&mesh->GetMeshletVertexBuffer());
+			m_meshlet_triangle_buffer.push_back(&mesh->GetMeshletTriangleBuffer());
+			m_meshlet_buffer.push_back(&mesh->GetMeshletBuffer());
+		}
+		m_update_mesh = false;
+	}
+	if (m_update_texture)
+	{
+		m_texture_views.clear();
+		for (auto &texture : m_textures)
+		{
+			m_texture_views.push_back(texture->GetView(TextureViewDesc{
+			    VK_IMAGE_VIEW_TYPE_2D,
+			    VK_IMAGE_ASPECT_COLOR_BIT,
+			    0,
+			    texture->GetMipLevels(),
+			    0,
+			    texture->GetLayerCount()}));
+		}
+		m_update_texture = false;
+	}
+	if (m_update_material)
+	{
+		m_material_buffer.clear();
+		for (auto &material : m_materials)
+		{
+			m_material_buffer.push_back(&material->GetBuffer());
+		}
+		m_update_material = false;
+	}
 }
-
 }        // namespace Ilum

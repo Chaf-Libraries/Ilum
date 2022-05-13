@@ -9,12 +9,6 @@
 #include <Asset/AssetManager.hpp>
 #include <Asset/Material.hpp>
 
-#include "Component/Camera.hpp"
-#include "Component/Hierarchy.hpp"
-#include "Component/MeshRenderer.hpp"
-#include "Component/Tag.hpp"
-#include "Component/Transform.hpp"
-
 #include <cereal/archives/binary.hpp>
 #include <cereal/archives/json.hpp>
 
@@ -30,6 +24,7 @@
 #include <ImGuizmo.h>
 
 #include <fstream>
+#include <numeric>
 
 namespace Ilum
 {
@@ -375,6 +370,8 @@ entt::entity Scene::Create(const std::string &name)
 
 void Scene::Tick()
 {
+	m_asset_manager.Tick();
+
 	// Update camera
 	if (m_registry.valid(m_main_camera))
 	{
@@ -433,12 +430,16 @@ void Scene::Tick()
 		// Update buffer
 		std::vector<VkAccelerationStructureInstanceKHR> acceleration_structure_instances;
 		acceleration_structure_instances.reserve(100);
-		auto mesh_view = m_registry.view<cmpt::MeshRenderer>();
+		auto mesh_view   = m_registry.view<cmpt::MeshRenderer>();
+		m_instance_count = static_cast<uint32_t>(mesh_view.size());
+		m_meshlet_count  = 0;
 		for (size_t i = 0; i < mesh_view.size(); i++)
 		{
 			Entity entity        = Entity(*this, mesh_view[i]);
 			auto  &mesh_renderer = entity.GetComponent<cmpt::MeshRenderer>();
 			auto  &transform     = entity.GetComponent<cmpt::Transform>();
+
+			m_meshlet_count += mesh_renderer.mesh->GetMeshletsCount();
 
 			if (!mesh_renderer.buffer)
 			{
@@ -449,10 +450,10 @@ void Scene::Tick()
 				mesh_renderer.buffer = std::make_unique<Buffer>(p_device, desc);
 			}
 
-			auto *instance_data      = static_cast<ShaderInterop::Instance *>(mesh_renderer.buffer->Map());
-			instance_data->transform = transform.world_transform;
-			instance_data->material  = m_asset_manager.GetIndex(mesh_renderer.mesh->GetMaterial());
-			instance_data->mesh      = m_asset_manager.GetIndex(mesh_renderer.mesh);
+			auto *instance_data          = static_cast<ShaderInterop::Instance *>(mesh_renderer.buffer->Map());
+			instance_data->transform     = transform.world_transform;
+			instance_data->material      = m_asset_manager.GetIndex(mesh_renderer.mesh->GetMaterial());
+			instance_data->mesh          = m_asset_manager.GetIndex(mesh_renderer.mesh);
 			instance_data->meshlet_count = mesh_renderer.mesh->GetMeshletsCount();
 			mesh_renderer.buffer->Flush(mesh_renderer.buffer->GetSize());
 			mesh_renderer.buffer->Unmap();
@@ -645,7 +646,6 @@ void Scene::Load(const std::string &filename)
 	cereal::JSONInputArchive archive(os);
 
 	Clear();
-
 	entt::snapshot_loader{m_registry}
 	    .entities(archive)
 	    .component<
@@ -685,7 +685,8 @@ void Scene::ImportGLTF(const std::string &filename)
 		}
 		if (gltf_texture->image->uri)
 		{
-			texture = m_asset_manager.LoadTexture(Path::GetInstance().GetFileDirectory(filename) + gltf_texture->image->uri);
+			auto new_texture = std::make_unique<Texture>(p_device, Path::GetInstance().GetFileDirectory(filename) + gltf_texture->image->uri);
+			texture          = m_asset_manager.Add(std::move(new_texture));
 		}
 		else if (gltf_texture->image->buffer_view)
 		{
@@ -717,7 +718,18 @@ void Scene::ImportGLTF(const std::string &filename)
 		{
 			material->m_name = Path::GetInstance().GetFileName(filename, false) + " Material #" + std::to_string(i);
 		}
-		material->m_alpha_mode        = static_cast<AlphaMode>(raw_material.alpha_mode);
+		if (raw_material.alpha_mode == cgltf_alpha_mode_opaque)
+		{
+			material->m_alpha_mode = AlphaMode::Opaque;
+		}
+		else if (raw_material.alpha_mode == cgltf_alpha_mode_mask)
+		{
+			material->m_alpha_mode = AlphaMode::Masked;
+		}
+		else
+		{
+			material->m_alpha_mode = AlphaMode::Blend;
+		}
 		material->m_alpha_cut_off     = raw_material.alpha_cutoff;
 		material->m_emissive_strength = raw_material.emissive_strength.emissive_strength;
 		load_texture(material->m_normal_texture, raw_material.normal_texture.texture);
@@ -740,6 +752,7 @@ void Scene::ImportGLTF(const std::string &filename)
 			load_texture(material->m_specular_glossiness_texture, raw_material.pbr_specular_glossiness.specular_glossiness_texture.texture);
 			load_texture(material->m_albedo_texture, raw_material.pbr_specular_glossiness.diffuse_texture.texture);
 		}
+		material->UpdateBuffer();
 	}
 
 	std::map<cgltf_mesh *, std::vector<Mesh *>> mesh_map;
@@ -922,6 +935,49 @@ void Scene::ImportGLTF(const std::string &filename)
 
 void Scene::ExportGLTF(const std::string &filename)
 {
+}
+
+GeometryBatch Scene::Batch(AlphaMode mode)
+{
+	auto mesh_group = m_registry.group<cmpt::MeshRenderer, cmpt::Transform>();
+
+	GeometryBatch          batch;
+	std::vector<Mesh *>    meshes;
+	std::vector<glm::mat4> transforms;
+
+	batch.meshes.reserve(mesh_group.size());
+	transforms.reserve(mesh_group.size());
+	meshes.reserve(mesh_group.size());
+
+	mesh_group.each([&](cmpt::MeshRenderer &mesh_renderer, cmpt::Transform &transform) {
+		if (mesh_renderer.mesh && mesh_renderer.mesh->GetMaterial())
+		{
+			if (mesh_renderer.mesh->GetMaterial()->GetAlphaMode() & mode)
+			{
+				meshes.push_back(mesh_renderer.mesh);
+				transforms.push_back(transform.world_transform);
+				batch.meshes.push_back(&mesh_renderer);
+			}
+		}
+	});
+
+	if (mode & AlphaMode::Blend && m_registry.valid(m_main_camera))
+	{
+		batch.order.resize(meshes.size());
+		std::iota(batch.order.begin(), batch.order.end(), 0);
+		glm::vec3 view_pos = Entity(*this, m_main_camera).GetComponent<cmpt::Transform>().world_transform[3];
+		std::sort(batch.order.begin(), batch.order.end(), [&](uint32_t lhs, uint32_t rhs) {
+			auto &mesh1 = meshes[lhs];
+			auto &mesh2 = meshes[rhs];
+			auto &c1    = mesh1->GetBoundingBox().Transform(transforms[lhs]).Center();
+			auto &c2    = mesh2->GetBoundingBox().Transform(transforms[lhs]).Center();
+			float dist1 = glm::dot(view_pos - c1, view_pos - c1);
+			float dist2 = glm::dot(view_pos - c2, view_pos - c2);
+			return dist2 < dist1;
+		});
+	}
+
+	return batch;
 }
 
 }        // namespace Ilum

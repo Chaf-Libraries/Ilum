@@ -286,7 +286,7 @@ Texture::operator VkImage() const
 
 void Texture::SetName(const std::string &name)
 {
-	if (name.empty())
+	if (!name.empty() && vkSetDebugUtilsObjectNameEXT)
 	{
 		VkDebugUtilsObjectNameInfoEXT name_info = {};
 		name_info.sType                         = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;

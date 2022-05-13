@@ -37,12 +37,12 @@ const ProfileState &Profiler::GetProfileState() const
 
 void Profiler::Begin(CommandBuffer &cmd_buffer)
 {
-	m_state.thread_id = std::this_thread::get_id();
-
 	uint32_t idx = p_device->GetCurrentFrame();
 
-	vkGetQueryPoolResults(p_device->GetDevice(), m_query_pools[(idx + 2) % p_device->GetSwapchainImages().size()], 0, 1, sizeof(uint64_t), &m_state.gpu_start, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
-	vkGetQueryPoolResults(p_device->GetDevice(), m_query_pools[(idx + 2) % p_device->GetSwapchainImages().size()], 1, 1, sizeof(uint64_t), &m_state.gpu_end, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
+	m_state.thread_id = std::this_thread::get_id();
+
+	vkGetQueryPoolResults(p_device->GetDevice(), m_query_pools[idx], 0, 1, sizeof(uint64_t), &m_state.gpu_start, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
+	vkGetQueryPoolResults(p_device->GetDevice(), m_query_pools[idx], 1, 1, sizeof(uint64_t), &m_state.gpu_end, sizeof(uint64_t), VK_QUERY_RESULT_64_BIT);
 	m_state.gpu_time = static_cast<float>(m_state.gpu_end - m_state.gpu_start) / 1000000.f;
 	m_state.cpu_time = std::chrono::duration<float, std::milli>(m_state.cpu_end - m_state.cpu_start).count();
 

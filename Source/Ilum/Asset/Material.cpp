@@ -63,6 +63,11 @@ Buffer &Material::GetBuffer()
 	return *m_buffer;
 }
 
+AlphaMode Material::GetAlphaMode()
+{
+	return m_alpha_mode;
+}
+
 const std::string &Material::GetName() const
 {
 	return m_name;
@@ -79,11 +84,14 @@ bool Material::OnImGui(ImGuiContext &context)
 	    "Specular-Glossiness"};
 	is_update |= ImGui::Combo("Material Type", reinterpret_cast<int32_t *>(&m_type), material_types, 2);
 
+	int32_t alpha_mode = static_cast<int32_t>(m_alpha_mode) >> 1;
+
 	const char *const alpha_modes[] = {
 	    "Opaque",
 	    "Masked",
 	    "Blend"};
-	is_update |= ImGui::Combo("Alpha Mode", reinterpret_cast<int32_t *>(&m_alpha_mode), alpha_modes, 3);
+	is_update |= ImGui::Combo("Alpha Mode", &alpha_mode, alpha_modes, 3);
+	m_alpha_mode = static_cast<AlphaMode>(1 << alpha_mode);
 
 	if (m_type == MaterialType::MetalRoughnessWorkflow)
 	{
@@ -100,6 +108,7 @@ bool Material::OnImGui(ImGuiContext &context)
 
 	is_update |= ImGui::ColorEdit3("Emissive Factor", glm::value_ptr(m_emissive_factor));
 	is_update |= ImGui::DragFloat("Emissive Strength", &m_emissive_strength, 0.001f, 0.f, 10.f, "%.3f");
+	is_update |= ImGui::DragFloat("Alpha Cut Off", &m_alpha_cut_off, 0.001f, 0.f, 1.f, "%.3f");
 
 	if (ImGui::TreeNode("Textures"))
 	{
@@ -178,5 +187,6 @@ void Material::UpdateBuffer()
 
 	std::memcpy(m_buffer->Map(), &material_interop, sizeof(material_interop));
 	m_buffer->Flush(m_buffer->GetSize());
+	m_buffer->Unmap();
 }
-}
+}        // namespace Ilum

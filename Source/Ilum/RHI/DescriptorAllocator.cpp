@@ -346,7 +346,7 @@ uint32_t DescriptorPool::FindAvaliablePool(const DescriptorLayout &descriptor_la
 		descriptor_pool_create_info.pPoolSizes                 = m_pool_sizes.data();
 		descriptor_pool_create_info.poolSizeCount              = static_cast<uint32_t>(m_pool_sizes.size());
 		descriptor_pool_create_info.maxSets                    = m_pool_max_sets;
-		descriptor_pool_create_info.flags                      = 0;
+		descriptor_pool_create_info.flags                      = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
 
 		auto &binding_flags = descriptor_layout.GetBindingFlags();
 		for (auto &binding_flag : binding_flags)

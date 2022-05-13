@@ -6,7 +6,11 @@ StructuredBuffer<Meshlet> meshlets[] : register(t2);
 StructuredBuffer<Vertex> vertices[] : register(t3);
 StructuredBuffer<uint> meshlet_vertices[] : register(t4);
 StructuredBuffer<uint> meshlet_primitives[] : register(t5);
-RWStructuredBuffer<uint> debug_buffer : register(u6);
+#ifdef ALPHA_TEST
+ConstantBuffer<Material> materials[] : register(b6);
+Texture2D<float4> texture_array[] : register(t7);
+SamplerState texture_sampler : register(s8);
+#endif
 
 struct CSParam
 {
@@ -18,11 +22,11 @@ struct CSParam
 struct VertexOut
 {
     float4 Position : SV_Position;
+    float2 Texcoord : TEXCOORD0;
 };
 
 struct PrimitiveOut
 {
-    uint EntityID : COLOR0;
     uint InstanceID : COLOR1;
     uint PrimitiveID : COLOR2;
     uint MeshletID : COLOR3;
@@ -54,9 +58,8 @@ void ASmain(CSParam param)
 
     if (param.DispatchThreadID.x < push_constants.meshlet_count)
     {
-        Meshlet meshlet = meshlets[push_constants.instance_id][param.DispatchThreadID.x];
-        Instance instance = instances[push_constants.instance_id];
-        debug_buffer[param.GroupID.x] = 1;
+        Meshlet meshlet = meshlets[instances[push_constants.instance_id].mesh][param.DispatchThreadID.x];
+        //debug_buffer[param.GroupID.x] = param.GroupID.x;
         //Camera cam = camera;
         //visible = meshlet.IsVisible(cam, instance.transform);
         visible = true;
@@ -85,48 +88,49 @@ void MSmain(CSParam param, in payload Payload pay_load, out vertices VertexOut v
         return;
     }
 
-    Meshlet meshlet = meshlets[push_constants.instance_id][meshlet_index];
     float4x4 transform = instances[push_constants.instance_id].transform;
+    
+    Meshlet meshlet = meshlets[instances[push_constants.instance_id].mesh][meshlet_index];
 
     SetMeshOutputCounts(meshlet.vertex_count, meshlet.primitive_count);
 
     for (uint i = param.GroupThreadID.x; i < meshlet.vertex_count; i += 32)
     {
-        uint vertex_index = meshlet_vertices[push_constants.instance_id][meshlet.vertex_offset + i];
-        Vertex vertex = vertices[push_constants.instance_id][vertex_index];
+        uint vertex_index = meshlet_vertices[instances[push_constants.instance_id].mesh][meshlet.vertex_offset + i];
+        Vertex vertex = vertices[instances[push_constants.instance_id].mesh][vertex_index];
 
         verts[i].Position = mul(camera.view_projection, mul(transform, float4(vertex.position.xyz, 1.0)));
+        verts[i].Texcoord = vertex.texcoord.xy;
     }
 
     for (i = param.GroupThreadID.x; i < meshlet.primitive_count; i += 32)
     {
-        prims[i].InstanceID = push_constants.instance_id;
+        prims[i].InstanceID = instances[push_constants.instance_id].mesh;
         prims[i].MeshletID = meshlet_index;
-        prims[i].PrimitiveID = meshlet_primitives[push_constants.instance_id][i];
+        prims[i].PrimitiveID = meshlet_primitives[instances[push_constants.instance_id].mesh][i];
         
         uint v0, v1, v2;
-        UnPackTriangle(meshlet_primitives[push_constants.instance_id][i+meshlet.primitive_offset], v0, v1, v2);
+        UnPackTriangle(meshlet_primitives[instances[push_constants.instance_id].mesh][i + meshlet.primitive_offset], v0, v1, v2);
         
         tris[i] = uint3(v0, v1, v2);
     }
 }
 
-uint hash(uint a)
+uint PSmain(VertexOut verts, PrimitiveOut prims) : SV_TARGET0
 {
-    a = (a + 0x7ed55d16) + (a << 12);
-    a = (a ^ 0xc761c23c) ^ (a >> 19);
-    a = (a + 0x165667b1) + (a << 5);
-    a = (a + 0xd3a2646c) ^ (a << 9);
-    a = (a + 0xfd7046c5) + (a << 3);
-    a = (a ^ 0xb55a4f09) ^ (a >> 16);
-    return a;
-}
-
-float4 PSmain(PrimitiveOut prims) : SV_TARGET0
-{
-    float4 output;
-    uint mhash = hash(prims.MeshletID);
-    float3 mcolor = float3(float(mhash & 255), float((mhash >> 8) & 255), float((mhash >> 16) & 255)) / 255.0;
-    output = float4(mcolor, 1.0);
-    return output;
+#ifdef ALPHA_TEST
+    float alpha = materials[instances[push_constants.instance_id].material].albedo_factor.a;
+    uint albedo_tex_id = materials[instances[push_constants.instance_id].material].albedo_texture;
+    if (albedo_tex_id < 1024)
+    {
+        float4 albedo = texture_array[albedo_tex_id].Sample(texture_sampler, verts.Texcoord);
+       alpha *= albedo.a;
+    }
+    if (alpha < materials[instances[push_constants.instance_id].material].alpha_cut_off)
+    {
+        discard;
+    }
+#endif    
+    uint vbuffer = PackVBuffer(prims.InstanceID, prims.MeshletID, prims.PrimitiveID);
+    return vbuffer;
 }

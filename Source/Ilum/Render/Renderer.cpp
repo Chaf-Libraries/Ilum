@@ -297,16 +297,18 @@ void Renderer::KullaContyApprox()
 
 	// Setup PSO
 	ShaderDesc kulla_conty_energy_shader  = {};
-	kulla_conty_energy_shader.filename    = "./Source/Shaders/Precompute/KullaContyEnergy.hlsl";
+	kulla_conty_energy_shader.filename    = "./Source/Shaders/KullaConty.hlsl";
 	kulla_conty_energy_shader.entry_point = "main";
 	kulla_conty_energy_shader.stage       = VK_SHADER_STAGE_COMPUTE_BIT;
 	kulla_conty_energy_shader.type        = ShaderType::HLSL;
+	kulla_conty_energy_shader.macros.push_back("Energy");
 
 	ShaderDesc kulla_conty_average_shader  = {};
-	kulla_conty_average_shader.filename    = "./Source/Shaders/Precompute/KullaContyEnergyAverage.hlsl";
+	kulla_conty_average_shader.filename    = "./Source/Shaders/KullaConty.hlsl";
 	kulla_conty_average_shader.entry_point = "main";
 	kulla_conty_average_shader.stage       = VK_SHADER_STAGE_COMPUTE_BIT;
 	kulla_conty_average_shader.type        = ShaderType::HLSL;
+	kulla_conty_average_shader.macros.push_back("Average");
 
 	PipelineState Emu_pso;
 	Emu_pso.LoadShader(kulla_conty_energy_shader);
@@ -373,7 +375,7 @@ void Renderer::BRDFPreIntegration()
 
 	// Setup PSO
 	ShaderDesc brdf_preintegration_shader  = {};
-	brdf_preintegration_shader.filename    = "./Source/Shaders/Precompute/BRDFPreIntegration.hlsl";
+	brdf_preintegration_shader.filename    = "./Source/Shaders/BRDFPreIntegration.hlsl";
 	brdf_preintegration_shader.entry_point = "main";
 	brdf_preintegration_shader.stage       = VK_SHADER_STAGE_COMPUTE_BIT;
 	brdf_preintegration_shader.type        = ShaderType::HLSL;

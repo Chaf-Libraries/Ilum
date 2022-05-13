@@ -3,6 +3,12 @@
 
 namespace Ilum
 {
+PipelineState &PipelineState::SetName(const std::string &name)
+{
+	m_name = name;
+	return *this;
+}
+
 PipelineState &PipelineState::SetInputAssemblyState(const InputAssemblyState &input_assembly_state)
 {
 	m_input_assembly_state = input_assembly_state;
