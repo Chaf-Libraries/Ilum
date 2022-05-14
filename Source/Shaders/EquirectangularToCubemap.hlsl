@@ -1,4 +1,4 @@
-#include "../Constants.hlsli"
+#include "Constants.hlsli"
 
 Texture2D tex : register(t0);
 SamplerState texSampler : register(s1);

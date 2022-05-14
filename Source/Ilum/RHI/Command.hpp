@@ -118,6 +118,8 @@ class CommandBuffer
 	void Draw(uint32_t vertex_count, uint32_t instance_count = 1, uint32_t first_vertex = 0, uint32_t first_instance = 0);
 	void DrawIndexed(uint32_t index_count, uint32_t instance_count = 1, uint32_t first_index = 0, uint32_t vertex_offset = 0, uint32_t first_instance = 0);
 
+	void TraceRays(uint32_t width, uint32_t height, uint32_t depth = 1);
+
 	void SetViewport(float width, float height, float x = 0.f, float y = 0.f, float min_depth = 0.f, float max_depth = 1.f);
 	void SetScissor(uint32_t width, uint32_t height, int32_t x = 0, int32_t y = 0);
 

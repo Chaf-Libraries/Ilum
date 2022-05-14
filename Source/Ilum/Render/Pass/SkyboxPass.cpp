@@ -65,13 +65,13 @@ void SkyboxPass::Create(RGBuilder &builder)
 	depth_buffer_view_desc.level_count      = 1;
 
 	ShaderDesc vertex_shader  = {};
-	vertex_shader.filename    = "./Source/Shaders/Shading/Skybox.hlsl";
+	vertex_shader.filename    = "./Source/Shaders/Skybox.hlsl";
 	vertex_shader.entry_point = "VSmain";
 	vertex_shader.stage       = VK_SHADER_STAGE_VERTEX_BIT;
 	vertex_shader.type        = ShaderType::HLSL;
 
 	ShaderDesc fragment_shader  = {};
-	fragment_shader.filename    = "./Source/Shaders/Shading/Skybox.hlsl";
+	fragment_shader.filename    = "./Source/Shaders/Skybox.hlsl";
 	fragment_shader.entry_point = "PSmain";
 	fragment_shader.stage       = VK_SHADER_STAGE_FRAGMENT_BIT;
 	fragment_shader.type        = ShaderType::HLSL;

@@ -14,6 +14,8 @@ Sampler::Sampler(RHIDevice *device, const SamplerDesc &desc):
 	create_info.addressModeU        = desc.address_mode;
 	create_info.addressModeV        = desc.address_mode;
 	create_info.addressModeW        = desc.address_mode;
+	create_info.anisotropyEnable    = desc.anisotropic;
+	create_info.maxAnisotropy       = 10.f;
 	create_info.mipLodBias          = desc.mip_lod_bias;
 	create_info.minLod              = desc.min_lod;
 	create_info.maxLod              = desc.max_lod;

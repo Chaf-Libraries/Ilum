@@ -22,6 +22,8 @@ class ShaderBindingTableInfo
 
 	uint8_t *GetData();
 
+	const VkStridedDeviceAddressRegionKHR *GetHandle() const;
+
 	const VkStridedDeviceAddressRegionKHR *operator&() const;
 
   private:

@@ -207,6 +207,7 @@ DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std
 		{
 			m_image_resolves[set][binding][i].imageView = views[i];
 			m_image_resolves[set][binding][i].sampler   = sampler;
+			m_image_resolves[set][binding][i].imageLayout = m_image_resolves[set][binding][0].imageLayout;
 			m_dirty                                     = true;
 		}
 	}
@@ -303,6 +304,8 @@ void DescriptorState::Write()
 		{
 			write_info.push_back(write.second);
 		}
+
+		vkQueueWaitIdle(p_device->GetQueue(VK_QUEUE_GRAPHICS_BIT));
 		vkUpdateDescriptorSets(p_device->GetDevice(), static_cast<uint32_t>(write_info.size()), write_info.data(), 0, nullptr);
 	}
 

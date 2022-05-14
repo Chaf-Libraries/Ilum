@@ -3,6 +3,7 @@
 #include "Device.hpp"
 #include "FrameBuffer.hpp"
 #include "PipelineState.hpp"
+#include "ShaderBindingTable.hpp"
 
 #include "Command.hpp"
 #include <Core/Hash.hpp>
@@ -183,6 +184,8 @@ void CommandBuffer::Begin(VkCommandBufferUsageFlagBits usage, VkCommandBufferInh
 void CommandBuffer::End()
 {
 	vkEndCommandBuffer(m_handle);
+	m_current_fb = nullptr;
+	m_current_pso = nullptr;
 }
 
 void CommandBuffer::BeginRenderPass(FrameBuffer &frame_buffer)
@@ -315,6 +318,22 @@ void CommandBuffer::Draw(uint32_t vertex_count, uint32_t instance_count, uint32_
 void CommandBuffer::DrawIndexed(uint32_t index_count, uint32_t instance_count, uint32_t first_index, uint32_t vertex_offset, uint32_t first_instance)
 {
 	vkCmdDrawIndexed(m_handle, index_count, instance_count, first_index, vertex_offset, first_instance);
+}
+
+void CommandBuffer::TraceRays(uint32_t width, uint32_t height, uint32_t depth)
+{
+	ASSERT(m_current_pso);
+	auto& sbt = p_device->AllocateSBT(*m_current_pso);
+
+	vkCmdTraceRaysKHR(
+	    m_handle,
+	    sbt.raygen->GetHandle(),
+	    sbt.miss->GetHandle(),
+	    sbt.hit->GetHandle(),
+	    sbt.callable->GetHandle(),
+	    width,
+	    height,
+	    depth);
 }
 
 void CommandBuffer::SetViewport(float width, float height, float x, float y, float min_depth, float max_depth)

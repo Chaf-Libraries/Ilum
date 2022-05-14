@@ -8,23 +8,20 @@
 
 namespace Ilum
 {
-class Tonemapping : public RenderPass
+class PathTracing : public RenderPass
 {
   public:
-	Tonemapping();
-	~Tonemapping() = default;
+	PathTracing();
+	~PathTracing() = default;
 
 	virtual void Create(RGBuilder &builder) override;
-
-	private:
-	
 };
 
 RTTR_REGISTRATION
 {
-	rttr::registration::class_<Tonemapping>("Tonemapping")
+	rttr::registration::class_<PathTracing>("PathTracing")
 	    .constructor<>()
-	    .method("Create", &Tonemapping::Create);
+	    .method("Create", &PathTracing::Create);
 }
 
 }        // namespace Ilum

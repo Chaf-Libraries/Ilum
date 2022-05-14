@@ -26,8 +26,11 @@ namespace Ilum
 std::vector<std::string> RGBuilder::s_avaliable_passes = {
     "VBuffer",
     "VisualizeVBuffer",
-    "Triangle",
+    "VShading",
     "SkyboxPass",
+    "FXAA",
+    "Tonemapping",
+    "PathTracing",
     "Present"};
 
 inline bool IsRead(VkAccessFlags access)

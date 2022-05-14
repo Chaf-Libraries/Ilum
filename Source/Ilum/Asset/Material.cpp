@@ -92,60 +92,166 @@ bool Material::OnImGui(ImGuiContext &context)
 	    "Blend"};
 	is_update |= ImGui::Combo("Alpha Mode", &alpha_mode, alpha_modes, 3);
 	m_alpha_mode = static_cast<AlphaMode>(1 << alpha_mode);
+	is_update |= ImGui::DragFloat("IOR", &m_ior, 0.001f, 0.f, 10.f, "%.3f");
 
 	if (m_type == MaterialType::MetalRoughnessWorkflow)
 	{
-		is_update |= ImGui::ColorEdit4("Base Color Factor", glm::value_ptr(m_albedo_factor));
-		is_update |= ImGui::DragFloat("Metallic Factor", &m_metallic_factor, 0.001f, 0.f, 1.f, "%.3f");
-		is_update |= ImGui::DragFloat("Roughness Factor", &m_roughness_factor, 0.001f, 0.f, 1.f, "%.3f");
-	}
-	else if (m_type == MaterialType::SpecularGlossinessWorkflow)
-	{
-		is_update |= ImGui::ColorEdit4("Diffuse Factor", glm::value_ptr(m_albedo_factor));
-		is_update |= ImGui::ColorEdit3("Specular Factor", glm::value_ptr(m_specular_factor));
-		is_update |= ImGui::DragFloat("Glossiness Factor", &m_glossiness_factor, 0.001f, 0.f, 1.f, "%.3f");
-	}
-
-	is_update |= ImGui::ColorEdit3("Emissive Factor", glm::value_ptr(m_emissive_factor));
-	is_update |= ImGui::DragFloat("Emissive Strength", &m_emissive_strength, 0.001f, 0.f, 10.f, "%.3f");
-	is_update |= ImGui::DragFloat("Alpha Cut Off", &m_alpha_cut_off, 0.001f, 0.f, 1.f, "%.3f");
-
-	if (ImGui::TreeNode("Textures"))
-	{
-		if (m_type == MaterialType::MetalRoughnessWorkflow)
+		if (ImGui::TreeNode("PBR - Metal Roughness Workflow"))
 		{
+			is_update |= ImGui::ColorEdit4("Base Color Factor", glm::value_ptr(m_pbr_base_color_factor));
+			is_update |= ImGui::DragFloat("Metallic Factor", &m_pbr_metallic_factor, 0.001f, 0.f, 1.f, "%.3f");
+			is_update |= ImGui::DragFloat("Roughness Factor", &m_pbr_roughness_factor, 0.001f, 0.f, 1.f, "%.3f");
 			if (ImGui::TreeNode("Base Color Texture"))
 			{
-				is_update |= DrawTextureButton(m_albedo_texture, context, m_manager);
+				is_update |= DrawTextureButton(m_pbr_base_color_texture, context, m_manager);
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("Metallic Roughness Texture"))
 			{
-				is_update |= DrawTextureButton(m_metallic_roughness_texture, context, m_manager);
+				is_update |= DrawTextureButton(m_pbr_metallic_roughness_texture, context, m_manager);
 				ImGui::TreePop();
 			}
+			if (ImGui::TreeNode("Normal Texture"))
+			{
+				is_update |= DrawTextureButton(m_normal_texture, context, m_manager);
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Occlusion Texture"))
+			{
+				is_update |= DrawTextureButton(m_occlusion_texture, context, m_manager);
+				ImGui::TreePop();
+			}
+			ImGui::TreePop();
 		}
-		else if (m_type == MaterialType::SpecularGlossinessWorkflow)
+	}
+	else if (m_type == MaterialType::SpecularGlossinessWorkflow)
+	{
+		if (ImGui::TreeNode("PBR - Specular Glossiness Workflow"))
 		{
+			is_update |= ImGui::ColorEdit4("Diffuse Factor", glm::value_ptr(m_pbr_diffuse_factor));
+			is_update |= ImGui::ColorEdit3("Specular Factor", glm::value_ptr(m_pbr_specular_factor));
+			is_update |= ImGui::DragFloat("Glossiness Factor", &m_pbr_glossiness_factor, 0.001f, 0.f, 1.f, "%.3f");
 			if (ImGui::TreeNode("Diffuse Texture"))
 			{
-				is_update |= DrawTextureButton(m_albedo_texture, context, m_manager);
+				is_update |= DrawTextureButton(m_pbr_diffuse_texture, context, m_manager);
 				ImGui::TreePop();
 			}
 			if (ImGui::TreeNode("Specular Glossiness Texture"))
 			{
-				is_update |= DrawTextureButton(m_specular_glossiness_texture, context, m_manager);
+				is_update |= DrawTextureButton(m_pbr_specular_glossiness_texture, context, m_manager);
 				ImGui::TreePop();
 			}
+			if (ImGui::TreeNode("Normal Texture"))
+			{
+				is_update |= DrawTextureButton(m_normal_texture, context, m_manager);
+				ImGui::TreePop();
+			}
+			if (ImGui::TreeNode("Occlusion Texture"))
+			{
+				is_update |= DrawTextureButton(m_occlusion_texture, context, m_manager);
+				ImGui::TreePop();
+			}
+			ImGui::TreePop();
+		}
+	}
+
+	if (ImGui::TreeNode("Emissive"))
+	{
+		is_update |= ImGui::ColorEdit3("Factor", glm::value_ptr(m_emissive_factor));
+		is_update |= ImGui::DragFloat("Strength", &m_emissive_strength, 0.001f, 0.f, 10.f, "%.3f");
+		is_update |= ImGui::DragFloat("Alpha Cut Off", &m_alpha_cut_off, 0.001f, 0.f, 1.f, "%.3f");
+		if (ImGui::TreeNode("Texture"))
+		{
+			is_update |= DrawTextureButton(m_emissive_texture, context, m_manager);
+			ImGui::TreePop();
+		}
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode("Sheen"))
+	{
+		is_update |= ImGui::ColorEdit3("Color Factor", glm::value_ptr(m_sheen_color_factor));
+		is_update |= ImGui::DragFloat("Roughness Factor", &m_sheen_roughness_factor, 0.001f, 0.f, 1.f, "%.3f");
+		if (ImGui::TreeNode("Texture"))
+		{
+			is_update |= DrawTextureButton(m_sheen_texture, context, m_manager);
+			ImGui::TreePop();
+		}
+		if (ImGui::TreeNode("Roughness Texture"))
+		{
+			is_update |= DrawTextureButton(m_sheen_roughness_texture, context, m_manager);
+			ImGui::TreePop();
+		}
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode("Clearcoat"))
+	{
+		is_update |= ImGui::DragFloat("Factor", &m_clearcoat_factor, 0.001f, 0.f, 1.f, "%.3f");
+		is_update |= ImGui::DragFloat("Roughness Factor", &m_clearcoat_roughness_factor, 0.001f, 0.f, 1.f, "%.3f");
+		if (ImGui::TreeNode("Texture"))
+		{
+			is_update |= DrawTextureButton(m_clearcoat_texture, context, m_manager);
+			ImGui::TreePop();
+		}
+		if (ImGui::TreeNode("Roughness Texture"))
+		{
+			is_update |= DrawTextureButton(m_clearcoat_roughness_texture, context, m_manager);
+			ImGui::TreePop();
 		}
 		if (ImGui::TreeNode("Normal Texture"))
 		{
-			is_update |= DrawTextureButton(m_normal_texture, context, m_manager);
+			is_update |= DrawTextureButton(m_clearcoat_normal_texture, context, m_manager);
 			ImGui::TreePop();
 		}
-		if (ImGui::TreeNode("Emissive Texture"))
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode("Specular"))
+	{
+		is_update |= ImGui::ColorEdit3("Color Factor", glm::value_ptr(m_specular_color_factor));
+		is_update |= ImGui::DragFloat("Factor", &m_specular_factor, 0.001f, 0.f, 1.f, "%.3f");
+		if (ImGui::TreeNode("Texture"))
 		{
-			is_update |= DrawTextureButton(m_emissive_texture, context, m_manager);
+			is_update |= DrawTextureButton(m_specular_texture, context, m_manager);
+			ImGui::TreePop();
+		}
+		if (ImGui::TreeNode("Color Texture"))
+		{
+			is_update |= DrawTextureButton(m_specular_color_texture, context, m_manager);
+			ImGui::TreePop();
+		}
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode("Transmission"))
+	{
+		is_update |= ImGui::DragFloat("Factor", &m_transmission_factor, 0.001f, 0.f, 1.f, "%.3f");
+		if (ImGui::TreeNode("Texture"))
+		{
+			is_update |= DrawTextureButton(m_transmission_texture, context, m_manager);
+			ImGui::TreePop();
+		}
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode("Volume"))
+	{
+		is_update |= ImGui::ColorEdit3("Attenuation Color", glm::value_ptr(m_attenuation_color));
+		is_update |= ImGui::DragFloat("Thickness Factor", &m_thickness_factor, 0.001f, 0.f, 1.f, "%.3f");
+		is_update |= ImGui::DragFloat("Attenuation Distance", &m_attenuation_distance, 0.001f, 0.f, 1.f, "%.3f");
+		ImGui::TreePop();
+	}
+
+	if (ImGui::TreeNode("Iridescence"))
+	{
+		is_update |= ImGui::DragFloat("Factor", &m_iridescence_factor, 0.001f, 0.f, 1.f, "%.3f");
+		is_update |= ImGui::DragFloat("IOR", &m_iridescence_ior, 0.001f, 0.f, 1.f, "%.3f");
+		is_update |= ImGui::DragFloat("Thickness Min", &m_iridescence_thickness_min, 0.001f, 0.f, 1.f, "%.3f");
+		is_update |= ImGui::DragFloat("Thickness Max", &m_iridescence_thickness_max, 0.001f, 0.f, 1.f, "%.3f");
+		if (ImGui::TreeNode("Thickness Texture"))
+		{
+			is_update |= DrawTextureButton(m_iridescence_thickness_texture, context, m_manager);
 			ImGui::TreePop();
 		}
 		ImGui::TreePop();
@@ -164,26 +270,59 @@ bool Material::OnImGui(ImGuiContext &context)
 void Material::UpdateBuffer()
 {
 	ShaderInterop::Material material_interop = {};
-	material_interop.albedo_factor           = m_albedo_factor;
 
-	material_interop.specular_factor   = m_specular_factor;
-	material_interop.glossiness_factor = m_glossiness_factor;
+	material_interop.type                            = static_cast<uint32_t>(m_type);
+	material_interop.pbr_diffuse_factor              = m_pbr_diffuse_factor;
+	material_interop.pbr_specular_factor             = m_pbr_specular_factor;
+	material_interop.pbr_glossiness_factor           = m_pbr_glossiness_factor;
+	material_interop.pbr_diffuse_texture             = m_manager.GetIndex(m_pbr_diffuse_texture);
+	material_interop.pbr_specular_glossiness_texture = m_manager.GetIndex(m_pbr_specular_glossiness_texture);
 
-	material_interop.metallic_factor  = m_metallic_factor;
-	material_interop.roughness_factor = m_roughness_factor;
-	material_interop.type             = static_cast<uint32_t>(m_type);
-	material_interop.alpha_mode       = static_cast<uint32_t>(m_alpha_mode);
+	material_interop.pbr_base_color_factor          = m_pbr_base_color_factor;
+	material_interop.pbr_metallic_factor            = m_pbr_metallic_factor;
+	material_interop.pbr_roughness_factor           = m_pbr_roughness_factor;
+	material_interop.pbr_base_color_texture         = m_manager.GetIndex(m_pbr_base_color_texture);
+	material_interop.pbr_metallic_roughness_texture = m_manager.GetIndex(m_pbr_metallic_roughness_texture);
 
 	material_interop.emissive_factor   = m_emissive_factor;
 	material_interop.emissive_strength = m_emissive_strength;
+	material_interop.emissive_texture  = m_manager.GetIndex(m_emissive_texture);
 
-	material_interop.albedo_texture              = m_manager.GetIndex(m_albedo_texture);
-	material_interop.normal_texture              = m_manager.GetIndex(m_normal_texture);
-	material_interop.emissive_texture            = m_manager.GetIndex(m_emissive_texture);
-	material_interop.specular_glossiness_texture = m_manager.GetIndex(m_specular_glossiness_texture);
+	material_interop.sheen_color_factor      = m_sheen_color_factor;
+	material_interop.sheen_roughness_factor  = m_sheen_roughness_factor;
+	material_interop.sheen_texture           = m_manager.GetIndex(m_sheen_texture);
+	material_interop.sheen_roughness_texture = m_manager.GetIndex(m_sheen_roughness_texture);
 
-	material_interop.metallic_roughness_texture = m_manager.GetIndex(m_metallic_roughness_texture);
-	material_interop.alpha_cut_off              = m_alpha_cut_off;
+	material_interop.clearcoat_factor            = m_clearcoat_factor;
+	material_interop.clearcoat_roughness_factor  = m_clearcoat_roughness_factor;
+	material_interop.clearcoat_texture           = m_manager.GetIndex(m_clearcoat_texture);
+	material_interop.clearcoat_roughness_texture = m_manager.GetIndex(m_clearcoat_roughness_texture);
+	material_interop.clearcoat_normal_texture    = m_manager.GetIndex(m_clearcoat_normal_texture);
+
+	material_interop.specular_factor        = m_specular_factor;
+	material_interop.specular_color_factor  = m_specular_color_factor;
+	material_interop.specular_texture       = m_manager.GetIndex(m_specular_texture);
+	material_interop.specular_color_texture = m_manager.GetIndex(m_specular_color_texture);
+
+	material_interop.transmission_factor  = m_transmission_factor;
+	material_interop.transmission_texture = m_manager.GetIndex(m_transmission_texture);
+
+	material_interop.thickness_factor  = m_thickness_factor;
+	material_interop.attenuation_color = m_attenuation_color;
+	material_interop.attenuation_distance = m_attenuation_distance;
+
+	material_interop.iridescence_factor = m_iridescence_factor;
+	material_interop.iridescence_ior    = m_iridescence_ior;
+	material_interop.iridescence_thickness_min = m_iridescence_thickness_min;
+	material_interop.iridescence_thickness_max = m_iridescence_thickness_max;
+	material_interop.iridescence_thickness_texture = m_manager.GetIndex(m_iridescence_thickness_texture);
+
+	material_interop.ior = m_ior;
+	material_interop.alpha_cut_off = m_alpha_cut_off;
+	material_interop.alpha_mode  = static_cast<uint32_t>(m_alpha_mode);
+
+	material_interop.normal_texture    = m_manager.GetIndex(m_normal_texture);
+	material_interop.occlusion_texture           = m_manager.GetIndex(m_occlusion_texture);
 
 	std::memcpy(m_buffer->Map(), &material_interop, sizeof(material_interop));
 	m_buffer->Flush(m_buffer->GetSize());

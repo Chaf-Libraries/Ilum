@@ -5,6 +5,7 @@
 
 #include "Component/Camera.hpp"
 #include "Component/Hierarchy.hpp"
+#include "Component/Light.hpp"
 #include "Component/MeshRenderer.hpp"
 #include "Component/Tag.hpp"
 #include "Component/Transform.hpp"
@@ -37,7 +38,10 @@ class Scene
 	const std::string &GetSavePath() const;
 
 	AccelerationStructure &GetTLAS();
-	Buffer                &GetMainCameraBuffer();
+
+	Buffer &GetMainCameraBuffer();
+
+	std::vector<Buffer *> GetInstanceBuffer();
 
 	entt::entity GetMainCamera();
 
@@ -56,6 +60,11 @@ class Scene
 	void ExportGLTF(const std::string &filename);
 
 	GeometryBatch Batch(AlphaMode mode);
+
+  private:
+	void UpdateMainCamera();
+	void UpdateScene();
+	void UpdateLights();
 
   private:
 	RHIDevice *p_device = nullptr;

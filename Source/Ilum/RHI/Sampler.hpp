@@ -14,6 +14,8 @@ struct SamplerDesc
 	VkSamplerAddressMode address_mode = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 	VkSamplerMipmapMode  mipmap_mode  = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
+	bool anisotropic = false;
+
 	float mip_lod_bias = 0.f;
 	float min_lod      = 0.f;
 	float max_lod      = 0.f;

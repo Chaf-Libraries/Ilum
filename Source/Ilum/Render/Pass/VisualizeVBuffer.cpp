@@ -102,7 +102,6 @@ void VisualizeVBuffer::Create(RGBuilder &builder)
 		        .Bind(0, 1, resource.GetTexture(instance)->GetView(view_desc))
 		        .Bind(0, 2, resource.GetTexture(primitive)->GetView(view_desc))
 		        .Bind(0, 3, resource.GetTexture(meshlet)->GetView(view_desc)));
-		cmd_buffer.Bind(pso);
 		cmd_buffer.Dispatch((renderer.GetExtent().width + 32 - 1) / 32, (renderer.GetExtent().height + 32 - 1) / 32);
 	});
 

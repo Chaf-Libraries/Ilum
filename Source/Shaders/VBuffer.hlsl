@@ -1,4 +1,6 @@
-#include "../ShaderInterop.hpp"
+#include "ShaderInterop.hpp"
+#include "Culling.hlsli"
+#include "Common.hlsli"
 
 ConstantBuffer<Camera> camera : register(b0);
 ConstantBuffer<Instance> instances[] : register(b1);
@@ -48,28 +50,21 @@ groupshared Payload shared_payload;
 [numthreads(32, 1, 1)]
 void ASmain(CSParam param)
 {
-    uint temp;
-    if (param.DispatchThreadID.x == 0)
-    {
-        //InterlockedExchange(count_info[0].meshlet_visible_count, 0, temp);
-    }
-
     bool visible = false;
 
     if (param.DispatchThreadID.x < push_constants.meshlet_count)
     {
         Meshlet meshlet = meshlets[instances[push_constants.instance_id].mesh][param.DispatchThreadID.x];
-        //debug_buffer[param.GroupID.x] = param.GroupID.x;
-        //Camera cam = camera;
-        //visible = meshlet.IsVisible(cam, instance.transform);
-        visible = true;
+        Camera cam;
+        cam.view_projection = camera.view_projection;
+        cam.position = camera.position;
+        visible = IsMeshletVisible(meshlet, instances[push_constants.instance_id].transform, cam);
     }
 
     if (visible)
     {
         uint index = WavePrefixCountBits(visible);
         shared_payload.meshletIndices[index] = param.DispatchThreadID.x;
-        //InterlockedAdd(count_info[0].meshlet_visible_count, 1, temp);
     }
 
     uint visible_count = WaveActiveCountBits(visible);
@@ -105,9 +100,9 @@ void MSmain(CSParam param, in payload Payload pay_load, out vertices VertexOut v
 
     for (i = param.GroupThreadID.x; i < meshlet.primitive_count; i += 32)
     {
-        prims[i].InstanceID = instances[push_constants.instance_id].mesh;
+        prims[i].InstanceID = instances[push_constants.instance_id].id;
         prims[i].MeshletID = meshlet_index;
-        prims[i].PrimitiveID = meshlet_primitives[instances[push_constants.instance_id].mesh][i];
+        prims[i].PrimitiveID = i;
         
         uint v0, v1, v2;
         UnPackTriangle(meshlet_primitives[instances[push_constants.instance_id].mesh][i + meshlet.primitive_offset], v0, v1, v2);
@@ -119,16 +114,36 @@ void MSmain(CSParam param, in payload Payload pay_load, out vertices VertexOut v
 uint PSmain(VertexOut verts, PrimitiveOut prims) : SV_TARGET0
 {
 #ifdef ALPHA_TEST
-    float alpha = materials[instances[push_constants.instance_id].material].albedo_factor.a;
-    uint albedo_tex_id = materials[instances[push_constants.instance_id].material].albedo_texture;
-    if (albedo_tex_id < 1024)
+    if (instances[push_constants.instance_id].material <1024)
     {
-        float4 albedo = texture_array[albedo_tex_id].Sample(texture_sampler, verts.Texcoord);
-       alpha *= albedo.a;
-    }
-    if (alpha < materials[instances[push_constants.instance_id].material].alpha_cut_off)
-    {
-        discard;
+        if (materials[instances[push_constants.instance_id].material].type == MetalRoughnessWorkflow)
+        {
+            float alpha = materials[instances[push_constants.instance_id].material].pbr_base_color_factor.a;
+            uint albedo_tex_id = materials[instances[push_constants.instance_id].material].pbr_base_color_texture;
+            if (albedo_tex_id < 1024)
+            {
+                float4 albedo = texture_array[albedo_tex_id].Sample(texture_sampler, verts.Texcoord);
+                alpha *= albedo.a;
+            }
+            if (alpha < materials[instances[push_constants.instance_id].material].alpha_cut_off)
+            {
+                discard;
+            }
+        }
+        else if (materials[instances[push_constants.instance_id].material].type == SpecularGlossinessWorkflow)
+        {
+            float alpha = materials[instances[push_constants.instance_id].material].pbr_diffuse_factor.a;
+            uint albedo_tex_id = materials[instances[push_constants.instance_id].material].pbr_diffuse_texture;
+            if (albedo_tex_id < 1024)
+            {
+                float4 albedo = texture_array[albedo_tex_id].Sample(texture_sampler, verts.Texcoord);
+                alpha *= albedo.a;
+            }
+            if (alpha < materials[instances[push_constants.instance_id].material].alpha_cut_off)
+            {
+                discard;
+            }
+        }
     }
 #endif    
     uint vbuffer = PackVBuffer(prims.InstanceID, prims.MeshletID, prims.PrimitiveID);

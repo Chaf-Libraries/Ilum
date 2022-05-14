@@ -8,23 +8,20 @@
 
 namespace Ilum
 {
-class Tonemapping : public RenderPass
+class VShading : public RenderPass
 {
   public:
-	Tonemapping();
-	~Tonemapping() = default;
+	VShading();
+	~VShading() = default;
 
 	virtual void Create(RGBuilder &builder) override;
-
-	private:
-	
 };
 
 RTTR_REGISTRATION
 {
-	rttr::registration::class_<Tonemapping>("Tonemapping")
+	rttr::registration::class_<VShading>("VShading")
 	    .constructor<>()
-	    .method("Create", &Tonemapping::Create);
+	    .method("Create", &VShading::Create);
 }
 
 }        // namespace Ilum

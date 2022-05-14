@@ -294,6 +294,40 @@ inline bool DrawComponent(Scene &scene, entt::entity entity, ImGuiContext &conte
 	    static_mode);
 }
 
+template <typename T1, typename T2, typename... Tn>
+inline void AddComponents(Scene &scene, entt::entity entity)
+{
+	AddComponents<T1>(scene, entity);
+	AddComponents<T2, Tn...>(scene, entity);
+}
+
+template <typename Base, typename T>
+inline bool HasComponent(Scene &scene, entt::entity entity)
+{
+	return std::is_base_of_v<Base, T> && Entity(scene, entity).HasComponent<T>();
+}
+
+template <typename Base, typename T1, typename T2, typename... Tn>
+inline bool HasComponent(Scene &scene, entt::entity entity)
+{
+	return HasComponent<Base, T1>(scene, entity) || HasComponent<Base, T2, Tn...>(scene, entity);
+}
+
+template <typename Base, typename T1, typename... Tn>
+inline void AddComponent(Scene &scene, entt::entity entity)
+{
+	if (HasComponent<Base, T1, Tn...>(scene, entity))
+	{
+		return;
+	}
+
+	if (ImGui::BeginMenu(typeid(Base).name()))
+	{
+		AddComponents<T1, Tn...>(scene, entity);
+		ImGui::EndMenu();
+	}
+}
+
 template <typename T>
 inline void AddComponents(Scene &scene, entt::entity entity)
 {
@@ -349,6 +383,20 @@ Buffer &Scene::GetMainCameraBuffer()
 	return *m_main_camera_buffer;
 }
 
+std::vector<Buffer *> Scene::GetInstanceBuffer()
+{
+	auto view = m_registry.view<cmpt::MeshRenderer>();
+
+	std::vector<Buffer *> instance_buffers;
+	instance_buffers.reserve(view.size());
+
+	view.each([&](cmpt::MeshRenderer &mesh) {
+		instance_buffers.push_back(mesh.buffer.get());
+	});
+
+	return instance_buffers;
+}
+
 entt::entity Scene::GetMainCamera()
 {
 	return m_main_camera;
@@ -372,149 +420,53 @@ void Scene::Tick()
 {
 	m_asset_manager.Tick();
 
-	// Update camera
-	if (m_registry.valid(m_main_camera))
-	{
-		ShaderInterop::Camera *camera_data = static_cast<ShaderInterop::Camera *>(m_main_camera_buffer->Map());
-
-		Entity entity = Entity(*this, m_main_camera);
-
-		auto &camera    = entity.GetComponent<cmpt::Camera>();
-		auto &transform = entity.GetComponent<cmpt::Transform>();
-
-		camera.view            = glm::inverse(transform.world_transform);
-		camera.projection      = camera.type == cmpt::CameraType::Perspective ?
-		                             glm::perspective(glm::radians(camera.fov), camera.aspect, camera.near_plane, camera.far_plane) :
-                                     glm::ortho(camera.left, camera.right, camera.bottom, camera.top, camera.near_plane, camera.far_plane);
-		camera.view_projection = camera.projection * camera.view;
-		camera.frame_count++;
-
-		camera_data->view            = camera.view;
-		camera_data->projection      = camera.projection;
-		camera_data->inv_view        = transform.world_transform;
-		camera_data->inv_projection  = glm::inverse(camera.projection);
-		camera_data->view_projection = camera.projection * camera.view;
-		camera_data->position        = transform.translation;
-		camera_data->frame_count     = camera.frame_count;
-
-		m_main_camera_buffer->Flush(m_main_camera_buffer->GetSize());
-		m_main_camera_buffer->Unmap();
-	}
-
-	// Update scene
-	if (m_update)
-	{
-		// Update Transform
-		auto group = m_registry.group<>(entt::get<cmpt::Transform, cmpt::Hierarchy>);
-
-		std::vector<entt::entity> roots;
-
-		// Find roots
-		for (auto &entity : group)
-		{
-			auto &&[hierarchy, transform] = group.get<cmpt::Hierarchy, cmpt::Transform>(entity);
-
-			if (hierarchy.parent == entt::null)
-			{
-				transform.local_transform = glm::scale(glm::translate(glm::mat4(1.f), transform.translation) * glm::mat4_cast(glm::qua<float>(glm::radians(transform.rotation))), transform.scale);
-				transform.world_transform = transform.local_transform;
-				roots.emplace_back(entity);
-			}
-		}
-
-		for (auto &root : roots)
-		{
-			TransformRecursive(*this, root);
-		}
-
-		// Update buffer
-		std::vector<VkAccelerationStructureInstanceKHR> acceleration_structure_instances;
-		acceleration_structure_instances.reserve(100);
-		auto mesh_view   = m_registry.view<cmpt::MeshRenderer>();
-		m_instance_count = static_cast<uint32_t>(mesh_view.size());
-		m_meshlet_count  = 0;
-		for (size_t i = 0; i < mesh_view.size(); i++)
-		{
-			Entity entity        = Entity(*this, mesh_view[i]);
-			auto  &mesh_renderer = entity.GetComponent<cmpt::MeshRenderer>();
-			auto  &transform     = entity.GetComponent<cmpt::Transform>();
-
-			m_meshlet_count += mesh_renderer.mesh->GetMeshletsCount();
-
-			if (!mesh_renderer.buffer)
-			{
-				BufferDesc desc      = {};
-				desc.size            = sizeof(ShaderInterop::Instance);
-				desc.buffer_usage    = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-				desc.memory_usage    = VMA_MEMORY_USAGE_CPU_TO_GPU;
-				mesh_renderer.buffer = std::make_unique<Buffer>(p_device, desc);
-			}
-
-			auto *instance_data          = static_cast<ShaderInterop::Instance *>(mesh_renderer.buffer->Map());
-			instance_data->transform     = transform.world_transform;
-			instance_data->material      = m_asset_manager.GetIndex(mesh_renderer.mesh->GetMaterial());
-			instance_data->mesh          = m_asset_manager.GetIndex(mesh_renderer.mesh);
-			instance_data->meshlet_count = mesh_renderer.mesh->GetMeshletsCount();
-			mesh_renderer.buffer->Flush(mesh_renderer.buffer->GetSize());
-			mesh_renderer.buffer->Unmap();
-
-			VkAccelerationStructureInstanceKHR acceleration_structure_instance = {};
-
-			auto transform_transpose = glm::mat3x4(glm::transpose(transform.world_transform));
-			std::memcpy(&acceleration_structure_instance.transform, &transform_transpose, sizeof(VkTransformMatrixKHR));
-			acceleration_structure_instance.instanceCustomIndex                    = 0;
-			acceleration_structure_instance.mask                                   = 0xFF;
-			acceleration_structure_instance.instanceShaderBindingTableRecordOffset = 0;
-			acceleration_structure_instance.flags                                  = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
-			acceleration_structure_instance.accelerationStructureReference         = mesh_renderer.mesh->GetBLAS().GetDeviceAddress();
-			acceleration_structure_instances.push_back(acceleration_structure_instance);
-		}
-
-		if (!acceleration_structure_instances.empty())
-		{
-			// Update TLAS
-			Buffer as_instance_buffer(
-			    p_device,
-			    BufferDesc(
-			        sizeof(VkAccelerationStructureInstanceKHR),
-			        static_cast<uint32_t>(acceleration_structure_instances.size()),
-			        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-			            VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
-			            VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
-			        VMA_MEMORY_USAGE_CPU_TO_GPU));
-			std::memcpy(as_instance_buffer.Map(), acceleration_structure_instances.data(), as_instance_buffer.GetSize());
-			as_instance_buffer.Flush(as_instance_buffer.GetSize());
-			as_instance_buffer.Unmap();
-
-			AccelerationStructureDesc as_desc                      = {};
-			as_desc.type                                           = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
-			as_desc.geometry.sType                                 = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
-			as_desc.geometry.geometryType                          = VK_GEOMETRY_TYPE_INSTANCES_KHR;
-			as_desc.geometry.flags                                 = VK_GEOMETRY_OPAQUE_BIT_KHR;
-			as_desc.geometry.geometry.instances.sType              = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
-			as_desc.geometry.geometry.instances.arrayOfPointers    = VK_FALSE;
-			as_desc.geometry.geometry.instances.data.deviceAddress = as_instance_buffer.GetDeviceAddress();
-			as_desc.range_info.primitiveCount                      = static_cast<uint32_t>(acceleration_structure_instances.size());
-			as_desc.range_info.primitiveOffset                     = 0;
-			as_desc.range_info.firstVertex                         = 0;
-			as_desc.range_info.transformOffset                     = 0;
-
-			{
-				auto &cmd_buffer = p_device->RequestCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, VK_QUEUE_COMPUTE_BIT);
-				cmd_buffer.Begin();
-				m_top_level_acceleration_structure->Build(cmd_buffer, as_desc);
-				cmd_buffer.End();
-				p_device->SubmitIdle(cmd_buffer, VK_QUEUE_COMPUTE_BIT);
-			}
-		}
-		m_update = false;
-	}
+	UpdateMainCamera();
+	UpdateScene();
+	UpdateLights();
 }
 
 void Scene::OnImGui(ImGuiContext &context)
 {
 	if (ImGui::BeginMainMenuBar())
 	{
+		if (ImGui::BeginMenu("New Entity"))
+		{
+			if (ImGui::BeginMenu("Camera"))
+			{
+				if (ImGui::MenuItem("Perspective Camera"))
+				{
+					Entity(*this, Create("Perspective Camera")).AddComponent<cmpt::Camera>().type = cmpt::CameraType::Perspective;
+				}
+				if (ImGui::MenuItem("Orthographic Camera"))
+				{
+					Entity(*this, Create("Orthographic Camera")).AddComponent<cmpt::Camera>().type = cmpt::CameraType::Orthographic;
+				}
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("Light"))
+			{
+				if (ImGui::MenuItem("Point Light"))
+				{
+					Entity(*this, Create("Point Light")).AddComponent<cmpt::Light>().type = cmpt::LightType::Point;
+				}
+				if (ImGui::MenuItem("Directional Light"))
+				{
+					Entity(*this, Create("Directional Light")).AddComponent<cmpt::Light>().type = cmpt::LightType::Directional;
+				}
+				if (ImGui::MenuItem("Spot Light"))
+				{
+					Entity(*this, Create("Spot Light")).AddComponent<cmpt::Light>().type = cmpt::LightType::Spot;
+				}
+				if (ImGui::MenuItem("Area Light"))
+				{
+					Entity(*this, Create("Area Light")).AddComponent<cmpt::Light>().type = cmpt::LightType::Area;
+				}
+				ImGui::EndMenu();
+			}
+
+			ImGui::EndMenu();
+		}
+
 		if (ImGui::BeginMenu("Main Camera"))
 		{
 			auto camera_view = m_registry.view<cmpt::Camera>();
@@ -607,6 +559,7 @@ void Scene::OnImGui(ImGuiContext &context)
 		{
 			AddComponents<cmpt::MeshRenderer>(*this, m_select);
 			AddComponents<cmpt::Camera>(*this, m_select);
+			AddComponents<cmpt::Light>(*this, m_select);
 
 			ImGui::EndPopup();
 		}
@@ -614,6 +567,7 @@ void Scene::OnImGui(ImGuiContext &context)
 		m_update |= DrawComponent<cmpt::Transform>(*this, m_select, context, true);
 		m_update |= DrawComponent<cmpt::Hierarchy>(*this, m_select, context, true);
 		m_update |= DrawComponent<cmpt::MeshRenderer>(*this, m_select, context, false);
+		m_update |= DrawComponent<cmpt::Light>(*this, m_select, context, false);
 		DrawComponent<cmpt::Camera>(*this, m_select, context, false);
 	}
 	ImGui::End();
@@ -718,6 +672,81 @@ void Scene::ImportGLTF(const std::string &filename)
 		{
 			material->m_name = Path::GetInstance().GetFileName(filename, false) + " Material #" + std::to_string(i);
 		}
+		// Load PBR Metallic Roughness
+		if (raw_material.has_pbr_metallic_roughness)
+		{
+			std::memcpy(glm::value_ptr(material->m_pbr_base_color_factor), raw_material.pbr_metallic_roughness.base_color_factor, sizeof(material->m_pbr_base_color_factor));
+			material->m_pbr_metallic_factor  = raw_material.pbr_metallic_roughness.metallic_factor;
+			material->m_pbr_roughness_factor = raw_material.pbr_metallic_roughness.roughness_factor;
+			load_texture(material->m_pbr_metallic_roughness_texture, raw_material.pbr_metallic_roughness.metallic_roughness_texture.texture);
+			load_texture(material->m_pbr_base_color_texture, raw_material.pbr_metallic_roughness.base_color_texture.texture);
+		}
+		// Load PBR Specular Glossiness
+		else if (raw_material.has_pbr_specular_glossiness)
+		{
+			std::memcpy(glm::value_ptr(material->m_pbr_diffuse_factor), raw_material.pbr_specular_glossiness.diffuse_factor, sizeof(material->m_pbr_diffuse_factor));
+			std::memcpy(glm::value_ptr(material->m_pbr_specular_factor), raw_material.pbr_specular_glossiness.specular_factor, sizeof(material->m_pbr_specular_factor));
+			material->m_pbr_glossiness_factor = raw_material.pbr_specular_glossiness.glossiness_factor;
+			load_texture(material->m_pbr_diffuse_texture, raw_material.pbr_specular_glossiness.diffuse_texture.texture);
+			load_texture(material->m_pbr_specular_glossiness_texture, raw_material.pbr_specular_glossiness.specular_glossiness_texture.texture);
+		}
+
+		// Load Emissive
+		{
+			std::memcpy(glm::value_ptr(material->m_emissive_factor), raw_material.emissive_factor, sizeof(material->m_emissive_factor));
+			material->m_emissive_strength = raw_material.emissive_strength.emissive_strength;
+			load_texture(material->m_emissive_texture, raw_material.emissive_texture.texture);
+		}
+
+		// Load Sheen
+		{
+			std::memcpy(glm::value_ptr(material->m_sheen_color_factor), raw_material.sheen.sheen_color_factor, sizeof(material->m_sheen_color_factor));
+			material->m_sheen_roughness_factor = raw_material.sheen.sheen_roughness_factor;
+			load_texture(material->m_sheen_texture, raw_material.sheen.sheen_color_texture.texture);
+			load_texture(material->m_sheen_roughness_texture, raw_material.sheen.sheen_roughness_texture.texture);
+		}
+
+		// Load Clear Coat
+		{
+			material->m_clearcoat_factor           = raw_material.clearcoat.clearcoat_factor;
+			material->m_clearcoat_roughness_factor = raw_material.clearcoat.clearcoat_roughness_factor;
+			load_texture(material->m_clearcoat_texture, raw_material.clearcoat.clearcoat_texture.texture);
+			load_texture(material->m_clearcoat_roughness_texture, raw_material.clearcoat.clearcoat_roughness_texture.texture);
+			load_texture(material->m_clearcoat_normal_texture, raw_material.clearcoat.clearcoat_normal_texture.texture);
+		}
+
+		// Specular
+		{
+			material->m_specular_factor = raw_material.specular.specular_factor;
+			std::memcpy(glm::value_ptr(material->m_specular_color_factor), raw_material.specular.specular_color_factor, sizeof(material->m_specular_color_factor));
+			load_texture(material->m_specular_texture, raw_material.specular.specular_texture.texture);
+			load_texture(material->m_specular_color_texture, raw_material.specular.specular_color_texture.texture);
+		}
+
+		// Transmission
+		{
+			material->m_transmission_factor = raw_material.transmission.transmission_factor;
+			load_texture(material->m_transmission_texture, raw_material.transmission.transmission_texture.texture);
+		}
+
+		// Volume
+		{
+			material->m_thickness_factor = raw_material.volume.thickness_factor;
+			std::memcpy(glm::value_ptr(material->m_attenuation_color), raw_material.volume.attenuation_color, sizeof(material->m_attenuation_color));
+			material->m_attenuation_distance = raw_material.volume.attenuation_distance;
+		}
+
+		// Iridescence
+		{
+			material->m_iridescence_factor = raw_material.iridescence.iridescence_factor;
+			material->m_iridescence_ior           = raw_material.iridescence.iridescence_ior;
+			material->m_iridescence_thickness_min = raw_material.iridescence.iridescence_thickness_min;
+			material->m_iridescence_thickness_max = raw_material.iridescence.iridescence_thickness_max;
+			load_texture(material->m_iridescence_thickness_texture, raw_material.iridescence.iridescence_thickness_texture.texture);
+		}
+
+		material->m_ior = raw_material.ior.ior;
+
 		if (raw_material.alpha_mode == cgltf_alpha_mode_opaque)
 		{
 			material->m_alpha_mode = AlphaMode::Opaque;
@@ -730,28 +759,11 @@ void Scene::ImportGLTF(const std::string &filename)
 		{
 			material->m_alpha_mode = AlphaMode::Blend;
 		}
-		material->m_alpha_cut_off     = raw_material.alpha_cutoff;
-		material->m_emissive_strength = raw_material.emissive_strength.emissive_strength;
+
+		material->m_alpha_cut_off = raw_material.alpha_cutoff;
 		load_texture(material->m_normal_texture, raw_material.normal_texture.texture);
-		load_texture(material->m_emissive_texture, raw_material.emissive_texture.texture);
-		std::memcpy(glm::value_ptr(material->m_emissive_factor), raw_material.emissive_factor, sizeof(material->m_emissive_factor));
-		if (raw_material.has_pbr_metallic_roughness)
-		{
-			std::memcpy(glm::value_ptr(material->m_albedo_factor), raw_material.pbr_metallic_roughness.base_color_factor, sizeof(material->m_albedo_factor));
-			material->m_metallic_factor  = raw_material.pbr_metallic_roughness.metallic_factor;
-			material->m_roughness_factor = raw_material.pbr_metallic_roughness.roughness_factor;
-			load_texture(material->m_metallic_roughness_texture, raw_material.pbr_metallic_roughness.metallic_roughness_texture.texture);
-			load_texture(material->m_albedo_texture, raw_material.pbr_metallic_roughness.base_color_texture.texture);
-		}
-		else if (raw_material.has_pbr_specular_glossiness)
-		{
-			std::memcpy(glm::value_ptr(material->m_albedo_factor), raw_material.pbr_specular_glossiness.diffuse_factor, sizeof(material->m_albedo_factor));
-			std::memcpy(glm::value_ptr(material->m_specular_factor), raw_material.pbr_specular_glossiness.specular_factor, sizeof(material->m_specular_factor));
-			material->m_glossiness_factor = raw_material.pbr_specular_glossiness.glossiness_factor;
-			load_texture(material->m_albedo_texture, raw_material.pbr_specular_glossiness.diffuse_texture.texture);
-			load_texture(material->m_specular_glossiness_texture, raw_material.pbr_specular_glossiness.specular_glossiness_texture.texture);
-			load_texture(material->m_albedo_texture, raw_material.pbr_specular_glossiness.diffuse_texture.texture);
-		}
+		load_texture(material->m_occlusion_texture, raw_material.occlusion_texture.texture);
+
 		material->UpdateBuffer();
 	}
 
@@ -899,10 +911,11 @@ void Scene::ImportGLTF(const std::string &filename)
 		SetAsSon(*this, root, entity);
 		node_map[&node] = entity;
 
-		auto &transform       = entity.GetComponent<cmpt::Transform>();
-		transform.translation = glm::vec3(node.translation[0], node.translation[1], node.translation[2]);
-		transform.rotation    = glm::vec3(node.rotation[0], node.rotation[1], node.rotation[2]);
-		transform.scale       = glm::vec3(node.scale[0], node.scale[1], node.scale[2]);
+		auto &transform = entity.GetComponent<cmpt::Transform>();
+
+		cgltf_float matrix[16];
+		cgltf_node_transform_local(&node, matrix);
+		ImGuizmo::DecomposeMatrixToComponents(matrix, glm::value_ptr(transform.translation), glm::value_ptr(transform.rotation), glm::value_ptr(transform.scale));
 
 		if (node.mesh)
 		{
@@ -939,7 +952,7 @@ void Scene::ExportGLTF(const std::string &filename)
 
 GeometryBatch Scene::Batch(AlphaMode mode)
 {
-	auto mesh_group = m_registry.group<cmpt::MeshRenderer, cmpt::Transform>();
+	auto mesh_group = m_registry.group<cmpt::MeshRenderer>(entt::get<cmpt::Transform>);
 
 	GeometryBatch          batch;
 	std::vector<Mesh *>    meshes;
@@ -970,7 +983,7 @@ GeometryBatch Scene::Batch(AlphaMode mode)
 			auto &mesh1 = meshes[lhs];
 			auto &mesh2 = meshes[rhs];
 			auto &c1    = mesh1->GetBoundingBox().Transform(transforms[lhs]).Center();
-			auto &c2    = mesh2->GetBoundingBox().Transform(transforms[lhs]).Center();
+			auto &c2    = mesh2->GetBoundingBox().Transform(transforms[rhs]).Center();
 			float dist1 = glm::dot(view_pos - c1, view_pos - c1);
 			float dist2 = glm::dot(view_pos - c2, view_pos - c2);
 			return dist2 < dist1;
@@ -980,4 +993,423 @@ GeometryBatch Scene::Batch(AlphaMode mode)
 	return batch;
 }
 
+void Scene::UpdateMainCamera()
+{
+	if (m_registry.valid(m_main_camera))
+	{
+		ShaderInterop::Camera *camera_data = static_cast<ShaderInterop::Camera *>(m_main_camera_buffer->Map());
+
+		Entity entity = Entity(*this, m_main_camera);
+
+		auto &camera    = entity.GetComponent<cmpt::Camera>();
+		auto &transform = entity.GetComponent<cmpt::Transform>();
+
+		camera.view            = glm::inverse(transform.world_transform);
+		camera.projection      = camera.type == cmpt::CameraType::Perspective ?
+		                             glm::perspective(glm::radians(camera.fov), camera.aspect, camera.near_plane, camera.far_plane) :
+                                     glm::ortho(camera.left, camera.right, camera.bottom, camera.top, camera.near_plane, camera.far_plane);
+		camera.view_projection = camera.projection * camera.view;
+		camera.frame_count++;
+
+		camera_data->view            = camera.view;
+		camera_data->projection      = camera.projection;
+		camera_data->inv_view        = transform.world_transform;
+		camera_data->inv_projection  = glm::inverse(camera.projection);
+		camera_data->view_projection = camera.projection * camera.view;
+		camera_data->position        = transform.translation;
+		camera_data->frame_count     = camera.frame_count;
+
+		m_main_camera_buffer->Flush(m_main_camera_buffer->GetSize());
+		m_main_camera_buffer->Unmap();
+	}
+}
+
+void Scene::UpdateScene()
+{
+	// Update scene
+	if (m_update)
+	{
+		// Update Transform
+		auto group = m_registry.group<>(entt::get<cmpt::Transform, cmpt::Hierarchy>);
+
+		std::vector<entt::entity> roots;
+
+		// Find roots
+		for (auto &entity : group)
+		{
+			auto &&[hierarchy, transform] = group.get<cmpt::Hierarchy, cmpt::Transform>(entity);
+
+			if (hierarchy.parent == entt::null)
+			{
+				transform.local_transform = glm::scale(glm::translate(glm::mat4(1.f), transform.translation) * glm::mat4_cast(glm::qua<float>(glm::radians(transform.rotation))), transform.scale);
+				transform.world_transform = transform.local_transform;
+				roots.emplace_back(entity);
+			}
+		}
+
+		for (auto &root : roots)
+		{
+			TransformRecursive(*this, root);
+		}
+
+		// Update buffer
+		std::vector<VkAccelerationStructureInstanceKHR> acceleration_structure_instances;
+		acceleration_structure_instances.reserve(100);
+		auto mesh_view   = m_registry.view<cmpt::MeshRenderer>();
+		m_instance_count = static_cast<uint32_t>(mesh_view.size());
+		m_meshlet_count  = 0;
+		for (uint32_t i = 0; i < mesh_view.size(); i++)
+		{
+			Entity entity        = Entity(*this, mesh_view[i]);
+			auto  &mesh_renderer = entity.GetComponent<cmpt::MeshRenderer>();
+			auto  &transform     = entity.GetComponent<cmpt::Transform>();
+
+			m_meshlet_count += mesh_renderer.mesh->GetMeshletsCount();
+
+			if (!mesh_renderer.buffer)
+			{
+				BufferDesc desc      = {};
+				desc.size            = sizeof(ShaderInterop::Instance);
+				desc.buffer_usage    = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+				desc.memory_usage    = VMA_MEMORY_USAGE_CPU_TO_GPU;
+				mesh_renderer.buffer = std::make_unique<Buffer>(p_device, desc);
+			}
+
+			auto *instance_data          = static_cast<ShaderInterop::Instance *>(mesh_renderer.buffer->Map());
+			instance_data->transform     = transform.world_transform;
+			instance_data->material      = m_asset_manager.GetIndex(mesh_renderer.mesh->GetMaterial());
+			instance_data->mesh          = m_asset_manager.GetIndex(mesh_renderer.mesh);
+			instance_data->meshlet_count = mesh_renderer.mesh->GetMeshletsCount();
+			instance_data->id            = i;
+			mesh_renderer.buffer->Flush(mesh_renderer.buffer->GetSize());
+			mesh_renderer.buffer->Unmap();
+
+			VkAccelerationStructureInstanceKHR acceleration_structure_instance = {};
+
+			auto transform_transpose = glm::mat3x4(glm::transpose(transform.world_transform));
+			std::memcpy(&acceleration_structure_instance.transform, &transform_transpose, sizeof(VkTransformMatrixKHR));
+			acceleration_structure_instance.instanceCustomIndex                    = 0;
+			acceleration_structure_instance.mask                                   = 0xFF;
+			acceleration_structure_instance.instanceShaderBindingTableRecordOffset = 0;
+			acceleration_structure_instance.flags                                  = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+			acceleration_structure_instance.accelerationStructureReference         = mesh_renderer.mesh->GetBLAS().GetDeviceAddress();
+			acceleration_structure_instances.push_back(acceleration_structure_instance);
+		}
+
+		if (!acceleration_structure_instances.empty())
+		{
+			// Update TLAS
+			Buffer as_instance_buffer(
+			    p_device,
+			    BufferDesc(
+			        sizeof(VkAccelerationStructureInstanceKHR),
+			        static_cast<uint32_t>(acceleration_structure_instances.size()),
+			        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+			            VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+			            VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
+			        VMA_MEMORY_USAGE_CPU_TO_GPU));
+			std::memcpy(as_instance_buffer.Map(), acceleration_structure_instances.data(), as_instance_buffer.GetSize());
+			as_instance_buffer.Flush(as_instance_buffer.GetSize());
+			as_instance_buffer.Unmap();
+
+			AccelerationStructureDesc as_desc                      = {};
+			as_desc.type                                           = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
+			as_desc.geometry.sType                                 = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+			as_desc.geometry.geometryType                          = VK_GEOMETRY_TYPE_INSTANCES_KHR;
+			as_desc.geometry.flags                                 = VK_GEOMETRY_OPAQUE_BIT_KHR;
+			as_desc.geometry.geometry.instances.sType              = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
+			as_desc.geometry.geometry.instances.arrayOfPointers    = VK_FALSE;
+			as_desc.geometry.geometry.instances.data.deviceAddress = as_instance_buffer.GetDeviceAddress();
+			as_desc.range_info.primitiveCount                      = static_cast<uint32_t>(acceleration_structure_instances.size());
+			as_desc.range_info.primitiveOffset                     = 0;
+			as_desc.range_info.firstVertex                         = 0;
+			as_desc.range_info.transformOffset                     = 0;
+
+			{
+				auto &cmd_buffer = p_device->RequestCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, VK_QUEUE_COMPUTE_BIT);
+				cmd_buffer.Begin();
+				m_top_level_acceleration_structure->Build(cmd_buffer, as_desc);
+				cmd_buffer.End();
+				p_device->SubmitIdle(cmd_buffer, VK_QUEUE_COMPUTE_BIT);
+			}
+		}
+		m_update = false;
+	}
+}
+
+void Scene::UpdateLights()
+{
+	struct DirectionalLight
+	{
+		glm::vec4 split_depth;
+		glm::mat4 view_projection[4];
+		glm::vec4 shadow_cam_pos[4];
+		glm::vec3 color;
+		float     intensity;
+		glm::vec3 direction;
+		float     filter_scale;
+		alignas(16) uint32_t filter_sample;
+	};
+
+	struct PointLight
+	{
+		glm::vec3 color;
+		float     intensity;
+		glm::vec3 position;
+		float     range;
+
+		float    filter_scale;
+		uint32_t filter_sample;
+	};
+
+	struct SpotLight
+	{
+		glm::mat4 view_projection;
+		glm::vec3 color;
+		float     intensity;
+		glm::vec3 position;
+		float     cut_off;
+		glm::vec3 direction;
+		float     outer_cut_off;
+
+		float    filter_scale;
+		uint32_t filter_sample;
+		float    range;
+	};
+
+	struct AreaLight
+	{
+		glm::vec3 color;
+		float     intensity;
+
+		glm::vec4 corners[4];
+
+		uint32_t shape;
+	};
+
+	auto group = m_registry.group<cmpt::Light, cmpt::Transform>();
+	group.each([this](cmpt::Light &light, cmpt::Transform &transform) {
+		// Update directional light
+		if (light.type == cmpt::LightType::Directional)
+		{
+			if (!light.buffer || light.buffer->GetSize() != sizeof(DirectionalLight))
+			{
+				light.buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(DirectionalLight), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
+			}
+			// 4 layer for cascade
+			if (!light.shadow_map || light.shadow_map->GetLayerCount() != 4)
+			{
+				light.shadow_map = std::make_unique<Texture>(
+				    p_device, TextureDesc{
+				                  1024,
+				                  1024,
+				                  1,
+				                  1,
+				                  4,
+				                  VK_SAMPLE_COUNT_1_BIT,
+				                  VK_FORMAT_D32_SFLOAT,
+				                  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT});
+			}
+			{
+				DirectionalLight *data = static_cast<DirectionalLight *>(light.buffer->Map());
+
+				data->color         = light.color;
+				data->intensity     = light.intensity;
+				data->filter_scale  = light.filter_scale;
+				data->filter_sample = light.filter_sample;
+				data->direction     = glm::mat3_cast(glm::qua<float>(glm::radians(transform.rotation))) * glm::vec3(0.f, -1.f, 0.f);
+				Entity main_camera  = Entity(*this, m_main_camera);
+				if (main_camera.IsValid() && main_camera.HasComponent<cmpt::Camera>())
+				{
+					auto &camera            = main_camera.GetComponent<cmpt::Camera>();
+					float cascade_splits[4] = {0.f};
+
+					float near_clip  = camera.near_plane;
+					float far_clip   = camera.far_plane;
+					float clip_range = far_clip - near_clip;
+					float ratio      = far_clip / near_clip;
+
+					// Calculate split depths based on view camera frustum
+					for (uint32_t i = 0; i < 4; i++)
+					{
+						float p           = (static_cast<float>(i) + 1.f) / 4.f;
+						float log         = near_clip * std::pow(ratio, p);
+						float uniform     = near_clip + clip_range * p;
+						float d           = 0.95f * (log - uniform) + uniform;
+						cascade_splits[i] = (d - near_clip) / clip_range;
+					}
+
+					// Calculate orthographic projection matrix for each cascade
+					float last_split_dist = 0.f;
+					for (uint32_t i = 0; i < 4; i++)
+					{
+						float split_dist = cascade_splits[i];
+
+						glm::vec3 frustum_corners[8] = {
+						    glm::vec3(-1.0f, 1.0f, 0.0f),
+						    glm::vec3(1.0f, 1.0f, 0.0f),
+						    glm::vec3(1.0f, -1.0f, 0.0f),
+						    glm::vec3(-1.0f, -1.0f, 0.0f),
+						    glm::vec3(-1.0f, 1.0f, 1.0f),
+						    glm::vec3(1.0f, 1.0f, 1.0f),
+						    glm::vec3(1.0f, -1.0f, 1.0f),
+						    glm::vec3(-1.0f, -1.0f, 1.0f)};
+
+						// Project frustum corners into world space
+						glm::mat4 inv_cam = glm::inverse(camera.view_projection);
+						for (uint32_t j = 0; j < 8; j++)
+						{
+							glm::vec4 inv_corner = inv_cam * glm::vec4(frustum_corners[j], 1.f);
+							frustum_corners[j]   = glm::vec3(inv_corner / inv_corner.w);
+						}
+
+						for (uint32_t j = 0; j < 4; j++)
+						{
+							glm::vec3 corner_ray   = frustum_corners[j + 4] - frustum_corners[j];
+							frustum_corners[j + 4] = frustum_corners[j] + corner_ray * split_dist;
+							frustum_corners[j]     = frustum_corners[j] + corner_ray * last_split_dist;
+						}
+
+						// Get frustum center
+						glm::vec3 frustum_center = glm::vec3(0.0f);
+						for (uint32_t j = 0; j < 8; j++)
+						{
+							frustum_center += frustum_corners[j];
+						}
+						frustum_center /= 8.0f;
+
+						float radius = 0.0f;
+						for (uint32_t j = 0; j < 8; j++)
+						{
+							float distance = glm::length(frustum_corners[j] - frustum_center);
+							radius         = glm::max(radius, distance);
+						}
+						radius = std::ceil(radius * 16.0f) / 16.0f;
+
+						glm::vec3 max_extents = glm::vec3(radius);
+						glm::vec3 min_extents = -max_extents;
+
+						glm::vec3 light_dir = glm::normalize(data->direction);
+
+						data->shadow_cam_pos[i] = glm::vec4(frustum_center - light_dir * max_extents.z, 1.0);
+
+						glm::mat4 light_view_matrix  = glm::lookAt(glm::vec3(data->shadow_cam_pos[i]), frustum_center, glm::vec3(0.0f, 1.0f, 0.0f));
+						glm::mat4 light_ortho_matrix = glm::ortho(min_extents.x, max_extents.x, min_extents.y, max_extents.y, -2.f * (max_extents.z - min_extents.z), max_extents.z - min_extents.z);
+
+						// Store split distance and matrix in cascade
+						data->split_depth[i]     = -(near_clip + split_dist * clip_range);
+						data->view_projection[i] = light_ortho_matrix * light_view_matrix;
+
+						// Stablize
+						glm::vec3 shadow_origin = glm::vec3(0.0f);
+						shadow_origin           = (data->view_projection[i] * glm::vec4(shadow_origin, 1.0f));
+						shadow_origin *= 1024.f;
+
+						glm::vec3 rounded_origin = glm::round(shadow_origin);
+						glm::vec3 round_offset   = rounded_origin - shadow_origin;
+						round_offset             = round_offset / 1024.f;
+						round_offset.z           = 0.0f;
+
+						data->view_projection[i][3][0] += round_offset.x;
+						data->view_projection[i][3][1] += round_offset.y;
+
+						last_split_dist = cascade_splits[i];
+					}
+				}
+				light.buffer->Flush(light.buffer->GetSize());
+				light.buffer->Unmap();
+			}
+		}
+		// Update point light
+		if (light.type == cmpt::LightType::Point)
+		{
+			if (!light.buffer || light.buffer->GetSize() != sizeof(PointLight))
+			{
+				light.buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(PointLight), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
+			}
+			// 1 layer for shadow mapping
+			if (!light.shadow_map || light.shadow_map->GetLayerCount() != 6)
+			{
+				light.shadow_map = std::make_unique<Texture>(
+				    p_device, TextureDesc{
+				                  1024,
+				                  1024,
+				                  1,
+				                  1,
+				                  6,
+				                  VK_SAMPLE_COUNT_1_BIT,
+				                  VK_FORMAT_D32_SFLOAT,
+				                  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT});
+			}
+			{
+				PointLight *data    = static_cast<PointLight *>(light.buffer->Map());
+				data->color         = light.color;
+				data->range         = light.range;
+				data->intensity     = light.intensity;
+				data->position      = transform.world_transform[3];
+				data->filter_sample = light.filter_sample;
+				data->filter_scale  = light.filter_scale;
+				light.buffer->Flush(light.buffer->GetSize());
+				light.buffer->Unmap();
+			}
+		}
+		// Update spot light
+		if (light.type == cmpt::LightType::Spot)
+		{
+			if (!light.buffer || light.buffer->GetSize() != sizeof(SpotLight))
+			{
+				light.buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(SpotLight), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
+			}
+			// 1 layer for shadow mapping
+			if (!light.shadow_map || light.shadow_map->GetLayerCount() != 1)
+			{
+				light.shadow_map = std::make_unique<Texture>(
+				    p_device, TextureDesc{
+				                  1024,
+				                  1024,
+				                  1,
+				                  1,
+				                  1,
+				                  VK_SAMPLE_COUNT_1_BIT,
+				                  VK_FORMAT_D32_SFLOAT,
+				                  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT});
+			}
+			{
+				SpotLight *data       = static_cast<SpotLight *>(light.buffer->Map());
+				data->color           = light.color;
+				data->intensity       = light.intensity;
+				data->position        = transform.world_transform[3];
+				data->cut_off         = light.spot_inner_cone_angle;
+				data->outer_cut_off   = light.spot_outer_cone_angle;
+				data->direction       = glm::mat3_cast(glm::qua<float>(glm::radians(transform.rotation))) * glm::vec3(0.f, -1.f, 0.f);
+				data->view_projection = glm::perspective(2.f * glm::acos(light.spot_outer_cone_angle), 1.0f, 0.01f, 1000.f) * glm::lookAt(transform.translation, transform.translation + data->direction, glm::vec3(0.f, 1.f, 0.f));
+				data->filter_scale    = light.filter_scale;
+				data->filter_sample   = light.filter_sample;
+				data->range           = light.range;
+				light.buffer->Flush(light.buffer->GetSize());
+				light.buffer->Unmap();
+			}
+		}
+		// Update area light
+		if (light.type == cmpt::LightType::Area)
+		{
+			if (!light.buffer || light.buffer->GetSize() != sizeof(AreaLight))
+			{
+				light.buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(AreaLight), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
+			}
+			{
+				AreaLight *data  = static_cast<AreaLight *>(light.buffer->Map());
+				data->color      = light.color;
+				data->intensity  = light.intensity;
+				data->shape      = static_cast<uint32_t>(light.shape);
+				data->corners[0] = transform.world_transform * glm::vec4(-1.f, -1.f, 0.f, 1.f);
+				data->corners[1] = transform.world_transform * glm::vec4(1.f, -1.f, 0.f, 1.f);
+				data->corners[2] = transform.world_transform * glm::vec4(1.f, 1.f, 0.f, 1.f);
+				data->corners[3] = transform.world_transform * glm::vec4(-1.f, 1.f, 0.f, 1.f);
+				light.buffer->Flush(light.buffer->GetSize());
+				light.buffer->Unmap();
+			}
+		}
+	});
+}
 }        // namespace Ilum

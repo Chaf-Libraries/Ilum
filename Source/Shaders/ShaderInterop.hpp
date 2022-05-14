@@ -47,29 +47,70 @@ struct Vertex
 
 struct Material
 {
-	float4 albedo_factor;
+	uint type;
 
-	float3 specular_factor;
-	float  glossiness_factor;
+	// PBR Specular Glossiness
+	float3 pbr_specular_factor;
+	float4 pbr_diffuse_factor;
+	float  pbr_glossiness_factor;
+	uint   pbr_diffuse_texture;
+	uint   pbr_specular_glossiness_texture;
 
-	float metallic_factor;
-	float roughness_factor;
-	uint  type;
+	// PBR Metallic Roughness
+	float pbr_metallic_factor;
+	float4 pbr_base_color_factor;
+	float  pbr_roughness_factor;
+	uint   pbr_base_color_texture;
+	uint   pbr_metallic_roughness_texture;
+
+	// Emissive
+	float emissive_strength;
+	float3 emissive_factor;
+	uint   emissive_texture;
+
+	// Sheen
+	float3 sheen_color_factor;
+	float  sheen_roughness_factor;
+	uint   sheen_texture;
+	uint   sheen_roughness_texture;
+
+	// Clear Coat
+	float clearcoat_factor;
+	float clearcoat_roughness_factor;
+	uint  clearcoat_texture;
+	uint  clearcoat_roughness_texture;
+	uint  clearcoat_normal_texture;
+
+	// Specular
+	float  specular_factor;
+	float3 specular_color_factor;
+	uint   specular_texture;
+	uint   specular_color_texture;
+
+	// Transmission
+	float transmission_factor;
+	uint  transmission_texture;
+
+	// Volume
+	float  thickness_factor;
+	float3 attenuation_color;
+	float  attenuation_distance;
+
+	// Iridescence
+	float iridescence_factor;
+	float iridescence_ior;
+	float iridescence_thickness_min;
+	float iridescence_thickness_max;
+	uint  iridescence_thickness_texture;
+
+	// IOR
+	float ior;
+
+	float alpha_cut_off;
 	uint  alpha_mode;
 
-	float3 emissive_factor;
-	float  emissive_strength;
-
-	uint albedo_texture;
 	uint normal_texture;
-	uint emissive_texture;
-	uint specular_glossiness_texture;
-
-#ifdef __cplusplus
-	alignas(16)
-#endif
-	    uint metallic_roughness_texture;
-	float alpha_cut_off;
+	uint occlusion_texture;
 };
 
 struct MeshletBound
@@ -128,7 +169,7 @@ struct Instance
 	uint     material;
 	uint     mesh;
 	uint     meshlet_count;
-	uint     padding2;
+	uint     id;
 };
 
 #ifdef __cplusplus

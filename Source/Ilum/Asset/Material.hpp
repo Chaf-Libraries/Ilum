@@ -53,10 +53,10 @@ class Material
 	template <class Archive>
 	void serialize(Archive ar)
 	{
-		ar(m_type, m_name, m_albedo_factor, m_specular_factor,
+		/* ar(m_type, m_name, m_albedo_factor, m_specular_factor,
 		   m_glossiness_factor, m_metallic_factor, m_roughness_factor,
 		   m_emissive_factor, m_emissive_strength, m_alpha_cut_off,
-		   m_alpha_mode);
+		   m_alpha_mode);*/
 	}
 
   private:
@@ -68,27 +68,69 @@ class Material
 
 	std::string m_name;
 
-	glm::vec4 m_albedo_factor = glm::vec4(1.f);        // Albedo & Diffuse
-
 	// PBR Specular Glossiness
-	glm::vec3 m_specular_factor   = glm::vec3(0.f);
-	float     m_glossiness_factor = 0.f;
+	glm::vec4 m_pbr_diffuse_factor              = glm::vec4(1.f);
+	glm::vec3 m_pbr_specular_factor             = glm::vec3(0.f);
+	float     m_pbr_glossiness_factor           = 0.f;
+	Texture  *m_pbr_diffuse_texture             = nullptr;
+	Texture  *m_pbr_specular_glossiness_texture = nullptr;
 
 	// PBR Metallic Roughness
-	float m_metallic_factor  = 0.f;
-	float m_roughness_factor = 1.f;
+	glm::vec4 m_pbr_base_color_factor          = glm::vec4(1.f);
+	float     m_pbr_metallic_factor            = 0.f;
+	float     m_pbr_roughness_factor           = 1.f;
+	Texture  *m_pbr_base_color_texture         = nullptr;
+	Texture  *m_pbr_metallic_roughness_texture = nullptr;
 
+	// Emissive
 	glm::vec3 m_emissive_factor   = glm::vec3(0.f);
 	float     m_emissive_strength = 0.f;
+	Texture  *m_emissive_texture  = nullptr;
 
-	float m_alpha_cut_off = 0.5f;
+	// Sheen
+	glm::vec3 m_sheen_color_factor      = glm::vec3(0.f);
+	float     m_sheen_roughness_factor  = 0.f;
+	Texture  *m_sheen_texture           = nullptr;
+	Texture  *m_sheen_roughness_texture = nullptr;
 
-	Texture  *m_albedo_texture              = nullptr;
-	Texture  *m_normal_texture              = nullptr;
-	Texture  *m_emissive_texture            = nullptr;
-	Texture  *m_specular_glossiness_texture = nullptr;
-	Texture  *m_metallic_roughness_texture  = nullptr;
-	AlphaMode m_alpha_mode                  = AlphaMode::Opaque;
+	// Clear Coat
+	float    m_clearcoat_factor            = 0.f;
+	float    m_clearcoat_roughness_factor  = 0.f;
+	Texture *m_clearcoat_texture           = nullptr;
+	Texture *m_clearcoat_roughness_texture = nullptr;
+	Texture *m_clearcoat_normal_texture    = nullptr;
+
+	// Specular
+	float     m_specular_factor        = 0.f;
+	glm::vec3 m_specular_color_factor  = glm::vec3(0.f);
+	Texture  *m_specular_texture       = nullptr;
+	Texture  *m_specular_color_texture = nullptr;
+
+	// Transmission
+	float    m_transmission_factor  = 0.f;
+	Texture *m_transmission_texture = nullptr;
+
+	// Volume
+	float     m_thickness_factor     = 0.f;
+	glm::vec3 m_attenuation_color    = glm::vec3(0.f);
+	float     m_attenuation_distance = 0.f;
+
+	// Iridescence
+	float    m_iridescence_factor            = 0.f;
+	float    m_iridescence_ior               = 0.f;
+	float    m_iridescence_thickness_min     = 0.f;
+	float    m_iridescence_thickness_max     = 0.f;
+	Texture *m_iridescence_thickness_texture = nullptr;
+
+	// IOR
+	float m_ior = 1.5f;
+
+	// Alpha Test
+	float     m_alpha_cut_off = 0.5f;
+	AlphaMode m_alpha_mode    = AlphaMode::Opaque;
+
+	Texture *m_normal_texture    = nullptr;
+	Texture *m_occlusion_texture = nullptr;
 
 	std::unique_ptr<Buffer> m_buffer = nullptr;
 };

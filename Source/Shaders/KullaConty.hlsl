@@ -2,7 +2,7 @@
 
 #define LOCAL_SIZE 32
 #define LUT_SIZE 1024
-#define SAMPLE_COUNT 4096
+#define SAMPLE_COUNT 1024
 
 #ifdef Energy
 RWTexture2D<float> Emu_Lut : register(u0);

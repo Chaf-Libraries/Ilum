@@ -60,6 +60,11 @@ uint8_t *ShaderBindingTableInfo::GetData()
 	return m_mapped_data;
 }
 
+const VkStridedDeviceAddressRegionKHR *ShaderBindingTableInfo::GetHandle() const
+{
+	return &m_handle;
+}
+
 const VkStridedDeviceAddressRegionKHR *ShaderBindingTableInfo::operator&() const
 {
 	return &m_handle;

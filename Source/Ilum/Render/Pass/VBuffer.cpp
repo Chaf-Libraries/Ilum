@@ -23,7 +23,7 @@ void VBuffer::Create(RGBuilder &builder)
 	std::unique_ptr<RenderPass> pass = std::make_unique<VBuffer>();
 
 	// Render Target
-	auto visbility_buffer = builder.CreateTexture(
+	auto visibility_buffer = builder.CreateTexture(
 	    "Visibility Buffer",
 	    TextureDesc{
 	        builder.GetRenderer().GetExtent().width,  /*width*/
@@ -49,7 +49,7 @@ void VBuffer::Create(RGBuilder &builder)
 	        VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT},
 	    TextureState{VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT});
 
-	pass->AddResource(visbility_buffer);
+	pass->AddResource(visibility_buffer);
 	pass->AddResource(depth_stencil);
 
 	TextureViewDesc vbuffer_view_desc  = {};
@@ -70,25 +70,25 @@ void VBuffer::Create(RGBuilder &builder)
 
 	// Set Shader
 	ShaderDesc task_shader  = {};
-	task_shader.filename    = "./Source/Shaders/Shading/Visibility.hlsl";
+	task_shader.filename    = "./Source/Shaders/VBuffer.hlsl";
 	task_shader.entry_point = "ASmain";
 	task_shader.stage       = VK_SHADER_STAGE_TASK_BIT_NV;
 	task_shader.type        = ShaderType::HLSL;
 
 	ShaderDesc mesh_shader  = {};
-	mesh_shader.filename    = "./Source/Shaders/Shading/Visibility.hlsl";
+	mesh_shader.filename    = "./Source/Shaders/VBuffer.hlsl";
 	mesh_shader.entry_point = "MSmain";
 	mesh_shader.stage       = VK_SHADER_STAGE_MESH_BIT_NV;
 	mesh_shader.type        = ShaderType::HLSL;
 
 	ShaderDesc opaque_frag_shader  = {};
-	opaque_frag_shader.filename    = "./Source/Shaders/Shading/Visibility.hlsl";
+	opaque_frag_shader.filename    = "./Source/Shaders/VBuffer.hlsl";
 	opaque_frag_shader.entry_point = "PSmain";
 	opaque_frag_shader.stage       = VK_SHADER_STAGE_FRAGMENT_BIT;
 	opaque_frag_shader.type        = ShaderType::HLSL;
 
 	ShaderDesc alpha_frag_shader  = {};
-	alpha_frag_shader.filename    = "./Source/Shaders/Shading/Visibility.hlsl";
+	alpha_frag_shader.filename    = "./Source/Shaders/VBuffer.hlsl";
 	alpha_frag_shader.entry_point = "PSmain";
 	alpha_frag_shader.stage       = VK_SHADER_STAGE_FRAGMENT_BIT;
 	alpha_frag_shader.type        = ShaderType::HLSL;
@@ -136,13 +136,15 @@ void VBuffer::Create(RGBuilder &builder)
 
 	pass->BindCallback([=](CommandBuffer &cmd_buffer, const RGResources &resource, Renderer &renderer) {
 		auto *scene = renderer.GetScene();
-		if (!scene)
+		if (!scene || scene->GetInstanceBuffer().empty())
 		{
 			return;
 		}
 
 		FrameBuffer framebuffer;
-		framebuffer.Bind(resource.GetTexture(visbility_buffer), vbuffer_view_desc, ColorAttachmentInfo{});
+		ColorAttachmentInfo attachment_info = {};
+		attachment_info.clear_value.uint32[0] = 0xffffffff;
+		framebuffer.Bind(resource.GetTexture(visibility_buffer), vbuffer_view_desc, attachment_info);
 		framebuffer.Bind(resource.GetTexture(depth_stencil), depth_stencil_view_desc, DepthStencilAttachmentInfo{});
 		cmd_buffer.BeginRenderPass(framebuffer);
 
@@ -210,7 +212,7 @@ void VBuffer::Create(RGBuilder &builder)
 				        .Bind(0, 5, renderer.GetScene()->GetAssetManager().GetMeshletTriangleBuffer())
 				        .Bind(0, 6, renderer.GetScene()->GetAssetManager().GetMaterialBuffer())
 				        .Bind(0, 7, renderer.GetScene()->GetAssetManager().GetTextureViews())
-				        .Bind(0, 8, renderer.GetSampler(SamplerType::TrilinearClamp)));
+				        .Bind(0, 8, renderer.GetSampler(SamplerType::TrilinearWarp)));
 
 				cmd_buffer.SetViewport(static_cast<float>(renderer.GetExtent().width), -static_cast<float>(renderer.GetExtent().height), 0, static_cast<float>(renderer.GetExtent().height));
 				cmd_buffer.SetScissor(renderer.GetExtent().width, renderer.GetExtent().height);

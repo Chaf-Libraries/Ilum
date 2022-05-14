@@ -31,6 +31,7 @@ Renderer::Renderer(RHIDevice *device, Scene *scene) :
 	KullaContyApprox();
 	BRDFPreIntegration();
 	EquirectangularToCubemap(nullptr);
+	p_device->WaitIdle();
 }
 
 Renderer::~Renderer()
@@ -267,8 +268,8 @@ void Renderer::CreateSampler()
 	m_samplers[static_cast<size_t>(SamplerType::BilinearWarp)]     = std::make_unique<Sampler>(p_device, SamplerDesc{VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_MIPMAP_MODE_NEAREST});
 	m_samplers[static_cast<size_t>(SamplerType::TrilinearClamp)]   = std::make_unique<Sampler>(p_device, SamplerDesc{VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_MIPMAP_MODE_LINEAR});
 	m_samplers[static_cast<size_t>(SamplerType::TrilinearWarp)]    = std::make_unique<Sampler>(p_device, SamplerDesc{VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_MIPMAP_MODE_LINEAR});
-	m_samplers[static_cast<size_t>(SamplerType::AnisptropicClamp)] = std::make_unique<Sampler>(p_device, SamplerDesc{VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_MIPMAP_MODE_LINEAR});
-	m_samplers[static_cast<size_t>(SamplerType::AnisptropicWarp)]  = std::make_unique<Sampler>(p_device, SamplerDesc{VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_MIPMAP_MODE_LINEAR});
+	m_samplers[static_cast<size_t>(SamplerType::AnisptropicClamp)] = std::make_unique<Sampler>(p_device, SamplerDesc{VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_MIPMAP_MODE_LINEAR, true});
+	m_samplers[static_cast<size_t>(SamplerType::AnisptropicWarp)]  = std::make_unique<Sampler>(p_device, SamplerDesc{VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_MIPMAP_MODE_LINEAR, true});
 }
 
 void Renderer::KullaContyApprox()
@@ -446,13 +447,13 @@ void Renderer::EquirectangularToCubemap(Texture *texture)
 
 	// Setup PSO
 	ShaderDesc vertex_shader  = {};
-	vertex_shader.filename    = "./Source/Shaders/Precompute/EquirectangularToCubemap.hlsl";
+	vertex_shader.filename    = "./Source/Shaders/EquirectangularToCubemap.hlsl";
 	vertex_shader.entry_point = "VSmain";
 	vertex_shader.stage       = VK_SHADER_STAGE_VERTEX_BIT;
 	vertex_shader.type        = ShaderType::HLSL;
 
 	ShaderDesc fragment_shader  = {};
-	fragment_shader.filename    = "./Source/Shaders/Precompute/EquirectangularToCubemap.hlsl";
+	fragment_shader.filename    = "./Source/Shaders/EquirectangularToCubemap.hlsl";
 	fragment_shader.entry_point = "PSmain";
 	fragment_shader.stage       = VK_SHADER_STAGE_FRAGMENT_BIT;
 	fragment_shader.type        = ShaderType::HLSL;

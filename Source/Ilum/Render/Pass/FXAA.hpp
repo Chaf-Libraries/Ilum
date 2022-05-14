@@ -8,23 +8,20 @@
 
 namespace Ilum
 {
-class Tonemapping : public RenderPass
+class FXAA : public RenderPass
 {
   public:
-	Tonemapping();
-	~Tonemapping() = default;
+	FXAA();
+	~FXAA() = default;
 
 	virtual void Create(RGBuilder &builder) override;
-
-	private:
-	
 };
 
 RTTR_REGISTRATION
 {
-	rttr::registration::class_<Tonemapping>("Tonemapping")
+	rttr::registration::class_<FXAA>("FXAA")
 	    .constructor<>()
-	    .method("Create", &Tonemapping::Create);
+	    .method("Create", &FXAA::Create);
 }
 
 }        // namespace Ilum

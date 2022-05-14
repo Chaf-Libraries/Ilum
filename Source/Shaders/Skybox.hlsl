@@ -1,4 +1,4 @@
-#include "../ShaderInterop.hpp"
+#include "ShaderInterop.hpp"
 
 ConstantBuffer<Camera> camera : register(b0);
 Texture2D DepthStencil : register(t1);
