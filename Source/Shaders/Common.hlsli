@@ -75,9 +75,13 @@ struct MaterialInfo
     float metallic;
     float roughness;
     float ior;
+    float f0;
+    float alpha;
     float3 emissive;
+    
     float sheen;
-    float sheen_tint;
+    float3 sheen_tint;
+    
     float clearcoat;
     float clearcoat_roughness;
     float specular;
@@ -113,4 +117,20 @@ struct ShadingState
     uint matID;
     MaterialInfo mat;
 };
+
+#define SRGB_FAST_APPROXIMATION 1
+// sRGB to linear approximation
+// see http://chilliant.blogspot.com/2012/08/srgb-approximations-for-hlsl.html
+//-----------------------------------------------------------------------
+float4 SRGBtoLINEAR(float4 srgbIn)
+{
+#ifdef SRGB_FAST_APPROXIMATION
+    float3 linOut = pow(srgbIn.xyz, float3(2.2, 2.2, 2.2));
+#else  //SRGB_FAST_APPROXIMATION
+    float3 bLess = step(float3(0.04045, 0.04045, 0.04045), srgbIn.xyz);
+    float3 linOut = lerp(srgbIn.xyz / float3(12.92, 12.92, 12.92), pow((srgbIn.xyz + float3(0.055, 0.055, 0.055)) / float3(1.055, 1.055, 1.055), float3(2.4, 2.4, 2.4)), bLess);
+#endif  //SRGB_FAST_APPROXIMATION
+    return float4(linOut, srgbIn.w);
+}
+
 #endif

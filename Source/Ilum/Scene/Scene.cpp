@@ -763,6 +763,8 @@ void Scene::ImportGLTF(const std::string &filename)
 		material->m_alpha_cut_off = raw_material.alpha_cutoff;
 		load_texture(material->m_normal_texture, raw_material.normal_texture.texture);
 		load_texture(material->m_occlusion_texture, raw_material.occlusion_texture.texture);
+		material->m_unlit = raw_material.unlit;
+		material->m_thin = !raw_material.double_sided;
 
 		material->UpdateBuffer();
 	}

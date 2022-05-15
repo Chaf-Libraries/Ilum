@@ -20,6 +20,33 @@ struct LightSampleDesc
     float pdf;
 };
 
+struct Clearcoat
+{
+    
+};
+
+struct Flakes
+{
+    
+};
+
+struct Sheen
+{
+    
+};
+
+struct Emission
+{
+    
+};
+
+
+
+
+
+
+
+
 float3 ImportanceSampleGTR1(float rgh, float r1, float r2)
 {
     float a = max(0.001, rgh);

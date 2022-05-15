@@ -324,6 +324,9 @@ void Material::UpdateBuffer()
 	material_interop.normal_texture    = m_manager.GetIndex(m_normal_texture);
 	material_interop.occlusion_texture           = m_manager.GetIndex(m_occlusion_texture);
 
+	material_interop.unlit = static_cast<uint32_t>(m_unlit);
+	material_interop.thin  = static_cast<uint32_t>(m_thin);
+
 	std::memcpy(m_buffer->Map(), &material_interop, sizeof(material_interop));
 	m_buffer->Flush(m_buffer->GetSize());
 	m_buffer->Unmap();

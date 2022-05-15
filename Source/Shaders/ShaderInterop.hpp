@@ -111,6 +111,9 @@ struct Material
 
 	uint normal_texture;
 	uint occlusion_texture;
+
+	uint unlit;
+	uint thin;
 };
 
 struct MeshletBound
