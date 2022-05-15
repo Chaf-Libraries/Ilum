@@ -1,6 +1,7 @@
 #include "ShaderInterop.hpp"
 #include "Common.hlsli"
 #include "Math.hlsli"
+#include "Light.hlsli"
 
 Texture2D<uint> vbuffer : register(t0);
 RWTexture2D<float4> shading : register(u1);
@@ -12,6 +13,7 @@ StructuredBuffer<Vertex> vertices[] : register(t6);
 StructuredBuffer<uint> meshlet_vertices[] : register(t7);
 StructuredBuffer<uint> meshlet_primitives[] : register(t8);
 ConstantBuffer<Material> materials[] : register(b9);
+ConstantBuffer<PointLight> point_lights[] : register(b10);
 
 Texture2D<float4> texture_array[] : register(t12);
 SamplerState texture_sampler : register(s13);
@@ -20,6 +22,12 @@ struct CSParam
 {
     uint3 DispatchThreadID : SV_DispatchThreadID;
 };
+
+[[vk::push_constant]]
+struct
+{
+    uint point_light_count;
+} push_constants;
 
 void ComputeBarycentrics(float2 uv, float4 v0, float4 v1, float4 v2, out float3 bary, out float3 bary_ddx, out float3 bary_ddy)
 {
@@ -200,7 +208,7 @@ void GetMaterial(inout ShadingState sstate)
         sstate.mat.metallic = metallic;
         sstate.mat.roughness = perceptual_roughness;
         sstate.mat.f0 = f0;
-        sstate.mat.alpha = base_color.a;        
+        sstate.mat.alpha = base_color.a;
     }
     
     // Clamping roughness
@@ -212,8 +220,6 @@ void GetMaterial(inout ShadingState sstate)
     {
         sstate.mat.emissive *= SRGBtoLINEAR(texture_array[NonUniformResourceIndex(materials[sstate.matID].emissive_texture)].SampleGrad(texture_sampler, sstate.uv, sstate.dx, sstate.dy)).rgb;
     }
-    
-
         
     // Normal
     if (materials[sstate.matID].normal_texture < MAX_TEXTURE_ARRAY_SIZE)
@@ -261,6 +267,14 @@ void main(CSParam param)
     ShadingState sstate = GetShadingState(vdata, screen_texcoord);
     GetMaterial(sstate);
     
-    shading[param.DispatchThreadID.xy] = float4(sstate.mat.albedo, 1.0);
+    float3 radiance = float3(0.0, 0.0, 0.0);
+    
+    for (uint i = 0; i < push_constants.point_light_count; i++)
+    {
+        float3 wi;
+        radiance += sstate.mat.albedo * point_lights[i].Li(sstate.position, wi);
+    }
+    
+    shading[param.DispatchThreadID.xy] = float4(radiance, 1.0);
     normal[param.DispatchThreadID.xy] = PackNormal(sstate.normal.rgb);
 }

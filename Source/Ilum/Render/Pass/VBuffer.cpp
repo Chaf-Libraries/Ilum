@@ -191,7 +191,7 @@ void VBuffer::Create(RGBuilder &builder)
 		{
 			cmd_buffer.Bind(alpha_pso);
 
-			auto batch = renderer.GetScene()->Batch(AlphaMode::Blend | AlphaMode::Masked);
+			auto batch = renderer.GetScene()->Batch(AlphaMode::Masked);
 
 			std::vector<Buffer *> instances;
 			instances.reserve(batch.meshes.size());

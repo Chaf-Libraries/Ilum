@@ -141,6 +141,13 @@ void VShading::Create(RGBuilder &builder)
 			}
 		});
 
+		struct
+		{
+			uint32_t point_light_count = 0;
+		} push_constants;
+
+		push_constants.point_light_count = static_cast<uint32_t>(point_lights.size());
+
 		cmd_buffer.Bind(pso);
 		cmd_buffer.Bind(
 		    cmd_buffer.GetDescriptorState()
@@ -154,16 +161,17 @@ void VShading::Create(RGBuilder &builder)
 		        .Bind(0, 7, renderer.GetScene()->GetAssetManager().GetMeshletVertexBuffer())
 		        .Bind(0, 8, renderer.GetScene()->GetAssetManager().GetMeshletTriangleBuffer())
 		        .Bind(0, 9, renderer.GetScene()->GetAssetManager().GetMaterialBuffer())
+		        .Bind(0, 10, point_lights)
 
 		        //.Bind(0, 5, directional_lights)
 		        //.Bind(0, 6, spot_lights)
-		        //.Bind(0, 7, point_lights)
 		        //.Bind(0, 8, area_lights)
 		        //.Bind(0, 9, shadowmaps)
 		        //.Bind(0, 10, cascade_shadowmaps)
 		        //.Bind(0, 11, onmishadowmaps)
 		        .Bind(0, 12, renderer.GetScene()->GetAssetManager().GetTextureViews())
 		        .Bind(0, 13, renderer.GetSampler(SamplerType::TrilinearWarp)));
+		cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
 		cmd_buffer.Dispatch((renderer.GetExtent().width + 32 - 1) / 32, (renderer.GetExtent().height + 32 - 1) / 32);
 	});
 
