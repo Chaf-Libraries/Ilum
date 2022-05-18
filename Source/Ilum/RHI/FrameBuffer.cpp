@@ -83,6 +83,8 @@ FrameBuffer &FrameBuffer::Bind(Texture *depth_stencil, const TextureViewDesc &vi
 	reference.layout                     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 	m_depth_stencil_attachment_reference = reference;
 
+	m_dirty = true;
+
 	return *this;
 }
 

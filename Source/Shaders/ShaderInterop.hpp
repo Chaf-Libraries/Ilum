@@ -175,6 +175,43 @@ struct Instance
 	uint     id;
 };
 
+struct DirectionalLight
+{
+	float4   split_depth;
+	float4x4 view_projection[4];
+	float4   shadow_cam_pos[4];
+	float3   color;
+	float    intensity;
+	float3   direction;
+};
+
+struct SpotLight
+{
+	float4x4 view_projection;
+	float3   color;
+	float    intensity;
+	float3   position;
+	float    cut_off;
+	float    outer_cut_off;
+	float3   direction;
+};
+
+struct PointLight
+{
+	float3 color;
+	float  intensity;
+	float3 position;
+	float  range;
+};
+
+struct AreaLight
+{
+	float3 color;
+	float  intensity;
+
+	float4 corners[4];
+};
+
 #ifdef __cplusplus
 inline uint PackTriangle(uint8_t v0, uint8_t v1, uint8_t v2)
 #else

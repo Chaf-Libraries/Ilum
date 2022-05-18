@@ -378,6 +378,11 @@ RHIDevice::~RHIDevice()
 		vkDestroyFramebuffer(m_device, frame_buffer, nullptr);
 	}
 
+	for (auto& [hash, sampler] : m_samplers)
+	{
+		vkDestroySampler(m_device, sampler, nullptr);
+	}
+
 	m_pipelines.clear();
 	m_frame_buffers.clear();
 	m_render_passes.clear();
@@ -662,6 +667,35 @@ VkFramebuffer RHIDevice::AllocateFrameBuffer(FrameBuffer &framebuffer)
 	vkCreateFramebuffer(m_device, &frame_buffer_create_info, nullptr, &m_frame_buffers[hash]);
 
 	return m_frame_buffers[hash];
+}
+
+VkSampler RHIDevice::AllocateSampler(const SamplerDesc &desc)
+{
+	if (m_samplers.find(desc.Hash()) != m_samplers.end())
+	{
+		return m_samplers[desc.Hash()];
+	}
+
+	VkSamplerCreateInfo create_info = {};
+	create_info.sType               = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	create_info.minFilter           = desc.min_filter;
+	create_info.magFilter           = desc.mag_filter;
+	create_info.mipmapMode          = desc.mipmap_mode;
+	create_info.addressModeU        = desc.address_mode;
+	create_info.addressModeV        = desc.address_mode;
+	create_info.addressModeW        = desc.address_mode;
+	create_info.anisotropyEnable    = desc.anisotropic;
+	create_info.maxAnisotropy       = 10.f;
+	create_info.mipLodBias          = desc.mip_lod_bias;
+	create_info.minLod              = desc.min_lod;
+	create_info.maxLod              = desc.max_lod;
+
+	VkSampler sampler = VK_NULL_HANDLE;
+	vkCreateSampler(m_device, &create_info, nullptr, &sampler);
+
+	m_samplers[desc.Hash()] = sampler;
+
+	return sampler;
 }
 
 ShaderBindingTable &RHIDevice::AllocateSBT(const PipelineState &pso)

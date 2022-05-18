@@ -51,6 +51,7 @@ void Application::Tick()
 							m_renderer      = std::make_unique<Renderer>(&m_device);
 							m_asset_manager = std::make_unique<AssetManager>(&m_device);
 							m_scene         = std::make_unique<Scene>(&m_device, *m_asset_manager, "Untitle Scene");
+							m_renderer->SetScene(m_scene.get());
 						}
 						if (ImGui::MenuItem("Load Scene"))
 						{

@@ -1,4 +1,6 @@
 #include "Camera.hpp"
+#include "Light.hpp"
+#include "Transform.hpp"
 
 #include "Scene/Entity.hpp"
 
@@ -10,14 +12,14 @@ namespace Ilum::cmpt
 {
 void Camera::SetType(CameraType type)
 {
-	m_type   = type;
-	m_update = true;
+	m_type = type;
+	Update();
 }
 
 void Camera::SetAspect(float aspect)
 {
 	m_aspect = aspect;
-	m_update = true;
+	Update();
 }
 
 CameraType Camera::GetType() const
@@ -33,6 +35,26 @@ float Camera::GetAspect() const
 const glm::mat4 &Camera::GetView() const
 {
 	return m_view;
+}
+
+const glm::mat4 &Camera::GetProjection() const
+{
+	return m_projection;
+}
+
+const glm::mat4 &Camera::GetViewProjection() const
+{
+	return m_view_projection;
+}
+
+float Camera::GetNearPlane() const
+{
+	return m_near_plane;
+}
+
+float Camera::GetFarPlane() const
+{
+	return m_far_plane;
 }
 
 Buffer *Camera::GetBuffer()
@@ -130,6 +152,18 @@ void Camera::Tick(Scene &scene, entt::entity entity, RHIDevice *device)
 
 		m_buffer->Flush(m_buffer->GetSize());
 		m_buffer->Unmap();
+
+		// Main camera update -> update cascade shadow
+		if (entity == scene.GetMainCamera())
+		{
+			auto view = scene.GetRegistry().view<cmpt::Light>();
+			view.each([&](entt::entity entity, cmpt::Light &light) {
+				if (light.GetType() == LightType::Directional)
+				{
+					light.Update();
+				}
+			});
+		}
 
 		m_update = false;
 	}

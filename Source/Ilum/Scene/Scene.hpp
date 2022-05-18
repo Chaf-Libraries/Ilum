@@ -3,12 +3,7 @@
 #include <RHI/Device.hpp>
 #include <RHI/ImGuiContext.hpp>
 
-#include "Component/Camera.hpp"
-#include "Component/Hierarchy.hpp"
-#include "Component/Light.hpp"
 #include "Component/MeshRenderer.hpp"
-#include "Component/Tag.hpp"
-#include "Component/Transform.hpp"
 
 #include <Asset/Material.hpp>
 
@@ -66,6 +61,7 @@ class Scene
 	void UpdateInstance();
 	void UpdateTLAS();
 	void UpdateLights();
+	void UpdateEnvironment();
 
   private:
 	RHIDevice *p_device = nullptr;

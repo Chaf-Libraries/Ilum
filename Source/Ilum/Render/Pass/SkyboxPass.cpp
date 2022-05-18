@@ -6,8 +6,10 @@
 #include <Render/RGBuilder.hpp>
 #include <Render/Renderer.hpp>
 
-#include <Scene/Scene.hpp>
+#include <Scene/Component/Camera.hpp>
+#include <Scene/Component/Environment.hpp>
 #include <Scene/Entity.hpp>
+#include <Scene/Scene.hpp>
 
 namespace Ilum
 {
@@ -109,23 +111,35 @@ void SkyboxPass::Create(RGBuilder &builder)
 			return;
 		}
 
+		auto view = renderer.GetScene()->GetRegistry().view<cmpt::Environment>();
+		if (view.empty())
+		{
+			return;
+		}
+
+		auto *cubmap = renderer.GetScene()->GetRegistry().get<cmpt::Environment>(view[0]).GetCubemap();
+		if (!cubmap)
+		{
+			return;
+		}
+
 		FrameBuffer framebuffer;
 		framebuffer.Bind(
-			resource.GetTexture(output), 
-			output_view_desc, 
-			ColorAttachmentInfo{
-				VK_SAMPLE_COUNT_1_BIT, 
-				VK_ATTACHMENT_LOAD_OP_LOAD, 
-				VK_ATTACHMENT_STORE_OP_STORE, 
-				VK_ATTACHMENT_LOAD_OP_DONT_CARE, 
-				VK_ATTACHMENT_STORE_OP_DONT_CARE});
+		    resource.GetTexture(output),
+		    output_view_desc,
+		    ColorAttachmentInfo{
+		        VK_SAMPLE_COUNT_1_BIT,
+		        VK_ATTACHMENT_LOAD_OP_LOAD,
+		        VK_ATTACHMENT_STORE_OP_STORE,
+		        VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+		        VK_ATTACHMENT_STORE_OP_DONT_CARE});
 		cmd_buffer.BeginRenderPass(framebuffer);
 		cmd_buffer.Bind(pso);
 		cmd_buffer.Bind(
 		    cmd_buffer.GetDescriptorState()
 		        .Bind(0, 0, camera_buffer)
 		        .Bind(0, 1, resource.GetTexture(depth_buffer)->GetView(TextureViewDesc{VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1}))
-		        .Bind(0, 2, renderer.GetSkybox().GetView(TextureViewDesc{VK_IMAGE_VIEW_TYPE_CUBE, VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 6}))
+		        .Bind(0, 2, cubmap->GetView(TextureViewDesc{VK_IMAGE_VIEW_TYPE_CUBE, VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 6}))
 		        .Bind(0, 3, renderer.GetSampler(SamplerType::TrilinearClamp)));
 		cmd_buffer.SetViewport(static_cast<float>(renderer.GetExtent().width), -static_cast<float>(renderer.GetExtent().height), 0, static_cast<float>(renderer.GetExtent().height));
 		cmd_buffer.SetScissor(renderer.GetExtent().width, renderer.GetExtent().height);

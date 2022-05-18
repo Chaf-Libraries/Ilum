@@ -40,6 +40,10 @@ class Camera : public Component
 	CameraType       GetType() const;
 	float            GetAspect() const;
 	const glm::mat4 &GetView() const;
+	const glm::mat4 &GetProjection() const;
+	const glm::mat4 &GetViewProjection() const;
+	float            GetNearPlane() const;
+	float            GetFarPlane() const;
 
 	Buffer *GetBuffer();
 

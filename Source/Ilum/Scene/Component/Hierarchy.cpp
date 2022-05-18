@@ -1,35 +1,15 @@
 #include "Hierarchy.hpp"
+#include "Transform.hpp"
 
 #include "Scene/Entity.hpp"
 
 namespace Ilum::cmpt
 {
-inline void UpdateTransformRecursive(Scene &scene, entt::entity entity, RHIDevice *device)
-{
-	if (entity == entt::null)
-	{
-		return;
-	}
-
-	auto &transform = Entity(scene, entity).GetComponent<cmpt::Transform>();
-	auto &hierarchy = Entity(scene, entity).GetComponent<cmpt::Hierarchy>();
-
-	transform.Tick(scene, entity, device);
-
-	auto child = hierarchy.GetFirst();
-
-	while (child != entt::null)
-	{
-		UpdateTransformRecursive(scene, child, device);
-		child = Entity(scene, child).GetComponent<cmpt::Hierarchy>().GetNext();
-	}
-}
-
 void Hierarchy::Tick(Scene &scene, entt::entity entity, RHIDevice *device)
 {
 	if (m_update)
 	{
-		UpdateTransformRecursive(scene, entity, device);
+		Entity(scene, entity).GetComponent<cmpt::Transform>().Update();
 		m_update = false;
 	}
 }
@@ -65,25 +45,25 @@ entt::entity Hierarchy::GetPrev() const
 void Hierarchy::SetParent(entt::entity handle)
 {
 	m_parent = handle;
-	m_update = true;
+	Update();
 }
 
 void Hierarchy::SetFirst(entt::entity handle)
 {
 	m_first = handle;
-	m_update = true;
+	Update();
 }
 
 void Hierarchy::SetNext(entt::entity handle)
 {
 	m_next = handle;
-	m_update = true;
+	Update();
 }
 
 void Hierarchy::SetPrev(entt::entity handle)
 {
 	m_prev = handle;
-	m_update = true;
+	Update();
 }
 
 bool Hierarchy::IsRoot() const

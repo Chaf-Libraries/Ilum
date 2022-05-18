@@ -348,6 +348,11 @@ void CommandBuffer::SetScissor(uint32_t width, uint32_t height, int32_t x, int32
 	vkCmdSetScissor(m_handle, 0, 1, &rect);
 }
 
+void CommandBuffer::SetDepthBias(float depth_bias_constant_factor, float depth_bias_clamp, float depth_bias_slope_factor)
+{
+	vkCmdSetDepthBias(m_handle, depth_bias_constant_factor, depth_bias_clamp, depth_bias_slope_factor);
+}
+
 void CommandBuffer::GenerateMipmap(Texture *texture, const TextureState &initial_state, VkFilter filter)
 {
 	VkImageSubresourceRange  src_range  = {VK_IMAGE_ASPECT_COLOR_BIT, 0, texture->GetMipLevels(), 0, texture->GetLayerCount()};

@@ -8,6 +8,7 @@
 
 #include <Scene/Scene.hpp>
 #include <Scene/Entity.hpp>
+#include <Scene/Component/Camera.hpp>
 
 #include <Asset/AssetManager.hpp>
 

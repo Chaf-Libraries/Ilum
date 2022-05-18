@@ -15,6 +15,7 @@ class Texture;
 struct TextureViewDesc;
 struct BufferDesc;
 class Buffer;
+struct SamplerDesc;
 struct AccelerationStructureDesc;
 class AccelerationStructure;
 struct ShaderBindingTable;
@@ -61,6 +62,7 @@ class RHIDevice
 	VkPipeline       AllocatePipeline(const PipelineState &pso, VkRenderPass render_pass = VK_NULL_HANDLE);
 	VkRenderPass     AllocateRenderPass(FrameBuffer &framebuffer);
 	VkFramebuffer    AllocateFrameBuffer(FrameBuffer &framebuffer);
+	VkSampler        AllocateSampler(const SamplerDesc &desc);
 
 	ShaderBindingTable &AllocateSBT(const PipelineState &pso);
 
@@ -164,5 +166,6 @@ class RHIDevice
 	std::map<size_t, std::unique_ptr<ShaderBindingTable>> m_shader_binding_tables;
 	std::map<size_t, std::unique_ptr<DescriptorState>>    m_descriptor_states;
 	std::map<void *, std::unique_ptr<Profiler>>           m_profilers;
+	std::map<size_t, VkSampler>                           m_samplers;
 };
 }        // namespace Ilum

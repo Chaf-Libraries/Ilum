@@ -6,6 +6,7 @@
 #include <Render/RGBuilder.hpp>
 #include <Render/Renderer.hpp>
 
+#include <Scene/Component/Camera.hpp>
 #include <Scene/Scene.hpp>
 #include <Scene/Entity.hpp>
 
@@ -112,7 +113,7 @@ void VShading::Create(RGBuilder &builder)
 		std::vector<VkImageView> cascade_shadowmaps;
 		std::vector<VkImageView> onmishadowmaps;
 
-		auto view = renderer.GetScene()->GetRegistry().view<cmpt::Light>();
+		/*auto view = renderer.GetScene()->GetRegistry().view<cmpt::Light>();
 		view.each([&](cmpt::Light &light) {
 			switch (light.type)
 			{
@@ -152,7 +153,7 @@ void VShading::Create(RGBuilder &builder)
 				default:
 					break;
 			}
-		});
+		});*/
 
 		struct
 		{

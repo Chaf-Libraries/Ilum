@@ -1,4 +1,6 @@
 #include "Transform.hpp"
+#include "Hierarchy.hpp"
+#include "Light.hpp"
 
 #include "Scene/Entity.hpp"
 
@@ -114,18 +116,21 @@ void Transform::Tick(Scene &scene, entt::entity entity, RHIDevice *device)
 			m_world_transform = Entity(scene, hierachy.GetParent()).GetComponent<Transform>().m_world_transform * m_local_transform;
 		}
 
+		auto child = hierachy.GetFirst();
+		while (child != entt::null)
+		{
+			Entity(scene, child).GetComponent<cmpt::Transform>().Update();
+			child = Entity(scene, child).GetComponent<cmpt::Hierarchy>().GetNext();
+		}
+
 		if (e.HasComponent<cmpt::MeshRenderer>())
 		{
-			auto *buffer = e.GetComponent<cmpt::MeshRenderer>().GetBuffer();
+			e.GetComponent<cmpt::MeshRenderer>().Update();
+		}
 
-			if (buffer)
-			{
-				ShaderInterop::Instance *instance = static_cast<ShaderInterop::Instance *>(buffer->Map());
-
-				instance->transform = m_world_transform;
-				buffer->Flush(buffer->GetSize());
-				buffer->Unmap();
-			}
+		if (e.HasComponent<cmpt::Light>())
+		{
+			e.GetComponent<cmpt::Light>().Update();
 		}
 
 		m_update = false;

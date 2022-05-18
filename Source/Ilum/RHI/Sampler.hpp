@@ -19,6 +19,20 @@ struct SamplerDesc
 	float mip_lod_bias = 0.f;
 	float min_lod      = 0.f;
 	float max_lod      = 0.f;
+
+	size_t Hash() const
+	{
+		size_t hash = 0;
+		HashCombine(hash, min_filter);
+		HashCombine(hash, mag_filter);
+		HashCombine(hash, address_mode);
+		HashCombine(hash, mipmap_mode);
+		HashCombine(hash, anisotropic);
+		HashCombine(hash, mip_lod_bias);
+		HashCombine(hash, min_lod);
+		HashCombine(hash, max_lod);
+		return hash;
+	}
 };
 
 class Sampler
@@ -30,7 +44,7 @@ class Sampler
 	operator VkSampler() const;
 
   private:
-	RHIDevice *p_device = nullptr;
+	RHIDevice  *p_device = nullptr;
 	SamplerDesc m_desc;
 	VkSampler   m_handle = VK_NULL_HANDLE;
 };

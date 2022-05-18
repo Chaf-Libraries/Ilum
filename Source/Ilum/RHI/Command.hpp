@@ -122,6 +122,7 @@ class CommandBuffer
 
 	void SetViewport(float width, float height, float x = 0.f, float y = 0.f, float min_depth = 0.f, float max_depth = 1.f);
 	void SetScissor(uint32_t width, uint32_t height, int32_t x = 0, int32_t y = 0);
+	void SetDepthBias(float depth_bias_constant_factor, float depth_bias_clamp, float depth_bias_slope_factor);
 
 	void GenerateMipmap(Texture *texture, const TextureState &initial_state, VkFilter filter);
 

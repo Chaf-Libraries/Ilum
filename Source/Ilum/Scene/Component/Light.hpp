@@ -25,33 +25,48 @@ enum class AreaLightShape
 	Ellipse
 };
 
-struct Light : public Component
+class Light : public Component
 {
-	LightType type = LightType::Point;
+  public:
+	Light() = default;
 
-	glm::vec3 color     = {1.f, 1.f, 1.f};
-	float     intensity = 1.f;
+	bool OnImGui(ImGuiContext &context);
 
-	float range                 = 1.f;
-	float spot_inner_cone_angle = glm::cos(glm::radians(12.5f));
-	float spot_outer_cone_angle = glm::cos(glm::radians(17.5f));
+	virtual void Tick(Scene &scene, entt::entity entity, RHIDevice *device) override;
 
-	// Shadow Attribute
-	float   filter_scale  = 3.f;
-	int32_t filter_sample = 20;
+	Texture *GetShadowmap();
+	Buffer  *GetBuffer();
 
-	AreaLightShape shape = AreaLightShape::Rectangle;
+	void SetType(LightType type);
 
-	// Shadow map
-	std::unique_ptr<Texture> shadow_map = nullptr;
-	std::unique_ptr<Buffer>  buffer     = nullptr;
+	LightType GetType() const;
 
 	template <class Archive>
 	void serialize(Archive &ar)
 	{
-		ar(type, color, intensity, range, spot_inner_cone_angle, spot_outer_cone_angle, filter_scale, filter_sample);
+		ar(m_type, m_color, m_intensity, m_range, m_spot_inner_cone_angle, m_spot_outer_cone_angle);
 	}
 
-	bool OnImGui(ImGuiContext &context);
+  private:
+	void UpdateDirectionalLight(Scene &scene, entt::entity entity, RHIDevice *device);
+	void UpdatePointLight(Scene &scene, entt::entity entity, RHIDevice *device);
+	void UpdateSpotLight(Scene &scene, entt::entity entity, RHIDevice *device);
+	void UpdateAreaLight(Scene &scene, entt::entity entity, RHIDevice *device);
+
+  private:
+	LightType m_type = LightType::Point;
+
+	glm::vec3 m_color     = {1.f, 1.f, 1.f};
+	float     m_intensity = 1.f;
+
+	float m_range                 = 1.f;
+	float m_spot_inner_cone_angle = glm::cos(glm::radians(12.5f));
+	float m_spot_outer_cone_angle = glm::cos(glm::radians(17.5f));
+
+	AreaLightShape m_shape = AreaLightShape::Rectangle;
+
+	// Shadow map
+	std::unique_ptr<Texture> m_shadow_map = nullptr;
+	std::unique_ptr<Buffer>  m_buffer     = nullptr;
 };
 }        // namespace Ilum::cmpt

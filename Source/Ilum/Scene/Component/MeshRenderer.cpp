@@ -1,11 +1,11 @@
-#pragma once
-
 #include "MeshRenderer.hpp"
+#include "Transform.hpp"
 
 #include <RHI/Buffer.hpp>
 
 #include <Asset/AssetManager.hpp>
 
+#include "Scene/Component/Light.hpp"
 #include "Scene/Entity.hpp"
 #include "Scene/Scene.hpp"
 
@@ -32,10 +32,10 @@ Mesh *MeshRenderer::GetMesh()
 
 void MeshRenderer::Tick(Scene &scene, entt::entity entity, RHIDevice *device)
 {
+	m_manager = &scene.GetAssetManager();
+
 	if (m_update)
 	{
-		m_manager = &scene.GetAssetManager();
-
 		Entity e         = Entity(scene, entity);
 		auto  &transform = e.GetComponent<cmpt::Transform>();
 
@@ -55,6 +55,12 @@ void MeshRenderer::Tick(Scene &scene, entt::entity entity, RHIDevice *device)
 		instance_data->meshlet_count = m_mesh->GetMeshletsCount();
 		m_buffer->Flush(m_buffer->GetSize());
 		m_buffer->Unmap();
+
+		// Update shadowmaps
+		auto view = scene.GetRegistry().view<cmpt::Light>();
+		view.each([&](entt::entity entity, cmpt::Light &light) {
+			light.Update();
+		});
 
 		m_update = false;
 	}

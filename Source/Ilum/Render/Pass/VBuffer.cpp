@@ -6,9 +6,10 @@
 #include <Render/RGBuilder.hpp>
 #include <Render/Renderer.hpp>
 
+#include <Scene/Component/Camera.hpp>
 #include <Scene/Component/MeshRenderer.hpp>
-#include <Scene/Scene.hpp>
 #include <Scene/Entity.hpp>
+#include <Scene/Scene.hpp>
 
 #include <Asset/AssetManager.hpp>
 
@@ -154,12 +155,15 @@ void VBuffer::Create(RGBuilder &builder)
 			return;
 		}
 
-		FrameBuffer framebuffer;
-		ColorAttachmentInfo attachment_info = {};
+		FrameBuffer         framebuffer;
+		ColorAttachmentInfo attachment_info   = {};
 		attachment_info.clear_value.uint32[0] = 0xffffffff;
 		framebuffer.Bind(resource.GetTexture(visibility_buffer), vbuffer_view_desc, attachment_info);
 		framebuffer.Bind(resource.GetTexture(depth_stencil), depth_stencil_view_desc, DepthStencilAttachmentInfo{});
 		cmd_buffer.BeginRenderPass(framebuffer);
+
+		cmd_buffer.SetViewport(static_cast<float>(renderer.GetExtent().width), -static_cast<float>(renderer.GetExtent().height), 0, static_cast<float>(renderer.GetExtent().height));
+		cmd_buffer.SetScissor(renderer.GetExtent().width, renderer.GetExtent().height);
 
 		// Draw Opaque
 		{
@@ -184,9 +188,6 @@ void VBuffer::Create(RGBuilder &builder)
 				        .Bind(0, 3, renderer.GetScene()->GetAssetManager().GetVertexBuffer())
 				        .Bind(0, 4, renderer.GetScene()->GetAssetManager().GetMeshletVertexBuffer())
 				        .Bind(0, 5, renderer.GetScene()->GetAssetManager().GetMeshletTriangleBuffer()));
-
-				cmd_buffer.SetViewport(static_cast<float>(renderer.GetExtent().width), -static_cast<float>(renderer.GetExtent().height), 0, static_cast<float>(renderer.GetExtent().height));
-				cmd_buffer.SetScissor(renderer.GetExtent().width, renderer.GetExtent().height);
 
 				uint32_t instance_id = 0;
 				for (auto &mesh : batch.meshes)
@@ -226,9 +227,6 @@ void VBuffer::Create(RGBuilder &builder)
 				        .Bind(0, 6, renderer.GetScene()->GetAssetManager().GetMaterialBuffer())
 				        .Bind(0, 7, renderer.GetScene()->GetAssetManager().GetTextureViews())
 				        .Bind(0, 8, renderer.GetSampler(SamplerType::TrilinearWarp)));
-
-				cmd_buffer.SetViewport(static_cast<float>(renderer.GetExtent().width), -static_cast<float>(renderer.GetExtent().height), 0, static_cast<float>(renderer.GetExtent().height));
-				cmd_buffer.SetScissor(renderer.GetExtent().width, renderer.GetExtent().height);
 
 				for (uint32_t i = 0; i < batch.order.size(); i++)
 				{

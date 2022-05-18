@@ -24,6 +24,11 @@ class Component
 	virtual void Tick(Scene &scene, entt::entity entity, RHIDevice *device)
 	{}
 
+	void Update()
+	{
+		m_update = true;
+	}
+
 	virtual bool OnImGui(ImGuiContext &context) = 0;
 
   protected:
