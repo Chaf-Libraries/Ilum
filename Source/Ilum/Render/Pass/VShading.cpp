@@ -7,6 +7,7 @@
 #include <Render/Renderer.hpp>
 
 #include <Scene/Scene.hpp>
+#include <Scene/Entity.hpp>
 
 #include <Asset/AssetManager.hpp>
 
@@ -90,6 +91,18 @@ void VShading::Create(RGBuilder &builder)
 			return;
 		}
 
+		Entity camera_entity = Entity(*renderer.GetScene(), renderer.GetScene()->GetMainCamera());
+		if (!camera_entity.IsValid())
+		{
+			return;
+		}
+
+		auto *camera_buffer = camera_entity.GetComponent<cmpt::Camera>().GetBuffer();
+		if (!camera_buffer)
+		{
+			return;
+		}
+
 		std::vector<Buffer *> directional_lights;
 		std::vector<Buffer *> spot_lights;
 		std::vector<Buffer *> point_lights;
@@ -154,7 +167,7 @@ void VShading::Create(RGBuilder &builder)
 		        .Bind(0, 0, resource.GetTexture(visibility_buffer)->GetView(view_desc))
 		        .Bind(0, 1, resource.GetTexture(shading)->GetView(view_desc))
 		        .Bind(0, 2, resource.GetTexture(normal)->GetView(view_desc))
-		        .Bind(0, 3, &renderer.GetScene()->GetMainCameraBuffer())
+		        .Bind(0, 3, camera_buffer)
 		        .Bind(0, 4, renderer.GetScene()->GetInstanceBuffer())
 		        .Bind(0, 5, renderer.GetScene()->GetAssetManager().GetMeshletBuffer())
 		        .Bind(0, 6, renderer.GetScene()->GetAssetManager().GetVertexBuffer())

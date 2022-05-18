@@ -39,8 +39,6 @@ class Scene
 
 	AccelerationStructure &GetTLAS();
 
-	Buffer &GetMainCameraBuffer();
-
 	std::vector<Buffer *> GetInstanceBuffer();
 
 	entt::entity GetMainCamera();
@@ -62,8 +60,11 @@ class Scene
 	GeometryBatch Batch(AlphaMode mode);
 
   private:
-	void UpdateMainCamera();
-	void UpdateScene();
+	void UpdateTransform();
+	void UpdateTransformRecursive(entt::entity entity);
+	void UpdateCamera();
+	void UpdateInstance();
+	void UpdateTLAS();
 	void UpdateLights();
 
   private:
@@ -81,11 +82,6 @@ class Scene
 
   private:
 	std::unique_ptr<AccelerationStructure> m_top_level_acceleration_structure = nullptr;
-
-	std::unique_ptr<Buffer> m_main_camera_buffer = nullptr;
-
-	uint32_t m_instance_count = 0;
-	uint32_t m_meshlet_count  = 0;
 
 	bool m_update = false;
 };

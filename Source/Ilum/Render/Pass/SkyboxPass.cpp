@@ -7,6 +7,7 @@
 #include <Render/Renderer.hpp>
 
 #include <Scene/Scene.hpp>
+#include <Scene/Entity.hpp>
 
 namespace Ilum
 {
@@ -96,6 +97,18 @@ void SkyboxPass::Create(RGBuilder &builder)
 	pso.LoadShader(fragment_shader);
 
 	pass->BindCallback([=](CommandBuffer &cmd_buffer, const RGResources &resource, Renderer &renderer) {
+		Entity camera_entity = Entity(*renderer.GetScene(), renderer.GetScene()->GetMainCamera());
+		if (!camera_entity.IsValid())
+		{
+			return;
+		}
+
+		auto *camera_buffer = camera_entity.GetComponent<cmpt::Camera>().GetBuffer();
+		if (!camera_buffer)
+		{
+			return;
+		}
+
 		FrameBuffer framebuffer;
 		framebuffer.Bind(
 			resource.GetTexture(output), 
@@ -110,7 +123,7 @@ void SkyboxPass::Create(RGBuilder &builder)
 		cmd_buffer.Bind(pso);
 		cmd_buffer.Bind(
 		    cmd_buffer.GetDescriptorState()
-		        .Bind(0, 0, &renderer.GetScene()->GetMainCameraBuffer())
+		        .Bind(0, 0, camera_buffer)
 		        .Bind(0, 1, resource.GetTexture(depth_buffer)->GetView(TextureViewDesc{VK_IMAGE_VIEW_TYPE_2D, VK_IMAGE_ASPECT_DEPTH_BIT, 0, 1, 0, 1}))
 		        .Bind(0, 2, renderer.GetSkybox().GetView(TextureViewDesc{VK_IMAGE_VIEW_TYPE_CUBE, VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 6}))
 		        .Bind(0, 3, renderer.GetSampler(SamplerType::TrilinearClamp)));

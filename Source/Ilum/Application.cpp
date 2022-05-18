@@ -20,6 +20,13 @@ Application::Application() :
 	Input::GetInstance().Bind(&m_window);
 }
 
+Application::~Application()
+{
+	m_scene.reset();
+	m_asset_manager.reset();
+	m_renderer.reset();
+}
+
 void Application::Tick()
 {
 	while (m_window.Tick())

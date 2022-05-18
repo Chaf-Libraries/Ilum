@@ -8,6 +8,7 @@
 
 #include <Scene/Component/MeshRenderer.hpp>
 #include <Scene/Scene.hpp>
+#include <Scene/Entity.hpp>
 
 #include <Asset/AssetManager.hpp>
 
@@ -141,6 +142,18 @@ void VBuffer::Create(RGBuilder &builder)
 			return;
 		}
 
+		Entity camera_entity = Entity(*scene, scene->GetMainCamera());
+		if (!camera_entity.IsValid())
+		{
+			return;
+		}
+
+		auto *camera_buffer = camera_entity.GetComponent<cmpt::Camera>().GetBuffer();
+		if (!camera_buffer)
+		{
+			return;
+		}
+
 		FrameBuffer framebuffer;
 		ColorAttachmentInfo attachment_info = {};
 		attachment_info.clear_value.uint32[0] = 0xffffffff;
@@ -158,14 +171,14 @@ void VBuffer::Create(RGBuilder &builder)
 			instances.reserve(batch.meshes.size());
 			for (auto &mesh : batch.meshes)
 			{
-				instances.push_back(mesh->buffer.get());
+				instances.push_back(mesh->GetBuffer());
 			}
 
 			if (!instances.empty())
 			{
 				cmd_buffer.Bind(
 				    cmd_buffer.GetDescriptorState()
-				        .Bind(0, 0, &renderer.GetScene()->GetMainCameraBuffer())
+				        .Bind(0, 0, camera_buffer)
 				        .Bind(0, 1, instances)
 				        .Bind(0, 2, renderer.GetScene()->GetAssetManager().GetMeshletBuffer())
 				        .Bind(0, 3, renderer.GetScene()->GetAssetManager().GetVertexBuffer())
@@ -178,7 +191,7 @@ void VBuffer::Create(RGBuilder &builder)
 				uint32_t instance_id = 0;
 				for (auto &mesh : batch.meshes)
 				{
-					uint32_t meshlet_count = mesh->mesh->GetMeshletsCount();
+					uint32_t meshlet_count = mesh->GetMesh()->GetMeshletsCount();
 					cmd_buffer.PushConstants(VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV, &instance_id, sizeof(instance_id), 0);
 					cmd_buffer.PushConstants(VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV, &meshlet_count, sizeof(meshlet_count), sizeof(instance_id));
 					vkCmdDrawMeshTasksNV(cmd_buffer, (meshlet_count + 32 - 1) / 32, 0);
@@ -191,20 +204,20 @@ void VBuffer::Create(RGBuilder &builder)
 		{
 			cmd_buffer.Bind(alpha_pso);
 
-			auto batch = renderer.GetScene()->Batch(AlphaMode::Masked);
+			auto batch = renderer.GetScene()->Batch(AlphaMode::Masked | AlphaMode::Blend);
 
 			std::vector<Buffer *> instances;
 			instances.reserve(batch.meshes.size());
 			for (auto &mesh : batch.meshes)
 			{
-				instances.push_back(mesh->buffer.get());
+				instances.push_back(mesh->GetBuffer());
 			}
 
 			if (!instances.empty())
 			{
 				cmd_buffer.Bind(
 				    cmd_buffer.GetDescriptorState()
-				        .Bind(0, 0, &renderer.GetScene()->GetMainCameraBuffer())
+				        .Bind(0, 0, camera_buffer)
 				        .Bind(0, 1, instances)
 				        .Bind(0, 2, renderer.GetScene()->GetAssetManager().GetMeshletBuffer())
 				        .Bind(0, 3, renderer.GetScene()->GetAssetManager().GetVertexBuffer())
@@ -220,7 +233,7 @@ void VBuffer::Create(RGBuilder &builder)
 				for (uint32_t i = 0; i < batch.order.size(); i++)
 				{
 					uint32_t instance_id   = batch.order[i];
-					uint32_t meshlet_count = batch.meshes[instance_id]->mesh->GetMeshletsCount();
+					uint32_t meshlet_count = batch.meshes[instance_id]->GetMesh()->GetMeshletsCount();
 					cmd_buffer.PushConstants(VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV | VK_SHADER_STAGE_FRAGMENT_BIT, &instance_id, sizeof(instance_id), 0);
 					cmd_buffer.PushConstants(VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV | VK_SHADER_STAGE_FRAGMENT_BIT, &meshlet_count, sizeof(meshlet_count), sizeof(instance_id));
 					vkCmdDrawMeshTasksNV(cmd_buffer, (meshlet_count + 32 - 1) / 32, 0);

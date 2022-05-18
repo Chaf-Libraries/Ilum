@@ -17,7 +17,7 @@ class Application
 {
   public:
 	Application();
-	~Application() = default;
+	~Application();
 
 	void Tick();
 

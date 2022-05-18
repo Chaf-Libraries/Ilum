@@ -6,23 +6,39 @@
 
 namespace Ilum::cmpt
 {
-struct Transform : public Component
+class Transform : public Component
 {
-	glm::vec3 translation = {0.f, 0.f, 0.f};
-	glm::vec3 rotation    = {0.f, 0.f, 0.f};
-	glm::vec3 scale       = {1.f, 1.f, 1.f};
+  public:
+	Transform() = default;
 
-	glm::mat4 local_transform = glm::mat4(1.f);
-	glm::mat4 world_transform = glm::mat4(1.f);
+	bool OnImGui(ImGuiContext &context);
+
+	virtual void Tick(Scene &scene, entt::entity entity, RHIDevice *device) override;
+
+	const glm::vec3 &GetTranslation() const;
+	const glm::vec3 &GetRotation() const;
+	const glm::vec3 &GetScale() const;
+	const glm::mat4 &GetLocalTransform() const;
+	const glm::mat4 &GetWorldTransform() const;
+
+	void SetTranslation(const glm::vec3 &translation);
+	void SetRotation(const glm::vec3 &rotation);
+	void SetScale(const glm::vec3 &scale);
 
 	template <class Archive>
 	void serialize(Archive &ar)
 	{
-		glm::serialize(ar, translation);
-		glm::serialize(ar, rotation);
-		glm::serialize(ar, scale);
+		glm::serialize(ar, m_translation);
+		glm::serialize(ar, m_rotation);
+		glm::serialize(ar, m_scale);
 	}
 
-	bool OnImGui(ImGuiContext &context);
+  private:
+	glm::vec3 m_translation = {0.f, 0.f, 0.f};
+	glm::vec3 m_rotation    = {0.f, 0.f, 0.f};
+	glm::vec3 m_scale       = {1.f, 1.f, 1.f};
+
+	glm::mat4 m_local_transform = glm::mat4(1.f);
+	glm::mat4 m_world_transform = glm::mat4(1.f);
 };
 }        // namespace Ilum::cmpt

@@ -1,5 +1,9 @@
 #include "Transform.hpp"
 
+#include "Scene/Entity.hpp"
+
+#include <Shaders/ShaderInterop.hpp>
+
 #include <imgui.h>
 #include <imgui_internal.h>
 
@@ -85,11 +89,90 @@ inline bool DrawVec3Control(const std::string &label, glm::vec3 &values, float r
 
 bool Transform::OnImGui(ImGuiContext &context)
 {
-	bool update = false;
-	update |= DrawVec3Control("Translation", translation, 0.f);
-	update |= DrawVec3Control("Rotation", rotation, 0.f);
-	update |= DrawVec3Control("Scale", scale, 1.f);
-	return update;
+	m_update |= DrawVec3Control("Translation", m_translation, 0.f);
+	m_update |= DrawVec3Control("Rotation", m_rotation, 0.f);
+	m_update |= DrawVec3Control("Scale", m_scale, 1.f);
+	return m_update;
+}
+
+void Transform::Tick(Scene &scene, entt::entity entity, RHIDevice *device)
+{
+	if (m_update)
+	{
+		Entity e(scene, entity);
+
+		m_local_transform = glm::scale(glm::translate(glm::mat4(1.f), m_translation) * glm::mat4_cast(glm::qua<float>(glm::radians(m_rotation))), m_scale);
+
+		const auto &hierachy = e.GetComponent<cmpt::Hierarchy>();
+
+		if (hierachy.GetParent() == entt::null)
+		{
+			m_world_transform = m_local_transform;
+		}
+		else
+		{
+			m_world_transform = Entity(scene, hierachy.GetParent()).GetComponent<Transform>().m_world_transform * m_local_transform;
+		}
+
+		if (e.HasComponent<cmpt::MeshRenderer>())
+		{
+			auto *buffer = e.GetComponent<cmpt::MeshRenderer>().GetBuffer();
+
+			if (buffer)
+			{
+				ShaderInterop::Instance *instance = static_cast<ShaderInterop::Instance *>(buffer->Map());
+
+				instance->transform = m_world_transform;
+				buffer->Flush(buffer->GetSize());
+				buffer->Unmap();
+			}
+		}
+
+		m_update = false;
+	}
+}
+
+const glm::vec3 &Transform::GetTranslation() const
+{
+	return m_translation;
+}
+
+const glm::vec3 &Transform::GetRotation() const
+{
+	return m_rotation;
+}
+
+const glm::vec3 &Transform::GetScale() const
+{
+	return m_scale;
+}
+
+const glm::mat4 &Transform::GetLocalTransform() const
+{
+	return m_local_transform;
+}
+
+const glm::mat4 &Transform::GetWorldTransform() const
+{
+	return m_world_transform;
+}
+
+void Transform::SetTranslation(const glm::vec3 &translation)
+{
+	m_translation = translation;
+	m_update      = true;
+}
+
+void Transform::SetRotation(const glm::vec3 &rotation)
+{
+	m_rotation = rotation;
+	m_update   = true;
+}
+
+void Transform::SetScale(const glm::vec3 &scale)
+{
+	m_scale  = scale;
+	m_update = true;
 }
 
 }        // namespace Ilum::cmpt

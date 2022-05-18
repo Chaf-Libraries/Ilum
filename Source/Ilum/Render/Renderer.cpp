@@ -122,7 +122,7 @@ void Renderer::OnImGui(ImGuiContext &context)
 		auto camera_entity = Entity(*p_scene, p_scene->GetMainCamera());
 		if (camera_entity.IsValid())
 		{
-			camera_entity.GetComponent<cmpt::Camera>().aspect = static_cast<float>(m_viewport.width) / static_cast<float>(m_viewport.height);
+			camera_entity.GetComponent<cmpt::Camera>().SetAspect(static_cast<float>(m_viewport.width) / static_cast<float>(m_viewport.height));
 		}
 
 		TextureViewDesc desc  = {};
@@ -145,20 +145,21 @@ void Renderer::OnImGui(ImGuiContext &context)
 
 				glm::vec2 delta = glm::vec2(p_device->GetWindow()->m_pos_delta_x, p_device->GetWindow()->m_pos_delta_y);
 
-				camera.frame_count = 0;
+				float yaw   = std::atan2f(-camera.GetView()[2][2], -camera.GetView()[0][2]);
+				float pitch = std::asinf(-glm::clamp(camera.GetView()[1][2], -1.f, 1.f));
 
-				float yaw   = std::atan2f(-camera.view[2][2], -camera.view[0][2]);
-				float pitch = std::asinf(-glm::clamp(camera.view[1][2], -1.f, 1.f));
+				glm::vec3 rotation = transform.GetRotation();
+				glm::vec3 translation = transform.GetTranslation();
 
 				if (delta.x != 0.f)
 				{
 					yaw += 0.001f * Timer::GetInstance().DeltaTime() * delta.x;
-					transform.rotation.y = -glm::degrees(yaw) - 90.f;
+					rotation.y = -glm::degrees(yaw) - 90.f;
 				}
 				if (delta.y != 0.f)
 				{
 					pitch -= 0.001f * Timer::GetInstance().DeltaTime() * static_cast<float>(delta.y);
-					transform.rotation.x = glm::degrees(pitch);
+					rotation.x = glm::degrees(pitch);
 				}
 
 				glm::vec3 forward = glm::vec3(0.f);
@@ -201,11 +202,17 @@ void Renderer::OnImGui(ImGuiContext &context)
 
 				m_translate_velocity = glm::mix(m_translate_velocity, direction, t * t * (3.f - 2.f * t));
 
-				transform.translation += m_translate_velocity * Timer::GetInstance().DeltaTime() * 0.005f;
+				translation += m_translate_velocity * Timer::GetInstance().DeltaTime() * 0.005f;
 
-				glm::mat4 related_transform = transform.world_transform * glm::inverse(transform.local_transform);
-				transform.local_transform   = glm::scale(glm::translate(glm::mat4(1.f), transform.translation) * glm::mat4_cast(glm::qua<float>(glm::radians(transform.rotation))), transform.scale);
-				transform.world_transform   = related_transform * transform.local_transform;
+				transform.SetTranslation(translation);
+				transform.SetRotation(rotation);
+
+				transform.Tick(*p_scene, p_scene->GetMainCamera(), p_device);
+				camera.Tick(*p_scene, p_scene->GetMainCamera(), p_device);
+
+				//glm::mat4 related_transform = transform.GetWorldTransform() * glm::inverse(transform.GetLocalTransform());
+				//transform.local_transform   = glm::scale(glm::translate(glm::mat4(1.f), transform.translation) * glm::mat4_cast(glm::qua<float>(glm::radians(transform.rotation))), transform.scale);
+				//transform.world_transform   = related_transform * transform.local_transform;
 			}
 		}
 	}

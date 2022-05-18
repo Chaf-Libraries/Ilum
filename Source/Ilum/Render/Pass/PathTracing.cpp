@@ -7,6 +7,7 @@
 #include <Render/Renderer.hpp>
 
 #include <Scene/Scene.hpp>
+#include <Scene/Entity.hpp>
 
 #include <Asset/AssetManager.hpp>
 
@@ -76,12 +77,25 @@ void PathTracing::Create(RGBuilder &builder)
 			return;
 		}
 
+		Entity camera_entity = Entity(*renderer.GetScene(), renderer.GetScene()->GetMainCamera());
+		if (!camera_entity.IsValid())
+		{
+			return;
+		}
+
+		auto *camera_buffer = camera_entity.GetComponent<cmpt::Camera>().GetBuffer();
+		if (!camera_buffer)
+		{
+			return;
+		}
+
+
 		cmd_buffer.Bind(pso);
 		cmd_buffer.Bind(
 		    cmd_buffer.GetDescriptorState()
 		        .Bind(0, 0, resource.GetTexture(shading)->GetView(view_desc))
 		        //.Bind(0, 1, &renderer.GetScene()->GetTLAS())
-		        .Bind(0, 2, &renderer.GetScene()->GetMainCameraBuffer())
+		        .Bind(0, 2, camera_buffer)
 		        .Bind(0, 3, resource.GetTexture(visibility_buffer)->GetView(view_desc))
 		        .Bind(0, 4, renderer.GetScene()->GetInstanceBuffer())
 		        .Bind(0, 5, renderer.GetScene()->GetAssetManager().GetMeshletBuffer())

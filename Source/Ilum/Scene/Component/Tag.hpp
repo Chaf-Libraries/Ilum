@@ -6,21 +6,23 @@
 
 namespace Ilum::cmpt
 {
-struct Tag : public Component
+class Tag : public Component
 {
-	std::string name = "Untitled Entity";
-
+  public:
 	Tag() = default;
-	Tag(const std::string &name) :
-	    name(name)
-	{}
+
+	bool OnImGui(ImGuiContext &context) override;
 
 	template <class Archive>
 	void serialize(Archive &ar)
 	{
-		ar(name);
+		ar(m_name);
 	}
 
-	bool OnImGui(ImGuiContext &context) override;
+	void               SetName(const std::string &name);
+	const std::string &GetName() const;
+
+  private:
+	std::string m_name = "Untitled Entity";
 };
 }        // namespace Ilum::cmpt

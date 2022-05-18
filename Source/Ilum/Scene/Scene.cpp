@@ -28,30 +28,6 @@
 
 namespace Ilum
 {
-inline void TransformRecursive(Scene &scene, entt::entity entity)
-{
-	if (entity == entt::null)
-	{
-		return;
-	}
-
-	auto &transform = Entity(scene, entity).GetComponent<cmpt::Transform>();
-	auto &hierarchy = Entity(scene, entity).GetComponent<cmpt::Hierarchy>();
-	if (hierarchy.parent != entt::null)
-	{
-		transform.local_transform = glm::scale(glm::translate(glm::mat4(1.f), transform.translation) * glm::mat4_cast(glm::qua<float>(glm::radians(transform.rotation))), transform.scale);
-		transform.world_transform = Entity(scene, hierarchy.parent).GetComponent<cmpt::Transform>().world_transform * transform.local_transform;
-	}
-
-	auto child = hierarchy.first;
-
-	while (child != entt::null)
-	{
-		TransformRecursive(scene, child);
-		child = Entity(scene, child).GetComponent<cmpt::Hierarchy>().next;
-	}
-}
-
 template <typename T>
 inline std::string GetComponentName()
 {
@@ -68,11 +44,11 @@ inline void DeleteNode(Scene &scene, Entity entity)
 		return;
 	}
 
-	auto child   = Entity(scene, entity.GetComponent<cmpt::Hierarchy>().first);
-	auto sibling = child ? Entity(scene, child.GetComponent<cmpt::Hierarchy>().next) : Entity(scene);
+	auto child   = Entity(scene, entity.GetComponent<cmpt::Hierarchy>().GetFirst());
+	auto sibling = child ? Entity(scene, child.GetComponent<cmpt::Hierarchy>().GetNext()) : Entity(scene);
 	while (sibling)
 	{
-		auto tmp = Entity(scene, sibling.GetComponent<cmpt::Hierarchy>().next);
+		auto tmp = Entity(scene, sibling.GetComponent<cmpt::Hierarchy>().GetNext());
 		DeleteNode(scene, sibling);
 		sibling = tmp;
 	}
@@ -82,14 +58,14 @@ inline void DeleteNode(Scene &scene, Entity entity)
 
 inline bool IsParentOf(Scene &scene, Entity lhs, Entity rhs)
 {
-	auto parent = Entity(scene, rhs.GetComponent<cmpt::Hierarchy>().parent);
+	auto parent = Entity(scene, rhs.GetComponent<cmpt::Hierarchy>().GetParent());
 	while (parent)
 	{
 		if (parent == lhs)
 		{
 			return true;
 		}
-		parent = Entity(scene, parent.GetComponent<cmpt::Hierarchy>().parent);
+		parent = Entity(scene, parent.GetComponent<cmpt::Hierarchy>().GetParent());
 	}
 	return false;
 }
@@ -103,33 +79,33 @@ inline void SetAsSon(Scene &scene, Entity new_parent, Entity new_son)
 
 	auto &h2 = new_son.GetComponent<cmpt::Hierarchy>();
 
-	if (h2.next != entt::null)
+	if (h2.GetNext() != entt::null)
 	{
-		Entity(scene, h2.next).GetComponent<cmpt::Hierarchy>().prev = h2.prev;
+		Entity(scene, h2.GetNext()).GetComponent<cmpt::Hierarchy>().SetPrev(h2.GetPrev());
 	}
 
-	if (h2.prev != entt::null)
+	if (h2.GetPrev() != entt::null)
 	{
-		Entity(scene, h2.prev).GetComponent<cmpt::Hierarchy>().next = h2.next;
+		Entity(scene, h2.GetPrev()).GetComponent<cmpt::Hierarchy>().SetNext(h2.GetNext());
 	}
 
-	if (h2.parent != entt::null && new_son == Entity(scene, h2.parent).GetComponent<cmpt::Hierarchy>().first)
+	if (h2.GetParent() != entt::null && new_son == Entity(scene, h2.GetParent()).GetComponent<cmpt::Hierarchy>().GetFirst())
 	{
-		Entity(scene, h2.parent).GetComponent<cmpt::Hierarchy>().first = h2.next;
+		Entity(scene, h2.GetParent()).GetComponent<cmpt::Hierarchy>().SetFirst(h2.GetNext());
 	}
 
-	h2.next   = new_parent ? new_parent.GetComponent<cmpt::Hierarchy>().first : entt::null;
-	h2.prev   = entt::null;
-	h2.parent = new_parent ? new_parent.GetHandle() : entt::null;
+	h2.SetNext(new_parent ? new_parent.GetComponent<cmpt::Hierarchy>().GetFirst() : entt::null);
+	h2.SetPrev(entt::null);
+	h2.SetParent(new_parent ? new_parent.GetHandle() : entt::null);
 
-	if (new_parent && new_parent.GetComponent<cmpt::Hierarchy>().first != entt::null)
+	if (new_parent && new_parent.GetComponent<cmpt::Hierarchy>().GetFirst() != entt::null)
 	{
-		Entity(scene, new_parent.GetComponent<cmpt::Hierarchy>().first).GetComponent<cmpt::Hierarchy>().prev = new_son;
+		Entity(scene, new_parent.GetComponent<cmpt::Hierarchy>().GetFirst()).GetComponent<cmpt::Hierarchy>().SetPrev(new_son);
 	}
 
 	if (new_parent)
 	{
-		new_parent.GetComponent<cmpt::Hierarchy>().first = new_son;
+		new_parent.GetComponent<cmpt::Hierarchy>().SetFirst(new_son);
 	}
 }
 
@@ -140,9 +116,9 @@ inline void DrawNode(Scene &scene, Entity entity, Entity &select)
 		return;
 	}
 
-	auto &tag = entity.GetComponent<cmpt::Tag>().name;
+	auto &tag = entity.GetComponent<cmpt::Tag>().GetName();
 
-	bool has_child = entity.HasComponent<cmpt::Hierarchy>() && entity.GetComponent<cmpt::Hierarchy>().first != entt::null;
+	bool has_child = entity.HasComponent<cmpt::Hierarchy>() && entity.GetComponent<cmpt::Hierarchy>().GetFirst() != entt::null;
 
 	// Setting up
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5, 5));
@@ -196,13 +172,13 @@ inline void DrawNode(Scene &scene, Entity entity, Entity &select)
 	{
 		if (has_child)
 		{
-			auto child = Entity(scene, entity.GetComponent<cmpt::Hierarchy>().first);
+			auto child = Entity(scene, entity.GetComponent<cmpt::Hierarchy>().GetFirst());
 			while (child)
 			{
 				DrawNode(scene, child, select);
 				if (child)
 				{
-					child = Entity(scene, child.GetComponent<cmpt::Hierarchy>().next);
+					child = Entity(scene, child.GetComponent<cmpt::Hierarchy>().GetNext());
 				}
 			}
 		}
@@ -212,19 +188,19 @@ inline void DrawNode(Scene &scene, Entity entity, Entity &select)
 	// Delete callback
 	if (entity_deleted)
 	{
-		if (Entity(scene, entity.GetComponent<cmpt::Hierarchy>().prev))
+		if (Entity(scene, entity.GetComponent<cmpt::Hierarchy>().GetPrev()))
 		{
-			Entity(scene, entity.GetComponent<cmpt::Hierarchy>().prev).GetComponent<cmpt::Hierarchy>().next = entity.GetComponent<cmpt::Hierarchy>().next;
+			Entity(scene, entity.GetComponent<cmpt::Hierarchy>().GetPrev()).GetComponent<cmpt::Hierarchy>().SetNext(entity.GetComponent<cmpt::Hierarchy>().GetNext());
 		}
 
-		if (Entity(scene, entity.GetComponent<cmpt::Hierarchy>().next))
+		if (Entity(scene, entity.GetComponent<cmpt::Hierarchy>().GetNext()))
 		{
-			Entity(scene, entity.GetComponent<cmpt::Hierarchy>().next).GetComponent<cmpt::Hierarchy>().prev = entity.GetComponent<cmpt::Hierarchy>().prev;
+			Entity(scene, entity.GetComponent<cmpt::Hierarchy>().GetNext()).GetComponent<cmpt::Hierarchy>().SetPrev(entity.GetComponent<cmpt::Hierarchy>().GetPrev());
 		}
 
-		if (Entity(scene, entity.GetComponent<cmpt::Hierarchy>().parent) && entity == Entity(scene, entity.GetComponent<cmpt::Hierarchy>().parent).GetComponent<cmpt::Hierarchy>().first)
+		if (Entity(scene, entity.GetComponent<cmpt::Hierarchy>().GetParent()) && entity == Entity(scene, entity.GetComponent<cmpt::Hierarchy>().GetParent()).GetComponent<cmpt::Hierarchy>().GetFirst())
 		{
-			Entity(scene, entity.GetComponent<cmpt::Hierarchy>().parent).GetComponent<cmpt::Hierarchy>().first = entity.GetComponent<cmpt::Hierarchy>().next;
+			Entity(scene, entity.GetComponent<cmpt::Hierarchy>().GetParent()).GetComponent<cmpt::Hierarchy>().SetFirst(entity.GetComponent<cmpt::Hierarchy>().GetNext());
 		}
 
 		DeleteNode(scene, entity);
@@ -343,14 +319,6 @@ Scene::Scene(RHIDevice *device, AssetManager &asset_manager, const std::string &
     p_device(device), m_asset_manager(asset_manager), m_name(name)
 {
 	m_top_level_acceleration_structure = std::make_unique<AccelerationStructure>(p_device);
-
-	m_main_camera_buffer = std::make_unique<Buffer>(
-	    p_device,
-	    BufferDesc(
-	        sizeof(ShaderInterop::Camera),
-	        1,
-	        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-	        VMA_MEMORY_USAGE_CPU_TO_GPU));
 }
 
 entt::registry &Scene::GetRegistry()
@@ -378,11 +346,6 @@ AccelerationStructure &Scene::GetTLAS()
 	return *m_top_level_acceleration_structure;
 }
 
-Buffer &Scene::GetMainCameraBuffer()
-{
-	return *m_main_camera_buffer;
-}
-
 std::vector<Buffer *> Scene::GetInstanceBuffer()
 {
 	auto view = m_registry.view<cmpt::MeshRenderer>();
@@ -391,7 +354,7 @@ std::vector<Buffer *> Scene::GetInstanceBuffer()
 	instance_buffers.reserve(view.size());
 
 	view.each([&](cmpt::MeshRenderer &mesh) {
-		instance_buffers.push_back(mesh.buffer.get());
+		instance_buffers.push_back(mesh.GetBuffer());
 	});
 
 	return instance_buffers;
@@ -410,7 +373,7 @@ void Scene::Clear()
 entt::entity Scene::Create(const std::string &name)
 {
 	auto entity = m_registry.create();
-	m_registry.emplace<cmpt::Tag>(entity, name);
+	m_registry.emplace<cmpt::Tag>(entity).SetName(name);
 	m_registry.emplace<cmpt::Transform>(entity);
 	m_registry.emplace<cmpt::Hierarchy>(entity);
 	return entity;
@@ -420,9 +383,12 @@ void Scene::Tick()
 {
 	m_asset_manager.Tick();
 
-	UpdateMainCamera();
-	UpdateScene();
-	UpdateLights();
+	UpdateTransform();
+	UpdateCamera();
+	UpdateInstance();
+	UpdateTLAS();
+
+	// UpdateLights();
 }
 
 void Scene::OnImGui(ImGuiContext &context)
@@ -435,11 +401,11 @@ void Scene::OnImGui(ImGuiContext &context)
 			{
 				if (ImGui::MenuItem("Perspective Camera"))
 				{
-					Entity(*this, Create("Perspective Camera")).AddComponent<cmpt::Camera>().type = cmpt::CameraType::Perspective;
+					Entity(*this, Create("Perspective Camera")).AddComponent<cmpt::Camera>().SetType(cmpt::CameraType::Perspective);
 				}
 				if (ImGui::MenuItem("Orthographic Camera"))
 				{
-					Entity(*this, Create("Orthographic Camera")).AddComponent<cmpt::Camera>().type = cmpt::CameraType::Orthographic;
+					Entity(*this, Create("Orthographic Camera")).AddComponent<cmpt::Camera>().SetType(cmpt::CameraType::Orthographic);
 				}
 				ImGui::EndMenu();
 			}
@@ -473,7 +439,7 @@ void Scene::OnImGui(ImGuiContext &context)
 			for (auto &camera : camera_view)
 			{
 				bool select_camera = (camera == m_main_camera);
-				if (ImGui::MenuItem(Entity(*this, camera).GetComponent<cmpt::Tag>().name.c_str(), nullptr, &select_camera))
+				if (ImGui::MenuItem(Entity(*this, camera).GetComponent<cmpt::Tag>().GetName().c_str(), nullptr, &select_camera))
 				{
 					if (select_camera)
 					{
@@ -517,7 +483,7 @@ void Scene::OnImGui(ImGuiContext &context)
 
 		Entity select_entity(*this, m_select);
 		m_registry.each([this, &select_entity](auto entity_id) {
-			if (Entity(*this, entity_id) && Entity(*this, entity_id).GetComponent<cmpt::Hierarchy>().parent == entt::null)
+			if (Entity(*this, entity_id) && Entity(*this, entity_id).GetComponent<cmpt::Hierarchy>().GetParent() == entt::null)
 			{
 				DrawNode(*this, Entity(*this, entity_id), select_entity);
 			}
@@ -738,7 +704,7 @@ void Scene::ImportGLTF(const std::string &filename)
 
 		// Iridescence
 		{
-			material->m_iridescence_factor = raw_material.iridescence.iridescence_factor;
+			material->m_iridescence_factor        = raw_material.iridescence.iridescence_factor;
 			material->m_iridescence_ior           = raw_material.iridescence.iridescence_ior;
 			material->m_iridescence_thickness_min = raw_material.iridescence.iridescence_thickness_min;
 			material->m_iridescence_thickness_max = raw_material.iridescence.iridescence_thickness_max;
@@ -764,7 +730,7 @@ void Scene::ImportGLTF(const std::string &filename)
 		load_texture(material->m_normal_texture, raw_material.normal_texture.texture);
 		load_texture(material->m_occlusion_texture, raw_material.occlusion_texture.texture);
 		material->m_unlit = raw_material.unlit;
-		material->m_thin = !raw_material.double_sided;
+		material->m_thin  = !raw_material.double_sided;
 
 		material->UpdateBuffer();
 	}
@@ -917,17 +883,21 @@ void Scene::ImportGLTF(const std::string &filename)
 
 		cgltf_float matrix[16];
 		cgltf_node_transform_local(&node, matrix);
-		ImGuizmo::DecomposeMatrixToComponents(matrix, glm::value_ptr(transform.translation), glm::value_ptr(transform.rotation), glm::value_ptr(transform.scale));
+		glm::vec3 translation = {}, rotation = {}, scale = {};
+		ImGuizmo::DecomposeMatrixToComponents(matrix, glm::value_ptr(translation), glm::value_ptr(rotation), glm::value_ptr(scale));
+		transform.SetTranslation(translation);
+		transform.SetRotation(rotation);
+		transform.SetScale(scale);
 
 		if (node.mesh)
 		{
 			uint32_t mesh_id = 0;
 			for (auto &submesh : mesh_map[node.mesh])
 			{
-				auto  mesh_entity     = Entity(*this, Create((node_name + std::string(" Mesh #") + std::to_string(mesh_id++)).c_str()));
-				auto &mesh_renderer   = mesh_entity.AddComponent<cmpt::MeshRenderer>();
-				mesh_renderer.manager = &m_asset_manager;
-				mesh_renderer.mesh    = submesh;
+				auto  mesh_entity   = Entity(*this, Create((node_name + std::string(" Mesh #") + std::to_string(mesh_id++)).c_str()));
+				auto &mesh_renderer = mesh_entity.AddComponent<cmpt::MeshRenderer>();
+				// mesh_renderer.manager = &m_asset_manager;
+				mesh_renderer.SetMesh(submesh);
 				SetAsSon(*this, entity, mesh_entity);
 			}
 		}
@@ -965,22 +935,23 @@ GeometryBatch Scene::Batch(AlphaMode mode)
 	meshes.reserve(mesh_group.size());
 
 	mesh_group.each([&](cmpt::MeshRenderer &mesh_renderer, cmpt::Transform &transform) {
-		if (mesh_renderer.mesh && mesh_renderer.mesh->GetMaterial())
+		if (mesh_renderer.GetMesh() && mesh_renderer.GetMesh()->GetMaterial())
 		{
-			if (mesh_renderer.mesh->GetMaterial()->GetAlphaMode() & mode)
+			if (mesh_renderer.GetMesh()->GetMaterial()->GetAlphaMode() & mode)
 			{
-				meshes.push_back(mesh_renderer.mesh);
-				transforms.push_back(transform.world_transform);
+				meshes.push_back(mesh_renderer.GetMesh());
+				transforms.push_back(transform.GetWorldTransform());
 				batch.meshes.push_back(&mesh_renderer);
 			}
 		}
 	});
 
+	batch.order.resize(meshes.size());
+	std::iota(batch.order.begin(), batch.order.end(), 0);
+
 	if (mode & AlphaMode::Blend && m_registry.valid(m_main_camera))
 	{
-		batch.order.resize(meshes.size());
-		std::iota(batch.order.begin(), batch.order.end(), 0);
-		glm::vec3 view_pos = Entity(*this, m_main_camera).GetComponent<cmpt::Transform>().world_transform[3];
+		glm::vec3 view_pos = Entity(*this, m_main_camera).GetComponent<cmpt::Transform>().GetWorldTransform()[3];
 		std::sort(batch.order.begin(), batch.order.end(), [&](uint32_t lhs, uint32_t rhs) {
 			auto &mesh1 = meshes[lhs];
 			auto &mesh2 = meshes[rhs];
@@ -995,107 +966,103 @@ GeometryBatch Scene::Batch(AlphaMode mode)
 	return batch;
 }
 
-void Scene::UpdateMainCamera()
+void Scene::UpdateTransform()
 {
-	if (m_registry.valid(m_main_camera))
+	auto group = m_registry.group<>(entt::get<cmpt::Transform, cmpt::Hierarchy>);
+
+	std::vector<entt::entity> roots;
+
+	// Find roots
+	for (auto &entity : group)
 	{
-		ShaderInterop::Camera *camera_data = static_cast<ShaderInterop::Camera *>(m_main_camera_buffer->Map());
+		auto &&[hierarchy, transform] = group.get<cmpt::Hierarchy, cmpt::Transform>(entity);
 
-		Entity entity = Entity(*this, m_main_camera);
+		if (hierarchy.GetParent() == entt::null)
+		{
+			transform.Tick(*this, entity, p_device);
+			roots.emplace_back(entity);
+		}
+	}
 
-		auto &camera    = entity.GetComponent<cmpt::Camera>();
-		auto &transform = entity.GetComponent<cmpt::Transform>();
+	for (auto &root : roots)
+	{
+		UpdateTransformRecursive(root);
+	}
 
-		camera.view            = glm::inverse(transform.world_transform);
-		camera.projection      = camera.type == cmpt::CameraType::Perspective ?
-		                             glm::perspective(glm::radians(camera.fov), camera.aspect, camera.near_plane, camera.far_plane) :
-                                     glm::ortho(camera.left, camera.right, camera.bottom, camera.top, camera.near_plane, camera.far_plane);
-		camera.view_projection = camera.projection * camera.view;
-		camera.frame_count++;
-
-		camera_data->view            = camera.view;
-		camera_data->projection      = camera.projection;
-		camera_data->inv_view        = transform.world_transform;
-		camera_data->inv_projection  = glm::inverse(camera.projection);
-		camera_data->view_projection = camera.projection * camera.view;
-		camera_data->position        = transform.translation;
-		camera_data->frame_count     = camera.frame_count;
-
-		m_main_camera_buffer->Flush(m_main_camera_buffer->GetSize());
-		m_main_camera_buffer->Unmap();
+	// Update Hierarchy
+	{
+		auto view = m_registry.view<cmpt::Hierarchy>();
+		view.each([&](entt::entity entity, cmpt::Hierarchy &hierarchy) {
+			hierarchy.Tick(*this, entity, p_device);
+		});
 	}
 }
 
-void Scene::UpdateScene()
+void Scene::UpdateTransformRecursive(entt::entity entity)
 {
-	// Update scene
+	if (entity == entt::null)
+	{
+		return;
+	}
+
+	auto &transform = Entity(*this, entity).GetComponent<cmpt::Transform>();
+	auto &hierarchy = Entity(*this, entity).GetComponent<cmpt::Hierarchy>();
+
+	transform.Tick(*this, entity, p_device);
+
+	auto child = hierarchy.GetFirst();
+
+	while (child != entt::null)
+	{
+		UpdateTransformRecursive(child);
+		child = Entity(*this, child).GetComponent<cmpt::Hierarchy>().GetNext();
+	}
+}
+
+void Scene::UpdateCamera()
+{
+	auto view = m_registry.view<cmpt::Camera>();
+	view.each([&](entt::entity entity, cmpt::Camera &camera) {
+		camera.Tick(*this, entity, p_device);
+	});
+}
+
+void Scene::UpdateInstance()
+{
+	auto view = m_registry.view<cmpt::MeshRenderer>();
+	view.each([&](entt::entity entity, cmpt::MeshRenderer &mesh_renderer) {
+		mesh_renderer.Tick(*this, entity, p_device);
+	});
+}
+
+void Scene::UpdateTLAS()
+{
 	if (m_update)
 	{
-		// Update Transform
-		auto group = m_registry.group<>(entt::get<cmpt::Transform, cmpt::Hierarchy>);
-
-		std::vector<entt::entity> roots;
-
-		// Find roots
-		for (auto &entity : group)
-		{
-			auto &&[hierarchy, transform] = group.get<cmpt::Hierarchy, cmpt::Transform>(entity);
-
-			if (hierarchy.parent == entt::null)
-			{
-				transform.local_transform = glm::scale(glm::translate(glm::mat4(1.f), transform.translation) * glm::mat4_cast(glm::qua<float>(glm::radians(transform.rotation))), transform.scale);
-				transform.world_transform = transform.local_transform;
-				roots.emplace_back(entity);
-			}
-		}
-
-		for (auto &root : roots)
-		{
-			TransformRecursive(*this, root);
-		}
-
 		// Update buffer
 		std::vector<VkAccelerationStructureInstanceKHR> acceleration_structure_instances;
 		acceleration_structure_instances.reserve(100);
-		auto mesh_view   = m_registry.view<cmpt::MeshRenderer>();
-		m_instance_count = static_cast<uint32_t>(mesh_view.size());
-		m_meshlet_count  = 0;
+		auto mesh_view = m_registry.view<cmpt::MeshRenderer>();
 		for (uint32_t i = 0; i < mesh_view.size(); i++)
 		{
-			Entity entity        = Entity(*this, mesh_view[i]);
-			auto  &mesh_renderer = entity.GetComponent<cmpt::MeshRenderer>();
-			auto  &transform     = entity.GetComponent<cmpt::Transform>();
+			Entity entity = Entity(*this, mesh_view[i]);
 
-			m_meshlet_count += mesh_renderer.mesh->GetMeshletsCount();
+			auto &mesh_renderer = entity.GetComponent<cmpt::MeshRenderer>();
+			auto &transform     = entity.GetComponent<cmpt::Transform>();
 
-			if (!mesh_renderer.buffer)
+			if (mesh_renderer.GetMesh())
 			{
-				BufferDesc desc      = {};
-				desc.size            = sizeof(ShaderInterop::Instance);
-				desc.buffer_usage    = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-				desc.memory_usage    = VMA_MEMORY_USAGE_CPU_TO_GPU;
-				mesh_renderer.buffer = std::make_unique<Buffer>(p_device, desc);
+				VkAccelerationStructureInstanceKHR acceleration_structure_instance = {};
+
+				auto transform_transpose = glm::mat3x4(glm::transpose(transform.GetWorldTransform()));
+				std::memcpy(&acceleration_structure_instance.transform, &transform_transpose, sizeof(VkTransformMatrixKHR));
+				acceleration_structure_instance.instanceCustomIndex                    = 0;
+				acceleration_structure_instance.mask                                   = 0xFF;
+				acceleration_structure_instance.instanceShaderBindingTableRecordOffset = 0;
+				acceleration_structure_instance.flags                                  = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+				acceleration_structure_instance.accelerationStructureReference         = mesh_renderer.GetMesh()->GetBLAS().GetDeviceAddress();
+				acceleration_structure_instances.push_back(acceleration_structure_instance);
 			}
-
-			auto *instance_data          = static_cast<ShaderInterop::Instance *>(mesh_renderer.buffer->Map());
-			instance_data->transform     = transform.world_transform;
-			instance_data->material      = m_asset_manager.GetIndex(mesh_renderer.mesh->GetMaterial());
-			instance_data->mesh          = m_asset_manager.GetIndex(mesh_renderer.mesh);
-			instance_data->meshlet_count = mesh_renderer.mesh->GetMeshletsCount();
-			instance_data->id            = i;
-			mesh_renderer.buffer->Flush(mesh_renderer.buffer->GetSize());
-			mesh_renderer.buffer->Unmap();
-
-			VkAccelerationStructureInstanceKHR acceleration_structure_instance = {};
-
-			auto transform_transpose = glm::mat3x4(glm::transpose(transform.world_transform));
-			std::memcpy(&acceleration_structure_instance.transform, &transform_transpose, sizeof(VkTransformMatrixKHR));
-			acceleration_structure_instance.instanceCustomIndex                    = 0;
-			acceleration_structure_instance.mask                                   = 0xFF;
-			acceleration_structure_instance.instanceShaderBindingTableRecordOffset = 0;
-			acceleration_structure_instance.flags                                  = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
-			acceleration_structure_instance.accelerationStructureReference         = mesh_renderer.mesh->GetBLAS().GetDeviceAddress();
-			acceleration_structure_instances.push_back(acceleration_structure_instance);
 		}
 
 		if (!acceleration_structure_instances.empty())
@@ -1135,283 +1102,286 @@ void Scene::UpdateScene()
 				p_device->SubmitIdle(cmd_buffer, VK_QUEUE_COMPUTE_BIT);
 			}
 		}
+
 		m_update = false;
 	}
 }
 
 void Scene::UpdateLights()
 {
+	/*
 	struct DirectionalLight
 	{
-		glm::vec4 split_depth;
-		glm::mat4 view_projection[4];
-		glm::vec4 shadow_cam_pos[4];
-		glm::vec3 color;
-		float     intensity;
-		glm::vec3 direction;
-		float     filter_scale;
-		alignas(16) uint32_t filter_sample;
+	    glm::vec4 split_depth;
+	    glm::mat4 view_projection[4];
+	    glm::vec4 shadow_cam_pos[4];
+	    glm::vec3 color;
+	    float     intensity;
+	    glm::vec3 direction;
+	    float     filter_scale;
+	    alignas(16) uint32_t filter_sample;
 	};
 
 	struct PointLight
 	{
-		glm::vec3 color;
-		float     intensity;
-		glm::vec3 position;
-		float     range;
+	    glm::vec3 color;
+	    float     intensity;
+	    glm::vec3 position;
+	    float     range;
 
-		float    filter_scale;
-		uint32_t filter_sample;
+	    float    filter_scale;
+	    uint32_t filter_sample;
 	};
 
 	struct SpotLight
 	{
-		glm::mat4 view_projection;
-		glm::vec3 color;
-		float     intensity;
-		glm::vec3 position;
-		float     cut_off;
-		glm::vec3 direction;
-		float     outer_cut_off;
+	    glm::mat4 view_projection;
+	    glm::vec3 color;
+	    float     intensity;
+	    glm::vec3 position;
+	    float     cut_off;
+	    glm::vec3 direction;
+	    float     outer_cut_off;
 
-		float    filter_scale;
-		uint32_t filter_sample;
-		float    range;
+	    float    filter_scale;
+	    uint32_t filter_sample;
+	    float    range;
 	};
 
 	struct AreaLight
 	{
-		glm::vec3 color;
-		float     intensity;
+	    glm::vec3 color;
+	    float     intensity;
 
-		glm::vec4 corners[4];
+	    glm::vec4 corners[4];
 
-		uint32_t shape;
+	    uint32_t shape;
 	};
 
 	auto group = m_registry.group<cmpt::Light, cmpt::Transform>();
 	group.each([this](cmpt::Light &light, cmpt::Transform &transform) {
-		// Update directional light
-		if (light.type == cmpt::LightType::Directional)
-		{
-			if (!light.buffer || light.buffer->GetSize() != sizeof(DirectionalLight))
-			{
-				light.buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(DirectionalLight), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
-			}
-			// 4 layer for cascade
-			if (!light.shadow_map || light.shadow_map->GetLayerCount() != 4)
-			{
-				light.shadow_map = std::make_unique<Texture>(
-				    p_device, TextureDesc{
-				                  1024,
-				                  1024,
-				                  1,
-				                  1,
-				                  4,
-				                  VK_SAMPLE_COUNT_1_BIT,
-				                  VK_FORMAT_D32_SFLOAT,
-				                  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT});
-			}
-			{
-				DirectionalLight *data = static_cast<DirectionalLight *>(light.buffer->Map());
+	    // Update directional light
+	    if (light.type == cmpt::LightType::Directional)
+	    {
+	        if (!light.buffer || light.buffer->GetSize() != sizeof(DirectionalLight))
+	        {
+	            light.buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(DirectionalLight), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
+	        }
+	        // 4 layer for cascade
+	        if (!light.shadow_map || light.shadow_map->GetLayerCount() != 4)
+	        {
+	            light.shadow_map = std::make_unique<Texture>(
+	                p_device, TextureDesc{
+	                              1024,
+	                              1024,
+	                              1,
+	                              1,
+	                              4,
+	                              VK_SAMPLE_COUNT_1_BIT,
+	                              VK_FORMAT_D32_SFLOAT,
+	                              VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT});
+	        }
+	        {
+	            DirectionalLight *data = static_cast<DirectionalLight *>(light.buffer->Map());
 
-				data->color         = light.color;
-				data->intensity     = light.intensity;
-				data->filter_scale  = light.filter_scale;
-				data->filter_sample = light.filter_sample;
-				data->direction     = glm::mat3_cast(glm::qua<float>(glm::radians(transform.rotation))) * glm::vec3(0.f, -1.f, 0.f);
-				Entity main_camera  = Entity(*this, m_main_camera);
-				if (main_camera.IsValid() && main_camera.HasComponent<cmpt::Camera>())
-				{
-					auto &camera            = main_camera.GetComponent<cmpt::Camera>();
-					float cascade_splits[4] = {0.f};
+	            data->color         = light.color;
+	            data->intensity     = light.intensity;
+	            data->filter_scale  = light.filter_scale;
+	            data->filter_sample = light.filter_sample;
+	            data->direction     = glm::mat3_cast(glm::qua<float>(glm::radians(transform.rotation))) * glm::vec3(0.f, -1.f, 0.f);
+	            Entity main_camera  = Entity(*this, m_main_camera);
+	            if (main_camera.IsValid() && main_camera.HasComponent<cmpt::Camera>())
+	            {
+	                auto &camera            = main_camera.GetComponent<cmpt::Camera>();
+	                float cascade_splits[4] = {0.f};
 
-					float near_clip  = camera.near_plane;
-					float far_clip   = camera.far_plane;
-					float clip_range = far_clip - near_clip;
-					float ratio      = far_clip / near_clip;
+	                float near_clip  = camera.near_plane;
+	                float far_clip   = camera.far_plane;
+	                float clip_range = far_clip - near_clip;
+	                float ratio      = far_clip / near_clip;
 
-					// Calculate split depths based on view camera frustum
-					for (uint32_t i = 0; i < 4; i++)
-					{
-						float p           = (static_cast<float>(i) + 1.f) / 4.f;
-						float log         = near_clip * std::pow(ratio, p);
-						float uniform     = near_clip + clip_range * p;
-						float d           = 0.95f * (log - uniform) + uniform;
-						cascade_splits[i] = (d - near_clip) / clip_range;
-					}
+	                // Calculate split depths based on view camera frustum
+	                for (uint32_t i = 0; i < 4; i++)
+	                {
+	                    float p           = (static_cast<float>(i) + 1.f) / 4.f;
+	                    float log         = near_clip * std::pow(ratio, p);
+	                    float uniform     = near_clip + clip_range * p;
+	                    float d           = 0.95f * (log - uniform) + uniform;
+	                    cascade_splits[i] = (d - near_clip) / clip_range;
+	                }
 
-					// Calculate orthographic projection matrix for each cascade
-					float last_split_dist = 0.f;
-					for (uint32_t i = 0; i < 4; i++)
-					{
-						float split_dist = cascade_splits[i];
+	                // Calculate orthographic projection matrix for each cascade
+	                float last_split_dist = 0.f;
+	                for (uint32_t i = 0; i < 4; i++)
+	                {
+	                    float split_dist = cascade_splits[i];
 
-						glm::vec3 frustum_corners[8] = {
-						    glm::vec3(-1.0f, 1.0f, 0.0f),
-						    glm::vec3(1.0f, 1.0f, 0.0f),
-						    glm::vec3(1.0f, -1.0f, 0.0f),
-						    glm::vec3(-1.0f, -1.0f, 0.0f),
-						    glm::vec3(-1.0f, 1.0f, 1.0f),
-						    glm::vec3(1.0f, 1.0f, 1.0f),
-						    glm::vec3(1.0f, -1.0f, 1.0f),
-						    glm::vec3(-1.0f, -1.0f, 1.0f)};
+	                    glm::vec3 frustum_corners[8] = {
+	                        glm::vec3(-1.0f, 1.0f, 0.0f),
+	                        glm::vec3(1.0f, 1.0f, 0.0f),
+	                        glm::vec3(1.0f, -1.0f, 0.0f),
+	                        glm::vec3(-1.0f, -1.0f, 0.0f),
+	                        glm::vec3(-1.0f, 1.0f, 1.0f),
+	                        glm::vec3(1.0f, 1.0f, 1.0f),
+	                        glm::vec3(1.0f, -1.0f, 1.0f),
+	                        glm::vec3(-1.0f, -1.0f, 1.0f)};
 
-						// Project frustum corners into world space
-						glm::mat4 inv_cam = glm::inverse(camera.view_projection);
-						for (uint32_t j = 0; j < 8; j++)
-						{
-							glm::vec4 inv_corner = inv_cam * glm::vec4(frustum_corners[j], 1.f);
-							frustum_corners[j]   = glm::vec3(inv_corner / inv_corner.w);
-						}
+	                    // Project frustum corners into world space
+	                    glm::mat4 inv_cam = glm::inverse(camera.view_projection);
+	                    for (uint32_t j = 0; j < 8; j++)
+	                    {
+	                        glm::vec4 inv_corner = inv_cam * glm::vec4(frustum_corners[j], 1.f);
+	                        frustum_corners[j]   = glm::vec3(inv_corner / inv_corner.w);
+	                    }
 
-						for (uint32_t j = 0; j < 4; j++)
-						{
-							glm::vec3 corner_ray   = frustum_corners[j + 4] - frustum_corners[j];
-							frustum_corners[j + 4] = frustum_corners[j] + corner_ray * split_dist;
-							frustum_corners[j]     = frustum_corners[j] + corner_ray * last_split_dist;
-						}
+	                    for (uint32_t j = 0; j < 4; j++)
+	                    {
+	                        glm::vec3 corner_ray   = frustum_corners[j + 4] - frustum_corners[j];
+	                        frustum_corners[j + 4] = frustum_corners[j] + corner_ray * split_dist;
+	                        frustum_corners[j]     = frustum_corners[j] + corner_ray * last_split_dist;
+	                    }
 
-						// Get frustum center
-						glm::vec3 frustum_center = glm::vec3(0.0f);
-						for (uint32_t j = 0; j < 8; j++)
-						{
-							frustum_center += frustum_corners[j];
-						}
-						frustum_center /= 8.0f;
+	                    // Get frustum center
+	                    glm::vec3 frustum_center = glm::vec3(0.0f);
+	                    for (uint32_t j = 0; j < 8; j++)
+	                    {
+	                        frustum_center += frustum_corners[j];
+	                    }
+	                    frustum_center /= 8.0f;
 
-						float radius = 0.0f;
-						for (uint32_t j = 0; j < 8; j++)
-						{
-							float distance = glm::length(frustum_corners[j] - frustum_center);
-							radius         = glm::max(radius, distance);
-						}
-						radius = std::ceil(radius * 16.0f) / 16.0f;
+	                    float radius = 0.0f;
+	                    for (uint32_t j = 0; j < 8; j++)
+	                    {
+	                        float distance = glm::length(frustum_corners[j] - frustum_center);
+	                        radius         = glm::max(radius, distance);
+	                    }
+	                    radius = std::ceil(radius * 16.0f) / 16.0f;
 
-						glm::vec3 max_extents = glm::vec3(radius);
-						glm::vec3 min_extents = -max_extents;
+	                    glm::vec3 max_extents = glm::vec3(radius);
+	                    glm::vec3 min_extents = -max_extents;
 
-						glm::vec3 light_dir = glm::normalize(data->direction);
+	                    glm::vec3 light_dir = glm::normalize(data->direction);
 
-						data->shadow_cam_pos[i] = glm::vec4(frustum_center - light_dir * max_extents.z, 1.0);
+	                    data->shadow_cam_pos[i] = glm::vec4(frustum_center - light_dir * max_extents.z, 1.0);
 
-						glm::mat4 light_view_matrix  = glm::lookAt(glm::vec3(data->shadow_cam_pos[i]), frustum_center, glm::vec3(0.0f, 1.0f, 0.0f));
-						glm::mat4 light_ortho_matrix = glm::ortho(min_extents.x, max_extents.x, min_extents.y, max_extents.y, -2.f * (max_extents.z - min_extents.z), max_extents.z - min_extents.z);
+	                    glm::mat4 light_view_matrix  = glm::lookAt(glm::vec3(data->shadow_cam_pos[i]), frustum_center, glm::vec3(0.0f, 1.0f, 0.0f));
+	                    glm::mat4 light_ortho_matrix = glm::ortho(min_extents.x, max_extents.x, min_extents.y, max_extents.y, -2.f * (max_extents.z - min_extents.z), max_extents.z - min_extents.z);
 
-						// Store split distance and matrix in cascade
-						data->split_depth[i]     = -(near_clip + split_dist * clip_range);
-						data->view_projection[i] = light_ortho_matrix * light_view_matrix;
+	                    // Store split distance and matrix in cascade
+	                    data->split_depth[i]     = -(near_clip + split_dist * clip_range);
+	                    data->view_projection[i] = light_ortho_matrix * light_view_matrix;
 
-						// Stablize
-						glm::vec3 shadow_origin = glm::vec3(0.0f);
-						shadow_origin           = (data->view_projection[i] * glm::vec4(shadow_origin, 1.0f));
-						shadow_origin *= 1024.f;
+	                    // Stablize
+	                    glm::vec3 shadow_origin = glm::vec3(0.0f);
+	                    shadow_origin           = (data->view_projection[i] * glm::vec4(shadow_origin, 1.0f));
+	                    shadow_origin *= 1024.f;
 
-						glm::vec3 rounded_origin = glm::round(shadow_origin);
-						glm::vec3 round_offset   = rounded_origin - shadow_origin;
-						round_offset             = round_offset / 1024.f;
-						round_offset.z           = 0.0f;
+	                    glm::vec3 rounded_origin = glm::round(shadow_origin);
+	                    glm::vec3 round_offset   = rounded_origin - shadow_origin;
+	                    round_offset             = round_offset / 1024.f;
+	                    round_offset.z           = 0.0f;
 
-						data->view_projection[i][3][0] += round_offset.x;
-						data->view_projection[i][3][1] += round_offset.y;
+	                    data->view_projection[i][3][0] += round_offset.x;
+	                    data->view_projection[i][3][1] += round_offset.y;
 
-						last_split_dist = cascade_splits[i];
-					}
-				}
-				light.buffer->Flush(light.buffer->GetSize());
-				light.buffer->Unmap();
-			}
-		}
-		// Update point light
-		if (light.type == cmpt::LightType::Point)
-		{
-			if (!light.buffer || light.buffer->GetSize() != sizeof(PointLight))
-			{
-				light.buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(PointLight), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
-			}
-			// 1 layer for shadow mapping
-			if (!light.shadow_map || light.shadow_map->GetLayerCount() != 6)
-			{
-				light.shadow_map = std::make_unique<Texture>(
-				    p_device, TextureDesc{
-				                  1024,
-				                  1024,
-				                  1,
-				                  1,
-				                  6,
-				                  VK_SAMPLE_COUNT_1_BIT,
-				                  VK_FORMAT_D32_SFLOAT,
-				                  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT});
-			}
-			{
-				PointLight *data    = static_cast<PointLight *>(light.buffer->Map());
-				data->color         = light.color;
-				data->range         = light.range;
-				data->intensity     = light.intensity;
-				data->position      = transform.world_transform[3];
-				data->filter_sample = light.filter_sample;
-				data->filter_scale  = light.filter_scale;
-				light.buffer->Flush(light.buffer->GetSize());
-				light.buffer->Unmap();
-			}
-		}
-		// Update spot light
-		if (light.type == cmpt::LightType::Spot)
-		{
-			if (!light.buffer || light.buffer->GetSize() != sizeof(SpotLight))
-			{
-				light.buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(SpotLight), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
-			}
-			// 1 layer for shadow mapping
-			if (!light.shadow_map || light.shadow_map->GetLayerCount() != 1)
-			{
-				light.shadow_map = std::make_unique<Texture>(
-				    p_device, TextureDesc{
-				                  1024,
-				                  1024,
-				                  1,
-				                  1,
-				                  1,
-				                  VK_SAMPLE_COUNT_1_BIT,
-				                  VK_FORMAT_D32_SFLOAT,
-				                  VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT});
-			}
-			{
-				SpotLight *data       = static_cast<SpotLight *>(light.buffer->Map());
-				data->color           = light.color;
-				data->intensity       = light.intensity;
-				data->position        = transform.world_transform[3];
-				data->cut_off         = light.spot_inner_cone_angle;
-				data->outer_cut_off   = light.spot_outer_cone_angle;
-				data->direction       = glm::mat3_cast(glm::qua<float>(glm::radians(transform.rotation))) * glm::vec3(0.f, -1.f, 0.f);
-				data->view_projection = glm::perspective(2.f * glm::acos(light.spot_outer_cone_angle), 1.0f, 0.01f, 1000.f) * glm::lookAt(transform.translation, transform.translation + data->direction, glm::vec3(0.f, 1.f, 0.f));
-				data->filter_scale    = light.filter_scale;
-				data->filter_sample   = light.filter_sample;
-				data->range           = light.range;
-				light.buffer->Flush(light.buffer->GetSize());
-				light.buffer->Unmap();
-			}
-		}
-		// Update area light
-		if (light.type == cmpt::LightType::Area)
-		{
-			if (!light.buffer || light.buffer->GetSize() != sizeof(AreaLight))
-			{
-				light.buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(AreaLight), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
-			}
-			{
-				AreaLight *data  = static_cast<AreaLight *>(light.buffer->Map());
-				data->color      = light.color;
-				data->intensity  = light.intensity;
-				data->shape      = static_cast<uint32_t>(light.shape);
-				data->corners[0] = transform.world_transform * glm::vec4(-1.f, -1.f, 0.f, 1.f);
-				data->corners[1] = transform.world_transform * glm::vec4(1.f, -1.f, 0.f, 1.f);
-				data->corners[2] = transform.world_transform * glm::vec4(1.f, 1.f, 0.f, 1.f);
-				data->corners[3] = transform.world_transform * glm::vec4(-1.f, 1.f, 0.f, 1.f);
-				light.buffer->Flush(light.buffer->GetSize());
-				light.buffer->Unmap();
-			}
-		}
+	                    last_split_dist = cascade_splits[i];
+	                }
+	            }
+	            light.buffer->Flush(light.buffer->GetSize());
+	            light.buffer->Unmap();
+	        }
+	    }
+	    // Update point light
+	    if (light.type == cmpt::LightType::Point)
+	    {
+	        if (!light.buffer || light.buffer->GetSize() != sizeof(PointLight))
+	        {
+	            light.buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(PointLight), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
+	        }
+	        // 1 layer for shadow mapping
+	        if (!light.shadow_map || light.shadow_map->GetLayerCount() != 6)
+	        {
+	            light.shadow_map = std::make_unique<Texture>(
+	                p_device, TextureDesc{
+	                              1024,
+	                              1024,
+	                              1,
+	                              1,
+	                              6,
+	                              VK_SAMPLE_COUNT_1_BIT,
+	                              VK_FORMAT_D32_SFLOAT,
+	                              VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT});
+	        }
+	        {
+	            PointLight *data    = static_cast<PointLight *>(light.buffer->Map());
+	            data->color         = light.color;
+	            data->range         = light.range;
+	            data->intensity     = light.intensity;
+	            data->position      = transform.world_transform[3];
+	            data->filter_sample = light.filter_sample;
+	            data->filter_scale  = light.filter_scale;
+	            light.buffer->Flush(light.buffer->GetSize());
+	            light.buffer->Unmap();
+	        }
+	    }
+	    // Update spot light
+	    if (light.type == cmpt::LightType::Spot)
+	    {
+	        if (!light.buffer || light.buffer->GetSize() != sizeof(SpotLight))
+	        {
+	            light.buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(SpotLight), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
+	        }
+	        // 1 layer for shadow mapping
+	        if (!light.shadow_map || light.shadow_map->GetLayerCount() != 1)
+	        {
+	            light.shadow_map = std::make_unique<Texture>(
+	                p_device, TextureDesc{
+	                              1024,
+	                              1024,
+	                              1,
+	                              1,
+	                              1,
+	                              VK_SAMPLE_COUNT_1_BIT,
+	                              VK_FORMAT_D32_SFLOAT,
+	                              VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT});
+	        }
+	        {
+	            SpotLight *data       = static_cast<SpotLight *>(light.buffer->Map());
+	            data->color           = light.color;
+	            data->intensity       = light.intensity;
+	            data->position        = transform.world_transform[3];
+	            data->cut_off         = light.spot_inner_cone_angle;
+	            data->outer_cut_off   = light.spot_outer_cone_angle;
+	            data->direction       = glm::mat3_cast(glm::qua<float>(glm::radians(transform.rotation))) * glm::vec3(0.f, -1.f, 0.f);
+	            data->view_projection = glm::perspective(2.f * glm::acos(light.spot_outer_cone_angle), 1.0f, 0.01f, 1000.f) * glm::lookAt(transform.translation, transform.translation + data->direction, glm::vec3(0.f, 1.f, 0.f));
+	            data->filter_scale    = light.filter_scale;
+	            data->filter_sample   = light.filter_sample;
+	            data->range           = light.range;
+	            light.buffer->Flush(light.buffer->GetSize());
+	            light.buffer->Unmap();
+	        }
+	    }
+	    // Update area light
+	    if (light.type == cmpt::LightType::Area)
+	    {
+	        if (!light.buffer || light.buffer->GetSize() != sizeof(AreaLight))
+	        {
+	            light.buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(AreaLight), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
+	        }
+	        {
+	            AreaLight *data  = static_cast<AreaLight *>(light.buffer->Map());
+	            data->color      = light.color;
+	            data->intensity  = light.intensity;
+	            data->shape      = static_cast<uint32_t>(light.shape);
+	            data->corners[0] = transform.world_transform * glm::vec4(-1.f, -1.f, 0.f, 1.f);
+	            data->corners[1] = transform.world_transform * glm::vec4(1.f, -1.f, 0.f, 1.f);
+	            data->corners[2] = transform.world_transform * glm::vec4(1.f, 1.f, 0.f, 1.f);
+	            data->corners[3] = transform.world_transform * glm::vec4(-1.f, 1.f, 0.f, 1.f);
+	            light.buffer->Flush(light.buffer->GetSize());
+	            light.buffer->Unmap();
+	        }
+	    }
 	});
+	*/
 }
 }        // namespace Ilum
