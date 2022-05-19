@@ -1,18 +1,17 @@
 #include "ShaderInterop.hpp"
 #include "Culling.hlsli"
 #include "Common.hlsli"
+#include "ShadingState.hlsli"
 
-ConstantBuffer<Camera> camera : register(b0);
-ConstantBuffer<Instance> instances[] : register(b1);
+ConstantBuffer<Camera> camera : register(b0, space0);
+/*ConstantBuffer<Instance> instances[] : register(b1);
 StructuredBuffer<Meshlet> meshlets[] : register(t2);
 StructuredBuffer<Vertex> vertices[] : register(t3);
 StructuredBuffer<uint> meshlet_vertices[] : register(t4);
 StructuredBuffer<uint> meshlet_primitives[] : register(t5);
-#ifdef ALPHA_TEST
 ConstantBuffer<Material> materials[] : register(b6);
 Texture2D<float4> texture_array[] : register(t7);
-SamplerState texture_sampler : register(s8);
-#endif
+SamplerState texture_sampler : register(s8);*/
 
 struct CSParam
 {

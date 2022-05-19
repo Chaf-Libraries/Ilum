@@ -183,11 +183,11 @@ void VBuffer::Create(RGBuilder &builder)
 				cmd_buffer.Bind(
 				    cmd_buffer.GetDescriptorState()
 				        .Bind(0, 0, camera_buffer)
-				        .Bind(0, 1, instances)
-				        .Bind(0, 2, renderer.GetScene()->GetAssetManager().GetMeshletBuffer())
-				        .Bind(0, 3, renderer.GetScene()->GetAssetManager().GetVertexBuffer())
-				        .Bind(0, 4, renderer.GetScene()->GetAssetManager().GetMeshletVertexBuffer())
-				        .Bind(0, 5, renderer.GetScene()->GetAssetManager().GetMeshletTriangleBuffer()));
+				        .Bind(1, 0, instances)
+				        .Bind(1, 1, renderer.GetScene()->GetAssetManager().GetMeshletBuffer())
+				        .Bind(1, 2, renderer.GetScene()->GetAssetManager().GetVertexBuffer())
+				        .Bind(1, 3, renderer.GetScene()->GetAssetManager().GetMeshletVertexBuffer())
+				        .Bind(1, 4, renderer.GetScene()->GetAssetManager().GetMeshletTriangleBuffer()));
 
 				uint32_t instance_id = 0;
 				for (auto &mesh : batch.meshes)
@@ -219,14 +219,14 @@ void VBuffer::Create(RGBuilder &builder)
 				cmd_buffer.Bind(
 				    cmd_buffer.GetDescriptorState()
 				        .Bind(0, 0, camera_buffer)
-				        .Bind(0, 1, instances)
-				        .Bind(0, 2, renderer.GetScene()->GetAssetManager().GetMeshletBuffer())
-				        .Bind(0, 3, renderer.GetScene()->GetAssetManager().GetVertexBuffer())
-				        .Bind(0, 4, renderer.GetScene()->GetAssetManager().GetMeshletVertexBuffer())
-				        .Bind(0, 5, renderer.GetScene()->GetAssetManager().GetMeshletTriangleBuffer())
-				        .Bind(0, 6, renderer.GetScene()->GetAssetManager().GetMaterialBuffer())
-				        .Bind(0, 7, renderer.GetScene()->GetAssetManager().GetTextureViews())
-				        .Bind(0, 8, renderer.GetSampler(SamplerType::TrilinearWarp)));
+				        .Bind(1, 0, instances)
+				        .Bind(1, 1, renderer.GetScene()->GetAssetManager().GetMeshletBuffer())
+				        .Bind(1, 2, renderer.GetScene()->GetAssetManager().GetVertexBuffer())
+				        .Bind(1, 3, renderer.GetScene()->GetAssetManager().GetMeshletVertexBuffer())
+				        .Bind(1, 4, renderer.GetScene()->GetAssetManager().GetMeshletTriangleBuffer())
+				        .Bind(2, 0, renderer.GetScene()->GetAssetManager().GetMaterialBuffer())
+				        .Bind(2, 1, renderer.GetScene()->GetAssetManager().GetTextureViews())
+				        .Bind(2, 2, renderer.GetSampler(SamplerType::TrilinearWarp)));
 
 				for (uint32_t i = 0; i < batch.order.size(); i++)
 				{

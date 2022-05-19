@@ -9,6 +9,8 @@ namespace ShaderInterop
 {
 #endif        // __cplusplus
 
+#define MAX_TEXTURE_NUM 1024
+
 #ifdef __cplusplus
 using float2   = glm::vec2;
 using float3   = glm::vec3;
@@ -57,14 +59,14 @@ struct Material
 	uint   pbr_specular_glossiness_texture;
 
 	// PBR Metallic Roughness
-	float pbr_metallic_factor;
+	float  pbr_metallic_factor;
 	float4 pbr_base_color_factor;
 	float  pbr_roughness_factor;
 	uint   pbr_base_color_texture;
 	uint   pbr_metallic_roughness_texture;
 
 	// Emissive
-	float emissive_strength;
+	float  emissive_strength;
 	float3 emissive_factor;
 	uint   emissive_texture;
 

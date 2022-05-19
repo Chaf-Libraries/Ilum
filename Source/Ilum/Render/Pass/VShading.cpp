@@ -7,8 +7,8 @@
 #include <Render/Renderer.hpp>
 
 #include <Scene/Component/Camera.hpp>
-#include <Scene/Scene.hpp>
 #include <Scene/Entity.hpp>
+#include <Scene/Scene.hpp>
 
 #include <Asset/AssetManager.hpp>
 
@@ -115,44 +115,44 @@ void VShading::Create(RGBuilder &builder)
 
 		/*auto view = renderer.GetScene()->GetRegistry().view<cmpt::Light>();
 		view.each([&](cmpt::Light &light) {
-			switch (light.type)
-			{
-				case cmpt::LightType::Point:
-					point_lights.push_back(light.buffer.get());
-					onmishadowmaps.push_back(light.shadow_map->GetView(TextureViewDesc{
-					    VK_IMAGE_VIEW_TYPE_CUBE,
-					    VK_IMAGE_ASPECT_DEPTH_BIT,
-					    0,
-					    1,
-					    0,
-					    6}));
-					break;
-				case cmpt::LightType::Directional:
-					directional_lights.push_back(light.buffer.get());
-					cascade_shadowmaps.push_back(light.shadow_map->GetView(TextureViewDesc{
-					    VK_IMAGE_VIEW_TYPE_2D_ARRAY,
-					    VK_IMAGE_ASPECT_DEPTH_BIT,
-					    0,
-					    1,
-					    0,
-					    4}));
-					break;
-				case cmpt::LightType::Spot:
-					spot_lights.push_back(light.buffer.get());
-					shadowmaps.push_back(light.shadow_map->GetView(TextureViewDesc{
-					    VK_IMAGE_VIEW_TYPE_2D,
-					    VK_IMAGE_ASPECT_DEPTH_BIT,
-					    0,
-					    1,
-					    0,
-					    1}));
-					break;
-				case cmpt::LightType::Area:
-					area_lights.push_back(light.buffer.get());
-					break;
-				default:
-					break;
-			}
+		    switch (light.type)
+		    {
+		        case cmpt::LightType::Point:
+		            point_lights.push_back(light.buffer.get());
+		            onmishadowmaps.push_back(light.shadow_map->GetView(TextureViewDesc{
+		                VK_IMAGE_VIEW_TYPE_CUBE,
+		                VK_IMAGE_ASPECT_DEPTH_BIT,
+		                0,
+		                1,
+		                0,
+		                6}));
+		            break;
+		        case cmpt::LightType::Directional:
+		            directional_lights.push_back(light.buffer.get());
+		            cascade_shadowmaps.push_back(light.shadow_map->GetView(TextureViewDesc{
+		                VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+		                VK_IMAGE_ASPECT_DEPTH_BIT,
+		                0,
+		                1,
+		                0,
+		                4}));
+		            break;
+		        case cmpt::LightType::Spot:
+		            spot_lights.push_back(light.buffer.get());
+		            shadowmaps.push_back(light.shadow_map->GetView(TextureViewDesc{
+		                VK_IMAGE_VIEW_TYPE_2D,
+		                VK_IMAGE_ASPECT_DEPTH_BIT,
+		                0,
+		                1,
+		                0,
+		                1}));
+		            break;
+		        case cmpt::LightType::Area:
+		            area_lights.push_back(light.buffer.get());
+		            break;
+		        default:
+		            break;
+		    }
 		});*/
 
 		struct
@@ -169,23 +169,17 @@ void VShading::Create(RGBuilder &builder)
 		        .Bind(0, 1, resource.GetTexture(shading)->GetView(view_desc))
 		        .Bind(0, 2, resource.GetTexture(normal)->GetView(view_desc))
 		        .Bind(0, 3, camera_buffer)
-		        .Bind(0, 4, renderer.GetScene()->GetInstanceBuffer())
-		        .Bind(0, 5, renderer.GetScene()->GetAssetManager().GetMeshletBuffer())
-		        .Bind(0, 6, renderer.GetScene()->GetAssetManager().GetVertexBuffer())
-		        .Bind(0, 7, renderer.GetScene()->GetAssetManager().GetMeshletVertexBuffer())
-		        .Bind(0, 8, renderer.GetScene()->GetAssetManager().GetMeshletTriangleBuffer())
-		        .Bind(0, 9, renderer.GetScene()->GetAssetManager().GetMaterialBuffer())
-		        .Bind(0, 10, point_lights)
+		        .Bind(1, 0, renderer.GetScene()->GetInstanceBuffer())
+		        .Bind(1, 1, renderer.GetScene()->GetAssetManager().GetMeshletBuffer())
+		        .Bind(1, 2, renderer.GetScene()->GetAssetManager().GetVertexBuffer())
+		        .Bind(1, 3, renderer.GetScene()->GetAssetManager().GetMeshletVertexBuffer())
+		        .Bind(1, 4, renderer.GetScene()->GetAssetManager().GetMeshletTriangleBuffer())
+		        .Bind(2, 0, renderer.GetScene()->GetAssetManager().GetMaterialBuffer())
+		        .Bind(2, 1, renderer.GetScene()->GetAssetManager().GetTextureViews())
+		        .Bind(2, 2, renderer.GetSampler(SamplerType::TrilinearWarp))
+		);
 
-		        //.Bind(0, 5, directional_lights)
-		        //.Bind(0, 6, spot_lights)
-		        //.Bind(0, 8, area_lights)
-		        //.Bind(0, 9, shadowmaps)
-		        //.Bind(0, 10, cascade_shadowmaps)
-		        //.Bind(0, 11, onmishadowmaps)
-		        .Bind(0, 12, renderer.GetScene()->GetAssetManager().GetTextureViews())
-		        .Bind(0, 13, renderer.GetSampler(SamplerType::TrilinearWarp)));
-		cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
+		//cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
 		cmd_buffer.Dispatch((renderer.GetExtent().width + 32 - 1) / 32, (renderer.GetExtent().height + 32 - 1) / 32);
 	});
 

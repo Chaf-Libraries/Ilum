@@ -1073,6 +1073,10 @@ void Scene::UpdateTLAS()
 				acceleration_structure_instance.accelerationStructureReference         = mesh_renderer.GetMesh()->GetBLAS().GetDeviceAddress();
 				acceleration_structure_instances.push_back(acceleration_structure_instance);
 			}
+
+			static_cast<ShaderInterop::Instance *>(mesh_renderer.GetBuffer()->Map())->id = i;
+			mesh_renderer.GetBuffer()->Flush(mesh_renderer.GetBuffer()->GetSize());
+			mesh_renderer.GetBuffer()->Unmap();
 		}
 
 		if (!acceleration_structure_instances.empty())

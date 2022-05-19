@@ -1,49 +1,16 @@
 #ifndef __COMMON_HLSL__
 #define __COMMON_HLSL__
 
-struct Interaction
-{
-    float3 position;
-    float3 normal;
-    float3 ffnormal;
-    float3 tangent;
-    float3 bitangent;
-    float2 texCoord;
-    float3 wo;
-    
-    void CreateCoordinateSystem()
-    {
-        const float3 ref = abs(dot(ffnormal, float3(0, 1, 0))) > 0.99f ? float3(0, 0, 1) : float3(0, 1, 0);
+#include "ShaderInterop.hpp"
 
-        tangent = normalize(cross(ref, ffnormal));
-        bitangent = cross(ffnormal, tangent);
-    }
-    
-    float3 WorldToLocal(float3 w)
-    {
-        return float3(dot(w, tangent), dot(w, bitangent), dot(w, normal));
-    }
-    
-    float3 LocalToWorld(float3 w)
-    {
-        return tangent * w.x + bitangent * w.y + normal * w.z;
-    }
-    
-    float3 WorldToLocalDir(float3 w)
-    {
-        return float3(dot(w, tangent), dot(w, bitangent), dot(w, ffnormal));
-    }
-    
-    float3 LocalToWorldDir(float3 w)
-    {
-        return tangent * w.x + bitangent * w.y + ffnormal * w.z;
-    }
-    
-    bool IsSurfaceInteraction()
-    {
-        return ffnormal.x != 0.0 || ffnormal.y != 0.0 || ffnormal.z != 0.0;
-    }
-};
+ConstantBuffer<Instance> instances[] : register(b0, space1);
+StructuredBuffer<Meshlet> meshlets[] : register(t1, space1);
+StructuredBuffer<Vertex> vertices[] : register(t2, space1);
+StructuredBuffer<uint> meshlet_vertices[] : register(t3, space1);
+StructuredBuffer<uint> meshlet_primitives[] : register(t4, space1);
+ConstantBuffer<Material> materials[] : register(b0, space2);
+Texture2D<float4> texture_array[] : register(t1, space2);
+SamplerState texture_sampler : register(s2, space2);
 
 float2 OctWrap(float2 v)
 {
@@ -65,58 +32,6 @@ float3 UnPackNormal(float2 p)
     n.y = tmp.y;
     return normalize(n);
 }
-
-static const uint MetalRoughnessWorkflow = 0;
-static const uint SpecularGlossinessWorkflow = 1;
-#define MAX_TEXTURE_ARRAY_SIZE 1024
-struct MaterialInfo
-{
-    float3 albedo;
-    float metallic;
-    float roughness;
-    float ior;
-    float f0;
-    float alpha;
-    float3 emissive;
-    
-    float sheen;
-    float3 sheen_tint;
-    
-    float clearcoat;
-    float clearcoat_roughness;
-    float specular;
-    float specular_tint;
-    float3 specular_color;
-    float subsurface;
-    float3 transmission;
-    float occlusion;
-    float ax;
-    float ay;
-    bool thin;
-};
-
-struct ShadingState
-{
-    uint trace_depth;
-    float eta;
-    
-    float3 position;
-    float2 uv;
-    float3 normal;
-    float3 ffnormal;
-    float3 tangent;
-    float3 bitangent;
-    float depth;
-    
-    float2 dx;
-    float2 dy;
-    float3 bary;
-    
-    bool is_subsurface;
-    
-    uint matID;
-    MaterialInfo mat;
-};
 
 #define SRGB_FAST_APPROXIMATION 1
 // sRGB to linear approximation
