@@ -115,7 +115,7 @@ struct Material
 	uint occlusion_texture;
 
 	uint unlit;
-	uint thin;
+	uint double_sided;
 };
 
 struct MeshletBound
@@ -148,11 +148,11 @@ struct Camera
 {
 	float4x4 view;
 	float4x4 projection;
-	float4x4 inv_view;
-	float4x4 inv_projection;
 	float4x4 view_projection;
 	float3   position;
 	uint     frame_count;
+	float4   right;
+	float4   up;
 
 #ifndef __cplusplus
 	/* RayDesc CastRay(float2 screen_coords)

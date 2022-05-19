@@ -27,6 +27,7 @@ Sampler::~Sampler()
 {
 	if (m_handle)
 	{
+		p_device->WaitIdle();
 		vkDestroySampler(p_device->GetDevice(), m_handle, nullptr);
 	}
 }

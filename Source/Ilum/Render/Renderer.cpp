@@ -178,7 +178,7 @@ void Renderer::OnImGui(ImGuiContext &context)
 					direction -= up;
 				}
 
-				float t = glm::clamp(0.2f, 0.f, 1.f);
+				constexpr float t = glm::clamp(0.2f, 0.f, 1.f);
 
 				m_translate_velocity = glm::mix(m_translate_velocity, direction, t * t * (3.f - 2.f * t));
 

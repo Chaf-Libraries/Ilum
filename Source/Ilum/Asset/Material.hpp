@@ -130,7 +130,7 @@ class Material
 	AlphaMode m_alpha_mode    = AlphaMode::Opaque;
 
 	bool m_unlit = false;
-	bool m_thin = false;
+	bool m_double_sided = false;
 
 	Texture *m_normal_texture    = nullptr;
 	Texture *m_occlusion_texture = nullptr;

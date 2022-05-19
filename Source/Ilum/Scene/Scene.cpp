@@ -740,7 +740,7 @@ void Scene::ImportGLTF(const std::string &filename)
 		load_texture(material->m_normal_texture, raw_material.normal_texture.texture);
 		load_texture(material->m_occlusion_texture, raw_material.occlusion_texture.texture);
 		material->m_unlit = raw_material.unlit;
-		material->m_thin  = !raw_material.double_sided;
+		material->m_double_sided = raw_material.double_sided;
 
 		material->UpdateBuffer();
 	}

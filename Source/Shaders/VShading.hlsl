@@ -6,7 +6,10 @@
 Texture2D<uint> vbuffer : register(t0, space0);
 RWTexture2D<float4> shading : register(u1, space0);
 RWTexture2D<float2> normal : register(u2, space0);
-ConstantBuffer<Camera> camera : register(b3, space0);
+cbuffer CameraBuffer : register(b3, space0)
+{
+    Camera camera;
+}
 
 struct CSParam
 {
@@ -163,8 +166,8 @@ void main(CSParam param)
     }
     
     ShadingState sstate;
-    sstate.LoadVisibilityBuffer(vbuffer, param.DispatchThreadID.xy, camera.view_projection);
+    sstate.LoadVisibilityBuffer(vbuffer, param.DispatchThreadID.xy, camera);
     
-    shading[param.DispatchThreadID.xy] = float4(sstate.normal, 1.0);
+    shading[param.DispatchThreadID.xy] = float4(sstate.mat_info.albedo.rgb, 1.0);
     normal[param.DispatchThreadID.xy] = PackNormal(sstate.normal.rgb);
 }

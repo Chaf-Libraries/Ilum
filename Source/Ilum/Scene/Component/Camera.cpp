@@ -142,12 +142,24 @@ void Camera::Tick(Scene &scene, entt::entity entity, RHIDevice *device)
                                 glm::ortho(m_left, m_right, m_bottom, m_top, m_near_plane, m_far_plane);
 		m_view_projection = m_projection * m_view;
 
+		float yaw   = std::atan2f(m_view[2][2], -m_view[0][2]);
+		float pitch = std::asinf(-glm::clamp(m_view[1][2], -1.f, 1.f));
+
+		glm::vec3 forward = glm::vec3(0.f);
+		forward.x         = std::cosf(pitch) * std::cosf(yaw);
+		forward.y         = std::sinf(pitch);
+		forward.z         = std::cosf(pitch) * std::sinf(yaw);
+		forward           = glm::normalize(forward);
+
+		glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3{0.f, 1.f, 0.f}));
+		glm::vec3 up    = glm::normalize(glm::cross(right, forward));
+
 		camera_data->view            = m_view;
 		camera_data->projection      = m_projection;
-		camera_data->inv_view        = transform.GetWorldTransform();
-		camera_data->inv_projection  = glm::inverse(m_projection);
 		camera_data->view_projection = m_projection * m_view;
 		camera_data->position        = transform.GetWorldTransform()[3];
+		camera_data->right           = glm::vec4(right, 0.f);
+		camera_data->up              = glm::vec4(up, 0.f);
 		camera_data->frame_count     = m_frame_count;
 
 		m_buffer->Flush(m_buffer->GetSize());
