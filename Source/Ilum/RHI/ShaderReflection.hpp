@@ -123,7 +123,7 @@ struct ShaderReflectionData
 	std::vector<Buffer>                buffers;
 	std::vector<AccelerationStructure> acceleration_structures;
 	std::vector<Constant>              constants;
-	std::unordered_set<uint32_t>       sets;
+	std::set<uint32_t>       sets;
 
 	ShaderReflectionData &operator+=(const ShaderReflectionData &rhs);
 

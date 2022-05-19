@@ -385,6 +385,7 @@ DescriptorAllocator::DescriptorAllocator(RHIDevice *device) :
 VkDescriptorSetLayout DescriptorAllocator::GetDescriptorLayout(const ShaderReflectionData &meta, uint32_t set_index)
 {
 	size_t hash = meta.Hash();
+	HashCombine(hash, set_index);
 
 	if (m_hash_layout_mapping.find(hash) != m_hash_layout_mapping.end())
 	{

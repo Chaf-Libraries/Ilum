@@ -127,38 +127,37 @@ DescriptorState::DescriptorState(RHIDevice *device, const PipelineState *pso) :
 
 DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, Buffer *buffer)
 {
-	ASSERT(m_buffer_resolves[set][binding].size() == 1);
 	if (m_buffer_resolves[set][binding][0].buffer != *buffer)
 	{
 		m_buffer_resolves[set][binding][0].buffer = *buffer;
 		m_buffer_resolves[set][binding][0].range  = buffer->GetSize();
 		m_buffer_resolves[set][binding][0].offset = 0;
-		m_dirty                                   = true;
+
+		m_dirty = true;
 	}
 	return *this;
 }
 
 DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, VkImageView view, VkSampler sampler)
 {
-	ASSERT(m_image_resolves[set][binding].size() == 1);
 	if (m_image_resolves[set][binding][0].imageView != view)
 	{
 		m_image_resolves[set][binding][0].imageView = view;
 		m_image_resolves[set][binding][0].sampler   = sampler;
-		m_dirty                                     = true;
+
+		m_dirty = true;
 	}
 	return *this;
 }
 
 DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, VkSampler sampler)
 {
-	ASSERT(m_image_resolves[set][binding].size() == 1);
-	ASSERT(m_image_resolves[set][binding][0].imageView == VK_NULL_HANDLE);
 	if (m_image_resolves[set][binding][0].sampler != sampler)
 	{
 		m_image_resolves[set][binding][0].imageView = VK_NULL_HANDLE;
 		m_image_resolves[set][binding][0].sampler   = sampler;
-		m_dirty                                     = true;
+
+		m_dirty = true;
 	}
 	return *this;
 }
@@ -169,14 +168,14 @@ DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, Accelerat
 	if (m_acceleration_structure_resolves[set][binding][0] != acceleration_structure)
 	{
 		m_acceleration_structure_resolves[set][binding][0] = acceleration_structure;
-		m_dirty                                            = true;
+
+		m_dirty = true;
 	}
 	return *this;
 }
 
 DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std::vector<Buffer *> &buffers)
 {
-	ASSERT(m_buffer_resolves[set][binding].size() == buffers.size() || m_buffer_resolves[binding].size() == 0);
 	if (m_buffer_resolves[set][binding].size() != buffers.size())
 	{
 		m_buffer_resolves[set][binding].resize(buffers.size());
@@ -188,7 +187,8 @@ DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std
 			m_buffer_resolves[set][binding][i].buffer = *buffers[i];
 			m_buffer_resolves[set][binding][i].range  = buffers[i]->GetSize();
 			m_buffer_resolves[set][binding][i].offset = 0;
-			m_dirty                                   = true;
+
+			m_dirty = true;
 		}
 	}
 	return *this;
@@ -196,7 +196,6 @@ DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std
 
 DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std::vector<VkImageView> &views, VkSampler sampler)
 {
-	ASSERT(m_image_resolves[set][binding].size() == views.size() || m_image_resolves[binding].size() == 0);
 	if (m_image_resolves[set][binding].size() != views.size())
 	{
 		m_image_resolves[set][binding].resize(views.size());
@@ -205,10 +204,11 @@ DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std
 	{
 		if (m_image_resolves[set][binding][i].imageView != views[i] || m_image_resolves[set][binding][i].sampler != sampler)
 		{
-			m_image_resolves[set][binding][i].imageView = views[i];
-			m_image_resolves[set][binding][i].sampler   = sampler;
+			m_image_resolves[set][binding][i].imageView   = views[i];
+			m_image_resolves[set][binding][i].sampler     = sampler;
 			m_image_resolves[set][binding][i].imageLayout = m_image_resolves[set][binding][0].imageLayout;
-			m_dirty                                     = true;
+
+			m_dirty = true;
 		}
 	}
 	return *this;
@@ -216,7 +216,6 @@ DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std
 
 DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std::vector<VkSampler> &samplers)
 {
-	ASSERT(m_image_resolves[set][binding].size() == samplers.size() || m_image_resolves[binding].size() == 0);
 	if (m_image_resolves[set][binding].size() != samplers.size())
 	{
 		m_image_resolves[set][binding].resize(samplers.size());
@@ -227,7 +226,8 @@ DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std
 		{
 			m_image_resolves[set][binding][i].imageView = VK_NULL_HANDLE;
 			m_image_resolves[set][binding][i].sampler   = samplers[i];
-			m_dirty                                     = true;
+
+			m_dirty = true;
 		}
 	}
 	return *this;
@@ -235,7 +235,6 @@ DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std
 
 DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std::vector<AccelerationStructure *> &acceleration_structures)
 {
-	ASSERT(m_acceleration_structure_resolves[set][binding].size() == acceleration_structures.size() || m_acceleration_structure_resolves[binding].size() == 0);
 	if (m_acceleration_structure_resolves[set][binding].size() < acceleration_structures.size())
 	{
 		m_acceleration_structure_resolves[set][binding].resize(acceleration_structures.size());
@@ -245,7 +244,8 @@ DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std
 		if (m_acceleration_structure_resolves[set][binding][i] != acceleration_structures[i])
 		{
 			m_acceleration_structure_resolves[set][binding][i] = acceleration_structures[i];
-			m_dirty                                            = true;
+
+			m_dirty = true;
 		}
 	}
 	return *this;
