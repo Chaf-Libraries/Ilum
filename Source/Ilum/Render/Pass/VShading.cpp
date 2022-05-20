@@ -176,7 +176,7 @@ void VShading::Create(RGBuilder &builder)
 		        .Bind(1, 4, renderer.GetScene()->GetAssetManager().GetMeshletTriangleBuffer())
 		        .Bind(2, 0, renderer.GetScene()->GetAssetManager().GetMaterialBuffer())
 		        .Bind(2, 1, renderer.GetScene()->GetAssetManager().GetTextureViews())
-		        .Bind(2, 2, renderer.GetSampler(SamplerType::TrilinearWarp))
+		        .Bind(2, 2, renderer.GetSampler(SamplerType::AnisptropicWarp))
 		);
 
 		//cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);

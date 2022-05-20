@@ -5,7 +5,7 @@
 #include "Math.hlsli"
 
 // Ray = O+td
-struct RayDifferential
+/*struct RayDifferential
 {
     float3 dOdx;
     float3 dOdy;
@@ -38,9 +38,9 @@ void PropagateRayDifferential(float3 direction, float t, float3 normal, inout Ra
 
 void PrepVerticesForRayDifferentials(Vertex vertices[3], float4x4 transform, out float3 edge01, out float3 edge02, out float3 face_normal)
 {
-    float3 v0 = mul(vertices[0].position.xyz, (float3x3) transform);
-    float3 v1 = mul(vertices[1].position.xyz, (float3x3) transform);
-    float3 v2 = mul(vertices[2].position.xyz, (float3x3) transform);
+    float3 v0 = mul(float4(vertices[0].position.xyz, 1.0), transform).xyz;
+    float3 v1 = mul(float4(vertices[1].position.xyz, 1.0), transform).xyz;
+    float3 v2 = mul(float4(vertices[2].position.xyz, 1.0), transform).xyz;
     
     edge01 = v1 - v0;
     edge02 = v2 - v0;
@@ -88,7 +88,7 @@ void ComputeUVDifferentials(Vertex vertices[3], float4x4 transform, float3 ray_d
     ComputeBarycentricDifferentials(rd, ray_dir, edge01, edge02, face_normal, dBarydx, dBarydy);
 
     InterpolateTexCoordDifferentials(dBarydx, dBarydy, vertices, dUVdx, dUVdy);
-}
+}*/
 
 static const uint MetalRoughnessWorkflow = 0;
 static const uint SpecularGlossinessWorkflow = 1;
@@ -112,7 +112,6 @@ struct MaterialInfo
 struct ShadingState
 {
     RayDesc ray;
-    RayDifferential ray_differential;
     
     float3 position;
     float3 normal;
@@ -230,6 +229,15 @@ struct ShadingState
     
         bary = G * rcpH;
         
+        float3 G_dx = C_dx * inv_w;
+        float3 G_dy = C_dy * inv_w;
+
+        float H_dx = dot(C_dx, inv_w);
+        float H_dy = dot(C_dy, inv_w);
+        
+        float3 bary_ddx = (G_dx * H - G * H_dx) * (rcpH * rcpH) * (2.0f / float(vbuffer_size.x));
+        float3 bary_ddy = (G_dy * H - G * H_dy) * (rcpH * rcpH) * (-2.0f / float(vbuffer_size.y));
+        
         depth = clip_pos0.z * bary.x + clip_pos1.z * bary.y + clip_pos2.z * bary.z;
         uv = v0.texcoord.xy * bary.x + v1.texcoord.xy * bary.y + v2.texcoord.xy * bary.z;
         position = v0.position.xyz * bary.x + v1.position.xyz * bary.y + v2.position.xyz * bary.z;
@@ -239,12 +247,14 @@ struct ShadingState
         normal = normalize(mul((float3x3) transform, normal));
         tangent = v0.tangent.xyz * bary.x + v1.tangent.xyz * bary.y + v2.tangent.xyz * bary.z;
         tangent = normalize(mul((float3x3) transform, tangent.xyz));
+        dx = v0.texcoord.xy * bary_ddx.x + v1.texcoord.xy * bary_ddx.y + v2.texcoord.xy * bary_ddx.z;
+        dy = v0.texcoord.xy * bary_ddy.x + v1.texcoord.xy * bary_ddy.y + v2.texcoord.xy * bary_ddy.z;
         
         float3 ray_dir = normalize(position - cam.position);
         float hit_t = length(position - cam.position);
         Vertex vertex[3] = { v0, v1, v2 };
         
-        ComputeUVDifferentials(vertex, transform, ray_dir, hit_t, cam, float2(vbuffer_size), dx, dy);
+        //ComputeUVDifferentials(vertex, transform, ray_dir, hit_t, cam, float2(vbuffer_size), dx, dy);
         
         bool double_sided = false;
         

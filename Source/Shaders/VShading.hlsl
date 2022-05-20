@@ -168,6 +168,6 @@ void main(CSParam param)
     ShadingState sstate;
     sstate.LoadVisibilityBuffer(vbuffer, param.DispatchThreadID.xy, camera);
     
-    shading[param.DispatchThreadID.xy] = float4(sstate.mat_info.albedo.rgb, 1.0);
+    shading[param.DispatchThreadID.xy] = float4(sstate.mat_info.albedo.rgb , 1.0);
     normal[param.DispatchThreadID.xy] = PackNormal(sstate.normal.rgb);
 }

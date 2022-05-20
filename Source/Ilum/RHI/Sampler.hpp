@@ -18,7 +18,7 @@ struct SamplerDesc
 
 	float mip_lod_bias = 0.f;
 	float min_lod      = 0.f;
-	float max_lod      = 0.f;
+	float max_lod      = std::numeric_limits<float>::max();
 
 	size_t Hash() const
 	{
