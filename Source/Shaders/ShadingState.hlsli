@@ -4,6 +4,16 @@
 #include "Common.hlsli"
 #include "Math.hlsli"
 
+ConstantBuffer<Instance> instances[] : register(b0, space1);
+StructuredBuffer<Meshlet> meshlets[] : register(t1, space1);
+StructuredBuffer<Vertex> vertices[] : register(t2, space1);
+StructuredBuffer<uint> meshlet_vertices[] : register(t3, space1);
+StructuredBuffer<uint> meshlet_primitives[] : register(t4, space1);
+
+ConstantBuffer<Material> materials[] : register(b0, space2);
+Texture2D<float4> texture_array[] : register(t1, space2);
+SamplerState texture_sampler : register(s2, space2);
+
 // Ray = O+td
 /*struct RayDifferential
 {
@@ -90,23 +100,52 @@ void ComputeUVDifferentials(Vertex vertices[3], float4x4 transform, float3 ray_d
     InterpolateTexCoordDifferentials(dBarydx, dBarydy, vertices, dUVdx, dUVdy);
 }*/
 
-static const uint MetalRoughnessWorkflow = 0;
-static const uint SpecularGlossinessWorkflow = 1;
-
-#define MAX_TEXTURE_ARRAY_SIZE 1024
-
 struct MaterialInfo
 {
+    // Metal-Roughness/Specular-Glossiness
     float4 albedo;
     float roughness;
     float metallic;
     
+    // Emissive
+    float3 emissive;
     
+    // Sheen
+    float3 sheen_color;
+    float sheen_roughness;
+    
+    // Clear Coat
+    float clearcoat;
+    float clearcoat_roughness;
+    float3 clearcoatF0;
+    float3 clearcoatF90;
+    float3 clearcoat_normal;
+    
+    // Specular
+    float specular_weight;
+    
+    // Transmission
+    float transmission;
+    
+    // Volume
+    float thickness;
+    float3 attenuation_color;
+    float attenuation_distance;
+    
+    // Iridescence
+    float iridescence;
+    float iridescence_ior;
+    float iridescence_thickness;
+    
+    // IOR
     float ior;
     
-    float3 f0; // full reflectance color
-    float3 f90; // reflectance color at grazing angle
+    float3 F0; // full reflectance color
+    float3 F90; // reflectance color at grazing angle
     float3 c_diff;
+    
+    float ao;
+    bool has_ao_texture;
 };
 
 struct ShadingState
@@ -130,25 +169,49 @@ struct ShadingState
     
     void LoadMaterial()
     {
+        mat_info.ior = 1.5;
+        mat_info.F0 = 0.04;
+        mat_info.specular_weight = 1.0;
+        mat_info.ao = 1.0;
+        mat_info.has_ao_texture = false;
+        
+        // Material IOR
+        {
+            float f0 = pow((materials[matID].ior - 1.0) / (materials[matID].ior + 1.0), 2.0);
+            mat_info.F0 = float3(f0, f0, f0);
+            mat_info.ior = materials[matID].ior;
+        }
+        
+        // Material Emissive
+        {
+            mat_info.emissive = materials[matID].emissive_factor * materials[matID].emissive_strength;
+            if (materials[matID].emissive_texture < MAX_TEXTURE_ARRAY_SIZE)
+            {
+                mat_info.emissive *= texture_array[materials[matID].emissive_texture].SampleGrad(texture_sampler, uv, dx, dy).rgb;
+            }
+        }
+        
+        // Material Specular Glossiness
         if (materials[matID].type == SpecularGlossinessWorkflow)
         {
-            mat_info.f0 = materials[matID].pbr_specular_factor;
+            mat_info.F0 = materials[matID].pbr_specular_factor;
             mat_info.roughness = materials[matID].pbr_glossiness_factor;
             mat_info.albedo = materials[matID].pbr_diffuse_factor;
             if (materials[matID].pbr_diffuse_texture < MAX_TEXTURE_ARRAY_SIZE)
             {
-                mat_info.albedo *= texture_array[materials[matID].pbr_diffuse_texture].SampleGrad(texture_sampler, uv, dx, dy);
+                mat_info.albedo *= SRGBtoLINEAR(texture_array[materials[matID].pbr_diffuse_texture].SampleGrad(texture_sampler, uv, dx, dy));
             }
             if (materials[matID].pbr_specular_glossiness_texture < MAX_TEXTURE_ARRAY_SIZE)
             {
                 float4 sg_sample = texture_array[materials[matID].pbr_specular_glossiness_texture].SampleGrad(texture_sampler, uv, dx, dy);
                 mat_info.roughness *= sg_sample.a; // glossiness to roughness
-                mat_info.f0 *= sg_sample.rgb; // specular
+                mat_info.F0 *= sg_sample.rgb; // specular
             }
             mat_info.roughness = 1.0 - mat_info.roughness;
-            mat_info.c_diff = mat_info.albedo.rgb * (1.0 - max(max(mat_info.f0.r, mat_info.f0.g), mat_info.f0.b));
+            mat_info.c_diff = mat_info.albedo.rgb * (1.0 - max(max(mat_info.F0.r, mat_info.F0.g), mat_info.F0.b));
         }
         
+        // Material Metal Roughness
         if (materials[matID].type == MetalRoughnessWorkflow)
         {
             mat_info.metallic = materials[matID].pbr_metallic_factor;
@@ -156,16 +219,119 @@ struct ShadingState
             mat_info.albedo = materials[matID].pbr_base_color_factor;
             if (materials[matID].pbr_base_color_texture < MAX_TEXTURE_ARRAY_SIZE)
             {
-                mat_info.albedo *= texture_array[materials[matID].pbr_base_color_texture].SampleGrad(texture_sampler, uv, dx, dy);
+                mat_info.albedo *= SRGBtoLINEAR(texture_array[materials[matID].pbr_base_color_texture].SampleGrad(texture_sampler, uv, dx, dy));
             }
             if (materials[matID].pbr_metallic_roughness_texture < MAX_TEXTURE_ARRAY_SIZE)
             {
-                float4 mr_sample = texture_array[materials[matID].pbr_specular_glossiness_texture].SampleGrad(texture_sampler, uv, dx, dy);
+                float4 mr_sample = texture_array[materials[matID].pbr_metallic_roughness_texture].SampleGrad(texture_sampler, uv, dx, dy);
                 mat_info.roughness *= mr_sample.g;
                 mat_info.metallic *= mr_sample.b;
             }
             mat_info.c_diff = lerp(mat_info.albedo.rgb, float3(0.0, 0.0, 0.0), mat_info.metallic);
-            mat_info.f0 = lerp(mat_info.f0, mat_info.albedo.rgb, mat_info.metallic);
+            mat_info.F0 = lerp(mat_info.F0, mat_info.albedo.rgb, mat_info.metallic);
+        }
+        
+        mat_info.roughness = clamp(mat_info.roughness, 0.0, 1.0);
+        mat_info.metallic = clamp(mat_info.metallic, 0.0, 1.0);
+        
+        // Material Sheen
+        {
+            mat_info.sheen_color = materials[matID].sheen_color_factor;
+            mat_info.sheen_roughness = materials[matID].sheen_roughness_factor;
+            if (materials[matID].sheen_texture < MAX_TEXTURE_ARRAY_SIZE)
+            {
+                mat_info.sheen_color *= texture_array[materials[matID].sheen_texture].SampleGrad(texture_sampler, uv, dx, dy).rgb;
+            }
+            if (materials[matID].sheen_roughness_texture < MAX_TEXTURE_ARRAY_SIZE)
+            {
+                mat_info.sheen_roughness *= texture_array[materials[matID].sheen_roughness_texture].SampleGrad(texture_sampler, uv, dx, dy).a;
+            }
+        }
+        
+        // Material Clearcoat
+        {
+            mat_info.clearcoat = materials[matID].clearcoat_factor;
+            mat_info.clearcoat_roughness = materials[matID].clearcoat_roughness_factor;
+            mat_info.clearcoatF0 = pow((mat_info.ior - 1.0) / (mat_info.ior + 1.0), 2.0);
+            mat_info.clearcoatF90 = float3(1.0, 1.0, 1.0);
+            mat_info.clearcoat_normal = normal;
+            if (materials[matID].clearcoat_texture < MAX_TEXTURE_ARRAY_SIZE)
+            {
+                mat_info.clearcoat *= texture_array[materials[matID].clearcoat_texture].SampleGrad(texture_sampler, uv, dx, dy).r;
+            }
+            if (materials[matID].clearcoat_roughness_texture < MAX_TEXTURE_ARRAY_SIZE)
+            {
+                mat_info.clearcoat_roughness *= texture_array[materials[matID].clearcoat_roughness_texture].SampleGrad(texture_sampler, uv, dx, dy).g;
+            }
+            if (materials[matID].clearcoat_normal_texture < MAX_TEXTURE_ARRAY_SIZE)
+            {
+                float3 n = texture_array[materials[matID].clearcoat_normal_texture].SampleGrad(texture_sampler, uv, dx, dy).rgb * 2.0 - 1.0;
+                n = mul(float3x3(tangent, bitangent, normal), normalize(n));
+                mat_info.clearcoat_normal = n;
+            }
+            mat_info.clearcoat_roughness = clamp(mat_info.clearcoat_roughness, 0.0, 1.0);
+        }
+        
+        // Material Specular
+        {
+            float4 specular = float4(1.0, 1.0, 1.0, 1.0);
+            if (materials[matID].specular_texture < MAX_TEXTURE_ARRAY_SIZE)
+            {
+                specular.a = texture_array[materials[matID].specular_texture].SampleGrad(texture_sampler, uv, dx, dy).a;
+            }
+            if (materials[matID].specular_color_texture < MAX_TEXTURE_ARRAY_SIZE)
+            {
+                specular.rgb = texture_array[materials[matID].specular_color_texture].SampleGrad(texture_sampler, uv, dx, dy).rgb;
+            }
+            
+            float3 dielectric_specular_f0 = min(mat_info.F0 * materials[matID].specular_color_factor * specular.rgb, float3(1.0, 1.0, 1.0));
+            mat_info.F0 = lerp(dielectric_specular_f0, mat_info.albedo.rgb, mat_info.metallic);
+            mat_info.specular_weight = materials[matID].specular_factor * specular.a;
+            mat_info.c_diff = lerp(mat_info.albedo.rgb, float3(0.0, 0.0, 0.0), mat_info.metallic);
+        }
+        
+        // Material Transmisson
+        {
+            mat_info.transmission = materials[matID].transmission_factor;
+            if (materials[matID].transmission_texture < MAX_TEXTURE_ARRAY_SIZE)
+            {
+                mat_info.transmission *= texture_array[materials[matID].transmission_texture].SampleGrad(texture_sampler, uv, dx, dy).r;
+            }
+        }
+        
+        // Material Volume
+        {
+            mat_info.thickness = materials[matID].thickness_factor;
+            mat_info.attenuation_color = materials[matID].attenuation_color;
+            mat_info.attenuation_distance = materials[matID].attenuation_distance;
+            if (materials[matID].thickness_texture < MAX_TEXTURE_ARRAY_SIZE)
+            {
+                mat_info.thickness *= texture_array[materials[matID].thickness_texture].SampleGrad(texture_sampler, uv, dx, dy).g;
+            }
+        }
+
+        // Material Iridescence
+        {
+            mat_info.iridescence = materials[matID].iridescence_factor;
+            mat_info.iridescence_ior = materials[matID].iridescence_ior;
+            mat_info.iridescence_thickness = materials[matID].iridescence_thickness_max;
+            if (materials[matID].iridescence_texture < MAX_TEXTURE_ARRAY_SIZE)
+            {
+                mat_info.iridescence *= texture_array[materials[matID].iridescence_texture].SampleGrad(texture_sampler, uv, dx, dy).r;
+            }
+            if (materials[matID].iridescence_thickness_texture < MAX_TEXTURE_ARRAY_SIZE)
+            {
+                mat_info.iridescence_thickness = lerp(materials[matID].iridescence_thickness_min, materials[matID].iridescence_thickness_max, texture_array[materials[matID].iridescence_thickness_texture].SampleGrad(texture_sampler, uv, dx, dy).g);
+            }
+        }
+        
+        // Ambient Occlusion
+        {
+            if (materials[matID].occlusion_texture < MAX_TEXTURE_ARRAY_SIZE)
+            {
+                mat_info.ao *= texture_array[materials[matID].occlusion_texture].SampleGrad(texture_sampler, uv, dx, dy).r;
+                mat_info.has_ao_texture = true;
+            }
         }
     }
     
@@ -249,17 +415,13 @@ struct ShadingState
         tangent = normalize(mul((float3x3) transform, tangent.xyz));
         dx = v0.texcoord.xy * bary_ddx.x + v1.texcoord.xy * bary_ddx.y + v2.texcoord.xy * bary_ddx.z;
         dy = v0.texcoord.xy * bary_ddy.x + v1.texcoord.xy * bary_ddy.y + v2.texcoord.xy * bary_ddy.z;
-        
-        float3 ray_dir = normalize(position - cam.position);
-        float hit_t = length(position - cam.position);
-        Vertex vertex[3] = { v0, v1, v2 };
-        
-        //ComputeUVDifferentials(vertex, transform, ray_dir, hit_t, cam, float2(vbuffer_size), dx, dy);
-        
+                
         bool double_sided = false;
         
         if (matID < 1024)
         {
+            LoadMaterial();
+            
             if (materials[matID].normal_texture < MAX_TEXTURE_ARRAY_SIZE)
             {
                 float3 T = tangent;
@@ -280,7 +442,6 @@ struct ShadingState
                 normal = normalize(mul(normalVector, TBN));
             }
             
-            LoadMaterial();
             double_sided = materials[matID].double_sided == 1;
         }
         

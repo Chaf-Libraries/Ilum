@@ -3,14 +3,10 @@
 
 #include "ShaderInterop.hpp"
 
-ConstantBuffer<Instance> instances[] : register(b0, space1);
-StructuredBuffer<Meshlet> meshlets[] : register(t1, space1);
-StructuredBuffer<Vertex> vertices[] : register(t2, space1);
-StructuredBuffer<uint> meshlet_vertices[] : register(t3, space1);
-StructuredBuffer<uint> meshlet_primitives[] : register(t4, space1);
-ConstantBuffer<Material> materials[] : register(b0, space2);
-Texture2D<float4> texture_array[] : register(t1, space2);
-SamplerState texture_sampler : register(s2, space2);
+static const uint MetalRoughnessWorkflow = 0;
+static const uint SpecularGlossinessWorkflow = 1;
+
+#define MAX_TEXTURE_ARRAY_SIZE 1024
 
 float2 OctWrap(float2 v)
 {

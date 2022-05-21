@@ -167,8 +167,6 @@ void VBuffer::Create(RGBuilder &builder)
 
 		// Draw Opaque
 		{
-			cmd_buffer.Bind(opaque_pso);
-
 			auto batch = renderer.GetScene()->Batch(AlphaMode::Opaque);
 
 			std::vector<Buffer *> instances;
@@ -180,6 +178,7 @@ void VBuffer::Create(RGBuilder &builder)
 
 			if (!instances.empty())
 			{
+				cmd_buffer.Bind(opaque_pso);
 				cmd_buffer.Bind(
 				    cmd_buffer.GetDescriptorState()
 				        .Bind(0, 0, camera_buffer)
@@ -203,8 +202,6 @@ void VBuffer::Create(RGBuilder &builder)
 
 		// Draw Alpha
 		{
-			cmd_buffer.Bind(alpha_pso);
-
 			auto batch = renderer.GetScene()->Batch(AlphaMode::Masked | AlphaMode::Blend);
 
 			std::vector<Buffer *> instances;
@@ -216,6 +213,7 @@ void VBuffer::Create(RGBuilder &builder)
 
 			if (!instances.empty())
 			{
+				cmd_buffer.Bind(alpha_pso);
 				cmd_buffer.Bind(
 				    cmd_buffer.GetDescriptorState()
 				        .Bind(0, 0, camera_buffer)

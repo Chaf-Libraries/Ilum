@@ -2,6 +2,8 @@
 #include "Common.hlsli"
 #include "Math.hlsli"
 #include "ShadingState.hlsli"
+#include "Lights.hlsli"
+#include "BxDF.hlsli"
 
 Texture2D<uint> vbuffer : register(t0, space0);
 RWTexture2D<float4> shading : register(u1, space0);
@@ -19,130 +21,61 @@ struct CSParam
 [[vk::push_constant]]
 struct
 {
+    uint directional_light_count;
+    uint spot_light_count;
     uint point_light_count;
+    uint area_light_count;
 } push_constants;
 
-/*void GetMaterial(inout ShadingState sstate)
+struct Radiance
 {
-    // Get Metallic Roughness
-    if (materials[sstate.matID].type == MetalRoughnessWorkflow)
-    {
-        float dielectric_specular = (materials[sstate.matID].ior - 1.0) / (materials[sstate.matID].ior + 1.0);
-        dielectric_specular *= dielectric_specular;
-        
-        float perceptual_roughness = 0.0;
-        float metallic = 0.0;
-        float4 base_color = float4(0.0, 0.0, 0.0, 1.0);
-        float3 f0 = float3(dielectric_specular, dielectric_specular, dielectric_specular);
-        
-        perceptual_roughness = materials[sstate.matID].pbr_roughness_factor;
-        metallic = materials[sstate.matID].pbr_metallic_factor;
-        if (materials[sstate.matID].pbr_metallic_roughness_texture < MAX_TEXTURE_ARRAY_SIZE)
-        {
-            float4 mr_sample = texture_array[NonUniformResourceIndex(materials[sstate.matID].pbr_metallic_roughness_texture)].SampleGrad(texture_sampler, sstate.uv, sstate.dx, sstate.dy).rgba;
-            perceptual_roughness *= mr_sample.g;
-            metallic *= mr_sample.b;
-        }
-        
-        base_color = materials[sstate.matID].pbr_base_color_factor;
-        if (materials[sstate.matID].pbr_base_color_texture < MAX_TEXTURE_ARRAY_SIZE)
-        {
-            base_color *= SRGBtoLINEAR(texture_array[NonUniformResourceIndex(materials[sstate.matID].pbr_base_color_texture)].SampleGrad(texture_sampler, sstate.uv, sstate.dx, sstate.dy).rgba);
-        }
+    float3 f_specular;
+    float3 f_diffuse;
+    float3 f_emissive;
+    float3 f_clearcoat;
+    float3 f_sheen;
+    float3 f_transmission;
+};
 
-        f0 = lerp(float3(dielectric_specular, dielectric_specular, dielectric_specular), base_color.xyz, metallic);
-        
-        sstate.mat.albedo = base_color.xyz;
-        sstate.mat.metallic = metallic;
-        sstate.mat.roughness = perceptual_roughness;
-        sstate.mat.f0 = f0;
-        sstate.mat.alpha = base_color.a;
-    }
+void GetPunctualRadiance(float3 iridescence_fresnel, float3 intensity, float3 L, float3 V, ShadingState sstate, inout Radiance radiance)
+{
+    float alpha_roughness = sstate.mat_info.roughness * sstate.mat_info.roughness;
     
-    // Get Specular Glossiness, convert Specular-Glossiness to Metallic-Roughness
-    if (materials[sstate.matID].type == SpecularGlossinessWorkflow)
+    
+    float3 H = normalize(L + V);
+    
+    float NoL = clamp(dot(sstate.normal, L), 0.0, 1.0);
+    float NoV = clamp(dot(sstate.normal, V), 0.0, 1.0);
+    float NoH = clamp(dot(sstate.normal, H), 0.0, 1.0);
+    float LoH = clamp(dot(L, H), 0.0, 1.0);
+    float VoH = clamp(dot(V, H), 0.0, 1.0);
+        
+    if (NoL > 0.0 || NoV > 0.0)
     {
-        float perceptual_roughness = 0.0;
-        float metallic = 0.0;
-        float4 base_color = float4(0.0, 0.0, 0.0, 1.0);
-        
-        float3 f0 = materials[sstate.matID].pbr_specular_factor;
-        perceptual_roughness = 1.0 - materials[sstate.matID].pbr_glossiness_factor;
-        
-        if (materials[sstate.matID].pbr_specular_glossiness_texture < MAX_TEXTURE_ARRAY_SIZE)
+        if (all(iridescence_fresnel != 0))
         {
-            float4 sg_sample = SRGBtoLINEAR(texture_array[NonUniformResourceIndex(materials[sstate.matID].pbr_specular_glossiness_texture)].SampleGrad(texture_sampler, sstate.uv, sstate.dx, sstate.dy).rgba);
-            perceptual_roughness = 1.0 - materials[sstate.matID].pbr_glossiness_factor * sg_sample.a;
-            f0 *= sg_sample.rgb;
-        }
-        
-        float3 specular_color = f0;
-        float3 one_minus_specular_strength = 1.0 - max(max(f0.r, f0.g), f0.b);
-        
-        float4 diffuse_color = materials[sstate.matID].pbr_diffuse_factor;
-        if (materials[sstate.matID].pbr_diffuse_texture < MAX_TEXTURE_ARRAY_SIZE)
-        {
-            diffuse_color *= SRGBtoLINEAR(texture_array[NonUniformResourceIndex(materials[sstate.matID].pbr_diffuse_texture)].SampleGrad(texture_sampler, sstate.uv, sstate.dx, sstate.dy).rgba);
-        }
-        
-        base_color.rgb = diffuse_color.rgb * one_minus_specular_strength;
-
-        // Solve metallic
-        float specular_brightness = sqrt(0.299 * specular_color.r * specular_color.r + 0.587 * specular_color.g * specular_color.g + 0.114 * specular_color.b * specular_color.b);
-        const float min_reflectance = 0.04;
-        if (specular_brightness < min_reflectance)
-        {
-            metallic = 0.0;
+            // Use Iridescence
+            radiance.f_diffuse += intensity * NoL * Eval_BRDF_LambertianIridescence(sstate.mat_info.F0, sstate.mat_info.F90, iridescence_fresnel, sstate.mat_info.iridescence, sstate.mat_info.c_diff, sstate.mat_info.specular_weight, VoH);
+            radiance.f_specular += intensity * NoL * Eval_BRDF_SpecularGGXIridescence(sstate.mat_info.F0, sstate.mat_info.F90, iridescence_fresnel, alpha_roughness, sstate.mat_info.iridescence, sstate.mat_info.specular_weight, VoH, NoL, NoV, NoH);
         }
         else
         {
-            float diffuse_brightness = sqrt(0.299 * diffuse_color.r * diffuse_color.r + 0.587 * diffuse_color.g * diffuse_color.g + 0.114 * diffuse_color.b * diffuse_color.b);
-        
-            float a = min_reflectance;
-            float b = diffuse_brightness * one_minus_specular_strength / (1.0 - min_reflectance) + specular_brightness - 2.0 * min_reflectance;
-            float c = min_reflectance - specular_brightness;
-            float D = max(b * b - 4.0 * a * c, 0.0);
-            metallic = clamp((-b + sqrt(D)) / (2.0 * a), 0.0, 1.0);
+            radiance.f_diffuse += intensity * NoL * Eval_BRDF_Lambertian(sstate.mat_info.F0, sstate.mat_info.F90, sstate.mat_info.c_diff, sstate.mat_info.specular_weight, VoH);
+            radiance.f_specular += intensity * NoL * Eval_BRDF_SpecularGGX(sstate.mat_info.F0, sstate.mat_info.F90, alpha_roughness, sstate.mat_info.specular_weight, VoH, NoL, NoV, NoH);
         }
         
-        sstate.mat.albedo = base_color.rgb;
-        sstate.mat.metallic = metallic;
-        sstate.mat.roughness = perceptual_roughness;
-        sstate.mat.f0 = f0;
-        sstate.mat.alpha = base_color.a;
-    }
-    
-    // Clamping roughness
-    sstate.mat.roughness = max(sstate.mat.roughness, 0.001);
-    
-    // Emissive
-    sstate.mat.emissive = materials[sstate.matID].emissive_factor * materials[sstate.matID].emissive_strength;
-    if (materials[sstate.matID].emissive_texture < MAX_TEXTURE_ARRAY_SIZE)
-    {
-        sstate.mat.emissive *= SRGBtoLINEAR(texture_array[NonUniformResourceIndex(materials[sstate.matID].emissive_texture)].SampleGrad(texture_sampler, sstate.uv, sstate.dx, sstate.dy)).rgb;
-    }
+        // Sheen Term
+        radiance.f_sheen += intensity * GetPunctualRadianceSheen(sstate.mat_info.sheen_color, sstate.mat_info.sheen_roughness, NoL, NoV, NoH);
+            // TODO: Albedo Sheen Scaling
+            //albedo_sheen_scaling = min(1.0 - max(sstate.mat_info.sheen_color.r, max(sstate.mat_info.sheen_color.g, sstate.mat_info.sheen_color.b)) * )
+
+        // Clear Coat Term
+        radiance.f_clearcoat += intensity * GetPunctualRadianceClearCoat(sstate.mat_info.clearcoat_normal, V, L, H, VoH, sstate.mat_info.clearcoatF0, sstate.mat_info.clearcoatF90, sstate.mat_info.clearcoat_roughness);
         
-    // Normal
-    if (materials[sstate.matID].normal_texture < MAX_TEXTURE_ARRAY_SIZE)
-    {
-        float3 T = sstate.tangent;
-        float3 B;
-        if (!any(T))
-        {
-            CreateCoordinateSystem(sstate.normal, T, B);
-        }
-        else
-        {
-            float3 B = normalize(cross(sstate.normal, T));
-        }
-        
-        float3x3 TBN = float3x3(T, B, sstate.normal);
-        float3 normalVector = texture_array[NonUniformResourceIndex(materials[sstate.matID].normal_texture)].SampleGrad(texture_sampler, sstate.uv, sstate.dx, sstate.dy).rgb;
-        normalVector = normalVector * 2.0 - 1.0;
-        normalVector = normalize(normalVector);
-        sstate.normal = normalize(mul(normalVector, TBN));
+        // TODO: Transmission
+        // TODO: Volume
     }
-}*/
+}
 
 [numthreads(32, 32, 1)]
 void main(CSParam param)
@@ -168,6 +101,74 @@ void main(CSParam param)
     ShadingState sstate;
     sstate.LoadVisibilityBuffer(vbuffer, param.DispatchThreadID.xy, camera);
     
-    shading[param.DispatchThreadID.xy] = float4(sstate.mat_info.albedo.rgb , 1.0);
+    float3 V = normalize(camera.position - sstate.position);
+    float NoV = clamp(dot(sstate.normal, V), 0.0, 1.0);
+    
+    float reflectance = max(max(sstate.mat_info.F0.r, sstate.mat_info.F0.g), sstate.mat_info.F0.b);
+    
+    Radiance radiance = (Radiance) 0;
+    
+    float albedo_sheen_scaling = 1.0;
+    
+    // Iridescence term
+    float3 iridescence_fresnel = sstate.mat_info.F0;
+    float3 iridescence_F0 = sstate.mat_info.F0;
+    if (sstate.mat_info.iridescence_thickness == 0.0)
+    {
+        sstate.mat_info.iridescence = 0.0;
+    }
+    if (sstate.mat_info.iridescence > 0.0)
+    {
+        iridescence_fresnel = Iridescent_Fresnel(1.0, sstate.mat_info.iridescence_ior, NoV, sstate.mat_info.iridescence_thickness, sstate.mat_info.F0);
+        iridescence_F0 = Schlick_to_F0(iridescence_fresnel, NoV);
+    }
+    
+    // TODO: IBL
+    // Iridescence
+    // Clearcoat
+    // Sheen
+    // Volume Refraction
+    
+    // TODO: AO
+    // AO Texture
+    // SSAO
+    // GTAO
+    // RTAO
+    float3 result;
+    for (uint i = 0; i < push_constants.directional_light_count; i++)
+    {
+        float3 L;
+        DirectionalLight light = directional_light[i];
+        float3 intensity = Eval_Light(light, sstate.position, L);
+        GetPunctualRadiance(iridescence_fresnel, intensity, L, V, sstate, radiance);
+    }
+    for (i = 0; i < push_constants.spot_light_count; i++)
+    {
+        float3 L;
+        SpotLight light = spot_light[i];
+        float3 intensity = Eval_Light(light, sstate.position, L);
+        result = intensity;
+        GetPunctualRadiance(iridescence_fresnel, intensity, L, V, sstate, radiance);
+    }
+    for (i = 0; i < push_constants.point_light_count; i++)
+    {
+        float3 L;
+        PointLight light = point_light[i];
+        float3 intensity = Eval_Light(light, sstate.position, L);
+        result = intensity;
+        GetPunctualRadiance(iridescence_fresnel, intensity, L, V, sstate, radiance);
+    }
+    
+    radiance.f_emissive = sstate.mat_info.emissive;
+    
+    // Layer blending
+    float clearcoat = sstate.mat_info.clearcoat;
+    float3 clearcoat_fresnel = F_Schlick(sstate.mat_info.clearcoatF0, sstate.mat_info.clearcoatF90, clamp(dot(sstate.mat_info.clearcoat_normal, V), 0.0, 1.0));
+    radiance.f_clearcoat *= clearcoat;
+    
+    float3 color = radiance.f_emissive + radiance.f_diffuse + radiance.f_specular + radiance.f_sheen;
+    color = color * (1.0 - clearcoat * clearcoat_fresnel) + radiance.f_clearcoat;
+    
+    shading[param.DispatchThreadID.xy] = float4(color * 0.0000001 + sstate.mat_info.albedo.rgb, 1.0);
     normal[param.DispatchThreadID.xy] = PackNormal(sstate.normal.rgb);
 }

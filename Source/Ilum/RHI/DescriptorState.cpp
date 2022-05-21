@@ -302,7 +302,10 @@ void DescriptorState::Write()
 		write_info.reserve(m_resolves[set].size());
 		for (auto &write : m_resolves[set])
 		{
-			write_info.push_back(write.second);
+			if (write.second.descriptorCount > 0)
+			{
+				write_info.push_back(write.second);
+			}
 		}
 
 		vkQueueWaitIdle(p_device->GetQueue(VK_QUEUE_GRAPHICS_BIT));

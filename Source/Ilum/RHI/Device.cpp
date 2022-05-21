@@ -542,6 +542,10 @@ VkPipelineLayout RHIDevice::AllocatePipelineLayout(const PipelineState &pso)
 	// Create descriptor layout & set
 	for (auto &set : meta.sets)
 	{
+		while (descriptor_set_layouts.size() < set)
+		{
+			descriptor_set_layouts.push_back(m_descriptor_allocator->GetDescriptorLayout(ShaderReflectionData{}, static_cast<uint32_t>(descriptor_set_layouts.size())));
+		}
 		descriptor_set_layouts.push_back(m_descriptor_allocator->GetDescriptorLayout(meta, set));
 		m_descriptor_sets[hash][set] = m_descriptor_allocator->AllocateDescriptorSet(meta, set);
 	}

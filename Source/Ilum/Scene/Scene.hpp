@@ -38,6 +38,8 @@ class Scene
 
 	entt::entity GetMainCamera();
 
+	entt::entity GetSelected();
+
 	void Clear();
 
 	entt::entity Create(const std::string &name = "Untitled Entity");

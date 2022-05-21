@@ -17,6 +17,10 @@
 
 #include <imgui.h>
 
+#include <ImGuizmo.h>
+
+#include <glm/gtc/type_ptr.hpp>
+
 #include <IconsFontAwesome4.h>
 
 namespace Ilum
@@ -29,7 +33,8 @@ Renderer::Renderer(RHIDevice *device, Scene *scene) :
 {
 	CreateSampler();
 	KullaContyApprox();
-	BRDFPreIntegration();
+	GenerateLUT();
+
 	p_device->WaitIdle();
 }
 
@@ -73,9 +78,14 @@ void Renderer::OnImGui(ImGuiContext &context)
 			ImGui::Image(context.TextureID(GetPrecompute(PrecomputeType::KullaContyAverage).GetView(view_desc)), ImVec2(300, 300));
 			ImGui::TreePop();
 		}
-		if (ImGui::TreeNode("BRDF PreIntegration"))
+		if (ImGui::TreeNode("GGX LUT"))
 		{
-			ImGui::Image(context.TextureID(GetPrecompute(PrecomputeType::BRDFPreIntegration).GetView(view_desc)), ImVec2(300, 300));
+			ImGui::Image(context.TextureID(m_ggx_lut->GetView(view_desc)), ImVec2(300, 300));
+			ImGui::TreePop();
+		}
+		if (ImGui::TreeNode("Charlie LUT"))
+		{
+			ImGui::Image(context.TextureID(m_charlie_lut->GetView(view_desc)), ImVec2(300, 300));
 			ImGui::TreePop();
 		}
 		ImGui::TreePop();
@@ -93,6 +103,17 @@ void Renderer::OnImGui(ImGuiContext &context)
 
 	// Scene View
 	ImGui::Begin("Present");
+
+	ImGuizmo::SetDrawlist();
+	auto offset              = ImGui::GetCursorPos();
+	auto scene_view_size     = ImVec2(ImGui::GetWindowContentRegionMax().x - ImGui::GetWindowContentRegionMin().x, ImGui::GetWindowContentRegionMax().y - ImGui::GetWindowContentRegionMin().y);
+	auto scene_view_position = ImVec2(ImGui::GetWindowPos().x + offset.x, ImGui::GetWindowPos().y + offset.y);
+
+	scene_view_size.x -= static_cast<uint32_t>(scene_view_size.x) % 2 != 0 ? 1.0f : 0.0f;
+	scene_view_size.y -= static_cast<uint32_t>(scene_view_size.y) % 2 != 0 ? 1.0f : 0.0f;
+
+	ImGuizmo::SetRect(scene_view_position.x, scene_view_position.y, scene_view_size.x, scene_view_size.y);
+
 	if (p_present && !recompile)
 	{
 		m_viewport = VkExtent2D{
@@ -105,94 +126,134 @@ void Renderer::OnImGui(ImGuiContext &context)
 			camera_entity.GetComponent<cmpt::Camera>().SetAspect(static_cast<float>(m_viewport.width) / static_cast<float>(m_viewport.height));
 		}
 
-		TextureViewDesc desc  = {};
-		desc.view_type        = VK_IMAGE_VIEW_TYPE_2D;
-		desc.aspect           = VK_IMAGE_ASPECT_COLOR_BIT;
-		desc.base_mip_level   = 0;
-		desc.base_array_layer = 0;
-		desc.level_count      = p_present->GetMipLevels();
-		desc.layer_count      = p_present->GetLayerCount();
-		ImGui::Image(context.TextureID(p_present->GetView(desc)), ImGui::GetContentRegionAvail());
-
-		// Camera Controling
-		auto main_camera = Entity(*p_scene, p_scene->GetMainCamera());
-		if (ImGui::IsWindowFocused() && ImGui::IsWindowHovered() && main_camera.IsValid())
+		// Display scene view
 		{
-			if (Input::GetInstance().IsMouseButtonPressed(MouseCode::ButtonRight))
+			TextureViewDesc desc  = {};
+			desc.view_type        = VK_IMAGE_VIEW_TYPE_2D;
+			desc.aspect           = VK_IMAGE_ASPECT_COLOR_BIT;
+			desc.base_mip_level   = 0;
+			desc.base_array_layer = 0;
+			desc.level_count      = p_present->GetMipLevels();
+			desc.layer_count      = p_present->GetLayerCount();
+			ImGui::Image(context.TextureID(p_present->GetView(desc)), ImGui::GetContentRegionAvail());
+		}
+
+		auto main_camera = Entity(*p_scene, p_scene->GetMainCamera());
+
+		if (main_camera.IsValid() && main_camera.HasComponent<cmpt::Camera>())
+		{
+			auto &camera = main_camera.GetComponent<cmpt::Camera>();
+			// ImGuizmo manipulate
 			{
-				auto &camera    = main_camera.GetComponent<cmpt::Camera>();
-				auto &transform = main_camera.GetComponent<cmpt::Transform>();
-
-				glm::vec2 delta = glm::vec2(p_device->GetWindow()->m_pos_delta_x, p_device->GetWindow()->m_pos_delta_y);
-
-				float yaw   = std::atan2f(-camera.GetView()[2][2], -camera.GetView()[0][2]);
-				float pitch = std::asinf(-glm::clamp(camera.GetView()[1][2], -1.f, 1.f));
-
-				glm::vec3 rotation    = transform.GetRotation();
-				glm::vec3 translation = transform.GetTranslation();
-
-				if (delta.x != 0.f)
+				auto selected = Entity(*p_scene, p_scene->GetSelected());
+				if (p_scene && p_scene->GetRegistry().valid(p_scene->GetMainCamera()))
 				{
-					yaw += 0.001f * Timer::GetInstance().DeltaTime() * delta.x;
-					rotation.y = -glm::degrees(yaw) - 90.f;
+					auto      e          = Entity(*p_scene, p_scene->GetMainCamera());
+					glm::mat4 view       = camera.GetView();
+					glm::mat4 projection = camera.GetProjection();
+
+					if (selected.IsValid())
+					{
+						auto &transform = selected.GetComponent<cmpt::Transform>();
+
+						glm::mat4 world_transform = transform.GetWorldTransform();
+
+						bool is_on_guizmo = ImGuizmo::Manipulate(
+						    glm::value_ptr(view),
+						    glm::value_ptr(projection),
+						    ImGuizmo::OPERATION::UNIVERSAL,
+						    ImGuizmo::WORLD, glm::value_ptr(world_transform), NULL, NULL, NULL, NULL);
+
+						if (is_on_guizmo)
+						{
+							glm::vec3 translation = {}, rotation = {}, scale = {};
+							glm::mat4 local_transform = transform.GetLocalTransform() * glm::inverse(transform.GetWorldTransform()) * world_transform;
+							ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(local_transform),
+							                                      glm::value_ptr(translation),
+							                                      glm::value_ptr(rotation),
+							                                      glm::value_ptr(scale));
+							transform.SetTranslation(translation);
+							transform.SetRotation(rotation);
+							transform.SetScale(scale);
+						}
+					}
 				}
-				if (delta.y != 0.f)
+			}
+
+			// Camera Controling
+			if (ImGui::IsWindowFocused() && ImGui::IsWindowHovered())
+			{
+				if (Input::GetInstance().IsMouseButtonPressed(MouseCode::ButtonRight))
 				{
-					pitch -= 0.001f * Timer::GetInstance().DeltaTime() * static_cast<float>(delta.y);
-					rotation.x = glm::degrees(pitch);
+					auto &transform = main_camera.GetComponent<cmpt::Transform>();
+
+					glm::vec2 delta = glm::vec2(p_device->GetWindow()->m_pos_delta_x, p_device->GetWindow()->m_pos_delta_y);
+
+					float yaw   = std::atan2f(-camera.GetView()[2][2], -camera.GetView()[0][2]);
+					float pitch = std::asinf(-glm::clamp(camera.GetView()[1][2], -1.f, 1.f));
+
+					glm::vec3 rotation    = transform.GetRotation();
+					glm::vec3 translation = transform.GetTranslation();
+
+					if (delta.x != 0.f)
+					{
+						yaw += 0.001f * Timer::GetInstance().DeltaTime() * delta.x;
+						rotation.y = -glm::degrees(yaw) - 90.f;
+					}
+					if (delta.y != 0.f)
+					{
+						pitch -= 0.001f * Timer::GetInstance().DeltaTime() * static_cast<float>(delta.y);
+						rotation.x = glm::degrees(pitch);
+					}
+
+					glm::vec3 forward = glm::vec3(0.f);
+					forward.x         = std::cosf(pitch) * std::cosf(yaw);
+					forward.y         = std::sinf(pitch);
+					forward.z         = std::cosf(pitch) * std::sinf(yaw);
+					forward           = glm::normalize(forward);
+
+					glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3{0.f, 1.f, 0.f}));
+					glm::vec3 up    = glm::normalize(glm::cross(right, forward));
+
+					glm::vec3 direction = glm::vec3(0.f);
+
+					if (Input::GetInstance().IsKeyPressed(KeyCode::W))
+					{
+						direction += forward;
+					}
+					if (Input::GetInstance().IsKeyPressed(KeyCode::S))
+					{
+						direction -= forward;
+					}
+					if (Input::GetInstance().IsKeyPressed(KeyCode::D))
+					{
+						direction += right;
+					}
+					if (Input::GetInstance().IsKeyPressed(KeyCode::A))
+					{
+						direction -= right;
+					}
+					if (Input::GetInstance().IsKeyPressed(KeyCode::Q))
+					{
+						direction += up;
+					}
+					if (Input::GetInstance().IsKeyPressed(KeyCode::E))
+					{
+						direction -= up;
+					}
+
+					constexpr float t = glm::clamp(0.2f, 0.f, 1.f);
+
+					m_translate_velocity = glm::mix(m_translate_velocity, direction, t * t * (3.f - 2.f * t));
+
+					translation += m_translate_velocity * Timer::GetInstance().DeltaTime() * 0.005f;
+
+					transform.SetTranslation(translation);
+					transform.SetRotation(rotation);
+
+					transform.Update();
+					camera.Update();
 				}
-
-				glm::vec3 forward = glm::vec3(0.f);
-				forward.x         = std::cosf(pitch) * std::cosf(yaw);
-				forward.y         = std::sinf(pitch);
-				forward.z         = std::cosf(pitch) * std::sinf(yaw);
-				forward           = glm::normalize(forward);
-
-				glm::vec3 right = glm::normalize(glm::cross(forward, glm::vec3{0.f, 1.f, 0.f}));
-				glm::vec3 up    = glm::normalize(glm::cross(right, forward));
-
-				glm::vec3 direction = glm::vec3(0.f);
-
-				if (Input::GetInstance().IsKeyPressed(KeyCode::W))
-				{
-					direction += forward;
-				}
-				if (Input::GetInstance().IsKeyPressed(KeyCode::S))
-				{
-					direction -= forward;
-				}
-				if (Input::GetInstance().IsKeyPressed(KeyCode::D))
-				{
-					direction += right;
-				}
-				if (Input::GetInstance().IsKeyPressed(KeyCode::A))
-				{
-					direction -= right;
-				}
-				if (Input::GetInstance().IsKeyPressed(KeyCode::Q))
-				{
-					direction += up;
-				}
-				if (Input::GetInstance().IsKeyPressed(KeyCode::E))
-				{
-					direction -= up;
-				}
-
-				constexpr float t = glm::clamp(0.2f, 0.f, 1.f);
-
-				m_translate_velocity = glm::mix(m_translate_velocity, direction, t * t * (3.f - 2.f * t));
-
-				translation += m_translate_velocity * Timer::GetInstance().DeltaTime() * 0.005f;
-
-				transform.SetTranslation(translation);
-				transform.SetRotation(rotation);
-
-				transform.Update();
-				camera.Update();
-
-				// glm::mat4 related_transform = transform.GetWorldTransform() * glm::inverse(transform.GetLocalTransform());
-				// transform.local_transform   = glm::scale(glm::translate(glm::mat4(1.f), transform.translation) * glm::mat4_cast(glm::qua<float>(glm::radians(transform.rotation))), transform.scale);
-				// transform.world_transform   = related_transform * transform.local_transform;
 			}
 		}
 	}
@@ -333,21 +394,8 @@ void Renderer::KullaContyApprox()
 	p_device->SubmitIdle(cmd_buffer);
 }
 
-void Renderer::BRDFPreIntegration()
+void Renderer::GenerateLUT()
 {
-	// Declare render target
-	TextureDesc tex_desc  = {};
-	tex_desc.width        = 512;
-	tex_desc.height       = 512;
-	tex_desc.depth        = 1;
-	tex_desc.mips         = 1;
-	tex_desc.layers       = 1;
-	tex_desc.sample_count = VK_SAMPLE_COUNT_1_BIT;
-	tex_desc.format       = VK_FORMAT_R16G16_SFLOAT;
-	tex_desc.usage        = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-
-	m_precomputes[static_cast<size_t>(PrecomputeType::BRDFPreIntegration)] = std::make_unique<Texture>(p_device, tex_desc);
-
 	TextureViewDesc view_desc  = {};
 	view_desc.aspect           = VK_IMAGE_ASPECT_COLOR_BIT;
 	view_desc.view_type        = VK_IMAGE_VIEW_TYPE_2D;
@@ -356,9 +404,28 @@ void Renderer::BRDFPreIntegration()
 	view_desc.layer_count      = 1;
 	view_desc.level_count      = 1;
 
-	// Setup PSO
+	m_ggx_lut = std::make_unique<Texture>(p_device, TextureDesc{
+	                                                    /*width*/ 512,
+	                                                    /*height*/ 512,
+	                                                    /*depth*/ 1,
+	                                                    /*mips*/ 1,
+	                                                    /*layers*/ 1,
+	                                                    /*sample_count*/ VK_SAMPLE_COUNT_1_BIT,
+	                                                    /*format*/ VK_FORMAT_R16G16_SFLOAT,
+	                                                    /*usage*/ VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT});
+
+	m_charlie_lut = std::make_unique<Texture>(p_device, TextureDesc{
+	                                                        /*width*/ 512,
+	                                                        /*height*/ 512,
+	                                                        /*depth*/ 1,
+	                                                        /*mips*/ 1,
+	                                                        /*layers*/ 1,
+	                                                        /*sample_count*/ VK_SAMPLE_COUNT_1_BIT,
+	                                                        /*format*/ VK_FORMAT_R16_SFLOAT,
+	                                                        /*usage*/ VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT});
+
 	ShaderDesc brdf_preintegration_shader  = {};
-	brdf_preintegration_shader.filename    = "./Source/Shaders/BRDFPreIntegration.hlsl";
+	brdf_preintegration_shader.filename    = "./Source/Shaders/GenerateLUT.hlsl";
 	brdf_preintegration_shader.entry_point = "main";
 	brdf_preintegration_shader.stage       = VK_SHADER_STAGE_COMPUTE_BIT;
 	brdf_preintegration_shader.type        = ShaderType::HLSL;
@@ -373,13 +440,34 @@ void Renderer::BRDFPreIntegration()
 
 	// Comput BRDF Preintegration
 	{
-		cmd_buffer.Transition(&GetPrecompute(PrecomputeType::BRDFPreIntegration), TextureState{}, TextureState(VK_IMAGE_USAGE_STORAGE_BIT), VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
+		cmd_buffer.Transition({},
+		                      {TextureTransition{
+		                           m_ggx_lut.get(),
+		                           TextureState{},
+		                           TextureState{VK_IMAGE_USAGE_STORAGE_BIT},
+		                           VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}},
+		                       TextureTransition{
+		                           m_charlie_lut.get(),
+		                           TextureState{},
+		                           TextureState{VK_IMAGE_USAGE_STORAGE_BIT},
+		                           VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}}});
 		cmd_buffer.Bind(pso);
 		cmd_buffer.Bind(
 		    cmd_buffer.GetDescriptorState()
-		        .Bind(0, 0, GetPrecompute(PrecomputeType::BRDFPreIntegration).GetView(view_desc)));
+		        .Bind(0, 0, m_ggx_lut->GetView(view_desc))
+		        .Bind(0, 1, m_charlie_lut->GetView(view_desc)));
 		cmd_buffer.Dispatch(512 / 32, 512 / 32);
-		cmd_buffer.Transition(&GetPrecompute(PrecomputeType::BRDFPreIntegration), TextureState{VK_IMAGE_USAGE_STORAGE_BIT}, TextureState(VK_IMAGE_USAGE_SAMPLED_BIT), VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1});
+		cmd_buffer.Transition({},
+		                      {TextureTransition{
+		                           m_ggx_lut.get(),
+		                           TextureState{VK_IMAGE_USAGE_STORAGE_BIT},
+		                           TextureState{VK_IMAGE_USAGE_SAMPLED_BIT},
+		                           VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}},
+		                       TextureTransition{
+		                           m_charlie_lut.get(),
+		                           TextureState{VK_IMAGE_USAGE_STORAGE_BIT},
+		                           TextureState{VK_IMAGE_USAGE_SAMPLED_BIT},
+		                           VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}}});
 	}
 
 	cmd_buffer.End();

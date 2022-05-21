@@ -3,12 +3,28 @@
 
 #include "Constants.hlsli"
 
-void CreateCoordinateSystem(in float3 N, out float3 Nt, out float3 Nb)
+float3x3 CreateCoordinateSystem(in float3 N, out float3 T, out float3 B)
 {
-    const float3 ref = abs(dot(N, float3(0, 1, 0))) > 0.99f ? float3(0, 0, 1) : float3(0, 1, 0);
-
-    Nt = normalize(cross(ref, N));
-    Nb = cross(N, Nt);
+    B = float3(0.0, 1.0, 0.0);
+    
+    float NoUp = dot(N, float3(0.0, 1.0, 0.0));
+    float epsilon = 0.0000001;
+    if (1.0 - abs(NoUp) <= epsilon)
+    {
+        if(NoUp>0.0)
+        {
+            B = float3(0.0, 0.0, 1.0);
+        }
+        else
+        {
+            B = float3(0.0, 0.0, -1.0);
+        }
+    }
+    
+    T = normalize(cross(B, N));
+    B = cross(N, T);
+    
+    return float3x3(T, B, N);
 }
 /*
 // Sampling Disk

@@ -2,15 +2,15 @@
 #include "../Culling.hlsli"
 #include "../Common.hlsli"
 
-ConstantBuffer<Instance> instances[] : register(b1);
-StructuredBuffer<Meshlet> meshlets[] : register(t2);
-StructuredBuffer<Vertex> vertices[] : register(t3);
-StructuredBuffer<uint> meshlet_vertices[] : register(t4);
-StructuredBuffer<uint> meshlet_primitives[] : register(t5);
+ConstantBuffer<Instance> instances[] : register(b0);
+StructuredBuffer<Meshlet> meshlets[] : register(t1);
+StructuredBuffer<Vertex> vertices[] : register(t2);
+StructuredBuffer<uint> meshlet_vertices[] : register(t3);
+StructuredBuffer<uint> meshlet_primitives[] : register(t4);
 #ifdef ALPHA_TEST
-ConstantBuffer<Material> materials[] : register(b6);
-Texture2D<float4> texture_array[] : register(t7);
-SamplerState texture_sampler : register(s8);
+ConstantBuffer<Material> materials[] : register(b5);
+Texture2D<float4> texture_array[] : register(t6);
+SamplerState texture_sampler : register(s7);
 #endif
 
 struct CSParam
@@ -117,7 +117,7 @@ void MSmain(CSParam param, in payload Payload pay_load, out vertices VertexOut v
     }
 }
 
-float PSmain(VertexOut verts, PrimitiveOut prims) : SV_TARGET0
+float PSmain(VertexOut verts, PrimitiveOut prims) : SV_Depth
 {
 #ifdef ALPHA_TEST
     if (instances[push_constants.instance_id].material <1024)

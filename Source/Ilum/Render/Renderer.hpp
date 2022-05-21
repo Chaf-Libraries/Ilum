@@ -28,7 +28,6 @@ enum class PrecomputeType
 {
 	KullaContyEnergy,
 	KullaContyAverage,
-	BRDFPreIntegration,
 	MAX_NUM
 };
 
@@ -60,7 +59,7 @@ class Renderer
 
   private:
 	void KullaContyApprox();
-	void BRDFPreIntegration();
+	void GenerateLUT();
 
   private:
 	RHIDevice *p_device = nullptr;
@@ -76,7 +75,10 @@ class Renderer
 	Texture *p_present = nullptr;
 
 	// LUT
-	std::array<std::unique_ptr<Texture>, 3> m_precomputes;
+	std::array<std::unique_ptr<Texture>, 2> m_precomputes;
+
+	std::unique_ptr<Texture> m_ggx_lut = nullptr;
+	std::unique_ptr<Texture> m_charlie_lut = nullptr;
 
 	// Sampler
 	std::array<std::unique_ptr<Sampler>, 8> m_samplers;

@@ -340,27 +340,30 @@ void Light::UpdateDirectionalLight(Scene &scene, entt::entity entity, RHIDevice 
 				instances.push_back(mesh->GetBuffer());
 			}
 
-			for (push_data.cascade_idx = 0; push_data.cascade_idx < 4; push_data.cascade_idx++)
+			if (!instances.empty())
 			{
-				push_data.view_projection = shadow_matrics[push_data.cascade_idx];
-				push_data.position        = shadow_cam_pos[push_data.cascade_idx];
-
 				cmd_buffer.Bind(opaque_pso);
 				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
-				                    .Bind(0, 1, instances)
-				                    .Bind(0, 2, scene.GetAssetManager().GetMeshletBuffer())
-				                    .Bind(0, 3, scene.GetAssetManager().GetVertexBuffer())
-				                    .Bind(0, 4, scene.GetAssetManager().GetMeshletVertexBuffer())
-				                    .Bind(0, 5, scene.GetAssetManager().GetMeshletTriangleBuffer()));
+				                    .Bind(0, 0, instances)
+				                    .Bind(0, 1, scene.GetAssetManager().GetMeshletBuffer())
+				                    .Bind(0, 2, scene.GetAssetManager().GetVertexBuffer())
+				                    .Bind(0, 3, scene.GetAssetManager().GetMeshletVertexBuffer())
+				                    .Bind(0, 4, scene.GetAssetManager().GetMeshletTriangleBuffer()));
 
-				uint32_t instance_id = 0;
-				for (auto &mesh : batch.meshes)
+				for (push_data.cascade_idx = 0; push_data.cascade_idx < 4; push_data.cascade_idx++)
 				{
-					push_data.instance_id   = instance_id;
-					push_data.meshlet_count = mesh->GetMesh()->GetMeshletsCount();
-					cmd_buffer.PushConstants(VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV, &push_data, sizeof(push_data), 0);
-					vkCmdDrawMeshTasksNV(cmd_buffer, (push_data.meshlet_count + 32 - 1) / 32, 0);
-					instance_id++;
+					push_data.view_projection = shadow_matrics[push_data.cascade_idx];
+					push_data.position        = shadow_cam_pos[push_data.cascade_idx];
+
+					uint32_t instance_id = 0;
+					for (auto &mesh : batch.meshes)
+					{
+						push_data.instance_id   = instance_id;
+						push_data.meshlet_count = mesh->GetMesh()->GetMeshletsCount();
+						cmd_buffer.PushConstants(VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV, &push_data, sizeof(push_data), 0);
+						vkCmdDrawMeshTasksNV(cmd_buffer, (push_data.meshlet_count + 32 - 1) / 32, 0);
+						instance_id++;
+					}
 				}
 			}
 		}
@@ -376,23 +379,23 @@ void Light::UpdateDirectionalLight(Scene &scene, entt::entity entity, RHIDevice 
 				instances.push_back(mesh->GetBuffer());
 			}
 
-			for (push_data.cascade_idx = 0; push_data.cascade_idx < 4; push_data.cascade_idx++)
+			if (!instances.empty())
 			{
-				push_data.view_projection = shadow_matrics[push_data.cascade_idx];
-				push_data.position        = shadow_cam_pos[push_data.cascade_idx];
+				cmd_buffer.Bind(alpha_pso);
+				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+				                    .Bind(0, 0, instances)
+				                    .Bind(0, 1, scene.GetAssetManager().GetMeshletBuffer())
+				                    .Bind(0, 2, scene.GetAssetManager().GetVertexBuffer())
+				                    .Bind(0, 3, scene.GetAssetManager().GetMeshletVertexBuffer())
+				                    .Bind(0, 4, scene.GetAssetManager().GetMeshletTriangleBuffer())
+				                    .Bind(0, 5, scene.GetAssetManager().GetMaterialBuffer())
+				                    .Bind(0, 6, scene.GetAssetManager().GetTextureViews())
+				                    .Bind(0, 7, device->AllocateSampler(SamplerDesc{VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_MIPMAP_MODE_LINEAR})));
 
-				if (!instances.empty())
+				for (push_data.cascade_idx = 0; push_data.cascade_idx < 4; push_data.cascade_idx++)
 				{
-					cmd_buffer.Bind(alpha_pso);
-					cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
-					                    .Bind(0, 1, instances)
-					                    .Bind(0, 2, scene.GetAssetManager().GetMeshletBuffer())
-					                    .Bind(0, 3, scene.GetAssetManager().GetVertexBuffer())
-					                    .Bind(0, 4, scene.GetAssetManager().GetMeshletVertexBuffer())
-					                    .Bind(0, 5, scene.GetAssetManager().GetMeshletTriangleBuffer())
-					                    .Bind(0, 6, scene.GetAssetManager().GetMaterialBuffer())
-					                    .Bind(0, 7, scene.GetAssetManager().GetTextureViews())
-					                    .Bind(0, 8, device->AllocateSampler(SamplerDesc{VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_MIPMAP_MODE_LINEAR})));
+					push_data.view_projection = shadow_matrics[push_data.cascade_idx];
+					push_data.position        = shadow_cam_pos[push_data.cascade_idx];
 
 					uint32_t instance_id = 0;
 					for (uint32_t i = 0; i < batch.order.size(); i++)
@@ -557,26 +560,29 @@ void Light::UpdatePointLight(Scene &scene, entt::entity entity, RHIDevice *devic
 				instances.push_back(mesh->GetBuffer());
 			}
 
-			for (push_data.face_id = 0; push_data.face_id < 6; push_data.face_id++)
+			if (!instances.empty())
 			{
-				push_data.view_projection = shadow_matrics[push_data.face_id];
-
 				cmd_buffer.Bind(opaque_pso);
 				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
-				                    .Bind(0, 1, instances)
-				                    .Bind(0, 2, scene.GetAssetManager().GetMeshletBuffer())
-				                    .Bind(0, 3, scene.GetAssetManager().GetVertexBuffer())
-				                    .Bind(0, 4, scene.GetAssetManager().GetMeshletVertexBuffer())
-				                    .Bind(0, 5, scene.GetAssetManager().GetMeshletTriangleBuffer()));
+				                    .Bind(0, 0, instances)
+				                    .Bind(0, 1, scene.GetAssetManager().GetMeshletBuffer())
+				                    .Bind(0, 2, scene.GetAssetManager().GetVertexBuffer())
+				                    .Bind(0, 3, scene.GetAssetManager().GetMeshletVertexBuffer())
+				                    .Bind(0, 4, scene.GetAssetManager().GetMeshletTriangleBuffer()));
 
-				uint32_t instance_id = 0;
-				for (auto &mesh : batch.meshes)
+				for (push_data.face_id = 0; push_data.face_id < 6; push_data.face_id++)
 				{
-					push_data.instance_id   = instance_id;
-					push_data.meshlet_count = mesh->GetMesh()->GetMeshletsCount();
-					cmd_buffer.PushConstants(VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV | VK_SHADER_STAGE_FRAGMENT_BIT, &push_data, sizeof(push_data), 0);
-					vkCmdDrawMeshTasksNV(cmd_buffer, (push_data.meshlet_count + 32 - 1) / 32, 0);
-					instance_id++;
+					push_data.view_projection = shadow_matrics[push_data.face_id];
+
+					uint32_t instance_id = 0;
+					for (auto &mesh : batch.meshes)
+					{
+						push_data.instance_id   = instance_id;
+						push_data.meshlet_count = mesh->GetMesh()->GetMeshletsCount();
+						cmd_buffer.PushConstants(VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV | VK_SHADER_STAGE_FRAGMENT_BIT, &push_data, sizeof(push_data), 0);
+						vkCmdDrawMeshTasksNV(cmd_buffer, (push_data.meshlet_count + 32 - 1) / 32, 0);
+						instance_id++;
+					}
 				}
 			}
 		}
@@ -592,22 +598,22 @@ void Light::UpdatePointLight(Scene &scene, entt::entity entity, RHIDevice *devic
 				instances.push_back(mesh->GetBuffer());
 			}
 
-			for (push_data.face_id = 0; push_data.face_id < 6; push_data.face_id++)
+			if (!instances.empty())
 			{
-				push_data.view_projection = shadow_matrics[push_data.face_id];
+				cmd_buffer.Bind(alpha_pso);
+				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+				                    .Bind(0, 0, instances)
+				                    .Bind(0, 1, scene.GetAssetManager().GetMeshletBuffer())
+				                    .Bind(0, 2, scene.GetAssetManager().GetVertexBuffer())
+				                    .Bind(0, 3, scene.GetAssetManager().GetMeshletVertexBuffer())
+				                    .Bind(0, 4, scene.GetAssetManager().GetMeshletTriangleBuffer())
+				                    .Bind(0, 5, scene.GetAssetManager().GetMaterialBuffer())
+				                    .Bind(0, 6, scene.GetAssetManager().GetTextureViews())
+				                    .Bind(0, 7, device->AllocateSampler(SamplerDesc{VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_MIPMAP_MODE_LINEAR})));
 
-				if (!instances.empty())
+				for (push_data.face_id = 0; push_data.face_id < 6; push_data.face_id++)
 				{
-					cmd_buffer.Bind(alpha_pso);
-					cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
-					                    .Bind(0, 1, instances)
-					                    .Bind(0, 2, scene.GetAssetManager().GetMeshletBuffer())
-					                    .Bind(0, 3, scene.GetAssetManager().GetVertexBuffer())
-					                    .Bind(0, 4, scene.GetAssetManager().GetMeshletVertexBuffer())
-					                    .Bind(0, 5, scene.GetAssetManager().GetMeshletTriangleBuffer())
-					                    .Bind(0, 6, scene.GetAssetManager().GetMaterialBuffer())
-					                    .Bind(0, 7, scene.GetAssetManager().GetTextureViews())
-					                    .Bind(0, 8, device->AllocateSampler(SamplerDesc{VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_MIPMAP_MODE_LINEAR})));
+					push_data.view_projection = shadow_matrics[push_data.face_id];
 
 					uint32_t instance_id = 0;
 					for (uint32_t i = 0; i < batch.order.size(); i++)
@@ -767,22 +773,25 @@ void Light::UpdateSpotLight(Scene &scene, entt::entity entity, RHIDevice *device
 				instances.push_back(mesh->GetBuffer());
 			}
 
-			cmd_buffer.Bind(opaque_pso);
-			cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
-			                    .Bind(0, 1, instances)
-			                    .Bind(0, 2, scene.GetAssetManager().GetMeshletBuffer())
-			                    .Bind(0, 3, scene.GetAssetManager().GetVertexBuffer())
-			                    .Bind(0, 4, scene.GetAssetManager().GetMeshletVertexBuffer())
-			                    .Bind(0, 5, scene.GetAssetManager().GetMeshletTriangleBuffer()));
-
-			uint32_t instance_id = 0;
-			for (auto &mesh : batch.meshes)
+			if (!instances.empty())
 			{
-				push_data.instance_id   = instance_id;
-				push_data.meshlet_count = mesh->GetMesh()->GetMeshletsCount();
-				cmd_buffer.PushConstants(VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV, &push_data, sizeof(push_data), 0);
-				vkCmdDrawMeshTasksNV(cmd_buffer, (push_data.meshlet_count + 32 - 1) / 32, 0);
-				instance_id++;
+				cmd_buffer.Bind(opaque_pso);
+				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+				                    .Bind(0, 0, instances)
+				                    .Bind(0, 1, scene.GetAssetManager().GetMeshletBuffer())
+				                    .Bind(0, 2, scene.GetAssetManager().GetVertexBuffer())
+				                    .Bind(0, 3, scene.GetAssetManager().GetMeshletVertexBuffer())
+				                    .Bind(0, 4, scene.GetAssetManager().GetMeshletTriangleBuffer()));
+
+				uint32_t instance_id = 0;
+				for (auto &mesh : batch.meshes)
+				{
+					push_data.instance_id   = instance_id;
+					push_data.meshlet_count = mesh->GetMesh()->GetMeshletsCount();
+					cmd_buffer.PushConstants(VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV, &push_data, sizeof(push_data), 0);
+					vkCmdDrawMeshTasksNV(cmd_buffer, (push_data.meshlet_count + 32 - 1) / 32, 0);
+					instance_id++;
+				}
 			}
 		}
 
@@ -801,14 +810,14 @@ void Light::UpdateSpotLight(Scene &scene, entt::entity entity, RHIDevice *device
 			{
 				cmd_buffer.Bind(alpha_pso);
 				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
-				                    .Bind(0, 1, instances)
-				                    .Bind(0, 2, scene.GetAssetManager().GetMeshletBuffer())
-				                    .Bind(0, 3, scene.GetAssetManager().GetVertexBuffer())
-				                    .Bind(0, 4, scene.GetAssetManager().GetMeshletVertexBuffer())
-				                    .Bind(0, 5, scene.GetAssetManager().GetMeshletTriangleBuffer())
-				                    .Bind(0, 6, scene.GetAssetManager().GetMaterialBuffer())
-				                    .Bind(0, 7, scene.GetAssetManager().GetTextureViews())
-				                    .Bind(0, 8, device->AllocateSampler(SamplerDesc{VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_MIPMAP_MODE_LINEAR})));
+				                    .Bind(0, 0, instances)
+				                    .Bind(0, 1, scene.GetAssetManager().GetMeshletBuffer())
+				                    .Bind(0, 2, scene.GetAssetManager().GetVertexBuffer())
+				                    .Bind(0, 3, scene.GetAssetManager().GetMeshletVertexBuffer())
+				                    .Bind(0, 4, scene.GetAssetManager().GetMeshletTriangleBuffer())
+				                    .Bind(0, 5, scene.GetAssetManager().GetMaterialBuffer())
+				                    .Bind(0, 6, scene.GetAssetManager().GetTextureViews())
+				                    .Bind(0, 7, device->AllocateSampler(SamplerDesc{VK_FILTER_LINEAR, VK_FILTER_LINEAR, VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_MIPMAP_MODE_LINEAR})));
 
 				uint32_t instance_id = 0;
 				for (uint32_t i = 0; i < batch.order.size(); i++)

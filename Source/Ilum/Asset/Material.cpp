@@ -93,6 +93,7 @@ bool Material::OnImGui(ImGuiContext &context)
 	is_update |= ImGui::Combo("Alpha Mode", &alpha_mode, alpha_modes, 3);
 	m_alpha_mode = static_cast<AlphaMode>(1 << alpha_mode);
 	is_update |= ImGui::DragFloat("IOR", &m_ior, 0.001f, 0.f, 10.f, "%.3f");
+	is_update |= ImGui::DragFloat("Alpha Cut Off", &m_alpha_cut_off, 0.001f, 0.f, 1.f, "%.3f");
 
 	if (m_type == MaterialType::MetalRoughnessWorkflow)
 	{
@@ -159,8 +160,7 @@ bool Material::OnImGui(ImGuiContext &context)
 	{
 		is_update |= ImGui::ColorEdit3("Factor", glm::value_ptr(m_emissive_factor));
 		is_update |= ImGui::DragFloat("Strength", &m_emissive_strength, 0.001f, 0.f, 10.f, "%.3f");
-		is_update |= ImGui::DragFloat("Alpha Cut Off", &m_alpha_cut_off, 0.001f, 0.f, 1.f, "%.3f");
-		if (ImGui::TreeNode("Texture"))
+		if (ImGui::TreeNode("Emissive Texture"))
 		{
 			is_update |= DrawTextureButton(m_emissive_texture, context, m_manager);
 			ImGui::TreePop();
@@ -172,12 +172,12 @@ bool Material::OnImGui(ImGuiContext &context)
 	{
 		is_update |= ImGui::ColorEdit3("Color Factor", glm::value_ptr(m_sheen_color_factor));
 		is_update |= ImGui::DragFloat("Roughness Factor", &m_sheen_roughness_factor, 0.001f, 0.f, 1.f, "%.3f");
-		if (ImGui::TreeNode("Texture"))
+		if (ImGui::TreeNode("Sheen Texture"))
 		{
 			is_update |= DrawTextureButton(m_sheen_texture, context, m_manager);
 			ImGui::TreePop();
 		}
-		if (ImGui::TreeNode("Roughness Texture"))
+		if (ImGui::TreeNode("Sheen Roughness Texture"))
 		{
 			is_update |= DrawTextureButton(m_sheen_roughness_texture, context, m_manager);
 			ImGui::TreePop();
@@ -189,17 +189,17 @@ bool Material::OnImGui(ImGuiContext &context)
 	{
 		is_update |= ImGui::DragFloat("Factor", &m_clearcoat_factor, 0.001f, 0.f, 1.f, "%.3f");
 		is_update |= ImGui::DragFloat("Roughness Factor", &m_clearcoat_roughness_factor, 0.001f, 0.f, 1.f, "%.3f");
-		if (ImGui::TreeNode("Texture"))
+		if (ImGui::TreeNode("Clearcoat Texture"))
 		{
 			is_update |= DrawTextureButton(m_clearcoat_texture, context, m_manager);
 			ImGui::TreePop();
 		}
-		if (ImGui::TreeNode("Roughness Texture"))
+		if (ImGui::TreeNode("Clearcoat Roughness Texture"))
 		{
 			is_update |= DrawTextureButton(m_clearcoat_roughness_texture, context, m_manager);
 			ImGui::TreePop();
 		}
-		if (ImGui::TreeNode("Normal Texture"))
+		if (ImGui::TreeNode("Clearcoat Normal Texture"))
 		{
 			is_update |= DrawTextureButton(m_clearcoat_normal_texture, context, m_manager);
 			ImGui::TreePop();
@@ -211,12 +211,12 @@ bool Material::OnImGui(ImGuiContext &context)
 	{
 		is_update |= ImGui::ColorEdit3("Color Factor", glm::value_ptr(m_specular_color_factor));
 		is_update |= ImGui::DragFloat("Factor", &m_specular_factor, 0.001f, 0.f, 1.f, "%.3f");
-		if (ImGui::TreeNode("Texture"))
+		if (ImGui::TreeNode("Specular Texture"))
 		{
 			is_update |= DrawTextureButton(m_specular_texture, context, m_manager);
 			ImGui::TreePop();
 		}
-		if (ImGui::TreeNode("Color Texture"))
+		if (ImGui::TreeNode("Specular Color Texture"))
 		{
 			is_update |= DrawTextureButton(m_specular_color_texture, context, m_manager);
 			ImGui::TreePop();
@@ -227,7 +227,7 @@ bool Material::OnImGui(ImGuiContext &context)
 	if (ImGui::TreeNode("Transmission"))
 	{
 		is_update |= ImGui::DragFloat("Factor", &m_transmission_factor, 0.001f, 0.f, 1.f, "%.3f");
-		if (ImGui::TreeNode("Texture"))
+		if (ImGui::TreeNode("Transmission Texture"))
 		{
 			is_update |= DrawTextureButton(m_transmission_texture, context, m_manager);
 			ImGui::TreePop();
@@ -238,8 +238,13 @@ bool Material::OnImGui(ImGuiContext &context)
 	if (ImGui::TreeNode("Volume"))
 	{
 		is_update |= ImGui::ColorEdit3("Attenuation Color", glm::value_ptr(m_attenuation_color));
-		is_update |= ImGui::DragFloat("Thickness Factor", &m_thickness_factor, 0.001f, 0.f, 1.f, "%.3f");
 		is_update |= ImGui::DragFloat("Attenuation Distance", &m_attenuation_distance, 0.001f, 0.f, 1.f, "%.3f");
+		is_update |= ImGui::DragFloat("Thickness Factor", &m_thickness_factor, 0.001f, 0.f, 1.f, "%.3f");
+		if (ImGui::TreeNode("Thickness Texture"))
+		{
+			is_update |= DrawTextureButton(m_thickness_texture, context, m_manager);
+			ImGui::TreePop();
+		}
 		ImGui::TreePop();
 	}
 
@@ -249,9 +254,14 @@ bool Material::OnImGui(ImGuiContext &context)
 		is_update |= ImGui::DragFloat("IOR", &m_iridescence_ior, 0.001f, 0.f, 1.f, "%.3f");
 		is_update |= ImGui::DragFloat("Thickness Min", &m_iridescence_thickness_min, 0.001f, 0.f, 1.f, "%.3f");
 		is_update |= ImGui::DragFloat("Thickness Max", &m_iridescence_thickness_max, 0.001f, 0.f, 1.f, "%.3f");
-		if (ImGui::TreeNode("Thickness Texture"))
+		if (ImGui::TreeNode("Iridescence Thickness Texture"))
 		{
 			is_update |= DrawTextureButton(m_iridescence_thickness_texture, context, m_manager);
+			ImGui::TreePop();
+		}
+		if (ImGui::TreeNode("Iridescence Texture"))
+		{
+			is_update |= DrawTextureButton(m_iridescence_texture, context, m_manager);
 			ImGui::TreePop();
 		}
 		ImGui::TreePop();
@@ -307,15 +317,17 @@ void Material::UpdateBuffer()
 	material_interop.transmission_factor  = m_transmission_factor;
 	material_interop.transmission_texture = m_manager.GetIndex(m_transmission_texture);
 
-	material_interop.thickness_factor  = m_thickness_factor;
 	material_interop.attenuation_color = m_attenuation_color;
 	material_interop.attenuation_distance = m_attenuation_distance;
+	material_interop.thickness_factor     = m_thickness_factor;
+	material_interop.thickness_texture    = m_manager.GetIndex(m_thickness_texture);
 
 	material_interop.iridescence_factor = m_iridescence_factor;
 	material_interop.iridescence_ior    = m_iridescence_ior;
 	material_interop.iridescence_thickness_min = m_iridescence_thickness_min;
 	material_interop.iridescence_thickness_max = m_iridescence_thickness_max;
 	material_interop.iridescence_thickness_texture = m_manager.GetIndex(m_iridescence_thickness_texture);
+	material_interop.iridescence_texture = m_manager.GetIndex(m_iridescence_texture);
 
 	material_interop.ior = m_ior;
 	material_interop.alpha_cut_off = m_alpha_cut_off;

@@ -94,9 +94,10 @@ struct Material
 	uint  transmission_texture;
 
 	// Volume
-	float  thickness_factor;
 	float3 attenuation_color;
 	float  attenuation_distance;
+	float  thickness_factor;
+	uint  thickness_texture;
 
 	// Iridescence
 	float iridescence_factor;
@@ -104,6 +105,7 @@ struct Material
 	float iridescence_thickness_min;
 	float iridescence_thickness_max;
 	uint  iridescence_thickness_texture;
+	uint  iridescence_texture;
 
 	// IOR
 	float ior;

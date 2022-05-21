@@ -111,6 +111,7 @@ class Material
 	Texture *m_transmission_texture = nullptr;
 
 	// Volume
+	Texture  *m_thickness_texture    = nullptr;
 	float     m_thickness_factor     = 0.f;
 	glm::vec3 m_attenuation_color    = glm::vec3(0.f);
 	float     m_attenuation_distance = 0.f;
@@ -121,6 +122,7 @@ class Material
 	float    m_iridescence_thickness_min     = 0.f;
 	float    m_iridescence_thickness_max     = 0.f;
 	Texture *m_iridescence_thickness_texture = nullptr;
+	Texture *m_iridescence_texture           = nullptr;
 
 	// IOR
 	float m_ior = 1.5f;
@@ -129,7 +131,7 @@ class Material
 	float     m_alpha_cut_off = 0.5f;
 	AlphaMode m_alpha_mode    = AlphaMode::Opaque;
 
-	bool m_unlit = false;
+	bool m_unlit        = false;
 	bool m_double_sided = false;
 
 	Texture *m_normal_texture    = nullptr;

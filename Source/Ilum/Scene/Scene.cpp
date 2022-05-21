@@ -372,6 +372,11 @@ entt::entity Scene::GetMainCamera()
 	return m_main_camera;
 }
 
+entt::entity Scene::GetSelected()
+{
+	return m_select;
+}
+
 void Scene::Clear()
 {
 	m_registry.each([&](auto entity) { m_registry.destroy(entity); });
@@ -707,9 +712,10 @@ void Scene::ImportGLTF(const std::string &filename)
 
 		// Volume
 		{
-			material->m_thickness_factor = raw_material.volume.thickness_factor;
 			std::memcpy(glm::value_ptr(material->m_attenuation_color), raw_material.volume.attenuation_color, sizeof(material->m_attenuation_color));
 			material->m_attenuation_distance = raw_material.volume.attenuation_distance;
+			material->m_thickness_factor     = raw_material.volume.thickness_factor;
+			load_texture(material->m_thickness_texture, raw_material.volume.thickness_texture.texture);
 		}
 
 		// Iridescence
@@ -719,6 +725,7 @@ void Scene::ImportGLTF(const std::string &filename)
 			material->m_iridescence_thickness_min = raw_material.iridescence.iridescence_thickness_min;
 			material->m_iridescence_thickness_max = raw_material.iridescence.iridescence_thickness_max;
 			load_texture(material->m_iridescence_thickness_texture, raw_material.iridescence.iridescence_thickness_texture.texture);
+			load_texture(material->m_iridescence_texture, raw_material.iridescence.iridescence_texture.texture);
 		}
 
 		material->m_ior = raw_material.ior.ior;
