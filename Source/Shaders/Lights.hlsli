@@ -26,7 +26,7 @@ float3 Eval_Light(SpotLight light, float3 shading_point, out float3 wi)
     
     float light_angle_scale = 1.0 / max(0.001, cos(light.cut_off) - cos(light.outer_cut_off));
     float light_angle_offset = -cos(light.outer_cut_off) * light_angle_scale;
-    float cd = abs(dot(light.direction, wi));
+    float cd = max(dot(light.direction, wi), 0.0);
     float angular_attenuation = saturate(cd * light_angle_scale + light_angle_offset);
 
     return light.color.rgb * light.intensity * angular_attenuation * angular_attenuation;

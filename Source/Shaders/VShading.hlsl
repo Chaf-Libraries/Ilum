@@ -140,6 +140,7 @@ void main(CSParam param)
         float3 L;
         DirectionalLight light = directional_light[i];
         float3 intensity = Eval_Light(light, sstate.position, L);
+        result = intensity * abs(dot(sstate.normal, L));;
         GetPunctualRadiance(iridescence_fresnel, intensity, L, V, sstate, radiance);
     }
     for (i = 0; i < push_constants.spot_light_count; i++)
@@ -147,15 +148,20 @@ void main(CSParam param)
         float3 L;
         SpotLight light = spot_light[i];
         float3 intensity = Eval_Light(light, sstate.position, L);
-        result = intensity;
+        result = intensity * abs(dot(sstate.normal, L));
         GetPunctualRadiance(iridescence_fresnel, intensity, L, V, sstate, radiance);
     }
     for (i = 0; i < push_constants.point_light_count; i++)
     {
         float3 L;
-        PointLight light = point_light[i];
+        PointLight light;
+        light.color = point_light[i].color;
+        light.intensity = point_light[i].intensity;
+        light.position = point_light[i].position;
+        light.range = point_light[i].range;
+
         float3 intensity = Eval_Light(light, sstate.position, L);
-        result = intensity;
+        result = intensity * abs(dot(sstate.normal, L));;
         GetPunctualRadiance(iridescence_fresnel, intensity, L, V, sstate, radiance);
     }
     
@@ -169,6 +175,6 @@ void main(CSParam param)
     float3 color = radiance.f_emissive + radiance.f_diffuse + radiance.f_specular + radiance.f_sheen;
     color = color * (1.0 - clearcoat * clearcoat_fresnel) + radiance.f_clearcoat;
     
-    shading[param.DispatchThreadID.xy] = float4(color * 0.0000001 + sstate.mat_info.albedo.rgb, 1.0);
+    shading[param.DispatchThreadID.xy] = float4(result, 1.0);
     normal[param.DispatchThreadID.xy] = PackNormal(sstate.normal.rgb);
 }
