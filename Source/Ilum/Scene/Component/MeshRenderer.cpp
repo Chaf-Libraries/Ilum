@@ -50,9 +50,12 @@ void MeshRenderer::Tick(Scene &scene, entt::entity entity, RHIDevice *device)
 
 		auto *instance_data          = static_cast<ShaderInterop::Instance *>(m_buffer->Map());
 		instance_data->transform     = transform.GetWorldTransform();
-		instance_data->material      = m_manager->GetIndex(m_mesh->GetMaterial());
-		instance_data->mesh          = m_manager->GetIndex(m_mesh);
-		instance_data->meshlet_count = m_mesh->GetMeshletsCount();
+		if (m_manager->IsValid(m_mesh))
+		{
+			instance_data->material      = m_manager->GetIndex(m_mesh->GetMaterial());
+			instance_data->mesh          = m_manager->GetIndex(m_mesh);
+			instance_data->meshlet_count = m_mesh->GetMeshletsCount();
+		}
 		m_buffer->Flush(m_buffer->GetSize());
 		m_buffer->Unmap();
 

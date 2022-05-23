@@ -683,11 +683,11 @@ void Light::UpdateSpotLight(Scene &scene, entt::entity entity, RHIDevice *device
 
 		data->color           = m_color;
 		data->intensity       = m_intensity;
-		data->cut_off         = m_spot_inner_cone_angle;
-		data->outer_cut_off   = m_spot_outer_cone_angle;
+		data->cut_off         = glm::radians(m_spot_inner_cone_angle);
+		data->outer_cut_off   = glm::radians(m_spot_outer_cone_angle);
 		data->position        = transform.GetWorldTransform()[3];
 		data->direction       = glm::mat3_cast(glm::qua<float>(glm::radians(transform.GetRotation()))) * glm::vec3(0.f, -1.f, 0.f);
-		data->view_projection = glm::perspective(2.f * glm::acos(m_spot_outer_cone_angle), 1.0f, 0.01f, 1000.f) * glm::lookAt(transform.GetTranslation(), transform.GetTranslation() + data->direction, glm::vec3(0.f, 1.f, 0.f));
+		data->view_projection = glm::perspective(2.f * m_spot_outer_cone_angle, 1.0f, 0.01f, 1000.f) * glm::lookAt(transform.GetTranslation(), transform.GetTranslation() + data->direction, glm::vec3(0.f, 1.f, 0.f));
 
 		push_data.view_projection = data->view_projection;
 		push_data.position        = data->position;

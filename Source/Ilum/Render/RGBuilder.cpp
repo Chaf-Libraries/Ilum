@@ -537,7 +537,7 @@ bool RGBuilder::OnImGui(ImGuiContext &context)
 		// Save Render Graph Config
 		if (ImGui::MenuItem("Save"))
 		{
-			context.OpenFileDialog("Save Render Graph", "Save Render Graph", "Render Graph file (*.rg;){.rg},.*");
+			context.OpenFileDialog("Save Render Graph", "Save Render Graph", "Render Graph file (*.rg;){.rg},.*", false);
 		}
 
 		// Save Render Graph Config

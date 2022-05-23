@@ -328,6 +328,15 @@ bool AssetManager::OnImGui(ImGuiContext &context)
 
 	if (ImGui::TreeNode("Material"))
 	{
+		if (ImGui::BeginPopupContextItem("Material##1"))
+		{
+			if (ImGui::MenuItem("New"))
+			{
+				Add(std::make_unique<Material>(p_device, *this));
+			}
+			ImGui::EndPopup();
+		}
+
 		int32_t material_id = 0;
 		for (auto &material : m_materials)
 		{
