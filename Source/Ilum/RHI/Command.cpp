@@ -5,7 +5,6 @@
 #include "PipelineState.hpp"
 #include "ShaderBindingTable.hpp"
 
-#include "Command.hpp"
 #include <Core/Hash.hpp>
 #include <Core/Macro.hpp>
 
@@ -184,7 +183,7 @@ void CommandBuffer::Begin(VkCommandBufferUsageFlagBits usage, VkCommandBufferInh
 void CommandBuffer::End()
 {
 	vkEndCommandBuffer(m_handle);
-	m_current_fb = nullptr;
+	m_current_fb  = nullptr;
 	m_current_pso = nullptr;
 }
 
@@ -323,7 +322,7 @@ void CommandBuffer::DrawIndexed(uint32_t index_count, uint32_t instance_count, u
 void CommandBuffer::TraceRays(uint32_t width, uint32_t height, uint32_t depth)
 {
 	ASSERT(m_current_pso);
-	auto& sbt = p_device->AllocateSBT(*m_current_pso);
+	auto &sbt = p_device->AllocateSBT(*m_current_pso);
 
 	vkCmdTraceRaysKHR(
 	    m_handle,

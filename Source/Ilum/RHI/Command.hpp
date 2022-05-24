@@ -3,6 +3,8 @@
 #include "Buffer.hpp"
 #include "Texture.hpp"
 
+#include <glm/gtc/random.hpp>
+
 #include <volk.h>
 
 #include <thread>
@@ -134,7 +136,7 @@ class CommandBuffer
 
 	void PushConstants(VkShaderStageFlags stage, void *data, uint32_t size, uint32_t offset);
 
-	void BeginMarker(const std::string &name, const glm::vec4 color);
+	void BeginMarker(const std::string &name, const glm::vec4 color = glm::vec4(glm::linearRand(0.f, 1.f), glm::linearRand(0.f, 1.f), glm::linearRand(0.f, 1.f), 1.f));
 	void EndMarker();
 
 	operator const VkCommandBuffer &() const;

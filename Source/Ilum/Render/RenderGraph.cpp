@@ -87,14 +87,14 @@ void RenderGraph::Execute()
 	for (auto &pass : m_passes)
 	{
 		auto &cmd_buffer = p_device->RequestCommandBuffer();
+		cmd_buffer.BeginMarker(pass.GetName());
 		cmd_buffer.Begin();
 		auto resources = RGResources(*this, pass);
-		cmd_buffer.BeginMarker(pass.GetName(), glm::vec4(glm::linearRand(0.f, 1.f), glm::linearRand(0.f, 1.f), glm::linearRand(0.f, 1.f), 1.f));
 		p_device->AllocateProfiler(&pass).Begin(cmd_buffer);
 		pass.Execute(cmd_buffer, resources, m_renderer);
 		p_device->AllocateProfiler(&pass).End(cmd_buffer);
-		cmd_buffer.EndMarker();
 		cmd_buffer.End();
+		cmd_buffer.EndMarker();
 		p_device->Submit(cmd_buffer);
 	}
 }

@@ -60,6 +60,7 @@ class Renderer
   private:
 	void KullaContyApprox();
 	void GenerateLUT();
+	void MousePicking(uint32_t x, uint32_t y);
 
   private:
 	RHIDevice *p_device = nullptr;
@@ -74,10 +75,12 @@ class Renderer
 
 	Texture *p_present = nullptr;
 
+	std::unique_ptr<Buffer> m_picking_buffer = nullptr;
+
 	// LUT
 	std::array<std::unique_ptr<Texture>, 2> m_precomputes;
 
-	std::unique_ptr<Texture> m_ggx_lut = nullptr;
+	std::unique_ptr<Texture> m_ggx_lut     = nullptr;
 	std::unique_ptr<Texture> m_charlie_lut = nullptr;
 
 	// Sampler
@@ -85,6 +88,6 @@ class Renderer
 
   private:
 	glm::vec3 m_translate_velocity = glm::vec3(0.f);
-	glm::vec2 m_last_position   = glm::vec2(0.f);
+	glm::vec2 m_last_position      = glm::vec2(0.f);
 };
 }        // namespace Ilum

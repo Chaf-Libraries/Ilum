@@ -6,7 +6,7 @@
 
 namespace Ilum
 {
-class BoundingBox;
+class AABB;
 
 class Frustum
 {
@@ -19,7 +19,7 @@ class Frustum
 
 	bool IsInside(const glm::vec3 &p);
 
-	bool IsInside(const BoundingBox &bbox);
+	bool IsInside(const AABB &aabb);
 
 	const std::array<Plane, 6> &GetPlanes() const;
 

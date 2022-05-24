@@ -6,14 +6,14 @@
 
 namespace Ilum
 {
-class BoundingBox
+class AABB
 {
   public:
-	BoundingBox() = default;
+	AABB() = default;
 
-	BoundingBox(const glm::vec3 &_min, const glm::vec3 &_max);
+	AABB(const glm::vec3 &_min, const glm::vec3 &_max);
 
-	~BoundingBox() = default;
+	~AABB() = default;
 
 	operator bool() const;
 
@@ -21,9 +21,9 @@ class BoundingBox
 
 	void Merge(const std::vector<glm::vec3> &points);
 
-	void Merge(const BoundingBox &bounding_box);
+	void Merge(const AABB &aabb);
 
-	BoundingBox Transform(const glm::mat4 &trans) const;
+	AABB Transform(const glm::mat4 &trans) const;
 
 	const glm::vec3 &GetMin() const;
 
@@ -37,8 +37,10 @@ class BoundingBox
 
 	bool IsValid() const;
 
+	void Reset();
+
   private:
 	glm::vec3 m_min = glm::vec3(std::numeric_limits<float>::max());
-	glm::vec3 m_max = glm::vec3(-std::numeric_limits<float>::min());
+	glm::vec3 m_max = glm::vec3(-std::numeric_limits<float>::max());
 };
 }        // namespace Ilum

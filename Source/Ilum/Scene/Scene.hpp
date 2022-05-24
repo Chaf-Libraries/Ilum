@@ -40,6 +40,8 @@ class Scene
 
 	entt::entity GetSelected();
 
+	void SetSelected(entt::entity entity);
+
 	void Clear();
 
 	entt::entity Create(const std::string &name = "Untitled Entity");
@@ -77,6 +79,8 @@ class Scene
 
 	std::string m_name      = "";
 	std::string m_save_path = "";
+
+	std::unique_ptr<Buffer> m_scene_buffer = nullptr;
 
   private:
 	std::unique_ptr<AccelerationStructure> m_top_level_acceleration_structure = nullptr;

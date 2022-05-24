@@ -26,6 +26,19 @@ using float4x4 = glm::mat4;
 #	define asint(x) *(int *) (&x)
 #	define asuint(x) *(uint32_t *) (&x)
 #	define asfloat(x) *(float *) (&x)
+
+inline uint firstbithigh(uint value)
+{
+	uint bit = 0;
+
+	uint start = 1 << (31 - bit);
+	while ((value & start) == 0 && start != 1)
+	{
+		start = 1 << (31 - ++bit);
+	}
+	return bit;
+}
+
 #endif
 
 static const uint MESHLET_MAX_TRIANGLES = 124;
@@ -97,7 +110,7 @@ struct Material
 	float  attenuation_distance;
 	float  thickness_factor;
 	float3 attenuation_color;
-	uint  thickness_texture;
+	uint   thickness_texture;
 
 	// Iridescence
 	float iridescence_factor;
@@ -173,7 +186,9 @@ struct Camera
 struct Instance
 {
 	float4x4 transform;
+	float3   aabb_min;
 	uint     material;
+	float3   aabb_max;
 	uint     mesh;
 	uint     meshlet_count;
 	uint     id;
@@ -214,6 +229,30 @@ struct AreaLight
 	float  intensity;
 
 	float4 corners[4];
+};
+
+struct SceneInfo
+{
+	float3 aabb_min;
+	uint   directional_light_count;
+
+	float3 aabb_max;
+	uint   point_light_count;
+
+	uint spot_light_count;
+	uint area_light_count;
+	uint instance_count;
+	uint meshlet_count;
+
+	uint vertices_count;
+	uint primitives_count;
+};
+
+struct HierarchyNode
+{
+	uint parent;
+	uint left_child;
+	uint right_child;
 };
 
 #ifdef __cplusplus

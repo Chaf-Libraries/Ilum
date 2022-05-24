@@ -23,14 +23,13 @@
 
 namespace Ilum
 {
-PFN_vkCreateDebugUtilsMessengerEXT          RHIDevice::vkCreateDebugUtilsMessengerEXT          = nullptr;
-VkDebugUtilsMessengerEXT                    RHIDevice::vkDebugUtilsMessengerEXT                = nullptr;
-PFN_vkDestroyDebugUtilsMessengerEXT         RHIDevice::vkDestroyDebugUtilsMessengerEXT         = nullptr;
-PFN_vkSetDebugUtilsObjectTagEXT             RHIDevice::vkSetDebugUtilsObjectTagEXT             = nullptr;
-PFN_vkSetDebugUtilsObjectNameEXT            RHIDevice::vkSetDebugUtilsObjectNameEXT            = nullptr;
-PFN_vkCmdBeginDebugUtilsLabelEXT            RHIDevice::vkCmdBeginDebugUtilsLabelEXT            = nullptr;
-PFN_vkCmdEndDebugUtilsLabelEXT              RHIDevice::vkCmdEndDebugUtilsLabelEXT              = nullptr;
-PFN_vkGetPhysicalDeviceMemoryProperties2KHR RHIDevice::vkGetPhysicalDeviceMemoryProperties2KHR = nullptr;
+PFN_vkCreateDebugUtilsMessengerEXT  RHIDevice::vkCreateDebugUtilsMessengerEXT  = nullptr;
+VkDebugUtilsMessengerEXT            RHIDevice::vkDebugUtilsMessengerEXT        = nullptr;
+PFN_vkDestroyDebugUtilsMessengerEXT RHIDevice::vkDestroyDebugUtilsMessengerEXT = nullptr;
+PFN_vkSetDebugUtilsObjectTagEXT     RHIDevice::vkSetDebugUtilsObjectTagEXT     = nullptr;
+PFN_vkSetDebugUtilsObjectNameEXT    RHIDevice::vkSetDebugUtilsObjectNameEXT    = nullptr;
+PFN_vkCmdBeginDebugUtilsLabelEXT    RHIDevice::vkCmdBeginDebugUtilsLabelEXT    = nullptr;
+PFN_vkCmdEndDebugUtilsLabelEXT      RHIDevice::vkCmdEndDebugUtilsLabelEXT      = nullptr;
 
 #ifdef _DEBUG
 const std::vector<const char *>                 RHIDevice::s_instance_extensions   = {"VK_KHR_surface", "VK_KHR_win32_surface", "VK_EXT_debug_report", "VK_EXT_debug_utils"};
@@ -40,16 +39,16 @@ const std::vector<VkValidationFeatureEnableEXT> RHIDevice::s_validation_extensio
     VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
     VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT};
 #else
-const std::vector<const char *>                 RHIDevice::s_instance_extensions   = {"VK_KHR_surface", "VK_KHR_win32_surface"};
+const std::vector<const char *>                 RHIDevice::s_instance_extensions   = {"VK_KHR_surface", "VK_KHR_win32_surface", "VK_EXT_debug_utils"};
 const std::vector<const char *>                 RHIDevice::s_validation_layers     = {};
 const std::vector<VkValidationFeatureEnableEXT> RHIDevice::s_validation_extensions = {};
 #endif        // _DEBUG
 
 const std::vector<const char *> RHIDevice::s_device_extensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-    VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-    VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-    VK_KHR_RAY_QUERY_EXTENSION_NAME,
+    //VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+    //VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+    //VK_KHR_RAY_QUERY_EXTENSION_NAME,
     VK_NV_MESH_SHADER_EXTENSION_NAME,
     VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME,
     VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
@@ -378,7 +377,7 @@ RHIDevice::~RHIDevice()
 		vkDestroyFramebuffer(m_device, frame_buffer, nullptr);
 	}
 
-	for (auto& [hash, sampler] : m_samplers)
+	for (auto &[hash, sampler] : m_samplers)
 	{
 		vkDestroySampler(m_device, sampler, nullptr);
 	}
@@ -436,6 +435,16 @@ RHIDevice::~RHIDevice()
 		vkDestroyDebugUtilsMessengerEXT(m_instance, vkDebugUtilsMessengerEXT, nullptr);
 	}
 	vkDestroyInstance(m_instance, nullptr);
+}
+
+bool RHIDevice::IsRayTracingEnable() const
+{
+	return m_extension_raytracing;
+}
+
+bool RHIDevice::IsMeshShaderEnable() const
+{
+	return m_extension_mesh_shader;
 }
 
 VkInstance RHIDevice::GetVulkanInstance() const
@@ -1006,13 +1015,12 @@ void RHIDevice::CreateInstance()
 	}
 
 	// Initialize instance extension functions
-	vkCreateDebugUtilsMessengerEXT          = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(m_instance, "vkCreateDebugUtilsMessengerEXT"));
-	vkDestroyDebugUtilsMessengerEXT         = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT"));
-	vkSetDebugUtilsObjectTagEXT             = reinterpret_cast<PFN_vkSetDebugUtilsObjectTagEXT>(vkGetInstanceProcAddr(m_instance, "vkSetDebugUtilsObjectTagEXT"));
-	vkSetDebugUtilsObjectNameEXT            = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(m_instance, "vkSetDebugUtilsObjectNameEXT"));
-	vkCmdBeginDebugUtilsLabelEXT            = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(vkGetInstanceProcAddr(m_instance, "vkCmdBeginDebugUtilsLabelEXT"));
-	vkCmdEndDebugUtilsLabelEXT              = reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetInstanceProcAddr(m_instance, "vkCmdEndDebugUtilsLabelEXT"));
-	vkGetPhysicalDeviceMemoryProperties2KHR = reinterpret_cast<PFN_vkGetPhysicalDeviceMemoryProperties2KHR>(vkGetInstanceProcAddr(m_instance, "vkGetPhysicalRHIDeviceMemoryProperties2KHR"));
+	vkCreateDebugUtilsMessengerEXT  = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(m_instance, "vkCreateDebugUtilsMessengerEXT"));
+	vkDestroyDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT"));
+	vkSetDebugUtilsObjectTagEXT     = reinterpret_cast<PFN_vkSetDebugUtilsObjectTagEXT>(vkGetInstanceProcAddr(m_instance, "vkSetDebugUtilsObjectTagEXT"));
+	vkSetDebugUtilsObjectNameEXT    = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(m_instance, "vkSetDebugUtilsObjectNameEXT"));
+	vkCmdBeginDebugUtilsLabelEXT    = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(vkGetInstanceProcAddr(m_instance, "vkCmdBeginDebugUtilsLabelEXT"));
+	vkCmdEndDebugUtilsLabelEXT      = reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetInstanceProcAddr(m_instance, "vkCmdEndDebugUtilsLabelEXT"));
 
 	// Enable debugger
 #ifdef _DEBUG
@@ -1188,26 +1196,39 @@ void RHIDevice::CreateLogicalDevice()
 	ENABLE_DEVICE_FEATURE(multiDrawIndirect);
 	ENABLE_DEVICE_FEATURE(drawIndirectFirstInstance);
 
-	// Enable Ray Tracing Extension
-	VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_feature = {};
-	acceleration_structure_feature.sType                                            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
-	acceleration_structure_feature.accelerationStructure                            = VK_TRUE;
+	// Get support extensions
+	auto support_extensions = GetDeviceExtensionSupport(m_physical_device, s_device_extensions);
 
-	VkPhysicalDeviceRayTracingPipelineFeaturesKHR raty_tracing_pipeline_feature = {};
-	raty_tracing_pipeline_feature.sType                                         = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
-	raty_tracing_pipeline_feature.rayTracingPipeline                            = VK_TRUE;
-	raty_tracing_pipeline_feature.pNext                                         = &acceleration_structure_feature;
+	VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_feature = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
+	VkPhysicalDeviceRayTracingPipelineFeaturesKHR    raty_tracing_pipeline_feature  = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
+	VkPhysicalDeviceMeshShaderFeaturesNV             mesh_shader_feature            = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV};
+	VkPhysicalDeviceVulkan12Features                 vulkan12_features              = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+	VkPhysicalDeviceRobustness2FeaturesEXT           robustness2_features           = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT};
+
+	// Enable acceleration structure construction extension
+	if (std::find_if(support_extensions.begin(), support_extensions.end(), [](const char *extension) { return std::strcmp(extension, VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME) == 0; }) != support_extensions.end())
+	{
+		acceleration_structure_feature.accelerationStructure = VK_TRUE;
+
+		// Enable ray tracing extension
+		if (std::find_if(support_extensions.begin(), support_extensions.end(), [](const char *extension) { return std::strcmp(extension, VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME) == 0; }) != support_extensions.end())
+		{
+			raty_tracing_pipeline_feature.rayTracingPipeline = VK_TRUE;
+
+			m_extension_raytracing = true;
+		}
+	}
 
 	// Enable Mesh Shader Extension
-	VkPhysicalDeviceMeshShaderFeaturesNV mesh_shader_feature = {};
-	mesh_shader_feature.sType                                = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV;
-	mesh_shader_feature.meshShader                           = VK_TRUE;
-	mesh_shader_feature.taskShader                           = VK_TRUE;
-	mesh_shader_feature.pNext                                = &raty_tracing_pipeline_feature;
+	if (std::find_if(support_extensions.begin(), support_extensions.end(), [](const char *extension) { return std::strcmp(extension, VK_NV_MESH_SHADER_EXTENSION_NAME) == 0; }) != support_extensions.end())
+	{
+		mesh_shader_feature.meshShader = VK_TRUE;
+		mesh_shader_feature.taskShader = VK_TRUE;
+
+		m_extension_mesh_shader = true;
+	}
 
 	// Enable Vulkan 1.2 Features
-	VkPhysicalDeviceVulkan12Features vulkan12_features          = {};
-	vulkan12_features.sType                                     = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
 	vulkan12_features.drawIndirectCount                         = VK_TRUE;
 	vulkan12_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
 	vulkan12_features.runtimeDescriptorArray                    = VK_TRUE;
@@ -1216,16 +1237,15 @@ void RHIDevice::CreateLogicalDevice()
 	vulkan12_features.bufferDeviceAddress                       = VK_TRUE;
 	vulkan12_features.shaderOutputLayer                         = VK_TRUE;
 	vulkan12_features.shaderOutputViewportIndex                 = VK_TRUE;
-	vulkan12_features.pNext                                     = &mesh_shader_feature;
 
 	// Enable Robustness
-	VkPhysicalDeviceRobustness2FeaturesEXT robustness2_features = {};
-	robustness2_features.sType                                  = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
-	robustness2_features.nullDescriptor                         = VK_TRUE;
-	robustness2_features.pNext                                  = &vulkan12_features;
+	robustness2_features.nullDescriptor = VK_TRUE;
 
-	// Get support extensions
-	auto support_extensions = GetDeviceExtensionSupport(m_physical_device, s_device_extensions);
+	// Link
+	raty_tracing_pipeline_feature.pNext = &acceleration_structure_feature;
+	mesh_shader_feature.pNext           = &raty_tracing_pipeline_feature;
+	vulkan12_features.pNext             = &mesh_shader_feature;
+	robustness2_features.pNext          = &vulkan12_features;
 
 	// Create device
 	VkDeviceCreateInfo device_create_info   = {};

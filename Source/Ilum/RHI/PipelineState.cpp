@@ -88,6 +88,11 @@ PipelineState &PipelineState::LoadShader(const ShaderDesc &desc)
 	return *this;
 }
 
+const std::string &PipelineState::GetName() const
+{
+	return m_name;
+}
+
 const InputAssemblyState &PipelineState::GetInputAssemblyState() const
 {
 	return m_input_assembly_state;

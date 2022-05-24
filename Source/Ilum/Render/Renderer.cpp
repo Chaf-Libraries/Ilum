@@ -475,4 +475,23 @@ void Renderer::GenerateLUT()
 	// Submit
 	p_device->SubmitIdle(cmd_buffer);
 }
+
+void Renderer::MousePicking(uint32_t x, uint32_t y)
+{
+	if (!p_scene)
+	{
+		return;
+	}
+
+
+	auto &cmd_buffer = p_device->RequestCommandBuffer();
+	if (!m_picking_buffer)
+	{
+		m_picking_buffer = std::make_unique<Buffer>(
+			p_device, 
+			BufferDesc(sizeof(uint32_t), 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU));
+	}
+
+
+}
 }        // namespace Ilum

@@ -194,11 +194,13 @@ void ImGuiContext::Render()
 	begin_info.pClearValues          = &clear_value;
 
 	auto &cmd_buffer = p_device->RequestCommandBuffer();
+	cmd_buffer.BeginMarker("UI");
 	cmd_buffer.Begin();
 	vkCmdBeginRenderPass(cmd_buffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmd_buffer);
 	cmd_buffer.EndRenderPass();
 	cmd_buffer.End();
+	cmd_buffer.EndMarker();
 	p_device->Submit(cmd_buffer);
 }
 

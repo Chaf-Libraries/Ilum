@@ -8,6 +8,7 @@
 #include "Component/Tag.hpp"
 #include "Component/Transform.hpp"
 
+#include <Core/JobSystem.hpp>
 #include <Core/Path.hpp>
 
 #include <RHI/Command.hpp>
@@ -326,6 +327,8 @@ Scene::Scene(RHIDevice *device, AssetManager &asset_manager, const std::string &
     p_device(device), m_asset_manager(asset_manager), m_name(name)
 {
 	m_top_level_acceleration_structure = std::make_unique<AccelerationStructure>(p_device);
+
+	m_scene_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(ShaderInterop::SceneInfo), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
 }
 
 entt::registry &Scene::GetRegistry()
@@ -377,6 +380,11 @@ entt::entity Scene::GetSelected()
 	return m_select;
 }
 
+void Scene::SetSelected(entt::entity entity)
+{
+	m_select = entity;
+}
+
 void Scene::Clear()
 {
 	m_registry.each([&](auto entity) { m_registry.destroy(entity); });
@@ -393,6 +401,8 @@ entt::entity Scene::Create(const std::string &name)
 
 void Scene::Tick()
 {
+	m_scene_buffer->Map();
+
 	m_asset_manager.Tick();
 
 	UpdateTransform();
@@ -401,6 +411,8 @@ void Scene::Tick()
 	UpdateLights();
 	UpdateEnvironment();
 	UpdateTLAS();
+
+	m_scene_buffer->Unmap();
 }
 
 void Scene::OnImGui(ImGuiContext &context)
@@ -697,11 +709,17 @@ void Scene::ImportGLTF(const std::string &filename)
 		}
 
 		// Specular
+		if (raw_material.has_specular)
 		{
 			material->m_specular_factor = raw_material.specular.specular_factor;
 			std::memcpy(glm::value_ptr(material->m_specular_color_factor), raw_material.specular.specular_color_factor, sizeof(material->m_specular_color_factor));
 			load_texture(material->m_specular_texture, raw_material.specular.specular_texture.texture);
 			load_texture(material->m_specular_color_texture, raw_material.specular.specular_color_texture.texture);
+		}
+		else
+		{
+			material->m_specular_factor       = 1.f;
+			material->m_specular_color_factor = glm::vec3(1.f);
 		}
 
 		// Transmission
@@ -727,8 +745,10 @@ void Scene::ImportGLTF(const std::string &filename)
 			load_texture(material->m_iridescence_thickness_texture, raw_material.iridescence.iridescence_thickness_texture.texture);
 			load_texture(material->m_iridescence_texture, raw_material.iridescence.iridescence_texture.texture);
 		}
-
-		material->m_ior = raw_material.ior.ior;
+		if (raw_material.has_ior)
+		{
+			material->m_ior = raw_material.ior.ior;
+		}
 
 		if (raw_material.alpha_mode == cgltf_alpha_mode_opaque)
 		{
@@ -746,7 +766,7 @@ void Scene::ImportGLTF(const std::string &filename)
 		material->m_alpha_cut_off = raw_material.alpha_cutoff;
 		load_texture(material->m_normal_texture, raw_material.normal_texture.texture);
 		load_texture(material->m_occlusion_texture, raw_material.occlusion_texture.texture);
-		material->m_unlit = raw_material.unlit;
+		material->m_unlit        = raw_material.unlit;
 		material->m_double_sided = raw_material.double_sided;
 
 		material->UpdateBuffer();
@@ -785,7 +805,7 @@ void Scene::ImportGLTF(const std::string &filename)
 					for (size_t i = 0; i < attribute.data->count; ++i)
 					{
 						cgltf_accessor_read_float(attribute.data, i, &submesh->m_vertices[i].position.x, 3);
-						submesh->m_bounding_box.Merge(submesh->m_vertices[i].position);
+						submesh->m_aabb.Merge(submesh->m_vertices[i].position);
 					}
 				}
 				else if (strcmp(attr_name, "NORMAL") == 0)
@@ -972,8 +992,8 @@ GeometryBatch Scene::Batch(AlphaMode mode)
 		std::sort(batch.order.begin(), batch.order.end(), [&](uint32_t lhs, uint32_t rhs) {
 			auto &mesh1 = meshes[lhs];
 			auto &mesh2 = meshes[rhs];
-			auto &c1    = mesh1->GetBoundingBox().Transform(transforms[lhs]).Center();
-			auto &c2    = mesh2->GetBoundingBox().Transform(transforms[rhs]).Center();
+			auto &c1    = mesh1->GetAABB().Transform(transforms[lhs]).Center();
+			auto &c2    = mesh2->GetAABB().Transform(transforms[rhs]).Center();
 			float dist1 = glm::dot(view_pos - c1, view_pos - c1);
 			float dist2 = glm::dot(view_pos - c2, view_pos - c2);
 			return dist2 < dist1;
@@ -985,6 +1005,14 @@ GeometryBatch Scene::Batch(AlphaMode mode)
 
 void Scene::UpdateTransform()
 {
+	// Update Hierarchy
+	{
+		auto view = m_registry.view<cmpt::Hierarchy>();
+		view.each([&](entt::entity entity, cmpt::Hierarchy &hierarchy) {
+			hierarchy.Tick(*this, entity, p_device);
+		});
+	}
+
 	auto group = m_registry.group<>(entt::get<cmpt::Transform, cmpt::Hierarchy>);
 
 	std::vector<entt::entity> roots;
@@ -1004,14 +1032,6 @@ void Scene::UpdateTransform()
 	for (auto &root : roots)
 	{
 		UpdateTransformRecursive(root);
-	}
-
-	// Update Hierarchy
-	{
-		auto view = m_registry.view<cmpt::Hierarchy>();
-		view.each([&](entt::entity entity, cmpt::Hierarchy &hierarchy) {
-			hierarchy.Tick(*this, entity, p_device);
-		});
 	}
 }
 
@@ -1056,9 +1076,18 @@ void Scene::UpdateTLAS()
 {
 	if (m_update)
 	{
+		ShaderInterop::SceneInfo *scene_info = static_cast<ShaderInterop::SceneInfo *>(m_scene_buffer->Map());
+
+		scene_info->aabb_max         = -glm::vec3(std::numeric_limits<float>::max());
+		scene_info->aabb_min         = glm::vec3(std::numeric_limits<float>::max());
+		scene_info->meshlet_count    = 0;
+		scene_info->instance_count   = 0;
+		scene_info->vertices_count   = 0;
+		scene_info->primitives_count = 0;
+
 		// Update buffer
-		std::vector<VkAccelerationStructureInstanceKHR> acceleration_structure_instances;
-		acceleration_structure_instances.reserve(100);
+		TLASDesc desc = {};
+		desc.mesh_instances.reserve(100);
 		auto mesh_view = m_registry.view<cmpt::MeshRenderer>();
 		for (uint32_t i = 0; i < mesh_view.size(); i++)
 		{
@@ -1067,72 +1096,64 @@ void Scene::UpdateTLAS()
 			auto &mesh_renderer = entity.GetComponent<cmpt::MeshRenderer>();
 			auto &transform     = entity.GetComponent<cmpt::Transform>();
 
+			ShaderInterop::Instance *instance = static_cast<ShaderInterop::Instance *>(mesh_renderer.GetBuffer()->Map());
+
+			instance->id = i;
+
 			if (mesh_renderer.GetMesh())
 			{
-				VkAccelerationStructureInstanceKHR acceleration_structure_instance = {};
+				desc.mesh_instances.emplace_back(std::make_pair(transform.GetWorldTransform(), mesh_renderer.GetMesh()));
+				AABB aabb = mesh_renderer.GetMesh()->GetAABB().Transform(transform.GetWorldTransform());
 
-				auto transform_transpose = glm::mat3x4(glm::transpose(transform.GetWorldTransform()));
-				std::memcpy(&acceleration_structure_instance.transform, &transform_transpose, sizeof(VkTransformMatrixKHR));
-				acceleration_structure_instance.instanceCustomIndex                    = 0;
-				acceleration_structure_instance.mask                                   = 0xFF;
-				acceleration_structure_instance.instanceShaderBindingTableRecordOffset = 0;
-				acceleration_structure_instance.flags                                  = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
-				acceleration_structure_instance.accelerationStructureReference         = mesh_renderer.GetMesh()->GetBLAS().GetDeviceAddress();
-				acceleration_structure_instances.push_back(acceleration_structure_instance);
+				instance->aabb_min = aabb.GetMin();
+				instance->aabb_max = aabb.GetMax();
+
+				scene_info->aabb_max = glm::max(scene_info->aabb_max, aabb.GetMax());
+				scene_info->aabb_min = glm::min(scene_info->aabb_min, aabb.GetMin());
+				scene_info->meshlet_count += mesh_renderer.GetMesh()->GetMeshletsCount();
+				scene_info->vertices_count += mesh_renderer.GetMesh()->GetVerticesCount();
+				scene_info->primitives_count += mesh_renderer.GetMesh()->GetIndicesCount() / 3;
 			}
 
-			static_cast<ShaderInterop::Instance *>(mesh_renderer.GetBuffer()->Map())->id = i;
+			scene_info->instance_count++;
+
 			mesh_renderer.GetBuffer()->Flush(mesh_renderer.GetBuffer()->GetSize());
 			mesh_renderer.GetBuffer()->Unmap();
 		}
 
-		if (!acceleration_structure_instances.empty())
-		{
-			// Update TLAS
-			Buffer as_instance_buffer(
-			    p_device,
-			    BufferDesc(
-			        sizeof(VkAccelerationStructureInstanceKHR),
-			        static_cast<uint32_t>(acceleration_structure_instances.size()),
-			        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-			            VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
-			            VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
-			        VMA_MEMORY_USAGE_CPU_TO_GPU));
-			std::memcpy(as_instance_buffer.Map(), acceleration_structure_instances.data(), as_instance_buffer.GetSize());
-			as_instance_buffer.Flush(as_instance_buffer.GetSize());
-			as_instance_buffer.Unmap();
-
-			AccelerationStructureDesc as_desc                      = {};
-			as_desc.type                                           = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
-			as_desc.geometry.sType                                 = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
-			as_desc.geometry.geometryType                          = VK_GEOMETRY_TYPE_INSTANCES_KHR;
-			as_desc.geometry.flags                                 = VK_GEOMETRY_OPAQUE_BIT_KHR;
-			as_desc.geometry.geometry.instances.sType              = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
-			as_desc.geometry.geometry.instances.arrayOfPointers    = VK_FALSE;
-			as_desc.geometry.geometry.instances.data.deviceAddress = as_instance_buffer.GetDeviceAddress();
-			as_desc.range_info.primitiveCount                      = static_cast<uint32_t>(acceleration_structure_instances.size());
-			as_desc.range_info.primitiveOffset                     = 0;
-			as_desc.range_info.firstVertex                         = 0;
-			as_desc.range_info.transformOffset                     = 0;
-
-			{
-				auto &cmd_buffer = p_device->RequestCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, VK_QUEUE_COMPUTE_BIT);
-				cmd_buffer.Begin();
-				m_top_level_acceleration_structure->Build(cmd_buffer, as_desc);
-				cmd_buffer.End();
-				p_device->SubmitIdle(cmd_buffer, VK_QUEUE_COMPUTE_BIT);
-			}
-		}
-
+		m_top_level_acceleration_structure->Build(desc);
 		m_update = false;
 	}
 }
 
 void Scene::UpdateLights()
 {
+	ShaderInterop::SceneInfo *scene_info = static_cast<ShaderInterop::SceneInfo *>(m_scene_buffer->Map());
+	scene_info->directional_light_count  = 0;
+	scene_info->point_light_count        = 0;
+	scene_info->spot_light_count         = 0;
+	scene_info->area_light_count         = 0;
+
 	auto view = m_registry.view<cmpt::Light>();
 	view.each([&](entt::entity entity, cmpt::Light &light) {
 		light.Tick(*this, entity, p_device);
+		switch (light.GetType())
+		{
+			case cmpt::LightType::Point:
+				scene_info->point_light_count++;
+				break;
+			case cmpt::LightType::Directional:
+				scene_info->directional_light_count++;
+				break;
+			case cmpt::LightType::Spot:
+				scene_info->spot_light_count++;
+				break;
+			case cmpt::LightType::Area:
+				scene_info->area_light_count++;
+				break;
+			default:
+				break;
+		}
 	});
 }
 

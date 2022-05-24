@@ -171,6 +171,7 @@ struct ShadingState
     {
         mat_info.ior = 1.5;
         mat_info.F0 = 0.04;
+        mat_info.F90 = 1.0;
         mat_info.specular_weight = 1.0;
         mat_info.ao = 1.0;
         mat_info.has_ao_texture = false;
@@ -215,7 +216,7 @@ struct ShadingState
         if (materials[matID].type == MetalRoughnessWorkflow)
         {
             mat_info.metallic = materials[matID].pbr_metallic_factor;
-            mat_info.roughness = materials[matID].pbr_glossiness_factor;
+            mat_info.roughness = materials[matID].pbr_roughness_factor;
             mat_info.albedo = materials[matID].pbr_base_color_factor;
             if (materials[matID].pbr_base_color_texture < MAX_TEXTURE_ARRAY_SIZE)
             {

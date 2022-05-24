@@ -63,6 +63,8 @@ class Light : public Component
 	float m_spot_inner_cone_angle = 12.5f;
 	float m_spot_outer_cone_angle = 17.5f;
 
+	bool m_cast_shadow = false;
+
 	AreaLightShape m_shape = AreaLightShape::Rectangle;
 
 	// Shadow map

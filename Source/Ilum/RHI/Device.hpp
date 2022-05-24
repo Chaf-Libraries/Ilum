@@ -37,6 +37,9 @@ class RHIDevice
 
 	~RHIDevice();
 
+	bool IsRayTracingEnable() const;
+	bool IsMeshShaderEnable() const;
+
 	VkInstance             GetVulkanInstance() const;
 	VkPhysicalDevice       GetPhysicalDevice() const;
 	VkDevice               GetDevice() const;
@@ -111,7 +114,6 @@ class RHIDevice
 	static PFN_vkSetDebugUtilsObjectNameEXT            vkSetDebugUtilsObjectNameEXT;
 	static PFN_vkCmdBeginDebugUtilsLabelEXT            vkCmdBeginDebugUtilsLabelEXT;
 	static PFN_vkCmdEndDebugUtilsLabelEXT              vkCmdEndDebugUtilsLabelEXT;
-	static PFN_vkGetPhysicalDeviceMemoryProperties2KHR vkGetPhysicalDeviceMemoryProperties2KHR;
 
   private:
 	static const std::vector<const char *>                 s_instance_extensions;
@@ -121,6 +123,9 @@ class RHIDevice
 
   private:
 	Window *p_window;
+
+	bool m_extension_raytracing = false;
+	bool m_extension_mesh_shader = false;
 
 	VkInstance       m_instance        = VK_NULL_HANDLE;
 	VkPhysicalDevice m_physical_device = VK_NULL_HANDLE;

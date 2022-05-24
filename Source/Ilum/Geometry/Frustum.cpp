@@ -1,5 +1,5 @@
 #include "Frustum.hpp"
-#include "BoundingBox.hpp"
+#include "AABB.hpp"
 
 namespace Ilum
 {
@@ -61,14 +61,14 @@ bool Frustum::IsInside(const glm::vec3 &p)
 	return true;
 }
 
-bool Frustum::IsInside(const BoundingBox &bbox)
+bool Frustum::IsInside(const AABB &aabb)
 {
 	for (auto &plane : planes)
 	{
 		glm::vec3 p;
-		p.x = plane.normal.x < 0.f ? bbox.GetMin().x : bbox.GetMax().x;
-		p.y = plane.normal.y < 0.f ? bbox.GetMin().y : bbox.GetMax().y;
-		p.z = plane.normal.z < 0.f ? bbox.GetMin().z : bbox.GetMax().z;
+		p.x = plane.normal.x < 0.f ? aabb.GetMin().x : aabb.GetMax().x;
+		p.y = plane.normal.y < 0.f ? aabb.GetMin().y : aabb.GetMax().y;
+		p.z = plane.normal.z < 0.f ? aabb.GetMin().z : aabb.GetMax().z;
 
 		if (glm::dot(plane.normal, p) + plane.constant < 0.f)
 		{

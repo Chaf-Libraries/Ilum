@@ -38,7 +38,7 @@ float3 Eval_Light(PointLight light, float3 shading_point, out float3 wi)
 
     float d = length(light.position - shading_point);
     float attenuation = max(min(1.0 - pow(d / light.range, 4.0), 1.0), 0.0) / (d * d);
-                
+
     return light.color.rgb * light.intensity * attenuation;
 }
 

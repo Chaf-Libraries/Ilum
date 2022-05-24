@@ -213,39 +213,13 @@ void Mesh::UpdateBuffer()
 		p_device->SubmitIdle(cmd_buffer, VK_QUEUE_TRANSFER_BIT);
 	}
 
-	AccelerationStructureDesc as_desc = {};
-
-	as_desc.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-
-	as_desc.geometry.sType                                          = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
-	as_desc.geometry.geometryType                                   = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
-	as_desc.geometry.geometry.triangles.sType                       = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
-	as_desc.geometry.geometry.triangles.vertexFormat                = VK_FORMAT_R32G32B32_SFLOAT;
-	as_desc.geometry.geometry.triangles.vertexData.deviceAddress    = m_vertex_buffer->GetDeviceAddress();
-	as_desc.geometry.geometry.triangles.maxVertex                   = static_cast<uint32_t>(m_vertices.size());
-	as_desc.geometry.geometry.triangles.vertexStride                = sizeof(ShaderInterop::Vertex);
-	as_desc.geometry.geometry.triangles.indexType                   = VK_INDEX_TYPE_UINT32;
-	as_desc.geometry.geometry.triangles.indexData.deviceAddress     = m_index_buffer->GetDeviceAddress();
-	as_desc.geometry.geometry.triangles.transformData.deviceAddress = 0;
-	as_desc.geometry.geometry.triangles.transformData.hostAddress   = nullptr;
-
-	as_desc.range_info.primitiveCount  = static_cast<uint32_t>(m_indices.size()) / 3;
-	as_desc.range_info.primitiveOffset = 0;
-	as_desc.range_info.firstVertex     = 0;
-	as_desc.range_info.transformOffset = 0;
-
-	{
-		auto &cmd_buffer = p_device->RequestCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, VK_QUEUE_COMPUTE_BIT);
-		cmd_buffer.Begin();
-		m_bottom_level_acceleration_structure->Build(cmd_buffer, as_desc);
-		cmd_buffer.End();
-		p_device->SubmitIdle(cmd_buffer, VK_QUEUE_COMPUTE_BIT);
-	}
+	// Build BLAS
+	m_bottom_level_acceleration_structure->Build(BLASDesc{this});
 }
 
-const BoundingBox &Mesh::GetBoundingBox()
+const AABB &Mesh::GetAABB()
 {
-	return m_bounding_box;
+	return m_aabb;
 }
 
 Material *Mesh::GetMaterial()
@@ -301,6 +275,16 @@ uint32_t Mesh::GetMeshletTrianglesCount() const
 uint32_t Mesh::GetMeshletsCount() const
 {
 	return static_cast<uint32_t>(m_meshlets.size());
+}
+
+const std::vector<ShaderInterop::Vertex> &Mesh::GetVertices() const
+{
+	return m_vertices;
+}
+
+const std::vector<uint32_t> &Mesh::GetIndices() const
+{
+	return m_indices;
 }
 
 AccelerationStructure &Mesh::GetBLAS()

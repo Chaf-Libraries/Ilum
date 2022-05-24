@@ -7,7 +7,7 @@
 
 #include <Shaders/ShaderInterop.hpp>
 
-#include <Geometry/BoundingBox.hpp>
+#include <Geometry/AABB.hpp>
 
 #include <glm/glm.hpp>
 
@@ -30,7 +30,7 @@ class Mesh
 
 	void UpdateBuffer();
 
-	const BoundingBox &GetBoundingBox();
+	const AABB &GetAABB();
 
 	Material *GetMaterial();
 
@@ -46,6 +46,9 @@ class Mesh
 	uint32_t GetMeshletTrianglesCount() const;
 	uint32_t GetMeshletsCount() const;
 
+	const std::vector<ShaderInterop::Vertex> &GetVertices() const;
+	const std::vector<uint32_t>              &GetIndices() const;
+
 	AccelerationStructure &GetBLAS();
 
   private:
@@ -55,7 +58,7 @@ class Mesh
 
 	std::string m_name;
 
-	BoundingBox m_bounding_box;
+	AABB m_aabb;
 
 	std::vector<ShaderInterop::Vertex>  m_vertices;
 	std::vector<uint32_t>               m_indices;

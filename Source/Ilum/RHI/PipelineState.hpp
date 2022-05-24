@@ -212,44 +212,44 @@ struct ColorBlendAttachmentState
 				alpha_blend_op         = VK_BLEND_OP_ADD;
 				break;
 			case BlendMode::AddAlpha:
-				src_color_blend_factor    = VK_BLEND_FACTOR_SRC_ALPHA;
-				dst_color_blend_factor    = VK_BLEND_FACTOR_ONE;
-				color_blend_op            = VK_BLEND_OP_ADD;
-				src_alpha_blend_factor    = VK_BLEND_FACTOR_SRC_ALPHA;
-				dst_alpha_blend_factor    = VK_BLEND_FACTOR_ONE;
-				alpha_blend_op            = VK_BLEND_OP_ADD;
+				src_color_blend_factor = VK_BLEND_FACTOR_SRC_ALPHA;
+				dst_color_blend_factor = VK_BLEND_FACTOR_ONE;
+				color_blend_op         = VK_BLEND_OP_ADD;
+				src_alpha_blend_factor = VK_BLEND_FACTOR_SRC_ALPHA;
+				dst_alpha_blend_factor = VK_BLEND_FACTOR_ONE;
+				alpha_blend_op         = VK_BLEND_OP_ADD;
 				break;
 			case BlendMode::PreMultiplyAlpha:
-				src_color_blend_factor  = VK_BLEND_FACTOR_ONE;
-				dst_color_blend_factor      = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-				color_blend_op        = VK_BLEND_OP_ADD;
-				src_alpha_blend_factor      = VK_BLEND_FACTOR_ONE;
-				dst_alpha_blend_factor      = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-				alpha_blend_op   = VK_BLEND_OP_ADD;
+				src_color_blend_factor = VK_BLEND_FACTOR_ONE;
+				dst_color_blend_factor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+				color_blend_op         = VK_BLEND_OP_ADD;
+				src_alpha_blend_factor = VK_BLEND_FACTOR_ONE;
+				dst_alpha_blend_factor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+				alpha_blend_op         = VK_BLEND_OP_ADD;
 				break;
 			case BlendMode::InverseDestinationAlpha:
-				src_color_blend_factor       = VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
-				dst_color_blend_factor      = VK_BLEND_FACTOR_DST_ALPHA;
-				color_blend_op        = VK_BLEND_OP_ADD;
-				src_alpha_blend_factor       = VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
-				dst_alpha_blend_factor       = VK_BLEND_FACTOR_DST_ALPHA;
-				alpha_blend_op   = VK_BLEND_OP_ADD;
+				src_color_blend_factor = VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+				dst_color_blend_factor = VK_BLEND_FACTOR_DST_ALPHA;
+				color_blend_op         = VK_BLEND_OP_ADD;
+				src_alpha_blend_factor = VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+				dst_alpha_blend_factor = VK_BLEND_FACTOR_DST_ALPHA;
+				alpha_blend_op         = VK_BLEND_OP_ADD;
 				break;
 			case BlendMode::Subtract:
-				src_color_blend_factor  = VK_BLEND_FACTOR_ONE;
-				dst_color_blend_factor  = VK_BLEND_FACTOR_ONE;
-				color_blend_op          = VK_BLEND_OP_REVERSE_SUBTRACT;
-				src_alpha_blend_factor  = VK_BLEND_FACTOR_ONE;
-				dst_alpha_blend_factor  = VK_BLEND_FACTOR_ONE;
-				alpha_blend_op          = VK_BLEND_OP_REVERSE_SUBTRACT;
+				src_color_blend_factor = VK_BLEND_FACTOR_ONE;
+				dst_color_blend_factor = VK_BLEND_FACTOR_ONE;
+				color_blend_op         = VK_BLEND_OP_REVERSE_SUBTRACT;
+				src_alpha_blend_factor = VK_BLEND_FACTOR_ONE;
+				dst_alpha_blend_factor = VK_BLEND_FACTOR_ONE;
+				alpha_blend_op         = VK_BLEND_OP_REVERSE_SUBTRACT;
 				break;
 			case BlendMode::SubtractAlpha:
-				src_color_blend_factor  = VK_BLEND_FACTOR_SRC_ALPHA;
-				dst_color_blend_factor      = VK_BLEND_FACTOR_ONE;
-				color_blend_op              = VK_BLEND_OP_REVERSE_SUBTRACT;
-				src_alpha_blend_factor      = VK_BLEND_FACTOR_SRC_ALPHA;
-				dst_alpha_blend_factor      = VK_BLEND_FACTOR_ONE;
-				alpha_blend_op              = VK_BLEND_OP_REVERSE_SUBTRACT;
+				src_color_blend_factor = VK_BLEND_FACTOR_SRC_ALPHA;
+				dst_color_blend_factor = VK_BLEND_FACTOR_ONE;
+				color_blend_op         = VK_BLEND_OP_REVERSE_SUBTRACT;
+				src_alpha_blend_factor = VK_BLEND_FACTOR_SRC_ALPHA;
+				dst_alpha_blend_factor = VK_BLEND_FACTOR_ONE;
+				alpha_blend_op         = VK_BLEND_OP_REVERSE_SUBTRACT;
 				break;
 			default:
 				break;
@@ -309,6 +309,8 @@ class PipelineState
 	PipelineState &SetVertexInputState(const VertexInputState &vertex_input_state);
 	PipelineState &SetColorBlendState(const ColorBlendState &color_blend_state);
 	PipelineState &LoadShader(const ShaderDesc &desc);
+
+	const std::string &GetName() const;
 
 	const InputAssemblyState &GetInputAssemblyState() const;
 	const RasterizationState &GetRasterizationState() const;

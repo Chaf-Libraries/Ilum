@@ -128,7 +128,7 @@ void VBuffer::Create(RGBuilder &builder)
 
 	PipelineState alpha_pso;
 	alpha_pso
-	    .SetName("VBuffer - Alpha")
+	    .SetName("VBuffer - Masked")
 	    .SetDynamicState(dynamic_state)
 	    .SetColorBlendState(blend_state)
 	    .SetRasterizationState(rasterization_state)
@@ -178,6 +178,7 @@ void VBuffer::Create(RGBuilder &builder)
 
 			if (!instances.empty())
 			{
+				cmd_buffer.BeginMarker("VBuffer - Opaque");
 				cmd_buffer.Bind(opaque_pso);
 				cmd_buffer.Bind(
 				    cmd_buffer.GetDescriptorState()
@@ -197,12 +198,13 @@ void VBuffer::Create(RGBuilder &builder)
 					vkCmdDrawMeshTasksNV(cmd_buffer, (meshlet_count + 32 - 1) / 32, 0);
 					instance_id++;
 				}
+				cmd_buffer.EndMarker();
 			}
 		}
 
 		// Draw Alpha
 		{
-			auto batch = renderer.GetScene()->Batch(AlphaMode::Masked | AlphaMode::Blend);
+			auto batch = renderer.GetScene()->Batch(AlphaMode::Masked);
 
 			std::vector<Buffer *> instances;
 			instances.reserve(batch.meshes.size());
@@ -213,6 +215,7 @@ void VBuffer::Create(RGBuilder &builder)
 
 			if (!instances.empty())
 			{
+				cmd_buffer.BeginMarker("VBuffer - Masked");
 				cmd_buffer.Bind(alpha_pso);
 				cmd_buffer.Bind(
 				    cmd_buffer.GetDescriptorState()
@@ -234,6 +237,7 @@ void VBuffer::Create(RGBuilder &builder)
 					cmd_buffer.PushConstants(VK_SHADER_STAGE_MESH_BIT_NV | VK_SHADER_STAGE_TASK_BIT_NV | VK_SHADER_STAGE_FRAGMENT_BIT, &meshlet_count, sizeof(meshlet_count), sizeof(instance_id));
 					vkCmdDrawMeshTasksNV(cmd_buffer, (meshlet_count + 32 - 1) / 32, 0);
 				}
+				cmd_buffer.EndMarker();
 			}
 		}
 		cmd_buffer.EndRenderPass();

@@ -35,13 +35,13 @@ struct Radiance
     float3 f_clearcoat;
     float3 f_sheen;
     float3 f_transmission;
+    float3 debug;
 };
 
 void GetPunctualRadiance(float3 iridescence_fresnel, float3 intensity, float3 L, float3 V, ShadingState sstate, inout Radiance radiance)
 {
     float alpha_roughness = sstate.mat_info.roughness * sstate.mat_info.roughness;
-    
-    
+
     float3 H = normalize(L + V);
     
     float NoL = clamp(dot(sstate.normal, L), 0.0, 1.0);
@@ -49,7 +49,7 @@ void GetPunctualRadiance(float3 iridescence_fresnel, float3 intensity, float3 L,
     float NoH = clamp(dot(sstate.normal, H), 0.0, 1.0);
     float LoH = clamp(dot(L, H), 0.0, 1.0);
     float VoH = clamp(dot(V, H), 0.0, 1.0);
-        
+    radiance.debug = NoV;
     if (NoL > 0.0 || NoV > 0.0)
     {
         if (all(iridescence_fresnel != 0))
@@ -154,12 +154,7 @@ void main(CSParam param)
     for (i = 0; i < push_constants.point_light_count; i++)
     {
         float3 L;
-        PointLight light;
-        light.color = point_light[i].color;
-        light.intensity = point_light[i].intensity;
-        light.position = point_light[i].position;
-        light.range = point_light[i].range;
-
+        PointLight light = point_light[i];
         float3 intensity = Eval_Light(light, sstate.position, L);
         result = intensity * abs(dot(sstate.normal, L));;
         GetPunctualRadiance(iridescence_fresnel, intensity, L, V, sstate, radiance);
@@ -175,6 +170,6 @@ void main(CSParam param)
     float3 color = radiance.f_emissive + radiance.f_diffuse + radiance.f_specular + radiance.f_sheen;
     color = color * (1.0 - clearcoat * clearcoat_fresnel) + radiance.f_clearcoat;
     
-    shading[param.DispatchThreadID.xy] = float4(result, 1.0);
+    shading[param.DispatchThreadID.xy] = float4(color, 1.0);
     normal[param.DispatchThreadID.xy] = PackNormal(sstate.normal.rgb);
 }
