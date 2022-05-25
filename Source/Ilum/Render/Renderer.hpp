@@ -10,6 +10,7 @@
 namespace Ilum
 {
 class Scene;
+class AABB;
 
 enum class SamplerType : size_t
 {
@@ -51,8 +52,8 @@ class Renderer
 	Scene *GetScene();
 
 	void SetScene(Scene *scene);
-
 	void SetPresent(Texture *present);
+	void SetDepthStencil(Texture *depth_stencil);
 
   private:
 	void CreateSampler();
@@ -74,6 +75,7 @@ class Renderer
 	bool       m_viewport_update = false;
 
 	Texture *p_present = nullptr;
+	Texture *p_depth_stencil = nullptr;
 
 	std::unique_ptr<Buffer> m_picking_buffer = nullptr;
 
@@ -85,6 +87,11 @@ class Renderer
 
 	// Sampler
 	std::array<std::unique_ptr<Sampler>, 8> m_samplers;
+
+  private:
+	void DrawPrimitive();
+	void DrawAABB(CommandBuffer &cmd_buffer, const std::vector<std::pair<AABB, glm::vec3>> &aabbs);
+	void DrawBVH(CommandBuffer &cmd_buffer);
 
   private:
 	glm::vec3 m_translate_velocity = glm::vec3(0.f);

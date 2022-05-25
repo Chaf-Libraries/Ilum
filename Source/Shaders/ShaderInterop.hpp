@@ -255,6 +255,46 @@ struct HierarchyNode
 	uint right_child;
 };
 
+struct AABB
+{
+	float4 min_val;
+	float4 max_val;
+
+#ifndef __cplusplus
+	AABB Transform(float4x4 trans)
+	{
+		trans = transpose(trans);
+
+		float3 v[2], xa, xb, ya, yb, za, zb;
+
+		xa = trans[0].xyz * min_val[0];
+		xb = trans[0].xyz * max_val[0];
+
+		ya = trans[1].xyz * min_val[1];
+		yb = trans[1].xyz * max_val[1];
+
+		za = trans[2].xyz * min_val[2];
+		zb = trans[2].xyz * max_val[2];
+
+		v[0] = trans[3].xyz;
+		v[0] += min(xa, xb);
+		v[0] += min(ya, yb);
+		v[0] += min(za, zb);
+
+		v[1] = trans[3].xyz;
+		v[1] += max(xa, xb);
+		v[1] += max(ya, yb);
+		v[1] += max(za, zb);
+
+		AABB aabb;
+		aabb.min_val = float4(v[0], 0.0);
+		aabb.max_val = float4(v[1], 0.0);
+
+		return aabb;
+	}
+#endif
+};
+
 #ifdef __cplusplus
 inline uint PackTriangle(uint8_t v0, uint8_t v1, uint8_t v2)
 #else

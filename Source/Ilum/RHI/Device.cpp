@@ -1493,7 +1493,7 @@ VkPipeline RHIDevice::AllocateGraphicsPipeline(const PipelineState &pso, VkRende
 	rasterization_state_create_info.frontFace                              = pso.GetRasterizationState().front_face;
 	rasterization_state_create_info.flags                                  = 0;
 	rasterization_state_create_info.depthBiasEnable                        = VK_TRUE;
-	rasterization_state_create_info.lineWidth                              = 1.0f;
+	rasterization_state_create_info.lineWidth                              = pso.GetRasterizationState().line_width;
 
 	// Color Blend Attachment State
 	std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachment_states(pso.GetColorBlendState().attachment_states.size());

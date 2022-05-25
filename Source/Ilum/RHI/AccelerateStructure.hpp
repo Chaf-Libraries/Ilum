@@ -1,6 +1,8 @@
 #pragma once
 
-#include <Geometry/AABB.hpp>
+#include "Geometry/AABB.hpp"
+
+#include <Shaders/ShaderInterop.hpp>
 
 #include <volk.h>
 
@@ -55,8 +57,19 @@ class AccelerationStructure
 
 	void SetName(const std::string &name);
 
+	// Fall back layer
+	Buffer &GetHierarchyBuffer();
+	Buffer &GetBoundingVolumeBuffer();
+	Buffer &GetPrimitiveIndicesBuffer();
+
   private:
 	void Build(VkCommandBuffer cmd_buffer, AccelerationStructureDesc desc);
+
+	// Temp
+  public:
+	std::vector<ShaderInterop::HierarchyNode> hierarchy_buffer;
+
+	std::vector<AABB> bvhs;
 
   private:
 	RHIDevice                 *p_device         = nullptr;
@@ -66,6 +79,11 @@ class AccelerationStructure
 	std::unique_ptr<Buffer>    m_scratch_buffer = nullptr;
 	// TLAS
 	std::unique_ptr<Buffer> m_instance_buffer = nullptr;
+
+	// Fall back layer
+	std::unique_ptr<Buffer> m_hierarchy_buffer = nullptr;
+	std::unique_ptr<Buffer> m_aabbs_buffer = nullptr;
+	std::unique_ptr<Buffer> m_primitive_indices_buffer = nullptr;
 };
 using AccelerationStructureReference = std::reference_wrapper<AccelerationStructure>;
 }        // namespace Ilum

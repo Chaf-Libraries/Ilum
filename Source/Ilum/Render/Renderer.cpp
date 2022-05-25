@@ -47,6 +47,8 @@ void Renderer::Tick()
 	p_present = nullptr;
 
 	m_rg.Execute();
+
+	DrawPrimitive();
 }
 
 void Renderer::OnImGui(ImGuiContext &context)
@@ -303,6 +305,11 @@ void Renderer::SetPresent(Texture *present)
 	p_present = present;
 }
 
+void Renderer::SetDepthStencil(Texture *depth_stencil)
+{
+	p_depth_stencil = depth_stencil;
+}
+
 void Renderer::CreateSampler()
 {
 	m_samplers[static_cast<size_t>(SamplerType::PointClamp)]       = std::make_unique<Sampler>(p_device, SamplerDesc{VK_FILTER_NEAREST, VK_FILTER_NEAREST, VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_SAMPLER_MIPMAP_MODE_NEAREST});
@@ -483,15 +490,315 @@ void Renderer::MousePicking(uint32_t x, uint32_t y)
 		return;
 	}
 
-
 	auto &cmd_buffer = p_device->RequestCommandBuffer();
 	if (!m_picking_buffer)
 	{
 		m_picking_buffer = std::make_unique<Buffer>(
-			p_device, 
-			BufferDesc(sizeof(uint32_t), 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU));
+		    p_device,
+		    BufferDesc(sizeof(uint32_t), 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU));
+	}
+}
+
+void Renderer::DrawPrimitive()
+{
+	if (!p_depth_stencil || !p_present || !p_scene->GetRegistry().valid(p_scene->GetMainCamera()))
+	{
+		return;
 	}
 
+	auto &cmd_buffer = p_device->RequestCommandBuffer();
+	cmd_buffer.Begin();
+	cmd_buffer.Transition(
+	    {},
+	    {TextureTransition{
+	         p_present,
+	         TextureState{VK_IMAGE_USAGE_SAMPLED_BIT},
+	         TextureState{VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT},
+	         VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}},
+	     TextureTransition{
+	         p_depth_stencil,
+	         TextureState{VK_IMAGE_USAGE_SAMPLED_BIT},
+	         TextureState{VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT},
+	         VkImageSubresourceRange{VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1}}});
 
+	DrawBVH(cmd_buffer);
+
+	cmd_buffer.Transition(
+	    {},
+	    {TextureTransition{
+	         p_present,
+	         TextureState{VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT},
+	         TextureState{VK_IMAGE_USAGE_SAMPLED_BIT},
+	         VkImageSubresourceRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}},
+	     TextureTransition{
+	         p_depth_stencil,
+	         TextureState{VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT},
+	         TextureState{VK_IMAGE_USAGE_SAMPLED_BIT},
+	         VkImageSubresourceRange{VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1}}});
+
+	cmd_buffer.End();
+	p_device->Submit(cmd_buffer);
+}
+
+void Renderer::DrawAABB(CommandBuffer &cmd_buffer, const std::vector<std::pair<AABB, glm::vec3>> &aabbs)
+{
+	const cmpt::Camera &main_camera = p_scene->GetRegistry().get<cmpt::Camera>(p_scene->GetMainCamera());
+
+	ShaderDesc vertex_shader  = {};
+	vertex_shader.filename    = "./Source/Shaders/DrawPrimitive.hlsl";
+	vertex_shader.entry_point = "VSmain";
+	vertex_shader.stage       = VK_SHADER_STAGE_VERTEX_BIT;
+	vertex_shader.macros.push_back("DRAW_AABB");
+	vertex_shader.type = ShaderType::HLSL;
+
+	ShaderDesc fragment_shader  = {};
+	fragment_shader.filename    = "./Source/Shaders/DrawPrimitive.hlsl";
+	fragment_shader.entry_point = "PSmain";
+	fragment_shader.stage       = VK_SHADER_STAGE_FRAGMENT_BIT;
+	fragment_shader.type        = ShaderType::HLSL;
+
+	DynamicState dynamic_state = {};
+	dynamic_state.dynamic_states.push_back(VK_DYNAMIC_STATE_SCISSOR);
+	dynamic_state.dynamic_states.push_back(VK_DYNAMIC_STATE_VIEWPORT);
+
+	ColorBlendState blend_state = {};
+	blend_state.attachment_states.resize(1);
+	blend_state.attachment_states.back().blend_enable = VK_FALSE;
+
+	RasterizationState rasterization_state = {};
+	rasterization_state.cull_mode          = VK_CULL_MODE_NONE;
+	rasterization_state.polygon_mode       = VK_POLYGON_MODE_LINE;
+	rasterization_state.line_width         = 3.f;
+
+	InputAssemblyState input_assembly_state       = {};
+	input_assembly_state.topology                 = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+	input_assembly_state.primitive_restart_enable = VK_TRUE;
+
+	PipelineState pso;
+	pso
+	    .LoadShader(vertex_shader)
+	    .LoadShader(fragment_shader)
+	    .SetDynamicState(dynamic_state)
+	    .SetColorBlendState(blend_state)
+	    .SetInputAssemblyState(input_assembly_state)
+	    .SetRasterizationState(rasterization_state);
+
+	FrameBuffer framebuffer;
+	framebuffer
+	    .Bind(
+	        p_present,
+	        TextureViewDesc{
+	            VK_IMAGE_VIEW_TYPE_2D,
+	            VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
+	        ColorAttachmentInfo{
+	            /*samples				*/ VK_SAMPLE_COUNT_1_BIT,
+	            /*load_op				*/ VK_ATTACHMENT_LOAD_OP_LOAD,
+	            /*store_op			*/ VK_ATTACHMENT_STORE_OP_STORE,
+	            /*stencil_load_op */ VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+	            /*stencil_store_op*/ VK_ATTACHMENT_STORE_OP_DONT_CARE,
+	            /*clear_value    */ {}})
+	    .Bind(
+	        p_depth_stencil,
+	        TextureViewDesc{
+	            VK_IMAGE_VIEW_TYPE_2D,
+	            VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1},
+	        DepthStencilAttachmentInfo{
+	            /*samples				*/ VK_SAMPLE_COUNT_1_BIT,
+	            /*load_op				*/ VK_ATTACHMENT_LOAD_OP_LOAD,
+	            /*store_op			*/ VK_ATTACHMENT_STORE_OP_STORE,
+	            /*stencil_load_op */ VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+	            /*stencil_store_op*/ VK_ATTACHMENT_STORE_OP_DONT_CARE,
+	            /*clear_value    */ {1.f, 0u}});
+
+	struct
+	{
+		glm::mat4 view_projection      = {};
+		alignas(16) glm::vec3 aabb_min = {};
+		alignas(16) glm::vec3 aabb_max = {};
+		alignas(16) glm::vec3 color    = {};
+	} push_constants;
+
+	push_constants.view_projection = main_camera.GetViewProjection();
+
+	// Record command buffer
+	{
+		cmd_buffer.SetViewport(static_cast<float>(m_extent.width), -static_cast<float>(m_extent.height), 0, static_cast<float>(m_extent.height));
+		cmd_buffer.SetScissor(m_extent.width, m_extent.height);
+
+		cmd_buffer.BeginRenderPass(framebuffer);
+		cmd_buffer.Bind(pso);
+		for (const auto &[aabb, color] : aabbs)
+		{
+			push_constants.aabb_max = aabb.GetMax();
+			push_constants.aabb_min = aabb.GetMin();
+			push_constants.color    = color;
+
+			cmd_buffer.PushConstants(VK_SHADER_STAGE_VERTEX_BIT, &push_constants, sizeof(push_constants), 0);
+			cmd_buffer.Draw(16);
+		}
+
+		cmd_buffer.EndRenderPass();
+	}
+}
+
+void Renderer::DrawBVH(CommandBuffer &cmd_buffer)
+{
+	/*auto group = p_scene->GetRegistry().group<cmpt::MeshRenderer>(entt::get<cmpt::Transform>);
+	group.each([&](cmpt::MeshRenderer &mesh_renderer, cmpt::Transform& transform) {
+	    auto *mesh = mesh_renderer.GetMesh();
+	    if (mesh)
+	    {
+	        const auto &hierarchy = mesh->GetBLAS().hierarchy_buffer;
+	        const auto &bvhs      = mesh->GetBLAS().bvhs;
+
+	        std::vector<std::pair<AABB, glm::vec3>> aabbs(bvhs.size());
+	        for (uint32_t i = 0; i < aabbs.size(); i++)
+	        {
+	            aabbs[i].first  = bvhs[i].Transform(transform.GetWorldTransform());
+	            aabbs[i].second = glm::vec3(1.f);
+	        }
+	        DrawAABB(cmd_buffer, aabbs);
+	    }
+	});*/
+	const cmpt::Camera &main_camera = p_scene->GetRegistry().get<cmpt::Camera>(p_scene->GetMainCamera());
+
+	auto group = p_scene->GetRegistry().group<cmpt::MeshRenderer>(entt::get<cmpt::Transform>);
+
+	if (group.empty())
+	{
+		return;
+	}
+
+	ShaderDesc vertex_shader  = {};
+	vertex_shader.filename    = "./Source/Shaders/BVH/VisualizeBVH.hlsl";
+	vertex_shader.entry_point = "VSmain";
+	vertex_shader.stage       = VK_SHADER_STAGE_VERTEX_BIT;
+	vertex_shader.type        = ShaderType::HLSL;
+
+	ShaderDesc geometry_shader  = {};
+	geometry_shader.filename    = "./Source/Shaders/BVH/VisualizeBVH.hlsl";
+	geometry_shader.entry_point = "GSmain";
+	geometry_shader.stage       = VK_SHADER_STAGE_GEOMETRY_BIT;
+	geometry_shader.type        = ShaderType::HLSL;
+
+	ShaderDesc fragment_shader  = {};
+	fragment_shader.filename    = "./Source/Shaders/BVH/VisualizeBVH.hlsl";
+	fragment_shader.entry_point = "PSmain";
+	fragment_shader.stage       = VK_SHADER_STAGE_FRAGMENT_BIT;
+	fragment_shader.type        = ShaderType::HLSL;
+
+	DynamicState dynamic_state = {};
+	dynamic_state.dynamic_states.push_back(VK_DYNAMIC_STATE_SCISSOR);
+	dynamic_state.dynamic_states.push_back(VK_DYNAMIC_STATE_VIEWPORT);
+
+	ColorBlendState blend_state = {};
+	blend_state.attachment_states.resize(1);
+	blend_state.attachment_states.back().blend_enable = VK_FALSE;
+
+	RasterizationState rasterization_state = {};
+	rasterization_state.cull_mode          = VK_CULL_MODE_NONE;
+	rasterization_state.polygon_mode       = VK_POLYGON_MODE_LINE;
+	rasterization_state.line_width         = 1.f;
+
+	InputAssemblyState input_assembly_state       = {};
+	input_assembly_state.topology                 = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+	input_assembly_state.primitive_restart_enable = VK_TRUE;
+
+	PipelineState pso;
+	pso
+	    .LoadShader(vertex_shader)
+	    .LoadShader(geometry_shader)
+	    .LoadShader(fragment_shader)
+	    .SetDynamicState(dynamic_state)
+	    .SetColorBlendState(blend_state)
+	    .SetInputAssemblyState(input_assembly_state)
+	    .SetRasterizationState(rasterization_state);
+
+	FrameBuffer framebuffer;
+	framebuffer
+	    .Bind(
+	        p_present,
+	        TextureViewDesc{
+	            VK_IMAGE_VIEW_TYPE_2D,
+	            VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
+	        ColorAttachmentInfo{
+	            /*samples				*/ VK_SAMPLE_COUNT_1_BIT,
+	            /*load_op				*/ VK_ATTACHMENT_LOAD_OP_LOAD,
+	            /*store_op			*/ VK_ATTACHMENT_STORE_OP_STORE,
+	            /*stencil_load_op */ VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+	            /*stencil_store_op*/ VK_ATTACHMENT_STORE_OP_DONT_CARE,
+	            /*clear_value    */ {}})
+	    .Bind(
+	        p_depth_stencil,
+	        TextureViewDesc{
+	            VK_IMAGE_VIEW_TYPE_2D,
+	            VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1},
+	        DepthStencilAttachmentInfo{
+	            /*samples				*/ VK_SAMPLE_COUNT_1_BIT,
+	            /*load_op				*/ VK_ATTACHMENT_LOAD_OP_LOAD,
+	            /*store_op			*/ VK_ATTACHMENT_STORE_OP_STORE,
+	            /*stencil_load_op */ VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+	            /*stencil_store_op*/ VK_ATTACHMENT_STORE_OP_DONT_CARE,
+	            /*clear_value    */ {1.f, 0u}});
+
+	struct
+	{
+		glm::mat4 view_projection = {};
+		glm::mat4 transform       = {};
+		uint32_t  instance_id     = 0;
+	} push_constants;
+
+	push_constants.view_projection = main_camera.GetViewProjection();
+
+	// Record command buffer
+	{
+		cmd_buffer.SetViewport(static_cast<float>(m_extent.width), -static_cast<float>(m_extent.height), 0, static_cast<float>(m_extent.height));
+		cmd_buffer.SetScissor(m_extent.width, m_extent.height);
+
+		cmd_buffer.BeginRenderPass(framebuffer);
+		cmd_buffer.Bind(pso);
+		//	for (const auto &[aabb, color] : aabbs)
+		//	{
+		//		push_constants.aabb_max = aabb.GetMax();
+		//		push_constants.aabb_min = aabb.GetMin();
+		//		push_constants.color    = color;
+
+		//		cmd_buffer.PushConstants(VK_SHADER_STAGE_VERTEX_BIT, &push_constants, sizeof(push_constants), 0);
+		//		cmd_buffer.Draw(16);
+		//	}
+
+		/*StructuredBuffer<HierarchyNode> hierarchy_buffer[] : register(t0);
+StructuredBuffer<AABB> aabbs_buffer[] : register(t1);*/
+
+		std::vector<Buffer *> hierarchy_buffer;
+		std::vector<Buffer *> aabbs_buffer;
+		std::vector<uint32_t> volume_count;
+		hierarchy_buffer.reserve(group.size());
+		aabbs_buffer.reserve(group.size());
+		volume_count.reserve(group.size());
+
+		group.each([&](cmpt::MeshRenderer &mesh_renderer, cmpt::Transform &transform) {
+			auto *mesh = mesh_renderer.GetMesh();
+			if (mesh)
+			{
+				hierarchy_buffer.push_back(&mesh->GetBLAS().GetHierarchyBuffer());
+				aabbs_buffer.push_back(&mesh->GetBLAS().GetBoundingVolumeBuffer());
+				volume_count.push_back(mesh->GetIndicesCount() / 3 * 2 - 1);
+			}
+		});
+
+		cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+		                    .Bind(0, 0, hierarchy_buffer)
+		                    .Bind(0, 1, aabbs_buffer));
+
+		group.each([&](cmpt::MeshRenderer &mesh_renderer, cmpt::Transform &transform) {
+			push_constants.transform = transform.GetWorldTransform();
+			cmd_buffer.PushConstants(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_GEOMETRY_BIT, &push_constants, sizeof(push_constants), 0);
+			cmd_buffer.Draw(volume_count[push_constants.instance_id]);
+			push_constants.instance_id++;
+		});
+
+		cmd_buffer.EndRenderPass();
+	}
 }
 }        // namespace Ilum

@@ -6,27 +6,33 @@
 
 #include "Asset/Mesh.hpp"
 
+#define BIT(x) (1 << (x))
+
 namespace Ilum
 {
-inline uint32_t ExpandBits(uint32_t v)
-{
-	v = (v * 0x00010001u) & 0xFF0000FFu;
-	v = (v * 0x00000101u) & 0x0F00F00Fu;
-	v = (v * 0x00000011u) & 0xC30C30C3u;
-	v = (v * 0x00000005u) & 0x49249249u;
-	return v;
-}
+// https://www.highperformancegraphics.org/wp-content/uploads/2017/Papers-Session3/HPG207_ExtendedMortonCodes.pdf
 
 inline uint32_t MortonCodeFromUnitCoord(const glm::vec3 &unit_coord)
 {
-	float x = std::min(std::max(unit_coord.x * 1024.f, 0.f), 1023.f);
-	float y = std::min(std::max(unit_coord.y * 1024.f, 0.f), 1023.f);
-	float z = std::min(std::max(unit_coord.z * 1024.f, 0.f), 1023.f);
+	uint32_t       morton_code = 0;
+	const uint32_t num_bits    = 10;
+	float          max_coord   = powf(2, num_bits);
 
-	uint32_t xx = ExpandBits(asuint(x));
-	uint32_t yy = ExpandBits(asuint(y));
-	uint32_t zz = ExpandBits(asuint(z));
-	return xx * 4 + yy * 2 + zz;
+	glm::vec3      adjusted_coord   = glm::min(glm::max(unit_coord * max_coord, glm::vec3(0.f)), glm::vec3(max_coord - 1.f));
+	const uint32_t num_axis         = 3;
+	uint32_t       coords[num_axis] = {static_cast<uint32_t>(adjusted_coord.y), static_cast<uint32_t>(adjusted_coord.x), static_cast<uint32_t>(adjusted_coord.z)};
+	for (uint32_t bit_index = 0; bit_index < num_bits; bit_index++)
+	{
+		for (uint32_t axis = 0; axis < num_axis; axis++)
+		{
+			uint32_t bit = BIT(bit_index) & coords[axis];
+			if (bit)
+			{
+				morton_code |= BIT(bit_index * num_axis + axis);
+			}
+		}
+	}
+	return morton_code;
 }
 
 inline int32_t GetLongestCommonPerfix(const std::vector<uint32_t> &morton_code_buffer, uint32_t morton_code_lhs, uint32_t morton_code_rhs)
@@ -57,7 +63,8 @@ inline void WriteParent(std::vector<ShaderInterop::HierarchyNode> &hierarchy, ui
 	hierarchy[parent].right_child = rchild;
 }
 
-inline void GenerateHierarchy(const std::vector<uint32_t> &morton_code_buffer, const std::vector<uint32_t> &indices_buffer, std::vector<ShaderInterop::HierarchyNode> &hierarchy, uint32_t left, uint32_t right, uint32_t parent = 0, uint32_t depth = 0)
+// Return i, left_child, right_child
+inline std::tuple<uint32_t, uint32_t, uint32_t> GenerateHierarchy(const std::vector<uint32_t> &morton_code_buffer, const std::vector<uint32_t> &indices_buffer, std::vector<ShaderInterop::HierarchyNode> &hierarchy, uint32_t left, uint32_t right, uint32_t parent = 0)
 {
 	uint32_t node_offset = static_cast<uint32_t>(morton_code_buffer.size() - 1);
 
@@ -84,56 +91,56 @@ inline void GenerateHierarchy(const std::vector<uint32_t> &morton_code_buffer, c
 			WriteChildren(hierarchy, right_child, parent);
 			WriteParent(hierarchy, parent, left_child, right_child);
 
-			// Recursive
-			if (i != left)
-			{
-				GenerateHierarchy(morton_code_buffer, indices_buffer, hierarchy, left, i, left_child, depth + 1);
-			}
-			if (i + 1 != right)
-			{
-				GenerateHierarchy(morton_code_buffer, indices_buffer, hierarchy, i + 1, right, right_child, depth + 1);
-			}
-			break;
+			return std::make_tuple(i, left_child, right_child);
+
+			//// Recursive
+			// if (i != left)
+			//{
+			//	GenerateHierarchy(morton_code_buffer, indices_buffer, hierarchy, left, i, left_child);
+			// }
+			// if (i + 1 != right)
+			//{
+			//	GenerateHierarchy(morton_code_buffer, indices_buffer, hierarchy, i + 1, right, right_child);
+			// }
+			// break;
 		}
 	}
+
+	return std::make_tuple(~0U, ~0U, ~0U);
 }
 
-inline void GenerateAABBs(const std::vector<ShaderInterop::Vertex> &vertices, const std::vector<uint32_t> &indices, const std::vector<ShaderInterop::HierarchyNode> &hierarchy, std::vector<AABB> &aabbs, uint32_t node = 0)
+inline void GenerateAABBs(const std::vector<ShaderInterop::Vertex> &vertices, const std::vector<uint32_t> &indices, const std::vector<ShaderInterop::HierarchyNode> &hierarchy, std::vector<AABB> &aabbs)
 {
-	uint32_t primitive_count = static_cast<uint32_t>(indices.size() / 3);
-
-	auto &left  = hierarchy[node].left_child;
-	auto &right = hierarchy[node].right_child;
-
-	// Leaf
-	if (left == ~0U && right == ~0U)
+	// Build from leaves
+	for (int32_t node = static_cast<int32_t>(aabbs.size()) - 1; node >= 0; node--)
 	{
-		uint32_t primitive_id = node - (primitive_count - 1);
+		uint32_t primitive_count = static_cast<uint32_t>(indices.size() / 3);
 
-		glm::vec3 v1 = vertices[indices[primitive_id * 3]].position;
-		glm::vec3 v2 = vertices[indices[primitive_id * 3 + 1]].position;
-		glm::vec3 v3 = vertices[indices[primitive_id * 3 + 2]].position;
+		auto &left  = hierarchy[node].left_child;
+		auto &right = hierarchy[node].right_child;
 
-		aabbs[node].Merge(std::vector{v1, v2, v3});
-	}
-
-	// Recursive generation
-	if (left != ~0U)
-	{
-		if (!aabbs[left].IsValid())
+		// Leaf
+		if (left == ~0U && right == ~0U)
 		{
-			GenerateAABBs(vertices, indices, hierarchy, aabbs, left);
-		}
-		aabbs[node].Merge(aabbs[left]);
-	}
+			uint32_t primitive_id = node - (primitive_count - 1);
 
-	if (right != ~0U)
-	{
-		if (!aabbs[right].IsValid())
-		{
-			GenerateAABBs(vertices, indices, hierarchy, aabbs, right);
+			glm::vec3 v1 = vertices[indices[primitive_id * 3]].position;
+			glm::vec3 v2 = vertices[indices[primitive_id * 3 + 1]].position;
+			glm::vec3 v3 = vertices[indices[primitive_id * 3 + 2]].position;
+
+			aabbs[node].Merge(std::vector{v1, v2, v3});
 		}
-		aabbs[node].Merge(aabbs[right]);
+
+		// Recursive generation
+		if (left != ~0U)
+		{
+			aabbs[node].Merge(aabbs[left]);
+		}
+
+		if (right != ~0U)
+		{
+			aabbs[node].Merge(aabbs[right]);
+		}
 	}
 }
 
@@ -310,7 +317,13 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 
 			glm::vec3 unit_coord = ((v1 + v2 + v3) / 3.f - aabb_min) / glm::max(aabb_max - aabb_min, glm::vec3(0.00001f));
 
-			morton_codes_map[MortonCodeFromUnitCoord(unit_coord)] = primitive_id;
+			// Fix duplicate
+			uint32_t morton_code = MortonCodeFromUnitCoord(unit_coord);
+			while (morton_codes_map.find(morton_code) != morton_codes_map.end())
+			{
+				morton_code++;
+			}
+			morton_codes_map[morton_code] = primitive_id;
 		}
 
 		// Sorting Primitives
@@ -327,12 +340,77 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 		// Generate Hierarchy
 		// LBVH - Lauterbach et al. [2009]
 		// [root - node - leaf]
-		std::vector<ShaderInterop::HierarchyNode> hierarchy_buffer(2 * morton_codes_buffer.size() - 1, ShaderInterop::HierarchyNode{~0U, ~0U, ~0U});
-		GenerateHierarchy(morton_codes_buffer, indices_buffer, hierarchy_buffer, 0, static_cast<uint32_t>(morton_codes_buffer.size() - 1));
+		hierarchy_buffer.resize(2 * morton_codes_buffer.size() - 1, ShaderInterop::HierarchyNode{~0U, ~0U, ~0U});
+		{
+			// left, right, parent
+			std::deque<std::tuple<uint32_t, uint32_t, uint32_t>> tasks;
+			tasks.push_back(std::make_tuple(0, static_cast<uint32_t>(morton_codes_buffer.size() - 1), 0));
+			while (!tasks.empty())
+			{
+				const auto &[left, right, parent]        = tasks.front();
+				const auto &[i, left_child, right_child] = GenerateHierarchy(morton_codes_buffer, indices_buffer, hierarchy_buffer, left, right, parent);
+
+				if (i != ~0U && left_child != ~0U && right_child != ~0U)
+				{
+					if (i != left)
+					{
+						tasks.push_back(std::make_tuple(left, i, left_child));
+					}
+					if (i + 1 != right)
+					{
+						tasks.push_back(std::make_tuple(i + 1, right, right_child));
+					}
+				}
+
+				tasks.pop_front();
+			}
+		}
 
 		// Building BVH
-		std::vector<AABB> bvhs(2 * morton_codes_buffer.size() - 1);
+		bvhs.resize(2 * morton_codes_buffer.size() - 1);
 		GenerateAABBs(vertices, indices, hierarchy_buffer, bvhs);
+
+		// Upload buffer
+		{
+			Buffer hierarchy_staging(p_device, BufferDesc(sizeof(ShaderInterop::HierarchyNode), static_cast<uint32_t>(hierarchy_buffer.size()), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
+			Buffer aabbs_staging(p_device, BufferDesc(sizeof(ShaderInterop::AABB), static_cast<uint32_t>(bvhs.size()), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
+			Buffer primitive_idx_staging(p_device, BufferDesc(sizeof(uint32_t), static_cast<uint32_t>(indices_buffer.size()), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
+
+			std::memcpy(hierarchy_staging.Map(), hierarchy_buffer.data(), hierarchy_staging.GetSize());
+			std::memcpy(primitive_idx_staging.Map(), indices_buffer.data(), primitive_idx_staging.GetSize());
+			ShaderInterop::AABB *aabbs = static_cast<ShaderInterop::AABB *>(aabbs_staging.Map());
+			for (uint32_t i = 0; i < bvhs.size(); i++)
+			{
+				aabbs[i].min_val = glm::vec4(bvhs[i].GetMin(), 0.f);
+				aabbs[i].max_val = glm::vec4(bvhs[i].GetMax(), 0.f);
+			}
+
+			hierarchy_staging.Unmap();
+			primitive_idx_staging.Unmap();
+			aabbs_staging.Unmap();
+
+			if (!m_hierarchy_buffer || m_hierarchy_buffer->GetSize() < hierarchy_staging.GetSize())
+			{
+				m_hierarchy_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(ShaderInterop::HierarchyNode), static_cast<uint32_t>(hierarchy_buffer.size()), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
+			}
+			if (!m_aabbs_buffer || m_aabbs_buffer->GetSize() < aabbs_staging.GetSize())
+			{
+				m_aabbs_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(ShaderInterop::AABB), static_cast<uint32_t>(bvhs.size()), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
+			}
+			if (!m_primitive_indices_buffer || m_primitive_indices_buffer->GetSize() < primitive_idx_staging.GetSize())
+			{
+				m_primitive_indices_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(uint32_t), static_cast<uint32_t>(indices_buffer.size()), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
+			}
+
+			auto &cmd_buffer = p_device->RequestCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, VK_QUEUE_TRANSFER_BIT);
+			cmd_buffer.Begin();
+			cmd_buffer.CopyBuffer(BufferCopyInfo{&hierarchy_staging}, BufferCopyInfo{m_hierarchy_buffer.get()}, hierarchy_staging.GetSize());
+			cmd_buffer.CopyBuffer(BufferCopyInfo{&aabbs_staging}, BufferCopyInfo{m_aabbs_buffer.get()}, aabbs_staging.GetSize());
+			cmd_buffer.CopyBuffer(BufferCopyInfo{&primitive_idx_staging}, BufferCopyInfo{m_primitive_indices_buffer.get()}, primitive_idx_staging.GetSize());
+			cmd_buffer.End();
+			p_device->SubmitIdle(cmd_buffer, VK_QUEUE_TRANSFER_BIT);
+		}
+
 #endif
 	}
 }
@@ -411,5 +489,19 @@ void AccelerationStructure::SetName(const std::string &name)
 	vkSetDebugUtilsObjectNameEXT(p_device->GetDevice(), &name_info);
 
 	m_buffer->SetName(name + "_buffer");
+}
+Buffer &AccelerationStructure::GetHierarchyBuffer()
+{
+	return *m_hierarchy_buffer;
+}
+
+Buffer &AccelerationStructure::GetBoundingVolumeBuffer()
+{
+	return *m_aabbs_buffer;
+}
+
+Buffer &AccelerationStructure::GetPrimitiveIndicesBuffer()
+{
+	return *m_primitive_indices_buffer;
 }
 }        // namespace Ilum
