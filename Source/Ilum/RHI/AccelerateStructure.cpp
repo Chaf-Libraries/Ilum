@@ -1,17 +1,21 @@
 #include "AccelerateStructure.hpp"
 #include "Buffer.hpp"
-#include "Device.hpp"
-
 #include "Command.hpp"
+#include "DescriptorState.hpp"
+#include "Device.hpp"
+#include "PipelineState.hpp"
 
 #include "Asset/Mesh.hpp"
 
+#include <numeric>
+
 #define BIT(x) (1 << (x))
+
+#define GPU_BVH
 
 namespace Ilum
 {
 // https://www.highperformancegraphics.org/wp-content/uploads/2017/Papers-Session3/HPG207_ExtendedMortonCodes.pdf
-
 inline uint32_t MortonCodeFromUnitCoord(const glm::vec3 &unit_coord)
 {
 	uint32_t       morton_code = 0;
@@ -92,17 +96,6 @@ inline std::tuple<uint32_t, uint32_t, uint32_t> GenerateHierarchy(const std::vec
 			WriteParent(hierarchy, parent, left_child, right_child);
 
 			return std::make_tuple(i, left_child, right_child);
-
-			//// Recursive
-			// if (i != left)
-			//{
-			//	GenerateHierarchy(morton_code_buffer, indices_buffer, hierarchy, left, i, left_child);
-			// }
-			// if (i + 1 != right)
-			//{
-			//	GenerateHierarchy(morton_code_buffer, indices_buffer, hierarchy, i + 1, right, right_child);
-			// }
-			// break;
 		}
 	}
 
@@ -297,18 +290,150 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 	else
 	{
 #ifdef GPU_BVH
+		auto &cmd_buffer = p_device->RequestCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+		cmd_buffer.Begin();
 
+		Buffer morton_codes_buffer(p_device, BufferDesc(sizeof(uint32_t), desc.mesh->GetIndicesCount() / 3, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU));
+
+		if (!m_primitive_indices_buffer || m_primitive_indices_buffer->GetSize() < desc.mesh->GetIndicesCount() / 3)
+		{
+			m_primitive_indices_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(uint32_t), static_cast<uint32_t>(desc.mesh->GetIndicesCount() / 3), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU));
+		}
+
+		// Assigned Morton Codes
+		{
+			struct
+			{
+				glm::vec3 aabb_min        = {};
+				uint32_t  primitive_count = {};
+				glm::vec3 aabb_max        = {};
+			} push_constants;
+			push_constants.aabb_min        = desc.mesh->GetAABB().GetMin();
+			push_constants.aabb_max        = desc.mesh->GetAABB().GetMax();
+			push_constants.primitive_count = desc.mesh->GetIndicesCount() / 3;
+
+			ShaderDesc shader  = {};
+			shader.filename    = "./Source/Shaders/BVH/CalculateMortonCodes.hlsl";
+			shader.entry_point = "main";
+			shader.stage       = VK_SHADER_STAGE_COMPUTE_BIT;
+			shader.type        = ShaderType::HLSL;
+
+			PipelineState pso;
+			pso.LoadShader(shader);
+
+			cmd_buffer.Bind(pso);
+			cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+			                    .Bind(0, 0, &morton_codes_buffer)
+			                    .Bind(0, 1, m_primitive_indices_buffer.get())
+			                    .Bind(0, 2, &desc.mesh->GetVertexBuffer())
+			                    .Bind(0, 3, &desc.mesh->GetIndexBuffer()));
+			cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
+			cmd_buffer.Dispatch((desc.mesh->GetIndicesCount() / 3 + 32 - 1) / 32);
+			cmd_buffer.Transition(
+			    {BufferTransition{&morton_codes_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+			     BufferTransition{m_primitive_indices_buffer.get(), BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}}},
+			    {});
+		}
+
+		// Sorting Morton Codes
+		// Reference: https://poniesandlight.co.uk/reflect/bitonic_merge_sort/
+		{
+			uint32_t max_group_size = 1024;
+			uint32_t group_size_x   = 1;
+
+			uint32_t n = desc.mesh->GetIndicesCount() / 3;
+			if (n < max_group_size * 2)
+			{
+				group_size_x = n / 2;
+			}
+			else
+			{
+				group_size_x = max_group_size;
+			}
+
+			const uint32_t group_count = (n + group_size_x * 2 - 1) / (group_size_x * 2);
+
+			struct
+			{
+				uint32_t h = 0;
+				uint32_t size = 0;
+			} push_constants;
+
+			push_constants.size = static_cast<uint32_t>(desc.mesh->GetIndicesCount() / 3);
+
+			ShaderDesc local_bms_shader  = {};
+			local_bms_shader.filename    = "./Source/Shaders/BVH/BitonicSort.hlsl";
+			local_bms_shader.entry_point = "main";
+			local_bms_shader.macros.push_back("LOCAL_BMS");
+			local_bms_shader.macros.push_back("GROUP_SIZE=" + std::to_string(group_size_x));
+			local_bms_shader.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+			local_bms_shader.type  = ShaderType::HLSL;
+
+			PipelineState local_bms_pso;
+			local_bms_pso.LoadShader(local_bms_shader);
+
+			 auto local_bms = [&](uint32_t h) {
+				cmd_buffer.Bind(local_bms_pso);
+				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+				                    .Bind(0, 0, &morton_codes_buffer)
+				                    .Bind(0, 1, m_primitive_indices_buffer.get()));
+				push_constants.h = h;
+				cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
+				cmd_buffer.Dispatch(group_count);
+				cmd_buffer.Transition(
+				    {BufferTransition{&morton_codes_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+				     BufferTransition{m_primitive_indices_buffer.get(), BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}}},
+				    {});
+			 };
+
+			uint32_t h = group_size_x * 2;
+
+			local_bms(h);
+
+			h *= 2;
+
+			for (; h <= n; h *= 2)
+			{
+				// TODO: Global Flip
+				for (uint32_t hh = h / 2; hh > 1; hh /= 2)
+				{
+					if (hh < group_size_x * 2)
+					{
+						// TODO: Local disperse
+					}
+					else
+					{
+						// TODO: Global disperse
+					}
+				}
+			}
+		}
+
+		cmd_buffer.End();
+		p_device->SubmitIdle(cmd_buffer);
+
+		std::vector<uint32_t> morton_codes;
+		std::vector<uint32_t> indices;
+		morton_codes.resize(desc.mesh->GetIndicesCount() / 3);
+		indices.resize(desc.mesh->GetIndicesCount() / 3);
+		std::memcpy(morton_codes.data(), morton_codes_buffer.Map(), morton_codes_buffer.GetSize());
+		std::memcpy(indices.data(), m_primitive_indices_buffer->Map(), m_primitive_indices_buffer->GetSize());
+		morton_codes_buffer.Unmap();
+		m_primitive_indices_buffer->Unmap();
 #else
 		// CPU BVH Construction
 		const auto &vertices = desc.mesh->GetVertices();
 		const auto &indices  = desc.mesh->GetIndices();
 
-		std::map<uint32_t, uint32_t> morton_codes_map;        // morton_code - id
-
 		glm::vec3 aabb_min = desc.mesh->GetAABB().GetMin();
 		glm::vec3 aabb_max = desc.mesh->GetAABB().GetMax();
 
 		// Assigned Morton Codes
+		std::vector<uint32_t> morton_codes_buffer;
+		std::vector<uint32_t> indices_buffer;
+		morton_codes_buffer.reserve(indices.size() / 3);
+		indices_buffer.resize(indices.size() / 3);
+		std::iota(indices_buffer.begin(), indices_buffer.end(), 0);
 		for (uint32_t primitive_id = 0; primitive_id < indices.size() / 3; primitive_id++)
 		{
 			glm::vec3 v1 = vertices[indices[primitive_id * 3]].position;
@@ -317,25 +442,20 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 
 			glm::vec3 unit_coord = ((v1 + v2 + v3) / 3.f - aabb_min) / glm::max(aabb_max - aabb_min, glm::vec3(0.00001f));
 
-			// Fix duplicate
-			uint32_t morton_code = MortonCodeFromUnitCoord(unit_coord);
-			while (morton_codes_map.find(morton_code) != morton_codes_map.end())
-			{
-				morton_code++;
-			}
-			morton_codes_map[morton_code] = primitive_id;
+			morton_codes_buffer.push_back(MortonCodeFromUnitCoord(unit_coord));
 		}
 
 		// Sorting Primitives
-		std::vector<uint32_t> morton_codes_buffer;
-		std::vector<uint32_t> indices_buffer;
-		morton_codes_buffer.reserve(morton_codes_map.size());
-		indices_buffer.reserve(morton_codes_map.size());
-		for (auto &[morton_code, idx] : morton_codes_map)
+		std::sort(indices_buffer.begin(), indices_buffer.end(), [&](uint32_t lhs, uint32_t rhs) {
+			return morton_codes_buffer[lhs] < morton_codes_buffer[rhs];
+		});
+
+		std::vector<uint32_t> tmp_morton_codes_buffer(morton_codes_buffer.size());
+		for (uint32_t i = 0; i < morton_codes_buffer.size(); i++)
 		{
-			morton_codes_buffer.push_back(morton_code);
-			indices_buffer.push_back(idx);
+			tmp_morton_codes_buffer[i] = morton_codes_buffer[indices_buffer[i]];
 		}
+		morton_codes_buffer = std::move(tmp_morton_codes_buffer);
 
 		// Generate Hierarchy
 		// LBVH - Lauterbach et al. [2009]
@@ -410,7 +530,6 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 			cmd_buffer.End();
 			p_device->SubmitIdle(cmd_buffer, VK_QUEUE_TRANSFER_BIT);
 		}
-
 #endif
 	}
 }
