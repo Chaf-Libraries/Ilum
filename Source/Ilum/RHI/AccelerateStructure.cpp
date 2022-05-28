@@ -344,7 +344,7 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 			uint32_t n = desc.mesh->GetIndicesCount() / 3;
 			if (n < max_group_size * 2)
 			{
-				group_size_x = n / 2;
+				group_size_x = pow(2, std::floor(std::log2f(n)));
 			}
 			else
 			{
@@ -355,7 +355,7 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 
 			struct
 			{
-				uint32_t h = 0;
+				uint32_t h    = 0;
 				uint32_t size = 0;
 			} push_constants;
 
@@ -369,10 +369,43 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 			local_bms_shader.stage = VK_SHADER_STAGE_COMPUTE_BIT;
 			local_bms_shader.type  = ShaderType::HLSL;
 
+			ShaderDesc global_flip_shader  = {};
+			global_flip_shader.filename    = "./Source/Shaders/BVH/BitonicSort.hlsl";
+			global_flip_shader.entry_point = "main";
+			global_flip_shader.macros.push_back("GLOBAL_FLIP");
+			global_flip_shader.macros.push_back("GROUP_SIZE=" + std::to_string(group_size_x));
+			global_flip_shader.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+			global_flip_shader.type  = ShaderType::HLSL;
+
+			ShaderDesc global_disperse_shader  = {};
+			global_disperse_shader.filename    = "./Source/Shaders/BVH/BitonicSort.hlsl";
+			global_disperse_shader.entry_point = "main";
+			global_disperse_shader.macros.push_back("GLOBAL_DISPERSE");
+			global_disperse_shader.macros.push_back("GROUP_SIZE=" + std::to_string(group_size_x));
+			global_disperse_shader.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+			global_disperse_shader.type  = ShaderType::HLSL;
+
+			ShaderDesc local_disperse_shader  = {};
+			local_disperse_shader.filename    = "./Source/Shaders/BVH/BitonicSort.hlsl";
+			local_disperse_shader.entry_point = "main";
+			local_disperse_shader.macros.push_back("LOCAL_DISPERSE");
+			local_disperse_shader.macros.push_back("GROUP_SIZE=" + std::to_string(group_size_x));
+			local_disperse_shader.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+			local_disperse_shader.type  = ShaderType::HLSL;
+
 			PipelineState local_bms_pso;
 			local_bms_pso.LoadShader(local_bms_shader);
 
-			 auto local_bms = [&](uint32_t h) {
+			PipelineState global_flip_pso;
+			global_flip_pso.LoadShader(global_flip_shader);
+
+			PipelineState global_disperse_pso;
+			global_disperse_pso.LoadShader(global_disperse_shader);
+
+			PipelineState local_disperse_pso;
+			local_disperse_pso.LoadShader(local_disperse_shader);
+
+			auto local_bms = [&](uint32_t h) {
 				cmd_buffer.Bind(local_bms_pso);
 				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
 				                    .Bind(0, 0, &morton_codes_buffer)
@@ -384,26 +417,72 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 				    {BufferTransition{&morton_codes_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
 				     BufferTransition{m_primitive_indices_buffer.get(), BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}}},
 				    {});
-			 };
+			};
+
+			auto global_flip = [&](uint32_t h) {
+				cmd_buffer.Bind(global_flip_pso);
+				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+				                    .Bind(0, 0, &morton_codes_buffer)
+				                    .Bind(0, 1, m_primitive_indices_buffer.get()));
+				push_constants.h = h;
+				cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
+				cmd_buffer.Dispatch(group_count);
+				cmd_buffer.Transition(
+				    {BufferTransition{&morton_codes_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+				     BufferTransition{m_primitive_indices_buffer.get(), BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}}},
+				    {});
+			};
+
+			auto global_disperse = [&](uint32_t h) {
+				cmd_buffer.Bind(global_disperse_pso);
+				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+				                    .Bind(0, 0, &morton_codes_buffer)
+				                    .Bind(0, 1, m_primitive_indices_buffer.get()));
+				push_constants.h = h;
+				cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
+				cmd_buffer.Dispatch(group_count);
+				cmd_buffer.Transition(
+				    {BufferTransition{&morton_codes_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+				     BufferTransition{m_primitive_indices_buffer.get(), BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}}},
+				    {});
+			};
+
+			auto local_disperse = [&](uint32_t h) {
+				cmd_buffer.Bind(local_disperse_pso);
+				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+				                    .Bind(0, 0, &morton_codes_buffer)
+				                    .Bind(0, 1, m_primitive_indices_buffer.get()));
+				push_constants.h = h;
+				cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
+				cmd_buffer.Dispatch(group_count);
+				cmd_buffer.Transition(
+				    {BufferTransition{&morton_codes_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+				     BufferTransition{m_primitive_indices_buffer.get(), BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}}},
+				    {});
+			};
 
 			uint32_t h = group_size_x * 2;
 
 			local_bms(h);
 
-			h *= 2;
+			h <<= 1;
 
-			for (; h <= n; h *= 2)
+			for (; h <= n; h <<= 1)
 			{
 				// TODO: Global Flip
-				for (uint32_t hh = h / 2; hh > 1; hh /= 2)
+				//global_flip(h);
+				for (uint32_t hh = h >> 1; hh > 1; hh >>= 1)
 				{
-					if (hh < group_size_x * 2)
+					if (hh <= group_size_x * 2)
 					{
 						// TODO: Local disperse
+						//local_disperse(hh);
+						break;
 					}
 					else
 					{
 						// TODO: Global disperse
+						//global_disperse(hh);
 					}
 				}
 			}
@@ -420,6 +499,13 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 		std::memcpy(indices.data(), m_primitive_indices_buffer->Map(), m_primitive_indices_buffer->GetSize());
 		morton_codes_buffer.Unmap();
 		m_primitive_indices_buffer->Unmap();
+		for (size_t i = 0; i < morton_codes.size() - 1; i++)
+		{
+			if (morton_codes[i] > morton_codes[i + 1])
+			{
+				LOG_INFO("Fuck");
+			}
+		}
 #else
 		// CPU BVH Construction
 		const auto &vertices = desc.mesh->GetVertices();

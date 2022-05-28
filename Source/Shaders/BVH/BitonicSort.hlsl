@@ -20,17 +20,11 @@ struct CSParam
     uint GroupIndex : SV_GroupIndex;
 };
 
-
 groupshared uint local_morton_codes_cache[GROUP_SIZE * 2];
 groupshared uint local_indices_cache[GROUP_SIZE * 2];
 
 void GlobalCompareAndSwap(uint2 idx)
 {
-    if (idx.x >= push_constants.size || idx.y >= push_constants.size)
-    {
-        return;
-    }
-    
     if (morton_codes_buffer[idx.x] > morton_codes_buffer[idx.y])
     {
         uint tmp = morton_codes_buffer[idx.x];
@@ -40,6 +34,40 @@ void GlobalCompareAndSwap(uint2 idx)
         tmp = indices_buffer[idx.x];
         indices_buffer[idx.x] = indices_buffer[idx.y];
         indices_buffer[idx.y] = tmp;
+    }
+}
+
+void GlobalFlip(uint h, CSParam param)
+{
+    if (GROUP_SIZE * 2 > h)
+    {
+        return;
+    }
+    
+    uint t = param.DispatchThreadID.x;
+    uint half_h = h >> 1;
+    uint2 indices = h * ((2 * t) / h) + uint2(t % half_h, h - 1 - (t % half_h));
+    
+    if (indices.x < push_constants.size || indices.y < push_constants.size)
+    {
+        GlobalCompareAndSwap(indices);
+    }
+}
+
+void GlobalDisperse(uint h, CSParam param)
+{
+    if (GROUP_SIZE * 2 > h)
+    {
+        return;
+    }
+    
+    uint t = param.DispatchThreadID.x;
+    uint half_h = h >> 1;
+    uint2 indices = h * ((2 * t) / h) + uint2(t % half_h, half_h + (t % half_h));
+    
+    if (indices.x < push_constants.size || indices.y < push_constants.size)
+    {
+        GlobalCompareAndSwap(indices);
     }
 }
 
@@ -82,7 +110,7 @@ void LocalDisperse(uint h, CSParam param)
 }
 
 void LocalBMs(uint h, CSParam param)
-{    
+{
     for (uint h1 = 2; h1 <= h; h1 <<= 1)
     {
         GroupMemoryBarrier();
@@ -116,7 +144,24 @@ void main(CSParam param)
     
 #ifdef LOCAL_DISPERSE
     offset = GROUP_SIZE * 2 * param.GroupID.x;
+    local_morton_codes_cache[t * 2] = morton_codes_buffer[offset + t * 2];
+    local_morton_codes_cache[t * 2 + 1] = morton_codes_buffer[offset + t * 2 + 1];
+    local_indices_cache[t * 2] = indices_buffer[offset + t * 2];
+    local_indices_cache[t * 2 + 1] = indices_buffer[offset + t * 2 + 1];
+    LocalDisperse(push_constants.h, param);
+    GroupMemoryBarrier();
+    morton_codes_buffer[offset + t * 2] = local_morton_codes_cache[t * 2];
+    morton_codes_buffer[offset + t * 2 + 1] = local_morton_codes_cache[t * 2 + 1];
+    indices_buffer[offset + t * 2] = local_indices_cache[t * 2];
+    indices_buffer[offset + t * 2 + 1] = local_indices_cache[t * 2 + 1];
 #endif
     
+#ifdef GLOBAL_FLIP
+    GlobalFlip(push_constants.h, param);
+#endif
+    
+#ifdef GLOBAL_DISPERSE
+    GlobalDisperse(push_constants.h, param);
+#endif
     
 }
