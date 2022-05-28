@@ -48,7 +48,7 @@ void GlobalFlip(uint h, CSParam param)
     uint half_h = h >> 1;
     uint2 indices = h * ((2 * t) / h) + uint2(t % half_h, h - 1 - (t % half_h));
     
-    if (indices.x < push_constants.size || indices.y < push_constants.size)
+    if (indices.x < push_constants.size && indices.y < push_constants.size)
     {
         GlobalCompareAndSwap(indices);
     }
@@ -65,7 +65,7 @@ void GlobalDisperse(uint h, CSParam param)
     uint half_h = h >> 1;
     uint2 indices = h * ((2 * t) / h) + uint2(t % half_h, half_h + (t % half_h));
     
-    if (indices.x < push_constants.size || indices.y < push_constants.size)
+    if (indices.x < push_constants.size && indices.y < push_constants.size)
     {
         GlobalCompareAndSwap(indices);
     }
@@ -90,8 +90,8 @@ void LocalFlip(uint h, CSParam param)
     uint t = param.GroupThreadID.x;
     uint half_h = h >> 1;
     uint2 indices = h * ((2 * t) / h) + uint2(t % half_h, h - 1 - (t % half_h));
-    if (param.GroupID.x * GROUP_SIZE + indices.x < push_constants.size &&
-        param.GroupID.y * GROUP_SIZE + indices.y < push_constants.size)
+    //if (param.GroupID.x * GROUP_SIZE + indices.x < push_constants.size &&
+   //    param.GroupID.x * GROUP_SIZE + indices.y < push_constants.size)
     {
         LocalCompareAndSwap(indices);
     }
@@ -102,8 +102,8 @@ void LocalDisperse(uint h, CSParam param)
     uint t = param.GroupThreadID.x;
     uint half_h = h >> 1;
     uint2 indices = h * ((2 * t) / h) + uint2(t % half_h, half_h + (t % half_h));
-    if (param.GroupID.x * GROUP_SIZE + indices.x < push_constants.size &&
-        param.GroupID.y * GROUP_SIZE + indices.y < push_constants.size)
+    //if (param.GroupID.x * GROUP_SIZE + indices.x < push_constants.size &&
+    //    param.GroupID.x * GROUP_SIZE + indices.y < push_constants.size)
     {
         LocalCompareAndSwap(indices);
     }
@@ -126,10 +126,10 @@ void LocalBMs(uint h, CSParam param)
 [numthreads(GROUP_SIZE, 1, 1)]
 void main(CSParam param)
 {
-    uint offset = 0;
+    uint offset = GROUP_SIZE * 2 * param.GroupID.x;
     uint t = param.GroupThreadID.x;
+    
 #ifdef LOCAL_BMS
-    offset = GROUP_SIZE * 2 * param.GroupID.x;
     local_morton_codes_cache[t * 2] = morton_codes_buffer[offset + t * 2];
     local_morton_codes_cache[t * 2 + 1] = morton_codes_buffer[offset + t * 2 + 1];
     local_indices_cache[t * 2] = indices_buffer[offset + t * 2];
@@ -143,7 +143,6 @@ void main(CSParam param)
 #endif
     
 #ifdef LOCAL_DISPERSE
-    offset = GROUP_SIZE * 2 * param.GroupID.x;
     local_morton_codes_cache[t * 2] = morton_codes_buffer[offset + t * 2];
     local_morton_codes_cache[t * 2 + 1] = morton_codes_buffer[offset + t * 2 + 1];
     local_indices_cache[t * 2] = indices_buffer[offset + t * 2];

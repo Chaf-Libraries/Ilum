@@ -341,12 +341,9 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 			uint32_t max_group_size = 1024;
 			uint32_t group_size_x   = 1;
 
-			uint32_t n = desc.mesh->GetIndicesCount() / 3;
-			if (n < max_group_size * 2)
-			{
-				group_size_x = pow(2, std::floor(std::log2f(n)));
-			}
-			else
+			uint32_t n   = desc.mesh->GetIndicesCount() / 3;
+			group_size_x = pow(2, std::ceilf(std::log2f(n))) / 2;
+			if (group_size_x > max_group_size)
 			{
 				group_size_x = max_group_size;
 			}
@@ -463,32 +460,98 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 
 			uint32_t h = group_size_x * 2;
 
-			local_bms(h);
+			cmd_buffer.End();
+			p_device->SubmitIdle(cmd_buffer);
+
+			std::vector<uint32_t> morton_codes;
+			std::vector<uint32_t> indices;
+			morton_codes.resize(desc.mesh->GetIndicesCount() / 3);
+			indices.resize(desc.mesh->GetIndicesCount() / 3);
+			std::memcpy(morton_codes.data(), morton_codes_buffer.Map(), morton_codes_buffer.GetSize());
+			std::memcpy(indices.data(), m_primitive_indices_buffer->Map(), m_primitive_indices_buffer->GetSize());
+			morton_codes_buffer.Unmap();
+			m_primitive_indices_buffer->Unmap();
+
+			// local_bms(h);
+			{
+				for (uint32_t h1 = 2; h1 <= h; h1 <<= 1)
+				{
+					{
+						for (uint32_t t = 0; t < group_size_x; t++)
+						{
+							uint32_t half_h = h1 >> 1;
+
+							uint32_t x = h1 * ((2 * t) / h1) + t % half_h;
+							uint32_t y = h1 * ((2 * t) / h1) + h1 - 1 - (t % half_h);
+							if (morton_codes[x] > morton_codes[y])
+							{
+								uint32_t tmp = morton_codes[x];
+								morton_codes[x] = morton_codes[y];
+								morton_codes[y]=tmp;
+							}
+						}
+						//LOG_INFO("\n");
+					}
+					for (uint32_t h2 = h1 >> 1; h2 > 1; h2 >>= 1)
+					{
+						{
+							for (uint32_t t = 0; t < group_size_x; t++)
+							{
+								uint32_t half_h = h2 >> 1;
+
+								uint32_t x = h2 * ((2 * t) / h2) + t % half_h;
+								uint32_t y = h2 * ((2 * t) / h2) + half_h + (t % half_h);
+								if (morton_codes[x] > morton_codes[y])
+								{
+									uint32_t tmp    = morton_codes[x];
+									morton_codes[x] = morton_codes[y];
+									morton_codes[y] = tmp;
+								}
+							}
+							// LOG_INFO("\n");
+						}
+						// GroupMemoryBarrier();
+						// LocalDisperse(h2, param);
+					}
+				}
+			}
+
+			{
+				for (size_t i = 0; i < morton_codes.size() - 1; i++)
+				{
+					if (morton_codes[i] > morton_codes[i + 1])
+					{
+						LOG_INFO("Fuck - {}", i);
+					}
+				}
+				LOG_INFO("\n");
+			}
 
 			h <<= 1;
 
-			for (; h <= n; h <<= 1)
+			uint32_t nn = pow(2, std::ceilf(std::log2f(n)));
+			for (; h <= nn; h <<= 1)
 			{
 				// TODO: Global Flip
-				//global_flip(h);
+				// global_flip(h);
 				for (uint32_t hh = h >> 1; hh > 1; hh >>= 1)
 				{
 					if (hh <= group_size_x * 2)
 					{
 						// TODO: Local disperse
-						//local_disperse(hh);
+						// local_disperse(hh);
 						break;
 					}
 					else
 					{
 						// TODO: Global disperse
-						//global_disperse(hh);
+						// global_disperse(hh);
 					}
 				}
 			}
 		}
 
-		cmd_buffer.End();
+		/*cmd_buffer.End();
 		p_device->SubmitIdle(cmd_buffer);
 
 		std::vector<uint32_t> morton_codes;
@@ -501,11 +564,12 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 		m_primitive_indices_buffer->Unmap();
 		for (size_t i = 0; i < morton_codes.size() - 1; i++)
 		{
-			if (morton_codes[i] > morton_codes[i + 1])
-			{
-				LOG_INFO("Fuck");
-			}
+		    if (morton_codes[i] > morton_codes[i + 1])
+		    {
+		        LOG_INFO("Fuck - {}", i);
+		    }
 		}
+		LOG_INFO("\n");*/
 #else
 		// CPU BVH Construction
 		const auto &vertices = desc.mesh->GetVertices();
@@ -514,7 +578,8 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 		glm::vec3 aabb_min = desc.mesh->GetAABB().GetMin();
 		glm::vec3 aabb_max = desc.mesh->GetAABB().GetMax();
 
-		// Assigned Morton Codes
+		// Assigned Morton Codes		[1413]	262948713	unsigned int
+
 		std::vector<uint32_t> morton_codes_buffer;
 		std::vector<uint32_t> indices_buffer;
 		morton_codes_buffer.reserve(indices.size() / 3);
