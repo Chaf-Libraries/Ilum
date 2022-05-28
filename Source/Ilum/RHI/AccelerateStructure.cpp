@@ -483,12 +483,16 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 
 							uint32_t x = h1 * ((2 * t) / h1) + t % half_h;
 							uint32_t y = h1 * ((2 * t) / h1) + h1 - 1 - (t % half_h);
-							if (morton_codes[x] > morton_codes[y])
+							if (x < morton_codes.size() && y < morton_codes.size())
 							{
-								uint32_t tmp = morton_codes[x];
-								morton_codes[x] = morton_codes[y];
-								morton_codes[y]=tmp;
+								if (morton_codes[x] > morton_codes[y])
+								{
+									uint32_t tmp    = morton_codes[x];
+									morton_codes[x] = morton_codes[y];
+									morton_codes[y] = tmp;
+								}
 							}
+
 						}
 						//LOG_INFO("\n");
 					}
@@ -501,12 +505,16 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 
 								uint32_t x = h2 * ((2 * t) / h2) + t % half_h;
 								uint32_t y = h2 * ((2 * t) / h2) + half_h + (t % half_h);
-								if (morton_codes[x] > morton_codes[y])
+								if (x < morton_codes.size() && y < morton_codes.size())
 								{
-									uint32_t tmp    = morton_codes[x];
-									morton_codes[x] = morton_codes[y];
-									morton_codes[y] = tmp;
+									if (morton_codes[x] > morton_codes[y])
+									{
+										uint32_t tmp    = morton_codes[x];
+										morton_codes[x] = morton_codes[y];
+										morton_codes[y] = tmp;
+									}
 								}
+
 							}
 							// LOG_INFO("\n");
 						}
