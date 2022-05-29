@@ -75,13 +75,13 @@ void LocalCompareAndSwap(uint2 idx)
 {
     if (local_morton_codes_cache[idx.x] > local_morton_codes_cache[idx.y])
     {
-        uint tmp = local_morton_codes_cache[idx.x];
+        uint local_morton = local_morton_codes_cache[idx.x];
         local_morton_codes_cache[idx.x] = local_morton_codes_cache[idx.y];
-        local_morton_codes_cache[idx.y] = tmp;
+        local_morton_codes_cache[idx.y] = local_morton;
         
-        tmp = local_indices_cache[idx.x];
+        uint local_indices = local_indices_cache[idx.x];
         local_indices_cache[idx.x] = local_indices_cache[idx.y];
-        local_indices_cache[idx.y] = tmp;
+        local_indices_cache[idx.y] = local_indices;
     }
 }
 
@@ -90,8 +90,8 @@ void LocalFlip(uint h, CSParam param)
     uint t = param.GroupThreadID.x;
     uint half_h = h >> 1;
     uint2 indices = h * ((2 * t) / h) + uint2(t % half_h, h - 1 - (t % half_h));
-    //if (param.GroupID.x * GROUP_SIZE + indices.x < push_constants.size &&
-   //    param.GroupID.x * GROUP_SIZE + indices.y < push_constants.size)
+    if (param.GroupID.x * GROUP_SIZE + indices.x < push_constants.size &&
+       param.GroupID.x * GROUP_SIZE + indices.y < push_constants.size)
     {
         LocalCompareAndSwap(indices);
     }
@@ -102,8 +102,8 @@ void LocalDisperse(uint h, CSParam param)
     uint t = param.GroupThreadID.x;
     uint half_h = h >> 1;
     uint2 indices = h * ((2 * t) / h) + uint2(t % half_h, half_h + (t % half_h));
-    //if (param.GroupID.x * GROUP_SIZE + indices.x < push_constants.size &&
-    //    param.GroupID.x * GROUP_SIZE + indices.y < push_constants.size)
+    if (param.GroupID.x * GROUP_SIZE + indices.x < push_constants.size &&
+        param.GroupID.x * GROUP_SIZE + indices.y < push_constants.size)
     {
         LocalCompareAndSwap(indices);
     }
@@ -111,13 +111,16 @@ void LocalDisperse(uint h, CSParam param)
 
 void LocalBMs(uint h, CSParam param)
 {
+   [unroll]
     for (uint h1 = 2; h1 <= h; h1 <<= 1)
     {
-        GroupMemoryBarrier();
+        GroupMemoryBarrierWithGroupSync();
         LocalFlip(h1, param);
+        
+        [unroll]
         for (uint h2 = h1 >> 1; h2 > 1; h2 >>= 1)
         {
-            GroupMemoryBarrier();
+            GroupMemoryBarrierWithGroupSync ();
             LocalDisperse(h2, param);
         }
     }
@@ -135,7 +138,7 @@ void main(CSParam param)
     local_indices_cache[t * 2] = indices_buffer[offset + t * 2];
     local_indices_cache[t * 2 + 1] = indices_buffer[offset + t * 2 + 1];
     LocalBMs(push_constants.h, param);
-    GroupMemoryBarrier();
+     GroupMemoryBarrierWithGroupSync ();
     morton_codes_buffer[offset + t * 2] = local_morton_codes_cache[t * 2];
     morton_codes_buffer[offset + t * 2 + 1] = local_morton_codes_cache[t * 2 + 1];
     indices_buffer[offset + t * 2] = local_indices_cache[t * 2];
@@ -147,8 +150,12 @@ void main(CSParam param)
     local_morton_codes_cache[t * 2 + 1] = morton_codes_buffer[offset + t * 2 + 1];
     local_indices_cache[t * 2] = indices_buffer[offset + t * 2];
     local_indices_cache[t * 2 + 1] = indices_buffer[offset + t * 2 + 1];
-    LocalDisperse(push_constants.h, param);
-    GroupMemoryBarrier();
+    for (uint h = push_constants.h; h > 1; h >>= 1)
+    {
+        GroupMemoryBarrierWithGroupSync ();
+        LocalDisperse(h, param);
+    }
+    GroupMemoryBarrierWithGroupSync ();
     morton_codes_buffer[offset + t * 2] = local_morton_codes_cache[t * 2];
     morton_codes_buffer[offset + t * 2 + 1] = local_morton_codes_cache[t * 2 + 1];
     indices_buffer[offset + t * 2] = local_indices_cache[t * 2];

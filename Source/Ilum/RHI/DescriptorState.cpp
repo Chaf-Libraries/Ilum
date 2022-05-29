@@ -127,6 +127,12 @@ DescriptorState::DescriptorState(RHIDevice *device, const PipelineState *pso) :
 
 DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, Buffer *buffer)
 {
+	if (m_buffer_resolves.find(set) == m_buffer_resolves.end() ||
+	    m_buffer_resolves[set].find(binding) == m_buffer_resolves[set].end())
+	{
+		return *this;
+	}
+
 	if (m_buffer_resolves[set][binding][0].buffer != *buffer)
 	{
 		m_buffer_resolves[set][binding][0].buffer = *buffer;

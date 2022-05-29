@@ -65,12 +65,6 @@ class AccelerationStructure
   private:
 	void Build(VkCommandBuffer cmd_buffer, AccelerationStructureDesc desc);
 
-	// Temp
-  public:
-	std::vector<ShaderInterop::HierarchyNode> hierarchy_buffer;
-
-	std::vector<AABB> bvhs;
-
   private:
 	RHIDevice                 *p_device         = nullptr;
 	VkAccelerationStructureKHR m_handle         = VK_NULL_HANDLE;

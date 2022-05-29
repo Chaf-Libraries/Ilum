@@ -293,11 +293,24 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 		auto &cmd_buffer = p_device->RequestCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 		cmd_buffer.Begin();
 
-		Buffer morton_codes_buffer(p_device, BufferDesc(sizeof(uint32_t), desc.mesh->GetIndicesCount() / 3, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU));
+		uint32_t primitive_count = desc.mesh->GetIndicesCount() / 3;
 
-		if (!m_primitive_indices_buffer || m_primitive_indices_buffer->GetSize() < desc.mesh->GetIndicesCount() / 3)
+		Buffer morton_codes_buffer(p_device, BufferDesc(sizeof(uint32_t), primitive_count, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
+		Buffer hierarchy_flag_buffer(p_device, BufferDesc(sizeof(uint32_t), primitive_count * 2 - 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
+
+		if (!m_primitive_indices_buffer || m_primitive_indices_buffer->GetSize() < primitive_count * sizeof(uint32_t))
 		{
-			m_primitive_indices_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(uint32_t), static_cast<uint32_t>(desc.mesh->GetIndicesCount() / 3), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU));
+			m_primitive_indices_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(uint32_t), primitive_count, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
+		}
+
+		if (!m_hierarchy_buffer || m_hierarchy_buffer->GetSize() < (primitive_count * 2 - 1) * sizeof(ShaderInterop::HierarchyNode))
+		{
+			m_hierarchy_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(ShaderInterop::HierarchyNode), primitive_count * 2 - 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
+		}
+
+		if (!m_aabbs_buffer || m_aabbs_buffer->GetSize() < (primitive_count * 2 - 1) * sizeof(ShaderInterop::AABB))
+		{
+			m_aabbs_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(ShaderInterop::AABB), primitive_count * 2 - 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
 		}
 
 		// Assigned Morton Codes
@@ -342,7 +355,7 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 			uint32_t group_size_x   = 1;
 
 			uint32_t n   = desc.mesh->GetIndicesCount() / 3;
-			group_size_x = pow(2, std::ceilf(std::log2f(n))) / 2;
+			group_size_x = static_cast<uint32_t>(powf(2.f, std::ceilf(std::log2f(static_cast<float>(n)))) / 2.f);
 			if (group_size_x > max_group_size)
 			{
 				group_size_x = max_group_size;
@@ -460,124 +473,100 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 
 			uint32_t h = group_size_x * 2;
 
-			cmd_buffer.End();
-			p_device->SubmitIdle(cmd_buffer);
-
-			std::vector<uint32_t> morton_codes;
-			std::vector<uint32_t> indices;
-			morton_codes.resize(desc.mesh->GetIndicesCount() / 3);
-			indices.resize(desc.mesh->GetIndicesCount() / 3);
-			std::memcpy(morton_codes.data(), morton_codes_buffer.Map(), morton_codes_buffer.GetSize());
-			std::memcpy(indices.data(), m_primitive_indices_buffer->Map(), m_primitive_indices_buffer->GetSize());
-			morton_codes_buffer.Unmap();
-			m_primitive_indices_buffer->Unmap();
-
-			// local_bms(h);
-			{
-				for (uint32_t h1 = 2; h1 <= h; h1 <<= 1)
-				{
-					{
-						for (uint32_t t = 0; t < group_size_x; t++)
-						{
-							uint32_t half_h = h1 >> 1;
-
-							uint32_t x = h1 * ((2 * t) / h1) + t % half_h;
-							uint32_t y = h1 * ((2 * t) / h1) + h1 - 1 - (t % half_h);
-							if (x < morton_codes.size() && y < morton_codes.size())
-							{
-								if (morton_codes[x] > morton_codes[y])
-								{
-									uint32_t tmp    = morton_codes[x];
-									morton_codes[x] = morton_codes[y];
-									morton_codes[y] = tmp;
-								}
-							}
-
-						}
-						//LOG_INFO("\n");
-					}
-					for (uint32_t h2 = h1 >> 1; h2 > 1; h2 >>= 1)
-					{
-						{
-							for (uint32_t t = 0; t < group_size_x; t++)
-							{
-								uint32_t half_h = h2 >> 1;
-
-								uint32_t x = h2 * ((2 * t) / h2) + t % half_h;
-								uint32_t y = h2 * ((2 * t) / h2) + half_h + (t % half_h);
-								if (x < morton_codes.size() && y < morton_codes.size())
-								{
-									if (morton_codes[x] > morton_codes[y])
-									{
-										uint32_t tmp    = morton_codes[x];
-										morton_codes[x] = morton_codes[y];
-										morton_codes[y] = tmp;
-									}
-								}
-
-							}
-							// LOG_INFO("\n");
-						}
-						// GroupMemoryBarrier();
-						// LocalDisperse(h2, param);
-					}
-				}
-			}
-
-			{
-				for (size_t i = 0; i < morton_codes.size() - 1; i++)
-				{
-					if (morton_codes[i] > morton_codes[i + 1])
-					{
-						LOG_INFO("Fuck - {}", i);
-					}
-				}
-				LOG_INFO("\n");
-			}
+			local_bms(h);
 
 			h <<= 1;
 
-			uint32_t nn = pow(2, std::ceilf(std::log2f(n)));
+			uint32_t nn = static_cast<uint32_t>(powf(2, std::ceilf(std::log2f(static_cast<float>(n)))));
 			for (; h <= nn; h <<= 1)
 			{
-				// TODO: Global Flip
-				// global_flip(h);
+				global_flip(h);
 				for (uint32_t hh = h >> 1; hh > 1; hh >>= 1)
 				{
 					if (hh <= group_size_x * 2)
 					{
-						// TODO: Local disperse
-						// local_disperse(hh);
+						local_disperse(hh);
 						break;
 					}
 					else
 					{
-						// TODO: Global disperse
-						// global_disperse(hh);
+						global_disperse(hh);
 					}
 				}
 			}
 		}
 
-		/*cmd_buffer.End();
-		p_device->SubmitIdle(cmd_buffer);
-
-		std::vector<uint32_t> morton_codes;
-		std::vector<uint32_t> indices;
-		morton_codes.resize(desc.mesh->GetIndicesCount() / 3);
-		indices.resize(desc.mesh->GetIndicesCount() / 3);
-		std::memcpy(morton_codes.data(), morton_codes_buffer.Map(), morton_codes_buffer.GetSize());
-		std::memcpy(indices.data(), m_primitive_indices_buffer->Map(), m_primitive_indices_buffer->GetSize());
-		morton_codes_buffer.Unmap();
-		m_primitive_indices_buffer->Unmap();
-		for (size_t i = 0; i < morton_codes.size() - 1; i++)
+		//	Split Hierarchy
 		{
-		    if (morton_codes[i] > morton_codes[i + 1])
-		    {
-		        LOG_INFO("Fuck - {}", i);
-		    }
+			struct
+			{
+				uint32_t leaf_count = 0;
+				uint32_t node_count = 0;
+			} push_constants;
+
+			push_constants.leaf_count = primitive_count;
+			push_constants.node_count = 2 * primitive_count - 1;
+
+			ShaderDesc split_shader  = {};
+			split_shader.filename    = "./Source/Shaders/BVH/HierarchySplit.hlsl";
+			split_shader.entry_point = "main";
+			split_shader.stage       = VK_SHADER_STAGE_COMPUTE_BIT;
+			split_shader.type        = ShaderType::HLSL;
+
+			PipelineState split_pso;
+			split_pso.LoadShader(split_shader);
+
+			cmd_buffer.Bind(split_pso);
+			cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+			                    .Bind(0, 0, &morton_codes_buffer)
+			                    .Bind(0, 1, m_hierarchy_buffer.get()));
+			cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
+			cmd_buffer.Dispatch((push_constants.node_count + 1024 - 1) / 1024);
+			cmd_buffer.Transition(
+			    {BufferTransition{&morton_codes_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+			     BufferTransition{m_primitive_indices_buffer.get(), BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+			     BufferTransition{m_hierarchy_buffer.get(), BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}}},
+			    {});
 		}
-		LOG_INFO("\n");*/
+
+		// Generate AABB
+		{
+			struct
+			{
+				uint32_t leaf_count = 0;
+				uint32_t node_count = 0;
+			} push_constants;
+
+			push_constants.leaf_count = primitive_count;
+			push_constants.node_count = 2 * primitive_count - 1;
+
+			ShaderDesc aabb_shader  = {};
+			aabb_shader.filename    = "./Source/Shaders/BVH/GenerateAABB.hlsl";
+			aabb_shader.entry_point = "main";
+			aabb_shader.stage       = VK_SHADER_STAGE_COMPUTE_BIT;
+			aabb_shader.type        = ShaderType::HLSL;
+
+			PipelineState aabb_pso;
+			aabb_pso.LoadShader(aabb_shader);
+
+			cmd_buffer.Bind(aabb_pso);
+			cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+			                    .Bind(0, 0, m_primitive_indices_buffer.get())
+			                    .Bind(0, 1, &desc.mesh->GetVertexBuffer())
+			                    .Bind(0, 2, &desc.mesh->GetIndexBuffer())
+			                    .Bind(0, 3, m_hierarchy_buffer.get())
+			                    .Bind(0, 4, m_aabbs_buffer.get())
+			                    .Bind(0, 5, &hierarchy_flag_buffer));
+			cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
+			cmd_buffer.Dispatch((push_constants.node_count + 1024 - 1) / 1024);
+			cmd_buffer.Transition(
+			    {BufferTransition{m_primitive_indices_buffer.get(), BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+			     BufferTransition{m_hierarchy_buffer.get(), BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}}},
+			    {});
+		}
+
+		cmd_buffer.End();
+		p_device->SubmitIdle(cmd_buffer);
 #else
 		// CPU BVH Construction
 		const auto &vertices = desc.mesh->GetVertices();
@@ -588,8 +577,10 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 
 		// Assigned Morton Codes		[1413]	262948713	unsigned int
 
-		std::vector<uint32_t> morton_codes_buffer;
-		std::vector<uint32_t> indices_buffer;
+		std::vector<uint32_t>                     morton_codes_buffer;
+		std::vector<uint32_t>                     indices_buffer;
+		std::vector<ShaderInterop::HierarchyNode> hierarchy_buffer;
+		std::vector<AABB>                         bvhs;
 		morton_codes_buffer.reserve(indices.size() / 3);
 		indices_buffer.resize(indices.size() / 3);
 		std::iota(indices_buffer.begin(), indices_buffer.end(), 0);
