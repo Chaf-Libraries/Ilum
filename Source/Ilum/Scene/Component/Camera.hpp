@@ -53,9 +53,9 @@ class Camera : public Component
   private:
 	CameraType m_type = CameraType::Perspective;
 
-	glm::mat4 m_view;
-	glm::mat4 m_projection;
-	glm::mat4 m_view_projection;
+	glm::mat4 m_view = {};
+	glm::mat4 m_projection = {};
+	glm::mat4 m_view_projection = {};
 
 	float m_near_plane = 0.01f;
 	float m_far_plane  = 1000.f;

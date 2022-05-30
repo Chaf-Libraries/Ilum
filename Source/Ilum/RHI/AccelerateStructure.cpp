@@ -310,7 +310,7 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 
 		if (!m_aabbs_buffer || m_aabbs_buffer->GetSize() < (primitive_count * 2 - 1) * sizeof(ShaderInterop::AABB))
 		{
-			m_aabbs_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(ShaderInterop::AABB), primitive_count * 2 - 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
+			m_aabbs_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(ShaderInterop::AABB), primitive_count * 2 - 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU));
 		}
 
 		// Assigned Morton Codes
@@ -567,6 +567,10 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 
 		cmd_buffer.End();
 		p_device->SubmitIdle(cmd_buffer);
+
+		std::vector<ShaderInterop::AABB> aabbs(primitive_count * 2 - 1);
+		std::memcpy(aabbs.data(), m_aabbs_buffer->Map(), m_aabbs_buffer->GetSize());
+		m_aabbs_buffer->Unmap();
 #else
 		// CPU BVH Construction
 		const auto &vertices = desc.mesh->GetVertices();
@@ -575,7 +579,7 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 		glm::vec3 aabb_min = desc.mesh->GetAABB().GetMin();
 		glm::vec3 aabb_max = desc.mesh->GetAABB().GetMax();
 
-		// Assigned Morton Codes		[1413]	262948713	unsigned int
+		// Assigned Morton Codes
 
 		std::vector<uint32_t>                     morton_codes_buffer;
 		std::vector<uint32_t>                     indices_buffer;

@@ -163,6 +163,8 @@ struct Camera
 {
 	float4x4 view;
 	float4x4 projection;
+	float4x4 inv_view;
+	float4x4 inv_projection;
 	float4x4 view_projection;
 	float3   position;
 	uint     frame_count;
@@ -170,16 +172,16 @@ struct Camera
 	float4   up;
 
 #ifndef __cplusplus
-	/* RayDesc CastRay(float2 screen_coords)
+	RayDesc CastRay(float2 screen_coords)
 	{
 	    RayDesc ray;
 	    float4  target = mul(inv_projection, float4(screen_coords.x, screen_coords.y, 1, 1));
 	    ray.Origin     = mul(inv_view, float4(0, 0, 0, 1)).xyz;
 	    ray.Direction  = mul(inv_view, float4(normalize(target.xyz), 0)).xyz;
 	    ray.TMin       = 0.0;
-	    ray.TMax       = Infinity;
+	    ray.TMax       = 1e32;
 	    return ray;
-	}*/
+	}
 #endif        // !__cplusplus
 };
 

@@ -182,6 +182,12 @@ DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, Accelerat
 
 DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, const std::vector<Buffer *> &buffers)
 {
+	if (m_buffer_resolves.find(set) == m_buffer_resolves.end() ||
+	    m_buffer_resolves[set].find(binding) == m_buffer_resolves[set].end())
+	{
+		return *this;
+	}
+
 	if (m_buffer_resolves[set][binding].size() != buffers.size())
 	{
 		m_buffer_resolves[set][binding].resize(buffers.size());

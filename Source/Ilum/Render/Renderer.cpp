@@ -660,7 +660,8 @@ void Renderer::DrawBVH(CommandBuffer &cmd_buffer)
 	        DrawAABB(cmd_buffer, aabbs);
 	    }
 	});*/
-	const cmpt::Camera &main_camera = p_scene->GetRegistry().get<cmpt::Camera>(p_scene->GetMainCamera());
+
+	/**/ const cmpt::Camera &main_camera = p_scene->GetRegistry().get<cmpt::Camera>(p_scene->GetMainCamera());
 
 	auto group = p_scene->GetRegistry().group<cmpt::MeshRenderer>(entt::get<cmpt::Transform>);
 
@@ -670,19 +671,19 @@ void Renderer::DrawBVH(CommandBuffer &cmd_buffer)
 	}
 
 	ShaderDesc vertex_shader  = {};
-	vertex_shader.filename    = "./Source/Shaders/BVH/VisualizeBVH.hlsl";
+	vertex_shader.filename    = "./Source/Shaders/BVH/VisualizeBVH_.hlsl";
 	vertex_shader.entry_point = "VSmain";
 	vertex_shader.stage       = VK_SHADER_STAGE_VERTEX_BIT;
 	vertex_shader.type        = ShaderType::HLSL;
 
 	ShaderDesc geometry_shader  = {};
-	geometry_shader.filename    = "./Source/Shaders/BVH/VisualizeBVH.hlsl";
+	geometry_shader.filename    = "./Source/Shaders/BVH/VisualizeBVH_.hlsl";
 	geometry_shader.entry_point = "GSmain";
 	geometry_shader.stage       = VK_SHADER_STAGE_GEOMETRY_BIT;
 	geometry_shader.type        = ShaderType::HLSL;
 
 	ShaderDesc fragment_shader  = {};
-	fragment_shader.filename    = "./Source/Shaders/BVH/VisualizeBVH.hlsl";
+	fragment_shader.filename    = "./Source/Shaders/BVH/VisualizeBVH_.hlsl";
 	fragment_shader.entry_point = "PSmain";
 	fragment_shader.stage       = VK_SHADER_STAGE_FRAGMENT_BIT;
 	fragment_shader.type        = ShaderType::HLSL;

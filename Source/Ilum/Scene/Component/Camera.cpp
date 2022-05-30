@@ -156,6 +156,8 @@ void Camera::Tick(Scene &scene, entt::entity entity, RHIDevice *device)
 
 		camera_data->view            = m_view;
 		camera_data->projection      = m_projection;
+		camera_data->inv_view        = glm::inverse(m_view);
+		camera_data->inv_projection  = glm::inverse(m_projection);
 		camera_data->view_projection = m_projection * m_view;
 		camera_data->position        = transform.GetWorldTransform()[3];
 		camera_data->right           = glm::vec4(right, 0.f);

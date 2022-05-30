@@ -22,4 +22,9 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/lib")
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo;MinSizeRel" CACHE STRING "My multi config types" FORCE)
 
+option(ENABLE_RTX_EXTENSION "" ON)
+if(ENABLE_RTX_EXTENSION)
+	add_compile_definitions("ENABLE_RTX_EXTENSION")
+endif()
+
 add_subdirectory(Source)

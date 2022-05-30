@@ -8,6 +8,13 @@ static const uint SpecularGlossinessWorkflow = 1;
 
 #define MAX_TEXTURE_ARRAY_SIZE 1024
 
+void Swap(inout float lhs, inout float rhs)
+{
+    float tmp = lhs;
+    lhs = rhs;
+    rhs = tmp;
+}
+
 float2 OctWrap(float2 v)
 {
     return float2((1.0f - abs(v.y)) * (v.x >= 0.0f ? 1.0f : -1.0f), (1.0f - abs(v.x)) * (v.y >= 0.0f ? 1.0f : -1.0f));

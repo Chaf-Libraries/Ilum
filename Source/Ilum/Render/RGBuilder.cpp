@@ -26,6 +26,9 @@ namespace Ilum
 std::vector<std::string> RGBuilder::s_avaliable_passes = {
     "VBuffer",
     "VisualizeVBuffer",
+#ifndef ENABLE_RTX_EXTENSION
+    "VisualizeBVH",
+#endif        // !ENABLE_RTX_EXTENSION
     "VShading",
     "SkyboxPass",
     "FXAA",
@@ -231,16 +234,16 @@ void RGBuilder::Compile()
 		}
 		// All nodes that shared one resource
 		std::set<RGHandle> shares;
-		 shares.insert(handle);
-		 for (auto &[hash, edge] : edges)
+		shares.insert(handle);
+		for (auto &[hash, edge] : edges)
 		{
-			 if (shares.find(edge.first) != shares.end() || 
-				 shares.find(edge.second) != shares.end())
+			if (shares.find(edge.first) != shares.end() ||
+			    shares.find(edge.second) != shares.end())
 			{
 				shares.insert(edge.first);
 				shares.insert(edge.second);
 			}
-		 }
+		}
 		//  Allocate new resource
 		if (m_resources[handle]->GetType() == ResourceType::Texture)
 		{
