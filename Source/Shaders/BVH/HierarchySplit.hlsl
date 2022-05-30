@@ -15,7 +15,6 @@ struct CSParam
 struct
 {
     uint leaf_count;
-    uint node_count;
 } push_constants;
 
 int CountLeadingZeroes(uint num)
@@ -127,18 +126,19 @@ void GenerateHierarchy(uint idx)
 [numthreads(1024, 1, 1)]
 void main(CSParam param)
 {
-    //if (param.DispatchThreadID.x < push_constants.node_count)
-    //{
-    //    hierarchy_buffer[param.DispatchThreadID.x].parent = ~0U;
-    //    hierarchy_buffer[param.DispatchThreadID.x].left_child = ~0U;
-    //    hierarchy_buffer[param.DispatchThreadID.x].right_child = ~0U;
-    //}
-    
-    if (param.DispatchThreadID.x >= push_constants.leaf_count - 1)
+#ifdef INITIALIZE
+    if (param.DispatchThreadID.x < push_constants.leaf_count * 2 - 1)
     {
-        return;
+        hierarchy_buffer[param.DispatchThreadID.x].parent = ~0U;
+        hierarchy_buffer[param.DispatchThreadID.x].left_child = ~0U;
+        hierarchy_buffer[param.DispatchThreadID.x].right_child = ~0U;
     }
+#endif
     
-    GroupMemoryBarrierWithGroupSync();
-    GenerateHierarchy(param.DispatchThreadID.x);
+#ifdef SPLIT
+    if (param.DispatchThreadID.x < push_constants.leaf_count - 1)
+    {
+        GenerateHierarchy(param.DispatchThreadID.x);
+    }
+#endif
 }

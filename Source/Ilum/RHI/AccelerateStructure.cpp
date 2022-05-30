@@ -295,22 +295,22 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 
 		uint32_t primitive_count = desc.mesh->GetIndicesCount() / 3;
 
-		Buffer morton_codes_buffer(p_device, BufferDesc(sizeof(uint32_t), primitive_count, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
-		Buffer hierarchy_flag_buffer(p_device, BufferDesc(sizeof(uint32_t), primitive_count * 2 - 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
+		Buffer morton_codes_buffer(p_device, BufferDesc(sizeof(uint32_t), primitive_count, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU));
+		Buffer hierarchy_flag_buffer(p_device, BufferDesc(sizeof(uint32_t), primitive_count * 2 - 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU));
 
 		if (!m_primitive_indices_buffer || m_primitive_indices_buffer->GetSize() < primitive_count * sizeof(uint32_t))
 		{
-			m_primitive_indices_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(uint32_t), primitive_count, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
+			m_primitive_indices_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(uint32_t), primitive_count, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU));
 		}
 
 		if (!m_hierarchy_buffer || m_hierarchy_buffer->GetSize() < (primitive_count * 2 - 1) * sizeof(ShaderInterop::HierarchyNode))
 		{
-			m_hierarchy_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(ShaderInterop::HierarchyNode), primitive_count * 2 - 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
+			m_hierarchy_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(ShaderInterop::HierarchyNode), primitive_count * 2 - 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU));
 		}
 
 		if (!m_aabbs_buffer || m_aabbs_buffer->GetSize() < (primitive_count * 2 - 1) * sizeof(ShaderInterop::AABB))
 		{
-			m_aabbs_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(ShaderInterop::AABB), primitive_count * 2 - 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
+			m_aabbs_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(ShaderInterop::AABB), primitive_count * 2 - 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU));
 		}
 
 		// Assigned Morton Codes
@@ -501,32 +501,58 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 			struct
 			{
 				uint32_t leaf_count = 0;
-				uint32_t node_count = 0;
 			} push_constants;
 
 			push_constants.leaf_count = primitive_count;
-			push_constants.node_count = 2 * primitive_count - 1;
+
+			ShaderDesc init_shader  = {};
+			init_shader.filename    = "./Source/Shaders/BVH/HierarchySplit.hlsl";
+			init_shader.entry_point = "main";
+			init_shader.macros.push_back("INITIALIZE");
+			init_shader.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+			init_shader.type  = ShaderType::HLSL;
 
 			ShaderDesc split_shader  = {};
 			split_shader.filename    = "./Source/Shaders/BVH/HierarchySplit.hlsl";
 			split_shader.entry_point = "main";
-			split_shader.stage       = VK_SHADER_STAGE_COMPUTE_BIT;
-			split_shader.type        = ShaderType::HLSL;
+			split_shader.macros.push_back("SPLIT");
+			split_shader.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+			split_shader.type  = ShaderType::HLSL;
 
-			PipelineState split_pso;
-			split_pso.LoadShader(split_shader);
+			// Init hierarchy
+			{
+				PipelineState init_pso;
+				init_pso.LoadShader(init_shader);
 
-			cmd_buffer.Bind(split_pso);
-			cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
-			                    .Bind(0, 0, &morton_codes_buffer)
-			                    .Bind(0, 1, m_hierarchy_buffer.get()));
-			cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
-			cmd_buffer.Dispatch((push_constants.node_count + 1024 - 1) / 1024);
-			cmd_buffer.Transition(
-			    {BufferTransition{&morton_codes_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
-			     BufferTransition{m_primitive_indices_buffer.get(), BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
-			     BufferTransition{m_hierarchy_buffer.get(), BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}}},
-			    {});
+				cmd_buffer.Bind(init_pso);
+				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+				                    .Bind(0, 1, m_hierarchy_buffer.get()));
+				cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
+				cmd_buffer.Dispatch((primitive_count * 2 - 1 + 1024 - 1) / 1024);
+				cmd_buffer.Transition(
+				    {BufferTransition{&morton_codes_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+				     BufferTransition{m_primitive_indices_buffer.get(), BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+				     BufferTransition{m_hierarchy_buffer.get(), BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}}},
+				    {});
+			}
+
+			// Split
+			{
+				PipelineState split_pso;
+				split_pso.LoadShader(split_shader);
+
+				cmd_buffer.Bind(split_pso);
+				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+				                    .Bind(0, 0, &morton_codes_buffer)
+				                    .Bind(0, 1, m_hierarchy_buffer.get()));
+				cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
+				cmd_buffer.Dispatch((primitive_count + 1024 - 1) / 1024);
+				cmd_buffer.Transition(
+				    {BufferTransition{&morton_codes_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+				     BufferTransition{m_primitive_indices_buffer.get(), BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+				     BufferTransition{m_hierarchy_buffer.get(), BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}}},
+				    {});
+			}
 		}
 
 		// Generate AABB
@@ -568,7 +594,7 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 		cmd_buffer.End();
 		p_device->SubmitIdle(cmd_buffer);
 
-		/*std::vector<uint32_t>                     morton_codes;
+		std::vector<uint32_t>                     morton_codes;
 		std::vector<uint32_t>                     indices;
 		std::vector<uint32_t>                     hierarchy_flag;
 		std::vector<ShaderInterop::HierarchyNode> hierarchy;
@@ -587,7 +613,7 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 		m_aabbs_buffer->Unmap();
 		m_primitive_indices_buffer->Unmap();
 		hierarchy_flag_buffer.Unmap();
-		m_hierarchy_buffer->Unmap();*/
+		m_hierarchy_buffer->Unmap();
 
 #else
 		// CPU BVH Construction
