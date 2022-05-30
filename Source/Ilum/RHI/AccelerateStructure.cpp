@@ -46,9 +46,9 @@ inline int32_t GetLongestCommonPerfix(const std::vector<uint32_t> &morton_code_b
 		return -1;
 	}
 
-	if (morton_code_lhs != morton_code_rhs)
+	if (morton_code_buffer[morton_code_lhs] != morton_code_buffer[morton_code_rhs])
 	{
-		return 31 - ShaderInterop::firstbithigh(morton_code_lhs ^ morton_code_rhs);
+		return 31 - ShaderInterop::firstbithigh(morton_code_buffer[morton_code_lhs] ^ morton_code_buffer[morton_code_rhs]);
 	}
 	else
 	{
@@ -310,7 +310,7 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 
 		if (!m_aabbs_buffer || m_aabbs_buffer->GetSize() < (primitive_count * 2 - 1) * sizeof(ShaderInterop::AABB))
 		{
-			m_aabbs_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(ShaderInterop::AABB), primitive_count * 2 - 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_TO_CPU));
+			m_aabbs_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(ShaderInterop::AABB), primitive_count * 2 - 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
 		}
 
 		// Assigned Morton Codes
@@ -568,9 +568,27 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 		cmd_buffer.End();
 		p_device->SubmitIdle(cmd_buffer);
 
+		/*std::vector<uint32_t>                     morton_codes;
+		std::vector<uint32_t>                     indices;
+		std::vector<uint32_t>                     hierarchy_flag;
+		std::vector<ShaderInterop::HierarchyNode> hierarchy;
+		indices.resize(primitive_count);
+		morton_codes.resize(primitive_count);
+		hierarchy_flag.resize(primitive_count * 2 - 1);
+		hierarchy.resize(primitive_count * 2 - 1);
 		std::vector<ShaderInterop::AABB> aabbs(primitive_count * 2 - 1);
+		std::memcpy(morton_codes.data(), morton_codes_buffer.Map(), morton_codes_buffer.GetSize());
+		std::memcpy(indices.data(), m_primitive_indices_buffer->Map(), m_primitive_indices_buffer->GetSize());
 		std::memcpy(aabbs.data(), m_aabbs_buffer->Map(), m_aabbs_buffer->GetSize());
+		std::memcpy(hierarchy_flag.data(), hierarchy_flag_buffer.Map(), hierarchy_flag_buffer.GetSize());
+		std::memcpy(hierarchy.data(), m_hierarchy_buffer->Map(), m_hierarchy_buffer->GetSize());
+
+		morton_codes_buffer.Unmap();
 		m_aabbs_buffer->Unmap();
+		m_primitive_indices_buffer->Unmap();
+		hierarchy_flag_buffer.Unmap();
+		m_hierarchy_buffer->Unmap();*/
+
 #else
 		// CPU BVH Construction
 		const auto &vertices = desc.mesh->GetVertices();

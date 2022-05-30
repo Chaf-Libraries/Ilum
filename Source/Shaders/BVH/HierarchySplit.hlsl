@@ -18,6 +18,11 @@ struct
     uint node_count;
 } push_constants;
 
+int CountLeadingZeroes(uint num)
+{
+    return 31 - firstbithigh(num);
+}
+
 int GetLongestCommonPerfix(uint lhs_idx, uint rhs_idx)
 {
     if (lhs_idx >= push_constants.leaf_count || rhs_idx >= push_constants.leaf_count)
@@ -30,11 +35,11 @@ int GetLongestCommonPerfix(uint lhs_idx, uint rhs_idx)
         uint morton_code_rhs = morton_codes_buffer[rhs_idx];
         if (morton_code_lhs != morton_code_rhs)
         {
-            return 31 - firstbithigh(morton_code_lhs ^ morton_code_rhs);
+            return CountLeadingZeroes(morton_codes_buffer[lhs_idx] ^ morton_codes_buffer[rhs_idx]);
         }
         else
         {
-            return 32 + 31 - firstbithigh(morton_code_lhs ^ morton_code_rhs);
+            return CountLeadingZeroes(lhs_idx ^ rhs_idx) + 31;
         }
     }
 }
@@ -55,13 +60,13 @@ uint2 DetermineRange(uint idx)
     int d = GetLongestCommonPerfix(idx, idx + 1) - GetLongestCommonPerfix(idx, idx - 1);
     d = clamp(d, -1, 1);
     int min_prefix = GetLongestCommonPerfix(idx, idx - d);
-    int max_length = 2;
+    uint max_length = 2;
     while (GetLongestCommonPerfix(idx, idx + max_length * d) > min_prefix)
     {
-        max_length *= 2;
+        max_length *= 4;
     }
-    int length = 0;
-    for (int t = max_length / 2; t >= 1; t /= 2)
+    uint length = 0;
+    for (int t = max_length / 2; t > 0; t /= 2)
     {
         if (GetLongestCommonPerfix(idx, idx + (length + t) * d) > min_prefix)
         {
@@ -76,12 +81,12 @@ uint FindSplit(uint start, uint end)
 {
     int common_prefix = GetLongestCommonPerfix(start, end);
     uint split = start;
-    int step = end - start;
+    uint step = end - start;
     
     do
     {
         step = (step + 1) >> 1;
-        int new_split = split + step;
+        uint new_split = split + step;
         if (new_split < end)
         {
             int split_prefix = GetLongestCommonPerfix(start, new_split);
@@ -101,8 +106,6 @@ void GenerateHierarchy(uint idx)
     uint start = range.x;
     uint end = range.y;
     
-
-    
     uint split = FindSplit(start, end);
     uint leaf_offset = push_constants.leaf_count - 1;
     uint left_child = split;
@@ -116,26 +119,26 @@ void GenerateHierarchy(uint idx)
         right_child += leaf_offset;
     }
     
+    WriteParent(idx, left_child, right_child);
     WriteChildren(left_child, idx);
     WriteChildren(right_child, idx);
-    WriteParent(idx, left_child, right_child);
 }
 
 [numthreads(1024, 1, 1)]
 void main(CSParam param)
 {
-    if (param.DispatchThreadID.x < push_constants.node_count)
-    {
-        hierarchy_buffer[param.DispatchThreadID.x].parent = ~0U;
-        hierarchy_buffer[param.DispatchThreadID.x].left_child = ~0U;
-        hierarchy_buffer[param.DispatchThreadID.x].right_child = ~0U;
-        GroupMemoryBarrierWithGroupSync();
-    }
+    //if (param.DispatchThreadID.x < push_constants.node_count)
+    //{
+    //    hierarchy_buffer[param.DispatchThreadID.x].parent = ~0U;
+    //    hierarchy_buffer[param.DispatchThreadID.x].left_child = ~0U;
+    //    hierarchy_buffer[param.DispatchThreadID.x].right_child = ~0U;
+    //}
     
     if (param.DispatchThreadID.x >= push_constants.leaf_count - 1)
     {
         return;
     }
     
+    GroupMemoryBarrierWithGroupSync();
     GenerateHierarchy(param.DispatchThreadID.x);
 }

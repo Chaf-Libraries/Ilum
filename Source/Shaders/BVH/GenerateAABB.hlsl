@@ -56,6 +56,8 @@ void main(CSParam param)
     {
         uint prev_flag = 0;
         InterlockedAdd(hierarchy_flags[parent], 1, prev_flag);
+        
+        GroupMemoryBarrierWithGroupSync();
                 
         if (prev_flag != 1)
         {
