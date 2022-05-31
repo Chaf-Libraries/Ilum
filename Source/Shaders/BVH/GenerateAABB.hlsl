@@ -12,7 +12,6 @@ RWStructuredBuffer<uint> hierarchy_flags : register(u5);
 struct
 {
     uint leaf_count;
-    uint node_count;
 } push_constants;
 
 struct CSParam
@@ -26,14 +25,16 @@ struct CSParam
 [numthreads(1024, 1, 1)]
 void main(CSParam param)
 {
-    if (param.DispatchThreadID.x < push_constants.node_count)
+#ifdef INITIALIZE
+    if (param.DispatchThreadID.x < push_constants.leaf_count * 2 -1)
     {
         aabbs_buffer[param.DispatchThreadID.x].max_val = -Infinity;
         aabbs_buffer[param.DispatchThreadID.x].min_val = Infinity;
         hierarchy_flags[param.DispatchThreadID.x] = 0;
-        GroupMemoryBarrierWithGroupSync();
     }
+#endif
     
+#ifdef GENERATION
     if (param.DispatchThreadID.x >= push_constants.leaf_count)
     {
         return;
@@ -48,7 +49,6 @@ void main(CSParam param)
     aabbs_buffer[leaf].min_val = float4(min(min(v1, v2), v3), 0.0);
     aabbs_buffer[leaf].max_val = float4(max(max(v1, v2), v3), 0.0);
     hierarchy_flags[leaf] = 1;
-    GroupMemoryBarrierWithGroupSync();
     
     // Build node AABB
     uint parent = hierarchy_buffer[leaf].parent;
@@ -56,9 +56,8 @@ void main(CSParam param)
     {
         uint prev_flag = 0;
         InterlockedAdd(hierarchy_flags[parent], 1, prev_flag);
-        
-        GroupMemoryBarrierWithGroupSync();
-                
+        DeviceMemoryBarrier();
+                        
         if (prev_flag != 1)
         {
             return;
@@ -74,8 +73,6 @@ void main(CSParam param)
         aabbs_buffer[parent].max_val = max(left_aabb.max_val, right_aabb.max_val);
         
         parent = hierarchy_buffer[parent].parent;
-    
-        GroupMemoryBarrierWithGroupSync();
     }
-
+#endif
 }

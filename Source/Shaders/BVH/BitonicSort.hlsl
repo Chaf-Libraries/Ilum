@@ -27,10 +27,9 @@ void GlobalCompareAndSwap(uint2 idx)
 {
     if (morton_codes_buffer[idx.x] > morton_codes_buffer[idx.y])
     {
-        uint morton_x = morton_codes_buffer[idx.x];
-        uint morton_y = morton_codes_buffer[idx.y];
-        morton_codes_buffer[idx.x] = morton_y;
-        morton_codes_buffer[idx.y] = morton_x;
+        uint morton = morton_codes_buffer[idx.x];
+        morton_codes_buffer[idx.x] = morton_codes_buffer[idx.y];
+        morton_codes_buffer[idx.y] = morton;
         
         uint indices = indices_buffer[idx.x];
         indices_buffer[idx.x] = indices_buffer[idx.y];

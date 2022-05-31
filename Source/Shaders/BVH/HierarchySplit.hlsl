@@ -52,6 +52,61 @@ void WriteParent(uint parent, uint lchild, uint rchild)
 {
     hierarchy_buffer[parent].left_child = lchild;
     hierarchy_buffer[parent].right_child = rchild;
+    hierarchy_buffer[lchild].right_sibling = rchild;
+}
+
+void GenerateHierarchy_(int idx)
+{
+    int d = clamp(GetLongestCommonPerfix(idx, idx + 1) - GetLongestCommonPerfix(idx, idx - 1), -1, 1);
+    int min_prefix = GetLongestCommonPerfix(idx, idx - d);
+    int l_max = 2;
+    while (GetLongestCommonPerfix(idx, idx + l_max * d) > min_prefix)
+    {
+        l_max = l_max * 2;
+    }
+    int l = 0;
+    for (int t = l_max / 2; t >= 1; t /= 2)
+    {
+        if (GetLongestCommonPerfix(idx, idx + (l + t) * d) > min_prefix)
+        {
+            l = l + t;
+        }
+    }
+    int j = idx + l * d;
+    int node_prefix = GetLongestCommonPerfix(idx, j);
+    int s = 0;
+    float n = 2;
+    while (true)
+    {
+        t = (int) (ceil((float) l / n));
+        if (GetLongestCommonPerfix(idx, idx + (s + t) * d) > node_prefix)
+        {
+            s = s + t;
+        }
+        n *= 2.0;
+        if (t == 1)
+        {
+            break;
+        }
+    }
+    
+    int leaf_offset = push_constants.leaf_count - 1;
+    int gamma = idx + s * d + min(d, 0);
+    uint left_child = gamma;
+    uint right_child = gamma + 1;
+    
+    if (min(idx, j) == gamma)
+    {
+        left_child += leaf_offset;
+    }
+    if (max(idx, j) == gamma + 1)
+    {
+        right_child += leaf_offset;
+    }
+    
+    WriteParent(idx, left_child, right_child);
+    WriteChildren(left_child, idx);
+    WriteChildren(right_child, idx);
 }
 
 uint2 DetermineRange(uint idx)
@@ -132,13 +187,14 @@ void main(CSParam param)
         hierarchy_buffer[param.DispatchThreadID.x].parent = ~0U;
         hierarchy_buffer[param.DispatchThreadID.x].left_child = ~0U;
         hierarchy_buffer[param.DispatchThreadID.x].right_child = ~0U;
+        hierarchy_buffer[param.DispatchThreadID.x].right_sibling = ~0U;
     }
 #endif
     
 #ifdef SPLIT
     if (param.DispatchThreadID.x < push_constants.leaf_count - 1)
     {
-        GenerateHierarchy(param.DispatchThreadID.x);
+        GenerateHierarchy_(param.DispatchThreadID.x);
     }
 #endif
 }

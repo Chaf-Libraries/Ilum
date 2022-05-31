@@ -48,7 +48,7 @@ void Renderer::Tick()
 
 	m_rg.Execute();
 
-	DrawPrimitive();
+	//DrawPrimitive();
 }
 
 void Renderer::OnImGui(ImGuiContext &context)
@@ -643,25 +643,7 @@ void Renderer::DrawAABB(CommandBuffer &cmd_buffer, const std::vector<std::pair<A
 
 void Renderer::DrawBVH(CommandBuffer &cmd_buffer)
 {
-	/*auto group = p_scene->GetRegistry().group<cmpt::MeshRenderer>(entt::get<cmpt::Transform>);
-	group.each([&](cmpt::MeshRenderer &mesh_renderer, cmpt::Transform& transform) {
-	    auto *mesh = mesh_renderer.GetMesh();
-	    if (mesh)
-	    {
-	        const auto &hierarchy = mesh->GetBLAS().hierarchy_buffer;
-	        const auto &bvhs      = mesh->GetBLAS().bvhs;
-
-	        std::vector<std::pair<AABB, glm::vec3>> aabbs(bvhs.size());
-	        for (uint32_t i = 0; i < aabbs.size(); i++)
-	        {
-	            aabbs[i].first  = bvhs[i].Transform(transform.GetWorldTransform());
-	            aabbs[i].second = glm::vec3(1.f);
-	        }
-	        DrawAABB(cmd_buffer, aabbs);
-	    }
-	});*/
-
-	/**/ const cmpt::Camera &main_camera = p_scene->GetRegistry().get<cmpt::Camera>(p_scene->GetMainCamera());
+	const cmpt::Camera &main_camera = p_scene->GetRegistry().get<cmpt::Camera>(p_scene->GetMainCamera());
 
 	auto group = p_scene->GetRegistry().group<cmpt::MeshRenderer>(entt::get<cmpt::Transform>);
 
@@ -758,18 +740,6 @@ void Renderer::DrawBVH(CommandBuffer &cmd_buffer)
 
 		cmd_buffer.BeginRenderPass(framebuffer);
 		cmd_buffer.Bind(pso);
-		//	for (const auto &[aabb, color] : aabbs)
-		//	{
-		//		push_constants.aabb_max = aabb.GetMax();
-		//		push_constants.aabb_min = aabb.GetMin();
-		//		push_constants.color    = color;
-
-		//		cmd_buffer.PushConstants(VK_SHADER_STAGE_VERTEX_BIT, &push_constants, sizeof(push_constants), 0);
-		//		cmd_buffer.Draw(16);
-		//	}
-
-		/*StructuredBuffer<HierarchyNode> hierarchy_buffer[] : register(t0);
-StructuredBuffer<AABB> aabbs_buffer[] : register(t1);*/
 
 		std::vector<Buffer *> hierarchy_buffer;
 		std::vector<Buffer *> aabbs_buffer;
@@ -795,7 +765,7 @@ StructuredBuffer<AABB> aabbs_buffer[] : register(t1);*/
 		group.each([&](cmpt::MeshRenderer &mesh_renderer, cmpt::Transform &transform) {
 			push_constants.transform = transform.GetWorldTransform();
 			cmd_buffer.PushConstants(VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_GEOMETRY_BIT, &push_constants, sizeof(push_constants), 0);
-			cmd_buffer.Draw(volume_count[push_constants.instance_id]);
+			cmd_buffer.Draw((volume_count[push_constants.instance_id] + 1) / 2, 1, (volume_count[push_constants.instance_id] + 1) / 2-1);
 			push_constants.instance_id++;
 		});
 

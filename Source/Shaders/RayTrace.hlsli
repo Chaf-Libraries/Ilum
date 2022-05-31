@@ -12,7 +12,7 @@ bool Intersection(AABB aabb, RayDesc ray, out float t)
     float t6 = (aabb.max_val.z - ray.Origin.z) * inv_dir.z;
     float tmin = max(max(min(t1, t2), min(t3, t4)), min(t5, t6));
     float tmax = min(min(max(t1, t2), max(t3, t4)), max(t5, t6));
-    if(tmax<0||tmin>tmax)
+    if (tmax < 0 || tmin > tmax)
     {
         return false;
     }

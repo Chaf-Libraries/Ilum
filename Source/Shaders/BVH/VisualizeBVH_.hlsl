@@ -34,6 +34,17 @@ struct FragmentOut
     float4 Color : SV_Target0;
 };
 
+uint hash(uint a)
+{
+    a = (a + 0x7ed55d16) + (a << 12);
+    a = (a ^ 0xc761c23c) ^ (a >> 19);
+    a = (a + 0x165667b1) + (a << 5);
+    a = (a + 0xd3a2646c) ^ (a << 9);
+    a = (a + 0xfd7046c5) + (a << 3);
+    a = (a ^ 0xb55a4f09) ^ (a >> 16);
+    return a;
+}
+
 VertexOut VSmain(VertexIn vertex_in)
 {
     VertexOut vertex_out;
@@ -41,12 +52,15 @@ VertexOut VSmain(VertexIn vertex_in)
     vertex_out.aabb_max = aabb.max_val.xyz;
     vertex_out.aabb_min = aabb.min_val.xyz;
     uint node = vertex_in.vertex_id;
-    float3 color = float3(1.0, 1.0, 1.0);
+    uint depth = 0;
     while (hierarchy_buffer[push_constants.instance_id][node].parent != ~0U)
     {
         node = hierarchy_buffer[push_constants.instance_id][node].parent;
-        color *= 0.99;
+        depth += 1;
     }
+    uint mhash = hash(depth);
+    float3 color = float3(float(mhash & 255), float((mhash >> 8) & 255), float((mhash >> 16) & 255)) / 255.0;
+    
     vertex_out.color = color;
     
     return vertex_out;

@@ -787,7 +787,10 @@ void Scene::ImportGLTF(const std::string &filename)
 			std::unique_ptr<Mesh> submesh = std::make_unique<Mesh>(p_device, m_asset_manager);
 			submesh->m_material           = material_map[primitive.material];
 			submesh->m_name               = mesh_name + " SubMesh #" + std::to_string(prim_id);
-
+			if (!primitive.indices)
+			{
+				continue;
+			}
 			submesh->m_indices.resize(primitive.indices->count);
 			for (size_t i = 0; i < primitive.indices->count; i += 3)
 			{

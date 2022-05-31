@@ -255,6 +255,7 @@ struct HierarchyNode
 	uint parent;
 	uint left_child;
 	uint right_child;
+	uint right_sibling;
 };
 
 struct AABB
