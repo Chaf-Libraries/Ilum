@@ -36,7 +36,7 @@ inline uint firstbithigh(uint value)
 	{
 		start = 1 << (31 - ++bit);
 	}
-	return bit;
+	return 31 - bit;
 }
 
 #endif
@@ -250,14 +250,6 @@ struct SceneInfo
 	uint primitives_count;
 };
 
-struct HierarchyNode
-{
-	uint parent;
-	uint left_child;
-	uint right_child;
-	uint right_sibling;
-};
-
 struct AABB
 {
 	float4 min_val;
@@ -296,6 +288,15 @@ struct AABB
 		return aabb;
 	}
 #endif
+};
+
+struct BVHNode
+{
+	AABB aabb;
+	uint parent;
+	uint left_child;
+	uint right_child;
+	uint prim_id;
 };
 
 #ifdef __cplusplus

@@ -1,12 +1,10 @@
 #include "../ShaderInterop.hpp"
 #include "../Constants.hlsli"
 
-StructuredBuffer<uint> primitive_indices_buffer : register(t0);
-StructuredBuffer<Vertex> vertices : register(t1);
-StructuredBuffer<uint> indices : register(t2);
-StructuredBuffer<HierarchyNode> hierarchy_buffer : register(t3);
-RWStructuredBuffer<AABB> aabbs_buffer : register(u4);
-RWStructuredBuffer<uint> hierarchy_flags : register(u5);
+StructuredBuffer<Vertex> vertices : register(t0);
+StructuredBuffer<uint> indices : register(t1);
+RWStructuredBuffer<BVHNode> bvh_buffer : register(u2);
+RWStructuredBuffer<uint> hierarchy_flags : register(u3);
 
 [[vk::push_constant]]
 struct
@@ -28,8 +26,8 @@ void main(CSParam param)
 #ifdef INITIALIZE
     if (param.DispatchThreadID.x < push_constants.leaf_count * 2 -1)
     {
-        aabbs_buffer[param.DispatchThreadID.x].max_val = -Infinity;
-        aabbs_buffer[param.DispatchThreadID.x].min_val = Infinity;
+        bvh_buffer[param.DispatchThreadID.x].aabb.max_val = -Infinity;
+        bvh_buffer[param.DispatchThreadID.x].aabb.min_val = Infinity;
         hierarchy_flags[param.DispatchThreadID.x] = 0;
     }
 #endif
@@ -42,16 +40,16 @@ void main(CSParam param)
     
     // Build leaf AABB
     uint leaf = push_constants.leaf_count - 1 + param.DispatchThreadID.x;
-    uint primitive_idx = primitive_indices_buffer[param.DispatchThreadID.x];
+    uint primitive_idx = bvh_buffer[leaf].prim_id;
     float3 v1 = vertices[indices[primitive_idx * 3]].position.xyz;
     float3 v2 = vertices[indices[primitive_idx * 3 + 1]].position.xyz;
     float3 v3 = vertices[indices[primitive_idx * 3 + 2]].position.xyz;
-    aabbs_buffer[leaf].min_val = float4(min(min(v1, v2), v3), 0.0);
-    aabbs_buffer[leaf].max_val = float4(max(max(v1, v2), v3), 0.0);
+    bvh_buffer[leaf].aabb.min_val = float4(min(min(v1, v2), v3), 0.0);
+    bvh_buffer[leaf].aabb.max_val = float4(max(max(v1, v2), v3), 0.0);
     hierarchy_flags[leaf] = 1;
     
     // Build node AABB
-    uint parent = hierarchy_buffer[leaf].parent;
+    uint parent = bvh_buffer[leaf].parent;
     while (parent != ~0U)
     {
         uint prev_flag = 0;
@@ -63,16 +61,16 @@ void main(CSParam param)
             return;
         }
         
-        uint left_child = hierarchy_buffer[parent].left_child;
-        uint right_child = hierarchy_buffer[parent].right_child;
+        uint left_child = bvh_buffer[parent].left_child;
+        uint right_child = bvh_buffer[parent].right_child;
 
-        AABB left_aabb = aabbs_buffer[left_child];
-        AABB right_aabb = aabbs_buffer[right_child];
+        AABB left_aabb = bvh_buffer[left_child].aabb;
+        AABB right_aabb = bvh_buffer[right_child].aabb;
         
-        aabbs_buffer[parent].min_val = min(left_aabb.min_val, right_aabb.min_val);
-        aabbs_buffer[parent].max_val = max(left_aabb.max_val, right_aabb.max_val);
+        bvh_buffer[parent].aabb.min_val = min(left_aabb.min_val, right_aabb.min_val);
+        bvh_buffer[parent].aabb.max_val = max(left_aabb.max_val, right_aabb.max_val);
         
-        parent = hierarchy_buffer[parent].parent;
+        parent = bvh_buffer[parent].parent;
     }
 #endif
 }

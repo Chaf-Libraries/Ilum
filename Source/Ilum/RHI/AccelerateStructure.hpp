@@ -58,9 +58,7 @@ class AccelerationStructure
 	void SetName(const std::string &name);
 
 	// Fall back layer
-	Buffer &GetHierarchyBuffer();
-	Buffer &GetBoundingVolumeBuffer();
-	Buffer &GetPrimitiveIndicesBuffer();
+	Buffer &GetBVHBuffer();
 
   private:
 	void Build(VkCommandBuffer cmd_buffer, AccelerationStructureDesc desc);
@@ -75,9 +73,7 @@ class AccelerationStructure
 	std::unique_ptr<Buffer> m_instance_buffer = nullptr;
 
 	// Fall back layer
-	std::unique_ptr<Buffer> m_hierarchy_buffer = nullptr;
-	std::unique_ptr<Buffer> m_aabbs_buffer = nullptr;
-	std::unique_ptr<Buffer> m_primitive_indices_buffer = nullptr;
+	std::unique_ptr<Buffer> m_bvh_buffer = nullptr;
 };
 using AccelerationStructureReference = std::reference_wrapper<AccelerationStructure>;
 }        // namespace Ilum

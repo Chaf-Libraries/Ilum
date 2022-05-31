@@ -2,10 +2,9 @@
 #include "../RayTrace.hlsli"
 
 ConstantBuffer<Camera> camera : register(b0);
-StructuredBuffer<HierarchyNode> blas_hierarchy[] : register(t1);
-StructuredBuffer<AABB> blas_aabb[] : register(t2);
-ConstantBuffer<Instance> instances[] : register(b3);
-RWTexture2D<float4> result : register(u4);
+StructuredBuffer<BVHNode> blas[] : register(t1);
+ConstantBuffer<Instance> instances[] : register(b2);
+RWTexture2D<float4> result : register(u3);
 
 struct CSParam
 {
@@ -40,10 +39,10 @@ bool BVHTreeTraversal(RayDesc ray, out float depth)
     {
         max_depth = max(max_depth, current_depth);
         
-        if (Intersection(blas_aabb[0][node].Transform(instances[0].transform), ray, t))
+        if (Intersection(blas[0][node].aabb.Transform(instances[0].transform), ray, t))
         {
-            if (blas_hierarchy[0][node].left_child == ~0U &&
-                blas_hierarchy[0][node].right_child == ~0U)
+            if (blas[0][node].left_child == ~0U &&
+                blas[0][node].right_child == ~0U)
             {
                 if (min_t > t)
                 {
@@ -52,12 +51,12 @@ bool BVHTreeTraversal(RayDesc ray, out float depth)
                     find_leaf = true;
                 }
                 
-                node = blas_hierarchy[0][node].parent;
+                node = blas[0][node].parent;
                 current_depth -= 1.0;
             }
             else
             {
-                node = blas_hierarchy[0][node].left_child;
+                node = blas[0][node].left_child;
                 current_depth += 1.0;
                 continue;
             }
@@ -65,12 +64,18 @@ bool BVHTreeTraversal(RayDesc ray, out float depth)
         
         while (true)
         {
-            if (blas_hierarchy[0][node].right_sibling != ~0U)
+            uint parent = blas[0][node].parent;
+            
+            if (parent != ~0U && node == blas[0][parent].left_child)
             {
-                node = blas_hierarchy[0][node].right_sibling;
-                break;
+                if (blas[0][parent].right_child != ~0U)
+                {
+                    node = blas[0][parent].right_child;
+                    break;
+                }
             }
-            node = blas_hierarchy[0][node].parent;
+            
+            node = parent;
             current_depth -= 1.0;
             if (node == ~0U)
             {
@@ -85,7 +90,7 @@ bool BVHTreeTraversal(RayDesc ray, out float depth)
         }
     }
     
-    if(!find_leaf)
+    if (!find_leaf)
     {
         depth = max_depth;
         return false;
@@ -123,7 +128,7 @@ void main(CSParam param)
         
     uint item_count = 0;
     uint item_stride = 0;
-    blas_hierarchy[0].GetDimensions(item_count, item_stride);
+    blas[0].GetDimensions(item_count, item_stride);
     float max_depth = log2(item_count) * 2;
     
     uint mhash = hash(asuint(t));

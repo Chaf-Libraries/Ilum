@@ -71,18 +71,15 @@ void VisualizeBVH::Create(RGBuilder &builder)
 			return;
 		}
 
-		std::vector<Buffer *> hierarchy_buffer;
-		std::vector<Buffer *> aabbs_buffer;
+		std::vector<Buffer *> bvh_buffer;
 		std::vector<Buffer *> instance_buffer;
-		hierarchy_buffer.reserve(group.size());
-		aabbs_buffer.reserve(group.size());
+		bvh_buffer.reserve(group.size());
 
 		group.each([&](cmpt::MeshRenderer &mesh_renderer, cmpt::Transform &transform) {
 			auto *mesh = mesh_renderer.GetMesh();
 			if (mesh)
 			{
-				hierarchy_buffer.push_back(&mesh->GetBLAS().GetHierarchyBuffer());
-				aabbs_buffer.push_back(&mesh->GetBLAS().GetBoundingVolumeBuffer());
+				bvh_buffer.push_back(&mesh->GetBLAS().GetBVHBuffer());
 				instance_buffer.push_back(mesh_renderer.GetBuffer());
 			}
 		});
@@ -91,10 +88,9 @@ void VisualizeBVH::Create(RGBuilder &builder)
 		cmd_buffer.Bind(
 		    cmd_buffer.GetDescriptorState()
 		        .Bind(0, 0, main_camera.GetBuffer())
-		        .Bind(0, 1, hierarchy_buffer)
-		        .Bind(0, 2, aabbs_buffer)
-		        .Bind(0, 3, instance_buffer)
-		        .Bind(0, 4, resource.GetTexture(result)->GetView(view_desc)));
+		        .Bind(0, 1, bvh_buffer)
+		        .Bind(0, 2, instance_buffer)
+		        .Bind(0, 3, resource.GetTexture(result)->GetView(view_desc)));
 		cmd_buffer.Dispatch((renderer.GetExtent().width + 32 - 1) / 32, (renderer.GetExtent().height + 32 - 1) / 32);
 	});
 
