@@ -10,6 +10,10 @@
 #include <Scene/Component/Transform.hpp>
 #include <Scene/Scene.hpp>
 
+#include <imgui.h>
+
+#include <glm/gtc/type_ptr.hpp>
+
 namespace Ilum
 {
 VisualizeBVH::VisualizeBVH() :
@@ -56,6 +60,13 @@ void VisualizeBVH::Create(RGBuilder &builder)
 	    .SetName("VisualizeBVH")
 	    .LoadShader(shader);
 
+	struct PushConstants
+	{
+		glm::vec3 color = glm::vec3(0.27f, 0.65f, 0.73f);
+	};
+
+	std::shared_ptr<PushConstants> push_constants = std::make_shared<PushConstants>();
+
 	pass->BindCallback([=](CommandBuffer &cmd_buffer, const RGResources &resource, Renderer &renderer) {
 		if (!renderer.GetScene()->GetRegistry().valid(renderer.GetScene()->GetMainCamera()))
 		{
@@ -92,11 +103,12 @@ void VisualizeBVH::Create(RGBuilder &builder)
 		        .Bind(0, 2, blas_buffer)
 		        .Bind(0, 3, instance_buffer)
 		        .Bind(0, 4, resource.GetTexture(result)->GetView(view_desc)));
+		cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, push_constants.get(), sizeof(PushConstants), 0);
 		cmd_buffer.Dispatch((renderer.GetExtent().width + 32 - 1) / 32, (renderer.GetExtent().height + 32 - 1) / 32);
 	});
 
 	pass->BindImGui([=](ImGuiContext &, const RGResources &) {
-
+		ImGui::ColorEdit3("Background", glm::value_ptr(push_constants->color));
 	});
 
 	builder.AddPass(std::move(pass));

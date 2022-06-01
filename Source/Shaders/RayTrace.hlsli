@@ -17,6 +17,6 @@ bool Intersection(AABB aabb, RayDesc ray, out float t)
         return false;
     }
     
-    t = tmin;
+    t = tmin > 0 ? tmin : tmax;
     return true;
 }
