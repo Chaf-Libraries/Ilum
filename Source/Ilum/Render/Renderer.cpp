@@ -31,6 +31,15 @@ Renderer::Renderer(RHIDevice *device, Scene *scene) :
     m_rg(device, *this),
     m_rg_builder(device, m_rg, *this)
 {
+	VkExtent2D extents[] = {
+	    {600, 360},
+	    {720, 480},
+	    {1280, 720},
+	    {1920, 1080},
+	    {2560, 1040},
+	    {3840, 2160}};
+	m_extent = extents[m_resolution];
+
 	CreateSampler();
 	KullaContyApprox();
 	GenerateLUT();
@@ -63,6 +72,26 @@ void Renderer::OnImGui(ImGuiContext &context)
 
 	// Renderer Inspector
 	ImGui::Begin("Renderer");
+
+	// TODO: Set resolution
+	// 360P: 600x360
+	// 480P: 720x480
+	// 960P: 1280¡Á720
+	// 1080P: 1920¡Á1080
+	// 1440P: 2560x1040
+	// 2160P: 3840x2160
+	//const char *const resolutions[] = {"360P", "480P", "720P", "1080P", "1440P", "2160P"};
+	//if (ImGui::Combo("Resolution", &m_resolution, resolutions, 6))
+	// {
+	// 	VkExtent2D extents[] = {
+	// 	    {600, 360},
+	// 	    {720, 480},
+	// 	    {1280, 720},
+	// 	    {1920, 1080},
+	// 	    {2560, 1040},
+	// 	    {3840, 2160}};
+	// 	m_extent = extents[m_resolution];
+	// }
 
 	ImGui::Text("Render Target Size: (%ld, %ld)", m_extent.width, m_extent.height);
 	ImGui::Text("Viewport Size: (%ld, %ld)", m_viewport.width, m_viewport.height);
@@ -308,6 +337,11 @@ void Renderer::SetPresent(Texture *present)
 void Renderer::SetDepthStencil(Texture *depth_stencil)
 {
 	p_depth_stencil = depth_stencil;
+}
+
+RHIDevice &Renderer::GetDevice()
+{
+	return *p_device;
 }
 
 void Renderer::CreateSampler()

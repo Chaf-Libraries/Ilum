@@ -6,9 +6,9 @@
 #include <Render/RGBuilder.hpp>
 #include <Render/Renderer.hpp>
 
-#include <Scene/Scene.hpp>
-#include <Scene/Entity.hpp>
 #include <Scene/Component/Camera.hpp>
+#include <Scene/Entity.hpp>
+#include <Scene/Scene.hpp>
 
 #include <Asset/AssetManager.hpp>
 
@@ -37,21 +37,7 @@ void PathTracing::Create(RGBuilder &builder)
 	        VK_IMAGE_USAGE_STORAGE_BIT},
 	    TextureState{VK_IMAGE_USAGE_STORAGE_BIT});
 
-	auto visibility_buffer = builder.CreateTexture(
-	    "Visibility Buffer",
-	    TextureDesc{
-	        builder.GetRenderer().GetExtent().width,  /*width*/
-	        builder.GetRenderer().GetExtent().height, /*height*/
-	        1,                                        /*depth*/
-	        1,                                        /*mips*/
-	        1,                                        /*layers*/
-	        VK_SAMPLE_COUNT_1_BIT,
-	        VK_FORMAT_R32_UINT,
-	        VK_IMAGE_USAGE_SAMPLED_BIT},
-	    TextureState{VK_IMAGE_USAGE_SAMPLED_BIT});
-
 	pass->AddResource(shading);
-	pass->AddResource(visibility_buffer);
 
 	TextureViewDesc view_desc  = {};
 	view_desc.aspect           = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -61,16 +47,16 @@ void PathTracing::Create(RGBuilder &builder)
 	view_desc.layer_count      = 1;
 	view_desc.level_count      = 1;
 
-	ShaderDesc raygen_shader  = {};
-	raygen_shader.filename    = "./Source/Shaders/PathTracing.hlsl";
-	raygen_shader.entry_point = "RayGen";
-	raygen_shader.stage       = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-	raygen_shader.type        = ShaderType::HLSL;
+	ShaderDesc pathtracing_compute_shader  = {};
+	pathtracing_compute_shader.filename    = "./Source/Shaders/PathTracing/PathTracingCompute.hlsl";
+	pathtracing_compute_shader.entry_point = "main";
+	pathtracing_compute_shader.stage       = VK_SHADER_STAGE_COMPUTE_BIT;
+	pathtracing_compute_shader.type        = ShaderType::HLSL;
 
-	PipelineState pso;
-	pso
-	    .SetName("PathTracing")
-	    .LoadShader(raygen_shader);
+	PipelineState pathtracing_compute_pso;
+	pathtracing_compute_pso
+	    .SetName("PathTracing - Compute")
+	    .LoadShader(pathtracing_compute_shader);
 
 	pass->BindCallback([=](CommandBuffer &cmd_buffer, const RGResources &resource, Renderer &renderer) {
 		if (renderer.GetScene()->GetInstanceBuffer().empty())
@@ -85,37 +71,56 @@ void PathTracing::Create(RGBuilder &builder)
 		}
 
 		auto *camera_buffer = camera_entity.GetComponent<cmpt::Camera>().GetBuffer();
-		if (!camera_buffer)
+
+		if (renderer.GetDevice().IsRayTracingEnable())
 		{
-			return;
+		}
+		else
+		{
+			auto view = renderer.GetScene()->GetRegistry().view<cmpt::MeshRenderer>();
+
+			if (view.empty())
+			{
+				return;
+			}
+
+			std::vector<Buffer *> blas_buffer;
+			blas_buffer.reserve(view.size());
+
+			view.each([&](cmpt::MeshRenderer &mesh_renderer) {
+				auto *mesh = mesh_renderer.GetMesh();
+				if (mesh)
+				{
+					blas_buffer.push_back(&mesh->GetBLAS().GetBVHBuffer());
+				}
+			});
+
+			cmd_buffer.Bind(pathtracing_compute_pso);
+			cmd_buffer.Bind(
+			    cmd_buffer.GetDescriptorState()
+			        .Bind(0, 0, resource.GetTexture(shading)->GetView(view_desc))
+			        .Bind(0, 1, camera_buffer)
+			        .Bind(0, 2, &renderer.GetScene()->GetTLAS().GetBVHBuffer())
+			        .Bind(0, 3, blas_buffer)
+			        .Bind(1, 0, renderer.GetScene()->GetInstanceBuffer())
+			        .Bind(1, 1, renderer.GetScene()->GetAssetManager().GetMeshletBuffer())
+			        .Bind(1, 2, renderer.GetScene()->GetAssetManager().GetVertexBuffer())
+			        .Bind(1, 3, renderer.GetScene()->GetAssetManager().GetMeshletVertexBuffer())
+			        .Bind(1, 4, renderer.GetScene()->GetAssetManager().GetMeshletTriangleBuffer())
+			        .Bind(1, 5, renderer.GetScene()->GetAssetManager().GetIndexBuffer())
+			        .Bind(2, 0, renderer.GetScene()->GetAssetManager().GetMaterialBuffer())
+
+			        //.Bind(0, 5, directional_lights)
+			        //.Bind(0, 6, spot_lights)
+			        //.Bind(0, 7, point_lights)
+			        //.Bind(0, 8, area_lights)
+			        .Bind(2, 1, renderer.GetScene()->GetAssetManager().GetTextureViews())
+			        .Bind(2, 2, renderer.GetSampler(SamplerType::TrilinearWarp)));
+
+			cmd_buffer.Dispatch((renderer.GetExtent().width + 32 - 1) / 32, (renderer.GetExtent().height + 32 - 1) / 32);
 		}
 
-
-		cmd_buffer.Bind(pso);
-		cmd_buffer.Bind(
-		    cmd_buffer.GetDescriptorState()
-		        .Bind(0, 0, resource.GetTexture(shading)->GetView(view_desc))
-		        //.Bind(0, 1, &renderer.GetScene()->GetTLAS())
-		        .Bind(0, 2, camera_buffer)
-		        .Bind(0, 3, resource.GetTexture(visibility_buffer)->GetView(view_desc))
-		        .Bind(0, 4, renderer.GetScene()->GetInstanceBuffer())
-		        .Bind(0, 5, renderer.GetScene()->GetAssetManager().GetMeshletBuffer())
-		        .Bind(0, 6, renderer.GetScene()->GetAssetManager().GetVertexBuffer())
-		        .Bind(0, 7, renderer.GetScene()->GetAssetManager().GetMeshletVertexBuffer())
-		        .Bind(0, 8, renderer.GetScene()->GetAssetManager().GetMeshletTriangleBuffer())
-		        .Bind(0, 9, renderer.GetScene()->GetAssetManager().GetMaterialBuffer())
-
-		        //.Bind(0, 5, directional_lights)
-		        //.Bind(0, 6, spot_lights)
-		        //.Bind(0, 7, point_lights)
-		        //.Bind(0, 8, area_lights)
-		        //.Bind(0, 9, shadowmaps)
-		        //.Bind(0, 10, cascade_shadowmaps)
-		        //.Bind(0, 11, onmishadowmaps)
-		        .Bind(0, 12, renderer.GetScene()->GetAssetManager().GetTextureViews())
-		        .Bind(0, 13, renderer.GetSampler(SamplerType::TrilinearWarp)));
-
-		cmd_buffer.TraceRays(renderer.GetExtent().width, renderer.GetExtent().height);
+		// cmd_buffer.TraceRays(renderer.GetExtent().width, renderer.GetExtent().height);
 	});
 
 	pass->BindImGui([=](ImGuiContext &, const RGResources &) {

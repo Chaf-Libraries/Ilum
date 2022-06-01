@@ -83,7 +83,6 @@ void VisualizeBVH::Create(RGBuilder &builder)
 		}
 
 		std::vector<Buffer *> blas_buffer;
-		std::vector<Buffer *> instance_buffer;
 		blas_buffer.reserve(group.size());
 
 		group.each([&](cmpt::MeshRenderer &mesh_renderer, cmpt::Transform &transform) {
@@ -91,7 +90,6 @@ void VisualizeBVH::Create(RGBuilder &builder)
 			if (mesh)
 			{
 				blas_buffer.push_back(&mesh->GetBLAS().GetBVHBuffer());
-				instance_buffer.push_back(mesh_renderer.GetBuffer());
 			}
 		});
 
@@ -101,7 +99,7 @@ void VisualizeBVH::Create(RGBuilder &builder)
 		        .Bind(0, 0, main_camera.GetBuffer())
 		        .Bind(0, 1, &renderer.GetScene()->GetTLAS().GetBVHBuffer())
 		        .Bind(0, 2, blas_buffer)
-		        .Bind(0, 3, instance_buffer)
+		        .Bind(0, 3, renderer.GetScene()->GetInstanceBuffer())
 		        .Bind(0, 4, resource.GetTexture(result)->GetView(view_desc)));
 		cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, push_constants.get(), sizeof(PushConstants), 0);
 		cmd_buffer.Dispatch((renderer.GetExtent().width + 32 - 1) / 32, (renderer.GetExtent().height + 32 - 1) / 32);

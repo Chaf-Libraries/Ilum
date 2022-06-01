@@ -55,6 +55,8 @@ class Renderer
 	void SetPresent(Texture *present);
 	void SetDepthStencil(Texture *depth_stencil);
 
+	RHIDevice &GetDevice();
+
   private:
 	void CreateSampler();
 
@@ -70,6 +72,7 @@ class Renderer
 	RGBuilder   m_rg_builder;
 	RenderGraph m_rg;
 
+	int32_t   m_resolution      = 1;
 	VkExtent2D m_extent          = {1920, 1080};
 	VkExtent2D m_viewport        = {1920, 1080};
 	bool       m_viewport_update = false;

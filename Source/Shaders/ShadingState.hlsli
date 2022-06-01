@@ -9,6 +9,7 @@ StructuredBuffer<Meshlet> meshlets[] : register(t1, space1);
 StructuredBuffer<Vertex> vertices[] : register(t2, space1);
 StructuredBuffer<uint> meshlet_vertices[] : register(t3, space1);
 StructuredBuffer<uint> meshlet_primitives[] : register(t4, space1);
+StructuredBuffer<uint> indices[] : register(t5, space1);
 
 ConstantBuffer<Material> materials[] : register(b0, space2);
 Texture2D<float4> texture_array[] : register(t1, space2);
@@ -335,7 +336,7 @@ struct ShadingState
             }
         }
     }
-    
+        
     void LoadVisibilityBuffer(Texture2D<uint> vbuffer, uint2 pixel_coord, Camera cam)
     {
         uint2 vbuffer_size;
@@ -404,6 +405,114 @@ struct ShadingState
         
         float3 bary_ddx = (G_dx * H - G * H_dx) * (rcpH * rcpH) * (2.0f / float(vbuffer_size.x));
         float3 bary_ddy = (G_dy * H - G * H_dy) * (rcpH * rcpH) * (-2.0f / float(vbuffer_size.y));
+        
+        depth = clip_pos0.z * bary.x + clip_pos1.z * bary.y + clip_pos2.z * bary.z;
+        uv = v0.texcoord.xy * bary.x + v1.texcoord.xy * bary.y + v2.texcoord.xy * bary.z;
+        position = v0.position.xyz * bary.x + v1.position.xyz * bary.y + v2.position.xyz * bary.z;
+        position = mul(transform, float4(position, 1.0)).xyz;
+        normal = v0.normal.xyz * bary.x + v1.normal.xyz * bary.y + v2.normal.xyz * bary.z;
+        normal = v0.normal.xyz * bary.x + v1.normal.xyz * bary.y + v2.normal.xyz * bary.z;
+        normal = normalize(mul((float3x3) transform, normal));
+        tangent = v0.tangent.xyz * bary.x + v1.tangent.xyz * bary.y + v2.tangent.xyz * bary.z;
+        tangent = normalize(mul((float3x3) transform, tangent.xyz));
+        dx = v0.texcoord.xy * bary_ddx.x + v1.texcoord.xy * bary_ddx.y + v2.texcoord.xy * bary_ddx.z;
+        dy = v0.texcoord.xy * bary_ddy.x + v1.texcoord.xy * bary_ddy.y + v2.texcoord.xy * bary_ddy.z;
+                
+        bool double_sided = false;
+        
+        if (matID < 1024)
+        {
+            LoadMaterial();
+            
+            if (materials[matID].normal_texture < MAX_TEXTURE_ARRAY_SIZE)
+            {
+                float3 T = tangent;
+                float3 B;
+                if (!any(T))
+                {
+                    CreateCoordinateSystem(normal, T, B);
+                }
+                else
+                {
+                    float3 B = normalize(cross(normal, T));
+                }
+        
+                float3x3 TBN = float3x3(T, B, normal);
+                float3 normalVector = texture_array[NonUniformResourceIndex(materials[matID].normal_texture)].SampleGrad(texture_sampler, uv, dx, dy).rgb;
+                normalVector = normalVector * 2.0 - 1.0;
+                normalVector = normalize(normalVector);
+                normal = normalize(mul(normalVector, TBN));
+            }
+            
+            double_sided = materials[matID].double_sided == 1;
+        }
+        
+        bitangent = cross(normal, tangent);
+        
+        if (double_sided && dot(cam.position - position, normal) < 0.0)
+        {
+            normal *= -1;
+            tangent *= -1;
+            bitangent *= -1;
+        }
+    }
+    
+    void Load(uint instance_id, uint primitive_id, uint2 screen_size, uint2 pixel_coord, Camera cam)
+    {        
+        matID = instances[instance_id].material;
+        uint mesh_id = instances[instance_id].mesh;
+        
+        float4x4 transform = instances[instance_id].transform;
+        
+        uint i0 = indices[instances[instance_id].mesh][primitive_id * 3 + 0];
+        uint i1 = indices[instances[instance_id].mesh][primitive_id * 3 + 1];
+        uint i2 = indices[instances[instance_id].mesh][primitive_id * 3 + 2];
+        
+        Vertex v0 = vertices[mesh_id][i0];
+        Vertex v1 = vertices[mesh_id][i1];
+        Vertex v2 = vertices[mesh_id][i2];
+        
+        float4 clip_pos0 = mul(cam.view_projection, mul(transform, float4(v0.position.xyz, 1.0)));
+        float4 clip_pos1 = mul(cam.view_projection, mul(transform, float4(v1.position.xyz, 1.0)));
+        float4 clip_pos2 = mul(cam.view_projection, mul(transform, float4(v2.position.xyz, 1.0)));
+        
+        float2 p0 = clip_pos1.xy - clip_pos0.xy;
+        float2 p1 = clip_pos0.xy - clip_pos2.xy;
+        
+        // Calculate barycentric
+        float3 inv_w = rcp(float3(clip_pos0.w, clip_pos1.w, clip_pos2.w));
+        
+        float3 ndc0 = clip_pos0.xyz / clip_pos0.w;
+        float3 ndc1 = clip_pos1.xyz / clip_pos1.w;
+        float3 ndc2 = clip_pos2.xyz / clip_pos2.w;
+        float2 ndc = (float2(pixel_coord) + float2(0.5, 0.5)) / float2(screen_size);
+        ndc = ndc * 2 - 1.0;
+        ndc.y *= -1;
+        
+        float3 pos_120_x = float3(ndc1.x, ndc2.x, ndc0.x);
+        float3 pos_120_y = float3(ndc1.y, ndc2.y, ndc0.y);
+        float3 pos_201_x = float3(ndc2.x, ndc0.x, ndc1.x);
+        float3 pos_201_y = float3(ndc2.y, ndc0.y, ndc1.y);
+        
+        float3 C_dx = pos_201_y - pos_120_y;
+        float3 C_dy = pos_120_x - pos_201_x;
+     
+        float3 C = C_dx * (ndc.x - pos_120_x) + C_dy * (ndc.y - pos_120_y);
+        float3 G = C * inv_w;
+    
+        float H = dot(C, inv_w);
+        float rcpH = rcp(H);
+    
+        bary = G * rcpH;
+        
+        float3 G_dx = C_dx * inv_w;
+        float3 G_dy = C_dy * inv_w;
+
+        float H_dx = dot(C_dx, inv_w);
+        float H_dy = dot(C_dy, inv_w);
+        
+        float3 bary_ddx = (G_dx * H - G * H_dx) * (rcpH * rcpH) * (2.0f / float(screen_size.x));
+        float3 bary_ddy = (G_dy * H - G * H_dy) * (rcpH * rcpH) * (-2.0f / float(screen_size.y));
         
         depth = clip_pos0.z * bary.x + clip_pos1.z * bary.y + clip_pos2.z * bary.z;
         uv = v0.texcoord.xy * bary.x + v1.texcoord.xy * bary.y + v2.texcoord.xy * bary.z;

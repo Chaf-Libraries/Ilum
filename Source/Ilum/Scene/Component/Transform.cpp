@@ -1,4 +1,5 @@
 #include "Transform.hpp"
+#include "Camera.hpp"
 #include "Hierarchy.hpp"
 #include "Light.hpp"
 
@@ -131,6 +132,11 @@ void Transform::Tick(Scene &scene, entt::entity entity, RHIDevice *device)
 		if (e.HasComponent<cmpt::Light>())
 		{
 			e.GetComponent<cmpt::Light>().Update();
+		}
+
+		if (scene.GetRegistry().valid(scene.GetMainCamera()))
+		{
+			scene.GetRegistry().get<cmpt::Camera>(scene.GetMainCamera()).Update();
 		}
 
 		m_update = false;

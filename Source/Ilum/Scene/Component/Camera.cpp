@@ -126,11 +126,13 @@ void Camera::Tick(Scene &scene, entt::entity entity, RHIDevice *device)
 		m_buffer = std::make_unique<Buffer>(device, BufferDesc(sizeof(ShaderInterop::Camera), 1, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
 	}
 
+	ShaderInterop::Camera *camera_data = static_cast<ShaderInterop::Camera *>(m_buffer->Map());
+
+	camera_data->frame_count = m_frame_count;
+
 	if (m_update)
 	{
 		m_frame_count = 0;
-
-		ShaderInterop::Camera *camera_data = static_cast<ShaderInterop::Camera *>(m_buffer->Map());
 
 		Entity e = Entity(scene, entity);
 
@@ -162,10 +164,6 @@ void Camera::Tick(Scene &scene, entt::entity entity, RHIDevice *device)
 		camera_data->position        = transform.GetWorldTransform()[3];
 		camera_data->right           = glm::vec4(right, 0.f);
 		camera_data->up              = glm::vec4(up, 0.f);
-		camera_data->frame_count     = m_frame_count;
-
-		m_buffer->Flush(m_buffer->GetSize());
-		m_buffer->Unmap();
 
 		// Main camera update -> update cascade shadow
 		if (entity == scene.GetMainCamera())
@@ -181,6 +179,9 @@ void Camera::Tick(Scene &scene, entt::entity entity, RHIDevice *device)
 
 		m_update = false;
 	}
+
+	m_buffer->Flush(m_buffer->GetSize());
+	m_buffer->Unmap();
 }
 
 }        // namespace Ilum::cmpt

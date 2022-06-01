@@ -158,6 +158,12 @@ DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, VkImageVi
 
 DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, VkSampler sampler)
 {
+	if (m_image_resolves.find(set) == m_image_resolves.end() ||
+	    m_image_resolves[set].find(binding) == m_image_resolves[set].end())
+	{
+		return *this;
+	}
+
 	if (m_image_resolves[set][binding][0].sampler != sampler)
 	{
 		m_image_resolves[set][binding][0].imageView = VK_NULL_HANDLE;

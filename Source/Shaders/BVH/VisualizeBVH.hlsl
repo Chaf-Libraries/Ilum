@@ -40,7 +40,6 @@ bool BLASTraversal(RayDesc ray, uint instance_id, out float depth, out float min
         
         max_depth = max(max_depth, current_depth);
         
-        
         if (Intersection(blas[instance_id][node].aabb.Transform(instances[instance_id].transform), ray, t))
         {
             if(new_level)
