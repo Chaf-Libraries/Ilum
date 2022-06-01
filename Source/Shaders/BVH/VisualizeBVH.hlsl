@@ -2,9 +2,10 @@
 #include "../RayTrace.hlsli"
 
 ConstantBuffer<Camera> camera : register(b0);
-StructuredBuffer<BVHNode> blas[] : register(t1);
-ConstantBuffer<Instance> instances[] : register(b2);
-RWTexture2D<float4> result : register(u3);
+StructuredBuffer<BVHNode> tlas : register(t1);
+StructuredBuffer<BVHNode> blas[] : register(t2);
+ConstantBuffer<Instance> instances[] : register(b3);
+RWTexture2D<float4> result : register(u4);
 
 struct CSParam
 {
@@ -14,18 +15,7 @@ struct CSParam
     uint GroupIndex : SV_GroupIndex;
 };
 
-uint hash(uint a)
-{
-    a = (a + 0x7ed55d16) + (a << 12);
-    a = (a ^ 0xc761c23c) ^ (a >> 19);
-    a = (a + 0x165667b1) + (a << 5);
-    a = (a + 0xd3a2646c) ^ (a << 9);
-    a = (a + 0xfd7046c5) + (a << 3);
-    a = (a ^ 0xb55a4f09) ^ (a >> 16);
-    return a;
-}
-
-bool BVHTreeTraversal(RayDesc ray, out float depth)
+bool TLASTraversal(RayDesc ray, out float depth, out uint instance_id)
 {
     uint node = 0;
     float min_t = 1e32;
@@ -39,24 +29,22 @@ bool BVHTreeTraversal(RayDesc ray, out float depth)
     {
         max_depth = max(max_depth, current_depth);
         
-        if (Intersection(blas[0][node].aabb.Transform(instances[0].transform), ray, t))
+        if (Intersection(tlas[node].aabb, ray, t))
         {
-            if (blas[0][node].left_child == ~0U &&
-                blas[0][node].right_child == ~0U)
+            if (tlas[node].left_child == ~0U &&
+                tlas[node].right_child == ~0U)
             {
                 if (min_t > t)
                 {
                     min_t = t;
                     depth = current_depth;
                     find_leaf = true;
+                    instance_id = tlas[node].prim_id;
                 }
-                
-                node = blas[0][node].parent;
-                current_depth -= 1.0;
             }
             else
             {
-                node = blas[0][node].left_child;
+                node = tlas[node].left_child;
                 current_depth += 1.0;
                 continue;
             }
@@ -64,13 +52,85 @@ bool BVHTreeTraversal(RayDesc ray, out float depth)
         
         while (true)
         {
-            uint parent = blas[0][node].parent;
+            uint parent = tlas[node].parent;
             
-            if (parent != ~0U && node == blas[0][parent].left_child)
+            if (parent != ~0U && node == tlas[parent].left_child)
             {
-                if (blas[0][parent].right_child != ~0U)
+                if (tlas[parent].right_child != ~0U)
                 {
-                    node = blas[0][parent].right_child;
+                    node = tlas[parent].right_child;
+                    break;
+                }
+            }
+            
+            node = parent;
+            current_depth -= 1.0;
+            if (node == ~0U)
+            {
+                terminal = true;
+                break;
+            }
+        }
+        
+        if (terminal)
+        {
+            break;
+        }
+    }
+    
+    if (!find_leaf)
+    {
+        depth = max_depth;
+        instance_id = ~0U;
+        return false;
+    }
+    
+    return true;
+}
+
+bool BLASTraversal(RayDesc ray, uint instance_id, out float depth)
+{
+    uint node = 0;
+    float min_t = 1e32;
+    float t = 0.0;
+    float current_depth = 0.0;
+    bool find_leaf = false;
+    float max_depth = 0.0;
+    bool terminal = false;
+    
+    while (true)
+    {
+        max_depth = max(max_depth, current_depth);
+        
+        if (Intersection(blas[instance_id][node].aabb.Transform(instances[instance_id].transform), ray, t))
+        {
+            if (blas[instance_id][node].left_child == ~0U &&
+                blas[instance_id][node].right_child == ~0U)
+            {
+                if (min_t > t)
+                {
+                    min_t = t;
+                    depth = current_depth;
+                    find_leaf = true;
+                }
+            }
+            else
+            {
+                node = blas[instance_id][node].left_child;
+                current_depth += 1.0;
+                continue;
+            }
+        }
+        
+        while (true)
+        {
+            uint parent = blas[instance_id][node].parent;
+            
+            if (parent != ~0U && node == blas[instance_id][parent].left_child)
+            {
+                if (blas[instance_id][parent].right_child != ~0U)
+                {
+                    node = blas[instance_id][parent].right_child;
                     break;
                 }
             }
@@ -115,23 +175,38 @@ void main(CSParam param)
     
     RayDesc ray = camera.CastRay(screen_coords);
     
-    float t = 0;
     float depth = 0.0;
-    
-    // if (!BVHTreeTraversal(ray, depth))
-    // {
-    //     result[param.DispatchThreadID.xy] = 0.0;
-    //     return;
-    // }
-    
-    BVHTreeTraversal(ray, depth);
         
-    uint item_count = 0;
-    uint item_stride = 0;
-    blas[0].GetDimensions(item_count, item_stride);
-    float max_depth = log2(item_count) * 2;
+    float3 color = 0.0;
+    float max_depth = 0.0;
     
-    uint mhash = hash(asuint(t));
-    float3 color = depth / max_depth;
+    uint instance_id;
+    if (TLASTraversal(ray, depth, instance_id))
+    {
+        color = 1.0;
+        BLASTraversal(ray, instance_id, depth);
+        
+        uint item_count = 0;
+        uint item_stride = 0;
+        blas[instance_id].GetDimensions(item_count, item_stride);
+        max_depth = log2(item_count) * 2 + 1;
+    }
+    else
+    {
+        color = float3(1.0, 0.0, 0.0);
+        
+        uint item_count = 0;
+        uint item_stride = 0;
+        tlas.GetDimensions(item_count, item_stride);
+        max_depth = log2(item_count) * 2 + 1;
+        
+        if (depth == 0)
+        {
+            result[param.DispatchThreadID.xy] = float4(0.0, 1.0, 0.0, 1.0);
+            return;
+        }
+    }
+        
+    color *= depth / max_depth;
     result[param.DispatchThreadID.xy] = float4(color, 1.0);
 }

@@ -17,6 +17,7 @@ namespace Ilum
 class RHIDevice;
 class Buffer;
 class Mesh;
+class Scene;
 
 struct AccelerationStructureDesc
 {
@@ -27,9 +28,7 @@ struct AccelerationStructureDesc
 
 struct TLASDesc
 {
-	AABB aabb;
-
-	std::vector<std::pair<glm::mat4, Mesh *>> mesh_instances;
+	Scene *scene = nullptr;
 };
 
 struct BLASDesc

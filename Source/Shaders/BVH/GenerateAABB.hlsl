@@ -1,10 +1,17 @@
 #include "../ShaderInterop.hpp"
 #include "../Constants.hlsli"
 
-StructuredBuffer<Vertex> vertices : register(t0);
-StructuredBuffer<uint> indices : register(t1);
-RWStructuredBuffer<BVHNode> bvh_buffer : register(u2);
-RWStructuredBuffer<uint> hierarchy_flags : register(u3);
+RWStructuredBuffer<BVHNode> bvh_buffer : register(u0);
+RWStructuredBuffer<uint> hierarchy_flags : register(u1);
+
+#ifdef BUILD_BLAS
+StructuredBuffer<Vertex> vertices : register(t2);
+StructuredBuffer<uint> indices : register(t3);
+#endif
+
+#ifdef BUILD_TLAS
+ConstantBuffer<Instance> instances[] : register(b2);
+#endif
 
 [[vk::push_constant]]
 struct
@@ -41,11 +48,20 @@ void main(CSParam param)
     // Build leaf AABB
     uint leaf = push_constants.leaf_count - 1 + param.DispatchThreadID.x;
     uint primitive_idx = bvh_buffer[leaf].prim_id;
+    
+#ifdef BUILD_BLAS
     float3 v1 = vertices[indices[primitive_idx * 3]].position.xyz;
     float3 v2 = vertices[indices[primitive_idx * 3 + 1]].position.xyz;
     float3 v3 = vertices[indices[primitive_idx * 3 + 2]].position.xyz;
     bvh_buffer[leaf].aabb.min_val = float4(min(min(v1, v2), v3), 0.0);
     bvh_buffer[leaf].aabb.max_val = float4(max(max(v1, v2), v3), 0.0);
+#endif
+    
+#ifdef BUILD_TLAS
+    bvh_buffer[leaf].aabb.min_val = float4(instances[primitive_idx].aabb_min, 0.0);
+    bvh_buffer[leaf].aabb.max_val = float4(instances[primitive_idx].aabb_max, 0.0);
+#endif
+    
     hierarchy_flags[leaf] = 1;
     
     // Build node AABB

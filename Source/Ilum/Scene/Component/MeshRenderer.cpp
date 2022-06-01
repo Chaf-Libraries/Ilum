@@ -48,13 +48,18 @@ void MeshRenderer::Tick(Scene &scene, entt::entity entity, RHIDevice *device)
 			m_buffer          = std::make_unique<Buffer>(device, desc);
 		}
 
-		auto *instance_data          = static_cast<ShaderInterop::Instance *>(m_buffer->Map());
-		instance_data->transform     = transform.GetWorldTransform();
+		auto *instance_data      = static_cast<ShaderInterop::Instance *>(m_buffer->Map());
+		instance_data->transform = transform.GetWorldTransform();
 		if (m_manager->IsValid(m_mesh))
 		{
 			instance_data->material      = m_manager->GetIndex(m_mesh->GetMaterial());
 			instance_data->mesh          = m_manager->GetIndex(m_mesh);
 			instance_data->meshlet_count = m_mesh->GetMeshletsCount();
+
+			AABB aabb = m_mesh->GetAABB().Transform(transform.GetWorldTransform());
+
+			instance_data->aabb_min = aabb.GetMin();
+			instance_data->aabb_max = aabb.GetMin();
 		}
 		m_buffer->Flush(m_buffer->GetSize());
 		m_buffer->Unmap();

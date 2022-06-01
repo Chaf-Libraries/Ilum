@@ -7,6 +7,9 @@
 
 #include "Asset/Mesh.hpp"
 
+#include "Scene/Component/Transform.hpp"
+#include "Scene/Scene.hpp"
+
 #include <numeric>
 
 #define BIT(x) (1 << (x))
@@ -200,7 +203,51 @@ inline void GenerateAABBs(const std::vector<ShaderInterop::Vertex> &vertices, co
 			ShaderInterop::AABB left_aabb  = hierarchy[left_child].aabb;
 			ShaderInterop::AABB right_aabb = hierarchy[right_child].aabb;
 
-			hierarchy[node].aabb.min_val   = glm::min(left_aabb.min_val, right_aabb.min_val);
+			hierarchy[node].aabb.min_val = glm::min(left_aabb.min_val, right_aabb.min_val);
+			hierarchy[node].aabb.max_val = glm::max(left_aabb.max_val, right_aabb.max_val);
+
+			node = hierarchy[node].parent;
+		}
+	}
+}
+
+inline void GenerateAABBs(const std::vector<ShaderInterop::Instance> &instances, std::vector<ShaderInterop::BVHNode> &hierarchy)
+{
+	std::vector<uint32_t> node_flags(hierarchy.size(), 0);
+
+	uint32_t primitive_count = static_cast<uint32_t>(instances.size());
+
+	for (uint32_t i = primitive_count - 1; i < hierarchy.size(); i++)
+	{
+		uint32_t prim_id = hierarchy[i].prim_id;
+
+		hierarchy[i].aabb.min_val = glm::vec4(instances[prim_id].aabb_min, 1.f);
+		hierarchy[i].aabb.max_val = glm::vec4(instances[prim_id].aabb_max, 1.f);
+
+		node_flags[i] = 1;
+	}
+
+	for (uint32_t i = primitive_count - 1; i < hierarchy.size(); i++)
+	{
+		uint32_t node = hierarchy[i].parent;
+
+		while (node != ~0U)
+		{
+			uint32_t prev_flag = node_flags[node];
+			node_flags[node]++;
+
+			if (prev_flag != 1)
+			{
+				break;
+			}
+
+			uint32_t left_child  = hierarchy[node].left_child;
+			uint32_t right_child = hierarchy[node].right_child;
+
+			ShaderInterop::AABB left_aabb  = hierarchy[left_child].aabb;
+			ShaderInterop::AABB right_aabb = hierarchy[right_child].aabb;
+
+			hierarchy[node].aabb.min_val = glm::min(left_aabb.min_val, right_aabb.min_val);
 			hierarchy[node].aabb.max_val = glm::max(left_aabb.max_val, right_aabb.max_val);
 
 			node = hierarchy[node].parent;
@@ -390,8 +437,9 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 			ShaderDesc shader  = {};
 			shader.filename    = "./Source/Shaders/BVH/CalculateMortonCodes.hlsl";
 			shader.entry_point = "main";
-			shader.stage       = VK_SHADER_STAGE_COMPUTE_BIT;
-			shader.type        = ShaderType::HLSL;
+			shader.macros.push_back("BUILD_BLAS");
+			shader.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+			shader.type  = ShaderType::HLSL;
 
 			PipelineState pso;
 			pso.LoadShader(shader);
@@ -637,6 +685,7 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 			aabb_shader.filename    = "./Source/Shaders/BVH/GenerateAABB.hlsl";
 			aabb_shader.entry_point = "main";
 			aabb_shader.macros.push_back("GENERATION");
+			aabb_shader.macros.push_back("BUILD_BLAS");
 			aabb_shader.stage = VK_SHADER_STAGE_COMPUTE_BIT;
 			aabb_shader.type  = ShaderType::HLSL;
 
@@ -647,8 +696,8 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 
 				cmd_buffer.Bind(init_pso);
 				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
-				                    .Bind(0, 2, m_bvh_buffer.get())
-				                    .Bind(0, 3, &hierarchy_flag_buffer));
+				                    .Bind(0, 0, m_bvh_buffer.get())
+				                    .Bind(0, 1, &hierarchy_flag_buffer));
 				cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
 				cmd_buffer.Dispatch((primitive_count * 2 - 1 + 1024 - 1) / 1024);
 				cmd_buffer.Transition(
@@ -663,10 +712,10 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 				aabb_pso.LoadShader(aabb_shader);
 				cmd_buffer.Bind(aabb_pso);
 				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
-				                    .Bind(0, 0, &desc.mesh->GetVertexBuffer())
-				                    .Bind(0, 1, &desc.mesh->GetIndexBuffer())
-				                    .Bind(0, 2, m_bvh_buffer.get())
-				                    .Bind(0, 3, &hierarchy_flag_buffer));
+				                    .Bind(0, 0, m_bvh_buffer.get())
+				                    .Bind(0, 1, &hierarchy_flag_buffer)
+				                    .Bind(0, 2, &desc.mesh->GetVertexBuffer())
+				                    .Bind(0, 3, &desc.mesh->GetIndexBuffer()));
 				cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
 				cmd_buffer.Dispatch((primitive_count + 1024 - 1) / 1024);
 			}
@@ -675,7 +724,7 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 		cmd_buffer.End();
 		p_device->SubmitIdle(cmd_buffer);
 #else
-		// CPU BVH Construction
+		// CPU BLAS Construction
 		const auto &vertices = desc.mesh->GetVertices();
 		const auto &indices  = desc.mesh->GetIndices();
 
@@ -683,7 +732,6 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 		glm::vec3 aabb_max = desc.mesh->GetAABB().GetMax();
 
 		// Assigned Morton Codes
-
 		std::vector<uint32_t>               morton_codes_buffer;
 		std::vector<uint32_t>               indices_buffer;
 		std::vector<ShaderInterop::BVHNode> bvh_buffer;
@@ -753,27 +801,38 @@ void AccelerationStructure::Build(const TLASDesc &desc)
 {
 	if (p_device->IsRayTracingEnable())
 	{
-		if (desc.mesh_instances.empty())
+		if (!desc.scene)
+		{
+			return;
+		}
+
+		auto group = desc.scene->GetRegistry().group<cmpt::MeshRenderer>(entt::get<cmpt::Transform>);
+
+		if (group.empty())
 		{
 			return;
 		}
 
 		std::vector<VkAccelerationStructureInstanceKHR> acceleration_structure_instances;
-		acceleration_structure_instances.reserve(desc.mesh_instances.size());
+		acceleration_structure_instances.reserve(group.size());
 
-		for (const auto &[transform, mesh] : desc.mesh_instances)
-		{
+		group.each([&](cmpt::MeshRenderer &mesh_renderer, cmpt::Transform &transform) {
+			if (!mesh_renderer.GetMesh())
+			{
+				return;
+			}
+
 			VkAccelerationStructureInstanceKHR acceleration_structure_instance = {};
 
-			auto transform_transpose = glm::mat3x4(glm::transpose(transform));
+			auto transform_transpose = glm::mat3x4(glm::transpose(transform.GetWorldTransform()));
 			std::memcpy(&acceleration_structure_instance.transform, &transform_transpose, sizeof(VkTransformMatrixKHR));
 			acceleration_structure_instance.instanceCustomIndex                    = 0;
 			acceleration_structure_instance.mask                                   = 0xFF;
 			acceleration_structure_instance.instanceShaderBindingTableRecordOffset = 0;
 			acceleration_structure_instance.flags                                  = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
-			acceleration_structure_instance.accelerationStructureReference         = mesh->GetBLAS().GetDeviceAddress();
+			acceleration_structure_instance.accelerationStructureReference         = mesh_renderer.GetMesh()->GetBLAS().GetDeviceAddress();
 			acceleration_structure_instances.push_back(acceleration_structure_instance);
-		}
+		});
 
 		if (!m_instance_buffer || m_instance_buffer->GetSize() < sizeof(VkAccelerationStructureInstanceKHR) * acceleration_structure_instances.size())
 		{
@@ -809,6 +868,423 @@ void AccelerationStructure::Build(const TLASDesc &desc)
 		Build(cmd_buffer, as_desc);
 		cmd_buffer.End();
 		p_device->SubmitIdle(cmd_buffer);
+	}
+	else
+	{
+#ifdef GPU_BVH
+		auto &cmd_buffer = p_device->RequestCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+		cmd_buffer.Begin();
+
+		AABB scene_aabb;
+
+		auto group = desc.scene->GetRegistry().group<cmpt::MeshRenderer>(entt::get<cmpt::Transform>);
+
+		std::vector<Buffer *> instances;
+		instances.reserve(group.size());
+
+		group.each([&](cmpt::MeshRenderer &mesh_renderer, cmpt::Transform &transform) {
+			if (mesh_renderer.GetMesh())
+			{
+				ShaderInterop::Instance *instance = static_cast<ShaderInterop::Instance *>(mesh_renderer.GetBuffer()->Map());
+				instances.push_back(mesh_renderer.GetBuffer());
+
+				AABB aabb(instance->aabb_min, instance->aabb_max);
+				scene_aabb.Merge(aabb);
+
+				mesh_renderer.GetBuffer()->Unmap();
+			}
+		});
+
+		uint32_t instance_count = static_cast<uint32_t>(instances.size());
+
+		Buffer morton_codes_buffer(p_device, BufferDesc(sizeof(uint32_t), instance_count, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
+		Buffer hierarchy_flag_buffer(p_device, BufferDesc(sizeof(uint32_t), instance_count * 2 - 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
+		Buffer primitive_indices_buffer(p_device, BufferDesc(sizeof(uint32_t), instance_count, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
+
+		if (!m_bvh_buffer || m_bvh_buffer->GetSize() < (instance_count * 2 - 1) * sizeof(ShaderInterop::BVHNode))
+		{
+			m_bvh_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(ShaderInterop::BVHNode), instance_count * 2 - 1, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
+		}
+
+		// Assigned Morton Codes
+		{
+			struct
+			{
+				glm::vec3 aabb_min        = {};
+				uint32_t  primitive_count = {};
+				glm::vec3 aabb_max        = {};
+			} push_constants;
+			push_constants.aabb_min        = scene_aabb.GetMin();
+			push_constants.aabb_max        = scene_aabb.GetMax();
+			push_constants.primitive_count = instance_count;
+
+			ShaderDesc shader  = {};
+			shader.filename    = "./Source/Shaders/BVH/CalculateMortonCodes.hlsl";
+			shader.entry_point = "main";
+			shader.macros.push_back("BUILD_TLAS");
+			shader.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+			shader.type  = ShaderType::HLSL;
+
+			PipelineState pso;
+			pso.LoadShader(shader);
+
+			cmd_buffer.Bind(pso);
+			cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+			                    .Bind(0, 0, &morton_codes_buffer)
+			                    .Bind(0, 1, &primitive_indices_buffer)
+			                    .Bind(0, 2, instances));
+			cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
+			cmd_buffer.Dispatch((instance_count + 32 - 1) / 32);
+			cmd_buffer.Transition(
+			    {BufferTransition{&morton_codes_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+			     BufferTransition{&primitive_indices_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}}},
+			    {});
+		}
+
+		// Sorting Morton Codes
+		// Reference: https://poniesandlight.co.uk/reflect/bitonic_merge_sort/
+		{
+			uint32_t max_group_size = 1024;
+
+			uint32_t n            = instance_count;
+			uint32_t nn           = static_cast<uint32_t>(powf(2, std::ceilf(std::log2f(static_cast<float>(n + 1)))));
+			uint32_t group_size_x = nn / 2;
+			if (group_size_x > max_group_size)
+			{
+				group_size_x = max_group_size;
+			}
+
+			const uint32_t group_count = nn / (group_size_x * 2);
+
+			struct
+			{
+				uint32_t h    = 0;
+				uint32_t size = 0;
+			} push_constants;
+
+			push_constants.size = instance_count;
+
+			ShaderDesc local_bms_shader  = {};
+			local_bms_shader.filename    = "./Source/Shaders/BVH/BitonicSort.hlsl";
+			local_bms_shader.entry_point = "main";
+			local_bms_shader.macros.push_back("LOCAL_BMS");
+			local_bms_shader.macros.push_back("GROUP_SIZE=" + std::to_string(group_size_x));
+			local_bms_shader.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+			local_bms_shader.type  = ShaderType::HLSL;
+
+			ShaderDesc global_flip_shader  = {};
+			global_flip_shader.filename    = "./Source/Shaders/BVH/BitonicSort.hlsl";
+			global_flip_shader.entry_point = "main";
+			global_flip_shader.macros.push_back("GLOBAL_FLIP");
+			global_flip_shader.macros.push_back("GROUP_SIZE=" + std::to_string(group_size_x));
+			global_flip_shader.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+			global_flip_shader.type  = ShaderType::HLSL;
+
+			ShaderDesc global_disperse_shader  = {};
+			global_disperse_shader.filename    = "./Source/Shaders/BVH/BitonicSort.hlsl";
+			global_disperse_shader.entry_point = "main";
+			global_disperse_shader.macros.push_back("GLOBAL_DISPERSE");
+			global_disperse_shader.macros.push_back("GROUP_SIZE=" + std::to_string(group_size_x));
+			global_disperse_shader.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+			global_disperse_shader.type  = ShaderType::HLSL;
+
+			ShaderDesc local_disperse_shader  = {};
+			local_disperse_shader.filename    = "./Source/Shaders/BVH/BitonicSort.hlsl";
+			local_disperse_shader.entry_point = "main";
+			local_disperse_shader.macros.push_back("LOCAL_DISPERSE");
+			local_disperse_shader.macros.push_back("GROUP_SIZE=" + std::to_string(group_size_x));
+			local_disperse_shader.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+			local_disperse_shader.type  = ShaderType::HLSL;
+
+			PipelineState local_bms_pso;
+			local_bms_pso.LoadShader(local_bms_shader);
+
+			PipelineState global_flip_pso;
+			global_flip_pso.LoadShader(global_flip_shader);
+
+			PipelineState global_disperse_pso;
+			global_disperse_pso.LoadShader(global_disperse_shader);
+
+			PipelineState local_disperse_pso;
+			local_disperse_pso.LoadShader(local_disperse_shader);
+
+			auto local_bms = [&](uint32_t h) {
+				cmd_buffer.Bind(local_bms_pso);
+				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+				                    .Bind(0, 0, &morton_codes_buffer)
+				                    .Bind(0, 1, &primitive_indices_buffer));
+				push_constants.h = h;
+				cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
+				cmd_buffer.Dispatch(group_count);
+				cmd_buffer.Transition(
+				    {BufferTransition{&morton_codes_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+				     BufferTransition{&primitive_indices_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}}},
+				    {});
+			};
+
+			auto global_flip = [&](uint32_t h) {
+				cmd_buffer.Bind(global_flip_pso);
+				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+				                    .Bind(0, 0, &morton_codes_buffer)
+				                    .Bind(0, 1, &primitive_indices_buffer));
+				push_constants.h = h;
+				cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
+				cmd_buffer.Dispatch(group_count);
+				cmd_buffer.Transition(
+				    {BufferTransition{&morton_codes_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+				     BufferTransition{&primitive_indices_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}}},
+				    {});
+			};
+
+			auto global_disperse = [&](uint32_t h) {
+				cmd_buffer.Bind(global_disperse_pso);
+				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+				                    .Bind(0, 0, &morton_codes_buffer)
+				                    .Bind(0, 1, &primitive_indices_buffer));
+				push_constants.h = h;
+				cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
+				cmd_buffer.Dispatch(group_count);
+				cmd_buffer.Transition(
+				    {BufferTransition{&morton_codes_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+				     BufferTransition{&primitive_indices_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}}},
+				    {});
+			};
+
+			auto local_disperse = [&](uint32_t h) {
+				cmd_buffer.Bind(local_disperse_pso);
+				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+				                    .Bind(0, 0, &morton_codes_buffer)
+				                    .Bind(0, 1, &primitive_indices_buffer));
+				push_constants.h = h;
+				cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
+				cmd_buffer.Dispatch(group_count);
+				cmd_buffer.Transition(
+				    {BufferTransition{&morton_codes_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+				     BufferTransition{&primitive_indices_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}}},
+				    {});
+			};
+
+			uint32_t h = group_size_x * 2;
+
+			local_bms(h);
+
+			h <<= 1;
+
+			for (; h <= nn; h <<= 1)
+			{
+				global_flip(h);
+				for (uint32_t hh = h >> 1; hh > 1; hh >>= 1)
+				{
+					if (hh <= group_size_x * 2)
+					{
+						local_disperse(hh);
+						break;
+					}
+					else
+					{
+						global_disperse(hh);
+					}
+				}
+			}
+		}
+
+		//	Split Hierarchy
+		{
+			struct
+			{
+				uint32_t leaf_count = 0;
+			} push_constants;
+
+			push_constants.leaf_count = instance_count;
+
+			ShaderDesc init_shader  = {};
+			init_shader.filename    = "./Source/Shaders/BVH/HierarchySplit.hlsl";
+			init_shader.entry_point = "main";
+			init_shader.macros.push_back("INITIALIZE");
+			init_shader.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+			init_shader.type  = ShaderType::HLSL;
+
+			ShaderDesc split_shader  = {};
+			split_shader.filename    = "./Source/Shaders/BVH/HierarchySplit.hlsl";
+			split_shader.entry_point = "main";
+			split_shader.macros.push_back("SPLIT");
+			split_shader.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+			split_shader.type  = ShaderType::HLSL;
+
+			// Init hierarchy
+			{
+				PipelineState init_pso;
+				init_pso.LoadShader(init_shader);
+
+				cmd_buffer.Bind(init_pso);
+				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+				                    .Bind(0, 1, m_bvh_buffer.get())
+				                    .Bind(0, 2, &primitive_indices_buffer));
+				cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
+				cmd_buffer.Dispatch((instance_count * 2 - 1 + 1024 - 1) / 1024);
+				cmd_buffer.Transition(
+				    {BufferTransition{&morton_codes_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+				     BufferTransition{&primitive_indices_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+				     BufferTransition{m_bvh_buffer.get(), BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}}},
+				    {});
+			}
+
+			// Split
+			{
+				PipelineState split_pso;
+				split_pso.LoadShader(split_shader);
+
+				cmd_buffer.Bind(split_pso);
+				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+				                    .Bind(0, 0, &morton_codes_buffer)
+				                    .Bind(0, 1, m_bvh_buffer.get()));
+				cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
+				cmd_buffer.Dispatch((instance_count + 1024 - 1) / 1024);
+				cmd_buffer.Transition(
+				    {BufferTransition{&morton_codes_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+				     BufferTransition{&primitive_indices_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+				     BufferTransition{m_bvh_buffer.get(), BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}}},
+				    {});
+			}
+		}
+
+		// Generate AABB
+		{
+			struct
+			{
+				uint32_t leaf_count = 0;
+			} push_constants;
+
+			push_constants.leaf_count = instance_count;
+
+			ShaderDesc init_shader  = {};
+			init_shader.filename    = "./Source/Shaders/BVH/GenerateAABB.hlsl";
+			init_shader.entry_point = "main";
+			init_shader.macros.push_back("INITIALIZE");
+			init_shader.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+			init_shader.type  = ShaderType::HLSL;
+
+			ShaderDesc aabb_shader  = {};
+			aabb_shader.filename    = "./Source/Shaders/BVH/GenerateAABB.hlsl";
+			aabb_shader.entry_point = "main";
+			aabb_shader.macros.push_back("GENERATION");
+			aabb_shader.macros.push_back("BUILD_TLAS");
+			aabb_shader.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+			aabb_shader.type  = ShaderType::HLSL;
+
+			// Init aabb
+			{
+				PipelineState init_pso;
+				init_pso.LoadShader(init_shader);
+
+				cmd_buffer.Bind(init_pso);
+				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+				                    .Bind(0, 0, m_bvh_buffer.get())
+				                    .Bind(0, 1, &hierarchy_flag_buffer));
+				cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
+				cmd_buffer.Dispatch((instance_count * 2 - 1 + 1024 - 1) / 1024);
+				cmd_buffer.Transition(
+				    {BufferTransition{m_bvh_buffer.get(), BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}},
+				     BufferTransition{&hierarchy_flag_buffer, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}, BufferState{VK_BUFFER_USAGE_STORAGE_BUFFER_BIT}}},
+				    {});
+			}
+
+			// Generate aabb
+			{
+				PipelineState aabb_pso;
+				aabb_pso.LoadShader(aabb_shader);
+				cmd_buffer.Bind(aabb_pso);
+				cmd_buffer.Bind(cmd_buffer.GetDescriptorState()
+				                    .Bind(0, 0, m_bvh_buffer.get())
+				                    .Bind(0, 1, &hierarchy_flag_buffer)
+				                    .Bind(0, 2, instances));
+				cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
+				cmd_buffer.Dispatch((instance_count + 1024 - 1) / 1024);
+			}
+		}
+
+		cmd_buffer.End();
+		p_device->SubmitIdle(cmd_buffer);
+#else
+		// CPU TLAS Construction
+		auto group = desc.scene->GetRegistry().group<cmpt::MeshRenderer>(entt::get<cmpt::Transform>);
+
+		AABB scene_aabb;
+
+		std::vector<ShaderInterop::Instance> instances;
+		instances.reserve(group.size());
+
+		group.each([&](cmpt::MeshRenderer &mesh_renderer, cmpt::Transform &transform) {
+			if (mesh_renderer.GetMesh())
+			{
+				ShaderInterop::Instance *instance = static_cast<ShaderInterop::Instance *>(mesh_renderer.GetBuffer()->Map());
+				instances.push_back(*instance);
+
+				AABB aabb(instance->aabb_min, instance->aabb_max);
+				scene_aabb.Merge(aabb);
+
+				mesh_renderer.GetBuffer()->Unmap();
+			}
+		});
+
+		// Assigned Morton Codes
+		std::vector<uint32_t>               morton_codes_buffer;
+		std::vector<uint32_t>               indices_buffer;
+		std::vector<ShaderInterop::BVHNode> bvh_buffer;
+		morton_codes_buffer.reserve(instances.size());
+		indices_buffer.resize(instances.size());
+		std::iota(indices_buffer.begin(), indices_buffer.end(), 0);
+		for (auto &instance : instances)
+		{
+			glm::vec3 unit_coord = ((instance.aabb_min + instance.aabb_max) * 0.5f - scene_aabb.GetMin()) / glm::max(scene_aabb.GetMax() - scene_aabb.GetMin(), glm::vec3(0.00001f));
+			morton_codes_buffer.push_back(MortonCodeFromUnitCoord(unit_coord));
+		}
+
+		// Sorting Primitives
+		std::sort(indices_buffer.begin(), indices_buffer.end(), [&](uint32_t lhs, uint32_t rhs) {
+			return morton_codes_buffer[lhs] < morton_codes_buffer[rhs];
+		});
+
+		std::vector<uint32_t> tmp_morton_codes_buffer(morton_codes_buffer.size());
+		for (uint32_t i = 0; i < morton_codes_buffer.size(); i++)
+		{
+			tmp_morton_codes_buffer[i] = morton_codes_buffer[indices_buffer[i]];
+		}
+		morton_codes_buffer = std::move(tmp_morton_codes_buffer);
+
+		// Generate Hierarchy
+		// LBVH - Lauterbach et al. [2009]
+		// [root - node - leaf]
+		bvh_buffer.resize(2 * morton_codes_buffer.size() - 1, ShaderInterop::BVHNode{ShaderInterop::AABB{glm::vec4(std::numeric_limits<float>::max()), -glm::vec4(std::numeric_limits<float>::max())}, ~0U, ~0U, ~0U, ~0U});
+		GenerateHierarchy(morton_codes_buffer, indices_buffer, bvh_buffer);
+
+		// Building BVH
+		for (uint32_t i = 0; i < indices_buffer.size(); i++)
+		{
+			bvh_buffer[indices_buffer.size() + i - 1].prim_id = indices_buffer[i];
+		}
+
+		GenerateAABBs(instances, bvh_buffer);
+
+		// Upload buffer
+		{
+			Buffer hierarchy_staging(p_device, BufferDesc(sizeof(ShaderInterop::BVHNode), static_cast<uint32_t>(bvh_buffer.size()), VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VMA_MEMORY_USAGE_CPU_TO_GPU));
+
+			std::memcpy(hierarchy_staging.Map(), bvh_buffer.data(), hierarchy_staging.GetSize());
+			hierarchy_staging.Unmap();
+
+			if (!m_bvh_buffer || m_bvh_buffer->GetSize() < hierarchy_staging.GetSize())
+			{
+				m_bvh_buffer = std::make_unique<Buffer>(p_device, BufferDesc(sizeof(ShaderInterop::BVHNode), static_cast<uint32_t>(bvh_buffer.size()), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VMA_MEMORY_USAGE_GPU_ONLY));
+			}
+
+			auto &cmd_buffer = p_device->RequestCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, VK_QUEUE_TRANSFER_BIT);
+			cmd_buffer.Begin();
+			cmd_buffer.CopyBuffer(BufferCopyInfo{&hierarchy_staging}, BufferCopyInfo{m_bvh_buffer.get()}, hierarchy_staging.GetSize());
+			cmd_buffer.End();
+			p_device->SubmitIdle(cmd_buffer, VK_QUEUE_TRANSFER_BIT);
+		}
+#endif
 	}
 }
 

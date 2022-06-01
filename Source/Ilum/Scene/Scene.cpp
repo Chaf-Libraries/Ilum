@@ -1090,7 +1090,8 @@ void Scene::UpdateTLAS()
 
 		// Update buffer
 		TLASDesc desc = {};
-		desc.mesh_instances.reserve(100);
+		desc.scene    = this;
+
 		auto mesh_view = m_registry.view<cmpt::MeshRenderer>();
 		for (uint32_t i = 0; i < mesh_view.size(); i++)
 		{
@@ -1105,7 +1106,6 @@ void Scene::UpdateTLAS()
 
 			if (mesh_renderer.GetMesh())
 			{
-				desc.mesh_instances.emplace_back(std::make_pair(transform.GetWorldTransform(), mesh_renderer.GetMesh()));
 				AABB aabb = mesh_renderer.GetMesh()->GetAABB().Transform(transform.GetWorldTransform());
 
 				instance->aabb_min = aabb.GetMin();

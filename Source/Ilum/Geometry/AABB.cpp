@@ -2,7 +2,7 @@
 
 namespace Ilum
 {
-AABB::AABB(const glm::vec3 &_min, const glm::vec3 &_max):
+AABB::AABB(const glm::vec3 &_min, const glm::vec3 &_max) :
     m_max(_max), m_min(_min)
 {
 }
@@ -31,6 +31,14 @@ void AABB::Merge(const AABB &aabb)
 	m_max.x = aabb.m_max.x > m_max.x ? aabb.m_max.x : m_max.x;
 	m_max.y = aabb.m_max.y > m_max.y ? aabb.m_max.y : m_max.y;
 	m_max.z = aabb.m_max.z > m_max.z ? aabb.m_max.z : m_max.z;
+}
+
+void AABB::Merge(const std::vector<AABB> &aabbs)
+{
+	for (auto& aabb : aabbs)
+	{
+		Merge(aabb);
+	}
 }
 
 AABB AABB::Transform(const glm::mat4 &trans) const

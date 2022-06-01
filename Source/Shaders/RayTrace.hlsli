@@ -3,7 +3,7 @@
 
 bool Intersection(AABB aabb, RayDesc ray, out float t)
 {
-    float3 inv_dir = 1.0 / ray.Direction;
+    float3 inv_dir = rcp(ray.Direction);
     float t1 = (aabb.min_val.x - ray.Origin.x) * inv_dir.x;
     float t2 = (aabb.max_val.x - ray.Origin.x) * inv_dir.x;
     float t3 = (aabb.min_val.y - ray.Origin.y) * inv_dir.y;

@@ -1,14 +1,17 @@
 #include "../ShaderInterop.hpp"
 
-#define BUILD_BLAS
-
-//ConstantBuffer<SceneInfo> scene_info : register(b0);
 RWStructuredBuffer<uint> morton_codes_buffer : register(u0);
 RWStructuredBuffer<uint> indices_buffer : register(u1);
 
 #ifdef BUILD_BLAS
 StructuredBuffer<Vertex> vertices : register(t2);
 StructuredBuffer<uint> indices : register(t3);
+#endif
+
+#ifdef BUILD_TLAS
+ConstantBuffer<Instance> instances[] : register(b2);
+#endif
+
 [[vk::push_constant]]
 struct
 {
@@ -16,11 +19,6 @@ struct
     uint primitive_count;
     float3 aabb_max;
 } push_constants;
-#endif
-
-#ifdef BUILD_TLAS
-ConstantBuffer<Instance> instances[] : register(b3);
-#endif
 
 struct CSParam
 {
@@ -69,6 +67,14 @@ void main(CSParam param)
     float3 unit_coord = ((v1 + v2 + v3) / 3.f - push_constants.aabb_min) / max(push_constants.aabb_max - push_constants.aabb_min, 0.00001);
     uint morton_code = MortonCodeFromUnitCoord(unit_coord);
     morton_codes_buffer[param.DispatchThreadID.x] = morton_code;
-    indices_buffer[param.DispatchThreadID.x] = param.DispatchThreadID.x;
 #endif
+    
+#ifdef BUILD_TLAS
+    float3 center = (instances[param.DispatchThreadID.x].aabb_min + instances[param.DispatchThreadID.x].aabb_max) * 0.5;
+    float3 unit_coord = (center - push_constants.aabb_min) / max(push_constants.aabb_max - push_constants.aabb_min, 0.00001);
+    uint morton_code = MortonCodeFromUnitCoord(unit_coord);
+    morton_codes_buffer[param.DispatchThreadID.x] = morton_code;
+#endif
+    
+    indices_buffer[param.DispatchThreadID.x] = param.DispatchThreadID.x;
 }

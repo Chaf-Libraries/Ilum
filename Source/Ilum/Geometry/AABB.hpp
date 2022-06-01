@@ -23,6 +23,8 @@ class AABB
 
 	void Merge(const AABB &aabb);
 
+	void Merge(const std::vector<AABB> &aabbs);
+
 	AABB Transform(const glm::mat4 &trans) const;
 
 	const glm::vec3 &GetMin() const;
