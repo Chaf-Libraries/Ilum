@@ -28,10 +28,12 @@ bool Light::OnImGui(ImGuiContext &context)
 	if (m_type == LightType::Point)
 	{
 		m_update |= ImGui::DragFloat("Range", &m_range, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
+		m_update |= ImGui::DragFloat("Radius", &m_radius, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
 	}
 	else if (m_type == LightType::Spot)
 	{
 		m_update |= ImGui::DragFloat("Range", &m_range, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
+		m_update |= ImGui::DragFloat("Radius", &m_radius, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.2f");
 		m_update |= ImGui::DragFloat("Cut off", &m_spot_inner_cone_angle, 0.0001f, 0.f, 1.f, "%.5f");
 		m_update |= ImGui::DragFloat("Outer cut off", &m_spot_outer_cone_angle, 0.0001f, 0.f, m_spot_inner_cone_angle, "%.5f");
 		if (ImGui::TreeNode("Shadowmap"))
@@ -468,6 +470,7 @@ void Light::UpdatePointLight(Scene &scene, entt::entity entity, RHIDevice *devic
 		data->intensity = m_intensity;
 		data->position  = transform.GetWorldTransform()[3];
 		data->range     = m_range;
+		data->radius    = m_radius;
 
 		push_data.position = data->position;
 
@@ -688,6 +691,7 @@ void Light::UpdateSpotLight(Scene &scene, entt::entity entity, RHIDevice *device
 		data->position        = transform.GetWorldTransform()[3];
 		data->direction       = glm::mat3_cast(glm::qua<float>(glm::radians(transform.GetRotation()))) * glm::vec3(0.f, -1.f, 0.f);
 		data->view_projection = glm::perspective(2.f * m_spot_outer_cone_angle, 1.0f, 0.01f, 1000.f) * glm::lookAt(transform.GetTranslation(), transform.GetTranslation() + data->direction, glm::vec3(0.f, 1.f, 0.f));
+		data->radius          = m_radius;
 
 		push_data.view_projection = data->view_projection;
 		push_data.position        = data->position;

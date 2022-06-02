@@ -138,7 +138,7 @@ void main(CSParam param)
     for (uint i = 0; i < push_constants.directional_light_count; i++)
     {
         float3 L;
-        DirectionalLight light = directional_light[i];
+        DirectionalLight light = directional_lights[i];
         float3 intensity = Eval_Light(light, sstate.position, L);
         result = intensity * abs(dot(sstate.normal, L));;
         GetPunctualRadiance(iridescence_fresnel, intensity, L, V, sstate, radiance);
@@ -146,7 +146,7 @@ void main(CSParam param)
     for (i = 0; i < push_constants.spot_light_count; i++)
     {
         float3 L;
-        SpotLight light = spot_light[i];
+        SpotLight light = spot_lights[i];
         float3 intensity = Eval_Light(light, sstate.position, L);
         result = intensity * abs(dot(sstate.normal, L));
         GetPunctualRadiance(iridescence_fresnel, intensity, L, V, sstate, radiance);
@@ -154,7 +154,7 @@ void main(CSParam param)
     for (i = 0; i < push_constants.point_light_count; i++)
     {
         float3 L;
-        PointLight light = point_light[i];
+        PointLight light = point_lights[i];
         float3 intensity = Eval_Light(light, sstate.position, L);
         result = intensity * abs(dot(sstate.normal, L));;
         GetPunctualRadiance(iridescence_fresnel, intensity, L, V, sstate, radiance);

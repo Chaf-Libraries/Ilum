@@ -47,7 +47,7 @@ bool Intersection(AABB aabb, RayDesc ray, out float t)
 }
 
 // Moller¨CTrumbore intersection
-bool Intersection(float3 v0, float3 v1, float3 v2, RayDesc ray, out float t)
+bool Intersection(float3 v0, float3 v1, float3 v2, RayDesc ray, out float t, out float3 bary)
 {
     float eps = 1e-7;
     float3 edge1 = v1 - v0;
@@ -60,19 +60,25 @@ bool Intersection(float3 v0, float3 v1, float3 v2, RayDesc ray, out float t)
         return false;
     }
     
-    float f = rcp(a);
+    float f = 1.0 / a;
     float3 s = ray.Origin - v0;
     float u = f * dot(s, h);
+    
     if (u < 0.0 || u > 1.0)
     {
         return false;
     }
+    
     float3 q = cross(s, edge1);
     float v = f * dot(ray.Direction, q);
+    
     if (v < 0.0 || u + v > 1.0)
     {
         return false;
     }
+    
     t = f * dot(edge2, q);
+    bary = float3(1.0 - u - v, u, v);
+    
     return t > eps;
 }

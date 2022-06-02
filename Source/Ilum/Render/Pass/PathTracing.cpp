@@ -7,6 +7,7 @@
 #include <Render/Renderer.hpp>
 
 #include <Scene/Component/Camera.hpp>
+#include <Scene/Component/Light.hpp>
 #include <Scene/Entity.hpp>
 #include <Scene/Scene.hpp>
 
@@ -72,6 +73,53 @@ void PathTracing::Create(RGBuilder &builder)
 
 		auto *camera_buffer = camera_entity.GetComponent<cmpt::Camera>().GetBuffer();
 
+		struct
+		{
+			uint32_t directional_light_count = 0;
+			uint32_t spot_light_count        = 0;
+			uint32_t point_light_count       = 0;
+			uint32_t area_light_count        = 0;
+		} push_constants;
+
+		std::vector<Buffer *> directional_lights;
+		std::vector<Buffer *> spot_lights;
+		std::vector<Buffer *> point_lights;
+		std::vector<Buffer *> area_lights;
+
+		{
+			auto view = renderer.GetScene()->GetRegistry().view<cmpt::Light>();
+
+			directional_lights.reserve(view.size());
+			spot_lights.reserve(view.size());
+			point_lights.reserve(view.size());
+			area_lights.reserve(view.size());
+
+			view.each([&](cmpt::Light &light) {
+				switch (light.GetType())
+				{
+					case cmpt::LightType::Point:
+						point_lights.push_back(light.GetBuffer());
+						break;
+					case cmpt::LightType::Directional:
+						directional_lights.push_back(light.GetBuffer());
+						break;
+					case cmpt::LightType::Spot:
+						spot_lights.push_back(light.GetBuffer());
+						break;
+					case cmpt::LightType::Area:
+						area_lights.push_back(light.GetBuffer());
+						break;
+					default:
+						break;
+				}
+			});
+
+			push_constants.directional_light_count = static_cast<uint32_t>(directional_lights.size());
+			push_constants.spot_light_count        = static_cast<uint32_t>(spot_lights.size());
+			push_constants.point_light_count       = static_cast<uint32_t>(point_lights.size());
+			push_constants.area_light_count        = static_cast<uint32_t>(area_lights.size());
+		}
+
 		if (renderer.GetDevice().IsRayTracingEnable())
 		{
 		}
@@ -109,14 +157,14 @@ void PathTracing::Create(RGBuilder &builder)
 			        .Bind(1, 4, renderer.GetScene()->GetAssetManager().GetMeshletTriangleBuffer())
 			        .Bind(1, 5, renderer.GetScene()->GetAssetManager().GetIndexBuffer())
 			        .Bind(2, 0, renderer.GetScene()->GetAssetManager().GetMaterialBuffer())
-
-			        //.Bind(0, 5, directional_lights)
-			        //.Bind(0, 6, spot_lights)
-			        //.Bind(0, 7, point_lights)
-			        //.Bind(0, 8, area_lights)
 			        .Bind(2, 1, renderer.GetScene()->GetAssetManager().GetTextureViews())
-			        .Bind(2, 2, renderer.GetSampler(SamplerType::TrilinearWarp)));
+			        .Bind(2, 2, renderer.GetSampler(SamplerType::TrilinearWarp))
+			        .Bind(3, 0, directional_lights)
+			        .Bind(3, 1, spot_lights)
+			        .Bind(3, 2, point_lights)
+			        .Bind(3, 3, area_lights));
 
+			cmd_buffer.PushConstants(VK_SHADER_STAGE_COMPUTE_BIT, &push_constants, sizeof(push_constants), 0);
 			cmd_buffer.Dispatch((renderer.GetExtent().width + 32 - 1) / 32, (renderer.GetExtent().height + 32 - 1) / 32);
 		}
 

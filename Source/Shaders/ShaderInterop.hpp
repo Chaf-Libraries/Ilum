@@ -215,6 +215,7 @@ struct SpotLight
 	float    cut_off;
 	float    outer_cut_off;
 	float3   direction;
+	float    radius;
 };
 
 struct PointLight
@@ -223,6 +224,7 @@ struct PointLight
 	float  intensity;
 	float3 position;
 	float  range;
+	float  radius;
 };
 
 struct AreaLight

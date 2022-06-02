@@ -5,28 +5,14 @@
 
 float3x3 CreateCoordinateSystem(in float3 N, out float3 T, out float3 B)
 {
-    B = float3(0.0, 1.0, 0.0);
-    
-    float NoUp = dot(N, float3(0.0, 1.0, 0.0));
-    float epsilon = 0.0000001;
-    if (1.0 - abs(NoUp) <= epsilon)
-    {
-        if(NoUp>0.0)
-        {
-            B = float3(0.0, 0.0, 1.0);
-        }
-        else
-        {
-            B = float3(0.0, 0.0, -1.0);
-        }
-    }
-    
-    T = normalize(cross(B, N));
+    const float3 ref = abs(dot(N, float3(0, 1, 0))) > 0.99f ? float3(0, 0, 1) : float3(0, 1, 0);
+
+    T = normalize(cross(ref, N));
     B = cross(N, T);
     
     return float3x3(T, B, N);
 }
-/*
+
 // Sampling Disk
 // Polar Mapping
 float2 UniformSampleDisk(float2 u)
@@ -281,7 +267,7 @@ float Degrees(float rad)
 bool IsBlack(float3 v)
 {
     return v.x == 0.0 && v.y == 0.0 && v.z == 0.0;
-}*/
+}
 
 /*https://www.rorydriscoll.com/2012/01/15/cubemap-texel-solid-angle/*/
 float AreaIntegration(float x, float y)

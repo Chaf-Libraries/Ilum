@@ -411,7 +411,6 @@ struct ShadingState
         position = v0.position.xyz * bary.x + v1.position.xyz * bary.y + v2.position.xyz * bary.z;
         position = mul(transform, float4(position, 1.0)).xyz;
         normal = v0.normal.xyz * bary.x + v1.normal.xyz * bary.y + v2.normal.xyz * bary.z;
-        normal = v0.normal.xyz * bary.x + v1.normal.xyz * bary.y + v2.normal.xyz * bary.z;
         normal = normalize(mul((float3x3) transform, normal));
         tangent = v0.tangent.xyz * bary.x + v1.tangent.xyz * bary.y + v2.tangent.xyz * bary.z;
         tangent = normalize(mul((float3x3) transform, tangent.xyz));
@@ -457,13 +456,14 @@ struct ShadingState
         }
     }
     
-    void Load(uint instance_id, uint primitive_id, uint2 screen_size, uint2 pixel_coord, Camera cam)
-    {        
+    void Load(uint instance_id, uint primitive_id, uint2 pixel_coord, uint2 screen_size, Camera cam)
+    {
+            
         matID = instances[instance_id].material;
         uint mesh_id = instances[instance_id].mesh;
         
         float4x4 transform = instances[instance_id].transform;
-        
+
         uint i0 = indices[instances[instance_id].mesh][primitive_id * 3 + 0];
         uint i1 = indices[instances[instance_id].mesh][primitive_id * 3 + 1];
         uint i2 = indices[instances[instance_id].mesh][primitive_id * 3 + 2];
@@ -519,12 +519,83 @@ struct ShadingState
         position = v0.position.xyz * bary.x + v1.position.xyz * bary.y + v2.position.xyz * bary.z;
         position = mul(transform, float4(position, 1.0)).xyz;
         normal = v0.normal.xyz * bary.x + v1.normal.xyz * bary.y + v2.normal.xyz * bary.z;
-        normal = v0.normal.xyz * bary.x + v1.normal.xyz * bary.y + v2.normal.xyz * bary.z;
         normal = normalize(mul((float3x3) transform, normal));
         tangent = v0.tangent.xyz * bary.x + v1.tangent.xyz * bary.y + v2.tangent.xyz * bary.z;
         tangent = normalize(mul((float3x3) transform, tangent.xyz));
         dx = v0.texcoord.xy * bary_ddx.x + v1.texcoord.xy * bary_ddx.y + v2.texcoord.xy * bary_ddx.z;
         dy = v0.texcoord.xy * bary_ddy.x + v1.texcoord.xy * bary_ddy.y + v2.texcoord.xy * bary_ddy.z;
+                
+        bool double_sided = false;
+        
+        if (matID < 1024)
+        {
+            LoadMaterial();
+            
+            if (materials[matID].normal_texture < MAX_TEXTURE_ARRAY_SIZE)
+            {
+                float3 T = tangent;
+                float3 B;
+                if (!any(T))
+                {
+                    CreateCoordinateSystem(normal, T, B);
+                }
+                else
+                {
+                    float3 B = normalize(cross(normal, T));
+                }
+        
+                float3x3 TBN = float3x3(T, B, normal);
+                float3 normalVector = texture_array[NonUniformResourceIndex(materials[matID].normal_texture)].SampleGrad(texture_sampler, uv, dx, dy).rgb;
+                normalVector = normalVector * 2.0 - 1.0;
+                normalVector = normalize(normalVector);
+                normal = normalize(mul(normalVector, TBN));
+            }
+            
+            double_sided = materials[matID].double_sided == 1;
+        }
+        
+        if (!any(tangent))
+        {
+            CreateCoordinateSystem(normal, tangent, bitangent);
+        }
+        else
+        {
+            bitangent = cross(normal, tangent);
+        }
+        
+        if (double_sided && dot(cam.position - position, normal) < 0.0)
+        {
+            normal *= -1;
+            tangent *= -1;
+            bitangent *= -1;
+        }
+    }
+    
+    void Load(uint instance_id, uint primitive_id, float3 barycentric, Camera cam)
+    {
+        matID = instances[instance_id].material;
+        uint mesh_id = instances[instance_id].mesh;
+        
+        float4x4 transform = instances[instance_id].transform;
+        
+        uint i0 = indices[instances[instance_id].mesh][primitive_id * 3 + 0];
+        uint i1 = indices[instances[instance_id].mesh][primitive_id * 3 + 1];
+        uint i2 = indices[instances[instance_id].mesh][primitive_id * 3 + 2];
+        
+        Vertex v0 = vertices[mesh_id][i0];
+        Vertex v1 = vertices[mesh_id][i1];
+        Vertex v2 = vertices[mesh_id][i2];
+
+        bary = barycentric;
+        uv = v0.texcoord.xy * bary.x + v1.texcoord.xy * bary.y + v2.texcoord.xy * bary.z;
+        position = v0.position.xyz * bary.x + v1.position.xyz * bary.y + v2.position.xyz * bary.z;
+        position = mul(transform, float4(position, 1.0)).xyz;
+        normal = v0.normal.xyz * bary.x + v1.normal.xyz * bary.y + v2.normal.xyz * bary.z;
+        normal = normalize(mul((float3x3) transform, normal));
+        tangent = v0.tangent.xyz * bary.x + v1.tangent.xyz * bary.y + v2.tangent.xyz * bary.z;
+        tangent = normalize(mul((float3x3) transform, tangent.xyz));
+        dx = 0;
+        dy = 0;
                 
         bool double_sided = false;
         
@@ -563,6 +634,16 @@ struct ShadingState
             tangent *= -1;
             bitangent *= -1;
         }
+    }
+    
+    float3 WorldToLocalDir(float3 w)
+    {
+        return float3(dot(w, tangent), dot(w, bitangent), dot(w, normal));
+    }
+    
+    float3 LocalToWorldDir(float3 w)
+    {
+        return tangent * w.x + bitangent * w.y + normal * w.z;
     }
 };
 

@@ -60,6 +60,7 @@ class Light : public Component
 	float     m_intensity = 1.f;
 
 	float m_range                 = 1.f;
+	float m_radius                = 1.f;
 	float m_spot_inner_cone_angle = 12.5f;
 	float m_spot_outer_cone_angle = 17.5f;
 
