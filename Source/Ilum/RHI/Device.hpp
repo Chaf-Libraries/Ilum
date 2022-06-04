@@ -88,6 +88,7 @@ class RHIDevice
 	void NewFrame();
 	void Submit(CommandBuffer &cmd_buffer);
 	void SubmitIdle(CommandBuffer &cmd_buffer, VkQueueFlagBits queue = VK_QUEUE_GRAPHICS_BIT);
+	void SubmitIdle(std::vector<CommandBuffer> &cmd_buffers, VkQueueFlagBits queue = VK_QUEUE_GRAPHICS_BIT);
 	void EndFrame();
 
 	void Reset();

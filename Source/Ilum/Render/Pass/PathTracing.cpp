@@ -7,6 +7,7 @@
 #include <Render/Renderer.hpp>
 
 #include <Scene/Component/Camera.hpp>
+#include <Scene/Component/Environment.hpp>
 #include <Scene/Component/Light.hpp>
 #include <Scene/Entity.hpp>
 #include <Scene/Scene.hpp>
@@ -54,10 +55,22 @@ void PathTracing::Create(RGBuilder &builder)
 	pathtracing_compute_shader.stage       = VK_SHADER_STAGE_COMPUTE_BIT;
 	pathtracing_compute_shader.type        = ShaderType::HLSL;
 
+	ShaderDesc pathtracing_compute_shader_env  = {};
+	pathtracing_compute_shader_env.filename    = "./Source/Shaders/PathTracing/PathTracingCompute.hlsl";
+	pathtracing_compute_shader_env.entry_point = "main";
+	pathtracing_compute_shader_env.macros.push_back("HAS_ENVIRONMENT");
+	pathtracing_compute_shader_env.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+	pathtracing_compute_shader_env.type  = ShaderType::HLSL;
+
 	PipelineState pathtracing_compute_pso;
 	pathtracing_compute_pso
 	    .SetName("PathTracing - Compute")
 	    .LoadShader(pathtracing_compute_shader);
+
+	PipelineState pathtracing_compute_pso_env;
+	pathtracing_compute_pso_env
+	    .SetName("PathTracing - Compute")
+	    .LoadShader(pathtracing_compute_shader_env);
 
 	pass->BindCallback([=](CommandBuffer &cmd_buffer, const RGResources &resource, Renderer &renderer) {
 		if (renderer.GetScene()->GetInstanceBuffer().empty())
@@ -143,13 +156,18 @@ void PathTracing::Create(RGBuilder &builder)
 				}
 			});
 
-			cmd_buffer.Bind(pathtracing_compute_pso);
+			auto env_view = renderer.GetScene()->GetRegistry().view<cmpt::Environment>();
+
+			auto *cubmap = env_view.empty() ? nullptr : renderer.GetScene()->GetRegistry().get<cmpt::Environment>(env_view[0]).GetCubemap();
+
+			cmd_buffer.Bind(cubmap ? pathtracing_compute_pso_env : pathtracing_compute_pso);
 			cmd_buffer.Bind(
 			    cmd_buffer.GetDescriptorState()
 			        .Bind(0, 0, resource.GetTexture(shading)->GetView(view_desc))
 			        .Bind(0, 1, camera_buffer)
 			        .Bind(0, 2, &renderer.GetScene()->GetTLAS().GetBVHBuffer())
 			        .Bind(0, 3, blas_buffer)
+			        .Bind(0, 4, cubmap ? cubmap->GetView(TextureViewDesc{VK_IMAGE_VIEW_TYPE_CUBE, VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 6}) : VK_NULL_HANDLE)
 			        .Bind(1, 0, renderer.GetScene()->GetInstanceBuffer())
 			        .Bind(1, 1, renderer.GetScene()->GetAssetManager().GetMeshletBuffer())
 			        .Bind(1, 2, renderer.GetScene()->GetAssetManager().GetVertexBuffer())

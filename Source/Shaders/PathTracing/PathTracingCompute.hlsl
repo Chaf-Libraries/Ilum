@@ -11,6 +11,9 @@ cbuffer CameraBuffer : register(b1, space0)
 };
 StructuredBuffer<BVHNode> tlas : register(t2, space0);
 StructuredBuffer<BVHNode> blas[] : register(t3, space0);
+#ifdef HAS_ENVIRONMENT
+TextureCube<float4> skybox : register(t4, space0);
+#endif
 
 [[vk::push_constant]]
 struct
@@ -394,9 +397,8 @@ float BRDF_Pdf(ShadingState sstate, float NoH, float3 L, inout PCGSampler pcg_sa
 
 float3 SampleBRDF(float3 V, ShadingState sstate, inout PCGSampler pcg_sampler, out float3 L, out float pdf)
 {
-    float diffuse_ratio = 0.5 * (1.0 - sstate.mat_info.metallic);
-    diffuse_ratio = 1.0;
-    //if (pcg_sampler.Get1D() < diffuse_ratio)
+    float diffuse_ratio = 1.0 - sstate.mat_info.metallic;
+    if (pcg_sampler.Get1D() < diffuse_ratio)
     {
         // Diffuse term
         L = SampleCosineHemisphere(pcg_sampler.Get2D());
@@ -407,44 +409,45 @@ float3 SampleBRDF(float3 V, ShadingState sstate, inout PCGSampler pcg_sampler, o
         
         if (dot(sstate.normal, L) < 0.0)
         {
+            pdf = 0.0;
             return 0.0;
         }
         
         pdf = dot(sstate.normal, L) * InvPI * diffuse_ratio;
         return Eval_BRDF_Lambertian(sstate.mat_info.F0, sstate.mat_info.F90, sstate.mat_info.c_diff, sstate.mat_info.specular_weight, VoH);
     }
-    //else
-    //{
-    //    // Specular term
-    //    float alpha = sstate.mat_info.roughness * sstate.mat_info.roughness;
-    //    float2 xi = pcg_sampler.Get2D();
-    //    float cos_theta = saturate(sqrt((1.0 - xi.y) / (1.0 + (alpha * alpha - 1.0) * xi.y)));
-    //    float sin_theta = sqrt(1.0 - cos_theta * cos_theta);
-    //    float phi = 2.0 * PI * xi.x;
-    //    float3 H = normalize(float3(
-    //        sin_theta * cos(phi),
-    //        sin_theta * sin(phi),
-    //        cos_theta));
-    //    H = sstate.tangent * H.x + sstate.bitangent * H.y + sstate.normal * H.z;
-    //    
-    //    float VoH = clamp(dot(V, H), 0.0, 1.0);
-    //    float NoL = clamp(dot(sstate.normal, L), 0.0, 1.0);
-    //    float NoV = clamp(dot(sstate.normal, V), 0.0, 1.0);
-    //    float NoH = clamp(dot(sstate.normal, H), 0.0, 1.0);
-    //    
-    //    L = normalize(reflect(-V, H));
-    //    
-    //    if (dot(sstate.normal, L) < 0.0)
-    //    {
-    //        return 0.0;
-    //    }
-    //    
-    //    pdf = D_GGX(cos_theta, alpha) / 4.0 * (1 - diffuse_ratio);
-    //    return Eval_BRDF_SpecularGGX(sstate.mat_info.F0, sstate.mat_info.F90, alpha, sstate.mat_info.specular_weight, VoH, NoL, NoV, NoH);
-    //}
+    else
+    {
+        // Specular term
+        float alpha = sstate.mat_info.roughness * sstate.mat_info.roughness;
+        float2 xi = pcg_sampler.Get2D();
+        float cos_theta = saturate(sqrt((1.0 - xi.y) / (1.0 + (alpha * alpha - 1.0) * xi.y)));
+        float sin_theta = sqrt(1.0 - cos_theta * cos_theta);
+        float phi = 2.0 * PI * xi.x;
+        float3 H = normalize(float3(
+            sin_theta * cos(phi),
+            sin_theta * sin(phi),
+            cos_theta));
+        H = sstate.tangent * H.x + sstate.bitangent * H.y + sstate.normal * H.z;
+        L = normalize(reflect(-V, H));
+        
+        float VoH = clamp(dot(V, H), 0.0, 1.0);
+        float NoL = clamp(dot(sstate.normal, L), 0.0, 1.0);
+        float NoV = clamp(dot(sstate.normal, V), 0.0, 1.0);
+        float NoH = clamp(dot(sstate.normal, H), 0.0, 1.0);
+        
+        if (dot(sstate.normal, L) < 0.0)
+        {
+            pdf = 0.0;
+            return 0.0;
+        }
+        
+        pdf = D_GGX(NoH, sstate.mat_info.roughness) * NoH / (4.0 * VoH) * (1 - diffuse_ratio);
+        return NoL * Eval_BRDF_SpecularGGX(sstate.mat_info.F0, sstate.mat_info.F90, alpha, sstate.mat_info.specular_weight, VoH, NoL, NoV, NoH) / pdf;
+    }
 }
 
-float3 DirectLight(ShadingState sstate, inout PCGSampler pcg_sampler)
+float3 DirectLight(ShadingState sstate, float3 V, inout PCGSampler pcg_sampler)
 {
     uint light_count = push_constants.directional_light_count + push_constants.point_light_count + push_constants.spot_light_count + push_constants.area_light_count;
     if (light_count > 0)
@@ -459,7 +462,6 @@ float3 DirectLight(ShadingState sstate, inout PCGSampler pcg_sampler)
         
         if (!light.IsOccluded(sstate.normal) && light.pdf != 0.0)
         {
-            float3 V = normalize(camera.position - sstate.position);
             float3 f = Eval_BRDF(light.L, V, sstate) * abs(dot(light.L, sstate.normal));
             return f * Li / light.pdf / light_pdf;
         }
@@ -505,17 +507,18 @@ void main(CSParam param)
             sstate.Load(instance_id, primtive_id, bary, camera);
             sstate.normal = dot(sstate.normal, ray.Direction) <= 0 ? sstate.normal : -sstate.normal;
             CreateCoordinateSystem(sstate.normal, sstate.tangent, sstate.bitangent);
+
+            float3 V = -ray.Direction;
             
-            float3 V = normalize(camera.position - sstate.position);
             float3 L = 0;
             float pdf = 0;
             
-            radiance += throughout * DirectLight(sstate, pcg_sampler);
+            radiance += throughout * DirectLight(sstate, V, pcg_sampler);
             float3 f = SampleBRDF(V, sstate, pcg_sampler, L, pdf);
             
-            if (pdf > 0.0 && dot(L, sstate.normal) != 0.0 && any(f) != 0.0)
+            if (pdf > 0.0)
             {
-                throughout *= f * abs(dot(L, sstate.normal)) / pdf;
+                throughout *= f;
                 ray = SpawnRay(sstate.position, sstate.normal, normalize(L));
             }
             else
@@ -525,20 +528,10 @@ void main(CSParam param)
         }
         else
         {
+#ifdef HAS_ENVIRONMENT
+            radiance += throughout * skybox.SampleLevel(texture_sampler, ray.Direction, 0.0).rgb;
+#endif
             break;
-        }
-        
-        // Russian roulette
-        float3 rr_beta = throughout;
-        float max_cmpt = max(rr_beta.x, max(rr_beta.y, rr_beta.z));
-        if (max_cmpt < 1.0 && bounce > 3)
-        {
-            float q = max(0.05, 1.0 - max_cmpt);
-            if (pcg_sampler.Get1D() < q)
-            {
-                break;
-            }
-            throughout /= 1.0 - q;
         }
     }
     

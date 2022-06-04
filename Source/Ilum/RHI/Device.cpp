@@ -874,6 +874,49 @@ void RHIDevice::SubmitIdle(CommandBuffer &cmd_buffer, VkQueueFlagBits queue)
 	vkDestroyFence(m_device, fence, nullptr);
 }
 
+void RHIDevice::SubmitIdle(std::vector<CommandBuffer> &cmd_buffers, VkQueueFlagBits queue)
+{
+	VkSubmitInfo submit_info          = {};
+	submit_info.sType                 = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	std::vector<VkCommandBuffer> cmd_buffer_handles;
+	cmd_buffer_handles.reserve(cmd_buffers.size());
+	for (auto &cmd_buffer : cmd_buffers)
+	{
+		cmd_buffer_handles.push_back(cmd_buffer);
+	}
+	submit_info.pCommandBuffers = cmd_buffer_handles.data();
+	submit_info.commandBufferCount = static_cast<uint32_t>(cmd_buffer_handles.size());
+
+	VkFence fence = VK_NULL_HANDLE;
+
+	VkFenceCreateInfo fence_create_info = {};
+	fence_create_info.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+
+	vkCreateFence(m_device, &fence_create_info, nullptr, &fence);
+	vkResetFences(m_device, 1, &fence);
+
+	switch (queue)
+	{
+		case VK_QUEUE_GRAPHICS_BIT:
+			vkQueueWaitIdle(m_graphics_queue);
+			vkQueueSubmit(m_graphics_queue, 1, &submit_info, fence);
+			break;
+		case VK_QUEUE_COMPUTE_BIT:
+			vkQueueWaitIdle(m_compute_queue);
+			vkQueueSubmit(m_compute_queue, 1, &submit_info, fence);
+			break;
+		case VK_QUEUE_TRANSFER_BIT:
+			vkQueueWaitIdle(m_transfer_queue);
+			vkQueueSubmit(m_transfer_queue, 1, &submit_info, fence);
+			break;
+		default:
+			break;
+	}
+
+	vkWaitForFences(m_device, 1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max());
+	vkDestroyFence(m_device, fence, nullptr);
+}
+
 void RHIDevice::EndFrame()
 {
 	VkSubmitInfo submit_info         = {};

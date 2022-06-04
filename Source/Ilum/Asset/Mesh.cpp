@@ -143,71 +143,101 @@ void Mesh::UpdateBuffer()
 		        VMA_MEMORY_USAGE_GPU_ONLY));
 	}
 
-	Buffer vertex_buffer_staging(
-	    p_device,
-	    BufferDesc(
-	        sizeof(ShaderInterop::Vertex),
-	        static_cast<uint32_t>(m_vertices.size()),
-	        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-	        VMA_MEMORY_USAGE_CPU_TO_GPU));
-
-	Buffer index_staging(
-	    p_device,
-	    BufferDesc(
-	        sizeof(uint32_t),
-	        static_cast<uint32_t>(m_indices.size()),
-	        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-	        VMA_MEMORY_USAGE_CPU_TO_GPU));
-
-	Buffer meshlet_vertex_staging(
-	    p_device,
-	    BufferDesc(
-	        sizeof(uint32_t),
-	        static_cast<uint32_t>(m_meshlet_vertices.size()),
-	        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-	        VMA_MEMORY_USAGE_CPU_TO_GPU));
-
-	Buffer meshlet_triangle_staging(
-	    p_device,
-	    BufferDesc(
-	        sizeof(uint32_t),
-	        static_cast<uint32_t>(m_meshlet_triangles.size()),
-	        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-	        VMA_MEMORY_USAGE_CPU_TO_GPU));
-
-	Buffer meshlet_staging(
-	    p_device,
-	    BufferDesc(
-	        sizeof(ShaderInterop::Meshlet),
-	        static_cast<uint32_t>(m_meshlets.size()),
-	        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-	        VMA_MEMORY_USAGE_CPU_TO_GPU));
-
-	std::memcpy(vertex_buffer_staging.Map(), m_vertices.data(), vertex_buffer_staging.GetSize());
-	std::memcpy(index_staging.Map(), m_indices.data(), index_staging.GetSize());
-	std::memcpy(meshlet_vertex_staging.Map(), m_meshlet_vertices.data(), meshlet_vertex_staging.GetSize());
-	std::memcpy(meshlet_triangle_staging.Map(), m_meshlet_triangles.data(), meshlet_triangle_staging.GetSize());
-	std::memcpy(meshlet_staging.Map(), m_meshlets.data(), meshlet_staging.GetSize());
-
-	vertex_buffer_staging.Flush(vertex_buffer_staging.GetSize());
-	index_staging.Flush(index_staging.GetSize());
-	meshlet_vertex_staging.Flush(meshlet_vertex_staging.GetSize());
-	meshlet_triangle_staging.Flush(meshlet_triangle_staging.GetSize());
-	meshlet_staging.Flush(meshlet_staging.GetSize());
-
-	vertex_buffer_staging.Unmap();
-	index_staging.Unmap();
-	meshlet_vertex_staging.Unmap();
-	meshlet_triangle_staging.Unmap();
-	meshlet_staging.Unmap();
-
 	{
+		Buffer vertex_buffer_staging(
+		    p_device,
+		    BufferDesc(
+		        sizeof(ShaderInterop::Vertex),
+		        static_cast<uint32_t>(m_vertices.size()),
+		        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		        VMA_MEMORY_USAGE_CPU_TO_GPU));
+
+		std::memcpy(vertex_buffer_staging.Map(), m_vertices.data(), vertex_buffer_staging.GetSize());
+		vertex_buffer_staging.Flush(vertex_buffer_staging.GetSize());
+		vertex_buffer_staging.Unmap();
+
 		auto &cmd_buffer = p_device->RequestCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, VK_QUEUE_TRANSFER_BIT);
 		cmd_buffer.Begin();
 		cmd_buffer.CopyBuffer(BufferCopyInfo{&vertex_buffer_staging}, BufferCopyInfo{m_vertex_buffer.get()}, vertex_buffer_staging.GetSize());
+		cmd_buffer.End();
+		p_device->SubmitIdle(cmd_buffer, VK_QUEUE_TRANSFER_BIT);
+	}
+
+	{
+		Buffer index_staging(
+		    p_device,
+		    BufferDesc(
+		        sizeof(uint32_t),
+		        static_cast<uint32_t>(m_indices.size()),
+		        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		        VMA_MEMORY_USAGE_CPU_TO_GPU));
+
+		std::memcpy(index_staging.Map(), m_indices.data(), index_staging.GetSize());
+		index_staging.Flush(index_staging.GetSize());
+		index_staging.Unmap();
+
+		auto &cmd_buffer = p_device->RequestCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, VK_QUEUE_TRANSFER_BIT);
+		cmd_buffer.Begin();
 		cmd_buffer.CopyBuffer(BufferCopyInfo{&index_staging}, BufferCopyInfo{m_index_buffer.get()}, index_staging.GetSize());
+		cmd_buffer.End();
+		p_device->SubmitIdle(cmd_buffer, VK_QUEUE_TRANSFER_BIT);
+	}
+
+	{
+		Buffer meshlet_vertex_staging(
+		    p_device,
+		    BufferDesc(
+		        sizeof(uint32_t),
+		        static_cast<uint32_t>(m_meshlet_vertices.size()),
+		        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		        VMA_MEMORY_USAGE_CPU_TO_GPU));
+
+		std::memcpy(meshlet_vertex_staging.Map(), m_meshlet_vertices.data(), meshlet_vertex_staging.GetSize());
+		meshlet_vertex_staging.Flush(meshlet_vertex_staging.GetSize());
+		meshlet_vertex_staging.Unmap();
+
+		auto &cmd_buffer = p_device->RequestCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, VK_QUEUE_TRANSFER_BIT);
+		cmd_buffer.Begin();
 		cmd_buffer.CopyBuffer(BufferCopyInfo{&meshlet_vertex_staging}, BufferCopyInfo{m_meshlet_vertex_buffer.get()}, meshlet_vertex_staging.GetSize());
+		cmd_buffer.End();
+		p_device->SubmitIdle(cmd_buffer, VK_QUEUE_TRANSFER_BIT);
+	}
+
+	{
+		Buffer meshlet_triangle_staging(
+		    p_device,
+		    BufferDesc(
+		        sizeof(uint32_t),
+		        static_cast<uint32_t>(m_meshlet_triangles.size()),
+		        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		        VMA_MEMORY_USAGE_CPU_TO_GPU));
+
+		std::memcpy(meshlet_triangle_staging.Map(), m_meshlet_triangles.data(), meshlet_triangle_staging.GetSize());
+		meshlet_triangle_staging.Flush(meshlet_triangle_staging.GetSize());
+		meshlet_triangle_staging.Unmap();
+
+		auto &cmd_buffer = p_device->RequestCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, VK_QUEUE_TRANSFER_BIT);
+		cmd_buffer.Begin();
 		cmd_buffer.CopyBuffer(BufferCopyInfo{&meshlet_triangle_staging}, BufferCopyInfo{m_meshlet_triangle_buffer.get()}, meshlet_triangle_staging.GetSize());
+		cmd_buffer.End();
+		p_device->SubmitIdle(cmd_buffer, VK_QUEUE_TRANSFER_BIT);
+	}
+
+	{
+		Buffer meshlet_staging(
+		    p_device,
+		    BufferDesc(
+		        sizeof(ShaderInterop::Meshlet),
+		        static_cast<uint32_t>(m_meshlets.size()),
+		        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+		        VMA_MEMORY_USAGE_CPU_TO_GPU));
+
+		std::memcpy(meshlet_staging.Map(), m_meshlets.data(), meshlet_staging.GetSize());
+		meshlet_staging.Flush(meshlet_staging.GetSize());
+		meshlet_staging.Unmap();
+
+		auto &cmd_buffer = p_device->RequestCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, VK_QUEUE_TRANSFER_BIT);
+		cmd_buffer.Begin();
 		cmd_buffer.CopyBuffer(BufferCopyInfo{&meshlet_staging}, BufferCopyInfo{m_meshlet_buffer.get()}, meshlet_staging.GetSize());
 		cmd_buffer.End();
 		p_device->SubmitIdle(cmd_buffer, VK_QUEUE_TRANSFER_BIT);

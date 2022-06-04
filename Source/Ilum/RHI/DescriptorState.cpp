@@ -146,6 +146,12 @@ DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, Buffer *b
 
 DescriptorState &DescriptorState::Bind(uint32_t set, uint32_t binding, VkImageView view, VkSampler sampler)
 {
+	if (m_image_resolves.find(set) == m_image_resolves.end() ||
+	    m_image_resolves[set].find(binding) == m_image_resolves[set].end())
+	{
+		return *this;
+	}
+
 	if (m_image_resolves[set][binding][0].imageView != view)
 	{
 		m_image_resolves[set][binding][0].imageView = view;
