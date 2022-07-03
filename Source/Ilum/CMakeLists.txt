@@ -49,4 +49,4 @@ target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/D
 target_compile_definitions(${TARGET_NAME} PUBLIC "-DNOMINMAX")
 target_compile_definitions(${TARGET_NAME} PUBLIC "-DPROJECT_SOURCE_DIR=\"${PROJECT_SOURCE_DIR}\"")
 
-target_precompile_headers(${TARGET_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/Source/Ilum/Core/Precompile.hpp ${PROJECT_SOURCE_DIR}/Source/Ilum/Shaders/ShaderInterop.hpp)
+target_precompile_headers(${TARGET_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/Source/Ilum/Core/Precompile.hpp ${PROJECT_SOURCE_DIR}/Source/Shaders/ShaderInterop.hpp)
