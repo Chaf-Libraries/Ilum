@@ -2,6 +2,7 @@
 
 #include "Singleton.hpp"
 
+#include <spdlog/sinks/base_sink.h>
 #include <spdlog/spdlog.h>
 
 #include <memory>
@@ -9,6 +10,32 @@
 
 namespace Ilum
 {
+class Sink : public spdlog::sinks::base_sink<std::mutex>
+{
+  public:
+	struct LogMsg
+	{
+		spdlog::level::level_enum level;
+		std::string               msg;
+	};
+
+  public:
+	// Thread unsafe
+	const std::deque<LogMsg> &GetLogs() const;
+
+	// Thread safe
+	std::vector<LogMsg> CopyLogs() const;
+
+	void Clear();
+
+  protected:
+	virtual void sink_it_(const spdlog::details::log_msg &msg) override;
+	virtual void flush_() override;
+
+  private:
+	std::deque<LogMsg> m_log_msgs;
+};
+
 class LogSystem final : public Singleton<LogSystem>
 {
   public:
@@ -25,8 +52,8 @@ class LogSystem final : public Singleton<LogSystem>
 	LogSystem();
 	~LogSystem();
 
-	template<typename... Args>
-	void Log(LogLevel level, Args&&... args)
+	template <typename... Args>
+	void Log(LogLevel level, Args &&...args)
 	{
 		switch (level)
 		{
@@ -43,7 +70,7 @@ class LogSystem final : public Singleton<LogSystem>
 				m_logger->error(std::forward<Args>(args)...);
 				break;
 			case Ilum::LogSystem::LogLevel::Fatal:
-				m_logger ->critical(std::forward<Args>(args)...);
+				m_logger->critical(std::forward<Args>(args)...);
 				throw std::runtime_error(fmt::format(std::forward<Args>(args)...));
 				break;
 			default:
