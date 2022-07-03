@@ -13,8 +13,16 @@ Window::Window(const std::string &title, const std::string &icon, uint32_t width
 		return;
 	}
 
+	if (width == 0 || height == 0)
+	{
+		auto *video_mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+
+		m_width  = static_cast<uint32_t>(video_mode->width * 3 / 4);
+		m_height = static_cast<uint32_t>(video_mode->height * 3 / 4);
+	}
+
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	m_handle = glfwCreateWindow(width, height, title.c_str(), NULL, NULL);
+	m_handle = glfwCreateWindow(m_width, m_height, title.c_str(), NULL, NULL);
 	if (!m_handle)
 	{
 		glfwTerminate();
@@ -24,7 +32,7 @@ Window::Window(const std::string &title, const std::string &icon, uint32_t width
 	if (Path::GetInstance().IsFile(icon))
 	{
 		GLFWimage window_icon = {};
-		window_icon.pixels = stbi_load(icon.data(), &window_icon.width, &window_icon.height, 0, 4);
+		window_icon.pixels    = stbi_load(icon.data(), &window_icon.width, &window_icon.height, 0, 4);
 		glfwSetWindowIcon(m_handle, 1, &window_icon);
 		stbi_image_free(window_icon.pixels);
 	}
@@ -52,7 +60,7 @@ Window::Window(const std::string &title, const std::string &icon, uint32_t width
 	});
 
 	glfwSetCursorPosCallback(m_handle, [](GLFWwindow *window, double xpos, double ypos) {
-		Window *handle = (Window *) glfwGetWindowUserPointer(window);
+		Window *handle        = (Window *) glfwGetWindowUserPointer(window);
 		handle->m_pos_delta_x = static_cast<float>(xpos) - handle->m_pos_last_x;
 		handle->m_pos_delta_y = static_cast<float>(ypos) - handle->m_pos_last_y;
 		handle->OnCursorPosFunc.Invoke(xpos, ypos);

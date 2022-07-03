@@ -11,7 +11,7 @@ namespace Ilum
 class Window
 {
   public:
-	Window(const std::string &title, const std::string &icon, uint32_t width, uint32_t height);
+	Window(const std::string &title, const std::string &icon, uint32_t width = 0, uint32_t height = 0);
 	~Window();
 
 	bool Tick();
