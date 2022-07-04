@@ -371,8 +371,6 @@ void AccelerationStructure::Build(VkCommandBuffer cmd_buffer, AccelerationStruct
 
 void AccelerationStructure::Build(const BLASDesc &desc)
 {
-	auto start = std::chrono::high_resolution_clock::now();
-
 	if (!desc.mesh)
 	{
 		return;
@@ -797,8 +795,6 @@ void AccelerationStructure::Build(const BLASDesc &desc)
 		}
 #endif
 	}
-	auto time = static_cast<float>(std::chrono::duration<double, std::milli>(std::chrono::high_resolution_clock::now() - start).count());
-	LOG_INFO("Build BLAS in {} ms", time);
 }
 
 void AccelerationStructure::Build(const TLASDesc &desc)
