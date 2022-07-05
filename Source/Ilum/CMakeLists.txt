@@ -41,6 +41,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE ImFileDialog)
 target_link_libraries(${TARGET_NAME} PRIVATE entt)
 target_link_libraries(${TARGET_NAME} PRIVATE meshoptimizer)
 target_link_libraries(${TARGET_NAME} PRIVATE ImGuizmo)
+target_link_libraries(${TARGET_NAME} PRIVATE sol2)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source")
