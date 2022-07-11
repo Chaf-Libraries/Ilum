@@ -1,9 +1,12 @@
 #pragma once
 
+#include <map>
 #include <string>
 #include <vector>
 
 #include <glm/glm.hpp>
+
+#include <imnodes.h>
 
 namespace Ilum
 {
@@ -60,8 +63,8 @@ class MaterialGraphNode
   public:
 	struct Pin
 	{
-		explicit Pin(PinType type_) :
-		    pin_id(s_PinID++), type(type_)
+		explicit Pin(const std::string &name_, PinType type_ = PinType::Invalid) :
+		    pin_id(s_PinID++), name(name_), type(type_)
 		{
 		}
 
@@ -70,7 +73,8 @@ class MaterialGraphNode
 		Pin &operator=(const Pin &) = delete;
 		Pin &operator=(Pin &&) = delete;
 
-		PinType type = PinType::Invalid;
+		PinType     type = PinType::Invalid;
+		std::string name = "Untitled Pin";
 
 		size_t operator()()
 		{
@@ -84,7 +88,11 @@ class MaterialGraphNode
 	};
 
   public:
-	MaterialGraphNode()  = default;
+	MaterialGraphNode() :
+	    m_node_id(s_NodeID++)
+	{
+	}
+
 	~MaterialGraphNode() = default;
 
 	inline const std::vector<Pin> &GetInputPins() const
@@ -103,6 +111,18 @@ class MaterialGraphNode
 
 	virtual void OnImnode()
 	{
+		ImNodes::BeginNode(m_node_id);
+
+
+
+		const int output_attr_id = 2;
+		ImNodes::BeginOutputAttribute(output_attr_id, ImNodesCol_Pin);
+		// in between Begin|EndAttribute calls, you can call ImGui
+		// UI functions
+		ImGui::Text("output pin");
+		ImNodes::EndOutputAttribute();
+
+		ImNodes::EndNode();
 	}
 
 	virtual std::string &GetResult() = 0;
@@ -112,6 +132,10 @@ class MaterialGraphNode
 
 	std::vector<Pin> m_input_pins;
 	std::vector<Pin> m_output_pins;
+
+	size_t m_node_id = ~0;
+
+	inline static size_t s_NodeID = 0;
 };
 
 template <PinType T>
@@ -119,7 +143,7 @@ class ConstantMaterialGraphNode : public MaterialGraphNode
 {
   public:
 	ConstantMaterialGraphNode() :
-	    m_output_pins({Pin(T)})
+	    m_output_pins({Pin("constant", T)})
 	{
 	}
 
@@ -132,16 +156,18 @@ class ConstantMaterialGraphNode : public MaterialGraphNode
 	ShaderConstant(T) m_data;
 };
 
-using ConstantMaterialGraphNodeFloat = ConstantMaterialGraphNode<PinType::Float>;
-using ConstantMaterialGraphNodeInt = ConstantMaterialGraphNode<PinType::Int>;
-using ConstantMaterialGraphNodeUint = ConstantMaterialGraphNode<PinType::Uint>;
+using ConstantMaterialGraphNodeFloat  = ConstantMaterialGraphNode<PinType::Float>;
+using ConstantMaterialGraphNodeInt    = ConstantMaterialGraphNode<PinType::Int>;
+using ConstantMaterialGraphNodeUint   = ConstantMaterialGraphNode<PinType::Uint>;
 using ConstantMaterialGraphNodeFloat2 = ConstantMaterialGraphNode<PinType::Float2>;
-using ConstantMaterialGraphNodeInt2 = ConstantMaterialGraphNode<PinType::Int2>;
-using ConstantMaterialGraphNodeUint2 = ConstantMaterialGraphNode<PinType::Uint2>;
+using ConstantMaterialGraphNodeInt2   = ConstantMaterialGraphNode<PinType::Int2>;
+using ConstantMaterialGraphNodeUint2  = ConstantMaterialGraphNode<PinType::Uint2>;
 using ConstantMaterialGraphNodeFloat3 = ConstantMaterialGraphNode<PinType::Float3>;
-using ConstantMaterialGraphNodeInt3 = ConstantMaterialGraphNode<PinType::Int3>;
-using ConstantMaterialGraphNodeUint3 = ConstantMaterialGraphNode<PinType::Uint3>;
+using ConstantMaterialGraphNodeInt3   = ConstantMaterialGraphNode<PinType::Int3>;
+using ConstantMaterialGraphNodeUint3  = ConstantMaterialGraphNode<PinType::Uint3>;
 using ConstantMaterialGraphNodeFloat4 = ConstantMaterialGraphNode<PinType::Float4>;
-using ConstantMaterialGraphNodeInt4 = ConstantMaterialGraphNode<PinType::Int4>;
-using ConstantMaterialGraphNodeUint4 = ConstantMaterialGraphNode<PinType::Uint4>;
+using ConstantMaterialGraphNodeInt4   = ConstantMaterialGraphNode<PinType::Int4>;
+using ConstantMaterialGraphNodeUint4  = ConstantMaterialGraphNode<PinType::Uint4>;
+
+
 }        // namespace Ilum
