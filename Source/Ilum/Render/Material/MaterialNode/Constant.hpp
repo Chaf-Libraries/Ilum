@@ -40,7 +40,7 @@ inline const std::unordered_map<std::type_index, std::array<std::string, 4>> Con
 template <typename T>
 inline std::string to_string(const glm::vec<1, T> &v)
 {
-	return fmt::format("{}1({})", typeid(T).name(), v.x);
+	return fmt::format("{}({})", typeid(T).name(), v.x);
 }
 
 template <typename T>

@@ -1,2 +1,6 @@
 #pragma once
 
+namespace Ilum
+{
+
+}

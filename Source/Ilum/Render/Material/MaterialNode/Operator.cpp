@@ -27,19 +27,7 @@ Operator::~Operator()
 
 void Operator::OnImGui(ImGuiContext &context)
 {
-	const char *const data_type[] = {
-	    "None",
-	    "Float", "Half", "Double", "Int", "Uint", "Bool",
-	    "Float2", "Half2", "Double2", "Int2", "Uint2", "Bool2",
-	    "Float3", "Half3", "Double3", "Int3", "Uint3", "Bool3",
-	    "Float4", "Half4", "Double4", "Int4", "Uint4", "Bool4"};
-
-	if (ImGui::Combo("Type", reinterpret_cast<int*>(&m_type), data_type, 25))
-	{
-		m_material_graph->SetPin(m_lhs_pin, m_type);
-		m_material_graph->SetPin(m_rhs_pin, m_type);
-		m_material_graph->SetPin(m_output_pin, m_type);
-	}
+	
 }
 
 void Operator::OnImnode()

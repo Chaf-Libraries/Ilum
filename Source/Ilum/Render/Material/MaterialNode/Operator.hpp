@@ -21,7 +21,12 @@ class Operator : public MaterialNode
 	size_t  m_lhs_pin;
 	size_t  m_rhs_pin;
 	size_t  m_output_pin;
-	PinType m_type = PinType::None;
+	PinType m_type = PinType::Float | PinType::Float2 | PinType::Float3 | PinType::Float4 |
+	                 PinType::Half | PinType::Half2 | PinType::Half3 | PinType::Half4 |
+	                 PinType::Double | PinType::Double2 | PinType::Double3 | PinType::Double4 |
+	                 PinType::Int | PinType::Int2 | PinType::Int3 | PinType::Int4 |
+	                 PinType::Uint | PinType::Uint2 | PinType::Uint3 | PinType::Uint4 |
+	                 PinType::Bool | PinType::Bool2 | PinType::Bool3 | PinType::Bool4;
 };
 
 class Addition : public Operator

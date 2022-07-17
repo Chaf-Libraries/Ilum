@@ -209,7 +209,7 @@ void MaterialGraph::Link(size_t from, size_t to)
 {
 	if (m_pin_type.find(from) != m_pin_type.end() &&
 	    m_pin_type.find(to) != m_pin_type.end() &&
-	    m_pin_type[from] == m_pin_type[to])
+	    m_pin_type[from] & m_pin_type[to])
 	{
 		for (auto &[id, edge] : m_edges)
 		{
