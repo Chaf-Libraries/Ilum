@@ -48,7 +48,7 @@ inline bool DrawTextureButton(Texture *&texture, ImGuiContext &context, AssetMan
 }
 
 Material::Material(RHIDevice *device, AssetManager &manager) :
-    p_device(device), m_manager(manager)
+    p_device(device), m_manager(manager), material_graph(&manager)
 {
 	BufferDesc desc   = {};
 	desc.size         = sizeof(ShaderInterop::Material);

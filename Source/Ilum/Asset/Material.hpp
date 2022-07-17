@@ -3,6 +3,9 @@
 #include <RHI/Buffer.hpp>
 #include <RHI/ImGuiContext.hpp>
 
+#include <Render/Material/MaterialGraph.hpp>
+#include <Render/Material/MaterialNode/MaterialNode.hpp>
+
 #include <glm/glm.hpp>
 
 namespace Ilum
@@ -58,6 +61,9 @@ class Material
 		   m_emissive_factor, m_emissive_strength, m_alpha_cut_off,
 		   m_alpha_mode);*/
 	}
+
+	// Temp
+	MaterialGraph material_graph;
 
   private:
 	AssetManager &m_manager;
