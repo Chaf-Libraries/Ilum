@@ -6,48 +6,41 @@
 
 namespace Ilum::MGNode
 {
-class Operator : public MaterialNode
+class BinaryOperator : public MaterialNode
 {
   public:
-	Operator(const std::string &name, MaterialGraph *material_graph);
+	BinaryOperator(const std::string &name, MaterialGraph *material_graph);
 
-	virtual ~Operator() override;
+	virtual ~BinaryOperator() override;
 
-	virtual void OnImGui(ImGuiContext &context) override;
-
-	virtual void OnImnode() override;
+	virtual void OnImnode(ImGuiContext &context) override;
 
   protected:
 	size_t  m_lhs_pin;
 	size_t  m_rhs_pin;
 	size_t  m_output_pin;
-	PinType m_type = PinType::Float | PinType::Float2 | PinType::Float3 | PinType::Float4 |
-	                 PinType::Half | PinType::Half2 | PinType::Half3 | PinType::Half4 |
-	                 PinType::Double | PinType::Double2 | PinType::Double3 | PinType::Double4 |
-	                 PinType::Int | PinType::Int2 | PinType::Int3 | PinType::Int4 |
-	                 PinType::Uint | PinType::Uint2 | PinType::Uint3 | PinType::Uint4 |
-	                 PinType::Bool | PinType::Bool2 | PinType::Bool3 | PinType::Bool4;
+	PinType m_type = PinType::Scalar | PinType::Vec2 | PinType::Vec3 | PinType::Vec4;
 };
 
-class Addition : public Operator
+class Addition : public BinaryOperator
 {
   public:
 	Addition(MaterialGraph *material_graph);
 };
 
-class Subtraction : public Operator
+class Subtraction : public BinaryOperator
 {
   public:
 	Subtraction(MaterialGraph *material_graph);
 };
 
-class Multiplication : public Operator
+class Multiplication : public BinaryOperator
 {
   public:
 	Multiplication(MaterialGraph *material_graph);
 };
 
-class Division : public Operator
+class Division : public BinaryOperator
 {
   public:
 	Division(MaterialGraph *material_graph);

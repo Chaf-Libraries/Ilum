@@ -6,7 +6,7 @@
 
 namespace Ilum::MGNode
 {
-Operator::Operator(const std::string &name, MaterialGraph *material_graph) :
+BinaryOperator::BinaryOperator(const std::string &name, MaterialGraph *material_graph) :
     MaterialNode(name, material_graph),
     m_lhs_pin(material_graph->NewPinID()),
     m_rhs_pin(material_graph->NewPinID()),
@@ -17,7 +17,7 @@ Operator::Operator(const std::string &name, MaterialGraph *material_graph) :
 	m_material_graph->AddPin(m_output_pin, m_type);
 }
 
-Operator::~Operator()
+BinaryOperator::~BinaryOperator()
 {
 	m_material_graph->UnbindPinCallback(m_output_pin);
 	m_material_graph->ErasePin(m_lhs_pin);
@@ -25,12 +25,7 @@ Operator::~Operator()
 	m_material_graph->ErasePin(m_output_pin);
 }
 
-void Operator::OnImGui(ImGuiContext &context)
-{
-	
-}
-
-void Operator::OnImnode()
+void BinaryOperator::OnImnode(ImGuiContext &context)
 {
 	ImNodes::BeginNode(static_cast<int32_t>(m_node_id));
 
@@ -57,7 +52,7 @@ void Operator::OnImnode()
 }
 
 Addition::Addition(MaterialGraph *material_graph):
-    Operator("Addition", material_graph)
+    BinaryOperator("Addition", material_graph)
 {
 	material_graph->BindPinCallback(m_output_pin, [this]() -> std::string {
 		size_t lhs = 0, rhs = 0;
@@ -71,7 +66,7 @@ Addition::Addition(MaterialGraph *material_graph):
 }
 
 Subtraction::Subtraction(MaterialGraph *material_graph):
-    Operator("Subtraction", material_graph)
+    BinaryOperator("Subtraction", material_graph)
 {
 	material_graph->BindPinCallback(m_output_pin, [this]() -> std::string {
 		size_t lhs = 0, rhs = 0;
@@ -85,7 +80,7 @@ Subtraction::Subtraction(MaterialGraph *material_graph):
 }
 
 Multiplication::Multiplication(MaterialGraph *material_graph):
-    Operator("Multiplication", material_graph)
+    BinaryOperator("Multiplication", material_graph)
 {
 	material_graph->BindPinCallback(m_output_pin, [this]() -> std::string {
 		size_t lhs = 0, rhs = 0;
@@ -99,7 +94,7 @@ Multiplication::Multiplication(MaterialGraph *material_graph):
 }
 
 Division::Division(MaterialGraph *material_graph):
-    Operator("Division", material_graph)
+    BinaryOperator("Division", material_graph)
 {
 	material_graph->BindPinCallback(m_output_pin, [this]() -> std::string {
 		size_t lhs = 0, rhs = 0;

@@ -2,6 +2,7 @@
 #include "MaterialNode/Constant.hpp"
 #include "MaterialNode/MaterialNode.hpp"
 #include "MaterialNode/Operator.hpp"
+#include "MaterialNode/Convert.hpp"
 
 #include <RHI/ImGuiContext.hpp>
 
@@ -11,7 +12,7 @@ MaterialGraph::MaterialGraph(AssetManager *asset_manager, const std::string &nam
     m_asset_manager(asset_manager),
     m_name(name)
 {
-	AddPin(0, PinType::Float);
+	AddPin(0, PinType::Scalar);
 }
 
 MaterialGraph::~MaterialGraph()
@@ -60,24 +61,6 @@ void MaterialGraph::OnImGui(ImGuiContext &context)
 		ImNodes::GetSelectedNodes(selected_nodes.data());
 	}
 
-	ImGui::Columns(2);
-
-	for (auto &id : selected_nodes)
-	{
-		if (m_node_lookup.find(id) != m_node_lookup.end())
-		{
-			ImGui::PushID(id);
-			if (ImGui::TreeNode(m_node_lookup.at(id)->GetName().c_str()))
-			{
-				m_node_lookup.at(id)->OnImGui(context);
-				ImGui::TreePop();
-			}
-			ImGui::PopID();
-		}
-	}
-
-	ImGui::NextColumn();
-
 	ImNodes::BeginNodeEditor();
 
 	// Popup Window
@@ -87,7 +70,7 @@ void MaterialGraph::OnImGui(ImGuiContext &context)
 		if (ImGui::MenuItem("Compile"))
 		{
 			std::string result  = "";
-			size_t out_pin = 0;
+			size_t      out_pin = 0;
 			if (LinkTo(out_pin, 0) && m_pin_callbacks.find(out_pin) != m_pin_callbacks.end())
 			{
 				result = m_pin_callbacks.at(out_pin)();
@@ -116,18 +99,11 @@ void MaterialGraph::OnImGui(ImGuiContext &context)
 			// Constant
 			if (ImGui::BeginMenu("Constant"))
 			{
-				for (auto &[dim, type_create] : MGNode::ConstantNodeCreation)
+				for (auto &[type, create] : MGNode::ConstantNodeCreation)
 				{
-					if (ImGui::BeginMenu(dim))
+					if (ImGui::MenuItem(type))
 					{
-						for (auto &[type, create] : type_create)
-						{
-							if (ImGui::MenuItem(type))
-							{
-								AddNode(std::move(create(this)));
-							}
-						}
-						ImGui::EndMenu();
+						AddNode(std::move(create(this)));
 					}
 				}
 				ImGui::EndMenu();
@@ -145,6 +121,20 @@ void MaterialGraph::OnImGui(ImGuiContext &context)
 				}
 				ImGui::EndMenu();
 			}
+
+			// Operator
+			if (ImGui::BeginMenu("Convert"))
+			{
+				for (auto &[type, create] : MGNode::ConvertNodeCreation)
+				{
+					if (ImGui::MenuItem(type))
+					{
+						AddNode(std::move(create(this)));
+					}
+				}
+				ImGui::EndMenu();
+			}
+
 			ImGui::EndMenu();
 		}
 
@@ -154,7 +144,7 @@ void MaterialGraph::OnImGui(ImGuiContext &context)
 	// Draw Nodes
 	for (auto &node : m_nodes)
 	{
-		node->OnImnode();
+		node->OnImnode(context);
 	}
 
 	// Draw Output Node

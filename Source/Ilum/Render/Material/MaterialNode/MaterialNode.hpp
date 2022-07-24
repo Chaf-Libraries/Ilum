@@ -22,8 +22,7 @@ class MaterialNode
 
 	virtual ~MaterialNode() = default;
 
-	virtual void OnImGui(ImGuiContext &context) = 0;
-	virtual void OnImnode() = 0;
+	virtual void OnImnode(ImGuiContext &context) = 0;
 
 	size_t GetNodeID() const;
 

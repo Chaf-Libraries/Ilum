@@ -6,51 +6,21 @@ enum class PinType : uint64_t
 {
 	None = 0,
 
-	Float = 1 << 0,
-	Half  = 1 << 0,
-	Double = 1 << 0,
-	Int    = 1 << 0,
-	Uint   = 1 << 0,
-	Bool   = 1 << 0,
+	Scalar = 1 << 0,
+	Vec2 = 1 << 1,
+	Vec3 = 1 << 2,
+	Vec4 = 1 << 3,
 
-	Float2 = 1 << 0,
-	Half2  = 1 << 0,
-	Double2 = 1 << 0,
-	Int2    = 1 << 0,
-	Uint2   = 1 << 0,
-	Bool2   = 1 << 0,
+	Texture2D      = 1 << 4,
+	Texture2DArray = 1 << 5,
+	Texture3D      = 1 << 6,
+	Texture3DArray = 1 << 7,
+	TextureCube    = 1 << 8,
+	TextureCubeArray = 1 << 9,
 
-	Float3 = 1 << 0,
-	Half3  = 1 << 0,
-	Double3 = 1 << 0,
-	Int3    = 1 << 0,
-	Uint3   = 1 << 0,
-	Bool3   = 1 << 0,
+	SamplerState = 1 << 10,
 
-	Float4 = 1 << 0,
-	Half4  = 1 << 0,
-	Double4 = 1 << 0,
-	Int4    = 1 << 0,
-	Uint4   = 1 << 0,
-	Bool4   = 1 << 0,
-
-	Texture2D      = 1 << 0,
-	Texture2DArray = 1 << 0,
-	Texture3D      = 1 << 0,
-	Texture3DArray = 1 << 0,
-	TextureCube    = 1 << 0,
-	TextureCubeArray = 1 << 0,
-
-	RWTexture2D = 1 << 0,
-	RWTexture2DArray = 1 << 0,
-	RWTexture3D      = 1 << 0,
-	RWTexture3DArray = 1 << 0,
-	RWTextureCube    = 1 << 0,
-	RWTextureCubeArray = 1 << 0,
-
-	SamplerState = 1 << 0,
-
-	BxDF = 1 << 0,
+	BxDF = 1 << 11,
 };
 
 inline PinType operator|(PinType lhs, PinType rhs)
