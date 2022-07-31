@@ -10,13 +10,6 @@ int main()
 
 	auto device = Ilum::RHIDevice::Create();
 
-	/*
-		virtual bool IsRayTracingSupport()          = 0;
-	virtual bool IsMeshShaderSupport()          = 0;
-	virtual bool IsBufferDeviceAddressSupport() = 0;
-	virtual bool IsBindlessResourceSupport()    = 0;
-	*/
-
 	LOG_INFO("IsRayTracingSupport: {}", device->IsRayTracingSupport());
 	LOG_INFO("IsMeshShaderSupport: {}", device->IsMeshShaderSupport());
 	LOG_INFO("IsBufferDeviceAddressSupport: {}", device->IsBufferDeviceAddressSupport());
