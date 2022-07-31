@@ -2,6 +2,7 @@
 
 #include "Singleton.hpp"
 
+#include <spdlog/sinks/base_sink.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/base_sink.h>
 
@@ -52,8 +53,8 @@ class LogSystem final : public Singleton<LogSystem>
 	LogSystem();
 	~LogSystem();
 
-	template<typename... Args>
-	void Log(LogLevel level, Args&&... args)
+	template <typename... Args>
+	void Log(LogLevel level, Args &&...args)
 	{
 		switch (level)
 		{
@@ -70,7 +71,7 @@ class LogSystem final : public Singleton<LogSystem>
 				m_logger->error(std::forward<Args>(args)...);
 				break;
 			case Ilum::LogSystem::LogLevel::Fatal:
-				m_logger ->critical(std::forward<Args>(args)...);
+				m_logger->critical(std::forward<Args>(args)...);
 				throw std::runtime_error(fmt::format(std::forward<Args>(args)...));
 				break;
 			default:

@@ -372,6 +372,20 @@ bool AssetManager::OnImGui(ImGuiContext &context)
 			}
 			ImGui::PopID();
 		}
+
+		///////////////////////////////////////////////////
+		for (auto& material : m_materials)
+		{
+			ImGui::PushID(material_id++);
+			if (ImGui::Button(material->GetName().c_str()))
+			{
+				material->material_graph.EnableEditor();
+			}
+			material->material_graph.OnImGui(context);
+			ImGui::PopID();
+		}
+
+
 		ImGui::TreePop();
 	}
 

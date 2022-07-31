@@ -449,7 +449,11 @@ bool RGBuilder::OnImGui(ImGuiContext &context)
 {
 	bool recompile = false;
 
+	static auto editor_context = ImNodes::EditorContextCreate();
+
 	ImGui::Begin("Render Graph Editor");
+
+	ImNodes::EditorContextSet(editor_context);
 
 	std::vector<int32_t> selected_links;
 	std::vector<int32_t> selected_nodes;
@@ -566,7 +570,9 @@ bool RGBuilder::OnImGui(ImGuiContext &context)
 		const float node_width = 200.0f;
 		// Inside ImNode context
 		ImNodes::BeginNode(pass->GetHandle());
+		ImNodes::BeginNodeTitleBar();
 		ImGui::Text(pass->GetName().c_str());
+		ImNodes::EndNodeTitleBar();
 
 		for (const auto &handle : pass->GetResources())
 		{

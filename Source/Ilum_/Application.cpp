@@ -9,7 +9,7 @@
 namespace Ilum
 {
 Application::Application() :
-    m_window("Ilum", "Asset/Icon/logo.bmp", 1920, 1080),
+    m_window("Ilum", "Asset/Icon/logo.bmp"),
     m_device(&m_window),
     m_imgui_context(&m_window, &m_device),
     m_renderer(std::make_unique<Renderer>(&m_device)),

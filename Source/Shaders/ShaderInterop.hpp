@@ -51,11 +51,19 @@ struct Vertex
 	float4 normal;
 	float4 tangent;
 
+#ifdef USE_SKELETON
+	float4 joint_indices;
+	float4 joint_weights;
+#endif        // USE_SKELETON
+
 #ifdef __cplusplus
 	template <typename Archive>
 	void serialize(Archive ar)
 	{
 		ar(position, texcoord, normal, tangent);
+#	ifdef USE_SKELETON
+		ar(joint_indices, joint_weights);
+#	endif        // USE_SKELETON
 	}
 #endif
 };
@@ -174,13 +182,13 @@ struct Camera
 #ifndef __cplusplus
 	RayDesc CastRay(float2 screen_coords)
 	{
-	    RayDesc ray;
-	    float4  target = mul(inv_projection, float4(screen_coords.x, screen_coords.y, 1, 1));
-	    ray.Origin     = mul(inv_view, float4(0, 0, 0, 1)).xyz;
-	    ray.Direction  = mul(inv_view, float4(normalize(target.xyz), 0)).xyz;
-	    ray.TMin       = 0.0;
-	    ray.TMax       = 1e32;
-	    return ray;
+		RayDesc ray;
+		float4  target = mul(inv_projection, float4(screen_coords.x, screen_coords.y, 1, 1));
+		ray.Origin     = mul(inv_view, float4(0, 0, 0, 1)).xyz;
+		ray.Direction  = mul(inv_view, float4(normalize(target.xyz), 0)).xyz;
+		ray.TMin       = 0.0;
+		ray.TMax       = 1e32;
+		return ray;
 	}
 #endif        // !__cplusplus
 };
@@ -338,12 +346,12 @@ void UnPackTriangle(uint encode, out uint v0, out uint v1, out uint v2)
 inline uint PackVBuffer(uint instance_id, uint meshlet_id, uint primitive_id)
 {
 	// Primitive ID 7
-	// Meshlet ID 11
-	// Instance ID 14
+	// Meshlet ID 14
+	// Instance ID 11
 	uint vbuffer = 0;
 	vbuffer += primitive_id & 0x7f;
-	vbuffer += (meshlet_id & 0x3ff) << 7;
-	vbuffer += (instance_id & 0x3fff) << 18;
+	vbuffer += (meshlet_id & 0x3fff) << 7;
+	vbuffer += (instance_id & 0x3ff) << 21;
 	return vbuffer;
 }
 
@@ -354,11 +362,11 @@ void UnPackVBuffer(uint vbuffer, out uint instance_id, out uint meshlet_id, out 
 #endif
 {
 	// Primitive ID 7
-	// Meshlet ID 11
-	// Instance ID 14
+	// Meshlet ID 14
+	// Instance ID 11
 	primitive_id = vbuffer & 0x7f;
-	meshlet_id   = (vbuffer >> 7) & 0x3ff;
-	instance_id  = (vbuffer >> 18) & 0x3fff;
+	meshlet_id   = (vbuffer >> 7) & 0x3fff;
+	instance_id  = (vbuffer >> 21) & 0x3ff;
 }
 
 #ifdef __cplusplus
