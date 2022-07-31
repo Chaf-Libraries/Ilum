@@ -1,8 +1,6 @@
 #include "Window.hpp"
 #include "Path.hpp"
 
-#include <GLFW/glfw3.h>
-
 #include <stb_image.h>
 
 namespace Ilum

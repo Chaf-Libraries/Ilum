@@ -876,15 +876,15 @@ void RHIDevice::SubmitIdle(CommandBuffer &cmd_buffer, VkQueueFlagBits queue)
 
 void RHIDevice::SubmitIdle(std::vector<CommandBuffer> &cmd_buffers, VkQueueFlagBits queue)
 {
-	VkSubmitInfo submit_info          = {};
-	submit_info.sType                 = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	VkSubmitInfo submit_info = {};
+	submit_info.sType        = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	std::vector<VkCommandBuffer> cmd_buffer_handles;
 	cmd_buffer_handles.reserve(cmd_buffers.size());
 	for (auto &cmd_buffer : cmd_buffers)
 	{
 		cmd_buffer_handles.push_back(cmd_buffer);
 	}
-	submit_info.pCommandBuffers = cmd_buffer_handles.data();
+	submit_info.pCommandBuffers    = cmd_buffer_handles.data();
 	submit_info.commandBufferCount = static_cast<uint32_t>(cmd_buffer_handles.size());
 
 	VkFence fence = VK_NULL_HANDLE;
@@ -1274,26 +1274,28 @@ void RHIDevice::CreateLogicalDevice()
 	}
 
 	// Enable Vulkan 1.2 Features
-	vulkan12_features.drawIndirectCount                         = VK_TRUE;
-	vulkan12_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
-	vulkan12_features.runtimeDescriptorArray                    = VK_TRUE;
-	vulkan12_features.descriptorBindingVariableDescriptorCount  = VK_TRUE;
-	vulkan12_features.descriptorBindingPartiallyBound           = VK_TRUE;
-	vulkan12_features.bufferDeviceAddress                       = VK_TRUE;
-	vulkan12_features.shaderOutputLayer                         = VK_TRUE;
-	vulkan12_features.shaderOutputViewportIndex                 = VK_TRUE;
+	//vulkan12_features.drawIndirectCount                         = VK_TRUE;
+	//vulkan12_features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+	//vulkan12_features.runtimeDescriptorArray                    = VK_TRUE;
+	//vulkan12_features.descriptorIndexing                        = VK_TRUE;
+	//vulkan12_features.descriptorBindingVariableDescriptorCount  = VK_TRUE;
+	//vulkan12_features.descriptorBindingPartiallyBound           = VK_TRUE;
+	//vulkan12_features.bufferDeviceAddress                       = VK_TRUE;
+	//vulkan12_features.shaderOutputLayer                         = VK_TRUE;
+	//vulkan12_features.shaderOutputViewportIndex                 = VK_TRUE;
 
 	// Enable Robustness
 	robustness2_features.nullDescriptor = VK_TRUE;
 
-	// Link
-	raty_tracing_pipeline_feature.pNext = &acceleration_structure_feature;
-	mesh_shader_feature.pNext           = &raty_tracing_pipeline_feature;
-	vulkan12_features.pNext             = &mesh_shader_feature;
-	robustness2_features.pNext          = &vulkan12_features;
-
 	// Create device
-	VkDeviceCreateInfo device_create_info   = {};
+	VkDeviceCreateInfo device_create_info = {};
+
+	// Link
+	//raty_tracing_pipeline_feature.pNext = &acceleration_structure_feature;
+	//mesh_shader_feature.pNext           = &raty_tracing_pipeline_feature;
+	//vulkan12_features.pNext             = &mesh_shader_feature;
+	//robustness2_features.pNext          = &vulkan12_features;
+
 	device_create_info.sType                = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	device_create_info.queueCreateInfoCount = static_cast<uint32_t>(queue_create_infos.size());
 	device_create_info.pQueueCreateInfos    = queue_create_infos.data();
@@ -1305,7 +1307,7 @@ void RHIDevice::CreateLogicalDevice()
 	device_create_info.enabledExtensionCount   = static_cast<uint32_t>(support_extensions.size());
 	device_create_info.ppEnabledExtensionNames = support_extensions.data();
 	device_create_info.pEnabledFeatures        = &physical_device_features;
-	device_create_info.pNext                   = &robustness2_features;
+	//device_create_info.pNext                   = &vulkan12_features;
 
 	if (vkCreateDevice(m_physical_device, &device_create_info, nullptr, &m_device) != VK_SUCCESS)
 	{
@@ -1317,10 +1319,10 @@ void RHIDevice::CreateLogicalDevice()
 	volkLoadDevice(m_device);
 
 	// Get device queues
-	vkGetDeviceQueue(m_device, m_graphics_family, 1, &m_graphics_queue);
-	vkGetDeviceQueue(m_device, m_compute_family, 1, &m_compute_queue);
-	vkGetDeviceQueue(m_device, m_transfer_family, 1, &m_transfer_queue);
-	vkGetDeviceQueue(m_device, m_present_family, 1, &m_present_queue);
+	vkGetDeviceQueue(m_device, m_graphics_family, 0, &m_graphics_queue);
+	vkGetDeviceQueue(m_device, m_compute_family, 0, &m_compute_queue);
+	vkGetDeviceQueue(m_device, m_transfer_family, 0, &m_transfer_queue);
+	vkGetDeviceQueue(m_device, m_present_family, 0, &m_present_queue);
 
 	// Create Vma allocator
 	VmaAllocatorCreateInfo allocator_info = {};

@@ -1,7 +1,5 @@
 #include "Input.hpp"
 
-#include <GLFW/glfw3.h>
-
 namespace Ilum
 {
 void Input::Bind(Window *window)

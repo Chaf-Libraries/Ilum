@@ -2,9 +2,9 @@
 
 #include "Delegates.hpp"
 
-#include <string>
+#include <GLFW/glfw3.h>
 
-struct GLFWwindow;
+#include <string>
 
 namespace Ilum
 {

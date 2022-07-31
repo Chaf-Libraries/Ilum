@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Log.hpp"
+#include <Core/Log.hpp>
 
 #include <cassert>
 
