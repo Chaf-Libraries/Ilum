@@ -12,6 +12,8 @@ class RHIDevice
 
 	static std::unique_ptr<RHIDevice> Create();
 
+	virtual void WaitIdle() = 0;
+
 	virtual bool IsRayTracingSupport()          = 0;
 	virtual bool IsMeshShaderSupport()          = 0;
 	virtual bool IsBufferDeviceAddressSupport() = 0;

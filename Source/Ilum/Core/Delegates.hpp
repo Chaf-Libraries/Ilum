@@ -39,7 +39,7 @@ class MulticastDelegate
 			std::this_thread::sleep_for(std::chrono::milliseconds(16));
 		}
 
-		if (m_subscribers.find(handle) != m_subscribers)
+		if (m_subscribers.find(handle) != m_subscribers.end())
 		{
 			m_subscribers.erase(handle);
 			return true;

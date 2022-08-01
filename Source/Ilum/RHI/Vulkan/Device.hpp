@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RHIDevice.hpp"
+#include "Definitions.hpp"
 
 #include <volk.h>
 
@@ -19,6 +20,8 @@ class Device : public RHIDevice
 	Device();
 	virtual ~Device() override;
 
+	virtual void WaitIdle() override;
+
 	virtual bool IsRayTracingSupport() override;
 	virtual bool IsMeshShaderSupport() override;
 	virtual bool IsBufferDeviceAddressSupport() override;
@@ -28,6 +31,11 @@ class Device : public RHIDevice
 	VkPhysicalDevice GetPhysicalDevice() const;
 	VkDevice         GetDevice() const;
 	VmaAllocator     GetAllocator() const;
+
+	uint32_t GetQueueFamily(RHIQueueFamily family);
+	uint32_t GetQueueCount(RHIQueueFamily family);
+
+	VkCommandPool AcquireCommandPool(uint32_t frame_index, RHIQueueFamily family);
 
   private:
 	// Supported extensions
@@ -45,5 +53,12 @@ class Device : public RHIDevice
 	uint32_t m_graphics_family = 0;
 	uint32_t m_compute_family  = 0;
 	uint32_t m_transfer_family = 0;
+
+	uint32_t m_graphics_queue_count = 0;
+	uint32_t m_compute_queue_count = 0;
+	uint32_t m_transfer_queue_count = 0;
+
+	// Command Pool
+	std::unordered_map<size_t, VkCommandPool> m_cmd_pools;
 };
 }        // namespace Ilum::Vulkan

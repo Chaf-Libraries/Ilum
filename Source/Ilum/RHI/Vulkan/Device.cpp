@@ -41,6 +41,7 @@ static const std::vector<VkValidationFeatureEnableEXT> ValidationFeatures =
 static const std::vector<const char *> DeviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+    VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
     VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
     VK_KHR_RAY_QUERY_EXTENSION_NAME,
     VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
@@ -480,6 +481,7 @@ void Device::CreateLogicalDevice()
 		graphics_queue_create_info.queueCount              = queue_family_properties[m_graphics_family].queueCount;
 		graphics_queue_create_info.pQueuePriorities        = queue_priorities.data();
 		queue_create_infos.emplace_back(graphics_queue_create_info);
+		m_graphics_queue_count = queue_family_properties[m_graphics_family].queueCount;
 	}
 	else
 	{
@@ -494,10 +496,12 @@ void Device::CreateLogicalDevice()
 		compute_queue_create_info.queueCount              = queue_family_properties[m_compute_family].queueCount;
 		compute_queue_create_info.pQueuePriorities        = queue_priorities.data();
 		queue_create_infos.emplace_back(compute_queue_create_info);
+		m_compute_queue_count = queue_family_properties[m_compute_family].queueCount;
 	}
 	else
 	{
-		m_compute_family = m_graphics_family;
+		m_compute_family      = m_graphics_family;
+		m_compute_queue_count = m_graphics_queue_count;
 	}
 
 	if (support_queues & VK_QUEUE_TRANSFER_BIT && m_transfer_family != m_graphics_family && m_transfer_family != m_compute_family)
@@ -508,10 +512,12 @@ void Device::CreateLogicalDevice()
 		transfer_queue_create_info.queueCount              = queue_family_properties[m_transfer_family].queueCount;
 		transfer_queue_create_info.pQueuePriorities        = queue_priorities.data();
 		queue_create_infos.emplace_back(transfer_queue_create_info);
+		m_transfer_queue_count = queue_family_properties[m_transfer_family].queueCount;
 	}
 	else
 	{
-		m_transfer_family = m_graphics_family;
+		m_transfer_family      = m_graphics_family;
+		m_transfer_queue_count = m_graphics_queue_count;
 	}
 
 	// Enable logical device features
@@ -556,7 +562,7 @@ void Device::CreateLogicalDevice()
 	VkPhysicalDeviceDescriptorIndexingFeaturesEXT    descriptor_indexing_features   = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT};
 	VkPhysicalDeviceMeshShaderFeaturesNV             mesh_shader_feature            = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV};
 
-	void * feature_ptr_head = nullptr;
+	void  *feature_ptr_head = nullptr;
 	void **feature_ptr_tail = nullptr;
 
 	if (IsRayTracingSupport())
@@ -670,15 +676,43 @@ Device::Device()
 
 Device::~Device()
 {
+	vkDeviceWaitIdle(m_logical_device);
+
+	for (auto &[hash, pool] : m_cmd_pools)
+	{
+		vkDestroyCommandPool(m_logical_device, pool, nullptr);
+	}
+
+	if (m_allocator)
+	{
+		vmaDestroyAllocator(m_allocator);
+	}
+
+	if (m_logical_device)
+	{
+		vkDestroyDevice(m_logical_device, nullptr);
+	}
+
+	if (vkDestroyDebugUtilsMessengerEXT)
+	{
+		vkDestroyDebugUtilsMessengerEXT(m_instance, vkDebugUtilsMessengerEXT, nullptr);
+	}
+
 	if (m_instance)
 	{
 		vkDestroyInstance(m_instance, nullptr);
 	}
 }
 
+void Device::WaitIdle()
+{
+	vkDeviceWaitIdle(m_logical_device);
+}
+
 bool Device::IsRayTracingSupport()
 {
 	std::vector<const char *> raytracing_extensions = {
+	    VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
 	    VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
 	    VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
 	    VK_KHR_RAY_QUERY_EXTENSION_NAME};
@@ -756,6 +790,62 @@ VkDevice Device::GetDevice() const
 VmaAllocator Device::GetAllocator() const
 {
 	return m_allocator;
+}
+
+uint32_t Device::GetQueueFamily(RHIQueueFamily family)
+{
+	switch (family)
+	{
+		case Ilum::RHIQueueFamily::Graphics:
+			return m_graphics_family;
+		case Ilum::RHIQueueFamily::Compute:
+			return m_compute_family;
+		case Ilum::RHIQueueFamily::Transfer:
+			return m_transfer_family;
+		default:
+			break;
+	}
+	return m_graphics_family;
+}
+
+uint32_t Device::GetQueueCount(RHIQueueFamily family)
+{
+	switch (family)
+	{
+		case Ilum::RHIQueueFamily::Graphics:
+			return m_graphics_queue_count;
+		case Ilum::RHIQueueFamily::Compute:
+			return m_compute_queue_count;
+		case Ilum::RHIQueueFamily::Transfer:
+			return m_transfer_queue_count;
+		default:
+			break;
+	}
+	return m_graphics_queue_count;
+}
+
+VkCommandPool Device::AcquireCommandPool(uint32_t frame_index, RHIQueueFamily family)
+{
+	size_t hash = 0;
+	HashCombine(hash, frame_index, family, std::this_thread::get_id());
+
+	if (m_cmd_pools.find(hash) != m_cmd_pools.end())
+	{
+		return m_cmd_pools.at(hash);
+	}
+
+	VkCommandPoolCreateInfo create_info = {};
+	create_info.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	create_info.flags                   = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
+	create_info.queueFamilyIndex        = GetQueueFamily(family);
+
+	VkCommandPool pool = VK_NULL_HANDLE;
+
+	vkCreateCommandPool(m_logical_device, &create_info, nullptr, &pool);
+
+	m_cmd_pools.emplace(hash, pool);
+
+	return pool;
 }
 
 }        // namespace Ilum::Vulkan

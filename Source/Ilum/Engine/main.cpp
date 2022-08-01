@@ -1,19 +1,26 @@
-#include <Core/Log.hpp>
 #include <Core/Hash.hpp>
+#include <Core/Log.hpp>
+#include <Core/Window.hpp>
+#include <Core/Time.hpp>
 
-#include <RHI/RHIDevice.hpp>
+#include <RHI/RHIContext.hpp>
 
 int main()
 {
-	size_t hash = 0;
-	Ilum::HashCombine(hash, 1, 2, 3.f, true);
+	{
+		Ilum::Window window("Ilum", "Asset/Icon/logo.bmp");
+		Ilum::RHIContext context(&window);
 
-	auto device = Ilum::RHIDevice::Create();
+		Ilum::Timer timer;
 
-	LOG_INFO("IsRayTracingSupport: {}", device->IsRayTracingSupport());
-	LOG_INFO("IsMeshShaderSupport: {}", device->IsMeshShaderSupport());
-	LOG_INFO("IsBufferDeviceAddressSupport: {}", device->IsBufferDeviceAddressSupport());
-	LOG_INFO("IsBindlessResourceSupport: {}", device->IsBindlessResourceSupport());
+		while (window.Tick())
+		{
+			timer.Tick();
+			context.BeginFrame();
+
+			context.EndFrame();
+		}
+	}
 
 	return 0;
 }

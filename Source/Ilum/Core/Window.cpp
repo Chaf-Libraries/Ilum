@@ -3,6 +3,12 @@
 
 #include <GLFW/glfw3.h>
 
+#ifdef _WIN32
+#	define GLFW_EXPOSE_NATIVE_WIN32
+#endif        // WIN32
+#include <GLFW/glfw3native.h>
+
+#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
 namespace Ilum
@@ -134,5 +140,25 @@ bool Window::IsMouseButtonDown(int32_t button) const
 	}
 
 	return glfwGetMouseButton(m_handle, button) == GLFW_PRESS;
+}
+
+GLFWwindow *Window::GetHandle() const
+{
+	return m_handle;
+}
+
+void *Window::GetNativeHandle() const
+{
+	return glfwGetWin32Window(m_handle);
+}
+
+uint32_t Window::GetWidth() const
+{
+	return m_width;
+}
+
+uint32_t Window::GetHeight() const
+{
+	return m_height;
 }
 }        // namespace Ilum

@@ -19,6 +19,11 @@ class Window
 	bool IsKeyDown(int32_t key) const;
 	bool IsMouseButtonDown(int32_t button) const;
 
+	GLFWwindow *GetHandle() const;
+	void *GetNativeHandle() const;
+	uint32_t    GetWidth() const;
+	uint32_t    GetHeight() const;
+
   public:
 	MulticastDelegate<>                                   OnResetFunc;
 	MulticastDelegate<int32_t, int32_t, int32_t, int32_t> OnKeyFunc;
@@ -32,7 +37,7 @@ class Window
 	MulticastDelegate<int32_t, int32_t>                   OnWindowSizeFunc;
 	MulticastDelegate<>                                   OnWindowCloseFunc;
 
-  public:
+  private:
 	GLFWwindow *m_handle = nullptr;
 
 	uint32_t    m_width;
