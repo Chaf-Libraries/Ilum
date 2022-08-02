@@ -44,7 +44,7 @@ Swapchain::Swapchain(RHIDevice *device, Window *window) :
 
 	swapchain.As(&m_handle);
 
-	m_frame_index = m_handle->GetCurrentBackBufferIndex();
+	CreateTextures();
 }
 
 Swapchain::~Swapchain()
@@ -58,9 +58,16 @@ uint32_t Swapchain::GetTextureCount()
 
 void Swapchain::AcquireNextTexture(RHISemaphore *signal_semaphore, RHIFence *signal_fence)
 {
+	if (m_width != p_window->GetWidth() ||
+	    m_height != p_window->GetHeight())
+	{
+		m_width  = p_window->GetWidth();
+		m_height = p_window->GetHeight();
+		m_handle->ResizeBuffers(3, p_window->GetWidth(), p_window->GetHeight(), DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH);
+		CreateTextures();
+	}
 
 	m_frame_index = m_handle->GetCurrentBackBufferIndex();
-
 }
 
 RHITexture *Swapchain::GetCurrentTexture()
@@ -75,5 +82,28 @@ uint32_t Swapchain::GetCurrentFrameIndex()
 
 void Swapchain::Present(RHISemaphore *semaphore)
 {
+}
+
+void Swapchain::CreateTextures()
+{
+	m_textures.clear();
+
+	{
+		TextureDesc desc = {};
+		desc.width       = p_window->GetWidth();
+		desc.height      = p_window->GetHeight();
+		desc.depth       = 1;
+		desc.layers      = 1;
+		desc.mips        = 1;
+		desc.samples     = 1;
+		desc.usage       = RHITextureUsage::RenderTarget;
+
+		for (uint32_t i = 0; i < 3; i++)
+		{
+			ComPtr<ID3D12Resource> buffer;
+			m_handle->GetBuffer(i, IID_PPV_ARGS(&buffer));
+			m_textures.emplace_back(std::make_unique<Texture>(p_device, desc, std::move(buffer)));
+		}
+	}
 }
 }        // namespace Ilum::DX12

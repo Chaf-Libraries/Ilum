@@ -92,11 +92,10 @@ Device::Device()
 	dxgi_factory_flags |= DXGI_CREATE_FACTORY_DEBUG;
 #endif        // _DEBUG
 
-	ComPtr<IDXGIFactory4> factory;
-	CreateDXGIFactory2(dxgi_factory_flags, IID_PPV_ARGS(&factory));
+	CreateDXGIFactory2(dxgi_factory_flags, IID_PPV_ARGS(&m_factory));
 
 	ComPtr<IDXGIAdapter1> hardware_adapter;
-	GetHardwareAdapter(factory.Get(), &hardware_adapter);
+	GetHardwareAdapter(m_factory.Get(), &hardware_adapter);
 
 	D3D12CreateDevice(hardware_adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&m_handle));
 

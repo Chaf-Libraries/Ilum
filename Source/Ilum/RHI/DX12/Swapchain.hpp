@@ -29,9 +29,15 @@ class Swapchain : public RHISwapchain
 	virtual void Present(RHISemaphore *semaphore) override;
 
   private:
+	void CreateTextures();
+
+  private:
 	std::vector<std::unique_ptr<Texture>> m_textures;
-	ComPtr<ID3D12CommandQueue>            m_queue = nullptr;
+	ComPtr<ID3D12CommandQueue>            m_queue  = nullptr;
 	ComPtr<IDXGISwapChain3>               m_handle = nullptr;
+
+	uint32_t m_width  = 0;
+	uint32_t m_height = 0;
 
 	uint32_t m_frame_index = 0;
 };

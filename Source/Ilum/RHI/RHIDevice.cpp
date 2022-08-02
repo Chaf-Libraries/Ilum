@@ -6,7 +6,6 @@
 #	include "DX12/Device.hpp"
 #endif
 
-
 namespace Ilum
 {
 std::unique_ptr<RHIDevice> RHIDevice::Create()

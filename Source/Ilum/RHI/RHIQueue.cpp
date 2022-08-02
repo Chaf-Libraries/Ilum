@@ -1,6 +1,10 @@
 #include "RHIQueue.hpp"
 
-#include "Vulkan/Queue.hpp"
+#ifdef RHI_BACKEND_VULKAN
+#	include "Vulkan/Queue.hpp"
+#elif defined RHI_BACKEND_DX12
+#	include "DX12/Queue.hpp"
+#endif        // RHI_BACKEND
 
 namespace Ilum
 {
@@ -11,6 +15,13 @@ RHIQueue::RHIQueue(RHIDevice *device, RHIQueueFamily family, uint32_t queue_inde
 
 std::unique_ptr<RHIQueue> RHIQueue::Create(RHIDevice *device, RHIQueueFamily family, uint32_t queue_index)
 {
+#ifdef RHI_BACKEND_VULKAN
 	return std::make_unique<Vulkan::Queue>(device, family, queue_index);
+#elif defined RHI_BACKEND_DX12
+	return std::make_unique<DX12::Queue>(device, family, queue_index);
+#else
+	return nullptr;
+#endif        // RHI_BACKEND
+
 }
 }        // namespace Ilum
