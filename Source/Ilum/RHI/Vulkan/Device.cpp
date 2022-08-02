@@ -70,13 +70,8 @@ inline const std::vector<const char *> GetInstanceExtensionSupported(const std::
 			{
 				result.emplace_back(extension);
 				found = true;
-				LOG_INFO("Enable instance extension: {}", extension);
 				break;
 			}
-		}
-		if (!found)
-		{
-			LOG_WARN("Instance extension {} is not supported", extension);
 		}
 	}
 
@@ -178,7 +173,9 @@ inline uint32_t ScorePhysicalDevice(VkPhysicalDevice physical_device, const std:
 	    VK_VERSION_MINOR(properties.apiVersion),
 	    VK_VERSION_PATCH(properties.apiVersion)};
 
-	ss << "API Version: " << supportedVersion[0] << "." << supportedVersion[1] << "." << supportedVersion[2] << '\n';
+	ss << "API Version: " << supportedVersion[0] << "." << supportedVersion[1] << "." << supportedVersion[2];
+
+	LOG_INFO("{}", ss.str());
 
 	// Score discrete gpu
 	if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
@@ -274,14 +271,8 @@ inline const std::vector<const char *> GetDeviceExtensionSupport(VkPhysicalDevic
 			{
 				result.push_back(device_extension);
 				enable = true;
-				LOG_INFO("Enable device extension: {}", device_extension);
 				break;
 			}
-		}
-
-		if (!enable)
-		{
-			LOG_WARN("Device extension {} is not supported", device_extension);
 		}
 	}
 
@@ -332,7 +323,6 @@ void Device::CreateInstance()
 	{
 		std::string sdk_version_str = std::to_string(VK_VERSION_MAJOR(sdk_version)) + "." + std::to_string(VK_VERSION_MINOR(sdk_version)) + "." + std::to_string(VK_VERSION_PATCH(sdk_version));
 		std::string api_version_str = std::to_string(VK_VERSION_MAJOR(api_version)) + "." + std::to_string(VK_VERSION_MINOR(api_version)) + "." + std::to_string(VK_VERSION_PATCH(api_version));
-		LOG_WARN("Using Vulkan {}, please upgrade your graphics driver to support Vulkan {}", api_version_str, sdk_version_str);
 	}
 
 	app_info.pApplicationName   = "IlumEngine";
@@ -363,7 +353,6 @@ void Device::CreateInstance()
 	{
 		if (CheckLayerSupported(layer))
 		{
-			LOG_INFO("Enable validation layer: {}", layer);
 			create_info.enabledLayerCount   = static_cast<uint32_t>(ValidationLayers.size());
 			create_info.ppEnabledLayerNames = ValidationLayers.data();
 			create_info.pNext               = &validation_features;
@@ -529,11 +518,6 @@ void Device::CreateLogicalDevice()
 	{                                                               \
 		physical_device_features.feature = VK_TRUE;                 \
 		m_supported_device_features.push_back(#feature);            \
-		LOG_INFO("Physical device feature enable: {}", #feature)    \
-	}                                                               \
-	else                                                            \
-	{                                                               \
-		LOG_WARN("Physical device feature not found: {}", #feature) \
 	}
 
 	ENABLE_DEVICE_FEATURE(sampleRateShading);
@@ -555,6 +539,71 @@ void Device::CreateLogicalDevice()
 	// Get support extensions
 	auto support_extensions = GetDeviceExtensionSupport(m_physical_device, DeviceExtensions);
 
+	{
+		m_feature_support[RHIFeature::RayTracing] = true;
+		std::vector<const char *> raytracing_extensions = {
+		    VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+		    VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+		    VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+		    VK_KHR_RAY_QUERY_EXTENSION_NAME};
+
+		for (auto &raytracing_extension : raytracing_extensions)
+		{
+			bool found = false;
+			for (auto &extension : m_supported_device_extensions)
+			{
+				if (strcmp(raytracing_extension, extension) == 0)
+				{
+					found = true;
+					continue;
+				}
+			}
+			if (!found)
+			{
+				m_feature_support[RHIFeature::RayTracing] = false;
+				break;
+			}
+		}
+	}
+	{
+		m_feature_support[RHIFeature::MeshShading] = false;
+		for (auto &extension : m_supported_device_extensions)
+		{
+			if (strcmp(VK_NV_MESH_SHADER_EXTENSION_NAME, extension) == 0)
+			{
+				m_feature_support[RHIFeature::MeshShading] = true;
+				break;
+			}
+		}
+	}
+	{
+		m_feature_support[RHIFeature::BufferDeviceAddress] = false;
+		for (auto &extension : m_supported_device_extensions)
+		{
+			if (strcmp(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, extension) == 0)
+			{
+				m_feature_support[RHIFeature::BufferDeviceAddress] = true;
+				break;
+			}
+		}
+	}
+	{
+		m_feature_support[RHIFeature::Bindless] = false;
+		for (auto &extension : m_supported_device_extensions)
+		{
+			if (strcmp(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME, extension) == 0)
+			{
+				m_feature_support[RHIFeature::Bindless] = true;
+				break;
+			}
+		}
+	}
+
+	LOG_INFO("Feature RayTracing Support: {}", m_feature_support[RHIFeature::RayTracing]);
+	LOG_INFO("Feature MeshShading Support: {}", m_feature_support[RHIFeature::MeshShading]);
+	LOG_INFO("Feature Buffer Device Address Support: {}", m_feature_support[RHIFeature::BufferDeviceAddress]);
+	LOG_INFO("Feature Bindless Support: {}", m_feature_support[RHIFeature::Bindless]);
+
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_feature = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
 	VkPhysicalDeviceRayTracingPipelineFeaturesKHR    ray_tracing_pipeline_feature   = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
 	VkPhysicalDeviceRayQueryFeaturesKHR              ray_query_features             = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR};
@@ -565,7 +614,7 @@ void Device::CreateLogicalDevice()
 	void  *feature_ptr_head = nullptr;
 	void **feature_ptr_tail = nullptr;
 
-	if (IsRayTracingSupport())
+	if (IsFeatureSupport(RHIFeature::RayTracing))
 	{
 		acceleration_structure_feature.accelerationStructure = VK_TRUE;
 		ray_tracing_pipeline_feature.rayTracingPipeline      = VK_TRUE;
@@ -578,7 +627,7 @@ void Device::CreateLogicalDevice()
 		feature_ptr_tail = &ray_query_features.pNext;
 	}
 
-	if (IsBufferDeviceAddressSupport())
+	if (IsFeatureSupport(RHIFeature::BufferDeviceAddress))
 	{
 		buffer_device_address_features.bufferDeviceAddress = VK_TRUE;
 
@@ -593,7 +642,7 @@ void Device::CreateLogicalDevice()
 		feature_ptr_tail = &buffer_device_address_features.pNext;
 	}
 
-	if (IsBindlessResourceSupport())
+	if (IsFeatureSupport(RHIFeature::Bindless))
 	{
 		descriptor_indexing_features.descriptorBindingPartiallyBound            = VK_TRUE;
 		descriptor_indexing_features.runtimeDescriptorArray                     = VK_TRUE;
@@ -613,7 +662,7 @@ void Device::CreateLogicalDevice()
 		feature_ptr_tail = &descriptor_indexing_features.pNext;
 	}
 
-	if (IsMeshShaderSupport())
+	if (IsFeatureSupport(RHIFeature::MeshShading))
 	{
 		mesh_shader_feature.meshShader = VK_TRUE;
 		mesh_shader_feature.taskShader = VK_TRUE;
@@ -712,67 +761,9 @@ void Device::WaitIdle()
 	vkDeviceWaitIdle(m_logical_device);
 }
 
-bool Device::IsRayTracingSupport()
+bool Device::IsFeatureSupport(RHIFeature feature)
 {
-	std::vector<const char *> raytracing_extensions = {
-	    VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
-	    VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-	    VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-	    VK_KHR_RAY_QUERY_EXTENSION_NAME};
-
-	for (auto &raytracing_extension : raytracing_extensions)
-	{
-		bool found = false;
-		for (auto &extension : m_supported_device_extensions)
-		{
-			if (strcmp(raytracing_extension, extension) == 0)
-			{
-				found = true;
-				continue;
-			}
-		}
-		if (!found)
-		{
-			return false;
-		}
-	}
-	return true;
-}
-
-bool Device::IsMeshShaderSupport()
-{
-	for (auto &extension : m_supported_device_extensions)
-	{
-		if (strcmp(VK_NV_MESH_SHADER_EXTENSION_NAME, extension) == 0)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-bool Device::IsBufferDeviceAddressSupport()
-{
-	for (auto &extension : m_supported_device_extensions)
-	{
-		if (strcmp(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, extension) == 0)
-		{
-			return true;
-		}
-	}
-	return false;
-}
-
-bool Device::IsBindlessResourceSupport()
-{
-	for (auto &extension : m_supported_device_extensions)
-	{
-		if (strcmp(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME, extension) == 0)
-		{
-			return true;
-		}
-	}
-	return false;
+	return m_feature_support[feature];
 }
 
 VkInstance Device::GetInstance() const

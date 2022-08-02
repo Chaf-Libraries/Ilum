@@ -11,12 +11,13 @@
 
 namespace Ilum
 {
-
 class RHIContext
 {
   public:
 	RHIContext(Window *window);
 	~RHIContext();
+
+	RHIBackend GetBackend() const;
 
 	// Create Texture
 	std::unique_ptr<RHITexture> CreateTexture(const TextureDesc &desc);

@@ -14,10 +14,17 @@ namespace Ilum
 
 enum class RHIBackend
 {
+	Unknown,
 	Vulkan,
-	// TODO:
-	// DX12
-	// OpenGL
+	DX12
+};
+
+enum class RHIFeature
+{
+	RayTracing,
+	MeshShading,
+	BufferDeviceAddress,
+	Bindless
 };
 
 enum class RHIQueueFamily
@@ -37,18 +44,17 @@ enum class RHIFormat
 	R32G32B32A32_SFLOAT,
 
 	D32_SFLOAT,
-	D32_SFLOAT_S8_UINT
+	D24_UNORM_S8_UINT
 };
 
 inline bool IsDepthFormat(RHIFormat format)
 {
 	return format == RHIFormat::D32_SFLOAT ||
-	       format == RHIFormat::D32_SFLOAT_S8_UINT;
+	       format == RHIFormat::D24_UNORM_S8_UINT;
 }
 
 enum class RHIMemoryUsage
 {
-	CPU_Only,
 	GPU_Only,
 	CPU_TO_GPU,
 	GPU_TO_CPU

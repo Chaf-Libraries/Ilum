@@ -8,6 +8,7 @@
 
 #include <memory>
 #include <stdexcept>
+#include <deque>
 
 namespace Ilum
 {

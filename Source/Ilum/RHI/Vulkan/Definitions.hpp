@@ -14,7 +14,7 @@ inline static std::unordered_map<RHIFormat, VkFormat> ToVulkanFormat = {
     {RHIFormat::R16G16B16A16_SFLOAT, VK_FORMAT_R16G16B16A16_SFLOAT},
     {RHIFormat::R32G32B32A32_SFLOAT, VK_FORMAT_R32G32B32A32_SFLOAT},
     {RHIFormat::D32_SFLOAT, VK_FORMAT_D32_SFLOAT},
-    {RHIFormat::D32_SFLOAT_S8_UINT, VK_FORMAT_D32_SFLOAT_S8_UINT},
+    {RHIFormat::D24_UNORM_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
 };
 
 inline static std::unordered_map<uint32_t, VkSampleCountFlagBits> ToVulkanSampleCountFlag = {
@@ -38,7 +38,6 @@ inline static std::unordered_map<RHITextureDimension, VkImageViewType> ToVulkanI
 };
 
 inline static std::unordered_map<RHIMemoryUsage, VmaMemoryUsage> ToVmaMemoryUsage = {
-    {RHIMemoryUsage::CPU_Only, VMA_MEMORY_USAGE_CPU_ONLY},
     {RHIMemoryUsage::GPU_Only, VMA_MEMORY_USAGE_GPU_ONLY},
     {RHIMemoryUsage::CPU_TO_GPU, VMA_MEMORY_USAGE_CPU_TO_GPU},
     {RHIMemoryUsage::GPU_TO_CPU, VMA_MEMORY_USAGE_GPU_TO_CPU},

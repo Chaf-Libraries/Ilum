@@ -63,7 +63,7 @@ Buffer::Buffer(RHIDevice *device, const BufferDesc &desc) :
 	buffer_create_info.usage              = ToVulkanBufferUsage(desc.usage);
 	buffer_create_info.sharingMode        = VK_SHARING_MODE_EXCLUSIVE;
 	
-	if (static_cast<Device *>(p_device)->IsBufferDeviceAddressSupport())
+	if (static_cast<Device *>(p_device)->IsFeatureSupport(RHIFeature::BufferDeviceAddress))
 	{
 		buffer_create_info.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 	}
@@ -74,7 +74,7 @@ Buffer::Buffer(RHIDevice *device, const BufferDesc &desc) :
 	VmaAllocationInfo allocation_info = {};
 	vmaCreateBuffer(static_cast<Device *>(p_device)->GetAllocator(), &buffer_create_info, &allocation_create_info, &m_handle, &m_allocation, &allocation_info);
 
-	if (static_cast<Device *>(p_device)->IsBufferDeviceAddressSupport())
+	if (static_cast<Device *>(p_device)->IsFeatureSupport(RHIFeature::BufferDeviceAddress))
 	{
 		VkBufferDeviceAddressInfoKHR buffer_device_address_info = {};
 		buffer_device_address_info.sType                        = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;

@@ -22,10 +22,7 @@ class Device : public RHIDevice
 
 	virtual void WaitIdle() override;
 
-	virtual bool IsRayTracingSupport() override;
-	virtual bool IsMeshShaderSupport() override;
-	virtual bool IsBufferDeviceAddressSupport() override;
-	virtual bool IsBindlessResourceSupport() override;
+	virtual bool IsFeatureSupport(RHIFeature feature) override;
 
 	VkInstance       GetInstance() const;
 	VkPhysicalDevice GetPhysicalDevice() const;
@@ -43,6 +40,8 @@ class Device : public RHIDevice
 	std::vector<const char *> m_supported_instance_extensions;
 	std::vector<const char *> m_supported_device_features;
 	std::vector<const char *> m_supported_device_extensions;
+
+	std::unordered_map<RHIFeature, bool> m_feature_support;
 
   private:
 	VkInstance       m_instance        = VK_NULL_HANDLE;

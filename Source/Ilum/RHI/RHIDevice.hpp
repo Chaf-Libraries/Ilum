@@ -2,6 +2,8 @@
 
 #include <Core/Window.hpp>
 
+#include "RHIDefinitions.hpp"
+
 namespace Ilum
 {
 class RHIDevice
@@ -14,9 +16,6 @@ class RHIDevice
 
 	virtual void WaitIdle() = 0;
 
-	virtual bool IsRayTracingSupport()          = 0;
-	virtual bool IsMeshShaderSupport()          = 0;
-	virtual bool IsBufferDeviceAddressSupport() = 0;
-	virtual bool IsBindlessResourceSupport()    = 0;
+	virtual bool IsFeatureSupport(RHIFeature feature) = 0;
 };
 }        // namespace Ilum

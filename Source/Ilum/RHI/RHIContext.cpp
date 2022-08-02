@@ -34,6 +34,17 @@ RHIContext::~RHIContext()
 	m_device.reset();
 }
 
+RHIBackend RHIContext::GetBackend() const
+{
+#ifdef RHI_BACKEND_VULKAN
+	return RHIBackend::Vulkan;
+#elif RHI_BACKEND_DX12
+	return RHIBackend::DX12;
+#endif        // RHI_BACKEND_VULKAN
+
+	return RHIBackend::Unknown;
+}
+
 std::unique_ptr<RHITexture> RHIContext::CreateTexture(const TextureDesc &desc)
 {
 	return RHITexture::Create(m_device.get(), desc);
