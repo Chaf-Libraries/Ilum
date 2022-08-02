@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RHIBuffer.hpp"
+#include "RHICommand.hpp"
 #include "RHIDevice.hpp"
 #include "RHIQueue.hpp"
 #include "RHISampler.hpp"
@@ -30,9 +31,20 @@ class RHIContext
 	// Create Sampler
 	std::unique_ptr<RHISampler> CreateSampler(const SamplerDesc &desc);
 
+	// Create Command
+	RHICommand *CreateCommand(RHIQueueFamily family);
+
+	// Get Queue
+	RHIQueue *GetQueue(RHIQueueFamily family);
+
+	RHITexture *GetBackBuffer();
+
 	// Frame
 	void BeginFrame();
 	void EndFrame();
+
+  private:
+	uint32_t m_current_frame = 0;
 
   private:
 	Window *p_window = nullptr;
@@ -46,5 +58,8 @@ class RHIContext
 
 	std::vector<std::unique_ptr<RHISemaphore>> m_present_complete;
 	std::vector<std::unique_ptr<RHISemaphore>> m_render_complete;
+	std::vector<std::unique_ptr<RHIFence>> m_inflight_fence;
+
+	std::unordered_map<size_t, std::vector<std::unique_ptr<RHICommand>>> m_cmds;
 };
 }        // namespace Ilum

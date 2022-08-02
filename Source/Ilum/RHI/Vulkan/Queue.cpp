@@ -1,5 +1,5 @@
 #include "Queue.hpp"
-#include "Commond.hpp"
+#include "Command.hpp"
 #include "Device.hpp"
 #include "Synchronization.hpp"
 
@@ -11,49 +11,55 @@ Queue::Queue(RHIDevice *device, RHIQueueFamily family, uint32_t queue_index) :
 	vkGetDeviceQueue(static_cast<Device *>(p_device)->GetDevice(), static_cast<Device *>(p_device)->GetQueueFamily(family), queue_index % static_cast<Device *>(p_device)->GetQueueCount(family), &m_handle);
 }
 
-void Queue::Submit(const std::vector<RHICommond *> &cmds, const std::vector<RHISemaphore *> &signal_semaphores, const std::vector<RHISemaphore *> &wait_semaphores)
+void Queue::Submit(const std::vector<RHICommand *> &cmds, const std::vector<RHISemaphore *> &signal_semaphores, const std::vector<RHISemaphore *> &wait_semaphores)
 {
-	m_submits.emplace_back(std::make_tuple(cmds, signal_semaphores, wait_semaphores));
+	m_cmds.reserve(cmds.size());
+	m_signal_semaphores.reserve(signal_semaphores.size());
+	m_wait_semaphores.reserve(wait_semaphores.size());
+
+	for (auto& cmd : cmds)
+	{
+		static_cast<Command *>(cmd)->SetState(CommandState::Pending);
+		m_cmds.push_back(static_cast<Command *>(cmd)->GetHandle());
+	}
+	for (auto &signal_semaphore : signal_semaphores)
+	{
+		m_signal_semaphores.push_back(static_cast<Semaphore *>(signal_semaphore)->GetHandle());
+	}
+	for (auto &wait_semaphore : wait_semaphores)
+	{
+		m_wait_semaphores.push_back(static_cast<Semaphore *>(wait_semaphore)->GetHandle());
+	}
 }
 
 void Queue::Execute(RHIFence *fence)
 {
-	std::vector<VkSubmitInfo> submit_infos;
-
-	std::vector<std::vector<VkSemaphore>> signal_vk_semaphores;
-	std::vector<std::vector<VkSemaphore>> wait_vk_semaphores;
-	std::vector<std::vector<VkPipelineStageFlags>> pipeline_stage_flags;
-
-	for (auto &&[cmds, signal_semaphores, wait_semaphores] : m_submits)
+	if (m_cmds.empty() && m_signal_semaphores.empty() && m_wait_semaphores.empty())
 	{
-		VkSubmitInfo submit_info = {};
-		submit_info.sType        = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-		signal_vk_semaphores.push_back({});
-		std::transform(signal_semaphores.cbegin(), signal_semaphores.cend(), std::back_inserter(signal_vk_semaphores.back()),
-		               [](RHISemaphore *semaphore) { return static_cast<Semaphore *>(semaphore)->GetHandle(); });
-
-		wait_vk_semaphores.push_back({});
-		std::transform(wait_semaphores.cbegin(), wait_semaphores.cend(), std::back_inserter(wait_vk_semaphores.back()),
-		               [](RHISemaphore *semaphore) { return static_cast<Semaphore *>(semaphore)->GetHandle(); });
-
-		pipeline_stage_flags.push_back(std::vector<VkPipelineStageFlags>(wait_vk_semaphores.size()));
-		// TODO: Some optimize here
-		std::fill(pipeline_stage_flags.back().begin(), pipeline_stage_flags.back().end(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-
-		submit_info.signalSemaphoreCount = static_cast<uint32_t>(signal_vk_semaphores.back().size());
-		submit_info.pSignalSemaphores    = signal_vk_semaphores.back().data();
-		submit_info.waitSemaphoreCount   = static_cast<uint32_t>(wait_vk_semaphores.back().size());
-		submit_info.pWaitSemaphores      = wait_vk_semaphores.back().data();
-		submit_info.pWaitDstStageMask    = pipeline_stage_flags.back().data();
-		submit_infos.push_back(submit_info);
+		return;
 	}
 
-	if (!submit_infos.empty())
-	{
-		vkQueueSubmit(m_handle, static_cast<uint32_t>(submit_infos.size()), submit_infos.data(), fence ? static_cast<Fence *>(fence)->GetHandle() : nullptr);
-		m_submits.clear();
-	}
+	std::vector<VkPipelineStageFlags> pipeline_stage_flags;
+
+	pipeline_stage_flags.resize(m_wait_semaphores.size());
+	std::fill(pipeline_stage_flags.begin(), pipeline_stage_flags.end(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+
+	VkSubmitInfo submit_info = {};
+	submit_info.sType        = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+	submit_info.commandBufferCount   = static_cast<uint32_t>(m_cmds.size());
+	submit_info.pCommandBuffers      = m_cmds.data();
+	submit_info.signalSemaphoreCount = static_cast<uint32_t>(m_signal_semaphores.size());
+	submit_info.pSignalSemaphores    = m_signal_semaphores.data();
+	submit_info.waitSemaphoreCount   = static_cast<uint32_t>(m_wait_semaphores.size());
+	submit_info.pWaitSemaphores      = m_wait_semaphores.data();
+	submit_info.pWaitDstStageMask    = pipeline_stage_flags.data();
+
+	vkQueueSubmit(m_handle, 1, &submit_info, fence ? static_cast<Fence *>(fence)->GetHandle() : nullptr);
+	
+	m_cmds.clear();
+	m_signal_semaphores.clear();
+	m_wait_semaphores.clear();
 }
 
 VkQueue Queue::GetHandle() const

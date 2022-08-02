@@ -8,6 +8,7 @@ Fence::Fence(RHIDevice *device) :
 {
 	VkFenceCreateInfo create_info = {};
 	create_info.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	create_info.flags             = VK_FENCE_CREATE_SIGNALED_BIT;
 	vkCreateFence(static_cast<Device*>(p_device)->GetDevice(), &create_info, nullptr, &m_handle);
 }
 
@@ -19,7 +20,7 @@ Fence::~Fence()
 	}
 }
 
-void Fence::Wait(uint32_t timeout)
+void Fence::Wait(uint64_t timeout)
 {
 	vkWaitForFences(static_cast<Device *>(p_device)->GetDevice(), 1, &m_handle, true, timeout);
 }

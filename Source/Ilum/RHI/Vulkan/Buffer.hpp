@@ -7,6 +7,20 @@
 
 namespace Ilum::Vulkan
 {
+struct BufferState
+{
+	VkAccessFlags        access_mask = VK_ACCESS_NONE;
+	VkPipelineStageFlags stage       = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+
+	inline bool operator==(const BufferState &other)
+	{
+		return access_mask == other.access_mask &&
+		       stage == other.stage;
+	}
+
+	static BufferState Create(RHIBufferState state);
+};
+
 class Buffer : public RHIBuffer
 {
   public:

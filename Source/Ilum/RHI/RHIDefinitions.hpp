@@ -69,25 +69,52 @@ enum class RHITextureDimension
 enum class RHITextureUsage
 {
 	Transfer,
-	SRV,
-	UAV,
+	ShaderResource,
+	UnorderedAccess,
 	RenderTarget
 };
 DEFINE_ENUMCLASS_OPERATION(RHITextureUsage)
 
+enum class RHITextureState
+{
+	Undefined,
+	TransferSource,
+	TransferDest,
+	ShaderResource,
+	UnorderAccess,
+	RenderTarget,
+	DepthWrite,
+	DepthRead,
+	Present
+};
+
 // Buffer
 enum class RHIBufferUsage
 {
-	Uniform,
+	Undefined,
 	Vertex,
 	Index,
 	Indirect,
 	Transfer,
 	AccelerationStructure,
-	SRV,
-	UAV
+	ShaderResource,
+	UnorderedAccess,
+	ConstantBuffer
 };
 DEFINE_ENUMCLASS_OPERATION(RHIBufferUsage)
+
+enum class RHIBufferState
+{
+	Vertex,
+	Index,
+	Indirect,
+	TransferSource,
+	TransferDest,
+	AccelerationStructure,
+	ShaderResource,
+	UnorderedAccess,
+	ConstantBuffer
+};
 
 // Sampler
 enum class RHIFilter

@@ -12,7 +12,7 @@ class Fence : public RHIFence
 	Fence(RHIDevice *device);
 	virtual ~Fence() override;
 
-	virtual void Wait(uint32_t timeout) override;
+	virtual void Wait(uint64_t timeout) override;
 	virtual void Reset() override;
 
 	VkFence GetHandle() const;

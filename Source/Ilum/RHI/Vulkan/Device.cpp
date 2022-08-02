@@ -678,9 +678,12 @@ Device::~Device()
 {
 	vkDeviceWaitIdle(m_logical_device);
 
-	for (auto &[hash, pool] : m_cmd_pools)
+	for (auto &pool_map : m_cmd_pools)
 	{
-		vkDestroyCommandPool(m_logical_device, pool, nullptr);
+		for (auto& [hash, pool] : pool_map)
+		{
+			vkDestroyCommandPool(m_logical_device, pool, nullptr);
+		}
 	}
 
 	if (m_allocator)
@@ -826,12 +829,14 @@ uint32_t Device::GetQueueCount(RHIQueueFamily family)
 
 VkCommandPool Device::AcquireCommandPool(uint32_t frame_index, RHIQueueFamily family)
 {
-	size_t hash = 0;
-	HashCombine(hash, frame_index, family, std::this_thread::get_id());
-
-	if (m_cmd_pools.find(hash) != m_cmd_pools.end())
+	while (frame_index >=static_cast<uint32_t>(m_cmd_pools.size()))
 	{
-		return m_cmd_pools.at(hash);
+		m_cmd_pools.push_back({});
+	}
+
+	if (m_cmd_pools[frame_index].find(std::this_thread::get_id()) != m_cmd_pools[frame_index].end())
+	{
+		return m_cmd_pools[frame_index].at(std::this_thread::get_id());
 	}
 
 	VkCommandPoolCreateInfo create_info = {};
@@ -843,9 +848,16 @@ VkCommandPool Device::AcquireCommandPool(uint32_t frame_index, RHIQueueFamily fa
 
 	vkCreateCommandPool(m_logical_device, &create_info, nullptr, &pool);
 
-	m_cmd_pools.emplace(hash, pool);
+	m_cmd_pools[frame_index].emplace(std::this_thread::get_id(), pool);
 
 	return pool;
 }
 
+void Device::ResetCommandPool(uint32_t frame_index)
+{
+	for (auto& [hash, pool] : m_cmd_pools[frame_index])
+	{
+		vkResetCommandPool(m_logical_device, pool, 0);
+	}
+}
 }        // namespace Ilum::Vulkan

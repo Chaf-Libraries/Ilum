@@ -14,7 +14,7 @@ class RHIFence
 
 	static std::unique_ptr<RHIFence> Create(RHIDevice *device);
 
-	virtual void Wait(uint32_t timeout) = 0;
+	virtual void Wait(uint64_t timeout = std::numeric_limits<uint64_t>::max()) = 0;
 	virtual void Reset()                = 0;
 
   protected:

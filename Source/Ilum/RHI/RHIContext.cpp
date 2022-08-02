@@ -16,6 +16,7 @@ RHIContext::RHIContext(Window *window) :
 	{
 		m_present_complete.emplace_back(RHISemaphore::Create(m_device.get()));
 		m_render_complete.emplace_back(RHISemaphore::Create(m_device.get()));
+		m_inflight_fence.emplace_back(RHIFence::Create(m_device.get()));
 	}
 }
 
@@ -25,6 +26,9 @@ RHIContext::~RHIContext()
 
 	m_present_complete.clear();
 	m_render_complete.clear();
+	m_inflight_fence.clear();
+
+	m_cmds.clear();
 
 	m_swapchain.reset();
 	m_device.reset();
@@ -65,20 +69,66 @@ std::unique_ptr<RHISampler> RHIContext::CreateSampler(const SamplerDesc &desc)
 	return RHISampler::Create(m_device.get(), desc);
 }
 
+RHICommand *RHIContext::CreateCommand(RHIQueueFamily family)
+{
+	size_t hash = 0;
+	HashCombine(hash, m_swapchain->GetCurrentFrameIndex(), family, std::this_thread::get_id());
+
+	if (m_cmds.find(hash) != m_cmds.end())
+	{
+		for (auto &cmd : m_cmds[hash])
+		{
+			if (cmd->GetState() == CommandState::Available)
+			{
+				cmd->Init();
+				return cmd.get();
+			}
+		}
+	}
+
+	m_cmds[hash].emplace_back(RHICommand::Create(m_device.get(), m_swapchain->GetCurrentFrameIndex(), family));
+	m_cmds[hash].back()->Init();
+	return m_cmds[hash].back().get();
+}
+
+RHIQueue *RHIContext::GetQueue(RHIQueueFamily family)
+{
+	switch (family)
+	{
+		case RHIQueueFamily::Graphics:
+			return m_graphics_queue.get();
+		case RHIQueueFamily::Compute:
+			return m_compute_queue.get();
+		case RHIQueueFamily::Transfer:
+			return m_transfer_queue.get();
+		default:
+			break;
+	}
+	return nullptr;
+}
+
+RHITexture *RHIContext::GetBackBuffer()
+{
+	return m_swapchain->GetCurrentTexture();
+}
+
 void RHIContext::BeginFrame()
 {
-	uint32_t current_index = m_swapchain->GetCurrentFrameIndex();
-	uint32_t texture_count = m_swapchain->GetTextureCount();
-
-	m_swapchain->AcquireNextTexture(m_present_complete[(current_index + 1) % texture_count].get(), nullptr);
+	m_inflight_fence[m_current_frame]->Wait();
+	m_swapchain->AcquireNextTexture(m_present_complete[m_current_frame].get(), nullptr);
+	m_inflight_fence[m_current_frame]->Reset();
 }
 
 void RHIContext::EndFrame()
 {
+	m_graphics_queue->Submit({}, {m_render_complete[m_current_frame].get()}, {m_present_complete[m_current_frame].get()});
+
 	m_transfer_queue->Execute();
 	m_compute_queue->Execute();
-	m_graphics_queue->Execute();
+	m_graphics_queue->Execute(m_inflight_fence[m_current_frame].get());
 
-	m_swapchain->Present(m_present_complete[m_swapchain->GetCurrentFrameIndex()].get());
+	m_swapchain->Present(m_render_complete[m_current_frame].get());
+
+	m_current_frame = (m_current_frame + 1) % m_swapchain->GetTextureCount();
 }
 }        // namespace Ilum

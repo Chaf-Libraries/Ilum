@@ -32,4 +32,11 @@ class RHIBuffer
 	RHIDevice *p_device = nullptr;
 	BufferDesc m_desc;
 };
+
+struct BufferStateTransition
+{
+	RHIBuffer *buffer;
+	RHIBufferState src;
+	RHIBufferState dst;
+};
 }        // namespace Ilum

@@ -70,11 +70,11 @@ inline static VkImageUsageFlags ToVulkanImageUsage(RHITextureUsage usage)
 	{
 		vk_usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	}
-	if (usage & RHITextureUsage::SRV)
+	if (usage & RHITextureUsage::ShaderResource)
 	{
 		vk_usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
 	}
-	if (usage & RHITextureUsage::UAV)
+	if (usage & RHITextureUsage::UnorderedAccess)
 	{
 		vk_usage |= VK_IMAGE_USAGE_STORAGE_BIT;
 	}
@@ -108,18 +108,18 @@ inline static VkBufferUsageFlags ToVulkanBufferUsage(RHIBufferUsage usage)
 		vk_usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
 		            VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 	}
-	else if (usage & RHIBufferUsage::Uniform)
+	else if (usage & RHIBufferUsage::ConstantBuffer)
 	{
 		vk_usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 	}
-	else if (usage & RHIBufferUsage::UAV)
+	else if (usage & RHIBufferUsage::UnorderedAccess)
 	{
-		vk_usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-	}
-	else if (usage & RHIBufferUsage::SRV)
-	{
-		vk_usage |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT |
+		vk_usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT|
 		            VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
+	}
+	else if (usage & RHIBufferUsage::ShaderResource)
+	{
+		vk_usage |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
 	}
 
 	return vk_usage;

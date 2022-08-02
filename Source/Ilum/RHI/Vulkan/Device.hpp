@@ -36,6 +36,7 @@ class Device : public RHIDevice
 	uint32_t GetQueueCount(RHIQueueFamily family);
 
 	VkCommandPool AcquireCommandPool(uint32_t frame_index, RHIQueueFamily family);
+	void          ResetCommandPool(uint32_t frame_index);
 
   private:
 	// Supported extensions
@@ -59,6 +60,6 @@ class Device : public RHIDevice
 	uint32_t m_transfer_queue_count = 0;
 
 	// Command Pool
-	std::unordered_map<size_t, VkCommandPool> m_cmd_pools;
+	std::vector<std::unordered_map<std::thread::id, VkCommandPool>> m_cmd_pools;
 };
 }        // namespace Ilum::Vulkan

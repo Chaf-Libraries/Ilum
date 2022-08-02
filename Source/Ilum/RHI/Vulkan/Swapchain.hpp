@@ -17,7 +17,7 @@ class Swapchain : public RHISwapchain
 
 	virtual uint32_t GetTextureCount() override;
 
-	virtual void AcquireNextTexture(RHISemaphore *semaphore, RHIFence *fence) override;
+	virtual void AcquireNextTexture(RHISemaphore *signal_semaphore, RHIFence *signal_fence) override;
 
 	virtual RHITexture *GetCurrentTexture() override;
 

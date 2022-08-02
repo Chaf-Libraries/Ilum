@@ -19,7 +19,7 @@ class RHISwapchain
 
 	virtual uint32_t GetTextureCount() = 0;
 
-	virtual void AcquireNextTexture(RHISemaphore *semaphore, RHIFence* fence) = 0;
+	virtual void AcquireNextTexture(RHISemaphore *signal_semaphore, RHIFence* signal_fence) = 0;
 
 	virtual RHITexture *GetCurrentTexture() = 0;
 

@@ -56,4 +56,12 @@ class RHITexture
 	RHIDevice  *p_device = nullptr;
 	TextureDesc m_desc;
 };
+
+struct TextureStateTransition
+{
+	RHITexture     *texture;
+	RHITextureState src;
+	RHITextureState dst;
+	TextureRange    range;
+};
 }        // namespace Ilum

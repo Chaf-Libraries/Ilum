@@ -19,6 +19,8 @@ class Window
 	bool IsKeyDown(int32_t key) const;
 	bool IsMouseButtonDown(int32_t button) const;
 
+	void SetTitle(const std::string &title);
+
 	GLFWwindow *GetHandle() const;
 	void *GetNativeHandle() const;
 	uint32_t    GetWidth() const;

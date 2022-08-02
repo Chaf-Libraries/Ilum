@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Swapchain.hpp"
+#include "Command.hpp"
 #include "Device.hpp"
 #include "Queue.hpp"
 #include "Synchronization.hpp"
@@ -124,15 +125,24 @@ uint32_t Swapchain::GetTextureCount()
 	return static_cast<uint32_t>(m_textures.size());
 }
 
-void Swapchain::AcquireNextTexture(RHISemaphore *semaphore, RHIFence *fence)
+void Swapchain::AcquireNextTexture(RHISemaphore *signal_semaphore, RHIFence *signal_fence)
 {
-	auto result = vkAcquireNextImageKHR(static_cast<Device *>(p_device)->GetDevice(), m_swapchain, std::numeric_limits<uint64_t>::max(), static_cast<Semaphore *>(semaphore)->GetHandle(), fence ? static_cast<Fence *>(fence)->GetHandle() : nullptr, &m_frame_index);
+	auto result = vkAcquireNextImageKHR(
+	    static_cast<Device *>(p_device)->GetDevice(),
+	    m_swapchain,
+	    std::numeric_limits<uint64_t>::max(),
+	    signal_semaphore ? static_cast<Semaphore *>(signal_semaphore)->GetHandle() : nullptr,
+	    signal_fence ? static_cast<Fence *>(signal_fence)->GetHandle() : nullptr,
+	    &m_frame_index
+	);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
 		CreateSwapchain(VkExtent2D{static_cast<uint32_t>(p_window->GetWidth()), static_cast<uint32_t>(p_window->GetHeight())});
 		LOG_INFO("Swapchain resize to {} x {}", p_window->GetWidth(), p_window->GetHeight());
 	}
+
+	Command::ResetCommandPool(p_device, m_frame_index);
 }
 
 RHITexture *Swapchain::GetCurrentTexture()

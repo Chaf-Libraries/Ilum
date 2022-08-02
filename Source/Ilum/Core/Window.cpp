@@ -142,6 +142,12 @@ bool Window::IsMouseButtonDown(int32_t button) const
 	return glfwGetMouseButton(m_handle, button) == GLFW_PRESS;
 }
 
+void Window::SetTitle(const std::string &title)
+{
+	glfwSetWindowTitle(m_handle, title.c_str());
+	m_title = title;
+}
+
 GLFWwindow *Window::GetHandle() const
 {
 	return m_handle;

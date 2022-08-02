@@ -5,6 +5,62 @@
 
 namespace Ilum::Vulkan
 {
+TextureState TextureState::Create(RHITextureState state)
+{
+	TextureState vk_state = {};
+
+	switch (state)
+	{
+		case RHITextureState::TransferSource:
+			vk_state.layout      = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+			vk_state.access_mask = VK_ACCESS_TRANSFER_READ_BIT;
+			vk_state.stage       = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			break;
+		case RHITextureState::TransferDest:
+			vk_state.layout      = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			vk_state.access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			vk_state.stage       = VK_PIPELINE_STAGE_TRANSFER_BIT;
+			break;
+		case RHITextureState::ShaderResource:
+			vk_state.layout      = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			vk_state.access_mask = VK_ACCESS_SHADER_READ_BIT;
+			vk_state.stage       = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+			break;
+		case RHITextureState::UnorderAccess:
+			vk_state.layout      = VK_IMAGE_LAYOUT_GENERAL;
+			vk_state.access_mask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+			vk_state.stage       = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+			break;
+		case RHITextureState::RenderTarget:
+			vk_state.layout      = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			vk_state.access_mask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+			vk_state.stage       = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+			break;
+		case RHITextureState::DepthWrite:
+			vk_state.layout      = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			vk_state.access_mask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+			vk_state.stage       = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+			break;
+		case RHITextureState::DepthRead:
+			vk_state.layout      = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			vk_state.access_mask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+			vk_state.stage       = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			break;
+		case RHITextureState::Present:
+			vk_state.layout      = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+			vk_state.access_mask = VK_ACCESS_MEMORY_READ_BIT;
+			vk_state.stage       = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+			break;
+		default:
+			vk_state.layout      = VK_IMAGE_LAYOUT_UNDEFINED;
+			vk_state.access_mask = VK_ACCESS_NONE_KHR;
+			vk_state.stage       = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+			break;
+	}
+
+	return vk_state;
+}
+
 Texture::Texture(RHIDevice *device, const TextureDesc &desc) :
     RHITexture(device, desc)
 {
@@ -40,7 +96,7 @@ Texture::Texture(RHIDevice *device, const TextureDesc &desc) :
 	vmaCreateImage(static_cast<Device *>(p_device)->GetAllocator(), &create_info, &allocation_create_info, &m_handle, &m_allocation, nullptr);
 }
 
-Texture::Texture(RHIDevice *device, const TextureDesc &desc, VkImage image):
+Texture::Texture(RHIDevice *device, const TextureDesc &desc, VkImage image) :
     RHITexture(device, desc), m_handle(image)
 {
 }
