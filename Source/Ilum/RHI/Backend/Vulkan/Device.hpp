@@ -18,6 +18,7 @@ class Device : public RHIDevice
 
   public:
 	Device();
+
 	virtual ~Device() override;
 
 	virtual void WaitIdle() override;

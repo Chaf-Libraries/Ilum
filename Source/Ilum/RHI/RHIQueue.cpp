@@ -1,9 +1,9 @@
 #include "RHIQueue.hpp"
 
 #ifdef RHI_BACKEND_VULKAN
-#	include "Vulkan/Queue.hpp"
+#	include "Backend/Vulkan/Queue.hpp"
 #elif defined RHI_BACKEND_DX12
-#	include "DX12/Queue.hpp"
+#	include "Backend/DX12/Queue.hpp"
 #endif        // RHI_BACKEND
 
 namespace Ilum
@@ -22,6 +22,5 @@ std::unique_ptr<RHIQueue> RHIQueue::Create(RHIDevice *device, RHIQueueFamily fam
 #else
 	return nullptr;
 #endif        // RHI_BACKEND
-
 }
 }        // namespace Ilum

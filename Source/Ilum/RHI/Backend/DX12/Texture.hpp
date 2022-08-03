@@ -27,9 +27,11 @@ class Texture : public RHITexture
 {
   public:
 	Texture(RHIDevice *device, const TextureDesc &desc);
-	Texture(RHIDevice *device, const TextureDesc &desc, ComPtr<ID3D12Resource>&& texture);
+	Texture(RHIDevice *device, const TextureDesc &desc, ComPtr<ID3D12Resource> &&texture);
 
 	virtual ~Texture() override;
+
+	ComPtr<ID3D12Resource> &GetHandle();
 
   private:
 	ComPtr<ID3D12Resource> m_handle     = nullptr;

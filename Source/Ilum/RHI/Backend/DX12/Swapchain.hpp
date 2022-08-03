@@ -35,6 +35,10 @@ class Swapchain : public RHISwapchain
 	std::vector<std::unique_ptr<Texture>> m_textures;
 	ComPtr<ID3D12CommandQueue>            m_queue  = nullptr;
 	ComPtr<IDXGISwapChain3>               m_handle = nullptr;
+	ComPtr<ID3D12Fence>                   m_fence  = nullptr;
+
+	std::vector<uint64_t> m_fence_value;
+	HANDLE                m_fence_event = nullptr;
 
 	uint32_t m_width  = 0;
 	uint32_t m_height = 0;

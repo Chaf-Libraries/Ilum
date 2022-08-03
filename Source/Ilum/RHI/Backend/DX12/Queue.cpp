@@ -34,11 +34,12 @@ void Queue::Submit(const std::vector<RHICommand *> &cmds, const std::vector<RHIS
 
 void Queue::Execute(RHIFence *fence)
 {
+	//m_handle->ExecuteCommandLists(0, nullptr);
 	if (fence)
 	{
-		Fence *dx_fence = static_cast<Fence *>(fence);
-		dx_fence->GetValue()++;
-		m_handle->Signal(dx_fence->GetHandle().Get(), dx_fence->GetValue());
+		Fence   *dx_fence  = static_cast<Fence *>(fence);
+		//uint64_t fence_val = dx_fence->GetValue() + 1;
+		//m_handle->Signal(dx_fence->GetHandle().Get(), fence_val);
 	}
 }
 }        // namespace Ilum::DX12

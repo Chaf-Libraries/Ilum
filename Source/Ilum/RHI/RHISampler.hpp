@@ -15,6 +15,7 @@ struct SamplerDesc
 	RHIAddressMode address_mode_v;
 	RHIAddressMode address_mode_w;
 	RHIMipmapMode  mipmap_mode;
+	RHISamplerBorderColor border_color;
 
 	bool anisotropic;
 

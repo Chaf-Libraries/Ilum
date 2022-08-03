@@ -153,6 +153,14 @@ void Command::BindIndexBuffer()
 {
 }
 
+void Command::BindPipelineState(RHIPipelineState *pipeline_state)
+{
+}
+
+void Command::BindDescriptor(RHIDescriptor *descriptor)
+{
+}
+
 void Command::Dispatch(uint32_t group_x, uint32_t group_y, uint32_t group_z)
 {
 	vkCmdDispatch(m_handle, group_x, group_y, group_z);
@@ -209,15 +217,15 @@ void Command::ResourceStateTransition(const std::vector<TextureStateTransition> 
 		VkImageSubresourceRange range = {};
 		range.aspectMask              = IsDepthFormat(texture_transitions[i].texture->GetDesc().format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 		range.baseArrayLayer          = texture_transitions[i].range.base_layer;
-		range.baseMipLevel          = texture_transitions[i].range.base_mip;
-		range.layerCount          = texture_transitions[i].range.layer_count;
-		range.levelCount          = texture_transitions[i].range.mip_count;
+		range.baseMipLevel            = texture_transitions[i].range.base_mip;
+		range.layerCount              = texture_transitions[i].range.layer_count;
+		range.levelCount              = texture_transitions[i].range.mip_count;
 
 		image_barriers[i].sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 		image_barriers[i].srcAccessMask       = vk_texture_state_src.access_mask;
 		image_barriers[i].dstAccessMask       = vk_texture_state_dst.access_mask;
 		image_barriers[i].oldLayout           = vk_texture_state_src.layout;
-		image_barriers[i].newLayout           =vk_texture_state_dst.layout;
+		image_barriers[i].newLayout           = vk_texture_state_dst.layout;
 		image_barriers[i].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		image_barriers[i].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		image_barriers[i].image               = static_cast<Texture *>(texture_transitions[i].texture)->GetHandle();

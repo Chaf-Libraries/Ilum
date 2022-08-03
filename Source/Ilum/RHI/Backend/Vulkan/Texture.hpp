@@ -2,8 +2,9 @@
 
 #include "RHI/RHITexture.hpp"
 
-#include <vk_mem_alloc.h>
 #include <volk.h>
+
+#include <vk_mem_alloc.h>
 
 namespace Ilum::Vulkan
 {

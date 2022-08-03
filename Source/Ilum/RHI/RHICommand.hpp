@@ -7,6 +7,8 @@ namespace Ilum
 {
 class RHIDevice;
 class RHIBuffer;
+class RHIPipelineState;
+class RHIDescriptor;
 
 enum class CommandState
 {
@@ -38,12 +40,15 @@ class RHICommand
 	virtual void BindVertexBuffer() = 0;
 	virtual void BindIndexBuffer()  = 0;
 
+	virtual void BindPipelineState(RHIPipelineState *pipeline_state) = 0;
+	virtual void BindDescriptor(RHIDescriptor *descriptor)           = 0;
+
 	// Drawcall
 	virtual void Dispatch(uint32_t group_x = 1, uint32_t group_y = 1, uint32_t group_z = 1)                                                                        = 0;
 	virtual void Draw(uint32_t vertex_count, uint32_t instance_count = 1, uint32_t first_vertex = 0, uint32_t first_instance = 0)                                  = 0;
 	virtual void DrawIndexed(uint32_t index_count, uint32_t instance_count = 1, uint32_t first_index = 0, uint32_t vertex_offset = 0, uint32_t first_instance = 0) = 0;
 
-	// Resource
+	// Resource Barrier
 	virtual void ResourceStateTransition(const std::vector<TextureStateTransition> &texture_transitions, const std::vector<BufferStateTransition> &buffer_transitions) = 0;
 
   protected:

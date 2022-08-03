@@ -3,6 +3,7 @@
 #include "RHI/RHIDefinitions.hpp"
 
 #include <volk.h>
+
 #include <vk_mem_alloc.h>
 
 #include <unordered_map>
@@ -61,6 +62,15 @@ inline static std::unordered_map<RHIAddressMode, VkSamplerAddressMode> ToVulkanA
     {RHIAddressMode::Mirror_Clamp_To_Edge, VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE},
 };
 
+inline static std::unordered_map<RHISamplerBorderColor, VkBorderColor> ToVulkanBorderColor = {
+    {RHISamplerBorderColor::Float_Transparent_Black, VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK},
+    {RHISamplerBorderColor::Int_Transparent_Black, VK_BORDER_COLOR_INT_TRANSPARENT_BLACK},
+    {RHISamplerBorderColor::Float_Opaque_Black, VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK},
+    {RHISamplerBorderColor::Int_Opaque_Black, VK_BORDER_COLOR_INT_OPAQUE_BLACK},
+    {RHISamplerBorderColor::Float_Opaque_White, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE},
+    {RHISamplerBorderColor::Int_Opaque_White, VK_BORDER_COLOR_INT_OPAQUE_WHITE},
+};
+
 inline static VkImageUsageFlags ToVulkanImageUsage(RHITextureUsage usage)
 {
 	VkImageUsageFlags vk_usage = 0;
@@ -113,7 +123,7 @@ inline static VkBufferUsageFlags ToVulkanBufferUsage(RHIBufferUsage usage)
 	}
 	else if (usage & RHIBufferUsage::UnorderedAccess)
 	{
-		vk_usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT|
+		vk_usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
 		            VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
 	}
 	else if (usage & RHIBufferUsage::ShaderResource)

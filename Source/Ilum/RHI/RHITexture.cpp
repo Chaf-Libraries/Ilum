@@ -1,12 +1,10 @@
 #include "RHITexture.hpp"
 
 #ifdef RHI_BACKEND_VULKAN
-#	include "Vulkan/Texture.hpp"
+#	include "Backend/Vulkan/Texture.hpp"
 #elif defined RHI_BACKEND_DX12
-#	include "DX12/Texture.hpp"
+#	include "Backend/DX12/Texture.hpp"
 #endif        // RHI_BACKEND
-
-#include "Vulkan/Texture.hpp"
 
 namespace Ilum
 {

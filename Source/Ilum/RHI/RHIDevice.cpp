@@ -1,9 +1,9 @@
 #include "RHIDevice.hpp"
 
 #ifdef RHI_BACKEND_VULKAN
-#include "Vulkan/Device.hpp"
+#include "Backend/Vulkan/Device.hpp"
 #elif defined RHI_BACKEND_DX12
-#	include "DX12/Device.hpp"
+#	include "Backend/DX12/Device.hpp"
 #endif
 
 namespace Ilum

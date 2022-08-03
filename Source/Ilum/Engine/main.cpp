@@ -13,14 +13,18 @@ int main()
 		Ilum::RHIContext context(&window);
 
 		Ilum::Timer timer;
+		Ilum::Timer stopwatch;
 
 		uint32_t i = 0;
 
 		while (window.Tick())
 		{
 		    timer.Tick();
-		    context.BeginFrame();
 
+			stopwatch.Tick();
+		    context.BeginFrame();
+			stopwatch.Tick();
+			//LOG_INFO("Begin Frame: {} ms", stopwatch.DeltaTime());
 		    /*auto *cmd = context.CreateCommand(Ilum::RHIQueueFamily::Graphics);
 		    cmd->Begin();
 		    if (i++ <= 3)
@@ -37,7 +41,10 @@ int main()
 		    cmd->End();*/
 		    //context.GetQueue(Ilum::RHIQueueFamily::Graphics)->Submit({cmd});
 		    window.SetTitle(fmt::format("IlumEngine FPS: {}", timer.FrameRate()));
-		    context.EndFrame();
+			stopwatch.Tick();
+			context.EndFrame();
+			stopwatch.Tick();
+			//LOG_INFO("End Frame: {} ms", stopwatch.DeltaTime());
 		}
 	}
 

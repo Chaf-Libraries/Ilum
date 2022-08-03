@@ -1,9 +1,9 @@
 #include "RHISynchronization.hpp"
 
 #ifdef RHI_BACKEND_VULKAN
-#	include "Vulkan/Synchronization.hpp"
+#	include "Backend/Vulkan/Synchronization.hpp"
 #elif defined RHI_BACKEND_DX12
-#	include "DX12/Synchronization.hpp"
+#	include "Backend/DX12/Synchronization.hpp"
 #endif        // RHI_BACKEND
 
 namespace Ilum

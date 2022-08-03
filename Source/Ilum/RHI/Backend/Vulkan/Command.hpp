@@ -27,9 +27,12 @@ class Command : public RHICommand
 	virtual void BindVertexBuffer() override;
 	virtual void BindIndexBuffer() override;
 
-	virtual void Dispatch(uint32_t group_x = 1, uint32_t group_y = 1, uint32_t group_z = 1) override;
-	virtual void Draw(uint32_t vertex_count, uint32_t instance_count = 1, uint32_t first_vertex = 0, uint32_t first_instance = 0) override;
-	virtual void DrawIndexed(uint32_t index_count, uint32_t instance_count = 1, uint32_t first_index = 0, uint32_t vertex_offset = 0, uint32_t first_instance = 0) override;
+	virtual void BindPipelineState(RHIPipelineState *pipeline_state) override;
+	virtual void BindDescriptor(RHIDescriptor *descriptor) override;
+
+	virtual void Dispatch(uint32_t group_x, uint32_t group_y, uint32_t group_z) override;
+	virtual void Draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance) override;
+	virtual void DrawIndexed(uint32_t index_count, uint32_t instance_count, uint32_t first_index, uint32_t vertex_offset, uint32_t first_instance) override;
 
 	virtual void ResourceStateTransition(const std::vector<TextureStateTransition> &texture_transitions, const std::vector<BufferStateTransition> &buffer_transitions) override;
 

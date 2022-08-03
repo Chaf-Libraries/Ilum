@@ -1,6 +1,6 @@
 #include "RHICommand.hpp"
 
-#include "Vulkan/Command.hpp"
+#include "Backend/Vulkan/Command.hpp"
 
 namespace Ilum
 {

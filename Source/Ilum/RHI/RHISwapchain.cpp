@@ -2,9 +2,9 @@
 #include "RHIDevice.hpp"
 
 #ifdef RHI_BACKEND_VULKAN
-#	include "Vulkan/Swapchain.hpp"
+#	include "Backend/Vulkan/Swapchain.hpp"
 #elif defined RHI_BACKEND_DX12
-#	include "DX12/Swapchain.hpp"
+#	include "Backend/DX12/Swapchain.hpp"
 #endif
 
 namespace Ilum

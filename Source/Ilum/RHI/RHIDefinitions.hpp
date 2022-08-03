@@ -111,6 +111,7 @@ DEFINE_ENUMCLASS_OPERATION(RHIBufferUsage)
 
 enum class RHIBufferState
 {
+	Undefined,
 	Vertex,
 	Index,
 	Indirect,
@@ -142,5 +143,15 @@ enum class RHIMipmapMode
 {
 	Nearest,
 	Linear
+};
+
+enum class RHISamplerBorderColor
+{
+	Float_Transparent_Black,
+	Int_Transparent_Black,
+	Float_Opaque_Black,
+	Int_Opaque_Black,
+	Float_Opaque_White,
+	Int_Opaque_White
 };
 }        // namespace Ilum

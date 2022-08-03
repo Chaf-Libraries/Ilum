@@ -11,12 +11,14 @@ Fence::Fence(RHIDevice *device):
 
 void Fence::Wait(uint64_t timeout)
 {
+	auto val = m_handle->GetCompletedValue();
 	if (m_handle->GetCompletedValue() < m_fence_value)
 	{
-		HANDLE event_ = CreateEventEx(nullptr, nullptr, 0, EVENT_ALL_ACCESS);
+		HANDLE event_ = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 		m_handle->SetEventOnCompletion(m_fence_value, event_);
 		WaitForSingleObject(event_, (DWORD)timeout);
 		CloseHandle(event_);
+		m_fence_value++;
 	}
 }
 

@@ -1,5 +1,6 @@
-#define VMA_IMPLEMENTATION
 #define VOLK_IMPLEMENTATION
+#define VMA_IMPLEMENTATION
+
 #include "Device.hpp"
 
 namespace Ilum::Vulkan

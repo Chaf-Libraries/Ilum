@@ -5,6 +5,12 @@ namespace Ilum
 RHIContext::RHIContext(Window *window) :
     p_window(window)
 {
+#ifdef RHI_BACKEND_VULKAN
+	LOG_INFO("RHI Backend: Vulkan");
+#elif RHI_BACKEND_DX12
+	LOG_INFO("RHI Backend: DX12");
+#endif        // RHI_BACKEND
+
 	m_device    = RHIDevice::Create();
 	m_swapchain = RHISwapchain::Create(m_device.get(), p_window);
 
@@ -24,6 +30,11 @@ RHIContext::~RHIContext()
 {
 	m_device->WaitIdle();
 
+	for (auto &fence : m_inflight_fence)
+	{
+		fence->Wait();
+	}
+
 	m_present_complete.clear();
 	m_render_complete.clear();
 	m_inflight_fence.clear();
@@ -40,7 +51,7 @@ RHIBackend RHIContext::GetBackend() const
 	return RHIBackend::Vulkan;
 #elif RHI_BACKEND_DX12
 	return RHIBackend::DX12;
-#endif        // RHI_BACKEND_VULKAN
+#endif        // RHI_BACKEND
 
 	return RHIBackend::Unknown;
 }
@@ -142,4 +153,5 @@ void RHIContext::EndFrame()
 
 	m_current_frame = (m_current_frame + 1) % m_swapchain->GetTextureCount();
 }
+
 }        // namespace Ilum

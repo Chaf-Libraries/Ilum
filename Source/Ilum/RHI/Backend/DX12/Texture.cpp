@@ -73,7 +73,7 @@ Texture::Texture(RHIDevice *device, const TextureDesc &desc) :
 {
 	D3D12_RESOURCE_DESC d3d12_desc = {};
 	d3d12_desc.Dimension           = GetResourceDimension(desc);
-	d3d12_desc.Alignment           = 0;
+	d3d12_desc.Alignment           = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
 	d3d12_desc.Width               = desc.width;
 	d3d12_desc.Height              = desc.height;
 	d3d12_desc.DepthOrArraySize    = d3d12_desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D ? desc.depth : desc.layers;
@@ -96,7 +96,7 @@ Texture::Texture(RHIDevice *device, const TextureDesc &desc) :
 
 	static_cast<Device *>(p_device)->GetAllocator()->CreateResource(
 	    &alloc_desc, &d3d12_desc,
-	    D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+	    D3D12_RESOURCE_STATE_COMMON, NULL,
 	    &m_allocation, IID_PPV_ARGS(&m_handle));
 }
 
@@ -105,7 +105,7 @@ Texture::Texture(RHIDevice *device, const TextureDesc &desc, ComPtr<ID3D12Resour
 {
 }
 
-Texture ::~Texture()
+Texture::~Texture()
 {
 	if (m_allocation)
 	{
@@ -114,4 +114,8 @@ Texture ::~Texture()
 	}
 }
 
+ComPtr<ID3D12Resource> &Texture::GetHandle()
+{
+	return m_handle;
+}
 }        // namespace Ilum::DX12

@@ -20,6 +20,7 @@ Sampler::Sampler(RHIDevice *device, const SamplerDesc &desc) :
 	create_info.mipLodBias          = desc.mip_lod_bias;
 	create_info.minLod              = desc.min_lod;
 	create_info.maxLod              = desc.max_lod;
+	create_info.borderColor         = ToVulkanBorderColor[desc.border_color];
 
 	vkCreateSampler(static_cast<Device *>(p_device)->GetDevice(), &create_info, nullptr, &m_handle);
 }
