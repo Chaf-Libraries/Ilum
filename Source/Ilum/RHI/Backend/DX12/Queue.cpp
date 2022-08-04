@@ -33,7 +33,7 @@ void Queue::Submit(const std::vector<RHICommand *> &cmds, const std::vector<RHIS
 }
 
 void Queue::Execute(RHIFence *fence)
-{
+{	 
 	//m_handle->ExecuteCommandLists(0, nullptr);
 	if (fence)
 	{

@@ -78,6 +78,48 @@ inline bool IsDepthFormat(RHIFormat format)
 	       format == RHIFormat::D24_UNORM_S8_UINT;
 }
 
+enum class RHICompareOp
+{
+	Never,
+	Less,
+	Equal,
+	Less_Or_Equal,
+	Greater,
+	Not_Equal,
+	Greater_Or_Equal,
+	Always
+};
+
+enum class RHILogicOp
+{
+	Clear,
+	And,
+	And_Reverse,
+	Copy,
+	And_Inverted,
+	No_Op,
+	XOR,
+	Or,
+	Nor,
+	Equivalent,
+	Invert,
+	Or_Reverse,
+	Copy_Inverted,
+	Or_Inverted,
+	Nand,
+	Set
+};
+
+enum class RHIBlendFactor
+{
+
+};
+
+enum class RHIBlendOp
+{
+
+};
+
 enum class RHIMemoryUsage
 {
 	GPU_Only,

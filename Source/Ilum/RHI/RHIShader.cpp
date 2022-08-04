@@ -2,7 +2,8 @@
 
 namespace Ilum
 {
-RHIShader::RHIShader(const std::vector<uint8_t> &source)
+RHIShader::RHIShader(RHIDevice* device, const std::vector<uint8_t> &source):
+    p_device(device)
 {
 }
 }        // namespace Ilum

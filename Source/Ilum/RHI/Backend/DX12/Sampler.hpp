@@ -10,6 +10,7 @@ class Sampler : public RHISampler
 {
   public:
 	Sampler(RHIDevice *device, const SamplerDesc &desc);
+
 	virtual ~Sampler() override = default;
 
   private:
