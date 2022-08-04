@@ -148,14 +148,14 @@ bool Device::IsFeatureSupport(RHIFeature feature)
 	return m_feature_support[feature];
 }
 
-ComPtr<ID3D12Device> &Device::GetHandle()
+ID3D12Device*Device::GetHandle()
 {
-	return m_handle;
+	return m_handle.Get();
 }
 
-ComPtr<IDXGIFactory4> &Device::GetFactory()
+IDXGIFactory4 *Device::GetFactory()
 {
-	return m_factory;
+	return m_factory.Get();
 }
 
 D3D12MA::Allocator *Device::GetAllocator()

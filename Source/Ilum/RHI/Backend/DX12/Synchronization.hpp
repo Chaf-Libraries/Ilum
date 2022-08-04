@@ -18,8 +18,8 @@ class Fence : public RHIFence
 	virtual void Wait(uint64_t timeout) override;
 	virtual void Reset() override;
 
-	ComPtr<ID3D12Fence> &GetHandle();
-	uint64_t            &GetValue();
+	ID3D12Fence *GetHandle();
+	uint64_t    &GetValue();
 
   private:
 	ComPtr<ID3D12Fence> m_handle      = nullptr;

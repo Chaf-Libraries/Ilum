@@ -32,7 +32,7 @@ class Buffer : public RHIBuffer
 	virtual void *Map() override;
 	virtual void  Unmap() override;
 
-	ComPtr<ID3D12Resource> &GetHandle();
+	ID3D12Resource* GetHandle();
 
   private:
 	ComPtr<ID3D12Resource> m_handle     = nullptr;

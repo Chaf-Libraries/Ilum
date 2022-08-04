@@ -114,8 +114,8 @@ Texture::~Texture()
 	}
 }
 
-ComPtr<ID3D12Resource> &Texture::GetHandle()
+ID3D12Resource* Texture::GetHandle()
 {
-	return m_handle;
+	return m_handle.Get();
 }
 }        // namespace Ilum::DX12

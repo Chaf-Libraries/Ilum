@@ -21,8 +21,8 @@ class Device : public RHIDevice
 
 	virtual bool IsFeatureSupport(RHIFeature feature) override;
 
-	ComPtr<ID3D12Device> &GetHandle();
-	ComPtr<IDXGIFactory4> &GetFactory();
+	ID3D12Device* GetHandle();
+	IDXGIFactory4* GetFactory();
 	D3D12MA::Allocator   *GetAllocator();
 
   private:

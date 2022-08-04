@@ -26,9 +26,9 @@ void Fence::Reset()
 {
 }
 
-ComPtr<ID3D12Fence> &Fence::GetHandle()
+ID3D12Fence* Fence::GetHandle()
 {
-	return m_handle;
+	return m_handle.Get();
 }
 
 uint64_t &Fence::GetValue()

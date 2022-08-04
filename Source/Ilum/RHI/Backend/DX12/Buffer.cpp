@@ -98,8 +98,8 @@ void Buffer::Unmap()
 	}
 }
 
-ComPtr<ID3D12Resource> &Buffer::GetHandle()
+ID3D12Resource* Buffer::GetHandle()
 {
-	return m_handle;
+	return m_handle.Get();
 }
 }        // namespace Ilum::DX12

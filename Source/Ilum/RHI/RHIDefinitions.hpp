@@ -19,6 +19,31 @@ enum class RHIBackend
 	DX12
 };
 
+enum class RHIShaderStage
+{
+	// Rasterization
+	Vertex,
+	Fragment,
+	TessellationControl,
+	TessellationEvaluation,
+	Geometry,
+	
+	// Compute
+	Compute,
+
+	// Ray Tracing
+	RayGen,
+	AnyHit,
+	ClosestHit,
+	Miss,
+	Intersection,
+	Callable,
+
+	// Mesh Shading
+	Mesh,
+	Task
+};
+
 enum class RHIFeature
 {
 	RayTracing,

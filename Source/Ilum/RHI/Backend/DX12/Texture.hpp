@@ -31,7 +31,7 @@ class Texture : public RHITexture
 
 	virtual ~Texture() override;
 
-	ComPtr<ID3D12Resource> &GetHandle();
+	ID3D12Resource* GetHandle();
 
   private:
 	ComPtr<ID3D12Resource> m_handle     = nullptr;

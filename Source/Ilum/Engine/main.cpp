@@ -2,8 +2,11 @@
 #include <Core/Log.hpp>
 #include <Core/Time.hpp>
 #include <Core/Window.hpp>
+#include <Core/Path.hpp>
 
 #include <RHI/RHIContext.hpp>
+
+#include <RenderCore/ShaderCompiler/ShaderCompiler.hpp>
 
 int main()
 {
@@ -14,8 +17,38 @@ int main()
 
 		Ilum::Timer timer;
 		Ilum::Timer stopwatch;
+		auto current = Ilum::Path::GetInstance().GetCurrent();
 
 		uint32_t i = 0;
+
+		Ilum::ShaderDesc shader_desc = {};
+		shader_desc.entry_point      = "main";
+		shader_desc.stage            = Ilum::RHIShaderStage::Compute;
+		shader_desc.source           = Ilum::ShaderSource::HLSL;
+		shader_desc.target           = Ilum::ShaderTarget::DXIL;
+		shader_desc.code             = "\
+		RWTexture2D<float4> OutImage : register(u2);\
+		struct CSParam\
+		{\
+			uint3 DispatchThreadID : SV_DispatchThreadID;\
+		};\
+		[numthreads(8, 8, 1)] void main(CSParam param) {\
+			uint2 extent;\
+			OutImage.GetDimensions(extent.x, extent.y);\
+			float2 texel_size = 1.0 / float2(extent);\
+			if (param.DispatchThreadID.x >= extent.x || param.DispatchThreadID.y >= extent.y)\
+			{\
+				return;\
+			}\
+    OutImage[param.DispatchThreadID.xy] = 1;\
+		}\
+";
+
+		auto dxil = Ilum::ShaderCompiler::GetInstance().Compile(shader_desc);
+		shader_desc.target = Ilum::ShaderTarget::SPIRV;
+		auto spirv          = Ilum::ShaderCompiler::GetInstance().Compile(shader_desc);
+
+
 
 		while (window.Tick())
 		{
@@ -24,6 +57,7 @@ int main()
 			stopwatch.Tick();
 		    context.BeginFrame();
 			stopwatch.Tick();
+
 			//LOG_INFO("Begin Frame: {} ms", stopwatch.DeltaTime());
 		    /*auto *cmd = context.CreateCommand(Ilum::RHIQueueFamily::Graphics);
 		    cmd->Begin();
