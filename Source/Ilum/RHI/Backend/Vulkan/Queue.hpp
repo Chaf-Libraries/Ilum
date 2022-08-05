@@ -22,7 +22,7 @@ class Queue : public RHIQueue
 	VkQueue m_handle = VK_NULL_HANDLE;
 
 	std::vector<VkCommandBuffer> m_cmds;
-	std::vector<VkSemaphore> m_wait_semaphores;
-	std::vector<VkSemaphore> m_signal_semaphores;
+	std::vector<VkSemaphore>     m_wait_semaphores;
+	std::vector<VkSemaphore>     m_signal_semaphores;
 };
 }        // namespace Ilum::Vulkan

@@ -40,11 +40,7 @@ void Command::BindIndexBuffer()
 {
 }
 
-void Command::BindPipelineState(RHIPipelineState *pipeline_state)
-{
-}
-
-void Command::BindDescriptor(RHIDescriptor *descriptor)
+void Command::BindPipeline(RHIPipelineState *pipeline_state, RHIDescriptor *descriptor)
 {
 }
 
@@ -73,7 +69,7 @@ void Command::ResourceStateTransition(const std::vector<TextureStateTransition> 
 			D3D12_RESOURCE_BARRIER barrier = {};
 			barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 			barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			barrier.Transition.pResource   = static_cast<Texture *>(texture_transition.texture)->GetHandle().Get();
+			barrier.Transition.pResource   = static_cast<Texture *>(texture_transition.texture)->GetHandle();
 			barrier.Transition.StateBefore = TextureState::Create(texture_transition.src).state;
 			barrier.Transition.StateAfter  = TextureState::Create(texture_transition.dst).state;
 			// barrier.Transition.Subresource = MipSlice + (ArraySlice * MipLevels) + (PlaneSlice * MipLevels * ArraySize);
@@ -87,7 +83,7 @@ void Command::ResourceStateTransition(const std::vector<TextureStateTransition> 
 			D3D12_RESOURCE_BARRIER barrier = {};
 			barrier.Type                   = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
 			barrier.Flags                  = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-			barrier.Transition.pResource   = static_cast<Buffer *>(buffer_transition.buffer)->GetHandle().Get();
+			barrier.Transition.pResource   = static_cast<Buffer *>(buffer_transition.buffer)->GetHandle();
 			barrier.Transition.StateBefore = BufferState::Create(buffer_transition.src).state;
 			barrier.Transition.StateAfter  = BufferState::Create(buffer_transition.dst).state;
 			barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;

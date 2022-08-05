@@ -153,11 +153,7 @@ void Command::BindIndexBuffer()
 {
 }
 
-void Command::BindPipelineState(RHIPipelineState *pipeline_state)
-{
-}
-
-void Command::BindDescriptor(RHIDescriptor *descriptor)
+void Command::BindPipeline(RHIPipelineState *pipeline_state, RHIDescriptor *descriptor)
 {
 }
 

@@ -40,8 +40,8 @@ class RHICommand
 	virtual void BindVertexBuffer() = 0;
 	virtual void BindIndexBuffer()  = 0;
 
-	virtual void BindPipelineState(RHIPipelineState *pipeline_state) = 0;
-	virtual void BindDescriptor(RHIDescriptor *descriptor)           = 0;
+	// Pipeline & Resource Binding
+	virtual void BindPipeline(RHIPipelineState *pipeline_state, RHIDescriptor *descriptor) = 0;
 
 	// Drawcall
 	virtual void Dispatch(uint32_t group_x = 1, uint32_t group_y = 1, uint32_t group_z = 1)                                                                        = 0;

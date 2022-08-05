@@ -2,12 +2,6 @@
 
 #include "RHI/RHIShader.hpp"
 
-#include <d3d12.h>
-#include <dxgi1_6.h>
-#include <wrl.h>
-
-using Microsoft::WRL::ComPtr;
-
 namespace Ilum::DX12
 {
 class Shader : public RHIShader

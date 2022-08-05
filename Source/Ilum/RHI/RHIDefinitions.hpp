@@ -78,48 +78,6 @@ inline bool IsDepthFormat(RHIFormat format)
 	       format == RHIFormat::D24_UNORM_S8_UINT;
 }
 
-enum class RHICompareOp
-{
-	Never,
-	Less,
-	Equal,
-	Less_Or_Equal,
-	Greater,
-	Not_Equal,
-	Greater_Or_Equal,
-	Always
-};
-
-enum class RHILogicOp
-{
-	Clear,
-	And,
-	And_Reverse,
-	Copy,
-	And_Inverted,
-	No_Op,
-	XOR,
-	Or,
-	Nor,
-	Equivalent,
-	Invert,
-	Or_Reverse,
-	Copy_Inverted,
-	Or_Inverted,
-	Nand,
-	Set
-};
-
-enum class RHIBlendFactor
-{
-
-};
-
-enum class RHIBlendOp
-{
-
-};
-
 enum class RHIMemoryUsage
 {
 	GPU_Only,
@@ -220,5 +178,103 @@ enum class RHISamplerBorderColor
 	Int_Opaque_Black,
 	Float_Opaque_White,
 	Int_Opaque_White
+};
+
+// Pipeline State
+enum class RHICompareOp
+{
+	Never,
+	Less,
+	Equal,
+	Less_Or_Equal,
+	Greater,
+	Not_Equal,
+	Greater_Or_Equal,
+	Always
+};
+
+enum class RHILogicOp
+{
+	Clear,
+	And,
+	And_Reverse,
+	Copy,
+	And_Inverted,
+	No_Op,
+	XOR,
+	Or,
+	Nor,
+	Equivalent,
+	Invert,
+	Or_Reverse,
+	Copy_Inverted,
+	Or_Inverted,
+	Nand,
+	Set
+};
+
+enum class RHIBlendFactor
+{
+	Zero,
+	One,
+	Src_Color,
+	One_Minus_Src_Color,
+	Dst_Color,
+	One_Minus_Dst_Color,
+	Src_Alpha,
+	One_Minus_Src_Alpha,
+	Dst_Alpha,
+	One_Minus_Dst_Alpha,
+	Constant_Color,
+	One_Minus_Constant_Color,
+	Constant_Alpha,
+	One_Minus_Constant_Alpha,
+	Src_Alpha_Saturate,
+	Src1_Color,
+	One_Minus_Src1_Color,
+	Src1_Alpha,
+	One_Minus_Src1_Alpha
+};
+
+enum class RHIBlendOp
+{
+	Add,
+	Subtract,
+	Reverse_Subtract,
+	Min,
+	Max
+};
+
+enum class RHICullMode
+{
+	None,
+	Front,
+	Back
+};
+
+enum class RHIFrontFace
+{
+	Counter_Clockwise,
+	Clockwise
+};
+
+enum class RHIPolygonMode
+{
+	Wireframe,
+	Solid
+};
+
+enum class RHIPrimitiveTopology
+{
+	Point,
+	Line,
+	Triangle,
+	Patch
+};
+
+enum class RHIVertexInputRate
+{
+	Vertex,
+	Instance
 };
 }        // namespace Ilum

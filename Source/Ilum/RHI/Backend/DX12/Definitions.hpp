@@ -2,7 +2,7 @@
 
 #include "RHI/RHIDefinitions.hpp"
 
-#include <d3d12.h>
+#include <directx/d3d12.h>
 
 #include <unordered_map>
 

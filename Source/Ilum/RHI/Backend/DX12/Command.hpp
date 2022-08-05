@@ -4,8 +4,8 @@
 
 #include <vector>
 
-#include <d3d12.h>
-#include <dxgi1_6.h>
+#include <directx/d3d12.h>
+#include <directx/dxgicommon.h>
 #include <wrl.h>
 
 using Microsoft::WRL::ComPtr;
@@ -28,8 +28,7 @@ class Command : public RHICommand
 	virtual void BindVertexBuffer() override;
 	virtual void BindIndexBuffer() override;
 
-	virtual void BindPipelineState(RHIPipelineState *pipeline_state) override;
-	virtual void BindDescriptor(RHIDescriptor *descriptor) override;
+	virtual void BindPipeline(RHIPipelineState *pipeline_state, RHIDescriptor *descriptor) override;
 
 	// Drawcall
 	virtual void Dispatch(uint32_t group_x, uint32_t group_y, uint32_t group_z) override;

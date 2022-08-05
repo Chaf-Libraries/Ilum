@@ -7,6 +7,7 @@
 #include <RHI/RHIContext.hpp>
 
 #include <RenderCore/ShaderCompiler/ShaderCompiler.hpp>
+#include <RenderCore/ShaderCompiler/SpirvReflection.hpp>
 
 int main()
 {
@@ -48,7 +49,7 @@ int main()
 		shader_desc.target = Ilum::ShaderTarget::SPIRV;
 		auto spirv          = Ilum::ShaderCompiler::GetInstance().Compile(shader_desc);
 
-
+		Ilum::SpirvReflection::GetInstance().Reflect(spirv);
 
 		while (window.Tick())
 		{

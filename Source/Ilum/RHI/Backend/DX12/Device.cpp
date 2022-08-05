@@ -2,6 +2,7 @@
 
 #include <Windows.h>
 #include <comdef.h>
+
 #include <dxgi1_6.h>
 
 namespace Ilum::DX12
