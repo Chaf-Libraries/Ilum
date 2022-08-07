@@ -201,8 +201,6 @@ void Swapchain::Present(RHISemaphore *semaphore)
 	}
 
 	vkQueuePresentKHR(m_present_queue->GetHandle(), &present_info);
-
-	m_present_queue->Wait();
 }
 
 void Swapchain::CreateSwapchain(const VkExtent2D &extent)
