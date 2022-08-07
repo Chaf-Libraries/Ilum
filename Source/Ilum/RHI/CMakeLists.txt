@@ -52,7 +52,7 @@ target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/I
 # target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Dependencies/dxc/inc")
 # target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Dependencies/FontAwesome")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
-target_compile_definitions(${TARGET_NAME} PRIVATE "-DRHI_BACKEND_DX12")
+target_compile_definitions(${TARGET_NAME} PRIVATE "-DRHI_BACKEND_VULKAN")
 # target_compile_definitions(${TARGET_NAME} PRIVATE "-DPROJECT_SOURCE_DIR=\"${PROJECT_SOURCE_DIR}\"")
 
 # target_precompile_headers(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Precompile.hpp)

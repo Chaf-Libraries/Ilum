@@ -55,15 +55,12 @@ int main()
 		{
 		    timer.Tick();
 
-			stopwatch.Tick();
 		    context.BeginFrame();
-			stopwatch.Tick();
 
-			//LOG_INFO("Begin Frame: {} ms", stopwatch.DeltaTime());
-		    /*auto *cmd = context.CreateCommand(Ilum::RHIQueueFamily::Graphics);
-		    cmd->Begin();
 		    if (i++ <= 3)
 		    {
+				auto *cmd = context.CreateCommand(Ilum::RHIQueueFamily::Graphics);
+				cmd->Begin();
 		        cmd->ResourceStateTransition({Ilum::TextureStateTransition{
 		                                         context.GetBackBuffer(),
 		                                         Ilum::RHITextureState::Undefined,
@@ -72,13 +69,12 @@ int main()
 		                                             Ilum::RHITextureDimension::Texture2D,
 		                                             0, 1, 0, 1}}},
 		                                     {});
+				cmd->End();
+				context.GetQueue(Ilum::RHIQueueFamily::Graphics)->Submit({cmd});
 		    }
-		    cmd->End();*/
-		    //context.GetQueue(Ilum::RHIQueueFamily::Graphics)->Submit({cmd});
+
 		    window.SetTitle(fmt::format("IlumEngine FPS: {}", timer.FrameRate()));
-			stopwatch.Tick();
 			context.EndFrame();
-			stopwatch.Tick();
 			//LOG_INFO("End Frame: {} ms", stopwatch.DeltaTime());
 		}
 	}

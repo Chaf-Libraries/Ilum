@@ -43,6 +43,7 @@ enum class RHIShaderStage
 	Mesh,
 	Task
 };
+DEFINE_ENUMCLASS_OPERATION(RHIShaderStage)
 
 enum class RHIFeature
 {

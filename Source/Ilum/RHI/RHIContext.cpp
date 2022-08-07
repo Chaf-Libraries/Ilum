@@ -1,4 +1,5 @@
 #include "RHIContext.hpp"
+#include <Core/Time.hpp>
 
 namespace Ilum
 {
@@ -20,10 +21,11 @@ RHIContext::RHIContext(Window *window) :
 
 	for (uint32_t i = 0; i < m_swapchain->GetTextureCount(); i++)
 	{
-		m_present_complete.emplace_back(RHISemaphore::Create(m_device.get()));
-		m_render_complete.emplace_back(RHISemaphore::Create(m_device.get()));
 		m_inflight_fence.emplace_back(RHIFence::Create(m_device.get()));
 	}
+
+	m_present_complete = RHISemaphore::Create(m_device.get());
+	m_render_complete  = RHISemaphore::Create(m_device.get());
 }
 
 RHIContext::~RHIContext()
@@ -35,8 +37,8 @@ RHIContext::~RHIContext()
 		fence->Wait();
 	}
 
-	m_present_complete.clear();
-	m_render_complete.clear();
+	m_present_complete.reset();
+	m_render_complete.reset();
 	m_inflight_fence.clear();
 
 	m_cmds.clear();
@@ -136,22 +138,22 @@ RHITexture *RHIContext::GetBackBuffer()
 
 void RHIContext::BeginFrame()
 {
-	m_inflight_fence[m_current_frame]->Wait();
-	m_swapchain->AcquireNextTexture(m_present_complete[m_current_frame].get(), nullptr);
-	m_inflight_fence[m_current_frame]->Reset();
+	m_swapchain->AcquireNextTexture(m_present_complete.get(), nullptr);
+	m_inflight_fence[m_swapchain->GetCurrentFrameIndex()]->Wait();
+	m_inflight_fence[m_swapchain->GetCurrentFrameIndex()]->Reset();
 }
 
 void RHIContext::EndFrame()
 {
-	m_graphics_queue->Submit({}, {m_render_complete[m_current_frame].get()}, {m_present_complete[m_current_frame].get()});
+	m_graphics_queue->Submit({}, {m_render_complete.get()}, {m_present_complete.get()});
+
 
 	m_transfer_queue->Execute();
 	m_compute_queue->Execute();
-	m_graphics_queue->Execute(m_inflight_fence[m_current_frame].get());
+	m_graphics_queue->Execute(m_inflight_fence[m_swapchain->GetCurrentFrameIndex()].get());
 
-	m_swapchain->Present(m_render_complete[m_current_frame].get());
+	m_swapchain->Present(m_render_complete.get());
 
-	m_current_frame = (m_current_frame + 1) % m_swapchain->GetTextureCount();
 }
 
 }        // namespace Ilum

@@ -19,6 +19,10 @@ class RHIQueue
 
 	static std::unique_ptr<RHIQueue> Create(RHIDevice *device, RHIQueueFamily family, uint32_t queue_index = 0);
 
+	RHIQueueFamily GetQueueFamily() const;
+
+	virtual void Wait() = 0;
+
 	virtual void Submit(const std::vector<RHICommand *> &cmds, const std::vector<RHISemaphore *> &signal_semaphores = {}, const std::vector<RHISemaphore *> &wait_semaphores = {}) = 0;
 
 	virtual void Execute(RHIFence *fence = nullptr) = 0;

@@ -23,4 +23,9 @@ std::unique_ptr<RHIQueue> RHIQueue::Create(RHIDevice *device, RHIQueueFamily fam
 	return nullptr;
 #endif        // RHI_BACKEND
 }
+
+RHIQueueFamily RHIQueue::GetQueueFamily() const
+{
+	return m_family;
+}
 }        // namespace Ilum

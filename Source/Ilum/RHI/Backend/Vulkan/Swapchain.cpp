@@ -7,6 +7,8 @@
 #include "Synchronization.hpp"
 #include "Texture.hpp"
 
+#include <Core/Time.hpp>
+
 #ifdef _WIN32
 #	include <Windows.h>
 #endif
@@ -102,9 +104,36 @@ Swapchain::Swapchain(RHIDevice *device, Window *window) :
 		m_image_count = m_capabilities.maxImageCount;
 	}
 
-	CreateSwapchain(chosen_extent);
+	VkBool32 support = VK_FALSE;
 
-	m_present_queue = std::make_unique<Queue>(device, RHIQueueFamily::Graphics);
+	if (!support)
+	{
+		vkGetPhysicalDeviceSurfaceSupportKHR(static_cast<Device *>(p_device)->GetPhysicalDevice(), VK_QUEUE_GRAPHICS_BIT, m_surface, &support);
+		if (support)
+		{
+			m_present_queue = std::make_unique<Queue>(device, RHIQueueFamily::Graphics);
+		}
+	}
+
+	if (!support)
+	{
+		vkGetPhysicalDeviceSurfaceSupportKHR(static_cast<Device *>(p_device)->GetPhysicalDevice(), VK_QUEUE_COMPUTE_BIT, m_surface, &support);
+		if (support)
+		{
+			m_present_queue = std::make_unique<Queue>(device, RHIQueueFamily::Compute);
+		}
+	}
+
+	if (!support)
+	{
+		vkGetPhysicalDeviceSurfaceSupportKHR(static_cast<Device *>(p_device)->GetPhysicalDevice(), VK_QUEUE_TRANSFER_BIT, m_surface, &support);
+		if (support)
+		{
+			m_present_queue = std::make_unique<Queue>(device, RHIQueueFamily::Transfer);
+		}
+	}
+
+	CreateSwapchain(chosen_extent);
 }
 
 Swapchain::~Swapchain()
@@ -133,8 +162,7 @@ void Swapchain::AcquireNextTexture(RHISemaphore *signal_semaphore, RHIFence *sig
 	    std::numeric_limits<uint64_t>::max(),
 	    signal_semaphore ? static_cast<Semaphore *>(signal_semaphore)->GetHandle() : nullptr,
 	    signal_fence ? static_cast<Fence *>(signal_fence)->GetHandle() : nullptr,
-	    &m_frame_index
-	);
+	    &m_frame_index);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
@@ -142,7 +170,7 @@ void Swapchain::AcquireNextTexture(RHISemaphore *signal_semaphore, RHIFence *sig
 		LOG_INFO("Swapchain resize to {} x {}", p_window->GetWidth(), p_window->GetHeight());
 	}
 
-	Command::ResetCommandPool(p_device, m_frame_index);
+	//Command::ResetCommandPool(p_device, m_frame_index);
 }
 
 RHITexture *Swapchain::GetCurrentTexture()
@@ -157,7 +185,7 @@ uint32_t Swapchain::GetCurrentFrameIndex()
 
 void Swapchain::Present(RHISemaphore *semaphore)
 {
-	VkSemaphore semaphore_handle = static_cast<Semaphore *>(semaphore)->GetHandle();
+	VkSemaphore semaphore_handle = semaphore ? static_cast<Semaphore *>(semaphore)->GetHandle() : VK_NULL_HANDLE;
 
 	VkPresentInfoKHR present_info = {};
 	present_info.sType            = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -166,13 +194,15 @@ void Swapchain::Present(RHISemaphore *semaphore)
 	present_info.pSwapchains      = &m_swapchain;
 	present_info.pImageIndices    = &m_frame_index;
 
-	if (semaphore != VK_NULL_HANDLE)
+	if (semaphore)
 	{
 		present_info.pWaitSemaphores    = &semaphore_handle;
 		present_info.waitSemaphoreCount = 1;
 	}
 
 	vkQueuePresentKHR(m_present_queue->GetHandle(), &present_info);
+
+	m_present_queue->Wait();
 }
 
 void Swapchain::CreateSwapchain(const VkExtent2D &extent)
@@ -188,7 +218,7 @@ void Swapchain::CreateSwapchain(const VkExtent2D &extent)
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-	uint32_t queueFamilyIndices[] = {static_cast<Device *>(p_device)->GetQueueFamily(RHIQueueFamily::Graphics)};
+	uint32_t queueFamilyIndices[] = {static_cast<Device *>(p_device)->GetQueueFamily(m_present_queue->GetQueueFamily())};
 
 	createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	createInfo.preTransform     = m_capabilities.currentTransform;

@@ -45,9 +45,6 @@ class RHIContext
 	void EndFrame();
 
   private:
-	uint32_t m_current_frame = 0;
-
-  private:
 	Window *p_window = nullptr;
 
 	std::unique_ptr<RHIDevice>    m_device    = nullptr;
@@ -57,8 +54,8 @@ class RHIContext
 	std::unique_ptr<RHIQueue> m_compute_queue  = nullptr;
 	std::unique_ptr<RHIQueue> m_transfer_queue = nullptr;
 
-	std::vector<std::unique_ptr<RHISemaphore>> m_present_complete;
-	std::vector<std::unique_ptr<RHISemaphore>> m_render_complete;
+	std::unique_ptr<RHISemaphore> m_present_complete;
+	std::unique_ptr<RHISemaphore> m_render_complete;
 	std::vector<std::unique_ptr<RHIFence>> m_inflight_fence;
 
 	std::unordered_map<size_t, std::vector<std::unique_ptr<RHICommand>>> m_cmds;

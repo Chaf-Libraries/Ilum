@@ -11,13 +11,18 @@ Queue::Queue(RHIDevice *device, RHIQueueFamily family, uint32_t queue_index) :
 	vkGetDeviceQueue(static_cast<Device *>(p_device)->GetDevice(), static_cast<Device *>(p_device)->GetQueueFamily(family), queue_index % static_cast<Device *>(p_device)->GetQueueCount(family), &m_handle);
 }
 
+void Queue::Wait()
+{
+	vkQueueWaitIdle(m_handle);
+}
+
 void Queue::Submit(const std::vector<RHICommand *> &cmds, const std::vector<RHISemaphore *> &signal_semaphores, const std::vector<RHISemaphore *> &wait_semaphores)
 {
 	m_cmds.reserve(cmds.size());
 	m_signal_semaphores.reserve(signal_semaphores.size());
 	m_wait_semaphores.reserve(wait_semaphores.size());
 
-	for (auto& cmd : cmds)
+	for (auto &cmd : cmds)
 	{
 		static_cast<Command *>(cmd)->SetState(CommandState::Pending);
 		m_cmds.push_back(static_cast<Command *>(cmd)->GetHandle());
@@ -56,7 +61,7 @@ void Queue::Execute(RHIFence *fence)
 	submit_info.pWaitDstStageMask    = pipeline_stage_flags.data();
 
 	vkQueueSubmit(m_handle, 1, &submit_info, fence ? static_cast<Fence *>(fence)->GetHandle() : nullptr);
-	
+
 	m_cmds.clear();
 	m_signal_semaphores.clear();
 	m_wait_semaphores.clear();

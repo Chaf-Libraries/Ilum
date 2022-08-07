@@ -10,7 +10,10 @@ class Queue : public RHIQueue
 {
   public:
 	Queue(RHIDevice *device, RHIQueueFamily family, uint32_t queue_index = 0);
+
 	virtual ~Queue() = default;
+
+	virtual void Wait() override;
 
 	virtual void Submit(const std::vector<RHICommand *> &cmds, const std::vector<RHISemaphore *> &signal_semaphores = {}, const std::vector<RHISemaphore *> &wait_semaphores = {}) override;
 

@@ -16,6 +16,8 @@ class Queue : public RHIQueue
 
 	virtual ~Queue() override = default;
 
+	virtual void Wait() override;
+
 	virtual void Submit(const std::vector<RHICommand *> &cmds, const std::vector<RHISemaphore *> &signal_semaphores = {}, const std::vector<RHISemaphore *> &wait_semaphores = {}) override;
 
 	virtual void Execute(RHIFence *fence = nullptr) override;
