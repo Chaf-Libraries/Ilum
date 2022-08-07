@@ -52,4 +52,9 @@ target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 # target_compile_definitions(${TARGET_NAME} PRIVATE "-DPROJECT_SOURCE_DIR=\"${PROJECT_SOURCE_DIR}\"")
 set_property(TARGET ${TARGET_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
 # target_precompile_headers(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Precompile.hpp)
-set_target_properties(Engine PROPERTIES FOLDER Ilum)
+set_target_properties(${TARGET_NAME} PROPERTIES FOLDER Ilum)
+
+add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PROJECT_SOURCE_DIR}/Source/Dependencies/dxc/bin/x64/dxil.dll"
+        "${PROJECT_SOURCE_DIR}/bin")

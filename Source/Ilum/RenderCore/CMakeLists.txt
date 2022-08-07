@@ -49,9 +49,5 @@ target_link_libraries(${TARGET_NAME} PRIVATE glslang)
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Ilum")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
-add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${PROJECT_SOURCE_DIR}/Source/Dependencies/dxc/bin/x64/dxil.dll"
-        "${PROJECT_SOURCE_DIR}/bin")
 
 set_target_properties(RenderCore PROPERTIES FOLDER Ilum)

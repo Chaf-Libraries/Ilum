@@ -144,17 +144,17 @@ inline std::string GetTargetProfile(RHIShaderStage stage)
 	switch (stage)
 	{
 		case RHIShaderStage::Vertex:
-			return "vs_6_7";
+			return "vs_6_6";
 		case RHIShaderStage::Fragment:
-			return "ps_6_7";
+			return "ps_6_6";
 		case RHIShaderStage::TessellationControl:
-			return "hs_6_7";
+			return "hs_6_6";
 		case RHIShaderStage::TessellationEvaluation:
-			return "ds_6_7";
+			return "ds_6_6";
 		case RHIShaderStage::Geometry:
-			return "gs_6_7";
+			return "gs_6_6";
 		case RHIShaderStage::Compute:
-			return "cs_6_7";
+			return "cs_6_6";
 		case RHIShaderStage::RayGen:
 		case RHIShaderStage::AnyHit:
 		case RHIShaderStage::ClosestHit:
@@ -163,9 +163,9 @@ inline std::string GetTargetProfile(RHIShaderStage stage)
 		case RHIShaderStage::Callable:
 			return "lib_6_6";
 		case RHIShaderStage::Mesh:
-			return "ms_6_7";
+			return "ms_6_6";
 		case RHIShaderStage::Task:
-			return "as_6_7";
+			return "as_6_6";
 		default:
 			break;
 	}
