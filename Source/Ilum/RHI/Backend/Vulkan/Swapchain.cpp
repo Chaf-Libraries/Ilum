@@ -163,14 +163,6 @@ void Swapchain::AcquireNextTexture(RHISemaphore *signal_semaphore, RHIFence *sig
 	    signal_semaphore ? static_cast<Semaphore *>(signal_semaphore)->GetHandle() : nullptr,
 	    signal_fence ? static_cast<Fence *>(signal_fence)->GetHandle() : nullptr,
 	    &m_frame_index);
-
-	if (result == VK_ERROR_OUT_OF_DATE_KHR)
-	{
-		CreateSwapchain(VkExtent2D{static_cast<uint32_t>(p_window->GetWidth()), static_cast<uint32_t>(p_window->GetHeight())});
-		LOG_INFO("Swapchain resize to {} x {}", p_window->GetWidth(), p_window->GetHeight());
-	}
-
-	//Command::ResetCommandPool(p_device, m_frame_index);
 }
 
 RHITexture *Swapchain::GetCurrentTexture()
@@ -183,7 +175,7 @@ uint32_t Swapchain::GetCurrentFrameIndex()
 	return m_frame_index;
 }
 
-void Swapchain::Present(RHISemaphore *semaphore)
+bool Swapchain::Present(RHISemaphore *semaphore)
 {
 	VkSemaphore semaphore_handle = semaphore ? static_cast<Semaphore *>(semaphore)->GetHandle() : VK_NULL_HANDLE;
 
@@ -200,7 +192,16 @@ void Swapchain::Present(RHISemaphore *semaphore)
 		present_info.waitSemaphoreCount = 1;
 	}
 
-	vkQueuePresentKHR(m_present_queue->GetHandle(), &present_info);
+	auto result = vkQueuePresentKHR(m_present_queue->GetHandle(), &present_info);
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		CreateSwapchain(VkExtent2D{static_cast<uint32_t>(p_window->GetWidth()), static_cast<uint32_t>(p_window->GetHeight())});
+		LOG_INFO("Swapchain resize to {} x {}", p_window->GetWidth(), p_window->GetHeight());
+		m_frame_index = 0;
+	}
+
+	return result == VK_SUCCESS;
 }
 
 void Swapchain::CreateSwapchain(const VkExtent2D &extent)
@@ -255,5 +256,7 @@ void Swapchain::CreateSwapchain(const VkExtent2D &extent)
 			m_textures.emplace_back(std::make_unique<Texture>(p_device, desc, images[i]));
 		}
 	}
+
+	m_frame_index = 0;
 }
 }        // namespace Ilum::Vulkan

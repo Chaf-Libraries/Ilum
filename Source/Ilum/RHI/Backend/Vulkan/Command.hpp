@@ -9,7 +9,10 @@ namespace Ilum::Vulkan
 class Command : public RHICommand
 {
   public:
-	Command(RHIDevice *device, uint32_t frame_index, RHIQueueFamily family);
+	Command(RHIDevice *device, RHIQueueFamily family);
+
+	Command(RHIDevice *device, VkCommandPool pool, RHIQueueFamily family);
+
 	virtual ~Command() override;
 
 	void SetState(CommandState state);

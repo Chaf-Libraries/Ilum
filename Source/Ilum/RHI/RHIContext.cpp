@@ -21,9 +21,9 @@ RHIContext::RHIContext(Window *window) :
 
 	for (uint32_t i = 0; i < m_swapchain->GetTextureCount(); i++)
 	{
+		m_frames.emplace_back(RHIFrame::Create(m_device.get()));
 		m_present_complete.emplace_back(RHISemaphore::Create(m_device.get()));
 		m_render_complete.emplace_back(RHISemaphore::Create(m_device.get()));
-		m_inflight_fence.emplace_back(RHIFence::Create(m_device.get()));
 	}
 }
 
@@ -31,16 +31,14 @@ RHIContext::~RHIContext()
 {
 	m_device->WaitIdle();
 
-	for (auto &fence : m_inflight_fence)
+	for (auto &frame : m_frames)
 	{
-		fence->Wait();
+		frame->Reset();
 	}
+	m_frames.clear();
 
 	m_present_complete.clear();
 	m_render_complete.clear();
-	m_inflight_fence.clear();
-
-	m_cmds.clear();
 
 	m_swapchain.reset();
 	m_device.reset();
@@ -94,24 +92,7 @@ std::unique_ptr<RHISampler> RHIContext::CreateSampler(const SamplerDesc &desc)
 
 RHICommand *RHIContext::CreateCommand(RHIQueueFamily family)
 {
-	size_t hash = 0;
-	HashCombine(hash, m_swapchain->GetCurrentFrameIndex(), family, std::this_thread::get_id());
-
-	if (m_cmds.find(hash) != m_cmds.end())
-	{
-		for (auto &cmd : m_cmds[hash])
-		{
-			if (cmd->GetState() == CommandState::Available)
-			{
-				cmd->Init();
-				return cmd.get();
-			}
-		}
-	}
-
-	m_cmds[hash].emplace_back(RHICommand::Create(m_device.get(), m_swapchain->GetCurrentFrameIndex(), family));
-	m_cmds[hash].back()->Init();
-	return m_cmds[hash].back().get();
+	return m_frames[m_current_frame]->AllocateCommand(family);
 }
 
 RHIQueue *RHIContext::GetQueue(RHIQueueFamily family)
@@ -138,19 +119,31 @@ RHITexture *RHIContext::GetBackBuffer()
 void RHIContext::BeginFrame()
 {
 	m_swapchain->AcquireNextTexture(m_present_complete[m_current_frame].get(), nullptr);
-	m_inflight_fence[m_swapchain->GetCurrentFrameIndex()]->Wait();
-	m_inflight_fence[m_swapchain->GetCurrentFrameIndex()]->Reset();
+	m_frames[m_current_frame]->Reset();
 }
 
 void RHIContext::EndFrame()
 {
 	m_graphics_queue->Submit({}, {m_render_complete[m_current_frame].get()}, {m_present_complete[m_current_frame].get()});
 
-	//m_transfer_queue->Execute();
-	//m_compute_queue->Execute();
-	m_graphics_queue->Execute(m_inflight_fence[m_swapchain->GetCurrentFrameIndex()].get());
+	// m_transfer_queue->Execute();
+	// m_compute_queue->Execute();
+	m_graphics_queue->Execute(m_frames[m_current_frame]->AllocateFence());
 
-	m_swapchain->Present(m_render_complete[m_current_frame].get());
+	if (!m_swapchain->Present(m_render_complete[m_current_frame].get()))
+	{
+		//m_frames.clear();
+		//m_render_complete.clear();
+		//m_present_complete.clear();
+
+		//for (uint32_t i = 0; i < m_swapchain->GetTextureCount(); i++)
+		//{
+		//	m_frames.emplace_back(RHIFrame::Create(m_device.get()));
+		//	m_present_complete.emplace_back(RHISemaphore::Create(m_device.get()));
+		//	m_render_complete.emplace_back(RHISemaphore::Create(m_device.get()));
+		//}
+		int a = 1;
+	}
 
 	m_current_frame = (m_current_frame + 1) % m_swapchain->GetTextureCount();
 }

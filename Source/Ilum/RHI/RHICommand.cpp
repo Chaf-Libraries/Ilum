@@ -20,8 +20,13 @@ void RHICommand::Init()
 	m_state = CommandState::Initial;
 }
 
-std::unique_ptr<RHICommand> RHICommand::Create(RHIDevice *device, uint32_t family_index, RHIQueueFamily family)
+std::unique_ptr<RHICommand> RHICommand::Create(RHIDevice *device, RHIQueueFamily family)
 {
-	return std::make_unique<Vulkan::Command>(device, family_index, family);
+	return std::make_unique<Vulkan::Command>(device, family);
+}
+
+void RHICommand::Reset(RHIDevice *device, uint32_t frame_index)
+{
+	Vulkan::Command::ResetCommandPool(device, frame_index);
 }
 }        // namespace Ilum

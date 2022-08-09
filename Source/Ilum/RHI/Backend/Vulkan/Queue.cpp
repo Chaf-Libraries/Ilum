@@ -47,7 +47,7 @@ void Queue::Execute(RHIFence *fence)
 	std::vector<VkPipelineStageFlags> pipeline_stage_flags;
 
 	pipeline_stage_flags.resize(m_wait_semaphores.size());
-	std::fill(pipeline_stage_flags.begin(), pipeline_stage_flags.end(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+	std::fill(pipeline_stage_flags.begin(), pipeline_stage_flags.end(), VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 
 	VkSubmitInfo submit_info = {};
 	submit_info.sType        = VK_STRUCTURE_TYPE_SUBMIT_INFO;

@@ -49,7 +49,6 @@ Swapchain::Swapchain(RHIDevice *device, Window *window) :
 	CreateTextures();
 
 	m_fence_value.resize(3, 0);
-	//m_fence_value[m_frame_index]++;
 }
 
 Swapchain::~Swapchain()
@@ -106,11 +105,13 @@ uint32_t Swapchain::GetCurrentFrameIndex()
 	return m_frame_index;
 }
 
-void Swapchain::Present(RHISemaphore *semaphore)
+bool Swapchain::Present(RHISemaphore *semaphore)
 {
 	m_handle->Present(0, 0);
 
 	m_queue->Signal(m_fence.Get(), m_fence_value[m_frame_index]);
+
+	return true;
 }
 
 void Swapchain::CreateTextures()

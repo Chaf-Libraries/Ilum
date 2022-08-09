@@ -26,7 +26,7 @@ class Swapchain : public RHISwapchain
 
 	virtual uint32_t GetCurrentFrameIndex() override;
 
-	virtual void Present(RHISemaphore *semaphore) override;
+	virtual bool Present(RHISemaphore *semaphore) override;
 
   private:
 	void CreateTextures();

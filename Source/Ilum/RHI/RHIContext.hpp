@@ -3,6 +3,7 @@
 #include "RHIBuffer.hpp"
 #include "RHICommand.hpp"
 #include "RHIDevice.hpp"
+#include "RHIFrame.hpp"
 #include "RHIQueue.hpp"
 #include "RHISampler.hpp"
 #include "RHISwapchain.hpp"
@@ -59,8 +60,7 @@ class RHIContext
 
 	std::vector<std::unique_ptr<RHISemaphore>> m_present_complete;
 	std::vector<std::unique_ptr<RHISemaphore>> m_render_complete;
-	std::vector<std::unique_ptr<RHIFence>> m_inflight_fence;
 
-	std::unordered_map<size_t, std::vector<std::unique_ptr<RHICommand>>> m_cmds;
+	std::vector<std::unique_ptr<RHIFrame>> m_frames;
 };
 }        // namespace Ilum

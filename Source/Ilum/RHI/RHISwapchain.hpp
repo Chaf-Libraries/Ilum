@@ -25,7 +25,7 @@ class RHISwapchain
 
 	virtual uint32_t GetCurrentFrameIndex() = 0;
 
-	virtual void Present(RHISemaphore *semaphore) = 0;
+	virtual bool Present(RHISemaphore *semaphore) = 0;
 
   protected:
 	RHIDevice *p_device = nullptr;

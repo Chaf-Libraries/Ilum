@@ -29,16 +29,6 @@ static const std::vector<const char *> ValidationLayers =
     {};
 #endif        // _DEBUG
 
-static const std::vector<VkValidationFeatureEnableEXT> ValidationFeatures =
-#ifdef _DEBUG
-    {
-        VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
-        VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
-        VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT};
-#else
-    {};
-#endif        // _DEBUG
-
 static const std::vector<const char *> DeviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
@@ -344,11 +334,6 @@ void Device::CreateInstance()
 
 	// Enable validation layers
 #ifdef _DEBUG
-	// Validation features
-	VkValidationFeaturesEXT validation_features{VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT};
-	validation_features.enabledValidationFeatureCount = static_cast<uint32_t>(ValidationFeatures.size());
-	validation_features.pEnabledValidationFeatures    = ValidationFeatures.data();
-
 	// Enable validation layer
 	for (auto &layer : ValidationLayers)
 	{
@@ -356,7 +341,6 @@ void Device::CreateInstance()
 		{
 			create_info.enabledLayerCount   = static_cast<uint32_t>(ValidationLayers.size());
 			create_info.ppEnabledLayerNames = ValidationLayers.data();
-			create_info.pNext               = &validation_features;
 			break;
 		}
 		else
@@ -728,14 +712,6 @@ Device::~Device()
 {
 	vkDeviceWaitIdle(m_logical_device);
 
-	for (auto &pool_map : m_cmd_pools)
-	{
-		for (auto& [hash, pool] : pool_map)
-		{
-			vkDestroyCommandPool(m_logical_device, pool, nullptr);
-		}
-	}
-
 	if (m_allocator)
 	{
 		vmaDestroyAllocator(m_allocator);
@@ -817,39 +793,5 @@ uint32_t Device::GetQueueCount(RHIQueueFamily family)
 			break;
 	}
 	return m_graphics_queue_count;
-}
-
-VkCommandPool Device::AcquireCommandPool(uint32_t frame_index, RHIQueueFamily family)
-{
-	while (frame_index >=static_cast<uint32_t>(m_cmd_pools.size()))
-	{
-		m_cmd_pools.push_back({});
-	}
-
-	if (m_cmd_pools[frame_index].find(std::this_thread::get_id()) != m_cmd_pools[frame_index].end())
-	{
-		return m_cmd_pools[frame_index].at(std::this_thread::get_id());
-	}
-
-	VkCommandPoolCreateInfo create_info = {};
-	create_info.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	create_info.flags                   = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-	create_info.queueFamilyIndex        = GetQueueFamily(family);
-
-	VkCommandPool pool = VK_NULL_HANDLE;
-
-	vkCreateCommandPool(m_logical_device, &create_info, nullptr, &pool);
-
-	m_cmd_pools[frame_index].emplace(std::this_thread::get_id(), pool);
-
-	return pool;
-}
-
-void Device::ResetCommandPool(uint32_t frame_index)
-{
-	for (auto& [hash, pool] : m_cmd_pools[frame_index])
-	{
-		vkResetCommandPool(m_logical_device, pool, 0);
-	}
 }
 }        // namespace Ilum::Vulkan

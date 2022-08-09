@@ -8,7 +8,6 @@ Fence::Fence(RHIDevice *device) :
 {
 	VkFenceCreateInfo create_info = {};
 	create_info.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	create_info.flags             = VK_FENCE_CREATE_SIGNALED_BIT;
 	vkCreateFence(static_cast<Device*>(p_device)->GetDevice(), &create_info, nullptr, &m_handle);
 }
 

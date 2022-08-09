@@ -29,10 +29,12 @@ class RHICommand
 
 	void Init();
 
-	static std::unique_ptr<RHICommand> Create(RHIDevice *device, uint32_t frame_index, RHIQueueFamily family);
+	static std::unique_ptr<RHICommand> Create(RHIDevice *device, RHIQueueFamily family);
 
 	virtual void Begin() = 0;
 	virtual void End()   = 0;
+
+	static void Reset(RHIDevice *device, uint32_t frame_index);
 
 	virtual void BeginPass() = 0;
 	virtual void EndPass()   = 0;

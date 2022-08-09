@@ -5,29 +5,23 @@
 
 namespace Ilum::Vulkan
 {
-static std::vector<std::unordered_map<size_t, VkCommandPool>>          CommandPools;
-static std::vector<std::unordered_map<size_t, std::vector<Command *>>> CommandBuffers;
+static std::unordered_map<size_t, VkCommandPool>          CommandPools;
+static std::unordered_map<size_t, std::vector<Command *>> CommandBuffers;
 
 static uint32_t CommandCount = 0;
 
-Command::Command(RHIDevice *device, uint32_t frame_index, RHIQueueFamily family) :
+Command::Command(RHIDevice *device, RHIQueueFamily family) :
     RHICommand(device, family)
 {
 	CommandCount++;
 
-	while (CommandBuffers.size() <= frame_index)
-	{
-		CommandBuffers.push_back({});
-		CommandPools.push_back({});
-	}
-
 	// Register Command Buffer
 	size_t hash = 0;
-	HashCombine(hash, frame_index, family, std::this_thread::get_id());
-	CommandBuffers[frame_index][hash].push_back(this);
+	HashCombine(hash, family, std::this_thread::get_id());
+	CommandBuffers[hash].push_back(this);
 
 	// Check Command Pool
-	if (CommandPools[frame_index].find(hash) == CommandPools[frame_index].end())
+	if (CommandPools.find(hash) == CommandPools.end())
 	{
 		VkCommandPoolCreateInfo create_info = {};
 		create_info.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -36,14 +30,27 @@ Command::Command(RHIDevice *device, uint32_t frame_index, RHIQueueFamily family)
 
 		VkCommandPool pool = VK_NULL_HANDLE;
 		vkCreateCommandPool(static_cast<Device *>(device)->GetDevice(), &create_info, nullptr, &pool);
-		CommandPools[frame_index][hash] = pool;
+		CommandPools[hash] = pool;
 	}
-	m_pool = CommandPools[frame_index][hash];
+	m_pool = CommandPools[hash];
 
 	// Create Command Buffer
 	VkCommandBufferAllocateInfo allocate_info = {};
 	allocate_info.sType                       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocate_info.commandPool                 = m_pool;
+	allocate_info.level                       = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocate_info.commandBufferCount          = 1;
+	vkAllocateCommandBuffers(static_cast<Device *>(device)->GetDevice(), &allocate_info, &m_handle);
+}
+
+Command::Command(RHIDevice *device, VkCommandPool pool, RHIQueueFamily family) :
+    RHICommand(device, family), m_pool(pool)
+{
+	CommandCount++;
+
+	VkCommandBufferAllocateInfo allocate_info = {};
+	allocate_info.sType                       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocate_info.commandPool                 = pool;
 	allocate_info.level                       = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	allocate_info.commandBufferCount          = 1;
 	vkAllocateCommandBuffers(static_cast<Device *>(device)->GetDevice(), &allocate_info, &m_handle);
@@ -58,27 +65,21 @@ Command::~Command()
 
 	if (--CommandCount == 0)
 	{
-		for (auto &pool_map : CommandPools)
+		for (auto &[hash, pool] : CommandPools)
 		{
-			for (auto &[hash, pool] : pool_map)
-			{
-				vkDestroyCommandPool(static_cast<Device *>(p_device)->GetDevice(), pool, nullptr);
-			}
+			vkDestroyCommandPool(static_cast<Device *>(p_device)->GetDevice(), pool, nullptr);
 		}
 		CommandPools.clear();
 	}
 
-	for (auto &cmd_map : CommandBuffers)
+	for (auto &[hash, cmds] : CommandBuffers)
 	{
-		for (auto &[hash, cmds] : cmd_map)
+		for (auto iter = cmds.begin(); iter != cmds.end(); iter++)
 		{
-			for (auto iter = cmds.begin(); iter != cmds.end(); iter++)
+			if (*iter == this)
 			{
-				if (*iter == this)
-				{
-					cmds.erase(iter);
-					return;
-				}
+				cmds.erase(iter);
+				return;
 			}
 		}
 	}
@@ -91,18 +92,12 @@ void Command::SetState(CommandState state)
 
 void Command::ResetCommandPool(RHIDevice *device, uint32_t frame_index)
 {
-	while (CommandBuffers.size() <= frame_index)
-	{
-		CommandBuffers.push_back({});
-		CommandPools.push_back({});
-	}
-
-	for (auto &[hash, pool] : CommandPools[frame_index])
+	for (auto &[hash, pool] : CommandPools)
 	{
 		vkResetCommandPool(static_cast<Device *>(device)->GetDevice(), pool, 0);
 	}
 
-	for (auto &[hash, cmd_buffers] : CommandBuffers[frame_index])
+	for (auto &[hash, cmd_buffers] : CommandBuffers)
 	{
 		for (auto &cmd_buffer : cmd_buffers)
 		{
