@@ -10,29 +10,57 @@ class RHIDevice;
 
 struct ShaderMeta
 {
-	struct Attribute
+	struct Descriptor
 	{
 		enum class Type
 		{
-			None,
-			Input,
-			Output
+			Sampler,
+			TextureSRV,
+			TextureUAV,
+			ConstantBuffer,
+			StructuredBuffer,
+			AccelerationStructure
 		};
 
-		std::string name;
-		uint32_t    location;
-		Type        type;
+		std::string    name;
+		uint32_t       array_size;
+		uint32_t       set;
+		uint32_t       binding;
+		Type           type;
 		RHIShaderStage stage;
+
+		inline bool operator==(const Descriptor &other)
+		{
+			return name == other.name &&
+			       array_size == other.array_size &&
+			       set == other.set &&
+			       binding == other.binding &&
+			       type == other.type;
+		}
 	};
 
-	struct Texture
+	inline ShaderMeta &operator+=(const ShaderMeta &rhs)
 	{
-		enum class Type
+		for (auto &rhs_descriptor : rhs.descriptors)
 		{
-			SRV,
-			UAV
-		};
-	};
+			for (auto& descriptor : descriptors)
+			{
+				if (descriptor == rhs_descriptor)
+				{
+					descriptor.stage = descriptor.stage | rhs_descriptor.stage;
+				}
+				else
+				{
+					descriptors.push_back(rhs_descriptor);
+				}
+			}
+		}
+		return *this;
+	}
+
+	std::vector<Descriptor> descriptors;
+
+	size_t hash = 0;
 };
 
 class RHIShader

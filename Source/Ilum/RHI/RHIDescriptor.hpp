@@ -19,25 +19,23 @@ class RHIDescriptor
 
 	virtual ~RHIDescriptor() = 0;
 
-	virtual RHIDescriptor &BindTextureUAV(const std::string &name, RHITexture *texture)                            = 0;
-	virtual RHIDescriptor &BindTextureUAV(const std::string &name, RHITexture *texture, const TextureRange &range) = 0;
-	virtual RHIDescriptor &BindTextureUAV(const std::string &name, const std::vector<RHITexture *> &textures)      = 0;
-
-	virtual RHIDescriptor &BindTextureSRV(const std::string &name, RHITexture *texture)                            = 0;
-	virtual RHIDescriptor &BindTextureSRV(const std::string &name, RHITexture *texture, const TextureRange &range) = 0;
-	virtual RHIDescriptor &BindTextureSRV(const std::string &name, const std::vector<RHITexture *> &textures)      = 0;
+	virtual RHIDescriptor &BindTexture(const std::string &name, RHITexture *texture, RHITextureDimension dimension)                                                                                   = 0;
+	virtual RHIDescriptor &BindTexture(const std::string &name, RHITexture *texture, RHITextureDimension dimension, uint32_t base_mip, uint32_t mip_count, uint32_t base_layer, uint32_t layer_count) = 0;
+	virtual RHIDescriptor &BindTexture(const std::string &name, const std::vector<RHITexture *> &textures, RHITextureDimension dimension)                                                             = 0;
 
 	virtual RHIDescriptor &BindSampler(const std::string &name, RHISampler *sampler)                      = 0;
-	virtual RHIDescriptor &BindSampler(const std::string &name, const std::vector<RHISampler *> &sampler) = 0;
+	virtual RHIDescriptor &BindSampler(const std::string &name, const std::vector<RHISampler *> &samplers) = 0;
 
 	virtual RHIDescriptor &BindBuffer(const std::string &name, RHIBuffer *buffer)                      = 0;
-	virtual RHIDescriptor &BindBuffer(const std::string &name, const std::vector<RHIBuffer *> &buffer) = 0;
+	virtual RHIDescriptor &BindBuffer(const std::string &name, RHIBuffer *buffer, size_t offset, size_t range)                      = 0;
+	virtual RHIDescriptor &BindBuffer(const std::string &name, const std::vector<RHIBuffer *> &buffers) = 0;
 
-	virtual RHIDescriptor &BindConstant(const std::string &name, void *constant, size_t size) = 0;
+	virtual RHIDescriptor &BindConstant(const std::string &name, const void *constant, size_t size) = 0;
 
 	// RHIDescriptor &BindAccelerationStructure();
 
-  private:
-	RHIDevice *p_device = nullptr;
+  protected:
+	RHIDevice       *p_device = nullptr;
+	const ShaderMeta m_meta;
 };
 }        // namespace Ilum

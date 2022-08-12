@@ -28,6 +28,7 @@ int main()
 		shader_desc.source           = Ilum::ShaderSource::HLSL;
 		shader_desc.target           = Ilum::ShaderTarget::DXIL;
 		shader_desc.code             = "\
+		Texture2D<float4> InImage[]: register(t1);\
 		RWTexture2D<float4> OutImage : register(u2);\
 		struct CSParam\
 		{\
@@ -41,16 +42,14 @@ int main()
 			{\
 				return;\
 			}\
-    OutImage[param.DispatchThreadID.xy] = 1;\
+    OutImage[param.DispatchThreadID.xy] = InImage[0][param.DispatchThreadID.xy];\
 		}\
 ";
 
-		auto dxil          = Ilum::ShaderCompiler::GetInstance().Compile(shader_desc);
-		shader_desc.target = Ilum::ShaderTarget::SPIRV;
-		auto spirv         = Ilum::ShaderCompiler::GetInstance().Compile(shader_desc);
-
-		Ilum::SpirvReflection::GetInstance().Reflect(spirv);
-
+		Ilum::ShaderMeta meta = {};
+		auto             dxil = Ilum::ShaderCompiler::GetInstance().Compile(shader_desc, meta);
+		shader_desc.target    = Ilum::ShaderTarget::SPIRV;
+		auto spirv            = Ilum::ShaderCompiler::GetInstance().Compile(shader_desc, meta);
 
 		while (window.Tick())
 		{
@@ -58,7 +57,7 @@ int main()
 
 			context.BeginFrame();
 
-			//if (i++ <= 3)
+			// if (i++ <= 3)
 			{
 				auto *cmd = context.CreateCommand(Ilum::RHIQueueFamily::Graphics);
 				cmd->Begin();

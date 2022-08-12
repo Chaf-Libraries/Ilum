@@ -1,4 +1,5 @@
 #include "ShaderCompiler.hpp"
+#include "SpirvReflection.hpp"
 
 #include <Core/Path.hpp>
 
@@ -323,7 +324,6 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(cons
 	arguments.emplace_back(L"-fspv-extension=SPV_EXT_descriptor_indexing");
 	arguments.emplace_back(L"-fspv-extension=SPV_EXT_shader_viewport_index_layer");
 	arguments.emplace_back(L"-fspv-extension=SPV_NV_mesh_shader");
-
 	for (const auto &macro : macros)
 	{
 		arguments.emplace_back(to_wstring(std::string("-D") + macro));
@@ -539,26 +539,32 @@ ShaderCompiler::~ShaderCompiler()
 	glslang::FinalizeProcess();
 }
 
-std::vector<uint8_t> ShaderCompiler::Compile(const ShaderDesc &desc)
+std::vector<uint8_t> ShaderCompiler::Compile(const ShaderDesc &desc, ShaderMeta &meta)
 {
+	// Compile to SPIRV
+	std::vector<uint8_t> spirv;
 	if (desc.source == ShaderSource::GLSL)
 	{
-		if (desc.target == ShaderTarget::SPIRV)
-		{
-			return CompileShader<ShaderSource::GLSL, ShaderTarget::SPIRV>(desc.code, desc.stage, desc.entry_point, desc.macros);
-		}
-		else if (desc.target == ShaderTarget::DXIL)
-		{
-			return CompileShader<ShaderSource::GLSL, ShaderTarget::DXIL>(desc.code, desc.stage, desc.entry_point, desc.macros);
-		}
+		spirv = CompileShader<ShaderSource::GLSL, ShaderTarget::SPIRV>(desc.code, desc.stage, desc.entry_point, desc.macros);
 	}
 	else if (desc.source == ShaderSource::HLSL)
 	{
-		if (desc.target == ShaderTarget::SPIRV)
+		spirv = CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(desc.code, desc.stage, desc.entry_point, desc.macros);
+	}
+
+	meta = SpirvReflection::GetInstance().Reflect(spirv);
+
+	if (desc.target == ShaderTarget::SPIRV)
+	{
+		return spirv;
+	}
+	else if (desc.target == ShaderTarget::DXIL)
+	{
+		if (desc.source == ShaderSource::GLSL)
 		{
-			return CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(desc.code, desc.stage, desc.entry_point, desc.macros);
+			return CompileShader<ShaderSource::GLSL, ShaderTarget::DXIL>(desc.code, desc.stage, desc.entry_point, desc.macros);
 		}
-		else if (desc.target == ShaderTarget::DXIL)
+		else
 		{
 			return CompileShader<ShaderSource::HLSL, ShaderTarget::DXIL>(desc.code, desc.stage, desc.entry_point, desc.macros);
 		}

@@ -12,6 +12,15 @@ inline void HashCombine(size_t &seed, const T &v)
 	glm::detail::hash_combine(seed, hasher(v));
 }
 
+template <typename T>
+inline void HashCombine(size_t &seed, const std::vector<T> &v)
+{
+	for (auto& data : v)
+	{
+		HashCombine(seed, data);
+	}
+}
+
 template <class T1, class... T2>
 inline void HashCombine(size_t &seed, const T1 &v1, const T2 &...v2)
 {

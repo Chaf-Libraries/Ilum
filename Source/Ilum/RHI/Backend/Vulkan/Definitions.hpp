@@ -133,4 +133,64 @@ inline static VkBufferUsageFlags ToVulkanBufferUsage(RHIBufferUsage usage)
 
 	return vk_usage;
 }
+
+inline static VkShaderStageFlags ToVulkanShaderStage(RHIShaderStage stage)
+{
+	VkShaderStageFlags flag = 0;
+
+	if (stage & RHIShaderStage::Vertex)
+	{
+		flag |= VK_SHADER_STAGE_VERTEX_BIT;
+	}
+	else if (stage & RHIShaderStage::Fragment)
+	{
+		flag |= VK_SHADER_STAGE_FRAGMENT_BIT;
+	}
+	else if (stage & RHIShaderStage::TessellationControl)
+	{
+		flag |= VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+	}
+	else if (stage & RHIShaderStage::TessellationEvaluation)
+	{
+		flag |= VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+	}
+	else if (stage & RHIShaderStage::Geometry)
+	{
+		flag |= VK_SHADER_STAGE_GEOMETRY_BIT;
+	}
+	else if (stage & RHIShaderStage::RayGen)
+	{
+		flag |= VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+	}
+	else if (stage & RHIShaderStage::AnyHit)
+	{
+		flag |= VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
+	}
+	else if (stage & RHIShaderStage::ClosestHit)
+	{
+		flag |= VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+	}
+	else if (stage & RHIShaderStage::Miss)
+	{
+		flag |= VK_SHADER_STAGE_MISS_BIT_KHR;
+	}
+	else if (stage & RHIShaderStage::Intersection)
+	{
+		flag |= VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
+	}
+	else if (stage & RHIShaderStage::Callable)
+	{
+		flag |= VK_SHADER_STAGE_CALLABLE_BIT_KHR;
+	}
+	else if (stage & RHIShaderStage::Task)
+	{
+		flag |= VK_SHADER_STAGE_TASK_BIT_NV;
+	}
+	else if (stage & RHIShaderStage::Mesh)
+	{
+		flag |= VK_SHADER_STAGE_MESH_BIT_NV;
+	}
+
+	return flag;
+}
 }        // namespace Ilum::Vulkan

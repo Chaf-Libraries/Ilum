@@ -1,6 +1,9 @@
 #pragma once
 
+#include <Core/Singleton.hpp>
+
 #include <RHI/RHIDefinitions.hpp>
+#include <RHI/RHIShader.hpp>
 
 #include <string>
 #include <vector>
@@ -36,7 +39,7 @@ class ShaderCompiler : public Singleton<ShaderCompiler>
 
 	~ShaderCompiler();
 
-	std::vector<uint8_t> Compile(const ShaderDesc &desc);
+	std::vector<uint8_t> Compile(const ShaderDesc &desc, ShaderMeta& meta);
 };
 
 }        // namespace Ilum

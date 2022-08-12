@@ -3,7 +3,7 @@
 namespace Ilum
 {
 RHIDescriptor::RHIDescriptor(RHIDevice *device, const ShaderMeta &meta):
-    p_device(device)
+    p_device(device), m_meta(meta)
 {
 }
 }        // namespace Ilum

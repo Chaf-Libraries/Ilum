@@ -130,21 +130,8 @@ void RHIContext::EndFrame()
 	// m_compute_queue->Execute();
 	m_graphics_queue->Execute(m_frames[m_current_frame]->AllocateFence());
 
-	if (!m_swapchain->Present(m_render_complete[m_current_frame].get()))
-	{
-		//m_frames.clear();
-		//m_render_complete.clear();
-		//m_present_complete.clear();
-
-		//for (uint32_t i = 0; i < m_swapchain->GetTextureCount(); i++)
-		//{
-		//	m_frames.emplace_back(RHIFrame::Create(m_device.get()));
-		//	m_present_complete.emplace_back(RHISemaphore::Create(m_device.get()));
-		//	m_render_complete.emplace_back(RHISemaphore::Create(m_device.get()));
-		//}
-		int a = 1;
-	}
-
+	m_swapchain->Present(m_render_complete[m_current_frame].get());
+		
 	m_current_frame = (m_current_frame + 1) % m_swapchain->GetTextureCount();
 }
 
