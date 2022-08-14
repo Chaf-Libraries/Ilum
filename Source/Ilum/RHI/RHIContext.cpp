@@ -95,6 +95,11 @@ RHICommand *RHIContext::CreateCommand(RHIQueueFamily family)
 	return m_frames[m_current_frame]->AllocateCommand(family);
 }
 
+std::unique_ptr<RHIDescriptor> RHIContext::CreateDescriptor(const ShaderMeta &meta)
+{
+	return RHIDescriptor::Create(m_device.get(), meta);
+}
+
 RHIQueue *RHIContext::GetQueue(RHIQueueFamily family)
 {
 	switch (family)
@@ -131,7 +136,7 @@ void RHIContext::EndFrame()
 	m_graphics_queue->Execute(m_frames[m_current_frame]->AllocateFence());
 
 	m_swapchain->Present(m_render_complete[m_current_frame].get());
-		
+
 	m_current_frame = (m_current_frame + 1) % m_swapchain->GetTextureCount();
 }
 

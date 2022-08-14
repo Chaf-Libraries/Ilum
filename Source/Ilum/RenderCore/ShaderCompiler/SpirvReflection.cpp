@@ -30,6 +30,22 @@ inline static std::unordered_map<SpvReflectDescriptorType, ShaderMeta::Descripto
     {SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, ShaderMeta::Descriptor::Type::AccelerationStructure},
 };
 
+inline static std::unordered_map<SpvReflectFormat, RHIFormat> FormatMap = {
+    {SPV_REFLECT_FORMAT_UNDEFINED, RHIFormat::Undefined},
+    {SPV_REFLECT_FORMAT_R32_UINT, RHIFormat::R32_UINT},
+    {SPV_REFLECT_FORMAT_R32_SINT, RHIFormat::R32_SINT},
+    {SPV_REFLECT_FORMAT_R32_SFLOAT, RHIFormat::R32_FLOAT},
+    {SPV_REFLECT_FORMAT_R32G32_UINT, RHIFormat::R32G32_UINT},
+    {SPV_REFLECT_FORMAT_R32G32_SINT, RHIFormat::R32G32_SINT},
+    {SPV_REFLECT_FORMAT_R32G32_SFLOAT, RHIFormat::R32G32_FLOAT},
+    {SPV_REFLECT_FORMAT_R32G32B32_UINT, RHIFormat::R32G32B32_UINT},
+    {SPV_REFLECT_FORMAT_R32G32B32_SINT, RHIFormat::R32G32B32_SINT},
+    {SPV_REFLECT_FORMAT_R32G32B32_SFLOAT, RHIFormat::R32G32B32_FLOAT},
+    {SPV_REFLECT_FORMAT_R32G32B32A32_UINT, RHIFormat::R32G32B32A32_UINT},
+    {SPV_REFLECT_FORMAT_R32G32B32A32_SINT, RHIFormat::R32G32B32A32_SINT},
+    {SPV_REFLECT_FORMAT_R32G32B32A32_SFLOAT, RHIFormat::R32G32B32A32_FLOAT},
+};
+
 ShaderMeta SpirvReflection::Reflect(const std::vector<uint8_t> &spirv)
 {
 	SpvReflectShaderModule shader_module;
@@ -39,9 +55,11 @@ ShaderMeta SpirvReflection::Reflect(const std::vector<uint8_t> &spirv)
 
 	ShaderMeta meta_info = {};
 
+	// Descriptor
 	for (uint32_t i = 0; i < shader_module.descriptor_binding_count; i++)
 	{
 		const auto &descriptor_binding = shader_module.descriptor_bindings[i];
+
 		meta_info.descriptors.push_back(ShaderMeta::Descriptor{
 		    descriptor_binding.name,
 		    descriptor_binding.count,
@@ -50,8 +68,6 @@ ShaderMeta SpirvReflection::Reflect(const std::vector<uint8_t> &spirv)
 		    DescriptorTypeMap[descriptor_binding.descriptor_type],
 		    ShaderStageMap[shader_module.shader_stage]});
 
-
-
 		HashCombine(meta_info.hash,
 		            descriptor_binding.name,
 		            descriptor_binding.count,
@@ -59,6 +75,49 @@ ShaderMeta SpirvReflection::Reflect(const std::vector<uint8_t> &spirv)
 		            descriptor_binding.binding,
 		            DescriptorTypeMap[descriptor_binding.descriptor_type],
 		            ShaderStageMap[shader_module.shader_stage]);
+	}
+
+	// Constant
+	for (uint32_t i = 0; i < shader_module.push_constant_block_count; i++)
+	{
+		for (uint32_t j = 0; j < shader_module.push_constant_blocks[i].member_count; j++)
+		{
+			auto member = shader_module.push_constant_blocks[i].members[j];
+
+			meta_info.constants.push_back(ShaderMeta::Constant{
+			    member.name,
+			    member.size,
+			    member.absolute_offset,
+			    ShaderStageMap[shader_module.shader_stage]});
+
+			HashCombine(
+			    meta_info.hash,
+			    member.name,
+			    member.size,
+			    member.absolute_offset,
+			    ShaderStageMap[shader_module.shader_stage]);
+		}
+	}
+
+	// Variable
+	if (shader_module.shader_stage & SPV_REFLECT_SHADER_STAGE_VERTEX_BIT)
+	{
+		for (uint32_t i = 0; i < shader_module.input_variable_count; i++)
+		{
+			meta_info.inputs.push_back(ShaderMeta::Variable{
+			    shader_module.input_variables[i]->location,
+			    FormatMap[shader_module.input_variables[i]->format]
+			});
+		}
+	}
+	else if (shader_module.shader_stage & SPV_REFLECT_SHADER_STAGE_FRAGMENT_BIT)
+	{
+		for (uint32_t i = 0; i < shader_module.output_variable_count; i++)
+		{
+			meta_info.outputs.push_back(ShaderMeta::Variable{
+			    shader_module.output_variables[i]->location,
+			    FormatMap[shader_module.output_variables[i]->format]});
+		}
 	}
 
 	spvReflectDestroyShaderModule(&shader_module);

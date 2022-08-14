@@ -8,8 +8,8 @@ namespace Ilum::Vulkan
 {
 struct TextureResolve
 {
-	uint32_t    set     = 0;
-	uint32_t    binding = 0;
+	uint32_t      set     = 0;
+	uint32_t      binding = 0;
 	VkImageLayout layout  = VK_IMAGE_LAYOUT_UNDEFINED;
 
 	std::vector<VkImageView> views;
@@ -18,7 +18,7 @@ struct TextureResolve
 
 struct BufferResolve
 {
-	uint32_t set = 0;
+	uint32_t set     = 0;
 	uint32_t binding = 0;
 
 	std::vector<VkBuffer> buffers;
@@ -28,10 +28,18 @@ struct BufferResolve
 
 struct AccelerationStructureResolve
 {
-	uint32_t set = 0;
+	uint32_t set     = 0;
 	uint32_t binding = 0;
 
 	std::vector<VkAccelerationStructureKHR> acceleration_structures;
+};
+
+struct ConstantResolve
+{
+	const void    *data   = nullptr;
+	size_t         size   = 0;
+	size_t         offset = 0;
+	VkShaderStageFlags stage;
 };
 
 class Descriptor : public RHIDescriptor
@@ -52,7 +60,7 @@ class Descriptor : public RHIDescriptor
 	virtual RHIDescriptor &BindBuffer(const std::string &name, RHIBuffer *buffer, size_t offset, size_t range) override;
 	virtual RHIDescriptor &BindBuffer(const std::string &name, const std::vector<RHIBuffer *> &buffers) override;
 
-	virtual RHIDescriptor &BindConstant(const std::string &name, const void *constant, size_t size) override;
+	virtual RHIDescriptor &BindConstant(const std::string &name, const void *constant) override;
 
 	const std::unordered_map<uint32_t, VkDescriptorSet> &GetDescriptorSet();
 
@@ -67,14 +75,13 @@ class Descriptor : public RHIDescriptor
 
 	std::unordered_map<std::string, std::pair<uint32_t, uint32_t>> m_descriptor_lookup;
 
-	std::map<std::string, TextureResolve> m_texture_resolves;
-	std::map<std::string, BufferResolve> m_buffer_resolve;
-	std::map<std::string, AccelerationStructureResolve> m_acceleration_structures;
+	std::map<std::string, TextureResolve>               m_texture_resolves;
+	std::map<std::string, BufferResolve>                m_buffer_resolves;
+	std::map<std::string, AccelerationStructureResolve> m_acceleration_structure_resolves;
+	std::map<std::string, ConstantResolve>              m_constant_resolves;
 
-	std::unordered_map<std::string, size_t>                    m_binding_hash;
+	std::unordered_map<std::string, size_t> m_binding_hash;
 
 	std::unordered_map<uint32_t, bool> m_binding_dirty;
-
-	std::unordered_map<std::string, std::pair<const void *, size_t>> m_constants;
 };
 }        // namespace Ilum::Vulkan

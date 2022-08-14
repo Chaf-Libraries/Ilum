@@ -5,6 +5,7 @@
 #include <Core/Window.hpp>
 
 #include <RHI/RHIContext.hpp>
+#include <RHI/RHIDescriptor.hpp>
 
 #include <RenderCore/ShaderCompiler/ShaderCompiler.hpp>
 #include <RenderCore/ShaderCompiler/SpirvReflection.hpp>
@@ -22,34 +23,32 @@ int main()
 
 		uint32_t i = 0;
 
+		std::vector<uint8_t> shader_data;
+		Ilum::Path::GetInstance().Read("D:/Workspace/Vulkan/data/shaders/hlsl/instancing/instancing.vert", shader_data);
+
+		std::string shader_data_string;
+		shader_data_string.resize(shader_data.size());
+		std::memcpy(shader_data_string.data(), shader_data.data(), shader_data.size());
+
 		Ilum::ShaderDesc shader_desc = {};
 		shader_desc.entry_point      = "main";
-		shader_desc.stage            = Ilum::RHIShaderStage::Compute;
+		shader_desc.stage            = Ilum::RHIShaderStage::Vertex;
 		shader_desc.source           = Ilum::ShaderSource::HLSL;
 		shader_desc.target           = Ilum::ShaderTarget::DXIL;
-		shader_desc.code             = "\
-		Texture2D<float4> InImage[]: register(t1);\
-		RWTexture2D<float4> OutImage : register(u2);\
-		struct CSParam\
-		{\
-			uint3 DispatchThreadID : SV_DispatchThreadID;\
-		};\
-		[numthreads(8, 8, 1)] void main(CSParam param) {\
-			uint2 extent;\
-			OutImage.GetDimensions(extent.x, extent.y);\
-			float2 texel_size = 1.0 / float2(extent);\
-			if (param.DispatchThreadID.x >= extent.x || param.DispatchThreadID.y >= extent.y)\
-			{\
-				return;\
-			}\
-    OutImage[param.DispatchThreadID.xy] = InImage[0][param.DispatchThreadID.xy];\
-		}\
-";
+		shader_desc.code             = shader_data_string;
 
 		Ilum::ShaderMeta meta = {};
 		auto             dxil = Ilum::ShaderCompiler::GetInstance().Compile(shader_desc, meta);
 		shader_desc.target    = Ilum::ShaderTarget::SPIRV;
 		auto spirv            = Ilum::ShaderCompiler::GetInstance().Compile(shader_desc, meta);
+
+		auto descriptor = context.CreateDescriptor(meta);
+
+		//auto texture1 = context.CreateTexture2D(100, 100, Ilum::RHIFormat::R8G8B8A8_UNORM, Ilum::RHITextureUsage::ShaderResource | Ilum::RHITextureUsage::UnorderedAccess, false);
+		//auto texture2 = context.CreateTexture2D(100, 100, Ilum::RHIFormat::R8G8B8A8_UNORM, Ilum::RHITextureUsage::ShaderResource | Ilum::RHITextureUsage::UnorderedAccess, false);
+
+		//descriptor->BindTexture("InImage", {texture1.get()}, Ilum::RHITextureDimension::Texture2D);
+		//descriptor->BindTexture("OutImage", {texture2.get()}, Ilum::RHITextureDimension::Texture2D);
 
 		while (window.Tick())
 		{

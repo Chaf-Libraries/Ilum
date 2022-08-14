@@ -1,3 +1,5 @@
+#pragma once
+
 #include "Singleton.hpp"
 
 #include <filesystem>

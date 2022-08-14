@@ -10,6 +10,34 @@ class RHIDevice;
 
 struct ShaderMeta
 {
+	struct Variable
+	{
+		uint32_t location;
+		RHIFormat format;
+
+		inline bool operator==(const Variable &other)
+		{
+			return location == other.location &&
+			       format == other.format;
+		}
+	};
+
+	struct Constant
+	{
+		std::string    name;
+		uint32_t       size   = 0;
+		uint32_t       offset = 0;
+		RHIShaderStage stage;
+
+		inline bool operator==(const Constant &other)
+		{
+			return name == other.name &&
+			       size == other.size &&
+			       offset == other.offset &&
+			       stage == other.stage;
+		}
+	};
+
 	struct Descriptor
 	{
 		enum class Type
@@ -43,7 +71,7 @@ struct ShaderMeta
 	{
 		for (auto &rhs_descriptor : rhs.descriptors)
 		{
-			for (auto& descriptor : descriptors)
+			for (auto &descriptor : descriptors)
 			{
 				if (descriptor == rhs_descriptor)
 				{
@@ -55,10 +83,38 @@ struct ShaderMeta
 				}
 			}
 		}
+
+		for (auto &rhs_constant : rhs.constants)
+		{
+			for (auto &constant : constants)
+			{
+				if (constant == rhs_constant)
+				{
+					constant.stage = constant.stage | rhs_constant.stage;
+				}
+				else
+				{
+					constants.push_back(rhs_constant);
+				}
+			}
+		}
+
+		for (auto& input : rhs.inputs)
+		{
+			inputs.push_back(input);
+		}
+		for (auto& output : rhs.outputs)
+		{
+			outputs.push_back(output);
+		}
+
 		return *this;
 	}
 
 	std::vector<Descriptor> descriptors;
+	std::vector<Constant>   constants;
+	std::vector<Variable>   inputs;
+	std::vector<Variable>   outputs;
 
 	size_t hash = 0;
 };

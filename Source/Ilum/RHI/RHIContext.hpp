@@ -2,10 +2,12 @@
 
 #include "RHIBuffer.hpp"
 #include "RHICommand.hpp"
+#include "RHIDescriptor.hpp"
 #include "RHIDevice.hpp"
 #include "RHIFrame.hpp"
 #include "RHIQueue.hpp"
 #include "RHISampler.hpp"
+#include "RHIShader.hpp"
 #include "RHISwapchain.hpp"
 #include "RHISynchronization.hpp"
 #include "RHITexture.hpp"
@@ -35,6 +37,9 @@ class RHIContext
 
 	// Create Command
 	RHICommand *CreateCommand(RHIQueueFamily family);
+
+	// Create Descriptor
+	std::unique_ptr<RHIDescriptor> CreateDescriptor(const ShaderMeta &meta);
 
 	// Get Queue
 	RHIQueue *GetQueue(RHIQueueFamily family);

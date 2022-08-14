@@ -7,7 +7,8 @@
 
 namespace Ilum::Vulkan
 {
-inline static VkDescriptorPool DescriptorPool = VK_NULL_HANDLE;
+inline static VkDescriptorPool                                  DescriptorPool = VK_NULL_HANDLE;
+inline static std::unordered_map<size_t, VkDescriptorSetLayout> DescriptorSetLayouts;
 
 inline static size_t DescriptorCount = 0;
 
@@ -38,12 +39,15 @@ Descriptor::Descriptor(RHIDevice *device, const ShaderMeta &meta) :
 		        {VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1024},
 		    };
 
+		// Create descriptor pool
 		VkDescriptorPoolCreateInfo descriptor_pool_create_info = {};
 		descriptor_pool_create_info.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		descriptor_pool_create_info.pPoolSizes                 = pool_sizes;
 		descriptor_pool_create_info.poolSizeCount              = 6;
 		descriptor_pool_create_info.maxSets                    = 4096;
-		descriptor_pool_create_info.flags                      = 0;
+		descriptor_pool_create_info.flags                      = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+
+		vkCreateDescriptorPool(static_cast<Device *>(p_device)->GetDevice(), &descriptor_pool_create_info, nullptr, &DescriptorPool);
 	}
 
 	std::unordered_map<uint32_t, ShaderMeta> set_meta;
@@ -75,20 +79,43 @@ Descriptor::Descriptor(RHIDevice *device, const ShaderMeta &meta) :
 				break;
 			case ShaderMeta::Descriptor::Type::ConstantBuffer:
 			case ShaderMeta::Descriptor::Type::StructuredBuffer:
-				m_buffer_resolve.emplace(descriptor.name, BufferResolve{descriptor.set, descriptor.binding});
+				m_buffer_resolves.emplace(descriptor.name, BufferResolve{descriptor.set, descriptor.binding});
 				break;
 			case ShaderMeta::Descriptor::Type::AccelerationStructure:
-				m_acceleration_structures.emplace(descriptor.name, AccelerationStructureResolve{descriptor.set, descriptor.binding});
+				m_acceleration_structure_resolves.emplace(descriptor.name, AccelerationStructureResolve{descriptor.set, descriptor.binding});
 				break;
 			default:
 				break;
 		}
 	}
 
+	for (auto &constant : m_meta.constants)
+	{
+		m_constant_resolves.emplace(
+		    constant.name,
+		    ConstantResolve{
+		        nullptr,
+		        constant.size,
+		        constant.offset,
+		        ToVulkanShaderStage(constant.stage)});
+	}
+
 	for (auto &[set, meta] : set_meta)
 	{
-		m_descriptor_set_layouts.emplace(set, CreateDescriptorSetLayout(meta));
+		// Create descriptor set layout
+		VkDescriptorSetLayout layout = VK_NULL_HANDLE;
+		if (DescriptorSetLayouts.find(meta.hash) == DescriptorSetLayouts.end())
+		{
+			layout = CreateDescriptorSetLayout(meta);
+			DescriptorSetLayouts.emplace(meta.hash, layout);
+		}
+		else
+		{
+			layout = DescriptorSetLayouts[meta.hash];
+		}
+		m_descriptor_set_layouts.emplace(set, layout);
 
+		// Allocate descriptor set
 		VkDescriptorSetAllocateInfo allocate_info = {};
 		allocate_info.sType                       = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocate_info.descriptorPool              = DescriptorPool;
@@ -111,11 +138,6 @@ Descriptor ::~Descriptor()
 		vkFreeDescriptorSets(static_cast<Device *>(p_device)->GetDevice(), DescriptorPool, 1, &descriptor_set);
 	}
 
-	for (auto &[set, layout] : m_descriptor_set_layouts)
-	{
-		vkDestroyDescriptorSetLayout(static_cast<Device *>(p_device)->GetDevice(), layout, nullptr);
-	}
-
 	m_descriptor_set_layouts.clear();
 	m_descriptor_sets.clear();
 
@@ -126,11 +148,16 @@ Descriptor ::~Descriptor()
 			vkDestroyDescriptorPool(static_cast<Device *>(p_device)->GetDevice(), DescriptorPool, nullptr);
 			DescriptorPool = VK_NULL_HANDLE;
 		}
+		for (auto &[hash, layout] : DescriptorSetLayouts)
+		{
+			vkDestroyDescriptorSetLayout(static_cast<Device *>(p_device)->GetDevice(), layout, nullptr);
+		}
+		DescriptorSetLayouts.clear();
 	}
 }
 RHIDescriptor &Descriptor::BindTexture(const std::string &name, RHITexture *texture, RHITextureDimension dimension)
 {
-	return BindTexture(name, texture, dimension, 0, 0, texture->GetDesc().layers, texture->GetDesc().mips);
+	return BindTexture(name, texture, dimension, 0, texture->GetDesc().mips, 0, texture->GetDesc().layers);
 }
 
 RHIDescriptor &Descriptor::BindTexture(const std::string &name, RHITexture *texture, RHITextureDimension dimension, uint32_t base_mip, uint32_t mip_count, uint32_t base_layer, uint32_t layer_count)
@@ -241,9 +268,9 @@ RHIDescriptor &Descriptor::BindBuffer(const std::string &name, RHIBuffer *buffer
 
 	if (m_binding_hash[name] != hash)
 	{
-		m_buffer_resolve[name].buffers = {static_cast<Buffer *>(buffer)->GetHandle()};
-		m_buffer_resolve[name].ranges  = {range};
-		m_buffer_resolve[name].offsets = {offset};
+		m_buffer_resolves[name].buffers = {static_cast<Buffer *>(buffer)->GetHandle()};
+		m_buffer_resolves[name].ranges  = {range};
+		m_buffer_resolves[name].offsets = {offset};
 
 		m_binding_hash[name] = hash;
 
@@ -260,18 +287,18 @@ RHIDescriptor &Descriptor::BindBuffer(const std::string &name, const std::vector
 
 	if (m_binding_hash[name] != hash)
 	{
-		m_buffer_resolve[name].buffers.clear();
-		m_buffer_resolve[name].buffers.reserve(buffers.size());
-		m_buffer_resolve[name].ranges.clear();
-		m_buffer_resolve[name].ranges.reserve(buffers.size());
-		m_buffer_resolve[name].offsets.clear();
-		m_buffer_resolve[name].offsets.reserve(buffers.size());
+		m_buffer_resolves[name].buffers.clear();
+		m_buffer_resolves[name].buffers.reserve(buffers.size());
+		m_buffer_resolves[name].ranges.clear();
+		m_buffer_resolves[name].ranges.reserve(buffers.size());
+		m_buffer_resolves[name].offsets.clear();
+		m_buffer_resolves[name].offsets.reserve(buffers.size());
 
 		for (auto *buffer : buffers)
 		{
-			m_buffer_resolve[name].buffers.push_back(static_cast<Buffer *>(buffer)->GetHandle());
-			m_buffer_resolve[name].ranges.push_back(buffer->GetDesc().size);
-			m_buffer_resolve[name].offsets.push_back(0);
+			m_buffer_resolves[name].buffers.push_back(static_cast<Buffer *>(buffer)->GetHandle());
+			m_buffer_resolves[name].ranges.push_back(buffer->GetDesc().size);
+			m_buffer_resolves[name].offsets.push_back(0);
 		}
 
 		m_binding_hash[name] = hash;
@@ -282,8 +309,9 @@ RHIDescriptor &Descriptor::BindBuffer(const std::string &name, const std::vector
 	return *this;
 }
 
-RHIDescriptor &Descriptor::BindConstant(const std::string &name, const void *constant, size_t size)
+RHIDescriptor &Descriptor::BindConstant(const std::string &name, const void *constant)
 {
+	m_constant_resolves[name].data = constant;
 	return *this;
 }
 
@@ -303,13 +331,51 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 					bool     is_buffer        = false;
 					uint32_t descriptor_count = 0;
 
-					std::vector<VkDescriptorImageInfo>  image_infos = {};
+					std::vector<VkDescriptorImageInfo>  image_infos  = {};
 					std::vector<VkDescriptorBufferInfo> buffer_infos = {};
 
+					// Handle Texture
 					if (descriptor.type == ShaderMeta::Descriptor::Type::TextureSRV ||
 					    descriptor.type == ShaderMeta::Descriptor::Type::TextureUAV)
 					{
 						is_texture = true;
+						for (auto &view : m_texture_resolves[descriptor.name].views)
+						{
+							image_infos.push_back(VkDescriptorImageInfo{
+							    VK_NULL_HANDLE,
+							    view,
+							    m_texture_resolves[descriptor.name].layout});
+						}
+						descriptor_count = static_cast<uint32_t>(image_infos.size());
+					}
+
+					// Handle Sampler
+					if (descriptor.type == ShaderMeta::Descriptor::Type::Sampler)
+					{
+						is_texture = true;
+						for (auto &sampler : m_texture_resolves[descriptor.name].samplers)
+						{
+							image_infos.push_back(VkDescriptorImageInfo{
+							    sampler,
+							    VK_NULL_HANDLE,
+							    VK_IMAGE_LAYOUT_UNDEFINED});
+						}
+						descriptor_count = static_cast<uint32_t>(image_infos.size());
+					}
+
+					// Handle Buffer
+					if (descriptor.type == ShaderMeta::Descriptor::Type::ConstantBuffer ||
+					    descriptor.type == ShaderMeta::Descriptor::Type::StructuredBuffer)
+					{
+						is_buffer = true;
+						for (uint32_t i = 0; i < m_buffer_resolves[descriptor.name].buffers.size(); i++)
+						{
+							buffer_infos.push_back(VkDescriptorBufferInfo{
+							    m_buffer_resolves[descriptor.name].buffers[i],
+							    m_buffer_resolves[descriptor.name].offsets[i],
+							    m_buffer_resolves[descriptor.name].ranges[i]});
+						}
+						descriptor_count = static_cast<uint32_t>(buffer_infos.size());
 					}
 
 					VkWriteDescriptorSet write_set = {};
@@ -319,11 +385,15 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 					write_set.dstArrayElement      = 0;
 					write_set.descriptorCount      = descriptor_count;
 					write_set.descriptorType       = DescriptorTypeMap[descriptor.type];
-					write_set.pImageInfo           = image_infos.data();
-					write_set.pBufferInfo          = buffer_infos.data();
+					write_set.pImageInfo           = is_texture ? image_infos.data() : nullptr;
+					write_set.pBufferInfo          = is_buffer ? buffer_infos.data() : nullptr;
 					write_set.pTexelBufferView     = nullptr;
+
+					write_sets.push_back(write_set);
 				}
 			}
+
+			vkUpdateDescriptorSets(static_cast<Device *>(p_device)->GetDevice(), static_cast<uint32_t>(write_sets.size()), write_sets.data(), 0, nullptr);
 
 			dirty = false;
 		}
@@ -357,7 +427,7 @@ VkDescriptorSetLayout Descriptor::CreateDescriptorSetLayout(const ShaderMeta &me
 	descriptor_set_layout_create_info.sType                           = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	descriptor_set_layout_create_info.bindingCount                    = static_cast<uint32_t>(descriptor_set_layout_bindings.size());
 	descriptor_set_layout_create_info.pBindings                       = descriptor_set_layout_bindings.data();
-	descriptor_set_layout_create_info.flags                           = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+	descriptor_set_layout_create_info.flags                           = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
 
 	VkDescriptorSetLayoutBindingFlagsCreateInfo descriptor_set_layout_binding_flag_create_info = {};
 	descriptor_set_layout_binding_flag_create_info.sType                                       = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
@@ -371,5 +441,4 @@ VkDescriptorSetLayout Descriptor::CreateDescriptorSetLayout(const ShaderMeta &me
 
 	return layout;
 }
-
 }        // namespace Ilum::Vulkan
