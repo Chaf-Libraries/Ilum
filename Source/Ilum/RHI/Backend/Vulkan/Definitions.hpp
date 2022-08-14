@@ -91,6 +91,116 @@ inline static std::unordered_map<RHISamplerBorderColor, VkBorderColor> ToVulkanB
     {RHISamplerBorderColor::Int_Opaque_White, VK_BORDER_COLOR_INT_OPAQUE_WHITE},
 };
 
+inline static std::unordered_map<RHIPrimitiveTopology, VkPrimitiveTopology> ToVulkanPrimitiveTopology = {
+    {RHIPrimitiveTopology::Point, VK_PRIMITIVE_TOPOLOGY_POINT_LIST},
+    {RHIPrimitiveTopology::Line, VK_PRIMITIVE_TOPOLOGY_LINE_LIST},
+    {RHIPrimitiveTopology::Triangle, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST},
+    {RHIPrimitiveTopology::Patch, VK_PRIMITIVE_TOPOLOGY_PATCH_LIST},
+};
+
+inline static std::unordered_map<RHIPolygonMode, VkPolygonMode> ToVulkanPolygonMode = {
+    {RHIPolygonMode::Solid, VK_POLYGON_MODE_FILL},
+    {RHIPolygonMode::Wireframe, VK_POLYGON_MODE_LINE},
+};
+
+inline static std::unordered_map<RHIBlendFactor, VkBlendFactor> ToVulkanBlendFactor = {
+    {RHIBlendFactor::Zero, VK_BLEND_FACTOR_ZERO},
+    {RHIBlendFactor::One, VK_BLEND_FACTOR_ONE},
+    {RHIBlendFactor::Src_Color, VK_BLEND_FACTOR_SRC_COLOR},
+    {RHIBlendFactor::One_Minus_Src_Color, VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR},
+    {RHIBlendFactor::Dst_Color, VK_BLEND_FACTOR_DST_COLOR},
+    {RHIBlendFactor::One_Minus_Dst_Color, VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR},
+    {RHIBlendFactor::Src_Alpha, VK_BLEND_FACTOR_SRC_ALPHA},
+    {RHIBlendFactor::One_Minus_Src_Alpha, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA},
+    {RHIBlendFactor::Dst_Alpha, VK_BLEND_FACTOR_DST_ALPHA},
+    {RHIBlendFactor::One_Minus_Dst_Alpha, VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA},
+    {RHIBlendFactor::Constant_Color, VK_BLEND_FACTOR_CONSTANT_COLOR},
+    {RHIBlendFactor::One_Minus_Constant_Color, VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR},
+    {RHIBlendFactor::Constant_Alpha, VK_BLEND_FACTOR_CONSTANT_ALPHA},
+    {RHIBlendFactor::One_Minus_Constant_Alpha, VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_ALPHA},
+    {RHIBlendFactor::Src_Alpha_Saturate, VK_BLEND_FACTOR_SRC_ALPHA_SATURATE},
+    {RHIBlendFactor::Src1_Color, VK_BLEND_FACTOR_SRC1_COLOR},
+    {RHIBlendFactor::One_Minus_Src1_Color, VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR},
+    {RHIBlendFactor::Src1_Alpha, VK_BLEND_FACTOR_SRC1_ALPHA},
+    {RHIBlendFactor::One_Minus_Src1_Alpha, VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA},
+};
+
+inline static std::unordered_map<RHIBlendOp, VkBlendOp> ToVulkanBlendOp = {
+    {RHIBlendOp::Add, VK_BLEND_OP_ADD},
+    {RHIBlendOp::Subtract, VK_BLEND_OP_SUBTRACT},
+    {RHIBlendOp::Reverse_Subtract, VK_BLEND_OP_REVERSE_SUBTRACT},
+    {RHIBlendOp::Min, VK_BLEND_OP_MIN},
+    {RHIBlendOp::Max, VK_BLEND_OP_MAX},
+};
+
+inline static std::unordered_map<RHILogicOp, VkLogicOp> ToVulkanLogicOp = {
+    {RHILogicOp::Clear, VK_LOGIC_OP_CLEAR},
+    {RHILogicOp::And, VK_LOGIC_OP_AND},
+    {RHILogicOp::And_Reverse, VK_LOGIC_OP_AND_REVERSE},
+    {RHILogicOp::Copy, VK_LOGIC_OP_COPY},
+    {RHILogicOp::And_Inverted, VK_LOGIC_OP_AND_INVERTED},
+    {RHILogicOp::No_Op, VK_LOGIC_OP_NO_OP},
+    {RHILogicOp::XOR, VK_LOGIC_OP_XOR},
+    {RHILogicOp::Or, VK_LOGIC_OP_OR},
+    {RHILogicOp::Nor, VK_LOGIC_OP_NOR},
+    {RHILogicOp::Equivalent, VK_LOGIC_OP_EQUIVALENT},
+    {RHILogicOp::Invert, VK_LOGIC_OP_INVERT},
+    {RHILogicOp::Or_Reverse, VK_LOGIC_OP_OR_REVERSE},
+    {RHILogicOp::Copy_Inverted, VK_LOGIC_OP_COPY_INVERTED},
+    {RHILogicOp::Or_Inverted, VK_LOGIC_OP_OR_INVERTED},
+    {RHILogicOp::Nand, VK_LOGIC_OP_NAND},
+    {RHILogicOp::Set, VK_LOGIC_OP_SET},
+};
+
+inline static std::unordered_map<RHICompareOp, VkCompareOp> ToVulkanCompareOp = {
+    {RHICompareOp::Never, VK_COMPARE_OP_NEVER},
+    {RHICompareOp::Less, VK_COMPARE_OP_LESS},
+    {RHICompareOp::Equal, VK_COMPARE_OP_EQUAL},
+    {RHICompareOp::Less_Or_Equal, VK_COMPARE_OP_LESS_OR_EQUAL},
+    {RHICompareOp::Greater, VK_COMPARE_OP_GREATER},
+    {RHICompareOp::Not_Equal, VK_COMPARE_OP_NOT_EQUAL},
+    {RHICompareOp::Greater_Or_Equal, VK_COMPARE_OP_GREATER_OR_EQUAL},
+    {RHICompareOp::Always, VK_COMPARE_OP_ALWAYS},
+};
+
+inline static std::unordered_map<RHICullMode, VkCullModeFlagBits> ToVulkanCullMode = {
+    {RHICullMode::None, VK_CULL_MODE_NONE},
+    {RHICullMode::Front, VK_CULL_MODE_FRONT_BIT},
+    {RHICullMode::Back, VK_CULL_MODE_BACK_BIT},
+};
+
+inline static std::unordered_map<RHIFrontFace, VkFrontFace> ToVulkanFrontFace = {
+    {RHIFrontFace::Clockwise, VK_FRONT_FACE_CLOCKWISE},
+    {RHIFrontFace::Clockwise, VK_FRONT_FACE_COUNTER_CLOCKWISE},
+};
+
+inline static std::unordered_map<uint32_t, VkSampleCountFlagBits> ToVulkanSampleCount = {
+    {1, VK_SAMPLE_COUNT_1_BIT},
+    {2, VK_SAMPLE_COUNT_2_BIT},
+    {4, VK_SAMPLE_COUNT_4_BIT},
+    {8, VK_SAMPLE_COUNT_8_BIT},
+    {16, VK_SAMPLE_COUNT_16_BIT},
+    {32, VK_SAMPLE_COUNT_32_BIT},
+    {64, VK_SAMPLE_COUNT_64_BIT},
+};
+
+inline static std::unordered_map<RHIShaderStage, VkShaderStageFlagBits> ToVulkanShaderStage = {
+    {RHIShaderStage::Vertex, VK_SHADER_STAGE_VERTEX_BIT},
+    {RHIShaderStage::TessellationControl, VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT},
+    {RHIShaderStage::TessellationEvaluation, VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT},
+    {RHIShaderStage::Geometry, VK_SHADER_STAGE_GEOMETRY_BIT},
+    {RHIShaderStage::Fragment, VK_SHADER_STAGE_FRAGMENT_BIT},
+    {RHIShaderStage::Compute, VK_SHADER_STAGE_COMPUTE_BIT},
+    {RHIShaderStage::RayGen, VK_SHADER_STAGE_RAYGEN_BIT_KHR},
+    {RHIShaderStage::AnyHit, VK_SHADER_STAGE_ANY_HIT_BIT_KHR},
+    {RHIShaderStage::ClosestHit, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR},
+    {RHIShaderStage::Miss, VK_SHADER_STAGE_MISS_BIT_KHR},
+    {RHIShaderStage::Intersection, VK_SHADER_STAGE_INTERSECTION_BIT_KHR},
+    {RHIShaderStage::Callable, VK_SHADER_STAGE_CALLABLE_BIT_KHR},
+    {RHIShaderStage::Mesh, VK_SHADER_STAGE_MESH_BIT_NV},
+    {RHIShaderStage::Task, VK_SHADER_STAGE_TASK_BIT_NV},
+};
+
 inline static VkImageUsageFlags ToVulkanImageUsage(RHITextureUsage usage)
 {
 	VkImageUsageFlags vk_usage = 0;
@@ -154,7 +264,7 @@ inline static VkBufferUsageFlags ToVulkanBufferUsage(RHIBufferUsage usage)
 	return vk_usage;
 }
 
-inline static VkShaderStageFlags ToVulkanShaderStage(RHIShaderStage stage)
+inline static VkShaderStageFlags ToVulkanShaderStages(RHIShaderStage stage)
 {
 	VkShaderStageFlags flag = 0;
 

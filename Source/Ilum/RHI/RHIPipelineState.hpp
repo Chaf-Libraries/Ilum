@@ -27,8 +27,9 @@ struct DepthStencilState
 
 struct BlendState
 {
-	bool       enable   = false;
-	RHILogicOp logic_op = RHILogicOp::And;
+	bool       enable             = false;
+	RHILogicOp logic_op           = RHILogicOp::And;
+	float      blend_constants[4] = {0.f};
 
 	struct AttachmentState
 	{
@@ -62,6 +63,16 @@ struct BlendState
 
 	inline bool operator==(const BlendState &state)
 	{
+		if (enable != state.enable ||
+		    logic_op != state.logic_op ||
+		    blend_constants[0] != state.blend_constants[0] ||
+		    blend_constants[1] != state.blend_constants[1] ||
+		    blend_constants[2] != state.blend_constants[2] ||
+		    blend_constants[3] != state.blend_constants[3])
+		{
+			return false;
+		}
+
 		if (attachment_states.size() == state.attachment_states.size())
 		{
 			for (uint32_t i = 0; i < attachment_states.size(); i++)
@@ -126,11 +137,11 @@ struct MultisampleState
 	}
 };
 
-struct InputAssemblyState
+struct VertexInputState
 {
-	// TODO: optimize
 	struct InputAttribute
 	{
+		RHIVertexSemantics semantics;
 		uint32_t           location;
 		uint32_t           binding;
 		RHIFormat          format;
@@ -139,7 +150,8 @@ struct InputAssemblyState
 
 		inline bool operator==(const InputAttribute &desc)
 		{
-			return location == desc.location &&
+			return semantics == desc.semantics &&
+			       location == desc.location &&
 			       binding == desc.binding &&
 			       format == desc.format &&
 			       offset == desc.offset &&
@@ -153,7 +165,7 @@ struct InputAssemblyState
 
 	std::vector<InputAttribute> input_attributes;
 
-	inline bool operator==(const InputAssemblyState &state)
+	inline bool operator==(const VertexInputState &state)
 	{
 		if (input_attributes.size() == state.input_attributes.size())
 		{
@@ -171,6 +183,22 @@ struct InputAssemblyState
 			return false;
 		}
 	}
+
+	inline bool operator!=(const VertexInputState &state)
+	{
+		return !(*this == state);
+	}
+};
+
+struct InputAssemblyState
+{
+	RHIPrimitiveTopology topology;
+
+	inline bool operator==(const InputAssemblyState &state)
+	{
+		return topology == state.topology;
+	}
+
 	inline bool operator!=(const InputAssemblyState &state)
 	{
 		return !(*this == state);
@@ -192,12 +220,14 @@ class RHIPipelineState
 	RHIPipelineState &SetBlendState(const BlendState &state);
 	RHIPipelineState &SetRasterizationState(const RasterizationState &state);
 	RHIPipelineState &SetMultisampleState(const MultisampleState &state);
+	RHIPipelineState &SetVertexInputState(const VertexInputState &state);
 	RHIPipelineState &SetInputAssemblyState(const InputAssemblyState &state);
 
 	const DepthStencilState  &GetDepthStencilState() const;
 	const BlendState         &GetBlendState() const;
 	const RasterizationState &GetRasterizationState() const;
 	const MultisampleState   &GetMultisampleState() const;
+	const VertexInputState   &GetVertexInputState() const;
 	const InputAssemblyState &GetInputAssemblyState() const;
 
 	size_t GetHash();
@@ -212,6 +242,7 @@ class RHIPipelineState
 	RasterizationState m_rasterization_state;
 	MultisampleState   m_multisample_state;
 	InputAssemblyState m_input_assembly_state;
+	VertexInputState   m_vertex_input_state;
 
 	bool   m_dirty = false;
 	size_t m_hash  = 0;

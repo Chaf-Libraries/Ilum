@@ -5,8 +5,8 @@
 
 namespace Ilum::Vulkan
 {
-Shader::Shader(RHIDevice *device, const std::vector<uint8_t> &source) :
-    RHIShader(device, source)
+Shader::Shader(RHIDevice *device, const std::string &entry_point, const std::vector<uint8_t> &source) :
+    RHIShader(device, entry_point, source)
 {
 	VkShaderModuleCreateInfo create_info = {};
 	create_info.sType                    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;

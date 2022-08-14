@@ -12,7 +12,7 @@ class Descriptor;
 class PipelineState : public RHIPipelineState
 {
   public:
-	PipelineState(RHIDevice *device, Descriptor* descriptor);
+	PipelineState(RHIDevice *device, Descriptor *descriptor);
 
 	virtual ~PipelineState() override;
 
@@ -21,7 +21,12 @@ class PipelineState : public RHIPipelineState
 	VkPipeline GetPipeline() const;
 
   private:
-	VkPipeline       m_pipeline        = VK_NULL_HANDLE;
-	VkPipelineLayout m_pipeline_layout = VK_NULL_HANDLE;
+	VkPipelineLayout CreatePipelineLayout() const;
+	VkPipeline       CreatePipeline() const;
+
+  private:
+	const ShaderMeta m_meta;
+
+	Descriptor *m_descriptor = nullptr;
 };
 }        // namespace Ilum::Vulkan

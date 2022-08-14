@@ -99,6 +99,18 @@ inline bool IsDepthFormat(RHIFormat format)
 	       format == RHIFormat::D24_UNORM_S8_UINT;
 }
 
+enum class RHIVertexSemantics
+{
+	Binormal,
+	Blend_Indices,
+	Blend_Weights,
+	Color,
+	Normal,
+	Position,
+	Tangent,
+	Texcoord
+};
+
 enum class RHIMemoryUsage
 {
 	GPU_Only,
@@ -297,5 +309,13 @@ enum class RHIVertexInputRate
 {
 	Vertex,
 	Instance
+};
+
+enum class RHIPrimitiveTopology
+{
+	POINT,
+	LINE,
+	TRIANGLE,
+	PATCH,
 };
 }        // namespace Ilum

@@ -122,11 +122,14 @@ struct ShaderMeta
 class RHIShader
 {
   public:
-	RHIShader(RHIDevice *device, const std::vector<uint8_t> &source);
+	RHIShader(RHIDevice *device, const std::string& entry_point, const std::vector<uint8_t> &source);
 
 	virtual ~RHIShader() = 0;
 
+	const std::string &GetEntryPoint() const;
+
   protected:
 	RHIDevice *p_device = nullptr;
+	std::string m_entry_point;
 };
 }        // namespace Ilum

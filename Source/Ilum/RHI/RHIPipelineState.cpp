@@ -152,8 +152,8 @@ size_t RHIPipelineState::GetHash()
 		            m_multisample_state.samples,
 		            m_multisample_state.sample_mask);
 
-		// Hash Input Assembly State
-		for (auto& input_attribute : m_input_assembly_state.input_attributes)
+		// Hash Vertex Input State
+		for (auto& input_attribute : m_vertex_input_state.input_attributes)
 		{
 			HashCombine(m_hash,
 			            input_attribute.location,
@@ -162,6 +162,9 @@ size_t RHIPipelineState::GetHash()
 			            input_attribute.offset,
 			            input_attribute.rate);
 		}
+
+		// Hash Input Assembly State
+		HashCombine(m_hash, m_input_assembly_state.topology);
 
 		m_dirty = false;
 	}
