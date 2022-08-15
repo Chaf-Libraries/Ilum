@@ -305,7 +305,7 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(cons
 
 		dxc_buffer.Ptr      = blob_encoding->GetBufferPointer();
 		dxc_buffer.Size     = blob_encoding->GetBufferSize();
-		dxc_buffer.Encoding = DXC_CP_ACP;        // Assume BOM says UTF8 or UTF16 or this is ANSI text.
+		dxc_buffer.Encoding = DXC_CP_ACP;
 	}
 
 	std::vector<std::wstring> arguments;

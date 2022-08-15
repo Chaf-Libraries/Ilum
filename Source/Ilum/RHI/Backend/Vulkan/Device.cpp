@@ -495,37 +495,75 @@ void Device::CreateLogicalDevice()
 	}
 
 	// Enable logical device features
-	VkPhysicalDeviceFeatures physical_device_features;
-	vkGetPhysicalDeviceFeatures(m_physical_device, &physical_device_features);
+	VkPhysicalDeviceFeatures2        physical_device_features          = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+	VkPhysicalDeviceVulkan12Features physical_device_vulkan12_features = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+	VkPhysicalDeviceVulkan13Features physical_device_vulkan13_features = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
 
-#define ENABLE_DEVICE_FEATURE(feature)                              \
-	if (physical_device_features.feature)                           \
-	{                                                               \
-		physical_device_features.feature = VK_TRUE;                 \
-		m_supported_device_features.push_back(#feature);            \
+	physical_device_features.pNext          = &physical_device_vulkan12_features;
+	physical_device_vulkan12_features.pNext = &physical_device_vulkan13_features;
+
+	vkGetPhysicalDeviceFeatures2(m_physical_device, &physical_device_features);
+
+	VkPhysicalDeviceFeatures2        physical_device_features_enable          = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+	VkPhysicalDeviceVulkan12Features physical_device_vulkan12_features_enable = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+	VkPhysicalDeviceVulkan13Features physical_device_vulkan13_features_enable = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+
+#define ENABLE_DEVICE_FEATURE(device_feature, device_feature_enable, feature)            \
+	if (device_feature.feature)                                   \
+	{                                                             \
+		device_feature_enable.feature = VK_TRUE;                         \
+		m_supported_device_features.push_back(#feature);          \
+	}                                                             \
+	else                                                          \
+	{                                                             \
+		LOG_WARN("Device feature {} is not supported", #feature); \
 	}
 
-	ENABLE_DEVICE_FEATURE(sampleRateShading);
-	ENABLE_DEVICE_FEATURE(fillModeNonSolid);
-	ENABLE_DEVICE_FEATURE(wideLines);
-	ENABLE_DEVICE_FEATURE(samplerAnisotropy);
-	ENABLE_DEVICE_FEATURE(vertexPipelineStoresAndAtomics);
-	ENABLE_DEVICE_FEATURE(fragmentStoresAndAtomics);
-	ENABLE_DEVICE_FEATURE(shaderStorageImageExtendedFormats);
-	ENABLE_DEVICE_FEATURE(shaderStorageImageWriteWithoutFormat);
-	ENABLE_DEVICE_FEATURE(geometryShader);
-	ENABLE_DEVICE_FEATURE(tessellationShader);
-	ENABLE_DEVICE_FEATURE(multiViewport);
-	ENABLE_DEVICE_FEATURE(imageCubeArray);
-	ENABLE_DEVICE_FEATURE(robustBufferAccess);
-	ENABLE_DEVICE_FEATURE(multiDrawIndirect);
-	ENABLE_DEVICE_FEATURE(drawIndirectFirstInstance);
+	ENABLE_DEVICE_FEATURE(physical_device_features.features, physical_device_features_enable.features, sampleRateShading);
+	ENABLE_DEVICE_FEATURE(physical_device_features.features, physical_device_features_enable.features, fillModeNonSolid);
+	ENABLE_DEVICE_FEATURE(physical_device_features.features, physical_device_features_enable.features, wideLines);
+	ENABLE_DEVICE_FEATURE(physical_device_features.features, physical_device_features_enable.features, samplerAnisotropy);
+	ENABLE_DEVICE_FEATURE(physical_device_features.features, physical_device_features_enable.features, vertexPipelineStoresAndAtomics);
+	ENABLE_DEVICE_FEATURE(physical_device_features.features, physical_device_features_enable.features, fragmentStoresAndAtomics);
+	ENABLE_DEVICE_FEATURE(physical_device_features.features, physical_device_features_enable.features, shaderStorageImageExtendedFormats);
+	ENABLE_DEVICE_FEATURE(physical_device_features.features, physical_device_features_enable.features, shaderStorageImageWriteWithoutFormat);
+	ENABLE_DEVICE_FEATURE(physical_device_features.features, physical_device_features_enable.features, geometryShader);
+	ENABLE_DEVICE_FEATURE(physical_device_features.features, physical_device_features_enable.features, tessellationShader);
+	ENABLE_DEVICE_FEATURE(physical_device_features.features, physical_device_features_enable.features, multiViewport);
+	ENABLE_DEVICE_FEATURE(physical_device_features.features, physical_device_features_enable.features, imageCubeArray);
+	ENABLE_DEVICE_FEATURE(physical_device_features.features, physical_device_features_enable.features, robustBufferAccess);
+	ENABLE_DEVICE_FEATURE(physical_device_features.features, physical_device_features_enable.features, multiDrawIndirect);
+	ENABLE_DEVICE_FEATURE(physical_device_features.features, physical_device_features_enable.features, drawIndirectFirstInstance);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, drawIndirectCount);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, descriptorIndexing);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, shaderInputAttachmentArrayDynamicIndexing);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, shaderUniformTexelBufferArrayDynamicIndexing);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, shaderStorageTexelBufferArrayDynamicIndexing);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, shaderUniformBufferArrayNonUniformIndexing);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, shaderSampledImageArrayNonUniformIndexing);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, shaderStorageBufferArrayNonUniformIndexing);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, shaderStorageImageArrayNonUniformIndexing);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, shaderInputAttachmentArrayNonUniformIndexing);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, shaderUniformTexelBufferArrayNonUniformIndexing);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, shaderStorageTexelBufferArrayNonUniformIndexing);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, descriptorBindingUniformBufferUpdateAfterBind);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, descriptorBindingSampledImageUpdateAfterBind);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, descriptorBindingStorageImageUpdateAfterBind);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, descriptorBindingStorageBufferUpdateAfterBind);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, descriptorBindingUniformTexelBufferUpdateAfterBind);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, descriptorBindingStorageTexelBufferUpdateAfterBind);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, descriptorBindingPartiallyBound);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, timelineSemaphore);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, bufferDeviceAddress);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, shaderOutputViewportIndex);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, shaderOutputLayer);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan13_features, physical_device_vulkan13_features_enable, maintenance4);
 
 	// Get support extensions
 	auto support_extensions = GetDeviceExtensionSupport(m_physical_device, DeviceExtensions);
 
 	{
-		m_feature_support[RHIFeature::RayTracing] = true;
+		m_feature_support[RHIFeature::RayTracing]       = true;
 		std::vector<const char *> raytracing_extensions = {
 		    VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
 		    VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
@@ -549,7 +587,7 @@ void Device::CreateLogicalDevice()
 				break;
 			}
 		}
-	}
+	};
 	{
 		m_feature_support[RHIFeature::MeshShading] = false;
 		for (auto &extension : m_supported_device_extensions)
@@ -563,9 +601,9 @@ void Device::CreateLogicalDevice()
 	}
 	{
 		m_feature_support[RHIFeature::BufferDeviceAddress] = false;
-		for (auto &extension : m_supported_device_extensions)
+		for (auto &feature : m_supported_device_features)
 		{
-			if (strcmp(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME, extension) == 0)
+			if (strcmp("bufferDeviceAddress", feature) == 0)
 			{
 				m_feature_support[RHIFeature::BufferDeviceAddress] = true;
 				break;
@@ -574,9 +612,9 @@ void Device::CreateLogicalDevice()
 	}
 	{
 		m_feature_support[RHIFeature::Bindless] = false;
-		for (auto &extension : m_supported_device_extensions)
+		for (auto &extension : m_supported_device_features)
 		{
-			if (strcmp(VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME, extension) == 0)
+			if (strcmp("descriptorIndexing", extension) == 0)
 			{
 				m_feature_support[RHIFeature::Bindless] = true;
 				break;
@@ -592,8 +630,6 @@ void Device::CreateLogicalDevice()
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_feature = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
 	VkPhysicalDeviceRayTracingPipelineFeaturesKHR    ray_tracing_pipeline_feature   = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
 	VkPhysicalDeviceRayQueryFeaturesKHR              ray_query_features             = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR};
-	VkPhysicalDeviceBufferDeviceAddressFeaturesKHR   buffer_device_address_features = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_KHR};
-	VkPhysicalDeviceDescriptorIndexingFeaturesEXT    descriptor_indexing_features   = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT};
 	VkPhysicalDeviceMeshShaderFeaturesNV             mesh_shader_feature            = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV};
 
 	void  *feature_ptr_head = nullptr;
@@ -612,41 +648,6 @@ void Device::CreateLogicalDevice()
 		feature_ptr_tail = &ray_query_features.pNext;
 	}
 
-	if (IsFeatureSupport(RHIFeature::BufferDeviceAddress))
-	{
-		buffer_device_address_features.bufferDeviceAddress = VK_TRUE;
-
-		if (!feature_ptr_head)
-		{
-			feature_ptr_head = &buffer_device_address_features;
-		}
-		else
-		{
-			*feature_ptr_tail = &buffer_device_address_features;
-		}
-		feature_ptr_tail = &buffer_device_address_features.pNext;
-	}
-
-	if (IsFeatureSupport(RHIFeature::Bindless))
-	{
-		descriptor_indexing_features.descriptorBindingPartiallyBound            = VK_TRUE;
-		descriptor_indexing_features.runtimeDescriptorArray                     = VK_TRUE;
-		descriptor_indexing_features.shaderSampledImageArrayNonUniformIndexing  = VK_TRUE;
-		descriptor_indexing_features.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE;
-		descriptor_indexing_features.shaderStorageImageArrayNonUniformIndexing  = VK_TRUE;
-		descriptor_indexing_features.descriptorBindingVariableDescriptorCount   = VK_TRUE;
-
-		if (!feature_ptr_head)
-		{
-			feature_ptr_head = &descriptor_indexing_features;
-		}
-		else
-		{
-			*feature_ptr_tail = &descriptor_indexing_features;
-		}
-		feature_ptr_tail = &descriptor_indexing_features.pNext;
-	}
-
 	if (IsFeatureSupport(RHIFeature::MeshShading))
 	{
 		mesh_shader_feature.meshShader = VK_TRUE;
@@ -663,6 +664,9 @@ void Device::CreateLogicalDevice()
 		feature_ptr_tail = &mesh_shader_feature.pNext;
 	}
 
+	physical_device_vulkan12_features_enable.pNext = &physical_device_vulkan13_features_enable;
+	physical_device_vulkan13_features_enable.pNext = feature_ptr_head;
+
 	// Create device
 	VkDeviceCreateInfo device_create_info = {};
 
@@ -676,8 +680,8 @@ void Device::CreateLogicalDevice()
 	}
 	device_create_info.enabledExtensionCount   = static_cast<uint32_t>(support_extensions.size());
 	device_create_info.ppEnabledExtensionNames = support_extensions.data();
-	device_create_info.pEnabledFeatures        = &physical_device_features;
-	device_create_info.pNext                   = feature_ptr_head;
+	device_create_info.pEnabledFeatures        = &physical_device_features.features;
+	device_create_info.pNext                   = &physical_device_vulkan12_features;
 
 	if (vkCreateDevice(m_physical_device, &device_create_info, nullptr, &m_logical_device) != VK_SUCCESS)
 	{

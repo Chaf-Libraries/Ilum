@@ -1,10 +1,17 @@
 #include "RHIPipelineState.hpp"
 
+#include "Backend/Vulkan/PipelineState.hpp"
+
 namespace Ilum
 {
 RHIPipelineState::RHIPipelineState(RHIDevice *device) :
     p_device(device)
 {
+}
+
+std::unique_ptr<RHIPipelineState> RHIPipelineState::Create(RHIDevice *device)
+{
+	return std::make_unique<Vulkan::PipelineState>(device);
 }
 
 RHIPipelineState &RHIPipelineState::SetShader(RHIShaderStage stage, RHIShader *shader)
@@ -99,6 +106,11 @@ const MultisampleState &RHIPipelineState::GetMultisampleState() const
 	return m_multisample_state;
 }
 
+const VertexInputState &RHIPipelineState::GetVertexInputState() const
+{
+	return m_vertex_input_state;
+}
+
 const InputAssemblyState &RHIPipelineState::GetInputAssemblyState() const
 {
 	return m_input_assembly_state;
@@ -153,14 +165,13 @@ size_t RHIPipelineState::GetHash()
 		            m_multisample_state.sample_mask);
 
 		// Hash Vertex Input State
-		for (auto& input_attribute : m_vertex_input_state.input_attributes)
+		for (auto &input_attribute : m_vertex_input_state.input_attributes)
 		{
 			HashCombine(m_hash,
 			            input_attribute.location,
 			            input_attribute.binding,
 			            input_attribute.format,
-			            input_attribute.offset,
-			            input_attribute.rate);
+			            input_attribute.offset);
 		}
 
 		// Hash Input Assembly State

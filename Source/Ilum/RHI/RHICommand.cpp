@@ -25,8 +25,4 @@ std::unique_ptr<RHICommand> RHICommand::Create(RHIDevice *device, RHIQueueFamily
 	return std::make_unique<Vulkan::Command>(device, family);
 }
 
-void RHICommand::Reset(RHIDevice *device, uint32_t frame_index)
-{
-	Vulkan::Command::ResetCommandPool(device, frame_index);
-}
 }        // namespace Ilum

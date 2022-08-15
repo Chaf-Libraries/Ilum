@@ -36,9 +36,9 @@ struct AccelerationStructureResolve
 
 struct ConstantResolve
 {
-	const void    *data   = nullptr;
-	size_t         size   = 0;
-	size_t         offset = 0;
+	const void        *data   = nullptr;
+	size_t             size   = 0;
+	size_t             offset = 0;
 	VkShaderStageFlags stage;
 };
 
@@ -50,7 +50,7 @@ class Descriptor : public RHIDescriptor
 	virtual ~Descriptor() override;
 
 	virtual RHIDescriptor &BindTexture(const std::string &name, RHITexture *texture, RHITextureDimension dimension) override;
-	virtual RHIDescriptor &BindTexture(const std::string &name, RHITexture *texture, RHITextureDimension dimension, uint32_t base_mip, uint32_t mip_count, uint32_t base_layer, uint32_t layer_count) override;
+	virtual RHIDescriptor &BindTexture(const std::string &name, RHITexture *texture, const TextureRange &range) override;
 	virtual RHIDescriptor &BindTexture(const std::string &name, const std::vector<RHITexture *> &textures, RHITextureDimension dimension) override;
 
 	virtual RHIDescriptor &BindSampler(const std::string &name, RHISampler *sampler) override;
@@ -65,6 +65,7 @@ class Descriptor : public RHIDescriptor
 	const std::unordered_map<uint32_t, VkDescriptorSet> &GetDescriptorSet();
 
 	const std::unordered_map<uint32_t, VkDescriptorSetLayout> &GetDescriptorSetLayout();
+
 
   private:
 	VkDescriptorSetLayout CreateDescriptorSetLayout(const ShaderMeta &meta);

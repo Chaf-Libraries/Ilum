@@ -23,18 +23,18 @@ class RHIDescriptor
 
 	static std::unique_ptr<RHIDescriptor> Create(RHIDevice *device, const ShaderMeta &meta);
 
-	virtual RHIDescriptor &BindTexture(const std::string &name, RHITexture *texture, RHITextureDimension dimension)                                                                                   = 0;
-	virtual RHIDescriptor &BindTexture(const std::string &name, RHITexture *texture, RHITextureDimension dimension, uint32_t base_mip, uint32_t mip_count, uint32_t base_layer, uint32_t layer_count) = 0;
-	virtual RHIDescriptor &BindTexture(const std::string &name, const std::vector<RHITexture *> &textures, RHITextureDimension dimension)                                                             = 0;
+	virtual RHIDescriptor &BindTexture(const std::string &name, RHITexture *texture, RHITextureDimension dimension)                       = 0;
+	virtual RHIDescriptor &BindTexture(const std::string &name, RHITexture *texture, const TextureRange &range)                           = 0;
+	virtual RHIDescriptor &BindTexture(const std::string &name, const std::vector<RHITexture *> &textures, RHITextureDimension dimension) = 0;
 
-	virtual RHIDescriptor &BindSampler(const std::string &name, RHISampler *sampler)                      = 0;
+	virtual RHIDescriptor &BindSampler(const std::string &name, RHISampler *sampler)                       = 0;
 	virtual RHIDescriptor &BindSampler(const std::string &name, const std::vector<RHISampler *> &samplers) = 0;
 
-	virtual RHIDescriptor &BindBuffer(const std::string &name, RHIBuffer *buffer)                      = 0;
-	virtual RHIDescriptor &BindBuffer(const std::string &name, RHIBuffer *buffer, size_t offset, size_t range)                      = 0;
-	virtual RHIDescriptor &BindBuffer(const std::string &name, const std::vector<RHIBuffer *> &buffers) = 0;
+	virtual RHIDescriptor &BindBuffer(const std::string &name, RHIBuffer *buffer)                              = 0;
+	virtual RHIDescriptor &BindBuffer(const std::string &name, RHIBuffer *buffer, size_t offset, size_t range) = 0;
+	virtual RHIDescriptor &BindBuffer(const std::string &name, const std::vector<RHIBuffer *> &buffers)        = 0;
 
-	virtual RHIDescriptor &BindConstant(const std::string& name, const void *constant) = 0;
+	virtual RHIDescriptor &BindConstant(const std::string &name, const void *constant) = 0;
 
 	// RHIDescriptor &BindAccelerationStructure();
   protected:

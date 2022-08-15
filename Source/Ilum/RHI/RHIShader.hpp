@@ -124,7 +124,9 @@ class RHIShader
   public:
 	RHIShader(RHIDevice *device, const std::string& entry_point, const std::vector<uint8_t> &source);
 
-	virtual ~RHIShader() = 0;
+	virtual ~RHIShader() = default;
+
+	static std::unique_ptr<RHIShader> Create(RHIDevice *device, const std::string &entry_point, const std::vector<uint8_t> &source);
 
 	const std::string &GetEntryPoint() const;
 

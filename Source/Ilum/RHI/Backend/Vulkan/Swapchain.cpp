@@ -241,7 +241,7 @@ void Swapchain::CreateSwapchain(const VkExtent2D &extent)
 		desc.samples     = 1;
 
 		// TODO: Maybe different format?
-		desc.format = RHIFormat::R8G8B8A8_UNORM;
+		desc.format = RHIFormat::B8G8R8A8_UNORM;
 		desc.usage  = RHITextureUsage::RenderTarget;
 
 		uint32_t m_image_count = 0;

@@ -1,6 +1,9 @@
 #include "Command.hpp"
 #include "Buffer.hpp"
+#include "Descriptor.hpp"
 #include "Device.hpp"
+#include "PipelineState.hpp"
+#include "RenderTarget.hpp"
 #include "Texture.hpp"
 
 namespace Ilum::Vulkan
@@ -26,10 +29,10 @@ Command::Command(RHIDevice *device, RHIQueueFamily family) :
 		VkCommandPoolCreateInfo create_info = {};
 		create_info.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		create_info.flags                   = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
-		create_info.queueFamilyIndex        = static_cast<Device *>(device)->GetQueueFamily(family);
+		create_info.queueFamilyIndex        = static_cast<Device *>(p_device)->GetQueueFamily(family);
 
 		VkCommandPool pool = VK_NULL_HANDLE;
-		vkCreateCommandPool(static_cast<Device *>(device)->GetDevice(), &create_info, nullptr, &pool);
+		vkCreateCommandPool(static_cast<Device *>(p_device)->GetDevice(), &create_info, nullptr, &pool);
 		CommandPools[hash] = pool;
 	}
 	m_pool = CommandPools[hash];
@@ -40,7 +43,7 @@ Command::Command(RHIDevice *device, RHIQueueFamily family) :
 	allocate_info.commandPool                 = m_pool;
 	allocate_info.level                       = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	allocate_info.commandBufferCount          = 1;
-	vkAllocateCommandBuffers(static_cast<Device *>(device)->GetDevice(), &allocate_info, &m_handle);
+	vkAllocateCommandBuffers(static_cast<Device *>(p_device)->GetDevice(), &allocate_info, &m_handle);
 }
 
 Command::Command(RHIDevice *device, VkCommandPool pool, RHIQueueFamily family) :
@@ -53,7 +56,7 @@ Command::Command(RHIDevice *device, VkCommandPool pool, RHIQueueFamily family) :
 	allocate_info.commandPool                 = pool;
 	allocate_info.level                       = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 	allocate_info.commandBufferCount          = 1;
-	vkAllocateCommandBuffers(static_cast<Device *>(device)->GetDevice(), &allocate_info, &m_handle);
+	vkAllocateCommandBuffers(static_cast<Device *>(p_device)->GetDevice(), &allocate_info, &m_handle);
 }
 
 Command::~Command()
@@ -90,22 +93,6 @@ void Command::SetState(CommandState state)
 	m_state = state;
 }
 
-void Command::ResetCommandPool(RHIDevice *device, uint32_t frame_index)
-{
-	for (auto &[hash, pool] : CommandPools)
-	{
-		vkResetCommandPool(static_cast<Device *>(device)->GetDevice(), pool, 0);
-	}
-
-	for (auto &[hash, cmd_buffers] : CommandBuffers)
-	{
-		for (auto &cmd_buffer : cmd_buffers)
-		{
-			cmd_buffer->m_state = CommandState::Available;
-		}
-	}
-}
-
 VkCommandBuffer Command::GetHandle() const
 {
 	return m_handle;
@@ -130,14 +117,49 @@ void Command::End()
 	ASSERT(m_state == CommandState::Recording);
 	vkEndCommandBuffer(m_handle);
 	m_state = CommandState::Executable;
+
+	p_descriptor = nullptr;
 }
 
-void Command::BeginPass()
+void Command::BeginRenderPass(RHIRenderTarget *render_target)
 {
+	/*VkRenderingInfo rendering_info = {};
+	rendering_info.sType           = VK_STRUCTURE_TYPE_RENDERING_INFO;
+	rendering_info.renderArea      = {0, 0, render_target->GetWidth(), render_target->GetHeight()};
+	rendering_info.layerCount      = render_target->GetLayers();
+
+	RenderTarget *vk_render_target = static_cast<RenderTarget *>(render_target);
+
+	rendering_info.colorAttachmentCount = static_cast<uint32_t>(vk_render_target->GetColorAttachments().size());
+	rendering_info.pColorAttachments    = vk_render_target->GetColorAttachments().data();
+	rendering_info.pDepthAttachment     = vk_render_target->GetDepthAttachment().has_value() ? &vk_render_target->GetDepthAttachment().value() : nullptr;
+	rendering_info.pStencilAttachment   = vk_render_target->GetStencilAttachment().has_value() ? &vk_render_target->GetStencilAttachment().value() : nullptr;*/
+
+	//vkCmdBeginRendering(m_handle, &rendering_info);
+	RenderTarget *vk_render_target = static_cast<RenderTarget *>(render_target);
+
+	auto clear_values = vk_render_target->GetClearValue();
+
+	VkRenderPassBeginInfo begin_info = {};
+	begin_info.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	begin_info.framebuffer           = vk_render_target->GetFramebuffer();
+	begin_info.pClearValues          = clear_values.data();
+	begin_info.clearValueCount       = static_cast<uint32_t>(clear_values.size());
+	begin_info.renderPass            = vk_render_target->GetRenderPass();
+	begin_info.renderArea            = vk_render_target->GetRenderArea();
+
+	vkCmdBeginRenderPass(m_handle, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
+
+	p_render_target = static_cast<RenderTarget*>(render_target);
 }
 
-void Command::EndPass()
+void Command::EndRenderPass()
 {
+	//vkCmdEndRendering(m_handle);
+
+	vkCmdEndRenderPass(m_handle);
+
+	p_render_target = nullptr;
 }
 
 void Command::BindVertexBuffer()
@@ -148,8 +170,33 @@ void Command::BindIndexBuffer()
 {
 }
 
-void Command::BindPipeline(RHIPipelineState *pipeline_state, RHIDescriptor *descriptor)
+void Command::BindDescriptor(RHIDescriptor *descriptor)
 {
+	p_descriptor = static_cast<Descriptor *>(descriptor);
+}
+
+void Command::BindPipelineState(RHIPipelineState *pipeline_state)
+{
+	ASSERT(p_descriptor != nullptr);
+	PipelineState *pso = static_cast<PipelineState *>(pipeline_state);
+	vkCmdBindPipeline(m_handle, pso->GetPipelineBindPoint(), pso->GetPipeline(p_descriptor, p_render_target));
+	for (auto &[set, descriptor_set] : p_descriptor->GetDescriptorSet())
+	{
+		vkCmdBindDescriptorSets(m_handle, pso->GetPipelineBindPoint(), pso->GetPipelineLayout(p_descriptor), set, 1, &descriptor_set, 0, nullptr);
+	}
+}
+
+void Command::SetViewport(float width, float height, float x, float y)
+{
+	// Flip y
+	VkViewport viewport = {x, y + height, width, -height, 0.f, 1.f};
+	vkCmdSetViewport(m_handle, 0, 1, &viewport);
+}
+
+void Command::SetScissor(uint32_t width, uint32_t height, int32_t offset_x, int32_t offset_y)
+{
+	VkRect2D rect = {VkOffset2D{offset_x, offset_y}, VkExtent2D{width, height}};
+	vkCmdSetScissor(m_handle, 0, 1, &rect);
 }
 
 void Command::Dispatch(uint32_t group_x, uint32_t group_y, uint32_t group_z)

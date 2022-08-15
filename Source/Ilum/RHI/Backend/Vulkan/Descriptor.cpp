@@ -97,7 +97,7 @@ Descriptor::Descriptor(RHIDevice *device, const ShaderMeta &meta) :
 		        nullptr,
 		        constant.size,
 		        constant.offset,
-		        ToVulkanShaderStage(constant.stage)});
+		        ToVulkanShaderStages(constant.stage)});
 	}
 
 	for (auto &[set, meta] : set_meta)
@@ -157,23 +157,23 @@ Descriptor ::~Descriptor()
 }
 RHIDescriptor &Descriptor::BindTexture(const std::string &name, RHITexture *texture, RHITextureDimension dimension)
 {
-	return BindTexture(name, texture, dimension, 0, texture->GetDesc().mips, 0, texture->GetDesc().layers);
+	TextureRange range = {};
+	range.dimension    = dimension;
+	range.base_layer   = 0;
+	range.layer_count  = texture->GetDesc().layers;
+	range.base_mip     = 0;
+	range.mip_count    = texture->GetDesc().mips;
+
+	return BindTexture(name, texture, range);
 }
 
-RHIDescriptor &Descriptor::BindTexture(const std::string &name, RHITexture *texture, RHITextureDimension dimension, uint32_t base_mip, uint32_t mip_count, uint32_t base_layer, uint32_t layer_count)
+RHIDescriptor &Descriptor::BindTexture(const std::string &name, RHITexture *texture, const TextureRange &range)
 {
 	size_t hash = 0;
-	HashCombine(hash, texture, dimension, base_mip, mip_count, base_layer, layer_count);
+	HashCombine(hash, texture, range.dimension, range.base_mip, range.mip_count, range.base_layer, range.layer_count);
 
 	if (m_binding_hash[name] != hash)
 	{
-		TextureRange range = {};
-		range.dimension    = dimension;
-		range.base_layer   = base_layer;
-		range.base_mip     = base_mip;
-		range.layer_count  = layer_count;
-		range.mip_count    = mip_count;
-
 		VkImageView view = static_cast<Texture *>(texture)->GetView(range);
 
 		m_texture_resolves[name].views = {view};
@@ -323,6 +323,8 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 		if (dirty)
 		{
 			std::vector<VkWriteDescriptorSet> write_sets;
+			std::vector<std::vector<VkDescriptorImageInfo>>  image_infos  = {};
+			std::vector<std::vector<VkDescriptorBufferInfo>> buffer_infos = {};
 			for (auto &descriptor : m_meta.descriptors)
 			{
 				if (descriptor.set == set)
@@ -331,8 +333,8 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 					bool     is_buffer        = false;
 					uint32_t descriptor_count = 0;
 
-					std::vector<VkDescriptorImageInfo>  image_infos  = {};
-					std::vector<VkDescriptorBufferInfo> buffer_infos = {};
+					image_infos.push_back({});
+					buffer_infos.push_back({});
 
 					// Handle Texture
 					if (descriptor.type == ShaderMeta::Descriptor::Type::TextureSRV ||
@@ -341,12 +343,12 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 						is_texture = true;
 						for (auto &view : m_texture_resolves[descriptor.name].views)
 						{
-							image_infos.push_back(VkDescriptorImageInfo{
+							image_infos.back().push_back(VkDescriptorImageInfo{
 							    VK_NULL_HANDLE,
 							    view,
 							    m_texture_resolves[descriptor.name].layout});
 						}
-						descriptor_count = static_cast<uint32_t>(image_infos.size());
+						descriptor_count = static_cast<uint32_t>(image_infos.back().size());
 					}
 
 					// Handle Sampler
@@ -355,12 +357,12 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 						is_texture = true;
 						for (auto &sampler : m_texture_resolves[descriptor.name].samplers)
 						{
-							image_infos.push_back(VkDescriptorImageInfo{
+							image_infos.back().push_back(VkDescriptorImageInfo{
 							    sampler,
 							    VK_NULL_HANDLE,
 							    VK_IMAGE_LAYOUT_UNDEFINED});
 						}
-						descriptor_count = static_cast<uint32_t>(image_infos.size());
+						descriptor_count = static_cast<uint32_t>(image_infos.back().size());
 					}
 
 					// Handle Buffer
@@ -370,12 +372,12 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 						is_buffer = true;
 						for (uint32_t i = 0; i < m_buffer_resolves[descriptor.name].buffers.size(); i++)
 						{
-							buffer_infos.push_back(VkDescriptorBufferInfo{
+							buffer_infos.back().push_back(VkDescriptorBufferInfo{
 							    m_buffer_resolves[descriptor.name].buffers[i],
 							    m_buffer_resolves[descriptor.name].offsets[i],
 							    m_buffer_resolves[descriptor.name].ranges[i]});
 						}
-						descriptor_count = static_cast<uint32_t>(buffer_infos.size());
+						descriptor_count = static_cast<uint32_t>(buffer_infos.back().size());
 					}
 
 					VkWriteDescriptorSet write_set = {};
@@ -385,8 +387,8 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 					write_set.dstArrayElement      = 0;
 					write_set.descriptorCount      = descriptor_count;
 					write_set.descriptorType       = DescriptorTypeMap[descriptor.type];
-					write_set.pImageInfo           = is_texture ? image_infos.data() : nullptr;
-					write_set.pBufferInfo          = is_buffer ? buffer_infos.data() : nullptr;
+					write_set.pImageInfo           = is_texture ? image_infos.back().data() : nullptr;
+					write_set.pBufferInfo          = is_buffer ? buffer_infos.back().data() : nullptr;
 					write_set.pTexelBufferView     = nullptr;
 
 					write_sets.push_back(write_set);
@@ -417,7 +419,7 @@ VkDescriptorSetLayout Descriptor::CreateDescriptorSetLayout(const ShaderMeta &me
 		VkDescriptorSetLayoutBinding layout_binding = {};
 		layout_binding.binding                      = descriptor.binding;
 		layout_binding.descriptorType               = DescriptorTypeMap[descriptor.type];
-		layout_binding.stageFlags                   = ToVulkanShaderStage(descriptor.stage);
+		layout_binding.stageFlags                   = ToVulkanShaderStage[descriptor.stage];
 		layout_binding.descriptorCount              = descriptor.array_size == 0 ? 1024 : descriptor.array_size;
 		descriptor_set_layout_bindings.push_back(layout_binding);
 		descriptor_binding_flags.push_back(descriptor.array_size == 0 ? VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT : 0);

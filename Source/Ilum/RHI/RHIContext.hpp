@@ -5,6 +5,7 @@
 #include "RHIDescriptor.hpp"
 #include "RHIDevice.hpp"
 #include "RHIFrame.hpp"
+#include "RHIPipelineState.hpp"
 #include "RHIQueue.hpp"
 #include "RHISampler.hpp"
 #include "RHIShader.hpp"
@@ -40,6 +41,15 @@ class RHIContext
 
 	// Create Descriptor
 	std::unique_ptr<RHIDescriptor> CreateDescriptor(const ShaderMeta &meta);
+
+	// Create PipelineState
+	std::unique_ptr<RHIPipelineState> CreatePipelineState();
+
+	// Create Shader
+	std::unique_ptr<RHIShader> CreateShader(const std::string &entry_point, const std::vector<uint8_t> &source);
+
+	// Create Render Target
+	std::unique_ptr<RHIRenderTarget> CreateRenderTarget();
 
 	// Get Queue
 	RHIQueue *GetQueue(RHIQueueFamily family);

@@ -139,6 +139,24 @@ struct MultisampleState
 
 struct VertexInputState
 {
+	struct InputBinding
+	{
+		uint32_t           binding;
+		uint32_t           stride;
+		RHIVertexInputRate rate;
+
+		inline bool operator==(const InputBinding &desc)
+		{
+			return binding == desc.binding &&
+			       stride == desc.stride &&
+			       rate == desc.rate;
+		}
+		inline bool operator!=(const InputBinding &state)
+		{
+			return !(*this == state);
+		}
+	};
+
 	struct InputAttribute
 	{
 		RHIVertexSemantics semantics;
@@ -146,7 +164,6 @@ struct VertexInputState
 		uint32_t           binding;
 		RHIFormat          format;
 		uint32_t           offset;
-		RHIVertexInputRate rate;
 
 		inline bool operator==(const InputAttribute &desc)
 		{
@@ -154,8 +171,7 @@ struct VertexInputState
 			       location == desc.location &&
 			       binding == desc.binding &&
 			       format == desc.format &&
-			       offset == desc.offset &&
-			       rate == desc.rate;
+			       offset == desc.offset;
 		}
 		inline bool operator!=(const InputAttribute &state)
 		{
@@ -164,6 +180,7 @@ struct VertexInputState
 	};
 
 	std::vector<InputAttribute> input_attributes;
+	std::vector<InputBinding>   input_bindings;
 
 	inline bool operator==(const VertexInputState &state)
 	{
@@ -180,7 +197,21 @@ struct VertexInputState
 		}
 		else
 		{
-			return false;
+			if (input_bindings.size() == state.input_bindings.size())
+			{
+				for (uint32_t i = 0; i < input_bindings.size(); i++)
+				{
+					if (input_bindings[i] != state.input_bindings[i])
+					{
+						return false;
+					}
+				}
+				return true;
+			}
+			else
+			{
+				return false;
+			}
 		}
 	}
 
@@ -192,7 +223,7 @@ struct VertexInputState
 
 struct InputAssemblyState
 {
-	RHIPrimitiveTopology topology;
+	RHIPrimitiveTopology topology = RHIPrimitiveTopology::Triangle;
 
 	inline bool operator==(const InputAssemblyState &state)
 	{
@@ -213,6 +244,8 @@ class RHIPipelineState
 	RHIPipelineState(RHIDevice *device);
 
 	virtual ~RHIPipelineState() = default;
+
+	static std::unique_ptr<RHIPipelineState> Create(RHIDevice *device);
 
 	RHIPipelineState &SetShader(RHIShaderStage stage, RHIShader *shader);
 

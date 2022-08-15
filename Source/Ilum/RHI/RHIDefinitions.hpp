@@ -65,6 +65,7 @@ enum class RHIFormat
 	Undefined,
 
 	R8G8B8A8_UNORM,
+	B8G8R8A8_UNORM,
 
 	R16_UINT,
 	R16_SINT,
@@ -97,6 +98,11 @@ inline bool IsDepthFormat(RHIFormat format)
 {
 	return format == RHIFormat::D32_FLOAT ||
 	       format == RHIFormat::D24_UNORM_S8_UINT;
+}
+
+inline bool IsStencilFormat(RHIFormat format)
+{
+	return format == RHIFormat::D24_UNORM_S8_UINT;
 }
 
 enum class RHIVertexSemantics
@@ -311,11 +317,16 @@ enum class RHIVertexInputRate
 	Instance
 };
 
-enum class RHIPrimitiveTopology
+enum class RHILoadAction
 {
-	POINT,
-	LINE,
-	TRIANGLE,
-	PATCH,
+	DontCare,
+	Load,
+	Clear
+};
+
+enum class RHIStoreAction
+{
+	DontCare,
+	Store
 };
 }        // namespace Ilum

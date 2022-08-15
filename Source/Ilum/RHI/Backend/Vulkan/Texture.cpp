@@ -103,6 +103,8 @@ Texture::Texture(RHIDevice *device, const TextureDesc &desc, VkImage image) :
 
 Texture::~Texture()
 {
+	vkDeviceWaitIdle(static_cast<Device *>(p_device)->GetDevice());
+
 	if (m_handle && m_allocation)
 	{
 		vmaDestroyImage(static_cast<Device *>(p_device)->GetAllocator(), m_handle, m_allocation);
@@ -137,6 +139,7 @@ VkImageView Texture::GetView(const TextureRange &range) const
 	view_create_info.subresourceRange.layerCount     = range.layer_count;
 	view_create_info.subresourceRange.levelCount     = range.mip_count;
 	view_create_info.viewType                        = ToVulkanImageViewType[range.dimension];
+	view_create_info.components                      = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A};
 
 	m_view_cache[hash] = VK_NULL_HANDLE;
 	vkCreateImageView(static_cast<Device *>(p_device)->GetDevice(), &view_create_info, nullptr, &m_view_cache[hash]);

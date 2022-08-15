@@ -22,13 +22,17 @@ class Command : public RHICommand
 	virtual void Begin() override;
 	virtual void End() override;
 
-	virtual void BeginPass() override;
-	virtual void EndPass() override;
+	virtual void BeginRenderPass(RHIRenderTarget *render_target) override;
+	virtual void EndRenderPass() override;
 
 	virtual void BindVertexBuffer() override;
 	virtual void BindIndexBuffer() override;
 
-	virtual void BindPipeline(RHIPipelineState *pipeline_state, RHIDescriptor *descriptor) override;
+	virtual void BindDescriptor(RHIDescriptor *descriptor) override;
+	virtual void BindPipelineState(RHIPipelineState *pipeline_state) override;
+
+	virtual void SetViewport(float width, float height, float x = 0.f, float y = 0.f) override;
+	virtual void SetScissor(uint32_t width, uint32_t height, int32_t offset_x = 0, int32_t offset_y = 0) override;
 
 	// Drawcall
 	virtual void Dispatch(uint32_t group_x, uint32_t group_y, uint32_t group_z) override;

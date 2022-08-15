@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RHIBuffer.hpp"
+#include "RHIRenderTarget.hpp"
 #include "RHITexture.hpp"
 
 namespace Ilum
@@ -34,16 +35,17 @@ class RHICommand
 	virtual void Begin() = 0;
 	virtual void End()   = 0;
 
-	static void Reset(RHIDevice *device, uint32_t frame_index);
-
-	virtual void BeginPass() = 0;
-	virtual void EndPass()   = 0;
+	virtual void BeginRenderPass(RHIRenderTarget *render_target) = 0;
+	virtual void EndRenderPass()                                 = 0;
 
 	virtual void BindVertexBuffer() = 0;
 	virtual void BindIndexBuffer()  = 0;
 
-	// Pipeline & Resource Binding
-	virtual void BindPipeline(RHIPipelineState *pipeline_state, RHIDescriptor *descriptor) = 0;
+	virtual void BindDescriptor(RHIDescriptor *descriptor)           = 0;
+	virtual void BindPipelineState(RHIPipelineState *pipeline_state) = 0;
+
+	virtual void SetViewport(float width, float height, float x = 0.f, float y = 0.f)                    = 0;
+	virtual void SetScissor(uint32_t width, uint32_t height, int32_t offset_x = 0, int32_t offset_y = 0) = 0;
 
 	// Drawcall
 	virtual void Dispatch(uint32_t group_x = 1, uint32_t group_y = 1, uint32_t group_z = 1)                                                                        = 0;

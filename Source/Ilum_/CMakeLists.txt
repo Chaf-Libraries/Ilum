@@ -1,4 +1,4 @@
-set(TARGET_NAME Ilum)
+set(TARGET_NAME Ilum_)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -49,4 +49,4 @@ target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/D
 target_compile_definitions(${TARGET_NAME} PUBLIC "-DNOMINMAX")
 target_compile_definitions(${TARGET_NAME} PUBLIC "-DPROJECT_SOURCE_DIR=\"${PROJECT_SOURCE_DIR}\"")
 
-target_precompile_headers(${TARGET_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/Source/Ilum/Core/Precompile.hpp ${PROJECT_SOURCE_DIR}/Source/Shaders/ShaderInterop.hpp)
+target_precompile_headers(${TARGET_NAME} PUBLIC ${PROJECT_SOURCE_DIR}/Source/Ilum_/Core/Precompile.hpp ${PROJECT_SOURCE_DIR}/Source/Shaders/ShaderInterop.hpp)

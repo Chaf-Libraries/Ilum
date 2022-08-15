@@ -2,6 +2,7 @@
 #include "Definitions.hpp"
 #include "Descriptor.hpp"
 #include "Device.hpp"
+#include "RenderTarget.hpp"
 #include "Shader.hpp"
 
 #include <volk.h>
@@ -14,8 +15,8 @@ static std::unordered_map<size_t, VkPipelineLayout> PipelineLayouts;
 
 static uint32_t PipelineCount = 0;
 
-PipelineState::PipelineState(RHIDevice *device, Descriptor *descriptor) :
-    RHIPipelineState(device), m_meta(descriptor->GetShaderMeta())
+PipelineState::PipelineState(RHIDevice *device) :
+    RHIPipelineState(device)
 {
 	if (PipelineCount++ == 0)
 	{
@@ -51,31 +52,74 @@ PipelineState ::~PipelineState()
 	}
 }
 
-VkPipelineLayout PipelineState::GetPipelineLayout() const
+VkPipelineLayout PipelineState::GetPipelineLayout(Descriptor *descriptor)
 {
 	size_t hash = 0;
-	HashCombine(hash, m_meta.hash, m_hash);
+	HashCombine(hash, descriptor->GetShaderMeta().hash, GetHash());
 
 	if (PipelineLayouts.find(hash) != PipelineLayouts.end())
 	{
 		return PipelineLayouts[hash];
 	}
 
-	return CreatePipelineLayout();
+	return CreatePipelineLayout(descriptor);
 }
 
-VkPipeline PipelineState::GetPipeline() const
-{
-	return CreatePipeline();
-}
-
-VkPipelineLayout PipelineState::CreatePipelineLayout() const
+VkPipeline PipelineState::GetPipeline(Descriptor *descriptor, RenderTarget *render_target)
 {
 	size_t hash = 0;
-	HashCombine(hash, m_meta.hash, m_hash);
+	HashCombine(hash, descriptor->GetShaderMeta().hash, GetHash());
+
+	if (render_target)
+	{
+		HashCombine(hash, render_target->GetRenderPass());
+	}
+
+	if (Pipelines.find(hash) != Pipelines.end())
+	{
+		return Pipelines[hash];
+	}
+
+	if (m_shaders.find(RHIShaderStage::Fragment) != m_shaders.end())
+	{
+		ASSERT(render_target != nullptr);
+		return CreateGraphicsPipeline(descriptor, render_target);
+	}
+	else if (m_shaders.find(RHIShaderStage::Compute) != m_shaders.end())
+	{
+		return CreateComputePipeline(descriptor);
+	}
+	else if (m_shaders.find(RHIShaderStage::RayGen) != m_shaders.end())
+	{
+		return CreateRayTracingPipeline(descriptor);
+	}
+	return VK_NULL_HANDLE;
+}
+
+VkPipelineBindPoint PipelineState::GetPipelineBindPoint() const
+{
+	if (m_shaders.find(RHIShaderStage::Fragment) != m_shaders.end())
+	{
+		return VK_PIPELINE_BIND_POINT_GRAPHICS;
+	}
+	else if (m_shaders.find(RHIShaderStage::Compute) != m_shaders.end())
+	{
+		return VK_PIPELINE_BIND_POINT_COMPUTE;
+	}
+	else if (m_shaders.find(RHIShaderStage::RayGen) != m_shaders.end())
+	{
+		return VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR;
+	}
+	return VK_PIPELINE_BIND_POINT_GRAPHICS;
+}
+
+VkPipelineLayout PipelineState::CreatePipelineLayout(Descriptor *descriptor)
+{
+	size_t hash = 0;
+	HashCombine(hash, descriptor->GetShaderMeta().hash, GetHash());
 
 	std::vector<VkPushConstantRange> push_constants;
-	for (auto &constant : m_meta.constants)
+	for (auto &constant : descriptor->GetShaderMeta().constants)
 	{
 		VkPushConstantRange push_constant_range = {};
 		push_constant_range.stageFlags          = ToVulkanShaderStages(constant.stage);
@@ -85,7 +129,7 @@ VkPipelineLayout PipelineState::CreatePipelineLayout() const
 	}
 
 	std::vector<VkDescriptorSetLayout> descriptor_set_layouts;
-	for (auto &[set, layout] : m_descriptor->GetDescriptorSetLayout())
+	for (auto &[set, layout] : descriptor->GetDescriptorSetLayout())
 	{
 		descriptor_set_layouts.push_back(layout);
 	}
@@ -105,10 +149,15 @@ VkPipelineLayout PipelineState::CreatePipelineLayout() const
 	return layout;
 }
 
-VkPipeline PipelineState::CreatePipeline() const
+VkPipeline PipelineState::CreateGraphicsPipeline(Descriptor *descriptor, RenderTarget *render_target)
 {
 	size_t hash = 0;
-	HashCombine(hash, m_meta.hash, m_hash);
+	HashCombine(hash, descriptor->GetShaderMeta().hash, GetHash());
+
+	if (render_target)
+	{
+		HashCombine(hash, render_target->GetRenderPass());
+	}
 
 	// Input Assembly State
 	VkPipelineInputAssemblyStateCreateInfo input_assembly_state_create_info = {};
@@ -199,5 +248,100 @@ VkPipeline PipelineState::CreatePipeline() const
 		shader_stage_create_info.pName  = shader->GetEntryPoint().c_str();
 		pipeline_shader_stage_create_infos.push_back(shader_stage_create_info);
 	}
+
+	// Vertex Input State
+	std::vector<VkVertexInputAttributeDescription> attribute_descriptions = {};
+	std::vector<VkVertexInputBindingDescription>   binding_descriptions   = {};
+
+	for (auto &attribute : m_vertex_input_state.input_attributes)
+	{
+		attribute_descriptions.push_back(VkVertexInputAttributeDescription{
+		    attribute.location,
+		    attribute.binding,
+		    ToVulkanFormat[attribute.format],
+		    attribute.offset});
+	}
+
+	for (auto &binding : m_vertex_input_state.input_bindings)
+	{
+		binding_descriptions.push_back(VkVertexInputBindingDescription{
+		    binding.binding,
+		    binding.stride,
+		    ToVulkanVertexInputRate[binding.rate]});
+	}
+
+	VkPipelineVertexInputStateCreateInfo vertex_input_state_create_info = {};
+	vertex_input_state_create_info.sType                                = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	vertex_input_state_create_info.vertexAttributeDescriptionCount      = static_cast<uint32_t>(attribute_descriptions.size());
+	vertex_input_state_create_info.pVertexAttributeDescriptions         = attribute_descriptions.data();
+	vertex_input_state_create_info.vertexBindingDescriptionCount        = static_cast<uint32_t>(binding_descriptions.size());
+	vertex_input_state_create_info.pVertexBindingDescriptions           = binding_descriptions.data();
+
+	VkGraphicsPipelineCreateInfo graphics_pipeline_create_info = {};
+	graphics_pipeline_create_info.sType                        = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	graphics_pipeline_create_info.stageCount                   = static_cast<uint32_t>(pipeline_shader_stage_create_infos.size());
+	graphics_pipeline_create_info.pStages                      = pipeline_shader_stage_create_infos.data();
+
+	graphics_pipeline_create_info.pInputAssemblyState = &input_assembly_state_create_info;
+	graphics_pipeline_create_info.pRasterizationState = &rasterization_state_create_info;
+	graphics_pipeline_create_info.pColorBlendState    = &color_blend_state_create_info;
+	graphics_pipeline_create_info.pDepthStencilState  = &depth_stencil_state_create_info;
+	graphics_pipeline_create_info.pViewportState      = &viewport_state_create_info;
+	graphics_pipeline_create_info.pMultisampleState   = &multisample_state_create_info;
+	graphics_pipeline_create_info.pDynamicState       = &dynamic_state_create_info;
+	graphics_pipeline_create_info.pVertexInputState   = &vertex_input_state_create_info;
+
+	graphics_pipeline_create_info.layout             = GetPipelineLayout(descriptor);
+	graphics_pipeline_create_info.renderPass         = render_target->GetRenderPass();
+	graphics_pipeline_create_info.subpass            = 0;
+	graphics_pipeline_create_info.basePipelineHandle = VK_NULL_HANDLE;
+	graphics_pipeline_create_info.basePipelineIndex  = -1;
+
+	//VkPipelineRenderingCreateInfo pipeline_rendering_create_info = {};
+	//pipeline_rendering_create_info.sType                         = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+	//pipeline_rendering_create_info.colorAttachmentCount          = static_cast<uint32_t>(render_target->GetColorFormat().size());
+	//pipeline_rendering_create_info.pColorAttachmentFormats       = render_target->GetColorFormat().data();
+	//pipeline_rendering_create_info.depthAttachmentFormat         = render_target->GetDepthFormat().has_value() ? render_target->GetDepthFormat().value() : VK_FORMAT_UNDEFINED;
+	//pipeline_rendering_create_info.stencilAttachmentFormat       = render_target->GetStencilFormat().has_value() ? render_target->GetStencilFormat().value() : VK_FORMAT_UNDEFINED;
+
+	//graphics_pipeline_create_info.pNext = &pipeline_rendering_create_info;
+
+	VkPipeline pipeline = VK_NULL_HANDLE;
+	vkCreateGraphicsPipelines(static_cast<Device *>(p_device)->GetDevice(), PipelineCache, 1, &graphics_pipeline_create_info, nullptr, &pipeline);
+
+	Pipelines.emplace(hash, pipeline);
+
+	return pipeline;
+}
+
+VkPipeline PipelineState::CreateComputePipeline(Descriptor *descriptor)
+{
+	size_t hash = 0;
+	HashCombine(hash, descriptor->GetShaderMeta().hash, GetHash());
+
+	VkPipelineShaderStageCreateInfo shader_stage_create_info = {};
+	shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+	shader_stage_create_info.stage                           = VK_SHADER_STAGE_COMPUTE_BIT;
+	shader_stage_create_info.module                          = static_cast<Shader *>(m_shaders.at(RHIShaderStage::Compute))->GetHandle();
+	shader_stage_create_info.pName                           = m_shaders.at(RHIShaderStage::Compute)->GetEntryPoint().c_str();
+
+	VkComputePipelineCreateInfo compute_pipeline_create_info = {};
+	compute_pipeline_create_info.sType                       = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+	compute_pipeline_create_info.stage                       = shader_stage_create_info;
+	compute_pipeline_create_info.layout                      = GetPipelineLayout(descriptor);
+	compute_pipeline_create_info.basePipelineIndex           = 0;
+	compute_pipeline_create_info.basePipelineHandle          = VK_NULL_HANDLE;
+
+	VkPipeline pipeline = VK_NULL_HANDLE;
+	vkCreateComputePipelines(static_cast<Device *>(p_device)->GetDevice(), PipelineCache, 1, &compute_pipeline_create_info, nullptr, &pipeline);
+
+	Pipelines.emplace(hash, pipeline);
+
+	return pipeline;
+}
+
+VkPipeline PipelineState::CreateRayTracingPipeline(Descriptor *descriptor)
+{
+	return VK_NULL_HANDLE;
 }
 }        // namespace Ilum::Vulkan

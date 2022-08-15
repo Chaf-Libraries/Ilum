@@ -8,25 +8,25 @@
 namespace Ilum::Vulkan
 {
 class Descriptor;
+class RenderTarget;
 
 class PipelineState : public RHIPipelineState
 {
   public:
-	PipelineState(RHIDevice *device, Descriptor *descriptor);
+	PipelineState(RHIDevice *device);
 
 	virtual ~PipelineState() override;
 
-	VkPipelineLayout GetPipelineLayout() const;
+	VkPipelineLayout GetPipelineLayout(Descriptor* descriptor);
 
-	VkPipeline GetPipeline() const;
+	VkPipeline GetPipeline(Descriptor *descriptor, RenderTarget* render_target);
 
-  private:
-	VkPipelineLayout CreatePipelineLayout() const;
-	VkPipeline       CreatePipeline() const;
+	VkPipelineBindPoint GetPipelineBindPoint() const;
 
   private:
-	const ShaderMeta m_meta;
-
-	Descriptor *m_descriptor = nullptr;
+	VkPipelineLayout CreatePipelineLayout(Descriptor *descriptor);
+	VkPipeline       CreateGraphicsPipeline(Descriptor *descriptor, RenderTarget *render_target);
+	VkPipeline       CreateComputePipeline(Descriptor *descriptor);
+	VkPipeline       CreateRayTracingPipeline(Descriptor *descriptor);
 };
 }        // namespace Ilum::Vulkan

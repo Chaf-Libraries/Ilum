@@ -13,6 +13,7 @@ namespace Ilum::Vulkan
 inline static std::unordered_map<RHIFormat, VkFormat> ToVulkanFormat = {
     {RHIFormat::Undefined, VK_FORMAT_UNDEFINED},
     {RHIFormat::R8G8B8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM},
+    {RHIFormat::B8G8R8A8_UNORM, VK_FORMAT_B8G8R8A8_UNORM},
     {RHIFormat::R16_UINT, VK_FORMAT_R16_UINT},
     {RHIFormat::R16_SINT, VK_FORMAT_R16_SINT},
     {RHIFormat::R16_FLOAT, VK_FORMAT_R16_SFLOAT},
@@ -199,6 +200,22 @@ inline static std::unordered_map<RHIShaderStage, VkShaderStageFlagBits> ToVulkan
     {RHIShaderStage::Callable, VK_SHADER_STAGE_CALLABLE_BIT_KHR},
     {RHIShaderStage::Mesh, VK_SHADER_STAGE_MESH_BIT_NV},
     {RHIShaderStage::Task, VK_SHADER_STAGE_TASK_BIT_NV},
+};
+
+inline static std::unordered_map<RHIVertexInputRate, VkVertexInputRate> ToVulkanVertexInputRate = {
+    {RHIVertexInputRate::Instance, VK_VERTEX_INPUT_RATE_INSTANCE},
+    {RHIVertexInputRate::Vertex, VK_VERTEX_INPUT_RATE_VERTEX},
+};
+
+inline static std::unordered_map<RHILoadAction, VkAttachmentLoadOp> ToVulkanLoadOp = {
+    {RHILoadAction::DontCare, VK_ATTACHMENT_LOAD_OP_DONT_CARE},
+    {RHILoadAction::Clear, VK_ATTACHMENT_LOAD_OP_CLEAR},
+    {RHILoadAction::Load, VK_ATTACHMENT_LOAD_OP_LOAD},
+};
+
+inline static std::unordered_map<RHIStoreAction, VkAttachmentStoreOp> ToVulkanStoreOp = {
+    {RHIStoreAction::DontCare, VK_ATTACHMENT_STORE_OP_DONT_CARE},
+    {RHIStoreAction::Store, VK_ATTACHMENT_STORE_OP_STORE},
 };
 
 inline static VkImageUsageFlags ToVulkanImageUsage(RHITextureUsage usage)

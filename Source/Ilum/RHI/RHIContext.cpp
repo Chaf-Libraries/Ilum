@@ -100,6 +100,21 @@ std::unique_ptr<RHIDescriptor> RHIContext::CreateDescriptor(const ShaderMeta &me
 	return RHIDescriptor::Create(m_device.get(), meta);
 }
 
+std::unique_ptr<RHIPipelineState> RHIContext::CreatePipelineState()
+{
+	return RHIPipelineState::Create(m_device.get());
+}
+
+std::unique_ptr<RHIShader> RHIContext::CreateShader(const std::string &entry_point, const std::vector<uint8_t> &source)
+{
+	return RHIShader::Create(m_device.get(), entry_point, source);
+}
+
+std::unique_ptr<RHIRenderTarget> RHIContext::CreateRenderTarget()
+{
+	return RHIRenderTarget::Create(m_device.get());
+}
+
 RHIQueue *RHIContext::GetQueue(RHIQueueFamily family)
 {
 	switch (family)
