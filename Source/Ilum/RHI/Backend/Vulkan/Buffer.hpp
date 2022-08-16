@@ -19,7 +19,7 @@ struct BufferState
 		       stage == other.stage;
 	}
 
-	static BufferState Create(RHIBufferState state);
+	static BufferState Create(RHIResourceState state);
 };
 
 class Buffer : public RHIBuffer
@@ -29,7 +29,10 @@ class Buffer : public RHIBuffer
 	virtual ~Buffer() override;
 
 	virtual void *Map() override;
+
 	virtual void  Unmap() override;
+
+	virtual void Flush(size_t offset, size_t size) override;
 
 	VkBuffer GetHandle() const;
 

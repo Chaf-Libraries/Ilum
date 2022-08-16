@@ -76,6 +76,16 @@ RHIPipelineState &RHIPipelineState::SetMultisampleState(const MultisampleState &
 	return *this;
 }
 
+RHIPipelineState &RHIPipelineState::SetVertexInputState(const VertexInputState &state)
+{
+	if (m_vertex_input_state != state)
+	{
+		m_vertex_input_state = state;
+		m_dirty                = true;
+	}
+	return *this;
+}
+
 RHIPipelineState &RHIPipelineState::SetInputAssemblyState(const InputAssemblyState &state)
 {
 	if (m_input_assembly_state != state)

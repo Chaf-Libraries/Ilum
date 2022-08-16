@@ -123,51 +123,67 @@ void Command::End()
 
 void Command::BeginRenderPass(RHIRenderTarget *render_target)
 {
-	/*VkRenderingInfo rendering_info = {};
-	rendering_info.sType           = VK_STRUCTURE_TYPE_RENDERING_INFO;
-	rendering_info.renderArea      = {0, 0, render_target->GetWidth(), render_target->GetHeight()};
-	rendering_info.layerCount      = render_target->GetLayers();
+	if (static_cast<Device *>(p_device)->IsFeatureSupport(VulkanFeature::DynamicRendering))
+	{
+		VkRenderingInfo rendering_info = {};
+		rendering_info.sType           = VK_STRUCTURE_TYPE_RENDERING_INFO;
+		rendering_info.renderArea      = {0, 0, render_target->GetWidth(), render_target->GetHeight()};
+		rendering_info.layerCount      = render_target->GetLayers();
 
-	RenderTarget *vk_render_target = static_cast<RenderTarget *>(render_target);
+		RenderTarget *vk_render_target = static_cast<RenderTarget *>(render_target);
 
-	rendering_info.colorAttachmentCount = static_cast<uint32_t>(vk_render_target->GetColorAttachments().size());
-	rendering_info.pColorAttachments    = vk_render_target->GetColorAttachments().data();
-	rendering_info.pDepthAttachment     = vk_render_target->GetDepthAttachment().has_value() ? &vk_render_target->GetDepthAttachment().value() : nullptr;
-	rendering_info.pStencilAttachment   = vk_render_target->GetStencilAttachment().has_value() ? &vk_render_target->GetStencilAttachment().value() : nullptr;*/
+		rendering_info.colorAttachmentCount = static_cast<uint32_t>(vk_render_target->GetColorAttachments().size());
+		rendering_info.pColorAttachments    = vk_render_target->GetColorAttachments().data();
+		rendering_info.pDepthAttachment     = vk_render_target->GetDepthAttachment().has_value() ? &vk_render_target->GetDepthAttachment().value() : nullptr;
+		rendering_info.pStencilAttachment   = vk_render_target->GetStencilAttachment().has_value() ? &vk_render_target->GetStencilAttachment().value() : nullptr;
 
-	//vkCmdBeginRendering(m_handle, &rendering_info);
-	RenderTarget *vk_render_target = static_cast<RenderTarget *>(render_target);
+		vkCmdBeginRendering(m_handle, &rendering_info);
+	}
+	else
+	{
+		RenderTarget *vk_render_target = static_cast<RenderTarget *>(render_target);
 
-	auto clear_values = vk_render_target->GetClearValue();
+		auto clear_values = vk_render_target->GetClearValue();
 
-	VkRenderPassBeginInfo begin_info = {};
-	begin_info.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-	begin_info.framebuffer           = vk_render_target->GetFramebuffer();
-	begin_info.pClearValues          = clear_values.data();
-	begin_info.clearValueCount       = static_cast<uint32_t>(clear_values.size());
-	begin_info.renderPass            = vk_render_target->GetRenderPass();
-	begin_info.renderArea            = vk_render_target->GetRenderArea();
+		VkRenderPassBeginInfo begin_info = {};
+		begin_info.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		begin_info.framebuffer           = vk_render_target->GetFramebuffer();
+		begin_info.pClearValues          = clear_values.data();
+		begin_info.clearValueCount       = static_cast<uint32_t>(clear_values.size());
+		begin_info.renderPass            = vk_render_target->GetRenderPass();
+		begin_info.renderArea            = vk_render_target->GetRenderArea();
 
-	vkCmdBeginRenderPass(m_handle, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBeginRenderPass(m_handle, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
+	}
 
-	p_render_target = static_cast<RenderTarget*>(render_target);
+	p_render_target = static_cast<RenderTarget *>(render_target);
 }
 
 void Command::EndRenderPass()
 {
-	//vkCmdEndRendering(m_handle);
-
-	vkCmdEndRenderPass(m_handle);
+	if (static_cast<Device *>(p_device)->IsFeatureSupport(VulkanFeature::DynamicRendering))
+	{
+		vkCmdEndRendering(m_handle);
+	}
+	else
+	{
+		vkCmdEndRenderPass(m_handle);
+	}
 
 	p_render_target = nullptr;
 }
 
-void Command::BindVertexBuffer()
+void Command::BindVertexBuffer(RHIBuffer *vertex_buffer)
 {
+	Buffer  *vk_vertex_buffer = static_cast<Buffer *>(vertex_buffer);
+	size_t   offset           = 0;
+	VkBuffer handle           = vk_vertex_buffer->GetHandle();
+	vkCmdBindVertexBuffers(m_handle, 0, 1, &handle, &offset);
 }
 
-void Command::BindIndexBuffer()
+void Command::BindIndexBuffer(RHIBuffer *index_buffer, bool is_short)
 {
+	vkCmdBindIndexBuffer(m_handle, static_cast<Buffer *>(index_buffer)->GetHandle(), 0, is_short ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
 }
 
 void Command::BindDescriptor(RHIDescriptor *descriptor)
@@ -189,7 +205,7 @@ void Command::BindPipelineState(RHIPipelineState *pipeline_state)
 void Command::SetViewport(float width, float height, float x, float y)
 {
 	// Flip y
-	VkViewport viewport = {x, y + height, width, -height, 0.f, 1.f};
+	VkViewport viewport = {x, y, width, height, 0.f, 1.f};
 	vkCmdSetViewport(m_handle, 0, 1, &viewport);
 }
 
@@ -212,6 +228,28 @@ void Command::Draw(uint32_t vertex_count, uint32_t instance_count, uint32_t firs
 void Command::DrawIndexed(uint32_t index_count, uint32_t instance_count, uint32_t first_index, uint32_t vertex_offset, uint32_t first_instance)
 {
 	vkCmdDrawIndexed(m_handle, index_count, instance_count, first_index, vertex_offset, first_instance);
+}
+
+void Command::CopyBufferToTexture(RHIBuffer *src_buffer, RHITexture *dst_texture, uint32_t mip_level, uint32_t base_layer, uint32_t layer_count)
+{
+	VkImageSubresourceLayers subresource = {};
+	subresource.aspectMask               = IsDepthFormat(dst_texture->GetDesc().format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+	subresource.baseArrayLayer           = base_layer;
+	subresource.mipLevel                 = mip_level;
+	subresource.layerCount               = layer_count;
+
+	uint32_t width  = std::max(dst_texture->GetDesc().width, 1u << mip_level) >> mip_level;
+	uint32_t height = std::max(dst_texture->GetDesc().height, 1u << mip_level) >> mip_level;
+
+	VkBufferImageCopy copy_info = {};
+	copy_info.bufferOffset      = 0;
+	copy_info.bufferImageHeight = 0;
+	copy_info.bufferRowLength   = 0;
+	copy_info.imageSubresource  = subresource;
+	copy_info.imageOffset       = {0, 0, 0};
+	copy_info.imageExtent       = {width, height, 1};
+
+	vkCmdCopyBufferToImage(m_handle, static_cast<Buffer *>(src_buffer)->GetHandle(), static_cast<Texture *>(dst_texture)->GetHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_info);
 }
 
 void Command::ResourceStateTransition(const std::vector<TextureStateTransition> &texture_transitions, const std::vector<BufferStateTransition> &buffer_transitions)

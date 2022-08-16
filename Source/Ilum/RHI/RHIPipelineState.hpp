@@ -28,7 +28,7 @@ struct DepthStencilState
 struct BlendState
 {
 	bool       enable             = false;
-	RHILogicOp logic_op           = RHILogicOp::And;
+	RHILogicOp logic_op           = RHILogicOp::Or;
 	float      blend_constants[4] = {0.f};
 
 	struct AttachmentState

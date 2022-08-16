@@ -46,6 +46,7 @@ ImGuiContext::ImGuiContext(Window *window, RHIDevice *device) :
 	init_info.QueueFamily               = p_device->GetGraphicsFamily();
 	init_info.Queue                     = p_device->GetQueue(VK_QUEUE_GRAPHICS_BIT);
 	;
+
 	init_info.PipelineCache  = p_device->GetPipelineCache();
 	init_info.DescriptorPool = m_descriptor_pool;
 	init_info.MinImageCount  = static_cast<uint32_t>(p_device->GetSwapchainImages().size());

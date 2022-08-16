@@ -60,8 +60,8 @@ class RHITexture
 struct TextureStateTransition
 {
 	RHITexture     *texture;
-	RHITextureState src;
-	RHITextureState dst;
+	RHIResourceState src;
+	RHIResourceState dst;
 	TextureRange    range;
 };
 }        // namespace Ilum

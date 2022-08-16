@@ -47,6 +47,8 @@ class RHIRenderTarget
 
 	uint32_t GetLayers() const;
 
+	virtual void Clear() = 0;
+
   protected:
 	RHIDevice *p_device = nullptr;
 

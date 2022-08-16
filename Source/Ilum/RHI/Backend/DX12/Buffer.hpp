@@ -20,7 +20,7 @@ struct BufferState
 		return state == other.state;
 	}
 
-	static BufferState Create(RHIBufferState state);
+	static BufferState Create(RHIResourceState state);
 };
 
 class Buffer : public RHIBuffer
@@ -31,6 +31,7 @@ class Buffer : public RHIBuffer
 
 	virtual void *Map() override;
 	virtual void  Unmap() override;
+	virtual void  Flush(size_t offset, size_t size) override;
 
 	ID3D12Resource* GetHandle();
 

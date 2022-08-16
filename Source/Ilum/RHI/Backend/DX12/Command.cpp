@@ -34,12 +34,12 @@ void Command::EndRenderPass()
 
 }
 
-void Command::BindVertexBuffer()
+void Command::BindVertexBuffer(RHIBuffer* vertex_buffer)
 {
 
 }
 
-void Command::BindIndexBuffer()
+void Command::BindIndexBuffer(RHIBuffer *index_buffer, bool is_short)
 {
 
 }

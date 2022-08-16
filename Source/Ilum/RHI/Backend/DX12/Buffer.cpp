@@ -4,39 +4,39 @@
 
 namespace Ilum::DX12
 {
-BufferState BufferState::Create(RHIBufferState state)
+BufferState BufferState::Create(RHIResourceState state)
 {
 	BufferState dx_state = {};
 	switch (state)
 	{
-		case RHIBufferState::Undefined:
+		case RHIResourceState::Undefined:
 			dx_state.state = D3D12_RESOURCE_STATE_COMMON;
 			break;
-		case RHIBufferState::Vertex:
+		case RHIResourceState::VertexBuffer:
 			dx_state.state = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 			break;
-		case RHIBufferState::Index:
+		case RHIResourceState::IndexBuffer:
 			dx_state.state = D3D12_RESOURCE_STATE_INDEX_BUFFER;
 			break;
-		case RHIBufferState::Indirect:
+		case RHIResourceState::IndirectBuffer:
 			dx_state.state = D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
 			break;
-		case RHIBufferState::TransferSource:
+		case RHIResourceState::TransferSource:
 			dx_state.state = D3D12_RESOURCE_STATE_COPY_SOURCE;
 			break;
-		case RHIBufferState::TransferDest:
+		case RHIResourceState::TransferDest:
 			dx_state.state = D3D12_RESOURCE_STATE_COPY_DEST;
 			break;
-		case RHIBufferState::AccelerationStructure:
+		case RHIResourceState::AccelerationStructure:
 			dx_state.state = D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
 			break;
-		case RHIBufferState::ShaderResource:
+		case RHIResourceState::ShaderResource:
 			dx_state.state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 			break;
-		case RHIBufferState::UnorderedAccess:
+		case RHIResourceState::UnorderedAccess:
 			dx_state.state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 			break;
-		case RHIBufferState::ConstantBuffer:
+		case RHIResourceState::ConstantBuffer:
 			dx_state.state = D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 			break;
 		default:
@@ -98,7 +98,11 @@ void Buffer::Unmap()
 	}
 }
 
-ID3D12Resource* Buffer::GetHandle()
+void Buffer::Flush(size_t offset, size_t size)
+{
+}
+
+ID3D12Resource *Buffer::GetHandle()
 {
 	return m_handle.Get();
 }

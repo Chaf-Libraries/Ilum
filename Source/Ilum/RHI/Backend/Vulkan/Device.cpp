@@ -508,6 +508,9 @@ void Device::CreateLogicalDevice()
 	VkPhysicalDeviceVulkan12Features physical_device_vulkan12_features_enable = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
 	VkPhysicalDeviceVulkan13Features physical_device_vulkan13_features_enable = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
 
+	m_vulkan_feature_support[VulkanFeature::DynamicRendering] = false;
+	physical_device_vulkan13_features.dynamicRendering;
+
 #define ENABLE_DEVICE_FEATURE(device_feature, device_feature_enable, feature)            \
 	if (device_feature.feature)                                   \
 	{                                                             \
@@ -557,6 +560,7 @@ void Device::CreateLogicalDevice()
 	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, bufferDeviceAddress);
 	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, shaderOutputViewportIndex);
 	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, shaderOutputLayer);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan13_features, physical_device_vulkan13_features_enable, dynamicRendering);
 	ENABLE_DEVICE_FEATURE(physical_device_vulkan13_features, physical_device_vulkan13_features_enable, maintenance4);
 
 	// Get support extensions
@@ -745,6 +749,11 @@ void Device::WaitIdle()
 bool Device::IsFeatureSupport(RHIFeature feature)
 {
 	return m_feature_support[feature];
+}
+
+bool Device::IsFeatureSupport(VulkanFeature feature)
+{
+	return m_vulkan_feature_support[feature];
 }
 
 VkInstance Device::GetInstance() const

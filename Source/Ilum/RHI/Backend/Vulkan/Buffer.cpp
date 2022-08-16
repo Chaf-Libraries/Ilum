@@ -4,45 +4,45 @@
 
 namespace Ilum::Vulkan
 {
-BufferState BufferState::Create(RHIBufferState state)
+BufferState BufferState::Create(RHIResourceState state)
 {
 	BufferState vk_state = {};
 
 	switch (state)
 	{
-		case RHIBufferState::Vertex:
+		case RHIResourceState::VertexBuffer:
 			vk_state.access_mask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
 			vk_state.stage       = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
 			break;
-		case RHIBufferState::Index:
+		case RHIResourceState::IndexBuffer:
 			vk_state.access_mask = VK_ACCESS_INDEX_READ_BIT;
 			vk_state.stage       = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
 			break;
-		case RHIBufferState::Indirect:
+		case RHIResourceState::IndirectBuffer:
 			vk_state.access_mask = VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
 			vk_state.stage       = VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
 			break;
-		case RHIBufferState::TransferSource:
+		case RHIResourceState::TransferSource:
 			vk_state.access_mask = VK_ACCESS_TRANSFER_READ_BIT;
 			vk_state.stage       = VK_PIPELINE_STAGE_TRANSFER_BIT;
 			break;
-		case RHIBufferState::TransferDest:
+		case RHIResourceState::TransferDest:
 			vk_state.access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
 			vk_state.stage       = VK_PIPELINE_STAGE_TRANSFER_BIT;
 			break;
-		case RHIBufferState::AccelerationStructure:
+		case RHIResourceState::AccelerationStructure:
 			vk_state.access_mask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
 			vk_state.stage       = VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR;
 			break;
-		case RHIBufferState::ShaderResource:
+		case RHIResourceState::ShaderResource:
 			vk_state.access_mask = VK_ACCESS_SHADER_READ_BIT;
 			vk_state.stage       = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
 			break;
-		case RHIBufferState::UnorderedAccess:
+		case RHIResourceState::UnorderedAccess:
 			vk_state.access_mask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 			vk_state.stage       = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 			break;
-		case RHIBufferState::ConstantBuffer:
+		case RHIResourceState::ConstantBuffer:
 			vk_state.access_mask = VK_ACCESS_SHADER_READ_BIT;
 			vk_state.stage       = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 			break;
@@ -62,7 +62,7 @@ Buffer::Buffer(RHIDevice *device, const BufferDesc &desc) :
 	buffer_create_info.size               = desc.size;
 	buffer_create_info.usage              = ToVulkanBufferUsage(desc.usage);
 	buffer_create_info.sharingMode        = VK_SHARING_MODE_EXCLUSIVE;
-	
+
 	if (static_cast<Device *>(p_device)->IsFeatureSupport(RHIFeature::BufferDeviceAddress))
 	{
 		buffer_create_info.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
@@ -85,6 +85,8 @@ Buffer::Buffer(RHIDevice *device, const BufferDesc &desc) :
 
 Buffer::~Buffer()
 {
+	Unmap();
+
 	if (m_handle && m_allocation)
 	{
 		vkDeviceWaitIdle(static_cast<Device *>(p_device)->GetDevice());
@@ -107,8 +109,13 @@ void Buffer::Unmap()
 	{
 		vmaUnmapMemory(static_cast<Device *>(p_device)->GetAllocator(), m_allocation);
 		m_mapped = nullptr;
-		vmaFlushAllocation(static_cast<Device *>(p_device)->GetAllocator(), m_allocation, 0, m_desc.size);
+		Flush(0, m_desc.size);
 	}
+}
+
+void Buffer::Flush(size_t offset, size_t size)
+{
+	vmaFlushAllocation(static_cast<Device *>(p_device)->GetAllocator(), m_allocation, 0, m_desc.size);
 }
 
 VkBuffer Buffer::GetHandle() const

@@ -125,67 +125,59 @@ enum class RHIMemoryUsage
 };
 
 // Texture
-enum class RHITextureDimension
+enum class RHITextureDimension : uint64_t
 {
-	Texture1D,
-	Texture2D,
-	Texture3D,
-	TextureCube,
-	Texture1DArray,
-	Texture2DArray,
-	TextureCubeArray
+	Texture1D        = 1,
+	Texture2D        = 1 << 1,
+	Texture3D        = 1 << 2,
+	TextureCube      = 1 << 3,
+	Texture1DArray   = 1 << 4,
+	Texture2DArray   = 1 << 5,
+	TextureCubeArray = 1 << 6,
 };
 
 enum class RHITextureUsage
 {
-	Transfer,
-	ShaderResource,
-	UnorderedAccess,
-	RenderTarget
+	Undefined       = 0,
+	Transfer        = 1,
+	ShaderResource  = 1 << 1,
+	UnorderedAccess = 1 << 2,
+	RenderTarget    = 1 << 3
 };
 DEFINE_ENUMCLASS_OPERATION(RHITextureUsage)
 
-enum class RHITextureState
+enum class RHIResourceState
 {
 	Undefined,
+	VertexBuffer,
+	ConstantBuffer,
+	IndexBuffer,
+	IndirectBuffer,
 	TransferSource,
 	TransferDest,
 	ShaderResource,
-	UnorderAccess,
+	UnorderedAccess,
 	RenderTarget,
 	DepthWrite,
 	DepthRead,
+	AccelerationStructure,
 	Present
 };
 
 // Buffer
 enum class RHIBufferUsage
 {
-	Undefined,
-	Vertex,
-	Index,
-	Indirect,
-	Transfer,
-	AccelerationStructure,
-	ShaderResource,
-	UnorderedAccess,
-	ConstantBuffer
+	Undefined             = 0,
+	Vertex                = 1,
+	Index                 = 1 << 1,
+	Indirect              = 1 << 2,
+	Transfer              = 1 << 3,
+	AccelerationStructure = 1 << 4,
+	ShaderResource        = 1 << 5,
+	UnorderedAccess       = 1 << 6,
+	ConstantBuffer        = 1 << 7
 };
 DEFINE_ENUMCLASS_OPERATION(RHIBufferUsage)
-
-enum class RHIBufferState
-{
-	Undefined,
-	Vertex,
-	Index,
-	Indirect,
-	TransferSource,
-	TransferDest,
-	AccelerationStructure,
-	ShaderResource,
-	UnorderedAccess,
-	ConstantBuffer
-};
 
 // Sampler
 enum class RHIFilter

@@ -27,37 +27,37 @@ inline D3D12_RESOURCE_DIMENSION GetResourceDimension(const TextureDesc &desc)
 	return D3D12_RESOURCE_DIMENSION_UNKNOWN;
 }
 
-TextureState TextureState::Create(RHITextureState state)
+TextureState TextureState::Create(RHIResourceState state)
 {
 	TextureState dx_state = {};
 
 	switch (state)
 	{
-		case RHITextureState::Undefined:
+		case RHIResourceState::Undefined:
 			dx_state.state = D3D12_RESOURCE_STATE_COMMON;
 			break;
-		case RHITextureState::TransferSource:
+		case RHIResourceState::TransferSource:
 			dx_state.state = D3D12_RESOURCE_STATE_COPY_SOURCE;
 			break;
-		case RHITextureState::TransferDest:
+		case RHIResourceState::TransferDest:
 			dx_state.state = D3D12_RESOURCE_STATE_COPY_DEST;
 			break;
-		case RHITextureState::ShaderResource:
+		case RHIResourceState::ShaderResource:
 			dx_state.state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 			break;
-		case RHITextureState::UnorderAccess:
+		case RHIResourceState::UnorderedAccess:
 			dx_state.state = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
 			break;
-		case RHITextureState::RenderTarget:
+		case RHIResourceState::RenderTarget:
 			dx_state.state = D3D12_RESOURCE_STATE_RENDER_TARGET;
 			break;
-		case RHITextureState::DepthWrite:
+		case RHIResourceState::DepthWrite:
 			dx_state.state = D3D12_RESOURCE_STATE_DEPTH_WRITE;
 			break;
-		case RHITextureState::DepthRead:
+		case RHIResourceState::DepthRead:
 			dx_state.state = D3D12_RESOURCE_STATE_DEPTH_READ;
 			break;
-		case RHITextureState::Present:
+		case RHIResourceState::Present:
 			dx_state.state = D3D12_RESOURCE_STATE_PRESENT;
 			break;
 		default:

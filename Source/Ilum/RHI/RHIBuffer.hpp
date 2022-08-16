@@ -27,6 +27,7 @@ class RHIBuffer
 
 	virtual void *Map() = 0;
 	virtual void  Unmap() = 0;
+	virtual void  Flush(size_t offset, size_t size) = 0;
 
   protected:
 	RHIDevice *p_device = nullptr;
@@ -36,7 +37,7 @@ class RHIBuffer
 struct BufferStateTransition
 {
 	RHIBuffer *buffer;
-	RHIBufferState src;
-	RHIBufferState dst;
+	RHIResourceState src;
+	RHIResourceState dst;
 };
 }        // namespace Ilum

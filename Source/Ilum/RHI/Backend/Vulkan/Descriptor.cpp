@@ -9,6 +9,7 @@ namespace Ilum::Vulkan
 {
 inline static VkDescriptorPool                                  DescriptorPool = VK_NULL_HANDLE;
 inline static std::unordered_map<size_t, VkDescriptorSetLayout> DescriptorSetLayouts;
+inline static std::unordered_map<size_t, VkDescriptorSet> DescriptorSet;
 
 inline static size_t DescriptorCount = 0;
 
@@ -114,19 +115,7 @@ Descriptor::Descriptor(RHIDevice *device, const ShaderMeta &meta) :
 			layout = DescriptorSetLayouts[meta.hash];
 		}
 		m_descriptor_set_layouts.emplace(set, layout);
-
-		// Allocate descriptor set
-		VkDescriptorSetAllocateInfo allocate_info = {};
-		allocate_info.sType                       = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocate_info.descriptorPool              = DescriptorPool;
-		allocate_info.descriptorSetCount          = 1;
-		allocate_info.pSetLayouts                 = &m_descriptor_set_layouts.at(set);
-
-		VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
-		vkAllocateDescriptorSets(static_cast<Device *>(p_device)->GetDevice(), &allocate_info, &descriptor_set);
-
-		m_descriptor_sets.emplace(set, descriptor_set);
-
+	
 		m_binding_dirty.emplace(set, false);
 	}
 }
@@ -322,6 +311,35 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 	{
 		if (dirty)
 		{
+			size_t hash = 0;
+			for (auto &[name, binding_hash] : m_binding_hash)
+			{
+				if (m_descriptor_lookup[name].first == set)
+				{
+					HashCombine(hash, binding_hash);
+				}
+			}
+
+			if (DescriptorSet.find(hash) != DescriptorSet.end())
+			{
+				VkDescriptorSet descriptor_set = DescriptorSet[hash];
+				m_descriptor_sets[set] = descriptor_set;
+				return m_descriptor_sets;
+			}
+
+			// Allocate descriptor set
+			VkDescriptorSetAllocateInfo allocate_info = {};
+			allocate_info.sType                       = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+			allocate_info.descriptorPool              = DescriptorPool;
+			allocate_info.descriptorSetCount          = 1;
+			allocate_info.pSetLayouts                 = &m_descriptor_set_layouts.at(set);
+
+			VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
+			vkAllocateDescriptorSets(static_cast<Device *>(p_device)->GetDevice(), &allocate_info, &descriptor_set);
+
+			DescriptorSet.emplace(hash, descriptor_set);
+			m_descriptor_sets[set] = descriptor_set;
+
 			std::vector<VkWriteDescriptorSet> write_sets;
 			std::vector<std::vector<VkDescriptorImageInfo>>  image_infos  = {};
 			std::vector<std::vector<VkDescriptorBufferInfo>> buffer_infos = {};

@@ -19,7 +19,7 @@ class RenderTarget : public RHIRenderTarget
   public:
 	RenderTarget(RHIDevice *device);
 
-	virtual ~RenderTarget() override = default;
+	virtual ~RenderTarget() override;
 
 	virtual RHIRenderTarget &Add(RHITexture *texture, RHITextureDimension dimension, const ColorAttachment &attachment) override;
 	virtual RHIRenderTarget &Add(RHITexture *texture, const TextureRange &range, const ColorAttachment &attachment) override;
@@ -34,14 +34,44 @@ class RenderTarget : public RHIRenderTarget
 
 	std::vector<VkClearValue> GetClearValue() const;
 
+	const std::vector<VkRenderingAttachmentInfo> &GetColorAttachments();
+
+	const std::optional<VkRenderingAttachmentInfo> &GetDepthAttachment();
+
+	const std::optional<VkRenderingAttachmentInfo> &GetStencilAttachment();
+
+	const std::vector<VkFormat> &GetColorFormats();
+
+	const std::optional<VkFormat> &GetDepthFormat();
+
+	const std::optional<VkFormat> &GetStencilFormat();
+
+	size_t GetFormatHash() const;
+
+	size_t GetHash() const;
+
+	virtual void Clear() override;
+
   private:
-	std::vector<VkAttachmentDescription> m_descriptions;
-	std::vector<VkAttachmentReference>   m_color_reference;
-	std::optional<VkAttachmentReference> m_depth_stencil_reference;
+	// Dynamic Rendering
+	std::vector<VkRenderingAttachmentInfo>   m_color_attachments;
+	std::optional<VkRenderingAttachmentInfo> m_depth_attachment;
+	std::optional<VkRenderingAttachmentInfo> m_stencil_attachment;
 
-	std::vector<FrameBufferResolve> m_framebuffer_resolves;
+	std::vector<VkFormat>   m_color_formats;
+	std::optional<VkFormat> m_depth_format;
+	std::optional<VkFormat> m_stencil_format;
 
-	size_t m_render_pass_hash = 0;
-	size_t m_framebuffer_hash = 0;
+	size_t m_hash = 0;
+
+	// RenderPass + Framebuffer
+	//std::vector<VkAttachmentDescription> m_descriptions;
+	//std::vector<VkAttachmentReference>   m_color_reference;
+	//std::optional<VkAttachmentReference> m_depth_stencil_reference;
+
+	//std::vector<FrameBufferResolve> m_framebuffer_resolves;
+
+	//size_t m_render_pass_hash = 0;
+	//size_t m_framebuffer_hash = 0;
 };
 }        // namespace Ilum::Vulkan

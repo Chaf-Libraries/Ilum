@@ -71,31 +71,34 @@ struct ShaderMeta
 	{
 		for (auto &rhs_descriptor : rhs.descriptors)
 		{
+			bool should_add = true;
 			for (auto &descriptor : descriptors)
 			{
 				if (descriptor == rhs_descriptor)
 				{
 					descriptor.stage = descriptor.stage | rhs_descriptor.stage;
+					should_add       = false;
 				}
-				else
-				{
-					descriptors.push_back(rhs_descriptor);
-				}
+			}
+			if (should_add)
+			{
+				descriptors.push_back(rhs_descriptor);
 			}
 		}
 
 		for (auto &rhs_constant : rhs.constants)
 		{
+			bool should_add = true;
 			for (auto &constant : constants)
 			{
 				if (constant == rhs_constant)
 				{
 					constant.stage = constant.stage | rhs_constant.stage;
 				}
-				else
-				{
-					constants.push_back(rhs_constant);
-				}
+			}
+			if (should_add)
+			{
+				constants.push_back(rhs_constant);
 			}
 		}
 

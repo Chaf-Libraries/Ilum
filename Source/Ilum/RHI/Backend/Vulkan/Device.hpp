@@ -1,7 +1,7 @@
 #pragma once
 
-#include "RHIDevice.hpp"
 #include "Definitions.hpp"
+#include "RHIDevice.hpp"
 
 #include <volk.h>
 
@@ -25,6 +25,8 @@ class Device : public RHIDevice
 
 	virtual bool IsFeatureSupport(RHIFeature feature) override;
 
+	bool IsFeatureSupport(VulkanFeature feature);
+
 	VkInstance       GetInstance() const;
 	VkPhysicalDevice GetPhysicalDevice() const;
 	VkDevice         GetDevice() const;
@@ -39,7 +41,8 @@ class Device : public RHIDevice
 	std::vector<const char *> m_supported_device_features;
 	std::vector<const char *> m_supported_device_extensions;
 
-	std::unordered_map<RHIFeature, bool> m_feature_support;
+	std::unordered_map<RHIFeature, bool>    m_feature_support;
+	std::unordered_map<VulkanFeature, bool> m_vulkan_feature_support;
 
   private:
 	VkInstance       m_instance        = VK_NULL_HANDLE;
@@ -53,7 +56,7 @@ class Device : public RHIDevice
 	uint32_t m_transfer_family = 0;
 
 	uint32_t m_graphics_queue_count = 0;
-	uint32_t m_compute_queue_count = 0;
+	uint32_t m_compute_queue_count  = 0;
 	uint32_t m_transfer_queue_count = 0;
 };
 }        // namespace Ilum::Vulkan

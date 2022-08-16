@@ -25,8 +25,8 @@ class Command : public RHICommand
 	virtual void BeginRenderPass(RHIRenderTarget *render_target) override;
 	virtual void EndRenderPass() override;
 
-	virtual void BindVertexBuffer() override;
-	virtual void BindIndexBuffer() override;
+	virtual void BindVertexBuffer(RHIBuffer *vertex_buffer) override;
+	virtual void BindIndexBuffer(RHIBuffer *index_buffer, bool is_short = false) override;
 
 	virtual void BindDescriptor(RHIDescriptor *descriptor) override;
 	virtual void BindPipelineState(RHIPipelineState *pipeline_state) override;

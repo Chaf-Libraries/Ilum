@@ -21,7 +21,7 @@ struct TextureState
 		       stage == other.stage;
 	}
 
-	static TextureState Create(RHITextureState state);
+	static TextureState Create(RHIResourceState state);
 };
 
 class Texture : public RHITexture

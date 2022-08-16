@@ -20,7 +20,7 @@ struct TextureState
 		return state == other.state;
 	}
 
-	static TextureState Create(RHITextureState state);
+	static TextureState Create(RHIResourceState state);
 };
 
 class Texture : public RHITexture

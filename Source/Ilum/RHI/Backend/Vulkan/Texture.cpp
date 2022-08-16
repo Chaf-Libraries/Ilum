@@ -5,48 +5,48 @@
 
 namespace Ilum::Vulkan
 {
-TextureState TextureState::Create(RHITextureState state)
+TextureState TextureState::Create(RHIResourceState state)
 {
 	TextureState vk_state = {};
 
 	switch (state)
 	{
-		case RHITextureState::TransferSource:
+		case RHIResourceState::TransferSource:
 			vk_state.layout      = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 			vk_state.access_mask = VK_ACCESS_TRANSFER_READ_BIT;
 			vk_state.stage       = VK_PIPELINE_STAGE_TRANSFER_BIT;
 			break;
-		case RHITextureState::TransferDest:
+		case RHIResourceState::TransferDest:
 			vk_state.layout      = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 			vk_state.access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
 			vk_state.stage       = VK_PIPELINE_STAGE_TRANSFER_BIT;
 			break;
-		case RHITextureState::ShaderResource:
+		case RHIResourceState::ShaderResource:
 			vk_state.layout      = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			vk_state.access_mask = VK_ACCESS_SHADER_READ_BIT;
 			vk_state.stage       = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
 			break;
-		case RHITextureState::UnorderAccess:
+		case RHIResourceState::UnorderedAccess:
 			vk_state.layout      = VK_IMAGE_LAYOUT_GENERAL;
 			vk_state.access_mask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
 			vk_state.stage       = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
 			break;
-		case RHITextureState::RenderTarget:
+		case RHIResourceState::RenderTarget:
 			vk_state.layout      = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			vk_state.access_mask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 			vk_state.stage       = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 			break;
-		case RHITextureState::DepthWrite:
+		case RHIResourceState::DepthWrite:
 			vk_state.layout      = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 			vk_state.access_mask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 			vk_state.stage       = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
 			break;
-		case RHITextureState::DepthRead:
+		case RHIResourceState::DepthRead:
 			vk_state.layout      = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 			vk_state.access_mask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
 			vk_state.stage       = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 			break;
-		case RHITextureState::Present:
+		case RHIResourceState::Present:
 			vk_state.layout      = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 			vk_state.access_mask = VK_ACCESS_MEMORY_READ_BIT;
 			vk_state.stage       = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
@@ -139,7 +139,7 @@ VkImageView Texture::GetView(const TextureRange &range) const
 	view_create_info.subresourceRange.layerCount     = range.layer_count;
 	view_create_info.subresourceRange.levelCount     = range.mip_count;
 	view_create_info.viewType                        = ToVulkanImageViewType[range.dimension];
-	view_create_info.components                      = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A};
+	view_create_info.components                      = {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY};
 
 	m_view_cache[hash] = VK_NULL_HANDLE;
 	vkCreateImageView(static_cast<Device *>(p_device)->GetDevice(), &view_create_info, nullptr, &m_view_cache[hash]);

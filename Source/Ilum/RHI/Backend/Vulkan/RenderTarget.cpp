@@ -8,10 +8,34 @@ namespace Ilum::Vulkan
 static std::unordered_map<size_t, VkRenderPass>  RenderPassCache;
 static std::unordered_map<size_t, VkFramebuffer> FramebufferCache;
 
+static uint32_t RenderTargetCount = 0;
+
 RenderTarget::RenderTarget(RHIDevice *device) :
     RHIRenderTarget(device)
 {
+	RenderTargetCount++;
 }
+
+ RenderTarget::~RenderTarget()
+{
+	 if (--RenderTargetCount == 0)
+	 {
+		 p_device->WaitIdle();
+
+		 for (auto& [hash, render_pass] : RenderPassCache)
+		 {
+			 vkDestroyRenderPass(static_cast<Device *>(p_device)->GetDevice(), render_pass, nullptr);
+		 }
+
+		 for (auto& [hash, framebuffer] : FramebufferCache)
+		 {
+			 vkDestroyFramebuffer(static_cast<Device *>(p_device)->GetDevice(), framebuffer, nullptr);
+		 }
+
+		 RenderPassCache.clear();
+		 FramebufferCache.clear();
+	 }
+ }
 
 RHIRenderTarget &RenderTarget::Add(RHITexture *texture, RHITextureDimension dimension, const ColorAttachment &attachment)
 {
@@ -20,43 +44,18 @@ RHIRenderTarget &RenderTarget::Add(RHITexture *texture, RHITextureDimension dime
 
 RHIRenderTarget &RenderTarget::Add(RHITexture *texture, const TextureRange &range, const ColorAttachment &attachment)
 {
-	VkAttachmentDescription description = {};
-	description.format                  = ToVulkanFormat[texture->GetDesc().format];
-	description.initialLayout           = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	description.finalLayout             = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	description.loadOp                  = ToVulkanLoadOp[attachment.load];
-	description.storeOp                 = ToVulkanStoreOp[attachment.store];
-	description.stencilLoadOp           = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	description.stencilStoreOp          = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	description.samples                 = VK_SAMPLE_COUNT_1_BIT;
+	VkRenderingAttachmentInfo attachment_info = {};
+	attachment_info.sType                     = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+	attachment_info.loadOp                    = ToVulkanLoadOp[attachment.load];
+	attachment_info.storeOp                   = ToVulkanStoreOp[attachment.store];
+	attachment_info.imageView                 = static_cast<Texture *>(texture)->GetView(range);
+	attachment_info.imageLayout               = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	std::memcpy(attachment_info.clearValue.color.float32, attachment.clear_value, 4 * sizeof(float));
 
-	VkAttachmentReference reference = {};
-	reference.attachment            = static_cast<uint32_t>(m_descriptions.size());
-	reference.layout                = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	HashCombine(m_hash, attachment_info.loadOp, attachment_info.storeOp, attachment_info.imageView, attachment_info.imageLayout);
 
-	FrameBufferResolve framebuffer_resolve = {};
-	framebuffer_resolve.view               = static_cast<Texture *>(texture)->GetView(range);
-	for (uint32_t i = 0; i < 4; i++)
-	{
-		framebuffer_resolve.clear_value.color.float32[i] = attachment.clear_value[i];
-	}
-
-	HashCombine(
-	    m_render_pass_hash,
-	    description.format,
-	    description.initialLayout,
-	    description.finalLayout,
-	    description.loadOp,
-	    description.storeOp,
-	    description.samples,
-	    reference.attachment,
-	    reference.layout);
-
-	HashCombine(m_framebuffer_hash, framebuffer_resolve.view);
-
-	m_descriptions.push_back(description);
-	m_color_reference.push_back(reference);
-	m_framebuffer_resolves.push_back(framebuffer_resolve);
+	m_color_attachments.push_back(attachment_info);
+	m_color_formats.push_back(ToVulkanFormat[texture->GetDesc().format]);
 
 	m_width  = std::max(m_width, texture->GetDesc().width);
 	m_height = std::max(m_height, texture->GetDesc().height);
@@ -72,50 +71,29 @@ RHIRenderTarget &RenderTarget::Add(RHITexture *texture, RHITextureDimension dime
 
 RHIRenderTarget &RenderTarget::Add(RHITexture *texture, const TextureRange &range, const DepthStencilAttachment &attachment)
 {
-	VkAttachmentDescription description = {};
-	description.format                  = ToVulkanFormat[texture->GetDesc().format];
-	description.initialLayout           = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-	description.finalLayout             = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-	description.loadOp                  = ToVulkanLoadOp[attachment.depth_load];
-	description.storeOp                 = ToVulkanStoreOp[attachment.depth_store];
-	description.samples                 = VK_SAMPLE_COUNT_1_BIT;
+	VkRenderingAttachmentInfo attachment_info     = {};
+	attachment_info.sType                         = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+	attachment_info.loadOp                        = ToVulkanLoadOp[attachment.depth_load];
+	attachment_info.storeOp                       = ToVulkanStoreOp[attachment.depth_store];
+	attachment_info.imageView                     = static_cast<Texture *>(texture)->GetView(range);
+	attachment_info.imageLayout                   = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	attachment_info.clearValue.depthStencil.depth = attachment.clear_depth;
 
-	VkAttachmentReference reference = {};
-	reference.attachment            = static_cast<uint32_t>(m_descriptions.size());
-	reference.layout                = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	HashCombine(m_hash, attachment_info.loadOp, attachment_info.storeOp, attachment_info.imageView, attachment_info.imageLayout);
+
+	m_depth_attachment = attachment_info;
+	m_depth_format     = ToVulkanFormat[texture->GetDesc().format];
 
 	if (IsStencilFormat(texture->GetDesc().format))
 	{
-		description.stencilLoadOp = ToVulkanLoadOp[attachment.stencil_load];
-		description.stencilStoreOp = ToVulkanStoreOp[attachment.stencil_store];
+		attachment_info.loadOp                          = ToVulkanLoadOp[attachment.stencil_load];
+		attachment_info.storeOp                         = ToVulkanStoreOp[attachment.stencil_store];
+		attachment_info.clearValue.depthStencil.stencil = attachment.clear_stencil;
+		m_stencil_attachment                            = attachment_info;
+		m_stencil_format                                = ToVulkanFormat[texture->GetDesc().format];
+
+		HashCombine(m_hash, attachment_info.loadOp, attachment_info.storeOp);
 	}
-
-	reference.attachment = static_cast<uint32_t>(m_descriptions.size());
-	reference.layout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-	FrameBufferResolve framebuffer_resolve               = {};
-	framebuffer_resolve.view                             = static_cast<Texture *>(texture)->GetView(range);
-	framebuffer_resolve.clear_value.depthStencil.depth   = attachment.clear_depth;
-	framebuffer_resolve.clear_value.depthStencil.stencil = attachment.clear_stencil;
-
-	HashCombine(
-	    m_render_pass_hash,
-	    description.format,
-	    description.initialLayout,
-	    description.finalLayout,
-	    description.loadOp,
-	    description.storeOp,
-	    description.stencilLoadOp,
-	    description.stencilStoreOp,
-	    description.samples,
-	    reference.attachment,
-	    reference.layout);
-
-	HashCombine(m_framebuffer_hash, framebuffer_resolve.view);
-
-	m_depth_stencil_reference = reference;
-	m_descriptions.push_back(description);
-	m_framebuffer_resolves.push_back(framebuffer_resolve);
 
 	m_width  = std::max(m_width, texture->GetDesc().width);
 	m_height = std::max(m_height, texture->GetDesc().height);
@@ -126,18 +104,68 @@ RHIRenderTarget &RenderTarget::Add(RHITexture *texture, const TextureRange &rang
 
 VkRenderPass RenderTarget::GetRenderPass() const
 {
-	if (RenderPassCache.find(m_render_pass_hash) != RenderPassCache.end())
+	std::vector<VkAttachmentDescription> descriptions;
+	std::vector<VkAttachmentReference>   color_references;
+	std::optional<VkAttachmentReference> depth_stencil_reference;
+
+	for (uint32_t i = 0; i < m_color_attachments.size(); i++)
 	{
-		return RenderPassCache.at(m_render_pass_hash);
+		VkAttachmentDescription description = {};
+		description.samples                 = VK_SAMPLE_COUNT_1_BIT;
+		description.initialLayout           = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		description.finalLayout             = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		description.loadOp                  = m_color_attachments[i].loadOp;
+		description.storeOp                 = m_color_attachments[i].storeOp;
+		description.format                  = m_color_formats[i];
+
+		VkAttachmentReference reference = {};
+		reference.attachment            = static_cast<uint32_t>(descriptions.size());
+		reference.layout                = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		descriptions.push_back(description);
+		color_references.push_back(reference);
+	}
+
+	if (m_depth_attachment.has_value() || m_stencil_attachment.has_value())
+	{
+		VkAttachmentDescription description = {};
+		description.samples                 = VK_SAMPLE_COUNT_1_BIT;
+		description.initialLayout           = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		description.finalLayout             = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		description.format                  = m_depth_format.value();
+
+		if (m_depth_attachment.has_value())
+		{
+			description.loadOp  = m_depth_attachment.value().loadOp;
+			description.storeOp = m_depth_attachment.value().storeOp;
+		}
+
+		if (m_stencil_attachment.has_value())
+		{
+			description.stencilLoadOp  = m_stencil_attachment.value().loadOp;
+			description.stencilStoreOp = m_stencil_attachment.value().storeOp;
+		}
+
+		VkAttachmentReference reference = {};
+		reference.attachment            = static_cast<uint32_t>(descriptions.size());
+		reference.layout                = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+		descriptions.push_back(description);
+		depth_stencil_reference = reference;
+	}
+
+	if (RenderPassCache.find(m_hash) != RenderPassCache.end())
+	{
+		return RenderPassCache.at(m_hash);
 	}
 
 	VkRenderPass render_pass = VK_NULL_HANDLE;
 
 	VkSubpassDescription subpass_description    = {};
 	subpass_description.pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass_description.colorAttachmentCount    = static_cast<uint32_t>(m_color_reference.size());
-	subpass_description.pColorAttachments       = m_color_reference.data();
-	subpass_description.pDepthStencilAttachment = m_depth_stencil_reference.has_value() ? &m_depth_stencil_reference.value() : nullptr;
+	subpass_description.colorAttachmentCount    = static_cast<uint32_t>(color_references.size());
+	subpass_description.pColorAttachments       = color_references.data();
+	subpass_description.pDepthStencilAttachment = depth_stencil_reference.has_value() ? &depth_stencil_reference.value() : nullptr;
 
 	std::array<VkSubpassDependency, 2> subpass_dependencies;
 
@@ -160,8 +188,8 @@ VkRenderPass RenderTarget::GetRenderPass() const
 	// Create render pass
 	VkRenderPassCreateInfo render_pass_create_info = {};
 	render_pass_create_info.sType                  = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	render_pass_create_info.attachmentCount        = static_cast<uint32_t>(m_descriptions.size());
-	render_pass_create_info.pAttachments           = m_descriptions.data();
+	render_pass_create_info.attachmentCount        = static_cast<uint32_t>(descriptions.size());
+	render_pass_create_info.pAttachments           = descriptions.data();
 	render_pass_create_info.subpassCount           = 1;
 	render_pass_create_info.pSubpasses             = &subpass_description;
 	render_pass_create_info.dependencyCount        = static_cast<uint32_t>(subpass_dependencies.size());
@@ -169,23 +197,30 @@ VkRenderPass RenderTarget::GetRenderPass() const
 
 	vkCreateRenderPass(static_cast<Device *>(p_device)->GetDevice(), &render_pass_create_info, nullptr, &render_pass);
 
-	RenderPassCache.emplace(m_render_pass_hash, render_pass);
+	RenderPassCache.emplace(m_hash, render_pass);
 
 	return render_pass;
 }
 
 VkFramebuffer RenderTarget::GetFramebuffer() const
 {
-	if (FramebufferCache.find(m_framebuffer_hash) != FramebufferCache.end())
+	std::vector<VkImageView> views;
+	views.reserve(m_color_attachments.size() + 1);
+	for (auto &attachment : m_color_attachments)
 	{
-		return FramebufferCache.at(m_framebuffer_hash);
+		views.push_back(attachment.imageView);
+	}
+	if (m_depth_attachment.has_value())
+	{
+		views.push_back(m_depth_attachment.value().imageView);
 	}
 
-	std::vector<VkImageView> views;
-	views.reserve(m_framebuffer_resolves.size());
-	for (auto &resolve : m_framebuffer_resolves)
+	size_t hash = 0;
+	HashCombine(hash, views);
+
+	if (FramebufferCache.find(hash) != FramebufferCache.end())
 	{
-		views.push_back(resolve.view);
+		return FramebufferCache.at(hash);
 	}
 
 	VkFramebufferCreateInfo frame_buffer_create_info = {};
@@ -200,7 +235,7 @@ VkFramebuffer RenderTarget::GetFramebuffer() const
 	VkFramebuffer frame_buffer = VK_NULL_HANDLE;
 	vkCreateFramebuffer(static_cast<Device *>(p_device)->GetDevice(), &frame_buffer_create_info, nullptr, &frame_buffer);
 
-	FramebufferCache.emplace(m_framebuffer_hash, frame_buffer);
+	FramebufferCache.emplace(hash, frame_buffer);
 
 	return frame_buffer;
 }
@@ -215,12 +250,82 @@ VkRect2D RenderTarget::GetRenderArea() const
 std::vector<VkClearValue> RenderTarget::GetClearValue() const
 {
 	std::vector<VkClearValue> clear_values;
-	clear_values.reserve(m_framebuffer_resolves.size());
-	for (auto &resolve : m_framebuffer_resolves)
+	clear_values.reserve(m_color_attachments.size() + 1);
+	for (auto &attachment : m_color_attachments)
 	{
-		clear_values.push_back(resolve.clear_value);
+		clear_values.push_back(attachment.clearValue);
+	}
+	if (m_depth_attachment.has_value())
+	{
+		clear_values.push_back(m_depth_attachment.value().clearValue);
 	}
 
 	return clear_values;
+}
+
+const std::vector<VkRenderingAttachmentInfo> &RenderTarget::GetColorAttachments()
+{
+	return m_color_attachments;
+}
+
+const std::optional<VkRenderingAttachmentInfo> &RenderTarget::GetDepthAttachment()
+{
+	return m_depth_attachment;
+}
+
+const std::optional<VkRenderingAttachmentInfo> &RenderTarget::GetStencilAttachment()
+{
+	return m_stencil_attachment;
+}
+
+const std::vector<VkFormat> &RenderTarget::GetColorFormats()
+{
+	return m_color_formats;
+}
+
+const std::optional<VkFormat> &RenderTarget::GetDepthFormat()
+{
+	return m_depth_format;
+}
+
+const std::optional<VkFormat> &RenderTarget::GetStencilFormat()
+{
+	return m_stencil_format;
+}
+
+size_t RenderTarget::GetFormatHash() const
+{
+	size_t hash = 0;
+	HashCombine(hash, m_color_formats);
+
+	if (m_depth_format.has_value())
+	{
+		HashCombine(hash, m_depth_format.value());
+	}
+
+	if (m_stencil_format.has_value())
+	{
+		HashCombine(hash, m_stencil_format.value());
+	}
+
+	return hash;
+}
+
+size_t RenderTarget::GetHash() const
+{
+	return m_hash;
+}
+
+void RenderTarget::Clear()
+{
+	m_color_attachments.clear();
+	m_depth_attachment.reset();
+	m_stencil_attachment.reset();
+
+	m_color_formats.clear();
+	m_depth_format.reset();
+	m_stencil_format.reset();
+
+	m_hash = 0;
 }
 }        // namespace Ilum::Vulkan

@@ -15,13 +15,13 @@ struct SamplerDesc
 	RHIAddressMode address_mode_v;
 	RHIAddressMode address_mode_w;
 	RHIMipmapMode  mipmap_mode;
-	RHISamplerBorderColor border_color;
+	RHISamplerBorderColor border_color = RHISamplerBorderColor::Float_Transparent_Black;
 
-	bool anisotropic;
+	bool anisotropic = false;
 
-	float mip_lod_bias;
-	float min_lod;
-	float max_lod;
+	float mip_lod_bias = 0.f;
+	float min_lod = 0.f;
+	float max_lod = 100.f;
 };
 
 class RHISampler

@@ -67,19 +67,6 @@ VkPipelineLayout PipelineState::GetPipelineLayout(Descriptor *descriptor)
 
 VkPipeline PipelineState::GetPipeline(Descriptor *descriptor, RenderTarget *render_target)
 {
-	size_t hash = 0;
-	HashCombine(hash, descriptor->GetShaderMeta().hash, GetHash());
-
-	if (render_target)
-	{
-		HashCombine(hash, render_target->GetRenderPass());
-	}
-
-	if (Pipelines.find(hash) != Pipelines.end())
-	{
-		return Pipelines[hash];
-	}
-
 	if (m_shaders.find(RHIShaderStage::Fragment) != m_shaders.end())
 	{
 		ASSERT(render_target != nullptr);
@@ -154,9 +141,23 @@ VkPipeline PipelineState::CreateGraphicsPipeline(Descriptor *descriptor, RenderT
 	size_t hash = 0;
 	HashCombine(hash, descriptor->GetShaderMeta().hash, GetHash());
 
+	bool dynamic_rendering = static_cast<Device *>(p_device)->IsFeatureSupport(VulkanFeature::DynamicRendering);
+
 	if (render_target)
 	{
-		HashCombine(hash, render_target->GetRenderPass());
+		if (dynamic_rendering)
+		{
+			HashCombine(hash, render_target->GetFormatHash());
+		}
+		else
+		{
+			HashCombine(hash, render_target->GetRenderPass());
+		}
+	}
+
+	if (Pipelines.find(hash) != Pipelines.end())
+	{
+		return Pipelines[hash];
 	}
 
 	// Input Assembly State
@@ -225,7 +226,7 @@ VkPipeline PipelineState::CreateGraphicsPipeline(Descriptor *descriptor, RenderT
 	multisample_state_create_info.sType                                = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 	multisample_state_create_info.rasterizationSamples                 = ToVulkanSampleCount[m_multisample_state.samples];
 	multisample_state_create_info.sampleShadingEnable                  = m_multisample_state.enable;
-	multisample_state_create_info.pSampleMask                          = &m_multisample_state.sample_mask;
+	multisample_state_create_info.pSampleMask                          = m_multisample_state.enable ? &m_multisample_state.sample_mask : nullptr;
 	multisample_state_create_info.flags                                = 0;
 
 	// Dynamic State
@@ -235,19 +236,6 @@ VkPipeline PipelineState::CreateGraphicsPipeline(Descriptor *descriptor, RenderT
 	dynamic_state_create_info.pDynamicStates                   = dynamic_states.data();
 	dynamic_state_create_info.dynamicStateCount                = static_cast<uint32_t>(dynamic_states.size());
 	dynamic_state_create_info.flags                            = 0;
-
-	// Shader Stage State
-	std::vector<VkPipelineShaderStageCreateInfo> pipeline_shader_stage_create_infos;
-	for (auto &[stage, shader] : m_shaders)
-	{
-		VkPipelineShaderStageCreateInfo shader_stage_create_info = {};
-
-		shader_stage_create_info.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-		shader_stage_create_info.stage  = ToVulkanShaderStage[stage];
-		shader_stage_create_info.module = static_cast<Shader *>(shader)->GetHandle();
-		shader_stage_create_info.pName  = shader->GetEntryPoint().c_str();
-		pipeline_shader_stage_create_infos.push_back(shader_stage_create_info);
-	}
 
 	// Vertex Input State
 	std::vector<VkVertexInputAttributeDescription> attribute_descriptions = {};
@@ -277,6 +265,19 @@ VkPipeline PipelineState::CreateGraphicsPipeline(Descriptor *descriptor, RenderT
 	vertex_input_state_create_info.vertexBindingDescriptionCount        = static_cast<uint32_t>(binding_descriptions.size());
 	vertex_input_state_create_info.pVertexBindingDescriptions           = binding_descriptions.data();
 
+	// Shader Stage State
+	std::vector<VkPipelineShaderStageCreateInfo> pipeline_shader_stage_create_infos;
+	for (auto &[stage, shader] : m_shaders)
+	{
+		VkPipelineShaderStageCreateInfo shader_stage_create_info = {};
+
+		shader_stage_create_info.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		shader_stage_create_info.stage  = ToVulkanShaderStage[stage];
+		shader_stage_create_info.module = static_cast<Shader *>(shader)->GetHandle();
+		shader_stage_create_info.pName  = shader->GetEntryPoint().c_str();
+		pipeline_shader_stage_create_infos.push_back(shader_stage_create_info);
+	}
+
 	VkGraphicsPipelineCreateInfo graphics_pipeline_create_info = {};
 	graphics_pipeline_create_info.sType                        = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	graphics_pipeline_create_info.stageCount                   = static_cast<uint32_t>(pipeline_shader_stage_create_infos.size());
@@ -285,26 +286,35 @@ VkPipeline PipelineState::CreateGraphicsPipeline(Descriptor *descriptor, RenderT
 	graphics_pipeline_create_info.pInputAssemblyState = &input_assembly_state_create_info;
 	graphics_pipeline_create_info.pRasterizationState = &rasterization_state_create_info;
 	graphics_pipeline_create_info.pColorBlendState    = &color_blend_state_create_info;
-	graphics_pipeline_create_info.pDepthStencilState  = &depth_stencil_state_create_info;
 	graphics_pipeline_create_info.pViewportState      = &viewport_state_create_info;
 	graphics_pipeline_create_info.pMultisampleState   = &multisample_state_create_info;
 	graphics_pipeline_create_info.pDynamicState       = &dynamic_state_create_info;
 	graphics_pipeline_create_info.pVertexInputState   = &vertex_input_state_create_info;
+	graphics_pipeline_create_info.pDepthStencilState  = &depth_stencil_state_create_info;
 
 	graphics_pipeline_create_info.layout             = GetPipelineLayout(descriptor);
-	graphics_pipeline_create_info.renderPass         = render_target->GetRenderPass();
+	graphics_pipeline_create_info.renderPass         = VK_NULL_HANDLE;
 	graphics_pipeline_create_info.subpass            = 0;
 	graphics_pipeline_create_info.basePipelineHandle = VK_NULL_HANDLE;
 	graphics_pipeline_create_info.basePipelineIndex  = -1;
 
-	//VkPipelineRenderingCreateInfo pipeline_rendering_create_info = {};
-	//pipeline_rendering_create_info.sType                         = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-	//pipeline_rendering_create_info.colorAttachmentCount          = static_cast<uint32_t>(render_target->GetColorFormat().size());
-	//pipeline_rendering_create_info.pColorAttachmentFormats       = render_target->GetColorFormat().data();
-	//pipeline_rendering_create_info.depthAttachmentFormat         = render_target->GetDepthFormat().has_value() ? render_target->GetDepthFormat().value() : VK_FORMAT_UNDEFINED;
-	//pipeline_rendering_create_info.stencilAttachmentFormat       = render_target->GetStencilFormat().has_value() ? render_target->GetStencilFormat().value() : VK_FORMAT_UNDEFINED;
-
-	//graphics_pipeline_create_info.pNext = &pipeline_rendering_create_info;
+	if (dynamic_rendering)
+	{
+		VkPipelineRenderingCreateInfo pipeline_rendering_create_info = {};
+		pipeline_rendering_create_info.sType                         = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+		pipeline_rendering_create_info.colorAttachmentCount          = static_cast<uint32_t>(render_target->GetColorFormats().size());
+		pipeline_rendering_create_info.pColorAttachmentFormats       = render_target->GetColorFormats().data();
+		pipeline_rendering_create_info.depthAttachmentFormat         = render_target->GetDepthFormat().has_value() ? render_target->GetDepthFormat().value() : VK_FORMAT_UNDEFINED;
+		pipeline_rendering_create_info.stencilAttachmentFormat       = render_target->GetStencilFormat().has_value() ? render_target->GetStencilFormat().value() : VK_FORMAT_UNDEFINED;
+		graphics_pipeline_create_info.pNext                          = &pipeline_rendering_create_info;
+	}
+	else
+	{
+		if (render_target)
+		{
+			graphics_pipeline_create_info.renderPass = render_target->GetRenderPass();
+		}
+	}
 
 	VkPipeline pipeline = VK_NULL_HANDLE;
 	vkCreateGraphicsPipelines(static_cast<Device *>(p_device)->GetDevice(), PipelineCache, 1, &graphics_pipeline_create_info, nullptr, &pipeline);
@@ -318,6 +328,11 @@ VkPipeline PipelineState::CreateComputePipeline(Descriptor *descriptor)
 {
 	size_t hash = 0;
 	HashCombine(hash, descriptor->GetShaderMeta().hash, GetHash());
+
+	if (Pipelines.find(hash) != Pipelines.end())
+	{
+		return Pipelines[hash];
+	}
 
 	VkPipelineShaderStageCreateInfo shader_stage_create_info = {};
 	shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -342,6 +357,7 @@ VkPipeline PipelineState::CreateComputePipeline(Descriptor *descriptor)
 
 VkPipeline PipelineState::CreateRayTracingPipeline(Descriptor *descriptor)
 {
+
 	return VK_NULL_HANDLE;
 }
 }        // namespace Ilum::Vulkan

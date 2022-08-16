@@ -80,8 +80,13 @@ std::unique_ptr<RHITexture> RHIContext::CreateTexture2DArray(uint32_t width, uin
 	return RHITexture::Create2DArray(m_device.get(), width, height, layers, format, usage, mipmap, samples);
 }
 
-std::unique_ptr<RHIBuffer> RHIContext::CreateBuffer(const BufferDesc &desc)
+std::unique_ptr<RHIBuffer> RHIContext::CreateBuffer(size_t size, RHIBufferUsage usage, RHIMemoryUsage memory)
 {
+	BufferDesc desc = {};
+	desc.size       = size;
+	desc.usage      = usage;
+	desc.memory     = memory;
+
 	return RHIBuffer::Create(m_device.get(), desc);
 }
 
@@ -113,6 +118,11 @@ std::unique_ptr<RHIShader> RHIContext::CreateShader(const std::string &entry_poi
 std::unique_ptr<RHIRenderTarget> RHIContext::CreateRenderTarget()
 {
 	return RHIRenderTarget::Create(m_device.get());
+}
+
+std::unique_ptr<RHIFence> RHIContext::CreateFence()
+{
+	return RHIFence::Create(m_device.get());
 }
 
 RHIQueue *RHIContext::GetQueue(RHIQueueFamily family)
