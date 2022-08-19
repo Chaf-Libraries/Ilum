@@ -23,6 +23,10 @@ class RHIContext
 
 	RHIBackend GetBackend() const;
 
+	RHIDevice *GetDevice() const;
+
+	RHISwapchain *GetSwapchain() const;
+
 	// Create Texture
 	std::unique_ptr<RHITexture> CreateTexture(const TextureDesc &desc);
 	std::unique_ptr<RHITexture> CreateTexture2D(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples = 1);

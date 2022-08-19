@@ -12,10 +12,18 @@ class RHITexture;
 class RHISwapchain
 {
   public:
-	RHISwapchain(RHIDevice *device, Window *window);
+	//RHISwapchain(RHIDevice *device, Window *window);
+	RHISwapchain(RHIDevice *device, uint32_t width, uint32_t height);
+
 	virtual ~RHISwapchain() = default;
 
-	static std::unique_ptr<RHISwapchain> Create(RHIDevice *device, Window *window);
+	uint32_t GetWidth() const;
+
+	uint32_t GetHeight() const;
+
+	//static std::unique_ptr<RHISwapchain> Create(RHIDevice *device, Window *window);
+
+	static std::unique_ptr<RHISwapchain> Create(RHIDevice *device, void *window_handle, uint32_t width, uint32_t height);
 
 	virtual uint32_t GetTextureCount() = 0;
 
@@ -27,8 +35,12 @@ class RHISwapchain
 
 	virtual bool Present(RHISemaphore *semaphore) = 0;
 
+	virtual void Resize(uint32_t width, uint32_t height) = 0;
+
   protected:
 	RHIDevice *p_device = nullptr;
-	Window    *p_window = nullptr;
+	uint32_t   m_width  = 0;
+	uint32_t   m_height = 0;
+	//Window    *p_window = nullptr;
 };
 }        // namespace Ilum

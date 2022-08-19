@@ -15,7 +15,8 @@ class Texture;
 class Swapchain : public RHISwapchain
 {
   public:
-	Swapchain(RHIDevice *device, Window *window);
+	Swapchain(RHIDevice *device, void *window_handle, uint32_t width, uint32_t height);
+
 	virtual ~Swapchain() override;
 
 	virtual uint32_t GetTextureCount() override;
@@ -28,8 +29,7 @@ class Swapchain : public RHISwapchain
 
 	virtual bool Present(RHISemaphore *semaphore) override;
 
-  private:
-	void CreateTextures();
+	virtual void Resize(uint32_t width, uint32_t height) override;
 
   private:
 	std::vector<std::unique_ptr<Texture>> m_textures;

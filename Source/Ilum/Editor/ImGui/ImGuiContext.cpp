@@ -8,24 +8,78 @@
 
 #include <IconsFontAwesome4.h>
 
+#include <GLFW/glfw3.h>
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
+
 namespace Ilum
 {
+struct ConstantBlock
+{
+	glm::vec2 scale;
+	glm::vec2 translate;
+};
 
-	/*	platform_io.Renderer_CreateWindow  = RHI_Window_Create;
-	platform_io.Renderer_DestroyWindow = RHI_Window_Destroy;
-	platform_io.Renderer_SetWindowSize = RHI_Window_SetSize;
-	platform_io.Renderer_RenderWindow  = RHI_Window_Render;
-	platform_io.Renderer_SwapBuffers   = RHI_Window_Present;*/
+/*	platform_io.Renderer_CreateWindow  = RHI_Window_Create;
+platform_io.Renderer_DestroyWindow = RHI_Window_Destroy;
+platform_io.Renderer_SetWindowSize = RHI_Window_SetSize;
+platform_io.Renderer_RenderWindow  = RHI_Window_Render;
+platform_io.Renderer_SwapBuffers   = RHI_Window_Present;*/
+struct ViewportResources
+{
+	ViewportResources() = default;
+	ViewportResources(RHIDevice *device)
+	{
+		uniform_buffer = RHIBuffer::Create(device, BufferDesc{
+		                                               RHIBufferUsage::ConstantBuffer,
+		                                               RHIMemoryUsage::CPU_TO_GPU,
+		                                               sizeof(ConstantBlock),
+		                                           });
 
+		render_complete  = RHISemaphore::Create(device);
+		present_complete = RHISemaphore::Create(device);
+	}
+
+	std::unique_ptr<RHIBuffer> vertex_buffer;
+	std::unique_ptr<RHIBuffer> index_buffer;
+	std::unique_ptr<RHIBuffer> uniform_buffer = nullptr;
+
+	std::unique_ptr<RHISemaphore> render_complete  = nullptr;
+	std::unique_ptr<RHISemaphore> present_complete = nullptr;
+
+	std::vector<RHICommand *> cmd_buffers;
+
+	uint32_t vertex_count = 0;
+	uint32_t index_count  = 0;
+};
+
+struct WindowData
+{
+	std::unique_ptr<ViewportResources> viewport_data;
+	std::unique_ptr<RHISwapchain>      swapchain;
+};
+
+static RHIContext       *gContext       = nullptr;
+static Window           *gWindow        = nullptr;
+static RHIPipelineState *gPipelineState = nullptr;
+static RHIDescriptor    *gDescriptor    = nullptr;
+static RHISampler       *gSampler       = nullptr;
+static RHIRenderTarget  *gRenderTarget  = nullptr;
+static ViewportResources gResource;
 
 ImGuiContext::ImGuiContext(RHIContext *context, Window *window) :
     p_context(context), p_window(window)
 {
+	gContext = p_context;
+	gWindow  = p_window;
+
+	gResource = ViewportResources(gContext->GetDevice());
+
 	ImGui::CreateContext();
 
-	ImGui_ImplGlfw_InitForOther(window->GetHandle(), true);
-
 	SetStyle();
+
+	ImGui_ImplGlfw_InitForOther(window->GetHandle(), true);
 
 	m_pipeline_state = context->CreatePipelineState();
 	m_render_target  = context->CreateRenderTarget();
@@ -35,8 +89,8 @@ ImGuiContext::ImGuiContext(RHIContext *context, Window *window) :
         RHIAddressMode::Clamp_To_Edge,
         RHIAddressMode::Clamp_To_Edge,
         RHIAddressMode::Clamp_To_Edge,
-        RHIMipmapMode::Linear, 
-		RHISamplerBorderColor::Float_Opaque_White});
+        RHIMipmapMode::Linear,
+        RHISamplerBorderColor::Float_Opaque_White});
 
 	// Setup pipeline state
 	DepthStencilState depth_stencil_state  = {};
@@ -109,11 +163,11 @@ ImGuiContext::ImGuiContext(RHIContext *context, Window *window) :
 
 	m_descriptor = p_context->CreateDescriptor(shader_meta);
 
-	 m_pipeline_state->SetDepthStencilState(depth_stencil_state);
-	 m_pipeline_state->SetRasterizationState(rasterization_state);
+	m_pipeline_state->SetDepthStencilState(depth_stencil_state);
+	m_pipeline_state->SetRasterizationState(rasterization_state);
 	m_pipeline_state->SetVertexInputState(vertex_input_state);
 	m_pipeline_state->SetBlendState(blend_state);
-	 m_pipeline_state->SetInputAssemblyState(input_assembly_state);
+	m_pipeline_state->SetInputAssemblyState(input_assembly_state);
 	m_pipeline_state->SetShader(RHIShaderStage::Vertex, m_vertex_shader.get());
 	m_pipeline_state->SetShader(RHIShaderStage::Fragment, m_fragment_shader.get());
 
@@ -155,199 +209,66 @@ ImGuiContext::ImGuiContext(RHIContext *context, Window *window) :
 
 	io.Fonts->TexID = static_cast<ImTextureID>(m_font_atlas.get());
 
-	// Create uniform buffer
-	m_uniform_buffer = p_context->CreateBuffer(sizeof(m_constant_block), RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
+	gPipelineState = m_pipeline_state.get();
+	gDescriptor    = m_descriptor.get();
+	gSampler       = m_sampler.get();
+	gRenderTarget  = m_render_target.get();
+
+	InitializePlatformInterface();
 }
 
 ImGuiContext::~ImGuiContext()
 {
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
+
+	gContext       = nullptr;
+	gWindow        = nullptr;
+	gPipelineState = nullptr;
+	gDescriptor    = nullptr;
+	gSampler       = nullptr;
+	gRenderTarget  = nullptr;
+
+	gResource.index_buffer.reset();
+	gResource.vertex_buffer.reset();
+	gResource.uniform_buffer.reset();
+
+	gResource.present_complete.reset();
+	gResource.render_complete.reset();
+
+	gResource.index_count  = 0;
+	gResource.vertex_count = 0;
 }
 
-void ImGuiContext::NewFrame()
+void ImGuiContext::BeginFrame()
 {
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 }
 
-void ImGuiContext::UpdateBuffers()
+void ImGuiContext::EndFrame()
 {
-	ImDrawData *draw_data = ImGui::GetDrawData();
+	ImGui::EndFrame();
 
-	size_t vertex_buffer_size = draw_data->TotalVtxCount * sizeof(ImDrawVert);
-	size_t index_buffer_size  = draw_data->TotalIdxCount * sizeof(ImDrawIdx);
-
-	if (vertex_buffer_size == 0 || index_buffer_size == 0)
-	{
-		return;
-	}
-
-	if (m_vertex_buffer == nullptr || m_vertex_count != draw_data->TotalVtxCount)
-	{
-		m_vertex_buffer.reset();
-		m_vertex_buffer = p_context->CreateBuffer(vertex_buffer_size, RHIBufferUsage::Vertex, RHIMemoryUsage::CPU_TO_GPU);
-		m_vertex_count  = draw_data->TotalVtxCount;
-		m_vertex_buffer->Map();
-	}
-
-	if (m_index_buffer == nullptr || m_index_count < draw_data->TotalIdxCount)
-	{
-		m_index_buffer.reset();
-		m_index_buffer = p_context->CreateBuffer(index_buffer_size, RHIBufferUsage::Index, RHIMemoryUsage::CPU_TO_GPU);
-		m_vertex_count = draw_data->TotalIdxCount;
-		m_index_buffer->Map();
-	}
-
-	ImDrawVert *vtx_dst = (ImDrawVert *) m_vertex_buffer->Map();
-	ImDrawIdx  *idx_dst = (ImDrawIdx *) m_index_buffer->Map();
-
-	for (int n = 0; n < draw_data->CmdListsCount; n++)
-	{
-		const ImDrawList *cmd_list = draw_data->CmdLists[n];
-		memcpy(vtx_dst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
-		memcpy(idx_dst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
-		vtx_dst += cmd_list->VtxBuffer.Size;
-		idx_dst += cmd_list->IdxBuffer.Size;
-	}
-
-	m_vertex_buffer->Flush(0, m_vertex_buffer->GetDesc().size);
-	m_index_buffer->Flush(0, m_index_buffer->GetDesc().size);
-}
-
-void ImGuiContext::Render()
-{
 	ImGui::Render();
 
-	UpdateBuffers();
-
-	ImDrawData *draw_data = ImGui::GetDrawData();
-
-	int32_t fb_width  = (int32_t) (draw_data->DisplaySize.x * draw_data->FramebufferScale.x);
-	int32_t fb_height = (int32_t) (draw_data->DisplaySize.y * draw_data->FramebufferScale.y);
-	if (fb_width <= 0 || fb_height <= 0)
+	if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
 	{
-		return;
+		ImGui::UpdatePlatformWindows();
+		ImGui::RenderPlatformWindowsDefault();
 	}
-
-	m_constant_block.scale     = glm::vec2(2.0f / draw_data->DisplaySize.x, 2.0f / draw_data->DisplaySize.y);
-	m_constant_block.translate = glm::vec2(-1.0f - draw_data->DisplayPos.x * m_constant_block.scale[0], -1.0f - draw_data->DisplayPos.y * m_constant_block.scale[1]);
-
-	std::memcpy(m_uniform_buffer->Map(), &m_constant_block, sizeof(m_constant_block));
-
-	m_descriptor->BindSampler("fontSampler", m_sampler.get());
-	m_descriptor->BindBuffer("constant", m_uniform_buffer.get());
-
-	m_render_target->Clear();
-	ColorAttachment attachment = {};
-	attachment.clear_value[3]  = 1.f;
-	m_render_target->Add(p_context->GetBackBuffer(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, ColorAttachment{});
-
-	auto *cmd_buffer = p_context->CreateCommand(RHIQueueFamily::Graphics);
-
-	cmd_buffer->Begin();
-
-	cmd_buffer->ResourceStateTransition({Ilum::TextureStateTransition{
-	                                        p_context->GetBackBuffer(),
-	                                        Ilum::RHIResourceState::Undefined,
-	                                        Ilum::RHIResourceState::RenderTarget,
-	                                        Ilum::TextureRange{
-	                                            Ilum::RHITextureDimension::Texture2D,
-	                                            0, 1, 0, 1}}},
-	                                    {});
-
-	cmd_buffer->SetViewport(draw_data->DisplaySize.x, draw_data->DisplaySize.y);
-
-	cmd_buffer->BeginRenderPass(m_render_target.get());
-
-	int32_t global_vtx_offset = 0;
-	int32_t global_idx_offset = 0;
-
-	const ImVec2 &clip_off   = draw_data->DisplayPos;
-	ImVec2        clip_scale = draw_data->FramebufferScale;
-
-	void *current_texture = nullptr;
-
-	for (int32_t i = 0; i < draw_data->CmdListsCount; i++)
-	{
-		cmd_buffer->BindVertexBuffer(m_vertex_buffer.get());
-		cmd_buffer->BindIndexBuffer(m_index_buffer.get(), true);
-
-		ImDrawList *cmd_list_imgui = draw_data->CmdLists[i];
-		for (int32_t cmd_i = 0; cmd_i < cmd_list_imgui->CmdBuffer.Size; cmd_i++)
-		{
-			const ImDrawCmd *pcmd = &cmd_list_imgui->CmdBuffer[cmd_i];
-			if (pcmd->UserCallback != nullptr)
-			{
-				pcmd->UserCallback(cmd_list_imgui, pcmd);
-			}
-			else
-			{
-				ImVec2 clip_min((pcmd->ClipRect.x - clip_off.x) * clip_scale.x, (pcmd->ClipRect.y - clip_off.y) * clip_scale.y);
-				ImVec2 clip_max((pcmd->ClipRect.z - clip_off.x) * clip_scale.x, (pcmd->ClipRect.w - clip_off.y) * clip_scale.y);
-
-				if (clip_min.x < 0.0f)
-				{
-					clip_min.x = 0.0f;
-				}
-				if (clip_min.y < 0.0f)
-				{
-					clip_min.y = 0.0f;
-				}
-				if (clip_max.x > fb_width)
-				{
-					clip_max.x = (float) fb_width;
-				}
-				if (clip_max.y > fb_height)
-				{
-					clip_max.y = (float) fb_height;
-				}
-				if (clip_max.x < clip_min.x || clip_max.y < clip_min.y)
-				{
-					continue;
-				}
-
-				cmd_buffer->SetScissor((uint32_t) (clip_max.x - clip_min.x), (uint32_t) (clip_max.y - clip_min.y), (int32_t) (clip_min.x), (int32_t) (clip_min.y));
-
-				if (current_texture != pcmd->TextureId)
-				{
-					m_descriptor->BindTexture("fontTexture", static_cast<RHITexture *>(pcmd->TextureId), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1});
-					cmd_buffer->BindDescriptor(m_descriptor.get());
-					cmd_buffer->BindPipelineState(m_pipeline_state.get());
-					current_texture = pcmd->TextureId;
-				}
-
-				cmd_buffer->DrawIndexed(pcmd->ElemCount, 1, pcmd->IdxOffset + global_idx_offset, pcmd->VtxOffset + global_vtx_offset, 0);
-			}
-		}
-		global_idx_offset += cmd_list_imgui->IdxBuffer.Size;
-		global_vtx_offset += cmd_list_imgui->VtxBuffer.Size;
-	}
-
-	cmd_buffer->EndRenderPass();
-
-	cmd_buffer->ResourceStateTransition({Ilum::TextureStateTransition{
-	                                        p_context->GetBackBuffer(),
-	                                        Ilum::RHIResourceState::RenderTarget,
-	                                        Ilum::RHIResourceState::Present,
-	                                        Ilum::TextureRange{
-	                                            Ilum::RHITextureDimension::Texture2D,
-	                                            0, 1, 0, 1}}},
-	                                    {});
-
-	cmd_buffer->End();
-
-	p_context->GetQueue(RHIQueueFamily::Graphics)->Submit({cmd_buffer});
 }
 
 void ImGuiContext::SetStyle()
 {
 	ImGuiIO &io = ImGui::GetIO();
 	(void) io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;        // Enable Keyboard Controls
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;         // Enable Gamepad Controls
-	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;            // Enable Docking
-	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;          // Enable Multi-Viewport / Platform Windows
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
+
+	io.BackendFlags |= ImGuiBackendFlags_RendererHasViewports;
 
 	// Set fonts
 	static const ImWchar icon_ranges[] = {ICON_MIN_FA, ICON_MAX_FA, 0};
@@ -447,14 +368,248 @@ void ImGuiContext::SetStyle()
 	style.TabRounding       = 4;
 }
 
+static void RHI_Render(ImDrawData *draw_data, WindowData *window_data = nullptr)
+{
+	size_t vertex_buffer_size = draw_data->TotalVtxCount * sizeof(ImDrawVert);
+	size_t index_buffer_size  = draw_data->TotalIdxCount * sizeof(ImDrawIdx);
+
+	if (draw_data->DisplaySize.x == 0 ||
+	    draw_data->DisplaySize.y == 0 ||
+	    vertex_buffer_size == 0 ||
+	    index_buffer_size == 0)
+	{
+		return;
+	}
+
+	bool               is_child_window = window_data != nullptr;
+	RHISwapchain      *swapchain       = is_child_window ? window_data->swapchain.get() : gContext->GetSwapchain();
+	ViewportResources *resources       = is_child_window ? window_data->viewport_data.get() : &gResource;
+
+	auto &vertex_buffer  = resources->vertex_buffer;
+	auto &index_buffer   = resources->index_buffer;
+	auto &uniform_buffer = resources->uniform_buffer;
+
+	auto &vertex_count = resources->vertex_count;
+	auto &index_count  = resources->index_count;
+
+	if (vertex_buffer == nullptr || vertex_count != static_cast<uint32_t>(draw_data->TotalVtxCount))
+	{
+		vertex_buffer.reset();
+		vertex_buffer = gContext->CreateBuffer(vertex_buffer_size, RHIBufferUsage::Vertex, RHIMemoryUsage::CPU_TO_GPU);
+		vertex_count  = draw_data->TotalVtxCount;
+		vertex_buffer->Map();
+	}
+
+	if (index_buffer == nullptr || index_count < static_cast<uint32_t>(draw_data->TotalIdxCount))
+	{
+		index_buffer.reset();
+		index_buffer = gContext->CreateBuffer(index_buffer_size, RHIBufferUsage::Index, RHIMemoryUsage::CPU_TO_GPU);
+		index_count  = draw_data->TotalIdxCount;
+		index_buffer->Map();
+	}
+
+	ImDrawVert *vtx_dst = (ImDrawVert *) vertex_buffer->Map();
+	ImDrawIdx  *idx_dst = (ImDrawIdx *) index_buffer->Map();
+
+	for (int n = 0; n < draw_data->CmdListsCount; n++)
+	{
+		const ImDrawList *cmd_list = draw_data->CmdLists[n];
+		memcpy(vtx_dst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
+		memcpy(idx_dst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
+		vtx_dst += cmd_list->VtxBuffer.Size;
+		idx_dst += cmd_list->IdxBuffer.Size;
+	}
+
+	vertex_buffer->Flush(0, vertex_buffer->GetDesc().size);
+	index_buffer->Flush(0, index_buffer->GetDesc().size);
+
+	int32_t fb_width  = (int32_t) (draw_data->DisplaySize.x * draw_data->FramebufferScale.x);
+	int32_t fb_height = (int32_t) (draw_data->DisplaySize.y * draw_data->FramebufferScale.y);
+	if (fb_width <= 0 || fb_height <= 0)
+	{
+		return;
+	}
+
+	ConstantBlock constant_block = {};
+	constant_block.scale         = glm::vec2(2.0f / draw_data->DisplaySize.x, 2.0f / draw_data->DisplaySize.y);
+	constant_block.translate     = glm::vec2(-1.0f - draw_data->DisplayPos.x * constant_block.scale[0], -1.0f - draw_data->DisplayPos.y * constant_block.scale[1]);
+
+	std::memcpy(uniform_buffer->Map(), &constant_block, sizeof(constant_block));
+
+	gDescriptor->BindSampler("fontSampler", gSampler);
+	gDescriptor->BindBuffer("constant", uniform_buffer.get());
+
+	gRenderTarget->Clear();
+	ColorAttachment attachment = {};
+	attachment.clear_value[3]  = 1.f;
+	gRenderTarget->Add(swapchain->GetCurrentTexture(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, ColorAttachment{});
+
+	auto *cmd_buffer = gContext->CreateCommand(RHIQueueFamily::Graphics);
+
+	cmd_buffer->Begin();
+
+	cmd_buffer->ResourceStateTransition({Ilum::TextureStateTransition{
+	                                        swapchain->GetCurrentTexture(),
+	                                        Ilum::RHIResourceState::Present,
+	                                        Ilum::RHIResourceState::RenderTarget,
+	                                        Ilum::TextureRange{
+	                                            Ilum::RHITextureDimension::Texture2D,
+	                                            0, 1, 0, 1}}},
+	                                    {});
+
+	cmd_buffer->SetViewport(draw_data->DisplaySize.x, draw_data->DisplaySize.y);
+
+	cmd_buffer->BeginRenderPass(gRenderTarget);
+
+	int32_t global_vtx_offset = 0;
+	int32_t global_idx_offset = 0;
+
+	const ImVec2 &clip_off   = draw_data->DisplayPos;
+	ImVec2        clip_scale = draw_data->FramebufferScale;
+
+	void *current_texture = nullptr;
+
+	for (int32_t i = 0; i < draw_data->CmdListsCount; i++)
+	{
+		cmd_buffer->BindVertexBuffer(vertex_buffer.get());
+		cmd_buffer->BindIndexBuffer(index_buffer.get(), true);
+
+		ImDrawList *cmd_list_imgui = draw_data->CmdLists[i];
+		for (int32_t cmd_i = 0; cmd_i < cmd_list_imgui->CmdBuffer.Size; cmd_i++)
+		{
+			const ImDrawCmd *pcmd = &cmd_list_imgui->CmdBuffer[cmd_i];
+			if (pcmd->UserCallback != nullptr)
+			{
+				pcmd->UserCallback(cmd_list_imgui, pcmd);
+			}
+			else
+			{
+				ImVec2 clip_min((pcmd->ClipRect.x - clip_off.x) * clip_scale.x, (pcmd->ClipRect.y - clip_off.y) * clip_scale.y);
+				ImVec2 clip_max((pcmd->ClipRect.z - clip_off.x) * clip_scale.x, (pcmd->ClipRect.w - clip_off.y) * clip_scale.y);
+
+				if (clip_min.x < 0.0f)
+				{
+					clip_min.x = 0.0f;
+				}
+				if (clip_min.y < 0.0f)
+				{
+					clip_min.y = 0.0f;
+				}
+				if (clip_max.x > fb_width)
+				{
+					clip_max.x = (float) fb_width;
+				}
+				if (clip_max.y > fb_height)
+				{
+					clip_max.y = (float) fb_height;
+				}
+				if (clip_max.x < clip_min.x || clip_max.y < clip_min.y)
+				{
+					continue;
+				}
+
+				cmd_buffer->SetScissor((uint32_t) (clip_max.x - clip_min.x), (uint32_t) (clip_max.y - clip_min.y), (int32_t) (clip_min.x), (int32_t) (clip_min.y));
+
+				if (current_texture != pcmd->TextureId)
+				{
+					gDescriptor->BindTexture("fontTexture", static_cast<RHITexture *>(pcmd->TextureId), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1});
+					cmd_buffer->BindDescriptor(gDescriptor);
+					cmd_buffer->BindPipelineState(gPipelineState);
+					current_texture = pcmd->TextureId;
+				}
+
+				cmd_buffer->DrawIndexed(pcmd->ElemCount, 1, pcmd->IdxOffset + global_idx_offset, pcmd->VtxOffset + global_vtx_offset, 0);
+			}
+		}
+		global_idx_offset += cmd_list_imgui->IdxBuffer.Size;
+		global_vtx_offset += cmd_list_imgui->VtxBuffer.Size;
+	}
+
+	cmd_buffer->EndRenderPass();
+
+	cmd_buffer->ResourceStateTransition({Ilum::TextureStateTransition{
+	                                        swapchain->GetCurrentTexture(),
+	                                        Ilum::RHIResourceState::RenderTarget,
+	                                        Ilum::RHIResourceState::Present,
+	                                        Ilum::TextureRange{
+	                                            Ilum::RHITextureDimension::Texture2D,
+	                                            0, 1, 0, 1}}},
+	                                    {});
+
+	cmd_buffer->End();
+
+	if (is_child_window)
+	{
+		resources->cmd_buffers.push_back(cmd_buffer);
+	}
+	else
+	{
+		gContext->GetQueue(RHIQueueFamily::Graphics)->Submit({cmd_buffer}, {}, {});
+	}
+}
+
+static void ImGuiWindowCreate(ImGuiViewport *viewport)
+{
+	WindowData *window = new WindowData();
+
+	window->swapchain = RHISwapchain::Create(
+	    gContext->GetDevice(),
+#ifdef _WIN32
+	    glfwGetWin32Window((GLFWwindow *) viewport->PlatformHandle),
+#endif        // _WIN32
+	    static_cast<uint32_t>(viewport->Size.x),
+	    static_cast<uint32_t>(viewport->Size.y));
+
+	window->viewport_data = std::make_unique<ViewportResources>(gContext->GetDevice());
+
+	viewport->RendererUserData = window;
+}
+
+static void ImGuiWindowDestroy(ImGuiViewport *viewport)
+{
+	if (WindowData *window = static_cast<WindowData *>(viewport->RendererUserData))
+	{
+		delete window;
+	}
+	viewport->RendererUserData = nullptr;
+}
+
+static void ImGuiWindowSetSize(ImGuiViewport *viewport, const ImVec2 size)
+{
+	static_cast<WindowData *>(viewport->RendererUserData)->swapchain->Resize(static_cast<uint32_t>(size.x), static_cast<uint32_t>(size.y));
+}
+
+static void ImGuiWindowRender(ImGuiViewport *viewport, void *)
+{
+	// const bool clear = !(viewport->Flags & ImGuiViewportFlags_NoRendererClear);
+	WindowData *window_data = static_cast<WindowData *>(viewport->RendererUserData);
+	window_data->swapchain->AcquireNextTexture(window_data->viewport_data->present_complete.get(), nullptr);
+	RHI_Render(viewport->DrawData, window_data);
+}
+
+static void ImGuiWindowPresent(ImGuiViewport *viewport, void *)
+{
+	WindowData *window_data = static_cast<WindowData *>(viewport->RendererUserData);
+
+	gContext->GetQueue(RHIQueueFamily::Graphics)->Submit(window_data->viewport_data->cmd_buffers, {window_data->viewport_data->render_complete.get()}, {window_data->viewport_data->present_complete.get()});
+	gContext->GetQueue(RHIQueueFamily::Graphics)->Execute();
+	window_data->viewport_data->cmd_buffers.clear();
+
+	window_data->swapchain->Present(window_data->viewport_data->render_complete.get());
+}
+
+void ImGuiContext::Render()
+{
+	RHI_Render(ImGui::GetDrawData());
+}
+
 void ImGuiContext::InitializePlatformInterface()
 {
 	ImGuiPlatformIO &platform_io       = ImGui::GetPlatformIO();
-	platform_io.Renderer_CreateWindow  = RHI_Window_Create;
-	platform_io.Renderer_DestroyWindow = RHI_Window_Destroy;
-	platform_io.Renderer_SetWindowSize = RHI_Window_SetSize;
-	platform_io.Renderer_RenderWindow  = RHI_Window_Render;
-	platform_io.Renderer_SwapBuffers   = RHI_Window_Present;
-
+	platform_io.Renderer_CreateWindow  = ImGuiWindowCreate;
+	platform_io.Renderer_DestroyWindow = ImGuiWindowDestroy;
+	platform_io.Renderer_SetWindowSize = ImGuiWindowSetSize;
+	platform_io.Renderer_RenderWindow  = ImGuiWindowRender;
+	platform_io.Renderer_SwapBuffers   = ImGuiWindowPresent;
 }
 }        // namespace Ilum

@@ -11,8 +11,8 @@ using Microsoft::WRL::ComPtr;
 
 namespace Ilum::DX12
 {
-Swapchain::Swapchain(RHIDevice *device, Window *window) :
-    RHISwapchain(device, window), m_width(window->GetWidth()), m_height(window->GetHeight())
+Swapchain::Swapchain(RHIDevice *device, void *window_handle, uint32_t width, uint32_t height) :
+    RHISwapchain(device, width, height)
 {
 	static_cast<Device *>(p_device)->GetHandle()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence));
 	m_fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
@@ -25,8 +25,8 @@ Swapchain::Swapchain(RHIDevice *device, Window *window) :
 
 	DXGI_SWAP_CHAIN_DESC1 swapChainDesc = {};
 	swapChainDesc.BufferCount           = 3;
-	swapChainDesc.Width                 = window->GetWidth();
-	swapChainDesc.Height                = window->GetHeight();
+	swapChainDesc.Width                 = m_width;
+	swapChainDesc.Height                = m_height;
 	swapChainDesc.Format                = DXGI_FORMAT_R8G8B8A8_UNORM;
 	swapChainDesc.BufferUsage           = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	swapChainDesc.SwapEffect            = DXGI_SWAP_EFFECT_FLIP_DISCARD;
@@ -36,17 +36,17 @@ Swapchain::Swapchain(RHIDevice *device, Window *window) :
 
 	static_cast<Device *>(p_device)->GetFactory()->CreateSwapChainForHwnd(
 	    m_queue.Get(),
-	    (HWND) window->GetNativeHandle(),
+	    (HWND) window_handle,
 	    &swapChainDesc,
 	    nullptr,
 	    nullptr,
 	    &swapchain);
 
-	static_cast<Device *>(p_device)->GetFactory()->MakeWindowAssociation((HWND) window->GetNativeHandle(), DXGI_MWA_NO_ALT_ENTER);
+	static_cast<Device *>(p_device)->GetFactory()->MakeWindowAssociation((HWND) window_handle, DXGI_MWA_NO_ALT_ENTER);
 
 	swapchain.As(&m_handle);
 
-	CreateTextures();
+	Resize(m_width, m_height);
 
 	m_fence_value.resize(3, 0);
 }
@@ -83,16 +83,7 @@ void Swapchain::AcquireNextTexture(RHISemaphore *signal_semaphore, RHIFence *sig
 
 	m_fence_value[m_frame_index] = current_fence_value + 1;
 
-	if (m_width != p_window->GetWidth() ||
-	    m_height != p_window->GetHeight())
-	{
-		m_textures.clear();
-
-		m_width  = p_window->GetWidth();
-		m_height = p_window->GetHeight();
-		m_handle->ResizeBuffers(3, p_window->GetWidth(), p_window->GetHeight(), DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH);
-		CreateTextures();
-	}
+	Resize(m_width, m_height);
 }
 
 RHITexture *Swapchain::GetCurrentTexture()
@@ -114,24 +105,28 @@ bool Swapchain::Present(RHISemaphore *semaphore)
 	return true;
 }
 
-void Swapchain::CreateTextures()
+void Swapchain::Resize(uint32_t width, uint32_t height)
 {
-	{
-		TextureDesc desc = {};
-		desc.width       = p_window->GetWidth();
-		desc.height      = p_window->GetHeight();
-		desc.depth       = 1;
-		desc.layers      = 1;
-		desc.mips        = 1;
-		desc.samples     = 1;
-		desc.usage       = RHITextureUsage::RenderTarget;
+	m_textures.clear();
 
-		for (uint32_t i = 0; i < 3; i++)
-		{
-			ComPtr<ID3D12Resource> buffer;
-			m_handle->GetBuffer(i, IID_PPV_ARGS(&buffer));
-			m_textures.emplace_back(std::make_unique<Texture>(p_device, desc, std::move(buffer)));
-		}
+	m_width  = width;
+	m_height = height;
+	m_handle->ResizeBuffers(3, width, height, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH);
+
+	TextureDesc desc = {};
+	desc.width       = width;
+	desc.height      = height;
+	desc.depth       = 1;
+	desc.layers      = 1;
+	desc.mips        = 1;
+	desc.samples     = 1;
+	desc.usage       = RHITextureUsage::RenderTarget;
+
+	for (uint32_t i = 0; i < 3; i++)
+	{
+		ComPtr<ID3D12Resource> buffer;
+		m_handle->GetBuffer(i, IID_PPV_ARGS(&buffer));
+		m_textures.emplace_back(std::make_unique<Texture>(p_device, desc, std::move(buffer)));
 	}
 }
 }        // namespace Ilum::DX12

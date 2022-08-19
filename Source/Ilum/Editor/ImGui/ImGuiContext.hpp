@@ -7,17 +7,17 @@ namespace Ilum
 class ImGuiContext
 {
   public:
-	ImGuiContext(RHIContext *context, Window* window);
+	ImGuiContext(RHIContext *context, Window *window);
 
 	~ImGuiContext();
 
-	void NewFrame();
+	void BeginFrame();
+
+	void EndFrame();
 
 	void Render();
 
   private:
-	void UpdateBuffers();
-
 	void SetStyle();
 
 	void InitializePlatformInterface();
@@ -29,9 +29,9 @@ class ImGuiContext
 	std::unique_ptr<RHIPipelineState> m_pipeline_state = nullptr;
 	std::unique_ptr<RHIDescriptor>    m_descriptor     = nullptr;
 
-	std::unique_ptr<RHIBuffer> m_vertex_buffer  = nullptr;
-	std::unique_ptr<RHIBuffer> m_index_buffer   = nullptr;
-	std::unique_ptr<RHIBuffer> m_uniform_buffer = nullptr;
+	//std::unique_ptr<RHIBuffer> m_vertex_buffer  = nullptr;
+	//std::unique_ptr<RHIBuffer> m_index_buffer   = nullptr;
+	//std::unique_ptr<RHIBuffer> m_uniform_buffer = nullptr;
 
 	std::unique_ptr<RHISampler> m_sampler = nullptr;
 
@@ -44,11 +44,5 @@ class ImGuiContext
 
 	size_t m_vertex_count = 0;
 	size_t m_index_count  = 0;
-
-	struct
-	{
-		glm::vec2 scale;
-		glm::vec2 translate;
-	}m_constant_block;
 };
 }        // namespace Ilum

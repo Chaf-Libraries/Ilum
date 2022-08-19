@@ -326,6 +326,9 @@ void RenderTarget::Clear()
 	m_depth_format.reset();
 	m_stencil_format.reset();
 
+	m_width = 0;
+	m_height = 0;
+
 	m_hash = 0;
 }
 }        // namespace Ilum::Vulkan

@@ -108,11 +108,19 @@ int main()
 	{
 		timer.Tick();
 
-		context.BeginFrame();
+		if (window.GetWidth() != 0 && window.GetHeight() != 0)
+		{
+			context.BeginFrame();
 
-		imgui_context.NewFrame();
-		ImGui::ShowDemoWindow();
-		imgui_context.Render();
+			imgui_context.BeginFrame();
+			ImGui::ShowDemoWindow();
+			imgui_context.EndFrame();
+			imgui_context.Render();
+
+			context.EndFrame();
+		}
+
+		//std::this_thread::sleep_for(std::chrono::milliseconds(8));
 
 		// if (i++ <= 3)
 		{
@@ -156,7 +164,6 @@ int main()
 			//}
 
 			window.SetTitle(fmt::format("IlumEngine FPS: {}", timer.FrameRate()));
-			context.EndFrame();
 		}
 	}
 

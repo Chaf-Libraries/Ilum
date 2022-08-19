@@ -15,16 +15,137 @@
 
 namespace Ilum::Vulkan
 {
-Swapchain::Swapchain(RHIDevice *device, Window *window) :
-    RHISwapchain(device, window)
+// Swapchain::Swapchain(RHIDevice *device, Window *window) :
+//     RHISwapchain(device, window)
+//{
+//#ifdef _WIN32
+//	{
+//		VkWin32SurfaceCreateInfoKHR createInfo{};
+//		createInfo.sType     = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
+//		createInfo.hwnd      = (HWND) window->GetNativeHandle();
+//		createInfo.hinstance = GetModuleHandle(nullptr);
+//		vkCreateWin32SurfaceKHR(static_cast<Device *>(device)->GetInstance(), &createInfo, nullptr, &m_surface);
+//	}
+//#endif        // _WIN32
+//
+//	// m_capabilities
+//	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(static_cast<Device *>(device)->GetPhysicalDevice(), m_surface, &m_capabilities);
+//
+//	// formats
+//	uint32_t                        format_count;
+//	std::vector<VkSurfaceFormatKHR> formats;
+//	vkGetPhysicalDeviceSurfaceFormatsKHR(static_cast<Device *>(device)->GetPhysicalDevice(), m_surface, &format_count, nullptr);
+//	if (format_count != 0)
+//	{
+//		formats.resize(format_count);
+//		vkGetPhysicalDeviceSurfaceFormatsKHR(static_cast<Device *>(device)->GetPhysicalDevice(), m_surface, &format_count, formats.data());
+//	}
+//
+//	// present modes
+//	uint32_t                      presentmode_count;
+//	std::vector<VkPresentModeKHR> presentmodes;
+//	vkGetPhysicalDeviceSurfacePresentModesKHR(static_cast<Device *>(device)->GetPhysicalDevice(), m_surface, &presentmode_count, nullptr);
+//	if (presentmode_count != 0)
+//	{
+//		presentmodes.resize(presentmode_count);
+//		vkGetPhysicalDeviceSurfacePresentModesKHR(static_cast<Device *>(device)->GetPhysicalDevice(), m_surface, &presentmode_count, presentmodes.data());
+//	}
+//
+//	// Choose swapchain surface format
+//	for (const auto &surface_format : formats)
+//	{
+//		if (surface_format.format == VK_FORMAT_B8G8R8A8_UNORM &&
+//		    surface_format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+//		{
+//			m_surface_format = surface_format;
+//		}
+//	}
+//	if (m_surface_format.format == VK_FORMAT_UNDEFINED)
+//	{
+//		m_surface_format = formats[0];
+//	}
+//
+//	// Choose swapchain present mode
+//	for (VkPresentModeKHR present_mode : presentmodes)
+//	{
+//		if (VK_PRESENT_MODE_MAILBOX_KHR == present_mode)
+//		{
+//			m_present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
+//		}
+//	}
+//	if (m_present_mode == VK_PRESENT_MODE_MAX_ENUM_KHR)
+//	{
+//		m_present_mode = VK_PRESENT_MODE_FIFO_KHR;
+//	}
+//
+//	// Choose swapchain extent
+//	VkExtent2D chosen_extent = {};
+//	if (m_capabilities.currentExtent.width != UINT32_MAX)
+//	{
+//		chosen_extent = m_capabilities.currentExtent;
+//	}
+//	else
+//	{
+//		VkExtent2D actualExtent = {};
+//		actualExtent.width      = p_window->GetWidth();
+//		actualExtent.height     = p_window->GetHeight();
+//
+//		actualExtent.width =
+//		    std::clamp(actualExtent.width, m_capabilities.minImageExtent.width, m_capabilities.maxImageExtent.width);
+//		actualExtent.height =
+//		    std::clamp(actualExtent.height, m_capabilities.minImageExtent.height, m_capabilities.maxImageExtent.height);
+//
+//		chosen_extent = actualExtent;
+//	}
+//
+//	m_image_count = m_capabilities.minImageCount + 1;
+//	if (m_capabilities.maxImageCount > 0 && m_image_count > m_capabilities.maxImageCount)
+//	{
+//		m_image_count = m_capabilities.maxImageCount;
+//	}
+//
+//	VkBool32 support = VK_FALSE;
+//
+//	if (!support)
+//	{
+//		vkGetPhysicalDeviceSurfaceSupportKHR(static_cast<Device *>(p_device)->GetPhysicalDevice(), VK_QUEUE_GRAPHICS_BIT, m_surface, &support);
+//		if (support)
+//		{
+//			m_present_queue = std::make_unique<Queue>(device, RHIQueueFamily::Graphics);
+//		}
+//	}
+//
+//	if (!support)
+//	{
+//		vkGetPhysicalDeviceSurfaceSupportKHR(static_cast<Device *>(p_device)->GetPhysicalDevice(), VK_QUEUE_COMPUTE_BIT, m_surface, &support);
+//		if (support)
+//		{
+//			m_present_queue = std::make_unique<Queue>(device, RHIQueueFamily::Compute);
+//		}
+//	}
+//
+//	if (!support)
+//	{
+//		vkGetPhysicalDeviceSurfaceSupportKHR(static_cast<Device *>(p_device)->GetPhysicalDevice(), VK_QUEUE_TRANSFER_BIT, m_surface, &support);
+//		if (support)
+//		{
+//			m_present_queue = std::make_unique<Queue>(device, RHIQueueFamily::Transfer);
+//		}
+//	}
+//
+//	CreateSwapchain(chosen_extent);
+// }
+
+Swapchain::Swapchain(RHIDevice *device, void *window_handle, uint32_t width, uint32_t height) :
+    RHISwapchain(device, width, height)
 {
 #ifdef _WIN32
 	{
 		VkWin32SurfaceCreateInfoKHR createInfo{};
 		createInfo.sType     = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-		createInfo.hwnd      = (HWND) window->GetNativeHandle();
+		createInfo.hwnd      = (HWND) window_handle;
 		createInfo.hinstance = GetModuleHandle(nullptr);
-		vkCreateWin32SurfaceKHR(static_cast<Device *>(device)->GetInstance(), &createInfo, nullptr, &m_surface);
+		auto result          = vkCreateWin32SurfaceKHR(static_cast<Device *>(device)->GetInstance(), &createInfo, nullptr, &m_surface);
 	}
 #endif        // _WIN32
 
@@ -87,8 +208,8 @@ Swapchain::Swapchain(RHIDevice *device, Window *window) :
 	else
 	{
 		VkExtent2D actualExtent = {};
-		actualExtent.width      = p_window->GetWidth();
-		actualExtent.height     = p_window->GetHeight();
+		actualExtent.width      = width;
+		actualExtent.height     = height;
 
 		actualExtent.width =
 		    std::clamp(actualExtent.width, m_capabilities.minImageExtent.width, m_capabilities.maxImageExtent.width);
@@ -133,7 +254,7 @@ Swapchain::Swapchain(RHIDevice *device, Window *window) :
 		}
 	}
 
-	CreateSwapchain(chosen_extent);
+	Resize(chosen_extent.width, chosen_extent.height);
 }
 
 Swapchain::~Swapchain()
@@ -196,16 +317,16 @@ bool Swapchain::Present(RHISemaphore *semaphore)
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
-		CreateSwapchain(VkExtent2D{static_cast<uint32_t>(p_window->GetWidth()), static_cast<uint32_t>(p_window->GetHeight())});
-		LOG_INFO("Swapchain resize to {} x {}", p_window->GetWidth(), p_window->GetHeight());
 		m_frame_index = 0;
 	}
 
 	return result == VK_SUCCESS;
 }
 
-void Swapchain::CreateSwapchain(const VkExtent2D &extent)
+void Swapchain::Resize(uint32_t width, uint32_t height)
 {
+	p_device->WaitIdle();
+
 	VkSwapchainCreateInfoKHR createInfo = {};
 	createInfo.sType                    = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	createInfo.surface                  = m_surface;
@@ -213,7 +334,7 @@ void Swapchain::CreateSwapchain(const VkExtent2D &extent)
 	createInfo.minImageCount    = m_image_count;
 	createInfo.imageFormat      = m_surface_format.format;
 	createInfo.imageColorSpace  = m_surface_format.colorSpace;
-	createInfo.imageExtent      = extent;
+	createInfo.imageExtent      = VkExtent2D{width, height};
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
@@ -233,8 +354,8 @@ void Swapchain::CreateSwapchain(const VkExtent2D &extent)
 		m_textures.clear();
 
 		TextureDesc desc = {};
-		desc.width       = extent.width;
-		desc.height      = extent.height;
+		desc.width       = width;
+		desc.height      = height;
 		desc.depth       = 1;
 		desc.mips        = 1;
 		desc.layers      = 1;
@@ -255,6 +376,24 @@ void Swapchain::CreateSwapchain(const VkExtent2D &extent)
 		{
 			m_textures.emplace_back(std::make_unique<Texture>(p_device, desc, images[i]));
 		}
+	}
+
+	{
+		auto queue = std::make_unique<Queue>(p_device, RHIQueueFamily::Graphics, 1);
+		queue->Wait();
+		auto cmd_buffer = std::make_unique<Command>(p_device, RHIQueueFamily::Graphics);
+		cmd_buffer->Init();
+		cmd_buffer->Begin();
+		cmd_buffer->ResourceStateTransition({
+		    TextureStateTransition{m_textures[0].get(), RHIResourceState::Undefined, RHIResourceState::Present, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+		    TextureStateTransition{m_textures[1].get(), RHIResourceState::Undefined, RHIResourceState::Present, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+		    TextureStateTransition{m_textures[2].get(), RHIResourceState::Undefined, RHIResourceState::Present, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
+		                                    {});
+		cmd_buffer->End();
+		auto fence = std::make_unique<Fence>(p_device);
+		queue->Submit({cmd_buffer.get()});
+		queue->Execute(fence.get());
+		fence->Wait();
 	}
 
 	m_frame_index = 0;

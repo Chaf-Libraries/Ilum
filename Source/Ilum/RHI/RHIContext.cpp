@@ -13,7 +13,7 @@ RHIContext::RHIContext(Window *window) :
 #endif        // RHI_BACKEND
 
 	m_device    = RHIDevice::Create();
-	m_swapchain = RHISwapchain::Create(m_device.get(), p_window);
+	m_swapchain = RHISwapchain::Create(m_device.get(), p_window->GetNativeHandle(), p_window->GetWidth(), p_window->GetHeight());
 
 	m_graphics_queue = RHIQueue::Create(m_device.get(), RHIQueueFamily::Graphics);
 	m_compute_queue  = RHIQueue::Create(m_device.get(), RHIQueueFamily::Compute);
@@ -53,6 +53,16 @@ RHIBackend RHIContext::GetBackend() const
 #endif        // RHI_BACKEND
 
 	return RHIBackend::Unknown;
+}
+
+RHIDevice *RHIContext::GetDevice() const
+{
+	return m_device.get();
+}
+
+RHISwapchain *RHIContext::GetSwapchain() const
+{
+	return m_swapchain.get();
 }
 
 std::unique_ptr<RHITexture> RHIContext::CreateTexture(const TextureDesc &desc)
@@ -160,7 +170,13 @@ void RHIContext::EndFrame()
 	// m_compute_queue->Execute();
 	m_graphics_queue->Execute(m_frames[m_current_frame]->AllocateFence());
 
-	m_swapchain->Present(m_render_complete[m_current_frame].get());
+	if (!m_swapchain->Present(m_render_complete[m_current_frame].get()) ||
+	    p_window->GetWidth() != m_swapchain->GetWidth() ||
+	    p_window->GetHeight() != m_swapchain->GetHeight())
+	{
+		m_swapchain->Resize(p_window->GetWidth(), p_window->GetHeight());
+		LOG_INFO("Swapchain resize to {} x {}", p_window->GetWidth(), p_window->GetHeight());
+	}
 
 	m_current_frame = (m_current_frame + 1) % m_swapchain->GetTextureCount();
 }
