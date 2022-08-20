@@ -129,7 +129,7 @@ ImGuiContext::ImGuiContext(RHIContext *context, Window *window) :
 	    VertexInputState::InputBinding{0, sizeof(ImDrawVert), RHIVertexInputRate::Vertex}};
 
 	std::vector<uint8_t> raw_shader;
-	Path::GetInstance().Read("E:/Workspace/Ilum/Source/Shaders/ImGui.hlsl", raw_shader);
+	Path::GetInstance().Read("./Source/Shaders/ImGui.hlsl", raw_shader);
 
 	std::string shader_source;
 	shader_source.resize(raw_shader.size());
@@ -275,8 +275,8 @@ void ImGuiContext::SetStyle()
 	ImFontConfig         config;
 	config.MergeMode        = true;
 	config.GlyphMinAdvanceX = 13.0f;
-	io.Fonts->AddFontFromFileTTF("E:/Workspace/Ilum/Asset/Font/ArialUnicodeMS.ttf", 20.0f, NULL, io.Fonts->GetGlyphRangesChineseFull());
-	io.Fonts->AddFontFromFileTTF("E:/Workspace/Ilum/Asset/Font/fontawesome-webfont.ttf", 15.0f, &config, icon_ranges);
+	io.Fonts->AddFontFromFileTTF("./Asset/Font/ArialUnicodeMS.ttf", 20.0f, NULL, io.Fonts->GetGlyphRangesChineseFull());
+	io.Fonts->AddFontFromFileTTF("./Asset/Font/fontawesome-webfont.ttf", 15.0f, &config, icon_ranges);
 
 	// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
 	ImGuiStyle &style  = ImGui::GetStyle();

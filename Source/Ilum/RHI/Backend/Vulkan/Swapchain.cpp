@@ -15,6 +15,48 @@
 
 namespace Ilum::Vulkan
 {
+inline std::optional<uint32_t> GetQueueFamilyIndex(const std::vector<VkQueueFamilyProperties> &queue_family_properties, VkQueueFlagBits queue_flag)
+{
+	// Dedicated queue for compute
+	// Try to find a queue family index that supports compute but not graphics
+	if (queue_flag & VK_QUEUE_COMPUTE_BIT)
+	{
+		for (uint32_t i = 0; i < static_cast<uint32_t>(queue_family_properties.size()); i++)
+		{
+			if ((queue_family_properties[i].queueFlags & queue_flag) && ((queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0))
+			{
+				return i;
+				break;
+			}
+		}
+	}
+
+	// Dedicated queue for transfer
+	// Try to find a queue family index that supports transfer but not graphics and compute
+	if (queue_flag & VK_QUEUE_TRANSFER_BIT)
+	{
+		for (uint32_t i = 0; i < static_cast<uint32_t>(queue_family_properties.size()); i++)
+		{
+			if ((queue_family_properties[i].queueFlags & queue_flag) && ((queue_family_properties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) == 0) && ((queue_family_properties[i].queueFlags & VK_QUEUE_COMPUTE_BIT) == 0))
+			{
+				return i;
+				break;
+			}
+		}
+	}
+
+	// For other queue types or if no separate compute queue is present, return the first one to support the requested flags
+	for (uint32_t i = 0; i < static_cast<uint32_t>(queue_family_properties.size()); i++)
+	{
+		if (queue_family_properties[i].queueFlags & queue_flag)
+		{
+			return i;
+			break;
+		}
+	}
+
+	return std::optional<uint32_t>();
+}
 // Swapchain::Swapchain(RHIDevice *device, Window *window) :
 //     RHISwapchain(device, window)
 //{
@@ -225,33 +267,46 @@ Swapchain::Swapchain(RHIDevice *device, void *window_handle, uint32_t width, uin
 		m_image_count = m_capabilities.maxImageCount;
 	}
 
-	VkBool32 support = VK_FALSE;
+	// Queue supporting
+	uint32_t queue_family_property_count = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(static_cast<Device *>(p_device)->GetPhysicalDevice(), &queue_family_property_count, nullptr);
+	std::vector<VkQueueFamilyProperties> queue_family_properties(queue_family_property_count);
+	vkGetPhysicalDeviceQueueFamilyProperties(static_cast<Device *>(p_device)->GetPhysicalDevice(), &queue_family_property_count, queue_family_properties.data());
 
-	if (!support)
+	std::optional<uint32_t> graphics_family, compute_family, transfer_family;
+
+	uint32_t present_family = 0;
+
+	graphics_family = GetQueueFamilyIndex(queue_family_properties, VK_QUEUE_GRAPHICS_BIT);
+	transfer_family = GetQueueFamilyIndex(queue_family_properties, VK_QUEUE_TRANSFER_BIT);
+	compute_family  = GetQueueFamilyIndex(queue_family_properties, VK_QUEUE_COMPUTE_BIT);
+
+	VkQueueFlags support_queues = 0;
+
+	for (uint32_t i = 0; i < queue_family_property_count; i++)
 	{
-		vkGetPhysicalDeviceSurfaceSupportKHR(static_cast<Device *>(p_device)->GetPhysicalDevice(), VK_QUEUE_GRAPHICS_BIT, m_surface, &support);
-		if (support)
+		// Check for presentation support
+		VkBool32 present_support;
+		vkGetPhysicalDeviceSurfaceSupportKHR(static_cast<Device *>(p_device)->GetPhysicalDevice(), i, m_surface, &present_support);
+
+		if (queue_family_properties[i].queueCount > 0 && present_support)
 		{
-			m_present_queue = std::make_unique<Queue>(device, RHIQueueFamily::Graphics);
+			present_family   = i;
+			break;
 		}
 	}
 
-	if (!support)
+	if (graphics_family.has_value() && present_family == graphics_family.value())
 	{
-		vkGetPhysicalDeviceSurfaceSupportKHR(static_cast<Device *>(p_device)->GetPhysicalDevice(), VK_QUEUE_COMPUTE_BIT, m_surface, &support);
-		if (support)
-		{
-			m_present_queue = std::make_unique<Queue>(device, RHIQueueFamily::Compute);
-		}
+		m_present_queue = std::make_unique<Queue>(device, RHIQueueFamily::Graphics);
 	}
-
-	if (!support)
+	else if (compute_family.has_value() && present_family == compute_family.value())
 	{
-		vkGetPhysicalDeviceSurfaceSupportKHR(static_cast<Device *>(p_device)->GetPhysicalDevice(), VK_QUEUE_TRANSFER_BIT, m_surface, &support);
-		if (support)
-		{
-			m_present_queue = std::make_unique<Queue>(device, RHIQueueFamily::Transfer);
-		}
+		m_present_queue = std::make_unique<Queue>(device, RHIQueueFamily::Compute);
+	}
+	else if (transfer_family.has_value() && present_family == transfer_family.value())
+	{
+		m_present_queue = std::make_unique<Queue>(device, RHIQueueFamily::Transfer);
 	}
 
 	Resize(chosen_extent.width, chosen_extent.height);
@@ -384,10 +439,9 @@ void Swapchain::Resize(uint32_t width, uint32_t height)
 		auto cmd_buffer = std::make_unique<Command>(p_device, RHIQueueFamily::Graphics);
 		cmd_buffer->Init();
 		cmd_buffer->Begin();
-		cmd_buffer->ResourceStateTransition({
-		    TextureStateTransition{m_textures[0].get(), RHIResourceState::Undefined, RHIResourceState::Present, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
-		    TextureStateTransition{m_textures[1].get(), RHIResourceState::Undefined, RHIResourceState::Present, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
-		    TextureStateTransition{m_textures[2].get(), RHIResourceState::Undefined, RHIResourceState::Present, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
+		cmd_buffer->ResourceStateTransition({TextureStateTransition{m_textures[0].get(), RHIResourceState::Undefined, RHIResourceState::Present, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+		                                     TextureStateTransition{m_textures[1].get(), RHIResourceState::Undefined, RHIResourceState::Present, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+		                                     TextureStateTransition{m_textures[2].get(), RHIResourceState::Undefined, RHIResourceState::Present, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
 		                                    {});
 		cmd_buffer->End();
 		auto fence = std::make_unique<Fence>(p_device);
