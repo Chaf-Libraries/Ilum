@@ -244,10 +244,35 @@ void ImGuiContext::BeginFrame()
 {
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
+
+	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDocking;
+	window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+	window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+	ImGuiViewport *viewport = ImGui::GetMainViewport();
+	ImGui::SetNextWindowPos(viewport->WorkPos);
+	ImGui::SetNextWindowSize(viewport->WorkSize);
+	ImGui::SetNextWindowViewport(viewport->ID);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+	ImGui::Begin("DockSpace", (bool *) 1, window_flags);
+	ImGui::PopStyleVar();
+	ImGui::PopStyleVar(2);
+
+	ImGuiIO &io = ImGui::GetIO();
+	if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
+	{
+		ImGuiID dockspace_id = ImGui::GetID("DockSpace");
+		ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), ImGuiDockNodeFlags_None);
+	}
 }
 
 void ImGuiContext::EndFrame()
 {
+	ImGui::End();
+	ImGuiIO &io    = ImGui::GetIO();
+	io.DisplaySize = ImVec2(static_cast<float>(gWindow->GetWidth()), static_cast<float>(gWindow->GetHeight()));
+
 	ImGui::EndFrame();
 
 	ImGui::Render();
@@ -374,9 +399,7 @@ static void RHI_Render(ImDrawData *draw_data, WindowData *window_data = nullptr)
 	size_t index_buffer_size  = draw_data->TotalIdxCount * sizeof(ImDrawIdx);
 
 	if (draw_data->DisplaySize.x == 0 ||
-	    draw_data->DisplaySize.y == 0 ||
-	    vertex_buffer_size == 0 ||
-	    index_buffer_size == 0)
+	    draw_data->DisplaySize.y == 0)
 	{
 		return;
 	}
@@ -394,22 +417,28 @@ static void RHI_Render(ImDrawData *draw_data, WindowData *window_data = nullptr)
 
 	if (vertex_buffer == nullptr || vertex_count != static_cast<uint32_t>(draw_data->TotalVtxCount))
 	{
-		vertex_buffer.reset();
-		vertex_buffer = gContext->CreateBuffer(vertex_buffer_size, RHIBufferUsage::Vertex, RHIMemoryUsage::CPU_TO_GPU);
-		vertex_count  = draw_data->TotalVtxCount;
-		vertex_buffer->Map();
+		if (vertex_buffer_size != 0)
+		{
+			vertex_buffer.reset();
+			vertex_buffer = gContext->CreateBuffer(vertex_buffer_size, RHIBufferUsage::Vertex, RHIMemoryUsage::CPU_TO_GPU);
+			vertex_count  = draw_data->TotalVtxCount;
+			vertex_buffer->Map();
+		}
 	}
 
 	if (index_buffer == nullptr || index_count < static_cast<uint32_t>(draw_data->TotalIdxCount))
 	{
-		index_buffer.reset();
-		index_buffer = gContext->CreateBuffer(index_buffer_size, RHIBufferUsage::Index, RHIMemoryUsage::CPU_TO_GPU);
-		index_count  = draw_data->TotalIdxCount;
-		index_buffer->Map();
+		if (index_buffer_size != 0)
+		{
+			index_buffer.reset();
+			index_buffer = gContext->CreateBuffer(index_buffer_size, RHIBufferUsage::Index, RHIMemoryUsage::CPU_TO_GPU);
+			index_count  = draw_data->TotalIdxCount;
+			index_buffer->Map();
+		}
 	}
 
-	ImDrawVert *vtx_dst = (ImDrawVert *) vertex_buffer->Map();
-	ImDrawIdx  *idx_dst = (ImDrawIdx *) index_buffer->Map();
+	ImDrawVert *vtx_dst = vertex_buffer ? (ImDrawVert *) vertex_buffer->Map() : nullptr;
+	ImDrawIdx  *idx_dst = index_buffer ? (ImDrawIdx *) index_buffer->Map() : nullptr;
 
 	for (int n = 0; n < draw_data->CmdListsCount; n++)
 	{
@@ -420,8 +449,15 @@ static void RHI_Render(ImDrawData *draw_data, WindowData *window_data = nullptr)
 		idx_dst += cmd_list->IdxBuffer.Size;
 	}
 
-	vertex_buffer->Flush(0, vertex_buffer->GetDesc().size);
-	index_buffer->Flush(0, index_buffer->GetDesc().size);
+	if (vertex_buffer)
+	{
+		vertex_buffer->Flush(0, vertex_buffer->GetDesc().size);
+	}
+
+	if (index_buffer)
+	{
+		index_buffer->Flush(0, index_buffer->GetDesc().size);
+	}
 
 	int32_t fb_width  = (int32_t) (draw_data->DisplaySize.x * draw_data->FramebufferScale.x);
 	int32_t fb_height = (int32_t) (draw_data->DisplaySize.y * draw_data->FramebufferScale.y);
@@ -558,7 +594,8 @@ static void ImGuiWindowCreate(ImGuiViewport *viewport)
 	    glfwGetWin32Window((GLFWwindow *) viewport->PlatformHandle),
 #endif        // _WIN32
 	    static_cast<uint32_t>(viewport->Size.x),
-	    static_cast<uint32_t>(viewport->Size.y));
+	    static_cast<uint32_t>(viewport->Size.y),
+		false);
 
 	window->viewport_data = std::make_unique<ViewportResources>(gContext->GetDevice());
 

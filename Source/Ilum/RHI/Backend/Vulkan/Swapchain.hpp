@@ -12,7 +12,7 @@ class Queue;
 class Swapchain : public RHISwapchain
 {
   public:
-	Swapchain(RHIDevice *device, void *window_handle, uint32_t width, uint32_t height);
+	Swapchain(RHIDevice *device, void *window_handle, uint32_t width, uint32_t height, bool vsync);
 
 	virtual ~Swapchain() override;
 

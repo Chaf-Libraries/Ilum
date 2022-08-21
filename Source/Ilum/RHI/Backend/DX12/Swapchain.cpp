@@ -11,8 +11,8 @@ using Microsoft::WRL::ComPtr;
 
 namespace Ilum::DX12
 {
-Swapchain::Swapchain(RHIDevice *device, void *window_handle, uint32_t width, uint32_t height) :
-    RHISwapchain(device, width, height)
+Swapchain::Swapchain(RHIDevice *device, void *window_handle, uint32_t width, uint32_t height, bool vsync) :
+    RHISwapchain(device, width, height, vsync)
 {
 	static_cast<Device *>(p_device)->GetHandle()->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence));
 	m_fence_event = CreateEvent(nullptr, FALSE, FALSE, nullptr);
@@ -29,7 +29,7 @@ Swapchain::Swapchain(RHIDevice *device, void *window_handle, uint32_t width, uin
 	swapChainDesc.Height                = m_height;
 	swapChainDesc.Format                = DXGI_FORMAT_R8G8B8A8_UNORM;
 	swapChainDesc.BufferUsage           = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapChainDesc.SwapEffect            = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+	swapChainDesc.SwapEffect            = vsync ? DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL : DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	swapChainDesc.SampleDesc.Count      = 1;
 
 	ComPtr<IDXGISwapChain1> swapchain;

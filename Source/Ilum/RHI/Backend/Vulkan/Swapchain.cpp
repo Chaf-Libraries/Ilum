@@ -57,129 +57,9 @@ inline std::optional<uint32_t> GetQueueFamilyIndex(const std::vector<VkQueueFami
 
 	return std::optional<uint32_t>();
 }
-// Swapchain::Swapchain(RHIDevice *device, Window *window) :
-//     RHISwapchain(device, window)
-//{
-//#ifdef _WIN32
-//	{
-//		VkWin32SurfaceCreateInfoKHR createInfo{};
-//		createInfo.sType     = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
-//		createInfo.hwnd      = (HWND) window->GetNativeHandle();
-//		createInfo.hinstance = GetModuleHandle(nullptr);
-//		vkCreateWin32SurfaceKHR(static_cast<Device *>(device)->GetInstance(), &createInfo, nullptr, &m_surface);
-//	}
-//#endif        // _WIN32
-//
-//	// m_capabilities
-//	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(static_cast<Device *>(device)->GetPhysicalDevice(), m_surface, &m_capabilities);
-//
-//	// formats
-//	uint32_t                        format_count;
-//	std::vector<VkSurfaceFormatKHR> formats;
-//	vkGetPhysicalDeviceSurfaceFormatsKHR(static_cast<Device *>(device)->GetPhysicalDevice(), m_surface, &format_count, nullptr);
-//	if (format_count != 0)
-//	{
-//		formats.resize(format_count);
-//		vkGetPhysicalDeviceSurfaceFormatsKHR(static_cast<Device *>(device)->GetPhysicalDevice(), m_surface, &format_count, formats.data());
-//	}
-//
-//	// present modes
-//	uint32_t                      presentmode_count;
-//	std::vector<VkPresentModeKHR> presentmodes;
-//	vkGetPhysicalDeviceSurfacePresentModesKHR(static_cast<Device *>(device)->GetPhysicalDevice(), m_surface, &presentmode_count, nullptr);
-//	if (presentmode_count != 0)
-//	{
-//		presentmodes.resize(presentmode_count);
-//		vkGetPhysicalDeviceSurfacePresentModesKHR(static_cast<Device *>(device)->GetPhysicalDevice(), m_surface, &presentmode_count, presentmodes.data());
-//	}
-//
-//	// Choose swapchain surface format
-//	for (const auto &surface_format : formats)
-//	{
-//		if (surface_format.format == VK_FORMAT_B8G8R8A8_UNORM &&
-//		    surface_format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
-//		{
-//			m_surface_format = surface_format;
-//		}
-//	}
-//	if (m_surface_format.format == VK_FORMAT_UNDEFINED)
-//	{
-//		m_surface_format = formats[0];
-//	}
-//
-//	// Choose swapchain present mode
-//	for (VkPresentModeKHR present_mode : presentmodes)
-//	{
-//		if (VK_PRESENT_MODE_MAILBOX_KHR == present_mode)
-//		{
-//			m_present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
-//		}
-//	}
-//	if (m_present_mode == VK_PRESENT_MODE_MAX_ENUM_KHR)
-//	{
-//		m_present_mode = VK_PRESENT_MODE_FIFO_KHR;
-//	}
-//
-//	// Choose swapchain extent
-//	VkExtent2D chosen_extent = {};
-//	if (m_capabilities.currentExtent.width != UINT32_MAX)
-//	{
-//		chosen_extent = m_capabilities.currentExtent;
-//	}
-//	else
-//	{
-//		VkExtent2D actualExtent = {};
-//		actualExtent.width      = p_window->GetWidth();
-//		actualExtent.height     = p_window->GetHeight();
-//
-//		actualExtent.width =
-//		    std::clamp(actualExtent.width, m_capabilities.minImageExtent.width, m_capabilities.maxImageExtent.width);
-//		actualExtent.height =
-//		    std::clamp(actualExtent.height, m_capabilities.minImageExtent.height, m_capabilities.maxImageExtent.height);
-//
-//		chosen_extent = actualExtent;
-//	}
-//
-//	m_image_count = m_capabilities.minImageCount + 1;
-//	if (m_capabilities.maxImageCount > 0 && m_image_count > m_capabilities.maxImageCount)
-//	{
-//		m_image_count = m_capabilities.maxImageCount;
-//	}
-//
-//	VkBool32 support = VK_FALSE;
-//
-//	if (!support)
-//	{
-//		vkGetPhysicalDeviceSurfaceSupportKHR(static_cast<Device *>(p_device)->GetPhysicalDevice(), VK_QUEUE_GRAPHICS_BIT, m_surface, &support);
-//		if (support)
-//		{
-//			m_present_queue = std::make_unique<Queue>(device, RHIQueueFamily::Graphics);
-//		}
-//	}
-//
-//	if (!support)
-//	{
-//		vkGetPhysicalDeviceSurfaceSupportKHR(static_cast<Device *>(p_device)->GetPhysicalDevice(), VK_QUEUE_COMPUTE_BIT, m_surface, &support);
-//		if (support)
-//		{
-//			m_present_queue = std::make_unique<Queue>(device, RHIQueueFamily::Compute);
-//		}
-//	}
-//
-//	if (!support)
-//	{
-//		vkGetPhysicalDeviceSurfaceSupportKHR(static_cast<Device *>(p_device)->GetPhysicalDevice(), VK_QUEUE_TRANSFER_BIT, m_surface, &support);
-//		if (support)
-//		{
-//			m_present_queue = std::make_unique<Queue>(device, RHIQueueFamily::Transfer);
-//		}
-//	}
-//
-//	CreateSwapchain(chosen_extent);
-// }
 
-Swapchain::Swapchain(RHIDevice *device, void *window_handle, uint32_t width, uint32_t height) :
-    RHISwapchain(device, width, height)
+Swapchain::Swapchain(RHIDevice *device, void *window_handle, uint32_t width, uint32_t height, bool vsync) :
+    RHISwapchain(device, width, height, vsync)
 {
 #ifdef _WIN32
 	{
@@ -231,9 +111,21 @@ Swapchain::Swapchain(RHIDevice *device, void *window_handle, uint32_t width, uin
 	// Choose swapchain present mode
 	for (VkPresentModeKHR present_mode : presentmodes)
 	{
-		if (VK_PRESENT_MODE_MAILBOX_KHR == present_mode)
+		if (!vsync)
 		{
-			m_present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
+			if (VK_PRESENT_MODE_MAILBOX_KHR == present_mode)
+			{
+				m_present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
+				break;
+			}
+		}
+		else
+		{
+			if (VK_PRESENT_MODE_FIFO_KHR == present_mode)
+			{
+				m_present_mode = VK_PRESENT_MODE_FIFO_KHR;
+				break;
+			}
 		}
 	}
 	if (m_present_mode == VK_PRESENT_MODE_MAX_ENUM_KHR)

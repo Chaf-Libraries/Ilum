@@ -13,7 +13,7 @@ RHIContext::RHIContext(Window *window) :
 #endif        // RHI_BACKEND
 
 	m_device    = RHIDevice::Create();
-	m_swapchain = RHISwapchain::Create(m_device.get(), p_window->GetNativeHandle(), p_window->GetWidth(), p_window->GetHeight());
+	m_swapchain = RHISwapchain::Create(m_device.get(), p_window->GetNativeHandle(), p_window->GetWidth(), p_window->GetHeight(), false);
 
 	m_graphics_queue = RHIQueue::Create(m_device.get(), RHIQueueFamily::Graphics);
 	m_compute_queue  = RHIQueue::Create(m_device.get(), RHIQueueFamily::Compute);

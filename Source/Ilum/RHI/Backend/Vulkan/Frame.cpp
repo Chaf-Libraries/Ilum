@@ -81,12 +81,14 @@ RHICommand *Frame::AllocateCommand(RHIQueueFamily family)
 	if (m_commands.find(hash) == m_commands.end())
 	{
 		m_commands.emplace(hash, std::vector<std::unique_ptr<Command>>{});
+		m_active_cmd_index[hash] = 0;
 	}
 
 	if (m_commands[hash].size() > m_active_cmd_index[hash])
 	{
 		auto &cmd = m_commands[hash][m_active_cmd_index[hash]];
 		cmd->Init();
+		m_active_cmd_index[hash]++;
 		return cmd.get();
 	}
 
