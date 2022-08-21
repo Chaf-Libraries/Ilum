@@ -6,6 +6,8 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 
+#include <imnodes.h>
+
 #include <IconsFontAwesome4.h>
 
 #include <GLFW/glfw3.h>
@@ -20,11 +22,6 @@ struct ConstantBlock
 	glm::vec2 translate;
 };
 
-/*	platform_io.Renderer_CreateWindow  = RHI_Window_Create;
-platform_io.Renderer_DestroyWindow = RHI_Window_Destroy;
-platform_io.Renderer_SetWindowSize = RHI_Window_SetSize;
-platform_io.Renderer_RenderWindow  = RHI_Window_Render;
-platform_io.Renderer_SwapBuffers   = RHI_Window_Present;*/
 struct ViewportResources
 {
 	ViewportResources() = default;
@@ -76,6 +73,7 @@ ImGuiContext::ImGuiContext(RHIContext *context, Window *window) :
 	gResource = ViewportResources(gContext->GetDevice());
 
 	ImGui::CreateContext();
+	ImNodes::CreateContext();
 
 	SetStyle();
 
@@ -220,6 +218,7 @@ ImGuiContext::ImGuiContext(RHIContext *context, Window *window) :
 ImGuiContext::~ImGuiContext()
 {
 	ImGui_ImplGlfw_Shutdown();
+	ImNodes::DestroyContext();
 	ImGui::DestroyContext();
 
 	gContext       = nullptr;

@@ -29,10 +29,6 @@ class ImGuiContext
 	std::unique_ptr<RHIPipelineState> m_pipeline_state = nullptr;
 	std::unique_ptr<RHIDescriptor>    m_descriptor     = nullptr;
 
-	//std::unique_ptr<RHIBuffer> m_vertex_buffer  = nullptr;
-	//std::unique_ptr<RHIBuffer> m_index_buffer   = nullptr;
-	//std::unique_ptr<RHIBuffer> m_uniform_buffer = nullptr;
-
 	std::unique_ptr<RHISampler> m_sampler = nullptr;
 
 	std::unique_ptr<RHIShader> m_vertex_shader   = nullptr;

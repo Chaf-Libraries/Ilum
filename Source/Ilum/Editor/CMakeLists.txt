@@ -29,6 +29,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE RenderCore)
 # target_link_libraries(${TARGET_NAME} PUBLIC glm)
 # target_link_libraries(${TARGET_NAME} PUBLIC stb)
 target_link_libraries(${TARGET_NAME} PRIVATE imgui)
+target_link_libraries(${TARGET_NAME} PRIVATE imnode)
 
 # target_link_libraries(${TARGET_NAME} PRIVATE stb)
 # target_link_libraries(${TARGET_NAME} PRIVATE glslang)
