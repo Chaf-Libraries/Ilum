@@ -23,6 +23,7 @@ target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:
 target_link_libraries(${TARGET_NAME} PRIVATE Core)
 target_link_libraries(${TARGET_NAME} PRIVATE RHI)
 target_link_libraries(${TARGET_NAME} PRIVATE RenderCore)
+target_link_libraries(${TARGET_NAME} PRIVATE Renderer)
 
 # target_link_libraries(${TARGET_NAME} PRIVATE glfw)
 # target_link_libraries(${TARGET_NAME} PUBLIC spdlog)
@@ -30,6 +31,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE RenderCore)
 # target_link_libraries(${TARGET_NAME} PUBLIC stb)
 target_link_libraries(${TARGET_NAME} PRIVATE imgui)
 target_link_libraries(${TARGET_NAME} PRIVATE imnode)
+target_link_libraries(${TARGET_NAME} PRIVATE rttr_core_lib)
 
 # target_link_libraries(${TARGET_NAME} PRIVATE stb)
 # target_link_libraries(${TARGET_NAME} PRIVATE glslang)

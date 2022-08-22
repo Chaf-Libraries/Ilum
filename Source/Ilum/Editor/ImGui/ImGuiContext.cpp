@@ -28,6 +28,7 @@ struct ViewportResources
 	ViewportResources(RHIDevice *device)
 	{
 		uniform_buffer = RHIBuffer::Create(device, BufferDesc{
+		                                               "imgui_uniform_buffer",
 		                                               RHIBufferUsage::ConstantBuffer,
 		                                               RHIMemoryUsage::CPU_TO_GPU,
 		                                               sizeof(ConstantBlock),

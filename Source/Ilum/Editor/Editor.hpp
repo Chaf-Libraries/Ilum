@@ -5,6 +5,7 @@ namespace Ilum
 class Window;
 class RHIContext;
 class ImGuiContext;
+class Widget;
 
 class Editor
 {
@@ -21,5 +22,6 @@ class Editor
 
   private:
 	std::unique_ptr<ImGuiContext> m_imgui_context = nullptr;
+	std::vector<std::unique_ptr<Widget>> m_widgets;
 };
 }        // namespace Ilum

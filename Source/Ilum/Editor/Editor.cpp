@@ -1,5 +1,8 @@
 #include "Editor.hpp"
+
 #include "ImGui/ImGuiContext.hpp"
+
+#include "Widget/RenderGraphEditor.hpp"
 
 #include <imgui.h>
 
@@ -8,6 +11,7 @@ namespace Ilum
 Editor::Editor(Window *window, RHIContext *rhi_context) :
     m_imgui_context(std::make_unique<ImGuiContext>(rhi_context, window))
 {
+	m_widgets.emplace_back(std::make_unique<RenderGraphEditor>(this));
 }
 
 Editor::~Editor()
@@ -22,7 +26,27 @@ void Editor::PreTick()
 
 void Editor::Tick()
 {
-	ImGui::ShowDemoWindow();
+	for (auto &widget : m_widgets)
+	{
+		if (widget->GetActive())
+		{
+			widget->Tick();
+		}
+	}
+
+	if (ImGui::BeginMainMenuBar())
+	{
+		if (ImGui::BeginMenu("Widget"))
+		{
+			for (auto& widget : m_widgets)
+			{
+				ImGui::MenuItem(widget->GetName().c_str(), nullptr, &widget->GetActive());
+			}
+			ImGui::EndMenu();
+		}
+
+		ImGui::EndMainMenuBar();
+	}
 }
 
 void Editor::PostTick()

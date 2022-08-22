@@ -10,6 +10,8 @@ class RHIDevice;
 
 struct BufferDesc
 {
+	std::string name;
+
 	RHIBufferUsage usage;
 	RHIMemoryUsage memory;
 	size_t         size;
