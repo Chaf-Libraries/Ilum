@@ -9,7 +9,7 @@ namespace Ilum
 class RenderGraphEditor : public Widget
 {
   public:
-	RenderGraphEditor(Editor* editor);
+	RenderGraphEditor(Editor *editor);
 
 	~RenderGraphEditor();
 
@@ -17,6 +17,9 @@ class RenderGraphEditor : public Widget
 
   private:
 	RenderGraphDesc m_desc;
-	size_t          m_current_handle = 0;
+
+	bool m_need_compile = false;
+
+	size_t m_current_handle = 0;
 };
 }        // namespace Ilum

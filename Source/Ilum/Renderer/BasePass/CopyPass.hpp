@@ -2,15 +2,13 @@
 
 #include <RenderCore/RenderGraph/RenderGraph.hpp>
 
-#include <glm/glm.hpp>
-
 namespace Ilum::Pass
 {
-class VisibilityBufferPass
+class CopyPass
 {
   public:
 	static RenderPassDesc CreateDesc(size_t &handle);
 };
 
-RENDER_PASS_REGISTERATION(VisibilityBufferPass);
+RENDER_PASS_REGISTERATION(CopyPass);
 }        // namespace Ilum::Pass
