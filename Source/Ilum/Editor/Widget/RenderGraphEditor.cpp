@@ -1,5 +1,7 @@
 #include "RenderGraphEditor.hpp"
 
+#include "Editor/Editor.hpp"
+
 #include <RenderCore/RenderGraph/RenderGraph.hpp>
 
 #include <Renderer/RenderPass.hpp>
@@ -48,6 +50,7 @@ void RenderGraphEditor::Tick()
 		if (ImGui::MenuItem("Load"))
 		{
 		}
+
 		if (ImGui::BeginMenu("Add"))
 		{
 			if (ImGui::BeginMenu("Pass"))
@@ -66,6 +69,7 @@ void RenderGraphEditor::Tick()
 				}
 				ImGui::EndMenu();
 			}
+
 			if (ImGui::MenuItem("Texture"))
 			{
 				m_desc.textures.emplace(
@@ -73,6 +77,7 @@ void RenderGraphEditor::Tick()
 				    TextureDesc{"Texture"});
 				m_need_compile = true;
 			}
+
 			if (ImGui::MenuItem("Buffer"))
 			{
 				m_desc.buffers.emplace(
@@ -82,9 +87,21 @@ void RenderGraphEditor::Tick()
 			}
 			ImGui::EndMenu();
 		}
+
 		if (m_need_compile && ImGui::MenuItem("Compile"))
 		{
-			m_need_compile = false;
+			RenderGraphBuilder builder;
+
+			auto *renderer = p_editor->GetRenderer();
+
+			if (builder.Compile(m_desc, renderer))
+			{
+				m_need_compile = false;
+			}
+			else
+			{
+				LOG_INFO("Render Graph Compile Failed!");
+			}
 		}
 		ImGui::EndMenuBar();
 	}
@@ -113,6 +130,14 @@ void RenderGraphEditor::Tick()
 
 					if (m_desc.passes.find(deprecated_handle) != m_desc.passes.end())
 					{
+						for (auto& write : m_desc.passes[deprecated_handle].writes)
+						{
+							deprecated_handles.insert(write.second.second);
+						}
+						for (auto &read : m_desc.passes[deprecated_handle].reads)
+						{
+							deprecated_handles.insert(read.second.second);
+						}
 						m_desc.passes.erase(deprecated_handle);
 					}
 					else if (m_desc.textures.find(deprecated_handle) != m_desc.textures.end())

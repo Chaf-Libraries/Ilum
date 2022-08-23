@@ -6,11 +6,12 @@ class Window;
 class RHIContext;
 class ImGuiContext;
 class Widget;
+class Renderer;
 
 class Editor
 {
   public:
-	Editor(Window *window, RHIContext *rhi_context);
+	Editor(Window *window, RHIContext *rhi_context, Renderer *renderer);
 
 	~Editor();
 
@@ -20,8 +21,13 @@ class Editor
 
 	void PostTick();
 
+	Renderer *GetRenderer() const;
+
   private:
 	std::unique_ptr<ImGuiContext> m_imgui_context = nullptr;
+
+	Renderer *p_renderer = nullptr;
+
 	std::vector<std::unique_ptr<Widget>> m_widgets;
 };
 }        // namespace Ilum

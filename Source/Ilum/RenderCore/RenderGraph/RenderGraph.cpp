@@ -17,6 +17,11 @@ bool RGHandle::operator<(const RGHandle &rhs) const
 	return m_handle < rhs.m_handle;
 }
 
+bool RGHandle::operator==(const RGHandle &rhs) const
+{
+	return m_handle == rhs.m_handle;
+}
+
 size_t RGHandle::GetHandle() const
 {
 	return m_handle;

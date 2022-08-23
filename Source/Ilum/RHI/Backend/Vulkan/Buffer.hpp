@@ -26,6 +26,7 @@ class Buffer : public RHIBuffer
 {
   public:
 	Buffer(RHIDevice *device, const BufferDesc &desc);
+
 	virtual ~Buffer() override;
 
 	virtual void *Map() override;

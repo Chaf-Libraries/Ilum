@@ -18,6 +18,11 @@ const TextureDesc &RHITexture::GetDesc() const
 	return m_desc;
 }
 
+std::unique_ptr<RHITexture> RHITexture::Alias(const TextureDesc &desc)
+{
+	return Create(p_device, desc);
+}
+
 std::unique_ptr<RHITexture> RHITexture::Create(RHIDevice *device, const TextureDesc &desc)
 {
 #ifdef RHI_BACKEND_VULKAN

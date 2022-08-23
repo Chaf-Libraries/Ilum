@@ -44,9 +44,12 @@ class RHITexture
 {
   public:
 	RHITexture(RHIDevice *device, const TextureDesc &desc);
+
 	virtual ~RHITexture() = default;
 
 	const TextureDesc &GetDesc() const;
+
+	virtual std::unique_ptr<RHITexture> Alias(const TextureDesc &desc);
 
 	static std::unique_ptr<RHITexture> Create(RHIDevice *device, const TextureDesc &desc);
 	static std::unique_ptr<RHITexture> Create2D(RHIDevice *device, uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples = 1);

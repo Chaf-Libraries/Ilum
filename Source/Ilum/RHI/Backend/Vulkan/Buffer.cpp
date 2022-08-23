@@ -81,6 +81,16 @@ Buffer::Buffer(RHIDevice *device, const BufferDesc &desc) :
 		buffer_device_address_info.buffer                       = m_handle;
 		m_device_address                                        = vkGetBufferDeviceAddress(static_cast<Device *>(p_device)->GetDevice(), &buffer_device_address_info);
 	}
+
+	if (!m_desc.name.empty())
+	{
+		VkDebugUtilsObjectNameInfoEXT info = {};
+		info.sType                         = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+		info.pObjectName                   = m_desc.name.c_str();
+		info.objectHandle                  = (uint64_t) m_handle;
+		info.objectType                    = VK_OBJECT_TYPE_BUFFER;
+		static_cast<Device *>(p_device)->SetVulkanObjectName(info);
+	}
 }
 
 Buffer::~Buffer()

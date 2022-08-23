@@ -324,6 +324,7 @@ void Swapchain::Resize(uint32_t width, uint32_t height)
 
 		for (size_t i = 0; i < images.size(); i++)
 		{
+			desc.name = "Swapchain Image " + std::to_string(i);
 			m_textures.emplace_back(std::make_unique<Texture>(p_device, desc, images[i]));
 		}
 	}

@@ -6,13 +6,16 @@
 
 #include <Editor/Editor.hpp>
 
+#include <Renderer/Renderer.hpp>
+
 namespace Ilum
 {
 Engine::Engine()
 {
 	m_window      = std::make_unique<Window>("Ilum", "Asset/Icon/logo.bmp");
 	m_rhi_context = std::make_unique<RHIContext>(m_window.get());
-	m_editor      = std::make_unique<Editor>(m_window.get(), m_rhi_context.get());
+	m_renderer    = std::make_unique<Renderer>(m_rhi_context.get());
+	m_editor      = std::make_unique<Editor>(m_window.get(), m_rhi_context.get(), m_renderer.get());
 }
 
 Engine::~Engine()
@@ -38,6 +41,10 @@ void Engine::Tick()
 			m_editor->PostTick();
 
 			m_rhi_context->EndFrame();
+		}
+		else
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(16));
 		}
 
 		m_window->SetTitle(fmt::format("IlumEngine FPS: {}", m_timer.FrameRate()));

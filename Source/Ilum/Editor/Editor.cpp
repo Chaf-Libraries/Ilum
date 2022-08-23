@@ -8,8 +8,8 @@
 
 namespace Ilum
 {
-Editor::Editor(Window *window, RHIContext *rhi_context) :
-    m_imgui_context(std::make_unique<ImGuiContext>(rhi_context, window))
+Editor::Editor(Window *window, RHIContext *rhi_context, Renderer *renderer) :
+    m_imgui_context(std::make_unique<ImGuiContext>(rhi_context, window)), p_renderer(renderer)
 {
 	m_widgets.emplace_back(std::make_unique<RenderGraphEditor>(this));
 }
@@ -53,5 +53,10 @@ void Editor::PostTick()
 {
 	m_imgui_context->EndFrame();
 	m_imgui_context->Render();
+}
+
+Renderer *Editor::GetRenderer() const
+{
+	return p_renderer;
 }
 }        // namespace Ilum

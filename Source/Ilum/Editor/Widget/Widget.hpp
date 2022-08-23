@@ -10,7 +10,7 @@ class Widget
 {
   public:
 	Widget(const std::string &name, Editor *editor) :
-	    m_name(name), m_editor(editor)
+	    m_name(name), p_editor(editor)
 	{
 	}
 
@@ -29,7 +29,7 @@ class Widget
 	}
 
   protected:
-	Editor *m_editor = nullptr;
+	Editor *p_editor = nullptr;
 
 	std::string m_name;
 

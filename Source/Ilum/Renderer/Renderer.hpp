@@ -2,6 +2,8 @@
 
 #include <RHI/RHIContext.hpp>
 
+//#include <RenderCore/RenderGraph/RenderGraph.hpp>
+
 namespace Ilum
 {
 class Renderer

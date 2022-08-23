@@ -93,21 +93,101 @@ Texture::Texture(RHIDevice *device, const TextureDesc &desc) :
 
 	VmaAllocationCreateInfo allocation_create_info = {};
 	allocation_create_info.usage                   = VMA_MEMORY_USAGE_GPU_ONLY;
+
 	vmaCreateImage(static_cast<Device *>(p_device)->GetAllocator(), &create_info, &allocation_create_info, &m_handle, &m_allocation, nullptr);
+
+	if (!m_desc.name.empty())
+	{
+		VkDebugUtilsObjectNameInfoEXT info = {};
+		info.sType                         = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+		info.pObjectName                   = m_desc.name.c_str();
+		info.objectHandle                  = (uint64_t) m_handle;
+		info.objectType                    = VK_OBJECT_TYPE_IMAGE;
+		static_cast<Device *>(p_device)->SetVulkanObjectName(info);
+	}
 }
 
-Texture::Texture(RHIDevice *device, const TextureDesc &desc, VkImage image) :
-    RHITexture(device, desc), m_handle(image)
+Texture::Texture(RHIDevice *device, const TextureDesc &desc, VkImage image, bool is_swapchain_buffer) :
+    RHITexture(device, desc), m_handle(image), m_is_swapchain_buffer(is_swapchain_buffer)
 {
+	if (!m_desc.name.empty())
+	{
+		VkDebugUtilsObjectNameInfoEXT info = {};
+		info.sType                         = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+		info.pObjectName                   = m_desc.name.c_str();
+		info.objectHandle                  = (uint64_t) m_handle;
+		info.objectType                    = VK_OBJECT_TYPE_IMAGE;
+		static_cast<Device *>(p_device)->SetVulkanObjectName(info);
+	}
+}
+
+std::unique_ptr<RHITexture> Texture::Alias(const TextureDesc &desc)
+{
+	if (!m_allocation)
+	{
+		return std::make_unique<Texture>(p_device, desc);
+	}
+
+	VkImageCreateInfo create_info = {};
+	create_info.sType             = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	create_info.imageType         = VK_IMAGE_TYPE_2D;
+	create_info.format            = ToVulkanFormat[desc.format];
+	create_info.extent            = VkExtent3D{desc.width, desc.height, desc.depth};
+	create_info.samples           = ToVulkanSampleCountFlag[desc.samples];
+	create_info.mipLevels         = desc.mips;
+	create_info.arrayLayers       = desc.layers;
+	create_info.tiling            = VK_IMAGE_TILING_OPTIMAL;
+	create_info.usage             = ToVulkanImageUsage(desc.usage);
+	create_info.sharingMode       = VK_SHARING_MODE_EXCLUSIVE;
+	create_info.initialLayout     = VK_IMAGE_LAYOUT_UNDEFINED;
+
+	// Render Target Setting
+	if (desc.usage & RHITextureUsage::RenderTarget)
+	{
+		create_info.usage |= IsDepthFormat(desc.format) ?
+		                         VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT :
+                                 VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	}
+
+	// Cubemap Setting
+	if (desc.layers % 6 == 0 && desc.width == desc.height && desc.depth == 1)
+	{
+		create_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+	}
+
+	VkImage image = VK_NULL_HANDLE;
+	vkCreateImage(static_cast<Device *>(p_device)->GetDevice(), &create_info, nullptr, &image);
+
+	VkMemoryRequirements memory_req = {};
+	vkGetImageMemoryRequirements(static_cast<Device *>(p_device)->GetDevice(), image, &memory_req);
+
+	VmaAllocationInfo info = {};
+	vmaGetAllocationInfo(static_cast<Device *>(p_device)->GetAllocator(), m_allocation, &info);
+
+	if (info.size >= memory_req.size)
+	{
+		vmaBindImageMemory(static_cast<Device *>(p_device)->GetAllocator(), m_allocation, image);
+		return std::make_unique<Texture>(p_device, desc, image, false);
+	}
+	else
+	{
+		vkDestroyImage(static_cast<Device *>(p_device)->GetDevice(), image, nullptr);
+		return std::make_unique<Texture>(p_device, desc);
+	}
 }
 
 Texture::~Texture()
 {
 	vkDeviceWaitIdle(static_cast<Device *>(p_device)->GetDevice());
 
-	if (m_handle && m_allocation)
+	if (m_allocation)
 	{
-		vmaDestroyImage(static_cast<Device *>(p_device)->GetAllocator(), m_handle, m_allocation);
+		vmaFreeMemory(static_cast<Device *>(p_device)->GetAllocator(), m_allocation);
+	}
+
+	if (m_handle && !m_is_swapchain_buffer)
+	{
+		vkDestroyImage(static_cast<Device *>(p_device)->GetDevice(), m_handle, nullptr);
 	}
 
 	for (auto &[hash, view] : m_view_cache)
@@ -143,6 +223,16 @@ VkImageView Texture::GetView(const TextureRange &range) const
 
 	m_view_cache[hash] = VK_NULL_HANDLE;
 	vkCreateImageView(static_cast<Device *>(p_device)->GetDevice(), &view_create_info, nullptr, &m_view_cache[hash]);
+
+	if (!m_desc.name.empty())
+	{
+		VkDebugUtilsObjectNameInfoEXT info = {};
+		info.sType                         = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+		info.pObjectName                   = fmt::format("{} - View {}", m_desc.name, std::to_string(hash)).c_str();
+		info.objectHandle                  = (uint64_t) m_view_cache[hash];
+		info.objectType                    = VK_OBJECT_TYPE_IMAGE_VIEW;
+		static_cast<Device *>(p_device)->SetVulkanObjectName(info);
+	}
 
 	return m_view_cache.at(hash);
 }

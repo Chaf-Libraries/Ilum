@@ -14,4 +14,18 @@ RenderPassDesc VisibilityBufferPass::CreateDesc(size_t &handle)
 
 	return desc;
 }
+
+void VisibilityBufferPass::Create(const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
+{
+	builder.AddPass("Visibility Buffer Pass", [desc](RenderGraph &render_graph) {
+		RGHandle visibility_buffer_handle = desc.writes.at("VisibilityBuffer").second;
+		RGHandle depth_buffer_handle      = desc.writes.at("DepthBuffer").second;
+
+		// auto visibility_buffer = render_graph.GetTexture("VisibilityBuffer");
+		// auto depth_buffer      = render_graph.GetTexture("DepthBuffer");
+
+		Config config = desc.variant.convert<Config>();
+	});
+}
+
 }        // namespace Ilum::Pass

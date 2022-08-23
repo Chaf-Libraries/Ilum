@@ -35,6 +35,8 @@ class Device : public RHIDevice
 	uint32_t GetQueueFamily(RHIQueueFamily family);
 	uint32_t GetQueueCount(RHIQueueFamily family);
 
+	void SetVulkanObjectName(const VkDebugUtilsObjectNameInfoEXT &info);
+
   private:
 	// Supported extensions
 	std::vector<const char *> m_supported_instance_extensions;

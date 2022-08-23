@@ -28,7 +28,11 @@ class Texture : public RHITexture
 {
   public:
 	Texture(RHIDevice *device, const TextureDesc &desc);
-	Texture(RHIDevice *device, const TextureDesc &desc, VkImage image);
+
+	Texture(RHIDevice *device, const TextureDesc &desc, VkImage image, bool is_swapchain_buffer = true);
+
+	virtual std::unique_ptr<RHITexture> Alias(const TextureDesc &desc) override;
+
 	virtual ~Texture() override;
 
 	VkImage GetHandle() const;
@@ -38,6 +42,8 @@ class Texture : public RHITexture
   private:
 	VkImage       m_handle     = VK_NULL_HANDLE;
 	VmaAllocation m_allocation = VK_NULL_HANDLE;
+
+	bool m_is_swapchain_buffer = false;
 
 	mutable std::unordered_map<size_t, VkImageView> m_view_cache;
 };

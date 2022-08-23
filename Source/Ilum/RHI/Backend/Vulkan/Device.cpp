@@ -9,10 +9,10 @@ namespace Ilum::Vulkan
 static PFN_vkCreateDebugUtilsMessengerEXT  vkCreateDebugUtilsMessengerEXT;
 static VkDebugUtilsMessengerEXT            vkDebugUtilsMessengerEXT;
 static PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT;
-static PFN_vkSetDebugUtilsObjectTagEXT     vkSetDebugUtilsObjectTagEXT;
-static PFN_vkSetDebugUtilsObjectNameEXT    vkSetDebugUtilsObjectNameEXT;
-static PFN_vkCmdBeginDebugUtilsLabelEXT    vkCmdBeginDebugUtilsLabelEXT;
-static PFN_vkCmdEndDebugUtilsLabelEXT      vkCmdEndDebugUtilsLabelEXT;
+PFN_vkSetDebugUtilsObjectTagEXT            vkSetDebugUtilsObjectTagEXT;
+PFN_vkSetDebugUtilsObjectNameEXT           vkSetDebugUtilsObjectNameEXT;
+PFN_vkCmdBeginDebugUtilsLabelEXT           vkCmdBeginDebugUtilsLabelEXT;
+PFN_vkCmdEndDebugUtilsLabelEXT             vkCmdEndDebugUtilsLabelEXT;
 
 // Vulkan Extension
 static const std::vector<const char *> InstanceExtensions =
@@ -508,15 +508,15 @@ void Device::CreateLogicalDevice()
 	VkPhysicalDeviceVulkan12Features physical_device_vulkan12_features_enable = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
 	VkPhysicalDeviceVulkan13Features physical_device_vulkan13_features_enable = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
 
-#define ENABLE_DEVICE_FEATURE(device_feature, device_feature_enable, feature)            \
-	if (device_feature.feature)                                   \
-	{                                                             \
-		device_feature_enable.feature = VK_TRUE;                         \
-		m_supported_device_features.push_back(#feature);          \
-	}                                                             \
-	else                                                          \
-	{                                                             \
-		LOG_WARN("Device feature {} is not supported", #feature); \
+#define ENABLE_DEVICE_FEATURE(device_feature, device_feature_enable, feature) \
+	if (device_feature.feature)                                               \
+	{                                                                         \
+		device_feature_enable.feature = VK_TRUE;                              \
+		m_supported_device_features.push_back(#feature);                      \
+	}                                                                         \
+	else                                                                      \
+	{                                                                         \
+		LOG_WARN("Device feature {} is not supported", #feature);             \
 	}
 
 	ENABLE_DEVICE_FEATURE(physical_device_features.features, physical_device_features_enable.features, sampleRateShading);
@@ -806,4 +806,10 @@ uint32_t Device::GetQueueCount(RHIQueueFamily family)
 	}
 	return m_graphics_queue_count;
 }
+
+void Device::SetVulkanObjectName(const VkDebugUtilsObjectNameInfoEXT &info)
+{
+	vkSetDebugUtilsObjectNameEXT(m_logical_device, &info);
+}
+
 }        // namespace Ilum::Vulkan

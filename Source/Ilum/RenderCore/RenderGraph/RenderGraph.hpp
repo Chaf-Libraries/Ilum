@@ -33,6 +33,8 @@ class RGHandle
 
 	bool operator<(const RGHandle &rhs) const;
 
+	bool operator==(const RGHandle &rhs) const;
+
 	size_t GetHandle() const;
 
   private:
@@ -73,6 +75,7 @@ struct RenderGraphDesc
 		RTTR_REGISTRATION                                                     \
 		{                                                                     \
 			rttr::registration::method(#Type##"_Desc", &Type## ::CreateDesc); \
+			rttr::registration::method(#Type##"_Creation", &Type## ::Create); \
 		}                                                                     \
 	}                                                                         \
 	static RenderPassName RenderPass_##Type##_Name(#Type, RenderPassNameList);
@@ -95,4 +98,8 @@ struct RenderGraphDesc
 	;                                   \
 	}                                   \
 	}
+
+class RenderGraph
+{
+};
 }        // namespace Ilum
