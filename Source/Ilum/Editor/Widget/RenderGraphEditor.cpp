@@ -441,6 +441,7 @@ void RenderGraphEditor::Tick()
 		{
 			if (ImNodes::IsNodeSelected(static_cast<int32_t>(handle.GetHandle())))
 			{
+				ImGui::PushID(static_cast<int32_t>(handle.GetHandle()));
 				ImGui::Text("Texture - %s", texture.name.c_str());
 
 				{
@@ -489,6 +490,7 @@ void RenderGraphEditor::Tick()
 
 				m_need_compile |= ImGui::Combo("Format", reinterpret_cast<int32_t *>(&texture.format), formats, 26);
 
+				ImGui::PopID();
 				ImGui::Separator();
 			}
 		}
@@ -498,6 +500,7 @@ void RenderGraphEditor::Tick()
 		{
 			if (ImNodes::IsNodeSelected(static_cast<int32_t>(handle.GetHandle())))
 			{
+				ImGui::PushID(static_cast<int32_t>(handle.GetHandle()));
 				ImGui::Text("Buffer - %s", buffer.name.c_str());
 
 				{
@@ -511,6 +514,8 @@ void RenderGraphEditor::Tick()
 				}
 
 				m_need_compile |= ImGui::DragScalar("Size", ImGuiDataType_U32, &buffer.size, 0.1f, 0);
+
+				ImGui::PopID();
 				ImGui::Separator();
 			}
 		}
@@ -521,8 +526,10 @@ void RenderGraphEditor::Tick()
 			{
 				if (ImNodes::IsNodeSelected(static_cast<int32_t>(handle.GetHandle())))
 				{
+					ImGui::PushID(static_cast<int32_t>(handle.GetHandle()));
 					ImGui::Text("Pass - %s", pass.name.c_str());
 					m_need_compile |= ImGui::EditVariant(pass.variant);
+					ImGui::PopID();
 					ImGui::Separator();
 				}
 			}
