@@ -53,9 +53,9 @@ class RenderGraphBuilder
 
 		RenderGraphDesc tmp_desc = desc;
 
-		std::map<RGHandle, std::vector<RGHandle>> resource_references;
+		std::map<RGHandle, std::vector<RGHandle>>                       resource_references;
 		std::vector<std::vector<std::pair<RGHandle, RHIResourceState>>> resource_states;
-		std::map<RGHandle, std::pair<uint32_t, uint32_t>> resource_life;
+		std::map<RGHandle, std::pair<uint32_t, uint32_t>>               resource_life;
 
 		while (!tmp_desc.passes.empty())
 		{
@@ -63,61 +63,138 @@ class RenderGraphBuilder
 			{
 				auto &[handle, pass] = *iter;
 
-				bool found = true;
-
-				for (auto &[name, read] : pass.reads)
 				{
-					for (auto &edge : tmp_desc.edges)
+					bool found = true;
+
+					for (auto &[name, read] : pass.reads)
 					{
-						auto [src, dst] = RenderGraphDesc::DecodeEdge(edge.first, edge.second);
-						if (read.handle == dst)
+						for (auto &edge : tmp_desc.edges)
 						{
-							found = false;
+							auto [src, dst] = RenderGraphDesc::DecodeEdge(edge.first, edge.second);
+							if (read.handle == dst)
+							{
+								if (tmp_desc.textures.find(src) != tmp_desc.textures.end() ||
+								    tmp_desc.buffers.find(src) != tmp_desc.buffers.end())
+								{
+									found = false;
+									break;
+								}
+							}
+						}
+						if (!found)
+						{
 							break;
 						}
 					}
+
+					// Not a root, continue to search next one
 					if (!found)
 					{
-						break;
+						iter++;
+						continue;
 					}
 				}
 
-				// Not a root, continue to search next one
-				if (!found)
-				{
-					iter++;
-					continue;
-				}
+				std::vector<std::pair<RGHandle, RHIResourceState>> states;
+
+				std::set<RGHandle> erase_nodes;
 
 				for (auto edge_iter = tmp_desc.edges.begin(); edge_iter != tmp_desc.edges.end();)
 				{
 					auto [src_handle, dst_handle] = RenderGraphDesc::DecodeEdge(edge_iter->first, edge_iter->second);
 
+					bool found = false;
+
 					for (auto &[name, write] : pass.writes)
 					{
-						if (write == src_handle)
+						if (write.handle == src_handle)
 						{
-							resource_references[dst_handle].push_back(write);
+							resource_references[dst_handle].push_back(write.handle);
+							states.push_back(std::make_pair(dst_handle, write.state));
+
+							if (resource_life.find(dst_handle) != resource_life.end())
+							{
+								resource_life[dst_handle].second = static_cast<uint32_t>(resource_states.size());
+							}
+							else
+							{
+								resource_life[dst_handle].first  = static_cast<uint32_t>(resource_states.size());
+								resource_life[dst_handle].second = static_cast<uint32_t>(resource_states.size());
+							}
+
+							erase_nodes.insert(dst_handle);
+
+							found = true;
 						}
 					}
 
 					for (auto &[name, read] : pass.reads)
 					{
-						if (read == dst_handle)
+						if (read.handle == dst_handle)
 						{
-							resource_references[src_handle].push_back(read);
+							resource_references[src_handle].push_back(read.handle);
+							states.push_back(std::make_pair(src_handle, read.state));
+
+							if (resource_life.find(src_handle) != resource_life.end())
+							{
+								resource_life[src_handle].second = static_cast<uint32_t>(resource_states.size());
+							}
+							else
+							{
+								resource_life[src_handle].first  = static_cast<uint32_t>(resource_states.size());
+								resource_life[src_handle].second = static_cast<uint32_t>(resource_states.size());
+							}
+
+							erase_nodes.insert(src_handle);
+
+							found = true;
 						}
 					}
 
-					edge_iter++;
+					if (found)
+					{
+						edge_iter = tmp_desc.edges.erase(edge_iter);
+					}
+					else
+					{
+						edge_iter++;
+					}
 				}
 
+				// Erase texture / buffer written by current pass
+				for (auto &node : erase_nodes)
+				{
+					if (tmp_desc.textures.find(node) != tmp_desc.textures.end())
+					{
+						tmp_desc.textures.erase(node);
+					}
+
+					if (tmp_desc.buffers.find(node) != tmp_desc.buffers.end())
+					{
+						tmp_desc.buffers.erase(node);
+					}
+
+					/*for (auto edge_iter = tmp_desc.edges.begin(); edge_iter != tmp_desc.edges.end();)
+					{
+					    auto [src_handle, dst_handle] = RenderGraphDesc::DecodeEdge(edge_iter->first, edge_iter->second);
+					    if (src_handle == node)
+					    {
+					        edge_iter = tmp_desc.edges.erase(edge_iter);
+					    }
+					    else
+					    {
+					        edge_iter++;
+					    }
+					}*/
+				}
+
+				resource_states.push_back(states);
 				ordered_passes.push_back(pass);
 				iter = tmp_desc.passes.erase(iter);
 			}
 		}
 
-		//while (!tmp_desc.passes.empty())
+		// while (!tmp_desc.passes.empty())
 		//{
 		//	// Collect pass without input
 		//	for (auto iter = tmp_desc.passes.begin(); iter != tmp_desc.passes.end();)
@@ -176,7 +253,7 @@ class RenderGraphBuilder
 		//		}
 		//		iter++;
 		//	}
-		//}
+		// }
 
 		//// Handle resource lifetime
 		// std::vector<std::map<RGHandle, RHIResourceState>> texture_states(ordered_passes.size());
