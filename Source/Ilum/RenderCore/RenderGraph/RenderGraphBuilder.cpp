@@ -66,7 +66,7 @@ bool RenderGraphBuilder::Validate(RenderGraphDesc &desc)
 		size_t count         = 0;
 		for (auto &[name, write] : pass.writes)
 		{
-			if (src_nodes.find(write.second) == src_nodes.end())
+			if (src_nodes.find(write.handle) == src_nodes.end())
 			{
 				count++;
 			}
@@ -77,11 +77,11 @@ bool RenderGraphBuilder::Validate(RenderGraphDesc &desc)
 			cull_nodes.insert(handle);
 			for (auto &[name, write] : pass.writes)
 			{
-				cull_nodes.insert(write.second);
+				cull_nodes.insert(write.handle);
 			}
 			for (auto &[name, read] : pass.reads)
 			{
-				cull_nodes.insert(read.second);
+				cull_nodes.insert(read.handle);
 			}
 			iter = desc.passes.erase(iter);
 			continue;

@@ -12,7 +12,7 @@ class VisibilityBufferPass
   public:
 	static RenderPassDesc CreateDesc(size_t &handle);
 
-	static void Create(const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer);
+	static RenderGraph::RenderTask Create(const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer);
 
 	struct Config
 	{

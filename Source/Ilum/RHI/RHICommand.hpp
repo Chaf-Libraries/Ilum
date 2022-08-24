@@ -24,6 +24,7 @@ class RHICommand
 {
   public:
 	RHICommand(RHIDevice *device, RHIQueueFamily family);
+
 	virtual ~RHICommand() = default;
 
 	CommandState GetState() const;
@@ -35,10 +36,13 @@ class RHICommand
 	virtual void Begin() = 0;
 	virtual void End()   = 0;
 
+	virtual void BeginMarker(const std::string &name, float r = 1.f, float g = 1.f, float b = 1.f, float a = 1.f) = 0;
+	virtual void EndMarker()                                                                                      = 0;
+
 	virtual void BeginRenderPass(RHIRenderTarget *render_target) = 0;
 	virtual void EndRenderPass()                                 = 0;
 
-	virtual void BindVertexBuffer(RHIBuffer* vertex_buffer) = 0;
+	virtual void BindVertexBuffer(RHIBuffer *vertex_buffer)                      = 0;
 	virtual void BindIndexBuffer(RHIBuffer *index_buffer, bool is_short = false) = 0;
 
 	virtual void BindDescriptor(RHIDescriptor *descriptor)           = 0;

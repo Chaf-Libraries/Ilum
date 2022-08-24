@@ -24,44 +24,44 @@ void Command::End()
 	m_state = CommandState::Executable;
 }
 
-void Command::BeginRenderPass(RHIRenderTarget* render_target)
+void Command::BeginMarker(const std::string &name, float r, float g, float b, float a)
 {
+}
 
+void Command::EndMarker()
+{
+}
+
+void Command::BeginRenderPass(RHIRenderTarget *render_target)
+{
 }
 
 void Command::EndRenderPass()
 {
-
 }
 
-void Command::BindVertexBuffer(RHIBuffer* vertex_buffer)
+void Command::BindVertexBuffer(RHIBuffer *vertex_buffer)
 {
-
 }
 
 void Command::BindIndexBuffer(RHIBuffer *index_buffer, bool is_short)
 {
-
 }
 
-void Command::BindDescriptor(RHIDescriptor* descriptor)
+void Command::BindDescriptor(RHIDescriptor *descriptor)
 {
-
 }
 
-void Command::BindPipelineState(RHIPipelineState* pipeline_state)
+void Command::BindPipelineState(RHIPipelineState *pipeline_state)
 {
-
 }
 
 void Command::SetViewport(float width, float height, float x, float y)
 {
-
 }
 
 void Command::SetScissor(uint32_t width, uint32_t height, int32_t offset_x, int32_t offset_y)
 {
-
 }
 
 void Command::Dispatch(uint32_t group_x, uint32_t group_y, uint32_t group_z)

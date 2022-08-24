@@ -37,6 +37,9 @@ class Device : public RHIDevice
 
 	void SetVulkanObjectName(const VkDebugUtilsObjectNameInfoEXT &info);
 
+	void BeginDebugUtilsLabel(VkCommandBuffer cmd_buffer, const VkDebugUtilsLabelEXT &label);
+	void EndDebugUtilsLabel(VkCommandBuffer cmd_buffer);
+
   private:
 	// Supported extensions
 	std::vector<const char *> m_supported_instance_extensions;

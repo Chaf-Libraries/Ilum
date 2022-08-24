@@ -90,6 +90,11 @@ std::unique_ptr<RHITexture> RHIContext::CreateTexture2DArray(uint32_t width, uin
 	return RHITexture::Create2DArray(m_device.get(), width, height, layers, format, usage, mipmap, samples);
 }
 
+std::unique_ptr<RHIBuffer> RHIContext::CreateBuffer(const BufferDesc &desc)
+{
+	return RHIBuffer::Create(m_device.get(), desc);
+}
+
 std::unique_ptr<RHIBuffer> RHIContext::CreateBuffer(size_t size, RHIBufferUsage usage, RHIMemoryUsage memory)
 {
 	BufferDesc desc = {};

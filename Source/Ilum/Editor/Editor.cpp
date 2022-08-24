@@ -9,7 +9,7 @@
 namespace Ilum
 {
 Editor::Editor(Window *window, RHIContext *rhi_context, Renderer *renderer) :
-    m_imgui_context(std::make_unique<ImGuiContext>(rhi_context, window)), p_renderer(renderer)
+    m_imgui_context(std::make_unique<ImGuiContext>(rhi_context, window)), p_renderer(renderer), p_rhi_context(rhi_context)
 {
 	m_widgets.emplace_back(std::make_unique<RenderGraphEditor>(this));
 }
@@ -38,7 +38,7 @@ void Editor::Tick()
 	{
 		if (ImGui::BeginMenu("Widget"))
 		{
-			for (auto& widget : m_widgets)
+			for (auto &widget : m_widgets)
 			{
 				ImGui::MenuItem(widget->GetName().c_str(), nullptr, &widget->GetActive());
 			}
@@ -59,4 +59,10 @@ Renderer *Editor::GetRenderer() const
 {
 	return p_renderer;
 }
+
+RHIContext *Editor::GetRHIContext() const
+{
+	return p_rhi_context;
+}
+
 }        // namespace Ilum

@@ -25,6 +25,9 @@ class Command : public RHICommand
 	virtual void Begin() override;
 	virtual void End() override;
 
+	virtual void BeginMarker(const std::string &name, float r, float g, float b, float a) override;
+	virtual void EndMarker() override;
+
 	virtual void BeginRenderPass(RHIRenderTarget *render_target) override;
 	virtual void EndRenderPass() override;
 
@@ -49,7 +52,7 @@ class Command : public RHICommand
 	VkCommandBuffer m_handle = VK_NULL_HANDLE;
 	VkCommandPool   m_pool   = VK_NULL_HANDLE;
 
-	Descriptor *p_descriptor = nullptr;
+	Descriptor   *p_descriptor    = nullptr;
 	RenderTarget *p_render_target = nullptr;
 };
 }        // namespace Ilum::Vulkan

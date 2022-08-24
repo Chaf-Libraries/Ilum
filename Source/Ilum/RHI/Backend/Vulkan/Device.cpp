@@ -812,4 +812,13 @@ void Device::SetVulkanObjectName(const VkDebugUtilsObjectNameInfoEXT &info)
 	vkSetDebugUtilsObjectNameEXT(m_logical_device, &info);
 }
 
+void Device::BeginDebugUtilsLabel(VkCommandBuffer cmd_buffer, const VkDebugUtilsLabelEXT &label)
+{
+	vkCmdBeginDebugUtilsLabelEXT(cmd_buffer, &label);
+}
+
+void Device::EndDebugUtilsLabel(VkCommandBuffer cmd_buffer)
+{
+	vkCmdEndDebugUtilsLabelEXT(cmd_buffer);
+}
 }        // namespace Ilum::Vulkan

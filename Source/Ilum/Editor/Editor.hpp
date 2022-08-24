@@ -23,9 +23,12 @@ class Editor
 
 	Renderer *GetRenderer() const;
 
+	RHIContext *GetRHIContext() const;
+
   private:
 	std::unique_ptr<ImGuiContext> m_imgui_context = nullptr;
 
+	RHIContext *p_rhi_context = nullptr;
 	Renderer *p_renderer = nullptr;
 
 	std::vector<std::unique_ptr<Widget>> m_widgets;

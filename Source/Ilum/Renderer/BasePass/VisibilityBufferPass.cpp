@@ -7,25 +7,26 @@ RenderPassDesc VisibilityBufferPass::CreateDesc(size_t &handle)
 	RenderPassDesc desc = {};
 
 	desc.name = "VisibilityBufferPass";
-	desc.writes.emplace("VisibilityBuffer", std::make_pair(RenderPassDesc::ResourceType::Texture, RGHandle(handle++)));
-	desc.writes.emplace("DepthBuffer", std::make_pair(RenderPassDesc::ResourceType::Texture, RGHandle(handle++)));
+	desc
+	    .Write("VisibilityBuffer", RenderPassDesc::ResourceInfo::Type::Texture, RHIResourceState::RenderTarget, handle)
+	    .Write("DepthBuffer", RenderPassDesc::ResourceInfo::Type::Texture, RHIResourceState::RenderTarget, handle);
 
 	desc.variant = rttr::type::get_by_name("VisibilityBufferPass::Config").create();
 
 	return desc;
 }
 
-void VisibilityBufferPass::Create(const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
+RenderGraph::RenderTask VisibilityBufferPass::Create(const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
 {
-	builder.AddPass("Visibility Buffer Pass", [desc](RenderGraph &render_graph) {
-		RGHandle visibility_buffer_handle = desc.writes.at("VisibilityBuffer").second;
-		RGHandle depth_buffer_handle      = desc.writes.at("DepthBuffer").second;
+	return [=](RenderGraph &render_graph, RHICommand * cmd_buffer) {
+		RGHandle visibility_buffer_handle = desc.writes.at("VisibilityBuffer").handle;
+		RGHandle depth_buffer_handle      = desc.writes.at("DepthBuffer").handle;
 
 		// auto visibility_buffer = render_graph.GetTexture("VisibilityBuffer");
 		// auto depth_buffer      = render_graph.GetTexture("DepthBuffer");
 
 		Config config = desc.variant.convert<Config>();
-	});
+	};
 }
 
 }        // namespace Ilum::Pass

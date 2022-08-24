@@ -121,6 +121,24 @@ void Command::End()
 	p_descriptor = nullptr;
 }
 
+void Command::BeginMarker(const std::string &name, float r, float g, float b, float a)
+{
+	VkDebugUtilsLabelEXT label = {};
+	label.sType                = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+	label.pLabelName           = name.c_str();
+	label.color[0]             = r;
+	label.color[1]             = g;
+	label.color[2]             = b;
+	label.color[3]             = a;
+
+	static_cast<Device *>(p_device)->BeginDebugUtilsLabel(m_handle, label);
+}
+
+void Command::EndMarker()
+{
+	static_cast<Device *>(p_device)->EndDebugUtilsLabel(m_handle);
+}
+
 void Command::BeginRenderPass(RHIRenderTarget *render_target)
 {
 	if (static_cast<Device *>(p_device)->IsFeatureSupport(VulkanFeature::DynamicRendering))

@@ -35,7 +35,8 @@ class RHIContext
 	std::unique_ptr<RHITexture> CreateTexture2DArray(uint32_t width, uint32_t height, uint32_t layers, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples = 1);
 
 	// Create Buffer
-	std::unique_ptr<RHIBuffer> CreateBuffer(size_t size, RHIBufferUsage usage, RHIMemoryUsage memory);
+	std::unique_ptr<RHIBuffer> CreateBuffer(const BufferDesc &desc);
+	std::unique_ptr<RHIBuffer>  CreateBuffer(size_t size, RHIBufferUsage usage, RHIMemoryUsage memory);
 
 	// Create Sampler
 	std::unique_ptr<RHISampler> CreateSampler(const SamplerDesc &desc);
