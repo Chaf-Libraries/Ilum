@@ -7,9 +7,9 @@ RGHandle::RGHandle(size_t handle) :
 {
 }
 
-size_t RGHandle::operator()()
+bool RGHandle::IsValid()
 {
-	return m_handle;
+	return m_handle != ~0U;
 }
 
 bool RGHandle::operator<(const RGHandle &rhs) const

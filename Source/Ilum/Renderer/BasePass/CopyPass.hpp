@@ -10,7 +10,7 @@ namespace Ilum::Pass
 class CopyPass
 {
   public:
-	static RenderPassDesc CreateDesc(size_t &handle);
+	static RenderPassDesc CreateDesc();
 
 	static RenderGraph::RenderTask Create(const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
 	{

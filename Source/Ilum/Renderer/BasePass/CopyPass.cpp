@@ -2,14 +2,14 @@
 
 namespace Ilum::Pass
 {
-RenderPassDesc CopyPass::CreateDesc(size_t &handle)
+RenderPassDesc CopyPass::CreateDesc()
 {
 	RenderPassDesc desc = {};
 
 	desc.name = "CopyPass";
 	desc
-		.Read("Source", RenderPassDesc::ResourceInfo::Type::Texture, RHIResourceState::ShaderResource, handle)
-		.Write("Target", RenderPassDesc::ResourceInfo::Type::Texture, RHIResourceState::RenderTarget, handle);
+		.Read("Source", RenderPassDesc::ResourceInfo::Type::Texture, RHIResourceState::ShaderResource)
+		.Write("Target", RenderPassDesc::ResourceInfo::Type::Texture, RHIResourceState::RenderTarget);
 
 	return desc;
 }

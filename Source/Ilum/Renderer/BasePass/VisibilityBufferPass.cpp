@@ -2,14 +2,14 @@
 
 namespace Ilum::Pass
 {
-RenderPassDesc VisibilityBufferPass::CreateDesc(size_t &handle)
+RenderPassDesc VisibilityBufferPass::CreateDesc()
 {
 	RenderPassDesc desc = {};
 
 	desc.name = "VisibilityBufferPass";
 	desc
-	    .Write("VisibilityBuffer", RenderPassDesc::ResourceInfo::Type::Texture, RHIResourceState::RenderTarget, handle)
-	    .Write("DepthBuffer", RenderPassDesc::ResourceInfo::Type::Texture, RHIResourceState::RenderTarget, handle);
+	    .Write("VisibilityBuffer", RenderPassDesc::ResourceInfo::Type::Texture, RHIResourceState::RenderTarget)
+	    .Write("DepthBuffer", RenderPassDesc::ResourceInfo::Type::Texture, RHIResourceState::RenderTarget);
 
 	desc.variant = rttr::type::get_by_name("VisibilityBufferPass::Config").create();
 

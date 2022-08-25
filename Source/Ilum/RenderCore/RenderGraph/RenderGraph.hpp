@@ -32,7 +32,7 @@ class RGHandle
 
 	~RGHandle() = default;
 
-	size_t operator()();
+	bool IsValid();
 
 	bool operator<(const RGHandle &rhs) const;
 
@@ -63,15 +63,18 @@ struct RenderPassDesc
 	std::map<std::string, ResourceInfo> writes;
 	std::map<std::string, ResourceInfo> reads;
 
-	RenderPassDesc &Write(const std::string &name, ResourceInfo::Type type, RHIResourceState state, size_t &handle)
+	RGHandle prev_pass;
+	RGHandle next_pass;
+
+	RenderPassDesc &Write(const std::string &name, ResourceInfo::Type type, RHIResourceState state)
 	{
-		writes.emplace(name, ResourceInfo{type, state, handle++});
+		writes.emplace(name, ResourceInfo{type, state});
 		return *this;
 	}
 
-	RenderPassDesc &Read(const std::string &name, ResourceInfo::Type type, RHIResourceState state, size_t &handle)
+	RenderPassDesc &Read(const std::string &name, ResourceInfo::Type type, RHIResourceState state)
 	{
-		reads.emplace(name, ResourceInfo{type, state, handle++});
+		reads.emplace(name, ResourceInfo{type, state});
 		return *this;
 	}
 };
