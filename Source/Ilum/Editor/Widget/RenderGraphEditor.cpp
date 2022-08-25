@@ -222,7 +222,7 @@ void RenderGraphEditor::Tick()
 				int32_t exc_pin_id = static_cast<int32_t>((uint64_t) &handle);
 
 				// In attribute
-				ImNodes::BeginInputAttribute(GetPinID(&handle, PinType::PassIn));
+				ImNodes::BeginInputAttribute(GetPinID(&pass.prev_pass, PinType::PassIn));
 				ImGui::TextUnformatted("In");
 				ImNodes::EndInputAttribute();
 
@@ -401,9 +401,9 @@ void RenderGraphEditor::Tick()
 			//
 			if (ValidLink(src_pin, dst_pin))
 			{
-				if (src_pin == PinType::PassOut)
+				if (dst_pin == PinType::PassIn)
 				{
-
+					(*const_cast<RGHandle*>(dst_handle)) = *src_handle;
 				}
 			}
 		}
@@ -639,9 +639,9 @@ bool RenderGraphEditor::ValidLink(PinType src, PinType dst)
 	switch (src)
 	{
 		case PinType::PassOut:
-			return dst==PinType::PassIn;
+			return dst == PinType::PassIn;
 		case PinType::PassTexture:
-			return dst==PinType::TextureWrite;
+			return dst == PinType::TextureWrite;
 		case PinType::PassBuffer:
 			return dst == PinType::BufferWrite;
 		case PinType::TextureRead:

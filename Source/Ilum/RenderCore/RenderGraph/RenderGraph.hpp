@@ -64,7 +64,7 @@ struct RenderPassDesc
 	std::map<std::string, ResourceInfo> reads;
 
 	RGHandle prev_pass;
-	RGHandle next_pass;
+	//RGHandle next_pass;
 
 	RenderPassDesc &Write(const std::string &name, ResourceInfo::Type type, RHIResourceState state)
 	{
