@@ -40,6 +40,8 @@ class RGHandle
 
 	size_t GetHandle() const;
 
+	//INLINE_SERIALIZATION(m_handle);
+
   private:
 	size_t m_handle = ~0U;
 };
@@ -53,42 +55,49 @@ struct RenderPassDesc
 			Buffer,
 			Texture
 		} type;
+		enum class Attribute
+		{
+			Read,
+			Write
+		} attribute;
 		RHIResourceState state;
 		RGHandle         handle;
+
+		//INLINE_SERIALIZATION(type, attribute, state, handle);
 	};
 
 	std::string   name;
 	rttr::variant variant;
 
-	std::map<std::string, ResourceInfo> writes;
-	std::map<std::string, ResourceInfo> reads;
+	std::map<std::string, ResourceInfo> resources;
 
 	RGHandle prev_pass;
-	//RGHandle next_pass;
+	
+	//INLINE_SERIALIZATION(name, variant, resources, prev_pass);
 
 	RenderPassDesc &Write(const std::string &name, ResourceInfo::Type type, RHIResourceState state)
 	{
-		writes.emplace(name, ResourceInfo{type, state});
+		resources.emplace(name, ResourceInfo{type, ResourceInfo::Attribute::Write, state});
 		return *this;
 	}
 
 	RenderPassDesc &Read(const std::string &name, ResourceInfo::Type type, RHIResourceState state)
 	{
-		reads.emplace(name, ResourceInfo{type, state});
+		resources.emplace(name, ResourceInfo{type, ResourceInfo::Attribute::Read, state});
 		return *this;
 	}
 };
 
 struct RenderGraphDesc
 {
-	std::map<RGHandle, RenderPassDesc>  passes;
-	std::map<RGHandle, TextureDesc>     textures;
-	std::map<RGHandle, BufferDesc>      buffers;
-	std::set<std::pair<size_t, size_t>> edges;
+	std::map<RGHandle, RenderPassDesc> passes;
+	std::map<RGHandle, TextureDesc>    textures;
+	std::map<RGHandle, BufferDesc>     buffers;
 
-	static std::pair<RGHandle, RGHandle> DecodeEdge(size_t from, size_t to)
+	template <class Archive>
+	void serialize(Archive &ar)
 	{
-		return std::make_pair(RGHandle(from / 2), RGHandle(to / 2));
+		ar(passes, textures, buffers);
 	}
 };
 
@@ -106,28 +115,12 @@ struct RenderGraphDesc
 #define RENDER_PASS_NAME_REGISTERATION(Type) \
 	static RenderPassName RenderPass_##Type##_Name(#Type, RenderPassNameList);
 
-#define RENDER_PASS_CONFIG_REGIST_BEGIN(Type)          \
-	namespace RenderPassConfig::Registeration::_##Type \
-	{                                                  \
-		using Config = Type::Config;                   \
-		RTTR_REGISTRATION                              \
-		{                                              \
-			rttr::registration::class_<Type::Config>(#Type "::Config").constructor<>()(rttr::policy::ctor::as_object)
-
-#define RENDER_PASS_CONFIG_REGIST(Member) \
-	.property(#Member, &Config::Member)
-
-#define RENDER_PASS_CONFIG_REGIST_END() \
-	;                                   \
-	}                                   \
-	}
-
 class RenderGraph
 {
 	friend class RenderGraphBuilder;
 
   public:
-	  using RenderTask =std::function<void(RenderGraph &, RHICommand *)>;
+	using RenderTask = std::function<void(RenderGraph &, RHICommand *)>;
 
   public:
 	RenderGraph(RHIContext *rhi_context);
@@ -143,14 +136,14 @@ class RenderGraph
   private:
 	struct TextureCreateInfo
 	{
-		TextureDesc           desc;
-		std::vector<RGHandle> handles;
+		TextureDesc desc;
+		RGHandle    handle;
 	};
 
 	struct BufferCreateInfo
 	{
-		BufferDesc            desc;
-		std::vector<RGHandle> handles;
+		BufferDesc desc;
+		RGHandle   handle;
 	};
 
 	RenderGraph &AddPass(const std::string &name, RenderTask &&execute, RenderTask &&barrier);

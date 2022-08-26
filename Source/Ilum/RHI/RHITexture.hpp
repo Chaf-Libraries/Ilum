@@ -20,23 +20,35 @@ struct TextureDesc
 	uint32_t layers;
 	uint32_t samples;
 
-	RHIFormat           format;
-	RHITextureUsage     usage;
+	RHIFormat       format;
+	RHITextureUsage usage;
+
+	template <typename Archieve>
+	inline void serialize(Archieve &ar)
+	{
+		ar(name, width, height, height, mips, layers, samples, format, usage);
+	}
 };
 
 struct TextureRange
 {
 	RHITextureDimension dimension;
-	uint32_t base_mip;
-	uint32_t mip_count;
-	uint32_t base_layer;
-	uint32_t layer_count;
+	uint32_t            base_mip;
+	uint32_t            mip_count;
+	uint32_t            base_layer;
+	uint32_t            layer_count;
 
 	size_t Hash() const
 	{
 		size_t hash = 0;
 		HashCombine(hash, dimension, base_mip, mip_count, base_layer, layer_count);
 		return hash;
+	}
+
+	template <typename Archieve>
+	inline void serialize(Archieve &ar)
+	{
+		ar(dimension, base_mip, mip_count, base_layer, layer_count);
 	}
 };
 
@@ -64,9 +76,9 @@ class RHITexture
 
 struct TextureStateTransition
 {
-	RHITexture     *texture;
+	RHITexture      *texture;
 	RHIResourceState src;
 	RHIResourceState dst;
-	TextureRange    range;
+	TextureRange     range;
 };
 }        // namespace Ilum

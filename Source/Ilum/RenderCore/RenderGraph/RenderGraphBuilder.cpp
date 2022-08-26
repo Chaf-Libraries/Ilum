@@ -4,109 +4,92 @@ namespace Ilum
 {
 bool RenderGraphBuilder::Validate(RenderGraphDesc &desc)
 {
-	std::set<RGHandle> cull_nodes;
-	std::set<RGHandle> src_nodes;
-	std::set<RGHandle> dst_nodes;
-
-	for (auto &[src, dst] : desc.edges)
+	// Culling unused pass
 	{
-		auto [src_handle, dst_handle] = RenderGraphDesc::DecodeEdge(src, dst);
-		src_nodes.insert(src_handle);
-		dst_nodes.insert(dst_handle);
+		if (desc.passes.size() != 1)
+		{
+			std::set<RGHandle> used_pass;
+			for (auto &[handle, pass] : desc.passes)
+			{
+				if (pass.prev_pass.IsValid())
+				{
+					used_pass.insert(handle);
+					used_pass.insert(pass.prev_pass);
+				}
+
+				for (auto &[name, resource]:pass.resources)
+				{
+					if (!resource.handle.IsValid() && 
+						resource.attribute == RenderPassDesc::ResourceInfo::Attribute::Write)
+					{
+						LOG_ERROR("Pass <{}>'s output <{}> should be bound with a resource", pass.name, name);
+						return false;
+					}
+				}
+			}
+
+			for (auto iter = desc.passes.begin(); iter != desc.passes.end();)
+			{
+				if (used_pass.find(iter->first) == used_pass.end())
+				{
+					LOG_WARN("Pass <{}> is not used, culling it", iter->second.name);
+					iter = desc.passes.erase(iter);
+				}
+				else
+				{
+					iter++;
+				}
+			}
+		}
 	}
 
-	// Texture must be written
-	for (auto iter = desc.textures.begin(); iter != desc.textures.end();)
+	// Culling unused texture/buffer and check for loop
 	{
-		auto &[handle, texture] = *iter;
-		if (dst_nodes.find(handle) == dst_nodes.end())
+		std::set<RGHandle> used_resource;
+		size_t           prev_pass_count = 0;
+		for (auto &[handle, pass] : desc.passes)
 		{
-			if (src_nodes.find(handle) == src_nodes.end())
+			for (auto &[name, resource] : pass.resources)
 			{
-				LOG_INFO("Texture ({}) is never been used, culling it.", texture.name);
-				cull_nodes.insert(handle);
-				iter = desc.textures.erase(iter);
-				continue;
+				used_resource.insert(resource.handle);
 			}
-			else
-			{
-				LOG_ERROR("Texture ({}) has been read, but never been written!", texture.name);
-				return false;
-			}
-		}
-		iter++;
-	}
 
-	// Buffer must be written
-	for (auto iter = desc.buffers.begin(); iter != desc.buffers.end();)
-	{
-		auto &[handle, buffer] = *iter;
-		if (dst_nodes.find(handle) == dst_nodes.end())
-		{
-			if (src_nodes.find(handle) == src_nodes.end())
+			if (pass.prev_pass.IsValid())
 			{
-				LOG_INFO("Buffer ({}) is never been used, culling it.", buffer.name);
-				cull_nodes.insert(handle);
-				iter = desc.buffers.erase(iter);
-				continue;
-			}
-			else
-			{
-				LOG_ERROR("Buffer ({}) has been read, but never been written!", buffer.name);
-				return false;
+				prev_pass_count++;
 			}
 		}
-		iter++;
-	}
 
-	// Pass can have null texture to read by can't have null texture to write
-	for (auto iter = desc.passes.begin(); iter != desc.passes.end();)
-	{
-		auto &[handle, pass] = *iter;
-		size_t count         = 0;
-		for (auto &[name, write] : pass.writes)
+		if (prev_pass_count == desc.passes.size())
 		{
-			if (src_nodes.find(write.handle) == src_nodes.end())
-			{
-				count++;
-			}
-		}
-		if (count == pass.writes.size() && pass.writes.size() != 0)
-		{
-			LOG_INFO("Pass ({}) is never been used, culling it", pass.name);
-			cull_nodes.insert(handle);
-			for (auto &[name, write] : pass.writes)
-			{
-				cull_nodes.insert(write.handle);
-			}
-			for (auto &[name, read] : pass.reads)
-			{
-				cull_nodes.insert(read.handle);
-			}
-			iter = desc.passes.erase(iter);
-			continue;
-		}
-		else if (count != 0)
-		{
-			LOG_ERROR("Pass {} writes to a null texture!", pass.name);
+			LOG_ERROR("Render graph contains a loop!");
 			return false;
 		}
-		iter++;
-	}
 
-	// Clear all culled nodes
-	for (auto iter = desc.edges.begin(); iter != desc.edges.end();)
-	{
-		auto &[src, dst]              = *iter;
-		auto [src_handle, dst_handle] = RenderGraphDesc::DecodeEdge(src, dst);
-		if (cull_nodes.find(src_handle) != cull_nodes.end() ||
-		    cull_nodes.find(dst_handle) != cull_nodes.end())
+		for (auto iter = desc.textures.begin(); iter != desc.textures.end();)
 		{
-			iter = desc.edges.erase(iter);
+			if (used_resource.find(iter->first) == used_resource.end())
+			{
+				LOG_WARN("Texture <{}> is not used, culling it", iter->second.name);
+				iter = desc.textures.erase(iter);
+			}
+			else
+			{
+				iter++;
+			}
 		}
-		else
+
+		for (auto iter = desc.buffers.begin(); iter != desc.buffers.end();)
 		{
-			iter++;
+			if (used_resource.find(iter->first) == used_resource.end())
+			{
+				LOG_WARN("Buffer <{}> is not used, culling it", iter->second.name);
+				iter = desc.buffers.erase(iter);
+			}
+			else
+			{
+				iter++;
+			}
 		}
 	}
 

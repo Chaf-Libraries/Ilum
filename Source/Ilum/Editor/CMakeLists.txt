@@ -31,7 +31,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE Renderer)
 # target_link_libraries(${TARGET_NAME} PUBLIC stb)
 target_link_libraries(${TARGET_NAME} PRIVATE imgui)
 target_link_libraries(${TARGET_NAME} PRIVATE imnode)
-target_link_libraries(${TARGET_NAME} PRIVATE rttr_core_lib)
+target_link_libraries(${TARGET_NAME} PRIVATE nativefiledialog)
 
 # target_link_libraries(${TARGET_NAME} PRIVATE stb)
 # target_link_libraries(${TARGET_NAME} PRIVATE glslang)

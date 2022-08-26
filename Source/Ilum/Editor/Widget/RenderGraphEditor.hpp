@@ -16,21 +16,33 @@ class RenderGraphEditor : public Widget
 	virtual void Tick() override;
 
   private:
-	enum class PinType
+	enum class ResourcePinType
 	{
-		PassIn,
+		None,
 		PassOut,
-		PassTexture,
-		PassBuffer,
 		TextureWrite,
 		TextureRead,
 		BufferWrite,
 		BufferRead
 	};
 
-	int32_t GetPinID(const RGHandle *handle, PinType pin);
+	enum class PassPinType
+	{
+		None,
+		PassIn,
+		PassTexture,
+		PassBuffer
+	};
 
-	bool ValidLink(PinType src, PinType dst);
+	int32_t GetPinID(const RGHandle& handle, ResourcePinType pin);
+
+	int32_t GetPinID(RGHandle *handle, PassPinType pin);
+
+	bool ValidLink(ResourcePinType resource, PassPinType pass);
+
+	void SaveRenderGraph(const std::string &name);
+
+	void LoadRenderGraph(const std::string &name);
 
   private:
 	RenderGraphDesc m_desc;
@@ -39,6 +51,7 @@ class RenderGraphEditor : public Widget
 
 	size_t m_current_handle = 0;
 
-	std::unordered_map<int32_t, std::pair<const RGHandle *, PinType>> m_pin_map;
+	std::unordered_map<int32_t, std::pair<RGHandle *, PassPinType>>   m_pass_pin;
+	std::unordered_map<int32_t, std::pair<RGHandle, ResourcePinType>> m_resource_pin;
 };
 }        // namespace Ilum

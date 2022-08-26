@@ -82,16 +82,8 @@ RenderGraph &RenderGraph::AddInitializeBarrier(RenderTask &&barrier)
 
 RenderGraph &RenderGraph::RegisterTexture(const TextureCreateInfo &create_info)
 {
-	if (create_info.handles.empty())
-	{
-		return *this;
-	}
-
 	auto &texture = m_textures.emplace_back(p_rhi_context->CreateTexture(create_info.desc));
-	for (auto &handle : create_info.handles)
-	{
-		m_texture_lookup.emplace(handle, texture.get());
-	}
+	m_texture_lookup.emplace(create_info.handle, texture.get());
 
 	return *this;
 }
@@ -123,15 +115,12 @@ RenderGraph &RenderGraph::RegisterTexture(const std::vector<TextureCreateInfo> &
 		pool_desc.usage   = pool_desc.usage | info.desc.usage;
 	}
 
-	auto &pool_texture = m_textures.emplace_back(p_rhi_context->CreateTexture(pool_desc));
+	m_textures.emplace_back(p_rhi_context->CreateTexture(pool_desc));
 
 	for (auto &info : create_infos)
 	{
-		auto &texture = m_textures.emplace_back(pool_texture->Alias(info.desc));
-		for (auto &handle : info.handles)
-		{
-			m_texture_lookup.emplace(handle, texture.get());
-		}
+		auto &texture = m_textures.emplace_back(m_textures.back()->Alias(info.desc));
+		m_texture_lookup.emplace(info.handle, texture.get());
 	}
 
 	return *this;
@@ -139,16 +128,8 @@ RenderGraph &RenderGraph::RegisterTexture(const std::vector<TextureCreateInfo> &
 
 RenderGraph &RenderGraph::RegisterBuffer(const BufferCreateInfo &create_info)
 {
-	if (create_info.handles.empty())
-	{
-		return *this;
-	}
-
 	auto &buffer = m_buffers.emplace_back(p_rhi_context->CreateBuffer(create_info.desc));
-	for (auto &handle : create_info.handles)
-	{
-		m_buffer_lookup.emplace(handle, buffer.get());
-	}
+	m_buffer_lookup.emplace(create_info.handle, buffer.get());
 
 	return *this;
 }

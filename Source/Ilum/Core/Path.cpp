@@ -113,10 +113,13 @@ void Path::SetCurrent(const std::string &path)
 	std::filesystem::current_path(path);
 }
 
-const std::string Path::GetCurrent()
+const std::string Path::GetCurrent(bool convert)
 {
 	std::string current = std::filesystem::current_path().string();
-	std::replace(current.begin(), current.end(), '\\', '/');
+	if (convert)
+	{
+		std::replace(current.begin(), current.end(), '\\', '/');
+	}
 	return current;
 }
 

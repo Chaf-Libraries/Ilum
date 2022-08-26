@@ -99,8 +99,6 @@ bool EditVariant(const rttr::variant &var)
 {
 	bool update = false;
 
-	rttr::type type = var.get_type();
-
 	for (auto &property_ : var.get_type().get_properties())
 	{
 		if (!property_.get_type().get_properties().empty())

@@ -1,14 +1,15 @@
 #include "RenderGraphEditor.hpp"
-
 #include "Editor/Editor.hpp"
 
+#include <Core/Path.hpp>
+#include <ImGui/ImGuiHelper.hpp>
 #include <RenderCore/RenderGraph/RenderGraph.hpp>
-
 #include <Renderer/RenderPass.hpp>
 
-#include <ImGui/ImGuiHelper.hpp>
-
 #include <imnodes.h>
+#pragma warning(push, 0)
+#include <nfd.h>
+#pragma warning(pop)
 
 namespace Ilum
 {
@@ -47,8 +48,27 @@ void RenderGraphEditor::Tick()
 
 	if (ImGui::BeginMenuBar())
 	{
-		if (ImGui::MenuItem("Load"))
+		if (ImGui::BeginMenu("File"))
 		{
+			if (ImGui::MenuItem("Load"))
+			{
+				char *path = nullptr;
+				if (NFD_OpenDialog("rg", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
+				{
+					free(path);
+				}
+			}
+
+			if (ImGui::MenuItem("Save"))
+			{
+				char *path = nullptr;
+				if (NFD_SaveDialog("rg", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
+				{
+					free(path);
+				}
+			}
+
+			ImGui::EndMenu();
 		}
 
 		if (ImGui::BeginMenu("Add"))
@@ -72,9 +92,7 @@ void RenderGraphEditor::Tick()
 
 			if (ImGui::MenuItem("Texture"))
 			{
-				m_desc.textures.emplace(
-				    RGHandle(m_current_handle++),
-				    TextureDesc{"Texture"});
+				m_desc.textures.emplace(RGHandle(m_current_handle++), TextureDesc{"Texture", 1, 1, 1, 1, 1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Undefined});
 				m_need_compile = true;
 			}
 
@@ -120,66 +138,104 @@ void RenderGraphEditor::Tick()
 			{
 				m_need_compile = true;
 
-				std::set<RGHandle> deprecated_handles;
-
-				// Remove Passes
-				for (auto &node : selected_nodes)
+				// Erase node
+				for (auto node : selected_nodes)
 				{
-					RGHandle deprecated_handle(static_cast<size_t>(node));
-					deprecated_handles.insert(deprecated_handle);
-
-					if (m_desc.passes.find(deprecated_handle) != m_desc.passes.end())
-					{
-						for (auto &write : m_desc.passes[deprecated_handle].writes)
-						{
-							deprecated_handles.insert(write.second.handle);
-						}
-						for (auto &read : m_desc.passes[deprecated_handle].reads)
-						{
-							deprecated_handles.insert(read.second.handle);
-						}
-						m_desc.passes.erase(deprecated_handle);
-					}
-					else if (m_desc.textures.find(deprecated_handle) != m_desc.textures.end())
-					{
-						m_desc.textures.erase(deprecated_handle);
-					}
-					else if (m_desc.buffers.find(deprecated_handle) != m_desc.buffers.end())
-					{
-						m_desc.buffers.erase(deprecated_handle);
-					}
-				}
-
-				// Remove Edges
-				for (auto iter = m_desc.edges.begin(); iter != m_desc.edges.end();)
-				{
-					size_t hash = 0;
-					HashCombine(hash, iter->first, iter->second);
-
-					auto [src_handle, dst_handle] = RenderGraphDesc::DecodeEdge(iter->first, iter->second);
-
-					if (deprecated_handles.find(src_handle) != deprecated_handles.end() ||
-					    deprecated_handles.find(dst_handle) != deprecated_handles.end())
-					{
-						iter = m_desc.edges.erase(iter);
-						continue;
-					}
-
 					bool erase = false;
 
-					for (auto &link : selected_links)
+					for (auto iter = m_desc.passes.begin(); iter != m_desc.passes.end();)
 					{
-						if (link == static_cast<int32_t>(hash))
+						if (static_cast<int32_t>(iter->first.GetHandle()) == node)
 						{
-							iter  = m_desc.edges.erase(iter);
+							iter  = m_desc.passes.erase(iter);
 							erase = true;
 							break;
 						}
+						else
+						{
+							iter++;
+						}
 					}
 
-					if (!erase)
+					for (auto iter = m_desc.textures.begin(); iter != m_desc.textures.end() && !erase;)
 					{
-						iter++;
+						if (static_cast<int32_t>(iter->first.GetHandle()) == node)
+						{
+							for (auto &[pass_handle, pass] : m_desc.passes)
+							{
+								for (auto &[name, resource] : pass.resources)
+								{
+									if (resource.handle == node)
+									{
+										resource.handle = RGHandle();
+									}
+								}
+							}
+							iter  = m_desc.textures.erase(iter);
+							erase = true;
+							break;
+						}
+						else
+						{
+							iter++;
+						}
+					}
+
+					for (auto iter = m_desc.buffers.begin(); iter != m_desc.buffers.end() && !erase;)
+					{
+						if (static_cast<int32_t>(iter->first.GetHandle()) == node)
+						{
+							for (auto &[pass_handle, pass] : m_desc.passes)
+							{
+								for (auto &[name, resource] : pass.resources)
+								{
+									if (resource.handle == node)
+									{
+										resource.handle = RGHandle();
+									}
+								}
+							}
+							iter  = m_desc.buffers.erase(iter);
+							erase = true;
+							break;
+						}
+						else
+						{
+							iter++;
+						}
+					}
+				}
+
+				// Erase links
+				for (auto link : selected_links)
+				{
+					for (auto &[handle, pass] : m_desc.passes)
+					{
+						bool found = false;
+
+						// Pass - Pass
+						if (static_cast<int32_t>(Hash(GetPinID(pass.prev_pass, ResourcePinType::PassOut), GetPinID(&pass.prev_pass, PassPinType::PassIn))) == link)
+						{
+							pass.prev_pass = RGHandle();
+							found          = true;
+						}
+
+						for (auto &[name, resource] : pass.resources)
+						{
+							if (static_cast<int32_t>(Hash(GetPinID(resource.handle, ResourcePinType::TextureRead), GetPinID(&resource.handle, PassPinType::PassTexture))) == link ||
+							    static_cast<int32_t>(Hash(GetPinID(resource.handle, ResourcePinType::BufferRead), GetPinID(&resource.handle, PassPinType::PassBuffer))) == link ||
+							    static_cast<int32_t>(Hash(GetPinID(resource.handle, ResourcePinType::TextureWrite), GetPinID(&resource.handle, PassPinType::PassTexture))) == link ||
+							    static_cast<int32_t>(Hash(GetPinID(resource.handle, ResourcePinType::BufferWrite), GetPinID(&resource.handle, PassPinType::PassBuffer))) == link)
+							{
+								resource.handle = RGHandle();
+								found           = true;
+							}
+						}
+
+						if (found)
+						{
+							break;
+						}
 					}
 				}
 			}
@@ -187,16 +243,7 @@ void RenderGraphEditor::Tick()
 		}
 	}
 
-	std::unordered_map<size_t, const RGHandle *> texture_read;
-	std::unordered_map<size_t, const RGHandle *> texture_write;
-	std::unordered_map<size_t, const RGHandle *> buffer_read;
-	std::unordered_map<size_t, const RGHandle *> buffer_write;
-	std::unordered_map<size_t, const RGHandle *> pass_pin;
-	std::unordered_map<size_t, const RGHandle *> pass_texture_pin;
-	std::unordered_map<size_t, const RGHandle *> pass_buffer_pin;
-	std::vector<std::pair<size_t, size_t>>       edges;
-
-	int32_t current_id = 0;
+	std::vector<std::tuple<int32_t, int32_t, uint32_t>> edges;
 
 	// Draw pass nodes
 	{
@@ -205,8 +252,6 @@ void RenderGraphEditor::Tick()
 			const float node_width = 200.0f;
 
 			ImNodes::PushColorStyle(ImNodesCol_TitleBar, IM_COL32(0, 0, 125, 125));
-			ImNodes::PushColorStyle(ImNodesCol_TitleBarHovered, IM_COL32(0, 0, 125, 125));
-			ImNodes::PushColorStyle(ImNodesCol_TitleBarSelected, IM_COL32(0, 0, 125, 125));
 
 			ImNodes::BeginNode(static_cast<int32_t>(handle.GetHandle()));
 			ImNodes::BeginNodeTitleBar();
@@ -222,14 +267,19 @@ void RenderGraphEditor::Tick()
 				int32_t exc_pin_id = static_cast<int32_t>((uint64_t) &handle);
 
 				// In attribute
-				ImNodes::BeginInputAttribute(GetPinID(&pass.prev_pass, PinType::PassIn));
+				ImNodes::BeginInputAttribute(GetPinID(&pass.prev_pass, PassPinType::PassIn));
 				ImGui::TextUnformatted("In");
 				ImNodes::EndInputAttribute();
+
+				if (pass.prev_pass.IsValid())
+				{
+					edges.emplace_back(std::make_tuple(GetPinID(pass.prev_pass, ResourcePinType::PassOut), GetPinID(&pass.prev_pass, PassPinType::PassIn), IM_COL32(255, 255, 255, 255)));
+				}
 
 				ImGui::SameLine();
 
 				// Out attribute
-				ImNodes::BeginOutputAttribute(GetPinID(&handle, PinType::PassOut));
+				ImNodes::BeginOutputAttribute(GetPinID(handle, ResourcePinType::PassOut));
 				const float label_width = ImGui::CalcTextSize("OutIn ").x;
 				ImGui::Indent(node_width - label_width);
 				ImGui::TextUnformatted("Out");
@@ -240,16 +290,35 @@ void RenderGraphEditor::Tick()
 				ImNodes::PopColorStyle();
 			}
 
-			// Draw read pin
-			for (auto &[name, read] : pass.reads)
+			// Draw pin
+			for (auto &[name, resource] : pass.resources)
 			{
-				if (read.type == RenderPassDesc::ResourceInfo::Type::Texture)
+				if (resource.type == RenderPassDesc::ResourceInfo::Type::Texture)
 				{
 					ImNodes::PushColorStyle(ImNodesCol_Pin, IM_COL32(125, 0, 0, 255));
 					ImNodes::PushColorStyle(ImNodesCol_PinHovered, IM_COL32(125, 0, 0, 255));
-					ImNodes::BeginInputAttribute(GetPinID(&read.handle, PinType::PassTexture));
-					ImGui::TextUnformatted(name.c_str());
-					ImNodes::EndInputAttribute();
+					if (resource.attribute == RenderPassDesc::ResourceInfo::Attribute::Read)
+					{
+						ImNodes::BeginInputAttribute(GetPinID(&resource.handle, PassPinType::PassTexture));
+						ImGui::TextUnformatted(name.c_str());
+						ImNodes::EndInputAttribute();
+						if (resource.handle.IsValid())
+						{
+							edges.emplace_back(std::make_tuple(GetPinID(resource.handle, ResourcePinType::TextureRead), GetPinID(&resource.handle, PassPinType::PassTexture), IM_COL32(125, 0, 0, 255)));
+						}
+					}
+					else
+					{
+						ImNodes::BeginOutputAttribute(GetPinID(&resource.handle, PassPinType::PassTexture));
+						const float label_width = ImGui::CalcTextSize(name.c_str()).x;
+						ImGui::Indent(node_width - label_width);
+						ImGui::TextUnformatted(name.c_str());
+						ImNodes::EndOutputAttribute();
+						if (resource.handle.IsValid())
+						{
+							edges.emplace_back(std::make_tuple(GetPinID(resource.handle, ResourcePinType::TextureWrite), GetPinID(&resource.handle, PassPinType::PassTexture), IM_COL32(125, 0, 0, 255)));
+						}
+					}
 					ImNodes::PopColorStyle();
 					ImNodes::PopColorStyle();
 				}
@@ -257,47 +326,40 @@ void RenderGraphEditor::Tick()
 				{
 					ImNodes::PushColorStyle(ImNodesCol_Pin, IM_COL32(0, 125, 0, 255));
 					ImNodes::PushColorStyle(ImNodesCol_PinHovered, IM_COL32(0, 125, 0, 255));
-					ImNodes::BeginInputAttribute(GetPinID(&read.handle, PinType::PassBuffer));
-					ImGui::TextUnformatted(name.c_str());
-					ImNodes::EndInputAttribute();
+					if (resource.attribute == RenderPassDesc::ResourceInfo::Attribute::Read)
+					{
+						ImNodes::BeginInputAttribute(GetPinID(&resource.handle, PassPinType::PassBuffer));
+						ImGui::TextUnformatted(name.c_str());
+						ImNodes::EndInputAttribute();
+						if (resource.handle.IsValid())
+						{
+							edges.emplace_back(std::make_tuple(GetPinID(resource.handle, ResourcePinType::BufferRead), GetPinID(&resource.handle, PassPinType::PassBuffer), IM_COL32(125, 0, 0, 255)));
+						}
+					}
+					else
+					{
+						ImNodes::BeginOutputAttribute(GetPinID(&resource.handle, PassPinType::PassTexture));
+						const float label_width = ImGui::CalcTextSize(name.c_str()).x;
+						ImGui::Indent(node_width - label_width);
+						ImGui::TextUnformatted(name.c_str());
+						ImNodes::EndOutputAttribute();
+						if (resource.handle.IsValid())
+						{
+							edges.emplace_back(std::make_tuple(GetPinID(resource.handle, ResourcePinType::BufferWrite), GetPinID(&resource.handle, PassPinType::PassBuffer), IM_COL32(125, 0, 0, 255)));
+						}
+					}
 					ImNodes::PopColorStyle();
 					ImNodes::PopColorStyle();
-				}
-			}
 
-			// Draw write pin
-			for (auto &[name, write] : pass.writes)
-			{
-				if (write.type == RenderPassDesc::ResourceInfo::Type::Texture)
-				{
-					ImNodes::PushColorStyle(ImNodesCol_Pin, IM_COL32(125, 0, 0, 255));
-					ImNodes::PushColorStyle(ImNodesCol_PinHovered, IM_COL32(125, 0, 0, 255));
-					ImNodes::BeginOutputAttribute(GetPinID(&write.handle, PinType::PassTexture));
-					const float label_width = ImGui::CalcTextSize(name.c_str()).x;
-					ImGui::Indent(node_width - label_width);
-					ImGui::TextUnformatted(name.c_str());
-					ImNodes::EndOutputAttribute();
-					ImNodes::PopColorStyle();
-					ImNodes::PopColorStyle();
-				}
-				else
-				{
-					ImNodes::PushColorStyle(ImNodesCol_Pin, IM_COL32(0, 125, 0, 255));
-					ImNodes::PushColorStyle(ImNodesCol_PinHovered, IM_COL32(0, 125, 0, 255));
-					ImNodes::BeginOutputAttribute(GetPinID(&write.handle, PinType::PassBuffer));
-					const float label_width = ImGui::CalcTextSize(name.c_str()).x;
-					ImGui::Indent(node_width - label_width);
-					ImGui::TextUnformatted(name.c_str());
-					ImNodes::EndOutputAttribute();
-					ImNodes::PopColorStyle();
-					ImNodes::PopColorStyle();
+					if (resource.handle.IsValid())
+					{
+						edges.emplace_back(std::make_tuple(GetPinID(resource.handle, ResourcePinType::BufferRead), GetPinID(&resource.handle, PassPinType::PassBuffer), IM_COL32(125, 0, 0, 255)));
+					}
 				}
 			}
 
 			ImNodes::EndNode();
 
-			ImNodes::PopColorStyle();
-			ImNodes::PopColorStyle();
 			ImNodes::PopColorStyle();
 		}
 	}
@@ -309,8 +371,6 @@ void RenderGraphEditor::Tick()
 			const float node_width = 100.0f;
 
 			ImNodes::PushColorStyle(ImNodesCol_TitleBar, IM_COL32(125, 0, 0, 125));
-			ImNodes::PushColorStyle(ImNodesCol_TitleBarHovered, IM_COL32(125, 0, 0, 125));
-			ImNodes::PushColorStyle(ImNodesCol_TitleBarSelected, IM_COL32(125, 0, 0, 125));
 			ImNodes::PushColorStyle(ImNodesCol_Pin, IM_COL32(125, 0, 0, 255));
 			ImNodes::PushColorStyle(ImNodesCol_PinHovered, IM_COL32(125, 0, 0, 255));
 			ImNodes::BeginNode(static_cast<int32_t>(handle.GetHandle()));
@@ -318,13 +378,13 @@ void RenderGraphEditor::Tick()
 			ImGui::Text(texture.name.c_str());
 			ImNodes::EndNodeTitleBar();
 
-			ImNodes::BeginInputAttribute(GetPinID(&handle, PinType::TextureWrite));
+			ImNodes::BeginInputAttribute(GetPinID(handle, ResourcePinType::TextureWrite));
 			ImGui::TextUnformatted("Write");
 			ImNodes::EndInputAttribute();
 
 			ImGui::SameLine();
 
-			ImNodes::BeginOutputAttribute(GetPinID(&handle, PinType::TextureRead));
+			ImNodes::BeginOutputAttribute(GetPinID(handle, ResourcePinType::TextureRead));
 			const float label_width = ImGui::CalcTextSize("Read").x;
 			ImGui::Indent(node_width - label_width);
 			ImGui::TextUnformatted("Read");
@@ -332,8 +392,6 @@ void RenderGraphEditor::Tick()
 
 			ImNodes::EndNode();
 
-			ImNodes::PopColorStyle();
-			ImNodes::PopColorStyle();
 			ImNodes::PopColorStyle();
 			ImNodes::PopColorStyle();
 			ImNodes::PopColorStyle();
@@ -347,8 +405,6 @@ void RenderGraphEditor::Tick()
 			const float node_width = 100.0f;
 
 			ImNodes::PushColorStyle(ImNodesCol_TitleBar, IM_COL32(0, 125, 0, 125));
-			ImNodes::PushColorStyle(ImNodesCol_TitleBarHovered, IM_COL32(0, 125, 0, 125));
-			ImNodes::PushColorStyle(ImNodesCol_TitleBarSelected, IM_COL32(0, 125, 0, 125));
 			ImNodes::PushColorStyle(ImNodesCol_Pin, IM_COL32(0, 125, 0, 255));
 			ImNodes::PushColorStyle(ImNodesCol_PinHovered, IM_COL32(0, 125, 0, 255));
 			ImNodes::BeginNode(static_cast<int32_t>(handle.GetHandle()));
@@ -356,13 +412,13 @@ void RenderGraphEditor::Tick()
 			ImGui::Text(buffer.name.c_str());
 			ImNodes::EndNodeTitleBar();
 
-			ImNodes::BeginInputAttribute(GetPinID(&handle, PinType::BufferWrite));
+			ImNodes::BeginInputAttribute(GetPinID(handle, ResourcePinType::BufferWrite));
 			ImGui::TextUnformatted("Write");
 			ImNodes::EndInputAttribute();
 
 			ImGui::SameLine();
 
-			ImNodes::BeginOutputAttribute(GetPinID(&handle, PinType::BufferRead));
+			ImNodes::BeginOutputAttribute(GetPinID(handle, ResourcePinType::BufferRead));
 			const float label_width = ImGui::CalcTextSize("Read").x;
 			ImGui::Indent(node_width - label_width);
 			ImGui::TextUnformatted("Read");
@@ -372,20 +428,18 @@ void RenderGraphEditor::Tick()
 			ImNodes::PopColorStyle();
 			ImNodes::PopColorStyle();
 			ImNodes::PopColorStyle();
-			ImNodes::PopColorStyle();
-			ImNodes::PopColorStyle();
 		}
 	}
 
 	// Draw Edges
-	//{
-	//	for (auto &[src, dst] : m_desc.edges)
-	//	{
-	//		size_t hash = 0;
-	//		HashCombine(hash, src, dst);
-	//		ImNodes::Link(static_cast<int32_t>(hash), static_cast<int32_t>(src), static_cast<int32_t>(dst));
-	//	}
-	//}
+	{
+		for (auto &[src, dst, color] : edges)
+		{
+			ImNodes::PushColorStyle(ImNodesCol_Link, color);
+			ImNodes::Link(static_cast<int32_t>(Hash(src, dst)), src, dst);
+			ImNodes::PopColorStyle();
+		}
+	}
 
 	ImNodes::MiniMap(0.1f);
 	ImNodes::EndNodeEditor();
@@ -395,116 +449,39 @@ void RenderGraphEditor::Tick()
 		int32_t src = 0, dst = 0;
 		if (ImNodes::IsLinkCreated(&src, &dst))
 		{
-			auto &[src_handle, src_pin] = m_pin_map[src];
-			auto &[dst_handle, dst_pin] = m_pin_map[dst];
+			ResourcePinType resource_type = ResourcePinType::None;
+			PassPinType     pass_type     = PassPinType::None;
 
-			//
-			if (ValidLink(src_pin, dst_pin))
+			RGHandle  resource_handle;
+			RGHandle *pass_handle = nullptr;
+
+			if (m_resource_pin.find(src) != m_resource_pin.end() &&
+			    m_pass_pin.find(dst) != m_pass_pin.end())
 			{
-				if (dst_pin == PinType::PassIn)
+				resource_handle = m_resource_pin[src].first;
+				resource_type   = m_resource_pin[src].second;
+
+				pass_handle = m_pass_pin[dst].first;
+				pass_type   = m_pass_pin[dst].second;
+			}
+			else if (m_resource_pin.find(dst) != m_resource_pin.end() &&
+			         m_pass_pin.find(src) != m_pass_pin.end())
+			{
+				resource_handle = m_resource_pin[dst].first;
+				resource_type   = m_resource_pin[dst].second;
+
+				pass_handle = m_pass_pin[src].first;
+				pass_type   = m_pass_pin[src].second;
+			}
+
+			if (ValidLink(resource_type, pass_type))
+			{
+				if (pass_handle)
 				{
-					(*const_cast<RGHandle*>(dst_handle)) = *src_handle;
+					*pass_handle = resource_handle;
 				}
 			}
 		}
-		//{
-		//	bool src_texture  = false;
-		//	bool src_buffer   = false;
-		//	bool src_resource = false;
-
-		//	bool dst_texture  = false;
-		//	bool dst_buffer   = false;
-		//	bool dst_resource = false;
-
-		//	auto [src_handle, dst_handle] = RenderGraphDesc::DecodeEdge(static_cast<size_t>(src), static_cast<size_t>(dst));
-
-		//	src_texture  = m_desc.textures.find(src_handle) != m_desc.textures.end();
-		//	src_buffer   = m_desc.buffers.find(src_handle) != m_desc.buffers.end();
-		//	src_resource = src_texture || src_buffer;
-
-		//	dst_texture  = m_desc.textures.find(dst_handle) != m_desc.textures.end();
-		//	dst_buffer   = m_desc.buffers.find(dst_handle) != m_desc.buffers.end();
-		//	dst_resource = dst_texture || dst_buffer;
-
-		//	// Resource can only be written by one pass, if want more, use copy pass
-		//	// A pass output can only be a single texture
-		//	if (dst_resource)
-		//	{
-		//		for (auto iter = m_desc.edges.begin(); iter != m_desc.edges.end();)
-		//		{
-		//			if (dst == iter->second || src == iter->first)
-		//			{
-		//				iter           = m_desc.edges.erase(iter);
-		//				m_need_compile = true;
-		//			}
-		//			else
-		//			{
-		//				iter++;
-		//			}
-		//		}
-		//	}
-
-		//	if (src_resource != dst_resource)
-		//	{
-		//		bool finish = false;
-
-		//		if (src_resource)
-		//		{
-		//			for (auto &[pass_handle, pass] : m_desc.passes)
-		//			{
-		//				for (auto &[name, read] : pass.reads)
-		//				{
-		//					if (src_buffer && read.type == RenderPassDesc::ResourceInfo::Type::Buffer)
-		//					{
-		//						m_desc.edges.insert(std::make_pair(src, dst));
-		//						m_need_compile = true;
-		//						finish         = true;
-		//						break;
-		//					}
-		//					else if (src_texture && read.type == RenderPassDesc::ResourceInfo::Type::Texture)
-		//					{
-		//						m_desc.edges.insert(std::make_pair(src, dst));
-		//						m_need_compile = true;
-		//						finish         = true;
-		//						break;
-		//					}
-		//				}
-		//				if (finish)
-		//				{
-		//					break;
-		//				}
-		//			}
-		//		}
-
-		//		if (dst_resource)
-		//		{
-		//			for (auto &[pass_handle, pass] : m_desc.passes)
-		//			{
-		//				for (auto &[name, write] : pass.writes)
-		//				{
-		//					if (dst_buffer && write.type == RenderPassDesc::ResourceInfo::Type::Buffer)
-		//					{
-		//						m_desc.edges.insert(std::make_pair(src, dst));
-		//						m_need_compile = true;
-		//						finish         = true;
-		//						break;
-		//					}
-		//					else if (dst_texture && write.type == RenderPassDesc::ResourceInfo::Type::Texture)
-		//					{
-		//						m_desc.edges.insert(std::make_pair(src, dst));
-		//						m_need_compile = true;
-		//						finish         = true;
-		//						break;
-		//					}
-		//				}
-		//				if (finish)
-		//				{
-		//					break;
-		//				}
-		//			}
-		//		}
-		//	}
-		//}
 	}
 
 	ImGui::NextColumn();
@@ -627,31 +604,44 @@ void RenderGraphEditor::Tick()
 	ImGui::End();
 }
 
-int32_t RenderGraphEditor::GetPinID(const RGHandle *handle, PinType pin)
+int32_t RenderGraphEditor::GetPinID(RGHandle *handle, PassPinType pin)
 {
-	int32_t id    = static_cast<int32_t>(Hash(handle, pin));
-	m_pin_map[id] = std::make_pair(handle, pin);
+	int32_t id     = static_cast<int32_t>(Hash(handle, pin));
+	m_pass_pin[id] = std::make_pair(handle, pin);
 	return id;
 }
 
-bool RenderGraphEditor::ValidLink(PinType src, PinType dst)
+int32_t RenderGraphEditor::GetPinID(const RGHandle &handle, ResourcePinType pin)
 {
-	switch (src)
+	int32_t id         = static_cast<int32_t>(Hash(handle.GetHandle(), pin));
+	m_resource_pin[id] = std::make_pair(handle, pin);
+	return id;
+}
+
+bool RenderGraphEditor::ValidLink(ResourcePinType resource, PassPinType pass)
+{
+	switch (resource)
 	{
-		case PinType::PassOut:
-			return dst == PinType::PassIn;
-		case PinType::PassTexture:
-			return dst == PinType::TextureWrite;
-		case PinType::PassBuffer:
-			return dst == PinType::BufferWrite;
-		case PinType::TextureRead:
-			return dst == PinType::PassTexture;
-		case PinType::BufferRead:
-			return dst == PinType::PassBuffer;
+		case ResourcePinType::TextureWrite:
+		case ResourcePinType::TextureRead:
+			return pass == PassPinType::PassTexture;
+		case ResourcePinType::BufferWrite:
+		case ResourcePinType::BufferRead:
+			return pass == PassPinType::PassBuffer;
+		case ResourcePinType::PassOut:
+			return pass == PassPinType::PassIn;
 		default:
 			break;
 	}
 	return false;
+}
+
+void RenderGraphEditor::SaveRenderGraph(const std::string &name)
+{
+}
+
+void RenderGraphEditor::LoadRenderGraph(const std::string &name)
+{
 }
 
 }        // namespace Ilum
