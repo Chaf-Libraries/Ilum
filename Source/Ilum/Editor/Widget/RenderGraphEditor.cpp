@@ -562,6 +562,7 @@ void RenderGraphEditor::Tick()
 					}
 
 					m_current_handle++;
+					m_need_compile = true;
 
 					free(path);
 				}
