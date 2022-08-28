@@ -99,7 +99,36 @@ enum class RHIFormat
 	R32G32B32A32_FLOAT
 };
 
-inline bool IsDepthFormat(RHIFormat format)
+REFLECTION_ENUM_BEGIN(RHIFormat)
+REFLECTION_ENUM_VALUE(Undefined),
+    REFLECTION_ENUM_VALUE(R16_UINT),
+    REFLECTION_ENUM_VALUE(R16_SINT),
+    REFLECTION_ENUM_VALUE(R16_FLOAT),
+    REFLECTION_ENUM_VALUE(R8G8B8A8_UNORM),
+    REFLECTION_ENUM_VALUE(B8G8R8A8_UNORM),
+    REFLECTION_ENUM_VALUE(R32_UINT),
+    REFLECTION_ENUM_VALUE(R32_SINT),
+    REFLECTION_ENUM_VALUE(R32_FLOAT),
+    REFLECTION_ENUM_VALUE(D32_FLOAT),
+    REFLECTION_ENUM_VALUE(D24_UNORM_S8_UINT),
+    REFLECTION_ENUM_VALUE(R16G16_UINT),
+    REFLECTION_ENUM_VALUE(R16G16_SINT),
+    REFLECTION_ENUM_VALUE(R16G16_FLOAT),
+    REFLECTION_ENUM_VALUE(R16G16B16A16_UINT),
+    REFLECTION_ENUM_VALUE(R16G16B16A16_SINT),
+    REFLECTION_ENUM_VALUE(R16G16B16A16_FLOAT),
+    REFLECTION_ENUM_VALUE(R32G32_UINT),
+    REFLECTION_ENUM_VALUE(R32G32_SINT),
+    REFLECTION_ENUM_VALUE(R32G32_FLOAT),
+    REFLECTION_ENUM_VALUE(R32G32B32_UINT),
+    REFLECTION_ENUM_VALUE(R32G32B32_SINT),
+    REFLECTION_ENUM_VALUE(R32G32B32_FLOAT),
+    REFLECTION_ENUM_VALUE(R32G32B32A32_UINT),
+    REFLECTION_ENUM_VALUE(R32G32B32A32_SINT),
+    REFLECTION_ENUM_VALUE(R32G32B32A32_FLOAT)
+        REFLECTION_ENUM_END()
+
+            inline bool IsDepthFormat(RHIFormat format)
 {
 	return format == RHIFormat::D32_FLOAT ||
 	       format == RHIFormat::D24_UNORM_S8_UINT;
@@ -129,17 +158,22 @@ enum class RHIMemoryUsage
 	GPU_TO_CPU
 };
 
-// Texture
-enum class RHITextureDimension : uint64_t
-{
-	Texture1D        = 1,
-	Texture2D        = 1 << 1,
-	Texture3D        = 1 << 2,
-	TextureCube      = 1 << 3,
-	Texture1DArray   = 1 << 4,
-	Texture2DArray   = 1 << 5,
-	TextureCubeArray = 1 << 6,
-};
+REFLECTION_ENUM_BEGIN(RHIMemoryUsage)
+REFLECTION_ENUM_VALUE(GPU_Only),
+    REFLECTION_ENUM_VALUE(CPU_TO_GPU),
+    REFLECTION_ENUM_VALUE(GPU_TO_CPU)
+    REFLECTION_ENUM_END()
+
+    // Texture
+    enum class RHITextureDimension : uint64_t {
+	    Texture1D        = 1,
+	    Texture2D        = 1 << 1,
+	    Texture3D        = 1 << 2,
+	    TextureCube      = 1 << 3,
+	    Texture1DArray   = 1 << 4,
+	    Texture2DArray   = 1 << 5,
+	    TextureCubeArray = 1 << 6,
+    };
 
 enum class RHITextureUsage
 {
@@ -151,23 +185,30 @@ enum class RHITextureUsage
 };
 DEFINE_ENUMCLASS_OPERATION(RHITextureUsage)
 
-enum class RHIResourceState
-{
-	Undefined,
-	VertexBuffer,
-	ConstantBuffer,
-	IndexBuffer,
-	IndirectBuffer,
-	TransferSource,
-	TransferDest,
-	ShaderResource,
-	UnorderedAccess,
-	RenderTarget,
-	DepthWrite,
-	DepthRead,
-	AccelerationStructure,
-	Present
-};
+REFLECTION_ENUM_BEGIN(RHITextureUsage)
+REFLECTION_ENUM_VALUE(Undefined),
+    REFLECTION_ENUM_VALUE(Transfer),
+    REFLECTION_ENUM_VALUE(ShaderResource),
+    REFLECTION_ENUM_VALUE(UnorderedAccess),
+    REFLECTION_ENUM_VALUE(RenderTarget)
+        REFLECTION_ENUM_END()
+
+            enum class RHIResourceState {
+	            Undefined,
+	            VertexBuffer,
+	            ConstantBuffer,
+	            IndexBuffer,
+	            IndirectBuffer,
+	            TransferSource,
+	            TransferDest,
+	            ShaderResource,
+	            UnorderedAccess,
+	            RenderTarget,
+	            DepthWrite,
+	            DepthRead,
+	            AccelerationStructure,
+	            Present
+            };
 
 // Buffer
 enum class RHIBufferUsage
@@ -184,12 +225,23 @@ enum class RHIBufferUsage
 };
 DEFINE_ENUMCLASS_OPERATION(RHIBufferUsage)
 
-// Sampler
-enum class RHIFilter
-{
-	Nearest,
-	Linear
-};
+REFLECTION_ENUM_BEGIN(RHIBufferUsage)
+REFLECTION_ENUM_VALUE(Undefined),
+    REFLECTION_ENUM_VALUE(Vertex),
+    REFLECTION_ENUM_VALUE(Index),
+    REFLECTION_ENUM_VALUE(Indirect),
+    REFLECTION_ENUM_VALUE(Transfer),
+    REFLECTION_ENUM_VALUE(AccelerationStructure),
+    REFLECTION_ENUM_VALUE(ShaderResource),
+    REFLECTION_ENUM_VALUE(UnorderedAccess),
+    REFLECTION_ENUM_VALUE(ConstantBuffer)
+        REFLECTION_ENUM_END()
+
+    // Sampler
+    enum class RHIFilter {
+	    Nearest,
+	    Linear
+    };
 
 enum class RHIAddressMode
 {

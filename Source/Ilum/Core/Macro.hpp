@@ -51,23 +51,23 @@ using OutputSerializer = Ilum::TSerializer<cereal::XMLOutputArchive>;
 	TSerializer<OutputArchive>::GetInstance().RegisterType<decltype(TYPE)>(); \
 	TSerializer<InputArchive>::GetInstance().RegisterType<decltype(TYPE)>();
 
-#define SERIALIZE(FILE, DATA, ...)                     \
+#define SERIALIZE(FILE, DATA, ...)                \
 	{                                             \
 		std::ofstream os(FILE, std::ios::binary); \
 		OutputArchive archive(os);                \
-		archive(DATA, __VA_ARGS__);                            \
+		archive(DATA, __VA_ARGS__);               \
 	}
 
-#define DESERIALIZE(FILE, DATA, ...)                   \
+#define DESERIALIZE(FILE, DATA, ...)              \
 	{                                             \
 		std::ifstream is(FILE, std::ios::binary); \
 		InputArchive  archive(is);                \
-		archive(DATA, __VA_ARGS__);                            \
+		archive(DATA, __VA_ARGS__);               \
 	}
 
 #define META(KEY, VALUE) rttr::metadata(KEY, VALUE)
 
-#define REFLECTION_BEGIN(TYPE, ...)                                      \
+#define REFLECTION_CLASS_BEGIN(TYPE, ...)                                \
 	template <class Archive>                                             \
 	void serialize(Archive &ar, TYPE &t)                                 \
 	{                                                                    \
@@ -83,18 +83,33 @@ using OutputSerializer = Ilum::TSerializer<cereal::XMLOutputArchive>;
 			auto reg           = rttr::registration::class_<TYPE>(#TYPE) \
 			               .constructor<>(__VA_ARGS__)(rttr::policy::ctor::as_object);
 
-#define REFLECTION_PROPERTY(PROPERTY)                 \
+#define REFLECTION_CLASS_PROPERTY(PROPERTY)           \
 	reg.property(#PROPERTY, &CURRENT_TYPE::PROPERTY); \
 	SERIALIZER_REGISTER_TYPE(CURRENT_TYPE::PROPERTY)
 
-#define REFLECTION_PROPERTY_META(PROPERTY, ...)                    \
+#define REFLECTION_CLASS_PROPERTY_META(PROPERTY, ...)              \
 	reg.property(#PROPERTY, &CURRENT_TYPE::PROPERTY)(__VA_ARGS__); \
 	SERIALIZER_REGISTER_TYPE(CURRENT_TYPE::PROPERTY)
 
-#define REFLECTION_END()                                                    \
+#define REFLECTION_CLASS_END()                                              \
 	TSerializer<OutputArchive>::GetInstance().RegisterType<CURRENT_TYPE>(); \
 	TSerializer<InputArchive>::GetInstance().RegisterType<CURRENT_TYPE>();  \
 	}                                                                       \
+	}
+
+#define REFLECTION_ENUM_BEGIN(TYPE)              \
+	namespace RTTR_REGISTRATION_NAMESPACE_##TYPE \
+	{                                            \
+		RTTR_REGISTRATION                        \
+		{                                        \
+using CURRENT_TYPE = TYPE;\
+rttr::registration::enumeration<TYPE>(#TYPE)(
+
+#define REFLECTION_ENUM_VALUE(VALUE) rttr::value(#VALUE, ##CURRENT_TYPE::##VALUE)
+
+#define REFLECTION_ENUM_END() \
+);                            \
+	}                         \
 	}
 
 #ifdef NDEBUG

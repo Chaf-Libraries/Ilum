@@ -428,53 +428,7 @@ void RenderGraphEditor::Tick()
 			{
 				ImGui::PushID(static_cast<int32_t>(handle.GetHandle()));
 				ImGui::Text("Texture - %s", texture.name.c_str());
-
-				{
-					char buf[64] = {0};
-					std::memcpy(buf, texture.name.data(), sizeof(buf));
-					if (ImGui::InputText("##Tag", buf, sizeof(buf)), ImGuiInputTextFlags_AutoSelectAll)
-					{
-						texture.name   = std::string(buf);
-						m_need_compile = true;
-					}
-				}
-
-				m_need_compile |= ImGui::DragInt("Width", reinterpret_cast<int32_t *>(&texture.width), 0.1f, 0);
-				m_need_compile |= ImGui::DragInt("Height", reinterpret_cast<int32_t *>(&texture.height), 0.1f, 0);
-				m_need_compile |= ImGui::DragInt("Depth", reinterpret_cast<int32_t *>(&texture.depth), 0.1f, 0);
-				m_need_compile |= ImGui::DragInt("Mips", reinterpret_cast<int32_t *>(&texture.mips), 0.1f, 0);
-				m_need_compile |= ImGui::DragInt("Layers", reinterpret_cast<int32_t *>(&texture.layers), 0.1f, 0);
-
-				const char *const formats[] = {
-				    "Undefined",
-				    "R8G8B8A8_UNORM",
-				    "B8G8R8A8_UNORM",
-				    "R16_UINT",
-				    "R16_SINT",
-				    "R16_FLOAT",
-				    "R16G16_UINT",
-				    "R16G16_SINT",
-				    "R16G16_FLOAT",
-				    "R16G16B16A16_UINT",
-				    "R16G16B16A16_SINT",
-				    "R16G16B16A16_FLOAT",
-				    "R32_UINT",
-				    "R32_SINT",
-				    "R32_FLOAT",
-				    "R32G32_UINT",
-				    "R32G32_SINT",
-				    "R32G32_FLOAT",
-				    "R32G32B32_UINT",
-				    "R32G32B32_SINT",
-				    "R32G32B32_FLOAT",
-				    "R32G32B32A32_UINT",
-				    "R32G32B32A32_SINT",
-				    "R32G32B32A32_FLOAT",
-				    "D32_FLOAT",
-				    "D24_UNORM_S8_UINT"};
-
-				m_need_compile |= ImGui::Combo("Format", reinterpret_cast<int32_t *>(&texture.format), formats, 26);
-
+				m_need_compile |= ImGui::EditVariant(texture);
 				ImGui::PopID();
 				ImGui::Separator();
 			}
@@ -486,20 +440,7 @@ void RenderGraphEditor::Tick()
 			if (ImNodes::IsNodeSelected(static_cast<int32_t>(handle.GetHandle())))
 			{
 				ImGui::PushID(static_cast<int32_t>(handle.GetHandle()));
-				ImGui::Text("Buffer - %s", buffer.name.c_str());
-
-				{
-					char buf[64] = {0};
-					std::memcpy(buf, buffer.name.data(), sizeof(buf));
-					if (ImGui::InputText("##Tag", buf, sizeof(buf)), ImGuiInputTextFlags_AutoSelectAll)
-					{
-						buffer.name    = std::string(buf);
-						m_need_compile = true;
-					}
-				}
-
-				m_need_compile |= ImGui::DragScalar("Size", ImGuiDataType_U32, &buffer.size, 0.1f, 0);
-
+				m_need_compile |= ImGui::EditVariant(buffer);
 				ImGui::PopID();
 				ImGui::Separator();
 			}

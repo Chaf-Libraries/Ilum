@@ -21,10 +21,10 @@ class VisibilityBufferPass
 	};
 };
 
-REFLECTION_BEGIN(VisibilityBufferPass::Config)
-REFLECTION_PROPERTY(a)
-REFLECTION_PROPERTY(m)
-REFLECTION_END()
+REFLECTION_CLASS_BEGIN(VisibilityBufferPass::Config)
+REFLECTION_CLASS_PROPERTY(a)
+REFLECTION_CLASS_PROPERTY(m)
+REFLECTION_CLASS_END()
 
 RENDER_PASS_REGISTERATION(VisibilityBufferPass);
 }        // namespace Ilum::Pass
