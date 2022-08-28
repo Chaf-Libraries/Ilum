@@ -23,7 +23,7 @@ class TSerializer : public Singleton<TSerializer<Archive>>
 		auto type = var.get_type();
 		for (auto &prop : type.get_properties())
 		{
-			auto prop_var  = prop.get_value(var);
+			auto prop_var = prop.get_value(var);
 			if (prop.get_type() == rttr::type::get<rttr::variant>())
 			{
 				// Some component might by rttr::variant type
@@ -51,24 +51,13 @@ class TSerializer : public Singleton<TSerializer<Archive>>
 	template <typename _Ty>
 	inline void SerializeProperty(Archive &ar, rttr::variant &var, const rttr::property &prop)
 	{
-		rttr::variant val = prop.get_value(var);
+		rttr::variant prop_var = prop.get_value(var);
 
-		_Ty raw_val = val.convert<_Ty>();
+		_Ty raw_val = prop_var.convert<_Ty>();
 
 		Serialize(ar, raw_val);
-
-		prop.set_value(var, raw_val);
-	}
-
-	template <>
-	void SerializeProperty<rttr::variant>(Archive &ar, rttr::variant &var, const rttr::property &prop)
-	{
-		auto prop_var = prop.get_value(var);
-		if (prop_var.is_valid())
-		{
-			serialize(ar, prop_var);
-			prop.set_value(var, prop_var);
-		}
+		prop_var = raw_val;
+		prop.set_value(var, prop_var);
 	}
 
   public:
@@ -84,6 +73,7 @@ class TSerializer : public Singleton<TSerializer<Archive>>
 		SerialFunctions[rttr::type::get<rttr::variant>()] = [this](Archive &ar, rttr::variant &var, const rttr::property &prop) {
 			auto prop_var = prop.get_value(var);
 			Serialize(ar, prop_var);
+			auto type = prop_var.get_type();
 			prop.set_value(var, prop_var);
 		};
 	}

@@ -21,6 +21,7 @@ Engine::Engine()
 Engine::~Engine()
 {
 	m_editor.reset();
+	m_renderer.reset();
 	m_rhi_context.reset();
 	m_window.reset();
 }

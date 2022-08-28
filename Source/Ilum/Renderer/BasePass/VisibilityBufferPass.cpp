@@ -11,7 +11,7 @@ RenderPassDesc VisibilityBufferPass::CreateDesc()
 	    .Write("VisibilityBuffer", RenderPassDesc::ResourceInfo::Type::Texture, RHIResourceState::RenderTarget)
 	    .Write("DepthBuffer", RenderPassDesc::ResourceInfo::Type::Texture, RHIResourceState::RenderTarget);
 
-	desc.variant = Config();
+	desc.config = Config();
 
 	return desc;
 }
@@ -25,7 +25,7 @@ RenderGraph::RenderTask VisibilityBufferPass::Create(const RenderPassDesc &desc,
 		// auto visibility_buffer = render_graph.GetTexture("VisibilityBuffer");
 		// auto depth_buffer      = render_graph.GetTexture("DepthBuffer");
 
-		Config config = desc.variant.convert<Config>();
+		Config config = desc.config.convert<Config>();
 	};
 }
 

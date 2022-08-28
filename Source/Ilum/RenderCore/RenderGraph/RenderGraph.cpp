@@ -116,10 +116,11 @@ RenderGraph &RenderGraph::RegisterTexture(const std::vector<TextureCreateInfo> &
 	}
 
 	m_textures.emplace_back(p_rhi_context->CreateTexture(pool_desc));
+	auto pool_texture = m_textures.back().get();
 
 	for (auto &info : create_infos)
 	{
-		auto &texture = m_textures.emplace_back(m_textures.back()->Alias(info.desc));
+		auto &texture = m_textures.emplace_back(pool_texture->Alias(info.desc));
 		m_texture_lookup.emplace(info.handle, texture.get());
 	}
 

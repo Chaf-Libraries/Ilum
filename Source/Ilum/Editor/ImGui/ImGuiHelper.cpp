@@ -69,7 +69,7 @@ inline int32_t GetComponentCount()
 }
 
 template <typename T>
-bool EditScalar(const rttr::variant &var, const rttr::property &prop)
+bool EditScalar(rttr::variant &var, const rttr::property &prop)
 {
 	T v = prop.get_value(var).convert<T>();
 	if (ImGui::DragScalarN(prop.get_name().data(), GetDataType<T>(), &v, GetComponentCount<T>(), 0.01f, nullptr, nullptr, "%.2f"))
@@ -80,7 +80,21 @@ bool EditScalar(const rttr::variant &var, const rttr::property &prop)
 	return false;
 }
 
-inline static std::unordered_map<rttr::type, std::function<bool(const rttr::variant &, const rttr::property &)>> EditFunctions = {
+bool EditString(rttr::variant &var, const rttr::property &prop)
+{
+	std::string str     = prop.get_value(var).convert<std::string>();
+	char        buf[64] = {0};
+	std::memcpy(buf, str.data(), sizeof(buf));
+	if (ImGui::InputText(prop.get_name().data(), buf, sizeof(buf)), ImGuiInputTextFlags_AutoSelectAll)
+	{
+		str = buf;
+		prop.set_value(var, str);
+		return true;
+	}
+	return false;
+}
+
+inline static std::unordered_map<rttr::type, std::function<bool(rttr::variant &, const rttr::property &)>> EditFunctions = {
     {rttr::type::get<float>(), EditScalar<float>},
     {rttr::type::get<glm::vec2>(), EditScalar<glm::vec2>},
     {rttr::type::get<glm::vec3>(), EditScalar<glm::vec3>},
@@ -93,21 +107,24 @@ inline static std::unordered_map<rttr::type, std::function<bool(const rttr::vari
     {rttr::type::get<glm::uvec2>(), EditScalar<glm::uvec2>},
     {rttr::type::get<glm::uvec3>(), EditScalar<glm::uvec3>},
     {rttr::type::get<glm::uvec4>(), EditScalar<glm::uvec4>},
+    {rttr::type::get<std::string>(), EditString},
 };
 
-bool EditVariant(const rttr::variant &var)
+bool EditVariant(rttr::variant &var)
 {
 	bool update = false;
-
+	auto type   = var.get_type();
 	for (auto &property_ : var.get_type().get_properties())
 	{
 		if (!property_.get_type().get_properties().empty())
 		{
-			update |= EditVariant(property_.get_value(var));
+			auto prop = property_.get_value(var);
+			update |= EditVariant(prop);
+			property_.set_value(var, prop);
 		}
 		else
 		{
-			//update |= EditFunctions[property_.get_type()](var, property_);
+			update |= EditFunctions[property_.get_type()](var, property_);
 		}
 	}
 	return update;

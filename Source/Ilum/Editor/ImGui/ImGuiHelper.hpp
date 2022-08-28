@@ -6,5 +6,5 @@
 
 namespace ImGui
 {
-bool EditVariant(const rttr::variant &var);
+bool EditVariant(rttr::variant &var);
 }        // namespace ImGui

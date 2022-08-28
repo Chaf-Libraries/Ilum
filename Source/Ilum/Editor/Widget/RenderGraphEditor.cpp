@@ -513,7 +513,7 @@ void RenderGraphEditor::Tick()
 				{
 					ImGui::PushID(static_cast<int32_t>(handle.GetHandle()));
 					ImGui::Text("Pass - %s", pass.name.c_str());
-					m_need_compile |= ImGui::EditVariant(pass.variant);
+					m_need_compile |= ImGui::EditVariant(pass.config);
 					ImGui::PopID();
 					ImGui::Separator();
 				}
@@ -604,7 +604,7 @@ void RenderGraphEditor::Tick()
 
 			if (ImGui::MenuItem("Texture"))
 			{
-				m_desc.textures.emplace(RGHandle(m_current_handle++), TextureDesc{"Texture", 1, 1, 1, 1, 1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Undefined});
+				m_desc.textures.emplace(RGHandle(m_current_handle++), TextureDesc{"Texture", 1, 1, 1, 1, 1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::ShaderResource | RHITextureUsage::RenderTarget | RHITextureUsage::UnorderedAccess | RHITextureUsage::Transfer});
 				m_need_compile = true;
 			}
 
@@ -622,10 +622,12 @@ void RenderGraphEditor::Tick()
 		{
 			RenderGraphBuilder builder(p_editor->GetRHIContext());
 
-			auto *renderer = p_editor->GetRenderer();
+			auto *renderer     = p_editor->GetRenderer();
+			auto  render_graph = builder.Compile(m_desc, renderer);
 
-			if (builder.Compile(m_desc, renderer))
+			if (render_graph)
 			{
+				renderer->SetRenderGraph(std::move(render_graph));
 				m_need_compile = false;
 			}
 			else
@@ -670,13 +672,4 @@ bool RenderGraphEditor::ValidLink(ResourcePinType resource, PassPinType pass)
 	}
 	return false;
 }
-
-void RenderGraphEditor::SaveRenderGraph(const std::string &name)
-{
-}
-
-void RenderGraphEditor::LoadRenderGraph(const std::string &name)
-{
-}
-
 }        // namespace Ilum

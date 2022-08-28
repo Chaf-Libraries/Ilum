@@ -112,7 +112,10 @@ class RenderGraphBuilder
 						    pool.end < resource.begin()->first)
 						{
 							pool.handles.push_back(handle);
-							alias = true;
+							pool.start = std::min(pool.start, (--resource.end())->first);
+							pool.end   = std::max(pool.end, resource.begin()->first);
+							alias      = true;
+							break;
 						}
 					}
 					if (!alias)
@@ -126,11 +129,11 @@ class RenderGraphBuilder
 				}
 			}
 
-			for (auto& pool : texture_pools)
+			for (auto &pool : texture_pools)
 			{
 				std::vector<RenderGraph::TextureCreateInfo> texture_create_infos;
 				texture_create_infos.reserve(pool.handles.size());
-				for (auto& handle : pool.handles)
+				for (auto &handle : pool.handles)
 				{
 					texture_create_infos.push_back(RenderGraph::TextureCreateInfo{desc.textures[handle], handle});
 				}
@@ -482,10 +485,8 @@ class RenderGraphBuilder
 		//	rttr::type::invoke(fmt::format("{}_Creation", pass.name).c_str(), arguments);
 		// }
 
-		return Compile();
+		return render_graph;
 	}
-
-
 
   private:
 	RHIContext *p_rhi_context = nullptr;

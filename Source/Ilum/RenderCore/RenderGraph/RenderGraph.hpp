@@ -65,7 +65,7 @@ struct RenderPassDesc
 	};
 
 	std::string   name;
-	rttr::variant variant = rttr::type::get<void>().create();
+	rttr::variant config = rttr::type::get<void>().create();
 
 	std::map<std::string, ResourceInfo> resources;
 
@@ -93,7 +93,7 @@ REFLECTION_END()
 
 REFLECTION_BEGIN(RenderPassDesc)
 REFLECTION_PROPERTY(name)
-REFLECTION_PROPERTY(variant)
+REFLECTION_PROPERTY(config)
 REFLECTION_PROPERTY(resources)
 REFLECTION_PROPERTY(prev_pass)
 REFLECTION_END()
