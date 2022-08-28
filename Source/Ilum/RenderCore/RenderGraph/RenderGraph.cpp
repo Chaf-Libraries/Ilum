@@ -3,28 +3,28 @@
 namespace Ilum
 {
 RGHandle::RGHandle(size_t handle) :
-    m_handle(handle)
+    handle(handle)
 {
 }
 
 bool RGHandle::IsValid()
 {
-	return m_handle != ~0U;
+	return handle != ~0U;
 }
 
 bool RGHandle::operator<(const RGHandle &rhs) const
 {
-	return m_handle < rhs.m_handle;
+	return handle < rhs.handle;
 }
 
 bool RGHandle::operator==(const RGHandle &rhs) const
 {
-	return m_handle == rhs.m_handle;
+	return handle == rhs.handle;
 }
 
 size_t RGHandle::GetHandle() const
 {
-	return m_handle;
+	return handle;
 }
 
 RenderGraph::RenderGraph(RHIContext *rhi_context) :

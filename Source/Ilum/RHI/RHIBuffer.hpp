@@ -15,14 +15,14 @@ struct BufferDesc
 	RHIBufferUsage usage;
 	RHIMemoryUsage memory;
 	size_t         size;
-
-	template<typename Archieve>
-	inline void serialize(Archieve& ar)
-	{
-
-	}
-	//INLINE_SERIALIZATION(name, usage, memory, size);
 };
+
+REFLECTION_BEGIN(BufferDesc)
+REFLECTION_PROPERTY(name)
+REFLECTION_PROPERTY(usage)
+REFLECTION_PROPERTY(memory)
+REFLECTION_PROPERTY(size)
+REFLECTION_END()
 
 class RHIBuffer
 {

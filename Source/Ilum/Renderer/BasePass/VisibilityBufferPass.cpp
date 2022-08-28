@@ -11,7 +11,7 @@ RenderPassDesc VisibilityBufferPass::CreateDesc()
 	    .Write("VisibilityBuffer", RenderPassDesc::ResourceInfo::Type::Texture, RHIResourceState::RenderTarget)
 	    .Write("DepthBuffer", RenderPassDesc::ResourceInfo::Type::Texture, RHIResourceState::RenderTarget);
 
-	desc.variant = rttr::type::get_by_name("VisibilityBufferPass::Config").create();
+	desc.variant = Config();
 
 	return desc;
 }

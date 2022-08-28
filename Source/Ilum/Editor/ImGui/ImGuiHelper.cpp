@@ -107,7 +107,7 @@ bool EditVariant(const rttr::variant &var)
 		}
 		else
 		{
-			update |= EditFunctions[property_.get_type()](var, property_);
+			//update |= EditFunctions[property_.get_type()](var, property_);
 		}
 	}
 	return update;

@@ -46,84 +46,6 @@ void RenderGraphEditor::Tick()
 		ImNodes::GetSelectedNodes(selected_nodes.data());
 	}
 
-	if (ImGui::BeginMenuBar())
-	{
-		if (ImGui::BeginMenu("File"))
-		{
-			if (ImGui::MenuItem("Load"))
-			{
-				char *path = nullptr;
-				if (NFD_OpenDialog("rg", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
-				{
-					free(path);
-				}
-			}
-
-			if (ImGui::MenuItem("Save"))
-			{
-				char *path = nullptr;
-				if (NFD_SaveDialog("rg", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
-				{
-					free(path);
-				}
-			}
-
-			ImGui::EndMenu();
-		}
-
-		if (ImGui::BeginMenu("Add"))
-		{
-			if (ImGui::BeginMenu("Pass"))
-			{
-				auto *pass_name = RenderPassNameList;
-				while (pass_name)
-				{
-					if (ImGui::MenuItem(pass_name->name))
-					{
-						m_desc.passes.emplace(
-						    RGHandle(m_current_handle++),
-						    rttr::type::invoke(fmt::format("{}_Desc", pass_name->name).c_str(), {}).get_value<RenderPassDesc>());
-						m_need_compile = true;
-					}
-					pass_name = pass_name->next;
-				}
-				ImGui::EndMenu();
-			}
-
-			if (ImGui::MenuItem("Texture"))
-			{
-				m_desc.textures.emplace(RGHandle(m_current_handle++), TextureDesc{"Texture", 1, 1, 1, 1, 1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Undefined});
-				m_need_compile = true;
-			}
-
-			if (ImGui::MenuItem("Buffer"))
-			{
-				m_desc.buffers.emplace(
-				    RGHandle(m_current_handle++),
-				    BufferDesc{"Buffer"});
-				m_need_compile = true;
-			}
-			ImGui::EndMenu();
-		}
-
-		if (m_need_compile && ImGui::MenuItem("Compile"))
-		{
-			RenderGraphBuilder builder(p_editor->GetRHIContext());
-
-			auto *renderer = p_editor->GetRenderer();
-
-			if (builder.Compile(m_desc, renderer))
-			{
-				m_need_compile = false;
-			}
-			else
-			{
-				LOG_INFO("Render Graph Compile Failed!");
-			}
-		}
-		ImGui::EndMenuBar();
-	}
-
 	ImGui::Columns(2);
 	ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() * 0.8f);
 
@@ -147,6 +69,13 @@ void RenderGraphEditor::Tick()
 					{
 						if (static_cast<int32_t>(iter->first.GetHandle()) == node)
 						{
+							for (auto &[pass_handle, pass] : m_desc.passes)
+							{
+								if (pass.prev_pass == RGHandle(node))
+								{
+									pass.prev_pass = RGHandle();
+								}
+							}
 							iter  = m_desc.passes.erase(iter);
 							erase = true;
 							break;
@@ -599,6 +528,111 @@ void RenderGraphEditor::Tick()
 		}
 
 		ImGui::EndChild();
+	}
+
+	if (ImGui::BeginMenuBar())
+	{
+		if (ImGui::BeginMenu("File"))
+		{
+			if (ImGui::MenuItem("Load"))
+			{
+				char *path = nullptr;
+				if (NFD_OpenDialog("rg", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
+				{
+					std::string editor_state = "";
+					DESERIALIZE(path, m_desc, editor_state);
+					ImNodes::LoadCurrentEditorStateFromIniString(editor_state.data(), editor_state.size());
+
+					// Update max current id
+					m_current_handle = 0;
+
+					for (auto &[handle, pass] : m_desc.passes)
+					{
+						m_current_handle = std::max(handle.GetHandle(), m_current_handle);
+					}
+
+					for (auto &[handle, texture] : m_desc.textures)
+					{
+						m_current_handle = std::max(handle.GetHandle(), m_current_handle);
+					}
+
+					for (auto &[handle, buffer] : m_desc.buffers)
+					{
+						m_current_handle = std::max(handle.GetHandle(), m_current_handle);
+					}
+
+					m_current_handle++;
+
+					free(path);
+				}
+			}
+
+			if (ImGui::MenuItem("Save"))
+			{
+				char *path = nullptr;
+				if (NFD_SaveDialog("rg", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
+				{
+					std::string dir      = Path::GetInstance().GetFileDirectory(path);
+					std::string filename = Path::GetInstance().GetFileName(path, false);
+					SERIALIZE(dir + filename + ".rg", m_desc, std::string(ImNodes::SaveCurrentEditorStateToIniString()));
+					free(path);
+				}
+			}
+
+			ImGui::EndMenu();
+		}
+
+		if (ImGui::BeginMenu("Add"))
+		{
+			if (ImGui::BeginMenu("Pass"))
+			{
+				auto *pass_name = RenderPassNameList;
+				while (pass_name)
+				{
+					if (ImGui::MenuItem(pass_name->name))
+					{
+						m_desc.passes.emplace(
+						    RGHandle(m_current_handle++),
+						    rttr::type::invoke(fmt::format("{}_Desc", pass_name->name).c_str(), {}).get_value<RenderPassDesc>());
+						m_need_compile = true;
+					}
+					pass_name = pass_name->next;
+				}
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::MenuItem("Texture"))
+			{
+				m_desc.textures.emplace(RGHandle(m_current_handle++), TextureDesc{"Texture", 1, 1, 1, 1, 1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Undefined});
+				m_need_compile = true;
+			}
+
+			if (ImGui::MenuItem("Buffer"))
+			{
+				m_desc.buffers.emplace(
+				    RGHandle(m_current_handle++),
+				    BufferDesc{"Buffer"});
+				m_need_compile = true;
+			}
+			ImGui::EndMenu();
+		}
+
+		if (m_need_compile && ImGui::MenuItem("Compile"))
+		{
+			RenderGraphBuilder builder(p_editor->GetRHIContext());
+
+			auto *renderer = p_editor->GetRenderer();
+
+			if (builder.Compile(m_desc, renderer))
+			{
+				m_need_compile = false;
+			}
+			else
+			{
+				LOG_INFO("Render Graph Compile Failed!");
+			}
+		}
+		ImGui::EndMenuBar();
 	}
 
 	ImGui::End();

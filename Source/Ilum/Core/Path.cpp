@@ -140,7 +140,7 @@ const std::string Path::GetFileName(const std::string &path, bool has_extension)
 			return filename.substr(0, last_index);
 		}
 
-		return "";
+		return filename;
 	}
 }
 

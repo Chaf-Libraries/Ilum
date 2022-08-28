@@ -23,9 +23,10 @@ struct RenderPassName
 
 inline const static RenderPassName *RenderPassNameList = nullptr;
 
-class RGHandle
+struct RGHandle
 {
-  public:
+	size_t handle = ~0U;
+
 	RGHandle() = default;
 
 	RGHandle(size_t handle);
@@ -39,12 +40,11 @@ class RGHandle
 	bool operator==(const RGHandle &rhs) const;
 
 	size_t GetHandle() const;
-
-	//INLINE_SERIALIZATION(m_handle);
-
-  private:
-	size_t m_handle = ~0U;
 };
+
+REFLECTION_BEGIN(RGHandle)
+REFLECTION_PROPERTY(handle)
+REFLECTION_END()
 
 struct RenderPassDesc
 {
@@ -62,18 +62,14 @@ struct RenderPassDesc
 		} attribute;
 		RHIResourceState state;
 		RGHandle         handle;
-
-		//INLINE_SERIALIZATION(type, attribute, state, handle);
 	};
 
 	std::string   name;
-	rttr::variant variant;
+	rttr::variant variant = rttr::type::get<void>().create();
 
 	std::map<std::string, ResourceInfo> resources;
 
 	RGHandle prev_pass;
-	
-	//INLINE_SERIALIZATION(name, variant, resources, prev_pass);
 
 	RenderPassDesc &Write(const std::string &name, ResourceInfo::Type type, RHIResourceState state)
 	{
@@ -88,18 +84,32 @@ struct RenderPassDesc
 	}
 };
 
+REFLECTION_BEGIN(RenderPassDesc::ResourceInfo)
+REFLECTION_PROPERTY(type)
+REFLECTION_PROPERTY(attribute)
+REFLECTION_PROPERTY(state)
+REFLECTION_PROPERTY(handle)
+REFLECTION_END()
+
+REFLECTION_BEGIN(RenderPassDesc)
+REFLECTION_PROPERTY(name)
+REFLECTION_PROPERTY(variant)
+REFLECTION_PROPERTY(resources)
+REFLECTION_PROPERTY(prev_pass)
+REFLECTION_END()
+
 struct RenderGraphDesc
 {
 	std::map<RGHandle, RenderPassDesc> passes;
 	std::map<RGHandle, TextureDesc>    textures;
 	std::map<RGHandle, BufferDesc>     buffers;
-
-	template <class Archive>
-	void serialize(Archive &ar)
-	{
-		ar(passes, textures, buffers);
-	}
 };
+
+REFLECTION_BEGIN(RenderGraphDesc)
+REFLECTION_PROPERTY(passes)
+REFLECTION_PROPERTY(textures)
+REFLECTION_PROPERTY(buffers)
+REFLECTION_END()
 
 #define RENDER_PASS_REGISTERATION(Type)                                       \
 	namespace RenderPass::Registeration::_##Type                              \

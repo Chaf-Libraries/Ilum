@@ -22,13 +22,19 @@ struct TextureDesc
 
 	RHIFormat       format;
 	RHITextureUsage usage;
-
-	template <typename Archieve>
-	inline void serialize(Archieve &ar)
-	{
-		ar(name, width, height, height, mips, layers, samples, format, usage);
-	}
 };
+
+REFLECTION_BEGIN(TextureDesc)
+REFLECTION_PROPERTY(name)
+REFLECTION_PROPERTY(width)
+REFLECTION_PROPERTY(height)
+REFLECTION_PROPERTY(depth)
+REFLECTION_PROPERTY(mips)
+REFLECTION_PROPERTY(layers)
+REFLECTION_PROPERTY(samples)
+REFLECTION_PROPERTY(format)
+REFLECTION_PROPERTY(usage)
+REFLECTION_END()
 
 struct TextureRange
 {
@@ -44,13 +50,15 @@ struct TextureRange
 		HashCombine(hash, dimension, base_mip, mip_count, base_layer, layer_count);
 		return hash;
 	}
-
-	template <typename Archieve>
-	inline void serialize(Archieve &ar)
-	{
-		ar(dimension, base_mip, mip_count, base_layer, layer_count);
-	}
 };
+
+REFLECTION_BEGIN(TextureRange)
+REFLECTION_PROPERTY(dimension)
+REFLECTION_PROPERTY(base_mip)
+REFLECTION_PROPERTY(mip_count)
+REFLECTION_PROPERTY(base_layer)
+REFLECTION_PROPERTY(layer_count)
+REFLECTION_END()
 
 class RHITexture
 {

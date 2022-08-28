@@ -16,8 +16,15 @@ class VisibilityBufferPass
 
 	struct Config
 	{
+		float a = 100.f;
+		std::string m = "fuck you ";
 	};
 };
+
+REFLECTION_BEGIN(VisibilityBufferPass::Config)
+REFLECTION_PROPERTY(a)
+REFLECTION_PROPERTY(m)
+REFLECTION_END()
 
 RENDER_PASS_REGISTERATION(VisibilityBufferPass);
 }        // namespace Ilum::Pass
