@@ -545,7 +545,7 @@ void RenderGraphEditor::Tick()
 
 			if (ImGui::MenuItem("Texture"))
 			{
-				m_desc.textures.emplace(RGHandle(m_current_handle++), TextureDesc{"Texture", 1, 1, 1, 1, 1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::ShaderResource | RHITextureUsage::RenderTarget | RHITextureUsage::UnorderedAccess | RHITextureUsage::Transfer});
+				m_desc.textures.emplace(RGHandle(m_current_handle++), TextureDesc{"Texture", 1, 1, 1, 1, 1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Undefined});
 				m_need_compile = true;
 			}
 

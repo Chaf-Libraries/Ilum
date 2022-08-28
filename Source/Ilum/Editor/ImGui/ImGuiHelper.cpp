@@ -83,12 +83,41 @@ inline int32_t GetComponentCount()
 template <typename T>
 bool EditScalar(rttr::variant &var, const rttr::property &prop)
 {
-	T v = prop.get_value(var).convert<T>();
-	if (ImGui::DragScalarN(prop.get_name().data(), GetDataType<T>(), &v, GetComponentCount<T>(), 0.01f, nullptr, nullptr, "%.2f"))
+	T    v         = prop.get_value(var).convert<T>();
+	auto data_type = GetDataType<T>();
+	switch (data_type)
 	{
-		prop.set_value(var, v);
-		return true;
+		case ImGuiDataType_Float:
+			if (ImGui::DragScalarN(prop.get_name().data(), data_type, &v, GetComponentCount<T>(), 0.01f, nullptr, nullptr, "%.2f"))
+			{
+				prop.set_value(var, v);
+				return true;
+			}
+			break;
+		case ImGuiDataType_S8:
+		case ImGuiDataType_S16:
+		case ImGuiDataType_S32:
+		case ImGuiDataType_S64:
+			if (ImGui::DragScalarN(prop.get_name().data(), data_type, &v, GetComponentCount<T>(), 1, nullptr, nullptr, "%d"))
+			{
+				prop.set_value(var, v);
+				return true;
+			}
+			break;
+		case ImGuiDataType_U8:
+		case ImGuiDataType_U16:
+		case ImGuiDataType_U32:
+		case ImGuiDataType_U64:
+			if (ImGui::DragScalarN(prop.get_name().data(), data_type, &v, GetComponentCount<T>(), 1, nullptr, nullptr, "%d"))
+			{
+				prop.set_value(var, v);
+				return true;
+			}
+			break;
+		default:
+			break;
 	}
+
 	return false;
 }
 
@@ -111,7 +140,7 @@ bool EditEnumeration(rttr::variant &var, const rttr::property &prop, const rttr:
 	std::vector<const char *> enums;
 	enums.reserve(enumeration.get_values().size());
 
-	uint64_t prop_enum = prop.get_value(var).convert<uint64_t>();
+	uint64_t prop_enum        = prop.get_value(var).convert<uint64_t>();
 	int32_t  current_enum_idx = 0;
 
 	for (auto &enum_ : enumeration.get_values())

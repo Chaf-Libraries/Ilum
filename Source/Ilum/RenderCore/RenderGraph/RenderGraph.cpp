@@ -82,7 +82,9 @@ RenderGraph &RenderGraph::AddInitializeBarrier(RenderTask &&barrier)
 
 RenderGraph &RenderGraph::RegisterTexture(const TextureCreateInfo &create_info)
 {
-	auto &texture = m_textures.emplace_back(p_rhi_context->CreateTexture(create_info.desc));
+	TextureDesc desc = create_info.desc;
+	desc.usage       = desc.usage | RHITextureUsage::ShaderResource | RHITextureUsage::Transfer;
+	auto &texture    = m_textures.emplace_back(p_rhi_context->CreateTexture(desc));
 	m_texture_lookup.emplace(create_info.handle, texture.get());
 
 	return *this;
@@ -100,7 +102,7 @@ RenderGraph &RenderGraph::RegisterTexture(const std::vector<TextureCreateInfo> &
 	pool_desc.layers      = 0;
 	pool_desc.samples     = 0;
 	pool_desc.format      = (RHIFormat) 0;
-	pool_desc.usage       = (RHITextureUsage) 0;
+	pool_desc.usage       = RHITextureUsage::ShaderResource | RHITextureUsage::Transfer;
 
 	// Memory alias
 	for (auto &info : create_infos)
@@ -120,7 +122,9 @@ RenderGraph &RenderGraph::RegisterTexture(const std::vector<TextureCreateInfo> &
 
 	for (auto &info : create_infos)
 	{
-		auto &texture = m_textures.emplace_back(pool_texture->Alias(info.desc));
+		TextureDesc desc = info.desc;
+		desc.usage       = desc.usage | RHITextureUsage::ShaderResource | RHITextureUsage::Transfer;
+		auto &texture    = m_textures.emplace_back(pool_texture->Alias(desc));
 		m_texture_lookup.emplace(info.handle, texture.get());
 	}
 
@@ -129,7 +133,9 @@ RenderGraph &RenderGraph::RegisterTexture(const std::vector<TextureCreateInfo> &
 
 RenderGraph &RenderGraph::RegisterBuffer(const BufferCreateInfo &create_info)
 {
-	auto &buffer = m_buffers.emplace_back(p_rhi_context->CreateBuffer(create_info.desc));
+	BufferDesc desc = create_info.desc;
+	desc.usage      = desc.usage | RHIBufferUsage::Transfer | RHIBufferUsage::ConstantBuffer;
+	auto &buffer    = m_buffers.emplace_back(p_rhi_context->CreateBuffer(desc));
 	m_buffer_lookup.emplace(create_info.handle, buffer.get());
 
 	return *this;
