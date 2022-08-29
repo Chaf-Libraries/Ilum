@@ -5,7 +5,7 @@
 
 #include "Renderer/Renderer.hpp"
 
-namespace Ilum::Pass
+namespace Ilum
 {
 class VisibilityBufferPass
 {
@@ -13,18 +13,22 @@ class VisibilityBufferPass
 	static RenderPassDesc CreateDesc();
 
 	static RenderGraph::RenderTask Create(const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer);
-
-	struct Config
-	{
-		float a = 100.f;
-		std::string m = "fuck you ";
-	};
 };
 
-REFLECTION_CLASS_BEGIN(VisibilityBufferPass::Config)
-REFLECTION_CLASS_PROPERTY(a)
-REFLECTION_CLASS_PROPERTY(m)
-REFLECTION_CLASS_END()
+REFLECTION_STRUCT VisibilityBufferPass_Config
+{
+	REFLECTION_PROPERTY()
+	float a;
+
+	REFLECTION_PROPERTY()
+	std::string m;
+
+	VisibilityBufferPass_Config() :
+	    a(100.f),
+	    m("fuck you")
+	{
+	}
+};
 
 RENDER_PASS_REGISTERATION(VisibilityBufferPass);
-}        // namespace Ilum::Pass
+}        // namespace Ilum

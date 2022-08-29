@@ -1,6 +1,6 @@
 #include "VisibilityBufferPass.hpp"
 
-namespace Ilum::Pass
+namespace Ilum
 {
 RenderPassDesc VisibilityBufferPass::CreateDesc()
 {
@@ -11,7 +11,7 @@ RenderPassDesc VisibilityBufferPass::CreateDesc()
 	    .Write("VisibilityBuffer", RenderResourceDesc::Type::Texture, RHIResourceState::RenderTarget)
 	    .Write("DepthBuffer", RenderResourceDesc::Type::Texture, RHIResourceState::RenderTarget);
 
-	desc.config = Config();
+	desc.config = VisibilityBufferPass_Config();
 
 	return desc;
 }
@@ -25,7 +25,7 @@ RenderGraph::RenderTask VisibilityBufferPass::Create(const RenderPassDesc &desc,
 		// auto visibility_buffer = render_graph.GetTexture("VisibilityBuffer");
 		// auto depth_buffer      = render_graph.GetTexture("DepthBuffer");
 
-		Config config = desc.config.convert<Config>();
+		VisibilityBufferPass_Config config = desc.config.convert<VisibilityBufferPass_Config>();
 	};
 }
 

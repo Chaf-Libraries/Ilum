@@ -4,7 +4,8 @@
 #include <Core/Path.hpp>
 #include <ImGui/ImGuiHelper.hpp>
 #include <RenderCore/RenderGraph/RenderGraph.hpp>
-#include <Renderer/RenderPass.hpp>
+#include <RenderCore/RenderGraph/RenderGraphBuilder.hpp>
+#include <Renderer/Renderer.hpp>
 #include <_Generate/Generate.hpp>
 
 #include <imnodes.h>

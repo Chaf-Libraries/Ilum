@@ -110,7 +110,7 @@ REFLECTION_STRUCT RenderGraphDesc
 };
 
 #define RENDER_PASS_REGISTERATION(Type)                                       \
-	namespace RenderPass::Registeration::_##Type                              \
+	namespace NAMESPACE_##Type                              \
 	{                                                                         \
 		RTTR_REGISTRATION                                                     \
 		{                                                                     \

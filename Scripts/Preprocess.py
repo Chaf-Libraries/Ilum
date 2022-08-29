@@ -158,8 +158,6 @@ if __name__ == '__main__':
     append_info = "#include \"{}\"\n".format(output_name)
     if os.path.exists(entry_name):
         entry = read_file(entry_name)
-        if append_info in entry:
-            os.remove(entry_name)
 
     entry = append_file(entry_name, append_info)
         

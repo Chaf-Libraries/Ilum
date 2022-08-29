@@ -5,7 +5,7 @@
 
 #include "Renderer/Renderer.hpp"
 
-namespace Ilum::Pass
+namespace Ilum
 {
 class CopyPass
 {

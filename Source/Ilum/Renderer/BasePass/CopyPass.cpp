@@ -1,6 +1,6 @@
 #include "CopyPass.hpp"
 
-namespace Ilum::Pass
+namespace Ilum
 {
 RenderPassDesc CopyPass::CreateDesc()
 {

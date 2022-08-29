@@ -29,5 +29,10 @@ target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Ilum")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 
+add_custom_command(
+	TARGET ${TARGET_NAME} POST_BUILD 
+	COMMAND python ${PROJECT_SOURCE_DIR}/Scripts/Preprocess.py ${PROJECT_SOURCE_DIR}/Source/_Generate/${TARGET_NAME}_Generate.meta ${HEADER_FILES} ${SOURCE_FILES}
+)
+
 target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Precompile.hpp)
 set_target_properties(Renderer PROPERTIES FOLDER Ilum)

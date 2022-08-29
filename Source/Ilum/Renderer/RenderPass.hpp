@@ -1,4 +1,14 @@
 #pragma once
 
-#include "BasePass/CopyPass.hpp"
-#include "BasePass/VisibilityBufferPass.hpp"
+#pragma once
+
+namespace Ilum
+{
+	class RenderPass
+	{
+	  public:
+	    RenderPass() = default;
+
+		~RenderPass() = default;
+	};
+}
