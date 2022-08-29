@@ -4,7 +4,7 @@
 #include "Device.hpp"
 #include "Texture.hpp"
 
-#include <directx/d3d12.h>
+#include <d3d12.h>
 #include <wrl.h>
 
 using Microsoft::WRL::ComPtr;
