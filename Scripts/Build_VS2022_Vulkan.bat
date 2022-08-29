@@ -4,4 +4,5 @@ mkdir build
 cd build
 cmake ../
 cmake --build ./ --config Release
-start ../bin/Engined.exe
+cd ..
+start ./bin/Engined.exe
