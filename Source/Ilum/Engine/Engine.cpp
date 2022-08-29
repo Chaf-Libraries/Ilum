@@ -1,11 +1,9 @@
 #include "Engine.hpp"
 
 #include <Core/Window.hpp>
-
+#include <Core/Path.hpp>
 #include <RHI/RHIContext.hpp>
-
 #include <Editor/Editor.hpp>
-
 #include <Renderer/Renderer.hpp>
 
 namespace Ilum
@@ -16,6 +14,8 @@ Engine::Engine()
 	m_rhi_context = std::make_unique<RHIContext>(m_window.get());
 	m_renderer    = std::make_unique<Renderer>(m_rhi_context.get());
 	m_editor      = std::make_unique<Editor>(m_window.get(), m_rhi_context.get(), m_renderer.get());
+
+	Path::GetInstance().SetCurrent("./");
 }
 
 Engine::~Engine()
