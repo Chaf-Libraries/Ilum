@@ -8,21 +8,20 @@ namespace Ilum
 {
 class RHIDevice;
 
-struct BufferDesc
+REFLECTION_STRUCT BufferDesc
 {
+	REFLECTION_PROPERTY()
 	std::string name;
 
+	REFLECTION_PROPERTY()
 	RHIBufferUsage usage;
-	RHIMemoryUsage memory;
-	size_t         size;
-};
 
-REFLECTION_CLASS_BEGIN(BufferDesc)
-REFLECTION_CLASS_PROPERTY(name)
-REFLECTION_CLASS_PROPERTY(usage)
-REFLECTION_CLASS_PROPERTY(memory)
-REFLECTION_CLASS_PROPERTY(size)
-REFLECTION_CLASS_END()
+	REFLECTION_PROPERTY()
+	RHIMemoryUsage memory;
+
+	REFLECTION_PROPERTY()
+	size_t size;
+};
 
 class RHIBuffer
 {
@@ -34,8 +33,8 @@ class RHIBuffer
 
 	const BufferDesc &GetDesc() const;
 
-	virtual void *Map() = 0;
-	virtual void  Unmap() = 0;
+	virtual void *Map()                             = 0;
+	virtual void  Unmap()                           = 0;
 	virtual void  Flush(size_t offset, size_t size) = 0;
 
   protected:
@@ -45,7 +44,7 @@ class RHIBuffer
 
 struct BufferStateTransition
 {
-	RHIBuffer *buffer;
+	RHIBuffer       *buffer;
 	RHIResourceState src;
 	RHIResourceState dst;
 };

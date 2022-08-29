@@ -369,7 +369,7 @@ class RenderGraphBuilder
 		//		{
 		//			if (src_handle == write.handle)
 		//			{
-		//				if (write.type == RenderPassDesc::ResourceInfo::Type::Texture)
+		//				if (write.type == RenderResourceDesc::Type::Texture)
 		//				{
 		//					texture_states[i][dst_handle] = write.state;
 		//					texture_edges[dst_handle].push_back(src_handle);
@@ -382,7 +382,7 @@ class RenderGraphBuilder
 		//						texture_lifetime[dst_handle].second = i;
 		//					}
 		//				}
-		//				else if (write.type == RenderPassDesc::ResourceInfo::Type::Buffer)
+		//				else if (write.type == RenderResourceDesc::Type::Buffer)
 		//				{
 		//					buffer_states[i][dst_handle] = write.state;
 		//					buffer_edges[dst_handle].push_back(src_handle);
@@ -402,7 +402,7 @@ class RenderGraphBuilder
 		//		{
 		//			if (dst_handle == read.handle)
 		//			{
-		//				if (read.type == RenderPassDesc::ResourceInfo::Type::Texture)
+		//				if (read.type == RenderResourceDesc::Type::Texture)
 		//				{
 		//					texture_states[i][src_handle] = read.state;
 		//					texture_edges[src_handle].push_back(dst_handle);
@@ -416,7 +416,7 @@ class RenderGraphBuilder
 		//						texture_lifetime[src_handle].second = i;
 		//					}
 		//				}
-		//				else if (read.type == RenderPassDesc::ResourceInfo::Type::Buffer)
+		//				else if (read.type == RenderResourceDesc::Type::Buffer)
 		//				{
 		//					buffer_states[i][src_handle] = read.state;
 		//					buffer_edges[src_handle].push_back(dst_handle);

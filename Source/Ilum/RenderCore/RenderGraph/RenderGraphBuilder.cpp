@@ -20,7 +20,7 @@ bool RenderGraphBuilder::Validate(RenderGraphDesc &desc)
 				for (auto &[name, resource]:pass.resources)
 				{
 					if (!resource.handle.IsValid() && 
-						resource.attribute == RenderPassDesc::ResourceInfo::Attribute::Write)
+						resource.attribute == RenderResourceDesc::Attribute::Write)
 					{
 						LOG_ERROR("Pass <{}>'s output <{}> should be bound with a resource", pass.name, name);
 						return false;

@@ -50,6 +50,8 @@ target_link_libraries(${TARGET_NAME} PRIVATE nativefiledialog)
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Dependencies/FontAwesome")
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Ilum")
+target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 
+target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Precompile.hpp)
 set_target_properties(Editor PROPERTIES FOLDER Ilum)

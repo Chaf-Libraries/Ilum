@@ -23,11 +23,12 @@ struct RenderPassName
 
 inline const static RenderPassName *RenderPassNameList = nullptr;
 
-struct RGHandle
+REFLECTION_STRUCT RGHandle
 {
-	size_t handle = ~0U;
+	REFLECTION_PROPERTY()
+	size_t handle;
 
-	RGHandle() = default;
+	RGHandle();
 
 	RGHandle(size_t handle);
 
@@ -42,74 +43,71 @@ struct RGHandle
 	size_t GetHandle() const;
 };
 
-REFLECTION_CLASS_BEGIN(RGHandle)
-REFLECTION_CLASS_PROPERTY(handle)
-REFLECTION_CLASS_END()
-
-struct RenderPassDesc
+REFLECTION_STRUCT RenderResourceDesc
 {
-	struct ResourceInfo
+	enum class Type
 	{
-		enum class Type
-		{
-			Buffer,
-			Texture
-		} type;
-		enum class Attribute
-		{
-			Read,
-			Write
-		} attribute;
-		RHIResourceState state;
-		RGHandle         handle;
+		Buffer,
+		Texture
 	};
 
-	std::string   name;
-	rttr::variant config = rttr::type::get<void>().create();
+	enum class Attribute
+	{
+		Read,
+		Write
+	};
 
-	std::map<std::string, ResourceInfo> resources;
+	REFLECTION_PROPERTY()
+	Type type;
 
+	REFLECTION_PROPERTY()
+	Attribute attribute;
+
+	REFLECTION_PROPERTY()
+	RHIResourceState state;
+
+	REFLECTION_PROPERTY()
+	RGHandle handle;
+};
+
+REFLECTION_STRUCT RenderPassDesc
+{
+	REFLECTION_PROPERTY()
+	std::string name;
+
+	REFLECTION_PROPERTY()
+	rttr::variant config;
+
+	REFLECTION_PROPERTY()
+	std::map<std::string, RenderResourceDesc> resources;
+
+	REFLECTION_PROPERTY()
 	RGHandle prev_pass;
 
-	RenderPassDesc &Write(const std::string &name, ResourceInfo::Type type, RHIResourceState state)
+	RenderPassDesc &Write(const std::string &name, RenderResourceDesc::Type type, RHIResourceState state)
 	{
-		resources.emplace(name, ResourceInfo{type, ResourceInfo::Attribute::Write, state});
+		resources.emplace(name, RenderResourceDesc{type, RenderResourceDesc::Attribute::Write, state});
 		return *this;
 	}
 
-	RenderPassDesc &Read(const std::string &name, ResourceInfo::Type type, RHIResourceState state)
+	RenderPassDesc &Read(const std::string &name, RenderResourceDesc::Type type, RHIResourceState state)
 	{
-		resources.emplace(name, ResourceInfo{type, ResourceInfo::Attribute::Read, state});
+		resources.emplace(name, RenderResourceDesc{type, RenderResourceDesc::Attribute::Read, state});
 		return *this;
 	}
 };
 
-REFLECTION_CLASS_BEGIN(RenderPassDesc::ResourceInfo)
-REFLECTION_CLASS_PROPERTY(type)
-REFLECTION_CLASS_PROPERTY(attribute)
-REFLECTION_CLASS_PROPERTY(state)
-REFLECTION_CLASS_PROPERTY(handle)
-REFLECTION_CLASS_END()
-
-REFLECTION_CLASS_BEGIN(RenderPassDesc)
-REFLECTION_CLASS_PROPERTY(name)
-REFLECTION_CLASS_PROPERTY(config)
-REFLECTION_CLASS_PROPERTY(resources)
-REFLECTION_CLASS_PROPERTY(prev_pass)
-REFLECTION_CLASS_END()
-
-struct RenderGraphDesc
+REFLECTION_STRUCT RenderGraphDesc
 {
+	REFLECTION_PROPERTY()
 	std::map<RGHandle, RenderPassDesc> passes;
-	std::map<RGHandle, TextureDesc>    textures;
-	std::map<RGHandle, BufferDesc>     buffers;
-};
 
-REFLECTION_CLASS_BEGIN(RenderGraphDesc)
-REFLECTION_CLASS_PROPERTY(passes)
-REFLECTION_CLASS_PROPERTY(textures)
-REFLECTION_CLASS_PROPERTY(buffers)
-REFLECTION_CLASS_END()
+	REFLECTION_PROPERTY()
+	std::map<RGHandle, TextureDesc> textures;
+
+	REFLECTION_PROPERTY()
+	std::map<RGHandle, BufferDesc> buffers;
+};
 
 #define RENDER_PASS_REGISTERATION(Type)                                       \
 	namespace RenderPass::Registeration::_##Type                              \

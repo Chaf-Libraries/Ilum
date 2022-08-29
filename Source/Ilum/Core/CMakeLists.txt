@@ -51,5 +51,11 @@ target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 # target_compile_definitions(${TARGET_NAME} PRIVATE "-DPROJECT_SOURCE_DIR=\"${PROJECT_SOURCE_DIR}\"")
 
-target_precompile_headers(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Precompile.hpp)
+target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Precompile.hpp)
+
+add_custom_command(
+	TARGET ${TARGET_NAME} POST_BUILD 
+	COMMAND ${CMAKE_COMMAND} -E remove_directory ${PROJECT_SOURCE_DIR}/Source/_Generate
+)
+
 set_target_properties(Core PROPERTIES FOLDER Ilum)

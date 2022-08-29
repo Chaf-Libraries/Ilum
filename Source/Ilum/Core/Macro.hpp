@@ -51,6 +51,15 @@ using OutputSerializer = Ilum::TSerializer<cereal::XMLOutputArchive>;
 	TSerializer<OutputArchive>::GetInstance().RegisterType<decltype(TYPE)>(); \
 	TSerializer<InputArchive>::GetInstance().RegisterType<decltype(TYPE)>();
 
+#define SERIALIZER_DECLARATION(TYPE)\
+	template <class Archive>                                    \
+	void serialize(Archive &ar, TYPE &t)                        \
+	{                                                           \
+		rttr::variant var = t;                                  \
+		TSerializer<Archive>::GetInstance().Serialize(ar, var); \
+		t = var.convert<TYPE>();                                \
+	}                                                                    
+
 #define SERIALIZE(FILE, DATA, ...)                \
 	{                                             \
 		std::ofstream os(FILE, std::ios::binary); \
@@ -97,20 +106,12 @@ using OutputSerializer = Ilum::TSerializer<cereal::XMLOutputArchive>;
 	}                                                                       \
 	}
 
-#define REFLECTION_ENUM_BEGIN(TYPE)              \
-	namespace RTTR_REGISTRATION_NAMESPACE_##TYPE \
-	{                                            \
-		RTTR_REGISTRATION                        \
-		{                                        \
-using CURRENT_TYPE = TYPE;\
-rttr::registration::enumeration<TYPE>(#TYPE)(
+#define REFLECTION_ENUM enum class
 
-#define REFLECTION_ENUM_VALUE(VALUE) rttr::value(#VALUE, ##CURRENT_TYPE::##VALUE)
-
-#define REFLECTION_ENUM_END() \
-);                            \
-	}                         \
-	}
+#define REFLECTION_STRUCT struct
+#define REFLECTION_CLASS class
+#define REFLECTION_PROPERTY(...)
+#define REFLECTION_METHOD(...)
 
 #ifdef NDEBUG
 #	define ASSERT(x)

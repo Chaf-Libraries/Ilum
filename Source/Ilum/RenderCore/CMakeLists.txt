@@ -22,31 +22,19 @@ target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:
 
 target_link_libraries(${TARGET_NAME} PRIVATE Core)
 target_link_libraries(${TARGET_NAME} PRIVATE RHI)
-
-# target_link_libraries(${TARGET_NAME} PRIVATE glfw)
-# target_link_libraries(${TARGET_NAME} PUBLIC spdlog)
-# target_link_libraries(${TARGET_NAME} PUBLIC glm)
-# target_link_libraries(${TARGET_NAME} PUBLIC stb)
 target_link_libraries(${TARGET_NAME} PRIVATE glslang)
-
-# target_link_libraries(${TARGET_NAME} PRIVATE stb)
-# target_link_libraries(${TARGET_NAME} PRIVATE glslang)
  target_link_libraries(${TARGET_NAME} PRIVATE SPIRV)
  target_link_libraries(${TARGET_NAME} PRIVATE dxc)
  target_link_libraries(${TARGET_NAME} PRIVATE spirv-reflect-static)
-# target_link_libraries(${TARGET_NAME} PRIVATE spirv-cross-reflect)
-# target_link_libraries(${TARGET_NAME} PRIVATE spirv-cross-hlsl)
-# target_link_libraries(${TARGET_NAME} PRIVATE spirv-cross-glsl)
-# target_link_libraries(${TARGET_NAME} PRIVATE imgui)
-# target_link_libraries(${TARGET_NAME} PRIVATE imnode)
-# target_link_libraries(${TARGET_NAME} PRIVATE cereal)
-# target_link_libraries(${TARGET_NAME} PRIVATE ImFileDialog)
-# target_link_libraries(${TARGET_NAME} PRIVATE entt)
-# target_link_libraries(${TARGET_NAME} PRIVATE meshoptimizer)
-# target_link_libraries(${TARGET_NAME} PRIVATE ImGuizmo)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Ilum")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 
+add_custom_command(
+	TARGET ${TARGET_NAME} POST_BUILD 
+	COMMAND python ${PROJECT_SOURCE_DIR}/Scripts/Preprocess.py ${PROJECT_SOURCE_DIR}/Source/_Generate/${TARGET_NAME}_Generate.meta ${HEADER_FILES} ${SOURCE_FILES}
+)
+
+target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Precompile.hpp)
 set_target_properties(RenderCore PROPERTIES FOLDER Ilum)

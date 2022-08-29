@@ -5,6 +5,7 @@
 #include <ImGui/ImGuiHelper.hpp>
 #include <RenderCore/RenderGraph/RenderGraph.hpp>
 #include <Renderer/RenderPass.hpp>
+#include <_Generate/Generate.hpp>
 
 #include <imnodes.h>
 #pragma warning(push, 0)
@@ -222,11 +223,11 @@ void RenderGraphEditor::Tick()
 			// Draw pin
 			for (auto &[name, resource] : pass.resources)
 			{
-				if (resource.type == RenderPassDesc::ResourceInfo::Type::Texture)
+				if (resource.type == RenderResourceDesc::Type::Texture)
 				{
 					ImNodes::PushColorStyle(ImNodesCol_Pin, IM_COL32(125, 0, 0, 255));
 					ImNodes::PushColorStyle(ImNodesCol_PinHovered, IM_COL32(125, 0, 0, 255));
-					if (resource.attribute == RenderPassDesc::ResourceInfo::Attribute::Read)
+					if (resource.attribute == RenderResourceDesc::Attribute::Read)
 					{
 						ImNodes::BeginInputAttribute(GetPinID(&resource.handle, PassPinType::PassTexture));
 						ImGui::TextUnformatted(name.c_str());
@@ -255,7 +256,7 @@ void RenderGraphEditor::Tick()
 				{
 					ImNodes::PushColorStyle(ImNodesCol_Pin, IM_COL32(0, 125, 0, 255));
 					ImNodes::PushColorStyle(ImNodesCol_PinHovered, IM_COL32(0, 125, 0, 255));
-					if (resource.attribute == RenderPassDesc::ResourceInfo::Attribute::Read)
+					if (resource.attribute == RenderResourceDesc::Attribute::Read)
 					{
 						ImNodes::BeginInputAttribute(GetPinID(&resource.handle, PassPinType::PassBuffer));
 						ImGui::TextUnformatted(name.c_str());

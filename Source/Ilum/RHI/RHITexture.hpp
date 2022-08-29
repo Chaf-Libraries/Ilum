@@ -9,41 +9,54 @@ namespace Ilum
 {
 class RHIDevice;
 
-struct TextureDesc
+REFLECTION_STRUCT TextureDesc
 {
+	REFLECTION_PROPERTY(display = "fuck", min = "what")
 	std::string name;
 
+	REFLECTION_PROPERTY()
 	uint32_t width;
+
+	REFLECTION_PROPERTY()
 	uint32_t height;
+
+	REFLECTION_PROPERTY()
 	uint32_t depth;
+
+	REFLECTION_PROPERTY()
 	uint32_t mips;
+
+	REFLECTION_PROPERTY()
 	uint32_t layers;
+
+	REFLECTION_PROPERTY()
 	uint32_t samples;
 
-	RHIFormat       format;
+	REFLECTION_PROPERTY()
+	RHIFormat format;
+
+	REFLECTION_PROPERTY()
 	RHITextureUsage usage;
 };
 
-REFLECTION_CLASS_BEGIN(TextureDesc)
-REFLECTION_CLASS_PROPERTY(name)
-REFLECTION_CLASS_PROPERTY(width)
-REFLECTION_CLASS_PROPERTY(height)
-REFLECTION_CLASS_PROPERTY(depth)
-REFLECTION_CLASS_PROPERTY(mips)
-REFLECTION_CLASS_PROPERTY(layers)
-REFLECTION_CLASS_PROPERTY(samples)
-REFLECTION_CLASS_PROPERTY(format)
-REFLECTION_CLASS_PROPERTY(usage)
-REFLECTION_CLASS_END()
-
-struct TextureRange
+REFLECTION_STRUCT TextureRange
 {
+	REFLECTION_PROPERTY()
 	RHITextureDimension dimension;
-	uint32_t            base_mip;
-	uint32_t            mip_count;
-	uint32_t            base_layer;
-	uint32_t            layer_count;
 
+	REFLECTION_PROPERTY()
+	uint32_t base_mip;
+
+	REFLECTION_PROPERTY()
+	uint32_t mip_count;
+
+	REFLECTION_PROPERTY()
+	uint32_t base_layer;
+
+	REFLECTION_PROPERTY()
+	uint32_t layer_count;
+
+	REFLECTION_METHOD()
 	size_t Hash() const
 	{
 		size_t hash = 0;
@@ -51,14 +64,6 @@ struct TextureRange
 		return hash;
 	}
 };
-
-REFLECTION_CLASS_BEGIN(TextureRange)
-REFLECTION_CLASS_PROPERTY(dimension)
-REFLECTION_CLASS_PROPERTY(base_mip)
-REFLECTION_CLASS_PROPERTY(mip_count)
-REFLECTION_CLASS_PROPERTY(base_layer)
-REFLECTION_CLASS_PROPERTY(layer_count)
-REFLECTION_CLASS_END()
 
 class RHITexture
 {

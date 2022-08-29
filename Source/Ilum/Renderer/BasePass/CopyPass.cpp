@@ -8,8 +8,8 @@ RenderPassDesc CopyPass::CreateDesc()
 
 	desc.name = "CopyPass";
 	desc
-		.Read("Source", RenderPassDesc::ResourceInfo::Type::Texture, RHIResourceState::ShaderResource)
-		.Write("Target", RenderPassDesc::ResourceInfo::Type::Texture, RHIResourceState::RenderTarget);
+		.Read("Source", RenderResourceDesc::Type::Texture, RHIResourceState::ShaderResource)
+		.Write("Target", RenderResourceDesc::Type::Texture, RHIResourceState::RenderTarget);
 
 	return desc;
 }

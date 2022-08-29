@@ -8,8 +8,8 @@ RenderPassDesc VisibilityBufferPass::CreateDesc()
 
 	desc.name = "VisibilityBufferPass";
 	desc
-	    .Write("VisibilityBuffer", RenderPassDesc::ResourceInfo::Type::Texture, RHIResourceState::RenderTarget)
-	    .Write("DepthBuffer", RenderPassDesc::ResourceInfo::Type::Texture, RHIResourceState::RenderTarget);
+	    .Write("VisibilityBuffer", RenderResourceDesc::Type::Texture, RHIResourceState::RenderTarget)
+	    .Write("DepthBuffer", RenderResourceDesc::Type::Texture, RHIResourceState::RenderTarget);
 
 	desc.config = Config();
 

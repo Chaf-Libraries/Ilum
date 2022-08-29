@@ -2,6 +2,11 @@
 
 namespace Ilum
 {
+RGHandle::RGHandle() :
+    handle(~0U)
+{
+}
+
 RGHandle::RGHandle(size_t handle) :
     handle(handle)
 {
@@ -123,8 +128,8 @@ RenderGraph &RenderGraph::RegisterTexture(const std::vector<TextureCreateInfo> &
 	for (auto &info : create_infos)
 	{
 		TextureDesc desc = info.desc;
-		desc.usage       = desc.usage | RHITextureUsage::ShaderResource | RHITextureUsage::Transfer;
-		auto &texture    = m_textures.emplace_back(pool_texture->Alias(desc));
+		desc.usage |= RHITextureUsage::ShaderResource | RHITextureUsage::Transfer;
+		auto &texture = m_textures.emplace_back(pool_texture->Alias(desc));
 		m_texture_lookup.emplace(info.handle, texture.get());
 	}
 
