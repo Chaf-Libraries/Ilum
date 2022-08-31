@@ -19,7 +19,8 @@ enum class ShaderSource
 enum class ShaderTarget
 {
 	SPIRV,
-	DXIL
+	DXIL,
+	PTX
 };
 
 struct ShaderDesc

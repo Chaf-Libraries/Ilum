@@ -12,6 +12,7 @@ struct ShaderMeta
 {
 	struct Variable
 	{
+		uint32_t  spirv_id;
 		uint32_t location;
 		RHIFormat format;
 
@@ -24,6 +25,7 @@ struct ShaderMeta
 
 	struct Constant
 	{
+		uint32_t       spirv_id;
 		std::string    name;
 		uint32_t       size   = 0;
 		uint32_t       offset = 0;
@@ -50,6 +52,7 @@ struct ShaderMeta
 			AccelerationStructure
 		};
 
+		uint32_t       spirv_id;
 		std::string    name;
 		uint32_t       array_size;
 		uint32_t       set;

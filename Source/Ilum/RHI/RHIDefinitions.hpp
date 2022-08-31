@@ -1,5 +1,7 @@
 #pragma once
 
+#pragma warning(disable : 5030)
+
 namespace Ilum
 {
 #define DEFINE_ENUMCLASS_OPERATION(EnumClass)                   \

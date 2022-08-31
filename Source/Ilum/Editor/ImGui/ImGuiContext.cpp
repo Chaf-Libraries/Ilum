@@ -548,6 +548,7 @@ static void RHI_Render(ImDrawData *draw_data, WindowData *window_data = nullptr)
 
 				if (current_texture != pcmd->TextureId)
 				{
+					auto texture = static_cast<RHITexture *>(pcmd->TextureId);
 					gDescriptor->BindTexture("fontTexture", static_cast<RHITexture *>(pcmd->TextureId), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1});
 					cmd_buffer->BindDescriptor(gDescriptor);
 					cmd_buffer->BindPipelineState(gPipelineState);

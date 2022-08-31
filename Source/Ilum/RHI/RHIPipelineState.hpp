@@ -256,6 +256,7 @@ class RHIPipelineState
 	RHIPipelineState &SetVertexInputState(const VertexInputState &state);
 	RHIPipelineState &SetInputAssemblyState(const InputAssemblyState &state);
 
+	const RHIShader          *GetShader(RHIShaderStage stage) const;
 	const DepthStencilState  &GetDepthStencilState() const;
 	const BlendState         &GetBlendState() const;
 	const RasterizationState &GetRasterizationState() const;

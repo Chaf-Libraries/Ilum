@@ -51,8 +51,6 @@ ShaderMeta SpirvReflection::Reflect(const std::vector<uint8_t> &spirv)
 	SpvReflectShaderModule shader_module;
 	spvReflectCreateShaderModule(spirv.size(), spirv.data(), &shader_module);
 
-	shader_module.spirv_execution_model;
-
 	ShaderMeta meta_info = {};
 
 	// Descriptor
@@ -61,6 +59,7 @@ ShaderMeta SpirvReflection::Reflect(const std::vector<uint8_t> &spirv)
 		const auto &descriptor_binding = shader_module.descriptor_bindings[i];
 
 		meta_info.descriptors.push_back(ShaderMeta::Descriptor{
+			descriptor_binding.spirv_id,
 		    descriptor_binding.name,
 		    descriptor_binding.count,
 		    descriptor_binding.set,
@@ -85,6 +84,7 @@ ShaderMeta SpirvReflection::Reflect(const std::vector<uint8_t> &spirv)
 			auto member = shader_module.push_constant_blocks[i].members[j];
 
 			meta_info.constants.push_back(ShaderMeta::Constant{
+				member.spirv_id,
 			    member.name,
 			    member.size,
 			    member.absolute_offset,
@@ -105,6 +105,7 @@ ShaderMeta SpirvReflection::Reflect(const std::vector<uint8_t> &spirv)
 		for (uint32_t i = 0; i < shader_module.input_variable_count; i++)
 		{
 			meta_info.inputs.push_back(ShaderMeta::Variable{
+			    shader_module.input_variables[i]->spirv_id,
 			    shader_module.input_variables[i]->location,
 			    FormatMap[shader_module.input_variables[i]->format]
 			});
@@ -115,6 +116,7 @@ ShaderMeta SpirvReflection::Reflect(const std::vector<uint8_t> &spirv)
 		for (uint32_t i = 0; i < shader_module.output_variable_count; i++)
 		{
 			meta_info.outputs.push_back(ShaderMeta::Variable{
+			    shader_module.output_variables[i]->spirv_id,
 			    shader_module.output_variables[i]->location,
 			    FormatMap[shader_module.output_variables[i]->format]});
 		}

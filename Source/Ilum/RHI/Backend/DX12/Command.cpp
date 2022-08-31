@@ -64,7 +64,7 @@ void Command::SetScissor(uint32_t width, uint32_t height, int32_t offset_x, int3
 {
 }
 
-void Command::Dispatch(uint32_t group_x, uint32_t group_y, uint32_t group_z)
+void Command::Dispatch(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, uint32_t block_x, uint32_t block_y, uint32_t block_z)
 {
 }
 

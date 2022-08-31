@@ -1,6 +1,12 @@
 #include "RHICommand.hpp"
 
-#include "Backend/Vulkan/Command.hpp"
+#ifdef RHI_BACKEND_VULKAN
+#	include "Backend/Vulkan/Command.hpp"
+#elif defined RHI_BACKEND_DX12
+#	include "Backend/DX12/Command.hpp"
+#elif defined RHI_BACKEND_CUDA
+#	include "Backend/CUDA/Command.hpp"
+#endif        // RHI_BACKEND
 
 namespace Ilum
 {
@@ -22,7 +28,13 @@ void RHICommand::Init()
 
 std::unique_ptr<RHICommand> RHICommand::Create(RHIDevice *device, RHIQueueFamily family)
 {
+#ifdef RHI_BACKEND_VULKAN
 	return std::make_unique<Vulkan::Command>(device, family);
+#elif defined RHI_BACKEND_DX12
+	return std::make_unique<DX12::Command>(device, family);
+#elif defined RHI_BACKEND_CUDA
+	return std::make_unique<CUDA::Command>(device, family);
+#endif        // RHI_BACKEND
 }
 
 }        // namespace Ilum

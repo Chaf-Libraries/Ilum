@@ -4,6 +4,8 @@
 #	include "Backend/Vulkan/Queue.hpp"
 #elif defined RHI_BACKEND_DX12
 #	include "Backend/DX12/Queue.hpp"
+#elif defined RHI_BACKEND_CUDA
+#	include "Backend/CUDA/Queue.hpp"
 #endif        // RHI_BACKEND
 
 namespace Ilum
@@ -19,6 +21,8 @@ std::unique_ptr<RHIQueue> RHIQueue::Create(RHIDevice *device, RHIQueueFamily fam
 	return std::make_unique<Vulkan::Queue>(device, family, queue_index);
 #elif defined RHI_BACKEND_DX12
 	return std::make_unique<DX12::Queue>(device, family, queue_index);
+#elif defined RHI_BACKEND_CUDA
+	return std::make_unique<CUDA::Queue>(device, family, queue_index);
 #else
 	return nullptr;
 #endif        // RHI_BACKEND

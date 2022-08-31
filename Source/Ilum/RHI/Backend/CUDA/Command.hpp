@@ -2,27 +2,19 @@
 
 #include "RHI/RHICommand.hpp"
 
-#include <vector>
-
-#include <d3d12.h>
-#include <dxgi1_6.h>
-#include <wrl.h>
-
-using Microsoft::WRL::ComPtr;
-
-namespace Ilum::DX12
+namespace Ilum::CUDA
 {
 class Command : public RHICommand
 {
   public:
 	Command(RHIDevice *device, RHIQueueFamily family);
 
-	virtual ~Command() override;
+	virtual ~Command() = default;
 
 	virtual void Begin() override;
 	virtual void End() override;
 
-	virtual void BeginMarker(const std::string &name, float r, float g, float b, float a) override;
+	virtual void BeginMarker(const std::string &name, float r = 1.f, float g = 1.f, float b = 1.f, float a = 1.f) override;
 	virtual void EndMarker() override;
 
 	virtual void BeginRenderPass(RHIRenderTarget *render_target) override;
@@ -39,13 +31,21 @@ class Command : public RHICommand
 
 	// Drawcall
 	virtual void Dispatch(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, uint32_t block_x, uint32_t block_y, uint32_t block_z) override;
-	virtual void Draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance) override;
-	virtual void DrawIndexed(uint32_t index_count, uint32_t instance_count, uint32_t first_index, uint32_t vertex_offset, uint32_t first_instance) override;
+	virtual void Draw(uint32_t vertex_count, uint32_t instance_count = 1, uint32_t first_vertex = 0, uint32_t first_instance = 0) override;
+	virtual void DrawIndexed(uint32_t index_count, uint32_t instance_count = 1, uint32_t first_index = 0, uint32_t vertex_offset = 0, uint32_t first_instance = 0) override;
 
-	// Resource
+	// Resource Copy
+	virtual void CopyBufferToTexture(RHIBuffer *src_buffer, RHITexture *dst_texture, uint32_t mip_level, uint32_t base_layer, uint32_t layer_count) override;
+
+	// Resource Barrier
 	virtual void ResourceStateTransition(const std::vector<TextureStateTransition> &texture_transitions, const std::vector<BufferStateTransition> &buffer_transitions) override;
 
+	void Execute();
+
   private:
-	ComPtr<ID3D12GraphicsCommandList6> m_handle = nullptr;
+	RHIDescriptor    *p_descriptor     = nullptr;
+	RHIPipelineState *p_pipeline_state = nullptr;
+
+	std::vector<std::function<void()>> m_calls;
 };
-}        // namespace Ilum::DX12
+}        // namespace Ilum::CUDA

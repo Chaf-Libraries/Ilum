@@ -233,9 +233,9 @@ void Command::SetScissor(uint32_t width, uint32_t height, int32_t offset_x, int3
 	vkCmdSetScissor(m_handle, 0, 1, &rect);
 }
 
-void Command::Dispatch(uint32_t group_x, uint32_t group_y, uint32_t group_z)
+void Command::Dispatch(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, uint32_t block_x, uint32_t block_y, uint32_t block_z)
 {
-	vkCmdDispatch(m_handle, group_x, group_y, group_z);
+	vkCmdDispatch(m_handle, (thread_x + block_x - 1) / block_x, (thread_y + block_y - 1) / block_y, (thread_z + block_z - 1) / block_z);
 }
 
 void Command::Draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance)

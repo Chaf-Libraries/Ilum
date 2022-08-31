@@ -26,14 +26,22 @@ target_link_libraries(${TARGET_NAME} PRIVATE glslang)
  target_link_libraries(${TARGET_NAME} PRIVATE SPIRV)
  target_link_libraries(${TARGET_NAME} PRIVATE dxc)
  target_link_libraries(${TARGET_NAME} PRIVATE spirv-reflect-static)
+ target_link_libraries(${TARGET_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/Source/Dependencies/slang/bin/windows-x64/release/slang.lib)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Ilum")
+target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Dependencies/slang")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 
 add_custom_command(
 	TARGET ${TARGET_NAME} POST_BUILD 
 	COMMAND python ${PROJECT_SOURCE_DIR}/Scripts/Preprocess.py ${PROJECT_SOURCE_DIR}/Source/_Generate/${TARGET_NAME}_Generate.meta ${HEADER_FILES} ${SOURCE_FILES}
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PROJECT_SOURCE_DIR}/Source/Dependencies/dxc/bin/x64/dxil.dll"
+        "${PROJECT_SOURCE_DIR}/bin"
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PROJECT_SOURCE_DIR}/Source/Dependencies/slang/bin/windows-x64/release/slang.dll"
+        "${PROJECT_SOURCE_DIR}/bin"
 )
 
 target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Precompile.hpp)

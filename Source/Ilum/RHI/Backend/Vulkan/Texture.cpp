@@ -226,9 +226,11 @@ VkImageView Texture::GetView(const TextureRange &range) const
 
 	if (!m_desc.name.empty())
 	{
+		std::string name = fmt::format("{} - View {}", m_desc.name, std::to_string(hash));
+
 		VkDebugUtilsObjectNameInfoEXT info = {};
 		info.sType                         = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
-		info.pObjectName                   = fmt::format("{} - View {}", m_desc.name, std::to_string(hash)).c_str();
+		info.pObjectName                   = name.c_str();
 		info.objectHandle                  = (uint64_t) m_view_cache[hash];
 		info.objectType                    = VK_OBJECT_TYPE_IMAGE_VIEW;
 		static_cast<Device *>(p_device)->SetVulkanObjectName(info);

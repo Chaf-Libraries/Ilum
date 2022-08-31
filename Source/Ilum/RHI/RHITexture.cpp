@@ -4,6 +4,8 @@
 #	include "Backend/Vulkan/Texture.hpp"
 #elif defined RHI_BACKEND_DX12
 #	include "Backend/DX12/Texture.hpp"
+#elif defined RHI_BACKEND_CUDA
+#	include "Backend/CUDA/Texture.hpp"
 #endif        // RHI_BACKEND
 
 namespace Ilum
@@ -29,6 +31,8 @@ std::unique_ptr<RHITexture> RHITexture::Create(RHIDevice *device, const TextureD
 	return std::make_unique<Vulkan::Texture>(device, desc);
 #elif defined RHI_BACKEND_DX12
 	return std::make_unique<DX12::Texture>(device, desc);
+#elif defined RHI_BACKEND_CUDA
+	return std::make_unique<CUDA::Texture>(device, desc);
 #endif
 	return nullptr;
 }

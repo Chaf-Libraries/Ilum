@@ -9,7 +9,8 @@ namespace Ilum
 class RHIDevice
 {
   public:
-	RHIDevice()          = default;
+	RHIDevice() = default;
+
 	virtual ~RHIDevice() = default;
 
 	static std::unique_ptr<RHIDevice> Create();

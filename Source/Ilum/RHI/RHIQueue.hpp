@@ -15,6 +15,7 @@ class RHIQueue
 {
   public:
 	RHIQueue(RHIDevice *device, RHIQueueFamily family, uint32_t queue_index = 0);
+
 	virtual ~RHIQueue() = default;
 
 	static std::unique_ptr<RHIQueue> Create(RHIDevice *device, RHIQueueFamily family, uint32_t queue_index = 0);

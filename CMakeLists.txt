@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 project(IlumEngine VERSION 0.0.1)
 message(STATUS "[Project] ${PROJECT_NAME} ${PROJECT_VERSION}")
 
+enable_language(CXX)
+enable_language(CUDA)
+
 set(CMAKE_DEBUG_POSTFIX d)
 
 set(CMAKE_CXX_STANDARD 17)

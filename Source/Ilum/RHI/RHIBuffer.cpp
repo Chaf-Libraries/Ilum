@@ -4,6 +4,8 @@
 #	include "Backend/Vulkan/Buffer.hpp"
 #elif defined RHI_BACKEND_DX12
 #	include "Backend/DX12/Buffer.hpp"
+#elif defined RHI_BACKEND_CUDA
+#include "Backend/CUDA/Buffer.hpp"
 #endif        // RHI_BACKEND
 
 namespace Ilum
@@ -19,6 +21,8 @@ std::unique_ptr<RHIBuffer> RHIBuffer::Create(RHIDevice *device, const BufferDesc
 	return std::make_unique<Vulkan::Buffer>(device, desc);
 #elif defined RHI_BACKEND_DX12
 	return std::make_unique<DX12::Buffer>(device, desc);
+#elif defined RHI_BACKEND_CUDA
+	return std::make_unique<CUDA::Buffer>(device, desc);
 #endif
 	return nullptr;
 }

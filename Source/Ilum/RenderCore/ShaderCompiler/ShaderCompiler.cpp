@@ -11,6 +11,8 @@
 #include <atlbase.h>
 #include <dxcapi.h>
 
+#include <slang.h>
+
 #include <sstream>
 
 namespace glslang
@@ -128,6 +130,7 @@ namespace Ilum
 static CComPtr<IDxcUtils>          DXCUtils              = nullptr;
 static CComPtr<IDxcCompiler3>      DXCCompiler           = nullptr;
 static CComPtr<IDxcIncludeHandler> DefaultIncludeHandler = nullptr;
+static SlangSession               *Session               = nullptr;
 
 std::wstring to_wstring(const std::string &str)
 {
@@ -523,6 +526,36 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::DXIL>(const
 	return dxil;
 }
 
+template <>
+std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::PTX>(const std::string &code, RHIShaderStage stage, const std::string &entry_point, const std::vector<std::string> &macros)
+{
+	SlangCompileRequest *request = spCreateCompileRequest(Session);
+
+	spSetCodeGenTarget(request, SLANG_CUDA_SOURCE);
+
+	int translationUnitIndex = spAddTranslationUnit(request, SLANG_SOURCE_LANGUAGE_HLSL, "");
+	spAddTranslationUnitSourceString(request, translationUnitIndex, nullptr, code.c_str());
+	int entryPointIndex = spAddEntryPoint(request, translationUnitIndex, entry_point.c_str(), SLANG_STAGE_COMPUTE);
+
+	int anyErrors = spCompile(request);
+
+	if (anyErrors > 0)
+	{
+		char const *diagnostics = spGetDiagnosticOutput(request);
+		LOG_INFO("Shader Compile Error: {}", diagnostics);
+		return {};
+	}
+
+	std::string ptx_str = spGetEntryPointSource(request, entryPointIndex);
+
+	spDestroyCompileRequest(request);
+
+	std::vector<uint8_t> ptx(ptx_str.size());
+	std::memcpy(ptx.data(), ptx_str.data(), ptx_str.size());
+
+	return ptx;
+}
+
 ShaderCompiler::ShaderCompiler()
 {
 	// Init glslang
@@ -532,11 +565,17 @@ ShaderCompiler::ShaderCompiler()
 	DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&DXCUtils));
 	DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&DXCCompiler));
 	DXCUtils->CreateDefaultIncludeHandler(&DefaultIncludeHandler);
+
+	// Init slang
+	Session = spCreateSession(NULL);
 }
 
 ShaderCompiler::~ShaderCompiler()
 {
 	glslang::FinalizeProcess();
+
+	spDestroySession(Session);
+	Session = nullptr;
 }
 
 std::vector<uint8_t> ShaderCompiler::Compile(const ShaderDesc &desc, ShaderMeta &meta)
@@ -567,6 +606,17 @@ std::vector<uint8_t> ShaderCompiler::Compile(const ShaderDesc &desc, ShaderMeta 
 		else
 		{
 			return CompileShader<ShaderSource::HLSL, ShaderTarget::DXIL>(desc.code, desc.stage, desc.entry_point, desc.macros);
+		}
+	}
+	else if (desc.target == ShaderTarget::PTX)
+	{
+		if (desc.source == ShaderSource::GLSL)
+		{
+			return CompileShader<ShaderSource::GLSL, ShaderTarget::PTX>(desc.code, desc.stage, desc.entry_point, desc.macros);
+		}
+		else
+		{
+			return CompileShader<ShaderSource::HLSL, ShaderTarget::PTX>(desc.code, desc.stage, desc.entry_point, desc.macros);
 		}
 	}
 
