@@ -183,7 +183,7 @@ Swapchain::Swapchain(RHIDevice *device, void *window_handle, uint32_t width, uin
 
 		if (queue_family_properties[i].queueCount > 0 && present_support)
 		{
-			present_family   = i;
+			present_family = i;
 			break;
 		}
 	}
@@ -274,7 +274,7 @@ void Swapchain::Resize(uint32_t width, uint32_t height)
 {
 	p_device->WaitIdle();
 
-	m_width = width;
+	m_width  = width;
 	m_height = height;
 
 	VkSwapchainCreateInfoKHR createInfo = {};
@@ -286,7 +286,7 @@ void Swapchain::Resize(uint32_t width, uint32_t height)
 	createInfo.imageColorSpace  = m_surface_format.colorSpace;
 	createInfo.imageExtent      = VkExtent2D{width, height};
 	createInfo.imageArrayLayers = 1;
-	createInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	createInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
 
 	uint32_t queueFamilyIndices[] = {static_cast<Device *>(p_device)->GetQueueFamily(m_present_queue->GetQueueFamily())};
 
@@ -313,7 +313,7 @@ void Swapchain::Resize(uint32_t width, uint32_t height)
 
 		// TODO: Maybe different format?
 		desc.format = RHIFormat::B8G8R8A8_UNORM;
-		desc.usage  = RHITextureUsage::RenderTarget;
+		desc.usage  = RHITextureUsage::RenderTarget | RHITextureUsage::UnorderedAccess;
 
 		uint32_t m_image_count = 0;
 

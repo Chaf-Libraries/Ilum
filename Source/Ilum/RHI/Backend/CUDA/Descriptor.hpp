@@ -25,6 +25,7 @@ class Descriptor : public RHIDescriptor
 	std::vector<uint8_t> &GetParamData();
 
   private:
+	std::map<std::string, size_t> m_resource_type;
 	std::map<std::string, size_t> m_resource_offsets;
 	std::map<std::string, size_t> m_resource_sizes;
 	std::vector<uint8_t>          m_param_data;

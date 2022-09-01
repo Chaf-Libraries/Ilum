@@ -20,6 +20,12 @@ REFLECTION_STRUCT BufferDesc
 	RHIMemoryUsage memory;
 
 	REFLECTION_PROPERTY()
+	size_t stride;
+
+	REFLECTION_PROPERTY()
+	size_t count;
+
+	REFLECTION_PROPERTY()
 	size_t size;
 };
 
@@ -32,6 +38,22 @@ class RHIBuffer
 	static std::unique_ptr<RHIBuffer> Create(RHIDevice *device, const BufferDesc &desc);
 
 	const BufferDesc &GetDesc() const;
+
+	virtual void CopyToDevice(void *data, size_t size, size_t offset = 0) = 0;
+
+	template <typename T>
+	void CopyToDevice(T *data, size_t offset = 0)
+	{
+		CopyToDevice(data, sizeof(T), offset);
+	}
+
+	virtual void CopyToHost(void *data, size_t size, size_t offset) = 0;
+
+	template <typename T>
+	void CopyToHost(T *data, size_t offset = 0)
+	{
+		CopyToHost(data, sizeof(T), offset);
+	}
 
 	virtual void *Map()                             = 0;
 	virtual void  Unmap()                           = 0;

@@ -11,7 +11,11 @@ class Buffer : public RHIBuffer
 
 	virtual ~Buffer() override;
 
-	virtual void *Map() override;
+	virtual void CopyToDevice(void *data, size_t size, size_t offset = 0) override;
+
+	virtual void CopyToHost(void *data, size_t size, size_t offset) override;
+
+	virtual void* Map() override;
 
 	virtual void Unmap() override;
 

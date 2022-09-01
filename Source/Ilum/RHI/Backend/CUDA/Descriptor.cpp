@@ -7,21 +7,26 @@ namespace Ilum::CUDA
 Descriptor::Descriptor(RHIDevice *device, const ShaderMeta &meta) :
     RHIDescriptor(device, meta)
 {
-	std::map<std::string, size_t> resource_orders;
+	std::map<size_t, std::string> resource_orders;
 
 	for (auto &constant : meta.constants)
 	{
-		resource_orders[constant.name]  = constant.spirv_id;
-		m_resource_sizes[constant.name] = constant.size;
+		resource_orders[constant.spirv_id] = constant.name;
+		m_resource_sizes[constant.name]    = constant.size;
 	}
 	for (auto &descriptor : meta.descriptors)
 	{
-		resource_orders[descriptor.name]  = descriptor.spirv_id;
-		m_resource_sizes[descriptor.name] = sizeof(void *);
+		resource_orders[descriptor.spirv_id] = descriptor.name;
+		m_resource_sizes[descriptor.name]    = sizeof(void *);
+		if (descriptor.type == ShaderMeta::Descriptor::Type::StructuredBuffer)
+		{
+			m_resource_sizes[descriptor.name] += sizeof(size_t);
+		}
+		m_resource_type[descriptor.name] = (size_t) descriptor.type;
 	}
 
 	size_t offset = 0;
-	for (auto &[name, spirv_id] : resource_orders)
+	for (auto &[spirv_id, name] : resource_orders)
 	{
 		m_resource_offsets[name] = offset;
 		offset += m_resource_sizes[name];
@@ -32,6 +37,18 @@ Descriptor::Descriptor(RHIDevice *device, const ShaderMeta &meta) :
 
 RHIDescriptor &Descriptor::BindTexture(const std::string &name, RHITexture *texture, RHITextureDimension dimension)
 {
+	size_t   offset         = m_resource_offsets[name];
+	uint64_t texture_handle = 0;
+	if (m_resource_type[name] == (size_t) ShaderMeta::Descriptor::Type::TextureUAV)
+	{
+		texture_handle = static_cast<Texture *>(texture)->GetSurfaceHandle();
+	}
+	else if (m_resource_type[name] == (size_t) ShaderMeta::Descriptor::Type::TextureSRV)
+	{
+		texture_handle = static_cast<Texture *>(texture)->GetTextureHandle();
+	}
+
+	std::memcpy(m_param_data.data() + offset, &texture_handle, sizeof(texture_handle));
 	return *this;
 }
 
@@ -58,8 +75,13 @@ RHIDescriptor &Descriptor::BindSampler(const std::string &name, const std::vecto
 RHIDescriptor &Descriptor::BindBuffer(const std::string &name, RHIBuffer *buffer)
 {
 	size_t offset        = m_resource_offsets[name];
+	size_t stride        = static_cast<Buffer *>(buffer)->GetDesc().stride;
 	void  *buffer_handle = static_cast<Buffer *>(buffer)->GetHandle();
-	std::memcpy(m_param_data.data(), &buffer_handle, sizeof(buffer_handle));
+	std::memcpy(m_param_data.data() + offset, &buffer_handle, sizeof(buffer_handle));
+	if (m_resource_type[name] == (size_t)ShaderMeta::Descriptor::Type::StructuredBuffer)
+	{
+		std::memcpy(m_param_data.data() + offset + sizeof(buffer_handle), &stride, sizeof(stride));
+	}
 	return *this;
 }
 

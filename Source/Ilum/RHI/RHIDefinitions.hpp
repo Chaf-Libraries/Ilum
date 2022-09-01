@@ -21,7 +21,8 @@ namespace Ilum
 enum class [[Backend]] RHIBackend{
     Unknown,
     Vulkan,
-    DX12};
+    DX12,
+    CUDA};
 
 enum class RHIShaderStage
 {

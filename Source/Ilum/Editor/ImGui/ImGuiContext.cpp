@@ -136,28 +136,28 @@ ImGuiContext::ImGuiContext(RHIContext *context, Window *window) :
 
 	ShaderDesc vertex_shader_desc  = {};
 	vertex_shader_desc.entry_point = "VSmain";
-	vertex_shader_desc.stage       = Ilum::RHIShaderStage::Vertex;
-	vertex_shader_desc.source      = Ilum::ShaderSource::HLSL;
-	vertex_shader_desc.target      = Ilum::ShaderTarget::SPIRV;
+	vertex_shader_desc.stage       = RHIShaderStage::Vertex;
+	vertex_shader_desc.source      = ShaderSource::HLSL;
+	vertex_shader_desc.target      = ShaderTarget::SPIRV;
 	vertex_shader_desc.code        = shader_source;
 
 	ShaderDesc fragment_shader_desc  = {};
 	fragment_shader_desc.entry_point = "PSmain";
-	fragment_shader_desc.stage       = Ilum::RHIShaderStage::Fragment;
-	fragment_shader_desc.source      = Ilum::ShaderSource::HLSL;
-	fragment_shader_desc.target      = Ilum::ShaderTarget::SPIRV;
+	fragment_shader_desc.stage       = RHIShaderStage::Fragment;
+	fragment_shader_desc.source      = ShaderSource::HLSL;
+	fragment_shader_desc.target      = ShaderTarget::SPIRV;
 	fragment_shader_desc.code        = shader_source;
 
-	Ilum::ShaderMeta vertex_meta   = {};
-	Ilum::ShaderMeta fragment_meta = {};
+	ShaderMeta vertex_meta   = {};
+	ShaderMeta fragment_meta = {};
 
-	auto vertex_shader_spirv   = Ilum::ShaderCompiler::GetInstance().Compile(vertex_shader_desc, vertex_meta);
-	auto fragment_shader_spirv = Ilum::ShaderCompiler::GetInstance().Compile(fragment_shader_desc, fragment_meta);
+	auto vertex_shader_spirv   = ShaderCompiler::GetInstance().Compile(vertex_shader_desc, vertex_meta);
+	auto fragment_shader_spirv = ShaderCompiler::GetInstance().Compile(fragment_shader_desc, fragment_meta);
 
 	m_vertex_shader   = p_context->CreateShader("VSmain", vertex_shader_spirv);
 	m_fragment_shader = p_context->CreateShader("PSmain", fragment_shader_spirv);
 
-	Ilum::ShaderMeta shader_meta = vertex_meta;
+	ShaderMeta shader_meta = vertex_meta;
 	shader_meta += fragment_meta;
 
 	m_descriptor = p_context->CreateDescriptor(shader_meta);
@@ -484,12 +484,12 @@ static void RHI_Render(ImDrawData *draw_data, WindowData *window_data = nullptr)
 
 	cmd_buffer->Begin();
 
-	cmd_buffer->ResourceStateTransition({Ilum::TextureStateTransition{
+	cmd_buffer->ResourceStateTransition({TextureStateTransition{
 	                                        swapchain->GetCurrentTexture(),
-	                                        Ilum::RHIResourceState::Present,
-	                                        Ilum::RHIResourceState::RenderTarget,
-	                                        Ilum::TextureRange{
-	                                            Ilum::RHITextureDimension::Texture2D,
+	                                        RHIResourceState::Present,
+	                                        RHIResourceState::RenderTarget,
+	                                        TextureRange{
+	                                            RHITextureDimension::Texture2D,
 	                                            0, 1, 0, 1}}},
 	                                    {});
 
@@ -564,12 +564,12 @@ static void RHI_Render(ImDrawData *draw_data, WindowData *window_data = nullptr)
 
 	cmd_buffer->EndRenderPass();
 
-	cmd_buffer->ResourceStateTransition({Ilum::TextureStateTransition{
+	cmd_buffer->ResourceStateTransition({TextureStateTransition{
 	                                        swapchain->GetCurrentTexture(),
-	                                        Ilum::RHIResourceState::RenderTarget,
-	                                        Ilum::RHIResourceState::Present,
-	                                        Ilum::TextureRange{
-	                                            Ilum::RHITextureDimension::Texture2D,
+	                                        RHIResourceState::RenderTarget,
+	                                        RHIResourceState::Present,
+	                                        TextureRange{
+	                                            RHITextureDimension::Texture2D,
 	                                            0, 1, 0, 1}}},
 	                                    {});
 
@@ -596,7 +596,7 @@ static void ImGuiWindowCreate(ImGuiViewport *viewport)
 #endif        // _WIN32
 	    static_cast<uint32_t>(viewport->Size.x),
 	    static_cast<uint32_t>(viewport->Size.y),
-		false);
+	    false);
 
 	window->viewport_data = std::make_unique<ViewportResources>(gContext->GetDevice());
 

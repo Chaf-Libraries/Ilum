@@ -27,6 +27,8 @@ target_link_libraries(${TARGET_NAME} PRIVATE vma)
 target_link_libraries(${TARGET_NAME} PRIVATE D3D12MemoryAllocator)
 target_link_libraries(${TARGET_NAME} PRIVATE cuda.lib)
 target_link_libraries(${TARGET_NAME} PRIVATE cudart.lib)
+target_link_libraries(${TARGET_NAME} PRIVATE glad)
+target_link_libraries(${TARGET_NAME} PRIVATE opengl32.lib)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Ilum")

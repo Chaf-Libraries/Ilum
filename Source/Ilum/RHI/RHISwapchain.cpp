@@ -33,7 +33,7 @@ std::unique_ptr<RHISwapchain> RHISwapchain::Create(RHIDevice *device, void *wind
 #elif defined RHI_BACKEND_DX12
 	return std::make_unique<DX12::Swapchain>(device, window_handle, width, height, vsync);
 #elif defined RHI_BACKEND_CUDA
-	return std::make_unique<CUDA::Swapchain>(device, width, height, vsync);
+	return std::make_unique<CUDA::Swapchain>(device, window_handle, width, height, vsync);
 #else
 	return nullptr;
 #endif

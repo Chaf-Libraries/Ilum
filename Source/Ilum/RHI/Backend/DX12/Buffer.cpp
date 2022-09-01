@@ -49,6 +49,8 @@ BufferState BufferState::Create(RHIResourceState state)
 Buffer::Buffer(RHIDevice *device, const BufferDesc &desc) :
     RHIBuffer(device, desc)
 {
+	m_desc.size = m_desc.size == 0 ? m_desc.stride * m_desc.count : m_desc.size;
+
 	D3D12_RESOURCE_DESC d3d12_desc = {};
 	d3d12_desc.Dimension           = D3D12_RESOURCE_DIMENSION_UNKNOWN;
 	d3d12_desc.Alignment           = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
@@ -78,6 +80,18 @@ Buffer ::~Buffer()
 		m_allocation->Release();
 		m_allocation = nullptr;
 	}
+}
+
+void Buffer::CopyToDevice(void *data, size_t size, size_t offset)
+{
+	void *mapped = Map();
+	std::memcpy((uint8_t *) mapped + offset, data, size);
+}
+
+void Buffer::CopyToHost(void *data, size_t size, size_t offset)
+{
+	void *mapped = Map();
+	std::memcpy(data, (uint8_t *) mapped + offset, size);
 }
 
 void *Buffer::Map()

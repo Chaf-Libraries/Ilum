@@ -38,6 +38,19 @@ class RHIContext
 	std::unique_ptr<RHIBuffer> CreateBuffer(const BufferDesc &desc);
 	std::unique_ptr<RHIBuffer>  CreateBuffer(size_t size, RHIBufferUsage usage, RHIMemoryUsage memory);
 
+	template<typename T>
+	std::unique_ptr<RHIBuffer> CreateBuffer(size_t count, RHIBufferUsage usage, RHIMemoryUsage memory)
+	{
+		BufferDesc desc = {};
+		desc.count      = count;
+		desc.stride     = sizeof(T);
+		desc.usage      = usage;
+		desc.memory     = memory;
+		desc.size       = desc.count * desc.stride;
+
+		return CreateBuffer(desc);
+	}
+
 	// Create Sampler
 	std::unique_ptr<RHISampler> CreateSampler(const SamplerDesc &desc);
 

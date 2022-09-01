@@ -12,7 +12,8 @@ RHIContext::RHIContext(Window *window) :
 	LOG_INFO("RHI Backend: DX12");
 #endif        // RHI_BACKEND
 
-	m_device    = RHIDevice::Create();
+	m_device = RHIDevice::Create();
+
 	m_swapchain = RHISwapchain::Create(m_device.get(), p_window->GetNativeHandle(), p_window->GetWidth(), p_window->GetHeight(), false);
 
 	m_graphics_queue = RHIQueue::Create(m_device.get(), RHIQueueFamily::Graphics);
@@ -50,6 +51,8 @@ RHIBackend RHIContext::GetBackend() const
 	return RHIBackend::Vulkan;
 #elif RHI_BACKEND_DX12
 	return RHIBackend::DX12;
+#elif RHI_BACKEND_CUDA
+	return RHIBackend::CUDA;
 #endif        // RHI_BACKEND
 
 	return RHIBackend::Unknown;

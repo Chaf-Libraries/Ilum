@@ -27,13 +27,20 @@ class Buffer : public RHIBuffer
 {
   public:
 	Buffer(RHIDevice *device, const BufferDesc &desc);
+
 	virtual ~Buffer() override;
 
-	virtual void *Map() override;
-	virtual void  Unmap() override;
-	virtual void  Flush(size_t offset, size_t size) override;
+	virtual void CopyToDevice(void *data, size_t size, size_t offset = 0) override;
 
-	ID3D12Resource* GetHandle();
+	virtual void CopyToHost(void *data, size_t size, size_t offset) override;
+
+	virtual void *Map() override;
+
+	virtual void Unmap() override;
+
+	virtual void Flush(size_t offset, size_t size) override;
+
+	ID3D12Resource *GetHandle();
 
   private:
 	ComPtr<ID3D12Resource> m_handle     = nullptr;

@@ -94,15 +94,66 @@ cudaChannelFormatDesc GetCUDAChannelFormatDesc(RHIFormat format)
 Texture::Texture(RHIDevice *device, const TextureDesc &desc) :
     RHITexture(device, desc)
 {
+	cudaChannelFormatDesc channel_format_desc = GetCUDAChannelFormatDesc(desc.format);
+	cudaMallocArray(&m_array, &channel_format_desc, desc.width, desc.height);
 
+	cudaResourceDesc res_desc = {};
+	std::memset(&res_desc, 0, sizeof(res_desc));
+	res_desc.resType         = cudaResourceTypeArray;
+	res_desc.res.array.array = m_array;
+
+	cudaTextureDesc tex_desc;
+	memset(&tex_desc, 0, sizeof(tex_desc));
+	tex_desc.addressMode[0]   = cudaAddressModeWrap;
+	tex_desc.addressMode[1]   = cudaAddressModeWrap;
+	tex_desc.filterMode       = cudaFilterModeLinear;
+	tex_desc.readMode         = cudaReadModeElementType;
+	tex_desc.normalizedCoords = 1;
+
+	cudaCreateTextureObject(&m_texture_handle, &res_desc, &tex_desc, NULL);
+
+	cudaCreateSurfaceObject(&m_surface_handle, &res_desc);
+}
+
+Texture::Texture(RHIDevice *device, cudaArray_t cuda_array, const TextureDesc &desc) :
+    RHITexture(device, desc), m_array(cuda_array), m_is_backbuffer(true)
+{
+	cudaResourceDesc res_desc = {};
+	std::memset(&res_desc, 0, sizeof(res_desc));
+	res_desc.resType         = cudaResourceTypeArray;
+	res_desc.res.array.array = m_array;
+
+	cudaTextureDesc tex_desc;
+	memset(&tex_desc, 0, sizeof(tex_desc));
+	tex_desc.addressMode[0]   = cudaAddressModeWrap;
+	tex_desc.addressMode[1]   = cudaAddressModeWrap;
+	tex_desc.filterMode       = cudaFilterModeLinear;
+	tex_desc.readMode         = cudaReadModeElementType;
+	tex_desc.normalizedCoords = 1;
+
+	cudaCreateTextureObject(&m_texture_handle, &res_desc, &tex_desc, NULL);
+
+	cudaCreateSurfaceObject(&m_surface_handle, &res_desc);
 }
 
 Texture::~Texture()
 {
+	cudaDestroySurfaceObject(m_surface_handle);
+	cudaDestroyTextureObject(m_texture_handle);
+
+	if (!m_is_backbuffer)
+	{
+		cudaFreeArray(m_array);
+	}
 }
 
-uint64_t Texture::GetHandle() const
+uint64_t Texture::GetSurfaceHandle() const
 {
-	return m_handle;
+	return m_surface_handle;
+}
+
+uint64_t Texture::GetTextureHandle() const
+{
+	return m_texture_handle;
 }
 }        // namespace Ilum::CUDA

@@ -2,6 +2,7 @@
 #include "Descriptor.hpp"
 #include "PipelineState.hpp"
 #include "Shader.hpp"
+#include "Texture.hpp"
 
 namespace Ilum::CUDA
 {

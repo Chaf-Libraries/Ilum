@@ -19,17 +19,9 @@ class Renderer
 
 	RenderGraph *GetRenderGraph() const;
 
-	// Temp
-	RHITexture *GetTexture();
-
   private:
-	RHIContext                  *p_rhi_context  = nullptr;
-	std::unique_ptr<RenderGraph> m_render_graph = nullptr;
+	RHIContext *p_rhi_context = nullptr;
 
-	std::unique_ptr<RHIShader>        m_shader         = nullptr;
-	std::unique_ptr<RHIDescriptor>    m_descriptor     = nullptr;
-	std::unique_ptr<RHIPipelineState> m_pipeline_state = nullptr;
-	std::unique_ptr<RHITexture>       m_texture        = nullptr;
-	std::unique_ptr<RHIBuffer>        m_buffer         = nullptr;
+	std::unique_ptr<RenderGraph> m_render_graph = nullptr;
 };
 }        // namespace Ilum

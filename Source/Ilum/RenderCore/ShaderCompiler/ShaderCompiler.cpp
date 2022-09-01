@@ -531,7 +531,7 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::PTX>(const 
 {
 	SlangCompileRequest *request = spCreateCompileRequest(Session);
 
-	spSetCodeGenTarget(request, SLANG_CUDA_SOURCE);
+	spSetCodeGenTarget(request, SLANG_PTX);
 
 	int translationUnitIndex = spAddTranslationUnit(request, SLANG_SOURCE_LANGUAGE_HLSL, "");
 	spAddTranslationUnitSourceString(request, translationUnitIndex, nullptr, code.c_str());

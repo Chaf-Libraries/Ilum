@@ -57,6 +57,8 @@ BufferState BufferState::Create(RHIResourceState state)
 Buffer::Buffer(RHIDevice *device, const BufferDesc &desc) :
     RHIBuffer(device, desc)
 {
+	m_desc.size = m_desc.size == 0 ? m_desc.stride * m_desc.count : m_desc.size;
+
 	VkBufferCreateInfo buffer_create_info = {};
 	buffer_create_info.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	buffer_create_info.size               = desc.size;
@@ -102,6 +104,18 @@ Buffer::~Buffer()
 		vkDeviceWaitIdle(static_cast<Device *>(p_device)->GetDevice());
 		vmaDestroyBuffer(static_cast<Device *>(p_device)->GetAllocator(), m_handle, m_allocation);
 	}
+}
+
+void Buffer::CopyToDevice(void *data, size_t size, size_t offset)
+{
+	void *mapped = Map();
+	std::memcpy((uint8_t *) mapped + offset, data, size);
+}
+
+void Buffer::CopyToHost(void *data, size_t size, size_t offset)
+{
+	void *mapped = Map();
+	std::memcpy(data, (uint8_t *) mapped + offset, size);
 }
 
 void *Buffer::Map()

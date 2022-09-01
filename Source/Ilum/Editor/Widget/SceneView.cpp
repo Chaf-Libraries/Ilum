@@ -20,7 +20,6 @@ void SceneView::Tick()
 {
 	ImGui::Begin(m_name.c_str());
 
-	ImGui::Image(p_editor->GetRenderer()->GetTexture(), ImGui::GetContentRegionAvail());
 
 	ImGui::End();
 }
