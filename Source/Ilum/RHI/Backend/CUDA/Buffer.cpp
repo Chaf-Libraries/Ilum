@@ -60,4 +60,4 @@ uint64_t Buffer::GetDeviceAddress() const
 {
 	return (uint64_t) m_handle;
 }
-}        // namespace Ilum::CUDA
+}        // namespace Ilum

@@ -68,10 +68,10 @@ struct FLOAT
 {
     float data;
 };
+ConstantBuffer<FLOAT> Time : register(b3);
 
 RWTexture2D<float4> Tex : register(u1);
 ConstantBuffer<UINT2> TexSize : register(b2);
-ConstantBuffer<FLOAT> Time : register(b3);
 
 //RWTexture2D<float4> Tex : register(u1);
 //RWStructuredBuffer<float2> VarY : register(u1);

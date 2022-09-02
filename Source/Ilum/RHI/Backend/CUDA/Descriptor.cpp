@@ -18,7 +18,7 @@ Descriptor::Descriptor(RHIDevice *device, const ShaderMeta &meta) :
 	{
 		resource_orders[descriptor.spirv_id] = descriptor.name;
 		m_resource_sizes[descriptor.name]    = sizeof(void *);
-		if (descriptor.type == ShaderMeta::Descriptor::Type::StructuredBuffer)
+		if (descriptor.type == DescriptorType::StructuredBuffer)
 		{
 			m_resource_sizes[descriptor.name] += sizeof(size_t);
 		}
@@ -39,11 +39,11 @@ RHIDescriptor &Descriptor::BindTexture(const std::string &name, RHITexture *text
 {
 	size_t   offset         = m_resource_offsets[name];
 	uint64_t texture_handle = 0;
-	if (m_resource_type[name] == (size_t) ShaderMeta::Descriptor::Type::TextureUAV)
+	if (m_resource_type[name] == (size_t) DescriptorType::TextureUAV)
 	{
 		texture_handle = static_cast<Texture *>(texture)->GetSurfaceHandle();
 	}
-	else if (m_resource_type[name] == (size_t) ShaderMeta::Descriptor::Type::TextureSRV)
+	else if (m_resource_type[name] == (size_t) DescriptorType::TextureSRV)
 	{
 		texture_handle = static_cast<Texture *>(texture)->GetTextureHandle();
 	}
@@ -78,7 +78,7 @@ RHIDescriptor &Descriptor::BindBuffer(const std::string &name, RHIBuffer *buffer
 	size_t stride        = static_cast<Buffer *>(buffer)->GetDesc().stride;
 	void  *buffer_handle = static_cast<Buffer *>(buffer)->GetHandle();
 	std::memcpy(m_param_data.data() + offset, &buffer_handle, sizeof(buffer_handle));
-	if (m_resource_type[name] == (size_t)ShaderMeta::Descriptor::Type::StructuredBuffer)
+	if (m_resource_type[name] == (size_t)DescriptorType::StructuredBuffer)
 	{
 		std::memcpy(m_param_data.data() + offset + sizeof(buffer_handle), &stride, sizeof(stride));
 	}

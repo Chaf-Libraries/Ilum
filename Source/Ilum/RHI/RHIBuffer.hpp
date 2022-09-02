@@ -8,25 +8,14 @@ namespace Ilum
 {
 class RHIDevice;
 
-REFLECTION_STRUCT BufferDesc
+struct BufferDesc
 {
-	REFLECTION_PROPERTY()
-	std::string name;
-
-	REFLECTION_PROPERTY()
+	std::string    name;
 	RHIBufferUsage usage;
-
-	REFLECTION_PROPERTY()
 	RHIMemoryUsage memory;
-
-	REFLECTION_PROPERTY()
-	size_t stride;
-
-	REFLECTION_PROPERTY()
-	size_t count;
-
-	REFLECTION_PROPERTY()
-	size_t size;
+	size_t         size;
+	size_t         stride;
+	size_t         count;
 };
 
 class RHIBuffer

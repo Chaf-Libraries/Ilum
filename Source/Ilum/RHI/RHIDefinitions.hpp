@@ -18,7 +18,7 @@ namespace Ilum
 		return lhs = lhs | rhs;                                 \
 	}
 
-enum class [[Backend]] RHIBackend{
+enum class RHIBackend{
     Unknown,
     Vulkan,
     DX12,
@@ -318,10 +318,4 @@ enum class RHIStoreAction
 	DontCare,
 	Store
 };
-
-namespace Fuck1
-{
-
-}
-
 }        // namespace Ilum

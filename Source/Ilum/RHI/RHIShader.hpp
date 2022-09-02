@@ -8,12 +8,22 @@ namespace Ilum
 {
 class RHIDevice;
 
+enum class DescriptorType
+{
+	Sampler,
+	TextureSRV,
+	TextureUAV,
+	ConstantBuffer,
+	StructuredBuffer,
+	AccelerationStructure
+};
+
 struct ShaderMeta
 {
 	struct Variable
 	{
 		uint32_t  spirv_id;
-		uint32_t location;
+		uint32_t  location;
 		RHIFormat format;
 
 		inline bool operator==(const Variable &other)
@@ -42,22 +52,12 @@ struct ShaderMeta
 
 	struct Descriptor
 	{
-		enum class Type
-		{
-			Sampler,
-			TextureSRV,
-			TextureUAV,
-			ConstantBuffer,
-			StructuredBuffer,
-			AccelerationStructure
-		};
-
 		uint32_t       spirv_id;
 		std::string    name;
 		uint32_t       array_size;
 		uint32_t       set;
 		uint32_t       binding;
-		Type           type;
+		DescriptorType type;
 		RHIShaderStage stage;
 
 		inline bool operator==(const Descriptor &other)
@@ -105,11 +105,11 @@ struct ShaderMeta
 			}
 		}
 
-		for (auto& input : rhs.inputs)
+		for (auto &input : rhs.inputs)
 		{
 			inputs.push_back(input);
 		}
-		for (auto& output : rhs.outputs)
+		for (auto &output : rhs.outputs)
 		{
 			outputs.push_back(output);
 		}
@@ -128,7 +128,7 @@ struct ShaderMeta
 class RHIShader
 {
   public:
-	RHIShader(RHIDevice *device, const std::string& entry_point, const std::vector<uint8_t> &source);
+	RHIShader(RHIDevice *device, const std::string &entry_point, const std::vector<uint8_t> &source);
 
 	virtual ~RHIShader() = default;
 
@@ -137,7 +137,7 @@ class RHIShader
 	const std::string &GetEntryPoint() const;
 
   protected:
-	RHIDevice *p_device = nullptr;
+	RHIDevice  *p_device = nullptr;
 	std::string m_entry_point;
 };
 }        // namespace Ilum

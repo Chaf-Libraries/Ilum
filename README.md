@@ -4,7 +4,44 @@
 
 Ilum Graphics Playground, name after *Planet Ilum* from [star wars]()
 
-Dependencies
+## TODO List
+
+- [ ] RHI
+  - [x] Vulkan
+  - [ ] DirectX12
+  - [x] CUDA
+  - [ ] OpenGL
+- [ ] RenderCore
+  - [x] Shader Compiler
+    - Source: GLSL/HLSL
+    - Target: SPIRV/DXIL/PTX
+  - [x] Shader Reflection: SPIRV reflection
+  - [ ] Render Graph
+    - [ ] Static Compilation
+    - [ ] Auto Barrier Insert
+    - [ ] Texture Memory Aliasing
+  - [ ] Material Graph
+- [ ] Scene Manager
+  - [ ] Entity Component System
+  - [ ] Asset Manager
+  - [ ] Model Importer
+    - [ ] .gltf
+    - [ ] .obj
+    - [ ] .fbx
+
+## Feature
+
+### Multiple Graphics/GPU Computation API Backend Support
+
+![](./Doc/Img/RHI.png)
+
+### Cross Platform Shader Compilation
+
+![](./Doc/Img/shader.png)
+
+### Dynamic Reflection & ANTLR C++ Parsing Registeration
+
+## Dependencies
 
 * [ImFileDialog](https://github.com/dfranx/ImFileDialog)
 * [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo)
@@ -24,7 +61,6 @@ Dependencies
 * [oneTBB](https://github.com/oneapi-src/oneTBB)
 * [meshoptimizer](https://github.com/zeux/meshoptimizer)
 * [spdlog](https://github.com/gabime/spdlog)
-* [SDL](https://github.com/libsdl-org/SDL)
 * [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross)
 
 ## Reference

@@ -40,9 +40,9 @@ void Engine::Tick()
 			m_renderer->Tick();
 
 			// Render UI
-			//m_editor->PreTick();
-			//m_editor->Tick();
-			//m_editor->PostTick();
+			m_editor->PreTick();
+			m_editor->Tick();
+			m_editor->PostTick();
 
 			m_rhi_context->EndFrame();
 		}

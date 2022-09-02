@@ -13,13 +13,13 @@ inline static std::unordered_map<size_t, VkDescriptorSet> DescriptorSet;
 
 inline static size_t DescriptorCount = 0;
 
-inline static std::unordered_map<ShaderMeta::Descriptor::Type, VkDescriptorType> DescriptorTypeMap = {
-    {ShaderMeta::Descriptor::Type::Sampler, VK_DESCRIPTOR_TYPE_SAMPLER},
-    {ShaderMeta::Descriptor::Type::TextureSRV, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE},
-    {ShaderMeta::Descriptor::Type::TextureUAV, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE},
-    {ShaderMeta::Descriptor::Type::ConstantBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER},
-    {ShaderMeta::Descriptor::Type::StructuredBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER},
-    {ShaderMeta::Descriptor::Type::AccelerationStructure, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR},
+inline static std::unordered_map<DescriptorType, VkDescriptorType> DescriptorTypeMap = {
+    {DescriptorType::Sampler, VK_DESCRIPTOR_TYPE_SAMPLER},
+    {DescriptorType::TextureSRV, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE},
+    {DescriptorType::TextureUAV, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE},
+    {DescriptorType::ConstantBuffer, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER},
+    {DescriptorType::StructuredBuffer, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER},
+    {DescriptorType::AccelerationStructure, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR},
 };
 
 Descriptor::Descriptor(RHIDevice *device, const ShaderMeta &meta) :
@@ -69,20 +69,20 @@ Descriptor::Descriptor(RHIDevice *device, const ShaderMeta &meta) :
 
 		switch (descriptor.type)
 		{
-			case ShaderMeta::Descriptor::Type::TextureSRV:
+			case DescriptorType::TextureSRV:
 				m_texture_resolves.emplace(descriptor.name, TextureResolve{descriptor.set, descriptor.binding, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
 				break;
-			case ShaderMeta::Descriptor::Type::TextureUAV:
+			case DescriptorType::TextureUAV:
 				m_texture_resolves.emplace(descriptor.name, TextureResolve{descriptor.set, descriptor.binding, VK_IMAGE_LAYOUT_GENERAL});
 				break;
-			case ShaderMeta::Descriptor::Type::Sampler:
+			case DescriptorType::Sampler:
 				m_texture_resolves.emplace(descriptor.name, TextureResolve{descriptor.set, descriptor.binding});
 				break;
-			case ShaderMeta::Descriptor::Type::ConstantBuffer:
-			case ShaderMeta::Descriptor::Type::StructuredBuffer:
+			case DescriptorType::ConstantBuffer:
+			case DescriptorType::StructuredBuffer:
 				m_buffer_resolves.emplace(descriptor.name, BufferResolve{descriptor.set, descriptor.binding});
 				break;
-			case ShaderMeta::Descriptor::Type::AccelerationStructure:
+			case DescriptorType::AccelerationStructure:
 				m_acceleration_structure_resolves.emplace(descriptor.name, AccelerationStructureResolve{descriptor.set, descriptor.binding});
 				break;
 			default:
@@ -355,8 +355,8 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 					buffer_infos.push_back({});
 
 					// Handle Texture
-					if (descriptor.type == ShaderMeta::Descriptor::Type::TextureSRV ||
-					    descriptor.type == ShaderMeta::Descriptor::Type::TextureUAV)
+					if (descriptor.type == DescriptorType::TextureSRV ||
+					    descriptor.type == DescriptorType::TextureUAV)
 					{
 						is_texture = true;
 						for (auto &view : m_texture_resolves[descriptor.name].views)
@@ -370,7 +370,7 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 					}
 
 					// Handle Sampler
-					if (descriptor.type == ShaderMeta::Descriptor::Type::Sampler)
+					if (descriptor.type == DescriptorType::Sampler)
 					{
 						is_texture = true;
 						for (auto &sampler : m_texture_resolves[descriptor.name].samplers)
@@ -384,8 +384,8 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 					}
 
 					// Handle Buffer
-					if (descriptor.type == ShaderMeta::Descriptor::Type::ConstantBuffer ||
-					    descriptor.type == ShaderMeta::Descriptor::Type::StructuredBuffer)
+					if (descriptor.type == DescriptorType::ConstantBuffer ||
+					    descriptor.type == DescriptorType::StructuredBuffer)
 					{
 						is_buffer = true;
 						for (uint32_t i = 0; i < m_buffer_resolves[descriptor.name].buffers.size(); i++)

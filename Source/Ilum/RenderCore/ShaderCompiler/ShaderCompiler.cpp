@@ -299,8 +299,11 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(cons
 {
 	DxcBuffer                 dxc_buffer    = {};
 	CComPtr<IDxcBlobEncoding> blob_encoding = nullptr;
+
+	std::string shader_code = std::string(code.c_str());
+
 	{
-		if (FAILED(DXCUtils->CreateBlobFromPinned(code.c_str(), static_cast<uint32_t>(code.size()), CP_UTF8, &blob_encoding)))
+		if (FAILED(DXCUtils->CreateBlobFromPinned(shader_code.data(), static_cast<uint32_t>(shader_code.size()), CP_UTF8, &blob_encoding)))
 		{
 			LOG_ERROR("Failed to load shader source.");
 			return {};
@@ -418,8 +421,11 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::DXIL>(const
 {
 	DxcBuffer                 dxc_buffer    = {};
 	CComPtr<IDxcBlobEncoding> blob_encoding = nullptr;
+
+	std::string shader_code = std::string(code.c_str());
+
 	{
-		if (FAILED(DXCUtils->CreateBlobFromPinned(code.c_str(), static_cast<uint32_t>(code.size()), CP_UTF8, &blob_encoding)))
+		if (FAILED(DXCUtils->CreateBlobFromPinned(shader_code.c_str(), static_cast<uint32_t>(shader_code.size()), CP_UTF8, &blob_encoding)))
 		{
 			LOG_ERROR("Failed to load shader source.");
 			return {};
@@ -582,6 +588,7 @@ std::vector<uint8_t> ShaderCompiler::Compile(const ShaderDesc &desc, ShaderMeta 
 {
 	// Compile to SPIRV
 	std::vector<uint8_t> spirv;
+
 	if (desc.source == ShaderSource::GLSL)
 	{
 		spirv = CompileShader<ShaderSource::GLSL, ShaderTarget::SPIRV>(desc.code, desc.stage, desc.entry_point, desc.macros);

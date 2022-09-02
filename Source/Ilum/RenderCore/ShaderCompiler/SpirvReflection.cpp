@@ -21,13 +21,13 @@ inline static std::unordered_map<SpvReflectShaderStageFlagBits, RHIShaderStage> 
     {SPV_REFLECT_SHADER_STAGE_CALLABLE_BIT_KHR, RHIShaderStage::Callable},
 };
 
-inline static std::unordered_map<SpvReflectDescriptorType, ShaderMeta::Descriptor::Type> DescriptorTypeMap = {
-    {SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER, ShaderMeta::Descriptor::Type::Sampler},
-    {SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE, ShaderMeta::Descriptor::Type::TextureSRV},
-    {SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE, ShaderMeta::Descriptor::Type::TextureUAV},
-    {SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER, ShaderMeta::Descriptor::Type::ConstantBuffer},
-    {SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER, ShaderMeta::Descriptor::Type::StructuredBuffer},
-    {SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, ShaderMeta::Descriptor::Type::AccelerationStructure},
+inline static std::unordered_map<SpvReflectDescriptorType, DescriptorType> DescriptorTypeMap = {
+    {SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER, DescriptorType::Sampler},
+    {SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE, DescriptorType::TextureSRV},
+    {SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE, DescriptorType::TextureUAV},
+    {SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER, DescriptorType::ConstantBuffer},
+    {SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER, DescriptorType::StructuredBuffer},
+    {SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, DescriptorType::AccelerationStructure},
 };
 
 inline static std::unordered_map<SpvReflectFormat, RHIFormat> FormatMap = {

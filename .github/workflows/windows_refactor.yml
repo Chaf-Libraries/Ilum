@@ -28,4 +28,4 @@ jobs:
           submodules: "recursive"
 
       - name: Build
-        run: ./Build_VS2022_Vulkan.bat
+        run: ./Build_VS2022.bat

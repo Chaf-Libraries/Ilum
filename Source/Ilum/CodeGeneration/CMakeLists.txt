@@ -3,6 +3,8 @@ set(TARGET_NAME CodeGeneration)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+set(CMAKE_DEBUG_POSTFIX )
+
 file(GLOB_RECURSE HEADER_FILES "*.hpp" "*.h")
 file(GLOB_RECURSE SOURCE_FILES "*.cpp" "*.c")
 
@@ -22,6 +24,7 @@ target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:
 
 target_link_libraries(${TARGET_NAME} PRIVATE ANTLR_Runtime)
 target_link_libraries(${TARGET_NAME} PRIVATE ANTLR_CPP14Parser)
+target_link_libraries(${TARGET_NAME} PRIVATE spdlog)
 
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 

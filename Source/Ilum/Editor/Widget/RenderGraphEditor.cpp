@@ -7,6 +7,7 @@
 #include <RenderCore/RenderGraph/RenderGraphBuilder.hpp>
 #include <Renderer/Renderer.hpp>
 #include <_Generate/Generate.hpp>
+#include <Meta/RHI_MetaInfo.hpp>
 
 #include <imnodes.h>
 #pragma warning(push, 0)
@@ -613,6 +614,7 @@ bool RenderGraphEditor::ValidLink(ResourcePinType resource, PassPinType pass)
 		default:
 			break;
 	}
+
 	return false;
 }
 }        // namespace Ilum

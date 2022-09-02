@@ -133,6 +133,7 @@ ImGuiContext::ImGuiContext(RHIContext *context, Window *window) :
 	std::string shader_source;
 	shader_source.resize(raw_shader.size());
 	std::memcpy(shader_source.data(), raw_shader.data(), raw_shader.size());
+	shader_source += "\n";
 
 	ShaderDesc vertex_shader_desc  = {};
 	vertex_shader_desc.entry_point = "VSmain";

@@ -9,54 +9,27 @@ namespace Ilum
 {
 class RHIDevice;
 
-REFLECTION_STRUCT TextureDesc
+struct TextureDesc
 {
-	REFLECTION_PROPERTY(display = "fuck", min = "what")
 	std::string name;
-
-	REFLECTION_PROPERTY()
 	uint32_t width;
-
-	REFLECTION_PROPERTY()
 	uint32_t height;
-
-	REFLECTION_PROPERTY()
 	uint32_t depth;
-
-	REFLECTION_PROPERTY()
 	uint32_t mips;
-
-	REFLECTION_PROPERTY()
 	uint32_t layers;
-
-	REFLECTION_PROPERTY()
 	uint32_t samples;
-
-	REFLECTION_PROPERTY()
 	RHIFormat format;
-
-	REFLECTION_PROPERTY()
 	RHITextureUsage usage;
 };
 
-REFLECTION_STRUCT TextureRange
+struct TextureRange
 {
-	REFLECTION_PROPERTY()
 	RHITextureDimension dimension;
-
-	REFLECTION_PROPERTY()
 	uint32_t base_mip;
-
-	REFLECTION_PROPERTY()
 	uint32_t mip_count;
-
-	REFLECTION_PROPERTY()
 	uint32_t base_layer;
-
-	REFLECTION_PROPERTY()
 	uint32_t layer_count;
 
-	REFLECTION_METHOD()
 	size_t Hash() const
 	{
 		size_t hash = 0;
