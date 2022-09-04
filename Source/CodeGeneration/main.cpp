@@ -16,7 +16,7 @@ using namespace Ilum;
 
 int main(int argc, const char *argv[])
 {
-	std::vector<Meta::MetaType> meta_types;
+	std::vector<Meta::TypeMeta> meta_types;
 	std::vector<std::string>    headers;
 
 	for (int32_t i = 2; i < argc; i++)

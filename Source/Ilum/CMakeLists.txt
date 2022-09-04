@@ -1,4 +1,3 @@
-add_subdirectory(CodeGeneration)
 add_subdirectory(Core)
 add_subdirectory(RHI)
 add_subdirectory(RenderCore)

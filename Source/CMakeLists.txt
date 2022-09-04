@@ -1,3 +1,4 @@
 add_subdirectory(Dependencies)
+add_subdirectory(CodeGeneration)
 add_subdirectory(Ilum)
 add_subdirectory(Shaders)

@@ -46,7 +46,7 @@ file(GLOB REFLECTION_FILES "*.hpp")
 
 add_custom_command(
 	TARGET ${TARGET_NAME} POST_BUILD 
-	COMMAND ${PROJECT_SOURCE_DIR}/bin/CodeGeneration.exe ${PROJECT_SOURCE_DIR}/Source/Ilum/Meta/RHI_MetaInfo.hpp ${REFLECTION_FILES}
+	COMMAND ${PROJECT_SOURCE_DIR}/bin/CodeGeneration.exe ${PROJECT_SOURCE_DIR}/Source/CodeGeneration/Meta/RHI_MetaInfo.hpp ${REFLECTION_FILES}
 )
 
 target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Precompile.hpp)
