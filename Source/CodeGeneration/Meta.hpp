@@ -3,7 +3,9 @@
 #include <string>
 #include <vector>
 
-namespace Ilum::Meta
+namespace Ilum
+{
+namespace Meta
 {
 struct Attribute
 {
@@ -54,7 +56,20 @@ struct Field
 	std::string                initializer;        // expression or {expression}
 	std::vector<Parameter>     parameters;
 	std::vector<std::string>   qualifiers;        // const, volatile, &, &&
-	bool                       is_template{false};
+	bool                       is_template  = false;
+
+	bool IsStaticConstexprVariable() const;
+	bool IsMemberFunction() const;
+	bool IsFriendFunction() const;
+	bool IsDeleteFunction() const;
+	std::string GenerateParameterTypeList() const;
+	std::string GenerateParameterTypeList(size_t num) const;
+	std::string GenerateReturnType() const;
+
+	bool IsConstructor() const;
+	bool IsPureVirtual() const;
+	bool NoReflection() const;
+	bool NoSerialization() const;
 };
 
 struct Base
@@ -82,5 +97,16 @@ struct TypeMeta
 	std::string              name;
 	std::vector<Base>        bases;
 	std::vector<Field>       fields;
+
+	bool IsTemplateType() const;
+	std::string GenerateName() const;
+	std::string GenerateFullName() const;
+	std::string GenerateTemplateList() const;
+	bool        NoReflection() const;
+	bool        NoSerialization() const;
+	bool        IsPureVirtual() const;
+	bool        HasConstructor() const;
+	bool        IsOverload(const std::string& name) const;
 };
-}        // namespace Ilum::Meta
+}        // namespace Meta
+}        // namespace Ilum

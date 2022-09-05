@@ -50,7 +50,7 @@ RHIRenderTarget &RenderTarget::Add(RHITexture *texture, const TextureRange &rang
 	attachment_info.storeOp                   = ToVulkanStoreOp[attachment.store];
 	attachment_info.imageView                 = static_cast<Texture *>(texture)->GetView(range);
 	attachment_info.imageLayout               = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	std::memcpy(attachment_info.clearValue.color.float32, attachment.clear_value, 4 * sizeof(float));
+	std::memcpy(attachment_info.clearValue.color.float32, attachment.clear_value.data(), 4 * sizeof(float));
 
 	HashCombine(m_hash, attachment_info.loadOp, attachment_info.storeOp, attachment_info.imageView, attachment_info.imageLayout);
 

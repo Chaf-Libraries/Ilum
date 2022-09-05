@@ -6,8 +6,8 @@
 #include <RenderCore/RenderGraph/RenderGraph.hpp>
 #include <RenderCore/RenderGraph/RenderGraphBuilder.hpp>
 #include <Renderer/Renderer.hpp>
-#include <_Generate/Generate.hpp>
-#include <Meta/RHI_MetaInfo.hpp>
+#include <CodeGeneration/Meta/RHIMeta.hpp>
+#include <CodeGeneration/Meta/RenderCoreMeta.hpp>
 
 #include <imnodes.h>
 #pragma warning(push, 0)

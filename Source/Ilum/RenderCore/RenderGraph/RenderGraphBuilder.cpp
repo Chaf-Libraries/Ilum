@@ -2,6 +2,16 @@
 
 namespace Ilum
 {
+RenderGraphBuilder::RenderGraphBuilder(RHIContext *rhi_context) :
+    p_rhi_context(rhi_context)
+{
+}
+
+RenderGraphBuilder &RenderGraphBuilder::AddPass(const std::string &name, std::function<void(RenderGraph &, RHICommand *)> &&task)
+{
+	return *this;
+}
+
 bool RenderGraphBuilder::Validate(RenderGraphDesc &desc)
 {
 	// Culling unused pass
@@ -94,5 +104,9 @@ bool RenderGraphBuilder::Validate(RenderGraphDesc &desc)
 	}
 
 	return true;
+}
+std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile()
+{
+	return nullptr;
 }
 }        // namespace Ilum

@@ -4,7 +4,7 @@ namespace Ilum
 {
 class Window;
 class RHIContext;
-class ImGuiContext;
+class GuiContext;
 class Widget;
 class Renderer;
 
@@ -26,7 +26,7 @@ class Editor
 	RHIContext *GetRHIContext() const;
 
   private:
-	std::unique_ptr<ImGuiContext> m_imgui_context = nullptr;
+	std::unique_ptr<GuiContext> m_imgui_context = nullptr;
 
 	RHIContext *p_rhi_context = nullptr;
 	Renderer *p_renderer = nullptr;

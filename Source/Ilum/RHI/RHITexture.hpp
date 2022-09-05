@@ -43,7 +43,7 @@ class RHITexture
   public:
 	RHITexture(RHIDevice *device, const TextureDesc &desc);
 
-	virtual ~RHITexture() = default;
+	virtual  ~RHITexture() = default;
 
 	const TextureDesc &GetDesc() const;
 

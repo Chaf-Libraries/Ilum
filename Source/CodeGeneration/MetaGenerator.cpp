@@ -37,6 +37,11 @@ struct DeclSpecifierSeq
 	std::vector<Meta::Attribute>     attributes;
 };
 
+TreeShapeVisitor::TreeShapeVisitor(const std::string_view &code) :
+    m_code(code)
+{
+}
+
 const std::vector<Meta::TypeMeta> &TreeShapeVisitor::GetTypeMeta() const
 {
 	return m_type_metas;
@@ -49,10 +54,10 @@ std::string TreeShapeVisitor::GetTextPro(antlr4::ParserRuleContext *ctx) const
 	    m_code.begin() + ctx->getStop()->getStopIndex() + 1};
 }
 
-antlrcpp::Any TreeShapeVisitor::visitChildren(antlr4::tree::ParseTree *node)
+std::any TreeShapeVisitor::visitChildren(antlr4::tree::ParseTree *node)
 {
-	antlrcpp::Any result = defaultResult();
-	std::size_t   n      = node->children.size();
+	std::any    result = defaultResult();
+	std::size_t n      = node->children.size();
 	for (std::size_t i = 0; i < n; i++)
 	{
 		if (!shouldVisitNextChild(node, result))
@@ -66,12 +71,12 @@ antlrcpp::Any TreeShapeVisitor::visitChildren(antlr4::tree::ParseTree *node)
 	return result;
 }
 
-antlrcpp::Any TreeShapeVisitor::visitAttributeSpecifierSeq(CPP14Parser::AttributeSpecifierSeqContext *ctx)
+std::any TreeShapeVisitor::visitAttributeSpecifierSeq(CPP14Parser::AttributeSpecifierSeqContext *ctx)
 {
 	std::vector<Meta::Attribute> attributes;
 	for (auto *ctx_attribute_specifier : ctx->attributeSpecifier())
 	{
-		std::vector<Meta::Attribute> partial_attributes = visit(ctx_attribute_specifier);
+		std::vector<Meta::Attribute> partial_attributes = std::any_cast<std::vector<Meta::Attribute>>(visit(ctx_attribute_specifier));
 		for (auto &attribute : partial_attributes)
 		{
 			attributes.push_back(std::move(attribute));
@@ -80,7 +85,7 @@ antlrcpp::Any TreeShapeVisitor::visitAttributeSpecifierSeq(CPP14Parser::Attribut
 	return attributes;
 }
 
-antlrcpp::Any TreeShapeVisitor::visitAttributeSpecifier(CPP14Parser::AttributeSpecifierContext *ctx)
+std::any TreeShapeVisitor::visitAttributeSpecifier(CPP14Parser::AttributeSpecifierContext *ctx)
 {
 	std::vector<Meta::Attribute> attributes;
 
@@ -88,23 +93,15 @@ antlrcpp::Any TreeShapeVisitor::visitAttributeSpecifier(CPP14Parser::AttributeSp
 	{
 		for (auto *ctx_attribute : ctx->attributeList()->attribute())
 		{
-			Meta::Attribute attribute = visit(ctx_attribute);
+			Meta::Attribute attribute = std::any_cast<Meta::Attribute>(visit(ctx_attribute));
 			attributes.push_back(std::move(attribute));
-		}
-		if (ctx->attributeNamespace())
-		{
-			const std::string ns = ctx->attributeNamespace()->getText();
-			for (auto &attribute : attributes)
-			{
-				attribute._namespace = ns;
-			}
 		}
 	}
 
 	return attributes;
 }
 
-antlrcpp::Any TreeShapeVisitor::visitAttribute(CPP14Parser::AttributeContext *ctx)
+std::any TreeShapeVisitor::visitAttribute(CPP14Parser::AttributeContext *ctx)
 {
 	Meta::Attribute attribute;
 	if (ctx->attributeNamespace())
@@ -119,7 +116,7 @@ antlrcpp::Any TreeShapeVisitor::visitAttribute(CPP14Parser::AttributeContext *ct
 	return attribute;
 }
 
-antlrcpp::Any TreeShapeVisitor::visitTypeParameter(CPP14Parser::TypeParameterContext *ctx)
+std::any TreeShapeVisitor::visitTypeParameter(CPP14Parser::TypeParameterContext *ctx)
 {
 	Meta::Parameter parameter;
 	if (ctx->Typename_())
@@ -130,7 +127,7 @@ antlrcpp::Any TreeShapeVisitor::visitTypeParameter(CPP14Parser::TypeParameterCon
 	{
 		if (ctx->templateparameterList())
 		{
-			std::vector<Meta::Parameter> tparams = visit(ctx->templateparameterList());
+			std::vector<Meta::Parameter> tparams = std::any_cast<std::vector<Meta::Parameter>>(visit(ctx->templateparameterList()));
 
 			std::stringstream ss;
 			ss << "template<";
@@ -166,7 +163,7 @@ antlrcpp::Any TreeShapeVisitor::visitTypeParameter(CPP14Parser::TypeParameterCon
 	return parameter;
 }
 
-antlrcpp::Any TreeShapeVisitor::visitPointerAbstractDeclarator(CPP14Parser::PointerAbstractDeclaratorContext *ctx)
+std::any TreeShapeVisitor::visitPointerAbstractDeclarator(CPP14Parser::PointerAbstractDeclaratorContext *ctx)
 {
 	Declarator declarator;
 	for (auto *ctx_pointer_operator : ctx->pointerOperator())
@@ -176,7 +173,7 @@ antlrcpp::Any TreeShapeVisitor::visitPointerAbstractDeclarator(CPP14Parser::Poin
 	return declarator;
 }
 
-antlrcpp::Any TreeShapeVisitor::visitAbstractPackDeclarator(CPP14Parser::AbstractPackDeclaratorContext *ctx)
+std::any TreeShapeVisitor::visitAbstractPackDeclarator(CPP14Parser::AbstractPackDeclaratorContext *ctx)
 {
 	Declarator declarator;
 	declarator.is_packed = true;
@@ -187,23 +184,19 @@ antlrcpp::Any TreeShapeVisitor::visitAbstractPackDeclarator(CPP14Parser::Abstrac
 	return declarator;
 }
 
-antlrcpp::Any TreeShapeVisitor::visitParameterDeclaration(CPP14Parser::ParameterDeclarationContext *ctx)
+std::any TreeShapeVisitor::visitParameterDeclaration(CPP14Parser::ParameterDeclarationContext *ctx)
 {
 	Meta::Parameter parameter;
 
-	std::size_t start = ctx->proDeclSpecifierSeq()->preDeclSpecifierSeq() ?
-	                        ctx->proDeclSpecifierSeq()->preDeclSpecifierSeq()->getStart()->getStartIndex() :
-	                        ctx->proDeclSpecifierSeq()->proSimpleTypeSpecifier()->getStart()->getStartIndex();
-
-	std::size_t stop = ctx->proDeclSpecifierSeq()->postDeclSpecifierSeq() ?
-	                       ctx->proDeclSpecifierSeq()->postDeclSpecifierSeq()->getStop()->getStopIndex() :
-	                       ctx->proDeclSpecifierSeq()->proSimpleTypeSpecifier()->getStop()->getStopIndex();
+	auto        s     = ctx->declSpecifierSeq()->getText();
+	std::size_t start = ctx->declSpecifierSeq()->getStart()->getStartIndex();
+	std::size_t stop  = ctx->declSpecifierSeq()->getStop()->getStopIndex();
 
 	parameter.type = {m_code.begin() + start, m_code.begin() + stop + 1};
 
 	if (ctx->declarator())
 	{
-		Declarator declarator = visit(ctx->declarator());
+		Declarator declarator = std::any_cast<Declarator>(visit(ctx->declarator()));
 		parameter.is_packed   = declarator.is_packed;
 		parameter.name        = declarator.name;
 		for (const auto &pointer_operator : declarator.pointer_operators)
@@ -213,7 +206,7 @@ antlrcpp::Any TreeShapeVisitor::visitParameterDeclaration(CPP14Parser::Parameter
 	}
 	else if (ctx->abstractDeclarator())
 	{
-		Declarator declarator = visit(ctx->abstractDeclarator());
+		Declarator declarator = std::any_cast<Declarator>(visit(ctx->abstractDeclarator()));
 		parameter.name        = declarator.name;
 		for (const auto &pointer_operator : declarator.pointer_operators)
 		{
@@ -230,7 +223,7 @@ antlrcpp::Any TreeShapeVisitor::visitParameterDeclaration(CPP14Parser::Parameter
 	return parameter;
 }
 
-antlrcpp::Any TreeShapeVisitor::visitEnumSpecifier(CPP14Parser::EnumSpecifierContext *ctx)
+std::any TreeShapeVisitor::visitEnumSpecifier(CPP14Parser::EnumSpecifierContext *ctx)
 {
 	if (m_in_template_type)
 	{
@@ -255,119 +248,691 @@ antlrcpp::Any TreeShapeVisitor::visitEnumSpecifier(CPP14Parser::EnumSpecifierCon
 
 	if (ctx->enumHead()->attributeSpecifierSeq())
 	{
-		type_meta.attributes = visit(ctx->enumHead()->attributeSpecifierSeq()).as<std::vector<Meta::Attribute>>();
+		type_meta.attributes = std::any_cast<std::vector<Meta::Attribute>>(visit(ctx->enumHead()->attributeSpecifierSeq()));
 	}
 
 	if (ctx->enumeratorList())
 	{
-		type_meta.fields = visit(ctx->enumeratorList()).as<std::vector<Meta::Field>>();
+		type_meta.fields = std::any_cast<std::vector<Meta::Field>>(visit(ctx->enumeratorList()));
 	}
+
+	type_meta.mode = Meta::TypeMeta::Mode::Enum;
 
 	m_type_metas.push_back(std::move(type_meta));
 
 	return {};
 }
 
-antlrcpp::Any TreeShapeVisitor::visitEnumeratorList(CPP14Parser::EnumeratorListContext *ctx)
+std::any TreeShapeVisitor::visitEnumeratorList(CPP14Parser::EnumeratorListContext *ctx)
 {
 	std::vector<Meta::Field> fields;
 	for (auto *ctx_enumerator_definition : ctx->enumeratorDefinition())
 	{
-		Meta::Field field = visit(ctx_enumerator_definition);
+		Meta::Field field = std::any_cast<Meta::Field>(visit(ctx_enumerator_definition));
 		fields.push_back(std::move(field));
 	}
 	return fields;
 }
 
-antlrcpp::Any TreeShapeVisitor::visitEnumeratorDefinition(CPP14Parser::EnumeratorDefinitionContext *ctx)
+std::any TreeShapeVisitor::visitEnumeratorDefinition(CPP14Parser::EnumeratorDefinitionContext *ctx)
 {
 	Meta::Field field;
-	field.mode            = Meta::Field::Mode::Value;
+	field.mode             = Meta::Field::Mode::Value;
 	field.access_specifier = Meta::AccessSpecifier::Public;
-	field.name            = ctx->enumerator()->getText();
-	if (ctx->attributeSpecifierSeq())
-	{
-		field.attributes = visit(ctx->attributeSpecifierSeq()).as<std::vector<Meta::Attribute>>();
-	}
+	field.name             = ctx->enumerator()->getText();
 	return field;
 }
 
-antlrcpp::Any TreeShapeVisitor::visitTemplateDeclaration(CPP14Parser::TemplateDeclarationContext *ctx)
+std::any TreeShapeVisitor::visitTemplateDeclaration(CPP14Parser::TemplateDeclarationContext *ctx)
 {
-	m_template_parameters = visit(ctx->templateparameterList()).as<std::vector<Meta::Parameter>>();
+	m_template_parameters = std::any_cast<std::vector<Meta::Parameter>>(visit(ctx->templateparameterList()));
 
 	auto rst = visitDeclaration(ctx->declaration());
 
 	m_template_parameters.clear();
 
-	if (rst.is<std::vector<Meta::Field>>())
+	if (rst.type() == typeid(std::vector<Meta::Field>))
 	{
-		for (auto& field : rst.as<std::vector<Meta::Field>>())
+		std::vector<Meta::Field> fields = std::any_cast<std::vector<Meta::Field>>(rst);
+		for (auto &field : fields)
 		{
 			field.is_template = true;
 		}
+		rst = fields;
 	}
-	else if (rst.is<Meta::Field>())
+	else if (rst.type() == typeid(Meta::Field))
 	{
-		Meta::Field field  = rst;
+		Meta::Field field = std::any_cast<Meta::Field>(rst);
 		field.is_template = true;
-		rst              = std::vector<Meta::Field>{field};
+		rst               = std::vector<Meta::Field>{field};
 	}
 
 	return rst;
 }
 
-antlrcpp::Any TreeShapeVisitor::visitTemplateparameterList(CPP14Parser::TemplateparameterListContext *ctx)
-{}
+std::any TreeShapeVisitor::visitTemplateparameterList(CPP14Parser::TemplateparameterListContext *ctx)
+{
+	std::vector<Meta::Parameter> rst;
+	for (auto *ctxTemplateParameter : ctx->templateParameter())
+	{
+		Meta::Parameter ele = std::any_cast<Meta::Parameter>(visit(ctxTemplateParameter));
+		rst.push_back(std::move(ele));
+	}
+	return rst;
+}
 
-antlrcpp::Any TreeShapeVisitor::visitClassSpecifier(CPP14Parser::ClassSpecifierContext *ctx)
-{}
+std::any TreeShapeVisitor::visitClassSpecifier(CPP14Parser::ClassSpecifierContext *ctx)
+{
+	if (m_in_template_type)
+	{
+		return {};
+	}
 
-antlrcpp::Any TreeShapeVisitor::visitBaseClause(CPP14Parser::BaseClauseContext *ctx)
-{}
+	if (!m_access_specifiers.empty() && m_access_specifiers.back() != Meta::AccessSpecifier::Public)
+	{
+		return {};
+	}
 
-antlrcpp::Any TreeShapeVisitor::visitAccessSpecifier(CPP14Parser::AccessSpecifierContext *ctx)
-{}
+	Meta::TypeMeta type_meta;
 
-antlrcpp::Any TreeShapeVisitor::visitNamespaceDefinition(CPP14Parser::NamespaceDefinitionContext *ctx)
-{}
+	type_meta.namespaces = m_namespaces;
+	type_meta.name       = ctx->classHead()->classHeadName()->getText();
+	m_namespaces.push_back(type_meta.name);
 
-antlrcpp::Any TreeShapeVisitor::visitNestedNameSpecifier(CPP14Parser::NestedNameSpecifierContext *ctx)
-{}
+	if (ctx->classHead()->attributeSpecifierSeq())
+	{
+		type_meta.attributes = std::any_cast<std::vector<Meta::Attribute>>(visit(ctx->classHead()->attributeSpecifierSeq()));
+	}
 
-antlrcpp::Any TreeShapeVisitor::visitQualifiedNamespaceSpecifier(CPP14Parser::QualifiedNamespaceSpecifierContext *ctx)
-{}
+	type_meta.template_parameters = std::move(m_template_parameters);
 
-antlrcpp::Any TreeShapeVisitor::visitProDeclSpecifierSeq(CPP14Parser::ProDeclSpecifierSeqContext *ctx)
-{}
+	if (!type_meta.template_parameters.empty())
+	{
+		m_in_template_type = true;
+	}
 
-antlrcpp::Any TreeShapeVisitor::visitMemberDeclaration(CPP14Parser::MemberDeclarationContext *ctx)
-{}
+	if (ctx->classHead()->classKey()->getText() == "class")
+	{
+		m_access_specifiers.push_back(Meta::AccessSpecifier::Private);
+		type_meta.mode = Meta::TypeMeta::Mode::Class;
+	}
+	else
+	{
+		m_access_specifiers.push_back(Meta::AccessSpecifier::Public);
+		type_meta.mode = Meta::TypeMeta::Mode::Struct;
+	}
 
-antlrcpp::Any TreeShapeVisitor::visitMemberDeclaratorList(CPP14Parser::MemberDeclaratorListContext *ctx)
-{}
+	if (ctx->classHead()->baseClause())
+	{
+		type_meta.bases = std::any_cast<std::vector<Meta::Base>>(visit(ctx->classHead()->baseClause()));
+	}
 
-antlrcpp::Any TreeShapeVisitor::visitMemberDeclarator(CPP14Parser::MemberDeclaratorContext *ctx)
-{}
+	if (ctx->memberSpecification())
+	{
+		for (auto *child : ctx->memberSpecification()->children)
+		{
+			auto rst = visit(child);
+			if (rst.type() == typeid(std::vector<Meta::Field>))
+			{
+				for (auto &field : std::any_cast<std::vector<Meta::Field>>(rst))
+				{
+					type_meta.fields.push_back(std::move(field));
+				}
+			}
+		}
+	}
 
-antlrcpp::Any TreeShapeVisitor::visitPointerDeclarator(CPP14Parser::PointerDeclaratorContext *ctx)
-{}
+	m_type_metas.push_back(std::move(type_meta));
 
-antlrcpp::Any TreeShapeVisitor::visitNoPointerDeclarator(CPP14Parser::NoPointerDeclaratorContext *ctx)
-{}
+	m_access_specifiers.pop_back();
+	m_namespaces.pop_back();
+	m_in_template_type = false;
 
-antlrcpp::Any TreeShapeVisitor::visitBraceOrEqualInitializer(CPP14Parser::BraceOrEqualInitializerContext *ctx)
-{}
+	return {};
+}
 
-antlrcpp::Any TreeShapeVisitor::visitSimpleDeclaration(CPP14Parser::SimpleDeclarationContext *ctx)
-{}
+std::any TreeShapeVisitor::visitBaseClause(CPP14Parser::BaseClauseContext *ctx)
+{
+	std::vector<Meta::Base> bases;
+	for (auto *ctx_base_specifier : ctx->baseSpecifierList()->baseSpecifier())
+	{
+		Meta::Base base;
+		base.name = ctx_base_specifier->baseTypeSpecifier()->getText();
+		if (ctx_base_specifier->Virtual())
+		{
+			base.is_virtual = true;
+		}
+		if (auto ctx_access_specifier = ctx_base_specifier->accessSpecifier())
+		{
+			const auto access_specifier = ctx_access_specifier->getText();
+			if (access_specifier == "public")
+			{
+				base.access_specifier = Meta::AccessSpecifier::Public;
+			}
+			else if (access_specifier == "protected")
+			{
+				base.access_specifier = Meta::AccessSpecifier::Protected;
+			}
+			else
+			{
+				base.access_specifier = Meta::AccessSpecifier::Private;
+			}
+		}
+		bases.push_back(std::move(base));
+	}
+	return bases;
+}
 
-antlrcpp::Any TreeShapeVisitor::visitInitDeclaratorList(CPP14Parser::InitDeclaratorListContext *ctx)
-{}
+std::any TreeShapeVisitor::visitAccessSpecifier(CPP14Parser::AccessSpecifierContext *ctx)
+{
+	if (!m_access_specifiers.empty())
+	{
+		if (ctx->Public())
+		{
+			m_access_specifiers.back() = Meta::AccessSpecifier::Public;
+		}
+		else if (ctx->Protected())
+		{
+			m_access_specifiers.back() = Meta::AccessSpecifier::Protected;
+		}
+		else
+		{
+			m_access_specifiers.back() = Meta::AccessSpecifier::Private;
+		}
+	}
 
-antlrcpp::Any TreeShapeVisitor::visitInitDeclarator(CPP14Parser::InitDeclaratorContext *ctx)
-{}
+	return {};
+}
 
-antlrcpp::Any TreeShapeVisitor::visitFunctionDefinition(CPP14Parser::FunctionDefinitionContext *ctx)
-{}
+std::any TreeShapeVisitor::visitNamespaceDefinition(CPP14Parser::NamespaceDefinitionContext *ctx)
+{
+	const auto origin_namespace_size = m_namespaces.size();
+
+	if (ctx->Identifier())
+	{
+		m_namespaces.push_back(ctx->Identifier()->getText());
+	}
+	else if (ctx->originalNamespaceName())
+	{
+		std::vector<std::string> current_namespaces = std::any_cast<std::vector<std::string>>(visitOriginalNamespaceName(ctx->originalNamespaceName()));
+		for (auto &ns : current_namespaces)
+		{
+			m_namespaces.push_back(std::move(ns));
+		}
+	}
+
+	visit(ctx->declarationseq());
+
+	while (m_namespaces.size() > origin_namespace_size)
+	{
+		m_namespaces.pop_back();
+	}
+
+	return {};
+}
+
+std::any TreeShapeVisitor::visitNestedNameSpecifier(CPP14Parser::NestedNameSpecifierContext *ctx)
+{
+	if (ctx->nestedNameSpecifier())
+	{
+		std::vector<std::string> current_namespaces = std::any_cast<std::vector<std::string>>(visitNestedNameSpecifier(ctx->nestedNameSpecifier()));
+		current_namespaces.push_back(ctx->Identifier()->getText());
+		return current_namespaces;
+	}
+	else
+	{
+		return std::vector<std::string>{ctx->theTypeName()->getText()};
+	}
+	return {};
+}
+
+// std::any TreeShapeVisitor::visitQualifiedNamespaceSpecifier(CPP14Parser::QualifiedNamespaceSpecifierContext *ctx)
+//{
+//	if (ctx->nestedNameSpecifier())
+//	{
+//		std::vector<std::string> current_namespaces = std::any_cast<std::vector<std::string>>(visitNestedNameSpecifier(ctx->nestedNameSpecifier()));
+//		current_namespaces.push_back(ctx->namespaceName()->getText());
+//		return current_namespaces;
+//	}
+//	else
+//	{
+//		return std::vector<std::string>{ctx->namespaceName()->getText()};
+//	}
+// }
+//
+// std::any TreeShapeVisitor::visitProDeclSpecifierSeq(CPP14Parser::ProDeclSpecifierSeqContext *ctx)
+//{
+//	DeclSpecifierSeq seq;
+//	if (auto *pre = ctx->preDeclSpecifierSeq())
+//	{
+//		for (auto *ctx_decl_specifier : pre->nonSimpleTypeDeclSpecifier())
+//		{
+//			Meta::DeclSpecifier decl_specifier = GetTextPro(ctx_decl_specifier);
+//			seq.decl_specifiers.push_back(decl_specifier);
+//		}
+//	}
+//
+//	Meta::DeclSpecifier decl_specifier = GetTextPro(ctx->proSimpleTypeSpecifier());
+//	seq.decl_specifiers.push_back(decl_specifier);
+//
+//	if (auto *post = ctx->postDeclSpecifierSeq())
+//	{
+//		for (auto *ctx_decl_specifier : post->nonSimpleTypeDeclSpecifier())
+//		{
+//			Meta::DeclSpecifier decl_specifier = GetTextPro(ctx_decl_specifier);
+//			seq.decl_specifiers.push_back(decl_specifier);
+//		}
+//	}
+//	if (ctx->attributeSpecifierSeq())
+//	{
+//		std::vector<Meta::Attribute> attributes = std::any_cast<std::vector<Meta::Attribute>>(visit(ctx->attributeSpecifierSeq()));
+//		for (auto &attribute : attributes)
+//		{
+//			seq.attributes.push_back(std::move(attribute));
+//		}
+//	}
+//	return seq;
+// }
+//
+// std::any TreeShapeVisitor::visitMemberDeclaration(CPP14Parser::MemberDeclarationContext *ctx)
+//{
+//	if (ctx->emptyDeclaration() || ctx->aliasDeclaration() || ctx->staticAssertDeclaration() || ctx->usingDeclaration())
+//	{
+//		return {};
+//	}
+//	if (ctx->declSpecifierSeq())
+//	{
+//		return visit(ctx->declSpecifierSeq());
+//	}
+//	if (ctx->templateDeclaration())
+//	{
+//		return visit(ctx->templateDeclaration());
+//	}
+//	if (ctx->functionDefinition())
+//	{
+//		Meta::Field field = std::any_cast<Meta::Field>(visit(ctx->functionDefinition()));
+//		return std::vector<Meta::Field>{field};
+//	}
+//
+//	std::vector<Meta::Attribute>     command_attributes;
+//	std::vector<Meta::DeclSpecifier> decl_sepcifiers;
+//
+//	if (auto *pro = ctx->proDeclSpecifierSeq())
+//	{
+//		DeclSpecifierSeq seq = std::any_cast<DeclSpecifierSeq>(visit(pro));
+//		decl_sepcifiers      = std::move(seq.decl_specifiers);
+//		command_attributes   = std::move(seq.attributes);
+//	}
+//
+//	if (ctx->attributeSpecifierSeq())
+//	{
+//		std::vector<Meta::Attribute> attributes = visit(ctx->attributeSpecifierSeq());
+//		for (auto &attribute : attributes)
+//		{
+//			command_attributes.push_back(std::move(attribute));
+//		}
+//	}
+//
+//	std::vector<Meta::Field> fields;
+//
+//	if (ctx->memberDeclaratorList())
+//	{
+//		std::vector<Declarator> declarators = std::any_cast<std::vector<Declarator>>(visit(ctx->memberDeclaratorList()));
+//		for (auto &declarator : declarators)
+//		{
+//			Meta::Field field = std::move(declarator).GenerateField();
+//			if (!m_access_specifiers.empty())
+//			{
+//				field.access_specifier = m_access_specifiers.back();
+//			}
+//			field.decl_specifiers = decl_sepcifiers;
+//			if (field.IsStaticConstexprVariable())
+//			{
+//				field.mode = Meta::Field::Mode::Value;
+//			}
+//			for (const auto &attribute : command_attributes)
+//			{
+//				field.attributes.push_back(attribute);
+//			}
+//			fields.push_back(std::move(field));
+//		}
+//	}
+//
+//	return fields;
+// }
+
+// std::any TreeShapeVisitor::visitDeclSpecifier(CPP14Parser::DeclSpecifierContext *ctx)
+//{
+//	return std::any_cast<std::string>(ctx->getText());
+// }
+//
+// std::any TreeShapeVisitor::visitDeclSpecifierSeq(CPP14Parser::DeclSpecifierSeqContext *ctx)
+//{
+//	DeclSpecifierSeq seq;
+//	for (auto decl_specifier : ctx->declSpecifier())
+//	{
+//		seq.decl_specifiers.push_back(std::any_cast<std::string>(visit(decl_specifier)));
+//	}
+//
+//	if (ctx->attributeSpecifierSeq())
+//	{
+//		std::vector<Meta::Attribute> attributes = std::any_cast<std::vector<Meta::Attribute>>(visit(ctx->attributeSpecifierSeq()));
+//		for (auto &attribute : attributes)
+//		{
+//			seq.attributes.push_back(std::move(attribute));
+//		}
+//	}
+//	return seq;
+// }
+
+// std::any TreeShapeVisitor::visitMemberSpecification(CPP14Parser::MemberSpecificationContext *ctx)
+//{
+//	return visitChildren(ctx);
+// }
+
+// std::any TreeShapeVisitor::visitDeclSpecifier(CPP14Parser::DeclSpecifierContext *ctx)
+//{
+//	return visitChildren(ctx);
+// }
+//
+// std::any TreeShapeVisitor::visitDeclSpecifierSeq(CPP14Parser::DeclSpecifierSeqContext *ctx)
+//{
+//	return visitChildren(ctx);
+// }
+
+std::any TreeShapeVisitor::visitMemberSpecification(CPP14Parser::MemberSpecificationContext *ctx)
+{
+	std::vector<Meta::Field> fields;
+	for (auto &memberdeclaration : ctx->memberdeclaration())
+	{
+		auto rst = visit(memberdeclaration);
+		if (rst.type() == typeid(std::vector<Meta::Field>))
+		{
+			for (auto &field : std::any_cast<std::vector<Meta::Field>>(rst))
+			{
+				fields.push_back(std::move(field));
+			}
+		}
+	}
+	return fields;
+}
+
+std::any TreeShapeVisitor::visitMemberdeclaration(CPP14Parser::MemberdeclarationContext *ctx)
+{
+	if (ctx->emptyDeclaration() || ctx->aliasDeclaration() || ctx->staticAssertDeclaration() || ctx->usingDeclaration())
+	{
+		return {};
+	}
+	if (ctx->declSpecifierSeq())
+	{
+		visit(ctx->declSpecifierSeq());
+	}
+	if (ctx->templateDeclaration())
+	{
+		return visit(ctx->templateDeclaration());
+	}
+	if (ctx->functionDefinition())
+	{
+		Meta::Field field = std::any_cast<Meta::Field>(visit(ctx->functionDefinition()));
+		return std::vector<Meta::Field>{field};
+	}
+
+	std::vector<Meta::Attribute>     command_attributes;
+	std::vector<Meta::DeclSpecifier> decl_sepcifiers;
+
+	if (ctx->attributeSpecifierSeq())
+	{
+		std::vector<Meta::Attribute> attributes = std::any_cast<std::vector<Meta::Attribute>>(visit(ctx->attributeSpecifierSeq()));
+		for (auto &attribute : attributes)
+		{
+			command_attributes.push_back(std::move(attribute));
+		}
+	}
+
+	std::vector<Meta::Field> fields;
+
+	if (auto *seq = ctx->declSpecifierSeq())
+	{
+		for (auto &decl_specifier : seq->declSpecifier())
+		{
+			std::size_t start = decl_specifier->getStart()->getStartIndex();
+			std::size_t stop  = decl_specifier->getStop()->getStopIndex();
+
+			decl_sepcifiers.push_back({m_code.begin() + start, m_code.begin() + stop + 1});
+		}
+	}
+
+	if (ctx->memberDeclaratorList())
+	{
+		std::vector<Declarator> declarators = std::any_cast<std::vector<Declarator>>(visit(ctx->memberDeclaratorList()));
+		for (auto &declarator : declarators)
+		{
+			Meta::Field field = std::move(declarator).GenerateField();
+			if (!m_access_specifiers.empty())
+			{
+				field.access_specifier = m_access_specifiers.back();
+			}
+			field.decl_specifiers = decl_sepcifiers;
+			if (field.IsStaticConstexprVariable())
+			{
+				field.mode = Meta::Field::Mode::Value;
+			}
+			for (const auto &attribute : command_attributes)
+			{
+				field.attributes.push_back(attribute);
+			}
+			fields.push_back(std::move(field));
+		}
+	}
+
+	return fields;
+}
+
+std::any TreeShapeVisitor::visitMemberDeclaratorList(CPP14Parser::MemberDeclaratorListContext *ctx)
+{
+	std::vector<Declarator> declarators;
+	for (auto *ctx_member_declarator : ctx->memberDeclarator())
+	{
+		Declarator declarator = std::any_cast<Declarator>(visitMemberDeclarator(ctx_member_declarator));
+		declarators.push_back(std::move(declarator));
+	}
+	return declarators;
+}
+
+std::any TreeShapeVisitor::visitMemberDeclarator(CPP14Parser::MemberDeclaratorContext *ctx)
+{
+	Declarator declarator;
+	if (ctx->declarator())
+	{
+		declarator = std::any_cast<Declarator>(visit(ctx->declarator()));
+	}
+	else if (ctx->Identifier())
+	{
+		declarator.name = ctx->Identifier()->getText();
+		if (ctx->attributeSpecifierSeq())
+		{
+			declarator.attributes = std::any_cast<std::vector<Meta::Attribute>>(visit(ctx->attributeSpecifierSeq()));
+		}
+	}
+	else
+	{
+		assert(false);
+	}
+
+	if (ctx->braceOrEqualInitializer())
+	{
+		declarator.initializer = std::any_cast<std::string>(visit(ctx->braceOrEqualInitializer()));
+	}
+
+	return declarator;
+}
+
+std::any TreeShapeVisitor::visitPointerDeclarator(CPP14Parser::PointerDeclaratorContext *ctx)
+{
+	Declarator declarator = std::any_cast<Declarator>(visit(ctx->noPointerDeclarator()));
+	for (auto *ctx_pointer_opeartor : ctx->pointerOperator())
+	{
+		declarator.pointer_operators.push_back(ctx_pointer_opeartor->getText());
+	}
+	return declarator;
+}
+
+std::any TreeShapeVisitor::visitNoPointerDeclarator(CPP14Parser::NoPointerDeclaratorContext *ctx)
+{
+	Declarator declarator = ctx->noPointerDeclarator() ?
+	                            std::any_cast<Declarator>(visit(ctx->noPointerDeclarator())) :
+                                Declarator{};
+
+	if (ctx->declaratorid())
+	{
+		declarator.name      = ctx->declaratorid()->idExpression()->getText();
+		declarator.is_packed = ctx->declaratorid()->Ellipsis() != nullptr;
+	}
+
+	if (ctx->attributeSpecifierSeq())
+	{
+		std::vector<Meta::Attribute> attributes = std::any_cast<std::vector<Meta::Attribute>>(visit(ctx->attributeSpecifierSeq()));
+		for (auto &attribute : attributes)
+		{
+			declarator.attributes.push_back(std::move(attribute));
+		}
+	}
+
+	if (ctx->parametersAndQualifiers())
+	{
+		declarator.mode = Meta::Field::Mode::Function;
+		if (ctx->parametersAndQualifiers()->attributeSpecifierSeq())
+		{
+			std::vector<Meta::Attribute> attributes = std::any_cast<std::vector<Meta::Attribute>>(visit(ctx->parametersAndQualifiers()->attributeSpecifierSeq()));
+			for (auto &attribute : attributes)
+			{
+				declarator.attributes.push_back(std::move(attribute));
+			}
+		}
+		if (auto *ctx_clause = ctx->parametersAndQualifiers()->parameterDeclarationClause())
+		{
+			for (auto *ctx_parameter_declaration : ctx_clause->parameterDeclarationList()->parameterDeclaration())
+			{
+				Meta::Parameter parameter = std::any_cast<Meta::Parameter>(visit(ctx_parameter_declaration));
+				declarator.parameters.push_back(std::move(parameter));
+			}
+		}
+		if (auto *ctx_cv_seq = ctx->parametersAndQualifiers()->cvqualifierseq())
+		{
+			for (auto *ctx_cv : ctx_cv_seq->cvQualifier())
+			{
+				declarator.qualifiers.push_back(ctx_cv->getText());
+			}
+		}
+		if (auto *ctxRef = ctx->parametersAndQualifiers()->refqualifier())
+		{
+			declarator.qualifiers.push_back(ctxRef->getText());
+		}
+
+		if (ctx->parametersAndQualifiers()->exceptionSpecification())
+		{
+			declarator.qualifiers.push_back(ctx->parametersAndQualifiers()->exceptionSpecification()->getText());
+		}
+	}
+	return declarator;
+}
+
+std::any TreeShapeVisitor::visitBraceOrEqualInitializer(CPP14Parser::BraceOrEqualInitializerContext *ctx)
+{
+	std::string rst;
+	if (ctx->initializerClause())
+	{
+		rst = GetTextPro(ctx->initializerClause());
+	}
+	else
+	{
+		rst = GetTextPro(ctx->bracedInitList());
+	}
+	return rst;
+}
+
+std::any TreeShapeVisitor::visitSimpleDeclaration(CPP14Parser::SimpleDeclarationContext *ctx)
+{
+	if (!ctx->initDeclaratorList())
+	{
+		return visitChildren(ctx);
+	}
+
+	std::vector<Meta::Attribute>     common_attributes;
+	std::vector<Meta::DeclSpecifier> decl_specifiers;
+
+	if (ctx->attributeSpecifierSeq())
+	{
+		std::vector<Meta::Attribute> attributes = std::any_cast<std::vector<Meta::Attribute>>(visit(ctx->attributeSpecifierSeq()));
+		for (auto &attribute : attributes)
+		{
+			common_attributes.push_back(std::move(attribute));
+		}
+	}
+
+	std::vector<Meta::Field> fields;
+
+	std::vector<Declarator> declarators = std::any_cast<std::vector<Declarator>>(visit(ctx->initDeclaratorList()));
+	for (auto &declarator : declarators)
+	{
+		Meta::Field field     = std::move(declarator).GenerateField();
+		field.decl_specifiers = decl_specifiers;
+		if (!m_access_specifiers.empty())
+		{
+			field.access_specifier = m_access_specifiers.back();
+		}
+		if (field.IsStaticConstexprVariable())
+		{
+			field.mode = Meta::Field::Mode::Value;
+		}
+		for (const auto &attribute : common_attributes)
+		{
+			field.attributes.push_back(attribute);
+		}
+		fields.push_back(std::move(field));
+	}
+
+	return fields;
+}
+
+std::any TreeShapeVisitor::visitInitDeclaratorList(CPP14Parser::InitDeclaratorListContext *ctx)
+{
+	std::vector<Declarator> declarators;
+	for (auto *ctx_init_declarator : ctx->initDeclarator())
+	{
+		Declarator declarator = std::any_cast<Declarator>(visit(ctx_init_declarator));
+		declarators.push_back(std::move(declarator));
+	}
+	return declarators;
+}
+
+std::any TreeShapeVisitor::visitInitDeclarator(CPP14Parser::InitDeclaratorContext *ctx)
+{
+	Declarator declarator = std::any_cast<Declarator>(visit(ctx->declarator()));
+	return declarator;
+}
+
+std::any TreeShapeVisitor::visitFunctionDefinition(CPP14Parser::FunctionDefinitionContext *ctx)
+{
+	Declarator  declarator = std::any_cast<Declarator>(visit(ctx->declarator()));
+	Meta::Field field      = std::move(declarator).GenerateField();
+
+	if (!m_access_specifiers.empty())
+	{
+		field.access_specifier = m_access_specifiers.back();
+	}
+
+	field.mode = Meta::Field::Mode::Function;
+
+	if (ctx->attributeSpecifierSeq())
+	{
+		field.attributes = std::any_cast<std::vector<Meta::Attribute>>(visit(ctx->attributeSpecifierSeq()));
+	}
+
+	if (ctx->functionBody()->Delete())
+	{
+		field.initializer = "delete";
+	}
+	return field;
+}
 }        // namespace Ilum

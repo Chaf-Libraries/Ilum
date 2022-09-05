@@ -2,15 +2,18 @@
 
 #include "RHI/RHIDevice.hpp"
 
+#include <array>
+
 namespace Ilum
 {
 class RHIShader;
 
 struct DepthStencilState
 {
-	bool         depth_test_enable  = true;
-	bool         depth_write_enable = true;
-	RHICompareOp compare            = RHICompareOp::Less_Or_Equal;
+	bool depth_test_enable  = true;
+	bool depth_write_enable = true;
+
+	RHICompareOp compare = RHICompareOp::Less_Or_Equal;
 	// TODO: Stencil Test
 
 	inline bool operator==(const DepthStencilState &state)
@@ -19,6 +22,7 @@ struct DepthStencilState
 		       depth_write_enable == state.depth_write_enable &&
 		       compare == state.compare;
 	}
+
 	inline bool operator!=(const DepthStencilState &state)
 	{
 		return !(*this == state);
@@ -27,9 +31,9 @@ struct DepthStencilState
 
 struct BlendState
 {
-	bool       enable             = false;
-	RHILogicOp logic_op           = RHILogicOp::Or;
-	float      blend_constants[4] = {0.f};
+	bool                 enable          = false;
+	RHILogicOp           logic_op        = RHILogicOp::Or;
+	std::array<float, 4> blend_constants = {0.f};
 
 	struct AttachmentState
 	{

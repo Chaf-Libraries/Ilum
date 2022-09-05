@@ -20,24 +20,15 @@ void variadic_vector_emplace(std::vector<T> &v, First &&first, Args &&...args)
 class RenderGraphBuilder
 {
   public:
-	RenderGraphBuilder(RHIContext *rhi_context) :
-	    p_rhi_context(rhi_context)
-	{
-	}
+	RenderGraphBuilder(RHIContext *rhi_context);
 
 	~RenderGraphBuilder() = default;
 
-	RenderGraphBuilder &AddPass(const std::string &name, std::function<void(RenderGraph &, RHICommand *)> &&task)
-	{
-		return *this;
-	}
+	RenderGraphBuilder &AddPass(const std::string &name, std::function<void(RenderGraph &, RHICommand *)> &&task);
 
 	bool Validate(RenderGraphDesc &desc);
 
-	std::unique_ptr<RenderGraph> Compile()
-	{
-		return nullptr;
-	}
+	std::unique_ptr<RenderGraph> Compile();
 
 	template <typename... Args>
 	std::unique_ptr<RenderGraph> Compile(RenderGraphDesc &desc, Args &&...args)

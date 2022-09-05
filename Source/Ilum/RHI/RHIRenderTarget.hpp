@@ -13,7 +13,7 @@ struct ColorAttachment
 	RHILoadAction  load  = RHILoadAction::Clear;
 	RHIStoreAction store = RHIStoreAction::Store;
 
-	float clear_value[4] = {0.f};
+	std::array<float, 4> clear_value = {0.f};
 };
 
 struct DepthStencilAttachment

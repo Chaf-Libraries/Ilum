@@ -21,6 +21,7 @@ class RHIDescriptor
 
 	const ShaderMeta &GetShaderMeta() const;
 
+	[[constructor(true)]]
 	static std::unique_ptr<RHIDescriptor> Create(RHIDevice *device, const ShaderMeta &meta);
 
 	virtual RHIDescriptor &BindTexture(const std::string &name, RHITexture *texture, RHITextureDimension dimension)                       = 0;

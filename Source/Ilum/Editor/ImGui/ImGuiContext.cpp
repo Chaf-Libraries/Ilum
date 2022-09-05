@@ -65,7 +65,7 @@ static RHISampler       *gSampler       = nullptr;
 static RHIRenderTarget  *gRenderTarget  = nullptr;
 static ViewportResources gResource;
 
-ImGuiContext::ImGuiContext(RHIContext *context, Window *window) :
+GuiContext::GuiContext(RHIContext *context, Window *window) :
     p_context(context), p_window(window)
 {
 	gContext = p_context;
@@ -217,7 +217,7 @@ ImGuiContext::ImGuiContext(RHIContext *context, Window *window) :
 	InitializePlatformInterface();
 }
 
-ImGuiContext::~ImGuiContext()
+GuiContext::~GuiContext()
 {
 	ImGui_ImplGlfw_Shutdown();
 	ImNodes::DestroyContext();
@@ -241,7 +241,7 @@ ImGuiContext::~ImGuiContext()
 	gResource.vertex_count = 0;
 }
 
-void ImGuiContext::BeginFrame()
+void GuiContext::BeginFrame()
 {
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
@@ -268,7 +268,7 @@ void ImGuiContext::BeginFrame()
 	}
 }
 
-void ImGuiContext::EndFrame()
+void GuiContext::EndFrame()
 {
 	ImGui::End();
 	ImGuiIO &io    = ImGui::GetIO();
@@ -285,7 +285,7 @@ void ImGuiContext::EndFrame()
 	}
 }
 
-void ImGuiContext::SetStyle()
+void GuiContext::SetStyle()
 {
 	ImGuiIO &io = ImGui::GetIO();
 	(void) io;
@@ -637,12 +637,12 @@ static void ImGuiWindowPresent(ImGuiViewport *viewport, void *)
 	window_data->swapchain->Present(window_data->viewport_data->render_complete.get());
 }
 
-void ImGuiContext::Render()
+void GuiContext::Render()
 {
 	RHI_Render(ImGui::GetDrawData());
 }
 
-void ImGuiContext::InitializePlatformInterface()
+void GuiContext::InitializePlatformInterface()
 {
 	ImGuiPlatformIO &platform_io       = ImGui::GetPlatformIO();
 	platform_io.Renderer_CreateWindow  = ImGuiWindowCreate;

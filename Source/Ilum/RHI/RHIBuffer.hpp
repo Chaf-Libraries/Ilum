@@ -22,7 +22,11 @@ class RHIBuffer
 {
   public:
 	RHIBuffer(RHIDevice *device, const BufferDesc &desc);
+
 	virtual ~RHIBuffer() = default;
+
+	RHIBuffer(const RHIBuffer &) = delete;
+	RHIBuffer &operator=(const RHIBuffer &) = delete;
 
 	static std::unique_ptr<RHIBuffer> Create(RHIDevice *device, const BufferDesc &desc);
 

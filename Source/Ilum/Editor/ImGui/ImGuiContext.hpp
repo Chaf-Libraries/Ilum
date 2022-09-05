@@ -4,12 +4,12 @@
 
 namespace Ilum
 {
-class ImGuiContext
+class GuiContext
 {
   public:
-	ImGuiContext(RHIContext *context, Window *window);
+	GuiContext(RHIContext *context, Window *window);
 
-	~ImGuiContext();
+	~GuiContext();
 
 	void BeginFrame();
 

@@ -23,9 +23,8 @@ struct RenderPassName
 
 inline const static RenderPassName *RenderPassNameList = nullptr;
 
-REFLECTION_STRUCT RGHandle
+struct RGHandle
 {
-	REFLECTION_PROPERTY()
 	size_t handle;
 
 	RGHandle();
@@ -43,7 +42,7 @@ REFLECTION_STRUCT RGHandle
 	size_t GetHandle() const;
 };
 
-REFLECTION_STRUCT RenderResourceDesc
+struct RenderResourceDesc
 {
 	enum class Type
 	{
@@ -57,31 +56,23 @@ REFLECTION_STRUCT RenderResourceDesc
 		Write
 	};
 
-	REFLECTION_PROPERTY()
 	Type type;
 
-	REFLECTION_PROPERTY()
 	Attribute attribute;
 
-	REFLECTION_PROPERTY()
 	RHIResourceState state;
 
-	REFLECTION_PROPERTY()
 	RGHandle handle;
 };
 
-REFLECTION_STRUCT RenderPassDesc
+struct RenderPassDesc
 {
-	REFLECTION_PROPERTY()
 	std::string name;
 
-	REFLECTION_PROPERTY()
 	rttr::variant config;
 
-	REFLECTION_PROPERTY()
 	std::map<std::string, RenderResourceDesc> resources;
 
-	REFLECTION_PROPERTY()
 	RGHandle prev_pass;
 
 	RenderPassDesc &Write(const std::string &name, RenderResourceDesc::Type type, RHIResourceState state)
@@ -97,15 +88,12 @@ REFLECTION_STRUCT RenderPassDesc
 	}
 };
 
-REFLECTION_STRUCT RenderGraphDesc
+struct RenderGraphDesc
 {
-	REFLECTION_PROPERTY()
 	std::map<RGHandle, RenderPassDesc> passes;
 
-	REFLECTION_PROPERTY()
 	std::map<RGHandle, TextureDesc> textures;
 
-	REFLECTION_PROPERTY()
 	std::map<RGHandle, BufferDesc> buffers;
 };
 
