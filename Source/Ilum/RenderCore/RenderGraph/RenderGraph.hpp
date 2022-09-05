@@ -69,7 +69,7 @@ struct RenderPassDesc
 {
 	std::string name;
 
-	rttr::variant config;
+	//rttr::variant config;
 
 	std::map<std::string, RenderResourceDesc> resources;
 

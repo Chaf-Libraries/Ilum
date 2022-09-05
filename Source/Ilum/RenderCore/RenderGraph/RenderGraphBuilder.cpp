@@ -105,6 +105,7 @@ bool RenderGraphBuilder::Validate(RenderGraphDesc &desc)
 
 	return true;
 }
+
 std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile()
 {
 	return nullptr;

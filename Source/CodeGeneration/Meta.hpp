@@ -102,8 +102,8 @@ struct TypeMeta
 	std::string GenerateName() const;
 	std::string GenerateFullName() const;
 	std::string GenerateTemplateList() const;
-	bool        NoReflection() const;
-	bool        NoSerialization() const;
+	bool        NeedReflection() const;
+	bool        NeedSerialization() const;
 	bool        IsPureVirtual() const;
 	bool        HasConstructor() const;
 	bool        IsOverload(const std::string& name) const;

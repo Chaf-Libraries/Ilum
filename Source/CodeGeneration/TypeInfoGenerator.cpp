@@ -210,6 +210,11 @@ std::string GenerateTypeInfo(const std::vector<std::string> &headers, const std:
 				ReflectEnumeration(result, meta);
 				break;
 			case Meta::TypeMeta::Mode::Class:
+				if (meta.NeedReflection())
+				{
+					ReflectClass(result, meta);
+				}
+				break;
 			case Meta::TypeMeta::Mode::Struct:
 				ReflectClass(result, meta);
 				break;
@@ -222,14 +227,21 @@ std::string GenerateTypeInfo(const std::vector<std::string> &headers, const std:
 	result << "}" << std::endl;
 	result << std::endl
 	       << "//Generate for Serialization" << std::endl;
+	result << std::endl
+	       << "namespace cereal" << std::endl
+	       << "{" << std::endl;
 
 	for (auto &meta : meta_types)
 	{
-		if (meta.mode != Meta::TypeMeta::Mode::Enum)
+		if (meta.mode == Meta::TypeMeta::Mode::Struct ||
+		    (meta.mode == Meta::TypeMeta::Mode::Class && meta.NeedSerialization()))
 		{
 			SerializeClass(result, meta);
 		}
 	}
+
+	result << std::endl
+	       << "}" << std::endl;
 
 	return result.str();
 }

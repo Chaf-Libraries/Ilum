@@ -4,6 +4,6 @@ namespace Ilum
 {
 	class RHIAcceleration
 	{
-
+		  
 	};
 }

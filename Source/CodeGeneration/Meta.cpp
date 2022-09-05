@@ -286,11 +286,11 @@ std::string TypeMeta::GenerateTemplateList() const
 	return rst;
 }
 
-bool TypeMeta::NoReflection() const
+bool TypeMeta::NeedReflection() const
 {
 	for (auto &attribute : attributes)
 	{
-		if (attribute.name == "reflection" && attribute.value == "false")
+		if (attribute.name == "reflection" && attribute.value == "true")
 		{
 			return true;
 		}
@@ -299,11 +299,11 @@ bool TypeMeta::NoReflection() const
 	return false;
 }
 
-bool TypeMeta::NoSerialization() const
+bool TypeMeta::NeedSerialization() const
 {
 	for (auto &attribute : attributes)
 	{
-		if (attribute.name == "serialization" && attribute.value == "false")
+		if (attribute.name == "serialization" && attribute.value == "true")
 		{
 			return true;
 		}

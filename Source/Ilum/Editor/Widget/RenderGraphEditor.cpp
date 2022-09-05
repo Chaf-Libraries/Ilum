@@ -6,6 +6,14 @@
 #include <RenderCore/RenderGraph/RenderGraph.hpp>
 #include <RenderCore/RenderGraph/RenderGraphBuilder.hpp>
 #include <Renderer/Renderer.hpp>
+
+#include <cereal/types/map.hpp>
+#include <cereal/types/string.hpp>
+#include <cereal/types/unordered_map.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/cereal.hpp>
+
+#include <Core/Macro.hpp>
 #include <CodeGeneration/Meta/RHIMeta.hpp>
 #include <CodeGeneration/Meta/RenderCoreMeta.hpp>
 
@@ -457,7 +465,7 @@ void RenderGraphEditor::Tick()
 				{
 					ImGui::PushID(static_cast<int32_t>(handle.GetHandle()));
 					ImGui::Text("Pass - %s", pass.name.c_str());
-					m_need_compile |= ImGui::EditVariant(pass.config);
+					//m_need_compile |= ImGui::EditVariant(pass.config);
 					ImGui::PopID();
 					ImGui::Separator();
 				}

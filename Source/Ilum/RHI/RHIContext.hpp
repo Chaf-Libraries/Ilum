@@ -19,6 +19,7 @@ class RHIContext
 {
   public:
 	RHIContext(Window *window);
+
 	~RHIContext();
 
 	RHIBackend GetBackend() const;

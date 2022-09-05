@@ -46,7 +46,7 @@ struct BlendState
 		RHIBlendOp     alpha_blend_op   = RHIBlendOp::Add;
 		uint8_t        color_write_mask = 1 | 2 | 4 | 8;
 
-		inline bool operator==(const AttachmentState &state)
+		inline bool operator==(const AttachmentState &state) const
 		{
 			return blend_enable == state.blend_enable &&
 			       src_color_blend == state.src_color_blend &&
@@ -108,7 +108,7 @@ struct RasterizationState
 	float          depth_bias_clamp = 0.f;
 	float          depth_bias_slope = 0.f;
 
-	inline bool operator==(const RasterizationState &state)
+	inline bool operator==(const RasterizationState &state) const
 	{
 		return cull_mode == state.cull_mode &&
 		       front_face == state.front_face &&
@@ -117,7 +117,7 @@ struct RasterizationState
 		       depth_bias_clamp == state.depth_bias_clamp &&
 		       depth_bias_slope == state.depth_bias_slope;
 	}
-	inline bool operator!=(const RasterizationState &state)
+	inline bool operator!=(const RasterizationState &state) const
 	{
 		return !(*this == state);
 	}
@@ -129,13 +129,13 @@ struct MultisampleState
 	uint32_t samples     = 1;
 	uint32_t sample_mask = 0;
 
-	inline bool operator==(const MultisampleState &state)
+	inline bool operator==(const MultisampleState &state) const
 	{
 		return enable == state.enable &&
 		       samples == state.samples &&
 		       sample_mask == state.sample_mask;
 	}
-	inline bool operator!=(const MultisampleState &state)
+	inline bool operator!=(const MultisampleState &state) const
 	{
 		return !(*this == state);
 	}
@@ -149,13 +149,13 @@ struct VertexInputState
 		uint32_t           stride;
 		RHIVertexInputRate rate;
 
-		inline bool operator==(const InputBinding &desc)
+		inline bool operator==(const InputBinding &desc) const
 		{
 			return binding == desc.binding &&
 			       stride == desc.stride &&
 			       rate == desc.rate;
 		}
-		inline bool operator!=(const InputBinding &state)
+		inline bool operator!=(const InputBinding &state) const
 		{
 			return !(*this == state);
 		}
@@ -169,7 +169,7 @@ struct VertexInputState
 		RHIFormat          format;
 		uint32_t           offset;
 
-		inline bool operator==(const InputAttribute &desc)
+		inline bool operator==(const InputAttribute &desc) const
 		{
 			return semantics == desc.semantics &&
 			       location == desc.location &&
@@ -177,7 +177,7 @@ struct VertexInputState
 			       format == desc.format &&
 			       offset == desc.offset;
 		}
-		inline bool operator!=(const InputAttribute &state)
+		inline bool operator!=(const InputAttribute &state) const
 		{
 			return !(*this == state);
 		}
@@ -186,7 +186,7 @@ struct VertexInputState
 	std::vector<InputAttribute> input_attributes;
 	std::vector<InputBinding>   input_bindings;
 
-	inline bool operator==(const VertexInputState &state)
+	inline bool operator==(const VertexInputState &state) const
 	{
 		if (input_attributes.size() == state.input_attributes.size())
 		{
@@ -219,7 +219,7 @@ struct VertexInputState
 		}
 	}
 
-	inline bool operator!=(const VertexInputState &state)
+	inline bool operator!=(const VertexInputState &state) const
 	{
 		return !(*this == state);
 	}
@@ -229,12 +229,12 @@ struct InputAssemblyState
 {
 	RHIPrimitiveTopology topology = RHIPrimitiveTopology::Triangle;
 
-	inline bool operator==(const InputAssemblyState &state)
+	inline bool operator==(const InputAssemblyState &state) const
 	{
 		return topology == state.topology;
 	}
 
-	inline bool operator!=(const InputAssemblyState &state)
+	inline bool operator!=(const InputAssemblyState &state) const
 	{
 		return !(*this == state);
 	}
