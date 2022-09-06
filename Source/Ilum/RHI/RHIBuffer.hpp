@@ -10,12 +10,12 @@ class RHIDevice;
 
 struct BufferDesc
 {
-	std::string    name;
-	RHIBufferUsage usage;
-	RHIMemoryUsage memory;
-	size_t         size;
-	size_t         stride;
-	size_t         count;
+	std::string       name;
+	RHIBufferUsage    usage;
+	RHIMemoryUsage    memory;
+	[[min(1)]] size_t size;
+	[[min(0)]] size_t stride;
+	[[min(0)]] size_t count;
 };
 
 class RHIBuffer
@@ -57,7 +57,7 @@ class RHIBuffer
 	BufferDesc m_desc;
 };
 
-struct BufferStateTransition
+struct [[reflection(false), serialization(false)]] BufferStateTransition
 {
 	RHIBuffer       *buffer;
 	RHIResourceState src;

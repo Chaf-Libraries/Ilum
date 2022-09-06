@@ -31,8 +31,8 @@
 
 #if SERIALIZER_TYPE == SERIALIZER_TYPE_JSON
 #	include <cereal/archives/json.hpp>
-using InputSerializer  = Ilum::TSerializer<cereal::JSONInputArchive>;
-using OutputSerializer = Ilum::TSerializer<cereal::JSONOutputArchive>;
+//using InputSerializer  = Ilum::TSerializer<cereal::JSONInputArchive>;
+//using OutputSerializer = Ilum::TSerializer<cereal::JSONOutputArchive>;
 using InputArchive     = cereal::JSONInputArchive;
 using OutputArchive    = cereal::JSONOutputArchive;
 #elif SERIALIZER_TYPE == SERIALIZER_TYPE_BINARY
@@ -48,8 +48,8 @@ using OutputSerializer = Ilum::TSerializer<cereal::XMLOutputArchive>;
 #endif
 
 #define SERIALIZER_REGISTER_TYPE(TYPE)                                        \
-	TSerializer<OutputArchive>::GetInstance().RegisterType<decltype(TYPE)>(); \
-	TSerializer<InputArchive>::GetInstance().RegisterType<decltype(TYPE)>();
+	cereal::TSerializer<OutputArchive>::GetInstance().RegisterType<TYPE>(); \
+	cereal::TSerializer<InputArchive>::GetInstance().RegisterType<TYPE>();
 
 #define SERIALIZER_DECLARATION(TYPE)\
 	template <class Archive>                                    \

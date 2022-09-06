@@ -20,7 +20,10 @@ Renderer::~Renderer()
 
 void Renderer::Tick()
 {
-
+	if (m_render_graph)
+	{
+		m_render_graph->Execute();
+	}
 }
 
 void Renderer::SetRenderGraph(std::unique_ptr<RenderGraph> &&render_graph)

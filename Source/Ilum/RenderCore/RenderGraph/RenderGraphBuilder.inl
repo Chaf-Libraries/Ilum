@@ -106,6 +106,14 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 		}
 	}
 
+	for (auto &pass : ordered_passes)
+	{
+		auto pass_type   = rttr::type::get_by_name("Ilum::" + pass.name);
+		auto render_pass = pass_type.create();
+		auto render_task = pass_type.get_method("Create").invoke(render_pass, pass, *this, std::forward<Args>(args)...);
+		AddPass(*render_graph, pass.name, std::move(render_task.convert<RenderGraph::RenderTask>()), RenderGraph::RenderTask{});
+	}
+
 	// Sorting Passes
 	// std::vector<RenderPassDesc> ordered_passes;
 	// ordered_passes.reserve(desc.passes.size());
@@ -452,4 +460,4 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 
 	return render_graph;
 }
-}
+}        // namespace Ilum

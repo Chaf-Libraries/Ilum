@@ -16,14 +16,14 @@ struct DepthStencilState
 	RHICompareOp compare = RHICompareOp::Less_Or_Equal;
 	// TODO: Stencil Test
 
-	inline bool operator==(const DepthStencilState &state)
+	inline bool operator==(const DepthStencilState &state) const
 	{
 		return depth_test_enable == state.depth_test_enable &&
 		       depth_write_enable == state.depth_write_enable &&
 		       compare == state.compare;
 	}
 
-	inline bool operator!=(const DepthStencilState &state)
+	inline bool operator!=(const DepthStencilState &state) const
 	{
 		return !(*this == state);
 	}
@@ -57,7 +57,7 @@ struct BlendState
 			       alpha_blend_op == state.alpha_blend_op &&
 			       color_write_mask == state.color_write_mask;
 		}
-		inline bool operator!=(const AttachmentState &state)
+		inline bool operator!=(const AttachmentState &state) const
 		{
 			return !(*this == state);
 		}
@@ -65,7 +65,7 @@ struct BlendState
 
 	std::vector<AttachmentState> attachment_states;
 
-	inline bool operator==(const BlendState &state)
+	inline bool operator==(const BlendState &state) const
 	{
 		if (enable != state.enable ||
 		    logic_op != state.logic_op ||
@@ -93,7 +93,7 @@ struct BlendState
 			return false;
 		}
 	}
-	inline bool operator!=(const BlendState &state)
+	inline bool operator!=(const BlendState &state) const
 	{
 		return !(*this == state);
 	}

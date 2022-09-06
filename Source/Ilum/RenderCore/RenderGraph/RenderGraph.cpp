@@ -61,11 +61,11 @@ void RenderGraph::Execute()
 
 		if (!m_init)
 		{
-			m_initialize_barrier(*this, cmd_buffer);
+			//m_initialize_barrier(*this, cmd_buffer);
 			m_init = true;
 		}
 
-		pass.barrier(*this, cmd_buffer);
+		//pass.barrier(*this, cmd_buffer);
 		pass.execute(*this, cmd_buffer);
 
 		cmd_buffer->EndMarker();

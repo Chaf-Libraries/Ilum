@@ -1,14 +1,16 @@
 #pragma once
 
-#pragma once
+#include <RenderCore/RenderGraph/RenderGraph.hpp>
+#include <RenderCore/RenderGraph/RenderGraphBuilder.hpp>
+
+#include "Renderer.hpp"
 
 namespace Ilum
 {
-	class RenderPass
-	{
-	  public:
-	    RenderPass() = default;
+struct [[serialization(false), reflection(false)]] RenderPass
+{
+	virtual RenderPassDesc CreateDesc() = 0;
 
-		~RenderPass() = default;
-	};
-}
+	virtual RenderGraph::RenderTask Create(const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer) = 0;
+};
+}        // namespace Ilum

@@ -7,8 +7,9 @@ RenderGraphBuilder::RenderGraphBuilder(RHIContext *rhi_context) :
 {
 }
 
-RenderGraphBuilder &RenderGraphBuilder::AddPass(const std::string &name, std::function<void(RenderGraph &, RHICommand *)> &&task)
+RenderGraphBuilder &RenderGraphBuilder::AddPass(RenderGraph &render_graph, const std::string &name, RenderGraph::RenderTask &&task, RenderGraph::RenderTask &&barrier)
 {
+	render_graph.AddPass(name, std::move(task), std::move(barrier));
 	return *this;
 }
 

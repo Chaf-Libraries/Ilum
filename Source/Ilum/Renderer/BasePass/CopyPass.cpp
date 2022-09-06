@@ -8,9 +8,14 @@ RenderPassDesc CopyPass::CreateDesc()
 
 	desc.name = "CopyPass";
 	desc
-		.Read("Source", RenderResourceDesc::Type::Texture, RHIResourceState::ShaderResource)
-		.Write("Target", RenderResourceDesc::Type::Texture, RHIResourceState::RenderTarget);
+	    .Read("Source", RenderResourceDesc::Type::Texture, RHIResourceState::ShaderResource)
+	    .Write("Target", RenderResourceDesc::Type::Texture, RHIResourceState::RenderTarget);
 
 	return desc;
 }
-}        // namespace Ilum::Pass
+
+RenderGraph::RenderTask CopyPass::Create(const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
+{
+	return [=](RenderGraph &render_graph, RHICommand *cmd_buffer) {};
+}
+}        // namespace Ilum

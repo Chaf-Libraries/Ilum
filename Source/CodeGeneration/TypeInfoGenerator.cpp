@@ -52,6 +52,7 @@ inline void ReflectClass(std::stringstream &sstream, const Meta::TypeMeta &meta)
 
 	sstream << fmt::format("rttr::registration::class_<{}>(\"{}\")", meta.GenerateName(), meta.GenerateName());
 	ReflectAttribute(sstream, meta.attributes);
+	uint32_t constructor_count = 0;
 	for (auto &field : meta.fields)
 	{
 		if (field.name == "~" + meta.name ||
@@ -80,6 +81,7 @@ inline void ReflectClass(std::stringstream &sstream, const Meta::TypeMeta &meta)
 				{
 					continue;
 				}
+				constructor_count++;
 				sstream << std::endl
 				        << "	.constructor";
 				sstream << "<";
@@ -103,14 +105,13 @@ inline void ReflectClass(std::stringstream &sstream, const Meta::TypeMeta &meta)
 					sstream << fmt::format("&{}::{}",
 					                       meta.GenerateName(),
 					                       field.name);
-					sstream << ")";
+					sstream << ")(rttr::policy::ctor::as_object)";
 					ReflectAttribute(sstream, field.attributes);
 				}
 				else if (meta.IsOverload(field.name))
 				{
 					sstream << std::endl
 					        << "	.method(";
-					// static_cast<std::unique_ptr<RHIBuffer>(Ilum::RHIContext::*)(const BufferDesc &)>(&Ilum::RHIContext::CreateBuffer))
 					sstream << fmt::format("\"{}\",  static_cast<{}({}::*)({})>(&{}::{})",
 					                       field.name,
 					                       field.GenerateReturnType(),
@@ -147,6 +148,14 @@ inline void ReflectClass(std::stringstream &sstream, const Meta::TypeMeta &meta)
 			ReflectAttribute(sstream, field.attributes);
 		}
 	}
+
+	// No constructor? Set a default one
+	if (constructor_count == 0)
+	{
+		sstream << std::endl
+		        << "	.constructor<>()(rttr::policy::ctor::as_object)";
+	}
+
 	sstream << ";" << std::endl
 	        << std::endl;
 }
@@ -156,24 +165,42 @@ inline void SerializeClass(std::stringstream &sstream, const Meta::TypeMeta &met
 	sstream << "template <class Archive>" << std::endl;
 	sstream << fmt::format("void serialize(Archive& archive, {}& v)", meta.GenerateName()) << std::endl;
 	sstream << "{" << std::endl;
-	sstream << "	archive(";
+
 	bool has_member = false;
 	for (auto &field : meta.fields)
 	{
 		if (field.mode == Meta::Field::Mode::Variable &&
 		    field.access_specifier == Meta::AccessSpecifier::Public)
 		{
+			if (!has_member)
+			{
+				sstream << "	archive(";
+				has_member = true;
+			}
+
 			sstream << "v." << field.name << ", ";
-			has_member = true;
 		}
 	}
 	if (has_member)
 	{
 		sstream.seekp(-2, std::ios_base::end);
+		sstream << ");" << std::endl;
 	}
-	sstream << ");" << std::endl;
 	sstream << "}" << std::endl
 	        << std::endl;
+}
+
+inline void RegisterType(std::stringstream &sstream, const Meta::TypeMeta &meta)
+{
+	for (auto &field : meta.fields)
+	{
+		if (field.mode == Meta::Field::Mode::Variable &&
+		    field.access_specifier == Meta::AccessSpecifier::Public)
+		{
+			sstream << fmt::format("SERIALIZER_REGISTER_TYPE(decltype({}::{}))", meta.GenerateName(), field.name) << std::endl;
+		}
+	}
+	sstream << fmt::format("SERIALIZER_REGISTER_TYPE({})", meta.GenerateName()) << std::endl;
 }
 
 std::string GenerateTypeInfo(const std::vector<std::string> &headers, const std::vector<Meta::TypeMeta> &meta_types)
@@ -216,10 +243,22 @@ std::string GenerateTypeInfo(const std::vector<std::string> &headers, const std:
 				}
 				break;
 			case Meta::TypeMeta::Mode::Struct:
-				ReflectClass(result, meta);
+				if (!meta.NoReflection())
+				{
+					ReflectClass(result, meta);
+				}
 				break;
 			default:
 				break;
+		}
+	}
+
+	for (auto &meta : meta_types)
+	{
+		if ((meta.mode == Meta::TypeMeta::Mode::Struct && !meta.NoSerialization()) ||
+		    (meta.mode == Meta::TypeMeta::Mode::Class && meta.NeedSerialization()))
+		{
+			RegisterType(result, meta);
 		}
 	}
 
@@ -233,7 +272,7 @@ std::string GenerateTypeInfo(const std::vector<std::string> &headers, const std:
 
 	for (auto &meta : meta_types)
 	{
-		if (meta.mode == Meta::TypeMeta::Mode::Struct ||
+		if ((meta.mode == Meta::TypeMeta::Mode::Struct && !meta.NoSerialization()) ||
 		    (meta.mode == Meta::TypeMeta::Mode::Class && meta.NeedSerialization()))
 		{
 			SerializeClass(result, meta);

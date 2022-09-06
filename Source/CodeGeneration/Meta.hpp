@@ -56,12 +56,12 @@ struct Field
 	std::string                initializer;        // expression or {expression}
 	std::vector<Parameter>     parameters;
 	std::vector<std::string>   qualifiers;        // const, volatile, &, &&
-	bool                       is_template  = false;
+	bool                       is_template = false;
 
-	bool IsStaticConstexprVariable() const;
-	bool IsMemberFunction() const;
-	bool IsFriendFunction() const;
-	bool IsDeleteFunction() const;
+	bool        IsStaticConstexprVariable() const;
+	bool        IsMemberFunction() const;
+	bool        IsFriendFunction() const;
+	bool        IsDeleteFunction() const;
 	std::string GenerateParameterTypeList() const;
 	std::string GenerateParameterTypeList(size_t num) const;
 	std::string GenerateReturnType() const;
@@ -98,15 +98,17 @@ struct TypeMeta
 	std::vector<Base>        bases;
 	std::vector<Field>       fields;
 
-	bool IsTemplateType() const;
+	bool        IsTemplateType() const;
 	std::string GenerateName() const;
 	std::string GenerateFullName() const;
 	std::string GenerateTemplateList() const;
 	bool        NeedReflection() const;
 	bool        NeedSerialization() const;
+	bool        NoSerialization() const;
+	bool        NoReflection() const;
 	bool        IsPureVirtual() const;
 	bool        HasConstructor() const;
-	bool        IsOverload(const std::string& name) const;
+	bool        IsOverload(const std::string &name) const;
 };
 }        // namespace Meta
 }        // namespace Ilum

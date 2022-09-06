@@ -1,34 +1,20 @@
 #pragma once
 
-#include <RenderCore/RenderGraph/RenderGraph.hpp>
-#include <RenderCore/RenderGraph/RenderGraphBuilder.hpp>
-
-#include "Renderer/Renderer.hpp"
+#include "Renderer/RenderPass.hpp"
 
 namespace Ilum
 {
-class VisibilityBufferPass
+struct [[RenderPass("Visibility Buffer Pass")]] VisibilityBufferPass : public RenderPass
 {
-  public:
-	static RenderPassDesc CreateDesc();
+	virtual RenderPassDesc CreateDesc() override;
 
-	static RenderGraph::RenderTask Create(const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer);
-};
+	virtual RenderGraph::RenderTask Create(const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer) override;
 
-REFLECTION_STRUCT VisibilityBufferPass_Config
-{
-	REFLECTION_PROPERTY()
-	float a;
-
-	REFLECTION_PROPERTY()
-	std::string m;
-
-	VisibilityBufferPass_Config() :
-	    a(100.f),
-	    m("fuck you")
+	struct Config
 	{
-	}
+		[[editor("slider"), min(0), max(100)]]
+		float       a = 100.f;
+		std::string m = "fuck you";
+	};
 };
-
-RENDER_PASS_REGISTERATION(VisibilityBufferPass);
 }        // namespace Ilum

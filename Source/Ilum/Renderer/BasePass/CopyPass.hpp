@@ -1,22 +1,14 @@
 #pragma once
 
-#include <RenderCore/RenderGraph/RenderGraph.hpp>
-#include <RenderCore/RenderGraph/RenderGraphBuilder.hpp>
-
-#include "Renderer/Renderer.hpp"
+#include "Renderer/RenderPass.hpp"
 
 namespace Ilum
 {
-class CopyPass
+struct [[RenderPass("Copy Pass")]] CopyPass : public RenderPass
 {
   public:
-	static RenderPassDesc CreateDesc();
+	virtual RenderPassDesc CreateDesc() override;
 
-	static RenderGraph::RenderTask Create(const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
-	{
-		return [=](RenderGraph &, RHICommand *) {};
-	}
+	virtual RenderGraph::RenderTask Create(const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer) override;
 };
-
-RENDER_PASS_REGISTERATION(CopyPass);
-}        // namespace Ilum::Pass
+}        // namespace Ilum

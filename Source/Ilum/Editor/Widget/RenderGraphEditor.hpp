@@ -40,10 +40,6 @@ class RenderGraphEditor : public Widget
 
 	bool ValidLink(ResourcePinType resource, PassPinType pass);
 
-	void SaveRenderGraph(const std::string &name);
-
-	void LoadRenderGraph(const std::string &name);
-
   private:
 	RenderGraphDesc m_desc;
 

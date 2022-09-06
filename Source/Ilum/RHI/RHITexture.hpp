@@ -11,24 +11,24 @@ class RHIDevice;
 
 struct TextureDesc
 {
-	std::string name;
-	uint32_t width;
-	uint32_t height;
-	uint32_t depth;
-	uint32_t mips;
-	uint32_t layers;
-	uint32_t samples;
-	RHIFormat format;
-	RHITextureUsage usage;
+	std::string         name;
+	[[min(1)]] uint32_t width;
+	[[min(1)]] uint32_t height;
+	[[min(1)]] uint32_t depth;
+	[[min(1)]] uint32_t mips;
+	[[min(1)]] uint32_t layers;
+	[[min(1)]] uint32_t samples;
+	RHIFormat           format;
+	RHITextureUsage     usage;
 };
 
 struct TextureRange
 {
 	RHITextureDimension dimension;
-	uint32_t base_mip;
-	uint32_t mip_count;
-	uint32_t base_layer;
-	uint32_t layer_count;
+	[[min(0)]] uint32_t base_mip;
+	[[min(1)]] uint32_t mip_count;
+	[[min(0)]] uint32_t base_layer;
+	[[min(1)]] uint32_t layer_count;
 
 	size_t Hash() const
 	{
@@ -43,7 +43,7 @@ class RHITexture
   public:
 	RHITexture(RHIDevice *device, const TextureDesc &desc);
 
-	virtual  ~RHITexture() = default;
+	virtual ~RHITexture() = default;
 
 	const TextureDesc &GetDesc() const;
 
@@ -60,7 +60,7 @@ class RHITexture
 	TextureDesc m_desc;
 };
 
-struct TextureStateTransition
+struct [[reflection(false), serialization(false)]] TextureStateTransition
 {
 	RHITexture      *texture;
 	RHIResourceState src;

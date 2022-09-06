@@ -8,6 +8,7 @@ template <typename T>
 inline ImGuiDataType GetDataType()
 {
 	if (typeid(T) == typeid(float) ||
+	    typeid(T) == typeid(glm::vec1) ||
 	    typeid(T) == typeid(glm::vec2) ||
 	    typeid(T) == typeid(glm::vec3) ||
 	    typeid(T) == typeid(glm::vec4))
@@ -16,6 +17,7 @@ inline ImGuiDataType GetDataType()
 	}
 
 	if (typeid(T) == typeid(int32_t) ||
+	    typeid(T) == typeid(glm::ivec1) ||
 	    typeid(T) == typeid(glm::ivec2) ||
 	    typeid(T) == typeid(glm::ivec3) ||
 	    typeid(T) == typeid(glm::ivec4))
@@ -24,6 +26,7 @@ inline ImGuiDataType GetDataType()
 	}
 
 	if (typeid(T) == typeid(uint32_t) ||
+	    typeid(T) == typeid(glm::uvec1) ||
 	    typeid(T) == typeid(glm::uvec2) ||
 	    typeid(T) == typeid(glm::uvec3) ||
 	    typeid(T) == typeid(glm::uvec4))
@@ -32,6 +35,7 @@ inline ImGuiDataType GetDataType()
 	}
 
 	if (typeid(T) == typeid(size_t) ||
+	    typeid(T) == typeid(glm::u64vec1) ||
 	    typeid(T) == typeid(glm::u64vec2) ||
 	    typeid(T) == typeid(glm::u64vec3) ||
 	    typeid(T) == typeid(glm::u64vec4))
@@ -45,80 +49,241 @@ inline ImGuiDataType GetDataType()
 template <typename T>
 inline int32_t GetComponentCount()
 {
-	if (typeid(T) == typeid(float) ||
-	    typeid(T) == typeid(size_t) ||
-	    typeid(T) == typeid(int32_t) ||
-	    typeid(T) == typeid(uint32_t))
-	{
-		return 1;
-	}
-
-	if (typeid(T) == typeid(glm::vec2) ||
-	    typeid(T) == typeid(glm::u64vec2) ||
-	    typeid(T) == typeid(glm::ivec2) ||
-	    typeid(T) == typeid(glm::uvec2))
-	{
-		return 2;
-	}
-
-	if (typeid(T) == typeid(glm::vec3) ||
-	    typeid(T) == typeid(glm::u64vec3) ||
-	    typeid(T) == typeid(glm::ivec3) ||
-	    typeid(T) == typeid(glm::uvec3))
-	{
-		return 3;
-	}
-
-	if (typeid(T) == typeid(glm::vec4) ||
-	    typeid(T) == typeid(glm::u64vec4) ||
-	    typeid(T) == typeid(glm::ivec4) ||
-	    typeid(T) == typeid(glm::uvec4))
-	{
-		return 4;
-	}
-
-	return 0;
+	return T::length();
 }
 
 template <typename T>
-bool EditScalar(rttr::variant &var, const rttr::property &prop)
+bool DragScalar(rttr::variant &var, const rttr::property &prop)
 {
-	T    v         = prop.get_value(var).convert<T>();
+	using CmptType = decltype(T::x);
+
+	T v = T{};
+
+	if (GetComponentCount<T>() == 1)
+	{
+		v = T(prop.get_value(var).convert<CmptType>());
+	}
+	else
+	{
+		v = prop.get_value(var).convert<T>();
+	}
+
+	CmptType min_ = std::numeric_limits<CmptType>::min();
+	CmptType max_ = std::numeric_limits<CmptType>::max(); 
+
+	if (prop.get_metadata("min"))
+	{
+		min_ = prop.get_metadata("min").convert<CmptType>();
+	}
+
+	if (prop.get_metadata("max"))
+	{
+		max_ = prop.get_metadata("max").convert<CmptType>();
+	}
+
 	auto data_type = GetDataType<T>();
+	bool update    = false;
 	switch (data_type)
 	{
 		case ImGuiDataType_Float:
-			if (ImGui::DragScalarN(prop.get_name().data(), data_type, &v, GetComponentCount<T>(), 0.01f, nullptr, nullptr, "%.2f"))
+			if (ImGui::DragScalarN(prop.get_name().data(), data_type, &v.x, GetComponentCount<T>(), 0.01f, &min_, &max_, "%.2f"))
 			{
-				prop.set_value(var, v);
-				return true;
+				update = true;
 			}
 			break;
 		case ImGuiDataType_S8:
 		case ImGuiDataType_S16:
 		case ImGuiDataType_S32:
 		case ImGuiDataType_S64:
-			if (ImGui::DragScalarN(prop.get_name().data(), data_type, &v, GetComponentCount<T>(), 1, nullptr, nullptr, "%d"))
+			if (ImGui::DragScalarN(prop.get_name().data(), data_type, &v.x, GetComponentCount<T>(), 1, &min_, &max_, "%d"))
 			{
-				prop.set_value(var, v);
-				return true;
+				update = true;
 			}
 			break;
 		case ImGuiDataType_U8:
 		case ImGuiDataType_U16:
 		case ImGuiDataType_U32:
 		case ImGuiDataType_U64:
-			if (ImGui::DragScalarN(prop.get_name().data(), data_type, &v, GetComponentCount<T>(), 1, nullptr, nullptr, "%d"))
+			if (ImGui::DragScalarN(prop.get_name().data(), data_type, &v.x, GetComponentCount<T>(), 1, &min_, &max_, "%d"))
 			{
-				prop.set_value(var, v);
-				return true;
+				update = true;
 			}
 			break;
 		default:
 			break;
 	}
 
-	return false;
+	if (update)
+	{
+		if (GetComponentCount<T>() == 1)
+		{
+			prop.set_value(var, v.x);
+		}
+		else
+		{
+			prop.set_value(var, v);
+		}
+	}
+
+	return update;
+}
+
+template <typename T>
+bool SliderScalar(rttr::variant &var, const rttr::property &prop)
+{
+	using CmptType = decltype(T::x);
+
+	T v = T{};
+
+	if (GetComponentCount<T>() == 1)
+	{
+		v = T(prop.get_value(var).convert<CmptType>());
+	}
+	else
+	{
+		v = prop.get_value(var).convert<T>();
+	}
+
+	CmptType min_ = (CmptType) 0;
+	CmptType max_ = (CmptType) 0;
+
+	if (prop.get_metadata("min"))
+	{
+		min_ = prop.get_metadata("min").convert<CmptType>();
+	}
+
+	if (prop.get_metadata("max"))
+	{
+		max_ = prop.get_metadata("max").convert<CmptType>();
+	}
+
+	auto data_type = GetDataType<T>();
+	bool update    = false;
+	switch (data_type)
+	{
+		case ImGuiDataType_Float:
+			if (ImGui::SliderScalarN(prop.get_name().data(), data_type, &v, GetComponentCount<T>(), &min_, &max_, "%.2f"))
+			{
+				update = true;
+			}
+			break;
+		case ImGuiDataType_S8:
+		case ImGuiDataType_S16:
+		case ImGuiDataType_S32:
+		case ImGuiDataType_S64:
+			if (ImGui::SliderScalarN(prop.get_name().data(), data_type, &v, GetComponentCount<T>(), &min_, &max_, "%d"))
+			{
+				update = true;
+			}
+			break;
+		case ImGuiDataType_U8:
+		case ImGuiDataType_U16:
+		case ImGuiDataType_U32:
+		case ImGuiDataType_U64:
+			if (ImGui::SliderScalarN(prop.get_name().data(), data_type, &v, GetComponentCount<T>(), &min_, &max_, "%d"))
+			{
+				update = true;
+			}
+			break;
+		default:
+			break;
+	}
+
+	if (update)
+	{
+		if (GetComponentCount<T>() == 1)
+		{
+			prop.set_value(var, v.x);
+		}
+		else
+		{
+			prop.set_value(var, v);
+		}
+	}
+
+	return update;
+}
+
+template <typename T>
+bool EditScalar(rttr::variant &var, const rttr::property &prop)
+{
+	T v = prop.get_value(var).convert<T>();
+
+	if (prop.get_metadata("editor"))
+	{
+		if (prop.get_metadata("editor").convert<std::string>() == "edit color" &&
+		    GetDataType<T>() == ImGuiDataType_Float)
+		{
+			if (GetComponentCount<T>() == 3)
+			{
+				if (ImGui::ColorEdit3(prop.get_name().data(), (float *) (&v.x)))
+				{
+					prop.set_value(var, v);
+					return true;
+				}
+				else
+				{
+					return false;
+				}
+			}
+			else if (GetComponentCount<T>() == 4)
+			{
+				if (ImGui::ColorEdit4(prop.get_name().data(), (float *) (&v.x)))
+				{
+					prop.set_value(var, v);
+					return true;
+				}
+				else
+				{
+					return false;
+				}
+			}
+		}
+		else if (prop.get_metadata("editor").convert<std::string>() == "pick color" &&
+		         GetDataType<T>() == ImGuiDataType_Float)
+		{
+			if (GetComponentCount<T>() == 3)
+			{
+				if (ImGui::ColorPicker3(prop.get_name().data(), (float *) (&v.x)))
+				{
+					prop.set_value(var, v);
+					return true;
+				}
+				else
+				{
+					return false;
+				}
+			}
+			else if (GetComponentCount<T>() == 4)
+			{
+				if (ImGui::ColorPicker4(prop.get_name().data(), (float *) (&v.x)))
+				{
+					prop.set_value(var, v);
+					return true;
+				}
+				else
+				{
+					return false;
+				}
+			}
+		}
+		else if (prop.get_metadata("editor").convert<std::string>() == "slider" &&
+		         prop.get_metadata("min") &&
+		         prop.get_metadata("max"))
+		{
+			return SliderScalar<T>(var, prop);
+		}
+		else if (GetComponentCount<T>() == 4)
+		{
+			if (ImGui::ColorEdit4(prop.get_name().data(), (float *) (&v.x)))
+			{
+				prop.set_value(var, v);
+				return true;
+			}
+		}
+	}
+
+	return DragScalar<T>(var, prop);
 }
 
 bool EditString(rttr::variant &var, const rttr::property &prop)
@@ -126,7 +291,7 @@ bool EditString(rttr::variant &var, const rttr::property &prop)
 	std::string str     = prop.get_value(var).convert<std::string>();
 	char        buf[64] = {0};
 	std::memcpy(buf, str.data(), sizeof(buf));
-	if (ImGui::InputText(prop.get_name().data(), buf, sizeof(buf)), ImGuiInputTextFlags_AutoSelectAll)
+	if (ImGui::InputText(prop.get_name().data(), buf, sizeof(buf)))
 	{
 		str = buf;
 		prop.set_value(var, str);
@@ -162,19 +327,19 @@ bool EditEnumeration(rttr::variant &var, const rttr::property &prop, const rttr:
 }
 
 inline static std::unordered_map<rttr::type, std::function<bool(rttr::variant &, const rttr::property &)>> EditFunctions = {
-    {rttr::type::get<float>(), EditScalar<float>},
+    {rttr::type::get<float>(), EditScalar<glm::vec1>},
     {rttr::type::get<glm::vec2>(), EditScalar<glm::vec2>},
     {rttr::type::get<glm::vec3>(), EditScalar<glm::vec3>},
     {rttr::type::get<glm::vec4>(), EditScalar<glm::vec4>},
-    {rttr::type::get<int32_t>(), EditScalar<int32_t>},
+    {rttr::type::get<int32_t>(), EditScalar<glm::ivec1>},
     {rttr::type::get<glm::ivec2>(), EditScalar<glm::ivec2>},
     {rttr::type::get<glm::ivec3>(), EditScalar<glm::ivec3>},
     {rttr::type::get<glm::ivec4>(), EditScalar<glm::ivec4>},
-    {rttr::type::get<uint32_t>(), EditScalar<uint32_t>},
+    {rttr::type::get<uint32_t>(), EditScalar<glm::uvec1>},
     {rttr::type::get<glm::uvec2>(), EditScalar<glm::uvec2>},
     {rttr::type::get<glm::uvec3>(), EditScalar<glm::uvec3>},
     {rttr::type::get<glm::uvec4>(), EditScalar<glm::uvec4>},
-    {rttr::type::get<size_t>(), EditScalar<size_t>},
+    {rttr::type::get<size_t>(), EditScalar<glm::u64vec1>},
     {rttr::type::get<glm::u64vec2>(), EditScalar<glm::u64vec2>},
     {rttr::type::get<glm::u64vec3>(), EditScalar<glm::u64vec3>},
     {rttr::type::get<glm::u64vec4>(), EditScalar<glm::u64vec4>},

@@ -312,6 +312,32 @@ bool TypeMeta::NeedSerialization() const
 	return false;
 }
 
+bool TypeMeta::NoSerialization() const
+{
+	for (auto &attribute : attributes)
+	{
+		if (attribute.name == "serialization" && attribute.value == "false")
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool TypeMeta::NoReflection() const
+{
+	for (auto &attribute : attributes)
+	{
+		if (attribute.name == "reflection" && attribute.value == "false")
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 bool TypeMeta::IsPureVirtual() const
 {
 	for (auto& field : fields)

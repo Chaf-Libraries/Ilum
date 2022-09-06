@@ -8,21 +8,6 @@
 
 namespace Ilum
 {
-struct RenderPassName
-{
-	const char           *name = nullptr;
-	const RenderPassName *next = nullptr;
-
-	RenderPassName(const char *name, const RenderPassName *&pass) :
-	    name(name)
-	{
-		next = pass;
-		pass = this;
-	}
-};
-
-inline const static RenderPassName *RenderPassNameList = nullptr;
-
 struct RGHandle
 {
 	size_t handle;
@@ -69,7 +54,7 @@ struct RenderPassDesc
 {
 	std::string name;
 
-	//rttr::variant config;
+	rttr::variant config;
 
 	std::map<std::string, RenderResourceDesc> resources;
 
@@ -96,20 +81,6 @@ struct RenderGraphDesc
 
 	std::map<RGHandle, BufferDesc> buffers;
 };
-
-#define RENDER_PASS_REGISTERATION(Type)                                       \
-	namespace NAMESPACE_##Type                              \
-	{                                                                         \
-		RTTR_REGISTRATION                                                     \
-		{                                                                     \
-			rttr::registration::method(#Type##"_Desc", &Type## ::CreateDesc); \
-			rttr::registration::method(#Type##"_Creation", &Type## ::Create); \
-		}                                                                     \
-	}                                                                         \
-	static RenderPassName RenderPass_##Type##_Name(#Type, RenderPassNameList);
-
-#define RENDER_PASS_NAME_REGISTERATION(Type) \
-	static RenderPassName RenderPass_##Type##_Name(#Type, RenderPassNameList);
 
 class RenderGraph
 {

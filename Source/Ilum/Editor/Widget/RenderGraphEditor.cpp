@@ -7,15 +7,17 @@
 #include <RenderCore/RenderGraph/RenderGraphBuilder.hpp>
 #include <Renderer/Renderer.hpp>
 
+#include <cereal/cereal.hpp>
 #include <cereal/types/map.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/unordered_map.hpp>
 #include <cereal/types/vector.hpp>
-#include <cereal/cereal.hpp>
+#include <cereal/types/array.hpp>
 
-#include <Core/Macro.hpp>
 #include <CodeGeneration/Meta/RHIMeta.hpp>
 #include <CodeGeneration/Meta/RenderCoreMeta.hpp>
+#include <CodeGeneration/Meta/RendererMeta.hpp>
+#include <Core/Macro.hpp>
 
 #include <imnodes.h>
 #pragma warning(push, 0)
@@ -465,7 +467,7 @@ void RenderGraphEditor::Tick()
 				{
 					ImGui::PushID(static_cast<int32_t>(handle.GetHandle()));
 					ImGui::Text("Pass - %s", pass.name.c_str());
-					//m_need_compile |= ImGui::EditVariant(pass.config);
+					 m_need_compile |= ImGui::EditVariant(pass.config);
 					ImGui::PopID();
 					ImGui::Separator();
 				}
@@ -539,17 +541,20 @@ void RenderGraphEditor::Tick()
 		{
 			if (ImGui::BeginMenu("Pass"))
 			{
-				auto *pass_name = RenderPassNameList;
-				while (pass_name)
+				for (auto &type : rttr::type::get_types())
 				{
-					if (ImGui::MenuItem(pass_name->name))
+					if (type.get_metadata("RenderPass"))
 					{
-						m_desc.passes.emplace(
-						    RGHandle(m_current_handle++),
-						    rttr::type::invoke(fmt::format("{}_Desc", pass_name->name).c_str(), {}).get_value<RenderPassDesc>());
-						m_need_compile = true;
+						std::string pass_name = type.get_metadata("RenderPass").get_value<std::string>();
+						if (ImGui::MenuItem(pass_name.c_str()))
+						{
+							auto pass = type.create();
+							m_desc.passes.emplace(
+							    RGHandle(m_current_handle++),
+							    rttr::type::get(pass).get_method("CreateDesc").invoke(pass).convert<RenderPassDesc>());
+							m_need_compile = true;
+						}
 					}
-					pass_name = pass_name->next;
 				}
 				ImGui::EndMenu();
 			}

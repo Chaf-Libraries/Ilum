@@ -26,7 +26,7 @@ struct ShaderMeta
 		uint32_t  location;
 		RHIFormat format;
 
-		inline bool operator==(const Variable &other)
+		inline bool operator==(const Variable &other) const
 		{
 			return location == other.location &&
 			       format == other.format;
@@ -41,7 +41,7 @@ struct ShaderMeta
 		uint32_t       offset = 0;
 		RHIShaderStage stage;
 
-		inline bool operator==(const Constant &other)
+		inline bool operator==(const Constant &other) const
 		{
 			return name == other.name &&
 			       size == other.size &&
@@ -60,7 +60,7 @@ struct ShaderMeta
 		DescriptorType type;
 		RHIShaderStage stage;
 
-		inline bool operator==(const Descriptor &other)
+		inline bool operator==(const Descriptor &other) const
 		{
 			return name == other.name &&
 			       array_size == other.array_size &&

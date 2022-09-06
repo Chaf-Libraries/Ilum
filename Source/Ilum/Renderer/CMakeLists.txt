@@ -31,7 +31,7 @@ target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 
 add_custom_command(
 	TARGET ${TARGET_NAME} POST_BUILD 
-	COMMAND python ${PROJECT_SOURCE_DIR}/Scripts/Preprocess.py ${PROJECT_SOURCE_DIR}/Source/_Generate/${TARGET_NAME}_Generate.meta ${HEADER_FILES} ${SOURCE_FILES}
+	COMMAND ${PROJECT_SOURCE_DIR}/bin/CodeGeneration.exe ${PROJECT_SOURCE_DIR}/Source/CodeGeneration/Meta/RendererMeta.hpp ${HEADER_FILES}
 )
 
 target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Precompile.hpp)

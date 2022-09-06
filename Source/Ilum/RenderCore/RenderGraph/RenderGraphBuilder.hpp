@@ -24,7 +24,7 @@ class RenderGraphBuilder
 
 	~RenderGraphBuilder() = default;
 
-	RenderGraphBuilder &AddPass(const std::string &name, std::function<void(RenderGraph &, RHICommand *)> &&task);
+	RenderGraphBuilder &AddPass(RenderGraph& render_graph, const std::string &name, RenderGraph::RenderTask &&task, RenderGraph::RenderTask &&barrier);
 
 	bool Validate(RenderGraphDesc &desc);
 
