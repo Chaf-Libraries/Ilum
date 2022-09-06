@@ -18,11 +18,13 @@ namespace Ilum
 		return lhs = lhs | rhs;                                 \
 	}
 
-enum class RHIBackend{
-    Unknown,
-    Vulkan,
-    DX12,
-    CUDA};
+enum class RHIBackend
+{
+	Unknown,
+	Vulkan,
+	DX12,
+	CUDA
+};
 
 enum class RHIShaderStage
 {
@@ -130,6 +132,47 @@ enum class RHITextureDimension : uint64_t
 	Texture2DArray   = 1 << 5,
 	TextureCubeArray = 1 << 6,
 };
+
+inline RHITextureDimension GetTextureDimension(uint32_t width, uint32_t height, uint32_t depth, uint32_t layers)
+{
+	if (layers == 1)
+	{
+		if (depth == 1)
+		{
+			if (height == 1)
+			{
+				return RHITextureDimension::Texture1D;
+			}
+			else
+			{
+				return RHITextureDimension::Texture2D;
+			}
+		}
+		else
+		{
+			return RHITextureDimension::Texture3D;
+		}
+	}
+
+	 if (layers == 6)
+	{
+		return RHITextureDimension::TextureCube;
+	}
+
+	 if (layers % 6 == 0)
+	 {
+		 return RHITextureDimension::TextureCubeArray;
+	 }
+
+	 if (height == 1)
+	 {
+		 return RHITextureDimension::Texture1DArray;
+	 }
+	 else
+	 {
+		 return RHITextureDimension::Texture2DArray;
+	 }
+}
 
 enum class RHITextureUsage
 {

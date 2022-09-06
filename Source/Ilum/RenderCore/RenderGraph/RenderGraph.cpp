@@ -53,24 +53,34 @@ RHIBuffer *RenderGraph::GetBuffer(RGHandle handle)
 
 void RenderGraph::Execute()
 {
+	if (!m_init)
+	{
+		auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Graphics);
+		cmd_buffer->Begin();
+		cmd_buffer->BeginMarker("pass.name");
+		m_initialize_barrier(*this, cmd_buffer);
+		m_init = true;
+		cmd_buffer->EndMarker();
+		cmd_buffer->End();
+		p_rhi_context->GetQueue(RHIQueueFamily::Graphics)->Submit({cmd_buffer});
+	}
+
+	std::vector<RHICommand *> cmd_buffers;
+	cmd_buffers.reserve(m_render_passes.size());
 	for (auto &pass : m_render_passes)
 	{
 		auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Graphics);
 		cmd_buffer->Begin();
 		cmd_buffer->BeginMarker(pass.name);
 
-		if (!m_init)
-		{
-			//m_initialize_barrier(*this, cmd_buffer);
-			m_init = true;
-		}
-
-		//pass.barrier(*this, cmd_buffer);
+		// pass.barrier(*this, cmd_buffer);
 		pass.execute(*this, cmd_buffer);
 
 		cmd_buffer->EndMarker();
 		cmd_buffer->End();
+		cmd_buffers.push_back(cmd_buffer);
 	}
+	p_rhi_context->GetQueue(RHIQueueFamily::Graphics)->Submit(cmd_buffers);
 }
 
 RenderGraph &RenderGraph::AddPass(const std::string &name, std::function<void(RenderGraph &, RHICommand *)> &&task, std::function<void(RenderGraph &, RHICommand *)> &&barrier)
@@ -88,7 +98,7 @@ RenderGraph &RenderGraph::AddInitializeBarrier(RenderTask &&barrier)
 RenderGraph &RenderGraph::RegisterTexture(const TextureCreateInfo &create_info)
 {
 	TextureDesc desc = create_info.desc;
-	desc.usage       = desc.usage | RHITextureUsage::ShaderResource | RHITextureUsage::Transfer;
+	desc.usage       = RHITextureUsage::ShaderResource | RHITextureUsage::Transfer | RHITextureUsage::UnorderedAccess | RHITextureUsage::RenderTarget;
 	auto &texture    = m_textures.emplace_back(p_rhi_context->CreateTexture(desc));
 	m_texture_lookup.emplace(create_info.handle, texture.get());
 
@@ -107,7 +117,7 @@ RenderGraph &RenderGraph::RegisterTexture(const std::vector<TextureCreateInfo> &
 	pool_desc.layers      = 0;
 	pool_desc.samples     = 0;
 	pool_desc.format      = (RHIFormat) 0;
-	pool_desc.usage       = RHITextureUsage::ShaderResource | RHITextureUsage::Transfer;
+	pool_desc.usage       = RHITextureUsage::ShaderResource | RHITextureUsage::Transfer | RHITextureUsage::UnorderedAccess | RHITextureUsage::RenderTarget;
 
 	// Memory alias
 	for (auto &info : create_infos)
@@ -128,7 +138,7 @@ RenderGraph &RenderGraph::RegisterTexture(const std::vector<TextureCreateInfo> &
 	for (auto &info : create_infos)
 	{
 		TextureDesc desc = info.desc;
-		desc.usage |= RHITextureUsage::ShaderResource | RHITextureUsage::Transfer;
+		desc.usage |= pool_desc.usage | RHITextureUsage::ShaderResource | RHITextureUsage::Transfer;
 		auto &texture = m_textures.emplace_back(pool_texture->Alias(desc));
 		m_texture_lookup.emplace(info.handle, texture.get());
 	}
