@@ -30,6 +30,10 @@ RenderGraph::RenderTask DebugPass::Create(const RenderPassDesc &desc, RenderGrap
 	return [=](RenderGraph &render_graph, RHICommand *cmd_buffer, rttr::variant &config) {
 		config = debug_texture.get();
 		auto texture = render_graph.GetTexture(desc.resources.at("Debug").handle);
+		if (!texture)
+		{
+			return;
+		}
 		cmd_buffer->ResourceStateTransition({TextureStateTransition{
 		                                        debug_texture.get(),
 		                                        RHIResourceState::ShaderResource,

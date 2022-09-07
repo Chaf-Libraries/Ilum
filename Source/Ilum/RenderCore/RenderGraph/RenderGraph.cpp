@@ -47,12 +47,14 @@ RenderGraph::~RenderGraph()
 
 RHITexture *RenderGraph::GetTexture(RGHandle handle)
 {
-	return m_texture_lookup.at(handle);
+	auto iter = m_texture_lookup.find(handle);
+	return iter == m_texture_lookup.end() ? nullptr : iter->second;
 }
 
 RHIBuffer *RenderGraph::GetBuffer(RGHandle handle)
 {
-	return m_buffer_lookup.at(handle);
+	auto iter = m_buffer_lookup.find(handle);
+	return iter == m_buffer_lookup.end() ? nullptr : iter->second;
 }
 
 void RenderGraph::Execute()
