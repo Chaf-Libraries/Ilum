@@ -27,6 +27,8 @@ set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo;MinSizeRel" CACHE ST
 
 if (MSVC)
   add_compile_options(/bigobj)
+  # add_compile_options(/w05030)
+  add_definitions("/wd5030")
 else ()
   add_compile_options(-Wa,-mbig-obj)
 endif ()
