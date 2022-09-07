@@ -87,15 +87,9 @@ void RenderGraph::Execute()
 	p_rhi_context->GetQueue(RHIQueueFamily::Graphics)->Submit(cmd_buffers);
 }
 
-std::vector<std::pair<std::string, rttr::variant *>> RenderGraph::GetPassConfigs()
+const std::vector<RenderGraph::RenderPassInfo> &RenderGraph::GetRenderPasses() const
 {
-	std::vector<std::pair<std::string, rttr::variant *>> configs;
-	configs.reserve(m_render_passes.size());
-	for (auto &pass : m_render_passes)
-	{
-		configs.push_back(std::make_pair(pass.name, &pass.config));
-	}
-	return configs;
+	return m_render_passes;
 }
 
 RenderGraph &RenderGraph::AddPass(const std::string &name, const rttr::variant &config, RenderTask &&task, BarrierTask &&barrier)

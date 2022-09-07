@@ -2,6 +2,8 @@
 
 #include "Widget.hpp"
 
+#include <vector>
+
 namespace Ilum
 {
 class RenderGraphInspector : public Widget
@@ -12,5 +14,9 @@ class RenderGraphInspector : public Widget
 	~RenderGraphInspector();
 
 	virtual void Tick() override;
+
+  private:
+	std::vector<float> m_frame_times;
+	
 };
 }        // namespace Ilum

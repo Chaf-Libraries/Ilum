@@ -546,13 +546,31 @@ void RenderGraphEditor::Tick()
 					if (type.get_metadata("RenderPass"))
 					{
 						std::string pass_name = type.get_metadata("RenderPass").get_value<std::string>();
-						if (ImGui::MenuItem(pass_name.c_str()))
+						if (type.get_metadata("Category"))
 						{
-							auto pass = type.create();
-							m_desc.passes.emplace(
-							    RGHandle(m_current_handle++),
-							    rttr::type::get(pass).get_method("CreateDesc").invoke(pass).convert<RenderPassDesc>());
-							m_need_compile = true;
+							if (ImGui::BeginMenu(type.get_metadata("Category").get_value<std::string>().c_str()))
+							{
+								if (ImGui::MenuItem(pass_name.c_str()))
+								{
+									auto pass = type.create();
+									m_desc.passes.emplace(
+									    RGHandle(m_current_handle++),
+									    rttr::type::get(pass).get_method("CreateDesc").invoke(pass).convert<RenderPassDesc>());
+									m_need_compile = true;
+								}
+								ImGui::EndMenu();
+							}
+						}
+						else
+						{
+							if (ImGui::MenuItem(pass_name.c_str()))
+							{
+								auto pass = type.create();
+								m_desc.passes.emplace(
+								    RGHandle(m_current_handle++),
+								    rttr::type::get(pass).get_method("CreateDesc").invoke(pass).convert<RenderPassDesc>());
+								m_need_compile = true;
+							}
 						}
 					}
 				}

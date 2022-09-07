@@ -55,7 +55,7 @@ inline int32_t GetComponentCount()
 }
 
 template <typename T>
-bool DragScalar(rttr::variant &var, const rttr::property &prop)
+bool DragScalar(const rttr::variant &var, const rttr::property &prop)
 {
 	using CmptType = decltype(T::x);
 
@@ -131,7 +131,7 @@ bool DragScalar(rttr::variant &var, const rttr::property &prop)
 }
 
 template <typename T>
-bool SliderScalar(rttr::variant &var, const rttr::property &prop)
+bool SliderScalar(const rttr::variant &var, const rttr::property &prop)
 {
 	using CmptType = decltype(T::x);
 
@@ -207,7 +207,7 @@ bool SliderScalar(rttr::variant &var, const rttr::property &prop)
 }
 
 template <typename T>
-bool EditScalar(rttr::variant &var, const rttr::property &prop)
+bool EditScalar(const rttr::variant &var, const rttr::property &prop)
 {
 	T v = prop.get_value(var).convert<T>();
 
@@ -288,7 +288,7 @@ bool EditScalar(rttr::variant &var, const rttr::property &prop)
 	return DragScalar<T>(var, prop);
 }
 
-bool EditString(rttr::variant &var, const rttr::property &prop)
+bool EditString(const rttr::variant &var, const rttr::property &prop)
 {
 	std::string str     = prop.get_value(var).convert<std::string>();
 	char        buf[64] = {0};
@@ -302,7 +302,7 @@ bool EditString(rttr::variant &var, const rttr::property &prop)
 	return false;
 }
 
-bool EditEnumeration(rttr::variant &var, const rttr::property &prop, const rttr::enumeration &enumeration)
+bool EditEnumeration(const rttr::variant &var, const rttr::property &prop, const rttr::enumeration &enumeration)
 {
 	std::vector<const char *> enums;
 	enums.reserve(enumeration.get_values().size());
@@ -328,7 +328,7 @@ bool EditEnumeration(rttr::variant &var, const rttr::property &prop, const rttr:
 	return false;
 }
 
-inline static std::unordered_map<rttr::type, std::function<bool(rttr::variant &, const rttr::property &)>> EditFunctions = {
+inline static std::unordered_map<rttr::type, std::function<bool(const rttr::variant &, const rttr::property &)>> EditFunctions = {
     {rttr::type::get<float>(), EditScalar<glm::vec1>},
     {rttr::type::get<glm::vec2>(), EditScalar<glm::vec2>},
     {rttr::type::get<glm::vec3>(), EditScalar<glm::vec3>},
@@ -349,13 +349,13 @@ inline static std::unordered_map<rttr::type, std::function<bool(rttr::variant &,
     {rttr::type::get<std::string>(), EditString},
 };
 
-void DisplayImage(rttr::variant& var)
+void DisplayImage(const rttr::variant& var)
 {
 	Ilum::RHITexture *texture = var.convert<Ilum::RHITexture*>();
 	ImGui::Image(texture, ImVec2{100, 100});
 }
 
-bool EditVariant(rttr::variant &var)
+bool EditVariant_(const rttr::variant &var)
 {
 	bool update = false;
 

@@ -4,7 +4,7 @@
 
 namespace Ilum
 {
-struct [[RenderPass("Present Pass")]] PresentPass : public RenderPass
+struct [[RenderPass("Present Pass"), Category("Basic Pass")]] PresentPass : public RenderPass
 {
 	virtual RenderPassDesc CreateDesc() override;
 
