@@ -187,6 +187,7 @@ GuiContext::GuiContext(RHIContext *context, Window *window) :
 
 	auto *cmd_buffer = p_context->CreateCommand(RHIQueueFamily::Graphics);
 	cmd_buffer->Begin();
+	cmd_buffer->BeginMarker("UI");
 	cmd_buffer->ResourceStateTransition({TextureStateTransition{
 	                                        m_font_atlas.get(),
 	                                        RHIResourceState::Undefined,
@@ -200,6 +201,7 @@ GuiContext::GuiContext(RHIContext *context, Window *window) :
 	                                        RHIResourceState::ShaderResource,
 	                                        TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
 	                                    {});
+	cmd_buffer->EndMarker();
 	cmd_buffer->End();
 	auto *queue = p_context->GetQueue(RHIQueueFamily::Graphics);
 	queue->Submit({cmd_buffer});
@@ -479,11 +481,12 @@ static void RHI_Render(ImDrawData *draw_data, WindowData *window_data = nullptr)
 	gRenderTarget->Clear();
 	ColorAttachment attachment = {};
 	attachment.clear_value[3]  = 1.f;
-	gRenderTarget->Add(swapchain->GetCurrentTexture(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, ColorAttachment{});
+	gRenderTarget->Set(0, swapchain->GetCurrentTexture(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, ColorAttachment{});
 
 	auto *cmd_buffer = gContext->CreateCommand(RHIQueueFamily::Graphics);
 
 	cmd_buffer->Begin();
+	cmd_buffer->BeginMarker("UI");
 
 	cmd_buffer->ResourceStateTransition({TextureStateTransition{
 	                                        swapchain->GetCurrentTexture(),
@@ -574,6 +577,7 @@ static void RHI_Render(ImDrawData *draw_data, WindowData *window_data = nullptr)
 	                                            0, 1, 0, 1}}},
 	                                    {});
 
+	cmd_buffer->EndMarker();
 	cmd_buffer->End();
 
 	if (is_child_window)

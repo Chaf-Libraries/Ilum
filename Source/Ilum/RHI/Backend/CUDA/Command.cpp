@@ -104,6 +104,10 @@ void Command::CopyBufferToTexture(RHIBuffer *src_buffer, RHITexture *dst_texture
 {
 }
 
+void Command::BlitTexture(RHITexture *src_texture, const TextureRange &src_range, const RHIResourceState &src_state, RHITexture *dst_texture, const TextureRange &dst_range, const RHIResourceState &dst_state, RHIFilter filter)
+{
+}
+
 void Command::ResourceStateTransition(const std::vector<TextureStateTransition> &texture_transitions, const std::vector<BufferStateTransition> &buffer_transitions)
 {
 }

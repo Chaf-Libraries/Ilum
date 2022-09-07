@@ -16,33 +16,33 @@ RenderTarget::RenderTarget(RHIDevice *device) :
 	RenderTargetCount++;
 }
 
- RenderTarget::~RenderTarget()
+RenderTarget::~RenderTarget()
 {
-	 if (--RenderTargetCount == 0)
-	 {
-		 p_device->WaitIdle();
+	if (--RenderTargetCount == 0)
+	{
+		p_device->WaitIdle();
 
-		 for (auto& [hash, render_pass] : RenderPassCache)
-		 {
-			 vkDestroyRenderPass(static_cast<Device *>(p_device)->GetDevice(), render_pass, nullptr);
-		 }
+		for (auto &[hash, render_pass] : RenderPassCache)
+		{
+			vkDestroyRenderPass(static_cast<Device *>(p_device)->GetDevice(), render_pass, nullptr);
+		}
 
-		 for (auto& [hash, framebuffer] : FramebufferCache)
-		 {
-			 vkDestroyFramebuffer(static_cast<Device *>(p_device)->GetDevice(), framebuffer, nullptr);
-		 }
+		for (auto &[hash, framebuffer] : FramebufferCache)
+		{
+			vkDestroyFramebuffer(static_cast<Device *>(p_device)->GetDevice(), framebuffer, nullptr);
+		}
 
-		 RenderPassCache.clear();
-		 FramebufferCache.clear();
-	 }
- }
-
-RHIRenderTarget &RenderTarget::Add(RHITexture *texture, RHITextureDimension dimension, const ColorAttachment &attachment)
-{
-	return Add(texture, TextureRange{dimension, 0, texture->GetDesc().mips, 0, texture->GetDesc().layers}, attachment);
+		RenderPassCache.clear();
+		FramebufferCache.clear();
+	}
 }
 
-RHIRenderTarget &RenderTarget::Add(RHITexture *texture, const TextureRange &range, const ColorAttachment &attachment)
+RHIRenderTarget &RenderTarget::Set(uint32_t slot, RHITexture *texture, RHITextureDimension dimension, const ColorAttachment &attachment)
+{
+	return Set(slot, texture, TextureRange{dimension, 0, texture->GetDesc().mips, 0, texture->GetDesc().layers}, attachment);
+}
+
+RHIRenderTarget &RenderTarget::Set(uint32_t slot, RHITexture *texture, const TextureRange &range, const ColorAttachment &attachment)
 {
 	VkRenderingAttachmentInfo attachment_info = {};
 	attachment_info.sType                     = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -54,8 +54,14 @@ RHIRenderTarget &RenderTarget::Add(RHITexture *texture, const TextureRange &rang
 
 	HashCombine(m_hash, attachment_info.loadOp, attachment_info.storeOp, attachment_info.imageView, attachment_info.imageLayout);
 
-	m_color_attachments.push_back(attachment_info);
-	m_color_formats.push_back(ToVulkanFormat[texture->GetDesc().format]);
+	while (slot >= m_color_attachments.size())
+	{
+		m_color_attachments.push_back({});
+		m_color_formats.push_back({});
+	}
+
+	m_color_attachments[slot] = attachment_info;
+	m_color_formats[slot]     = ToVulkanFormat[texture->GetDesc().format];
 
 	m_width  = std::max(m_width, texture->GetDesc().width);
 	m_height = std::max(m_height, texture->GetDesc().height);
@@ -64,12 +70,12 @@ RHIRenderTarget &RenderTarget::Add(RHITexture *texture, const TextureRange &rang
 	return *this;
 }
 
-RHIRenderTarget &RenderTarget::Add(RHITexture *texture, RHITextureDimension dimension, const DepthStencilAttachment &attachment)
+RHIRenderTarget &RenderTarget::Set(RHITexture *texture, RHITextureDimension dimension, const DepthStencilAttachment &attachment)
 {
-	return Add(texture, TextureRange{dimension, 0, texture->GetDesc().mips, 0, texture->GetDesc().layers}, attachment);
+	return Set(texture, TextureRange{dimension, 0, texture->GetDesc().mips, 0, texture->GetDesc().layers}, attachment);
 }
 
-RHIRenderTarget &RenderTarget::Add(RHITexture *texture, const TextureRange &range, const DepthStencilAttachment &attachment)
+RHIRenderTarget &RenderTarget::Set(RHITexture *texture, const TextureRange &range, const DepthStencilAttachment &attachment)
 {
 	VkRenderingAttachmentInfo attachment_info     = {};
 	attachment_info.sType                         = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -316,7 +322,7 @@ size_t RenderTarget::GetHash() const
 	return m_hash;
 }
 
-void RenderTarget::Clear()
+RHIRenderTarget &RenderTarget::Clear()
 {
 	m_color_attachments.clear();
 	m_depth_attachment.reset();
@@ -326,9 +332,11 @@ void RenderTarget::Clear()
 	m_depth_format.reset();
 	m_stencil_format.reset();
 
-	m_width = 0;
+	m_width  = 0;
 	m_height = 0;
 
 	m_hash = 0;
+
+	return *this;
 }
 }        // namespace Ilum::Vulkan

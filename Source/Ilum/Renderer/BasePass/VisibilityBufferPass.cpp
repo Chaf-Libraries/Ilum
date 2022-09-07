@@ -18,7 +18,7 @@ RenderPassDesc VisibilityBufferPass::CreateDesc()
 
 RenderGraph::RenderTask VisibilityBufferPass::Create(const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
 {
-	return [=](RenderGraph &render_graph, RHICommand *cmd_buffer) {
+	return [=](RenderGraph &render_graph, RHICommand *cmd_buffer, rttr::variant& config) {
 		RGHandle visibility_buffer_handle = desc.resources.at("VisibilityBuffer").handle;
 		RGHandle depth_buffer_handle      = desc.resources.at("DepthBuffer").handle;
 

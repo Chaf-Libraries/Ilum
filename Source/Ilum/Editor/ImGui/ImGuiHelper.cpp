@@ -2,6 +2,8 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
+#include <RHI/RHITexture.hpp>
+
 namespace ImGui
 {
 template <typename T>
@@ -343,13 +345,26 @@ inline static std::unordered_map<rttr::type, std::function<bool(rttr::variant &,
     {rttr::type::get<glm::u64vec2>(), EditScalar<glm::u64vec2>},
     {rttr::type::get<glm::u64vec3>(), EditScalar<glm::u64vec3>},
     {rttr::type::get<glm::u64vec4>(), EditScalar<glm::u64vec4>},
+    {rttr::type::get<glm::u64vec4>(), EditScalar<glm::u64vec4>},
     {rttr::type::get<std::string>(), EditString},
 };
+
+void DisplayImage(rttr::variant& var)
+{
+	Ilum::RHITexture *texture = var.convert<Ilum::RHITexture*>();
+	ImGui::Image(texture, ImVec2{100, 100});
+}
 
 bool EditVariant(rttr::variant &var)
 {
 	bool update = false;
-	auto type   = var.get_type();
+
+	// Handle texture
+	if (var.get_type() == rttr::type::get<Ilum::RHITexture*>())
+	{
+		DisplayImage(var);
+	}
+
 	for (auto &property_ : var.get_type().get_properties())
 	{
 		if (!property_.get_type().get_properties().empty())

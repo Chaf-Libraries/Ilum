@@ -270,15 +270,48 @@ void Command::CopyBufferToTexture(RHIBuffer *src_buffer, RHITexture *dst_texture
 	vkCmdCopyBufferToImage(m_handle, static_cast<Buffer *>(src_buffer)->GetHandle(), static_cast<Texture *>(dst_texture)->GetHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_info);
 }
 
+void Command::BlitTexture(RHITexture *src_texture, const TextureRange &src_range, const RHIResourceState &src_state, RHITexture *dst_texture, const TextureRange &dst_range, const RHIResourceState &dst_state, RHIFilter filter)
+{
+	VkImage       src_image  = static_cast<Texture *>(src_texture)->GetHandle();
+	VkImage       dst_image  = static_cast<Texture *>(dst_texture)->GetHandle();
+	VkImageLayout src_layout = TextureState::Create(src_state).layout;
+	VkImageLayout dst_layout = TextureState::Create(dst_state).layout;
+
+	VkImageBlit region = {};
+
+	region.srcSubresource.aspectMask     = IsDepthFormat(src_texture->GetDesc().format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+	region.srcSubresource.baseArrayLayer = src_range.base_layer;
+	region.srcSubresource.layerCount     = src_range.layer_count;
+	region.srcSubresource.mipLevel       = src_range.base_mip;
+
+	region.dstSubresource.aspectMask     = IsDepthFormat(dst_texture->GetDesc().format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+	region.dstSubresource.baseArrayLayer = dst_range.base_layer;
+	region.dstSubresource.layerCount     = dst_range.layer_count;
+	region.dstSubresource.mipLevel       = dst_range.base_mip;
+
+	region.srcOffsets[1].x = src_texture->GetDesc().width;
+	region.srcOffsets[1].y = src_texture->GetDesc().height;
+	region.srcOffsets[1].z = 1;
+
+	region.dstOffsets[1].x = dst_texture->GetDesc().width;
+	region.dstOffsets[1].y = dst_texture->GetDesc().height;
+	region.dstOffsets[1].z = 1;
+
+	vkCmdBlitImage(m_handle, src_image, src_layout, dst_image, dst_layout, 1, &region, ToVulkanFilter[filter]);
+}
+
 void Command::ResourceStateTransition(const std::vector<TextureStateTransition> &texture_transitions, const std::vector<BufferStateTransition> &buffer_transitions)
 {
-	std::vector<VkBufferMemoryBarrier> buffer_barriers(buffer_transitions.size());
-	std::vector<VkImageMemoryBarrier>  image_barriers(texture_transitions.size());
+	std::vector<VkBufferMemoryBarrier> buffer_barriers;
+	buffer_barriers.reserve(buffer_transitions.size());
+
+	std::vector<VkImageMemoryBarrier> image_barriers;
+	image_barriers.reserve(texture_transitions.size());
 
 	VkPipelineStageFlags src_stage = 0;
 	VkPipelineStageFlags dst_stage = 0;
 
-	for (uint32_t i = 0; i < buffer_barriers.size(); i++)
+	for (uint32_t i = 0; i < buffer_transitions.size(); i++)
 	{
 		BufferState vk_buffer_state_src = BufferState::Create(buffer_transitions[i].src);
 		BufferState vk_buffer_state_dst = BufferState::Create(buffer_transitions[i].dst);
@@ -287,19 +320,22 @@ void Command::ResourceStateTransition(const std::vector<TextureStateTransition> 
 			continue;
 		}
 
-		buffer_barriers[i].sType               = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-		buffer_barriers[i].srcAccessMask       = vk_buffer_state_src.access_mask;
-		buffer_barriers[i].dstAccessMask       = vk_buffer_state_dst.access_mask;
-		buffer_barriers[i].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		buffer_barriers[i].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		buffer_barriers[i].buffer              = static_cast<Buffer *>(buffer_transitions[i].buffer)->GetHandle();
-		buffer_barriers[i].offset              = 0;
-		buffer_barriers[i].size                = buffer_transitions[i].buffer->GetDesc().size;
+		VkBufferMemoryBarrier buffer_barrier = {};
+
+		buffer_barrier.sType               = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+		buffer_barrier.srcAccessMask       = vk_buffer_state_src.access_mask;
+		buffer_barrier.dstAccessMask       = vk_buffer_state_dst.access_mask;
+		buffer_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		buffer_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		buffer_barrier.buffer              = static_cast<Buffer *>(buffer_transitions[i].buffer)->GetHandle();
+		buffer_barrier.offset              = 0;
+		buffer_barrier.size                = buffer_transitions[i].buffer->GetDesc().size;
+		buffer_barriers.push_back(buffer_barrier);
 		src_stage |= vk_buffer_state_src.stage;
 		dst_stage |= vk_buffer_state_dst.stage;
 	}
 
-	for (uint32_t i = 0; i < image_barriers.size(); i++)
+	for (uint32_t i = 0; i < texture_transitions.size(); i++)
 	{
 		TextureState vk_texture_state_src = TextureState::Create(texture_transitions[i].src);
 		TextureState vk_texture_state_dst = TextureState::Create(texture_transitions[i].dst);
@@ -308,6 +344,8 @@ void Command::ResourceStateTransition(const std::vector<TextureStateTransition> 
 			continue;
 		}
 
+		VkImageMemoryBarrier image_barrier = {};
+
 		VkImageSubresourceRange range = {};
 		range.aspectMask              = IsDepthFormat(texture_transitions[i].texture->GetDesc().format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
 		range.baseArrayLayer          = texture_transitions[i].range.base_layer;
@@ -315,15 +353,16 @@ void Command::ResourceStateTransition(const std::vector<TextureStateTransition> 
 		range.layerCount              = texture_transitions[i].range.layer_count;
 		range.levelCount              = texture_transitions[i].range.mip_count;
 
-		image_barriers[i].sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		image_barriers[i].srcAccessMask       = vk_texture_state_src.access_mask;
-		image_barriers[i].dstAccessMask       = vk_texture_state_dst.access_mask;
-		image_barriers[i].oldLayout           = vk_texture_state_src.layout;
-		image_barriers[i].newLayout           = vk_texture_state_dst.layout;
-		image_barriers[i].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		image_barriers[i].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		image_barriers[i].image               = static_cast<Texture *>(texture_transitions[i].texture)->GetHandle();
-		image_barriers[i].subresourceRange    = range;
+		image_barrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		image_barrier.srcAccessMask       = vk_texture_state_src.access_mask;
+		image_barrier.dstAccessMask       = vk_texture_state_dst.access_mask;
+		image_barrier.oldLayout           = vk_texture_state_src.layout;
+		image_barrier.newLayout           = vk_texture_state_dst.layout;
+		image_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		image_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		image_barrier.image               = static_cast<Texture *>(texture_transitions[i].texture)->GetHandle();
+		image_barrier.subresourceRange    = range;
+		image_barriers.push_back(image_barrier);
 		src_stage |= vk_texture_state_src.stage;
 		dst_stage |= vk_texture_state_dst.stage;
 	}

@@ -138,6 +138,11 @@ std::unique_ptr<RHIRenderTarget> RHIContext::CreateRenderTarget()
 	return RHIRenderTarget::Create(m_device.get());
 }
 
+std::unique_ptr<RHIProfiler> RHIContext::CreateProfiler()
+{
+	return RHIProfiler::Create(m_device.get(), m_swapchain->GetTextureCount());
+}
+
 std::unique_ptr<RHIFence> RHIContext::CreateFence()
 {
 	return RHIFence::Create(m_device.get());

@@ -12,6 +12,7 @@
 #include "RHISwapchain.hpp"
 #include "RHISynchronization.hpp"
 #include "RHITexture.hpp"
+#include "RHIProfiler.hpp"
 
 namespace Ilum
 {
@@ -70,12 +71,16 @@ class RHIContext
 	// Create Render Target
 	std::unique_ptr<RHIRenderTarget> CreateRenderTarget();
 
+	// Create Profiler
+	std::unique_ptr<RHIProfiler> CreateProfiler();
+
 	// Create Fence
 	std::unique_ptr<RHIFence> CreateFence();
 
 	// Get Queue
 	RHIQueue *GetQueue(RHIQueueFamily family);
 
+	// Get Back Buffer
 	RHITexture *GetBackBuffer();
 
 	// Frame

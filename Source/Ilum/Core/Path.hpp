@@ -23,6 +23,8 @@ class Path : public Singleton<Path>
 	const std::string GetFileExtension(const std::string &path);
 	const std::string GetRelativePath(const std::string &path);
 
+
+
 	bool Save(const std::string &path, const std::vector<uint8_t> &data, bool binary = false);
 	bool Read(const std::string &path, std::vector<uint8_t> &data, bool binary = false, uint32_t begin = 0, uint32_t end = 0);
 

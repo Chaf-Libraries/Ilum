@@ -8,11 +8,11 @@
 #include <Renderer/Renderer.hpp>
 
 #include <cereal/cereal.hpp>
+#include <cereal/types/array.hpp>
 #include <cereal/types/map.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/unordered_map.hpp>
 #include <cereal/types/vector.hpp>
-#include <cereal/types/array.hpp>
 
 #include <CodeGeneration/Meta/RHIMeta.hpp>
 #include <CodeGeneration/Meta/RenderCoreMeta.hpp>
@@ -467,7 +467,7 @@ void RenderGraphEditor::Tick()
 				{
 					ImGui::PushID(static_cast<int32_t>(handle.GetHandle()));
 					ImGui::Text("Pass - %s", pass.name.c_str());
-					 m_need_compile |= ImGui::EditVariant(pass.config);
+					m_need_compile |= ImGui::EditVariant(pass.config);
 					ImGui::PopID();
 					ImGui::Separator();
 				}
@@ -592,6 +592,26 @@ void RenderGraphEditor::Tick()
 				LOG_INFO("Render Graph Compile Failed!");
 			}
 		}
+
+		if (!m_need_compile && !m_desc.passes.empty() && ImGui::MenuItem("Reload"))
+		{
+			RenderGraphBuilder builder(p_editor->GetRHIContext());
+
+			auto *renderer = p_editor->GetRenderer();
+			renderer->Reset();
+			auto render_graph = builder.Compile(m_desc, renderer);
+
+			if (render_graph)
+			{
+				renderer->SetRenderGraph(std::move(render_graph));
+				m_need_compile = false;
+			}
+			else
+			{
+				LOG_INFO("Render Graph Compile Failed!");
+			}
+		}
+
 		ImGui::EndMenuBar();
 	}
 

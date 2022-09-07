@@ -87,7 +87,8 @@ class RenderGraph
 	friend class RenderGraphBuilder;
 
   public:
-	using RenderTask = std::function<void(RenderGraph &, RHICommand *)>;
+	using RenderTask  = std::function<void(RenderGraph &, RHICommand *, rttr::variant &)>;
+	using BarrierTask = std::function<void(RenderGraph &, RHICommand *)>;
 
   public:
 	RenderGraph(RHIContext *rhi_context);
@@ -99,6 +100,8 @@ class RenderGraph
 	RHIBuffer *GetBuffer(RGHandle handle);
 
 	void Execute();
+
+	std::vector<std::pair<std::string, rttr::variant *>> GetPassConfigs();
 
   private:
 	struct TextureCreateInfo
@@ -113,9 +116,9 @@ class RenderGraph
 		RGHandle   handle;
 	};
 
-	RenderGraph &AddPass(const std::string &name, RenderTask &&execute, RenderTask &&barrier);
+	RenderGraph &AddPass(const std::string &name, const rttr::variant &config, RenderTask &&execute, BarrierTask &&barrier);
 
-	RenderGraph &AddInitializeBarrier(RenderTask &&barrier);
+	RenderGraph &AddInitializeBarrier(BarrierTask &&barrier);
 
 	// Without memory alias
 	RenderGraph &RegisterTexture(const TextureCreateInfo &create_infos);
@@ -132,11 +135,15 @@ class RenderGraph
 	{
 		std::string name;
 
-		RenderTask execute;
-		RenderTask barrier;
+		rttr::variant config;
+
+		RenderTask  execute;
+		BarrierTask barrier;
+
+		std::unique_ptr<RHIProfiler> profiler = nullptr;
 	};
 
-	RenderTask m_initialize_barrier;
+	BarrierTask m_initialize_barrier;
 
 	std::vector<RenderPassInfo> m_render_passes;
 

@@ -403,7 +403,7 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(cons
 		}
 		else
 		{
-			ASSERT(false);
+			return {};
 		}
 	}
 
@@ -519,7 +519,7 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::DXIL>(const
 		}
 		else
 		{
-			ASSERT(false);
+			return {};
 		}
 	}
 

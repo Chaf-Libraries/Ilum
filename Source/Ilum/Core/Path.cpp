@@ -186,6 +186,11 @@ const std::string Path::GetRelativePath(const std::string &path)
 
 bool Path::Save(const std::string &path, const std::vector<uint8_t> &data, bool binary)
 {
+	std::string dir = GetFileDirectory(path);
+	if (!IsExist(dir))
+	{
+		CreatePath(dir);
+	}
 	std::ofstream output(path, binary ? std::ofstream::binary : 2);
 	output.write(reinterpret_cast<const char *>(data.data()), data.size() * sizeof(uint8_t));
 	output.flush();

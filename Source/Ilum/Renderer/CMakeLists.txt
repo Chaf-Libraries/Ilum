@@ -27,6 +27,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE rttr_core_lib)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Ilum")
+target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 
 add_custom_command(

@@ -3,6 +3,7 @@
 #include "ImGui/ImGuiContext.hpp"
 
 #include "Widget/RenderGraphEditor.hpp"
+#include "Widget/RenderGraphInspector.hpp"
 #include "Widget/SceneView.hpp"
 
 #include <imgui.h>
@@ -13,6 +14,7 @@ Editor::Editor(Window *window, RHIContext *rhi_context, Renderer *renderer) :
     m_imgui_context(std::make_unique<GuiContext>(rhi_context, window)), p_renderer(renderer), p_rhi_context(rhi_context)
 {
 	m_widgets.emplace_back(std::make_unique<RenderGraphEditor>(this));
+	m_widgets.emplace_back(std::make_unique<RenderGraphInspector>(this));
 	m_widgets.emplace_back(std::make_unique<SceneView>(this));
 }
 

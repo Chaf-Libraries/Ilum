@@ -39,6 +39,10 @@ RenderGraph::RenderGraph(RHIContext *rhi_context) :
 
 RenderGraph::~RenderGraph()
 {
+	p_rhi_context->GetQueue(RHIQueueFamily::Graphics)->Execute();
+	p_rhi_context->GetQueue(RHIQueueFamily::Compute)->Execute();
+	p_rhi_context->GetQueue(RHIQueueFamily::Graphics)->Wait();
+	p_rhi_context->GetQueue(RHIQueueFamily::Compute)->Wait();
 }
 
 RHITexture *RenderGraph::GetTexture(RGHandle handle)
@@ -57,7 +61,7 @@ void RenderGraph::Execute()
 	{
 		auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Graphics);
 		cmd_buffer->Begin();
-		cmd_buffer->BeginMarker("pass.name");
+		cmd_buffer->BeginMarker("Initialize");
 		m_initialize_barrier(*this, cmd_buffer);
 		m_init = true;
 		cmd_buffer->EndMarker();
@@ -72,10 +76,10 @@ void RenderGraph::Execute()
 		auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Graphics);
 		cmd_buffer->Begin();
 		cmd_buffer->BeginMarker(pass.name);
-
-		// pass.barrier(*this, cmd_buffer);
-		pass.execute(*this, cmd_buffer);
-
+		pass.profiler->Begin(cmd_buffer, p_rhi_context->GetSwapchain()->GetCurrentFrameIndex());
+		pass.barrier(*this, cmd_buffer);
+		pass.execute(*this, cmd_buffer, pass.config);
+		pass.profiler->End();
 		cmd_buffer->EndMarker();
 		cmd_buffer->End();
 		cmd_buffers.push_back(cmd_buffer);
@@ -83,13 +87,24 @@ void RenderGraph::Execute()
 	p_rhi_context->GetQueue(RHIQueueFamily::Graphics)->Submit(cmd_buffers);
 }
 
-RenderGraph &RenderGraph::AddPass(const std::string &name, std::function<void(RenderGraph &, RHICommand *)> &&task, std::function<void(RenderGraph &, RHICommand *)> &&barrier)
+std::vector<std::pair<std::string, rttr::variant *>> RenderGraph::GetPassConfigs()
 {
-	m_render_passes.emplace_back(RenderPassInfo{name, std::move(task), std::move(barrier)});
+	std::vector<std::pair<std::string, rttr::variant *>> configs;
+	configs.reserve(m_render_passes.size());
+	for (auto &pass : m_render_passes)
+	{
+		configs.push_back(std::make_pair(pass.name, &pass.config));
+	}
+	return configs;
+}
+
+RenderGraph &RenderGraph::AddPass(const std::string &name, const rttr::variant &config, RenderTask &&task, BarrierTask &&barrier)
+{
+	m_render_passes.emplace_back(RenderPassInfo{name, config, std::move(task), std::move(barrier), p_rhi_context->CreateProfiler()});
 	return *this;
 }
 
-RenderGraph &RenderGraph::AddInitializeBarrier(RenderTask &&barrier)
+RenderGraph &RenderGraph::AddInitializeBarrier(BarrierTask &&barrier)
 {
 	m_initialize_barrier = std::move(barrier);
 	return *this;

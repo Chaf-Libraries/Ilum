@@ -16,6 +16,6 @@ RenderPassDesc CopyPass::CreateDesc()
 
 RenderGraph::RenderTask CopyPass::Create(const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
 {
-	return [=](RenderGraph &render_graph, RHICommand *cmd_buffer) {};
+	return [=](RenderGraph &render_graph, RHICommand *cmd_buffer, rttr::variant &config) {};
 }
 }        // namespace Ilum

@@ -36,10 +36,10 @@ class RHIRenderTarget
 
 	static std::unique_ptr<RHIRenderTarget> Create(RHIDevice *device);
 
-	virtual RHIRenderTarget &Add(RHITexture *texture, RHITextureDimension dimension, const ColorAttachment &attachment) = 0;
-	virtual RHIRenderTarget &Add(RHITexture *texture, const TextureRange &range, const ColorAttachment &attachment)     = 0;
-	virtual RHIRenderTarget &Add(RHITexture *texture, RHITextureDimension dimension, const DepthStencilAttachment &attachment) = 0;
-	virtual RHIRenderTarget &Add(RHITexture *texture, const TextureRange &range, const DepthStencilAttachment &attachment)     = 0;
+	virtual RHIRenderTarget &Set(uint32_t slot, RHITexture *texture, RHITextureDimension dimension, const ColorAttachment &attachment) = 0;
+	virtual RHIRenderTarget &Set(uint32_t slot, RHITexture *texture, const TextureRange &range, const ColorAttachment &attachment)     = 0;
+	virtual RHIRenderTarget &Set(RHITexture *texture, RHITextureDimension dimension, const DepthStencilAttachment &attachment)         = 0;
+	virtual RHIRenderTarget &Set(RHITexture *texture, const TextureRange &range, const DepthStencilAttachment &attachment)             = 0;
 
 	uint32_t GetWidth() const;
 
@@ -47,7 +47,7 @@ class RHIRenderTarget
 
 	uint32_t GetLayers() const;
 
-	virtual void Clear() = 0;
+	virtual RHIRenderTarget &Clear() = 0;
 
   protected:
 	RHIDevice *p_device = nullptr;
