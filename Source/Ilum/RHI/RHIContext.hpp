@@ -6,13 +6,13 @@
 #include "RHIDevice.hpp"
 #include "RHIFrame.hpp"
 #include "RHIPipelineState.hpp"
+#include "RHIProfiler.hpp"
 #include "RHIQueue.hpp"
 #include "RHISampler.hpp"
 #include "RHIShader.hpp"
 #include "RHISwapchain.hpp"
 #include "RHISynchronization.hpp"
 #include "RHITexture.hpp"
-#include "RHIProfiler.hpp"
 
 namespace Ilum
 {
@@ -38,9 +38,9 @@ class RHIContext
 
 	// Create Buffer
 	std::unique_ptr<RHIBuffer> CreateBuffer(const BufferDesc &desc);
-	std::unique_ptr<RHIBuffer>  CreateBuffer(size_t size, RHIBufferUsage usage, RHIMemoryUsage memory);
+	std::unique_ptr<RHIBuffer> CreateBuffer(size_t size, RHIBufferUsage usage, RHIMemoryUsage memory);
 
-	template<typename T>
+	template <typename T>
 	std::unique_ptr<RHIBuffer> CreateBuffer(size_t count, RHIBufferUsage usage, RHIMemoryUsage memory)
 	{
 		BufferDesc desc = {};
@@ -79,6 +79,8 @@ class RHIContext
 
 	// Get Queue
 	RHIQueue *GetQueue(RHIQueueFamily family);
+
+	std::unique_ptr<RHIQueue> CreateQueue(RHIQueueFamily family, uint32_t idx = 0);
 
 	// Get Back Buffer
 	RHITexture *GetBackBuffer();

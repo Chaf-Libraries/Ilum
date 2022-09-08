@@ -164,6 +164,11 @@ RHIQueue *RHIContext::GetQueue(RHIQueueFamily family)
 	return nullptr;
 }
 
+std::unique_ptr<RHIQueue> RHIContext::CreateQueue(RHIQueueFamily family, uint32_t idx)
+{
+	return RHIQueue::Create(m_device.get(), family, idx);
+}
+
 RHITexture *RHIContext::GetBackBuffer()
 {
 	return m_swapchain->GetCurrentTexture();
