@@ -7,6 +7,7 @@
 #include <imgui_impl_glfw.h>
 
 #include <imnodes.h>
+#include <implot.h>
 
 #include <IconsFontAwesome4.h>
 
@@ -75,6 +76,7 @@ GuiContext::GuiContext(RHIContext *context, Window *window) :
 
 	ImGui::CreateContext();
 	ImNodes::CreateContext();
+	ImPlot::CreateContext();
 
 	SetStyle();
 
@@ -222,6 +224,7 @@ GuiContext::GuiContext(RHIContext *context, Window *window) :
 GuiContext::~GuiContext()
 {
 	ImGui_ImplGlfw_Shutdown();
+	ImPlot::DestroyContext();
 	ImNodes::DestroyContext();
 	ImGui::DestroyContext();
 

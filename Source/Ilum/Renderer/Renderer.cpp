@@ -1,10 +1,9 @@
 #include "Renderer.hpp"
 
 #include <Core/Path.hpp>
-
 #include <RenderCore/ShaderCompiler/ShaderCompiler.hpp>
-
 #include <CodeGeneration/Meta/RHIMeta.hpp>
+#include <Scene/Scene.hpp>
 
 namespace Ilum
 {
@@ -29,7 +28,7 @@ void Renderer::Tick()
 
 void Renderer::SetRenderGraph(std::unique_ptr<RenderGraph> &&render_graph)
 {
-	m_render_graph = std::move(render_graph);
+	m_render_graph    = std::move(render_graph);
 	m_present_texture = nullptr;
 }
 
@@ -61,6 +60,16 @@ void Renderer::SetPresentTexture(RHITexture *present_texture)
 RHITexture *Renderer::GetPresentTexture() const
 {
 	return m_present_texture;
+}
+
+void Renderer::SetScene(std::unique_ptr<Scene> &&scene)
+{
+	p_scene = std::move(scene);
+}
+
+Scene *Renderer::GetScene() const
+{
+	return p_scene ? p_scene.get() : nullptr;
 }
 
 void Renderer::Reset()
@@ -149,7 +158,7 @@ RHIShader *Renderer::RequireShader(const std::string &filename, const std::strin
 
 		SERIALIZE(
 		    cache_path,
-		    std::filesystem::last_write_time(filename).time_since_epoch().count(),
+		    (size_t)std::filesystem::last_write_time(filename).time_since_epoch().count(),
 		    shader_bin[RHIBackend::Vulkan],
 		    shader_bin[RHIBackend::DX12],
 		    shader_bin[RHIBackend::CUDA],

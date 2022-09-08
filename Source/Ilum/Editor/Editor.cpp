@@ -4,6 +4,8 @@
 
 #include "Widget/RenderGraphEditor.hpp"
 #include "Widget/RenderGraphInspector.hpp"
+#include "Widget/SceneHierarchy.hpp"
+#include "Widget/SceneInspector.hpp"
 #include "Widget/SceneView.hpp"
 
 #include <imgui.h>
@@ -16,6 +18,8 @@ Editor::Editor(Window *window, RHIContext *rhi_context, Renderer *renderer) :
 	m_widgets.emplace_back(std::make_unique<RenderGraphEditor>(this));
 	m_widgets.emplace_back(std::make_unique<RenderGraphInspector>(this));
 	m_widgets.emplace_back(std::make_unique<SceneView>(this));
+	m_widgets.emplace_back(std::make_unique<SceneHierarchy>(this));
+	m_widgets.emplace_back(std::make_unique<SceneInspector>(this));
 }
 
 Editor::~Editor()
@@ -67,6 +71,16 @@ Renderer *Editor::GetRenderer() const
 RHIContext *Editor::GetRHIContext() const
 {
 	return p_rhi_context;
+}
+
+void Editor::SelectEntity(const Entity &entity)
+{
+	m_select = entity;
+}
+
+Entity Editor::GetSelectedEntity() const
+{
+	return m_select;
 }
 
 }        // namespace Ilum

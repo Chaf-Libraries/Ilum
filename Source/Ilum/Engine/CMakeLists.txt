@@ -23,7 +23,10 @@ target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:
 target_link_libraries(${TARGET_NAME} PRIVATE Core)
 target_link_libraries(${TARGET_NAME} PRIVATE RHI)
 target_link_libraries(${TARGET_NAME} PRIVATE RenderCore)
+target_link_libraries(${TARGET_NAME} PRIVATE Scene)
+target_link_libraries(${TARGET_NAME} PRIVATE Renderer)
 target_link_libraries(${TARGET_NAME} PRIVATE Editor)
+target_link_libraries(${TARGET_NAME} PRIVATE entt)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Ilum")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")

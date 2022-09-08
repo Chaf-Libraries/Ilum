@@ -17,6 +17,5 @@ class RenderGraphInspector : public Widget
 
   private:
 	std::vector<float> m_frame_times;
-	
 };
 }        // namespace Ilum

@@ -1,11 +1,12 @@
 #pragma once
 
 #include <RHI/RHIContext.hpp>
-
 #include <RenderCore/RenderGraph/RenderGraph.hpp>
 
 namespace Ilum
 {
+class Scene;
+
 class Renderer
 {
   public:
@@ -29,6 +30,10 @@ class Renderer
 
 	RHITexture *GetPresentTexture() const;
 
+	void SetScene(std::unique_ptr<Scene> &&scene);
+
+	Scene *GetScene() const;
+
 	void Reset();
 
   public:
@@ -39,6 +44,8 @@ class Renderer
 
   private:
 	RHIContext *p_rhi_context = nullptr;
+
+	std::unique_ptr<Scene> p_scene = nullptr;
 
 	glm::vec2 m_viewport = {};
 

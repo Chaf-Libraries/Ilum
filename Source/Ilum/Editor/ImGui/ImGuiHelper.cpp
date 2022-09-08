@@ -70,7 +70,7 @@ bool DragScalar(const rttr::variant &var, const rttr::property &prop)
 		v = prop.get_value(var).convert<T>();
 	}
 
-	CmptType min_ = std::numeric_limits<CmptType>::min();
+	CmptType min_ = std::numeric_limits<CmptType>::lowest();
 	CmptType max_ = std::numeric_limits<CmptType>::max(); 
 
 	if (prop.get_metadata("min"))

@@ -13,7 +13,7 @@ class RHIDevice
 
 	virtual ~RHIDevice() = default;
 
-	static std::unique_ptr<RHIDevice> Create();
+	static std::unique_ptr<RHIDevice> Create(RHIBackend backend = RHIBackend::Vulkan);
 
 	virtual void WaitIdle() = 0;
 
