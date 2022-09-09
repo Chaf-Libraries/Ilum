@@ -1,16 +1,16 @@
 #pragma once
 
-#include <RHI/RHITexture.hpp>
+#include "TextureImporter.hpp"
 
-#include <string>
+#include <Core/Singleton.hpp>
 
 namespace Ilum
 {
 class RHIContext;
 
-class STBImporter
+class STBImporter : public TextureImporter, public Singleton<STBImporter>
 {
   public:
-	static std::unique_ptr<RHITexture> Import(RHIContext* rhi_context, const std::string &filename, bool mipmap);
+	virtual void Import(RHIContext *rhi_context, const std::string &filename, std::vector<uint8_t> &data, TextureDesc &desc) override;
 };
 }        // namespace Ilum

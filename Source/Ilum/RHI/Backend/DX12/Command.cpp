@@ -76,6 +76,22 @@ void Command::DrawIndexed(uint32_t index_count, uint32_t instance_count, uint32_
 {
 }
 
+void Command::CopyBufferToTexture(RHIBuffer *src_buffer, RHITexture *dst_texture, uint32_t mip_level, uint32_t base_layer, uint32_t layer_count)
+{
+}
+
+void Command::CopyTextureToBuffer(RHITexture *src_texture, RHIBuffer *dst_buffer, uint32_t mip_level, uint32_t base_layer, uint32_t layer_count)
+{
+}
+
+void Command::GenerateMipmaps(RHITexture *texture, RHIResourceState initial_state, RHIFilter filter)
+{
+}
+
+void Command::BlitTexture(RHITexture *src_texture, const TextureRange &src_range, const RHIResourceState &src_state, RHITexture *dst_texture, const TextureRange &dst_range, const RHIResourceState &dst_state, RHIFilter filter)
+{
+}
+
 void Command::ResourceStateTransition(const std::vector<TextureStateTransition> &texture_transitions, const std::vector<BufferStateTransition> &buffer_transitions)
 {
 	std::vector<D3D12_RESOURCE_BARRIER> resource_barriers;

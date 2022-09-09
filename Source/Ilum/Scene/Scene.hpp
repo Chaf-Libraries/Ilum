@@ -23,9 +23,9 @@ class Scene
 
 	void Execute(std::function<void(Entity &)> &&func);
 
-	void Load(const std::string &filename);
+	void SetName(const std::string &name);
 
-	void Save(const std::string &filename);
+	const std::string &GetName() const;
 
 	entt::registry &operator()();
 

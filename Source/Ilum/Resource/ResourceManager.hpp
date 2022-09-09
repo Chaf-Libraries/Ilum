@@ -1,6 +1,6 @@
 #pragma once
 
-#include <RHI/RHITexture.hpp>
+#include "ResourceMeta.hpp"
 
 #include <string>
 #include <unordered_map>
@@ -19,25 +19,43 @@ class ResourceManager
 
 	void ImportTexture(const std::string &filename);
 
+	void AddSceneMeta(const SceneMeta &meta);
+
+	void AddRenderGraphMeta(const RenderGraphMeta &meta);
+
+	const std::vector<std::unique_ptr<TextureMeta>> &GetTextureMeta() const;
+
+	const std::unordered_map<std::string, std::unique_ptr<SceneMeta>> &GetSceneMeta() const;
+
+	const std::unordered_map<std::string, std::unique_ptr<RenderGraphMeta>> &GetRenderGraphMeta() const;
+
+	const std::vector<RHITexture *> &GetTextureArray() const;
+
+	const TextureMeta *GetTexture(const std::string &uuid);
+
+	const SceneMeta *GetScene(const std::string &uuid);
+
+	const RenderGraphMeta *GetRenderGraph(const std::string &uuid);
+
+	RHITexture *GetThumbnail(ResourceType type) const;
+
   private:
 	RHIContext *p_rhi_context = nullptr;
 
 	// Texture
-	struct TextureMeta
-	{
-		TextureDesc desc;
+	std::vector<RHITexture *> m_texture_array;
+	std::vector<std::unique_ptr<TextureMeta>>  m_textures;
 
-		std::unique_ptr<RHITexture> texture    = nullptr;
-		std::unique_ptr<RHITexture> thumbnails = nullptr;
+	std::unordered_map<std::string, size_t> m_texture_index;
 
-		std::string asset_path;
-	};
+	// Scene
+	std::unordered_map<std::string, std::unique_ptr<SceneMeta>> m_scenes;
 
-	std::vector<RHITexture *>                m_texture_array;
-	std::vector<TextureMeta>                m_textures;
-	std::unordered_map<std::string, size_t>  m_texture_index;
+	// Render Graph
+	std::unordered_map<std::string, std::unique_ptr<RenderGraphMeta>> m_render_graphs;
 
-	// Thumbnails
-	std::unordered_map<std::string, RHITexture *> m_thumbnails;
+	std::unordered_map<ResourceType, std::unique_ptr<RHITexture>> m_thumbnails;
+
+	const TextureDesc ThumbnailDesc = {"", 48, 48, 1, 1, 1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource};
 };
 }        // namespace Ilum

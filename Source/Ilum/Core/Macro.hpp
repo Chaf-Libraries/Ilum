@@ -18,7 +18,7 @@
 #define SERIALIZER_TYPE_JSON 0
 #define SERIALIZER_TYPE_BINARY 1
 #define SERIALIZER_TYPE_XML 2
-#define SERIALIZER_TYPE SERIALIZER_TYPE_JSON
+#define SERIALIZER_TYPE SERIALIZER_TYPE_BINARY
 
 #define LOG_HELPER(LOG_LEVEL, ...) \
 	Ilum::LogSystem::GetInstance().Log(LOG_LEVEL, "[" + std::string(__FUNCTION__) + "] " + __VA_ARGS__);
@@ -32,18 +32,16 @@
 
 #if SERIALIZER_TYPE == SERIALIZER_TYPE_JSON
 #	include <cereal/archives/json.hpp>
-// using InputSerializer  = Ilum::TSerializer<cereal::JSONInputArchive>;
-// using OutputSerializer = Ilum::TSerializer<cereal::JSONOutputArchive>;
 using InputArchive  = cereal::JSONInputArchive;
 using OutputArchive = cereal::JSONOutputArchive;
 #elif SERIALIZER_TYPE == SERIALIZER_TYPE_BINARY
 #	include <cereal/archives/binary.hpp>
-using InputSerializer  = Ilum::TSerializer<cereal::BinaryInputArchive>;
-using OutputSerializer = Ilum::TSerializer<cereal::BinaryOutputArchive>;
+using InputArchive  = cereal::BinaryInputArchive;
+using OutputArchive = cereal::BinaryOutputArchive;
 #elif SERIALIZER_TYPE == SERIALIZER_TYPE_XML
 #	include <cereal/archives/xml.hpp>
-using InputSerializer  = Ilum::TSerializer<cereal::XMLInputArchive>;
-using OutputSerializer = Ilum::TSerializer<cereal::XMLOutputArchive>;
+using InputArchive  = cereal::XMLInputArchive;
+using OutputArchive = cereal::XMLOutputArchive;
 #else
 #	error Must specify a type of serializer!
 #endif

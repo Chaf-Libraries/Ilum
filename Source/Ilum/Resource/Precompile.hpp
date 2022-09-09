@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Core/Macro.hpp>
+#include <Core/Hash.hpp>
 
 #include <cstdint>
 #include <string>

@@ -1,15 +1,60 @@
 #include "Renderer.hpp"
 
+#include <CodeGeneration/Meta/RHIMeta.hpp>
 #include <Core/Path.hpp>
 #include <RenderCore/ShaderCompiler/ShaderCompiler.hpp>
-#include <CodeGeneration/Meta/RHIMeta.hpp>
 #include <Scene/Scene.hpp>
 
 namespace Ilum
 {
-Renderer::Renderer(RHIContext *rhi_context) :
-    p_rhi_context(rhi_context)
+Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resource_manager) :
+    p_rhi_context(rhi_context), p_scene(scene), p_resource_manager(resource_manager)
 {
+	// Create dummy texture
+	{
+		m_dummy_textures[DummyTexture::WhiteOpaque]      = p_rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
+		m_dummy_textures[DummyTexture::BlackOpaque]      = p_rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
+		m_dummy_textures[DummyTexture::WhiteTransparent] = p_rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
+		m_dummy_textures[DummyTexture::BlackTransparent] = p_rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
+
+		auto white_opaque_buffer      = p_rhi_context->CreateBuffer<glm::vec4>(1, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
+		auto black_opaque_buffer      = p_rhi_context->CreateBuffer<glm::vec4>(1, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
+		auto white_transparent_buffer = p_rhi_context->CreateBuffer<glm::vec4>(1, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
+		auto black_transparent_buffer = p_rhi_context->CreateBuffer<glm::vec4>(1, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
+
+		glm::vec4 white_opaque      = {1.f, 1.f, 1.f, 1.f};
+		glm::vec4 black_opaque      = {0.f, 0.f, 0.f, 1.f};
+		glm::vec4 white_transparent = {1.f, 1.f, 1.f, 0.f};
+		glm::vec4 black_transparent = {0.f, 0.f, 0.f, 0.f};
+
+		white_opaque_buffer->CopyToDevice(&white_opaque);
+		black_opaque_buffer->CopyToDevice(&black_opaque);
+		white_transparent_buffer->CopyToDevice(&white_transparent);
+		black_transparent_buffer->CopyToDevice(&black_transparent);
+
+		auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Graphics);
+		cmd_buffer->Begin();
+		cmd_buffer->ResourceStateTransition({TextureStateTransition{m_dummy_textures[DummyTexture::WhiteOpaque].get(), RHIResourceState::Undefined, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+		                                     TextureStateTransition{m_dummy_textures[DummyTexture::BlackOpaque].get(), RHIResourceState::Undefined, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+		                                     TextureStateTransition{m_dummy_textures[DummyTexture::WhiteTransparent].get(), RHIResourceState::Undefined, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+		                                     TextureStateTransition{m_dummy_textures[DummyTexture::BlackTransparent].get(), RHIResourceState::Undefined, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
+		                                    {});
+		cmd_buffer->CopyBufferToTexture(white_opaque_buffer.get(), m_dummy_textures[DummyTexture::WhiteOpaque].get(), 0, 0, 1);
+		cmd_buffer->CopyBufferToTexture(black_opaque_buffer.get(), m_dummy_textures[DummyTexture::BlackOpaque].get(), 0, 0, 1);
+		cmd_buffer->CopyBufferToTexture(white_transparent_buffer.get(), m_dummy_textures[DummyTexture::WhiteTransparent].get(), 0, 0, 1);
+		cmd_buffer->CopyBufferToTexture(black_transparent_buffer.get(), m_dummy_textures[DummyTexture::BlackTransparent].get(), 0, 0, 1);
+		cmd_buffer->ResourceStateTransition({TextureStateTransition{m_dummy_textures[DummyTexture::WhiteOpaque].get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+		                                     TextureStateTransition{m_dummy_textures[DummyTexture::BlackOpaque].get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+		                                     TextureStateTransition{m_dummy_textures[DummyTexture::WhiteTransparent].get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+		                                     TextureStateTransition{m_dummy_textures[DummyTexture::BlackTransparent].get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
+		                                    {});
+		cmd_buffer->End();
+		auto queue = p_rhi_context->CreateQueue(RHIQueueFamily::Graphics, 1);
+		auto fence = p_rhi_context->CreateFence();
+		queue->Submit({cmd_buffer});
+		queue->Execute(fence.get());
+		fence->Wait();
+	}
 }
 
 Renderer::~Renderer()
@@ -42,6 +87,11 @@ RHIContext *Renderer::GetRHIContext() const
 	return p_rhi_context;
 }
 
+ResourceManager *Renderer::GetResourceManager() const
+{
+	return p_resource_manager;
+}
+
 void Renderer::SetViewport(float width, float height)
 {
 	m_viewport = glm::vec2{width, height};
@@ -59,23 +109,23 @@ void Renderer::SetPresentTexture(RHITexture *present_texture)
 
 RHITexture *Renderer::GetPresentTexture() const
 {
-	return m_present_texture;
-}
-
-void Renderer::SetScene(std::unique_ptr<Scene> &&scene)
-{
-	p_scene = std::move(scene);
+	return m_present_texture ? m_present_texture : m_dummy_textures.at(DummyTexture::BlackOpaque).get();
 }
 
 Scene *Renderer::GetScene() const
 {
-	return p_scene ? p_scene.get() : nullptr;
+	return p_scene;
 }
 
 void Renderer::Reset()
 {
 	m_shader_cache.clear();
 	m_shader_meta_cache.clear();
+}
+
+RHITexture *Renderer::GetDummyTexture(DummyTexture dummy) const
+{
+	return m_dummy_textures.at(dummy).get();
 }
 
 RHIShader *Renderer::RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, const std::vector<std::string> &macros)
@@ -158,7 +208,7 @@ RHIShader *Renderer::RequireShader(const std::string &filename, const std::strin
 
 		SERIALIZE(
 		    cache_path,
-		    (size_t)std::filesystem::last_write_time(filename).time_since_epoch().count(),
+		    (size_t) std::filesystem::last_write_time(filename).time_since_epoch().count(),
 		    shader_bin[RHIBackend::Vulkan],
 		    shader_bin[RHIBackend::DX12],
 		    shader_bin[RHIBackend::CUDA],

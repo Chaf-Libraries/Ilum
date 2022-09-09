@@ -9,7 +9,7 @@ namespace Ilum::Vulkan
 {
 inline static VkDescriptorPool                                  DescriptorPool = VK_NULL_HANDLE;
 inline static std::unordered_map<size_t, VkDescriptorSetLayout> DescriptorSetLayouts;
-inline static std::unordered_map<size_t, VkDescriptorSet> DescriptorSet;
+inline static std::unordered_map<size_t, VkDescriptorSet>       DescriptorSet;
 
 inline static size_t DescriptorCount = 0;
 
@@ -115,7 +115,7 @@ Descriptor::Descriptor(RHIDevice *device, const ShaderMeta &meta) :
 			layout = DescriptorSetLayouts[meta.hash];
 		}
 		m_descriptor_set_layouts.emplace(set, layout);
-	
+
 		m_binding_dirty.emplace(set, false);
 	}
 }
@@ -253,7 +253,7 @@ RHIDescriptor &Descriptor::BindBuffer(const std::string &name, RHIBuffer *buffer
 RHIDescriptor &Descriptor::BindBuffer(const std::string &name, RHIBuffer *buffer, size_t offset, size_t range)
 {
 	size_t hash = 0;
-	HashCombine(hash, buffer, offset, range);
+	HashCombine(hash, static_cast<Buffer *>(buffer)->GetHandle(), offset, range);
 
 	if (m_binding_hash[name] != hash)
 	{
@@ -323,7 +323,7 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 			if (DescriptorSet.find(hash) != DescriptorSet.end())
 			{
 				VkDescriptorSet descriptor_set = DescriptorSet[hash];
-				m_descriptor_sets[set] = descriptor_set;
+				m_descriptor_sets[set]         = descriptor_set;
 				return m_descriptor_sets;
 			}
 
@@ -337,10 +337,13 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 			VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
 			vkAllocateDescriptorSets(static_cast<Device *>(p_device)->GetDevice(), &allocate_info, &descriptor_set);
 
+			static int i = 0;
+			LOG_INFO("New descriptor - {}!", i++);
+
 			DescriptorSet.emplace(hash, descriptor_set);
 			m_descriptor_sets[set] = descriptor_set;
 
-			std::vector<VkWriteDescriptorSet> write_sets;
+			std::vector<VkWriteDescriptorSet>                write_sets;
 			std::vector<std::vector<VkDescriptorImageInfo>>  image_infos  = {};
 			std::vector<std::vector<VkDescriptorBufferInfo>> buffer_infos = {};
 			for (auto &descriptor : m_meta.descriptors)
@@ -432,6 +435,8 @@ VkDescriptorSetLayout Descriptor::CreateDescriptorSetLayout(const ShaderMeta &me
 	std::vector<VkDescriptorBindingFlags>     descriptor_binding_flags       = {};
 	std::vector<VkDescriptorSetLayoutBinding> descriptor_set_layout_bindings = {};
 
+	VkDescriptorBindingFlags binding_flags = VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+
 	for (const auto &descriptor : meta.descriptors)
 	{
 		VkDescriptorSetLayoutBinding layout_binding = {};
@@ -440,7 +445,7 @@ VkDescriptorSetLayout Descriptor::CreateDescriptorSetLayout(const ShaderMeta &me
 		layout_binding.stageFlags                   = ToVulkanShaderStage[descriptor.stage];
 		layout_binding.descriptorCount              = descriptor.array_size == 0 ? 1024 : descriptor.array_size;
 		descriptor_set_layout_bindings.push_back(layout_binding);
-		descriptor_binding_flags.push_back(descriptor.array_size == 0 ? VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT : 0);
+		descriptor_binding_flags.push_back(binding_flags | (descriptor.array_size == 0 ? VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT : 0));
 	}
 
 	VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info = {};

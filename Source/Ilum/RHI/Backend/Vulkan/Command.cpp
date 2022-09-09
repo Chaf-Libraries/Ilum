@@ -270,6 +270,87 @@ void Command::CopyBufferToTexture(RHIBuffer *src_buffer, RHITexture *dst_texture
 	vkCmdCopyBufferToImage(m_handle, static_cast<Buffer *>(src_buffer)->GetHandle(), static_cast<Texture *>(dst_texture)->GetHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_info);
 }
 
+void Command::CopyTextureToBuffer(RHITexture *src_texture, RHIBuffer *dst_buffer, uint32_t mip_level, uint32_t base_layer, uint32_t layer_count)
+{
+	VkImageSubresourceLayers subresource = {};
+	subresource.aspectMask               = IsDepthFormat(src_texture->GetDesc().format) ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT;
+	subresource.baseArrayLayer           = base_layer;
+	subresource.mipLevel                 = mip_level;
+	subresource.layerCount               = layer_count;
+
+	uint32_t width  = std::max(src_texture->GetDesc().width, 1u << mip_level) >> mip_level;
+	uint32_t height = std::max(src_texture->GetDesc().height, 1u << mip_level) >> mip_level;
+
+	VkBufferImageCopy copy_info = {};
+	copy_info.bufferOffset      = 0;
+	copy_info.bufferImageHeight = width;
+	copy_info.bufferRowLength   = height;
+	copy_info.imageSubresource  = subresource;
+	copy_info.imageOffset       = {0, 0, 0};
+	copy_info.imageExtent       = {width, height, 1};
+
+	vkCmdCopyImageToBuffer(m_handle, static_cast<Texture *>(src_texture)->GetHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, static_cast<Buffer *>(dst_buffer)->GetHandle(), 1, &copy_info);
+}
+
+void Command::GenerateMipmaps(RHITexture *texture, RHIResourceState initial_state, RHIFilter filter)
+{
+	TextureRange             src_range  = {RHITextureDimension::Texture2D, 0, texture->GetDesc().mips, 0, texture->GetDesc().layers};
+	TextureRange             dst_range  = {RHITextureDimension::Texture2D, 0, texture->GetDesc().mips, 0, texture->GetDesc().layers};
+	VkImageSubresourceLayers src_layers = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+	VkImageSubresourceLayers dst_layers = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+	RHIResourceState         src_state  = RHIResourceState::TransferDest;
+
+	uint32_t src_width  = texture->GetDesc().width;
+	uint32_t src_height = texture->GetDesc().height;
+	uint32_t dst_width  = texture->GetDesc().width;
+	uint32_t dst_height = texture->GetDesc().height;
+
+	for (uint32_t i = 1; i < texture->GetDesc().mips; i++)
+	{
+		src_width  = dst_width;
+		src_height = dst_height;
+
+		dst_width  = std::max(src_width / 2, 1u);
+		dst_height = std::max(src_height / 2, 1u);
+
+		src_layers.mipLevel = i - 1;
+		src_range.base_mip  = i - 1;
+		src_range.mip_count = 1;
+
+		dst_layers.mipLevel = i;
+		dst_range.base_mip  = i;
+		dst_range.mip_count = 1;
+
+		std::vector<TextureStateTransition> transitions(2);
+		transitions[0].texture = texture;
+		transitions[0].src     = src_state;
+		transitions[0].dst     = RHIResourceState::TransferSource;
+		transitions[0].range   = src_range;
+		transitions[1].texture = texture;
+		transitions[1].src     = RHIResourceState::Undefined;
+		transitions[1].dst     = RHIResourceState::TransferDest;
+		transitions[1].range   = dst_range;
+		ResourceStateTransition(transitions, {});
+
+		src_state = RHIResourceState::TransferDest;
+
+		VkImageBlit blit_info    = {};
+		blit_info.srcOffsets[0]  = {0, 0, 0};
+		blit_info.srcOffsets[1]  = {static_cast<int32_t>(src_width), static_cast<int32_t>(src_height), 1};
+		blit_info.dstOffsets[0]  = {0, 0, 0};
+		blit_info.dstOffsets[1]  = {static_cast<int32_t>(dst_width), static_cast<int32_t>(dst_height), 1};
+		blit_info.srcSubresource = src_layers;
+		blit_info.dstSubresource = dst_layers;
+
+		vkCmdBlitImage(m_handle, static_cast<Texture *>(texture)->GetHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, static_cast<Texture *>(texture)->GetHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit_info, ToVulkanFilter[filter]);
+	}
+
+	TextureRange mip_level_range = {RHITextureDimension::Texture2D, 0, texture->GetDesc().mips, 0, texture->GetDesc().layers};
+
+	mip_level_range.mip_count = mip_level_range.mip_count - 1;
+	ResourceStateTransition({TextureStateTransition{texture, RHIResourceState::TransferSource, RHIResourceState::TransferDest, mip_level_range}}, {});
+}
+
 void Command::BlitTexture(RHITexture *src_texture, const TextureRange &src_range, const RHIResourceState &src_state, RHITexture *dst_texture, const TextureRange &dst_range, const RHIResourceState &dst_state, RHIFilter filter)
 {
 	VkImage       src_image  = static_cast<Texture *>(src_texture)->GetHandle();

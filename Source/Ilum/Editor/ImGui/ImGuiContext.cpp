@@ -26,10 +26,10 @@ struct ConstantBlock
 struct ViewportResources
 {
 	ViewportResources() = default;
-	ViewportResources(RHIDevice *device)
+	ViewportResources(RHIDevice *device, const std::string &name = "subwindow")
 	{
 		uniform_buffer = RHIBuffer::Create(device, BufferDesc{
-		                                               "imgui_uniform_buffer",
+		                                               "imgui_uniform_buffer - " + name + std::to_string((uint64_t)this),
 		                                               RHIBufferUsage::ConstantBuffer,
 		                                               RHIMemoryUsage::CPU_TO_GPU,
 		                                               sizeof(ConstantBlock),
@@ -39,8 +39,8 @@ struct ViewportResources
 		present_complete = RHISemaphore::Create(device);
 	}
 
-	std::unique_ptr<RHIBuffer> vertex_buffer;
-	std::unique_ptr<RHIBuffer> index_buffer;
+	std::unique_ptr<RHIBuffer> vertex_buffer  = nullptr;
+	std::unique_ptr<RHIBuffer> index_buffer   = nullptr;
 	std::unique_ptr<RHIBuffer> uniform_buffer = nullptr;
 
 	std::unique_ptr<RHISemaphore> render_complete  = nullptr;
@@ -64,7 +64,8 @@ static RHIPipelineState *gPipelineState = nullptr;
 static RHIDescriptor    *gDescriptor    = nullptr;
 static RHISampler       *gSampler       = nullptr;
 static RHIRenderTarget  *gRenderTarget  = nullptr;
-static ViewportResources gResource;
+
+static std::unique_ptr<ViewportResources> gResource;
 
 GuiContext::GuiContext(RHIContext *context, Window *window) :
     p_context(context), p_window(window)
@@ -72,7 +73,7 @@ GuiContext::GuiContext(RHIContext *context, Window *window) :
 	gContext = p_context;
 	gWindow  = p_window;
 
-	gResource = ViewportResources(gContext->GetDevice());
+	gResource = std::make_unique<ViewportResources>(gContext->GetDevice(), "mainwindows");
 
 	ImGui::CreateContext();
 	ImNodes::CreateContext();
@@ -235,15 +236,7 @@ GuiContext::~GuiContext()
 	gSampler       = nullptr;
 	gRenderTarget  = nullptr;
 
-	gResource.index_buffer.reset();
-	gResource.vertex_buffer.reset();
-	gResource.uniform_buffer.reset();
-
-	gResource.present_complete.reset();
-	gResource.render_complete.reset();
-
-	gResource.index_count  = 0;
-	gResource.vertex_count = 0;
+	gResource.reset();
 }
 
 void GuiContext::BeginFrame()
@@ -412,7 +405,7 @@ static void RHI_Render(ImDrawData *draw_data, WindowData *window_data = nullptr)
 
 	bool               is_child_window = window_data != nullptr;
 	RHISwapchain      *swapchain       = is_child_window ? window_data->swapchain.get() : gContext->GetSwapchain();
-	ViewportResources *resources       = is_child_window ? window_data->viewport_data.get() : &gResource;
+	ViewportResources *resources       = is_child_window ? window_data->viewport_data.get() : gResource.get();
 
 	auto &vertex_buffer  = resources->vertex_buffer;
 	auto &index_buffer   = resources->index_buffer;
@@ -615,6 +608,7 @@ static void ImGuiWindowDestroy(ImGuiViewport *viewport)
 {
 	if (WindowData *window = static_cast<WindowData *>(viewport->RendererUserData))
 	{
+		gContext->GetDevice()->WaitIdle();
 		delete window;
 	}
 	viewport->RendererUserData = nullptr;
@@ -627,7 +621,6 @@ static void ImGuiWindowSetSize(ImGuiViewport *viewport, const ImVec2 size)
 
 static void ImGuiWindowRender(ImGuiViewport *viewport, void *)
 {
-	// const bool clear = !(viewport->Flags & ImGuiViewportFlags_NoRendererClear);
 	WindowData *window_data = static_cast<WindowData *>(viewport->RendererUserData);
 	window_data->swapchain->AcquireNextTexture(window_data->viewport_data->present_complete.get(), nullptr);
 	RHI_Render(viewport->DrawData, window_data);

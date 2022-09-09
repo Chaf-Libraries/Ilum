@@ -4,6 +4,8 @@
 #include <CodeGeneration/Meta/SceneMeta.hpp>
 #include <Core/Path.hpp>
 #include <Renderer/Renderer.hpp>
+#include <Resource/ResourceManager.hpp>
+#include <Resource/ResourceMeta.hpp>
 #include <Scene/Component/HierarchyComponent.hpp>
 #include <Scene/Component/TagComponent.hpp>
 #include <Scene/Component/TransformComponent.hpp>
@@ -121,6 +123,7 @@ void SceneHierarchy::Tick()
 					        TagComponent,
 					        TransformComponent,
 					        HierarchyComponent>(archive);
+					scene->SetName(filename);
 					free(path);
 				}
 			}
@@ -129,22 +132,43 @@ void SceneHierarchy::Tick()
 				char *path = nullptr;
 				if (NFD_SaveDialog("scene", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
 				{
-					std::string   dir      = Path::GetInstance().GetFileDirectory(path);
-					std::string   filename = Path::GetInstance().GetFileName(path, false);
-					std::ofstream os(dir + filename + ".scene", std::ios::binary);
-					OutputArchive archive(os);
-					entt::snapshot{(*scene)()}
-					    .entities(archive)
-					    .component<
-					        TagComponent,
-					        TransformComponent,
-					        HierarchyComponent>(archive);
+					std::string dir      = Path::GetInstance().GetFileDirectory(path);
+					std::string filename = Path::GetInstance().GetFileName(path, false);
+					// Save as .scene
+					{
+						std::ofstream os(dir + filename + ".scene", std::ios::binary);
+						OutputArchive archive(os);
+						entt::snapshot{(*scene)()}
+						    .entities(archive)
+						    .component<
+						        TagComponent,
+						        TransformComponent,
+						        HierarchyComponent>(archive);
+						scene->SetName(filename);
+					}
+					// Save as engine meta
+					{
+						std::string   uuid = std::to_string(Hash(filename));
+						std::ofstream os("Asset/Meta/" + uuid + ".meta", std::ios::binary);
+						OutputArchive archive(os);
+						archive(ResourceType::Scene, uuid, filename);
+						entt::snapshot{(*scene)()}
+						    .entities(archive)
+						    .component<
+						        TagComponent,
+						        TransformComponent,
+						        HierarchyComponent>(archive);
+
+						SceneMeta meta = {};
+						meta.name      = filename;
+						meta.uuid      = uuid;
+						p_editor->GetRenderer()->GetResourceManager()->AddSceneMeta(meta);
+					}
 					free(path);
 				}
 			}
 			ImGui::EndMenu();
 		}
-
 		ImGui::EndMainMenuBar();
 	}
 

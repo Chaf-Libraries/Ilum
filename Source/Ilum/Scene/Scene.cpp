@@ -45,12 +45,14 @@ void Scene::Execute(std::function<void(Entity &)> &&func)
 	});
 }
 
-void Load(const std::string &filename)
+void Scene::SetName(const std::string &name)
 {
+	m_name = name;
 }
 
-void Save(const std::string &filename)
+const std::string &Scene::GetName() const
 {
+	return m_name;
 }
 
 entt::registry &Scene::operator()()

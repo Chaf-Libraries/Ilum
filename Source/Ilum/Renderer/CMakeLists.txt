@@ -24,6 +24,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE Core)
 target_link_libraries(${TARGET_NAME} PRIVATE RHI)
 target_link_libraries(${TARGET_NAME} PRIVATE RenderCore)
 target_link_libraries(${TARGET_NAME} PRIVATE Scene)
+target_link_libraries(${TARGET_NAME} PRIVATE Resource)
 target_link_libraries(${TARGET_NAME} PRIVATE rttr_core_lib)
 target_link_libraries(${TARGET_NAME} PRIVATE entt)
 

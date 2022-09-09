@@ -6,6 +6,7 @@
 #include <RenderCore/RenderGraph/RenderGraph.hpp>
 #include <RenderCore/RenderGraph/RenderGraphBuilder.hpp>
 #include <Renderer/Renderer.hpp>
+#include <Resource/ResourceManager.hpp>
 
 #include <cereal/cereal.hpp>
 #include <cereal/types/array.hpp>
@@ -386,6 +387,27 @@ void RenderGraphEditor::Tick()
 	ImNodes::MiniMap(0.1f);
 	ImNodes::EndNodeEditor();
 
+	if (ImGui::BeginDragDropTarget())
+	{
+		if (const auto *pay_load = ImGui::AcceptDragDropPayload("RenderGraph"))
+		{
+			ASSERT(pay_load->DataSize == sizeof(std::string));
+			std::string uuid = *static_cast<std::string *>(pay_load->Data);
+			auto       *meta = p_editor->GetRenderer()->GetResourceManager()->GetRenderGraph(uuid);
+			if (meta)
+			{
+				std::ifstream is("Asset/Meta/" + uuid + ".meta", std::ios::binary);
+				InputArchive  archive(is);
+				std::string   filename;
+				archive(ResourceType::RenderGraph, uuid, filename);
+				std::string editor_state = "";
+				archive(m_desc, editor_state);
+				ImNodes::LoadCurrentEditorStateFromIniString(editor_state.data(), editor_state.size());
+				m_need_compile = true;
+			}
+		}
+	}
+
 	// Create New Edges
 	{
 		int32_t src = 0, dst = 0;
@@ -530,6 +552,17 @@ void RenderGraphEditor::Tick()
 					std::string dir      = Path::GetInstance().GetFileDirectory(path);
 					std::string filename = Path::GetInstance().GetFileName(path, false);
 					SERIALIZE(dir + filename + ".rg", m_desc, std::string(ImNodes::SaveCurrentEditorStateToIniString()));
+					// Save as engine meta
+					{
+						std::string   uuid = std::to_string(Hash(filename));
+						std::ofstream os("Asset/Meta/" + uuid + ".meta", std::ios::binary);
+						OutputArchive archive(os);
+						archive(ResourceType::RenderGraph, uuid, filename, m_desc, std::string(ImNodes::SaveCurrentEditorStateToIniString()));
+						RenderGraphMeta meta;
+						meta.name = filename;
+						meta.uuid = uuid;
+						p_editor->GetRenderer()->GetResourceManager()->AddRenderGraphMeta(meta);
+					}
 					free(path);
 				}
 			}

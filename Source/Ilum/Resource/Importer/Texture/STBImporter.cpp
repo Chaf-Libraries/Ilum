@@ -7,7 +7,48 @@
 
 namespace Ilum
 {
-std::unique_ptr<RHITexture> STBImporter::Import(RHIContext *rhi_context, const std::string &filename, bool mipmap)
+void STBImporter::Import(RHIContext *rhi_context, const std::string &filename, std::vector<uint8_t> &data, TextureDesc &desc)
+{
+	desc.name = Path::GetInstance().GetFileName(filename, false);
+
+	int32_t width = 0, height = 0, channel = 0;
+
+	const int32_t req_channel = 4;
+
+	void  *raw_data = nullptr;
+	size_t size = 0;
+
+	if (stbi_is_hdr(filename.c_str()))
+	{
+		raw_data    = stbi_loadf(filename.c_str(), &width, &height, &channel, req_channel);
+		size        = static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(req_channel) * sizeof(float);
+		desc.format = RHIFormat::R32G32B32A32_FLOAT;
+	}
+	else if (stbi_is_16_bit(filename.c_str()))
+	{
+		raw_data    = stbi_load_16(filename.c_str(), &width, &height, &channel, req_channel);
+		size        = static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(req_channel) * sizeof(uint16_t);
+		desc.format = RHIFormat::R16G16B16A16_FLOAT;
+	}
+	else
+	{
+		raw_data    = stbi_load(filename.c_str(), &width, &height, &channel, req_channel);
+		size        = static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(req_channel) * sizeof(uint8_t);
+		desc.format = RHIFormat::R8G8B8A8_UNORM;
+	}
+
+	desc.width  = static_cast<uint32_t>(width);
+	desc.height = static_cast<uint32_t>(height);
+	desc.mips   = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height))) + 1);
+	desc.usage  = RHITextureUsage::ShaderResource | RHITextureUsage::Transfer;
+
+	data.resize(size);
+	std::memcpy(data.data(), raw_data, size);
+
+	stbi_image_free(raw_data);
+}
+
+/* std::unique_ptr<RHITexture> STBImporter::Import(RHIContext *rhi_context, const std::string &filename, bool mipmap)
 {
 	TextureDesc desc;
 
@@ -65,8 +106,8 @@ std::unique_ptr<RHITexture> STBImporter::Import(RHIContext *rhi_context, const s
 	                                        TextureRange{RHITextureDimension::Texture2D, 0, desc.mips, 0, 1}}},
 	                                    {});
 
-	// TODO: Copy buffer to texture
-	// TODO: Generate mipmaps
+	cmd_buffer->CopyBufferToTexture(staging_buffer.get(), texture.get(), 0, 0, 1);
+	cmd_buffer->GenerateMipmaps(texture.get(), RHIResourceState::TransferDest, RHIFilter::Linear);
 
 	cmd_buffer->ResourceStateTransition({TextureStateTransition{
 	                                        texture.get(),
@@ -84,5 +125,5 @@ std::unique_ptr<RHITexture> STBImporter::Import(RHIContext *rhi_context, const s
 	fence->Wait();
 
 	return texture;
-}
+}*/
 }        // namespace Ilum

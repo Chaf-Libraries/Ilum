@@ -6,11 +6,20 @@
 namespace Ilum
 {
 class Scene;
+class ResourceManager;
+
+enum class DummyTexture
+{
+	WhiteOpaque,
+	BlackOpaque,
+	WhiteTransparent,
+	BlackTransparent
+};
 
 class Renderer
 {
   public:
-	Renderer(RHIContext *rhi_context);
+	Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resource_manager);
 
 	~Renderer();
 
@@ -22,6 +31,8 @@ class Renderer
 
 	RHIContext *GetRHIContext() const;
 
+	ResourceManager *GetResourceManager() const;
+
 	void SetViewport(float width, float height);
 
 	glm::vec2 GetViewport() const;
@@ -30,11 +41,11 @@ class Renderer
 
 	RHITexture *GetPresentTexture() const;
 
-	void SetScene(std::unique_ptr<Scene> &&scene);
-
 	Scene *GetScene() const;
 
 	void Reset();
+
+	RHITexture *GetDummyTexture(DummyTexture dummy) const;
 
   public:
 	// Shader utils
@@ -45,7 +56,9 @@ class Renderer
   private:
 	RHIContext *p_rhi_context = nullptr;
 
-	std::unique_ptr<Scene> p_scene = nullptr;
+	Scene *p_scene = nullptr;
+
+	ResourceManager *p_resource_manager = nullptr;
 
 	glm::vec2 m_viewport = {};
 
@@ -56,5 +69,7 @@ class Renderer
 	std::unordered_map<size_t, std::unique_ptr<RHIShader>> m_shader_cache;
 
 	std::unordered_map<RHIShader *, ShaderMeta> m_shader_meta_cache;
+
+	std::map<DummyTexture, std::unique_ptr<RHITexture>> m_dummy_textures;
 };
 }        // namespace Ilum
