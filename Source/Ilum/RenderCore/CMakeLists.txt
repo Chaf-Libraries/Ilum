@@ -37,7 +37,6 @@ add_dependencies(${TARGET_NAME} CodeGeneration)
 
 add_custom_command(
 	TARGET ${TARGET_NAME} POST_BUILD 
-	#COMMAND python ${PROJECT_SOURCE_DIR}/Scripts/Preprocess.py ${PROJECT_SOURCE_DIR}/Source/_Generate/${TARGET_NAME}_Generate.meta ${HEADER_FILES} ${SOURCE_FILES}
 	COMMAND ${PROJECT_SOURCE_DIR}/bin/CodeGeneration.exe ${PROJECT_SOURCE_DIR}/Source/CodeGeneration/Meta/RenderCoreMeta.hpp ${HEADER_FILES}
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${PROJECT_SOURCE_DIR}/Source/Dependencies/dxc/bin/x64/dxil.dll"

@@ -292,6 +292,16 @@ void Command::CopyTextureToBuffer(RHITexture *src_texture, RHIBuffer *dst_buffer
 	vkCmdCopyImageToBuffer(m_handle, static_cast<Texture *>(src_texture)->GetHandle(), VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, static_cast<Buffer *>(dst_buffer)->GetHandle(), 1, &copy_info);
 }
 
+void Command::CopyBufferToBuffer(RHIBuffer *src_buffer, RHIBuffer *dst_buffer, size_t size, size_t src_offset, size_t dst_offset)
+{
+	VkBufferCopy buffer_copy = {};
+	buffer_copy.size         = size;
+	buffer_copy.srcOffset    = src_offset;
+	buffer_copy.dstOffset    = dst_offset;
+
+	vkCmdCopyBuffer(m_handle, static_cast<Buffer *>(src_buffer)->GetHandle(), static_cast<Buffer *>(dst_buffer)->GetHandle(), 1, &buffer_copy);
+}
+
 void Command::GenerateMipmaps(RHITexture *texture, RHIResourceState initial_state, RHIFilter filter)
 {
 	TextureRange             src_range  = {RHITextureDimension::Texture2D, 0, texture->GetDesc().mips, 0, texture->GetDesc().layers};

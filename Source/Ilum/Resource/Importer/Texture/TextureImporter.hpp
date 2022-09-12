@@ -1,16 +1,32 @@
 #pragma once
 
+#include <RHI/RHITexture.hpp>
+
 #include <string>
 #include <vector>
 
 namespace Ilum
 {
-class RHIContext;
-struct TextureDesc;
+struct TextureImportInfo
+{
+	TextureDesc desc;
+
+	std::vector<uint8_t> data;
+
+	template<class Archive>
+	void serialize(Archive& ar)
+	{
+		ar(desc, data);
+	}
+};
 
 class TextureImporter
 {
   public:
-	virtual void Import(RHIContext *rhi_context, const std::string &filename, std::vector<uint8_t> &data, TextureDesc &desc) = 0;
+	virtual TextureImportInfo ImportImpl(const std::string &filename) = 0;
+
+	static TextureImportInfo Import(const std::string &filename);
+
+	static TextureImportInfo ImportFromBuffer(const std::vector<uint8_t> &raw_data);
 };
 }        // namespace Ilum

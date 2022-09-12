@@ -108,6 +108,10 @@ void Command::CopyTextureToBuffer(RHITexture *src_texture, RHIBuffer *dst_buffer
 {
 }
 
+void Command::CopyBufferToBuffer(RHIBuffer *src_buffer, RHIBuffer *dst_buffer, size_t size, size_t src_offset, size_t dst_offset)
+{
+}
+
 void Command::BlitTexture(RHITexture *src_texture, const TextureRange &src_range, const RHIResourceState &src_state, RHITexture *dst_texture, const TextureRange &dst_range, const RHIResourceState &dst_state, RHIFilter filter)
 {
 }

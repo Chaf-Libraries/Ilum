@@ -23,12 +23,25 @@ target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:
 
 target_link_libraries(${TARGET_NAME} PRIVATE Core)
 target_link_libraries(${TARGET_NAME} PRIVATE RHI)
+target_link_libraries(${TARGET_NAME} PRIVATE Geometry)
 target_link_libraries(${TARGET_NAME} PRIVATE stb)
+target_link_libraries(${TARGET_NAME} PRIVATE assimp::assimp)
+target_link_libraries(${TARGET_NAME} PRIVATE meshoptimizer)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Ilum")
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
+
+add_custom_command(
+	TARGET ${TARGET_NAME} PRE_BUILD 
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PROJECT_SOURCE_DIR}/Source/Dependencies/assimp/bin/assimp-vc143-mt.dll"
+        "${PROJECT_SOURCE_DIR}/bin"
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PROJECT_SOURCE_DIR}/Source/Dependencies/assimp/bin/assimp-vc143-mtd.dll"
+        "${PROJECT_SOURCE_DIR}/bin"
+)
 
 target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Precompile.hpp)
 set_target_properties(Resource PROPERTIES FOLDER Ilum)

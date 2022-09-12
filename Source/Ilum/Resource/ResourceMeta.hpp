@@ -1,5 +1,8 @@
 #pragma once
 
+#include "Importer/Model/ModelImporter.hpp"
+
+#include <RHI/RHIBuffer.hpp>
 #include <RHI/RHITexture.hpp>
 
 #include <string>
@@ -16,7 +19,7 @@ enum class ResourceType
 };
 
 template <ResourceType _Ty>
-struct ResourceMeta
+struct [[serialization(false), reflection(false)]] ResourceMeta
 {
 	std::string uuid;
 
@@ -36,12 +39,29 @@ struct TextureMeta : ResourceMeta<ResourceType::Texture>
 	size_t index = ~0U;        // Index in bindless texture array
 };
 
+struct ModelMeta : ResourceMeta<ResourceType::Model>
+{
+	std::string name;
+
+	uint32_t vertices_count;
+	uint32_t triangle_count;
+
+	std::vector<Submesh> submeshes;
+	std::vector<Meshlet> meshlets;
+
+	std::unique_ptr<RHIBuffer> vertex_buffer = nullptr;
+	std::unique_ptr<RHIBuffer> index_buffer  = nullptr;
+	std::unique_ptr<RHIBuffer> meshlet_vertex_buffer  = nullptr;
+	std::unique_ptr<RHIBuffer> meshlet_index_buffer  = nullptr;
+	std::unique_ptr<RHIBuffer> per_meshlet_buffer   = nullptr;
+};
+
 struct SceneMeta : ResourceMeta<ResourceType::Scene>
 {
 	std::string name;
 };
 
-struct RenderGraphMeta:ResourceMeta<ResourceType::RenderGraph>
+struct RenderGraphMeta : ResourceMeta<ResourceType::RenderGraph>
 {
 	std::string name;
 };

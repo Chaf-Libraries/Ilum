@@ -19,11 +19,15 @@ class ResourceManager
 
 	void ImportTexture(const std::string &filename);
 
+	void ImportModel(const std::string &filename);
+
 	void AddSceneMeta(const SceneMeta &meta);
 
 	void AddRenderGraphMeta(const RenderGraphMeta &meta);
 
 	const std::vector<std::unique_ptr<TextureMeta>> &GetTextureMeta() const;
+
+	const std::vector<std::unique_ptr<ModelMeta>> &GetModelMeta() const;
 
 	const std::unordered_map<std::string, std::unique_ptr<SceneMeta>> &GetSceneMeta() const;
 
@@ -32,6 +36,8 @@ class ResourceManager
 	const std::vector<RHITexture *> &GetTextureArray() const;
 
 	const TextureMeta *GetTexture(const std::string &uuid);
+
+	const ModelMeta *GetModel(const std::string &uuid);
 
 	const SceneMeta *GetScene(const std::string &uuid);
 
@@ -44,9 +50,13 @@ class ResourceManager
 
 	// Texture
 	std::vector<RHITexture *> m_texture_array;
-	std::vector<std::unique_ptr<TextureMeta>>  m_textures;
 
-	std::unordered_map<std::string, size_t> m_texture_index;
+	std::vector<std::unique_ptr<TextureMeta>> m_textures;
+	std::unordered_map<std::string, size_t>   m_texture_index;
+
+	// Model
+	std::vector<std::unique_ptr<ModelMeta>> m_models;
+	std::unordered_map<std::string, size_t> m_model_index;
 
 	// Scene
 	std::unordered_map<std::string, std::unique_ptr<SceneMeta>> m_scenes;

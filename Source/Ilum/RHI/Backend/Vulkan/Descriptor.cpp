@@ -253,11 +253,12 @@ RHIDescriptor &Descriptor::BindBuffer(const std::string &name, RHIBuffer *buffer
 RHIDescriptor &Descriptor::BindBuffer(const std::string &name, RHIBuffer *buffer, size_t offset, size_t range)
 {
 	size_t hash = 0;
-	HashCombine(hash, static_cast<Buffer *>(buffer)->GetHandle(), offset, range);
+	VkBuffer buffer_handle = static_cast<Buffer *>(buffer)->GetHandle();
+	HashCombine(hash, buffer_handle, offset, range);
 
 	if (m_binding_hash[name] != hash)
 	{
-		m_buffer_resolves[name].buffers = {static_cast<Buffer *>(buffer)->GetHandle()};
+		m_buffer_resolves[name].buffers = {buffer_handle};
 		m_buffer_resolves[name].ranges  = {range};
 		m_buffer_resolves[name].offsets = {offset};
 
@@ -336,9 +337,6 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 
 			VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
 			vkAllocateDescriptorSets(static_cast<Device *>(p_device)->GetDevice(), &allocate_info, &descriptor_set);
-
-			static int i = 0;
-			LOG_INFO("New descriptor - {}!", i++);
 
 			DescriptorSet.emplace(hash, descriptor_set);
 			m_descriptor_sets[set] = descriptor_set;

@@ -84,6 +84,10 @@ void Command::CopyTextureToBuffer(RHITexture *src_texture, RHIBuffer *dst_buffer
 {
 }
 
+void Command::CopyBufferToBuffer(RHIBuffer *src_buffer, RHIBuffer *dst_buffer, size_t size, size_t src_offset, size_t dst_offset)
+{
+}
+
 void Command::GenerateMipmaps(RHITexture *texture, RHIResourceState initial_state, RHIFilter filter)
 {
 }

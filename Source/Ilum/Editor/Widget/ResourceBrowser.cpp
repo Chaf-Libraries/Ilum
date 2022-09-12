@@ -7,7 +7,9 @@
 
 #include <imgui.h>
 
+#pragma warning(push, 0)
 #include <nfd.h>
+#pragma warning(pop)
 
 namespace Ilum
 {
@@ -16,6 +18,11 @@ bool IsTextureResource(const std::string &extension)
 	return extension == ".jpg" ||
 	       extension == ".png" ||
 	       extension == ".bmp";
+}
+
+bool IsModelResource(const std::string &extension)
+{
+	return extension == ".gltf";
 }
 
 ResourceBrowser::ResourceBrowser(Editor *editor) :
@@ -36,12 +43,16 @@ void ResourceBrowser::Tick()
 	if (ImGui::Button("Import"))
 	{
 		char *path = nullptr;
-		if (NFD_OpenDialog("jpg,png,bmp", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
+		if (NFD_OpenDialog("jpg,png,bmp,jpeg,gltf", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
 		{
 			std::string extension = Path::GetInstance().GetFileExtension(path);
 			if (IsTextureResource(extension))
 			{
 				resource_manager->ImportTexture(path);
+			}
+			if (IsModelResource(extension))
+			{
+				resource_manager->ImportModel(path);
 			}
 		}
 	}
