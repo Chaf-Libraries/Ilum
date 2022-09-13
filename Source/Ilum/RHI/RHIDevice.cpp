@@ -15,14 +15,12 @@ std::unique_ptr<RHIDevice> RHIDevice::Create(RHIBackend backend)
 {
 	switch (backend)
 	{
-		case RHIBackend::Unknown:
-			return std::make_unique<Vulkan::Device>();
 		case RHIBackend::Vulkan:
 			return std::make_unique<Vulkan::Device>();
 		case RHIBackend::DX12:
-			return std::make_unique<Vulkan::Device>();
+			return std::make_unique<DX12::Device>();
 		case RHIBackend::CUDA:
-			break;
+			return std::make_unique<CUDA::Device>();
 		default:
 			break;
 	}

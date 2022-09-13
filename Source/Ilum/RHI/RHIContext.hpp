@@ -102,7 +102,11 @@ class RHIContext
   private:
 	Window *p_window = nullptr;
 
-	std::unordered_map<RHIBackend, std::unique_ptr<RHIDevice>> m_devices;
+	std::map<RHIBackend, RHIDevice*> m_devices;
+
+	std::unique_ptr<RHIDevice> m_vulkan_device = nullptr;
+	std::unique_ptr<RHIDevice> m_dx12_device   = nullptr;
+	std::unique_ptr<RHIDevice> m_cuda_device   = nullptr;
 
 	RHIDevice *m_device = nullptr;
 

@@ -5,8 +5,6 @@
 #include <Geometry/Bound/AABB.hpp>
 #include <Geometry/Vertex.hpp>
 
-#include <meshoptimizer.h>
-
 #include <vector>
 
 namespace Ilum

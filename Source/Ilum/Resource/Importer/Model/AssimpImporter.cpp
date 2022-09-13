@@ -68,7 +68,7 @@ inline void ParseNode(const std::string &file_path, aiMatrix4x4 transform, aiNod
 		// aiMaterial *material     = scene->mMaterials[mesh->mMaterialIndex];
 		// parseMaterial(file_path, material, submesh_material);
 
-		ModelImportInfo::Submesh submesh;
+		Submesh submesh;
 		submesh.name  = mesh->mName.C_Str();
 		submesh.index = node->mMeshes[i];
 		// submesh.material      = submesh_material;
@@ -191,7 +191,7 @@ ModelImportInfo AssimpImporter::ImportImpl(const std::string &filename)
 
 			for (auto &meshlet : meshlets)
 			{
-				ModelImportInfo::Meshlet tmp_meshlet = {};
+				Meshlet tmp_meshlet = {};
 				tmp_meshlet.vertices_offset          = static_cast<uint32_t>(info.vertices.size());
 				tmp_meshlet.vertices_count           = meshlet.vertex_count;
 				tmp_meshlet.indices_offset           = meshlet_indices_offset;

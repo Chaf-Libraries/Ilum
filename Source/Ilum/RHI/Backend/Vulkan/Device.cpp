@@ -730,7 +730,7 @@ Device::~Device()
 		vkDestroyDevice(m_logical_device, nullptr);
 	}
 
-	if (vkDestroyDebugUtilsMessengerEXT)
+	if (vkDebugUtilsMessengerEXT)
 	{
 		vkDestroyDebugUtilsMessengerEXT(m_instance, vkDebugUtilsMessengerEXT, nullptr);
 	}

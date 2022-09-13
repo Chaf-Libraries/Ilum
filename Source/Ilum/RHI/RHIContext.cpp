@@ -6,12 +6,18 @@ namespace Ilum
 RHIContext::RHIContext(Window *window) :
     p_window(window)
 {
-	m_devices[RHIBackend::Vulkan] = RHIDevice::Create(RHIBackend::Vulkan);
-	m_devices[RHIBackend::DX12]   = RHIDevice::Create(RHIBackend::DX12);
-	m_devices[RHIBackend::CUDA]   = RHIDevice::Create(RHIBackend::CUDA);
+	m_vulkan_device = RHIDevice::Create(RHIBackend::Vulkan);
+	m_dx12_device   = RHIDevice::Create(RHIBackend::DX12);
+	m_cuda_device   = RHIDevice::Create(RHIBackend::CUDA);
+
+	m_devices = {
+	    {RHIBackend::Vulkan, m_vulkan_device.get()},
+	    {RHIBackend::DX12, m_dx12_device.get()},
+	    {RHIBackend::CUDA, m_cuda_device.get()},
+	};
 
 #ifdef RHI_BACKEND_VULKAN
-	m_device = m_devices[RHIBackend::Vulkan].get();
+	m_device = m_vulkan_device.get();
 	LOG_INFO("RHI Backend: Vulkan");
 #elif RHI_BACKEND_DX12
 	LOG_INFO("RHI Backend: DX12");
@@ -45,7 +51,9 @@ RHIContext::~RHIContext()
 	m_render_complete.clear();
 
 	m_swapchain.reset();
-	m_devices.clear();
+	m_vulkan_device.reset();
+	m_dx12_device.reset();
+	m_cuda_device.reset();
 }
 
 void RHIContext::WaitIdle() const
@@ -188,7 +196,7 @@ void RHIContext::BeginFrame()
 {
 	m_swapchain->AcquireNextTexture(m_present_complete[m_current_frame].get(), nullptr);
 	m_frames[m_current_frame]->Reset();
-	//m_graphics_queue->Submit({}, {}, {});
+	// m_graphics_queue->Submit({}, {}, {});
 }
 
 void RHIContext::EndFrame()
