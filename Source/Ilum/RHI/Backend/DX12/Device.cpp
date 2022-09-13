@@ -82,7 +82,8 @@ inline void GetHardwareAdapter(IDXGIFactory1 *pFactory, IDXGIAdapter1 **ppAdapte
 	*ppAdapter = adapter.Detach();
 }
 
-Device::Device()
+Device::Device():
+    RHIDevice(RHIBackend::DX12)
 {
 	uint32_t dxgi_factory_flags = 0;
 

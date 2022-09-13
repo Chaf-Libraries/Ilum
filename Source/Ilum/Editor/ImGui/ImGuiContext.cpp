@@ -15,8 +15,17 @@
 #define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 
+#undef CreateSemaphore
+
 namespace Ilum
 {
+static RHIContext       *gContext       = nullptr;
+static Window           *gWindow        = nullptr;
+static RHIPipelineState *gPipelineState = nullptr;
+static RHIDescriptor    *gDescriptor    = nullptr;
+static RHISampler       *gSampler       = nullptr;
+static RHIRenderTarget  *gRenderTarget  = nullptr;
+
 struct ConstantBlock
 {
 	glm::vec2 scale;
@@ -25,18 +34,17 @@ struct ConstantBlock
 
 struct ViewportResources
 {
-	ViewportResources() = default;
-	ViewportResources(RHIDevice *device, const std::string &name = "subwindow")
+	ViewportResources(const std::string &name = "subwindow")
 	{
-		uniform_buffer = RHIBuffer::Create(device, BufferDesc{
-		                                               "imgui_uniform_buffer - " + name + std::to_string((uint64_t)this),
-		                                               RHIBufferUsage::ConstantBuffer,
-		                                               RHIMemoryUsage::CPU_TO_GPU,
-		                                               sizeof(ConstantBlock),
-		                                           });
+		uniform_buffer = gContext->CreateBuffer(BufferDesc{
+		    "imgui_uniform_buffer - " + name + std::to_string((uint64_t) this),
+		    RHIBufferUsage::ConstantBuffer,
+		    RHIMemoryUsage::CPU_TO_GPU,
+		    sizeof(ConstantBlock),
+		});
 
-		render_complete  = RHISemaphore::Create(device);
-		present_complete = RHISemaphore::Create(device);
+		render_complete = gContext->CreateSemaphore();
+		present_complete = gContext->CreateSemaphore();
 	}
 
 	std::unique_ptr<RHIBuffer> vertex_buffer  = nullptr;
@@ -58,13 +66,6 @@ struct WindowData
 	std::unique_ptr<RHISwapchain>      swapchain;
 };
 
-static RHIContext       *gContext       = nullptr;
-static Window           *gWindow        = nullptr;
-static RHIPipelineState *gPipelineState = nullptr;
-static RHIDescriptor    *gDescriptor    = nullptr;
-static RHISampler       *gSampler       = nullptr;
-static RHIRenderTarget  *gRenderTarget  = nullptr;
-
 static std::unique_ptr<ViewportResources> gResource;
 
 GuiContext::GuiContext(RHIContext *context, Window *window) :
@@ -73,7 +74,7 @@ GuiContext::GuiContext(RHIContext *context, Window *window) :
 	gContext = p_context;
 	gWindow  = p_window;
 
-	gResource = std::make_unique<ViewportResources>(gContext->GetDevice(), "mainwindows");
+	gResource = std::make_unique<ViewportResources>("mainwindows");
 
 	ImGui::CreateContext();
 	ImNodes::CreateContext();
@@ -590,8 +591,7 @@ static void ImGuiWindowCreate(ImGuiViewport *viewport)
 {
 	WindowData *window = new WindowData();
 
-	window->swapchain = RHISwapchain::Create(
-	    gContext->GetDevice(),
+	window->swapchain = gContext->CreateSwapchain(
 #ifdef _WIN32
 	    glfwGetWin32Window((GLFWwindow *) viewport->PlatformHandle),
 #endif        // _WIN32
@@ -599,7 +599,7 @@ static void ImGuiWindowCreate(ImGuiViewport *viewport)
 	    static_cast<uint32_t>(viewport->Size.y),
 	    false);
 
-	window->viewport_data = std::make_unique<ViewportResources>(gContext->GetDevice());
+	window->viewport_data = std::make_unique<ViewportResources>();
 
 	viewport->RendererUserData = window;
 }
@@ -608,7 +608,7 @@ static void ImGuiWindowDestroy(ImGuiViewport *viewport)
 {
 	if (WindowData *window = static_cast<WindowData *>(viewport->RendererUserData))
 	{
-		gContext->GetDevice()->WaitIdle();
+		gContext->WaitIdle();
 		delete window;
 	}
 	viewport->RendererUserData = nullptr;

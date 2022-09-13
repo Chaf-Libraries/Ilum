@@ -50,6 +50,14 @@ struct RenderResourceDesc
 	RGHandle handle;
 };
 
+enum class BindPoint
+{
+	Rasterization,
+	Compute,
+	RayTracing,
+	CUDA
+};
+
 struct RenderPassDesc
 {
 	std::string name;
@@ -59,6 +67,8 @@ struct RenderPassDesc
 	std::map<std::string, RenderResourceDesc> resources;
 
 	RGHandle prev_pass;
+
+	BindPoint bind_point;
 
 	RenderPassDesc &Write(const std::string &name, RenderResourceDesc::Type type, RHIResourceState state)
 	{

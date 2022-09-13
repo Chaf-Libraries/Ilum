@@ -1,12 +1,9 @@
 #include "RHIProfiler.hpp"
+#include "RHIDevice.hpp"
 
-#ifdef RHI_BACKEND_VULKAN
-#	include "Backend/Vulkan/Profiler.hpp"
-#elif defined RHI_BACKEND_DX12
-//#	include "Backend/DX12/Profiler.hpp"
-#elif defined RHI_BACKEND_CUDA
-//#	include "Backend/CUDA/Profiler.hpp"
-#endif        // RHI_BACKEND
+#include "Backend/CUDA/Profiler.hpp"
+#include "Backend/DX12/Profiler.hpp"
+#include "Backend/Vulkan/Profiler.hpp"
 
 namespace Ilum
 {
@@ -17,13 +14,17 @@ RHIProfiler::RHIProfiler(RHIDevice *device, uint32_t frame_count) :
 
 std::unique_ptr<RHIProfiler> RHIProfiler::Create(RHIDevice *device, uint32_t frame_count)
 {
-#ifdef RHI_BACKEND_VULKAN
-	return std::make_unique<Vulkan::Profiler>(device, frame_count);
-#elif defined RHI_BACKEND_DX12
-	return std::make_unique<DX12::Descriptor>(device, meta);
-#elif defined RHI_BACKEND_CUDA
-	return std::make_unique<CUDA::Descriptor>(device, meta);
-#endif        // RHI_BACKEND
+	switch (device->GetBackend())
+	{
+		case RHIBackend::Vulkan:
+			return std::make_unique<Vulkan::Profiler>(device, frame_count);
+		case RHIBackend::DX12:
+			return nullptr;
+		case RHIBackend::CUDA:
+			return nullptr;
+		default:
+			break;
+	}
 	return nullptr;
 }
 

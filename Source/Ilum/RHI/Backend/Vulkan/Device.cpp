@@ -708,7 +708,8 @@ void Device::CreateLogicalDevice()
 	}
 }
 
-Device::Device()
+Device::Device():
+    RHIDevice(RHIBackend::Vulkan)
 {
 	CreateInstance();
 	CreatePhysicalDevice();

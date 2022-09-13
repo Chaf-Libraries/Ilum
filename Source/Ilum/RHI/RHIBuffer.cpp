@@ -1,29 +1,37 @@
 #include "RHIBuffer.hpp"
+#include "RHIDevice.hpp"
 
-#ifdef RHI_BACKEND_VULKAN
-#	include "Backend/Vulkan/Buffer.hpp"
-#elif defined RHI_BACKEND_DX12
-#	include "Backend/DX12/Buffer.hpp"
-#elif defined RHI_BACKEND_CUDA
+#include "Backend/Vulkan/Buffer.hpp"
+#include "Backend/DX12/Buffer.hpp"
 #include "Backend/CUDA/Buffer.hpp"
-#endif        // RHI_BACKEND
 
 namespace Ilum
 {
-RHIBuffer::RHIBuffer(RHIDevice *device, const BufferDesc &desc):
+RHIBuffer::RHIBuffer(RHIDevice *device, const BufferDesc &desc) :
     p_device(device), m_desc(desc)
 {
 }
 
+RHIBackend RHIBuffer::GetBackend() const
+{
+	return p_device->GetBackend();
+}
+
 std::unique_ptr<RHIBuffer> RHIBuffer::Create(RHIDevice *device, const BufferDesc &desc)
 {
-#ifdef RHI_BACKEND_VULKAN
-	return std::make_unique<Vulkan::Buffer>(device, desc);
-#elif defined RHI_BACKEND_DX12
-	return std::make_unique<DX12::Buffer>(device, desc);
-#elif defined RHI_BACKEND_CUDA
-	return std::make_unique<CUDA::Buffer>(device, desc);
-#endif
+	switch (device->GetBackend())
+	{
+		case RHIBackend::Unknown:
+			break;
+		case RHIBackend::Vulkan:
+			return std::make_unique<Vulkan::Buffer>(device, desc);
+		case RHIBackend::DX12:
+			return std::make_unique<DX12::Buffer>(device, desc);
+		case RHIBackend::CUDA:
+			return std::make_unique<CUDA::Buffer>(device, desc);
+		default:
+			break;
+	}
 	return nullptr;
 }
 

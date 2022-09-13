@@ -47,6 +47,8 @@ class RHITexture
 
 	const TextureDesc &GetDesc() const;
 
+	RHIBackend GetBackend() const;
+
 	virtual std::unique_ptr<RHITexture> Alias(const TextureDesc &desc);
 
 	static std::unique_ptr<RHITexture> Create(RHIDevice *device, const TextureDesc &desc);

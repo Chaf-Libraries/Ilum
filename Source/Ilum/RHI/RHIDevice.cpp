@@ -1,11 +1,16 @@
 #include "RHIDevice.hpp"
 
-#	include "Backend/Vulkan/Device.hpp"
-#	include "Backend/DX12/Device.hpp"
-#	include "Backend/CUDA/Device.hpp"
+#include "Backend/Vulkan/Device.hpp"
+#include "Backend/DX12/Device.hpp"
+#include "Backend/CUDA/Device.hpp"
 
 namespace Ilum
 {
+RHIDevice::RHIDevice(RHIBackend backend):
+    m_backend(backend)
+{
+}
+
 std::unique_ptr<RHIDevice> RHIDevice::Create(RHIBackend backend)
 {
 	switch (backend)
@@ -22,5 +27,10 @@ std::unique_ptr<RHIDevice> RHIDevice::Create(RHIBackend backend)
 			break;
 	}
 	return nullptr;
+}
+
+RHIBackend RHIDevice::GetBackend() const
+{
+	return m_backend;
 }
 }        // namespace Ilum

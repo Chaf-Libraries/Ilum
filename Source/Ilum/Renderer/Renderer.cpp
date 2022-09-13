@@ -128,9 +128,9 @@ RHITexture *Renderer::GetDummyTexture(DummyTexture dummy) const
 	return m_dummy_textures.at(dummy).get();
 }
 
-RHIShader *Renderer::RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, const std::vector<std::string> &macros)
+RHIShader *Renderer::RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, const std::vector<std::string> &macros, RHIBackend backend)
 {
-	size_t hash = Hash(filename, entry_point, stage, macros);
+	size_t hash = Hash(filename, entry_point, stage, macros, backend);
 
 	if (m_shader_cache.find(hash) != m_shader_cache.end())
 	{
@@ -139,11 +139,7 @@ RHIShader *Renderer::RequireShader(const std::string &filename, const std::strin
 
 	std::string cache_path = "./bin/Shaders/" + std::to_string(hash) + ".shader";
 
-	std::map<RHIBackend, std::vector<uint8_t>> shader_bin = {
-	    {RHIBackend::Vulkan, {}},
-	    {RHIBackend::DX12, {}},
-	    {RHIBackend::CUDA, {}},
-	};
+	std::vector<uint8_t> shader_bin;
 	ShaderMeta meta;
 
 	if (Path::GetInstance().IsExist(cache_path))
@@ -154,20 +150,18 @@ RHIShader *Renderer::RequireShader(const std::string &filename, const std::strin
 		DESERIALIZE(
 		    cache_path,
 		    last_write,
-		    shader_bin[RHIBackend::Vulkan],
-		    shader_bin[RHIBackend::DX12],
-		    shader_bin[RHIBackend::CUDA],
+		    shader_bin,
 		    meta);
 
-		if (last_write == std::filesystem::last_write_time(filename).time_since_epoch().count() && !shader_bin[p_rhi_context->GetBackend()].empty())
+		if (last_write == std::filesystem::last_write_time(filename).time_since_epoch().count() && !shader_bin.empty())
 		{
-			LOG_INFO("Load shader {} from cache", filename);
-			std::unique_ptr<RHIShader> shader = p_rhi_context->CreateShader(entry_point, shader_bin[p_rhi_context->GetBackend()]);
+			LOG_INFO("Load shader {} with entry point \"{}\" from cache", filename, entry_point);
+			std::unique_ptr<RHIShader> shader = p_rhi_context->CreateShader(entry_point, shader_bin);
 			m_shader_meta_cache.emplace(shader.get(), std::move(meta));
 			m_shader_cache.emplace(hash, std::move(shader));
 			return m_shader_cache.at(hash).get();
 		}
-		LOG_INFO("Cache of shader {} is out of date, recompile it", filename);
+		LOG_INFO("Cache of shader {} with entry point \"{}\" is out of date, recompile it", filename, entry_point);
 	}
 
 	{
@@ -181,7 +175,7 @@ RHIShader *Renderer::RequireShader(const std::string &filename, const std::strin
 		desc.stage       = stage;
 		desc.entry_point = entry_point;
 		desc.macros      = macros;
-		switch (p_rhi_context->GetBackend())
+		switch (backend)
 		{
 			case RHIBackend::Vulkan:
 				desc.target = ShaderTarget::SPIRV;
@@ -195,26 +189,24 @@ RHIShader *Renderer::RequireShader(const std::string &filename, const std::strin
 			default:
 				break;
 		}
-		LOG_INFO("Compiling shader {}...", filename);
-		shader_bin[p_rhi_context->GetBackend()] = ShaderCompiler::GetInstance().Compile(desc, meta);
+		LOG_INFO("Compiling shader {} with entry point \"{}\"...", filename, entry_point);
+		shader_bin = ShaderCompiler::GetInstance().Compile(desc, meta);
 
-		if (shader_bin[p_rhi_context->GetBackend()].empty())
+		if (shader_bin.empty())
 		{
-			LOG_ERROR("Shader {} compiled failed!", filename);
+			LOG_ERROR("Shader {} with entry point \"{}\" compiled failed!", filename, entry_point);
 			return nullptr;
 		}
 
-		LOG_ERROR("Shader {} compiled successfully, caching it...", filename);
+		LOG_ERROR("Shader {} with entry point \"{}\" compiled successfully, caching it...", filename, entry_point);
 
 		SERIALIZE(
 		    cache_path,
 		    (size_t) std::filesystem::last_write_time(filename).time_since_epoch().count(),
-		    shader_bin[RHIBackend::Vulkan],
-		    shader_bin[RHIBackend::DX12],
-		    shader_bin[RHIBackend::CUDA],
+		    shader_bin,
 		    meta);
 
-		std::unique_ptr<RHIShader> shader = p_rhi_context->CreateShader(entry_point, shader_bin[p_rhi_context->GetBackend()]);
+		std::unique_ptr<RHIShader> shader = p_rhi_context->CreateShader(entry_point, shader_bin);
 		m_shader_meta_cache.emplace(shader.get(), std::move(meta));
 		m_shader_cache.emplace(hash, std::move(shader));
 		return m_shader_cache.at(hash).get();
