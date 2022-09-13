@@ -1,12 +1,9 @@
 #include "RHITexture.hpp"
+#include "RHIDevice.hpp"
 
-#ifdef RHI_BACKEND_VULKAN
-#	include "Backend/Vulkan/Texture.hpp"
-#elif defined RHI_BACKEND_DX12
-#	include "Backend/DX12/Texture.hpp"
-#elif defined RHI_BACKEND_CUDA
-#	include "Backend/CUDA/Texture.hpp"
-#endif        // RHI_BACKEND
+#include "Backend/Vulkan/Texture.hpp"
+#include "Backend/DX12/Texture.hpp"
+#include "Backend/CUDA/Texture.hpp"
 
 namespace Ilum
 {
@@ -20,6 +17,11 @@ const TextureDesc &RHITexture::GetDesc() const
 	return m_desc;
 }
 
+RHIBackend RHITexture::GetBackend() const
+{
+	return p_device->GetBackend();
+}
+
 std::unique_ptr<RHITexture> RHITexture::Alias(const TextureDesc &desc)
 {
 	return Create(p_device, desc);
@@ -27,13 +29,17 @@ std::unique_ptr<RHITexture> RHITexture::Alias(const TextureDesc &desc)
 
 std::unique_ptr<RHITexture> RHITexture::Create(RHIDevice *device, const TextureDesc &desc)
 {
-#ifdef RHI_BACKEND_VULKAN
-	return std::make_unique<Vulkan::Texture>(device, desc);
-#elif defined RHI_BACKEND_DX12
-	return std::make_unique<DX12::Texture>(device, desc);
-#elif defined RHI_BACKEND_CUDA
-	return std::make_unique<CUDA::Texture>(device, desc);
-#endif
+	switch (device->GetBackend())
+	{
+		case RHIBackend::Vulkan:
+			return std::make_unique<Vulkan::Texture>(device, desc);
+		case RHIBackend::DX12:
+			return std::make_unique<DX12::Texture>(device, desc);
+		case RHIBackend::CUDA:
+			return std::make_unique<CUDA::Texture>(device, desc);
+		default:
+			break;
+	}
 	return nullptr;
 }
 

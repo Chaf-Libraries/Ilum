@@ -23,25 +23,25 @@ class RHIContext
 
 	~RHIContext();
 
-	RHIBackend GetBackend() const;
-
-	RHIDevice *GetDevice() const;
+	void WaitIdle() const;
 
 	RHISwapchain *GetSwapchain() const;
 
+	std::unique_ptr<RHISwapchain> CreateSwapchain(void *window_handle, uint32_t width, uint32_t height, bool sync);
+
 	// Create Texture
-	std::unique_ptr<RHITexture> CreateTexture(const TextureDesc &desc);
-	std::unique_ptr<RHITexture> CreateTexture2D(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples = 1);
-	std::unique_ptr<RHITexture> CreateTexture3D(uint32_t width, uint32_t height, uint32_t depth, RHIFormat format, RHITextureUsage usage);
-	std::unique_ptr<RHITexture> CreateTextureCube(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap);
-	std::unique_ptr<RHITexture> CreateTexture2DArray(uint32_t width, uint32_t height, uint32_t layers, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples = 1);
+	std::unique_ptr<RHITexture> CreateTexture(const TextureDesc &desc, RHIBackend backend = RHIBackend::Vulkan);
+	std::unique_ptr<RHITexture> CreateTexture2D(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples = 1, RHIBackend backend = RHIBackend::Vulkan);
+	std::unique_ptr<RHITexture> CreateTexture3D(uint32_t width, uint32_t height, uint32_t depth, RHIFormat format, RHITextureUsage usage, RHIBackend backend = RHIBackend::Vulkan);
+	std::unique_ptr<RHITexture> CreateTextureCube(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, RHIBackend backend = RHIBackend::Vulkan);
+	std::unique_ptr<RHITexture> CreateTexture2DArray(uint32_t width, uint32_t height, uint32_t layers, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples = 1, RHIBackend backend = RHIBackend::Vulkan);
 
 	// Create Buffer
-	std::unique_ptr<RHIBuffer> CreateBuffer(const BufferDesc &desc);
-	std::unique_ptr<RHIBuffer> CreateBuffer(size_t size, RHIBufferUsage usage, RHIMemoryUsage memory);
+	std::unique_ptr<RHIBuffer> CreateBuffer(const BufferDesc &desc, RHIBackend backend = RHIBackend::Vulkan);
+	std::unique_ptr<RHIBuffer> CreateBuffer(size_t size, RHIBufferUsage usage, RHIMemoryUsage memory, RHIBackend backend = RHIBackend::Vulkan);
 
 	template <typename T>
-	std::unique_ptr<RHIBuffer> CreateBuffer(size_t count, RHIBufferUsage usage, RHIMemoryUsage memory)
+	std::unique_ptr<RHIBuffer> CreateBuffer(size_t count, RHIBufferUsage usage, RHIMemoryUsage memory, RHIBackend backend = RHIBackend::Vulkan)
 	{
 		BufferDesc desc = {};
 		desc.count      = count;
@@ -50,40 +50,47 @@ class RHIContext
 		desc.memory     = memory;
 		desc.size       = desc.count * desc.stride;
 
-		return CreateBuffer(desc);
+		return CreateBuffer(desc, backend);
 	}
 
 	// Create Sampler
-	std::unique_ptr<RHISampler> CreateSampler(const SamplerDesc &desc);
+	std::unique_ptr<RHISampler> CreateSampler(const SamplerDesc &desc, RHIBackend backend = RHIBackend::Vulkan);
 
 	// Create Command
-	RHICommand *CreateCommand(RHIQueueFamily family);
+	RHICommand *CreateCommand(RHIQueueFamily family, RHIBackend backend = RHIBackend::Vulkan);
 
 	// Create Descriptor
-	std::unique_ptr<RHIDescriptor> CreateDescriptor(const ShaderMeta &meta);
+	std::unique_ptr<RHIDescriptor> CreateDescriptor(const ShaderMeta &meta, RHIBackend backend = RHIBackend::Vulkan);
 
 	// Create PipelineState
-	std::unique_ptr<RHIPipelineState> CreatePipelineState();
+	std::unique_ptr<RHIPipelineState> CreatePipelineState(RHIBackend backend = RHIBackend::Vulkan);
 
 	// Create Shader
-	std::unique_ptr<RHIShader> CreateShader(const std::string &entry_point, const std::vector<uint8_t> &source);
+	std::unique_ptr<RHIShader> CreateShader(const std::string &entry_point, const std::vector<uint8_t> &source, RHIBackend backend = RHIBackend::Vulkan);
 
 	// Create Render Target
-	std::unique_ptr<RHIRenderTarget> CreateRenderTarget();
+	std::unique_ptr<RHIRenderTarget> CreateRenderTarget(RHIBackend backend = RHIBackend::Vulkan);
 
 	// Create Profiler
-	std::unique_ptr<RHIProfiler> CreateProfiler();
+	std::unique_ptr<RHIProfiler> CreateProfiler(RHIBackend backend = RHIBackend::Vulkan);
 
 	// Create Fence
-	std::unique_ptr<RHIFence> CreateFence();
+	std::unique_ptr<RHIFence> CreateFence(RHIBackend backend = RHIBackend::Vulkan);
+
+	// Create Semaphore
+	std::unique_ptr<RHISemaphore> CreateSemaphore(RHIBackend backend = RHIBackend::Vulkan);
 
 	// Get Queue
-	RHIQueue *GetQueue(RHIQueueFamily family);
+	RHIQueue *GetQueue(RHIQueueFamily family, RHIBackend backend = RHIBackend::Vulkan);
 
-	std::unique_ptr<RHIQueue> CreateQueue(RHIQueueFamily family, uint32_t idx = 0);
+	std::unique_ptr<RHIQueue> CreateQueue(RHIQueueFamily family, uint32_t idx = 0, RHIBackend backend = RHIBackend::Vulkan);
 
 	// Get Back Buffer
 	RHITexture *GetBackBuffer();
+
+	// Resource conversion between different rhi backend
+	RHITexture *ResourceConvert(RHITexture *src_texture, RHIBackend target);
+	RHIBuffer  *ResourceConvert(RHIBuffer *src_buffer, RHIBackend target);
 
 	// Frame
 	void BeginFrame();
@@ -95,7 +102,10 @@ class RHIContext
   private:
 	Window *p_window = nullptr;
 
-	std::unique_ptr<RHIDevice>    m_device    = nullptr;
+	std::unordered_map<RHIBackend, std::unique_ptr<RHIDevice>> m_devices;
+
+	RHIDevice *m_device = nullptr;
+
 	std::unique_ptr<RHISwapchain> m_swapchain = nullptr;
 
 	std::unique_ptr<RHIQueue> m_graphics_queue = nullptr;

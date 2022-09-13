@@ -1,12 +1,9 @@
 #include "RHIFrame.hpp"
+#include "RHIDevice.hpp"
 
-#ifdef RHI_BACKEND_VULKAN
 #	include "Backend/Vulkan/Frame.hpp"
-#elif defined RHI_BACKEND_DX12
 #	include "Backend/DX12/Frame.hpp"
-#elif defined RHI_BACKEND_CUDA
 #	include "Backend/CUDA/Frame.hpp"
-#endif        // RHI_BACKEND
 
 namespace Ilum
 {
@@ -17,13 +14,18 @@ RHIFrame::RHIFrame(RHIDevice *device):
 
 std::unique_ptr<RHIFrame> RHIFrame::Create(RHIDevice *device)
 {
-#ifdef RHI_BACKEND_VULKAN
-	return std::make_unique<Vulkan::Frame>(device);
-#elif defined RHI_BACKEND_DX12
-	return std::make_unique<DX12::Frame>(device);
-#elif defined RHI_BACKEND_CUDA
-	return std::make_unique<CUDA::Frame>(device);
-#endif        // RHI_BACKEND
+	switch (device->GetBackend())
+	{
+		case RHIBackend::Vulkan:
+			return std::make_unique<Vulkan::Frame>(device);
+		case RHIBackend::DX12:
+			break;
+		case RHIBackend::CUDA:
+			return std::make_unique<CUDA::Frame>(device);
+		default:
+			break;
+	}
+
 	return nullptr;
 }
 }        // namespace Ilum

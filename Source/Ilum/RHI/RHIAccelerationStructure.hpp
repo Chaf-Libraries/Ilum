@@ -2,8 +2,11 @@
 
 namespace Ilum
 {
-	class RHIAcceleration
-	{
-		  
-	};
-}
+class RHIDevice;
+
+class RHIAccelerationStructure
+{
+  public:
+	RHIAccelerationStructure(RHIDevice);
+};
+}        // namespace Ilum

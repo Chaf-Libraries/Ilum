@@ -4,7 +4,8 @@
 
 namespace Ilum::CUDA
 {
-Device::Device()
+Device::Device() :
+    RHIDevice(RHIBackend::CUDA)
 {
 	int32_t device_count = 0;
 	cudaGetDeviceCount(&device_count);

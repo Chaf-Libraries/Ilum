@@ -1,10 +1,8 @@
 #include "RHISynchronization.hpp"
+#include "RHIDevice.hpp"
 
-#ifdef RHI_BACKEND_VULKAN
-#	include "Backend/Vulkan/Synchronization.hpp"
-#elif defined RHI_BACKEND_DX12
-#	include "Backend/DX12/Synchronization.hpp"
-#endif        // RHI_BACKEND
+#include "Backend/Vulkan/Synchronization.hpp"
+#include "Backend/DX12/Synchronization.hpp"
 
 namespace Ilum
 {
@@ -15,13 +13,16 @@ RHIFence::RHIFence(RHIDevice *device) :
 
 std::unique_ptr<RHIFence> RHIFence::Create(RHIDevice *device)
 {
-#ifdef RHI_BACKEND_VULKAN
-	return std::make_unique<Vulkan::Fence>(device);
-#elif defined RHI_BACKEND_DX12
-	return std::make_unique<DX12::Fence>(device);
-#else
+	switch (device->GetBackend())
+	{
+		case RHIBackend::Vulkan:
+			return std::make_unique<Vulkan::Fence>(device);
+		case RHIBackend::DX12:
+			return std::make_unique<DX12::Fence>(device);
+		default:
+			break;
+	}
 	return nullptr;
-#endif        // RHI_BACKEND
 }
 
 RHISemaphore::RHISemaphore(RHIDevice *device) :
@@ -31,12 +32,15 @@ RHISemaphore::RHISemaphore(RHIDevice *device) :
 
 std::unique_ptr<RHISemaphore> RHISemaphore::Create(RHIDevice *device)
 {
-#ifdef RHI_BACKEND_VULKAN
-	return std::make_unique<Vulkan::Semaphore>(device);
-#elif defined RHI_BACKEND_DX12
-	return std::make_unique<DX12::Semaphore>(device);
-#else
+	switch (device->GetBackend())
+	{
+		case RHIBackend::Vulkan:
+			return std::make_unique<Vulkan::Semaphore>(device);
+		case RHIBackend::DX12:
+			return std::make_unique<DX12::Semaphore>(device);
+		default:
+			break;
+	}
 	return nullptr;
-#endif        // RHI_BACKEND
 }
 }        // namespace Ilum

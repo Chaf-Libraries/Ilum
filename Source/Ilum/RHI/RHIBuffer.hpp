@@ -25,8 +25,7 @@ class RHIBuffer
 
 	virtual ~RHIBuffer() = default;
 
-	RHIBuffer(const RHIBuffer &) = delete;
-	RHIBuffer &operator=(const RHIBuffer &) = delete;
+	RHIBackend GetBackend() const;
 
 	static std::unique_ptr<RHIBuffer> Create(RHIDevice *device, const BufferDesc &desc);
 

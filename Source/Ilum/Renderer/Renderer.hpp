@@ -49,7 +49,7 @@ class Renderer
 
   public:
 	// Shader utils
-	RHIShader *RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, const std::vector<std::string> &macros = {});
+	RHIShader *RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, const std::vector<std::string> &macros = {}, RHIBackend backend = RHIBackend::Vulkan);
 
 	ShaderMeta RequireShaderMeta(RHIShader *shader) const;
 

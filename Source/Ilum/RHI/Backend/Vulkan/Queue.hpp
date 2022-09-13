@@ -24,8 +24,13 @@ class Queue : public RHIQueue
   private:
 	VkQueue m_handle = VK_NULL_HANDLE;
 
-	std::vector<VkCommandBuffer> m_cmds;
-	std::vector<VkSemaphore>     m_wait_semaphores;
-	std::vector<VkSemaphore>     m_signal_semaphores;
+	struct SubmitInfo
+	{
+		std::vector<VkCommandBuffer> cmd_buffers;
+		std::vector<VkSemaphore>     wait_semaphores;
+		std::vector<VkSemaphore>     signal_semaphores;
+	};
+
+	std::vector<SubmitInfo> m_submit_infos;
 };
 }        // namespace Ilum::Vulkan

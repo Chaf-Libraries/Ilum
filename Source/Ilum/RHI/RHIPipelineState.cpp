@@ -1,12 +1,9 @@
 #include "RHIPipelineState.hpp"
+#include "RHIDevice.hpp"
 
-#ifdef RHI_BACKEND_VULKAN
 #	include "Backend/Vulkan/PipelineState.hpp"
-#elif defined RHI_BACKEND_DX12
 #	include "Backend/DX12/PipelineState.hpp"
-#elif defined RHI_BACKEND_CUDA
 #	include "Backend/CUDA/PipelineState.hpp"
-#endif        // RHI_BACKEND
 
 namespace Ilum
 {
@@ -17,13 +14,17 @@ RHIPipelineState::RHIPipelineState(RHIDevice *device) :
 
 std::unique_ptr<RHIPipelineState> RHIPipelineState::Create(RHIDevice *device)
 {
-#ifdef RHI_BACKEND_VULKAN
-	return std::make_unique<Vulkan::PipelineState>(device);
-#elif defined RHI_BACKEND_DX12
-	return std::make_unique<DX12::PipelineState>(device);
-#elif defined RHI_BACKEND_CUDA
-	return std::make_unique<CUDA::PipelineState>(device);
-#endif        // RHI_BACKEND
+	switch (device->GetBackend())
+	{
+		case RHIBackend::Vulkan:
+			return std::make_unique<Vulkan::PipelineState>(device);
+		case RHIBackend::DX12:
+			return std::make_unique<DX12::PipelineState>(device);
+		case RHIBackend::CUDA:
+			return std::make_unique<CUDA::PipelineState>(device);
+		default:
+			break;
+	}
 	return nullptr;
 }
 

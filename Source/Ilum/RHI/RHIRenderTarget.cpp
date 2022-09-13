@@ -1,4 +1,5 @@
 #include "RHIRenderTarget.hpp"
+#include "RHIDevice.hpp"
 
 #include "Backend/Vulkan/RenderTarget.hpp"
 
@@ -11,7 +12,14 @@ RHIRenderTarget::RHIRenderTarget(RHIDevice *device) :
 
 std::unique_ptr<RHIRenderTarget> RHIRenderTarget::Create(RHIDevice *device)
 {
-	return std::make_unique<Vulkan::RenderTarget>(device);
+	switch (device->GetBackend())
+	{
+		case RHIBackend::Vulkan:
+			return std::make_unique<Vulkan::RenderTarget>(device);
+		default:
+			break;
+	}
+	return nullptr;
 }
 
 uint32_t RHIRenderTarget::GetWidth() const
