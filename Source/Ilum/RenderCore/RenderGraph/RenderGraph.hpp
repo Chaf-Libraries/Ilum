@@ -52,6 +52,7 @@ struct RenderResourceDesc
 
 enum class BindPoint
 {
+	None,
 	Rasterization,
 	Compute,
 	RayTracing,
@@ -79,6 +80,25 @@ struct RenderPassDesc
 	RenderPassDesc &Read(const std::string &name, RenderResourceDesc::Type type, RHIResourceState state)
 	{
 		resources.emplace(name, RenderResourceDesc{type, RenderResourceDesc::Attribute::Read, state});
+		return *this;
+	}
+
+	RenderPassDesc& SetName(const std::string& name)
+	{
+		this->name = name;
+		return *this;
+	}
+
+	template<typename T>
+	RenderPassDesc& SetConfig(T var)
+	{
+		config = var;
+		return *this;
+	}
+
+	RenderPassDesc& SetBindPoint(BindPoint bind_point)
+	{
+		this->bind_point = bind_point;
 		return *this;
 	}
 };

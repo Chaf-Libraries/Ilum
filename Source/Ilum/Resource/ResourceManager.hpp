@@ -21,9 +21,9 @@ class ResourceManager
 
 	void ImportModel(const std::string &filename);
 
-	void AddSceneMeta(const SceneMeta &meta);
+	void AddSceneMeta(SceneMeta &&meta);
 
-	void AddRenderGraphMeta(const RenderGraphMeta &meta);
+	void AddRenderGraphMeta(RenderGraphMeta &&meta);
 
 	const std::vector<std::unique_ptr<TextureMeta>> &GetTextureMeta() const;
 

@@ -6,13 +6,13 @@
 
 namespace ImGui
 {
-bool EditVariant_(const rttr::variant &var);
+bool EditVariantImpl(const rttr::variant &var);
 
 template <typename T>
 inline bool EditVariant(T &var)
 {
 	rttr::variant rttr_var = var;
-	bool          update   = EditVariant_(rttr_var);
+	bool          update   = EditVariantImpl(rttr_var);
 	var                    = rttr_var.convert<T>();
 	return update;
 }
@@ -20,13 +20,13 @@ inline bool EditVariant(T &var)
 template <>
 inline bool EditVariant<rttr::variant>(rttr::variant &var)
 {
-	return EditVariant_(var);
+	return EditVariantImpl(var);
 }
 
 template <>
 inline bool EditVariant<const rttr::variant>(const rttr::variant &var)
 {
-	return EditVariant_(var);
+	return EditVariantImpl(var);
 }
 
 }        // namespace ImGui

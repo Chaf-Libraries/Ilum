@@ -3,6 +3,7 @@
 #include "RHIDefinitions.hpp"
 #include "RHITexture.hpp"
 
+#include <array>
 #include <optional>
 #include <vector>
 

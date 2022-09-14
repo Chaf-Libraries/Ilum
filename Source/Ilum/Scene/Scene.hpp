@@ -23,6 +23,22 @@ class Scene
 
 	void Execute(std::function<void(Entity &)> &&func);
 
+	template <typename T>
+	void GroupExecute(std::function<void(entt::entity entity, T &)> &&func)
+	{
+		m_registry.view<T>().each([&](auto entity, T &t) {
+			func(entity, t);
+		});
+	}
+
+	template <typename T1, typename... Tn>
+	void GroupExecute(std::function<void(entt::entity entity, T1 &, Tn &...)> &&func)
+	{
+		m_registry.view<T1, Tn...>().each([&](auto entity, T1 &t1, Tn &...tn) {
+			func(entity, t1, tn...);
+		});
+	}
+
 	void SetName(const std::string &name);
 
 	const std::string &GetName() const;

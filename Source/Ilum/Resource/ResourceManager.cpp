@@ -3,6 +3,7 @@
 #include "Importer/Texture/TextureImporter.hpp"
 
 #include <CodeGeneration/Meta/GeometryMeta.hpp>
+#include <CodeGeneration/Meta/ResourceMeta.hpp>
 #include <CodeGeneration/Meta/RHIMeta.hpp>
 #include <Core/Path.hpp>
 #include <RHI/RHIContext.hpp>
@@ -54,6 +55,8 @@ ResourceManager::ResourceManager(RHIContext *rhi_context) :
 		LoadTextureFromBuffer(p_rhi_context, m_thumbnails[ResourceType::Scene], info.desc, info.data, true);
 		info = TextureImporter::Import("Asset/Icon/render_graph.png");
 		LoadTextureFromBuffer(p_rhi_context, m_thumbnails[ResourceType::RenderGraph], info.desc, info.data, true);
+		info = TextureImporter::Import("Asset/Icon/model.png");
+		LoadTextureFromBuffer(p_rhi_context, m_thumbnails[ResourceType::Model], info.desc, info.data, true);
 	}
 
 	const std::string meta_path = "Asset/Meta";
@@ -71,18 +74,35 @@ ResourceManager::ResourceManager(RHIContext *rhi_context) :
 					LOG_WARN("Unknow resource type, fail to load {}", path.path().string());
 					break;
 				case ResourceType::Texture: {
-					TextureMeta          meta = {};
-					std::vector<uint8_t> thumbnail_data;
-					archive(meta.uuid, meta.desc, thumbnail_data);
+					TextureMeta       meta = {};
+					TextureImportInfo info = {};
 
-					LoadTextureFromBuffer(p_rhi_context, meta.thumbnail, ThumbnailDesc, thumbnail_data, false);
+					archive(meta.uuid, info);
+
+					meta.desc = info.desc;
+
+					LoadTextureFromBuffer(p_rhi_context, meta.thumbnail, ThumbnailDesc, info.thumbnail_data, false);
 
 					m_texture_index[Path::GetInstance().GetFileName(path.path().string(), false)] = m_textures.size();
 					m_textures.emplace_back(std::make_unique<TextureMeta>(std::move(meta)));
 				}
 				break;
-				case ResourceType::Model:
-					break;
+				case ResourceType::Model: {
+					ModelMeta       meta = {};
+					ModelImportInfo info = {};
+
+					archive(meta.uuid, info);
+
+					meta.name           = info.name;
+					meta.triangle_count = static_cast<uint32_t>(info.indices.size() / 3);
+					meta.vertices_count = static_cast<uint32_t>(info.vertices.size());
+					meta.submeshes      = std::move(info.submeshes);
+					meta.aabb           = std::move(info.aabb);
+
+					m_model_index.emplace(meta.uuid, m_models.size());
+					m_models.emplace_back(std::make_unique<ModelMeta>(std::move(meta)));
+				}
+				break;
 				case ResourceType::Scene: {
 					SceneMeta meta = {};
 					archive(meta.uuid, meta.name);
@@ -136,9 +156,10 @@ void ResourceManager::ImportTexture(const std::string &filename)
 
 	auto thumbnail_buffer = p_rhi_context->CreateBuffer(BufferDesc{"", RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_TO_CPU, 48 * 48 * 4 * sizeof(uint8_t)});
 
-	meta.texture   = p_rhi_context->CreateTexture2D(meta.desc.width, meta.desc.height, meta.desc.format, meta.desc.usage, true);
+	meta.texture   = p_rhi_context->CreateTexture2D(info.desc.width, info.desc.height, info.desc.format, info.desc.usage, true);
 	meta.thumbnail = p_rhi_context->CreateTexture(ThumbnailDesc);
 	meta.uuid      = uuid;
+	meta.desc      = info.desc;
 
 	{
 		auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Graphics);
@@ -196,11 +217,11 @@ void ResourceManager::ImportTexture(const std::string &filename)
 		fence->Wait();
 	}
 
-	std::vector<uint8_t> thumbnail_data(thumbnail_buffer->GetDesc().size);
-	std::memcpy(thumbnail_data.data(), thumbnail_buffer->Map(), thumbnail_buffer->GetDesc().size);
+	info.thumbnail_data.resize(thumbnail_buffer->GetDesc().size);
+	std::memcpy(info.thumbnail_data.data(), thumbnail_buffer->Map(), thumbnail_buffer->GetDesc().size);
 	thumbnail_buffer->Unmap();
 
-	SERIALIZE("./Asset/Meta/" + uuid + ".meta", ResourceType::Texture, meta.uuid, meta.desc, thumbnail_data, info.data);
+	SERIALIZE("./Asset/Meta/" + uuid + ".meta", ResourceType::Texture, meta.uuid, info);
 
 	m_texture_index[uuid] = m_textures.size();
 
@@ -224,44 +245,43 @@ void ResourceManager::ImportModel(const std::string &filename)
 
 	ModelMeta meta      = ModelMeta{};
 	meta.name           = info.name;
+	meta.uuid           = uuid;
 	meta.vertices_count = static_cast<uint32_t>(info.vertices.size());
 	meta.triangle_count = static_cast<uint32_t>(info.indices.size() / 3);
 	meta.submeshes      = std::move(info.submeshes);
-	meta.meshlets       = std::move(info.meshlets);
+	meta.aabb           = std::move(info.aabb);
 
-	meta.vertex_buffer         = p_rhi_context->CreateBuffer<Vertex>(info.vertices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::Vertex | RHIBufferUsage::ShaderResource, RHIMemoryUsage::GPU_Only);
-	meta.index_buffer          = p_rhi_context->CreateBuffer<uint32_t>(info.indices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::Index | RHIBufferUsage::ShaderResource, RHIMemoryUsage::GPU_Only);
-	meta.meshlet_vertex_buffer = p_rhi_context->CreateBuffer<uint32_t>(info.meshlet_vertices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::ShaderResource, RHIMemoryUsage::GPU_Only);
-	meta.meshlet_index_buffer  = p_rhi_context->CreateBuffer<uint8_t>(info.meshlet_indices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::ShaderResource, RHIMemoryUsage::GPU_Only);
+	meta.vertex_buffer         = p_rhi_context->CreateBuffer<Vertex>(info.vertices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::Vertex | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
+	meta.index_buffer          = p_rhi_context->CreateBuffer<uint32_t>(info.indices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::Index | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
+	meta.meshlet_vertex_buffer = p_rhi_context->CreateBuffer<uint32_t>(info.meshlet_vertices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
+	meta.meshlet_index_buffer  = p_rhi_context->CreateBuffer<uint8_t>(info.meshlet_indices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
+	meta.per_meshlet_buffer    = p_rhi_context->CreateBuffer<Meshlet>(info.meshlets.size(), RHIBufferUsage::Transfer | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
 
-	size_t max_size = std::max(
-	    std::max(meta.vertex_buffer->GetDesc().size, meta.index_buffer->GetDesc().size),
-	    std::max(meta.meshlet_vertex_buffer->GetDesc().size, meta.meshlet_index_buffer->GetDesc().size));
+	meta.vertex_buffer->CopyToDevice(info.vertices.data(), info.vertices.size() * sizeof(Vertex), 0);
+	meta.index_buffer->CopyToDevice(info.indices.data(), info.indices.size() * sizeof(uint32_t), 0);
+	meta.meshlet_vertex_buffer->CopyToDevice(info.meshlet_vertices.data(), info.meshlet_vertices.size() * sizeof(uint32_t), 0);
+	meta.meshlet_index_buffer->CopyToDevice(info.meshlet_indices.data(), info.meshlet_indices.size() * sizeof(uint8_t), 0);
+	meta.per_meshlet_buffer->CopyToDevice(info.meshlets.data(), info.meshlets.size() * sizeof(Meshlet), 0);
 
-	auto staging_buffer = p_rhi_context->CreateBuffer(max_size, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
-	auto fence          = p_rhi_context->CreateFence();
-
-	{
-		std::memcpy(staging_buffer->Map(), info.vertices.data(), info.vertices.size() * sizeof(Vertex));
-
-
-
-	}
+	m_model_index.emplace(uuid, m_models.size());
+	m_models.emplace_back(std::make_unique<ModelMeta>(std::move(meta)));
 }
 
-void ResourceManager::AddSceneMeta(const SceneMeta &meta)
+void ResourceManager::AddSceneMeta(SceneMeta &&meta)
 {
 	if (m_scenes.find(meta.uuid) == m_scenes.end())
 	{
-		m_scenes.emplace(meta.uuid, std::make_unique<SceneMeta>(std::move(meta)));
+		std::string uuid = meta.uuid;
+		m_scenes.emplace(uuid, std::make_unique<SceneMeta>(std::move(meta)));
 	}
 }
 
-void ResourceManager::AddRenderGraphMeta(const RenderGraphMeta &meta)
+void ResourceManager::AddRenderGraphMeta(RenderGraphMeta &&meta)
 {
 	if (m_render_graphs.find(meta.uuid) == m_render_graphs.end())
 	{
-		m_render_graphs.emplace(meta.uuid, std::make_unique<RenderGraphMeta>(std::move(meta)));
+		std::string uuid = meta.uuid;
+		m_render_graphs.emplace(uuid, std::make_unique<RenderGraphMeta>(std::move(meta)));
 	}
 }
 
@@ -298,15 +318,11 @@ const TextureMeta *ResourceManager::GetTexture(const std::string &uuid)
 
 		if (!meta.texture)
 		{
-			std::ifstream is("Asset/Meta/" + meta.uuid + ".meta", std::ios::binary);
-			InputArchive  archive(is);
+			TextureImportInfo info          = {};
+			ResourceType      resource_type = {};
+			DESERIALIZE("Asset/Meta/" + meta.uuid + ".meta", resource_type, meta.uuid, info);
 
-			TextureMeta          tmp_meta = {};
-			std::vector<uint8_t> thumbnail_data;
-			std::vector<uint8_t> texture_data;
-			archive(meta.uuid, meta.desc, thumbnail_data, texture_data);
-
-			LoadTextureFromBuffer(p_rhi_context, meta.texture, meta.desc, texture_data, true);
+			LoadTextureFromBuffer(p_rhi_context, meta.texture, meta.desc, info.data, true);
 
 			meta.index = m_texture_array.size();
 			m_texture_array.push_back(meta.texture.get());
@@ -321,6 +337,29 @@ const ModelMeta *ResourceManager::GetModel(const std::string &uuid)
 {
 	if (m_model_index.find(uuid) != m_model_index.end())
 	{
+		auto &meta = m_models[m_model_index.at(uuid)];
+
+		// Load data
+		if (meta->vertex_buffer || meta->index_buffer || meta->meshlet_vertex_buffer || meta->meshlet_index_buffer || meta->per_meshlet_buffer)
+		{
+			ResourceType    type = {};
+			ModelImportInfo info = {};
+			std::string     tmp_uuid;
+			DESERIALIZE("./Asset/Meta/" + uuid + ".meta", type, tmp_uuid, info);
+
+			meta->vertex_buffer         = p_rhi_context->CreateBuffer<Vertex>(info.vertices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::Vertex | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
+			meta->index_buffer          = p_rhi_context->CreateBuffer<uint32_t>(info.indices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::Index | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
+			meta->meshlet_vertex_buffer = p_rhi_context->CreateBuffer<uint32_t>(info.meshlet_vertices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
+			meta->meshlet_index_buffer  = p_rhi_context->CreateBuffer<uint8_t>(info.meshlet_indices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
+			meta->per_meshlet_buffer    = p_rhi_context->CreateBuffer<Meshlet>(info.meshlets.size(), RHIBufferUsage::Transfer | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
+
+			meta->vertex_buffer->CopyToDevice(info.vertices.data(), info.vertices.size() * sizeof(Vertex), 0);
+			meta->index_buffer->CopyToDevice(info.indices.data(), info.indices.size() * sizeof(uint32_t), 0);
+			meta->meshlet_vertex_buffer->CopyToDevice(info.meshlet_vertices.data(), info.meshlet_vertices.size() * sizeof(uint32_t), 0);
+			meta->meshlet_index_buffer->CopyToDevice(info.meshlet_indices.data(), info.meshlet_indices.size() * sizeof(uint8_t), 0);
+			meta->per_meshlet_buffer->CopyToDevice(info.meshlets.data(), info.meshlets.size() * sizeof(Meshlet), 0);
+		}
+
 		return m_models[m_model_index.at(uuid)].get();
 	}
 	return nullptr;

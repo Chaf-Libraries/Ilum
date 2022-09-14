@@ -7,7 +7,7 @@ RenderGraphBuilder::RenderGraphBuilder(RHIContext *rhi_context) :
 {
 }
 
-RenderGraphBuilder &RenderGraphBuilder::AddPass(RenderGraph &render_graph, const std::string &name, const rttr::variant& config, RenderGraph::RenderTask &&task, RenderGraph::BarrierTask &&barrier)
+RenderGraphBuilder &RenderGraphBuilder::AddPass(RenderGraph &render_graph, const std::string &name, const rttr::variant &config, RenderGraph::RenderTask &&task, RenderGraph::BarrierTask &&barrier)
 {
 	render_graph.AddPass(name, config, std::move(task), std::move(barrier));
 	return *this;
@@ -17,25 +17,22 @@ bool RenderGraphBuilder::Validate(RenderGraphDesc &desc)
 {
 	// Culling unused pass
 	{
-		if (desc.passes.size() != 1)
+		std::set<RGHandle> used_pass;
+		for (auto &[handle, pass] : desc.passes)
 		{
-			std::set<RGHandle> used_pass;
-			for (auto &[handle, pass] : desc.passes)
+			if (pass.prev_pass.IsValid())
 			{
-				if (pass.prev_pass.IsValid())
-				{
-					used_pass.insert(handle);
-					used_pass.insert(pass.prev_pass);
-				}
+				used_pass.insert(handle);
+				used_pass.insert(pass.prev_pass);
+			}
 
-				for (auto &[name, resource]:pass.resources)
+			for (auto &[name, resource] : pass.resources)
+			{
+				if (!resource.handle.IsValid() &&
+				    resource.attribute == RenderResourceDesc::Attribute::Write)
 				{
-					if (!resource.handle.IsValid() && 
-						resource.attribute == RenderResourceDesc::Attribute::Write)
-					{
-						LOG_ERROR("Pass <{}>'s output <{}> should be bound with a resource", pass.name, name);
-						return false;
-					}
+					LOG_ERROR("Pass <{}>'s output <{}> should be bound with a resource", pass.name, name);
+					return false;
 				}
 			}
 
@@ -57,7 +54,7 @@ bool RenderGraphBuilder::Validate(RenderGraphDesc &desc)
 	// Culling unused texture/buffer and check for loop
 	{
 		std::set<RGHandle> used_resource;
-		size_t           prev_pass_count = 0;
+		size_t             prev_pass_count = 0;
 		for (auto &[handle, pass] : desc.passes)
 		{
 			for (auto &[name, resource] : pass.resources)

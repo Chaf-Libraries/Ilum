@@ -2,8 +2,11 @@
 #include "Editor/Editor.hpp"
 #include "Editor/ImGui/ImGuiHelper.hpp"
 
+#include <CodeGeneration/Meta/GeometryMeta.hpp>
+#include <CodeGeneration/Meta/ResourceMeta.hpp>
 #include <CodeGeneration/Meta/SceneMeta.hpp>
 #include <Renderer/Renderer.hpp>
+#include <Scene/Component/StaticMeshComponent.hpp>
 #include <Scene/Component/TagComponent.hpp>
 #include <Scene/Component/TransformComponent.hpp>
 #include <Scene/Scene.hpp>
@@ -14,7 +17,7 @@
 namespace Ilum
 {
 template <typename T>
-inline bool DrawComponent(Entity &entity, bool static_mode = false)
+inline bool TDrawComponent(Entity &entity, std::function<bool(T &)> &&callback, bool static_mode = false)
 {
 	const ImGuiTreeNodeFlags tree_node_flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
 	if (entity.HasComponent<T>())
@@ -42,7 +45,7 @@ inline bool DrawComponent(Entity &entity, bool static_mode = false)
 		if (open)
 		{
 			T &cmpt     = entity.GetComponent<T>();
-			update      = ImGui::EditVariant(cmpt);
+			update      = callback(cmpt);
 			cmpt.update = update;
 			ImGui::TreePop();
 		}
@@ -52,11 +55,50 @@ inline bool DrawComponent(Entity &entity, bool static_mode = false)
 			entity.RemoveComponent<T>();
 			update = true;
 		}
-
 		return update;
 	}
-
 	return false;
+}
+
+template <typename T>
+inline bool DrawComponent(Entity &entity, bool static_mode = false)
+{
+	std::function<bool(T &)> func = [&](T &t) -> bool { return ImGui::EditVariant<T>(t); };
+	return TDrawComponent(entity, std::move(func), static_mode);
+}
+
+template <>
+inline bool DrawComponent<StaticMeshComponent>(Entity &entity, bool static_mode)
+{
+	std::function<bool(StaticMeshComponent &)> func = [&](StaticMeshComponent &t) -> bool {
+		ImGui::Text("UUID");
+		ImGui::SameLine();
+		if (ImGui::Button(t.uuid.c_str(), ImVec2(ImGui::GetContentRegionAvailWidth() * 0.8f, 25.f)))
+		{
+			t.uuid = "";
+		}
+		for (auto &submesh : t.submeshes)
+		{
+			if (ImGui::TreeNode(submesh.name.c_str()))
+			{
+				ImGui::Text("Material editor here");
+				ImGui::TreePop();
+			}
+		}
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const auto *pay_load = ImGui::AcceptDragDropPayload("Model"))
+			{
+				ASSERT(pay_load->DataSize == sizeof(std::string));
+				t.uuid = *static_cast<std::string *>(pay_load->Data);
+				ImGui::EndDragDropTarget();
+				return true;
+			}
+			ImGui::EndDragDropTarget();
+		}
+		return false;
+	};
+	return TDrawComponent(entity, std::move(func), static_mode);
 }
 
 template <typename T>
@@ -76,9 +118,10 @@ bool EditComponent(Entity &entity)
 template <typename T>
 bool AddComponent(Entity &entity)
 {
-	if (!entity.HasComponent<T>())
+	if (!entity.HasComponent<T>() && ImGui::MenuItem(rttr::type::get<T>().get_name().data()))
 	{
 		entity.AddComponent<T>().update = true;
+		ImGui::CloseCurrentPopup();
 		return true;
 	}
 	return false;
@@ -128,6 +171,7 @@ void SceneInspector::Tick()
 	if (entity.IsValid())
 	{
 		DrawComponent<TagComponent, TransformComponent>(entity, true);
+		DrawComponent<StaticMeshComponent>(entity);
 
 		if (ImGui::Button("Add Component"))
 		{
@@ -136,7 +180,7 @@ void SceneInspector::Tick()
 
 		if (ImGui::BeginPopup("AddComponent"))
 		{
-			AddComponent<TagComponent, TransformComponent>(entity);
+			AddComponent<TagComponent, TransformComponent, StaticMeshComponent>(entity);
 			ImGui::EndPopup();
 		}
 	}

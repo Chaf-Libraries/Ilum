@@ -1,6 +1,8 @@
 #include "SceneHierarchy.hpp"
 #include "Editor/Editor.hpp"
 
+#include <CodeGeneration/Meta/GeometryMeta.hpp>
+#include <CodeGeneration/Meta/ResourceMeta.hpp>
 #include <CodeGeneration/Meta/SceneMeta.hpp>
 #include <Core/Path.hpp>
 #include <Renderer/Renderer.hpp>
@@ -162,7 +164,7 @@ void SceneHierarchy::Tick()
 						SceneMeta meta = {};
 						meta.name      = filename;
 						meta.uuid      = uuid;
-						p_editor->GetRenderer()->GetResourceManager()->AddSceneMeta(meta);
+						p_editor->GetRenderer()->GetResourceManager()->AddSceneMeta(std::move(meta));
 					}
 					free(path);
 				}

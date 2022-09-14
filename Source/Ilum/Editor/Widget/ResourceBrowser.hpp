@@ -15,6 +15,7 @@ class ResourceBrowser : public Widget
 
   private:
 	void DrawTextureBrowser();
+	void DrawModelBrowser();
 	void DrawSceneBrowser();
 	void DrawRenderGraphBrowser();
 

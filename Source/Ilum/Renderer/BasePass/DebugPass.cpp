@@ -5,8 +5,10 @@ namespace Ilum
 RenderPassDesc DebugPass::CreateDesc()
 {
 	RenderPassDesc desc;
-	desc.name = "DebugPass";
-	desc.Read("Debug", RenderResourceDesc::Type::Texture, RHIResourceState::TransferSource);
+	desc
+	    .SetName("DebugPass")
+	    .SetBindPoint(BindPoint::None)
+		.Read("Debug", RenderResourceDesc::Type::Texture, RHIResourceState::TransferSource);
 	return desc;
 }
 

@@ -71,7 +71,7 @@ bool DragScalar(const rttr::variant &var, const rttr::property &prop)
 	}
 
 	CmptType min_ = std::numeric_limits<CmptType>::lowest();
-	CmptType max_ = std::numeric_limits<CmptType>::max(); 
+	CmptType max_ = std::numeric_limits<CmptType>::max();
 
 	if (prop.get_metadata("min"))
 	{
@@ -299,6 +299,22 @@ bool EditString(const rttr::variant &var, const rttr::property &prop)
 		prop.set_value(var, str);
 		return true;
 	}
+
+	if (prop.get_metadata("dragdrop").is_valid())
+	{
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const auto *pay_load = ImGui::AcceptDragDropPayload(prop.get_metadata("dragdrop").convert<std::string>().c_str()))
+			{
+				ASSERT(pay_load->DataSize == sizeof(std::string));
+				str = *static_cast<std::string *>(pay_load->Data);
+				prop.set_value(var, str);
+				ImGui::EndDragDropTarget();
+				return true;		
+			}
+			ImGui::EndDragDropTarget();
+		}
+	}
 	return false;
 }
 
@@ -349,18 +365,18 @@ inline static std::unordered_map<rttr::type, std::function<bool(const rttr::vari
     {rttr::type::get<std::string>(), EditString},
 };
 
-void DisplayImage(const rttr::variant& var)
+void DisplayImage(const rttr::variant &var)
 {
-	Ilum::RHITexture *texture = var.convert<Ilum::RHITexture*>();
+	Ilum::RHITexture *texture = var.convert<Ilum::RHITexture *>();
 	ImGui::Image(texture, ImVec2{100, 100});
 }
 
-bool EditVariant_(const rttr::variant &var)
+bool EditVariantImpl(const rttr::variant &var)
 {
 	bool update = false;
 
 	// Handle texture
-	if (var.get_type() == rttr::type::get<Ilum::RHITexture*>())
+	if (var.get_type() == rttr::type::get<Ilum::RHITexture *>())
 	{
 		DisplayImage(var);
 	}
@@ -384,7 +400,7 @@ bool EditVariant_(const rttr::variant &var)
 					update |= EditEnumeration(var, property_, enum_);
 				}
 			}
-			else
+			else if (EditFunctions.find(property_.get_type()) != EditFunctions.end())
 			{
 				update |= EditFunctions[property_.get_type()](var, property_);
 			}

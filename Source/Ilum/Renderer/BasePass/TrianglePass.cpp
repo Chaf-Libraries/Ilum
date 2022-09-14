@@ -6,8 +6,9 @@ RenderPassDesc TrianglePass::CreateDesc()
 {
 	RenderPassDesc desc = {};
 
-	desc.name = "TrianglePass";
 	desc
+	    .SetName("TrianglePass")
+	    .SetBindPoint(BindPoint::Rasterization)
 	    .Write("Output", RenderResourceDesc::Type::Texture, RHIResourceState::UnorderedAccess);
 
 	return desc;

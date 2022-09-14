@@ -2,6 +2,8 @@
 
 #include "Component.hpp"
 
+#include <entt.hpp>
+
 namespace Ilum
 {
 struct HierarchyComponent : public Component

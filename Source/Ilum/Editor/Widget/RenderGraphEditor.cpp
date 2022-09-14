@@ -561,7 +561,7 @@ void RenderGraphEditor::Tick()
 						RenderGraphMeta meta;
 						meta.name = filename;
 						meta.uuid = uuid;
-						p_editor->GetRenderer()->GetResourceManager()->AddRenderGraphMeta(meta);
+						p_editor->GetRenderer()->GetResourceManager()->AddRenderGraphMeta(std::move(meta));
 					}
 					free(path);
 				}

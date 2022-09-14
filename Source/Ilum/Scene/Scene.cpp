@@ -2,6 +2,8 @@
 #include "Component/HierarchyComponent.hpp"
 #include "Component/TagComponent.hpp"
 #include "Component/TransformComponent.hpp"
+#include "Component/StaticMeshComponent.hpp"
+//#include "System/System.hpp"
 #include "Entity.hpp"
 
 namespace Ilum
@@ -19,6 +21,7 @@ Scene::~Scene()
 
 void Scene::Tick()
 {
+	//System<StaticMeshComponent>().Tick(this);
 }
 
 Entity Scene::CreateEntity(const std::string &name)

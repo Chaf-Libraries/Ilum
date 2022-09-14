@@ -12,11 +12,12 @@ struct TextureImportInfo
 	TextureDesc desc;
 
 	std::vector<uint8_t> data;
+	std::vector<uint8_t> thumbnail_data;
 
 	template<class Archive>
 	void serialize(Archive& ar)
 	{
-		ar(desc, data);
+		ar(desc, data, thumbnail_data);
 	}
 };
 

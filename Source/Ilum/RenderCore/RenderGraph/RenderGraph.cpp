@@ -118,6 +118,11 @@ RenderGraph &RenderGraph::RegisterTexture(const TextureCreateInfo &create_info)
 
 RenderGraph &RenderGraph::RegisterTexture(const std::vector<TextureCreateInfo> &create_infos)
 {
+	if (create_infos.size() == 1)
+	{
+		return RegisterTexture(create_infos[0]);
+	}
+
 	TextureDesc pool_desc = {};
 	pool_desc.name        = "Pool Texture " + std::to_string(m_textures.size());
 	pool_desc.width       = 0;

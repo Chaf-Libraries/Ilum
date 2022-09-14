@@ -5,8 +5,9 @@ namespace Ilum
 RenderPassDesc PresentPass::CreateDesc()
 {
 	RenderPassDesc desc;
-	desc.name = "PresentPass";
 	desc
+	    .SetName("PresentPass")
+	    .SetBindPoint(BindPoint::None)
 	    .Read("Present", RenderResourceDesc::Type::Texture, RHIResourceState::ShaderResource);
 
 	return desc;

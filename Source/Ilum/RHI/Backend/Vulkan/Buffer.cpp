@@ -1,6 +1,9 @@
 #include "Buffer.hpp"
+#include "Command.hpp"
 #include "Definitions.hpp"
 #include "Device.hpp"
+#include "Queue.hpp"
+#include "Synchronization.hpp"
 
 namespace Ilum::Vulkan
 {
@@ -108,8 +111,29 @@ Buffer::~Buffer()
 
 void Buffer::CopyToDevice(void *data, size_t size, size_t offset)
 {
-	void *mapped = Map();
-	std::memcpy((uint8_t *) mapped + offset, data, size);
+	if (m_desc.memory == RHIMemoryUsage::CPU_TO_GPU)
+	{
+		void *mapped = Map();
+		std::memcpy((uint8_t *) mapped + offset, data, size);
+	}
+	else
+	{
+		auto fence          = std::make_unique<Fence>(p_device);
+		auto queue          = std::make_unique<Queue>(p_device, RHIQueueFamily::Transfer, 1);
+		auto staging_buffer = std::make_unique<Buffer>(p_device, BufferDesc{"", RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU, size});
+
+		{
+			std::memcpy((uint8_t *) staging_buffer->Map(), data, size);
+			auto cmd_buffer = std::make_unique<Command>(p_device, RHIQueueFamily::Transfer);
+			cmd_buffer->Init();
+			cmd_buffer->Begin();
+			cmd_buffer->CopyBufferToBuffer(staging_buffer.get(), this, size, 0, offset);
+			cmd_buffer->End();
+			queue->Submit({cmd_buffer.get()});
+			queue->Execute(fence.get());
+			fence->Wait();
+		}
+	}
 }
 
 void Buffer::CopyToHost(void *data, size_t size, size_t offset)

@@ -56,6 +56,21 @@ void SceneView::Tick()
 				        HierarchyComponent>(archive);
 			}
 		}
+
+		if (const auto *pay_load = ImGui::AcceptDragDropPayload("Model"))
+		{
+			ASSERT(pay_load->DataSize == sizeof(std::string));
+			std::string uuid = *static_cast<std::string *>(pay_load->Data);
+
+			auto *meta   = p_editor->GetRenderer()->GetResourceManager()->GetModel(uuid);
+			auto  entity = p_editor->GetRenderer()->GetScene()->CreateEntity(meta->name);
+			auto &cmpt   = entity.AddComponent<StaticMeshComponent>();
+			cmpt.uuid      = uuid;
+			if (meta)
+			{
+				cmpt.submeshes = meta->submeshes;
+			}
+		}
 	}
 
 	ImGui::End();

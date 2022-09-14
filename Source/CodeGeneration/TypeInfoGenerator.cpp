@@ -170,7 +170,8 @@ inline void SerializeClass(std::stringstream &sstream, const Meta::TypeMeta &met
 	for (auto &field : meta.fields)
 	{
 		if (field.mode == Meta::Field::Mode::Variable &&
-		    field.access_specifier == Meta::AccessSpecifier::Public)
+		    field.access_specifier == Meta::AccessSpecifier::Public&&
+		    !field.NoSerialization())
 		{
 			if (!has_member)
 			{
@@ -195,7 +196,8 @@ inline void RegisterType(std::stringstream &sstream, const Meta::TypeMeta &meta)
 	for (auto &field : meta.fields)
 	{
 		if (field.mode == Meta::Field::Mode::Variable &&
-		    field.access_specifier == Meta::AccessSpecifier::Public)
+		    field.access_specifier == Meta::AccessSpecifier::Public&&
+		    !field.NoSerialization())
 		{
 			sstream << fmt::format("SERIALIZER_REGISTER_TYPE(decltype({}::{}))", meta.GenerateName(), field.name) << std::endl;
 		}

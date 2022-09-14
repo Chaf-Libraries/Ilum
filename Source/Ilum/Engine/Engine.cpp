@@ -1,4 +1,5 @@
 #include "Engine.hpp"
+#include "System.hpp"
 
 #include <Core/Path.hpp>
 #include <Core/Window.hpp>
@@ -41,6 +42,9 @@ void Engine::Tick()
 		if (m_window->GetWidth() != 0 && m_window->GetHeight() != 0)
 		{
 			m_rhi_context->BeginFrame();
+
+			System::Tick(m_renderer.get());
+			m_scene->Tick();
 
 			// Render loop
 			m_renderer->Tick();

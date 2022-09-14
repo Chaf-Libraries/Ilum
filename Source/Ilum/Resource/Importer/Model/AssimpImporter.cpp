@@ -1,5 +1,7 @@
 #include "AssimpImporter.hpp"
 
+#include <Core/Path.hpp>
+
 #include <assimp/DefaultLogger.hpp>
 #include <assimp/Importer.hpp>
 #include <assimp/pbrmaterial.h>
@@ -103,6 +105,7 @@ inline void ParseNode(const std::string &file_path, aiMatrix4x4 transform, aiNod
 ModelImportInfo AssimpImporter::ImportImpl(const std::string &filename)
 {
 	ModelImportInfo info;
+	info.name = Path::GetInstance().GetFileName(filename, false);
 
 	Assimp::Importer importer;
 
