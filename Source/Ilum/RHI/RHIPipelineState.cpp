@@ -1,9 +1,9 @@
 #include "RHIPipelineState.hpp"
 #include "RHIDevice.hpp"
 
-#	include "Backend/Vulkan/PipelineState.hpp"
-#	include "Backend/DX12/PipelineState.hpp"
-#	include "Backend/CUDA/PipelineState.hpp"
+#include "Backend/CUDA/PipelineState.hpp"
+#include "Backend/DX12/PipelineState.hpp"
+#include "Backend/Vulkan/PipelineState.hpp"
 
 namespace Ilum
 {
@@ -30,23 +30,7 @@ std::unique_ptr<RHIPipelineState> RHIPipelineState::Create(RHIDevice *device)
 
 RHIPipelineState &RHIPipelineState::SetShader(RHIShaderStage stage, RHIShader *shader)
 {
-	if (shader)
-	{
-		if (m_shaders.find(stage) == m_shaders.end() || m_shaders[stage] != shader)
-		{
-			m_shaders[stage] = shader;
-			m_dirty          = true;
-		}
-	}
-	else
-	{
-		if (m_shaders.find(stage) != m_shaders.end())
-		{
-			m_shaders.erase(stage);
-			m_dirty = true;
-		}
-	}
-
+	m_shaders.emplace_back(std::make_pair(stage, shader));
 	return *this;
 }
 
@@ -95,7 +79,7 @@ RHIPipelineState &RHIPipelineState::SetVertexInputState(const VertexInputState &
 	if (m_vertex_input_state != state)
 	{
 		m_vertex_input_state = state;
-		m_dirty                = true;
+		m_dirty              = true;
 	}
 	return *this;
 }
@@ -110,13 +94,14 @@ RHIPipelineState &RHIPipelineState::SetInputAssemblyState(const InputAssemblySta
 	return *this;
 }
 
-const RHIShader *RHIPipelineState::GetShader(RHIShaderStage stage) const
+void RHIPipelineState::ClearShader()
 {
-	if (m_shaders.find(stage) != m_shaders.end())
-	{
-		return m_shaders.at(stage);
-	}
-	return nullptr;
+	m_shaders.clear();
+}
+
+const std::vector<std::pair<RHIShaderStage, RHIShader *>> &RHIPipelineState::GetShaders() const
+{
+	return m_shaders;
 }
 
 const DepthStencilState &RHIPipelineState::GetDepthStencilState() const

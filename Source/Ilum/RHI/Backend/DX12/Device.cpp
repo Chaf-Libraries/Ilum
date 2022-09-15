@@ -43,7 +43,7 @@ inline void GetHardwareAdapter(IDXGIFactory1 *pFactory, IDXGIAdapter1 **ppAdapte
 					ss << "AMD\n";
 					break;
 				default:
-					ss << desc.VendorId << "\n";
+					ss << desc.VendorId;
 			}
 
 			LOG_INFO("{}", ss.str());
@@ -85,6 +85,8 @@ inline void GetHardwareAdapter(IDXGIFactory1 *pFactory, IDXGIAdapter1 **ppAdapte
 Device::Device():
     RHIDevice(RHIBackend::DX12)
 {
+	LOG_INFO("Initializing RHI backend DriectX12...");
+
 	uint32_t dxgi_factory_flags = 0;
 
 #ifdef _DEBUG

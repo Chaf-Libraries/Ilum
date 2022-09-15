@@ -7,6 +7,8 @@ namespace Ilum::CUDA
 Device::Device() :
     RHIDevice(RHIBackend::CUDA)
 {
+	LOG_INFO("Initializing RHI backend CUDA...");
+
 	int32_t device_count = 0;
 	cudaGetDeviceCount(&device_count);
 	for (int32_t i = 0; i < device_count; i++)

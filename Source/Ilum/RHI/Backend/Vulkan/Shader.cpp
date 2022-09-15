@@ -23,7 +23,7 @@ Shader::~Shader()
 	}
 }
 
-VkShaderModule Shader::GetHandle()
+VkShaderModule Shader::GetHandle() const
 {
 	return m_handle;
 }

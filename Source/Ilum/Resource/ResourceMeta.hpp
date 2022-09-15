@@ -2,6 +2,7 @@
 
 #include <RHI/RHIBuffer.hpp>
 #include <RHI/RHITexture.hpp>
+#include <RHI/RHIAccelerationStructure.hpp>
 
 #include <Geometry/Bound/AABB.hpp>
 #include <Geometry/Vertex.hpp>
@@ -95,6 +96,7 @@ struct [[serialization(false), reflection(false)]] ModelMeta : ResourceMeta<Reso
 	std::unique_ptr<RHIBuffer> meshlet_vertex_buffer  = nullptr;
 	std::unique_ptr<RHIBuffer> meshlet_index_buffer  = nullptr;
 	std::unique_ptr<RHIBuffer> per_meshlet_buffer   = nullptr;
+	std::vector<std::unique_ptr<RHIAccelerationStructure>> blas;
 };
 
 struct [[serialization(false), reflection(false)]] SceneMeta : ResourceMeta<ResourceType::Scene>

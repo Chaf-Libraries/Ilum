@@ -252,7 +252,6 @@ class RHIPipelineState
 	static std::unique_ptr<RHIPipelineState> Create(RHIDevice *device);
 
 	RHIPipelineState &SetShader(RHIShaderStage stage, RHIShader *shader);
-
 	RHIPipelineState &SetDepthStencilState(const DepthStencilState &state);
 	RHIPipelineState &SetBlendState(const BlendState &state);
 	RHIPipelineState &SetRasterizationState(const RasterizationState &state);
@@ -260,7 +259,9 @@ class RHIPipelineState
 	RHIPipelineState &SetVertexInputState(const VertexInputState &state);
 	RHIPipelineState &SetInputAssemblyState(const InputAssemblyState &state);
 
-	const RHIShader          *GetShader(RHIShaderStage stage) const;
+	void ClearShader();
+
+	const std::vector<std::pair<RHIShaderStage, RHIShader *>> &GetShaders() const;
 	const DepthStencilState  &GetDepthStencilState() const;
 	const BlendState         &GetBlendState() const;
 	const RasterizationState &GetRasterizationState() const;
@@ -273,7 +274,7 @@ class RHIPipelineState
   protected:
 	RHIDevice *p_device = nullptr;
 
-	std::unordered_map<RHIShaderStage, RHIShader *> m_shaders;
+	std::vector<std::pair<RHIShaderStage, RHIShader *>> m_shaders;
 
 	DepthStencilState  m_depth_stencil_state;
 	BlendState         m_blend_state;

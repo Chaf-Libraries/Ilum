@@ -46,4 +46,9 @@ void Queue::Execute(RHIFence *fence)
 		// m_handle->Signal(dx_fence->GetHandle().Get(), fence_val);
 	}
 }
+
+bool Queue::Empty()
+{
+	return true;
+}
 }        // namespace Ilum::DX12

@@ -30,7 +30,9 @@ RHIFence *Frame::AllocateFence()
 {
 	if (m_fences.size() > m_active_fence_index)
 	{
-		return m_fences[m_active_fence_index].get();
+		auto *fence = m_fences[m_active_fence_index].get();
+		m_active_fence_index++;
+		return fence;
 	}
 
 	while (m_fences.size() <= m_active_fence_index)
@@ -110,9 +112,9 @@ void Frame::Reset()
 
 	fences.reserve(m_fences.size());
 
-	for (auto &fence : m_fences)
+	for (uint32_t i = 0; i < m_active_fence_index; i++)
 	{
-		fences.push_back(fence->GetHandle());
+		fences.push_back(m_fences[i]->GetHandle());
 	}
 
 	if (!fences.empty())

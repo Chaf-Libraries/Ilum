@@ -43,7 +43,7 @@ void Engine::Tick()
 		{
 			m_rhi_context->BeginFrame();
 
-			System::Tick(m_renderer.get());
+			System::GetInstance().Tick(m_renderer.get());
 			m_scene->Tick();
 
 			// Render loop

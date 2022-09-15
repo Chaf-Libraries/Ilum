@@ -10,6 +10,14 @@ namespace Ilum::Vulkan
 class Descriptor;
 class RenderTarget;
 
+struct ShaderBindingTable
+{
+	const VkStridedDeviceAddressRegionKHR *raygen   = nullptr;
+	const VkStridedDeviceAddressRegionKHR *miss     = nullptr;
+	const VkStridedDeviceAddressRegionKHR *hit      = nullptr;
+	const VkStridedDeviceAddressRegionKHR *callable = nullptr;
+};
+
 class PipelineState : public RHIPipelineState
 {
   public:
@@ -17,9 +25,11 @@ class PipelineState : public RHIPipelineState
 
 	virtual ~PipelineState() override;
 
-	VkPipelineLayout GetPipelineLayout(Descriptor* descriptor);
+	VkPipelineLayout GetPipelineLayout(Descriptor *descriptor);
 
-	VkPipeline GetPipeline(Descriptor *descriptor, RenderTarget* render_target);
+	VkPipeline GetPipeline(Descriptor *descriptor, RenderTarget *render_target);
+
+	ShaderBindingTable GetShaderBindingTable(VkPipeline pipeline);
 
 	VkPipelineBindPoint GetPipelineBindPoint() const;
 

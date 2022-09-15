@@ -28,6 +28,7 @@ RHIContext::RHIContext(Window *window) :
 	m_graphics_queue = RHIQueue::Create(m_device, RHIQueueFamily::Graphics);
 	m_compute_queue  = RHIQueue::Create(m_device, RHIQueueFamily::Compute);
 	m_transfer_queue = RHIQueue::Create(m_device, RHIQueueFamily::Transfer);
+	m_cuda_queue     = RHIQueue::Create(m_cuda_device.get(), RHIQueueFamily::Compute);
 
 	for (uint32_t i = 0; i < m_swapchain->GetTextureCount(); i++)
 	{
@@ -156,7 +157,12 @@ std::unique_ptr<RHISemaphore> RHIContext::CreateSemaphore(RHIBackend backend)
 	return RHISemaphore::Create(m_device);
 }
 
-RHIQueue *RHIContext::GetQueue(RHIQueueFamily family, RHIBackend backend)
+std::unique_ptr<RHIAccelerationStructure> RHIContext::CreateAcccelerationStructure(RHIBackend backend)
+{
+	return RHIAccelerationStructure::Create(m_device);
+}
+
+RHIQueue *RHIContext::GetQueue(RHIQueueFamily family)
 {
 	switch (family)
 	{
@@ -170,6 +176,11 @@ RHIQueue *RHIContext::GetQueue(RHIQueueFamily family, RHIBackend backend)
 			break;
 	}
 	return nullptr;
+}
+
+RHIQueue *RHIContext::GetCUDAQueue()
+{
+	return m_cuda_queue.get();
 }
 
 std::unique_ptr<RHIQueue> RHIContext::CreateQueue(RHIQueueFamily family, uint32_t idx, RHIBackend backend)
@@ -196,16 +207,27 @@ void RHIContext::BeginFrame()
 {
 	m_swapchain->AcquireNextTexture(m_present_complete[m_current_frame].get(), nullptr);
 	m_frames[m_current_frame]->Reset();
-	// m_graphics_queue->Submit({}, {}, {});
 }
 
 void RHIContext::EndFrame()
 {
 	m_graphics_queue->Submit({}, {m_render_complete[m_current_frame].get()}, {m_present_complete[m_current_frame].get()});
 
-	// m_transfer_queue->Execute();
-	// m_compute_queue->Execute();
-	m_graphics_queue->Execute(m_frames[m_current_frame]->AllocateFence());
+	if (!m_transfer_queue->Empty())
+	{
+		m_transfer_queue->Execute();
+		m_transfer_queue->Wait();
+	}
+
+	if (!m_compute_queue->Empty())
+	{
+		m_compute_queue->Execute(m_frames[m_current_frame]->AllocateFence());
+	}
+
+	if (!m_graphics_queue->Empty())
+	{
+		m_graphics_queue->Execute(m_frames[m_current_frame]->AllocateFence());
+	}
 
 	if (!m_swapchain->Present(m_render_complete[m_current_frame].get()) ||
 	    p_window->GetWidth() != m_swapchain->GetWidth() ||

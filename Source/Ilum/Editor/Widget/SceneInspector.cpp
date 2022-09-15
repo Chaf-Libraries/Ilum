@@ -6,6 +6,7 @@
 #include <CodeGeneration/Meta/ResourceMeta.hpp>
 #include <CodeGeneration/Meta/SceneMeta.hpp>
 #include <Renderer/Renderer.hpp>
+#include <Resource/ResourceManager.hpp>
 #include <Scene/Component/StaticMeshComponent.hpp>
 #include <Scene/Component/TagComponent.hpp>
 #include <Scene/Component/TransformComponent.hpp>
@@ -22,7 +23,9 @@ inline bool TDrawComponent(Entity &entity, std::function<bool(T &)> &&callback, 
 	const ImGuiTreeNodeFlags tree_node_flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_Framed | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_AllowItemOverlap | ImGuiTreeNodeFlags_FramePadding;
 	if (entity.HasComponent<T>())
 	{
-		auto  &component                = entity.GetComponent<T>();
+		auto &component  = entity.GetComponent<T>();
+		component.update = false;
+
 		ImVec2 content_region_available = ImGui::GetContentRegionAvail();
 
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{4, 4});
@@ -61,14 +64,14 @@ inline bool TDrawComponent(Entity &entity, std::function<bool(T &)> &&callback, 
 }
 
 template <typename T>
-inline bool DrawComponent(Entity &entity, bool static_mode = false)
+inline bool DrawComponent(Editor *editor, Entity &entity, bool static_mode = false)
 {
 	std::function<bool(T &)> func = [&](T &t) -> bool { return ImGui::EditVariant<T>(t); };
 	return TDrawComponent(entity, std::move(func), static_mode);
 }
 
 template <>
-inline bool DrawComponent<StaticMeshComponent>(Entity &entity, bool static_mode)
+inline bool DrawComponent<StaticMeshComponent>(Editor *editor, Entity &entity, bool static_mode)
 {
 	std::function<bool(StaticMeshComponent &)> func = [&](StaticMeshComponent &t) -> bool {
 		ImGui::Text("UUID");
@@ -76,14 +79,7 @@ inline bool DrawComponent<StaticMeshComponent>(Entity &entity, bool static_mode)
 		if (ImGui::Button(t.uuid.c_str(), ImVec2(ImGui::GetContentRegionAvailWidth() * 0.8f, 25.f)))
 		{
 			t.uuid = "";
-		}
-		for (auto &submesh : t.submeshes)
-		{
-			if (ImGui::TreeNode(submesh.name.c_str()))
-			{
-				ImGui::Text("Material editor here");
-				ImGui::TreePop();
-			}
+			return true;
 		}
 		if (ImGui::BeginDragDropTarget())
 		{
@@ -96,8 +92,36 @@ inline bool DrawComponent<StaticMeshComponent>(Entity &entity, bool static_mode)
 			}
 			ImGui::EndDragDropTarget();
 		}
+
+		auto *meta = editor->GetRenderer()->GetResourceManager()->GetModel(t.uuid);
+		if (!meta)
+		{
+			return false;
+		}
+		for (uint32_t i = 0; i < t.materials.size(); i++)
+		{
+			if (ImGui::TreeNode(meta->submeshes[i].name.c_str()))
+			{
+				ImGui::Text("Material editor here");
+				ImGui::TreePop();
+			}
+		}
 		return false;
 	};
+	return TDrawComponent(entity, std::move(func), static_mode);
+}
+
+template <>
+inline bool DrawComponent<HierarchyComponent>(Editor *editor, Entity &entity, bool static_mode)
+{
+	std::function<bool(HierarchyComponent &)> func = [&](HierarchyComponent &cmpt) -> bool {
+		ImGui::Text("First: %u", cmpt.first);
+		ImGui::Text("Next: %u", cmpt.next);
+		ImGui::Text("Prev: %u", cmpt.prev);
+		ImGui::Text("Parent: %u", cmpt.parent);
+		return false;
+	};
+
 	return TDrawComponent(entity, std::move(func), static_mode);
 }
 
@@ -128,11 +152,11 @@ bool AddComponent(Entity &entity)
 }
 
 template <typename T1, typename T2, typename... Tn>
-bool DrawComponent(Entity &entity, bool static_mode)
+bool DrawComponent(Editor *editor, Entity &entity, bool static_mode)
 {
 	bool update = false;
-	update |= DrawComponent<T1>(entity, static_mode);
-	update |= DrawComponent<T2, Tn...>(entity, static_mode);
+	update |= DrawComponent<T1>(editor, entity, static_mode);
+	update |= DrawComponent<T2, Tn...>(editor, entity, static_mode);
 	return update;
 }
 
@@ -170,8 +194,8 @@ void SceneInspector::Tick()
 	auto entity = p_editor->GetSelectedEntity();
 	if (entity.IsValid())
 	{
-		DrawComponent<TagComponent, TransformComponent>(entity, true);
-		DrawComponent<StaticMeshComponent>(entity);
+		DrawComponent<TagComponent, TransformComponent, HierarchyComponent>(p_editor, entity, true);
+		DrawComponent<StaticMeshComponent>(p_editor, entity);
 
 		if (ImGui::Button("Add Component"))
 		{

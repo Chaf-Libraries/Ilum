@@ -23,19 +23,11 @@ class Scene
 
 	void Execute(std::function<void(Entity &)> &&func);
 
-	template <typename T>
-	void GroupExecute(std::function<void(entt::entity entity, T &)> &&func)
+	template <typename... Tn>
+	void GroupExecute(std::function<void(entt::entity entity, Tn &...)> &&func)
 	{
-		m_registry.view<T>().each([&](auto entity, T &t) {
-			func(entity, t);
-		});
-	}
-
-	template <typename T1, typename... Tn>
-	void GroupExecute(std::function<void(entt::entity entity, T1 &, Tn &...)> &&func)
-	{
-		m_registry.view<T1, Tn...>().each([&](auto entity, T1 &t1, Tn &...tn) {
-			func(entity, t1, tn...);
+		m_registry.view<Tn...>().each([&](auto entity, Tn &...tn) {
+			func(entity, tn...);
 		});
 	}
 
@@ -44,6 +36,8 @@ class Scene
 	const std::string &GetName() const;
 
 	entt::registry &operator()();
+
+	size_t Size() const;
 
   private:
 	std::string m_name;

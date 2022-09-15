@@ -20,8 +20,8 @@ Editor::Editor(Window *window, RHIContext *rhi_context, Renderer *renderer) :
 	m_widgets.emplace_back(std::make_unique<RenderGraphEditor>(this));
 	m_widgets.emplace_back(std::make_unique<RenderGraphInspector>(this));
 	m_widgets.emplace_back(std::make_unique<SceneView>(this));
-	m_widgets.emplace_back(std::make_unique<SceneHierarchy>(this));
 	m_widgets.emplace_back(std::make_unique<SceneInspector>(this));
+	m_widgets.emplace_back(std::make_unique<SceneHierarchy>(this));
 }
 
 Editor::~Editor()

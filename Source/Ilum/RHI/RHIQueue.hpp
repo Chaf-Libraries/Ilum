@@ -28,6 +28,8 @@ class RHIQueue
 
 	virtual void Execute(RHIFence *fence = nullptr) = 0;
 
+	virtual bool Empty() = 0;
+
   protected:
 	RHIDevice     *p_device = nullptr;
 	RHIQueueFamily m_family;

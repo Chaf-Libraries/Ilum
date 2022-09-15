@@ -10,23 +10,27 @@ Queue::Queue(RHIDevice *device, RHIQueueFamily family, uint32_t queue_index) :
 
 void Queue::Wait()
 {
-
 }
 
-void Queue::Submit(const std::vector<RHICommand*>& cmds, const std::vector<RHISemaphore*>& signal_semaphores, const std::vector<RHISemaphore*>& wait_semaphores)
+void Queue::Submit(const std::vector<RHICommand *> &cmds, const std::vector<RHISemaphore *> &signal_semaphores, const std::vector<RHISemaphore *> &wait_semaphores)
 {
-	for (auto& cmd : cmds)
+	for (auto &cmd : cmds)
 	{
 		m_cmds.push_back(cmd);
 	}
 }
 
-void Queue::Execute(RHIFence* fence)
+void Queue::Execute(RHIFence *fence)
 {
-	for (auto& cmd : m_cmds)
+	for (auto &cmd : m_cmds)
 	{
 		static_cast<Command *>(cmd)->Execute();
 	}
 	m_cmds.clear();
+}
+
+bool Queue::Empty()
+{
+	return m_cmds.empty();
 }
 }        // namespace Ilum::CUDA

@@ -47,6 +47,10 @@ class Renderer
 
 	RHITexture *GetDummyTexture(DummyTexture dummy) const;
 
+	void UpdateGPUScene();
+
+	RHIAccelerationStructure *GetTLAS() const;
+
   public:
 	// Shader utils
 	RHIShader *RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, const std::vector<std::string> &macros = {}, RHIBackend backend = RHIBackend::Vulkan);
@@ -54,6 +58,8 @@ class Renderer
 	ShaderMeta RequireShaderMeta(RHIShader *shader) const;
 
   private:
+	bool m_update_tlas = false;
+
 	RHIContext *p_rhi_context = nullptr;
 
 	Scene *p_scene = nullptr;
@@ -71,5 +77,7 @@ class Renderer
 	std::unordered_map<RHIShader *, ShaderMeta> m_shader_meta_cache;
 
 	std::map<DummyTexture, std::unique_ptr<RHITexture>> m_dummy_textures;
+
+	std::unique_ptr<RHIAccelerationStructure> m_tlas = nullptr;
 };
 }        // namespace Ilum

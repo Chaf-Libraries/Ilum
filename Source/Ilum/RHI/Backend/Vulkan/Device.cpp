@@ -164,7 +164,7 @@ inline uint32_t ScorePhysicalDevice(VkPhysicalDevice physical_device, const std:
 	    VK_VERSION_MINOR(properties.apiVersion),
 	    VK_VERSION_PATCH(properties.apiVersion)};
 
-	ss << "API Version: " << supportedVersion[0] << "." << supportedVersion[1] << "." << supportedVersion[2];
+	ss << "API Version: " << supportedVersion[0] << "." << supportedVersion[1] << "." << supportedVersion[2] << "\n";
 
 	LOG_INFO("{}", ss.str());
 
@@ -684,7 +684,7 @@ void Device::CreateLogicalDevice()
 	device_create_info.enabledExtensionCount   = static_cast<uint32_t>(support_extensions.size());
 	device_create_info.ppEnabledExtensionNames = support_extensions.data();
 	device_create_info.pEnabledFeatures        = &physical_device_features.features;
-	device_create_info.pNext                   = &physical_device_vulkan12_features;
+	device_create_info.pNext                   = &physical_device_vulkan12_features_enable;
 
 	if (vkCreateDevice(m_physical_device, &device_create_info, nullptr, &m_logical_device) != VK_SUCCESS)
 	{
@@ -711,6 +711,8 @@ void Device::CreateLogicalDevice()
 Device::Device():
     RHIDevice(RHIBackend::Vulkan)
 {
+	LOG_INFO("Initializing RHI backend Vulkan...");
+
 	CreateInstance();
 	CreatePhysicalDevice();
 	CreateLogicalDevice();

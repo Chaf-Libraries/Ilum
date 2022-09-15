@@ -1,5 +1,6 @@
 #pragma once
 
+#include "RHIAccelerationStructure.hpp"
 #include "RHIBuffer.hpp"
 #include "RHICommand.hpp"
 #include "RHIDescriptor.hpp"
@@ -80,8 +81,13 @@ class RHIContext
 	// Create Semaphore
 	std::unique_ptr<RHISemaphore> CreateSemaphore(RHIBackend backend = RHIBackend::Vulkan);
 
+	// Create Acceleration Structure
+	std::unique_ptr<RHIAccelerationStructure> CreateAcccelerationStructure(RHIBackend backend = RHIBackend::Vulkan);
+
 	// Get Queue
-	RHIQueue *GetQueue(RHIQueueFamily family, RHIBackend backend = RHIBackend::Vulkan);
+	RHIQueue *GetQueue(RHIQueueFamily family);
+
+	RHIQueue *GetCUDAQueue();
 
 	std::unique_ptr<RHIQueue> CreateQueue(RHIQueueFamily family, uint32_t idx = 0, RHIBackend backend = RHIBackend::Vulkan);
 
@@ -102,7 +108,7 @@ class RHIContext
   private:
 	Window *p_window = nullptr;
 
-	std::map<RHIBackend, RHIDevice*> m_devices;
+	std::map<RHIBackend, RHIDevice *> m_devices;
 
 	std::unique_ptr<RHIDevice> m_vulkan_device = nullptr;
 	std::unique_ptr<RHIDevice> m_dx12_device   = nullptr;
@@ -115,6 +121,7 @@ class RHIContext
 	std::unique_ptr<RHIQueue> m_graphics_queue = nullptr;
 	std::unique_ptr<RHIQueue> m_compute_queue  = nullptr;
 	std::unique_ptr<RHIQueue> m_transfer_queue = nullptr;
+	std::unique_ptr<RHIQueue> m_cuda_queue     = nullptr;
 
 	std::vector<std::unique_ptr<RHISemaphore>> m_present_complete;
 	std::vector<std::unique_ptr<RHISemaphore>> m_render_complete;

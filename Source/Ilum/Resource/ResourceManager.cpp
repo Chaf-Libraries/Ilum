@@ -3,8 +3,8 @@
 #include "Importer/Texture/TextureImporter.hpp"
 
 #include <CodeGeneration/Meta/GeometryMeta.hpp>
-#include <CodeGeneration/Meta/ResourceMeta.hpp>
 #include <CodeGeneration/Meta/RHIMeta.hpp>
+#include <CodeGeneration/Meta/ResourceMeta.hpp>
 #include <Core/Path.hpp>
 #include <RHI/RHIContext.hpp>
 
@@ -263,6 +263,32 @@ void ResourceManager::ImportModel(const std::string &filename)
 	meta.meshlet_index_buffer->CopyToDevice(info.meshlet_indices.data(), info.meshlet_indices.size() * sizeof(uint8_t), 0);
 	meta.per_meshlet_buffer->CopyToDevice(info.meshlets.data(), info.meshlets.size() * sizeof(Meshlet), 0);
 
+	// Build BLAS
+	meta.blas.reserve(meta.submeshes.size());
+	auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Compute);
+	cmd_buffer->Begin();
+	for (auto &submesh : meta.submeshes)
+	{
+		auto as = p_rhi_context->CreateAcccelerationStructure();
+
+		BLASDesc desc = {};
+
+		desc.name            = meta.name;
+		desc.vertex_buffer   = meta.vertex_buffer.get();
+		desc.index_buffer    = meta.index_buffer.get();
+		desc.vertices_count  = submesh.vertices_count;
+		desc.vertices_offset = submesh.vertices_offset;
+		desc.indices_count   = submesh.indices_count;
+		desc.indices_offset  = submesh.indices_offset;
+
+		as->Update(cmd_buffer, desc);
+
+		meta.blas.emplace_back(std::move(as));
+	}
+
+	cmd_buffer->End();
+	p_rhi_context->GetQueue(RHIQueueFamily::Compute)->Submit({cmd_buffer});
+
 	m_model_index.emplace(uuid, m_models.size());
 	m_models.emplace_back(std::make_unique<ModelMeta>(std::move(meta)));
 }
@@ -340,13 +366,14 @@ const ModelMeta *ResourceManager::GetModel(const std::string &uuid)
 		auto &meta = m_models[m_model_index.at(uuid)];
 
 		// Load data
-		if (meta->vertex_buffer || meta->index_buffer || meta->meshlet_vertex_buffer || meta->meshlet_index_buffer || meta->per_meshlet_buffer)
+		if (!meta->vertex_buffer || !meta->index_buffer || !meta->meshlet_vertex_buffer || !meta->meshlet_index_buffer || !meta->per_meshlet_buffer)
 		{
 			ResourceType    type = {};
 			ModelImportInfo info = {};
 			std::string     tmp_uuid;
 			DESERIALIZE("./Asset/Meta/" + uuid + ".meta", type, tmp_uuid, info);
 
+			// Upload mesh data to GPU
 			meta->vertex_buffer         = p_rhi_context->CreateBuffer<Vertex>(info.vertices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::Vertex | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
 			meta->index_buffer          = p_rhi_context->CreateBuffer<uint32_t>(info.indices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::Index | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
 			meta->meshlet_vertex_buffer = p_rhi_context->CreateBuffer<uint32_t>(info.meshlet_vertices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
@@ -358,6 +385,31 @@ const ModelMeta *ResourceManager::GetModel(const std::string &uuid)
 			meta->meshlet_vertex_buffer->CopyToDevice(info.meshlet_vertices.data(), info.meshlet_vertices.size() * sizeof(uint32_t), 0);
 			meta->meshlet_index_buffer->CopyToDevice(info.meshlet_indices.data(), info.meshlet_indices.size() * sizeof(uint8_t), 0);
 			meta->per_meshlet_buffer->CopyToDevice(info.meshlets.data(), info.meshlets.size() * sizeof(Meshlet), 0);
+
+			// Build BLAS
+			meta->blas.reserve(meta->submeshes.size());
+			auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Compute);
+			cmd_buffer->Begin();
+			for (auto &submesh : meta->submeshes)
+			{
+				auto as = p_rhi_context->CreateAcccelerationStructure();
+
+				BLASDesc desc = {};
+
+				desc.name            = meta->name;
+				desc.vertex_buffer   = meta->vertex_buffer.get();
+				desc.index_buffer    = meta->index_buffer.get();
+				desc.vertices_count  = submesh.vertices_count;
+				desc.vertices_offset = submesh.vertices_offset;
+				desc.indices_count   = submesh.indices_count;
+				desc.indices_offset  = submesh.indices_offset;
+
+				as->Update(cmd_buffer, desc);
+
+				meta->blas.emplace_back(std::move(as));
+			}
+			cmd_buffer->End();
+			p_rhi_context->GetQueue(RHIQueueFamily::Compute)->Submit({cmd_buffer});
 		}
 
 		return m_models[m_model_index.at(uuid)].get();

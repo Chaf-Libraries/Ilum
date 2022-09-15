@@ -3,6 +3,10 @@
 #include <CodeGeneration/Meta/RHIMeta.hpp>
 #include <Core/Path.hpp>
 #include <RenderCore/ShaderCompiler/ShaderCompiler.hpp>
+#include <Resource/ResourceManager.hpp>
+#include <Scene/Component/StaticMeshComponent.hpp>
+#include <Scene/Component/TransformComponent.hpp>
+#include <Scene/Entity.hpp>
 #include <Scene/Scene.hpp>
 
 namespace Ilum
@@ -10,6 +14,8 @@ namespace Ilum
 Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resource_manager) :
     p_rhi_context(rhi_context), p_scene(scene), p_resource_manager(resource_manager)
 {
+	m_tlas = p_rhi_context->CreateAcccelerationStructure();
+
 	// Create dummy texture
 	{
 		m_dummy_textures[DummyTexture::WhiteOpaque]      = p_rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
@@ -64,6 +70,39 @@ Renderer::~Renderer()
 void Renderer::Tick()
 {
 	m_present_texture = nullptr;
+
+	if (m_update_tlas)
+	{
+		// Update TLAS
+		TLASDesc desc = {};
+		desc.instances.reserve(p_scene->Size());
+		desc.name = p_scene->GetName();
+		p_scene->GroupExecute<StaticMeshComponent, TransformComponent>([&](entt::entity entity, StaticMeshComponent &static_mesh, TransformComponent &transform) {
+			auto *meta = p_resource_manager->GetModel(static_mesh.uuid);
+			if (meta)
+			{
+				for (auto& blas : meta->blas)
+				{
+					TLASDesc::InstanceInfo instance_info = {};
+					instance_info.transform              = transform.world_transform;
+					instance_info.material_id            = 0;
+					instance_info.blas                   = blas.get();
+					desc.instances.emplace_back(std::move(instance_info));
+				}
+			}
+		});
+
+		if (!desc.instances.empty())
+		{
+			auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Compute);
+			cmd_buffer->Begin();
+			m_tlas->Update(cmd_buffer, desc);
+			cmd_buffer->End();
+			p_rhi_context->GetQueue(RHIQueueFamily::Compute)->Submit({cmd_buffer});
+		}
+
+		m_update_tlas = false;
+	}
 
 	if (m_render_graph)
 	{
@@ -128,6 +167,16 @@ RHITexture *Renderer::GetDummyTexture(DummyTexture dummy) const
 	return m_dummy_textures.at(dummy).get();
 }
 
+void Renderer::UpdateGPUScene()
+{
+	m_update_tlas = true;
+}
+
+RHIAccelerationStructure *Renderer::GetTLAS() const
+{
+	return m_tlas.get();
+}
+
 RHIShader *Renderer::RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, const std::vector<std::string> &macros, RHIBackend backend)
 {
 	size_t hash = Hash(filename, entry_point, stage, macros, backend);
@@ -140,7 +189,7 @@ RHIShader *Renderer::RequireShader(const std::string &filename, const std::strin
 	std::string cache_path = "./bin/Shaders/" + std::to_string(hash) + ".shader";
 
 	std::vector<uint8_t> shader_bin;
-	ShaderMeta meta;
+	ShaderMeta           meta;
 
 	if (Path::GetInstance().IsExist(cache_path))
 	{

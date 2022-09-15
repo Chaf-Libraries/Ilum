@@ -254,11 +254,11 @@ inline static VkBufferUsageFlags ToVulkanBufferUsage(RHIBufferUsage usage)
 	}
 	 if (usage & RHIBufferUsage::Index)
 	{
-		vk_usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+		 vk_usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
 	}
 	 if (usage & RHIBufferUsage::Vertex)
 	{
-		vk_usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+		 vk_usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
 	}
 	 if (usage & RHIBufferUsage::Indirect)
 	{

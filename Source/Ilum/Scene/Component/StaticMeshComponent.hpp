@@ -12,8 +12,6 @@ struct StaticMeshComponent : public Component
 {
 	std::string uuid;
 
-	std::vector<Submesh> submeshes;
-
-	[[serialization(false), reflection(false)]] std::shared_ptr<RHIBuffer> per_instance_buffer = nullptr;
+	std::vector<std::string> materials;
 };
 }        // namespace Ilum

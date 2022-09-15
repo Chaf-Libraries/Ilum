@@ -68,7 +68,8 @@ void SceneView::Tick()
 			cmpt.uuid      = uuid;
 			if (meta)
 			{
-				cmpt.submeshes = meta->submeshes;
+				cmpt.materials.resize(meta->submeshes.size());
+				std::fill(cmpt.materials.begin(), cmpt.materials.end(), "");
 			}
 		}
 	}

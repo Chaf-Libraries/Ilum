@@ -273,8 +273,8 @@ void SceneHierarchy::DrawNode(Entity &entity)
 			if (pay_load->DataSize == sizeof(Entity))
 			{
 				SetAsSon(scene, entity, *static_cast<Entity *>(pay_load->Data));
-				entity.GetComponent<TransformComponent>().update                                 = true;
-				static_cast<Entity *>(pay_load->Data)->GetComponent<TransformComponent>().update = true;
+				entity.GetComponent<HierarchyComponent>().update                                 = true;
+				static_cast<Entity *>(pay_load->Data)->GetComponent<HierarchyComponent>().update = true;
 			}
 		}
 		ImGui::EndDragDropTarget();

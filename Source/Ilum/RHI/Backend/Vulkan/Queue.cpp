@@ -18,44 +18,27 @@ void Queue::Wait()
 
 void Queue::Submit(const std::vector<RHICommand *> &cmds, const std::vector<RHISemaphore *> &signal_semaphores, const std::vector<RHISemaphore *> &wait_semaphores)
 {
-	//if (m_submit_infos.empty())
+	SubmitInfo submit_info = {};
+
+	submit_info.cmd_buffers.reserve(cmds.size());
+	submit_info.signal_semaphores.reserve(submit_info.signal_semaphores.size() + signal_semaphores.size());
+	submit_info.wait_semaphores.reserve(submit_info.wait_semaphores.size() + wait_semaphores.size());
+
+	for (auto &cmd : cmds)
 	{
-		m_submit_infos.emplace_back(SubmitInfo{});
+		static_cast<Command *>(cmd)->SetState(CommandState::Pending);
+		submit_info.cmd_buffers.push_back(static_cast<Command *>(cmd)->GetHandle());
+	}
+	for (auto &signal_semaphore : signal_semaphores)
+	{
+		submit_info.signal_semaphores.push_back(static_cast<Semaphore *>(signal_semaphore)->GetHandle());
+	}
+	for (auto &wait_semaphore : wait_semaphores)
+	{
+		submit_info.wait_semaphores.push_back(static_cast<Semaphore *>(wait_semaphore)->GetHandle());
 	}
 
-	//if (cmds.empty())
-	//{
-	//	auto &last_submit_info = m_submit_infos.back();
-	//	for (auto &signal_semaphore : signal_semaphores)
-	//	{
-	//		m_submit_infos.back().signal_semaphores.push_back(static_cast<Semaphore *>(signal_semaphore)->GetHandle());
-	//	}
-	//	for (auto &wait_semaphore : wait_semaphores)
-	//	{
-	//		m_submit_infos.front().wait_semaphores.push_back(static_cast<Semaphore *>(wait_semaphore)->GetHandle());
-	//	}
-	//}
-	//else if (signal_semaphores.empty() && wait_semaphores.empty())
-	//{
-		auto &last_submit_info = m_submit_infos.back();
-		last_submit_info.cmd_buffers.reserve(last_submit_info.cmd_buffers.size() + cmds.size());
-		last_submit_info.signal_semaphores.reserve(last_submit_info.signal_semaphores.size() + signal_semaphores.size());
-		last_submit_info.wait_semaphores.reserve(last_submit_info.wait_semaphores.size() + wait_semaphores.size());
-
-		for (auto &cmd : cmds)
-		{
-			static_cast<Command *>(cmd)->SetState(CommandState::Pending);
-			last_submit_info.cmd_buffers.push_back(static_cast<Command *>(cmd)->GetHandle());
-		}
-		for (auto &signal_semaphore : signal_semaphores)
-		{
-			last_submit_info.signal_semaphores.push_back(static_cast<Semaphore *>(signal_semaphore)->GetHandle());
-		}
-		for (auto &wait_semaphore : wait_semaphores)
-		{
-			last_submit_info.wait_semaphores.push_back(static_cast<Semaphore *>(wait_semaphore)->GetHandle());
-		}
-	//}
+	m_submit_infos.emplace_back(std::move(submit_info));
 }
 
 void Queue::Execute(RHIFence *fence)
@@ -91,25 +74,14 @@ void Queue::Execute(RHIFence *fence)
 		vk_submit_infos.push_back(std::move(vk_submit_info));
 	}
 
-	// std::vector<VkPipelineStageFlags> pipeline_stage_flags;
-
-	// pipeline_stage_flags.resize(m_submit_infos.size());
-	// std::fill(pipeline_stage_flags.begin(), pipeline_stage_flags.end(), VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
-
-	// VkSubmitInfo submit_info = {};
-	// submit_info.sType        = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-	// submit_info.commandBufferCount   = static_cast<uint32_t>(m_cmds.size());
-	// submit_info.pCommandBuffers      = m_cmds.data();
-	// submit_info.signalSemaphoreCount = static_cast<uint32_t>(m_signal_semaphores.size());
-	// submit_info.pSignalSemaphores    = m_signal_semaphores.data();
-	// submit_info.waitSemaphoreCount   = static_cast<uint32_t>(m_wait_semaphores.size());
-	// submit_info.pWaitSemaphores      = m_wait_semaphores.data();
-	// submit_info.pWaitDstStageMask    = pipeline_stage_flags.data();
-
 	vkQueueSubmit(m_handle, static_cast<uint32_t>(vk_submit_infos.size()), vk_submit_infos.data(), fence ? static_cast<Fence *>(fence)->GetHandle() : nullptr);
 
 	m_submit_infos.clear();
+}
+
+bool Queue::Empty()
+{
+	return m_submit_infos.empty();
 }
 
 VkQueue Queue::GetHandle() const

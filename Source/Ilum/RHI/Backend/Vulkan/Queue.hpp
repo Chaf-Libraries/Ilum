@@ -19,6 +19,8 @@ class Queue : public RHIQueue
 
 	virtual void Execute(RHIFence *fence = nullptr) override;
 
+	virtual bool Empty() override;
+
 	VkQueue GetHandle() const;
 
   private:

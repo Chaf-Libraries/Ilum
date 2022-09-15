@@ -13,7 +13,7 @@ class Shader : public RHIShader
 	
 	virtual ~Shader() override;
 
-	VkShaderModule GetHandle();
+	VkShaderModule GetHandle() const;
 
   private:
 	VkShaderModule m_handle = VK_NULL_HANDLE;

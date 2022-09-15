@@ -1,8 +1,8 @@
 #include "Scene.hpp"
 #include "Component/HierarchyComponent.hpp"
+#include "Component/StaticMeshComponent.hpp"
 #include "Component/TagComponent.hpp"
 #include "Component/TransformComponent.hpp"
-#include "Component/StaticMeshComponent.hpp"
 //#include "System/System.hpp"
 #include "Entity.hpp"
 
@@ -21,7 +21,7 @@ Scene::~Scene()
 
 void Scene::Tick()
 {
-	//System<StaticMeshComponent>().Tick(this);
+	// System<StaticMeshComponent>().Tick(this);
 }
 
 Entity Scene::CreateEntity(const std::string &name)
@@ -61,5 +61,10 @@ const std::string &Scene::GetName() const
 entt::registry &Scene::operator()()
 {
 	return m_registry;
+}
+
+size_t Scene::Size() const
+{
+	return m_registry.size();
 }
 }        // namespace Ilum
