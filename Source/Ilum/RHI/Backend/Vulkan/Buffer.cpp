@@ -109,7 +109,7 @@ Buffer::~Buffer()
 	}
 }
 
-void Buffer::CopyToDevice(void *data, size_t size, size_t offset)
+void Buffer::CopyToDevice(const void *data, size_t size, size_t offset)
 {
 	if (m_desc.memory == RHIMemoryUsage::CPU_TO_GPU)
 	{

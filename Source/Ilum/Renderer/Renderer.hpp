@@ -16,6 +16,25 @@ enum class DummyTexture
 	BlackTransparent
 };
 
+struct ViewInfo
+{
+	alignas(16) glm::vec3 position;
+	glm::mat4 view_matrix;
+	glm::mat4 projection_matrix;
+	glm::mat4 view_projection_matrix;
+	alignas(16) glm::vec2 viewport;
+};
+
+struct [[serialization(false), reflection(false)]] StaticBatch
+{
+	std::vector<RHIBuffer *>     static_vertex_buffers;
+	std::vector<RHIBuffer *>     static_index_buffers;
+	std::vector<RHIBuffer *>     meshlet_vertex_buffers;
+	std::vector<RHIBuffer *>     meshlet_index_buffers;
+	std::vector<RHIBuffer *>     meshlet_buffers;
+	std::unique_ptr<RHIBuffer> instance_buffer;
+};
+
 class Renderer
 {
   public:
@@ -41,6 +60,10 @@ class Renderer
 
 	RHITexture *GetPresentTexture() const;
 
+	void SetViewInfo(const ViewInfo &view_info);
+
+	RHIBuffer *GetViewBuffer() const;
+
 	Scene *GetScene() const;
 
 	void Reset();
@@ -51,6 +74,10 @@ class Renderer
 
 	RHIAccelerationStructure *GetTLAS() const;
 
+	void DrawScene(RHICommand *cmd_buffer, RHIPipelineState *pipeline_state, RHIDescriptor *descriptor, bool mesh_shader);
+
+	const StaticBatch &GetStaticBatch() const;
+
   public:
 	// Shader utils
 	RHIShader *RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, const std::vector<std::string> &macros = {}, RHIBackend backend = RHIBackend::Vulkan);
@@ -58,7 +85,10 @@ class Renderer
 	ShaderMeta RequireShaderMeta(RHIShader *shader) const;
 
   private:
-	bool m_update_tlas = false;
+	void UpdateScene();
+
+  private:
+	bool m_update_scene = false;
 
 	RHIContext *p_rhi_context = nullptr;
 
@@ -78,6 +108,10 @@ class Renderer
 
 	std::map<DummyTexture, std::unique_ptr<RHITexture>> m_dummy_textures;
 
+	std::unique_ptr<RHIBuffer> m_view_buffer = nullptr;
+
 	std::unique_ptr<RHIAccelerationStructure> m_tlas = nullptr;
+
+	StaticBatch m_static_batch;
 };
 }        // namespace Ilum

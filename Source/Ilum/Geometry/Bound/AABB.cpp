@@ -27,7 +27,7 @@ void AABB::Merge(const AABB &aabb)
 	max = glm::max(max, aabb.max);
 }
 
-AABB AABB::Transform(const glm::mat4 &transform)
+AABB AABB::Transform(const glm::mat4 &transform) const
 {
 	glm::vec3 v[2] = {}, xa, xb, ya, yb, za, zb;
 

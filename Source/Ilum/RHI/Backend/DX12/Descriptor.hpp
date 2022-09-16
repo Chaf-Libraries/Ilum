@@ -23,5 +23,7 @@ class Descriptor : public RHIDescriptor
 	virtual RHIDescriptor &BindBuffer(const std::string &name, const std::vector<RHIBuffer *> &buffers) override;
 
 	virtual RHIDescriptor &BindConstant(const std::string &name, const void *constant) override;
+
+	virtual RHIDescriptor &BindAccelerationStructure(const std::string &name, RHIAccelerationStructure *acceleration_structure) override;
 };
 }        // namespace Ilum::DX12

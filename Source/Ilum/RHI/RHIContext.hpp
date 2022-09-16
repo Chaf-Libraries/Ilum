@@ -24,6 +24,8 @@ class RHIContext
 
 	~RHIContext();
 
+	bool IsFeatureSupport(RHIFeature feature) const;
+
 	void WaitIdle() const;
 
 	RHISwapchain *GetSwapchain() const;

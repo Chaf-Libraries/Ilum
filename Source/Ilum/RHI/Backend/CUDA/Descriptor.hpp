@@ -22,6 +22,8 @@ class Descriptor : public RHIDescriptor
 
 	virtual RHIDescriptor &BindConstant(const std::string &name, const void *constant) override;
 
+	virtual RHIDescriptor &BindAccelerationStructure(const std::string &name, RHIAccelerationStructure *acceleration_structure) override;
+
 	std::vector<uint8_t> &GetParamData();
 
   private:

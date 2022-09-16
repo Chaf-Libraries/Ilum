@@ -57,6 +57,11 @@ RHIContext::~RHIContext()
 	m_cuda_device.reset();
 }
 
+bool RHIContext::IsFeatureSupport(RHIFeature feature) const
+{
+	return m_device->IsFeatureSupport(feature);
+}
+
 void RHIContext::WaitIdle() const
 {
 	m_device->WaitIdle();

@@ -31,10 +31,10 @@ class RHIBuffer
 
 	const BufferDesc &GetDesc() const;
 
-	virtual void CopyToDevice(void *data, size_t size, size_t offset = 0) = 0;
+	virtual void CopyToDevice(const void *data, size_t size, size_t offset = 0) = 0;
 
 	template <typename T>
-	void CopyToDevice(T *data, size_t offset = 0)
+	void CopyToDevice(const T *data, size_t offset = 0)
 	{
 		CopyToDevice(data, sizeof(T), offset);
 	}

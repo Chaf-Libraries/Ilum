@@ -9,7 +9,8 @@ RenderPassDesc TrianglePass::CreateDesc()
 	desc
 	    .SetName("TrianglePass")
 	    .SetBindPoint(BindPoint::Rasterization)
-	    .Write("Output", RenderResourceDesc::Type::Texture, RHIResourceState::UnorderedAccess);
+	    .Write("Output", RenderResourceDesc::Type::Texture, RHIResourceState::UnorderedAccess)
+	    .SetConfig(Config());
 
 	return desc;
 }
@@ -35,16 +36,23 @@ RenderGraph::RenderTask TrianglePass::Create(const RenderPassDesc &desc, RenderG
 	pipeline_state->SetBlendState(bend_state);
 
 	RasterizationState rasterization_state;
-	rasterization_state.cull_mode = RHICullMode::None;
+	rasterization_state.front_face = RHIFrontFace::Clockwise;
 	pipeline_state->SetRasterizationState(rasterization_state);
 
+	float factor = 1.f;
+
 	return [=](RenderGraph &render_graph, RHICommand *cmd_buffer, rttr::variant &config) {
+		Config config_ = config.convert<Config>();
+
 		render_target->Clear()
 		    .Set(0, render_graph.GetTexture(desc.resources.at("Output").handle), RHITextureDimension::Texture2D, ColorAttachment{});
 		cmd_buffer->BindDescriptor(descriptor.get());
 		cmd_buffer->SetViewport(static_cast<float>(render_target->GetWidth()), static_cast<float>(render_target->GetHeight()));
 		cmd_buffer->SetScissor(render_target->GetWidth(), render_target->GetHeight());
 		cmd_buffer->BeginRenderPass(render_target.get());
+		descriptor->SetConstant("a", config_.a);
+		config_.a *= 0.99f;
+		config = config_;
 		cmd_buffer->BindPipelineState(pipeline_state.get());
 		cmd_buffer->Draw(3, 1);
 		cmd_buffer->EndRenderPass();

@@ -76,6 +76,14 @@ void Command::DrawIndexed(uint32_t index_count, uint32_t instance_count, uint32_
 {
 }
 
+void Command::DrawMeshTask(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, uint32_t block_x, uint32_t block_y, uint32_t block_z)
+{
+}
+
+void Command::TraceRay(uint32_t width, uint32_t height, uint32_t depth)
+{
+}
+
 void Command::CopyBufferToTexture(RHIBuffer *src_buffer, RHITexture *dst_texture, uint32_t mip_level, uint32_t base_layer, uint32_t layer_count)
 {
 }

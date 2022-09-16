@@ -36,8 +36,7 @@ struct AccelerationStructureResolve
 
 struct ConstantResolve
 {
-	const void        *data   = nullptr;
-	size_t             size   = 0;
+	std::vector<uint8_t> data;
 	size_t             offset = 0;
 	VkShaderStageFlags stage;
 };
@@ -62,10 +61,13 @@ class Descriptor : public RHIDescriptor
 
 	virtual RHIDescriptor &BindConstant(const std::string &name, const void *constant) override;
 
+	virtual RHIDescriptor &BindAccelerationStructure(const std::string &name, RHIAccelerationStructure *acceleration_structure) override;
+
 	const std::unordered_map<uint32_t, VkDescriptorSet> &GetDescriptorSet();
 
 	const std::unordered_map<uint32_t, VkDescriptorSetLayout> &GetDescriptorSetLayout();
 
+	const std::map<std::string, ConstantResolve> &GetConstantResolve() const;
 
   private:
 	VkDescriptorSetLayout CreateDescriptorSetLayout(const ShaderMeta &meta);

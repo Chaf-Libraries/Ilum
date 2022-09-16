@@ -78,7 +78,7 @@ RHIDescriptor &Descriptor::BindBuffer(const std::string &name, RHIBuffer *buffer
 	size_t stride        = static_cast<Buffer *>(buffer)->GetDesc().stride;
 	void  *buffer_handle = static_cast<Buffer *>(buffer)->GetHandle();
 	std::memcpy(m_param_data.data() + offset, &buffer_handle, sizeof(buffer_handle));
-	if (m_resource_type[name] == (size_t)DescriptorType::StructuredBuffer)
+	if (m_resource_type[name] == (size_t) DescriptorType::StructuredBuffer)
 	{
 		std::memcpy(m_param_data.data() + offset + sizeof(buffer_handle), &stride, sizeof(stride));
 	}
@@ -96,6 +96,11 @@ RHIDescriptor &Descriptor::BindBuffer(const std::string &name, const std::vector
 }
 
 RHIDescriptor &Descriptor::BindConstant(const std::string &name, const void *constant)
+{
+	return *this;
+}
+
+RHIDescriptor &Descriptor::BindAccelerationStructure(const std::string &name, RHIAccelerationStructure *acceleration_structure)
 {
 	return *this;
 }

@@ -9,6 +9,13 @@ struct PSInput
     float3 Color : COLOR0;
 };
 
+[[vk::push_constant]]
+struct
+{
+    float a;
+    float b;
+} push_constants;
+
 static float2 positions[3] =
 {
     float2(0.0, -0.5),
@@ -33,7 +40,7 @@ VSOutput VSmain(uint VertexIndex : SV_VertexID)
 
 float4 PSmain(PSInput input) : SV_TARGET
 {
-    return float4(input.Color, 1.f);
+    return float4(input.Color+push_constants.b, push_constants.a);
     //return 1.f;
 }
 

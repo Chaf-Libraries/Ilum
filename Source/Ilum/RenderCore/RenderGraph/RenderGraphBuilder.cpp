@@ -35,18 +35,18 @@ bool RenderGraphBuilder::Validate(RenderGraphDesc &desc)
 					return false;
 				}
 			}
+		}
 
-			for (auto iter = desc.passes.begin(); iter != desc.passes.end();)
+		for (auto iter = desc.passes.begin(); iter != desc.passes.end();)
+		{
+			if (used_pass.find(iter->first) == used_pass.end())
 			{
-				if (used_pass.find(iter->first) == used_pass.end())
-				{
-					LOG_WARN("Pass <{}> is not used, culling it", iter->second.name);
-					iter = desc.passes.erase(iter);
-				}
-				else
-				{
-					iter++;
-				}
+				LOG_WARN("Pass <{}> is not used, culling it", iter->second.name);
+				iter = desc.passes.erase(iter);
+			}
+			else
+			{
+				iter++;
 			}
 		}
 	}

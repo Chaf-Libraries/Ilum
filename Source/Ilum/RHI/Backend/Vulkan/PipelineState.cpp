@@ -12,9 +12,52 @@ namespace Ilum::Vulkan
 class ShaderBindingTableInfo
 {
   public:
-	ShaderBindingTableInfo(Device *device):
+	ShaderBindingTableInfo(Device *device, uint32_t handle_count) :
 	    p_device(device)
 	{
+		VkPhysicalDeviceRayTracingPipelinePropertiesKHR raytracing_pipeline_properties = {};
+		raytracing_pipeline_properties.sType                                           = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+		VkPhysicalDeviceProperties2 deviceProperties2                                  = {};
+		deviceProperties2.sType                                                        = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+		deviceProperties2.pNext                                                        = &raytracing_pipeline_properties;
+		vkGetPhysicalDeviceProperties2(p_device->GetPhysicalDevice(), &deviceProperties2);
+
+		uint32_t handle_size_aligned = (raytracing_pipeline_properties.shaderGroupHandleSize + raytracing_pipeline_properties.shaderGroupHandleAlignment - 1) &
+		                               ~(raytracing_pipeline_properties.shaderGroupHandleAlignment - 1);
+
+		VkBufferCreateInfo buffer_info = {};
+		buffer_info.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+		buffer_info.usage              = VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
+		buffer_info.size               = static_cast<size_t>(handle_count) * raytracing_pipeline_properties.shaderGroupHandleSize;
+
+		VmaAllocationCreateInfo memory_info{};
+		memory_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT;
+		memory_info.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+
+		VmaAllocationInfo allocation_info{};
+		vmaCreateBuffer(p_device->GetAllocator(),
+		                &buffer_info, &memory_info,
+		                &m_buffer, &m_allocation,
+		                &allocation_info);
+
+		m_memory = allocation_info.deviceMemory;
+
+		VkBufferDeviceAddressInfoKHR buffer_device_address_info{};
+		buffer_device_address_info.sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+		buffer_device_address_info.buffer = m_buffer;
+		m_handle.deviceAddress            = vkGetBufferDeviceAddress(p_device->GetDevice(), &buffer_device_address_info);
+		m_handle.stride                   = handle_size_aligned;
+		m_handle.size                     = handle_count * handle_size_aligned;
+
+		m_mapped_data = static_cast<uint8_t *>(allocation_info.pMappedData);
+	}
+
+	~ShaderBindingTableInfo()
+	{
+		if (m_buffer && m_allocation)
+		{
+			vmaDestroyBuffer(p_device->GetAllocator(), m_buffer, m_allocation);
+		}
 	}
 
 	uint8_t *GetData()
@@ -168,14 +211,45 @@ VkPipelineLayout PipelineState::CreatePipelineLayout(Descriptor *descriptor)
 	size_t hash = 0;
 	HashCombine(hash, descriptor->GetShaderMeta().hash, GetHash());
 
-	std::vector<VkPushConstantRange> push_constants;
+	// Push constant merge range
+	std::unordered_map<size_t, VkPushConstantRange> push_constant_range_map;
 	for (auto &constant : descriptor->GetShaderMeta().constants)
 	{
-		VkPushConstantRange push_constant_range = {};
-		push_constant_range.stageFlags          = ToVulkanShaderStages(constant.stage);
-		push_constant_range.size                = constant.size;
-		push_constant_range.offset              = constant.offset;
-		push_constants.push_back(push_constant_range);
+		size_t hash = Hash(constant.size, constant.offset);
+		if (push_constant_range_map.find(hash) != push_constant_range_map.end())
+		{
+			push_constant_range_map[hash].stageFlags |= ToVulkanShaderStages(constant.stage);
+		}
+		else
+		{
+			VkPushConstantRange push_constant_range = {};
+			push_constant_range.stageFlags          = ToVulkanShaderStages(constant.stage);
+			push_constant_range.size                = constant.size;
+			push_constant_range.offset              = constant.offset;
+			push_constant_range_map.emplace(hash, push_constant_range);
+		}
+	}
+
+	// Push constant merge stage
+	std::unordered_map<VkShaderStageFlags, VkPushConstantRange> push_constant_map;
+	for (auto &[hash, constant] : push_constant_range_map)
+	{
+		if (push_constant_map.find(constant.stageFlags) == push_constant_map.end())
+		{
+			push_constant_map[constant.stageFlags] = constant;
+		}
+		else
+		{
+			push_constant_map[constant.stageFlags].offset = std::min(push_constant_map[constant.stageFlags].offset, constant.offset);
+			push_constant_map[constant.stageFlags].size += constant.size;
+		}
+	}
+
+	std::vector<VkPushConstantRange> push_constants;
+	push_constants.reserve(push_constant_map.size());
+	for (auto &[hash, constant] : push_constant_map)
+	{
+		push_constants.push_back(std::move(constant));
 	}
 
 	std::vector<VkDescriptorSetLayout> descriptor_set_layouts;
@@ -400,7 +474,7 @@ VkPipeline PipelineState::CreateComputePipeline(Descriptor *descriptor)
 	VkPipelineShaderStageCreateInfo shader_stage_create_info = {};
 	for (const auto &[stage, shader] : m_shaders)
 	{
-		if (stage == RHIShaderStage::Compute)
+		if (stage & RHIShaderStage::Compute)
 		{
 			shader_stage_create_info.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			shader_stage_create_info.stage  = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -449,7 +523,7 @@ VkPipeline PipelineState::CreateRayTracingPipeline(Descriptor *descriptor)
 	{
 		for (const auto &[stage, shader] : m_shaders)
 		{
-			if (stage == RHIShaderStage::RayGen)
+			if (stage & RHIShaderStage::RayGen)
 			{
 				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
 				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -476,7 +550,7 @@ VkPipeline PipelineState::CreateRayTracingPipeline(Descriptor *descriptor)
 	{
 		for (const auto &[stage, shader] : m_shaders)
 		{
-			if (stage == RHIShaderStage::Miss)
+			if (stage & RHIShaderStage::Miss)
 			{
 				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
 				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -503,7 +577,7 @@ VkPipeline PipelineState::CreateRayTracingPipeline(Descriptor *descriptor)
 	{
 		for (const auto &[stage, shader] : m_shaders)
 		{
-			if (stage == RHIShaderStage::ClosestHit)
+			if (stage & RHIShaderStage::ClosestHit)
 			{
 				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
 				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -530,7 +604,7 @@ VkPipeline PipelineState::CreateRayTracingPipeline(Descriptor *descriptor)
 	{
 		for (const auto &[stage, shader] : m_shaders)
 		{
-			if (stage == RHIShaderStage::AnyHit)
+			if (stage & RHIShaderStage::AnyHit)
 			{
 				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
 				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -557,7 +631,7 @@ VkPipeline PipelineState::CreateRayTracingPipeline(Descriptor *descriptor)
 	{
 		for (const auto &[stage, shader] : m_shaders)
 		{
-			if (stage == RHIShaderStage::Intersection)
+			if (stage & RHIShaderStage::Intersection)
 			{
 				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
 				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -584,7 +658,7 @@ VkPipeline PipelineState::CreateRayTracingPipeline(Descriptor *descriptor)
 	{
 		for (const auto &[stage, shader] : m_shaders)
 		{
-			if (stage == RHIShaderStage::Callable)
+			if (stage & RHIShaderStage::Callable)
 			{
 				VkPipelineShaderStageCreateInfo pipeline_shader_stage_create_info = {};
 				pipeline_shader_stage_create_info.sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -619,6 +693,72 @@ VkPipeline PipelineState::CreateRayTracingPipeline(Descriptor *descriptor)
 	vkCreateRayTracingPipelinesKHR(static_cast<Device *>(p_device)->GetDevice(), VK_NULL_HANDLE, PipelineCache, 1, &raytracing_pipeline_create_info, nullptr, &pipeline);
 
 	Pipelines.emplace(hash, pipeline);
+
+	// Create shader binding table
+	/*
+	    SBT Layout:
+
+	        /-----------\
+	        | raygen    |
+	        |-----------|
+	        | miss        |
+	        |-----------|
+	        | hit           |
+	        |-----------|
+	        | callable   |
+	        \-----------/
+
+	*/
+
+	auto sbt = std::make_unique<ShaderBindingTableInfos>();
+
+	VkPhysicalDeviceRayTracingPipelinePropertiesKHR raytracing_properties = {};
+	raytracing_properties.sType                                           = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+	VkPhysicalDeviceProperties2 deviceProperties2                         = {};
+	deviceProperties2.sType                                               = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+	deviceProperties2.pNext                                               = &raytracing_properties;
+	vkGetPhysicalDeviceProperties2(static_cast<Device *>(p_device)->GetPhysicalDevice(), &deviceProperties2);
+
+	const uint32_t handle_size         = raytracing_properties.shaderGroupHandleSize;
+	const uint32_t handle_size_aligned = (raytracing_properties.shaderGroupHandleSize + raytracing_properties.shaderGroupHandleAlignment - 1) & ~(raytracing_properties.shaderGroupHandleAlignment - 1);
+	const uint32_t group_count         = static_cast<uint32_t>(shader_group_create_infos.size());
+	const uint32_t sbt_size            = group_count * handle_size_aligned;
+
+	std::vector<uint8_t> shader_handle_storage(sbt_size);
+
+	vkGetRayTracingShaderGroupHandlesKHR(static_cast<Device *>(p_device)->GetDevice(), pipeline, 0, group_count, sbt_size, shader_handle_storage.data());
+
+	uint32_t handle_offset = 0;
+
+	// Gen Group
+	{
+		sbt->raygen = std::make_unique<ShaderBindingTableInfo>(static_cast<Device *>(p_device), raygen_count);
+		std::memcpy(sbt->raygen->GetData(), shader_handle_storage.data() + handle_offset, handle_size * raygen_count);
+		handle_offset += raygen_count * handle_size_aligned;
+	}
+
+	// Miss Group
+	{
+		sbt->miss = std::make_unique<ShaderBindingTableInfo>(static_cast<Device *>(p_device), raymiss_count);
+		std::memcpy(sbt->miss->GetData(), shader_handle_storage.data() + handle_offset, handle_size * raymiss_count);
+		handle_offset += raymiss_count * handle_size_aligned;
+	}
+
+	// Hit Group
+	{
+		sbt->hit = std::make_unique<ShaderBindingTableInfo>(static_cast<Device *>(p_device), rayhit_count);
+		std::memcpy(sbt->hit->GetData(), shader_handle_storage.data() + handle_offset, handle_size * rayhit_count);
+		handle_offset += rayhit_count * handle_size_aligned;
+	}
+
+	// Callable Group
+	{
+		sbt->callable = std::make_unique<ShaderBindingTableInfo>(static_cast<Device *>(p_device), callable_count);
+		std::memcpy(sbt->callable->GetData(), shader_handle_storage.data() + handle_offset, handle_size * callable_count);
+		handle_offset += callable_count * handle_size_aligned;
+	}
+
+	ShaderBindingTables.emplace(pipeline, std::move(sbt));
 
 	return pipeline;
 }

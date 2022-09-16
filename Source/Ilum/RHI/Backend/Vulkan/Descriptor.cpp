@@ -92,13 +92,19 @@ Descriptor::Descriptor(RHIDevice *device, const ShaderMeta &meta) :
 
 	for (auto &constant : m_meta.constants)
 	{
-		m_constant_resolves.emplace(
-		    constant.name,
-		    ConstantResolve{
-		        nullptr,
-		        constant.size,
-		        constant.offset,
-		        ToVulkanShaderStages(constant.stage)});
+		if (m_constant_resolves.find(constant.name) != m_constant_resolves.end())
+		{
+			m_constant_resolves[constant.name].stage |= ToVulkanShaderStages(constant.stage);
+		}
+		else
+		{
+			m_constant_resolves.emplace(
+			    constant.name,
+			    ConstantResolve{
+			        std::vector<uint8_t>(constant.size),
+			        constant.offset,
+			        ToVulkanShaderStages(constant.stage)});
+		}
 	}
 
 	for (auto &[set, meta] : set_meta)
@@ -252,7 +258,7 @@ RHIDescriptor &Descriptor::BindBuffer(const std::string &name, RHIBuffer *buffer
 
 RHIDescriptor &Descriptor::BindBuffer(const std::string &name, RHIBuffer *buffer, size_t offset, size_t range)
 {
-	size_t hash = 0;
+	size_t   hash          = 0;
 	VkBuffer buffer_handle = static_cast<Buffer *>(buffer)->GetHandle();
 	HashCombine(hash, buffer_handle, offset, range);
 
@@ -301,7 +307,12 @@ RHIDescriptor &Descriptor::BindBuffer(const std::string &name, const std::vector
 
 RHIDescriptor &Descriptor::BindConstant(const std::string &name, const void *constant)
 {
-	m_constant_resolves[name].data = constant;
+	std::memcpy(m_constant_resolves[name].data.data(), constant, m_constant_resolves[name].data.size());
+	return *this;
+}
+
+RHIDescriptor &Descriptor::BindAccelerationStructure(const std::string &name, RHIAccelerationStructure *acceleration_structure)
+{
 	return *this;
 }
 
@@ -426,6 +437,11 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 const std::unordered_map<uint32_t, VkDescriptorSetLayout> &Descriptor::GetDescriptorSetLayout()
 {
 	return m_descriptor_set_layouts;
+}
+
+const std::map<std::string, ConstantResolve> &Descriptor::GetConstantResolve() const
+{
+	return m_constant_resolves;
 }
 
 VkDescriptorSetLayout Descriptor::CreateDescriptorSetLayout(const ShaderMeta &meta)

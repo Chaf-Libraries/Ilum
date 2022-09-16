@@ -11,10 +11,22 @@
 
 namespace Ilum
 {
+struct InstanceData
+{
+	glm::mat4 transform;
+
+	glm::vec3 aabb_min;
+	uint32_t  material;
+
+	glm::vec3 aabb_max;
+	uint32_t  instance_id;
+};
+
 Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resource_manager) :
     p_rhi_context(rhi_context), p_scene(scene), p_resource_manager(resource_manager)
 {
-	m_tlas = p_rhi_context->CreateAcccelerationStructure();
+	m_view_buffer = p_rhi_context->CreateBuffer<ViewInfo>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
+	m_tlas        = p_rhi_context->CreateAcccelerationStructure();
 
 	// Create dummy texture
 	{
@@ -71,37 +83,10 @@ void Renderer::Tick()
 {
 	m_present_texture = nullptr;
 
-	if (m_update_tlas)
+	if (m_update_scene)
 	{
-		// Update TLAS
-		TLASDesc desc = {};
-		desc.instances.reserve(p_scene->Size());
-		desc.name = p_scene->GetName();
-		p_scene->GroupExecute<StaticMeshComponent, TransformComponent>([&](entt::entity entity, StaticMeshComponent &static_mesh, TransformComponent &transform) {
-			auto *meta = p_resource_manager->GetModel(static_mesh.uuid);
-			if (meta)
-			{
-				for (auto& blas : meta->blas)
-				{
-					TLASDesc::InstanceInfo instance_info = {};
-					instance_info.transform              = transform.world_transform;
-					instance_info.material_id            = 0;
-					instance_info.blas                   = blas.get();
-					desc.instances.emplace_back(std::move(instance_info));
-				}
-			}
-		});
-
-		if (!desc.instances.empty())
-		{
-			auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Compute);
-			cmd_buffer->Begin();
-			m_tlas->Update(cmd_buffer, desc);
-			cmd_buffer->End();
-			p_rhi_context->GetQueue(RHIQueueFamily::Compute)->Submit({cmd_buffer});
-		}
-
-		m_update_tlas = false;
+		UpdateScene();
+		m_update_scene = false;
 	}
 
 	if (m_render_graph)
@@ -112,6 +97,7 @@ void Renderer::Tick()
 
 void Renderer::SetRenderGraph(std::unique_ptr<RenderGraph> &&render_graph)
 {
+	p_rhi_context->WaitIdle();
 	m_render_graph    = std::move(render_graph);
 	m_present_texture = nullptr;
 }
@@ -151,6 +137,16 @@ RHITexture *Renderer::GetPresentTexture() const
 	return m_present_texture ? m_present_texture : m_dummy_textures.at(DummyTexture::BlackOpaque).get();
 }
 
+void Renderer::SetViewInfo(const ViewInfo &view_info)
+{
+	m_view_buffer->CopyToDevice(&view_info);
+}
+
+RHIBuffer *Renderer::GetViewBuffer() const
+{
+	return m_view_buffer.get();
+}
+
 Scene *Renderer::GetScene() const
 {
 	return p_scene;
@@ -169,12 +165,21 @@ RHITexture *Renderer::GetDummyTexture(DummyTexture dummy) const
 
 void Renderer::UpdateGPUScene()
 {
-	m_update_tlas = true;
+	m_update_scene = true;
 }
 
 RHIAccelerationStructure *Renderer::GetTLAS() const
 {
 	return m_tlas.get();
+}
+
+void Renderer::DrawScene(RHICommand *cmd_buffer, RHIPipelineState *pipeline_state, RHIDescriptor *descriptor, bool mesh_shader)
+{
+}
+
+const StaticBatch &Renderer::GetStaticBatch() const
+{
+	return m_static_batch;
 }
 
 RHIShader *Renderer::RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, const std::vector<std::string> &macros, RHIBackend backend)
@@ -267,6 +272,88 @@ RHIShader *Renderer::RequireShader(const std::string &filename, const std::strin
 ShaderMeta Renderer::RequireShaderMeta(RHIShader *shader) const
 {
 	return m_shader_meta_cache.at(shader);
+}
+
+void Renderer::UpdateScene()
+{
+	m_static_batch.static_vertex_buffers.clear();
+	m_static_batch.static_index_buffers.clear();
+	m_static_batch.meshlet_vertex_buffers.clear();
+	m_static_batch.meshlet_index_buffers.clear();
+	m_static_batch.meshlet_buffers.clear();
+
+	std::vector<InstanceData> instances;
+	instances.reserve(p_scene->Size());
+
+	std::unordered_map<const ModelMeta *, uint32_t> model_index;
+
+	uint32_t current_model = 0;
+	for (auto &meta : p_resource_manager->GetModelMeta())
+	{
+		if (!meta->vertex_buffer ||
+		    !meta->index_buffer ||
+		    !meta->meshlet_vertex_buffer ||
+		    !meta->meshlet_index_buffer ||
+		    !meta->per_meshlet_buffer)
+		{
+			continue;
+		}
+		m_static_batch.static_vertex_buffers.push_back(meta->vertex_buffer.get());
+		m_static_batch.static_index_buffers.push_back(meta->index_buffer.get());
+		m_static_batch.meshlet_vertex_buffers.push_back(meta->meshlet_vertex_buffer.get());
+		m_static_batch.meshlet_index_buffers.push_back(meta->meshlet_index_buffer.get());
+		m_static_batch.meshlet_buffers.push_back(meta->per_meshlet_buffer.get());
+		model_index[meta.get()] = current_model++;
+	}
+
+	// Update TLAS
+	TLASDesc desc = {};
+	desc.instances.reserve(p_scene->Size());
+	desc.name = p_scene->GetName();
+	p_scene->GroupExecute<StaticMeshComponent, TransformComponent>([&](entt::entity entity, StaticMeshComponent &static_mesh, TransformComponent &transform) {
+		auto *meta = p_resource_manager->GetModel(static_mesh.uuid);
+		if (meta)
+		{
+			for (uint32_t i = 0; i < meta->submeshes.size(); i++)
+			{
+				TLASDesc::InstanceInfo instance_info = {};
+				instance_info.transform              = transform.world_transform * meta->submeshes[i].pre_transform;
+				instance_info.material_id            = 0;
+				instance_info.blas                   = meta->blas[i].get();
+				desc.instances.emplace_back(std::move(instance_info));
+
+				InstanceData instance_data = {};
+
+				AABB aabb = meta->submeshes[i].aabb.Transform(instance_info.transform);
+
+				instance_data.aabb_max    = aabb.max;
+				instance_data.aabb_min    = aabb.min;
+				instance_data.instance_id = model_index[meta];
+				instance_data.transform   = instance_info.transform;
+				instance_data.material    = 0;
+				instances.emplace_back(std::move(instance_data));
+			}
+		}
+	});
+
+	if (!desc.instances.empty())
+	{
+		{
+			if (!m_static_batch.instance_buffer || m_static_batch.instance_buffer->GetDesc().size != instances.size() * sizeof(InstanceData))
+			{
+				m_static_batch.instance_buffer = p_rhi_context->CreateBuffer<InstanceData>(instances.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+			}
+			m_static_batch.instance_buffer->CopyToDevice(instances.data(), instances.size() * sizeof(InstanceData), 0);
+		}
+
+		{
+			auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Compute);
+			cmd_buffer->Begin();
+			m_tlas->Update(cmd_buffer, desc);
+			cmd_buffer->End();
+			p_rhi_context->GetQueue(RHIQueueFamily::Compute)->Submit({cmd_buffer});
+		}
+	}
 }
 
 }        // namespace Ilum

@@ -212,11 +212,15 @@ void Command::BindDescriptor(RHIDescriptor *descriptor)
 void Command::BindPipelineState(RHIPipelineState *pipeline_state)
 {
 	ASSERT(p_descriptor != nullptr);
-	PipelineState *pso = static_cast<PipelineState *>(pipeline_state);
-	vkCmdBindPipeline(m_handle, pso->GetPipelineBindPoint(), pso->GetPipeline(p_descriptor, p_render_target));
+	p_pipeline_state = static_cast<PipelineState *>(pipeline_state);
+	vkCmdBindPipeline(m_handle, p_pipeline_state->GetPipelineBindPoint(), p_pipeline_state->GetPipeline(p_descriptor, p_render_target));
 	for (auto &[set, descriptor_set] : p_descriptor->GetDescriptorSet())
 	{
-		vkCmdBindDescriptorSets(m_handle, pso->GetPipelineBindPoint(), pso->GetPipelineLayout(p_descriptor), set, 1, &descriptor_set, 0, nullptr);
+		vkCmdBindDescriptorSets(m_handle, p_pipeline_state->GetPipelineBindPoint(), p_pipeline_state->GetPipelineLayout(p_descriptor), set, 1, &descriptor_set, 0, nullptr);
+	}
+	for (auto &[name, constant] : static_cast<Descriptor *>(p_descriptor)->GetConstantResolve())
+	{
+		vkCmdPushConstants(m_handle, p_pipeline_state->GetPipelineLayout(p_descriptor), constant.stage, constant.offset, static_cast<uint32_t>(constant.data.size()), constant.data.data());
 	}
 }
 
@@ -246,6 +250,20 @@ void Command::Draw(uint32_t vertex_count, uint32_t instance_count, uint32_t firs
 void Command::DrawIndexed(uint32_t index_count, uint32_t instance_count, uint32_t first_index, uint32_t vertex_offset, uint32_t first_instance)
 {
 	vkCmdDrawIndexed(m_handle, index_count, instance_count, first_index, vertex_offset, first_instance);
+}
+
+void Command::DrawMeshTask(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, uint32_t block_x, uint32_t block_y, uint32_t block_z)
+{
+	vkCmdDrawMeshTasksEXT(m_handle, (thread_x + block_x - 1) / block_x, (thread_y + block_y - 1) / block_y, (thread_z + block_z - 1) / block_z);
+}
+
+void Command::TraceRay(uint32_t width, uint32_t height, uint32_t depth)
+{
+	auto sbt = p_pipeline_state->GetShaderBindingTable(p_pipeline_state->GetPipeline(p_descriptor, p_render_target));
+	vkCmdTraceRaysKHR(
+	    m_handle,
+	    sbt.raygen, sbt.miss, sbt.hit, sbt.callable,
+	    width, height, depth);
 }
 
 void Command::CopyBufferToTexture(RHIBuffer *src_buffer, RHITexture *dst_texture, uint32_t mip_level, uint32_t base_layer, uint32_t layer_count)

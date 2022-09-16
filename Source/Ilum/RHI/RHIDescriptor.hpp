@@ -1,5 +1,6 @@
 #pragma once
 
+#include "RHIAccelerationStructure.hpp"
 #include "RHIBuffer.hpp"
 #include "RHISampler.hpp"
 #include "RHIShader.hpp"
@@ -21,8 +22,7 @@ class RHIDescriptor
 
 	const ShaderMeta &GetShaderMeta() const;
 
-	[[constructor(true)]]
-	static std::unique_ptr<RHIDescriptor> Create(RHIDevice *device, const ShaderMeta &meta);
+	[[constructor(true)]] static std::unique_ptr<RHIDescriptor> Create(RHIDevice *device, const ShaderMeta &meta);
 
 	virtual RHIDescriptor &BindTexture(const std::string &name, RHITexture *texture, RHITextureDimension dimension)                       = 0;
 	virtual RHIDescriptor &BindTexture(const std::string &name, RHITexture *texture, const TextureRange &range)                           = 0;
@@ -37,7 +37,14 @@ class RHIDescriptor
 
 	virtual RHIDescriptor &BindConstant(const std::string &name, const void *constant) = 0;
 
-	// RHIDescriptor &BindAccelerationStructure();
+	template<typename T>
+	RHIDescriptor& SetConstant(const std::string& name, const T& constant)
+	{
+		return BindConstant(name, &constant);
+	}
+
+	virtual RHIDescriptor &BindAccelerationStructure(const std::string &name, RHIAccelerationStructure* acceleration_structure) = 0;
+
   protected:
 	RHIDevice       *p_device = nullptr;
 	const ShaderMeta m_meta;

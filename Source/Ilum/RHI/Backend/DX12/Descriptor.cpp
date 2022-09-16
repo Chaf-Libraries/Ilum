@@ -51,4 +51,10 @@ RHIDescriptor &Descriptor::BindConstant(const std::string &name, const void *con
 {
 	return *this;
 }
+
+RHIDescriptor &Descriptor::BindAccelerationStructure(const std::string &name, RHIAccelerationStructure *acceleration_structure)
+{
+	return *this;
+}
+
 }        // namespace Ilum::DX12

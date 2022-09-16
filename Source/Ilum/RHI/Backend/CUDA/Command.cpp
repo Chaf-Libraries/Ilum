@@ -69,25 +69,30 @@ void Command::Dispatch(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, 
 	ASSERT(p_descriptor != nullptr && p_pipeline_state != nullptr);
 
 	m_calls.emplace_back([=]() {
-		auto *shader     = p_pipeline_state->GetShader(RHIShaderStage::Compute);
-		auto &param_data = static_cast<Descriptor *>(p_descriptor)->GetParamData();
-		if (shader)
+		for (auto &[stage, shader] : p_pipeline_state->GetShaders())
 		{
-			auto *cuda_kernal     = static_cast<const Shader *>(shader);
-			auto  kernal_function = cuda_kernal->GetFunction();
-			auto  global_param    = cuda_kernal->GetGlobalParam();
+			if (stage & RHIShaderStage::Compute)
+			{
+				auto &param_data = static_cast<Descriptor *>(p_descriptor)->GetParamData();
+				if (shader)
+				{
+					auto *cuda_kernal     = static_cast<const Shader *>(shader);
+					auto  kernal_function = cuda_kernal->GetFunction();
+					auto  global_param    = cuda_kernal->GetGlobalParam();
 
-			cuMemcpyHtoD(global_param, param_data.data(), param_data.size());
+					cuMemcpyHtoD(global_param, param_data.data(), param_data.size());
 
-			cuLaunchKernel(
-			    kernal_function,
-			    (thread_x + block_x - 1) / block_x,
-			    (thread_y + block_y - 1) / block_y,
-			    (thread_z + block_z - 1) / block_z,
-			    block_x, block_y, block_z, 0,
-			    nullptr, nullptr, nullptr);
+					cuLaunchKernel(
+					    kernal_function,
+					    (thread_x + block_x - 1) / block_x,
+					    (thread_y + block_y - 1) / block_y,
+					    (thread_z + block_z - 1) / block_z,
+					    block_x, block_y, block_z, 0,
+					    nullptr, nullptr, nullptr);
 
-			cuMemcpyDtoH(param_data.data(), global_param, param_data.size());
+					cuMemcpyDtoH(param_data.data(), global_param, param_data.size());
+				}
+			}
 		}
 	});
 }
@@ -97,6 +102,14 @@ void Command::Draw(uint32_t vertex_count, uint32_t instance_count, uint32_t firs
 }
 
 void Command::DrawIndexed(uint32_t index_count, uint32_t instance_count, uint32_t first_index, uint32_t vertex_offset, uint32_t first_instance)
+{
+}
+
+void Command::DrawMeshTask(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, uint32_t block_x, uint32_t block_y, uint32_t block_z)
+{
+}
+
+void Command::TraceRay(uint32_t width, uint32_t height, uint32_t depth)
 {
 }
 

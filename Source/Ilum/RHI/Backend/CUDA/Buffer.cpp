@@ -24,7 +24,7 @@ Buffer::~Buffer()
 	cudaFree(m_handle);
 }
 
-void Buffer::CopyToDevice(void *data, size_t size, size_t offset)
+void Buffer::CopyToDevice(const void *data, size_t size, size_t offset)
 {
 	cudaMemcpy(m_handle, data, size, cudaMemcpyHostToDevice);
 }

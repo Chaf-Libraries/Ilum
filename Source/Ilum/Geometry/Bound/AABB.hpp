@@ -25,7 +25,7 @@ struct AABB
 
 	void Merge(const AABB &aabb);
 
-	AABB Transform(const glm::mat4 &transform);
+	AABB Transform(const glm::mat4 &transform) const;
 
 	const glm::vec3 Center() const;
 

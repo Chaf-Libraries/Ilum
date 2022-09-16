@@ -1,8 +1,8 @@
 #pragma once
 
+#include <RHI/RHIAccelerationStructure.hpp>
 #include <RHI/RHIBuffer.hpp>
 #include <RHI/RHITexture.hpp>
-#include <RHI/RHIAccelerationStructure.hpp>
 
 #include <Geometry/Bound/AABB.hpp>
 #include <Geometry/Vertex.hpp>
@@ -29,15 +29,15 @@ struct Meshlet
 
 		std::array<float, 3> cone_axis;
 		float                cone_cutoff;
-		alignas(16) std::array<float, 3> cone_apex;
 	} bound;
 
 	uint32_t indices_offset;
 	uint32_t indices_count;
 	uint32_t vertices_offset;        // Global offset
 	uint32_t vertices_count;
-	uint32_t meshlet_vertices_offset;        // Meshlet offset
-	uint32_t meshlet_indices_offset;         // Meshlet offset
+
+	alignas(16) uint32_t meshlet_vertices_offset;        // Meshlet offset
+	uint32_t meshlet_indices_offset;                     // Meshlet offset
 };
 
 struct Submesh
@@ -91,11 +91,11 @@ struct [[serialization(false), reflection(false)]] ModelMeta : ResourceMeta<Reso
 
 	AABB aabb;
 
-	std::unique_ptr<RHIBuffer> vertex_buffer = nullptr;
-	std::unique_ptr<RHIBuffer> index_buffer  = nullptr;
-	std::unique_ptr<RHIBuffer> meshlet_vertex_buffer  = nullptr;
-	std::unique_ptr<RHIBuffer> meshlet_index_buffer  = nullptr;
-	std::unique_ptr<RHIBuffer> per_meshlet_buffer   = nullptr;
+	std::unique_ptr<RHIBuffer>                             vertex_buffer         = nullptr;
+	std::unique_ptr<RHIBuffer>                             index_buffer          = nullptr;
+	std::unique_ptr<RHIBuffer>                             meshlet_vertex_buffer = nullptr;
+	std::unique_ptr<RHIBuffer>                             meshlet_index_buffer  = nullptr;
+	std::unique_ptr<RHIBuffer>                             per_meshlet_buffer    = nullptr;
 	std::vector<std::unique_ptr<RHIAccelerationStructure>> blas;
 };
 

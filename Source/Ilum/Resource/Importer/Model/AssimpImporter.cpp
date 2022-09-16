@@ -135,7 +135,6 @@ ModelImportInfo AssimpImporter::ImportImpl(const std::string &filename)
 		std::vector<uint32_t> meshlet_offsets;
 		std::vector<uint32_t> meshlet_counts;
 
-		uint32_t meshlet_indices_offset  = 0;
 		uint32_t meshlet_vertices_offset = 0;
 		uint32_t meshlet_triangle_offset = 0;
 
@@ -197,13 +196,11 @@ ModelImportInfo AssimpImporter::ImportImpl(const std::string &filename)
 				Meshlet tmp_meshlet = {};
 				tmp_meshlet.vertices_offset          = static_cast<uint32_t>(info.vertices.size());
 				tmp_meshlet.vertices_count           = meshlet.vertex_count;
-				tmp_meshlet.indices_offset           = meshlet_indices_offset;
+				tmp_meshlet.indices_offset           = static_cast<uint32_t>(info.indices.size());
 				tmp_meshlet.indices_count            = meshlet.triangle_count * 3;
 
 				tmp_meshlet.meshlet_vertices_offset = meshlet_vertices_offset + meshlet.vertex_offset;
 				tmp_meshlet.meshlet_indices_offset  = meshlet_triangle_offset + meshlet.triangle_offset;
-
-				meshlet_indices_offset += tmp_meshlet.indices_count;
 
 				for (uint32_t j = 0; j < meshlet.triangle_count * 3; j++)
 				{

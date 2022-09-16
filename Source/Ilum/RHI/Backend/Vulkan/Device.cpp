@@ -37,7 +37,7 @@ static const std::vector<const char *> DeviceExtensions = {
     VK_KHR_RAY_QUERY_EXTENSION_NAME,
     VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
     VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-    VK_NV_MESH_SHADER_EXTENSION_NAME,
+    VK_EXT_MESH_SHADER_EXTENSION_NAME,
     VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME,
     VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME};
 
@@ -595,7 +595,7 @@ void Device::CreateLogicalDevice()
 		m_feature_support[RHIFeature::MeshShading] = false;
 		for (auto &extension : m_supported_device_extensions)
 		{
-			if (strcmp(VK_NV_MESH_SHADER_EXTENSION_NAME, extension) == 0)
+			if (strcmp(VK_EXT_MESH_SHADER_EXTENSION_NAME, extension) == 0)
 			{
 				m_feature_support[RHIFeature::MeshShading] = true;
 				break;
@@ -633,7 +633,7 @@ void Device::CreateLogicalDevice()
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_feature = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
 	VkPhysicalDeviceRayTracingPipelineFeaturesKHR    ray_tracing_pipeline_feature   = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
 	VkPhysicalDeviceRayQueryFeaturesKHR              ray_query_features             = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR};
-	VkPhysicalDeviceMeshShaderFeaturesNV             mesh_shader_feature            = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV};
+	VkPhysicalDeviceMeshShaderFeaturesEXT             mesh_shader_feature            = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT};
 
 	void  *feature_ptr_head = nullptr;
 	void **feature_ptr_tail = nullptr;
