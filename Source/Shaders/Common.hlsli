@@ -38,10 +38,10 @@ struct InstanceData
     float4x4 pre_transform;
 
     float3 aabb_min;
-    uint meshlet_offset;
+    uint material_id;
 
     float3 aabb_max;
-    uint meshlet_count;
+    uint instance_id;
 };
 
 struct Meshlet

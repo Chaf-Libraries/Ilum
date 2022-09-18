@@ -314,13 +314,14 @@ void Device::CreateInstance()
 	{
 		std::string sdk_version_str = std::to_string(VK_VERSION_MAJOR(sdk_version)) + "." + std::to_string(VK_VERSION_MINOR(sdk_version)) + "." + std::to_string(VK_VERSION_PATCH(sdk_version));
 		std::string api_version_str = std::to_string(VK_VERSION_MAJOR(api_version)) + "." + std::to_string(VK_VERSION_MINOR(api_version)) + "." + std::to_string(VK_VERSION_PATCH(api_version));
+		LOG_INFO("SDK Version {} is higher than API Version {}, upgrade your VulkanSDK!", sdk_version_str, api_version_str);
 	}
 
 	app_info.pApplicationName   = "IlumEngine";
 	app_info.pEngineName        = "IlumEngine";
 	app_info.engineVersion      = VK_MAKE_VERSION(0, 0, 1);
 	app_info.applicationVersion = VK_MAKE_VERSION(0, 0, 1);
-	app_info.apiVersion         = std::min(sdk_version, api_version);
+	app_info.apiVersion         = std::max(sdk_version, api_version);
 
 	// Check out extensions support
 	m_supported_instance_extensions = GetInstanceExtensionSupported(InstanceExtensions);

@@ -17,7 +17,7 @@ RenderPassDesc VisibilityBufferPass::CreateDesc()
 	    .SetBindPoint(BindPoint::Rasterization)
 	    .SetConfig(Config())
 	    .Write("VisibilityBuffer", RenderResourceDesc::Type::Texture, RHIResourceState::RenderTarget)
-	    .Write("DepthBuffer", RenderResourceDesc::Type::Texture, RHIResourceState::RenderTarget);
+	    .Write("DepthBuffer", RenderResourceDesc::Type::Texture, RHIResourceState::DepthWrite);
 
 	return desc;
 }
@@ -74,8 +74,7 @@ RenderGraph::RenderTask VisibilityBufferPass::Create(const RenderPassDesc &desc,
 		    .BindBuffer("MeshletBuffer", batch.meshlet_buffers)
 		    .BindBuffer("InstanceBuffer", batch.instance_buffer.get());
 		cmd_buffer->BindPipelineState(pipeline_state.get());
-
-		cmd_buffer->Draw(3, 1);
+		cmd_buffer->DrawMeshTask(batch.max_meshlet_count, batch.instance_count, 1, 32, 32, 1);
 		cmd_buffer->EndRenderPass();
 	};
 }

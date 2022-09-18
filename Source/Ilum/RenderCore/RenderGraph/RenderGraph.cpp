@@ -43,6 +43,8 @@ RenderGraph::~RenderGraph()
 	p_rhi_context->GetQueue(RHIQueueFamily::Compute)->Execute();
 	p_rhi_context->GetQueue(RHIQueueFamily::Graphics)->Wait();
 	p_rhi_context->GetQueue(RHIQueueFamily::Compute)->Wait();
+
+	p_rhi_context->WaitIdle();
 }
 
 RHITexture *RenderGraph::GetTexture(RGHandle handle)
@@ -108,9 +110,8 @@ RenderGraph &RenderGraph::AddInitializeBarrier(BarrierTask &&barrier)
 
 RenderGraph &RenderGraph::RegisterTexture(const TextureCreateInfo &create_info)
 {
-	TextureDesc desc = create_info.desc;
-	desc.usage       = RHITextureUsage::ShaderResource | RHITextureUsage::Transfer | RHITextureUsage::UnorderedAccess | RHITextureUsage::RenderTarget;
-	auto &texture    = m_textures.emplace_back(p_rhi_context->CreateTexture(desc));
+	TextureDesc desc    = create_info.desc;
+	auto       &texture = m_textures.emplace_back(p_rhi_context->CreateTexture(desc));
 	m_texture_lookup.emplace(create_info.handle, texture.get());
 
 	return *this;
@@ -133,7 +134,7 @@ RenderGraph &RenderGraph::RegisterTexture(const std::vector<TextureCreateInfo> &
 	pool_desc.layers      = 0;
 	pool_desc.samples     = 0;
 	pool_desc.format      = (RHIFormat) 0;
-	pool_desc.usage       = RHITextureUsage::ShaderResource | RHITextureUsage::Transfer | RHITextureUsage::UnorderedAccess | RHITextureUsage::RenderTarget;
+	pool_desc.usage       = (RHITextureUsage) 0;
 
 	// Memory alias
 	for (auto &info : create_infos)

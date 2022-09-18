@@ -27,12 +27,15 @@ struct ViewInfo
 
 struct [[serialization(false), reflection(false)]] StaticBatch
 {
-	std::vector<RHIBuffer *>     static_vertex_buffers;
-	std::vector<RHIBuffer *>     static_index_buffers;
-	std::vector<RHIBuffer *>     meshlet_vertex_buffers;
-	std::vector<RHIBuffer *>     meshlet_index_buffers;
-	std::vector<RHIBuffer *>     meshlet_buffers;
+	std::vector<RHIBuffer *>   static_vertex_buffers;
+	std::vector<RHIBuffer *>   static_index_buffers;
+	std::vector<RHIBuffer *>   meshlet_vertex_buffers;
+	std::vector<RHIBuffer *>   meshlet_index_buffers;
+	std::vector<RHIBuffer *>   meshlet_buffers;
 	std::unique_ptr<RHIBuffer> instance_buffer;
+
+	uint32_t instance_count;
+	uint32_t max_meshlet_count;
 };
 
 class Renderer

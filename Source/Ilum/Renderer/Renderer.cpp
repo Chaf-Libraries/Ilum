@@ -281,6 +281,8 @@ void Renderer::UpdateScene()
 	m_static_batch.meshlet_vertex_buffers.clear();
 	m_static_batch.meshlet_index_buffers.clear();
 	m_static_batch.meshlet_buffers.clear();
+	m_static_batch.instance_count = 0;
+	m_static_batch.max_meshlet_count = 0;
 
 	std::vector<InstanceData> instances;
 	instances.reserve(p_scene->Size());
@@ -332,6 +334,8 @@ void Renderer::UpdateScene()
 				instance_data.transform   = instance_info.transform;
 				instance_data.material    = 0;
 				instances.emplace_back(std::move(instance_data));
+				m_static_batch.instance_count++;
+				m_static_batch.max_meshlet_count = std::max(m_static_batch.max_meshlet_count, meta->submeshes[i].meshlet_count);
 			}
 		}
 	});

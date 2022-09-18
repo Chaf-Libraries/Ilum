@@ -257,6 +257,10 @@ void Command::DrawMeshTask(uint32_t thread_x, uint32_t thread_y, uint32_t thread
 	vkCmdDrawMeshTasksEXT(m_handle, (thread_x + block_x - 1) / block_x, (thread_y + block_y - 1) / block_y, (thread_z + block_z - 1) / block_z);
 }
 
+void Command::DrawMeshTask(uint32_t task_count, uint32_t task_offset)
+{
+}
+
 void Command::TraceRay(uint32_t width, uint32_t height, uint32_t depth)
 {
 	auto sbt = p_pipeline_state->GetShaderBindingTable(p_pipeline_state->GetPipeline(p_descriptor, p_render_target));

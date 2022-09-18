@@ -172,6 +172,21 @@ inline RHITextureDimension GetTextureDimension(uint32_t width, uint32_t height, 
 	 }
 }
 
+// Buffer
+enum class RHIBufferUsage
+{
+	Undefined             = 0,
+	Vertex                = 1,
+	Index                 = 1 << 1,
+	Indirect              = 1 << 2,
+	Transfer              = 1 << 3,
+	AccelerationStructure = 1 << 4,
+	ShaderResource        = 1 << 5,
+	UnorderedAccess       = 1 << 6,
+	ConstantBuffer        = 1 << 7
+};
+DEFINE_ENUMCLASS_OPERATION(RHIBufferUsage);
+
 enum class RHITextureUsage
 {
 	Undefined       = 0,
@@ -201,21 +216,54 @@ enum class RHIResourceState
 	Present
 };
 
-// Buffer
-enum class RHIBufferUsage
+inline RHITextureUsage ResourceStateToTextureUsage(RHIResourceState state)
 {
-	Undefined             = 0,
-	Vertex                = 1,
-	Index                 = 1 << 1,
-	Indirect              = 1 << 2,
-	Transfer              = 1 << 3,
-	AccelerationStructure = 1 << 4,
-	ShaderResource        = 1 << 5,
-	UnorderedAccess       = 1 << 6,
-	ConstantBuffer        = 1 << 7
-};
+	switch (state)
+	{
+		case RHIResourceState::TransferSource:
+		case RHIResourceState::TransferDest:
+			return RHITextureUsage::Transfer;
+		case RHIResourceState::ShaderResource:
+			return RHITextureUsage::ShaderResource;
+		case RHIResourceState::UnorderedAccess:
+			return RHITextureUsage::UnorderedAccess;
+		case RHIResourceState::RenderTarget:
+		case RHIResourceState::DepthWrite:
+			return RHITextureUsage::RenderTarget;
+		case RHIResourceState::DepthRead:
+			return RHITextureUsage::ShaderResource;
+		default:
+			break;
+	}
 
-DEFINE_ENUMCLASS_OPERATION(RHIBufferUsage);
+	return RHITextureUsage::Undefined;
+}
+
+inline RHIBufferUsage ResourceStateToBufferUsage(RHIResourceState state)
+{
+	switch (state)
+	{
+		case RHIResourceState::VertexBuffer:
+			return RHIBufferUsage::Vertex;
+		case RHIResourceState::ConstantBuffer:
+			return RHIBufferUsage::ConstantBuffer;
+		case RHIResourceState::IndexBuffer:
+			return RHIBufferUsage::Index;
+		case RHIResourceState::IndirectBuffer:
+		case RHIResourceState::TransferSource:
+		case RHIResourceState::TransferDest:
+			return RHIBufferUsage::Transfer;
+		case RHIResourceState::ShaderResource:
+			return RHIBufferUsage::ShaderResource;
+		case RHIResourceState::UnorderedAccess:
+			return RHIBufferUsage::UnorderedAccess;
+		case RHIResourceState::AccelerationStructure:
+			return RHIBufferUsage::AccelerationStructure;
+		default:
+			break;
+	}
+	return RHIBufferUsage::Undefined;
+}
 
 // Sampler
 enum class RHIFilter

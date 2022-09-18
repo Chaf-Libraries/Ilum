@@ -50,6 +50,15 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 						resource_lifetime[resource.handle][pass_idx] = resource.state;
 						pass_resource_state[resource.handle]         = std::make_pair(last_resource_state[resource.handle], resource.state);
 						last_resource_state[resource.handle]         = resource.state;
+
+						if (desc.textures.find(resource.handle) != desc.textures.end())
+						{
+							desc.textures[resource.handle].usage |= ResourceStateToTextureUsage(resource.state);
+						}
+						else if (desc.buffers.find(resource.handle) != desc.buffers.end())
+						{
+							desc.buffers[resource.handle].usage |= ResourceStateToBufferUsage(resource.state);
+						}
 					}
 				}
 				resource_states.push_back(pass_resource_state);

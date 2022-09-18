@@ -164,6 +164,11 @@ RHIDescriptor &Descriptor::BindTexture(const std::string &name, RHITexture *text
 
 RHIDescriptor &Descriptor::BindTexture(const std::string &name, RHITexture *texture, const TextureRange &range)
 {
+	if (m_binding_hash.find(name) == m_binding_hash.end())
+	{
+		return *this;
+	}
+
 	size_t hash = 0;
 	HashCombine(hash, texture, range.dimension, range.base_mip, range.mip_count, range.base_layer, range.layer_count);
 
@@ -182,6 +187,11 @@ RHIDescriptor &Descriptor::BindTexture(const std::string &name, RHITexture *text
 
 RHIDescriptor &Descriptor::BindTexture(const std::string &name, const std::vector<RHITexture *> &textures, RHITextureDimension dimension)
 {
+	if (m_binding_hash.find(name) == m_binding_hash.end())
+	{
+		return *this;
+	}
+
 	size_t hash = 0;
 	HashCombine(hash, textures, dimension);
 
@@ -213,6 +223,11 @@ RHIDescriptor &Descriptor::BindTexture(const std::string &name, const std::vecto
 
 RHIDescriptor &Descriptor::BindSampler(const std::string &name, RHISampler *sampler)
 {
+	if (m_binding_hash.find(name) == m_binding_hash.end())
+	{
+		return *this;
+	}
+
 	size_t hash = 0;
 	HashCombine(hash, sampler);
 
@@ -230,6 +245,11 @@ RHIDescriptor &Descriptor::BindSampler(const std::string &name, RHISampler *samp
 
 RHIDescriptor &Descriptor::BindSampler(const std::string &name, const std::vector<RHISampler *> &samplers)
 {
+	if (m_binding_hash.find(name) == m_binding_hash.end())
+	{
+		return *this;
+	}
+
 	size_t hash = 0;
 	HashCombine(hash, samplers);
 
@@ -253,11 +273,26 @@ RHIDescriptor &Descriptor::BindSampler(const std::string &name, const std::vecto
 
 RHIDescriptor &Descriptor::BindBuffer(const std::string &name, RHIBuffer *buffer)
 {
-	return BindBuffer(name, buffer, 0, buffer->GetDesc().size);
+	if (m_binding_hash.find(name) == m_binding_hash.end())
+	{
+		return *this;
+	}
+
+	if (buffer)
+	{
+		return BindBuffer(name, buffer, 0, buffer->GetDesc().size);
+	}
+
+	return *this;
 }
 
 RHIDescriptor &Descriptor::BindBuffer(const std::string &name, RHIBuffer *buffer, size_t offset, size_t range)
 {
+	if (m_binding_hash.find(name) == m_binding_hash.end())
+	{
+		return *this;
+	}
+
 	size_t   hash          = 0;
 	VkBuffer buffer_handle = static_cast<Buffer *>(buffer)->GetHandle();
 	HashCombine(hash, buffer_handle, offset, range);
@@ -278,6 +313,11 @@ RHIDescriptor &Descriptor::BindBuffer(const std::string &name, RHIBuffer *buffer
 
 RHIDescriptor &Descriptor::BindBuffer(const std::string &name, const std::vector<RHIBuffer *> &buffers)
 {
+	if (m_binding_hash.find(name) == m_binding_hash.end())
+	{
+		return *this;
+	}
+
 	size_t hash = 0;
 	HashCombine(hash, buffers);
 
