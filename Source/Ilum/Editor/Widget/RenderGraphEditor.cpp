@@ -626,6 +626,14 @@ void RenderGraphEditor::Tick()
 			ImGui::EndMenu();
 		}
 
+		if (ImGui::MenuItem("Clear"))
+		{
+			m_desc.buffers.clear();
+			m_desc.textures.clear();
+			m_desc.passes.clear();
+			m_need_compile = true;
+		}
+
 		if (m_need_compile && ImGui::MenuItem("Compile"))
 		{
 			RenderGraphBuilder builder(p_editor->GetRHIContext());
@@ -646,6 +654,10 @@ void RenderGraphEditor::Tick()
 
 		if (!m_need_compile && !m_desc.passes.empty() && ImGui::MenuItem("Reload"))
 		{
+			p_editor->GetRHIContext()->GetQueue(RHIQueueFamily::Graphics)->Execute();
+			p_editor->GetRHIContext()->GetQueue(RHIQueueFamily::Compute)->Execute();
+			p_editor->GetRHIContext()->WaitIdle();
+
 			RenderGraphBuilder builder(p_editor->GetRHIContext());
 
 			auto *renderer = p_editor->GetRenderer();

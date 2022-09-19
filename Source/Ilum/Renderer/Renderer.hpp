@@ -18,11 +18,11 @@ enum class DummyTexture
 
 struct ViewInfo
 {
-	alignas(16) glm::vec3 position;
 	glm::mat4 view_matrix;
 	glm::mat4 projection_matrix;
 	glm::mat4 view_projection_matrix;
-	alignas(16) glm::vec2 viewport;
+	glm::vec3 position;
+	uint32_t  frame_count;
 };
 
 struct [[serialization(false), reflection(false)]] StaticBatch
@@ -30,12 +30,11 @@ struct [[serialization(false), reflection(false)]] StaticBatch
 	std::vector<RHIBuffer *>   static_vertex_buffers;
 	std::vector<RHIBuffer *>   static_index_buffers;
 	std::vector<RHIBuffer *>   meshlet_vertex_buffers;
-	std::vector<RHIBuffer *>   meshlet_index_buffers;
+	std::vector<RHIBuffer *>   meshlet_primitive_buffers;
 	std::vector<RHIBuffer *>   meshlet_buffers;
 	std::unique_ptr<RHIBuffer> instance_buffer;
 
-	uint32_t instance_count;
-	uint32_t max_meshlet_count;
+	std::vector<uint32_t> meshlet_count;
 };
 
 class Renderer

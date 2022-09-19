@@ -128,11 +128,6 @@ Descriptor::Descriptor(RHIDevice *device, const ShaderMeta &meta) :
 
 Descriptor ::~Descriptor()
 {
-	for (auto &[set, descriptor_set] : m_descriptor_sets)
-	{
-		vkFreeDescriptorSets(static_cast<Device *>(p_device)->GetDevice(), DescriptorPool, 1, &descriptor_set);
-	}
-
 	m_descriptor_set_layouts.clear();
 	m_descriptor_sets.clear();
 
@@ -150,6 +145,7 @@ Descriptor ::~Descriptor()
 		DescriptorSetLayouts.clear();
 	}
 }
+
 RHIDescriptor &Descriptor::BindTexture(const std::string &name, RHITexture *texture, RHITextureDimension dimension)
 {
 	TextureRange range = {};
@@ -496,7 +492,7 @@ VkDescriptorSetLayout Descriptor::CreateDescriptorSetLayout(const ShaderMeta &me
 		VkDescriptorSetLayoutBinding layout_binding = {};
 		layout_binding.binding                      = descriptor.binding;
 		layout_binding.descriptorType               = DescriptorTypeMap[descriptor.type];
-		layout_binding.stageFlags                   = ToVulkanShaderStage[descriptor.stage];
+		layout_binding.stageFlags                   = ToVulkanShaderStages(descriptor.stage);
 		layout_binding.descriptorCount              = descriptor.array_size == 0 ? 1024 : descriptor.array_size;
 		descriptor_set_layout_bindings.push_back(layout_binding);
 		descriptor_binding_flags.push_back(binding_flags | (descriptor.array_size == 0 ? VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT : 0));

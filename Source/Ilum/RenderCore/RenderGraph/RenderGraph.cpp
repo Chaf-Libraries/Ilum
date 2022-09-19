@@ -134,7 +134,7 @@ RenderGraph &RenderGraph::RegisterTexture(const std::vector<TextureCreateInfo> &
 	pool_desc.layers      = 0;
 	pool_desc.samples     = 0;
 	pool_desc.format      = (RHIFormat) 0;
-	pool_desc.usage       = (RHITextureUsage) 0;
+	pool_desc.usage       = RHITextureUsage::Transfer | RHITextureUsage::ShaderResource;
 
 	// Memory alias
 	for (auto &info : create_infos)
@@ -146,7 +146,6 @@ RenderGraph &RenderGraph::RegisterTexture(const std::vector<TextureCreateInfo> &
 		pool_desc.layers  = std::max(pool_desc.layers, info.desc.layers);
 		pool_desc.samples = std::max(pool_desc.samples, info.desc.samples);
 		pool_desc.format  = (RHIFormat) std::max((uint64_t) pool_desc.format, (uint64_t) info.desc.format);
-		pool_desc.usage   = pool_desc.usage | info.desc.usage;
 	}
 
 	m_textures.emplace_back(p_rhi_context->CreateTexture(pool_desc));
@@ -155,7 +154,7 @@ RenderGraph &RenderGraph::RegisterTexture(const std::vector<TextureCreateInfo> &
 	for (auto &info : create_infos)
 	{
 		TextureDesc desc = info.desc;
-		desc.usage |= pool_desc.usage | RHITextureUsage::ShaderResource | RHITextureUsage::Transfer;
+		desc.usage |= RHITextureUsage::ShaderResource | RHITextureUsage::Transfer;
 		auto &texture = m_textures.emplace_back(pool_texture->Alias(desc));
 		m_texture_lookup.emplace(info.handle, texture.get());
 	}

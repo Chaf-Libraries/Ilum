@@ -332,6 +332,8 @@ class Input : public Singleton<Input>
 
 	glm::vec2 GetMousePosition();
 
+	void SetCursorPosition(const glm::vec2 &pos);
+
   private:
 	Window *m_window;
 };

@@ -29,6 +29,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE imnode)
 target_link_libraries(${TARGET_NAME} PRIVATE implot)
 target_link_libraries(${TARGET_NAME} PRIVATE nativefiledialog)
 target_link_libraries(${TARGET_NAME} PRIVATE entt)
+target_link_libraries(${TARGET_NAME} PRIVATE ImGuizmo)
 
 # target_link_libraries(${TARGET_NAME} PRIVATE stb)
 # target_link_libraries(${TARGET_NAME} PRIVATE glslang)

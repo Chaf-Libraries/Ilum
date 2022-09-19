@@ -279,10 +279,9 @@ void Renderer::UpdateScene()
 	m_static_batch.static_vertex_buffers.clear();
 	m_static_batch.static_index_buffers.clear();
 	m_static_batch.meshlet_vertex_buffers.clear();
-	m_static_batch.meshlet_index_buffers.clear();
+	m_static_batch.meshlet_primitive_buffers.clear();
 	m_static_batch.meshlet_buffers.clear();
-	m_static_batch.instance_count = 0;
-	m_static_batch.max_meshlet_count = 0;
+	m_static_batch.meshlet_count.clear();
 
 	std::vector<InstanceData> instances;
 	instances.reserve(p_scene->Size());
@@ -295,7 +294,7 @@ void Renderer::UpdateScene()
 		if (!meta->vertex_buffer ||
 		    !meta->index_buffer ||
 		    !meta->meshlet_vertex_buffer ||
-		    !meta->meshlet_index_buffer ||
+		    !meta->meshlet_primitive_buffer ||
 		    !meta->per_meshlet_buffer)
 		{
 			continue;
@@ -303,7 +302,7 @@ void Renderer::UpdateScene()
 		m_static_batch.static_vertex_buffers.push_back(meta->vertex_buffer.get());
 		m_static_batch.static_index_buffers.push_back(meta->index_buffer.get());
 		m_static_batch.meshlet_vertex_buffers.push_back(meta->meshlet_vertex_buffer.get());
-		m_static_batch.meshlet_index_buffers.push_back(meta->meshlet_index_buffer.get());
+		m_static_batch.meshlet_primitive_buffers.push_back(meta->meshlet_primitive_buffer.get());
 		m_static_batch.meshlet_buffers.push_back(meta->per_meshlet_buffer.get());
 		model_index[meta.get()] = current_model++;
 	}
@@ -334,8 +333,7 @@ void Renderer::UpdateScene()
 				instance_data.transform   = instance_info.transform;
 				instance_data.material    = 0;
 				instances.emplace_back(std::move(instance_data));
-				m_static_batch.instance_count++;
-				m_static_batch.max_meshlet_count = std::max(m_static_batch.max_meshlet_count, meta->submeshes[i].meshlet_count);
+				m_static_batch.meshlet_count .push_back(meta->submeshes[i].meshlet_count);
 			}
 		}
 	});
@@ -345,7 +343,7 @@ void Renderer::UpdateScene()
 		{
 			if (!m_static_batch.instance_buffer || m_static_batch.instance_buffer->GetDesc().size != instances.size() * sizeof(InstanceData))
 			{
-				m_static_batch.instance_buffer = p_rhi_context->CreateBuffer<InstanceData>(instances.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+				m_static_batch.instance_buffer = p_rhi_context->CreateBuffer<InstanceData>(instances.size() * sizeof(InstanceData), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
 			}
 			m_static_batch.instance_buffer->CopyToDevice(instances.data(), instances.size() * sizeof(InstanceData), 0);
 		}

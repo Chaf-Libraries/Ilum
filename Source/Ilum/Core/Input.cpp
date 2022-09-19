@@ -27,4 +27,9 @@ glm::vec2 Input::GetMousePosition()
 	glfwGetCursorPos(static_cast<GLFWwindow *>(m_window->GetHandle()), &xpos, &ypos);
 	return glm::vec2{float(xpos), float(ypos)};
 }
+
+void Input::SetCursorPosition(const glm::vec2 &pos)
+{
+	glfwSetCursorPos(static_cast<GLFWwindow *>(m_window->GetHandle()), static_cast<double>(pos.x), static_cast<double>(pos.y));
+}
 }        // namespace Ilum

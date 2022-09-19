@@ -12,7 +12,7 @@ namespace Ilum::Vulkan
 {
 enum class VulkanFeature
 {
-    DynamicRendering
+	DynamicRendering
 };
 
 inline static std::unordered_map<RHIFormat, VkFormat> ToVulkanFormat = {
@@ -252,33 +252,33 @@ inline static VkBufferUsageFlags ToVulkanBufferUsage(RHIBufferUsage usage)
 		vk_usage |= VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
 		            VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR;
 	}
-	 if (usage & RHIBufferUsage::Index)
+	if (usage & RHIBufferUsage::Index)
 	{
-		 vk_usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+		vk_usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
 	}
-	 if (usage & RHIBufferUsage::Vertex)
+	if (usage & RHIBufferUsage::Vertex)
 	{
-		 vk_usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
+		vk_usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
 	}
-	 if (usage & RHIBufferUsage::Indirect)
+	if (usage & RHIBufferUsage::Indirect)
 	{
 		vk_usage |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 	}
-	 if (usage & RHIBufferUsage::Transfer)
+	if (usage & RHIBufferUsage::Transfer)
 	{
 		vk_usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
 		            VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 	}
-	 if (usage & RHIBufferUsage::ConstantBuffer)
+	if (usage & RHIBufferUsage::ConstantBuffer)
 	{
 		vk_usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 	}
-	 if (usage & RHIBufferUsage::UnorderedAccess)
+	if (usage & RHIBufferUsage::UnorderedAccess)
 	{
 		vk_usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
 		            VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT;
 	}
-	 if (usage & RHIBufferUsage::ShaderResource)
+	if (usage & RHIBufferUsage::ShaderResource)
 	{
 		vk_usage |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
 	}
@@ -290,55 +290,59 @@ inline static VkShaderStageFlags ToVulkanShaderStages(RHIShaderStage stage)
 {
 	VkShaderStageFlags flag = 0;
 
+	if (stage & RHIShaderStage::Compute)
+	{
+		flag |= VK_SHADER_STAGE_COMPUTE_BIT;
+	}
 	if (stage & RHIShaderStage::Vertex)
 	{
 		flag |= VK_SHADER_STAGE_VERTEX_BIT;
 	}
-	 if (stage & RHIShaderStage::Fragment)
+	if (stage & RHIShaderStage::Fragment)
 	{
 		flag |= VK_SHADER_STAGE_FRAGMENT_BIT;
 	}
-	 if (stage & RHIShaderStage::TessellationControl)
+	if (stage & RHIShaderStage::TessellationControl)
 	{
 		flag |= VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
 	}
-	 if (stage & RHIShaderStage::TessellationEvaluation)
+	if (stage & RHIShaderStage::TessellationEvaluation)
 	{
 		flag |= VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
 	}
-	 if (stage & RHIShaderStage::Geometry)
+	if (stage & RHIShaderStage::Geometry)
 	{
 		flag |= VK_SHADER_STAGE_GEOMETRY_BIT;
 	}
-	 if (stage & RHIShaderStage::RayGen)
+	if (stage & RHIShaderStage::RayGen)
 	{
 		flag |= VK_SHADER_STAGE_RAYGEN_BIT_KHR;
 	}
-	 if (stage & RHIShaderStage::AnyHit)
+	if (stage & RHIShaderStage::AnyHit)
 	{
 		flag |= VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
 	}
-	 if (stage & RHIShaderStage::ClosestHit)
+	if (stage & RHIShaderStage::ClosestHit)
 	{
 		flag |= VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
 	}
-	 if (stage & RHIShaderStage::Miss)
+	if (stage & RHIShaderStage::Miss)
 	{
 		flag |= VK_SHADER_STAGE_MISS_BIT_KHR;
 	}
-	 if (stage & RHIShaderStage::Intersection)
+	if (stage & RHIShaderStage::Intersection)
 	{
 		flag |= VK_SHADER_STAGE_INTERSECTION_BIT_KHR;
 	}
-	 if (stage & RHIShaderStage::Callable)
+	if (stage & RHIShaderStage::Callable)
 	{
 		flag |= VK_SHADER_STAGE_CALLABLE_BIT_KHR;
 	}
-	 if (stage & RHIShaderStage::Task)
+	if (stage & RHIShaderStage::Task)
 	{
 		flag |= VK_SHADER_STAGE_TASK_BIT_NV;
 	}
-	 if (stage & RHIShaderStage::Mesh)
+	if (stage & RHIShaderStage::Mesh)
 	{
 		flag |= VK_SHADER_STAGE_MESH_BIT_NV;
 	}

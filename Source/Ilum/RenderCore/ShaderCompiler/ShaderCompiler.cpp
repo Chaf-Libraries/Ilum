@@ -246,7 +246,7 @@ std::vector<uint8_t> CompileShader<ShaderSource::GLSL, ShaderTarget::SPIRV>(cons
 	shader.setEntryPoint(entry_point.c_str());
 	shader.setSourceEntryPoint(entry_point.c_str());
 	shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_5);
-	shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_2);
+	shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_3);
 	for (const auto &macro : macros)
 	{
 		shader.setPreamble(macro.c_str());
@@ -333,12 +333,13 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(cons
 	arguments.emplace_back(L"-I");
 	arguments.emplace_back(to_wstring(Path::GetInstance().GetCurrent() + "/Source/Shaders"));
 	arguments.emplace_back(L"-spirv");
-	arguments.emplace_back(L"-fspv-target-env=vulkan1.2");
+	arguments.emplace_back(L"-fspv-target-env=vulkan1.3");
 	arguments.emplace_back(L"-fspv-extension=SPV_KHR_ray_tracing");
 	arguments.emplace_back(L"-fspv-extension=SPV_KHR_shader_draw_parameters");
 	arguments.emplace_back(L"-fspv-extension=SPV_EXT_descriptor_indexing");
 	arguments.emplace_back(L"-fspv-extension=SPV_EXT_shader_viewport_index_layer");
 	arguments.emplace_back(L"-fspv-extension=SPV_NV_mesh_shader");
+
 	for (const auto &macro : macros)
 	{
 		arguments.emplace_back(to_wstring(std::string("-D") + macro));

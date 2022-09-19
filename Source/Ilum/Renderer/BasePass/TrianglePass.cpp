@@ -36,6 +36,7 @@ RenderGraph::RenderTask TrianglePass::Create(const RenderPassDesc &desc, RenderG
 	pipeline_state->SetBlendState(bend_state);
 
 	RasterizationState rasterization_state;
+	rasterization_state.cull_mode  = RHICullMode::None;
 	rasterization_state.front_face = RHIFrontFace::Clockwise;
 	pipeline_state->SetRasterizationState(rasterization_state);
 
@@ -50,11 +51,11 @@ RenderGraph::RenderTask TrianglePass::Create(const RenderPassDesc &desc, RenderG
 		cmd_buffer->SetViewport(static_cast<float>(render_target->GetWidth()), static_cast<float>(render_target->GetHeight()));
 		cmd_buffer->SetScissor(render_target->GetWidth(), render_target->GetHeight());
 		cmd_buffer->BeginRenderPass(render_target.get());
-		descriptor->SetConstant("a", config_.a);
-		config_.a *= 0.99f;
+		descriptor->SetConstant("a", config_.a).BindBuffer("View", renderer->GetViewBuffer());
+		config_.a += 0.99f;
 		config = config_;
 		cmd_buffer->BindPipelineState(pipeline_state.get());
-		cmd_buffer->Draw(3, 1);
+		cmd_buffer->Draw(36, 1);
 		cmd_buffer->EndRenderPass();
 	};
 }

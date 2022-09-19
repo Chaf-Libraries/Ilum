@@ -37,7 +37,7 @@ struct Meshlet
 	uint32_t vertices_count;
 
 	alignas(16) uint32_t meshlet_vertices_offset;        // Meshlet offset
-	uint32_t meshlet_indices_offset;                     // Meshlet offset
+	uint32_t meshlet_primitive_offset;                   // Meshlet offset
 };
 
 struct Submesh
@@ -94,7 +94,7 @@ struct [[serialization(false), reflection(false)]] ModelMeta : ResourceMeta<Reso
 	std::unique_ptr<RHIBuffer>                             vertex_buffer         = nullptr;
 	std::unique_ptr<RHIBuffer>                             index_buffer          = nullptr;
 	std::unique_ptr<RHIBuffer>                             meshlet_vertex_buffer = nullptr;
-	std::unique_ptr<RHIBuffer>                             meshlet_index_buffer  = nullptr;
+	std::unique_ptr<RHIBuffer>                             meshlet_primitive_buffer  = nullptr;
 	std::unique_ptr<RHIBuffer>                             per_meshlet_buffer    = nullptr;
 	std::vector<std::unique_ptr<RHIAccelerationStructure>> blas;
 };

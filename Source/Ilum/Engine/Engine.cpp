@@ -1,26 +1,28 @@
 #include "Engine.hpp"
 #include "System.hpp"
 
+#include <Core/Input.hpp>
 #include <Core/Path.hpp>
 #include <Core/Window.hpp>
 #include <Editor/Editor.hpp>
 #include <RHI/RHIContext.hpp>
 #include <Renderer/Renderer.hpp>
-#include <Scene/Scene.hpp>
 #include <Resource/ResourceManager.hpp>
+#include <Scene/Scene.hpp>
 
 namespace Ilum
 {
 Engine::Engine()
 {
-	m_window      = std::make_unique<Window>("Ilum", "Asset/Icon/logo.bmp");
-	m_rhi_context = std::make_unique<RHIContext>(m_window.get());
-	m_scene       = std::make_unique<Scene>("Default Scene");
+	m_window           = std::make_unique<Window>("Ilum", "Asset/Icon/logo.bmp");
+	m_rhi_context      = std::make_unique<RHIContext>(m_window.get());
+	m_scene            = std::make_unique<Scene>("Default Scene");
 	m_resource_manager = std::make_unique<ResourceManager>(m_rhi_context.get());
 	m_renderer         = std::make_unique<Renderer>(m_rhi_context.get(), m_scene.get(), m_resource_manager.get());
-	m_editor      = std::make_unique<Editor>(m_window.get(), m_rhi_context.get(), m_renderer.get());
+	m_editor           = std::make_unique<Editor>(m_window.get(), m_rhi_context.get(), m_renderer.get());
 
 	Path::GetInstance().SetCurrent("./");
+	Input::GetInstance().Bind(m_window.get());
 }
 
 Engine::~Engine()

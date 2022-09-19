@@ -37,7 +37,7 @@ static const std::vector<const char *> DeviceExtensions = {
     VK_KHR_RAY_QUERY_EXTENSION_NAME,
     VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
     VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-    VK_EXT_MESH_SHADER_EXTENSION_NAME,
+    VK_NV_MESH_SHADER_EXTENSION_NAME,
     VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME,
     VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME};
 
@@ -314,7 +314,7 @@ void Device::CreateInstance()
 	{
 		std::string sdk_version_str = std::to_string(VK_VERSION_MAJOR(sdk_version)) + "." + std::to_string(VK_VERSION_MINOR(sdk_version)) + "." + std::to_string(VK_VERSION_PATCH(sdk_version));
 		std::string api_version_str = std::to_string(VK_VERSION_MAJOR(api_version)) + "." + std::to_string(VK_VERSION_MINOR(api_version)) + "." + std::to_string(VK_VERSION_PATCH(api_version));
-		LOG_INFO("SDK Version {} is higher than API Version {}, upgrade your VulkanSDK!", sdk_version_str, api_version_str);
+		LOG_INFO("Driver support version {} is higher than API version {}, upgrade your VulkanSDK!", sdk_version_str, api_version_str);
 	}
 
 	app_info.pApplicationName   = "IlumEngine";
@@ -554,6 +554,7 @@ void Device::CreateLogicalDevice()
 	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, descriptorBindingUniformTexelBufferUpdateAfterBind);
 	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, descriptorBindingStorageTexelBufferUpdateAfterBind);
 	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, descriptorBindingPartiallyBound);
+	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, runtimeDescriptorArray);
 	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, timelineSemaphore);
 	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, bufferDeviceAddress);
 	ENABLE_DEVICE_FEATURE(physical_device_vulkan12_features, physical_device_vulkan12_features_enable, shaderOutputViewportIndex);
@@ -596,7 +597,7 @@ void Device::CreateLogicalDevice()
 		m_feature_support[RHIFeature::MeshShading] = false;
 		for (auto &extension : m_supported_device_extensions)
 		{
-			if (strcmp(VK_EXT_MESH_SHADER_EXTENSION_NAME, extension) == 0)
+			if (strcmp(VK_NV_MESH_SHADER_EXTENSION_NAME, extension) == 0)
 			{
 				m_feature_support[RHIFeature::MeshShading] = true;
 				break;
@@ -634,7 +635,7 @@ void Device::CreateLogicalDevice()
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_feature = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
 	VkPhysicalDeviceRayTracingPipelineFeaturesKHR    ray_tracing_pipeline_feature   = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
 	VkPhysicalDeviceRayQueryFeaturesKHR              ray_query_features             = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR};
-	VkPhysicalDeviceMeshShaderFeaturesEXT             mesh_shader_feature            = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT};
+	VkPhysicalDeviceMeshShaderFeaturesNV             mesh_shader_feature            = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_NV};
 
 	void  *feature_ptr_head = nullptr;
 	void **feature_ptr_tail = nullptr;
@@ -709,7 +710,7 @@ void Device::CreateLogicalDevice()
 	}
 }
 
-Device::Device():
+Device::Device() :
     RHIDevice(RHIBackend::Vulkan)
 {
 	LOG_INFO("Initializing RHI backend Vulkan...");

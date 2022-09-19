@@ -1,3 +1,7 @@
+#include "Common.hlsli"
+
+ConstantBuffer<ViewInfo> View : register(b0);
+
 struct VSOutput
 {
     float4 Pos : SV_POSITION;
@@ -16,11 +20,44 @@ struct
     float b;
 } push_constants;
 
-static float2 positions[3] =
+static float3 positions[] =
 {
-    float2(0.0, -0.5),
-    float2(0.5, 0.5),
-    float2(-0.5, 0.5)
+    float3(-0.5f, -0.5f, -0.5f),
+   float3(0.5f, -0.5f, -0.5f),
+   float3(0.5f, 0.5f, -0.5f),
+   float3(0.5f, 0.5f, -0.5f),
+   float3(-0.5f, 0.5f, -0.5f),
+   float3(-0.5f, -0.5f, -0.5f),
+   float3(-0.5f, -0.5f, 0.5f),
+   float3(0.5f, -0.5f, 0.5f),
+   float3(0.5f, 0.5f, 0.5f),
+   float3(0.5f, 0.5f, 0.5f),
+   float3(-0.5f, 0.5f, 0.5f),
+   float3(-0.5f, -0.5f, 0.5f),
+   float3(-0.5f, 0.5f, 0.5f),
+   float3(-0.5f, 0.5f, -0.5f),
+   float3(-0.5f, -0.5f, -0.5f),
+   float3(-0.5f, -0.5f, -0.5f),
+   float3(-0.5f, -0.5f, 0.5f),
+   float3(-0.5f, 0.5f, 0.5f),
+   float3(0.5f, 0.5f, 0.5f),
+   float3(0.5f, 0.5f, -0.5f),
+   float3(0.5f, -0.5f, -0.5f),
+   float3(0.5f, -0.5f, -0.5f),
+   float3(0.5f, -0.5f, 0.5f),
+   float3(0.5f, 0.5f, 0.5f),
+   float3(-0.5f, -0.5f, -0.5f),
+   float3(0.5f, -0.5f, -0.5f),
+   float3(0.5f, -0.5f, 0.5f),
+   float3(0.5f, -0.5f, 0.5f),
+   float3(-0.5f, -0.5f, 0.5f),
+   float3(-0.5f, -0.5f, -0.5f),
+   float3(-0.5f, 0.5f, -0.5f),
+   float3(0.5f, 0.5f, -0.5f),
+   float3(0.5f, 0.5f, 0.5f),
+   float3(0.5f, 0.5f, 0.5f),
+   float3(-0.5f, 0.5f, 0.5f),
+   float3(-0.5f, 0.5f, -0.5f)
 };
 
 static float3 colors[3] =
@@ -33,14 +70,15 @@ static float3 colors[3] =
 VSOutput VSmain(uint VertexIndex : SV_VertexID)
 {
     VSOutput output = (VSOutput) 0;
-    output.Pos = float4(positions[VertexIndex], 0.0, 1.0); 
-    output.Color = colors[VertexIndex];
+    output.Pos = mul(View.view_projection_matrix, float4(positions[VertexIndex] + float3(1, 10*sin(push_constants.a*0.01), 1), 1.0));
+    //output.Pos = float4(positions[VertexIndex], 0.0, 1.0);
+    output.Color = clamp(positions[VertexIndex], 0.f, 1.f);
     return output;
 }
 
 float4 PSmain(PSInput input) : SV_TARGET
 {
-    return float4(input.Color+push_constants.b, push_constants.a);
+    return float4(input.Color+push_constants.b, 1);
     //return 1.f;
 }
 

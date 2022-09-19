@@ -135,8 +135,8 @@ ModelImportInfo AssimpImporter::ImportImpl(const std::string &filename)
 		std::vector<uint32_t> meshlet_offsets;
 		std::vector<uint32_t> meshlet_counts;
 
-		uint32_t meshlet_vertices_offset = 0;
-		uint32_t meshlet_triangle_offset = 0;
+		uint32_t meshlet_vertices_offset  = 0;
+		uint32_t meshlet_primitive_offset = 0;
 
 		for (uint32_t i = 0; i < scene->mNumMeshes; i++)
 		{
@@ -186,40 +186,43 @@ ModelImportInfo AssimpImporter::ImportImpl(const std::string &filename)
 			meshlet_counts.push_back(static_cast<uint32_t>(meshlet_count));
 
 			// Process meshlets
-			std::vector<uint32_t> meshlet_indices;
-			meshlet_indices.reserve(meshlet_triangles.size());
+			std::vector<uint32_t> meshlet_primitives;
+			meshlet_primitives.reserve(meshlet_triangles.size() / 3);
 
 			std::vector<meshopt_Bounds> meshlet_bounds;
 
 			for (auto &meshlet : meshlets)
 			{
-				Meshlet tmp_meshlet = {};
-				tmp_meshlet.vertices_offset          = static_cast<uint32_t>(info.vertices.size());
-				tmp_meshlet.vertices_count           = meshlet.vertex_count;
-				tmp_meshlet.indices_offset           = static_cast<uint32_t>(info.indices.size());
-				tmp_meshlet.indices_count            = meshlet.triangle_count * 3;
+				Meshlet tmp_meshlet         = {};
+				tmp_meshlet.vertices_offset = static_cast<uint32_t>(info.vertices.size());
+				tmp_meshlet.vertices_count  = meshlet.vertex_count;
+				tmp_meshlet.indices_offset  = static_cast<uint32_t>(info.indices.size());
+				tmp_meshlet.indices_count   = meshlet.triangle_count * 3;
 
-				tmp_meshlet.meshlet_vertices_offset = meshlet_vertices_offset + meshlet.vertex_offset;
-				tmp_meshlet.meshlet_indices_offset  = meshlet_triangle_offset + meshlet.triangle_offset;
+				tmp_meshlet.meshlet_vertices_offset  = meshlet_vertices_offset + meshlet.vertex_offset;
+				tmp_meshlet.meshlet_primitive_offset = meshlet_primitive_offset + meshlet.triangle_offset / 3;
 
-				for (uint32_t j = 0; j < meshlet.triangle_count * 3; j++)
+				for (uint32_t j = 0; j < meshlet.triangle_count * 3; j += 3)
 				{
-					meshlet_indices.push_back(meshlet_vertices[meshlet.vertex_offset + meshlet_triangles[meshlet.triangle_offset + j]]);
+					uint8_t v0 = meshlet_vertices[meshlet.vertex_offset + meshlet_triangles[meshlet.triangle_offset + j]];
+					uint8_t v1 = meshlet_vertices[meshlet.vertex_offset + meshlet_triangles[meshlet.triangle_offset + j + 1]];
+					uint8_t v2 = meshlet_vertices[meshlet.vertex_offset + meshlet_triangles[meshlet.triangle_offset + j + 2]];
+					meshlet_primitives.push_back(PackTriangle(v0, v1, v2));
 				}
 
 				auto bound = meshopt_computeMeshletBounds(&meshlet_vertices[meshlet.vertex_offset], &meshlet_triangles[meshlet.triangle_offset],
-				                                                  meshlet.triangle_count, &vertices[0].position.x, vertices.size(), sizeof(Vertex));
+				                                          meshlet.triangle_count, &vertices[0].position.x, vertices.size(), sizeof(Vertex));
 				std::memcpy(&tmp_meshlet.bound, &bound, sizeof(tmp_meshlet.bound));
 				info.meshlets.emplace_back(std::move(tmp_meshlet));
 			}
 
 			meshlet_vertices_offset += static_cast<uint32_t>(meshlet_vertices.size());
-			meshlet_triangle_offset += static_cast<uint32_t>(meshlet_triangles.size());
+			meshlet_primitive_offset += static_cast<uint32_t>(meshlet_triangles.size()) / 3;
 
 			info.meshlet_vertices.insert(info.meshlet_vertices.end(), std::make_move_iterator(meshlet_vertices.begin()), std::make_move_iterator(meshlet_vertices.end()));
-			info.meshlet_indices.insert(info.meshlet_indices.end(), std::make_move_iterator(meshlet_triangles.begin()), std::make_move_iterator(meshlet_triangles.end()));
+			info.meshlet_primitives.insert(info.meshlet_primitives.end(), std::make_move_iterator(meshlet_primitives.begin()), std::make_move_iterator(meshlet_primitives.end()));
 			info.vertices.insert(info.vertices.end(), std::make_move_iterator(vertices.begin()), std::make_move_iterator(vertices.end()));
-			info.indices.insert(info.indices.end(), std::make_move_iterator(meshlet_indices.begin()), std::make_move_iterator(meshlet_indices.end()));
+			info.indices.insert(info.indices.end(), std::make_move_iterator(indices.begin()), std::make_move_iterator(indices.end()));
 		}
 
 		aiMatrix4x4 identity;

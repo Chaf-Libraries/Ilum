@@ -23,7 +23,7 @@ RHIContext::RHIContext(Window *window) :
 	LOG_INFO("RHI Backend: DX12");
 #endif        // RHI_BACKEND
 
-	m_swapchain = RHISwapchain::Create(m_device, p_window->GetNativeHandle(), p_window->GetWidth(), p_window->GetHeight(), false);
+	m_swapchain = RHISwapchain::Create(m_device, p_window->GetNativeHandle(), p_window->GetWidth(), p_window->GetHeight(), true);
 
 	m_graphics_queue = RHIQueue::Create(m_device, RHIQueueFamily::Graphics);
 	m_compute_queue  = RHIQueue::Create(m_device, RHIQueueFamily::Compute);

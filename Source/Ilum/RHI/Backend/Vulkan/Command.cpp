@@ -220,7 +220,7 @@ void Command::BindPipelineState(RHIPipelineState *pipeline_state)
 	}
 	for (auto &[name, constant] : static_cast<Descriptor *>(p_descriptor)->GetConstantResolve())
 	{
-		vkCmdPushConstants(m_handle, p_pipeline_state->GetPipelineLayout(p_descriptor), constant.stage, constant.offset, static_cast<uint32_t>(constant.data.size()), constant.data.data());
+		vkCmdPushConstants(m_handle, p_pipeline_state->GetPipelineLayout(p_descriptor), constant.stage, static_cast<uint32_t>(constant.offset), static_cast<uint32_t>(constant.data.size()), constant.data.data());
 	}
 }
 

@@ -254,13 +254,13 @@ void ResourceManager::ImportModel(const std::string &filename)
 	meta.vertex_buffer         = p_rhi_context->CreateBuffer<Vertex>(info.vertices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::Vertex | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
 	meta.index_buffer          = p_rhi_context->CreateBuffer<uint32_t>(info.indices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::Index | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
 	meta.meshlet_vertex_buffer = p_rhi_context->CreateBuffer<uint32_t>(info.meshlet_vertices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
-	meta.meshlet_index_buffer  = p_rhi_context->CreateBuffer<uint8_t>(info.meshlet_indices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
+	meta.meshlet_primitive_buffer  = p_rhi_context->CreateBuffer<uint32_t>(info.meshlet_primitives.size(), RHIBufferUsage::Transfer | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
 	meta.per_meshlet_buffer    = p_rhi_context->CreateBuffer<Meshlet>(info.meshlets.size(), RHIBufferUsage::Transfer | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
 
 	meta.vertex_buffer->CopyToDevice(info.vertices.data(), info.vertices.size() * sizeof(Vertex), 0);
 	meta.index_buffer->CopyToDevice(info.indices.data(), info.indices.size() * sizeof(uint32_t), 0);
 	meta.meshlet_vertex_buffer->CopyToDevice(info.meshlet_vertices.data(), info.meshlet_vertices.size() * sizeof(uint32_t), 0);
-	meta.meshlet_index_buffer->CopyToDevice(info.meshlet_indices.data(), info.meshlet_indices.size() * sizeof(uint8_t), 0);
+	meta.meshlet_primitive_buffer->CopyToDevice(info.meshlet_primitives.data(), info.meshlet_primitives.size() * sizeof(uint32_t), 0);
 	meta.per_meshlet_buffer->CopyToDevice(info.meshlets.data(), info.meshlets.size() * sizeof(Meshlet), 0);
 
 	// Build BLAS
@@ -366,7 +366,7 @@ const ModelMeta *ResourceManager::GetModel(const std::string &uuid)
 		auto &meta = m_models[m_model_index.at(uuid)];
 
 		// Load data
-		if (!meta->vertex_buffer || !meta->index_buffer || !meta->meshlet_vertex_buffer || !meta->meshlet_index_buffer || !meta->per_meshlet_buffer)
+		if (!meta->vertex_buffer || !meta->index_buffer || !meta->meshlet_vertex_buffer || !meta->meshlet_primitive_buffer || !meta->per_meshlet_buffer)
 		{
 			ResourceType    type = {};
 			ModelImportInfo info = {};
@@ -377,13 +377,13 @@ const ModelMeta *ResourceManager::GetModel(const std::string &uuid)
 			meta->vertex_buffer         = p_rhi_context->CreateBuffer<Vertex>(info.vertices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::Vertex | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
 			meta->index_buffer          = p_rhi_context->CreateBuffer<uint32_t>(info.indices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::Index | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
 			meta->meshlet_vertex_buffer = p_rhi_context->CreateBuffer<uint32_t>(info.meshlet_vertices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
-			meta->meshlet_index_buffer  = p_rhi_context->CreateBuffer<uint8_t>(info.meshlet_indices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
+			meta->meshlet_primitive_buffer  = p_rhi_context->CreateBuffer<uint32_t>(info.meshlet_primitives.size(), RHIBufferUsage::Transfer | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
 			meta->per_meshlet_buffer    = p_rhi_context->CreateBuffer<Meshlet>(info.meshlets.size(), RHIBufferUsage::Transfer | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
 
 			meta->vertex_buffer->CopyToDevice(info.vertices.data(), info.vertices.size() * sizeof(Vertex), 0);
 			meta->index_buffer->CopyToDevice(info.indices.data(), info.indices.size() * sizeof(uint32_t), 0);
 			meta->meshlet_vertex_buffer->CopyToDevice(info.meshlet_vertices.data(), info.meshlet_vertices.size() * sizeof(uint32_t), 0);
-			meta->meshlet_index_buffer->CopyToDevice(info.meshlet_indices.data(), info.meshlet_indices.size() * sizeof(uint8_t), 0);
+			meta->meshlet_primitive_buffer->CopyToDevice(info.meshlet_primitives.data(), info.meshlet_primitives.size() * sizeof(uint32_t), 0);
 			meta->per_meshlet_buffer->CopyToDevice(info.meshlets.data(), info.meshlets.size() * sizeof(Meshlet), 0);
 
 			// Build BLAS

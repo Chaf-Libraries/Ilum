@@ -18,7 +18,7 @@ struct ModelImportInfo
 
 	std::vector<Meshlet>  meshlets;
 	std::vector<uint32_t> meshlet_vertices;
-	std::vector<uint8_t>  meshlet_indices;
+	std::vector<uint32_t> meshlet_primitives;
 
 	AABB aabb;
 
@@ -29,7 +29,7 @@ struct ModelImportInfo
 	template <class Archive>
 	void serialize(Archive &ar)
 	{
-		ar(name, submeshes, vertices, indices, meshlets, meshlet_vertices, meshlet_indices, aabb, textures);
+		ar(name, submeshes, vertices, indices, meshlets, meshlet_vertices, meshlet_primitives, aabb, textures);
 	}
 };
 
@@ -39,6 +39,9 @@ class ModelImporter
 	virtual ModelImportInfo ImportImpl(const std::string &filename) = 0;
 
 	static ModelImportInfo Import(const std::string &filename);
+
+  protected:
+	uint32_t PackTriangle(uint8_t v0, uint8_t v1, uint8_t v2);
 };
 
 }        // namespace Ilum

@@ -597,7 +597,7 @@ static void ImGuiWindowCreate(ImGuiViewport *viewport)
 #endif        // _WIN32
 	    static_cast<uint32_t>(viewport->Size.x),
 	    static_cast<uint32_t>(viewport->Size.y),
-	    false);
+	    true);
 
 	window->viewport_data = std::make_unique<ViewportResources>();
 
