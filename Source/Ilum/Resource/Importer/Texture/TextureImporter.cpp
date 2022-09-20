@@ -1,6 +1,7 @@
 #pragma once
 
 #include "TextureImporter.hpp"
+#include "DDSImporter.hpp"
 #include "STBImporter.hpp"
 
 #include <Core/Path.hpp>
@@ -16,6 +17,10 @@ TextureImportInfo TextureImporter::Import(const std::string &filename)
 	if (extension == ".png" || extension == ".jpg" || extension == ".hdr" || extension == ".bmp")
 	{
 		return STBImporter::GetInstance().ImportImpl(filename);
+	}
+	else if (extension == ".dds")
+	{
+		return DDSImporter::GetInstance().ImportImpl(filename);
 	}
 
 	return {};

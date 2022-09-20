@@ -1,3 +1,86 @@
+//#include "Common.hlsli"
+//
+//ConstantBuffer<ViewInfo> View : register(b0);
+//
+//struct VSOutput
+//{
+//    float4 Pos : SV_POSITION;
+//    float3 Color : COLOR0;
+//};
+//
+//struct PSInput
+//{
+//    float3 Color : COLOR0;
+//};
+//
+//[[vk::push_constant]]
+//struct
+//{
+//    float4x4 transform;
+//    float a;
+//} push_constants;
+//
+//static float3 positions[] =
+//{
+//    float3(-0.5f, -0.5f, -0.5f),
+//   float3(0.5f, -0.5f, -0.5f),
+//   float3(0.5f, 0.5f, -0.5f),
+//   float3(0.5f, 0.5f, -0.5f),
+//   float3(-0.5f, 0.5f, -0.5f),
+//   float3(-0.5f, -0.5f, -0.5f),
+//   float3(-0.5f, -0.5f, 0.5f),
+//   float3(0.5f, -0.5f, 0.5f),
+//   float3(0.5f, 0.5f, 0.5f),
+//   float3(0.5f, 0.5f, 0.5f),
+//   float3(-0.5f, 0.5f, 0.5f),
+//   float3(-0.5f, -0.5f, 0.5f),
+//   float3(-0.5f, 0.5f, 0.5f),
+//   float3(-0.5f, 0.5f, -0.5f),
+//   float3(-0.5f, -0.5f, -0.5f),
+//   float3(-0.5f, -0.5f, -0.5f),
+//   float3(-0.5f, -0.5f, 0.5f),
+//   float3(-0.5f, 0.5f, 0.5f),
+//   float3(0.5f, 0.5f, 0.5f),
+//   float3(0.5f, 0.5f, -0.5f),
+//   float3(0.5f, -0.5f, -0.5f),
+//   float3(0.5f, -0.5f, -0.5f),
+//   float3(0.5f, -0.5f, 0.5f),
+//   float3(0.5f, 0.5f, 0.5f),
+//   float3(-0.5f, -0.5f, -0.5f),
+//   float3(0.5f, -0.5f, -0.5f),
+//   float3(0.5f, -0.5f, 0.5f),
+//   float3(0.5f, -0.5f, 0.5f),
+//   float3(-0.5f, -0.5f, 0.5f),
+//   float3(-0.5f, -0.5f, -0.5f),
+//   float3(-0.5f, 0.5f, -0.5f),
+//   float3(0.5f, 0.5f, -0.5f),
+//   float3(0.5f, 0.5f, 0.5f),
+//   float3(0.5f, 0.5f, 0.5f),
+//   float3(-0.5f, 0.5f, 0.5f),
+//   float3(-0.5f, 0.5f, -0.5f)
+//};
+//
+//static float3 colors[3] =
+//{
+//    float3(1.0, 0.0, 0.0),
+//    float3(0.0, 1.0, 0.0),
+//    float3(0.0, 0.0, 1.0)
+//};
+//
+//VSOutput VSmain(uint VertexIndex : SV_VertexID)
+//{
+//    VSOutput output = (VSOutput) 0;
+//    output.Pos = mul(mul((View.projection_matrix), (View.view_matrix)), mul(push_constants.transform, float4(positions[VertexIndex], 1.0)));
+//    output.Color = clamp(positions[VertexIndex], 0.f, 1.f);
+//    return output;
+//}
+//
+//float4 PSmain(PSInput input) : SV_TARGET
+//{
+//    return float4(input.Color, 1);
+//    //return 1.f;
+//}
+
 #include "Common.hlsli"
 
 ConstantBuffer<ViewInfo> View : register(b0);
@@ -16,48 +99,15 @@ struct PSInput
 [[vk::push_constant]]
 struct
 {
+    float4x4 transform;
     float a;
-    float b;
 } push_constants;
 
-static float3 positions[] =
+static float2 positions[3] =
 {
-    float3(-0.5f, -0.5f, -0.5f),
-   float3(0.5f, -0.5f, -0.5f),
-   float3(0.5f, 0.5f, -0.5f),
-   float3(0.5f, 0.5f, -0.5f),
-   float3(-0.5f, 0.5f, -0.5f),
-   float3(-0.5f, -0.5f, -0.5f),
-   float3(-0.5f, -0.5f, 0.5f),
-   float3(0.5f, -0.5f, 0.5f),
-   float3(0.5f, 0.5f, 0.5f),
-   float3(0.5f, 0.5f, 0.5f),
-   float3(-0.5f, 0.5f, 0.5f),
-   float3(-0.5f, -0.5f, 0.5f),
-   float3(-0.5f, 0.5f, 0.5f),
-   float3(-0.5f, 0.5f, -0.5f),
-   float3(-0.5f, -0.5f, -0.5f),
-   float3(-0.5f, -0.5f, -0.5f),
-   float3(-0.5f, -0.5f, 0.5f),
-   float3(-0.5f, 0.5f, 0.5f),
-   float3(0.5f, 0.5f, 0.5f),
-   float3(0.5f, 0.5f, -0.5f),
-   float3(0.5f, -0.5f, -0.5f),
-   float3(0.5f, -0.5f, -0.5f),
-   float3(0.5f, -0.5f, 0.5f),
-   float3(0.5f, 0.5f, 0.5f),
-   float3(-0.5f, -0.5f, -0.5f),
-   float3(0.5f, -0.5f, -0.5f),
-   float3(0.5f, -0.5f, 0.5f),
-   float3(0.5f, -0.5f, 0.5f),
-   float3(-0.5f, -0.5f, 0.5f),
-   float3(-0.5f, -0.5f, -0.5f),
-   float3(-0.5f, 0.5f, -0.5f),
-   float3(0.5f, 0.5f, -0.5f),
-   float3(0.5f, 0.5f, 0.5f),
-   float3(0.5f, 0.5f, 0.5f),
-   float3(-0.5f, 0.5f, 0.5f),
-   float3(-0.5f, 0.5f, -0.5f)
+    float2(0.0, 0.0),
+    float2(0.0, 5.0),
+    float2(5.0, 0.0)
 };
 
 static float3 colors[3] =
@@ -70,15 +120,14 @@ static float3 colors[3] =
 VSOutput VSmain(uint VertexIndex : SV_VertexID)
 {
     VSOutput output = (VSOutput) 0;
-    output.Pos = mul(View.view_projection_matrix, float4(positions[VertexIndex] + float3(1, 10*sin(push_constants.a*0.01), 1), 1.0));
-    //output.Pos = float4(positions[VertexIndex], 0.0, 1.0);
-    output.Color = clamp(positions[VertexIndex], 0.f, 1.f);
+    output.Pos = mul(mul((View.projection_matrix), (View.view_matrix)), mul(push_constants.transform, float4(positions[VertexIndex], 0.0, 1.0)));
+    output.Color = colors[VertexIndex];
     return output;
 }
 
 float4 PSmain(PSInput input) : SV_TARGET
 {
-    return float4(input.Color+push_constants.b, 1);
+    return float4(input.Color, 1);
     //return 1.f;
 }
 

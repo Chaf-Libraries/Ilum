@@ -1,5 +1,9 @@
 #include "TrianglePass.hpp"
 
+#include <Scene/Component/TransformComponent.hpp>
+#include <Scene/Entity.hpp>
+#include <Scene/Scene.hpp>
+
 namespace Ilum
 {
 RenderPassDesc TrianglePass::CreateDesc()
@@ -52,10 +56,12 @@ RenderGraph::RenderTask TrianglePass::Create(const RenderPassDesc &desc, RenderG
 		cmd_buffer->SetScissor(render_target->GetWidth(), render_target->GetHeight());
 		cmd_buffer->BeginRenderPass(render_target.get());
 		descriptor->SetConstant("a", config_.a).BindBuffer("View", renderer->GetViewBuffer());
-		config_.a += 0.99f;
-		config = config_;
-		cmd_buffer->BindPipelineState(pipeline_state.get());
-		cmd_buffer->Draw(36, 1);
+		renderer->GetScene()->Execute([&](Entity &entity) {
+			auto transform = entity.GetComponent<TransformComponent>().world_transform;
+			descriptor->SetConstant("transform", transform);
+			cmd_buffer->BindPipelineState(pipeline_state.get());
+			cmd_buffer->Draw(3, 1);
+		});
 		cmd_buffer->EndRenderPass();
 	};
 }

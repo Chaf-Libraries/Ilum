@@ -3,6 +3,13 @@
 
 #include "Device.hpp"
 
+#ifdef _WIN64
+#	include <VersionHelpers.h>
+#	include <aclapi.h>
+#	include <dxgi1_2.h>
+#	include <windows.h>
+#endif
+
 namespace Ilum::Vulkan
 {
 // Extension Function
@@ -39,7 +46,82 @@ static const std::vector<const char *> DeviceExtensions = {
     VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
     VK_NV_MESH_SHADER_EXTENSION_NAME,
     VK_EXT_SHADER_VIEWPORT_INDEX_LAYER_EXTENSION_NAME,
-    VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME};
+    VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,
+    VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
+    VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,
+#ifdef _WIN64
+    VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
+    VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME
+#else
+    VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME,
+    VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME,
+#endif
+};
+
+class WindowsSecurityAttributes
+{
+  public:
+	WindowsSecurityAttributes()
+	{
+		m_winPSecurityDescriptor = (PSECURITY_DESCRIPTOR) calloc(
+		    1, SECURITY_DESCRIPTOR_MIN_LENGTH + 2 * sizeof(void **));
+
+		PSID *ppSID =
+		    (PSID *) ((PBYTE) m_winPSecurityDescriptor + SECURITY_DESCRIPTOR_MIN_LENGTH);
+		PACL *ppACL = (PACL *) ((PBYTE) ppSID + sizeof(PSID *));
+
+		InitializeSecurityDescriptor(m_winPSecurityDescriptor,
+		                             SECURITY_DESCRIPTOR_REVISION);
+
+		SID_IDENTIFIER_AUTHORITY sidIdentifierAuthority =
+		    SECURITY_WORLD_SID_AUTHORITY;
+		AllocateAndInitializeSid(&sidIdentifierAuthority, 1, SECURITY_WORLD_RID, 0, 0,
+		                         0, 0, 0, 0, 0, ppSID);
+
+		EXPLICIT_ACCESS explicitAccess;
+		ZeroMemory(&explicitAccess, sizeof(EXPLICIT_ACCESS));
+		explicitAccess.grfAccessPermissions =
+		    STANDARD_RIGHTS_ALL | SPECIFIC_RIGHTS_ALL;
+		explicitAccess.grfAccessMode       = SET_ACCESS;
+		explicitAccess.grfInheritance      = INHERIT_ONLY;
+		explicitAccess.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+		explicitAccess.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
+		explicitAccess.Trustee.ptstrName   = (LPTSTR) *ppSID;
+
+		SetEntriesInAcl(1, &explicitAccess, NULL, ppACL);
+
+		SetSecurityDescriptorDacl(m_winPSecurityDescriptor, TRUE, *ppACL, FALSE);
+
+		m_winSecurityAttributes.nLength              = sizeof(m_winSecurityAttributes);
+		m_winSecurityAttributes.lpSecurityDescriptor = m_winPSecurityDescriptor;
+	}
+
+	SECURITY_ATTRIBUTES *operator&()
+	{
+		return &m_winSecurityAttributes;
+	}
+
+	~WindowsSecurityAttributes()
+	{
+		PSID *ppSID =
+		    (PSID *) ((PBYTE) m_winPSecurityDescriptor + SECURITY_DESCRIPTOR_MIN_LENGTH);
+		PACL *ppACL = (PACL *) ((PBYTE) ppSID + sizeof(PSID *));
+
+		if (*ppSID)
+		{
+			FreeSid(*ppSID);
+		}
+		if (*ppACL)
+		{
+			LocalFree(*ppACL);
+		}
+		free(m_winPSecurityDescriptor);
+	}
+
+  protected:
+	SECURITY_ATTRIBUTES  m_winSecurityAttributes;
+	PSECURITY_DESCRIPTOR m_winPSecurityDescriptor;
+};
 
 // Utilities Function
 inline const std::vector<const char *> GetInstanceExtensionSupported(const std::vector<const char *> &extensions)
@@ -702,8 +784,21 @@ void Device::CreateLogicalDevice()
 	allocator_info.physicalDevice         = m_physical_device;
 	allocator_info.device                 = m_logical_device;
 	allocator_info.instance               = m_instance;
-	allocator_info.vulkanApiVersion       = VK_API_VERSION_1_2;
+	allocator_info.vulkanApiVersion       = VK_API_VERSION_1_3;
 	allocator_info.flags                  = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+
+	VkPhysicalDeviceMemoryProperties memory_properties = {};
+	vkGetPhysicalDeviceMemoryProperties(m_physical_device, &memory_properties);
+
+	std::vector<VkExternalMemoryHandleTypeFlagsKHR> external_flags(memory_properties.memoryTypeCount);
+#ifdef _WIN64
+	std::fill(external_flags.begin(), external_flags.end(), VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT);
+#else
+	std::fill(external_flags.begin(), external_flags.end(), VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR);
+#endif
+
+	allocator_info.pTypeExternalMemoryHandleTypes = external_flags.data();
+
 	if (vmaCreateAllocator(&allocator_info, &m_allocator) != VK_SUCCESS)
 	{
 		LOG_FATAL("Failed to create vulkan memory allocator");
@@ -778,6 +873,99 @@ VkDevice Device::GetDevice() const
 VmaAllocator Device::GetAllocator() const
 {
 	return m_allocator;
+}
+
+VmaPool Device::GetMemoryPool(VkBufferCreateInfo &buffer_info, VmaAllocationCreateInfo &allocation_info)
+{
+	uint32_t mem_type_index = 0;
+	vmaFindMemoryTypeIndexForBufferInfo(m_allocator, &buffer_info, &allocation_info, &mem_type_index);
+
+	if (m_vma_pool.find(mem_type_index) != m_vma_pool.end())
+	{
+		return m_vma_pool.at(mem_type_index);
+	}
+
+	// Create export memory flags
+#ifdef _WIN64
+	WindowsSecurityAttributes winSecurityAttributes;
+
+	VkExportMemoryWin32HandleInfoKHR vulkanExportMemoryWin32HandleInfoKHR = {};
+	vulkanExportMemoryWin32HandleInfoKHR.sType =
+	    VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR;
+	vulkanExportMemoryWin32HandleInfoKHR.pNext       = NULL;
+	vulkanExportMemoryWin32HandleInfoKHR.pAttributes = &winSecurityAttributes;
+	vulkanExportMemoryWin32HandleInfoKHR.dwAccess =
+	    DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE;
+	vulkanExportMemoryWin32HandleInfoKHR.name = (LPCWSTR) NULL;
+#endif
+	VkExportMemoryAllocateInfoKHR vulkanExportMemoryAllocateInfoKHR = {};
+	vulkanExportMemoryAllocateInfoKHR.sType                         = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR;
+#ifdef _WIN64
+	vulkanExportMemoryAllocateInfoKHR.pNext       = &vulkanExportMemoryWin32HandleInfoKHR;
+	vulkanExportMemoryAllocateInfoKHR.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+#else
+	vulkanExportMemoryAllocateInfoKHR.pNext       = NULL;
+	vulkanExportMemoryAllocateInfoKHR.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
+#endif
+	VmaPoolCreateInfo pool_info   = {};
+	pool_info.memoryTypeIndex     = mem_type_index;
+	pool_info.blockSize           = 128ull * 1024 * 1024;
+	pool_info.maxBlockCount       = 16;
+	//pool_info.pMemoryAllocateNext = &vulkanExportMemoryAllocateInfoKHR;
+
+	VmaPool pool;
+	vmaCreatePool(m_allocator, &pool_info, &pool);
+
+	m_vma_pool.emplace(mem_type_index, pool);
+
+	return m_vma_pool.at(mem_type_index);
+}
+
+VmaPool Device::GetMemoryPool(VkImageCreateInfo &image_info, VmaAllocationCreateInfo &allocation_info)
+{
+	uint32_t mem_type_index = 0;
+	vmaFindMemoryTypeIndexForImageInfo(m_allocator, &image_info, &allocation_info, &mem_type_index);
+
+	if (m_vma_pool.find(mem_type_index) != m_vma_pool.end())
+	{
+		return m_vma_pool.at(mem_type_index);
+	}
+
+	// Create export memory flags
+#ifdef _WIN64
+	WindowsSecurityAttributes winSecurityAttributes;
+
+	VkExportMemoryWin32HandleInfoKHR vulkanExportMemoryWin32HandleInfoKHR = {};
+	vulkanExportMemoryWin32HandleInfoKHR.sType =
+	    VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR;
+	vulkanExportMemoryWin32HandleInfoKHR.pNext       = NULL;
+	vulkanExportMemoryWin32HandleInfoKHR.pAttributes = &winSecurityAttributes;
+	vulkanExportMemoryWin32HandleInfoKHR.dwAccess =
+	    DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE;
+	vulkanExportMemoryWin32HandleInfoKHR.name = (LPCWSTR) NULL;
+#endif
+	VkExportMemoryAllocateInfoKHR *vulkanExportMemoryAllocateInfoKHR = new VkExportMemoryAllocateInfoKHR;
+	vulkanExportMemoryAllocateInfoKHR->sType                         = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR;
+#ifdef _WIN64
+	vulkanExportMemoryAllocateInfoKHR->pNext       = &vulkanExportMemoryWin32HandleInfoKHR;
+	vulkanExportMemoryAllocateInfoKHR->handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+#else
+	vulkanExportMemoryAllocateInfoKHR.pNext       = NULL;
+	vulkanExportMemoryAllocateInfoKHR.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
+#endif
+	vulkanExportMemoryAllocateInfoKHRs.push_back(vulkanExportMemoryAllocateInfoKHR);
+	VmaPoolCreateInfo pool_info   = {};
+	pool_info.memoryTypeIndex     = mem_type_index;
+	pool_info.blockSize           = 128ull * 1024 * 1024;
+	pool_info.maxBlockCount       = 16;
+	pool_info.pMemoryAllocateNext = vulkanExportMemoryAllocateInfoKHR;
+
+	VmaPool pool;
+	vmaCreatePool(m_allocator, &pool_info, &pool);
+
+	m_vma_pool.emplace(mem_type_index, pool);
+
+	return m_vma_pool.at(mem_type_index);
 }
 
 uint32_t Device::GetQueueFamily(RHIQueueFamily family)

@@ -145,6 +145,7 @@ GuiContext::GuiContext(RHIContext *context, Window *window) :
 	vertex_shader_desc.source      = ShaderSource::HLSL;
 	vertex_shader_desc.target      = ShaderTarget::SPIRV;
 	vertex_shader_desc.code        = shader_source;
+	vertex_shader_desc.macros      = {"VULKAN_BACKEND"};
 
 	ShaderDesc fragment_shader_desc  = {};
 	fragment_shader_desc.entry_point = "PSmain";
@@ -152,6 +153,7 @@ GuiContext::GuiContext(RHIContext *context, Window *window) :
 	fragment_shader_desc.source      = ShaderSource::HLSL;
 	fragment_shader_desc.target      = ShaderTarget::SPIRV;
 	fragment_shader_desc.code        = shader_source;
+	fragment_shader_desc.macros      = {"VULKAN_BACKEND"};
 
 	ShaderMeta vertex_meta   = {};
 	ShaderMeta fragment_meta = {};

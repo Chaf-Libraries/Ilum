@@ -182,7 +182,7 @@ void SceneView::UpdateCamera()
 			direction -= up;
 		}
 
-		//m_camera.velocity = SmoothStep(m_camera.velocity, direction, 0.2f);
+		// m_camera.velocity = SmoothStep(m_camera.velocity, direction, 0.2f);
 
 		m_camera.position += direction * delta_time * m_camera.speed;
 

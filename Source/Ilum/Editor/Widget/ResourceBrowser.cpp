@@ -17,7 +17,9 @@ bool IsTextureResource(const std::string &extension)
 {
 	return extension == ".jpg" ||
 	       extension == ".png" ||
-	       extension == ".bmp";
+	       extension == ".bmp" ||
+	       extension == ".jpeg" ||
+	       extension == ".dds";
 }
 
 bool IsModelResource(const std::string &extension)
@@ -43,7 +45,7 @@ void ResourceBrowser::Tick()
 	if (ImGui::Button("Import"))
 	{
 		char *path = nullptr;
-		if (NFD_OpenDialog("jpg,png,bmp,jpeg,gltf", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
+		if (NFD_OpenDialog("jpg,png,bmp,jpeg,dds,gltf", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
 		{
 			std::string extension = Path::GetInstance().GetFileExtension(path);
 			if (IsTextureResource(extension))

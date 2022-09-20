@@ -29,6 +29,9 @@ VSOutput VSmain(VSInput input)
     output.UV = input.UV;
     output.Color = input.Color;
     output.Pos = float4(input.Pos * constant.scale + constant.translate, 0.0, 1.0);
+#ifdef VULKAN_BACKEND
+    output.Pos.y *= -1.f;
+#endif
     return output;
 }
 

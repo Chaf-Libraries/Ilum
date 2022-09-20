@@ -11,7 +11,13 @@ TextureImportInfo STBImporter::ImportImpl(const std::string &filename)
 {
 	TextureImportInfo info = {};
 
-	info.desc.name = Path::GetInstance().GetFileName(filename, false);
+	info.desc.name    = Path::GetInstance().GetFileName(filename, false);
+	info.desc.width   = 1;
+	info.desc.height  = 1;
+	info.desc.depth   = 1;
+	info.desc.mips    = 1;
+	info.desc.layers  = 1;
+	info.desc.samples = 1;
 
 	int32_t width = 0, height = 0, channel = 0;
 

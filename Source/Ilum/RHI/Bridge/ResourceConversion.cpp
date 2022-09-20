@@ -6,6 +6,8 @@ namespace Ilum
 {
 inline std::unique_ptr<RHITexture> MapTextureVulkanToCUDA(RHITexture *texture)
 {
+
+
 	return nullptr;
 }
 
@@ -20,6 +22,7 @@ std::unique_ptr<RHITexture> MapTextureToCUDA(RHITexture *texture)
 	{
 		case RHIBackend::Vulkan:
 			MapTextureVulkanToCUDA(texture);
+			break;
 		default:
 			break;
 	}

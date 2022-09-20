@@ -75,6 +75,7 @@ Buffer::Buffer(RHIDevice *device, const BufferDesc &desc) :
 
 	VmaAllocationCreateInfo allocation_create_info = {};
 	allocation_create_info.usage                   = ToVmaMemoryUsage[desc.memory];
+	allocation_create_info.pool                    = static_cast<Device *>(p_device)->GetMemoryPool(buffer_create_info, allocation_create_info);
 
 	VmaAllocationInfo allocation_info = {};
 	vmaCreateBuffer(static_cast<Device *>(p_device)->GetAllocator(), &buffer_create_info, &allocation_create_info, &m_handle, &m_allocation, &allocation_info);

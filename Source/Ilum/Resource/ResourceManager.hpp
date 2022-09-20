@@ -66,6 +66,6 @@ class ResourceManager
 
 	std::unordered_map<ResourceType, std::unique_ptr<RHITexture>> m_thumbnails;
 
-	const TextureDesc ThumbnailDesc = {"", 48, 48, 1, 1, 1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource};
+	TextureDesc ThumbnailDesc = {"", 48, 48, 1, 1, 1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource};
 };
 }        // namespace Ilum

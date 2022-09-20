@@ -91,8 +91,22 @@ Texture::Texture(RHIDevice *device, const TextureDesc &desc) :
 		create_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 	}
 
+	// External memory
+	VkExternalMemoryImageCreateInfo external_create_info = {};
+
+	external_create_info.sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
+	external_create_info.pNext = nullptr;
+#ifdef _WIN64
+	external_create_info.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+#else
+	external_create_info.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
+#endif
+	create_info.pNext = &external_create_info;
+
 	VmaAllocationCreateInfo allocation_create_info = {};
-	allocation_create_info.usage                   = VMA_MEMORY_USAGE_GPU_ONLY;
+
+	allocation_create_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+	allocation_create_info.pool  = static_cast<Device *>(p_device)->GetMemoryPool(create_info, allocation_create_info);
 
 	vmaCreateImage(static_cast<Device *>(p_device)->GetAllocator(), &create_info, &allocation_create_info, &m_handle, &m_allocation, nullptr);
 
