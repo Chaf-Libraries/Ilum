@@ -26,6 +26,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE glslang)
  target_link_libraries(${TARGET_NAME} PRIVATE SPIRV)
  target_link_libraries(${TARGET_NAME} PRIVATE dxc)
  target_link_libraries(${TARGET_NAME} PRIVATE spirv-reflect-static)
+ target_link_libraries(${TARGET_NAME} PRIVATE spirv-cross-hlsl)
  target_link_libraries(${TARGET_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/Source/Dependencies/slang/bin/windows-x64/release/slang.lib)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}")

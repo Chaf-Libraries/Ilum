@@ -19,7 +19,8 @@ struct TextureDesc
 	[[min(1)]] uint32_t layers;
 	[[min(1)]] uint32_t samples;
 	RHIFormat           format;
-	RHITextureUsage     usage;
+	[[reflection(false)]] RHITextureUsage usage;
+	[[reflection(false)]] bool external;
 };
 
 struct TextureRange

@@ -445,6 +445,7 @@ TextureImportInfo DDSImporter::ImportImpl(const std::string &filename)
 	info.desc.mips         = 1;
 	info.desc.layers       = 1;
 	info.desc.samples      = 1;
+	info.desc.external     = true;
 
 	std::vector<uint8_t> raw_data;
 	Path::GetInstance().Read(filename, raw_data, true);

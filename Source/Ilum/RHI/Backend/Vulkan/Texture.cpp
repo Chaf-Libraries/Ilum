@@ -3,8 +3,80 @@
 
 #include "Device.hpp"
 
+#ifdef _WIN64
+#	include <aclapi.h>
+#	include <dxgi1_2.h>
+#	include <windows.h>
+#endif
+
 namespace Ilum::Vulkan
 {
+
+class WindowsSecurityAttributes
+{
+  public:
+	WindowsSecurityAttributes()
+	{
+		m_winPSecurityDescriptor = (PSECURITY_DESCRIPTOR) calloc(
+		    1, SECURITY_DESCRIPTOR_MIN_LENGTH + 2 * sizeof(void **));
+
+		PSID *ppSID =
+		    (PSID *) ((PBYTE) m_winPSecurityDescriptor + SECURITY_DESCRIPTOR_MIN_LENGTH);
+		PACL *ppACL = (PACL *) ((PBYTE) ppSID + sizeof(PSID *));
+
+		InitializeSecurityDescriptor(m_winPSecurityDescriptor,
+		                             SECURITY_DESCRIPTOR_REVISION);
+
+		SID_IDENTIFIER_AUTHORITY sidIdentifierAuthority =
+		    SECURITY_WORLD_SID_AUTHORITY;
+		AllocateAndInitializeSid(&sidIdentifierAuthority, 1, SECURITY_WORLD_RID, 0, 0,
+		                         0, 0, 0, 0, 0, ppSID);
+
+		EXPLICIT_ACCESS explicitAccess;
+		ZeroMemory(&explicitAccess, sizeof(EXPLICIT_ACCESS));
+		explicitAccess.grfAccessPermissions =
+		    STANDARD_RIGHTS_ALL | SPECIFIC_RIGHTS_ALL;
+		explicitAccess.grfAccessMode       = SET_ACCESS;
+		explicitAccess.grfInheritance      = INHERIT_ONLY;
+		explicitAccess.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+		explicitAccess.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
+		explicitAccess.Trustee.ptstrName   = (LPTSTR) *ppSID;
+
+		SetEntriesInAcl(1, &explicitAccess, NULL, ppACL);
+
+		SetSecurityDescriptorDacl(m_winPSecurityDescriptor, TRUE, *ppACL, FALSE);
+
+		m_winSecurityAttributes.nLength              = sizeof(m_winSecurityAttributes);
+		m_winSecurityAttributes.lpSecurityDescriptor = m_winPSecurityDescriptor;
+	}
+
+	SECURITY_ATTRIBUTES *operator&()
+	{
+		return &m_winSecurityAttributes;
+	}
+
+	~WindowsSecurityAttributes()
+	{
+		PSID *ppSID =
+		    (PSID *) ((PBYTE) m_winPSecurityDescriptor + SECURITY_DESCRIPTOR_MIN_LENGTH);
+		PACL *ppACL = (PACL *) ((PBYTE) ppSID + sizeof(PSID *));
+
+		if (*ppSID)
+		{
+			FreeSid(*ppSID);
+		}
+		if (*ppACL)
+		{
+			LocalFree(*ppACL);
+		}
+		free(m_winPSecurityDescriptor);
+	}
+
+  protected:
+	SECURITY_ATTRIBUTES  m_winSecurityAttributes;
+	PSECURITY_DESCRIPTOR m_winPSecurityDescriptor;
+};
+
 TextureState TextureState::Create(RHIResourceState state)
 {
 	TextureState vk_state = {};
@@ -91,24 +163,83 @@ Texture::Texture(RHIDevice *device, const TextureDesc &desc) :
 		create_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 	}
 
-	// External memory
-	VkExternalMemoryImageCreateInfo external_create_info = {};
+	// External memory use vkallocate method
+	if (m_desc.external)
+	{
+		VkExternalMemoryImageCreateInfo external_create_info = {};
 
-	external_create_info.sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
-	external_create_info.pNext = nullptr;
+		external_create_info.sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
+		external_create_info.pNext = nullptr;
 #ifdef _WIN64
-	external_create_info.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+		external_create_info.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
 #else
-	external_create_info.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
+		external_create_info.handleTypes        = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
 #endif
-	create_info.pNext = &external_create_info;
+		create_info.pNext = &external_create_info;
 
-	VmaAllocationCreateInfo allocation_create_info = {};
+		vkCreateImage(static_cast<Device *>(p_device)->GetDevice(), &create_info, nullptr, &m_handle);
 
-	allocation_create_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
-	allocation_create_info.pool  = static_cast<Device *>(p_device)->GetMemoryPool(create_info, allocation_create_info);
+		VkMemoryRequirements memory_req = {};
+		vkGetImageMemoryRequirements(static_cast<Device *>(p_device)->GetDevice(), m_handle, &memory_req);
+		m_memory_size = memory_req.size;
 
-	vmaCreateImage(static_cast<Device *>(p_device)->GetAllocator(), &create_info, &allocation_create_info, &m_handle, &m_allocation, nullptr);
+#ifdef _WIN64
+		WindowsSecurityAttributes winSecurityAttributes;
+
+		VkExportMemoryWin32HandleInfoKHR vulkanExportMemoryWin32HandleInfoKHR = {};
+		vulkanExportMemoryWin32HandleInfoKHR.sType =
+		    VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR;
+		vulkanExportMemoryWin32HandleInfoKHR.pNext       = NULL;
+		vulkanExportMemoryWin32HandleInfoKHR.pAttributes = &winSecurityAttributes;
+		vulkanExportMemoryWin32HandleInfoKHR.dwAccess =
+		    DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE;
+		vulkanExportMemoryWin32HandleInfoKHR.name = (LPCWSTR) NULL;
+#endif
+		VkExportMemoryAllocateInfoKHR export_memory_allocate_info = {};
+		export_memory_allocate_info.sType =
+		    VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR;
+#ifdef _WIN64
+		export_memory_allocate_info.pNext       = &vulkanExportMemoryWin32HandleInfoKHR;
+		export_memory_allocate_info.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+#else
+		export_memory_allocate_info.pNext       = NULL;
+		export_memory_allocate_info.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
+#endif
+
+		VkMemoryAllocateInfo allocate_Info = {};
+		allocate_Info.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		allocate_Info.allocationSize       = memory_req.size;
+		allocate_Info.pNext                = &export_memory_allocate_info;
+
+		VkPhysicalDeviceMemoryProperties physical_device_properties = {};
+		vkGetPhysicalDeviceMemoryProperties(static_cast<Device *>(p_device)->GetPhysicalDevice(), &physical_device_properties);
+
+		for (uint32_t i = 0; i < physical_device_properties.memoryTypeCount; i++)
+		{
+			if ((memory_req.memoryTypeBits & (1 << i)) &&
+			    (physical_device_properties.memoryTypes[i].propertyFlags & (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) ==
+			        (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
+			{
+				allocate_Info.memoryTypeIndex = i;
+				break;
+			}
+		}
+
+		vkAllocateMemory(static_cast<Device *>(p_device)->GetDevice(), &allocate_Info, nullptr, &m_memory);
+		vkBindImageMemory(static_cast<Device *>(p_device)->GetDevice(), m_handle, m_memory, 0);
+	}
+	else
+	{
+		VmaAllocationCreateInfo allocation_create_info = {};
+
+		allocation_create_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+
+		vmaCreateImage(static_cast<Device *>(p_device)->GetAllocator(), &create_info, &allocation_create_info, &m_handle, &m_allocation, nullptr);
+
+		VkMemoryRequirements memory_req = {};
+		vkGetImageMemoryRequirements(static_cast<Device *>(p_device)->GetDevice(), m_handle, &memory_req);
+		m_memory_size = memory_req.size;
+	}
 
 	if (!m_desc.name.empty())
 	{
@@ -197,17 +328,26 @@ Texture::~Texture()
 	if (m_allocation)
 	{
 		vmaFreeMemory(static_cast<Device *>(p_device)->GetAllocator(), m_allocation);
+		m_allocation = VK_NULL_HANDLE;
+	}
+
+	if (m_memory)
+	{
+		vkFreeMemory(static_cast<Device *>(p_device)->GetDevice(), m_memory, nullptr);
+		m_memory = VK_NULL_HANDLE;
 	}
 
 	if (m_handle && !m_is_swapchain_buffer)
 	{
 		vkDestroyImage(static_cast<Device *>(p_device)->GetDevice(), m_handle, nullptr);
+		m_handle = VK_NULL_HANDLE;
 	}
 
 	for (auto &[hash, view] : m_view_cache)
 	{
 		vkDestroyImageView(static_cast<Device *>(p_device)->GetDevice(), view, nullptr);
 	}
+	m_view_cache.clear();
 }
 
 VkImage Texture::GetHandle() const

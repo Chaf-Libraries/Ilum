@@ -54,6 +54,10 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 						if (desc.textures.find(resource.handle) != desc.textures.end())
 						{
 							desc.textures[resource.handle].usage |= ResourceStateToTextureUsage(resource.state);
+							if (iter->second.bind_point == BindPoint::CUDA)
+							{
+								desc.textures[resource.handle].external = true;
+							}
 						}
 						else if (desc.buffers.find(resource.handle) != desc.buffers.end())
 						{
@@ -99,14 +103,21 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 				bool alias = false;
 				for (auto &pool : texture_pools)
 				{
-					if (pool.start > (--resource.end())->first ||
-					    pool.end < resource.begin()->first)
+					if (desc.textures[handle].external)
 					{
-						pool.handles.push_back(handle);
-						pool.start = std::min(pool.start, (--resource.end())->first);
-						pool.end   = std::max(pool.end, resource.begin()->first);
-						alias      = true;
-						break;
+						render_graph->RegisterTexture(RenderGraph::TextureCreateInfo{desc.textures[handle], handle});
+					}
+					else
+					{
+						if (pool.start > (--resource.end())->first ||
+						    pool.end < resource.begin()->first)
+						{
+							pool.handles.push_back(handle);
+							pool.start = std::min(pool.start, (--resource.end())->first);
+							pool.end   = std::max(pool.end, resource.begin()->first);
+							alias      = true;
+							break;
+						}
 					}
 				}
 				if (!alias)
@@ -247,6 +258,7 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 		AddPass(
 		    *render_graph,
 		    pass.name,
+			pass.bind_point,
 			pass.config,
 		    std::move(render_task.convert<RenderGraph::RenderTask>()),
 		    [=](RenderGraph &render_graph, RHICommand *cmd_buffer) {

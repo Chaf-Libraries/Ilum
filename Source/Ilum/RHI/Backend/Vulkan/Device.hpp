@@ -7,6 +7,11 @@
 
 #include <vk_mem_alloc.h>
 
+#ifdef _WIN64
+#include <Windows.h>
+#endif        // _WIN64
+
+
 namespace Ilum::Vulkan
 {
 class Device : public RHIDevice
@@ -32,9 +37,6 @@ class Device : public RHIDevice
 	VkDevice         GetDevice() const;
 	VmaAllocator     GetAllocator() const;
 
-	VmaPool GetMemoryPool(VkBufferCreateInfo &buffer_info, VmaAllocationCreateInfo &allocation_info);
-	VmaPool GetMemoryPool(VkImageCreateInfo &image_info, VmaAllocationCreateInfo &allocation_info);
-
 	uint32_t GetQueueFamily(RHIQueueFamily family);
 	uint32_t GetQueueCount(RHIQueueFamily family);
 
@@ -42,6 +44,9 @@ class Device : public RHIDevice
 
 	void BeginDebugUtilsLabel(VkCommandBuffer cmd_buffer, const VkDebugUtilsLabelEXT &label);
 	void EndDebugUtilsLabel(VkCommandBuffer cmd_buffer);
+
+	void GetSemaphoreWin32Handle(const VkSemaphoreGetWin32HandleInfoKHR *handle_info, HANDLE *handle);
+	void GetMemoryWin32Handle(const VkMemoryGetWin32HandleInfoKHR *handle_info, HANDLE *handle);
 
   private:
 	// Supported extensions
@@ -57,10 +62,6 @@ class Device : public RHIDevice
 	VkPhysicalDevice m_physical_device = VK_NULL_HANDLE;
 	VkDevice         m_logical_device  = VK_NULL_HANDLE;
 	VmaAllocator     m_allocator       = VK_NULL_HANDLE;
-
-	std::map<uint32_t, VmaPool> m_vma_pool;
-
-	std::vector<VkExportMemoryAllocateInfoKHR *> vulkanExportMemoryAllocateInfoKHRs;
 
 	// Queue Family
 	uint32_t m_graphics_family = 0;

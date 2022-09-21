@@ -42,6 +42,9 @@ class Texture : public RHITexture
   private:
 	VkImage       m_handle     = VK_NULL_HANDLE;
 	VmaAllocation m_allocation = VK_NULL_HANDLE;
+	VkDeviceMemory m_memory     = VK_NULL_HANDLE;
+
+	size_t m_memory_size = 0;
 
 	bool m_is_swapchain_buffer = false;
 

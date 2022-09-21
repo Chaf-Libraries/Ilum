@@ -8,11 +8,14 @@
 #include <SPIRV/GLSL.std.450.h>
 #include <SPIRV/GlslangToSpv.h>
 
+#include <spirv_hlsl.hpp>
+
 #include <atlbase.h>
 #include <dxcapi.h>
 
 #include <slang.h>
 
+#include <regex>
 #include <sstream>
 
 namespace glslang
@@ -109,7 +112,7 @@ const TBuiltInResource DefaultTBuiltInResource = {
     /* .maxTaskWorkGroupSizeX_NV= */ 32,
     /* .maxTaskWorkGroupSizeY_NV= */ 1,
     /* .maxTaskWorkGroupSizeZ_NV= */ 1,
-	/* .maxMeshViewCountNV= */ 4,
+    /* .maxMeshViewCountNV= */ 4,
     /* .maxMeshOutputVerticesEXT= */ 256,
     /* .maxMeshOutputPrimitivesEXT= */ 512,
     /* .maxMeshWorkGroupSizeX_EXT= */ 32,
@@ -118,8 +121,8 @@ const TBuiltInResource DefaultTBuiltInResource = {
     /* .maxTaskWorkGroupSizeX_EXT= */ 32,
     /* .maxTaskWorkGroupSizeY_EXT= */ 32,
     /* .maxTaskWorkGroupSizeZ_EXT= */ 32,
-	/* .maxMeshViewCountEXT= */4,
-	/* .maxDualSourceDrawBuffersEXT= */1,
+    /* .maxMeshViewCountEXT= */ 4,
+    /* .maxDualSourceDrawBuffersEXT= */ 1,
 
     /* .limits = */ {
         /* .nonInductiveForLoops = */ true,
@@ -554,13 +557,13 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::PTX>(const 
 
 	spSetCodeGenTarget(request, SLANG_PTX);
 
-	int translationUnitIndex = spAddTranslationUnit(request, SLANG_SOURCE_LANGUAGE_HLSL, "");
-	spAddTranslationUnitSourceString(request, translationUnitIndex, nullptr, code.c_str());
+	int translationUnitIndex = spAddTranslationUnit(request, SLANG_SOURCE_LANGUAGE_SLANG, "");
+	spAddTranslationUnitSourceString(request, translationUnitIndex, nullptr, std::string(code.c_str()).c_str());
 	int entryPointIndex = spAddEntryPoint(request, translationUnitIndex, entry_point.c_str(), SLANG_STAGE_COMPUTE);
 
 	int anyErrors = spCompile(request);
 
-	if (anyErrors > 0)
+	if (anyErrors != 0)
 	{
 		char const *diagnostics = spGetDiagnosticOutput(request);
 		LOG_INFO("Shader Compile Error: {}", diagnostics);
@@ -575,6 +578,23 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::PTX>(const 
 	std::memcpy(ptx.data(), ptx_str.data(), ptx_str.size());
 
 	return ptx;
+}
+
+inline std::string SpirvCrossToHLSL(const std::vector<uint8_t> &spirv)
+{
+	std::vector<uint32_t> spirv32;
+	spirv32.resize(spirv.size() / 4);
+	std::memcpy(spirv32.data(), spirv.data(), spirv.size());
+
+	spirv_cross::CompilerHLSL hlsl_compiler(spirv32);
+
+	spirv_cross::CompilerHLSL::Options options;
+	options.shader_model         = 66;
+	options.use_entry_point_name = true;
+
+	hlsl_compiler.set_hlsl_options(options);
+
+	return hlsl_compiler.compile();
 }
 
 ShaderCompiler::ShaderCompiler()
@@ -638,7 +658,31 @@ std::vector<uint8_t> ShaderCompiler::Compile(const ShaderDesc &desc, ShaderMeta 
 		}
 		else
 		{
-			return CompileShader<ShaderSource::HLSL, ShaderTarget::PTX>(desc.code, desc.stage, desc.entry_point, desc.macros);
+			std::string hlsl = SpirvCrossToHLSL(spirv);
+
+			{
+				// Remove "packoffset"
+				hlsl = std::regex_replace(hlsl, std::regex(": +packoffset*.+;"), ";");
+
+				// Remove input parameter
+				size_t pos   = hlsl.find("struct SPIRV_Cross_Input");
+				size_t left  = hlsl.find_first_of("{", pos) + 1;
+				size_t right = hlsl.find_first_of("}", left);
+
+				std::string input_struct = hlsl.substr(left, right - left);
+
+				right        = input_struct.find_last_of(";");
+				input_struct = input_struct.substr(0, right);
+
+				std::replace(input_struct.begin(), input_struct.end(), ';', ',');
+				input_struct = std::regex_replace(input_struct, std::regex("gl_"), "glx");
+
+				hlsl = std::regex_replace(hlsl, std::regex("SPIRV_Cross_Input stage_input"), input_struct);
+				hlsl = std::regex_replace(hlsl, std::regex("stage_input.gl_"), "glx");
+				hlsl = std::regex_replace(hlsl, std::regex("^Texture2D"), "RWTexture2D");
+			}
+
+			return CompileShader<ShaderSource::HLSL, ShaderTarget::PTX>(hlsl, desc.stage, desc.entry_point, desc.macros);
 		}
 	}
 

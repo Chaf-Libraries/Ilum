@@ -416,6 +416,11 @@ void Command::BlitTexture(RHITexture *src_texture, const TextureRange &src_range
 
 void Command::ResourceStateTransition(const std::vector<TextureStateTransition> &texture_transitions, const std::vector<BufferStateTransition> &buffer_transitions)
 {
+	if (texture_transitions.empty() && buffer_transitions.empty())
+	{
+		return;
+	}
+
 	std::vector<VkBufferMemoryBarrier> buffer_barriers;
 	buffer_barriers.reserve(buffer_transitions.size());
 

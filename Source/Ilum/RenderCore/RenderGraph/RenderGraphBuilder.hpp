@@ -24,7 +24,7 @@ class RenderGraphBuilder
 
 	~RenderGraphBuilder() = default;
 
-	RenderGraphBuilder &AddPass(RenderGraph &render_graph, const std::string &name, const rttr::variant &config, RenderGraph::RenderTask &&task, RenderGraph::BarrierTask &&barrier);
+	RenderGraphBuilder &AddPass(RenderGraph &render_graph, const std::string &name, BindPoint bind_point, const rttr::variant &config, RenderGraph::RenderTask &&task, RenderGraph::BarrierTask &&barrier);
 
 	bool Validate(RenderGraphDesc &desc);
 

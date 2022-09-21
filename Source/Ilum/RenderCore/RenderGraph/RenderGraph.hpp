@@ -124,6 +124,8 @@ class RenderGraph
 	{
 		std::string name;
 
+		BindPoint bind_point;
+
 		rttr::variant config;
 
 		RenderTask  execute;
@@ -158,7 +160,7 @@ class RenderGraph
 		RGHandle   handle;
 	};
 
-	RenderGraph &AddPass(const std::string &name, const rttr::variant &config, RenderTask &&execute, BarrierTask &&barrier);
+	RenderGraph &AddPass(const std::string &name, BindPoint bind_point, const rttr::variant &config, RenderTask &&execute, BarrierTask &&barrier);
 
 	RenderGraph &AddInitializeBarrier(BarrierTask &&barrier);
 

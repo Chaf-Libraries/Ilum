@@ -73,9 +73,21 @@ Buffer::Buffer(RHIDevice *device, const BufferDesc &desc) :
 		buffer_create_info.usage |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 	}
 
+	// External memory
+	VkExternalMemoryBufferCreateInfo external_create_info = {};
+
+	external_create_info.sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO;
+	external_create_info.pNext = nullptr;
+#ifdef _WIN64
+	external_create_info.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+#else
+	external_create_info.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
+#endif
+	buffer_create_info.pNext = &external_create_info;
+
 	VmaAllocationCreateInfo allocation_create_info = {};
 	allocation_create_info.usage                   = ToVmaMemoryUsage[desc.memory];
-	allocation_create_info.pool                    = static_cast<Device *>(p_device)->GetMemoryPool(buffer_create_info, allocation_create_info);
+	//allocation_create_info.pool                    = static_cast<Device *>(p_device)->GetMemoryPool(buffer_create_info, allocation_create_info);
 
 	VmaAllocationInfo allocation_info = {};
 	vmaCreateBuffer(static_cast<Device *>(p_device)->GetAllocator(), &buffer_create_info, &allocation_create_info, &m_handle, &m_allocation, &allocation_info);

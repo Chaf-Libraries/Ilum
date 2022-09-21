@@ -20,6 +20,8 @@ PFN_vkSetDebugUtilsObjectTagEXT            vkSetDebugUtilsObjectTagEXT;
 PFN_vkSetDebugUtilsObjectNameEXT           vkSetDebugUtilsObjectNameEXT;
 PFN_vkCmdBeginDebugUtilsLabelEXT           vkCmdBeginDebugUtilsLabelEXT;
 PFN_vkCmdEndDebugUtilsLabelEXT             vkCmdEndDebugUtilsLabelEXT;
+PFN_vkGetSemaphoreWin32HandleKHR           vkGetSemaphoreWin32HandleKHR;
+PFN_vkGetMemoryWin32HandleKHR              vkGetMemoryWin32HandleKHR;
 
 // Vulkan Extension
 static const std::vector<const char *> InstanceExtensions =
@@ -56,71 +58,6 @@ static const std::vector<const char *> DeviceExtensions = {
     VK_KHR_EXTERNAL_MEMORY_FD_EXTENSION_NAME,
     VK_KHR_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME,
 #endif
-};
-
-class WindowsSecurityAttributes
-{
-  public:
-	WindowsSecurityAttributes()
-	{
-		m_winPSecurityDescriptor = (PSECURITY_DESCRIPTOR) calloc(
-		    1, SECURITY_DESCRIPTOR_MIN_LENGTH + 2 * sizeof(void **));
-
-		PSID *ppSID =
-		    (PSID *) ((PBYTE) m_winPSecurityDescriptor + SECURITY_DESCRIPTOR_MIN_LENGTH);
-		PACL *ppACL = (PACL *) ((PBYTE) ppSID + sizeof(PSID *));
-
-		InitializeSecurityDescriptor(m_winPSecurityDescriptor,
-		                             SECURITY_DESCRIPTOR_REVISION);
-
-		SID_IDENTIFIER_AUTHORITY sidIdentifierAuthority =
-		    SECURITY_WORLD_SID_AUTHORITY;
-		AllocateAndInitializeSid(&sidIdentifierAuthority, 1, SECURITY_WORLD_RID, 0, 0,
-		                         0, 0, 0, 0, 0, ppSID);
-
-		EXPLICIT_ACCESS explicitAccess;
-		ZeroMemory(&explicitAccess, sizeof(EXPLICIT_ACCESS));
-		explicitAccess.grfAccessPermissions =
-		    STANDARD_RIGHTS_ALL | SPECIFIC_RIGHTS_ALL;
-		explicitAccess.grfAccessMode       = SET_ACCESS;
-		explicitAccess.grfInheritance      = INHERIT_ONLY;
-		explicitAccess.Trustee.TrusteeForm = TRUSTEE_IS_SID;
-		explicitAccess.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
-		explicitAccess.Trustee.ptstrName   = (LPTSTR) *ppSID;
-
-		SetEntriesInAcl(1, &explicitAccess, NULL, ppACL);
-
-		SetSecurityDescriptorDacl(m_winPSecurityDescriptor, TRUE, *ppACL, FALSE);
-
-		m_winSecurityAttributes.nLength              = sizeof(m_winSecurityAttributes);
-		m_winSecurityAttributes.lpSecurityDescriptor = m_winPSecurityDescriptor;
-	}
-
-	SECURITY_ATTRIBUTES *operator&()
-	{
-		return &m_winSecurityAttributes;
-	}
-
-	~WindowsSecurityAttributes()
-	{
-		PSID *ppSID =
-		    (PSID *) ((PBYTE) m_winPSecurityDescriptor + SECURITY_DESCRIPTOR_MIN_LENGTH);
-		PACL *ppACL = (PACL *) ((PBYTE) ppSID + sizeof(PSID *));
-
-		if (*ppSID)
-		{
-			FreeSid(*ppSID);
-		}
-		if (*ppACL)
-		{
-			LocalFree(*ppACL);
-		}
-		free(m_winPSecurityDescriptor);
-	}
-
-  protected:
-	SECURITY_ATTRIBUTES  m_winSecurityAttributes;
-	PSECURITY_DESCRIPTOR m_winPSecurityDescriptor;
 };
 
 // Utilities Function
@@ -452,6 +389,8 @@ void Device::CreateInstance()
 	vkSetDebugUtilsObjectNameEXT    = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetInstanceProcAddr(m_instance, "vkSetDebugUtilsObjectNameEXT"));
 	vkCmdBeginDebugUtilsLabelEXT    = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(vkGetInstanceProcAddr(m_instance, "vkCmdBeginDebugUtilsLabelEXT"));
 	vkCmdEndDebugUtilsLabelEXT      = reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetInstanceProcAddr(m_instance, "vkCmdEndDebugUtilsLabelEXT"));
+	vkGetSemaphoreWin32HandleKHR    = reinterpret_cast<PFN_vkGetSemaphoreWin32HandleKHR>(vkGetInstanceProcAddr(m_instance, "vkGetSemaphoreWin32HandleKHR"));
+	vkGetMemoryWin32HandleKHR       = reinterpret_cast<PFN_vkGetMemoryWin32HandleKHR>(vkGetInstanceProcAddr(m_instance, "vkGetMemoryWin32HandleKHR"));
 
 	// Enable debugger
 #ifdef _DEBUG
@@ -790,15 +729,6 @@ void Device::CreateLogicalDevice()
 	VkPhysicalDeviceMemoryProperties memory_properties = {};
 	vkGetPhysicalDeviceMemoryProperties(m_physical_device, &memory_properties);
 
-	std::vector<VkExternalMemoryHandleTypeFlagsKHR> external_flags(memory_properties.memoryTypeCount);
-#ifdef _WIN64
-	std::fill(external_flags.begin(), external_flags.end(), VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT);
-#else
-	std::fill(external_flags.begin(), external_flags.end(), VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR);
-#endif
-
-	allocator_info.pTypeExternalMemoryHandleTypes = external_flags.data();
-
 	if (vmaCreateAllocator(&allocator_info, &m_allocator) != VK_SUCCESS)
 	{
 		LOG_FATAL("Failed to create vulkan memory allocator");
@@ -875,99 +805,6 @@ VmaAllocator Device::GetAllocator() const
 	return m_allocator;
 }
 
-VmaPool Device::GetMemoryPool(VkBufferCreateInfo &buffer_info, VmaAllocationCreateInfo &allocation_info)
-{
-	uint32_t mem_type_index = 0;
-	vmaFindMemoryTypeIndexForBufferInfo(m_allocator, &buffer_info, &allocation_info, &mem_type_index);
-
-	if (m_vma_pool.find(mem_type_index) != m_vma_pool.end())
-	{
-		return m_vma_pool.at(mem_type_index);
-	}
-
-	// Create export memory flags
-#ifdef _WIN64
-	WindowsSecurityAttributes winSecurityAttributes;
-
-	VkExportMemoryWin32HandleInfoKHR vulkanExportMemoryWin32HandleInfoKHR = {};
-	vulkanExportMemoryWin32HandleInfoKHR.sType =
-	    VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR;
-	vulkanExportMemoryWin32HandleInfoKHR.pNext       = NULL;
-	vulkanExportMemoryWin32HandleInfoKHR.pAttributes = &winSecurityAttributes;
-	vulkanExportMemoryWin32HandleInfoKHR.dwAccess =
-	    DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE;
-	vulkanExportMemoryWin32HandleInfoKHR.name = (LPCWSTR) NULL;
-#endif
-	VkExportMemoryAllocateInfoKHR vulkanExportMemoryAllocateInfoKHR = {};
-	vulkanExportMemoryAllocateInfoKHR.sType                         = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR;
-#ifdef _WIN64
-	vulkanExportMemoryAllocateInfoKHR.pNext       = &vulkanExportMemoryWin32HandleInfoKHR;
-	vulkanExportMemoryAllocateInfoKHR.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
-#else
-	vulkanExportMemoryAllocateInfoKHR.pNext       = NULL;
-	vulkanExportMemoryAllocateInfoKHR.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
-#endif
-	VmaPoolCreateInfo pool_info   = {};
-	pool_info.memoryTypeIndex     = mem_type_index;
-	pool_info.blockSize           = 128ull * 1024 * 1024;
-	pool_info.maxBlockCount       = 16;
-	//pool_info.pMemoryAllocateNext = &vulkanExportMemoryAllocateInfoKHR;
-
-	VmaPool pool;
-	vmaCreatePool(m_allocator, &pool_info, &pool);
-
-	m_vma_pool.emplace(mem_type_index, pool);
-
-	return m_vma_pool.at(mem_type_index);
-}
-
-VmaPool Device::GetMemoryPool(VkImageCreateInfo &image_info, VmaAllocationCreateInfo &allocation_info)
-{
-	uint32_t mem_type_index = 0;
-	vmaFindMemoryTypeIndexForImageInfo(m_allocator, &image_info, &allocation_info, &mem_type_index);
-
-	if (m_vma_pool.find(mem_type_index) != m_vma_pool.end())
-	{
-		return m_vma_pool.at(mem_type_index);
-	}
-
-	// Create export memory flags
-#ifdef _WIN64
-	WindowsSecurityAttributes winSecurityAttributes;
-
-	VkExportMemoryWin32HandleInfoKHR vulkanExportMemoryWin32HandleInfoKHR = {};
-	vulkanExportMemoryWin32HandleInfoKHR.sType =
-	    VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR;
-	vulkanExportMemoryWin32HandleInfoKHR.pNext       = NULL;
-	vulkanExportMemoryWin32HandleInfoKHR.pAttributes = &winSecurityAttributes;
-	vulkanExportMemoryWin32HandleInfoKHR.dwAccess =
-	    DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE;
-	vulkanExportMemoryWin32HandleInfoKHR.name = (LPCWSTR) NULL;
-#endif
-	VkExportMemoryAllocateInfoKHR *vulkanExportMemoryAllocateInfoKHR = new VkExportMemoryAllocateInfoKHR;
-	vulkanExportMemoryAllocateInfoKHR->sType                         = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR;
-#ifdef _WIN64
-	vulkanExportMemoryAllocateInfoKHR->pNext       = &vulkanExportMemoryWin32HandleInfoKHR;
-	vulkanExportMemoryAllocateInfoKHR->handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
-#else
-	vulkanExportMemoryAllocateInfoKHR.pNext       = NULL;
-	vulkanExportMemoryAllocateInfoKHR.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
-#endif
-	vulkanExportMemoryAllocateInfoKHRs.push_back(vulkanExportMemoryAllocateInfoKHR);
-	VmaPoolCreateInfo pool_info   = {};
-	pool_info.memoryTypeIndex     = mem_type_index;
-	pool_info.blockSize           = 128ull * 1024 * 1024;
-	pool_info.maxBlockCount       = 16;
-	pool_info.pMemoryAllocateNext = vulkanExportMemoryAllocateInfoKHR;
-
-	VmaPool pool;
-	vmaCreatePool(m_allocator, &pool_info, &pool);
-
-	m_vma_pool.emplace(mem_type_index, pool);
-
-	return m_vma_pool.at(mem_type_index);
-}
-
 uint32_t Device::GetQueueFamily(RHIQueueFamily family)
 {
 	switch (family)
@@ -1013,5 +850,15 @@ void Device::BeginDebugUtilsLabel(VkCommandBuffer cmd_buffer, const VkDebugUtils
 void Device::EndDebugUtilsLabel(VkCommandBuffer cmd_buffer)
 {
 	vkCmdEndDebugUtilsLabelEXT(cmd_buffer);
+}
+
+void Device::GetSemaphoreWin32Handle(const VkSemaphoreGetWin32HandleInfoKHR *handle_info, HANDLE *handle)
+{
+	vkGetSemaphoreWin32HandleKHR(m_logical_device, handle_info, handle);
+}
+
+void Device::GetMemoryWin32Handle(const VkMemoryGetWin32HandleInfoKHR *handle_info, HANDLE *handle)
+{
+	vkGetMemoryWin32HandleKHR(m_logical_device, handle_info, handle);
 }
 }        // namespace Ilum::Vulkan
