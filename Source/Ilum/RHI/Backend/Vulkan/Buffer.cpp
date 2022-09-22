@@ -87,7 +87,7 @@ Buffer::Buffer(RHIDevice *device, const BufferDesc &desc) :
 
 	VmaAllocationCreateInfo allocation_create_info = {};
 	allocation_create_info.usage                   = ToVmaMemoryUsage[desc.memory];
-	//allocation_create_info.pool                    = static_cast<Device *>(p_device)->GetMemoryPool(buffer_create_info, allocation_create_info);
+	// allocation_create_info.pool                    = static_cast<Device *>(p_device)->GetMemoryPool(buffer_create_info, allocation_create_info);
 
 	VmaAllocationInfo allocation_info = {};
 	vmaCreateBuffer(static_cast<Device *>(p_device)->GetAllocator(), &buffer_create_info, &allocation_create_info, &m_handle, &m_allocation, &allocation_info);
@@ -133,8 +133,9 @@ void Buffer::CopyToDevice(const void *data, size_t size, size_t offset)
 	}
 	else
 	{
-		auto fence          = std::make_unique<Fence>(p_device);
-		auto queue          = std::make_unique<Queue>(p_device, RHIQueueFamily::Transfer, 1);
+		auto    fence = std::make_unique<Fence>(p_device);
+		VkQueue queue = VK_NULL_HANDLE;
+		vkGetDeviceQueue(static_cast<Device *>(p_device)->GetDevice(), static_cast<Device *>(p_device)->GetQueueFamily(RHIQueueFamily::Transfer), 0, &queue);
 		auto staging_buffer = std::make_unique<Buffer>(p_device, BufferDesc{"", RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU, size});
 
 		{
@@ -144,8 +145,20 @@ void Buffer::CopyToDevice(const void *data, size_t size, size_t offset)
 			cmd_buffer->Begin();
 			cmd_buffer->CopyBufferToBuffer(staging_buffer.get(), this, size, 0, offset);
 			cmd_buffer->End();
-			queue->Submit({cmd_buffer.get()});
-			queue->Execute(fence.get());
+
+			auto vk_cmd_buffer = cmd_buffer->GetHandle();
+
+			VkSubmitInfo submit_info         = {};
+			submit_info.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+			submit_info.commandBufferCount   = 1;
+			submit_info.pCommandBuffers      = &vk_cmd_buffer;
+			submit_info.signalSemaphoreCount = 0;
+			submit_info.pSignalSemaphores    = nullptr;
+			submit_info.waitSemaphoreCount   = 0;
+			submit_info.pWaitSemaphores      = nullptr;
+			submit_info.pWaitDstStageMask    = nullptr;
+
+			vkQueueSubmit(queue, 1, &submit_info, fence ? fence->GetHandle() : nullptr);
 			fence->Wait();
 		}
 	}

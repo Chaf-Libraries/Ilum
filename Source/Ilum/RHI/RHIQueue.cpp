@@ -7,29 +7,23 @@
 
 namespace Ilum
 {
-RHIQueue::RHIQueue(RHIDevice *device, RHIQueueFamily family, uint32_t queue_index) :
-    p_device(device), m_family(family), m_queue_index(queue_index)
+RHIQueue::RHIQueue(RHIDevice *device)
 {
 }
 
-std::unique_ptr<RHIQueue> RHIQueue::Create(RHIDevice *device, RHIQueueFamily family, uint32_t queue_index)
+std::unique_ptr<RHIQueue> RHIQueue::Create(RHIDevice *device)
 {
 	switch (device->GetBackend())
 	{
 		case RHIBackend::Vulkan:
-			return std::make_unique<Vulkan::Queue>(device, family, queue_index);
+			return std::make_unique<Vulkan::Queue>(device);
 		case RHIBackend::DX12:
-			return std::make_unique<DX12::Queue>(device, family, queue_index);
+			//return std::make_unique<DX12::Queue>(device, family, queue_index);
 		case RHIBackend::CUDA:
-			return std::make_unique<CUDA::Queue>(device, family, queue_index);
+			//return std::make_unique<CUDA::Queue>(device, family, queue_index);
 		default:
 			break;
 	}
 	return nullptr;
-}
-
-RHIQueueFamily RHIQueue::GetQueueFamily() const
-{
-	return m_family;
 }
 }        // namespace Ilum

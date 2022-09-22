@@ -21,12 +21,9 @@ RHIContext::RHIContext(Window *window) :
 #	error "Please specify a rhi backend!"
 #endif        // RHI_BACKEND
 
-	m_swapchain = RHISwapchain::Create(m_device.get(), p_window->GetNativeHandle(), p_window->GetWidth(), p_window->GetHeight(), true);
+	m_swapchain = RHISwapchain::Create(m_device.get(), p_window->GetNativeHandle(), p_window->GetWidth(), p_window->GetHeight(), false);
 
-	m_graphics_queue = RHIQueue::Create(m_device.get(), RHIQueueFamily::Graphics);
-	m_compute_queue  = RHIQueue::Create(m_device.get(), RHIQueueFamily::Compute);
-	m_transfer_queue = RHIQueue::Create(m_device.get(), RHIQueueFamily::Transfer);
-	m_cuda_queue     = RHIQueue::Create(m_cuda_device.get(), RHIQueueFamily::Compute);
+	m_queue = RHIQueue::Create(m_device.get());
 
 	for (uint32_t i = 0; i < m_swapchain->GetTextureCount(); i++)
 	{
@@ -45,12 +42,14 @@ RHIContext::~RHIContext()
 	{
 		frame->Reset();
 	}
+
 	m_frames.clear();
 
 	m_present_complete.clear();
 	m_render_complete.clear();
 
 	m_swapchain.reset();
+	m_queue.reset();
 	m_device.reset();
 	m_cuda_device.reset();
 }
@@ -178,30 +177,51 @@ std::unique_ptr<RHIAccelerationStructure> RHIContext::CreateAcccelerationStructu
 	return RHIAccelerationStructure::Create(m_device.get());
 }
 
-RHIQueue *RHIContext::GetQueue(RHIQueueFamily family)
+void RHIContext::Submit(std::vector<RHICommand *> &&cmd_buffers, std::vector<RHISemaphore *> &&wait_semaphores, std::vector<RHISemaphore *> &&signal_semaphores)
 {
-	switch (family)
+	SubmitInfo submit_info        = {};
+	submit_info.is_cuda           = cmd_buffers.empty() ? false : cmd_buffers[0]->GetBackend() == RHIBackend::CUDA;
+	submit_info.queue_family      = cmd_buffers.empty() ? RHIQueueFamily::Graphics : cmd_buffers[0]->GetQueueFamily();
+	submit_info.cmd_buffers       = std::move(cmd_buffers);
+	submit_info.wait_semaphores   = std::move(wait_semaphores);
+	submit_info.signal_semaphores = std::move(signal_semaphores);
+	m_submit_infos.emplace_back(std::move(submit_info));
+}
+
+void RHIContext::Execute(RHICommand *cmd_buffer)
+{
+	if (cmd_buffer->GetBackend() == RHIBackend::CUDA)
 	{
-		case RHIQueueFamily::Graphics:
-			return m_graphics_queue.get();
-		case RHIQueueFamily::Compute:
-			return m_compute_queue.get();
-		case RHIQueueFamily::Transfer:
-			return m_transfer_queue.get();
-		default:
-			break;
+		m_cuda_queue->Execute(cmd_buffer);
 	}
-	return nullptr;
+	else
+	{
+		m_queue->Execute(cmd_buffer);
+	}
 }
 
-RHIQueue *RHIContext::GetCUDAQueue()
+void RHIContext::Execute(std::vector<RHICommand *> &&cmd_buffers, std::vector<RHISemaphore *> &&wait_semaphores, std::vector<RHISemaphore *> &&signal_semaphores)
 {
-	return m_cuda_queue.get();
+	SubmitInfo submit_info        = {};
+	submit_info.is_cuda           = cmd_buffers.empty() ? false : cmd_buffers[0]->GetBackend() == RHIBackend::CUDA;
+	submit_info.queue_family      = cmd_buffers.empty() ? RHIQueueFamily::Graphics : cmd_buffers[0]->GetQueueFamily();
+	submit_info.cmd_buffers       = std::move(cmd_buffers);
+	submit_info.wait_semaphores   = std::move(wait_semaphores);
+	submit_info.signal_semaphores = std::move(signal_semaphores);
+
+	if (submit_info.is_cuda)
+	{
+		m_cuda_queue->Execute(submit_info.queue_family, {submit_info});
+	}
+	else
+	{
+		m_queue->Execute(submit_info.queue_family, {submit_info});
+	}
 }
 
-std::unique_ptr<RHIQueue> RHIContext::CreateQueue(RHIQueueFamily family, uint32_t idx, bool cuda)
+void RHIContext::Reset()
 {
-	return RHIQueue::Create(m_device.get(), family, idx);
+	m_submit_infos.clear();
 }
 
 RHITexture *RHIContext::GetBackBuffer()
@@ -227,23 +247,64 @@ void RHIContext::BeginFrame()
 
 void RHIContext::EndFrame()
 {
-	m_graphics_queue->Submit({}, {m_render_complete[m_current_frame].get()}, {m_present_complete[m_current_frame].get()});
+	if (!m_submit_infos.empty())
+	{
+		for (int32_t i = static_cast<int32_t>(m_submit_infos.size()) - 1; i >= 0; i--)
+		{
+			if (!m_submit_infos[i].is_cuda)
+			{
+				m_submit_infos[i].signal_semaphores.push_back(m_render_complete[m_current_frame].get());
+				m_submit_infos[i].wait_semaphores.push_back(m_present_complete[m_current_frame].get());
+				break;
+			}
+		}
+
+		std::vector<SubmitInfo> pack_submit_infos;
+		pack_submit_infos.reserve(m_submit_infos.size());
+		RHIQueueFamily last_queue_family = m_submit_infos[0].queue_family;
+		bool           last_is_cuda      = m_submit_infos[0].is_cuda;
+
+		for (auto &submit_info : m_submit_infos)
+		{
+			if (last_queue_family != submit_info.queue_family || last_is_cuda != submit_info.is_cuda)
+			{
+				if (last_is_cuda)
+				{
+					m_cuda_queue->Execute(last_queue_family, pack_submit_infos);
+				}
+				else
+				{
+					m_queue->Execute(last_queue_family, pack_submit_infos, m_frames[m_current_frame]->AllocateFence());
+				}
+				pack_submit_infos.clear();
+				last_queue_family = submit_info.queue_family;
+			}
+			pack_submit_infos.push_back(submit_info);
+		}
+		if (!pack_submit_infos.empty())
+		{
+			m_queue->Execute(last_queue_family, pack_submit_infos, m_frames[m_current_frame]->AllocateFence());
+		}
+		m_submit_infos.clear();
+	}
+
+	/*m_graphics_queue->Submit({}, {m_render_complete[m_current_frame].get()}, {m_present_complete[m_current_frame].get()});
 
 	if (!m_transfer_queue->Empty())
 	{
-		m_transfer_queue->Execute();
-		m_transfer_queue->Wait();
+	    m_transfer_queue->Execute();
+	    m_transfer_queue->Wait();
 	}
 
 	if (!m_compute_queue->Empty())
 	{
-		m_compute_queue->Execute(m_frames[m_current_frame]->AllocateFence());
+	    m_compute_queue->Execute(m_frames[m_current_frame]->AllocateFence());
 	}
 
 	if (!m_graphics_queue->Empty())
 	{
-		m_graphics_queue->Execute(m_frames[m_current_frame]->AllocateFence());
-	}
+	    m_graphics_queue->Execute(m_frames[m_current_frame]->AllocateFence());
+	}*/
 
 	if (!m_swapchain->Present(m_render_complete[m_current_frame].get()) ||
 	    p_window->GetWidth() != m_swapchain->GetWidth() ||

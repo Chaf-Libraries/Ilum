@@ -7,19 +7,15 @@ namespace Ilum::CUDA
 class Queue : public RHIQueue
 {
   public:
-	Queue(RHIDevice *device, RHIQueueFamily family, uint32_t queue_index = 0);
+	Queue(RHIDevice *device);
 
 	~Queue() = default;
 
+	virtual void Execute(RHIQueueFamily family, const std::vector<SubmitInfo> &submit_infos, RHIFence *fence) override;
+
+	// Immediate execution
+	virtual void Execute(RHICommand *cmd_buffer) override;
+
 	virtual void Wait() override;
-
-	virtual void Submit(const std::vector<RHICommand *> &cmds, const std::vector<RHISemaphore *> &signal_semaphores = {}, const std::vector<RHISemaphore *> &wait_semaphores = {}) override;
-
-	virtual void Execute(RHIFence *fence = nullptr) override;
-
-	virtual bool Empty() override;
-
-  private:
-	std::vector<RHICommand *> m_cmds;
 };
 }        // namespace Ilum::CUDA

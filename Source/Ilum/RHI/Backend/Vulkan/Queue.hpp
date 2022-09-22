@@ -6,33 +6,29 @@
 
 namespace Ilum::Vulkan
 {
+class Device;
+
 class Queue : public RHIQueue
 {
   public:
-	Queue(RHIDevice *device, RHIQueueFamily family, uint32_t queue_index = 0);
+	Queue(RHIDevice *device);
 
-	virtual ~Queue() = default;
+	virtual ~Queue();
+
+	virtual void Execute(RHIQueueFamily family, const std::vector<SubmitInfo> &submit_infos, RHIFence *fence) override;
+
+	virtual void Execute(RHICommand *cmd_buffer) override;
 
 	virtual void Wait() override;
 
-	virtual void Submit(const std::vector<RHICommand *> &cmds, const std::vector<RHISemaphore *> &signal_semaphores = {}, const std::vector<RHISemaphore *> &wait_semaphores = {}) override;
-
-	virtual void Execute(RHIFence *fence = nullptr) override;
-
-	virtual bool Empty() override;
-
-	VkQueue GetHandle() const;
+	VkQueue GetHandle(RHIQueueFamily family, uint32_t index) const;
 
   private:
-	VkQueue m_handle = VK_NULL_HANDLE;
+	Device *p_device = nullptr;
 
-	struct SubmitInfo
-	{
-		std::vector<VkCommandBuffer> cmd_buffers;
-		std::vector<VkSemaphore>     wait_semaphores;
-		std::vector<VkSemaphore>     signal_semaphores;
-	};
+	std::map<RHIQueueFamily, std::vector<VkQueue>>  m_queues;
+	std::map<RHIQueueFamily, std::atomic<size_t>> m_queue_index;
 
-	std::vector<SubmitInfo> m_submit_infos;
+	std::unordered_map<VkQueue, VkFence> m_queue_fences;
 };
 }        // namespace Ilum::Vulkan

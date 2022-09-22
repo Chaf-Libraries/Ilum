@@ -88,12 +88,15 @@ class RHIContext
 	// Create Acceleration Structure
 	std::unique_ptr<RHIAccelerationStructure> CreateAcccelerationStructure(bool cuda = false);
 
-	// Get Queue
-	RHIQueue *GetQueue(RHIQueueFamily family);
+	// Submit command buffer
+	void Submit(std::vector<RHICommand *> &&cmd_buffers, std::vector<RHISemaphore *> &&wait_semaphores = {}, std::vector<RHISemaphore *> &&signal_semaphores = {});
 
-	RHIQueue *GetCUDAQueue();
+	// Execute immediate command buffer
+	void Execute(RHICommand *cmd_buffer);
 
-	std::unique_ptr<RHIQueue> CreateQueue(RHIQueueFamily family, uint32_t idx = 0, bool cuda = false);
+	void Execute(std::vector<RHICommand *> &&cmd_buffers, std::vector<RHISemaphore *> &&wait_semaphores, std::vector<RHISemaphore *> &&signal_semaphores);
+
+	void Reset();
 
 	// Get Back Buffer
 	RHITexture *GetBackBuffer();
@@ -117,15 +120,15 @@ class RHIContext
 
 	std::unique_ptr<RHISwapchain> m_swapchain = nullptr;
 
-	std::unique_ptr<RHIQueue> m_graphics_queue = nullptr;
-	std::unique_ptr<RHIQueue> m_compute_queue  = nullptr;
-	std::unique_ptr<RHIQueue> m_transfer_queue = nullptr;
-	std::unique_ptr<RHIQueue> m_cuda_queue     = nullptr;
+	std::unique_ptr<RHIQueue> m_queue      = nullptr;
+	std::unique_ptr<RHIQueue> m_cuda_queue = nullptr;
 
 	std::vector<std::unique_ptr<RHISemaphore>> m_present_complete;
 	std::vector<std::unique_ptr<RHISemaphore>> m_render_complete;
 
 	std::vector<std::unique_ptr<RHIFrame>> m_frames;
 	std::vector<std::unique_ptr<RHIFrame>> m_cuda_frames;
+
+	std::vector<SubmitInfo> m_submit_infos;
 };
 }        // namespace Ilum

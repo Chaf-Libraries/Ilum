@@ -68,11 +68,7 @@ Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resou
 		                                     TextureStateTransition{m_dummy_textures[DummyTexture::BlackTransparent].get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
 		                                    {});
 		cmd_buffer->End();
-		auto queue = p_rhi_context->CreateQueue(RHIQueueFamily::Graphics, 1);
-		auto fence = p_rhi_context->CreateFence();
-		queue->Submit({cmd_buffer});
-		queue->Execute(fence.get());
-		fence->Wait();
+		p_rhi_context->Execute(cmd_buffer);
 	}
 }
 
@@ -362,7 +358,7 @@ void Renderer::UpdateScene()
 			cmd_buffer->Begin();
 			m_tlas->Update(cmd_buffer, desc);
 			cmd_buffer->End();
-			p_rhi_context->GetQueue(RHIQueueFamily::Compute)->Submit({cmd_buffer});
+			p_rhi_context->Submit({cmd_buffer});
 		}
 	}
 }

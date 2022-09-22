@@ -39,10 +39,7 @@ RenderGraph::RenderGraph(RHIContext *rhi_context) :
 
 RenderGraph::~RenderGraph()
 {
-	p_rhi_context->GetQueue(RHIQueueFamily::Graphics)->Execute();
-	p_rhi_context->GetQueue(RHIQueueFamily::Compute)->Execute();
-	p_rhi_context->GetQueue(RHIQueueFamily::Graphics)->Wait();
-	p_rhi_context->GetQueue(RHIQueueFamily::Compute)->Wait();
+	p_rhi_context->Reset();
 
 	p_rhi_context->WaitIdle();
 }
@@ -75,7 +72,7 @@ void RenderGraph::Execute()
 		m_init = true;
 		cmd_buffer->EndMarker();
 		cmd_buffer->End();
-		p_rhi_context->GetQueue(RHIQueueFamily::Graphics)->Submit({cmd_buffer});
+		p_rhi_context->Submit({cmd_buffer});
 	}
 
 	BindPoint last_bind_point = m_render_passes[0].bind_point;
@@ -107,7 +104,7 @@ void RenderGraph::Execute()
 		}
 	}
 
-	p_rhi_context->GetQueue(RHIQueueFamily::Graphics)->Submit(cmd_buffers);
+	p_rhi_context->Submit(std::move(cmd_buffers));
 }
 
 const std::vector<RenderGraph::RenderPassInfo> &RenderGraph::GetRenderPasses() const

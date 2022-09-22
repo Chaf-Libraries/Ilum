@@ -38,11 +38,7 @@ inline void LoadTextureFromBuffer(RHIContext *rhi_context, std::unique_ptr<RHITe
 	                                    {});
 	cmd_buffer->End();
 
-	auto queue = rhi_context->CreateQueue(RHIQueueFamily::Graphics, 1);
-	auto fence = rhi_context->CreateFence();
-	queue->Submit({cmd_buffer});
-	queue->Execute(fence.get());
-	fence->Wait();
+	rhi_context->Execute(cmd_buffer);
 }
 
 ResourceManager::ResourceManager(RHIContext *rhi_context) :
@@ -213,11 +209,7 @@ void ResourceManager::ImportTexture(const std::string &filename)
 		                                    {});
 		cmd_buffer->End();
 
-		auto queue = p_rhi_context->CreateQueue(RHIQueueFamily::Graphics, 1);
-		auto fence = p_rhi_context->CreateFence();
-		queue->Submit({cmd_buffer});
-		queue->Execute(fence.get());
-		fence->Wait();
+		p_rhi_context->Execute(cmd_buffer);
 	}
 
 	info.thumbnail_data.resize(thumbnail_buffer->GetDesc().size);
@@ -290,7 +282,7 @@ void ResourceManager::ImportModel(const std::string &filename)
 	}
 
 	cmd_buffer->End();
-	p_rhi_context->GetQueue(RHIQueueFamily::Compute)->Submit({cmd_buffer});
+	p_rhi_context->Submit({cmd_buffer});
 
 	m_model_index.emplace(uuid, m_models.size());
 	m_models.emplace_back(std::make_unique<ModelMeta>(std::move(meta)));
@@ -412,7 +404,7 @@ const ModelMeta *ResourceManager::GetModel(const std::string &uuid)
 				meta->blas.emplace_back(std::move(as));
 			}
 			cmd_buffer->End();
-			p_rhi_context->GetQueue(RHIQueueFamily::Compute)->Submit({cmd_buffer});
+			p_rhi_context->Submit({cmd_buffer});
 		}
 
 		return m_models[m_model_index.at(uuid)].get();

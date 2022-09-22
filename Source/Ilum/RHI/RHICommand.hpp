@@ -27,6 +27,10 @@ class RHICommand
 
 	virtual ~RHICommand() = default;
 
+	RHIQueueFamily GetQueueFamily() const;
+
+	RHIBackend GetBackend() const;
+
 	CommandState GetState() const;
 
 	void Init();

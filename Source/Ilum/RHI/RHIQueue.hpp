@@ -11,28 +11,30 @@ class RHICommand;
 class RHISemaphore;
 class RHIFence;
 
+struct [[serialization(false), reflection(false)]] SubmitInfo
+{
+	RHIQueueFamily queue_family;
+	bool           is_cuda;
+
+	std::vector<RHICommand *>   cmd_buffers;
+	std::vector<RHISemaphore *> wait_semaphores;
+	std::vector<RHISemaphore *> signal_semaphores;
+};
+
 class RHIQueue
 {
   public:
-	RHIQueue(RHIDevice *device, RHIQueueFamily family, uint32_t queue_index = 0);
+	RHIQueue(RHIDevice *device);
 
 	virtual ~RHIQueue() = default;
 
-	static std::unique_ptr<RHIQueue> Create(RHIDevice *device, RHIQueueFamily family, uint32_t queue_index = 0);
+	static std::unique_ptr<RHIQueue> Create(RHIDevice *device);
 
-	RHIQueueFamily GetQueueFamily() const;
+	virtual void Execute(RHIQueueFamily family, const std::vector<SubmitInfo> &submit_infos, RHIFence* fence = nullptr) = 0;
+
+	// Immediate execution
+	virtual void Execute(RHICommand *cmd_buffer) = 0;
 
 	virtual void Wait() = 0;
-
-	virtual void Submit(const std::vector<RHICommand *> &cmds, const std::vector<RHISemaphore *> &signal_semaphores = {}, const std::vector<RHISemaphore *> &wait_semaphores = {}) = 0;
-
-	virtual void Execute(RHIFence *fence = nullptr) = 0;
-
-	virtual bool Empty() = 0;
-
-  protected:
-	RHIDevice     *p_device = nullptr;
-	RHIQueueFamily m_family;
-	uint32_t       m_queue_index = 0;
 };
 }        // namespace Ilum

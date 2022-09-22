@@ -167,8 +167,6 @@ Swapchain::Swapchain(RHIDevice *device, void *window_handle, uint32_t width, uin
 
 	std::optional<uint32_t> graphics_family, compute_family, transfer_family;
 
-	uint32_t present_family = 0;
-
 	graphics_family = GetQueueFamilyIndex(queue_family_properties, VK_QUEUE_GRAPHICS_BIT);
 	transfer_family = GetQueueFamilyIndex(queue_family_properties, VK_QUEUE_TRANSFER_BIT);
 	compute_family  = GetQueueFamilyIndex(queue_family_properties, VK_QUEUE_COMPUTE_BIT);
@@ -183,23 +181,12 @@ Swapchain::Swapchain(RHIDevice *device, void *window_handle, uint32_t width, uin
 
 		if (queue_family_properties[i].queueCount > 0 && present_support)
 		{
-			present_family = i;
+			m_present_family = i;
 			break;
 		}
 	}
 
-	if (graphics_family.has_value() && present_family == graphics_family.value())
-	{
-		m_present_queue = std::make_unique<Queue>(device, RHIQueueFamily::Graphics);
-	}
-	else if (compute_family.has_value() && present_family == compute_family.value())
-	{
-		m_present_queue = std::make_unique<Queue>(device, RHIQueueFamily::Compute);
-	}
-	else if (transfer_family.has_value() && present_family == transfer_family.value())
-	{
-		m_present_queue = std::make_unique<Queue>(device, RHIQueueFamily::Transfer);
-	}
+	vkGetDeviceQueue(static_cast<Device *>(p_device)->GetDevice(), m_present_family, 0, &m_present_queue);
 
 	Resize(chosen_extent.width, chosen_extent.height);
 }
@@ -260,7 +247,7 @@ bool Swapchain::Present(RHISemaphore *semaphore)
 		present_info.waitSemaphoreCount = 1;
 	}
 
-	auto result = vkQueuePresentKHR(m_present_queue->GetHandle(), &present_info);
+	auto result = vkQueuePresentKHR(m_present_queue, &present_info);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
@@ -288,7 +275,7 @@ void Swapchain::Resize(uint32_t width, uint32_t height)
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
 
-	uint32_t queueFamilyIndices[] = {static_cast<Device *>(p_device)->GetQueueFamily(m_present_queue->GetQueueFamily())};
+	uint32_t queueFamilyIndices[] = {m_present_family};
 
 	createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	createInfo.preTransform     = m_capabilities.currentTransform;
@@ -330,8 +317,6 @@ void Swapchain::Resize(uint32_t width, uint32_t height)
 	}
 
 	{
-		auto queue = std::make_unique<Queue>(p_device, RHIQueueFamily::Graphics, 1);
-		queue->Wait();
 		auto cmd_buffer = std::make_unique<Command>(p_device, RHIQueueFamily::Graphics);
 		cmd_buffer->Init();
 		cmd_buffer->Begin();
@@ -341,8 +326,20 @@ void Swapchain::Resize(uint32_t width, uint32_t height)
 		                                    {});
 		cmd_buffer->End();
 		auto fence = std::make_unique<Fence>(p_device);
-		queue->Submit({cmd_buffer.get()});
-		queue->Execute(fence.get());
+
+		auto vk_cmd_buffer = cmd_buffer->GetHandle();
+
+		VkSubmitInfo submit_info = {};
+		submit_info.sType        = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submit_info.commandBufferCount      = 1;
+		submit_info.pCommandBuffers         = &vk_cmd_buffer;
+		submit_info.signalSemaphoreCount    = 0;
+		submit_info.pSignalSemaphores       = nullptr;
+		submit_info.waitSemaphoreCount      = 0;
+		submit_info.pWaitSemaphores         = nullptr;
+		submit_info.pWaitDstStageMask       = nullptr;
+
+		vkQueueSubmit(m_present_queue, 1, &submit_info, fence ? fence->GetHandle() : nullptr);
 		fence->Wait();
 	}
 

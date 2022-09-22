@@ -1,36 +1,35 @@
 #include "Queue.hpp"
 #include "Command.hpp"
 
+#include <cuda.h>
+#include <cuda_runtime.h>
+
 namespace Ilum::CUDA
 {
-Queue::Queue(RHIDevice *device, RHIQueueFamily family, uint32_t queue_index) :
-    RHIQueue(device, family, queue_index)
+Queue::Queue(RHIDevice *device) :
+    RHIQueue(device)
 {
 }
 
 void Queue::Wait()
 {
+	cudaDeviceSynchronize();
 }
 
-void Queue::Submit(const std::vector<RHICommand *> &cmds, const std::vector<RHISemaphore *> &signal_semaphores, const std::vector<RHISemaphore *> &wait_semaphores)
+void Queue::Execute(RHIQueueFamily family, const std::vector<SubmitInfo> &submit_infos, RHIFence *fence)
 {
-	for (auto &cmd : cmds)
+	for (auto &submit_info : submit_infos)
 	{
-		m_cmds.push_back(cmd);
+		for (auto &cmd_buffer : submit_info.cmd_buffers)
+		{
+			static_cast<Command *>(cmd_buffer)->Execute();
+		}
 	}
 }
 
-void Queue::Execute(RHIFence *fence)
+void Queue::Execute(RHICommand *cmd_buffer)
 {
-	for (auto &cmd : m_cmds)
-	{
-		static_cast<Command *>(cmd)->Execute();
-	}
-	m_cmds.clear();
-}
-
-bool Queue::Empty()
-{
-	return m_cmds.empty();
+	static_cast<Command *>(cmd_buffer)->Execute();
+	cudaDeviceSynchronize();
 }
 }        // namespace Ilum::CUDA

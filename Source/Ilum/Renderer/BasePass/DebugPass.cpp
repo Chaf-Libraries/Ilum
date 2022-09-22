@@ -26,7 +26,7 @@ RenderGraph::RenderTask DebugPass::Create(const RenderPassDesc &desc, RenderGrap
 		                                        TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
 		                                    {});
 		cmd_buffer->End();
-		renderer->GetRHIContext()->GetQueue(RHIQueueFamily::Graphics)->Submit({cmd_buffer});
+		renderer->GetRHIContext()->Submit({cmd_buffer});
 	}
 
 	return [=](RenderGraph &render_graph, RHICommand *cmd_buffer, rttr::variant &config) {

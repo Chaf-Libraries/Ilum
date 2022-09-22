@@ -12,6 +12,16 @@ RHICommand::RHICommand(RHIDevice *device, RHIQueueFamily family) :
 {
 }
 
+RHIQueueFamily RHICommand::GetQueueFamily() const
+{
+	return m_family;
+}
+
+RHIBackend RHICommand::GetBackend() const
+{
+	return p_device->GetBackend();
+}
+
 CommandState RHICommand::GetState() const
 {
 	return m_state;

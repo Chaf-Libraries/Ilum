@@ -654,9 +654,8 @@ void RenderGraphEditor::Tick()
 
 		if (!m_need_compile && !m_desc.passes.empty() && ImGui::MenuItem("Reload"))
 		{
-			p_editor->GetRHIContext()->GetQueue(RHIQueueFamily::Graphics)->Execute();
-			p_editor->GetRHIContext()->GetQueue(RHIQueueFamily::Compute)->Execute();
 			p_editor->GetRHIContext()->WaitIdle();
+			p_editor->GetRHIContext()->Reset();
 
 			RenderGraphBuilder builder(p_editor->GetRHIContext());
 

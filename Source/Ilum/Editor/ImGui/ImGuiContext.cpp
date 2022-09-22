@@ -209,11 +209,8 @@ GuiContext::GuiContext(RHIContext *context, Window *window) :
 	                                    {});
 	cmd_buffer->EndMarker();
 	cmd_buffer->End();
-	auto *queue = p_context->GetQueue(RHIQueueFamily::Graphics);
-	queue->Submit({cmd_buffer});
-	auto fence = p_context->CreateFence();
-	queue->Execute(fence.get());
-	fence->Wait();
+
+	p_context->Execute(cmd_buffer);
 
 	io.Fonts->TexID = static_cast<ImTextureID>(m_font_atlas.get());
 
@@ -585,7 +582,7 @@ static void RHI_Render(ImDrawData *draw_data, WindowData *window_data = nullptr)
 	}
 	else
 	{
-		gContext->GetQueue(RHIQueueFamily::Graphics)->Submit({cmd_buffer}, {}, {});
+		gContext->Submit({cmd_buffer}, {}, {});
 	}
 }
 
@@ -632,8 +629,7 @@ static void ImGuiWindowPresent(ImGuiViewport *viewport, void *)
 {
 	WindowData *window_data = static_cast<WindowData *>(viewport->RendererUserData);
 
-	gContext->GetQueue(RHIQueueFamily::Graphics)->Submit(window_data->viewport_data->cmd_buffers, {window_data->viewport_data->render_complete.get()}, {window_data->viewport_data->present_complete.get()});
-	gContext->GetQueue(RHIQueueFamily::Graphics)->Execute();
+	gContext->Execute(std::move(window_data->viewport_data->cmd_buffers), {window_data->viewport_data->render_complete.get()}, {window_data->viewport_data->present_complete.get()});
 	window_data->viewport_data->cmd_buffers.clear();
 
 	window_data->swapchain->Present(window_data->viewport_data->render_complete.get());

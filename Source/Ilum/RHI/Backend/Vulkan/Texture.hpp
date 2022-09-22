@@ -37,6 +37,10 @@ class Texture : public RHITexture
 
 	VkImage GetHandle() const;
 
+	VkDeviceMemory GetMemory() const;
+
+	size_t GetMemorySize() const;
+
 	VkImageView GetView(const TextureRange &range) const;
 
   private:

@@ -355,6 +355,16 @@ VkImage Texture::GetHandle() const
 	return m_handle;
 }
 
+VkDeviceMemory Texture::GetMemory() const
+{
+	return m_memory;
+}
+
+size_t Texture::GetMemorySize() const
+{
+	return m_memory_size;
+}
+
 VkImageView Texture::GetView(const TextureRange &range) const
 {
 	size_t hash = range.Hash();

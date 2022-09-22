@@ -32,7 +32,8 @@ class Swapchain : public RHISwapchain
 	VkSurfaceKHR   m_surface   = VK_NULL_HANDLE;
 	VkSwapchainKHR m_swapchain = VK_NULL_HANDLE;
 
-	std::unique_ptr<Queue> m_present_queue = nullptr;
+	VkQueue m_present_queue = VK_NULL_HANDLE;
+	uint32_t m_present_family = 0;
 
 	std::vector<std::unique_ptr<Texture>> m_textures;
 
