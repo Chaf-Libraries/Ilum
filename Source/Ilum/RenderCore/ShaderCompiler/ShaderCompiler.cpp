@@ -679,7 +679,6 @@ std::vector<uint8_t> ShaderCompiler::Compile(const ShaderDesc &desc, ShaderMeta 
 
 				hlsl = std::regex_replace(hlsl, std::regex("SPIRV_Cross_Input stage_input"), input_struct);
 				hlsl = std::regex_replace(hlsl, std::regex("stage_input.gl_"), "glx");
-				hlsl = std::regex_replace(hlsl, std::regex("^Texture2D"), "RWTexture2D");
 			}
 
 			return CompileShader<ShaderSource::HLSL, ShaderTarget::PTX>(hlsl, desc.stage, desc.entry_point, desc.macros);

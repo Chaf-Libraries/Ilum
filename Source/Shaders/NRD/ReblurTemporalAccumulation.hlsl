@@ -4047,13 +4047,13 @@ void Preload( uint2 sharedPos, int2 globalPos )
     globalPos = clamp( globalPos, 0, gRectSize - 1.0 );
     uint2 globalIdUser = gRectOrigin + globalPos;
 
-    float4 temp = NRD_FrontEnd_UnpackNormalAndRoughness( gIn_Normal_Roughness[ globalIdUser ] );
+    float4 temp = NRD_FrontEnd_UnpackNormalAndRoughness( gIn_Normal_Roughness.SampleLevel(gLinearClamp, globalIdUser * gInvRectSize, 0) );
 #line 36 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_TemporalAccumulation.ush"
     s_Normal_MinHitDist[ sharedPos.y ][ sharedPos.x ] = temp;
 }
 
 [numthreads(  8 ,  8 , 1 )]
- void  main ( int2 threadPos : SV_GroupThreadId, int2 pixelPos : SV_DispatchThreadId, uint threadIndex : SV_GroupIndex )
+ void  MainCS ( int2 threadPos : SV_GroupThreadId, int2 pixelPos : SV_DispatchThreadId, uint threadIndex : SV_GroupIndex )
 {
     uint2 pixelPosUser = gRectOrigin + pixelPos;
     float2 pixelUv = float2( pixelPos + 0.5 ) * gInvRectSize;
@@ -4061,7 +4061,7 @@ void Preload( uint2 sharedPos, int2 globalPos )
     int2 groupBase = pixelPos - threadPos - 1 ; uint stageNum = ( ( 8 + 1 * 2 ) * ( 8 + 1 * 2 ) + 8 * 8 - 1 ) / ( 8 * 8 ); [unroll] for( uint stage = 0; stage < stageNum; stage++ ) { uint virtualIndex = threadIndex + stage * 8 * 8 ; uint2 newId = uint2( virtualIndex % ( 8 + 1 * 2 ) , virtualIndex / ( 8 + 1 * 2 ) ); if( stage == 0 || virtualIndex < ( 8 + 1 * 2 ) * ( 8 + 1 * 2 ) ) Preload( newId, groupBase + newId ); } GroupMemoryBarrierWithGroupSync( ) ;
 
 
-    float viewZ = abs( gIn_ViewZ[ pixelPosUser ] );
+    float viewZ = abs( gIn_ViewZ.SampleLevel(gLinearClamp, pixelPosUser * gInvRectSize, 0) );
 
     [branch]
     if( viewZ > gDenoisingRange )
@@ -4101,11 +4101,11 @@ void Preload( uint2 sharedPos, int2 globalPos )
 
 
     float materialID;
-    float4 normalAndRoughness = NRD_FrontEnd_UnpackNormalAndRoughness( gIn_Normal_Roughness[ pixelPosUser ], materialID );
+    float4 normalAndRoughness = NRD_FrontEnd_UnpackNormalAndRoughness( gIn_Normal_Roughness.SampleLevel(gLinearClamp, pixelPosUser * gInvRectSize, 0), materialID );
     float3 N = normalAndRoughness.xyz;
     float roughness = normalAndRoughness.w;
 #line 107 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_TemporalAccumulation.ush"
-    float3 motionVector = gIn_ObjectMotion[ pixelPosUser ] * gMotionVectorScale.xyy;
+    float3 motionVector = gIn_ObjectMotion.SampleLevel(gLinearClamp, pixelPosUser * gInvRectSize, 0) * gMotionVectorScale.xyy;
     float2 smbPixelUv = STL::Geometry::GetPrevUvFromMotion( pixelUv, X, gWorldToClipPrev, motionVector, gIsWorldSpaceMotionEnabled );
     float isInScreen = IsInScreen( smbPixelUv );
     float3 Xprev = X + motionVector * float( gIsWorldSpaceMotionEnabled != 0 );
@@ -4115,10 +4115,10 @@ void Preload( uint2 sharedPos, int2 globalPos )
 #line 160 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_TemporalAccumulation.ush"
     STL::Filtering::CatmullRom smbCatromFilter = STL::Filtering::GetCatmullRomFilter( saturate( smbPixelUv ), gRectSizePrev );
     float2 smbCatromGatherUv = smbCatromFilter.origin * gInvScreenSize;
-    float4 smbViewZ0 = gIn_Prev_ViewZ.GatherRed( gNearestClamp, smbCatromGatherUv, float2( 1, 1 ) ).wzxy;
-    float4 smbViewZ1 = gIn_Prev_ViewZ.GatherRed( gNearestClamp, smbCatromGatherUv, float2( 3, 1 ) ).wzxy;
-    float4 smbViewZ2 = gIn_Prev_ViewZ.GatherRed( gNearestClamp, smbCatromGatherUv, float2( 1, 3 ) ).wzxy;
-    float4 smbViewZ3 = gIn_Prev_ViewZ.GatherRed( gNearestClamp, smbCatromGatherUv, float2( 3, 3 ) ).wzxy;
+    float4 smbViewZ0 = gIn_Prev_ViewZ.SampleLevel( gLinearClamp, smbCatromGatherUv + float2( 1, 1 ) * gInvScreenSize , 0.0).xxxx;
+    float4 smbViewZ1 = gIn_Prev_ViewZ.SampleLevel( gLinearClamp, smbCatromGatherUv + float2( 3, 1 ) * gInvScreenSize , 0.0 ).xxxx;
+    float4 smbViewZ2 = gIn_Prev_ViewZ.SampleLevel( gLinearClamp, smbCatromGatherUv + float2( 1, 3 ) * gInvScreenSize , 0.0 ).xxxx;
+    float4 smbViewZ3 = gIn_Prev_ViewZ.SampleLevel( gLinearClamp, smbCatromGatherUv + float2( 3, 3 ) * gInvScreenSize , 0.0 ).xxxx;
 
     float3 prevViewZ0 =  ( smbViewZ0.yzw / 0.125 ) ;
     float3 prevViewZ1 =  ( smbViewZ1.xzw / 0.125 ) ;
@@ -4133,7 +4133,7 @@ void Preload( uint2 sharedPos, int2 globalPos )
     prevNflat = STL::Geometry::RotateVector( gWorldPrevToWorld, prevNflat );
 
 
-    uint4 smbPackedAccumSpeedMaterialID = gIn_Prev_AccumSpeeds_MaterialID.GatherRed( gNearestClamp, smbBilinearGatherUv ).wzxy;
+    uint4 smbPackedAccumSpeedMaterialID = gIn_Prev_AccumSpeeds_MaterialID.SampleLevel( gLinearClamp, smbBilinearGatherUv, 0 ).xxxx;
 
     float3 prevAccumSpeedMaterialID00 = UnpackAccumSpeedsMaterialID( smbPackedAccumSpeedMaterialID.x );
     float3 prevAccumSpeedMaterialID10 = UnpackAccumSpeedsMaterialID( smbPackedAccumSpeedMaterialID.y );
@@ -4208,8 +4208,8 @@ void Preload( uint2 sharedPos, int2 globalPos )
     uint checkerboard = STL::Sequence::CheckerBoard( pixelPos, gFrameIndex );
 
         int3 checkerboardPos = pixelPosUser.xyx + int3( -1, 0, 1 );
-        float viewZ0 = gIn_ViewZ[ checkerboardPos.xy ];
-        float viewZ1 = gIn_ViewZ[ checkerboardPos.zy ];
+        float viewZ0 = gIn_ViewZ.SampleLevel(gLinearClamp, checkerboardPos.xy * gInvRectSize, 0);
+        float viewZ1 = gIn_ViewZ.SampleLevel(gLinearClamp, checkerboardPos.zy * gInvRectSize, 0);
         float2 wc =  STL::Math::LinearStep( 0.03 , 0.0, abs( float2( viewZ0, viewZ1 ) - viewZ ) * rcp( max( abs( float2( viewZ0, viewZ1 ) ), abs( viewZ ) ) + 1e-6 ) ) ;
         wc *= STL::Math::PositiveRcp( wc.x + wc.y );
 
@@ -4221,7 +4221,7 @@ void Preload( uint2 sharedPos, int2 globalPos )
             uint diffShift = gDiffCheckerboard != 2 ? 1 : 0;
             uint2 diffPos = uint2( pixelPos.x >> diffShift, pixelPos.y ) + gRectOrigin;
 #line 287 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_TemporalAccumulation.ush"
-        float  diff = gIn_Diff[ diffPos ];
+        float  diff = gIn_Diff.SampleLevel(gLinearClamp, diffPos * gInvRectSize, 0);
 #line 293 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_TemporalAccumulation.ush"
         float  smbDiffHistory;
         float4 smbDiffShHistory;
@@ -4238,8 +4238,8 @@ void Preload( uint2 sharedPos, int2 globalPos )
 
 
 
-            float d0 = gIn_Diff[ uint2( ( pixelPos.x - 1 ) >> diffShift, pixelPos.y ) + gRectOrigin ];
-            float d1 = gIn_Diff[ uint2( ( pixelPos.x + 1 ) >> diffShift, pixelPos.y ) + gRectOrigin ];
+            float d0 = gIn_Diff.SampleLevel(gLinearClamp, (uint2( ( pixelPos.x - 1 ) >> diffShift, pixelPos.y ) + gRectOrigin) * gInvRectSize, 0);
+            float d1 = gIn_Diff.SampleLevel(gLinearClamp, (uint2( ( pixelPos.x + 1 ) >> diffShift, pixelPos.y ) + gRectOrigin) * gInvRectSize, 0);
 
             if( !diffHasData )
             {

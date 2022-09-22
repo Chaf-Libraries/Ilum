@@ -112,6 +112,9 @@ using OutputArchive = cereal::XMLOutputArchive;
 #define REFLECTION_PROPERTY(...)
 #define REFLECTION_METHOD(...)
 
+#define ILUM_EXPORT_API __declspec(dllexport)
+#define ILUM_IMPORT_API __declspec(dllimport)
+
 #ifdef NDEBUG
 #	define ASSERT(x)
 #else

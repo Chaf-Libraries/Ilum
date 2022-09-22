@@ -2,6 +2,7 @@
 
 #include <CodeGeneration/Meta/RHIMeta.hpp>
 #include <Core/Path.hpp>
+#include <RHI/RHIContext.hpp>
 #include <RenderCore/ShaderCompiler/ShaderCompiler.hpp>
 #include <Resource/ResourceManager.hpp>
 #include <Scene/Component/StaticMeshComponent.hpp>
@@ -182,9 +183,9 @@ const StaticBatch &Renderer::GetStaticBatch() const
 	return m_static_batch;
 }
 
-RHIShader *Renderer::RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, const std::vector<std::string> &macros, RHIBackend backend)
+RHIShader *Renderer::RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, const std::vector<std::string> &macros, bool cuda)
 {
-	size_t hash = Hash(filename, entry_point, stage, macros, backend);
+	size_t hash = Hash(filename, entry_point, stage, macros, cuda);
 
 	if (m_shader_cache.find(hash) != m_shader_cache.end())
 	{
@@ -229,20 +230,28 @@ RHIShader *Renderer::RequireShader(const std::string &filename, const std::strin
 		desc.stage       = stage;
 		desc.entry_point = entry_point;
 		desc.macros      = macros;
-		switch (backend)
+		if (cuda)
 		{
-			case RHIBackend::Vulkan:
-				desc.target = ShaderTarget::SPIRV;
-				break;
-			case RHIBackend::DX12:
-				desc.target = ShaderTarget::DXIL;
-				break;
-			case RHIBackend::CUDA:
-				desc.target = ShaderTarget::PTX;
-				break;
-			default:
-				break;
+			desc.target = ShaderTarget::PTX;
 		}
+		else
+		{
+			switch (p_rhi_context->GetBackend())
+			{
+				case RHIBackend::Vulkan:
+					desc.target = ShaderTarget::SPIRV;
+					break;
+				case RHIBackend::DX12:
+					desc.target = ShaderTarget::DXIL;
+					break;
+				case RHIBackend::CUDA:
+					desc.target = ShaderTarget::PTX;
+					break;
+				default:
+					break;
+			}
+		}
+
 		LOG_INFO("Compiling shader {} with entry point \"{}\"...", filename, entry_point);
 		shader_bin = ShaderCompiler::GetInstance().Compile(desc, meta);
 
@@ -333,7 +342,7 @@ void Renderer::UpdateScene()
 				instance_data.transform   = instance_info.transform;
 				instance_data.material    = 0;
 				instances.emplace_back(std::move(instance_data));
-				m_static_batch.meshlet_count .push_back(meta->submeshes[i].meshlet_count);
+				m_static_batch.meshlet_count.push_back(meta->submeshes[i].meshlet_count);
 			}
 		}
 	});

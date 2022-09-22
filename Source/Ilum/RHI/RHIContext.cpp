@@ -6,35 +6,34 @@ namespace Ilum
 RHIContext::RHIContext(Window *window) :
     p_window(window)
 {
-	m_vulkan_device = RHIDevice::Create(RHIBackend::Vulkan);
-	m_dx12_device   = RHIDevice::Create(RHIBackend::DX12);
-	m_cuda_device   = RHIDevice::Create(RHIBackend::CUDA);
-
-	m_devices = {
-	    {RHIBackend::Vulkan, m_vulkan_device.get()},
-	    {RHIBackend::DX12, m_dx12_device.get()},
-	    {RHIBackend::CUDA, m_cuda_device.get()},
-	};
+	m_cuda_device = RHIDevice::Create(RHIBackend::CUDA);
 
 #ifdef RHI_BACKEND_VULKAN
-	m_device = m_vulkan_device.get();
+	m_device = RHIDevice::Create(RHIBackend::Vulkan);
 	LOG_INFO("RHI Backend: Vulkan");
 #elif RHI_BACKEND_DX12
+	m_device = RHIDevice::Create(RHIBackend::DX12);
 	LOG_INFO("RHI Backend: DX12");
+#elif RHI_BACKEND_OPENGL
+	m_device = RHIDevice::Create(RHIBackend::OpenGL);
+	LOG_INFO("RHI Backend: OpenGL");
+#else
+#	error "Please specify a rhi backend!"
 #endif        // RHI_BACKEND
 
-	m_swapchain = RHISwapchain::Create(m_device, p_window->GetNativeHandle(), p_window->GetWidth(), p_window->GetHeight(), true);
+	m_swapchain = RHISwapchain::Create(m_device.get(), p_window->GetNativeHandle(), p_window->GetWidth(), p_window->GetHeight(), true);
 
-	m_graphics_queue = RHIQueue::Create(m_device, RHIQueueFamily::Graphics);
-	m_compute_queue  = RHIQueue::Create(m_device, RHIQueueFamily::Compute);
-	m_transfer_queue = RHIQueue::Create(m_device, RHIQueueFamily::Transfer);
+	m_graphics_queue = RHIQueue::Create(m_device.get(), RHIQueueFamily::Graphics);
+	m_compute_queue  = RHIQueue::Create(m_device.get(), RHIQueueFamily::Compute);
+	m_transfer_queue = RHIQueue::Create(m_device.get(), RHIQueueFamily::Transfer);
 	m_cuda_queue     = RHIQueue::Create(m_cuda_device.get(), RHIQueueFamily::Compute);
 
 	for (uint32_t i = 0; i < m_swapchain->GetTextureCount(); i++)
 	{
-		m_frames.emplace_back(RHIFrame::Create(m_device));
-		m_present_complete.emplace_back(RHISemaphore::Create(m_device));
-		m_render_complete.emplace_back(RHISemaphore::Create(m_device));
+		m_frames.emplace_back(RHIFrame::Create(m_device.get()));
+		m_cuda_frames.emplace_back(RHIFrame::Create(m_cuda_device.get()));
+		m_present_complete.emplace_back(RHISemaphore::Create(m_device.get()));
+		m_render_complete.emplace_back(RHISemaphore::Create(m_device.get()));
 	}
 }
 
@@ -52,9 +51,21 @@ RHIContext::~RHIContext()
 	m_render_complete.clear();
 
 	m_swapchain.reset();
-	m_vulkan_device.reset();
-	m_dx12_device.reset();
+	m_device.reset();
 	m_cuda_device.reset();
+}
+
+RHIBackend RHIContext::GetBackend() const
+{
+#ifdef RHI_BACKEND_VULKAN
+	return RHIBackend::Vulkan;
+#elif RHI_BACKEND_DX12
+	return RHIBackend::DX12;
+#elif RHI_BACKEND_OPENGL
+	return RHIBackend::OpenGL;
+#else
+#	error "Please specify a rhi backend!"
+#endif        // RHI_BACKEND
 }
 
 bool RHIContext::IsFeatureSupport(RHIFeature feature) const
@@ -74,97 +85,97 @@ RHISwapchain *RHIContext::GetSwapchain() const
 
 std::unique_ptr<RHISwapchain> RHIContext::CreateSwapchain(void *window_handle, uint32_t width, uint32_t height, bool sync)
 {
-	return RHISwapchain::Create(m_device, window_handle, width, height, sync);
+	return RHISwapchain::Create(m_device.get(), window_handle, width, height, sync);
 }
 
-std::unique_ptr<RHITexture> RHIContext::CreateTexture(const TextureDesc &desc, RHIBackend backend)
+std::unique_ptr<RHITexture> RHIContext::CreateTexture(const TextureDesc &desc, bool cuda)
 {
-	return RHITexture::Create(m_device, desc);
+	return RHITexture::Create(m_device.get(), desc);
 }
 
-std::unique_ptr<RHITexture> RHIContext::CreateTexture2D(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples, RHIBackend backend)
+std::unique_ptr<RHITexture> RHIContext::CreateTexture2D(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples, bool cuda)
 {
-	return RHITexture::Create2D(m_device, width, height, format, usage, mipmap, samples);
+	return RHITexture::Create2D(m_device.get(), width, height, format, usage, mipmap, samples);
 }
 
-std::unique_ptr<RHITexture> RHIContext::CreateTexture3D(uint32_t width, uint32_t height, uint32_t depth, RHIFormat format, RHITextureUsage usage, RHIBackend backend)
+std::unique_ptr<RHITexture> RHIContext::CreateTexture3D(uint32_t width, uint32_t height, uint32_t depth, RHIFormat format, RHITextureUsage usage, bool cuda)
 {
-	return RHITexture::Create3D(m_device, width, height, depth, format, usage);
+	return RHITexture::Create3D(m_device.get(), width, height, depth, format, usage);
 }
 
-std::unique_ptr<RHITexture> RHIContext::CreateTextureCube(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, RHIBackend backend)
+std::unique_ptr<RHITexture> RHIContext::CreateTextureCube(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, bool cuda)
 {
-	return RHITexture::CreateCube(m_device, width, height, format, usage, mipmap);
+	return RHITexture::CreateCube(m_device.get(), width, height, format, usage, mipmap);
 }
 
-std::unique_ptr<RHITexture> RHIContext::CreateTexture2DArray(uint32_t width, uint32_t height, uint32_t layers, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples, RHIBackend backend)
+std::unique_ptr<RHITexture> RHIContext::CreateTexture2DArray(uint32_t width, uint32_t height, uint32_t layers, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples, bool cuda)
 {
-	return RHITexture::Create2DArray(m_device, width, height, layers, format, usage, mipmap, samples);
+	return RHITexture::Create2DArray(m_device.get(), width, height, layers, format, usage, mipmap, samples);
 }
 
-std::unique_ptr<RHIBuffer> RHIContext::CreateBuffer(const BufferDesc &desc, RHIBackend backend)
+std::unique_ptr<RHIBuffer> RHIContext::CreateBuffer(const BufferDesc &desc, bool cuda)
 {
-	return RHIBuffer::Create(m_device, desc);
+	return RHIBuffer::Create(m_device.get(), desc);
 }
 
-std::unique_ptr<RHIBuffer> RHIContext::CreateBuffer(size_t size, RHIBufferUsage usage, RHIMemoryUsage memory, RHIBackend backend)
+std::unique_ptr<RHIBuffer> RHIContext::CreateBuffer(size_t size, RHIBufferUsage usage, RHIMemoryUsage memory, bool cuda)
 {
 	BufferDesc desc = {};
 	desc.size       = size;
 	desc.usage      = usage;
 	desc.memory     = memory;
 
-	return RHIBuffer::Create(m_device, desc);
+	return RHIBuffer::Create(m_device.get(), desc);
 }
 
-std::unique_ptr<RHISampler> RHIContext::CreateSampler(const SamplerDesc &desc, RHIBackend backend)
+std::unique_ptr<RHISampler> RHIContext::CreateSampler(const SamplerDesc &desc, bool cuda)
 {
-	return RHISampler::Create(m_device, desc);
+	return RHISampler::Create(m_device.get(), desc);
 }
 
-RHICommand *RHIContext::CreateCommand(RHIQueueFamily family, RHIBackend backend)
+RHICommand *RHIContext::CreateCommand(RHIQueueFamily family, bool cuda)
 {
 	return m_frames[m_current_frame]->AllocateCommand(family);
 }
 
-std::unique_ptr<RHIDescriptor> RHIContext::CreateDescriptor(const ShaderMeta &meta, RHIBackend backend)
+std::unique_ptr<RHIDescriptor> RHIContext::CreateDescriptor(const ShaderMeta &meta, bool cuda)
 {
-	return RHIDescriptor::Create(m_device, meta);
+	return RHIDescriptor::Create(m_device.get(), meta);
 }
 
-std::unique_ptr<RHIPipelineState> RHIContext::CreatePipelineState(RHIBackend backend)
+std::unique_ptr<RHIPipelineState> RHIContext::CreatePipelineState(bool cuda)
 {
-	return RHIPipelineState::Create(m_device);
+	return RHIPipelineState::Create(m_device.get());
 }
 
-std::unique_ptr<RHIShader> RHIContext::CreateShader(const std::string &entry_point, const std::vector<uint8_t> &source, RHIBackend backend)
+std::unique_ptr<RHIShader> RHIContext::CreateShader(const std::string &entry_point, const std::vector<uint8_t> &source, bool cuda)
 {
-	return RHIShader::Create(m_device, entry_point, source);
+	return RHIShader::Create(m_device.get(), entry_point, source);
 }
 
-std::unique_ptr<RHIRenderTarget> RHIContext::CreateRenderTarget(RHIBackend backend)
+std::unique_ptr<RHIRenderTarget> RHIContext::CreateRenderTarget(bool cuda)
 {
-	return RHIRenderTarget::Create(m_device);
+	return RHIRenderTarget::Create(m_device.get());
 }
 
-std::unique_ptr<RHIProfiler> RHIContext::CreateProfiler(RHIBackend backend)
+std::unique_ptr<RHIProfiler> RHIContext::CreateProfiler(bool cuda)
 {
-	return RHIProfiler::Create(m_device, m_swapchain->GetTextureCount());
+	return RHIProfiler::Create(m_device.get(), m_swapchain->GetTextureCount());
 }
 
-std::unique_ptr<RHIFence> RHIContext::CreateFence(RHIBackend backend)
+std::unique_ptr<RHIFence> RHIContext::CreateFence(bool cuda)
 {
-	return RHIFence::Create(m_device);
+	return RHIFence::Create(m_device.get());
 }
 
-std::unique_ptr<RHISemaphore> RHIContext::CreateSemaphore(RHIBackend backend)
+std::unique_ptr<RHISemaphore> RHIContext::CreateSemaphore(bool cuda)
 {
-	return RHISemaphore::Create(m_device);
+	return RHISemaphore::Create(m_device.get());
 }
 
-std::unique_ptr<RHIAccelerationStructure> RHIContext::CreateAcccelerationStructure(RHIBackend backend)
+std::unique_ptr<RHIAccelerationStructure> RHIContext::CreateAcccelerationStructure(bool cuda)
 {
-	return RHIAccelerationStructure::Create(m_device);
+	return RHIAccelerationStructure::Create(m_device.get());
 }
 
 RHIQueue *RHIContext::GetQueue(RHIQueueFamily family)
@@ -188,9 +199,9 @@ RHIQueue *RHIContext::GetCUDAQueue()
 	return m_cuda_queue.get();
 }
 
-std::unique_ptr<RHIQueue> RHIContext::CreateQueue(RHIQueueFamily family, uint32_t idx, RHIBackend backend)
+std::unique_ptr<RHIQueue> RHIContext::CreateQueue(RHIQueueFamily family, uint32_t idx, bool cuda)
 {
-	return RHIQueue::Create(m_device, family, idx);
+	return RHIQueue::Create(m_device.get(), family, idx);
 }
 
 RHITexture *RHIContext::GetBackBuffer()

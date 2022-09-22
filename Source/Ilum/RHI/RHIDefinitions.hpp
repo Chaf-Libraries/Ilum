@@ -21,6 +21,7 @@ enum class RHIBackend
 	Unknown,
 	Vulkan,
 	DX12,
+	OpenGL,
 	CUDA
 };
 

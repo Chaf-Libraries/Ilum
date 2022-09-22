@@ -84,33 +84,13 @@ void RenderGraph::Execute()
 	cmd_buffers.reserve(m_render_passes.size());
 	for (auto &pass : m_render_passes)
 	{
-		if (last_bind_point != pass.bind_point)
-		{
-			switch (last_bind_point)
-			{
-				case BindPoint::Rasterization:
-					p_rhi_context->GetQueue(RHIQueueFamily::Graphics)->Submit(cmd_buffers);
-					break;
-				case BindPoint::Compute:
-				case BindPoint::RayTracing:
-					p_rhi_context->GetQueue(RHIQueueFamily::Compute)->Submit(cmd_buffers);
-					break;
-				case BindPoint::CUDA:
-					p_rhi_context->GetCUDAQueue()->Submit(cmd_buffers);
-					break;
-				default:
-					break;
-			}
-			cmd_buffers.clear();
-		}
-
 		if (pass.bind_point == BindPoint::CUDA)
 		{
-			auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Compute, RHIBackend::CUDA);
-			cmd_buffer->Begin();
-			pass.execute(*this, cmd_buffer, pass.config);
-			cmd_buffer->End();
-			cmd_buffers.push_back(cmd_buffer);
+			// auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Compute, RHIBackend::CUDA);
+			// cmd_buffer->Begin();
+			// pass.execute(*this, cmd_buffer, pass.config);
+			// cmd_buffer->End();
+			// cmd_buffers.push_back(cmd_buffer);
 		}
 		else
 		{
@@ -126,10 +106,8 @@ void RenderGraph::Execute()
 			cmd_buffers.push_back(cmd_buffer);
 		}
 	}
-	if (!cmd_buffers.empty())
-	{
-		p_rhi_context->GetQueue(RHIQueueFamily::Graphics)->Submit(cmd_buffers);
-	}
+
+	p_rhi_context->GetQueue(RHIQueueFamily::Graphics)->Submit(cmd_buffers);
 }
 
 const std::vector<RenderGraph::RenderPassInfo> &RenderGraph::GetRenderPasses() const

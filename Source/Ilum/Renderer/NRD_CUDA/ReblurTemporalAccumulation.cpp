@@ -15,7 +15,7 @@ RenderPassDesc ReblurTemporalAccumulation::CreateDesc()
 
 RenderGraph::RenderTask ReblurTemporalAccumulation::Create(const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
 {
-	auto *shader = renderer->RequireShader("Source/Shaders/NRD/ReblurTemporalAccumulation.hlsl", "main", RHIShaderStage::Compute, {}, RHIBackend::CUDA);
+	auto *shader = renderer->RequireShader("Source/Shaders/NRD/ReblurTemporalAccumulation.hlsl", "MainCS", RHIShaderStage::Compute, {}, true);
 
 	ShaderMeta meta = renderer->RequireShaderMeta(shader);
 
