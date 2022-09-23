@@ -1,11 +1,11 @@
 #include "Texture.hpp"
+#include "RHI/Backend/Vulkan/Texture.hpp"
 
 namespace Ilum::CUDA
 {
 cudaChannelFormatDesc GetCUDAChannelFormatDesc(RHIFormat format)
 {
 	cudaChannelFormatDesc desc = {};
-	std::memset(&desc, 0, sizeof(desc));
 
 	switch (format)
 	{
@@ -87,11 +87,32 @@ cudaChannelFormatDesc GetCUDAChannelFormatDesc(RHIFormat format)
 		default:
 			break;
 	}
-
 	return desc;
 }
 
-Texture::Texture(RHIDevice *device, const TextureDesc &desc) :
+HANDLE GetVkImageMemHandle(Vulkan::Device *device, Vulkan::Texture *texture, VkExternalMemoryHandleTypeFlagBitsKHR external_memory_handle_type_flag)
+{
+	HANDLE handle = {};
+
+	if (!texture->GetDesc().external)
+	{
+		LOG_ERROR("Texture {} is not external accessable!", texture->GetDesc().name);
+		return handle;
+	}
+
+	VkMemoryGetWin32HandleInfoKHR handle_info = {};
+
+	handle_info.sType      = VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR;
+	handle_info.pNext      = NULL;
+	handle_info.memory     = texture->GetMemory();
+	handle_info.handleType = external_memory_handle_type_flag;
+
+	device->GetMemoryWin32Handle(&handle_info, &handle);
+
+	return handle;
+}
+
+Texture::Texture(Device *device, const TextureDesc &desc) :
     RHITexture(device, desc)
 {
 	cudaChannelFormatDesc channel_format_desc = GetCUDAChannelFormatDesc(desc.format);
@@ -111,11 +132,10 @@ Texture::Texture(RHIDevice *device, const TextureDesc &desc) :
 	tex_desc.normalizedCoords = 1;
 
 	cudaCreateTextureObject(&m_texture_handle, &res_desc, &tex_desc, NULL);
-
 	cudaCreateSurfaceObject(&m_surface_handle, &res_desc);
 }
 
-Texture::Texture(RHIDevice *device, cudaArray_t cuda_array, const TextureDesc &desc) :
+Texture::Texture(Device *device, cudaArray_t cuda_array, const TextureDesc &desc) :
     RHITexture(device, desc), m_array(cuda_array), m_is_backbuffer(true)
 {
 	cudaResourceDesc res_desc = {};
@@ -136,10 +156,103 @@ Texture::Texture(RHIDevice *device, cudaArray_t cuda_array, const TextureDesc &d
 	cudaCreateSurfaceObject(&m_surface_handle, &res_desc);
 }
 
+Texture::Texture(Device *device, Vulkan::Device *vk_device, Vulkan::Texture *vk_texture) :
+    RHITexture(device, vk_texture->GetDesc())
+{
+	cudaExternalMemoryHandleDesc cuda_external_memory_handle_desc = {};
+
+#ifdef _WIN64
+	cuda_external_memory_handle_desc.type                = cudaExternalMemoryHandleTypeOpaqueWin32;
+	cuda_external_memory_handle_desc.handle.win32.handle = GetVkImageMemHandle(vk_device, vk_texture, VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT);
+#else
+	cuda_external_memory_handle_desc.type      = cudaExternalMemoryHandleTypeOpaqueFd;
+	cuda_external_memory_handle_desc.handle.fd = GetVkImageMemHandle(device, texture, VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR);
+#endif
+	cuda_external_memory_handle_desc.size = vk_texture->GetMemorySize();
+
+	cudaImportExternalMemory(&m_external_memory, &cuda_external_memory_handle_desc);
+
+	cudaExtent            extent = {vk_texture->GetDesc().width, vk_texture->GetDesc().height, vk_texture->GetDesc().depth};
+	cudaChannelFormatDesc format = GetCUDAChannelFormatDesc(vk_texture->GetDesc().format);
+
+	cudaExternalMemoryMipmappedArrayDesc cuda_external_memory_mipmapped_array_desc = {};
+
+	cuda_external_memory_mipmapped_array_desc.offset     = 0;
+	cuda_external_memory_mipmapped_array_desc.formatDesc = format;
+	cuda_external_memory_mipmapped_array_desc.extent     = extent;
+	cuda_external_memory_mipmapped_array_desc.flags      = 0;
+	cuda_external_memory_mipmapped_array_desc.numLevels  = vk_texture->GetDesc().mips;
+
+	cudaExternalMemoryGetMappedMipmappedArray(&m_mipmapped_array, m_external_memory, &cuda_external_memory_mipmapped_array_desc);
+	cudaMallocMipmappedArray(&m_mipmapped_array_orig, &format, extent, vk_texture->GetDesc().mips);
+
+	std::vector<cudaSurfaceObject_t> surfaces;
+
+	for (uint32_t mip_level = 0; mip_level < vk_texture->GetDesc().mips; mip_level++)
+	{
+		cudaArray_t cuda_mip_level_array = {}, cuda_mip_level_array_orig = {};
+
+		cudaResourceDesc resource_desc = {};
+
+		cudaGetMipmappedArrayLevel(&cuda_mip_level_array, m_mipmapped_array, mip_level);
+		cudaGetMipmappedArrayLevel(&cuda_mip_level_array_orig, m_mipmapped_array_orig, mip_level);
+
+		uint32_t width  = (vk_texture->GetDesc().width >> mip_level) ? (vk_texture->GetDesc().width >> mip_level) : 1;
+		uint32_t height = (vk_texture->GetDesc().height >> mip_level) ? (vk_texture->GetDesc().height >> mip_level) : 1;
+		cudaMemcpy2DArrayToArray(cuda_mip_level_array_orig, 0, 0, cuda_mip_level_array, 0, 0, width * static_cast<size_t>(format.x + format.y + format.z + format.w) / 8ull, height, cudaMemcpyDeviceToDevice);
+
+		resource_desc.resType         = cudaResourceTypeArray;
+		resource_desc.res.array.array = cuda_mip_level_array;
+
+		cudaSurfaceObject_t surface = {};
+		cudaCreateSurfaceObject(&surface, &resource_desc);
+
+		surfaces.push_back(surface);
+	}
+
+	cudaResourceDesc cuda_resource_desc = {};
+
+	cuda_resource_desc.resType           = cudaResourceTypeMipmappedArray;
+	cuda_resource_desc.res.mipmap.mipmap = m_mipmapped_array_orig;
+
+	cudaTextureDesc cuda_texture_desc = {};
+
+	cuda_texture_desc.normalizedCoords    = true;
+	cuda_texture_desc.filterMode          = cudaFilterModeLinear;
+	cuda_texture_desc.mipmapFilterMode    = cudaFilterModeLinear;
+	cuda_texture_desc.addressMode[0]      = cudaAddressModeWrap;
+	cuda_texture_desc.addressMode[1]      = cudaAddressModeWrap;
+	cuda_texture_desc.maxMipmapLevelClamp = static_cast<float>(m_desc.mips) - 1.f;
+	cuda_texture_desc.readMode            = cudaReadModeNormalizedFloat;
+
+	cudaCreateTextureObject(&m_texture_handle, &cuda_resource_desc, &cuda_texture_desc, nullptr);
+
+	cudaMalloc((void **) &m_surface_list, sizeof(cudaSurfaceObject_t) * m_desc.mips);
+	cudaMemcpy(m_surface_list, surfaces.data(), sizeof(cudaSurfaceObject_t) * m_desc.mips, cudaMemcpyHostToDevice);
+}
+
 Texture::~Texture()
 {
 	cudaDestroySurfaceObject(m_surface_handle);
 	cudaDestroyTextureObject(m_texture_handle);
+
+	for (auto &surface : m_surfaces)
+	{
+		cudaDestroySurfaceObject(surface);
+	}
+	m_surfaces.clear();
+
+	if (m_surface_list)
+	{
+		cudaFree(m_surface_list);
+	}
+
+	if (m_external_memory)
+	{
+		cudaFreeMipmappedArray(m_mipmapped_array);
+		cudaFreeMipmappedArray(m_mipmapped_array_orig);
+		cudaDestroyExternalMemory(m_external_memory);
+	}
 
 	if (!m_is_backbuffer)
 	{

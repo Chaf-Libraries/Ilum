@@ -207,7 +207,7 @@ RHIShader *Renderer::RequireShader(const std::string &filename, const std::strin
 		if (last_write == std::filesystem::last_write_time(filename).time_since_epoch().count() && !shader_bin.empty())
 		{
 			LOG_INFO("Load shader {} with entry point \"{}\" from cache", filename, entry_point);
-			std::unique_ptr<RHIShader> shader = p_rhi_context->CreateShader(entry_point, shader_bin);
+			std::unique_ptr<RHIShader> shader = p_rhi_context->CreateShader(entry_point, shader_bin, cuda);
 			m_shader_meta_cache.emplace(shader.get(), std::move(meta));
 			m_shader_cache.emplace(hash, std::move(shader));
 			return m_shader_cache.at(hash).get();
@@ -265,7 +265,7 @@ RHIShader *Renderer::RequireShader(const std::string &filename, const std::strin
 		    shader_bin,
 		    meta);
 
-		std::unique_ptr<RHIShader> shader = p_rhi_context->CreateShader(entry_point, shader_bin);
+		std::unique_ptr<RHIShader> shader = p_rhi_context->CreateShader(entry_point, shader_bin, cuda);
 		m_shader_meta_cache.emplace(shader.get(), std::move(meta));
 		m_shader_cache.emplace(hash, std::move(shader));
 		return m_shader_cache.at(hash).get();

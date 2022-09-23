@@ -8,7 +8,7 @@
 namespace Ilum
 {
 RHITexture::RHITexture(RHIDevice *device, const TextureDesc &desc) :
-    p_device(device), m_desc(desc)
+    m_backend(device->GetBackend()), m_desc(desc)
 {
 }
 
@@ -19,12 +19,12 @@ const TextureDesc &RHITexture::GetDesc() const
 
 RHIBackend RHITexture::GetBackend() const
 {
-	return p_device->GetBackend();
+	return m_backend;
 }
 
 std::unique_ptr<RHITexture> RHITexture::Alias(const TextureDesc &desc)
 {
-	return Create(p_device, desc);
+	return nullptr;
 }
 
 std::unique_ptr<RHITexture> RHITexture::Create(RHIDevice *device, const TextureDesc &desc)
@@ -32,11 +32,11 @@ std::unique_ptr<RHITexture> RHITexture::Create(RHIDevice *device, const TextureD
 	switch (device->GetBackend())
 	{
 		case RHIBackend::Vulkan:
-			return std::make_unique<Vulkan::Texture>(device, desc);
+			return std::make_unique<Vulkan::Texture>(static_cast<Vulkan::Device *>(device), desc);
 		case RHIBackend::DX12:
-			return std::make_unique<DX12::Texture>(device, desc);
+			return std::make_unique<DX12::Texture>(static_cast<DX12::Device *>(device), desc);
 		case RHIBackend::CUDA:
-			return std::make_unique<CUDA::Texture>(device, desc);
+			return std::make_unique<CUDA::Texture>(static_cast<CUDA::Device *>(device), desc);
 		default:
 			break;
 	}

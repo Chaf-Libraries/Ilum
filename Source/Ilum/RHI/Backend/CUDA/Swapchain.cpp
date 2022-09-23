@@ -172,7 +172,7 @@ void Swapchain::Resize(uint32_t width, uint32_t height)
 		desc.samples      = 1;
 		desc.format       = RHIFormat::R32G32B32A32_FLOAT;
 		desc.usage        = RHITextureUsage::RenderTarget | RHITextureUsage::UnorderedAccess | RHITextureUsage::ShaderResource;
-		m_textures[index] = std::make_unique<Texture>(p_device, cuda_array, desc);
+		m_textures[index] = std::make_unique<Texture>(static_cast<Device *>(p_device), cuda_array, desc);
 	}
 	cudaGraphicsUnmapResources(2, &m_cuda_handles[0], 0);
 }

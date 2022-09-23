@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Device.hpp"
 #include "RHI/RHITexture.hpp"
 
 #include <D3D12MemAlloc.h>
@@ -26,14 +27,17 @@ struct TextureState
 class Texture : public RHITexture
 {
   public:
-	Texture(RHIDevice *device, const TextureDesc &desc);
-	Texture(RHIDevice *device, const TextureDesc &desc, ComPtr<ID3D12Resource> &&texture);
+	Texture(Device *device, const TextureDesc &desc);
+
+	Texture(Device *device, const TextureDesc &desc, ComPtr<ID3D12Resource> &&texture);
 
 	virtual ~Texture() override;
 
-	ID3D12Resource* GetHandle();
+	ID3D12Resource *GetHandle();
 
   private:
+	Device *p_device = nullptr;
+
 	ComPtr<ID3D12Resource> m_handle     = nullptr;
 	D3D12MA::Allocation   *m_allocation = nullptr;
 };

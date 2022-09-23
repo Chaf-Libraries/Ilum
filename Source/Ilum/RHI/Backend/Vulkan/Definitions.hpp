@@ -349,4 +349,19 @@ inline static VkShaderStageFlags ToVulkanShaderStages(RHIShaderStage stage)
 
 	return flag;
 }
+
+class WindowsSecurityAttributes
+{
+  public:
+	WindowsSecurityAttributes();
+
+	SECURITY_ATTRIBUTES *operator&();
+
+	~WindowsSecurityAttributes();
+
+  protected:
+	SECURITY_ATTRIBUTES  m_winSecurityAttributes;
+	PSECURITY_DESCRIPTOR m_winPSecurityDescriptor;
+};
+
 }        // namespace Ilum::Vulkan

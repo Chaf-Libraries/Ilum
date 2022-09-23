@@ -59,7 +59,7 @@ class RHITexture
 	static std::unique_ptr<RHITexture> Create2DArray(RHIDevice *device, uint32_t width, uint32_t height, uint32_t layers, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples = 1);
 
   protected:
-	RHIDevice  *p_device = nullptr;
+	RHIBackend  m_backend;
 	TextureDesc m_desc;
 };
 

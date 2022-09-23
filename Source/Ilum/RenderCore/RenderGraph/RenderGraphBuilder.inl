@@ -17,6 +17,8 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 	std::vector<RenderPassDesc> ordered_passes;
 	ordered_passes.reserve(desc.passes.size());
 
+	std::vector<RGHandle> pass_handles;
+
 	std::map<RGHandle, std::map<uint32_t, RHIResourceState>> resource_lifetime;
 	std::map<RGHandle, RHIResourceState>                     last_resource_state;
 	for (auto &[texture_handle, texture_desc] : desc.textures)
@@ -30,9 +32,20 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 
 	std::vector<std::map<RGHandle, std::pair<RHIResourceState, RHIResourceState>>> resource_states;
 
+	struct PassSemaphore
+	{
+		std::vector<RHISemaphore *> wait_semaphores;
+		std::vector<RHISemaphore *> signal_semaphores;
+	};
+
+	std::map<RGHandle, PassSemaphore> pass_semaphores;        // [signal - wait]
+
 	RenderGraphDesc tmp_desc = desc;
 
 	std::set<RGHandle> collected_passes;
+
+	// Create new render graph
+	std::unique_ptr<RenderGraph> render_graph = std::make_unique<RenderGraph>(p_rhi_context);
 
 	while (!tmp_desc.passes.empty())
 	{
@@ -42,15 +55,22 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 		{
 			if (!iter->second.prev_pass.IsValid() || collected_passes.find(iter->second.prev_pass) != collected_passes.end())
 			{
+				// Select pass
 				std::map<RGHandle, std::pair<RHIResourceState, RHIResourceState>> pass_resource_state;
 				for (auto &[name, resource] : iter->second.resources)
 				{
 					if (resource.handle.IsValid())
 					{
+						// Record resource state
 						resource_lifetime[resource.handle][pass_idx] = resource.state;
 						pass_resource_state[resource.handle]         = std::make_pair(last_resource_state[resource.handle], resource.state);
-						last_resource_state[resource.handle]         = resource.state;
 
+						if (iter->second.bind_point != BindPoint::CUDA)
+						{
+							last_resource_state[resource.handle] = resource.state;
+						}
+
+						// Set resource info
 						if (desc.textures.find(resource.handle) != desc.textures.end())
 						{
 							desc.textures[resource.handle].usage |= ResourceStateToTextureUsage(resource.state);
@@ -65,9 +85,56 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 						}
 					}
 				}
+
+				// Insert semaphores
+				{
+					if (iter->second.prev_pass.IsValid() &&
+					    desc.passes.at(iter->second.prev_pass).bind_point != iter->second.bind_point)
+					{
+						BindPoint current_bind_point = iter->second.bind_point;
+						BindPoint last_bind_point    = desc.passes.at(iter->second.prev_pass).bind_point;
+
+						if ((last_bind_point == BindPoint::Compute || last_bind_point == BindPoint::RayTracing) &&
+						    (current_bind_point == BindPoint::Compute || current_bind_point == BindPoint::RayTracing))
+						{
+							// Pass
+						}
+						else
+						{
+							auto semaphore = p_rhi_context->CreateSemaphore();
+							if (last_bind_point == BindPoint::CUDA)
+							{
+								auto cuda_semaphore = p_rhi_context->MapToCUDASemaphore(semaphore.get());
+								pass_semaphores[iter->second.prev_pass].signal_semaphores.push_back(cuda_semaphore.get());
+								render_graph->RegisterSemaphore(std::move(cuda_semaphore));
+							}
+							else
+							{
+								pass_semaphores[iter->second.prev_pass].signal_semaphores.push_back(semaphore.get());
+							}
+
+							if (current_bind_point == BindPoint::CUDA)
+							{
+								auto cuda_semaphore = p_rhi_context->MapToCUDASemaphore(semaphore.get());
+								pass_semaphores[iter->first].wait_semaphores.push_back(cuda_semaphore.get());
+								render_graph->RegisterSemaphore(std::move(cuda_semaphore));
+							}
+							else
+							{
+								pass_semaphores[iter->first].wait_semaphores.push_back(semaphore.get());
+							}
+
+							render_graph->RegisterSemaphore(std::move(semaphore));
+						}
+					}
+				}
+
+				// Add pass
 				resource_states.push_back(pass_resource_state);
 				ordered_passes.push_back(iter->second);
+				pass_handles.push_back(iter->first);
 				collected_passes.insert(iter->first);
+
 				iter = tmp_desc.passes.erase(iter);
 				break;
 			}
@@ -79,9 +146,6 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 	}
 
 	std::set<RGHandle> alias_textures;
-
-	// Create new render graph
-	std::unique_ptr<RenderGraph> render_graph = std::make_unique<RenderGraph>(p_rhi_context);
 
 	// Register resource
 	{
@@ -255,15 +319,26 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 		auto pass_type   = rttr::type::get_by_name("Ilum::" + pass.name);
 		auto render_task = pass_type.get_method("Create").invoke(pass_type.create(), pass, *this, std::forward<Args>(args)...);
 
-		AddPass(
-		    *render_graph,
+		render_graph->AddPass(
 		    pass.name,
-			pass.bind_point,
-			pass.config,
+		    pass.bind_point,
+		    pass.config,
 		    std::move(render_task.convert<RenderGraph::RenderTask>()),
 		    [=](RenderGraph &render_graph, RHICommand *cmd_buffer) {
 			    cmd_buffer->ResourceStateTransition(texture_state_transitions, buffer_state_transitions);
-		    });
+		    },
+		    std::move(pass_semaphores[pass_handles[i]].wait_semaphores),
+		    std::move(pass_semaphores[pass_handles[i]].signal_semaphores));
+
+		// AddPass(
+		//     *render_graph,
+		//     pass.name,
+		//     pass.bind_point,
+		//     pass.config,
+		//     std::move(render_task.convert<RenderGraph::RenderTask>()),
+		//     [=](RenderGraph &render_graph, RHICommand *cmd_buffer) {
+		//	    cmd_buffer->ResourceStateTransition(texture_state_transitions, buffer_state_transitions);
+		//     });
 	}
 
 	return render_graph;

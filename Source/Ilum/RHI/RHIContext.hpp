@@ -41,6 +41,9 @@ class RHIContext
 	std::unique_ptr<RHITexture> CreateTextureCube(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, bool cuda = false);
 	std::unique_ptr<RHITexture> CreateTexture2DArray(uint32_t width, uint32_t height, uint32_t layers, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples = 1, bool cuda = false);
 
+	// Texture Conversion
+	std::unique_ptr<RHITexture> MapToCUDATexture(RHITexture *texture);
+
 	// Create Buffer
 	std::unique_ptr<RHIBuffer> CreateBuffer(const BufferDesc &desc, bool cuda = false);
 	std::unique_ptr<RHIBuffer> CreateBuffer(size_t size, RHIBufferUsage usage, RHIMemoryUsage memory, bool cuda = false);
@@ -84,6 +87,8 @@ class RHIContext
 
 	// Create Semaphore
 	std::unique_ptr<RHISemaphore> CreateSemaphore(bool cuda = false);
+
+	std::unique_ptr<RHISemaphore> MapToCUDASemaphore(RHISemaphore *semaphore);
 
 	// Create Acceleration Structure
 	std::unique_ptr<RHIAccelerationStructure> CreateAcccelerationStructure(bool cuda = false);

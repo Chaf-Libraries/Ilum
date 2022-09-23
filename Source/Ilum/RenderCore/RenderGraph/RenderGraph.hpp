@@ -83,20 +83,20 @@ struct RenderPassDesc
 		return *this;
 	}
 
-	RenderPassDesc& SetName(const std::string& name)
+	RenderPassDesc &SetName(const std::string &name)
 	{
 		this->name = name;
 		return *this;
 	}
 
-	template<typename T>
-	RenderPassDesc& SetConfig(T var)
+	template <typename T>
+	RenderPassDesc &SetConfig(T var)
 	{
 		config = var;
 		return *this;
 	}
 
-	RenderPassDesc& SetBindPoint(BindPoint bind_point)
+	RenderPassDesc &SetBindPoint(BindPoint bind_point)
 	{
 		this->bind_point = bind_point;
 		return *this;
@@ -131,6 +131,9 @@ class RenderGraph
 		RenderTask  execute;
 		BarrierTask barrier;
 
+		std::vector<RHISemaphore *> wait_semaphores;
+		std::vector<RHISemaphore *> signal_semaphores;
+
 		std::unique_ptr<RHIProfiler> profiler = nullptr;
 	};
 
@@ -160,7 +163,14 @@ class RenderGraph
 		RGHandle   handle;
 	};
 
-	RenderGraph &AddPass(const std::string &name, BindPoint bind_point, const rttr::variant &config, RenderTask &&execute, BarrierTask &&barrier);
+	RenderGraph &AddPass(
+	    const std::string            &name,
+	    BindPoint                     bind_point,
+	    const rttr::variant          &config,
+	    RenderTask                  &&execute,
+	    BarrierTask                 &&barrier,
+	    std::vector<RHISemaphore *> &&wait_semaphores   = {},
+	    std::vector<RHISemaphore *> &&signal_semaphores = {});
 
 	RenderGraph &AddInitializeBarrier(BarrierTask &&barrier);
 
@@ -171,6 +181,8 @@ class RenderGraph
 	RenderGraph &RegisterTexture(const std::vector<TextureCreateInfo> &create_info);
 
 	RenderGraph &RegisterBuffer(const BufferCreateInfo &create_info);
+
+	RenderGraph &RegisterSemaphore(std::unique_ptr<RHISemaphore> &&semaphore);
 
   private:
 	RHIContext *p_rhi_context = nullptr;
@@ -184,6 +196,8 @@ class RenderGraph
 
 	std::vector<std::unique_ptr<RHIBuffer>> m_buffers;
 	std::map<RGHandle, RHIBuffer *>         m_buffer_lookup;
+
+	std::vector<std::unique_ptr<RHISemaphore>> m_semaphores;
 
 	bool m_init = false;
 };

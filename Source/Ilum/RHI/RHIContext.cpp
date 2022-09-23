@@ -1,5 +1,10 @@
 #include "RHIContext.hpp"
+#include "Backend/CUDA/Texture.hpp"
+#include "Backend/Vulkan/Texture.hpp"
+
 #include <Core/Time.hpp>
+
+#undef CreateSemaphore
 
 namespace Ilum
 {
@@ -21,7 +26,7 @@ RHIContext::RHIContext(Window *window) :
 #	error "Please specify a rhi backend!"
 #endif        // RHI_BACKEND
 
-	m_swapchain = RHISwapchain::Create(m_device.get(), p_window->GetNativeHandle(), p_window->GetWidth(), p_window->GetHeight(), false);
+	m_swapchain = RHISwapchain::Create(m_device.get(), p_window->GetNativeHandle(), p_window->GetWidth(), p_window->GetHeight(), true);
 
 	m_queue = RHIQueue::Create(m_device.get());
 
@@ -112,6 +117,11 @@ std::unique_ptr<RHITexture> RHIContext::CreateTexture2DArray(uint32_t width, uin
 	return RHITexture::Create2DArray(m_device.get(), width, height, layers, format, usage, mipmap, samples);
 }
 
+std::unique_ptr<RHITexture> RHIContext::MapToCUDATexture(RHITexture *texture)
+{
+	return std::make_unique<CUDA::Texture>(static_cast<CUDA::Device *>(m_cuda_device.get()), static_cast<Vulkan::Device *>(m_device.get()), static_cast<Vulkan::Texture *>(texture));
+}
+
 std::unique_ptr<RHIBuffer> RHIContext::CreateBuffer(const BufferDesc &desc, bool cuda)
 {
 	return RHIBuffer::Create(m_device.get(), desc);
@@ -149,7 +159,7 @@ std::unique_ptr<RHIPipelineState> RHIContext::CreatePipelineState(bool cuda)
 
 std::unique_ptr<RHIShader> RHIContext::CreateShader(const std::string &entry_point, const std::vector<uint8_t> &source, bool cuda)
 {
-	return RHIShader::Create(m_device.get(), entry_point, source);
+	return RHIShader::Create(cuda ? m_cuda_device.get() : m_device.get(), entry_point, source);
 }
 
 std::unique_ptr<RHIRenderTarget> RHIContext::CreateRenderTarget(bool cuda)
@@ -170,6 +180,11 @@ std::unique_ptr<RHIFence> RHIContext::CreateFence(bool cuda)
 std::unique_ptr<RHISemaphore> RHIContext::CreateSemaphore(bool cuda)
 {
 	return RHISemaphore::Create(m_device.get());
+}
+
+std::unique_ptr<RHISemaphore> RHIContext::MapToCUDASemaphore(RHISemaphore *semaphore)
+{
+	return nullptr;
 }
 
 std::unique_ptr<RHIAccelerationStructure> RHIContext::CreateAcccelerationStructure(bool cuda)

@@ -126,7 +126,7 @@ void Swapchain::Resize(uint32_t width, uint32_t height)
 	{
 		ComPtr<ID3D12Resource> buffer;
 		m_handle->GetBuffer(i, IID_PPV_ARGS(&buffer));
-		m_textures.emplace_back(std::make_unique<Texture>(p_device, desc, std::move(buffer)));
+		m_textures.emplace_back(std::make_unique<Texture>(static_cast<Device *>(p_device), desc, std::move(buffer)));
 	}
 }
 }        // namespace Ilum::DX12

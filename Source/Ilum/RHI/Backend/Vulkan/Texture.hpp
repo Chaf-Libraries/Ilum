@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Device.hpp"
 #include "RHI/RHITexture.hpp"
 
 #include <volk.h>
@@ -27,9 +28,9 @@ struct TextureState
 class Texture : public RHITexture
 {
   public:
-	Texture(RHIDevice *device, const TextureDesc &desc);
+	Texture(Device *device, const TextureDesc &desc);
 
-	Texture(RHIDevice *device, const TextureDesc &desc, VkImage image, bool is_swapchain_buffer = true);
+	Texture(Device *device, const TextureDesc &desc, VkImage image, bool is_swapchain_buffer = true);
 
 	virtual std::unique_ptr<RHITexture> Alias(const TextureDesc &desc) override;
 
@@ -44,8 +45,10 @@ class Texture : public RHITexture
 	VkImageView GetView(const TextureRange &range) const;
 
   private:
-	VkImage       m_handle     = VK_NULL_HANDLE;
-	VmaAllocation m_allocation = VK_NULL_HANDLE;
+	Device *p_device = nullptr;
+
+	VkImage        m_handle     = VK_NULL_HANDLE;
+	VmaAllocation  m_allocation = VK_NULL_HANDLE;
 	VkDeviceMemory m_memory     = VK_NULL_HANDLE;
 
 	size_t m_memory_size = 0;

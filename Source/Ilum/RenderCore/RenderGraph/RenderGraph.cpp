@@ -81,17 +81,31 @@ void RenderGraph::Execute()
 	cmd_buffers.reserve(m_render_passes.size());
 	for (auto &pass : m_render_passes)
 	{
+		if (pass.bind_point != last_bind_point)
+		{
+			p_rhi_context->Submit(std::move(cmd_buffers));
+			cmd_buffers.clear();
+			last_bind_point = pass.bind_point;
+		}
+
 		if (pass.bind_point == BindPoint::CUDA)
 		{
-			// auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Compute, RHIBackend::CUDA);
-			// cmd_buffer->Begin();
-			// pass.execute(*this, cmd_buffer, pass.config);
-			// cmd_buffer->End();
-			// cmd_buffers.push_back(cmd_buffer);
+			auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Compute, true);
+			cmd_buffer->Begin();
+			pass.execute(*this, cmd_buffer, pass.config);
+			cmd_buffer->End();
+			cmd_buffers.push_back(cmd_buffer);
 		}
 		else
 		{
-			auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Graphics);
+			RHIQueueFamily family = RHIQueueFamily::Graphics;
+			if (pass.bind_point == BindPoint::Compute ||
+			    pass.bind_point == BindPoint::RayTracing)
+			{
+				family = RHIQueueFamily::Compute;
+			}
+
+			auto *cmd_buffer = p_rhi_context->CreateCommand(family);
 			cmd_buffer->Begin();
 			cmd_buffer->BeginMarker(pass.name);
 			pass.profiler->Begin(cmd_buffer, p_rhi_context->GetSwapchain()->GetCurrentFrameIndex());
@@ -102,9 +116,19 @@ void RenderGraph::Execute()
 			cmd_buffer->End();
 			cmd_buffers.push_back(cmd_buffer);
 		}
+
+		if (!pass.wait_semaphores.empty() || !pass.signal_semaphores.empty())
+		{
+			//p_rhi_context->Submit(std::move(cmd_buffers), std::move(pass.wait_semaphores), std::move(pass.signal_semaphores));
+			p_rhi_context->Submit(std::move(cmd_buffers));
+			cmd_buffers.clear();
+		}
 	}
 
-	p_rhi_context->Submit(std::move(cmd_buffers));
+	if (!cmd_buffers.empty())
+	{
+		p_rhi_context->Submit(std::move(cmd_buffers));
+	}
 }
 
 const std::vector<RenderGraph::RenderPassInfo> &RenderGraph::GetRenderPasses() const
@@ -112,9 +136,24 @@ const std::vector<RenderGraph::RenderPassInfo> &RenderGraph::GetRenderPasses() c
 	return m_render_passes;
 }
 
-RenderGraph &RenderGraph::AddPass(const std::string &name, BindPoint bind_point, const rttr::variant &config, RenderTask &&task, BarrierTask &&barrier)
+RenderGraph &RenderGraph::AddPass(
+    const std::string                           &name,
+    BindPoint                                    bind_point,
+    const rttr::variant                         &config,
+    RenderTask                                 &&task,
+    BarrierTask                                &&barrier,
+    std::vector<RHISemaphore*> &&wait_semaphores,
+    std::vector<RHISemaphore*> &&signal_semaphores)
 {
-	m_render_passes.emplace_back(RenderPassInfo{name, bind_point, config, std::move(task), std::move(barrier), p_rhi_context->CreateProfiler()});
+	m_render_passes.emplace_back(RenderPassInfo{
+	    name,
+	    bind_point,
+	    config,
+	    std::move(task),
+	    std::move(barrier),
+	    std::move(wait_semaphores),
+	    std::move(signal_semaphores),
+	    p_rhi_context->CreateProfiler()});
 	return *this;
 }
 
@@ -184,7 +223,12 @@ RenderGraph &RenderGraph::RegisterBuffer(const BufferCreateInfo &create_info)
 	desc.usage      = desc.usage | RHIBufferUsage::Transfer | RHIBufferUsage::ConstantBuffer;
 	auto &buffer    = m_buffers.emplace_back(p_rhi_context->CreateBuffer(desc));
 	m_buffer_lookup.emplace(create_info.handle, buffer.get());
+	return *this;
+}
 
+RenderGraph &RenderGraph::RegisterSemaphore(std::unique_ptr<RHISemaphore> &&semaphore)
+{
+	m_semaphores.emplace_back(std::move(semaphore));
 	return *this;
 }
 }        // namespace Ilum

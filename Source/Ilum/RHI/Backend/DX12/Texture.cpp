@@ -68,7 +68,7 @@ TextureState TextureState::Create(RHIResourceState state)
 	return dx_state;
 }
 
-Texture::Texture(RHIDevice *device, const TextureDesc &desc) :
+Texture::Texture(Device *device, const TextureDesc &desc) :
     RHITexture(device, desc)
 {
 	D3D12_RESOURCE_DESC d3d12_desc = {};
@@ -100,7 +100,7 @@ Texture::Texture(RHIDevice *device, const TextureDesc &desc) :
 	    &m_allocation, IID_PPV_ARGS(&m_handle));
 }
 
-Texture::Texture(RHIDevice *device, const TextureDesc &desc, ComPtr<ID3D12Resource> &&texture) :
+Texture::Texture(Device *device, const TextureDesc &desc, ComPtr<ID3D12Resource> &&texture) :
     RHITexture(device, desc), m_handle(texture)
 {
 }

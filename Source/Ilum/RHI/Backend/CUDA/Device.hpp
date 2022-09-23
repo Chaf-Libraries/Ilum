@@ -3,6 +3,7 @@
 #include "RHIDevice.hpp"
 
 #include <cuda.h>
+#include <cuda_runtime.h>
 
 namespace Ilum::CUDA
 {
@@ -17,8 +18,11 @@ class Device : public RHIDevice
 
 	virtual bool IsFeatureSupport(RHIFeature feature) override;
 
+	cudaStream_t GetSteam() const;
+
   private:
 	CUcontext m_context;
 	CUdevice  m_device;
+	cudaStream_t m_steam;
 };
 }        // namespace Ilum::CUDA

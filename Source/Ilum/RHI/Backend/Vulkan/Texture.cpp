@@ -3,80 +3,10 @@
 
 #include "Device.hpp"
 
-#ifdef _WIN64
-#	include <aclapi.h>
-#	include <dxgi1_2.h>
-#	include <windows.h>
-#endif
+#include <dxgi1_2.h>
 
 namespace Ilum::Vulkan
 {
-
-class WindowsSecurityAttributes
-{
-  public:
-	WindowsSecurityAttributes()
-	{
-		m_winPSecurityDescriptor = (PSECURITY_DESCRIPTOR) calloc(
-		    1, SECURITY_DESCRIPTOR_MIN_LENGTH + 2 * sizeof(void **));
-
-		PSID *ppSID =
-		    (PSID *) ((PBYTE) m_winPSecurityDescriptor + SECURITY_DESCRIPTOR_MIN_LENGTH);
-		PACL *ppACL = (PACL *) ((PBYTE) ppSID + sizeof(PSID *));
-
-		InitializeSecurityDescriptor(m_winPSecurityDescriptor,
-		                             SECURITY_DESCRIPTOR_REVISION);
-
-		SID_IDENTIFIER_AUTHORITY sidIdentifierAuthority =
-		    SECURITY_WORLD_SID_AUTHORITY;
-		AllocateAndInitializeSid(&sidIdentifierAuthority, 1, SECURITY_WORLD_RID, 0, 0,
-		                         0, 0, 0, 0, 0, ppSID);
-
-		EXPLICIT_ACCESS explicitAccess;
-		ZeroMemory(&explicitAccess, sizeof(EXPLICIT_ACCESS));
-		explicitAccess.grfAccessPermissions =
-		    STANDARD_RIGHTS_ALL | SPECIFIC_RIGHTS_ALL;
-		explicitAccess.grfAccessMode       = SET_ACCESS;
-		explicitAccess.grfInheritance      = INHERIT_ONLY;
-		explicitAccess.Trustee.TrusteeForm = TRUSTEE_IS_SID;
-		explicitAccess.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
-		explicitAccess.Trustee.ptstrName   = (LPTSTR) *ppSID;
-
-		SetEntriesInAcl(1, &explicitAccess, NULL, ppACL);
-
-		SetSecurityDescriptorDacl(m_winPSecurityDescriptor, TRUE, *ppACL, FALSE);
-
-		m_winSecurityAttributes.nLength              = sizeof(m_winSecurityAttributes);
-		m_winSecurityAttributes.lpSecurityDescriptor = m_winPSecurityDescriptor;
-	}
-
-	SECURITY_ATTRIBUTES *operator&()
-	{
-		return &m_winSecurityAttributes;
-	}
-
-	~WindowsSecurityAttributes()
-	{
-		PSID *ppSID =
-		    (PSID *) ((PBYTE) m_winPSecurityDescriptor + SECURITY_DESCRIPTOR_MIN_LENGTH);
-		PACL *ppACL = (PACL *) ((PBYTE) ppSID + sizeof(PSID *));
-
-		if (*ppSID)
-		{
-			FreeSid(*ppSID);
-		}
-		if (*ppACL)
-		{
-			LocalFree(*ppACL);
-		}
-		free(m_winPSecurityDescriptor);
-	}
-
-  protected:
-	SECURITY_ATTRIBUTES  m_winSecurityAttributes;
-	PSECURITY_DESCRIPTOR m_winPSecurityDescriptor;
-};
-
 TextureState TextureState::Create(RHIResourceState state)
 {
 	TextureState vk_state = {};
@@ -129,12 +59,11 @@ TextureState TextureState::Create(RHIResourceState state)
 			vk_state.stage       = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 			break;
 	}
-
 	return vk_state;
 }
 
-Texture::Texture(RHIDevice *device, const TextureDesc &desc) :
-    RHITexture(device, desc)
+Texture::Texture(Device *device, const TextureDesc &desc) :
+    RHITexture(device, desc), p_device(device)
 {
 	VkImageCreateInfo create_info = {};
 	create_info.sType             = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -252,8 +181,8 @@ Texture::Texture(RHIDevice *device, const TextureDesc &desc) :
 	}
 }
 
-Texture::Texture(RHIDevice *device, const TextureDesc &desc, VkImage image, bool is_swapchain_buffer) :
-    RHITexture(device, desc), m_handle(image), m_is_swapchain_buffer(is_swapchain_buffer)
+Texture::Texture(Device *device, const TextureDesc &desc, VkImage image, bool is_swapchain_buffer) :
+    RHITexture(device, desc), p_device(device), m_handle(image), m_is_swapchain_buffer(is_swapchain_buffer)
 {
 	if (!m_desc.name.empty())
 	{
