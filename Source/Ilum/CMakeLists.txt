@@ -1,4 +1,5 @@
 add_subdirectory(Core)
+add_subdirectory(MetaParser)
 add_subdirectory(RHI)
 add_subdirectory(Geometry)
 add_subdirectory(RenderCore)
