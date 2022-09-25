@@ -1,8 +1,7 @@
 #pragma once
 
+#include "Precompile.hpp"
 #include "Delegates.hpp"
-
-#include <string>
 
 struct GLFWwindow;
 
@@ -12,6 +11,7 @@ class Window
 {
   public:
 	Window(const std::string &title, const std::string &icon, uint32_t width = 0, uint32_t height = 0);
+
 	~Window();
 
 	bool Tick();

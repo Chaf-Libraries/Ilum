@@ -123,7 +123,6 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 							{
 								pass_semaphores[iter->first].wait_semaphores.push_back(semaphore.get());
 							}
-
 							render_graph->RegisterSemaphore(std::move(semaphore));
 						}
 					}

@@ -1,25 +1,19 @@
 #pragma once
 
-#include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <deque>
 #include <filesystem>
-#include <functional>
 #include <future>
 #include <iostream>
-#include <memory>
-#include <memory_resource>
-#include <optional>
-#include <typeindex>
-#include <utility>
-
-#include <array>
-#include <map>
-#include <queue>
-#include <set>
-#include <sstream>
+#include <mutex>
+#include <stdexcept>
 #include <string>
-#include <unordered_map>
-#include <unordered_set>
+#include <thread>
+#include <type_traits>
+#include <typeindex>
 #include <vector>
 
-//#include "Macro.hpp"
-//#include "Hash.hpp"
+#define CORE_EXPORT __declspec(dllexport)
+#define CORE_IMPORT __declspec(dllimport)

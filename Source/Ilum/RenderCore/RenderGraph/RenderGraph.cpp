@@ -119,8 +119,8 @@ void RenderGraph::Execute()
 
 		if (!pass.wait_semaphores.empty() || !pass.signal_semaphores.empty())
 		{
-			//p_rhi_context->Submit(std::move(cmd_buffers), std::move(pass.wait_semaphores), std::move(pass.signal_semaphores));
-			p_rhi_context->Submit(std::move(cmd_buffers));
+			p_rhi_context->Submit(std::move(cmd_buffers), std::move(pass.wait_semaphores), std::move(pass.signal_semaphores));
+			//p_rhi_context->Submit(std::move(cmd_buffers));
 			cmd_buffers.clear();
 		}
 	}

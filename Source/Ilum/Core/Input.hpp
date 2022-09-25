@@ -1,12 +1,10 @@
 #pragma once
 
+#include "Precompile.hpp"
 #include "Singleton.hpp"
 #include "Window.hpp"
 
 #include <glm/glm.hpp>
-
-#include <array>
-#include <ostream>
 
 namespace Ilum
 {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Precompile.hpp"
 #include "Geometry/Vertex.hpp"
 
 #include <vector>

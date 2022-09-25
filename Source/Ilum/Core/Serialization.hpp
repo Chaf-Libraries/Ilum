@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Precompile.hpp"
 #include "Singleton.hpp"
 
 #include <rttr/registration.h>
@@ -9,8 +10,6 @@
 #include <cereal/types/vector.hpp>
 
 #include <glm/glm.hpp>
-
-#include <iostream>
 
 namespace cereal
 {

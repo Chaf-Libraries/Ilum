@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Precompile.hpp"
+
 #include "Log.hpp"
 #include "Serialization.hpp"
 
@@ -12,8 +14,6 @@
 #include <cereal/types/string.hpp>
 #include <cereal/types/unordered_map.hpp>
 #include <cereal/types/vector.hpp>
-
-#include <fstream>
 
 #define SERIALIZER_TYPE_JSON 0
 #define SERIALIZER_TYPE_BINARY 1
@@ -111,9 +111,6 @@ using OutputArchive = cereal::XMLOutputArchive;
 #define REFLECTION_CLASS class
 #define REFLECTION_PROPERTY(...)
 #define REFLECTION_METHOD(...)
-
-#define ILUM_EXPORT_API __declspec(dllexport)
-#define ILUM_IMPORT_API __declspec(dllimport)
 
 #ifdef NDEBUG
 #	define ASSERT(x)

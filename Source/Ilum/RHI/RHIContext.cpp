@@ -1,5 +1,7 @@
 #include "RHIContext.hpp"
+#include "Backend/CUDA/Synchronization.hpp"
 #include "Backend/CUDA/Texture.hpp"
+#include "Backend/Vulkan/Synchronization.hpp"
 #include "Backend/Vulkan/Texture.hpp"
 
 #include <Core/Time.hpp>
@@ -29,6 +31,7 @@ RHIContext::RHIContext(Window *window) :
 	m_swapchain = RHISwapchain::Create(m_device.get(), p_window->GetNativeHandle(), p_window->GetWidth(), p_window->GetHeight(), true);
 
 	m_queue = RHIQueue::Create(m_device.get());
+	m_cuda_queue = RHIQueue::Create(m_cuda_device.get());
 
 	for (uint32_t i = 0; i < m_swapchain->GetTextureCount(); i++)
 	{
@@ -144,7 +147,7 @@ std::unique_ptr<RHISampler> RHIContext::CreateSampler(const SamplerDesc &desc, b
 
 RHICommand *RHIContext::CreateCommand(RHIQueueFamily family, bool cuda)
 {
-	return m_frames[m_current_frame]->AllocateCommand(family);
+	return cuda ? m_cuda_frames[m_current_frame]->AllocateCommand(family) : m_frames[m_current_frame]->AllocateCommand(family);
 }
 
 std::unique_ptr<RHIDescriptor> RHIContext::CreateDescriptor(const ShaderMeta &meta, bool cuda)
@@ -184,7 +187,10 @@ std::unique_ptr<RHISemaphore> RHIContext::CreateSemaphore(bool cuda)
 
 std::unique_ptr<RHISemaphore> RHIContext::MapToCUDASemaphore(RHISemaphore *semaphore)
 {
-	return nullptr;
+	return std::make_unique<CUDA::Semaphore>(
+	    static_cast<CUDA::Device *>(m_cuda_device.get()),
+	    static_cast<Vulkan::Device *>(m_device.get()),
+	    static_cast<Vulkan::Semaphore *>(semaphore));
 }
 
 std::unique_ptr<RHIAccelerationStructure> RHIContext::CreateAcccelerationStructure(bool cuda)
@@ -293,6 +299,7 @@ void RHIContext::EndFrame()
 				}
 				pack_submit_infos.clear();
 				last_queue_family = submit_info.queue_family;
+				last_is_cuda      = submit_info.is_cuda;
 			}
 			pack_submit_infos.push_back(submit_info);
 		}
@@ -302,24 +309,6 @@ void RHIContext::EndFrame()
 		}
 		m_submit_infos.clear();
 	}
-
-	/*m_graphics_queue->Submit({}, {m_render_complete[m_current_frame].get()}, {m_present_complete[m_current_frame].get()});
-
-	if (!m_transfer_queue->Empty())
-	{
-	    m_transfer_queue->Execute();
-	    m_transfer_queue->Wait();
-	}
-
-	if (!m_compute_queue->Empty())
-	{
-	    m_compute_queue->Execute(m_frames[m_current_frame]->AllocateFence());
-	}
-
-	if (!m_graphics_queue->Empty())
-	{
-	    m_graphics_queue->Execute(m_frames[m_current_frame]->AllocateFence());
-	}*/
 
 	if (!m_swapchain->Present(m_render_complete[m_current_frame].get()) ||
 	    p_window->GetWidth() != m_swapchain->GetWidth() ||

@@ -20,7 +20,7 @@ std::unique_ptr<RHIQueue> RHIQueue::Create(RHIDevice *device)
 		case RHIBackend::DX12:
 			//return std::make_unique<DX12::Queue>(device, family, queue_index);
 		case RHIBackend::CUDA:
-			//return std::make_unique<CUDA::Queue>(device, family, queue_index);
+			return std::make_unique<CUDA::Queue>(device);
 		default:
 			break;
 	}

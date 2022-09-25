@@ -2,53 +2,80 @@
 
 namespace Ilum
 {
-Timer::Timer():
-    m_start(std::chrono::high_resolution_clock::now()),
-    m_tick_end(std::chrono::high_resolution_clock::now())
+struct Timer::Impl
 {
+	Timer::Impl(std::chrono::high_resolution_clock::time_point start, std::chrono::high_resolution_clock::time_point end):
+	    start(start), tick_end(end)
+	{
+	}
+
+	std::chrono::high_resolution_clock::time_point start;
+	std::chrono::high_resolution_clock::time_point tick_start;
+	std::chrono::high_resolution_clock::time_point tick_end;
+
+	float    time                = 0.f;
+	float    delta_time          = 0.f;
+	float    delta_time_smoothed = 0.f;
+	float    accumlate_time      = 0.f;
+	float    frame_rate          = 0.f;
+	uint32_t frame_count         = 0u;
+
+	const uint32_t accumulate = 5u;
+	const float    duration   = 500.f;
+};
+
+Timer::Timer()
+{
+	p_impl = new Impl(std::chrono::high_resolution_clock::now(), std::chrono::high_resolution_clock::now());
+}
+
+Timer::~Timer()
+{
+	delete p_impl;
+	p_impl = nullptr;
 }
 
 float Timer::TotalTime()
 {
-	return m_time;
+	return p_impl->time;
 }
 
 float Timer::DeltaTime()
 {
-	return m_delta_time;
+	return p_impl->delta_time;
 }
 
 float Timer::DeltaTimeSmoothed()
 {
-	return m_delta_time_smoothed;
+	return p_impl->delta_time_smoothed;
 }
 
 float Timer::FrameRate()
 {
-	return m_frame_rate;
+	return p_impl->frame_rate;
 }
 
 void Timer::Tick()
 {
-	m_tick_start                                    = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<float, std::milli> delta = m_tick_start - m_tick_end;
+	p_impl->tick_start                                    = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<float, std::milli> delta = p_impl->tick_start - p_impl->tick_end;
 
-	m_delta_time = delta.count();
-	m_time       = std::chrono::duration<float, std::milli>(m_tick_start - m_start).count();
-	m_tick_end   = std::chrono::high_resolution_clock::now();
+	p_impl->delta_time = delta.count();
+	p_impl->time       = std::chrono::duration<float, std::milli>(p_impl->tick_start - p_impl->start).count();
+	p_impl->tick_end   = std::chrono::high_resolution_clock::now();
 
-	m_delta_time_smoothed = m_delta_time_smoothed * (1.f - 1.f / m_accumulate) + m_delta_time / m_accumulate;
+	p_impl->delta_time_smoothed = p_impl->delta_time_smoothed * (1.f - 1.f / p_impl->accumulate) + p_impl->delta_time / p_impl->accumulate;
 
-	if (m_accumlate_time < m_duration)
+	if (p_impl->accumlate_time < p_impl->duration)
 	{
-		m_accumlate_time += m_delta_time;
-		m_frame_count++;
+		p_impl->accumlate_time += p_impl->delta_time;
+		p_impl->frame_count++;
 	}
 	else
 	{
-		m_frame_rate            = static_cast<float>(m_frame_count) / (m_accumlate_time / 1000.f);
-		m_accumlate_time = 0.f;
-		m_frame_count    = 0;
+		p_impl->frame_rate            = static_cast<float>(p_impl->frame_count) / (p_impl->accumlate_time / 1000.f);
+		p_impl->accumlate_time = 0.f;
+		p_impl->frame_count    = 0;
 	}
 }
 }        // namespace Ilum

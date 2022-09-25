@@ -5,3 +5,6 @@
 
 #include <vector>
 #include <string>
+
+#define GEOMETRY_EXPORT __declspec(dllexport)
+#define GEOMETRY_IMPORT __declspec(dllimport)

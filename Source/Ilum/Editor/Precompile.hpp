@@ -11,3 +11,5 @@
 #include <CodeGeneration/Meta/GeometryMeta.hpp>
 #include <CodeGeneration/Meta/ResourceMeta.hpp>
 #include <CodeGeneration/Meta/SceneMeta.hpp>
+
+#include <fstream>

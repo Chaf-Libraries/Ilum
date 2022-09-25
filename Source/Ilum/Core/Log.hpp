@@ -1,14 +1,11 @@
 #pragma once
 
+#include "Precompile.hpp"
 #include "Singleton.hpp"
 
 #include <spdlog/sinks/base_sink.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/base_sink.h>
-
-#include <memory>
-#include <stdexcept>
-#include <deque>
 
 namespace Ilum
 {
