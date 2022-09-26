@@ -124,19 +124,23 @@ ResourceManager::~ResourceManager()
 {
 }
 
-void ResourceManager::ImportTexture(const std::string &filename)
+void ResourceManager::ImportTexture(const std::string &filename, bool external, bool mipmap)
 {
-	std::string uuid = std::to_string(Hash(filename));
+	std::string uuid = std::to_string(Hash(filename, external));
 	if (m_texture_index.find(uuid) != m_texture_index.end())
 	{
+		LOG_INFO("{} is already cached", filename);
 		return;
 	}
 
 	TextureImportInfo info = TextureImporter::Import(filename);
 	TextureMeta       meta = {};
 
+	info.desc.mips = mipmap ? info.desc.mips : 1;
+
 	if (info.data.empty())
 	{
+		LOG_ERROR("{} is invalid!", filename);
 		return;
 	}
 
@@ -188,7 +192,8 @@ void ResourceManager::ImportTexture(const std::string &filename)
 		    RHIResourceState::TransferSource,
 		    meta.thumbnail.get(),
 		    TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1},
-		    RHIResourceState::TransferDest);
+		    RHIResourceState::TransferDest,
+		    RHIFilter::Nearest);
 		cmd_buffer->ResourceStateTransition({TextureStateTransition{
 		                                         meta.texture.get(),
 		                                         RHIResourceState::TransferSource,

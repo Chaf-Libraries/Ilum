@@ -23,6 +23,9 @@ inline static std::unordered_map<DXGI_FORMAT, RHIFormat> FormatMap = {
     {DXGI_FORMAT_R16G16B16A16_UINT, RHIFormat::R16G16B16A16_UINT},
     {DXGI_FORMAT_R16G16B16A16_SINT, RHIFormat::R16G16B16A16_SINT},
     {DXGI_FORMAT_R16G16B16A16_FLOAT, RHIFormat::R16G16B16A16_FLOAT},
+    {DXGI_FORMAT_R10G10B10A2_UNORM, RHIFormat::R10G10B10A2_UNORM},
+    {DXGI_FORMAT_R10G10B10A2_UINT, RHIFormat::R10G10B10A2_UINT},
+    {DXGI_FORMAT_R11G11B10_FLOAT, RHIFormat::R11G11B10_FLOAT},
     {DXGI_FORMAT_R32_UINT, RHIFormat::R32_UINT},
     {DXGI_FORMAT_R32_SINT, RHIFormat::R32_SINT},
     {DXGI_FORMAT_R32_FLOAT, RHIFormat::R32_FLOAT},
@@ -543,7 +546,7 @@ TextureImportInfo DDSImporter::ImportImpl(const std::string &filename)
 	data_size -= offset;
 
 	info.data.resize(data_size);
-	std::memcpy(info.data.data(), tex_data, data_size);	
+	std::memcpy(info.data.data(), tex_data, data_size);
 
 	info.desc.mips  = static_cast<uint32_t>(std::floor(std::log2(std::max(info.desc.width, info.desc.height))) + 1);
 	info.desc.usage = RHITextureUsage::ShaderResource | RHITextureUsage::Transfer;

@@ -679,6 +679,24 @@ std::vector<uint8_t> ShaderCompiler::Compile(const ShaderDesc &desc, ShaderMeta 
 
 				hlsl = std::regex_replace(hlsl, std::regex("SPIRV_Cross_Input stage_input"), input_struct);
 				hlsl = std::regex_replace(hlsl, std::regex("stage_input.gl_"), "glx");
+
+				// Order may change, so re-reflect it
+				ShaderMeta before_meta = std::move(meta);
+
+				meta = SpirvReflection::GetInstance().Reflect(CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(hlsl, desc.stage, desc.entry_point, desc.macros));
+
+				// Fix name
+				for (auto& descriptor : meta.descriptors)
+				{
+					for (auto& before_descriptor : before_meta.descriptors)
+					{
+						if (descriptor == before_descriptor)
+						{
+							descriptor.name = before_descriptor.name;
+							break;
+						}
+					}
+				}
 			}
 
 			return CompileShader<ShaderSource::HLSL, ShaderTarget::PTX>(hlsl, desc.stage, desc.entry_point, desc.macros);

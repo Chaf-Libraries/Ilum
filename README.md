@@ -39,8 +39,6 @@ Ilum Graphics Playground, name after *Planet Ilum* from [star wars]()
 
 ![](./Doc/Img/shader.png)
 
-### Dynamic Reflection & ANTLR C++ Parsing Registeration
-
 ## Dependencies
 
 * [ImFileDialog](https://github.com/dfranx/ImFileDialog)
@@ -58,7 +56,6 @@ Ilum Graphics Playground, name after *Planet Ilum* from [star wars]()
 * [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 * [volk](https://github.com/zeux/volk)
 * [Vulkan-Headers](https://github.com/KhronosGroup/Vulkan-Headers)
-* [oneTBB](https://github.com/oneapi-src/oneTBB)
 * [meshoptimizer](https://github.com/zeux/meshoptimizer)
 * [spdlog](https://github.com/gabime/spdlog)
 * [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross)

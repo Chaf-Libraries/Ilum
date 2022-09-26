@@ -327,6 +327,12 @@ void Command::CopyBufferToBuffer(RHIBuffer *src_buffer, RHIBuffer *dst_buffer, s
 
 void Command::GenerateMipmaps(RHITexture *texture, RHIResourceState initial_state, RHIFilter filter)
 {
+	if (texture->GetDesc().mips == 1)
+	{
+		ResourceStateTransition({TextureStateTransition{texture, initial_state, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, texture->GetDesc().mips, 0, texture->GetDesc().layers}}}, {});
+		return;
+	}
+
 	TextureRange             src_range  = {RHITextureDimension::Texture2D, 0, texture->GetDesc().mips, 0, texture->GetDesc().layers};
 	TextureRange             dst_range  = {RHITextureDimension::Texture2D, 0, texture->GetDesc().mips, 0, texture->GetDesc().layers};
 	VkImageSubresourceLayers src_layers = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};

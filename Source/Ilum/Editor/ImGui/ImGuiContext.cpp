@@ -221,7 +221,7 @@ GuiContext::GuiContext(RHIContext *context, Window *window) :
 
 	gPipelineState = m_pipeline_state.get();
 	gDescriptor    = m_descriptor.get();
-	gSampler       = m_sampler.get();
+	gSampler       = m_sampler;
 	gRenderTarget  = m_render_target.get();
 
 	InitializePlatformInterface();

@@ -43,8 +43,7 @@ struct ShaderMeta
 
 		inline bool operator==(const Constant &other) const
 		{
-			return name == other.name &&
-			       size == other.size &&
+			return size == other.size &&
 			       offset == other.offset &&
 			       stage == other.stage;
 		}
@@ -62,8 +61,7 @@ struct ShaderMeta
 
 		inline bool operator==(const Descriptor &other) const
 		{
-			return name == other.name &&
-			       array_size == other.array_size &&
+			return array_size == other.array_size &&
 			       set == other.set &&
 			       binding == other.binding &&
 			       type == other.type;

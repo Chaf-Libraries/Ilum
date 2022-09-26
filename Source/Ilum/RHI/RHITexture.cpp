@@ -1,9 +1,9 @@
 #include "RHITexture.hpp"
 #include "RHIDevice.hpp"
 
-#include "Backend/Vulkan/Texture.hpp"
-#include "Backend/DX12/Texture.hpp"
 #include "Backend/CUDA/Texture.hpp"
+#include "Backend/DX12/Texture.hpp"
+#include "Backend/Vulkan/Texture.hpp"
 
 namespace Ilum
 {
@@ -37,14 +37,14 @@ std::unique_ptr<RHITexture> RHITexture::Create(RHIDevice *device, const TextureD
 			return std::make_unique<DX12::Texture>(static_cast<DX12::Device *>(device), desc);
 		case RHIBackend::CUDA:
 			LOG_ERROR("CUDA resource can only map from graphics API");
-			//return std::make_unique<CUDA::Texture>(static_cast<CUDA::Device *>(device), desc);
+			// return std::make_unique<CUDA::Texture>(static_cast<CUDA::Device *>(device), desc);
 		default:
 			break;
 	}
 	return nullptr;
 }
 
-std::unique_ptr<RHITexture> RHITexture::Create2D(RHIDevice *device, uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples)
+std::unique_ptr<RHITexture> RHITexture::Create2D(RHIDevice *device, uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples, bool external)
 {
 	TextureDesc desc = {};
 	desc.width       = width;
@@ -55,11 +55,12 @@ std::unique_ptr<RHITexture> RHITexture::Create2D(RHIDevice *device, uint32_t wid
 	desc.samples     = samples;
 	desc.format      = format;
 	desc.usage       = usage;
+	desc.external    = external;
 
 	return Create(device, desc);
 }
 
-std::unique_ptr<RHITexture> RHITexture::Create3D(RHIDevice *device, uint32_t width, uint32_t height, uint32_t depth, RHIFormat format, RHITextureUsage usage)
+std::unique_ptr<RHITexture> RHITexture::Create3D(RHIDevice *device, uint32_t width, uint32_t height, uint32_t depth, RHIFormat format, RHITextureUsage usage, bool external)
 {
 	TextureDesc desc = {};
 	desc.width       = width;
@@ -70,11 +71,12 @@ std::unique_ptr<RHITexture> RHITexture::Create3D(RHIDevice *device, uint32_t wid
 	desc.samples     = 1;
 	desc.format      = format;
 	desc.usage       = usage;
+	desc.external    = external;
 
 	return Create(device, desc);
 }
 
-std::unique_ptr<RHITexture> RHITexture::CreateCube(RHIDevice *device, uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap)
+std::unique_ptr<RHITexture> RHITexture::CreateCube(RHIDevice *device, uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, bool external)
 {
 	TextureDesc desc = {};
 	desc.width       = width;
@@ -85,11 +87,12 @@ std::unique_ptr<RHITexture> RHITexture::CreateCube(RHIDevice *device, uint32_t w
 	desc.samples     = 1;
 	desc.format      = format;
 	desc.usage       = usage;
+	desc.external    = external;
 
 	return Create(device, desc);
 }
 
-std::unique_ptr<RHITexture> RHITexture::Create2DArray(RHIDevice *device, uint32_t width, uint32_t height, uint32_t layers, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples)
+std::unique_ptr<RHITexture> RHITexture::Create2DArray(RHIDevice *device, uint32_t width, uint32_t height, uint32_t layers, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples, bool external)
 {
 	TextureDesc desc = {};
 	desc.width       = width;
@@ -100,6 +103,7 @@ std::unique_ptr<RHITexture> RHITexture::Create2DArray(RHIDevice *device, uint32_
 	desc.samples     = samples;
 	desc.format      = format;
 	desc.usage       = usage;
+	desc.external    = external;
 
 	return Create(device, desc);
 }

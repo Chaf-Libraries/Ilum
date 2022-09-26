@@ -192,7 +192,13 @@ void RenderGraphEditor::Tick()
 	{
 		for (auto &[handle, pass] : m_desc.passes)
 		{
-			const float node_width = 200.0f;
+			float node_width = 0.f;
+
+			node_width = std::max(node_width, ImGui::CalcTextSize(pass.name.c_str()).x);
+			for (auto& [name, resource] : pass.resources)
+			{
+				node_width = std::max(node_width, ImGui::CalcTextSize(name.c_str()).x);
+			}
 
 			ImNodes::PushColorStyle(ImNodesCol_TitleBar, IM_COL32(0, 0, 125, 125));
 
@@ -487,8 +493,18 @@ void RenderGraphEditor::Tick()
 			{
 				if (ImNodes::IsNodeSelected(static_cast<int32_t>(handle.GetHandle())))
 				{
+					const std::unordered_map<BindPoint, const char *> bind_points =
+					    {
+					        {BindPoint::None, "None"},
+					        {BindPoint::Rasterization, "Rasterization"},
+					        {BindPoint::Compute, "Compute"},
+					        {BindPoint::RayTracing, "RayTracing"},
+					        {BindPoint::CUDA, "CUDA"},
+					    };
+
 					ImGui::PushID(static_cast<int32_t>(handle.GetHandle()));
 					ImGui::Text("Pass - %s", pass.name.c_str());
+					ImGui::Text("Bind Point: %s", bind_points.at(pass.bind_point));
 					m_need_compile |= ImGui::EditVariant(pass.config);
 					ImGui::PopID();
 					ImGui::Separator();

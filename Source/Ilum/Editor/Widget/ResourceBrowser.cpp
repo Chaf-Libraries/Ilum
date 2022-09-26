@@ -136,6 +136,7 @@ void ResourceBrowser::DrawTextureBrowser()
 			ImGui::Text("height: %s", std::to_string(meta->desc.height).c_str());
 			ImGui::Text("mip levels: %s", std::to_string(meta->desc.mips).c_str());
 			ImGui::Text("layers: %s", std::to_string(meta->desc.layers).c_str());
+			ImGui::Text("external: %s", std::to_string(meta->desc.external).c_str());
 			ImGui::End();
 		}
 

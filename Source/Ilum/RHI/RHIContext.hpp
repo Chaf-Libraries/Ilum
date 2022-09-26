@@ -36,11 +36,11 @@ class RHIContext
 	std::unique_ptr<RHISwapchain> CreateSwapchain(void *window_handle, uint32_t width, uint32_t height, bool sync);
 
 	// Create Texture
-	std::unique_ptr<RHITexture> CreateTexture(const TextureDesc &desc, bool cuda = false);
-	std::unique_ptr<RHITexture> CreateTexture2D(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples = 1, bool cuda = false);
-	std::unique_ptr<RHITexture> CreateTexture3D(uint32_t width, uint32_t height, uint32_t depth, RHIFormat format, RHITextureUsage usage, bool cuda = false);
-	std::unique_ptr<RHITexture> CreateTextureCube(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, bool cuda = false);
-	std::unique_ptr<RHITexture> CreateTexture2DArray(uint32_t width, uint32_t height, uint32_t layers, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples = 1, bool cuda = false);
+	std::unique_ptr<RHITexture> CreateTexture(const TextureDesc &desc);
+	std::unique_ptr<RHITexture> CreateTexture2D(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples = 1, bool external = false);
+	std::unique_ptr<RHITexture> CreateTexture3D(uint32_t width, uint32_t height, uint32_t depth, RHIFormat format, RHITextureUsage usage, bool external = false);
+	std::unique_ptr<RHITexture> CreateTextureCube(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, bool external = false);
+	std::unique_ptr<RHITexture> CreateTexture2DArray(uint32_t width, uint32_t height, uint32_t layers, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples = 1, bool external = false);
 
 	// Texture Conversion
 	std::unique_ptr<RHITexture> MapToCUDATexture(RHITexture *texture);
@@ -63,7 +63,7 @@ class RHIContext
 	}
 
 	// Create Sampler
-	std::unique_ptr<RHISampler> CreateSampler(const SamplerDesc &desc, bool cuda = false);
+	RHISampler* CreateSampler(const SamplerDesc &desc, bool cuda = false);
 
 	// Create Command
 	RHICommand *CreateCommand(RHIQueueFamily family, bool cuda = false);
@@ -139,5 +139,7 @@ class RHIContext
 	std::vector<std::unique_ptr<RHIFrame>> m_cuda_frames;
 
 	std::vector<SubmitInfo> m_submit_infos;
+
+	std::unordered_map<size_t, std::unique_ptr<RHISampler>> m_samplers;
 };
 }        // namespace Ilum

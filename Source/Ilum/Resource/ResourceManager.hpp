@@ -17,7 +17,7 @@ class ResourceManager
 
 	~ResourceManager();
 
-	void ImportTexture(const std::string &filename);
+	void ImportTexture(const std::string &filename, bool external = false, bool mipmap = true);
 
 	void ImportModel(const std::string &filename);
 

@@ -29,7 +29,7 @@ class GuiContext
 	std::unique_ptr<RHIPipelineState> m_pipeline_state = nullptr;
 	std::unique_ptr<RHIDescriptor>    m_descriptor     = nullptr;
 
-	std::unique_ptr<RHISampler> m_sampler = nullptr;
+	RHISampler* m_sampler = nullptr;
 
 	std::unique_ptr<RHIShader> m_vertex_shader   = nullptr;
 	std::unique_ptr<RHIShader> m_fragment_shader = nullptr;
