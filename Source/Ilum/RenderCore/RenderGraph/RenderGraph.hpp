@@ -146,6 +146,8 @@ class RenderGraph
 
 	RHIBuffer *GetBuffer(RGHandle handle);
 
+	RHITexture *GetCUDATexture(RGHandle handle);
+
 	void Execute();
 
 	const std::vector<RenderPassInfo> &GetRenderPasses() const;
@@ -193,6 +195,7 @@ class RenderGraph
 
 	std::vector<std::unique_ptr<RHITexture>> m_textures;
 	std::map<RGHandle, RHITexture *>         m_texture_lookup;
+	std::map<RGHandle, RHITexture *>         m_cuda_textures;
 
 	std::vector<std::unique_ptr<RHIBuffer>> m_buffers;
 	std::map<RGHandle, RHIBuffer *>         m_buffer_lookup;

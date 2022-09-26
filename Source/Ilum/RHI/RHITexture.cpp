@@ -36,7 +36,8 @@ std::unique_ptr<RHITexture> RHITexture::Create(RHIDevice *device, const TextureD
 		case RHIBackend::DX12:
 			return std::make_unique<DX12::Texture>(static_cast<DX12::Device *>(device), desc);
 		case RHIBackend::CUDA:
-			return std::make_unique<CUDA::Texture>(static_cast<CUDA::Device *>(device), desc);
+			LOG_ERROR("CUDA resource can only map from graphics API");
+			//return std::make_unique<CUDA::Texture>(static_cast<CUDA::Device *>(device), desc);
 		default:
 			break;
 	}

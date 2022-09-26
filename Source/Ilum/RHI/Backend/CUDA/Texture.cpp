@@ -112,50 +112,6 @@ HANDLE GetVkImageMemHandle(Vulkan::Device *device, Vulkan::Texture *texture, VkE
 	return handle;
 }
 
-Texture::Texture(Device *device, const TextureDesc &desc) :
-    RHITexture(device, desc)
-{
-	cudaChannelFormatDesc channel_format_desc = GetCUDAChannelFormatDesc(desc.format);
-	cudaMallocArray(&m_array, &channel_format_desc, desc.width, desc.height);
-
-	cudaResourceDesc res_desc = {};
-	std::memset(&res_desc, 0, sizeof(res_desc));
-	res_desc.resType         = cudaResourceTypeArray;
-	res_desc.res.array.array = m_array;
-
-	cudaTextureDesc tex_desc;
-	memset(&tex_desc, 0, sizeof(tex_desc));
-	tex_desc.addressMode[0]   = cudaAddressModeWrap;
-	tex_desc.addressMode[1]   = cudaAddressModeWrap;
-	tex_desc.filterMode       = cudaFilterModeLinear;
-	tex_desc.readMode         = cudaReadModeElementType;
-	tex_desc.normalizedCoords = 1;
-
-	cudaCreateTextureObject(&m_texture_handle, &res_desc, &tex_desc, NULL);
-	cudaCreateSurfaceObject(&m_surface_handle, &res_desc);
-}
-
-Texture::Texture(Device *device, cudaArray_t cuda_array, const TextureDesc &desc) :
-    RHITexture(device, desc), m_array(cuda_array), m_is_backbuffer(true)
-{
-	cudaResourceDesc res_desc = {};
-	std::memset(&res_desc, 0, sizeof(res_desc));
-	res_desc.resType         = cudaResourceTypeArray;
-	res_desc.res.array.array = m_array;
-
-	cudaTextureDesc tex_desc;
-	memset(&tex_desc, 0, sizeof(tex_desc));
-	tex_desc.addressMode[0]   = cudaAddressModeWrap;
-	tex_desc.addressMode[1]   = cudaAddressModeWrap;
-	tex_desc.filterMode       = cudaFilterModeLinear;
-	tex_desc.readMode         = cudaReadModeElementType;
-	tex_desc.normalizedCoords = 1;
-
-	cudaCreateTextureObject(&m_texture_handle, &res_desc, &tex_desc, NULL);
-
-	cudaCreateSurfaceObject(&m_surface_handle, &res_desc);
-}
-
 Texture::Texture(Device *device, Vulkan::Device *vk_device, Vulkan::Texture *vk_texture) :
     RHITexture(device, vk_texture->GetDesc())
 {
@@ -172,7 +128,7 @@ Texture::Texture(Device *device, Vulkan::Device *vk_device, Vulkan::Texture *vk_
 
 	cudaImportExternalMemory(&m_external_memory, &cuda_external_memory_handle_desc);
 
-	cudaExtent            extent = {vk_texture->GetDesc().width, vk_texture->GetDesc().height, vk_texture->GetDesc().depth};
+	cudaExtent            extent = {vk_texture->GetDesc().width, vk_texture->GetDesc().height, 0};
 	cudaChannelFormatDesc format = GetCUDAChannelFormatDesc(vk_texture->GetDesc().format);
 
 	cudaExternalMemoryMipmappedArrayDesc cuda_external_memory_mipmapped_array_desc = {};
@@ -185,8 +141,6 @@ Texture::Texture(Device *device, Vulkan::Device *vk_device, Vulkan::Texture *vk_
 
 	cudaExternalMemoryGetMappedMipmappedArray(&m_mipmapped_array, m_external_memory, &cuda_external_memory_mipmapped_array_desc);
 	cudaMallocMipmappedArray(&m_mipmapped_array_orig, &format, extent, vk_texture->GetDesc().mips);
-
-	std::vector<cudaSurfaceObject_t> surfaces;
 
 	for (uint32_t mip_level = 0; mip_level < vk_texture->GetDesc().mips; mip_level++)
 	{
@@ -207,7 +161,7 @@ Texture::Texture(Device *device, Vulkan::Device *vk_device, Vulkan::Texture *vk_
 		cudaSurfaceObject_t surface = {};
 		cudaCreateSurfaceObject(&surface, &resource_desc);
 
-		surfaces.push_back(surface);
+		m_surfaces.push_back(surface);
 	}
 
 	cudaResourceDesc cuda_resource_desc = {};
@@ -228,12 +182,11 @@ Texture::Texture(Device *device, Vulkan::Device *vk_device, Vulkan::Texture *vk_
 	cudaCreateTextureObject(&m_texture_handle, &cuda_resource_desc, &cuda_texture_desc, nullptr);
 
 	cudaMalloc((void **) &m_surface_list, sizeof(cudaSurfaceObject_t) * m_desc.mips);
-	cudaMemcpy(m_surface_list, surfaces.data(), sizeof(cudaSurfaceObject_t) * m_desc.mips, cudaMemcpyHostToDevice);
+	cudaMemcpy(m_surface_list, m_surfaces.data(), sizeof(cudaSurfaceObject_t) * m_desc.mips, cudaMemcpyHostToDevice);
 }
 
 Texture::~Texture()
 {
-	cudaDestroySurfaceObject(m_surface_handle);
 	cudaDestroyTextureObject(m_texture_handle);
 
 	for (auto &surface : m_surfaces)
@@ -253,20 +206,20 @@ Texture::~Texture()
 		cudaFreeMipmappedArray(m_mipmapped_array_orig);
 		cudaDestroyExternalMemory(m_external_memory);
 	}
-
-	if (!m_is_backbuffer)
-	{
-		cudaFreeArray(m_array);
-	}
 }
 
-uint64_t Texture::GetSurfaceHandle() const
+const cudaSurfaceObject_t *Texture::GetSurfaceDeviceHandle() const
 {
-	return m_surface_handle;
+	return m_surface_list;
 }
 
-uint64_t Texture::GetTextureHandle() const
+const std::vector<cudaSurfaceObject_t> &Texture::GetSurfaceHostHandle() const
 {
-	return m_texture_handle;
+	return m_surfaces;
+}
+
+const cudaTextureObject_t *Texture::GetTextureHandle() const
+{
+	return &m_texture_handle;
 }
 }        // namespace Ilum::CUDA

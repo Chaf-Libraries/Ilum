@@ -247,6 +247,7 @@ bool Swapchain::Present(RHISemaphore *semaphore)
 		present_info.waitSemaphoreCount = 1;
 	}
 
+	vkQueueWaitIdle(m_present_queue);
 	auto result = vkQueuePresentKHR(m_present_queue, &present_info);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)

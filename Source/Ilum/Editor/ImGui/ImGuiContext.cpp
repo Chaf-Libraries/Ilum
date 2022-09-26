@@ -43,21 +43,26 @@ struct ViewportResources
 		    sizeof(ConstantBlock),
 		});
 
-		render_complete = gContext->CreateSemaphore();
-		present_complete = gContext->CreateSemaphore();
+		for (uint32_t i = 0; i < 3; i++)
+		{
+			render_completes[i] = gContext->CreateSemaphore();
+			present_completes[i] = gContext->CreateSemaphore();
+		}
 	}
 
 	std::unique_ptr<RHIBuffer> vertex_buffer  = nullptr;
 	std::unique_ptr<RHIBuffer> index_buffer   = nullptr;
 	std::unique_ptr<RHIBuffer> uniform_buffer = nullptr;
 
-	std::unique_ptr<RHISemaphore> render_complete  = nullptr;
-	std::unique_ptr<RHISemaphore> present_complete = nullptr;
+	std::array<std::unique_ptr<RHISemaphore>, 3> render_completes;
+	std::array<std::unique_ptr<RHISemaphore>, 3> present_completes;
 
 	std::vector<RHICommand *> cmd_buffers;
 
 	uint32_t vertex_count = 0;
 	uint32_t index_count  = 0;
+
+	uint32_t frame_index = 0;
 };
 
 struct WindowData
@@ -621,7 +626,7 @@ static void ImGuiWindowSetSize(ImGuiViewport *viewport, const ImVec2 size)
 static void ImGuiWindowRender(ImGuiViewport *viewport, void *)
 {
 	WindowData *window_data = static_cast<WindowData *>(viewport->RendererUserData);
-	window_data->swapchain->AcquireNextTexture(window_data->viewport_data->present_complete.get(), nullptr);
+	window_data->swapchain->AcquireNextTexture(window_data->viewport_data->present_completes.at(window_data->viewport_data->frame_index).get(), nullptr);
 	RHI_Render(viewport->DrawData, window_data);
 }
 
@@ -629,10 +634,15 @@ static void ImGuiWindowPresent(ImGuiViewport *viewport, void *)
 {
 	WindowData *window_data = static_cast<WindowData *>(viewport->RendererUserData);
 
-	gContext->Execute(std::move(window_data->viewport_data->cmd_buffers), {window_data->viewport_data->render_complete.get()}, {window_data->viewport_data->present_complete.get()});
+	gContext->Execute(
+		std::move(window_data->viewport_data->cmd_buffers), 
+		{window_data->viewport_data->present_completes.at(window_data->viewport_data->frame_index).get()}, 
+		{window_data->viewport_data->render_completes.at(window_data->viewport_data->frame_index).get()},
+		gContext->CreateFrameFence());
 	window_data->viewport_data->cmd_buffers.clear();
 
-	window_data->swapchain->Present(window_data->viewport_data->render_complete.get());
+	window_data->swapchain->Present(window_data->viewport_data->render_completes.at(window_data->viewport_data->frame_index).get());
+	window_data->viewport_data->frame_index = (window_data->viewport_data->frame_index + 1) % 3;
 }
 
 void GuiContext::Render()

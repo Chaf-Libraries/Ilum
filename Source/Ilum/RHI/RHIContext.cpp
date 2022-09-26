@@ -30,7 +30,7 @@ RHIContext::RHIContext(Window *window) :
 
 	m_swapchain = RHISwapchain::Create(m_device.get(), p_window->GetNativeHandle(), p_window->GetWidth(), p_window->GetHeight(), true);
 
-	m_queue = RHIQueue::Create(m_device.get());
+	m_queue      = RHIQueue::Create(m_device.get());
 	m_cuda_queue = RHIQueue::Create(m_cuda_device.get());
 
 	for (uint32_t i = 0; i < m_swapchain->GetTextureCount(); i++)
@@ -152,12 +152,12 @@ RHICommand *RHIContext::CreateCommand(RHIQueueFamily family, bool cuda)
 
 std::unique_ptr<RHIDescriptor> RHIContext::CreateDescriptor(const ShaderMeta &meta, bool cuda)
 {
-	return RHIDescriptor::Create(m_device.get(), meta);
+	return cuda ? RHIDescriptor::Create(m_cuda_device.get(), meta) : RHIDescriptor::Create(m_device.get(), meta);
 }
 
 std::unique_ptr<RHIPipelineState> RHIContext::CreatePipelineState(bool cuda)
 {
-	return RHIPipelineState::Create(m_device.get());
+	return cuda ? RHIPipelineState::Create(m_cuda_device.get()) : RHIPipelineState::Create(m_device.get());
 }
 
 std::unique_ptr<RHIShader> RHIContext::CreateShader(const std::string &entry_point, const std::vector<uint8_t> &source, bool cuda)
@@ -175,9 +175,14 @@ std::unique_ptr<RHIProfiler> RHIContext::CreateProfiler(bool cuda)
 	return RHIProfiler::Create(m_device.get(), m_swapchain->GetTextureCount());
 }
 
-std::unique_ptr<RHIFence> RHIContext::CreateFence(bool cuda)
+std::unique_ptr<RHIFence> RHIContext::CreateFence()
 {
 	return RHIFence::Create(m_device.get());
+}
+
+RHIFence* RHIContext::CreateFrameFence()
+{
+	return m_frames[m_current_frame]->AllocateFence();
 }
 
 std::unique_ptr<RHISemaphore> RHIContext::CreateSemaphore(bool cuda)
@@ -221,7 +226,7 @@ void RHIContext::Execute(RHICommand *cmd_buffer)
 	}
 }
 
-void RHIContext::Execute(std::vector<RHICommand *> &&cmd_buffers, std::vector<RHISemaphore *> &&wait_semaphores, std::vector<RHISemaphore *> &&signal_semaphores)
+void RHIContext::Execute(std::vector<RHICommand *> &&cmd_buffers, std::vector<RHISemaphore *> &&wait_semaphores, std::vector<RHISemaphore *> &&signal_semaphores, RHIFence *fence)
 {
 	SubmitInfo submit_info        = {};
 	submit_info.is_cuda           = cmd_buffers.empty() ? false : cmd_buffers[0]->GetBackend() == RHIBackend::CUDA;
@@ -232,11 +237,11 @@ void RHIContext::Execute(std::vector<RHICommand *> &&cmd_buffers, std::vector<RH
 
 	if (submit_info.is_cuda)
 	{
-		m_cuda_queue->Execute(submit_info.queue_family, {submit_info});
+		m_cuda_queue->Execute(submit_info.queue_family, {submit_info}, fence);
 	}
 	else
 	{
-		m_queue->Execute(submit_info.queue_family, {submit_info});
+		m_queue->Execute(submit_info.queue_family, {submit_info}, fence);
 	}
 }
 

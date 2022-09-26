@@ -62,12 +62,11 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 					if (resource.handle.IsValid())
 					{
 						// Record resource state
-						resource_lifetime[resource.handle][pass_idx] = resource.state;
-						pass_resource_state[resource.handle]         = std::make_pair(last_resource_state[resource.handle], resource.state);
-
 						if (iter->second.bind_point != BindPoint::CUDA)
 						{
 							last_resource_state[resource.handle] = resource.state;
+							resource_lifetime[resource.handle][pass_idx] = resource.state;
+							pass_resource_state[resource.handle]         = std::make_pair(last_resource_state[resource.handle], resource.state);
 						}
 
 						// Set resource info
@@ -328,16 +327,6 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 		    },
 		    std::move(pass_semaphores[pass_handles[i]].wait_semaphores),
 		    std::move(pass_semaphores[pass_handles[i]].signal_semaphores));
-
-		// AddPass(
-		//     *render_graph,
-		//     pass.name,
-		//     pass.bind_point,
-		//     pass.config,
-		//     std::move(render_task.convert<RenderGraph::RenderTask>()),
-		//     [=](RenderGraph &render_graph, RHICommand *cmd_buffer) {
-		//	    cmd_buffer->ResourceStateTransition(texture_state_transitions, buffer_state_transitions);
-		//     });
 	}
 
 	return render_graph;

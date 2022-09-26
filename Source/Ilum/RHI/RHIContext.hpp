@@ -84,7 +84,10 @@ class RHIContext
 	std::unique_ptr<RHIProfiler> CreateProfiler(bool cuda = false);
 
 	// Create Fence
-	std::unique_ptr<RHIFence> CreateFence(bool cuda = false);
+	std::unique_ptr<RHIFence> CreateFence();
+
+	// Create Fence that will reset every frame
+	RHIFence *CreateFrameFence();
 
 	// Create Semaphore
 	std::unique_ptr<RHISemaphore> CreateSemaphore(bool cuda = false);
@@ -100,7 +103,7 @@ class RHIContext
 	// Execute immediate command buffer
 	void Execute(RHICommand *cmd_buffer);
 
-	void Execute(std::vector<RHICommand *> &&cmd_buffers, std::vector<RHISemaphore *> &&wait_semaphores, std::vector<RHISemaphore *> &&signal_semaphores);
+	void Execute(std::vector<RHICommand *> &&cmd_buffers, std::vector<RHISemaphore *> &&wait_semaphores, std::vector<RHISemaphore *> &&signal_semaphores, RHIFence* fence = nullptr);
 
 	void Reset();
 

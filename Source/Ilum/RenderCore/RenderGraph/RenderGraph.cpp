@@ -40,7 +40,6 @@ RenderGraph::RenderGraph(RHIContext *rhi_context) :
 RenderGraph::~RenderGraph()
 {
 	p_rhi_context->Reset();
-
 	p_rhi_context->WaitIdle();
 }
 
@@ -54,6 +53,16 @@ RHIBuffer *RenderGraph::GetBuffer(RGHandle handle)
 {
 	auto iter = m_buffer_lookup.find(handle);
 	return iter == m_buffer_lookup.end() ? nullptr : iter->second;
+}
+
+RHITexture *RenderGraph::GetCUDATexture(RGHandle handle)
+{
+	if (m_cuda_textures.find(handle) == m_cuda_textures.end())
+	{
+		m_textures.emplace_back(p_rhi_context->MapToCUDATexture(m_texture_lookup.at(handle)));
+		m_cuda_textures.emplace(handle, m_textures.back().get());
+	}
+	return m_cuda_textures.at(handle);
 }
 
 void RenderGraph::Execute()
@@ -120,7 +129,7 @@ void RenderGraph::Execute()
 		if (!pass.wait_semaphores.empty() || !pass.signal_semaphores.empty())
 		{
 			p_rhi_context->Submit(std::move(cmd_buffers), std::move(pass.wait_semaphores), std::move(pass.signal_semaphores));
-			//p_rhi_context->Submit(std::move(cmd_buffers));
+			// p_rhi_context->Submit(std::move(cmd_buffers));
 			cmd_buffers.clear();
 		}
 	}
@@ -137,13 +146,13 @@ const std::vector<RenderGraph::RenderPassInfo> &RenderGraph::GetRenderPasses() c
 }
 
 RenderGraph &RenderGraph::AddPass(
-    const std::string                           &name,
-    BindPoint                                    bind_point,
-    const rttr::variant                         &config,
-    RenderTask                                 &&task,
-    BarrierTask                                &&barrier,
-    std::vector<RHISemaphore*> &&wait_semaphores,
-    std::vector<RHISemaphore*> &&signal_semaphores)
+    const std::string            &name,
+    BindPoint                     bind_point,
+    const rttr::variant          &config,
+    RenderTask                  &&task,
+    BarrierTask                 &&barrier,
+    std::vector<RHISemaphore *> &&wait_semaphores,
+    std::vector<RHISemaphore *> &&signal_semaphores)
 {
 	m_render_passes.emplace_back(RenderPassInfo{
 	    name,

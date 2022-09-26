@@ -38,17 +38,17 @@ Descriptor::Descriptor(RHIDevice *device, const ShaderMeta &meta) :
 RHIDescriptor &Descriptor::BindTexture(const std::string &name, RHITexture *texture, RHITextureDimension dimension)
 {
 	size_t   offset         = m_resource_offsets[name];
-	uint64_t texture_handle = 0;
+	const uint64_t* texture_handle = nullptr;
 	if (m_resource_type[name] == (size_t) DescriptorType::TextureUAV)
 	{
-		texture_handle = static_cast<Texture *>(texture)->GetSurfaceHandle();
+		texture_handle = static_cast<Texture *>(texture)->GetSurfaceHostHandle().data();
 	}
 	else if (m_resource_type[name] == (size_t) DescriptorType::TextureSRV)
 	{
 		texture_handle = static_cast<Texture *>(texture)->GetTextureHandle();
 	}
 
-	std::memcpy(m_param_data.data() + offset, &texture_handle, sizeof(texture_handle));
+	std::memcpy(m_param_data.data() + offset, texture_handle, sizeof(uint64_t));
 	return *this;
 }
 
