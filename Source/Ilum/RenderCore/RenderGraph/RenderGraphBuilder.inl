@@ -64,9 +64,16 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 						// Record resource state
 						if (iter->second.bind_point != BindPoint::CUDA)
 						{
-							last_resource_state[resource.handle] = resource.state;
+							last_resource_state[resource.handle]         = resource.state;
 							resource_lifetime[resource.handle][pass_idx] = resource.state;
 							pass_resource_state[resource.handle]         = std::make_pair(last_resource_state[resource.handle], resource.state);
+						}
+						else
+						{
+							RHIResourceState state = last_resource_state.find(resource.handle) != last_resource_state.end() ? last_resource_state[resource.handle] : RHIResourceState::Undefined;
+
+							resource_lifetime[resource.handle][pass_idx] = state;
+							pass_resource_state[resource.handle]         = std::make_pair(state, state);
 						}
 
 						// Set resource info

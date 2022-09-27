@@ -4017,7 +4017,7 @@ void BicubicFilterNoCornersWithFallbackToBilinearFilterWithCustomWeights(
 #line 1 "REBLUR_DiffuseSpecular_PostBlur.ush"
 #line 11 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_PostBlur.ush"
 [numthreads(  8 ,  8 , 1 )]
- void  main ( int2 threadPos : SV_GroupThreadId, int2 pixelPos : SV_DispatchThreadId, uint threadIndex : SV_GroupIndex )
+ void  MainCS ( int2 threadPos : SV_GroupThreadId, int2 pixelPos : SV_DispatchThreadId, uint threadIndex : SV_GroupIndex )
 {
     uint2 pixelPosUser = gRectOrigin + pixelPos;
     float2 pixelUv = float2( pixelPos + 0.5 ) * gInvRectSize;

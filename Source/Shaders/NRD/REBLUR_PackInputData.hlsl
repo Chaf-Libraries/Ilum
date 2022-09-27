@@ -8865,7 +8865,7 @@ void main(uint2 DispatchThreadId : SV_DispatchThreadId)
 
 	float4 GBufferA = GBufferATexture[PixelCoord];
 	float4 GBufferB = GBufferBTexture[PixelCoord];
-	float DeviceZ = SceneDepthTexture[PixelCoord].x;
+	float DeviceZ = SceneDepthTexture.Load(uint3(PixelCoord, 0), 0).x;
 	float Depth = ConvertFromDeviceZ(DeviceZ);
 
 	OutNormalAndRoughness[PixelCoord] = float4(normalize(DecodeNormal(GBufferA.xyz)) * 0.5 + 0.5, GBufferB.b);

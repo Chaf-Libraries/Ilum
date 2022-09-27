@@ -392,10 +392,20 @@ void Command::GenerateMipmaps(RHITexture *texture, RHIResourceState initial_stat
 
 void Command::BlitTexture(RHITexture *src_texture, const TextureRange &src_range, const RHIResourceState &src_state, RHITexture *dst_texture, const TextureRange &dst_range, const RHIResourceState &dst_state, RHIFilter filter)
 {
+	if (src_state != RHIResourceState::TransferSource)
+	{
+		ResourceStateTransition({TextureStateTransition{src_texture, src_state, RHIResourceState::TransferSource, src_range}}, {});
+	}
+
+	if (dst_state != RHIResourceState::TransferDest)
+	{
+		ResourceStateTransition({TextureStateTransition{dst_texture, dst_state, RHIResourceState::TransferDest, dst_range}}, {});
+	}
+
 	VkImage       src_image  = static_cast<Texture *>(src_texture)->GetHandle();
 	VkImage       dst_image  = static_cast<Texture *>(dst_texture)->GetHandle();
-	VkImageLayout src_layout = TextureState::Create(src_state).layout;
-	VkImageLayout dst_layout = TextureState::Create(dst_state).layout;
+	VkImageLayout src_layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	VkImageLayout dst_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 
 	VkImageBlit region = {};
 
@@ -418,6 +428,16 @@ void Command::BlitTexture(RHITexture *src_texture, const TextureRange &src_range
 	region.dstOffsets[1].z = 1;
 
 	vkCmdBlitImage(m_handle, src_image, src_layout, dst_image, dst_layout, 1, &region, ToVulkanFilter[filter]);
+
+	if (src_state != RHIResourceState::TransferSource && src_state != RHIResourceState::Undefined)
+	{
+		ResourceStateTransition({TextureStateTransition{src_texture, RHIResourceState::TransferSource, src_state, src_range}}, {});
+	}
+
+	if (dst_state != RHIResourceState::TransferDest && dst_state != RHIResourceState::Undefined)
+	{
+		ResourceStateTransition({TextureStateTransition{dst_texture, RHIResourceState::TransferDest, dst_state, dst_range}}, {});
+	}
 }
 
 void Command::ResourceStateTransition(const std::vector<TextureStateTransition> &texture_transitions, const std::vector<BufferStateTransition> &buffer_transitions)

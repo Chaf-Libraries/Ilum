@@ -2561,17 +2561,12 @@ float4 NRD_FrontEnd_UnpackNormalAndRoughness( float4 p, out float materialID )
 
     float4 r;
 
+        r.xyz = _NRD_DecodeUnitVector( p.xy, false, false );
+        r.w = p.z;
 
 
-
-
-
-
-
-        r.xyz = p.xyz * 2.0 - 1.0;
-        r.w = p.w;
-
-
+            materialID = p.w;
+#line 374 "/Plugin/NRD/Private/Reblur/NRD.ush"
     r.xyz = normalize( r.xyz );
 #line 380 "/Plugin/NRD/Private/Reblur/NRD.ush"
     return r;
@@ -2590,13 +2585,11 @@ float4 NRD_FrontEnd_UnpackNormalAndRoughness( float4 p )
 float4 NRD_FrontEnd_PackNormalAndRoughness( float3 N, float roughness, uint materialID = 0 )
 {
     float4 p;
-#line 407 "/Plugin/NRD/Private/Reblur/NRD.ush"
-        N /= max( abs( N.x ), max( abs( N.y ), abs( N.z ) ) );
-
-        p.xyz = N * 0.5 + 0.5;
-        p.w = roughness;
-
-
+#line 402 "/Plugin/NRD/Private/Reblur/NRD.ush"
+        p.xy = _NRD_EncodeUnitVector( N, false );
+        p.z = roughness;
+        p.w = saturate( ( materialID + 0.5 ) / 3.0 );
+#line 413 "/Plugin/NRD/Private/Reblur/NRD.ush"
     return p;
 }
 
@@ -2903,7 +2896,7 @@ float REBLUR_GetHitDist( float normHitDist, float viewZ, float4 hitDistParams, f
 
         Texture2D<float4> gIn_Normal_Roughness;
         Texture2D<float> gIn_ViewZ;
-        Texture2D<float3> gIn_ObjectMotion;
+        Texture2D<float4> gIn_ObjectMotion;
         Texture2D<float> gIn_Prev_ViewZ;
         Texture2D<float4> gIn_Prev_Normal_Roughness;
         Texture2D<float> gIn_Prev_AccumSpeeds_MaterialID;
@@ -4115,10 +4108,10 @@ void Preload( uint2 sharedPos, int2 globalPos )
 #line 160 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_TemporalAccumulation.ush"
     STL::Filtering::CatmullRom smbCatromFilter = STL::Filtering::GetCatmullRomFilter( saturate( smbPixelUv ), gRectSizePrev );
     float2 smbCatromGatherUv = smbCatromFilter.origin * gInvScreenSize;
-    float4 smbViewZ0 = gIn_Prev_ViewZ.SampleLevel( gLinearClamp, smbCatromGatherUv + float2( 1, 1 ) * gInvScreenSize , 0.0).xxxx;
-    float4 smbViewZ1 = gIn_Prev_ViewZ.SampleLevel( gLinearClamp, smbCatromGatherUv + float2( 3, 1 ) * gInvScreenSize , 0.0 ).xxxx;
-    float4 smbViewZ2 = gIn_Prev_ViewZ.SampleLevel( gLinearClamp, smbCatromGatherUv + float2( 1, 3 ) * gInvScreenSize , 0.0 ).xxxx;
-    float4 smbViewZ3 = gIn_Prev_ViewZ.SampleLevel( gLinearClamp, smbCatromGatherUv + float2( 3, 3 ) * gInvScreenSize , 0.0 ).xxxx;
+    float4 smbViewZ0 = gIn_Prev_ViewZ.SampleLevel( gNearestClamp, smbCatromGatherUv + float2( 1, 1 ) * gInvRectSize , 0).xxxx;
+    float4 smbViewZ1 = gIn_Prev_ViewZ.SampleLevel( gNearestClamp, smbCatromGatherUv + float2( 3, 1 ) * gInvRectSize , 0).xxxx;
+    float4 smbViewZ2 = gIn_Prev_ViewZ.SampleLevel( gNearestClamp, smbCatromGatherUv + float2( 1, 3 ) * gInvRectSize , 0).xxxx;
+    float4 smbViewZ3 = gIn_Prev_ViewZ.SampleLevel( gNearestClamp, smbCatromGatherUv + float2( 3, 3 ) * gInvRectSize , 0).xxxx;
 
     float3 prevViewZ0 =  ( smbViewZ0.yzw / 0.125 ) ;
     float3 prevViewZ1 =  ( smbViewZ1.xzw / 0.125 ) ;
@@ -4129,11 +4122,12 @@ void Preload( uint2 sharedPos, int2 globalPos )
     STL::Filtering::Bilinear smbBilinearFilter = STL::Filtering::GetBilinearFilter( saturate( smbPixelUv ), gRectSizePrev );
 
     float2 smbBilinearGatherUv = ( smbBilinearFilter.origin + 1.0 ) * gInvScreenSize;
-    float3 prevNflat = UnpackNormalAndRoughness( gIn_Prev_Normal_Roughness.SampleLevel( gLinearClamp, smbBilinearGatherUv, 0 ) ).xyz;
-    prevNflat = STL::Geometry::RotateVector( gWorldPrevToWorld, prevNflat );
+    float3 prevNflat = UnpackNormalAndRoughness( gIn_Prev_Normal_Roughness.SampleLevel( gLinearClamp, pixelUv, 0 ) ).xyz;
 
 
-    uint4 smbPackedAccumSpeedMaterialID = gIn_Prev_AccumSpeeds_MaterialID.SampleLevel( gLinearClamp, smbBilinearGatherUv, 0 ).xxxx;
+
+
+    uint4 smbPackedAccumSpeedMaterialID = gIn_Prev_AccumSpeeds_MaterialID.SampleLevel( gNearestClamp, smbBilinearGatherUv, 0 ).xxxx;
 
     float3 prevAccumSpeedMaterialID00 = UnpackAccumSpeedsMaterialID( smbPackedAccumSpeedMaterialID.x );
     float3 prevAccumSpeedMaterialID10 = UnpackAccumSpeedsMaterialID( smbPackedAccumSpeedMaterialID.y );
@@ -4175,7 +4169,7 @@ void Preload( uint2 sharedPos, int2 globalPos )
     footprintQuality = STL::Math::Sqrt01( footprintQuality );
 
 
-    float4 materialCmps =  1.0 ;
+    float4 materialCmps =  ( ( 1 ) == 0 ? 1.0 : ( ( materialID ) == ( prevMaterialIDs ) ) ) ;
     smbOcclusion0.z *= materialCmps.x;
     smbOcclusion1.y *= materialCmps.y;
     smbOcclusion2.y *= materialCmps.z;
@@ -4204,12 +4198,12 @@ void Preload( uint2 sharedPos, int2 globalPos )
 
         float diffAccumSpeed = AdvanceAccumSpeed( prevDiffAccumSpeeds, gDiffMaterialMask ? smbOcclusionWeightsWithMaterialID : smbOcclusionWeights );
         diffAccumSpeed *= lerp( gDiffMaterialMask ? footprintQualityWithMaterialID : footprintQuality, 1.0, 1.0 / ( 1.0 + diffAccumSpeed ) );
-#line 268 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_TemporalAccumulation.ush"
+#line 269 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_TemporalAccumulation.ush"
     uint checkerboard = STL::Sequence::CheckerBoard( pixelPos, gFrameIndex );
 
         int3 checkerboardPos = pixelPosUser.xyx + int3( -1, 0, 1 );
-        float viewZ0 = gIn_ViewZ.SampleLevel(gLinearClamp, checkerboardPos.xy * gInvRectSize, 0);
-        float viewZ1 = gIn_ViewZ.SampleLevel(gLinearClamp, checkerboardPos.zy * gInvRectSize, 0);
+        float viewZ0 = gIn_ViewZ.SampleLevel(gLinearClamp, checkerboardPos.xy* gInvRectSize, 0);
+        float viewZ1 = gIn_ViewZ.SampleLevel(gLinearClamp, checkerboardPos.xy* gInvRectSize, 0);
         float2 wc =  STL::Math::LinearStep( 0.03 , 0.0, abs( float2( viewZ0, viewZ1 ) - viewZ ) * rcp( max( abs( float2( viewZ0, viewZ1 ) ), abs( viewZ ) ) + 1e-6 ) ) ;
         wc *= STL::Math::PositiveRcp( wc.x + wc.y );
 
@@ -4220,9 +4214,9 @@ void Preload( uint2 sharedPos, int2 globalPos )
 
             uint diffShift = gDiffCheckerboard != 2 ? 1 : 0;
             uint2 diffPos = uint2( pixelPos.x >> diffShift, pixelPos.y ) + gRectOrigin;
-#line 287 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_TemporalAccumulation.ush"
-        float  diff = gIn_Diff.SampleLevel(gLinearClamp, diffPos * gInvRectSize, 0);
-#line 293 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_TemporalAccumulation.ush"
+#line 288 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_TemporalAccumulation.ush"
+        float  diff = gIn_Diff.SampleLevel(gLinearClamp, diffPos* gInvRectSize, 0);
+#line 294 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_TemporalAccumulation.ush"
         float  smbDiffHistory;
         float4 smbDiffShHistory;
         float smbDiffFastHistory;
@@ -4230,7 +4224,7 @@ void Preload( uint2 sharedPos, int2 globalPos )
             saturate( smbPixelUv ) * gRectSizePrev, gInvScreenSize,
             gDiffMaterialMask ? smbOcclusionWeightsWithMaterialID : smbOcclusionWeights, gDiffMaterialMask ? smbIsCatromAllowedWithMaterialID : smbIsCatromAllowed,
             gIn_Diff_History, smbDiffHistory
-#line 306 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_TemporalAccumulation.ush"
+#line 307 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_TemporalAccumulation.ush"
         );
 
 
@@ -4238,8 +4232,8 @@ void Preload( uint2 sharedPos, int2 globalPos )
 
 
 
-            float d0 = gIn_Diff.SampleLevel(gLinearClamp, (uint2( ( pixelPos.x - 1 ) >> diffShift, pixelPos.y ) + gRectOrigin) * gInvRectSize, 0);
-            float d1 = gIn_Diff.SampleLevel(gLinearClamp, (uint2( ( pixelPos.x + 1 ) >> diffShift, pixelPos.y ) + gRectOrigin) * gInvRectSize, 0);
+            float d0 = gIn_Diff.SampleLevel(gLinearClamp, float2(uint2( ( pixelPos.x - 1 ) >> diffShift, pixelPos.y ) + gRectOrigin)* gInvRectSize, 0);
+            float d1 = gIn_Diff.SampleLevel(gLinearClamp, float2(uint2( ( pixelPos.x + 1 ) >> diffShift, pixelPos.y ) + gRectOrigin)* gInvRectSize, 0);
 
             if( !diffHasData )
             {
@@ -4253,13 +4247,13 @@ void Preload( uint2 sharedPos, int2 globalPos )
             diffAccumSpeedNonLinear *= 1.0 - gCheckerboardResolveAccumSpeed * diffAccumSpeed / ( 1.0 + diffAccumSpeed );
 
         float  diffResult = MixHistoryAndCurrent( smbDiffHistory, diff, diffAccumSpeedNonLinear );
-#line 333 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_TemporalAccumulation.ush"
+#line 334 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_TemporalAccumulation.ush"
         float diffError = GetColorErrorForAdaptiveRadiusScale( diffResult, smbDiffHistory, diffAccumSpeed );
 
 
 
-            gOut_Diff[ pixelPos ] = float2( diffResult,  min( viewZ * 0.125 , 65504.0 )  );
-#line 617 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_TemporalAccumulation.ush"
+            gOut_Diff[ pixelPos ] = float2( dot( prevNflat, Navg.xyz ), 0 );
+#line 618 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_TemporalAccumulation.ush"
         float specAccumSpeed = 0;
         float specError = 0;
         float virtualHistoryAmount = 0;
@@ -4268,6 +4262,6 @@ void Preload( uint2 sharedPos, int2 globalPos )
 
 
     gOut_Data1[ pixelPos ] = PackInternalData1( diffAccumSpeed, diffError, specAccumSpeed, specError );
-#line 629 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_TemporalAccumulation.ush"
+#line 630 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_TemporalAccumulation.ush"
 }
 #line 25 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseOcclusion_TemporalAccumulation.cs.usf"

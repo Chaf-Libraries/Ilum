@@ -2549,17 +2549,12 @@ float4 NRD_FrontEnd_UnpackNormalAndRoughness( float4 p, out float materialID )
 
     float4 r;
 
+        r.xyz = _NRD_DecodeUnitVector( p.xy, false, false );
+        r.w = p.z;
 
 
-
-
-
-
-
-        r.xyz = p.xyz * 2.0 - 1.0;
-        r.w = p.w;
-
-
+            materialID = p.w;
+#line 374 "/Plugin/NRD/Private/Reblur/NRD.ush"
     r.xyz = normalize( r.xyz );
 #line 380 "/Plugin/NRD/Private/Reblur/NRD.ush"
     return r;
@@ -2578,13 +2573,11 @@ float4 NRD_FrontEnd_UnpackNormalAndRoughness( float4 p )
 float4 NRD_FrontEnd_PackNormalAndRoughness( float3 N, float roughness, uint materialID = 0 )
 {
     float4 p;
-#line 407 "/Plugin/NRD/Private/Reblur/NRD.ush"
-        N /= max( abs( N.x ), max( abs( N.y ), abs( N.z ) ) );
-
-        p.xyz = N * 0.5 + 0.5;
-        p.w = roughness;
-
-
+#line 402 "/Plugin/NRD/Private/Reblur/NRD.ush"
+        p.xy = _NRD_EncodeUnitVector( N, false );
+        p.z = roughness;
+        p.w = saturate( ( materialID + 0.5 ) / 3.0 );
+#line 413 "/Plugin/NRD/Private/Reblur/NRD.ush"
     return p;
 }
 
@@ -4019,7 +4012,7 @@ void Preload( uint2 sharedPos, int2 globalPos )
 {
     globalPos = clamp( globalPos, 0, gRectSize - 1.0 );
 
-    float4 internalData1 = UnpackInternalData1( gIn_Data1[ globalPos ] );
+    float4 internalData1 = UnpackInternalData1( gIn_Data1.SampleLevel(gLinearClamp, globalPos * gInvRectSize, 0) );
     s_FrameNum[ sharedPos.y ][ sharedPos.x ] = internalData1.xz;
 
 
@@ -4028,12 +4021,12 @@ void Preload( uint2 sharedPos, int2 globalPos )
 
 
 
-                s_DiffLuma[ sharedPos.y ][ sharedPos.x ] = GetLuma( gIn_Diff[ globalPos ] );
+                s_DiffLuma[ sharedPos.y ][ sharedPos.x ] = GetLuma( gIn_Diff.SampleLevel(gLinearClamp, globalPos * gInvRectSize, 0) );
 #line 42 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_HistoryFix.ush"
 }
 
 [numthreads(  16 ,  16 , 1 )]
- void  main ( int2 threadPos : SV_GroupThreadId, int2 pixelPos : SV_DispatchThreadId, uint threadIndex : SV_GroupIndex )
+ void  MainCS ( int2 threadPos : SV_GroupThreadId, int2 pixelPos : SV_DispatchThreadId, uint threadIndex : SV_GroupIndex )
 {
     float2 pixelUv = float2( pixelPos + 0.5 ) * gInvRectSize;
     int2 pixelPosUser = gRectOrigin + pixelPos;
@@ -4043,7 +4036,7 @@ void Preload( uint2 sharedPos, int2 globalPos )
         float viewZ;
 
 
-            float2 diffTemp = gIn_Diff[ pixelPos ];
+            float2 diffTemp = gIn_Diff.SampleLevel(gLinearClamp, pixelPos * gInvRectSize, 0);
             float diff = diffTemp.x;
             viewZ = diffTemp.y;
 #line 66 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_HistoryFix.ush"
@@ -4150,7 +4143,7 @@ void Preload( uint2 sharedPos, int2 globalPos )
     {
 
         float materialID;
-        float4 normalAndRoughness = NRD_FrontEnd_UnpackNormalAndRoughness( gIn_Normal_Roughness[ pixelPosUser ], materialID );
+        float4 normalAndRoughness = NRD_FrontEnd_UnpackNormalAndRoughness( gIn_Normal_Roughness.SampleLevel(gLinearClamp, pixelPosUser * gInvRectSize, 0), materialID );
         float3 N = normalAndRoughness.xyz;
         float roughness = normalAndRoughness.w;
 
@@ -4210,7 +4203,7 @@ void Preload( uint2 sharedPos, int2 globalPos )
                 float2 w = IsInScreen( uv );
 
                     w.x *=  STL::Math::SmoothStep01( 1.0 - abs( ( NoX ) * ( diffGeometryWeightParams.x ) + ( diffGeometryWeightParams.y ) ) ) ;
-                    w.x *=  1.0 ;
+                    w.x *=  ( ( gDiffMaterialMask ) == 0 ? 1.0 : ( ( materialID ) == ( materialIDs ) ) ) ;
 #line 380 "/Plugin/NRD/Private/Reblur/REBLUR_DiffuseSpecular_HistoryFix.ush"
                 float cosa = saturate( dot( Ns.xyz, N ) );
                 float angle = STL::Math::AcosApprox( cosa );

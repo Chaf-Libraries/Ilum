@@ -22,12 +22,18 @@ struct SamplerDesc
 	float mip_lod_bias = 0.f;
 	float min_lod = 0.f;
 	float max_lod = 100.f;
+
+	static SamplerDesc LinearClamp;
+	static SamplerDesc LinearWarp;
+	static SamplerDesc NearestClamp;
+	static SamplerDesc NearestWarp;
 };
 
 class RHISampler
 {
   public:
 	RHISampler(RHIDevice *device, const SamplerDesc &desc);
+
 	virtual ~RHISampler() = default;
 
 	static std::unique_ptr<RHISampler> Create(RHIDevice *device, const SamplerDesc &desc);

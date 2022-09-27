@@ -176,8 +176,8 @@ Texture::Texture(Device *device, Vulkan::Device *vk_device, Vulkan::Texture *vk_
 	cuda_texture_desc.mipmapFilterMode    = cudaFilterModeLinear;
 	cuda_texture_desc.addressMode[0]      = cudaAddressModeWrap;
 	cuda_texture_desc.addressMode[1]      = cudaAddressModeWrap;
-	cuda_texture_desc.maxMipmapLevelClamp = std::max(1.f, static_cast<float>(m_desc.mips) - 1.f);
-	cuda_texture_desc.readMode            = cudaReadModeNormalizedFloat;
+	cuda_texture_desc.maxMipmapLevelClamp = static_cast<float>(m_desc.mips) - 1.f;
+	cuda_texture_desc.readMode            =  cudaReadModeElementType;
 
 	cudaCreateTextureObject(&m_texture_handle, &cuda_resource_desc, &cuda_texture_desc, nullptr);
 

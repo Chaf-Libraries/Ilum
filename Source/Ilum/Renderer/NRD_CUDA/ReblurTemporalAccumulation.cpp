@@ -20,8 +20,8 @@ RenderPassDesc ReblurTemporalAccumulation::CreateDesc()
 
 RenderGraph::RenderTask ReblurTemporalAccumulation::Create(const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
 {
-	//auto *shader = renderer->RequireShader("Source/Shaders/NRD/ReblurTemporalAccumulation.hlsl", "MainCS", RHIShaderStage::Compute, {}, true);
-	 auto *shader = renderer->RequireShader("Source/Shaders/NRD/Test.hlsl", "MainCS", RHIShaderStage::Compute, {}, true);
+	auto *shader = renderer->RequireShader("Source/Shaders/NRD/ReblurTemporalAccumulation.hlsl", "MainCS", RHIShaderStage::Compute, {}, true);
+	//auto *shader = renderer->RequireShader("Source/Shaders/NRD/Test.hlsl", "MainCS", RHIShaderStage::Compute, {}, true);
 
 	ShaderMeta meta = renderer->RequireShaderMeta(shader);
 
@@ -64,7 +64,7 @@ RenderGraph::RenderTask ReblurTemporalAccumulation::Create(const RenderPassDesc 
 		uint32_t   gDiffMaterialMask                         = 1;
 		uint32_t   gSpecMaterialMask                         = 0;
 		glm::mat4  gWorldToViewPrev                          = glm::mat4(glm::vec4(-0.9997f, 0.0031f, 0.0234f, 0.0000f), glm::vec4(-0.0236f, -0.1315f, -0.9910f, 0.0000f), glm::vec4(-0.0000f, 0.9913f, -0.1315f, 0.0000f), glm::vec4(0.0000f, -0.0000f, -0.0000f, 1.0000f));
-		glm::mat4  gWorldToClipPrev                          = glm::mat4(glm::vec4(-0.9997f, 0.0055f, 0.0234f, 0.0234f), glm::vec4(-0.0236f, -0.2337f, -0.9910f, -0.9910f), glm::vec4(0.0000f, 1.7623f, -0.1315f, -0.1315f), glm::vec4(0.0000f, 0.0000f, -0.0010f, 0.0000f));
+		glm::mat4  gWorldToClipPrev                          =glm::mat4(glm::vec4(-0.9997f, 0.0055f, 0.0234f, 0.0234f), glm::vec4(-0.0236f, -0.2337f, -0.9910f, -0.9910f), glm::vec4(0.0000f, 1.7623f, -0.1315f, -0.1315f), glm::vec4(0.0000f, 0.0000f, -0.0010f, 0.0000f));
 		glm::mat4  gWorldToClip                              = glm::mat4(glm::vec4(-0.9997f, 0.0055f, 0.0234f, 0.0234f), glm::vec4(-0.0236f, -0.2337f, -0.9910f, -0.9910f), glm::vec4(0.0000f, 1.7623f, -0.1315f, -0.1315f), glm::vec4(0.0000f, 0.0000f, -0.0010f, 0.0000f));
 		glm::mat4  gWorldPrevToWorld                         = glm::mat4(glm::vec4(1.0000f, 0.0000f, 0.0000f, 0.0000f), glm::vec4(0.0000f, 1.0000f, 0.0000f, 0.0000f), glm::vec4(0.0000f, 0.0000f, 1.0000f, 0.0000f), glm::vec4(0.0000f, 0.0000f, 0.0000f, 1.0000f));
 		glm::vec4  gFrustumPrev                              = {-1.0000f, 0.5625f, 2.0000f, -1.1250f};
@@ -81,8 +81,12 @@ RenderGraph::RenderTask ReblurTemporalAccumulation::Create(const RenderPassDesc 
 	std::shared_ptr<RHIDescriptor>    descriptor     = std::move(renderer->GetRHIContext()->CreateDescriptor(meta, true));
 	std::shared_ptr<RHIPipelineState> pipeline_state = std::move(renderer->GetRHIContext()->CreatePipelineState(true));
 
-	std::shared_ptr<RHIBuffer> root_shader_parameter_buffer = std::move(renderer->GetRHIContext()->CreateBuffer<decltype(root_shader_parameter)>(1, RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU, true));
+	std::shared_ptr<RHIBuffer> root_shader_parameter_buffer = std::move(renderer->GetRHIContext()->CreateBuffer<decltype(root_shader_parameter)>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU, true));
 	root_shader_parameter_buffer->CopyToDevice(&root_shader_parameter, sizeof(root_shader_parameter), 0);
+
+	std::shared_ptr<RHIBuffer> constant_buffer = std::move(renderer->GetRHIContext()->CreateBuffer<glm::mat4>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU, true));
+	glm::mat4                  identity        = glm::mat4(1);
+	constant_buffer->CopyToDevice(&identity, sizeof(identity), 0);
 
 	pipeline_state->SetShader(RHIShaderStage::Compute, shader);
 
@@ -107,7 +111,7 @@ RenderGraph::RenderTask ReblurTemporalAccumulation::Create(const RenderPassDesc 
 	// Convert to Float32 format
 	std::shared_ptr<RHITexture> gfx_In_Normal_Roughness            = std::move(renderer->GetRHIContext()->CreateTexture2D(orig_In_Normal_Roughness->GetDesc().width, orig_In_Normal_Roughness->GetDesc().height, RHIFormat::R32G32B32A32_FLOAT, RHITextureUsage::Transfer, false, 1, true));
 	std::shared_ptr<RHITexture> gfx_In_ViewZ                       = std::move(renderer->GetRHIContext()->CreateTexture2D(orig_In_ViewZ->GetDesc().width, orig_In_ViewZ->GetDesc().height, RHIFormat::R32_FLOAT, RHITextureUsage::Transfer, false, 1, true));
-	std::shared_ptr<RHITexture> gfx_In_ObjectMotion                = std::move(renderer->GetRHIContext()->CreateTexture2D(orig_In_ObjectMotion->GetDesc().width, orig_In_ObjectMotion->GetDesc().height, RHIFormat::R32G32B32_FLOAT, RHITextureUsage::Transfer, false, 1, true));
+	std::shared_ptr<RHITexture> gfx_In_ObjectMotion                = std::move(renderer->GetRHIContext()->CreateTexture2D(orig_In_ObjectMotion->GetDesc().width, orig_In_ObjectMotion->GetDesc().height, RHIFormat::R32G32B32A32_FLOAT, RHITextureUsage::Transfer, false, 1, true));
 	std::shared_ptr<RHITexture> gfx_In_Prev_ViewZ                  = std::move(renderer->GetRHIContext()->CreateTexture2D(orig_In_Prev_ViewZ->GetDesc().width, orig_In_Prev_ViewZ->GetDesc().height, RHIFormat::R32_FLOAT, RHITextureUsage::Transfer, false, 1, true));
 	std::shared_ptr<RHITexture> gfx_In_Prev_Normal_Roughness       = std::move(renderer->GetRHIContext()->CreateTexture2D(orig_In_Prev_Normal_Roughness->GetDesc().width, orig_In_Prev_Normal_Roughness->GetDesc().height, RHIFormat::R32G32B32A32_FLOAT, RHITextureUsage::Transfer, false, 1, true));
 	std::shared_ptr<RHITexture> gfx_In_Prev_AccumSpeeds_MaterialID = std::move(renderer->GetRHIContext()->CreateTexture2D(orig_In_Prev_AccumSpeeds_MaterialID->GetDesc().width, orig_In_Prev_AccumSpeeds_MaterialID->GetDesc().height, RHIFormat::R32_FLOAT, RHITextureUsage::Transfer, false, 1, true));
@@ -117,14 +121,14 @@ RenderGraph::RenderTask ReblurTemporalAccumulation::Create(const RenderPassDesc 
 	{
 		auto *cmd_buffer = renderer->GetRHIContext()->CreateCommand(RHIQueueFamily::Graphics);
 		cmd_buffer->Begin();
-		cmd_buffer->BlitTexture(orig_In_Normal_Roughness, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::ShaderResource, gfx_In_Normal_Roughness.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::TransferDest, RHIFilter::Nearest);
-		cmd_buffer->BlitTexture(orig_In_ViewZ, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::ShaderResource, gfx_In_ViewZ.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::TransferDest, RHIFilter::Nearest);
-		cmd_buffer->BlitTexture(orig_In_ObjectMotion, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::ShaderResource, gfx_In_ObjectMotion.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::TransferDest, RHIFilter::Nearest);
-		cmd_buffer->BlitTexture(orig_In_Prev_ViewZ, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::ShaderResource, gfx_In_Prev_ViewZ.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::TransferDest, RHIFilter::Nearest);
-		cmd_buffer->BlitTexture(orig_In_Prev_Normal_Roughness, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::ShaderResource, gfx_In_Prev_Normal_Roughness.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::TransferDest, RHIFilter::Nearest);
-		cmd_buffer->BlitTexture(orig_In_Prev_AccumSpeeds_MaterialID, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::ShaderResource, gfx_In_Prev_AccumSpeeds_MaterialID.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::TransferDest, RHIFilter::Nearest);
-		cmd_buffer->BlitTexture(orig_In_Diff, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::ShaderResource, gfx_In_Diff.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::TransferDest, RHIFilter::Nearest);
-		cmd_buffer->BlitTexture(orig_In_Diff_History, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::ShaderResource, gfx_In_Diff_History.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::TransferDest, RHIFilter::Nearest);
+		cmd_buffer->BlitTexture(orig_In_Normal_Roughness, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::ShaderResource, gfx_In_Normal_Roughness.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::Undefined, RHIFilter::Nearest);
+		cmd_buffer->BlitTexture(orig_In_ViewZ, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::ShaderResource, gfx_In_ViewZ.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::Undefined, RHIFilter::Nearest);
+		cmd_buffer->BlitTexture(orig_In_ObjectMotion, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::ShaderResource, gfx_In_ObjectMotion.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::Undefined, RHIFilter::Nearest);
+		cmd_buffer->BlitTexture(orig_In_Prev_ViewZ, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::ShaderResource, gfx_In_Prev_ViewZ.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::Undefined, RHIFilter::Nearest);
+		cmd_buffer->BlitTexture(orig_In_Prev_Normal_Roughness, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::ShaderResource, gfx_In_Prev_Normal_Roughness.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::Undefined, RHIFilter::Nearest);
+		cmd_buffer->BlitTexture(orig_In_Prev_AccumSpeeds_MaterialID, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::ShaderResource, gfx_In_Prev_AccumSpeeds_MaterialID.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::Undefined, RHIFilter::Nearest);
+		cmd_buffer->BlitTexture(orig_In_Diff, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::ShaderResource, gfx_In_Diff.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::Undefined, RHIFilter::Nearest);
+		cmd_buffer->BlitTexture(orig_In_Diff_History, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::ShaderResource, gfx_In_Diff_History.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::Undefined, RHIFilter::Nearest);
 		cmd_buffer->End();
 		renderer->GetRHIContext()->Execute(cmd_buffer);
 	}
@@ -138,39 +142,34 @@ RenderGraph::RenderTask ReblurTemporalAccumulation::Create(const RenderPassDesc 
 	std::shared_ptr<RHITexture> In_Diff                        = renderer->GetRHIContext()->MapToCUDATexture(gfx_In_Diff.get());
 	std::shared_ptr<RHITexture> In_Diff_History                = renderer->GetRHIContext()->MapToCUDATexture(gfx_In_Diff_History.get());
 
-	struct
-	{
-		glm::uvec2 tex_size = {100, 100};
-	} constant;
-
-	std::shared_ptr<RHIBuffer> constant_buffer = std::move(renderer->GetRHIContext()->CreateBuffer<decltype(constant)>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU, true));
-	constant_buffer->CopyToDevice(&constant, sizeof(constant), 0);
-
 	return [=](RenderGraph &render_graph, RHICommand *cmd_buffer, rttr::variant &config) {
-		Config config_ = config.convert<Config>();
-
-		// descriptor
-		//->BindBuffer("_RootShaderParameters", root_shader_parameter_buffer.get())
-		//.BindTexture("gIn_Normal_Roughness", In_Normal_Roughness.get(), RHITextureDimension::Texture2D)
-		//.BindTexture("gIn_ViewZ", normal_roughness, RHITextureDimension::Texture2D)
-		//.BindTexture("gIn_ObjectMotion", normal_roughness, RHITextureDimension::Texture2D)
-		//.BindTexture("gIn_Prev_ViewZ", normal_roughness, RHITextureDimension::Texture2D)
-		//.BindTexture("gIn_Prev_Normal_Roughness", normal_roughness, RHITextureDimension::Texture2D)
-		//.BindTexture("gIn_Prev_AccumSpeeds_MaterialID", normal_roughness, RHITextureDimension::Texture2D)
-		//.BindTexture("gIn_Diff", normal_roughness, RHITextureDimension::Texture2D)
-		//.BindTexture("gIn_Diff_History", normal_roughness, RHITextureDimension::Texture2D)
-		//;
-
-		auto output_image = render_graph.GetCUDATexture(desc.resources.at("Out_Diff").handle);
+		auto *out_diff = render_graph.GetCUDATexture(desc.resources.at("Out_Diff").handle);
+		auto *out_data = render_graph.GetCUDATexture(desc.resources.at("Out_Data1").handle);
 
 		descriptor
-		    ->BindBuffer("Constant", constant_buffer.get())
-		    .BindTexture("InputImage", In_Diff.get(), RHITextureDimension::Texture2D)
-		    .BindTexture("OutputImage", output_image, RHITextureDimension::Texture2D);
+		    ->BindBuffer("_RootShaderParameters", root_shader_parameter_buffer.get())
+		    .BindSampler("gLinearClamp", renderer->GetRHIContext()->CreateSampler(SamplerDesc::LinearClamp))
+		    .BindTexture("gIn_Normal_Roughness", In_Normal_Roughness.get(), RHITextureDimension::Texture2D)
+		    .BindTexture("gIn_ViewZ", In_ViewZ.get(), RHITextureDimension::Texture2D)
+		    .BindTexture("gIn_ObjectMotion", In_ObjectMotion.get(), RHITextureDimension::Texture2D)
+		    .BindTexture("gIn_Prev_ViewZ", In_Prev_ViewZ.get(), RHITextureDimension::Texture2D)
+		    .BindTexture("gIn_Prev_Normal_Roughness", In_Prev_Normal_Roughness.get(), RHITextureDimension::Texture2D)
+		    .BindTexture("gIn_Prev_AccumSpeeds_MaterialID", In_Prev_AccumSpeeds_MaterialID.get(), RHITextureDimension::Texture2D)
+		    .BindTexture("gIn_Diff", In_Diff.get(), RHITextureDimension::Texture2D)
+		    .BindTexture("gIn_Diff_History", In_Diff_History.get(), RHITextureDimension::Texture2D)
+		    .BindTexture("gOut_Diff", out_diff, RHITextureDimension::Texture2D)
+		    .BindTexture("gOut_Data1", out_data, RHITextureDimension::Texture2D);
+
+		/*RWTexture2D<float4> OutputImage;
+Texture2D<float> InputImage;
+SamplerState _sampler;*/
+		//descriptor->BindTexture("OutputImage", out_data, RHITextureDimension::Texture2D)
+		//    .BindTexture("InputImage", In_Prev_Normal_Roughness.get(), RHITextureDimension::Texture2D)
+		//    .BindSampler("_sampler", renderer->GetRHIContext()->CreateSampler(SamplerDesc::LinearClamp));
 
 		cmd_buffer->BindDescriptor(descriptor.get());
 		cmd_buffer->BindPipelineState(pipeline_state.get());
-		cmd_buffer->Dispatch(output_image->GetDesc().width, output_image->GetDesc().height, 1, 8, 8, 1);
+		cmd_buffer->Dispatch(out_diff->GetDesc().width, out_diff->GetDesc().height, 1, 8, 8, 1);
 	};
 }
 }        // namespace Ilum
