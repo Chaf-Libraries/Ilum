@@ -2,6 +2,10 @@
 
 namespace Ilum
 {
+MetaParser::MetaParser(const std::string &)
+{
+}
+
 MetaParser::~MetaParser()
 {
 	if (m_translation_unit)
@@ -32,5 +36,16 @@ bool MetaParser::Parse()
 
 void MetaParser::GenerateFile()
 {
+}
+bool MetaParser::ParseProject()
+{
+	return false;
+}
+void MetaParser::BuildClassAST()
+{
+}
+std::string MetaParser::GetIncludeFile(const std::string &name)
+{
+	return std::string();
 }
 }        // namespace Ilum
