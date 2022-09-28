@@ -31,7 +31,7 @@ void Queue::Execute(RHIQueueFamily family, const std::vector<SubmitInfo> &submit
 		}
 		for (auto &signal_semaphore : submit_info.signal_semaphores)
 		{
-			static_cast<Semaphore *>(signal_semaphore)->Wait();
+			static_cast<Semaphore *>(signal_semaphore)->Signal();
 		}
 	}
 }

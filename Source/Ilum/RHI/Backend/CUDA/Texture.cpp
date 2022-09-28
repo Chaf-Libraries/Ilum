@@ -140,7 +140,6 @@ Texture::Texture(Device *device, Vulkan::Device *vk_device, Vulkan::Texture *vk_
 	cuda_external_memory_mipmapped_array_desc.numLevels  = vk_texture->GetDesc().mips;
 
 	cudaExternalMemoryGetMappedMipmappedArray(&m_mipmapped_array, m_external_memory, &cuda_external_memory_mipmapped_array_desc);
-	cudaMallocMipmappedArray(&m_mipmapped_array_orig, &format, extent, vk_texture->GetDesc().mips);
 
 	for (uint32_t mip_level = 0; mip_level < vk_texture->GetDesc().mips; mip_level++)
 	{
@@ -149,7 +148,6 @@ Texture::Texture(Device *device, Vulkan::Device *vk_device, Vulkan::Texture *vk_
 		cudaResourceDesc resource_desc = {};
 
 		cudaGetMipmappedArrayLevel(&cuda_mip_level_array, m_mipmapped_array, mip_level);
-		cudaGetMipmappedArrayLevel(&cuda_mip_level_array_orig, m_mipmapped_array_orig, mip_level);
 
 		uint32_t width  = (vk_texture->GetDesc().width >> mip_level) ? (vk_texture->GetDesc().width >> mip_level) : 1;
 		uint32_t height = (vk_texture->GetDesc().height >> mip_level) ? (vk_texture->GetDesc().height >> mip_level) : 1;
@@ -167,15 +165,15 @@ Texture::Texture(Device *device, Vulkan::Device *vk_device, Vulkan::Texture *vk_
 	cudaResourceDesc cuda_resource_desc = {};
 
 	cuda_resource_desc.resType           = cudaResourceTypeMipmappedArray;
-	cuda_resource_desc.res.mipmap.mipmap = m_mipmapped_array_orig;
+	cuda_resource_desc.res.mipmap.mipmap = m_mipmapped_array;
 
 	cudaTextureDesc cuda_texture_desc = {};
 
 	cuda_texture_desc.normalizedCoords    = true;
 	cuda_texture_desc.filterMode          = cudaFilterModeLinear;
 	cuda_texture_desc.mipmapFilterMode    = cudaFilterModeLinear;
-	cuda_texture_desc.addressMode[0]      = cudaAddressModeWrap;
-	cuda_texture_desc.addressMode[1]      = cudaAddressModeWrap;
+	cuda_texture_desc.addressMode[0]      = cudaAddressModeClamp;
+	cuda_texture_desc.addressMode[1]      = cudaAddressModeClamp;
 	cuda_texture_desc.maxMipmapLevelClamp = static_cast<float>(m_desc.mips) - 1.f;
 	cuda_texture_desc.readMode            =  cudaReadModeElementType;
 
@@ -203,7 +201,6 @@ Texture::~Texture()
 	if (m_external_memory)
 	{
 		cudaFreeMipmappedArray(m_mipmapped_array);
-		cudaFreeMipmappedArray(m_mipmapped_array_orig);
 		cudaDestroyExternalMemory(m_external_memory);
 	}
 }

@@ -37,6 +37,11 @@ Descriptor::Descriptor(RHIDevice *device, const ShaderMeta &meta) :
 
 RHIDescriptor &Descriptor::BindTexture(const std::string &name, RHITexture *texture, RHITextureDimension dimension)
 {
+	if (m_resource_offsets.find(name) == m_resource_offsets.end())
+	{
+		return *this;
+	}
+
 	size_t   offset         = m_resource_offsets[name];
 	const uint64_t* texture_handle = nullptr;
 	if (m_resource_type[name] == (size_t) DescriptorType::TextureUAV)
@@ -74,6 +79,11 @@ RHIDescriptor &Descriptor::BindSampler(const std::string &name, const std::vecto
 
 RHIDescriptor &Descriptor::BindBuffer(const std::string &name, RHIBuffer *buffer)
 {
+	if (m_resource_offsets.find(name) == m_resource_offsets.end())
+	{
+		return *this;
+	}
+
 	size_t offset        = m_resource_offsets[name];
 	size_t stride        = static_cast<Buffer *>(buffer)->GetDesc().stride;
 	void  *buffer_handle = static_cast<Buffer *>(buffer)->GetHandle();

@@ -39,7 +39,6 @@ class Texture : public RHITexture
 
 	cudaExternalMemory_t m_external_memory      = nullptr;
 	cudaMipmappedArray_t m_mipmapped_array      = nullptr;
-	cudaMipmappedArray_t m_mipmapped_array_orig = nullptr;
 
 	bool m_is_backbuffer = false;
 };

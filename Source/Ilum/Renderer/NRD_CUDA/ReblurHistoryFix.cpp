@@ -20,12 +20,14 @@ RenderPassDesc ReblurHistoryFix::CreateDesc()
 
 RenderGraph::RenderTask ReblurHistoryFix::Create(const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
 {
-	auto *shader = renderer->RequireShader("Source/Shaders/NRD/ReblurHistoryFix.hlsl", "MainCS", RHIShaderStage::Compute, {}, true);
+	 auto *shader = renderer->RequireShader("Source/Shaders/NRD/ReblurHistoryFix.hlsl", "MainCS", RHIShaderStage::Compute, {}, true);
 
 	ShaderMeta meta = renderer->RequireShaderMeta(shader);
 
 	std::shared_ptr<RHIDescriptor>    descriptor     = std::move(renderer->GetRHIContext()->CreateDescriptor(meta, true));
 	std::shared_ptr<RHIPipelineState> pipeline_state = std::move(renderer->GetRHIContext()->CreatePipelineState(true));
+
+	pipeline_state->SetShader(RHIShaderStage::Compute, shader);
 
 	renderer->GetResourceManager()->ImportTexture("./Asset/NRD_Data/Sample/gIn_Normal_Roughness.dds", true, false);
 	auto                       *orig_In_Normal_Roughness = renderer->GetResourceManager()->GetTexture(std::to_string(Hash(std::string("./Asset/NRD_Data/Sample/gIn_Normal_Roughness.dds"), true)))->texture.get();
@@ -87,14 +89,14 @@ RenderGraph::RenderTask ReblurHistoryFix::Create(const RenderPassDesc &desc, Ren
 		auto *in_diff  = render_graph.GetCUDATexture(desc.resources.at("In_Diff").handle);
 		auto *out_diff = render_graph.GetCUDATexture(desc.resources.at("Out_Diff").handle);
 
-		descriptor
-		    ->BindBuffer("_RootShaderParameters", root_shader_parameter_buffer.get())
-		    .BindSampler("gNearestClamp", renderer->GetRHIContext()->CreateSampler(SamplerDesc::NearestClamp))
-		    .BindSampler("gLinearClamp", renderer->GetRHIContext()->CreateSampler(SamplerDesc::LinearClamp))
-		    .BindTexture("gIn_Normal_Roughness", In_Normal_Roughness.get(), RHITextureDimension::Texture2D)
-		    .BindTexture("gIn_Data1", in_data, RHITextureDimension::Texture2D)
-		    .BindTexture("gIn_Diff", in_diff, RHITextureDimension::Texture2D)
-		    .BindTexture("gOut_Diff", out_diff, RHITextureDimension::Texture2D);
+		 descriptor
+		     ->BindBuffer("_RootShaderParameters", root_shader_parameter_buffer.get())
+		     .BindSampler("gNearestClamp", renderer->GetRHIContext()->CreateSampler(SamplerDesc::NearestClamp))
+		     .BindSampler("gLinearClamp", renderer->GetRHIContext()->CreateSampler(SamplerDesc::LinearClamp))
+		     .BindTexture("gIn_Normal_Roughness", In_Normal_Roughness.get(), RHITextureDimension::Texture2D)
+		     .BindTexture("gIn_Data1", in_data, RHITextureDimension::Texture2D)
+		     .BindTexture("gIn_Diff", in_diff, RHITextureDimension::Texture2D)
+		     .BindTexture("gOut_Diff", out_diff, RHITextureDimension::Texture2D);
 
 		cmd_buffer->BindDescriptor(descriptor.get());
 		cmd_buffer->BindPipelineState(pipeline_state.get());

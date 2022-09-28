@@ -128,8 +128,9 @@ void RenderGraph::Execute()
 
 		if (!pass.wait_semaphores.empty() || !pass.signal_semaphores.empty())
 		{
-			p_rhi_context->Submit(std::move(cmd_buffers), std::move(pass.wait_semaphores), std::move(pass.signal_semaphores));
-			// p_rhi_context->Submit(std::move(cmd_buffers));
+			std::vector<RHISemaphore *> wait_semaphores = pass.wait_semaphores;
+			std::vector<RHISemaphore *> signal_semaphores = pass.signal_semaphores;
+			p_rhi_context->Submit(std::move(cmd_buffers), std::move(wait_semaphores), std::move(signal_semaphores));
 			cmd_buffers.clear();
 		}
 	}

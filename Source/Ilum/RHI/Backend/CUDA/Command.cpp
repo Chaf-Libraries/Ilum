@@ -88,9 +88,11 @@ void Command::Dispatch(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, 
 					    (thread_y + block_y - 1) / block_y,
 					    (thread_z + block_z - 1) / block_z,
 					    block_x, block_y, block_z, 0,
-					    nullptr, nullptr, nullptr);
+					    static_cast<Device *>(p_device)->GetSteam(), nullptr, nullptr);
 
 					cuMemcpyDtoH(param_data.data(), global_param, param_data.size());
+
+					cudaDeviceSynchronize();
 				}
 			}
 		}

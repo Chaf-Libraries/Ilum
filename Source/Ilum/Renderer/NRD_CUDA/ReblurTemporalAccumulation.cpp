@@ -21,7 +21,6 @@ RenderPassDesc ReblurTemporalAccumulation::CreateDesc()
 RenderGraph::RenderTask ReblurTemporalAccumulation::Create(const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
 {
 	auto *shader = renderer->RequireShader("Source/Shaders/NRD/ReblurTemporalAccumulation.hlsl", "MainCS", RHIShaderStage::Compute, {}, true);
-	//auto *shader = renderer->RequireShader("Source/Shaders/NRD/Test.hlsl", "MainCS", RHIShaderStage::Compute, {}, true);
 
 	ShaderMeta meta = renderer->RequireShaderMeta(shader);
 
@@ -159,13 +158,6 @@ RenderGraph::RenderTask ReblurTemporalAccumulation::Create(const RenderPassDesc 
 		    .BindTexture("gIn_Diff_History", In_Diff_History.get(), RHITextureDimension::Texture2D)
 		    .BindTexture("gOut_Diff", out_diff, RHITextureDimension::Texture2D)
 		    .BindTexture("gOut_Data1", out_data, RHITextureDimension::Texture2D);
-
-		/*RWTexture2D<float4> OutputImage;
-Texture2D<float> InputImage;
-SamplerState _sampler;*/
-		//descriptor->BindTexture("OutputImage", out_data, RHITextureDimension::Texture2D)
-		//    .BindTexture("InputImage", In_Prev_Normal_Roughness.get(), RHITextureDimension::Texture2D)
-		//    .BindSampler("_sampler", renderer->GetRHIContext()->CreateSampler(SamplerDesc::LinearClamp));
 
 		cmd_buffer->BindDescriptor(descriptor.get());
 		cmd_buffer->BindPipelineState(pipeline_state.get());

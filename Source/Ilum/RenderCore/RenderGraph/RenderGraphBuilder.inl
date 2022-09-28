@@ -95,7 +95,7 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 				// Insert semaphores
 				{
 					if (iter->second.prev_pass.IsValid() &&
-					    desc.passes.at(iter->second.prev_pass).bind_point != iter->second.bind_point)
+					    (desc.passes.at(iter->second.prev_pass).bind_point != iter->second.bind_point || iter->second.bind_point == BindPoint::CUDA))
 					{
 						BindPoint current_bind_point = iter->second.bind_point;
 						BindPoint last_bind_point    = desc.passes.at(iter->second.prev_pass).bind_point;
