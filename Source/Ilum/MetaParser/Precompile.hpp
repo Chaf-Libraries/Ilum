@@ -4,3 +4,5 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+#include <clang-c/Index.h>

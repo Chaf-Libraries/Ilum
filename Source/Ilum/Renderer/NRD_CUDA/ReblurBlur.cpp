@@ -77,7 +77,7 @@ RenderGraph::RenderTask ReblurBlur::Create(const RenderPassDesc &desc, RenderGra
 		float      gResponsiveAccumulationRoughnessThreshold = 0.f;
 		float      gDiffPrepassBlurRadius                    = 30.f;
 		float      gSpecPrepassBlurRadius                    = 50.f;
-		uint32_t   gIsWorldSpaceMotionEnabled                = 1.f;
+		uint32_t   gIsWorldSpaceMotionEnabled                = 1;
 		uint32_t   gFrameIndex                               = 42372;
 		uint32_t   gResetHistory                             = 0;
 		uint32_t   gDiffMaterialMask                         = 1;

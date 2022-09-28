@@ -20,7 +20,14 @@ class MetaParser
 	void GenerateFile();
 
   private:
+	bool        ParseProject();
+	void        BuildClassAST();
+	std::string GetIncludeFile(const std::string &name);
+
+  private:
 	std::vector<std::string> m_work_paths;
+
+	std::string m_source_file_name;
 
 	CXIndex           m_index;
 	CXTranslationUnit m_translation_unit;
@@ -38,10 +45,5 @@ class MetaParser
 	                                          "-M",
 	                                          "-ferror-limit=0",
 	                                          "-o clangLog.txt"}};
-
-  private:
-	bool ParseProject();
-	void BuildClassAST();
-	std::string GetIncludeFile(const std::string &name);
 };
 }        // namespace Ilum
