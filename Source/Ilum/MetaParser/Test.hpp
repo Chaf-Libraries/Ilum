@@ -1,22 +1,8 @@
 #pragma once
 
-#include "Precompile.hpp"
-
 namespace Ilum
 {
-#define DEFINE_ENUMCLASS_OPERATION(EnumClass)                   \
-	inline EnumClass operator|(EnumClass lhs, EnumClass rhs)    \
-	{                                                           \
-		return (EnumClass) ((uint64_t) lhs | (uint64_t) rhs);   \
-	}                                                           \
-	inline bool operator&(EnumClass lhs, EnumClass rhs)         \
-	{                                                           \
-		return (bool) ((uint64_t) lhs & (uint64_t) rhs);        \
-	}                                                           \
-	inline EnumClass &operator|=(EnumClass &lhs, EnumClass rhs) \
-	{                                                           \
-		return lhs = lhs | rhs;                                 \
-	}
+#define DEFINE_ENUMCLASS_OPERATION(EnumClass)                 
 
 enum class RHIBackend
 {
@@ -126,7 +112,7 @@ enum class RHIMemoryUsage
 };
 
 // Texture
-enum class RHITextureDimension : uint64_t
+enum class RHITextureDimension
 {
 	Texture1D        = 1,
 	Texture2D        = 1 << 1,
@@ -137,46 +123,6 @@ enum class RHITextureDimension : uint64_t
 	TextureCubeArray = 1 << 6,
 };
 
-inline RHITextureDimension GetTextureDimension(uint32_t width, uint32_t height, uint32_t depth, uint32_t layers)
-{
-	if (layers == 1)
-	{
-		if (depth == 1)
-		{
-			if (height == 1)
-			{
-				return RHITextureDimension::Texture1D;
-			}
-			else
-			{
-				return RHITextureDimension::Texture2D;
-			}
-		}
-		else
-		{
-			return RHITextureDimension::Texture3D;
-		}
-	}
-
-	 if (layers == 6)
-	{
-		return RHITextureDimension::TextureCube;
-	}
-
-	 if (layers % 6 == 0)
-	 {
-		 return RHITextureDimension::TextureCubeArray;
-	 }
-
-	 if (height == 1)
-	 {
-		 return RHITextureDimension::Texture1DArray;
-	 }
-	 else
-	 {
-		 return RHITextureDimension::Texture2DArray;
-	 }
-}
 
 // Buffer
 enum class RHIBufferUsage
@@ -412,5 +358,24 @@ enum class RHIStoreAction
 {
 	DontCare,
 	Store
+};
+}        // namespace Ilum
+
+
+namespace Ilum
+{
+struct TestStruct
+{
+	__attribute__((annotate("Test(1), A(2)")))
+	int   a;
+	float b;
+
+	TestStruct();
+	TestStruct(int x);
+	~TestStruct();
+
+	void Fuck() const;
+
+	static void static_func();
 };
 }        // namespace Ilum

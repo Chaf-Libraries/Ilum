@@ -32,3 +32,12 @@ target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 
 target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Precompile.hpp)
 set_property(TARGET ${TARGET_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+
+add_definitions(-DTIXML_USE_STL)
+
+add_custom_command(
+	TARGET ${TARGET_NAME} POST_BUILD 
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${PROJECT_SOURCE_DIR}/Source/Dependencies/llvm/bin/x64/libclang.dll"
+        "${PROJECT_SOURCE_DIR}/bin"
+)

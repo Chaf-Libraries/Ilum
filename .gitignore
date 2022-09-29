@@ -36,4 +36,6 @@
 /bin/*
 /lib/*
 
+/Source/_Generate/*
+
 *.meta

@@ -82,7 +82,7 @@ std::string Cursor::GetSourceFile() const
 	auto start = clang_getRangeStart(range);
 
 	CXFile   file;
-	unsigned line, column, offset;
+	uint32_t line, column, offset;
 
 	clang_getFileLocation(start, &file, &line, &column, &offset);
 

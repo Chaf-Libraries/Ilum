@@ -1,15 +1,17 @@
 #pragma once
 
+#include "Generator/Generator.hpp"
+#include "Meta/MetaInfo.hpp"
+#include "Meta/MetaUtils.hpp"
 #include "Precompile.hpp"
-
-#include <clang-c/Index.h>
+#include "Type/SchemaModule.hpp"
 
 namespace Ilum
 {
 class MetaParser
 {
   public:
-	MetaParser(const std::string &);
+	MetaParser(const std::string &file_path);
 
 	~MetaParser();
 
@@ -21,7 +23,7 @@ class MetaParser
 
   private:
 	bool        ParseProject();
-	void        BuildClassAST();
+	void        BuildClassAST(const Cursor &cursor, Namespace &current_namespace);
 	std::string GetIncludeFile(const std::string &name);
 
   private:
@@ -29,10 +31,13 @@ class MetaParser
 
 	std::string m_source_file_name;
 
-	CXIndex           m_index;
-	CXTranslationUnit m_translation_unit;
+	CXIndex           m_index            = {};
+	CXTranslationUnit m_translation_unit = {};
 
-	std::unordered_map<std::string, std::string> m_type_table;
+	std::unordered_map<std::string, std::string>  m_type_table;
+	std::unordered_map<std::string, SchemaModule> m_schema_modules;
+
+	std::vector<std::unique_ptr<Generator>> m_generators;
 
 	std::vector<const char *> m_arguments = {{"-x",
 	                                          "c++",
