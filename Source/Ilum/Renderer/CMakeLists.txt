@@ -33,10 +33,5 @@ target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/I
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 
-add_custom_command(
-	TARGET ${TARGET_NAME} POST_BUILD 
-	COMMAND ${PROJECT_SOURCE_DIR}/bin/CodeGeneration.exe ${PROJECT_SOURCE_DIR}/Source/CodeGeneration/Meta/RendererMeta.hpp ${HEADER_FILES}
-)
-
 target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Precompile.hpp)
 set_target_properties(Renderer PROPERTIES FOLDER Ilum)

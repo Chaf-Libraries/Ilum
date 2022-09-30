@@ -50,30 +50,43 @@ using OutputArchive = cereal::XMLOutputArchive;
 	cereal::TSerializer<OutputArchive>::GetInstance().RegisterType<TYPE>(); \
 	cereal::TSerializer<InputArchive>::GetInstance().RegisterType<TYPE>();
 
-#define SERIALIZER_DECLARATION(TYPE)                            \
-	template <class Archive>                                    \
-	void serialize(Archive &ar, TYPE &t)                        \
-	{                                                           \
-		rttr::variant var = t;                                  \
-		TSerializer<Archive>::GetInstance().Serialize(ar, var); \
-		t = var.convert<TYPE>();                                \
+//#define SERIALIZER_DECLARATION(TYPE)                                  \
+//	template <class Archive>                                          \
+//	void serialize(Archive &ar, TYPE &t)                              \
+//	{                                                                 \
+//		rttr::variant var = t;                                        \
+//		Ilum::TSerializer<Archive>::GetInstance().Serialize(ar, var); \
+//		t = var.convert<TYPE>();                                      \
+//	}
+
+//template <class Archive, typename _Ty>
+//void generic_serialize(Archive &ar, _Ty &t)
+//{
+//	rttr::variant var = t;
+//	cereal::TSerializer<Archive>::GetInstance().Serialize(ar, var);
+//	t = var.convert<_Ty>();
+//}
+
+template <class Archive, typename _Ty1, typename... _Ty2>
+void generic_serialize(Archive &ar, _Ty1 &t1, _Ty2 &...t2)
+{
+	generic_serialize(ar, t1);
+	generic_serialize(ar, t2...);
+}
+
+#define SERIALIZE(FILE, DATA, ...)                     \
+	{                                                  \
+		std::ofstream os(FILE, std::ios::binary);      \
+		OutputArchive archive(os);                     \
+		generic_serialize(archive, DATA, __VA_ARGS__); \
 	}
 
-#define SERIALIZE(FILE, DATA, ...)                \
-	{                                             \
-		std::ofstream os(FILE, std::ios::binary); \
-		OutputArchive archive(os);                \
-		archive(DATA, __VA_ARGS__);               \
+#define DESERIALIZE(FILE, DATA, ...)                        \
+	{                                                       \
+		std::ifstream is(FILE, std::ios::binary);           \
+		InputArchive  archive(is);                          \
+		generic_serialize(archive, DATA, __VA_ARGS__); \
 	}
-
-#define DESERIALIZE(FILE, DATA, ...)              \
-	{                                             \
-		std::ifstream is(FILE, std::ios::binary); \
-		InputArchive  archive(is);                \
-		archive(DATA, __VA_ARGS__);               \
-	}
-
-#define META(KEY, VALUE) rttr::metadata(KEY, VALUE)
 
 #define REFLECTION_CLASS_BEGIN(TYPE, ...)                                \
 	template <class Archive>                                             \
@@ -105,12 +118,17 @@ using OutputArchive = cereal::XMLOutputArchive;
 	}                                                                       \
 	}
 
-#define REFLECTION_ENUM enum class
-
-#define REFLECTION_STRUCT struct
-#define REFLECTION_CLASS class
-#define REFLECTION_PROPERTY(...)
-#define REFLECTION_METHOD(...)
+#if defined(__REFLECTION_PARSER__)
+#	define META(...) __attribute__((annotate(#    __VA_ARGS__)))
+#	define CLASS(class_name, ...) class __attribute__((annotate(#    __VA_ARGS__))) class_name
+#	define STRUCT(struct_name, ...) struct __attribute__((annotate(#    __VA_ARGS__))) struct_name
+#	define ENUM(enum_name, ...) enum class __attribute__((annotate(#    __VA_ARGS__))) enum_name
+#else
+#	define META(...)
+#	define CLASS(class_name, ...) class class_name
+#	define STRUCT(struct_name, ...) struct struct_name
+#	define ENUM(enum_name, ...) enum class enum_name
+#endif        // __REFLECTION_PARSER__
 
 #ifdef NDEBUG
 #	define ASSERT(x)

@@ -2,6 +2,8 @@
 
 #include "Widget.hpp"
 
+#include <Renderer/Renderer.hpp>
+
 namespace Ilum
 {
 class SceneView : public Widget

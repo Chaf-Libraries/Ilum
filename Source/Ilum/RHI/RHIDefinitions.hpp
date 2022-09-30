@@ -2,6 +2,8 @@
 
 #include "Precompile.hpp"
 
+#include <Core/Macro.hpp>
+
 namespace Ilum
 {
 #define DEFINE_ENUMCLASS_OPERATION(EnumClass)                   \
@@ -18,32 +20,28 @@ namespace Ilum
 		return lhs = lhs | rhs;                                 \
 	}
 
-enum class RHIBackend
-{
-	Unknown,
-	Vulkan,
-	DX12,
-	OpenGL,
-	CUDA
-};
+ENUM(RHIBackend, Reflection){
+    Unknown,
+    Vulkan,
+    DX12,
+    OpenGL,
+    CUDA};
 
-enum class RHIShaderStage
-{
-	Vertex                 = 1,
-	TessellationControl    = 1 << 1,
-	TessellationEvaluation = 1 << 2,
-	Geometry               = 1 << 3,
-	Fragment               = 1 << 4,
-	Compute                = 1 << 5,
-	RayGen                 = 1 << 6,
-	AnyHit                 = 1 << 7,
-	ClosestHit             = 1 << 8,
-	Miss                   = 1 << 9,
-	Intersection           = 1 << 10,
-	Callable               = 1 << 11,
-	Mesh                   = 1 << 12,
-	Task                   = 1 << 13
-};
+ENUM(RHIShaderStage, Reflection){
+    Vertex                 = 1,
+    TessellationControl    = 1 << 1,
+    TessellationEvaluation = 1 << 2,
+    Geometry               = 1 << 3,
+    Fragment               = 1 << 4,
+    Compute                = 1 << 5,
+    RayGen                 = 1 << 6,
+    AnyHit                 = 1 << 7,
+    ClosestHit             = 1 << 8,
+    Miss                   = 1 << 9,
+    Intersection           = 1 << 10,
+    Callable               = 1 << 11,
+    Mesh                   = 1 << 12,
+    Task                   = 1 << 13};
 
 DEFINE_ENUMCLASS_OPERATION(RHIShaderStage);
 
@@ -158,24 +156,24 @@ inline RHITextureDimension GetTextureDimension(uint32_t width, uint32_t height, 
 		}
 	}
 
-	 if (layers == 6)
+	if (layers == 6)
 	{
 		return RHITextureDimension::TextureCube;
 	}
 
-	 if (layers % 6 == 0)
-	 {
-		 return RHITextureDimension::TextureCubeArray;
-	 }
+	if (layers % 6 == 0)
+	{
+		return RHITextureDimension::TextureCubeArray;
+	}
 
-	 if (height == 1)
-	 {
-		 return RHITextureDimension::Texture1DArray;
-	 }
-	 else
-	 {
-		 return RHITextureDimension::Texture2DArray;
-	 }
+	if (height == 1)
+	{
+		return RHITextureDimension::Texture1DArray;
+	}
+	else
+	{
+		return RHITextureDimension::Texture2DArray;
+	}
 }
 
 // Buffer

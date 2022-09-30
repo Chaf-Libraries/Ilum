@@ -2,9 +2,6 @@
 #include "Importer/Model/ModelImporter.hpp"
 #include "Importer/Texture/TextureImporter.hpp"
 
-#include <CodeGeneration/Meta/GeometryMeta.hpp>
-#include <CodeGeneration/Meta/RHIMeta.hpp>
-#include <CodeGeneration/Meta/ResourceMeta.hpp>
 #include <Core/Path.hpp>
 #include <RHI/RHIContext.hpp>
 
@@ -73,7 +70,7 @@ ResourceManager::ResourceManager(RHIContext *rhi_context) :
 					TextureMeta       meta = {};
 					TextureImportInfo info = {};
 
-					archive(meta.uuid, info);
+					//archive(meta.uuid, info);
 
 					meta.desc = info.desc;
 
@@ -87,7 +84,7 @@ ResourceManager::ResourceManager(RHIContext *rhi_context) :
 					ModelMeta       meta = {};
 					ModelImportInfo info = {};
 
-					archive(meta.uuid, info);
+					//archive(meta.uuid, info);
 
 					meta.name           = info.name;
 					meta.triangle_count = static_cast<uint32_t>(info.indices.size() / 3);
@@ -101,14 +98,14 @@ ResourceManager::ResourceManager(RHIContext *rhi_context) :
 				break;
 				case ResourceType::Scene: {
 					SceneMeta meta = {};
-					archive(meta.uuid, meta.name);
+					//archive(meta.uuid, meta.name);
 					std::string uuid = meta.uuid;
 					m_scenes.emplace(uuid, std::make_unique<SceneMeta>(std::move(meta)));
 				}
 				break;
 				case ResourceType::RenderGraph: {
 					RenderGraphMeta meta = {};
-					archive(meta.uuid, meta.name);
+					//archive(meta.uuid, meta.name);
 					std::string uuid = meta.uuid;
 					m_render_graphs.emplace(uuid, std::make_unique<RenderGraphMeta>(std::move(meta)));
 				}

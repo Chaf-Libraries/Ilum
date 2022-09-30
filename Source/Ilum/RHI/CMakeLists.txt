@@ -35,7 +35,6 @@ target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/I
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DRHI_BACKEND_VULKAN")
 
-add_dependencies(${TARGET_NAME} CodeGeneration)
 
 file(GLOB REFLECTION_FILES "*.hpp")
 
@@ -43,11 +42,6 @@ file(GLOB REFLECTION_FILES "*.hpp")
 # 	TARGET ${TARGET_NAME} POST_BUILD 
 # 	COMMAND python ${PROJECT_SOURCE_DIR}/Scripts/Preprocess.py ${PROJECT_SOURCE_DIR}/Source/_Generate/${TARGET_NAME}_Generate.meta ${HEADER_FILES} ${SOURCE_FILES}
 # )
-
-add_custom_command(
-	TARGET ${TARGET_NAME} POST_BUILD 
-	COMMAND ${PROJECT_SOURCE_DIR}/bin/CodeGeneration.exe ${PROJECT_SOURCE_DIR}/Source/CodeGeneration/Meta/RHIMeta.hpp ${REFLECTION_FILES}
-)
 
 target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Precompile.hpp)
 set_target_properties(RHI PROPERTIES FOLDER Ilum)

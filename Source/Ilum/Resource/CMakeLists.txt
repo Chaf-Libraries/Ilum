@@ -41,7 +41,6 @@ add_custom_command(
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${PROJECT_SOURCE_DIR}/Source/Dependencies/assimp/bin/assimp-vc143-mtd.dll"
         "${PROJECT_SOURCE_DIR}/bin"
-	COMMAND ${PROJECT_SOURCE_DIR}/bin/CodeGeneration.exe ${PROJECT_SOURCE_DIR}/Source/CodeGeneration/Meta/${TARGET_NAME}Meta.hpp ${CMAKE_CURRENT_SOURCE_DIR}/ResourceMeta.hpp
 )
 
 target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Precompile.hpp)

@@ -1,0 +1,11 @@
+namespace cereal
+{
+    {{#Serialization}}
+    template<class Archive>
+    void serialize(Archive & archive, {{Class}}& v)
+    {
+        archive( v.{{Member}}{{^IsLast}},{{/IsLast}} );
+    }
+
+    {{/Serialization}}
+}

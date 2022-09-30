@@ -1,6 +1,5 @@
 #include "Renderer.hpp"
 
-#include <CodeGeneration/Meta/RHIMeta.hpp>
 #include <Core/Path.hpp>
 #include <RHI/RHIContext.hpp>
 #include <RenderCore/ShaderCompiler/ShaderCompiler.hpp>

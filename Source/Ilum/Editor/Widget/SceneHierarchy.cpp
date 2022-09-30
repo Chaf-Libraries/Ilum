@@ -1,9 +1,6 @@
 #include "SceneHierarchy.hpp"
 #include "Editor/Editor.hpp"
 
-#include <CodeGeneration/Meta/GeometryMeta.hpp>
-#include <CodeGeneration/Meta/ResourceMeta.hpp>
-#include <CodeGeneration/Meta/SceneMeta.hpp>
 #include <Core/Path.hpp>
 #include <Renderer/Renderer.hpp>
 #include <Resource/ResourceManager.hpp>

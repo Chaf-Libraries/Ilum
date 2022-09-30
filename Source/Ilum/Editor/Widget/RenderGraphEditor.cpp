@@ -15,9 +15,6 @@
 #include <cereal/types/unordered_map.hpp>
 #include <cereal/types/vector.hpp>
 
-#include <CodeGeneration/Meta/RHIMeta.hpp>
-#include <CodeGeneration/Meta/RenderCoreMeta.hpp>
-#include <CodeGeneration/Meta/RendererMeta.hpp>
 #include <Core/Macro.hpp>
 
 #include <imnodes.h>

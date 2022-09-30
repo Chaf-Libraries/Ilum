@@ -1,4 +1,4 @@
-set(TARGET_NAME Engine)
+set(TARGET_NAME Test)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,28 +20,16 @@ set_target_properties(
 target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->")
 target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/WX->")
 
-target_link_libraries(${TARGET_NAME} PRIVATE Core)
-target_link_libraries(${TARGET_NAME} PRIVATE RHI)
-target_link_libraries(${TARGET_NAME} PRIVATE RenderCore)
-target_link_libraries(${TARGET_NAME} PRIVATE Scene)
-target_link_libraries(${TARGET_NAME} PRIVATE Resource)
-target_link_libraries(${TARGET_NAME} PRIVATE Renderer)
-#target_link_libraries(${TARGET_NAME} PRIVATE Editor)
-target_link_libraries(${TARGET_NAME} PRIVATE entt)
+target_link_libraries(${TARGET_NAME} PRIVATE cereal)
+target_link_libraries(${TARGET_NAME} PRIVATE rttr_core_lib)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Ilum")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 set_property(TARGET ${TARGET_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER Ilum)
 
-target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Precompile.hpp)
-
 file(GLOB_RECURSE ENGINE_FILES "${PROJECT_SOURCE_DIR}/Source/Ilum/*/*.hpp" "${PROJECT_SOURCE_DIR}/Source/Ilum/*/*.h")
 
 add_dependencies(${TARGET_NAME} MetaParser)
 
-add_custom_command(
-	TARGET ${TARGET_NAME} PRE_BUILD  
-	COMMAND ${PROJECT_SOURCE_DIR}/bin/MetaParser.exe ${CMAKE_CURRENT_SOURCE_DIR}/Reflection.hpp ${ENGINE_FILES}
-)
 
