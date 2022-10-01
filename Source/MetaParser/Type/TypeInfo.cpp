@@ -14,12 +14,12 @@ bool TypeInfo::ShouldReflection() const
 
 bool TypeInfo::ShouldSerialization() const
 {
-	return GetMetaData().GetFlag(NativeProperty::Enable)  && !GetMetaData().GetFlag(NativeProperty::NoSerialization);
+	return !GetMetaData().GetFlag(NativeProperty::NoSerialization);
 }
 
 bool TypeInfo::ShouldCompile() const
 {
-	return ShouldReflection() || ShouldSerialization();
+	return ShouldReflection();
 }
 
 const MetaInfo &TypeInfo::GetMetaData() const

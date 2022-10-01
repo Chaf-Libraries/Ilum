@@ -23,8 +23,9 @@ class MetaParser
 
 	void GenerateFile();
 
+	void BuildClassAST(const Cursor &cursor, Namespace &current_namespace);
+
   private:
-	void        BuildClassAST(const Cursor &cursor, Namespace &current_namespace);
 	std::string GetIncludeFile(const std::string &name);
 
   private:

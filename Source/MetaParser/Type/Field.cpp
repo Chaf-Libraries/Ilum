@@ -8,6 +8,11 @@ Field::Field(const Cursor &cursor, const Namespace &current_namespace, Class *pa
 {
 }
 
+bool Field::ShouldReflection() const
+{
+	return GetMetaData().GetFlag(NativeProperty::Enable) || m_parent->ShouldReflection();
+}
+
 const std::string &Field::GetName() const
 {
 	return m_name;

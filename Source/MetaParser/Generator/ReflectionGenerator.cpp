@@ -119,6 +119,7 @@ bool ReflectionGenerator::Generate(const std::string &path, const std::string &o
 	output.close();
 
 	m_paths.push_back(std::filesystem::u8path(output_path).filename().generic_string());
+	std::cout << "Generate " << output_path << std::endl;
 
 	return true;
 }

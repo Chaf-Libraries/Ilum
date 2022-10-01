@@ -7,6 +7,8 @@
 
 namespace Ilum
 {
+class Parser;
+
 class TypeInfo
 {
   public:

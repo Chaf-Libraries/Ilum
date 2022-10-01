@@ -18,8 +18,7 @@ int main(int argc, const char *argv[])
 
 	MetaParser parser(output_path, input_paths);
 	parser.ParseProject();
-	// parser.Parse();
-	 parser.GenerateFile();
+	parser.GenerateFile();
 
 	return 0;
 }

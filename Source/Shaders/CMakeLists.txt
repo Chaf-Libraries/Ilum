@@ -10,3 +10,5 @@ set_source_files_properties(${src_hlsl} PROPERTIES VS_TOOL_OVERRIDE None)
 add_custom_target(Shaders
 	ALL SOURCES ${inc_hlsl} ${src_hlsl} ${inc}
 	DEPENDS ${inc_hlsl} ${src_hlsl} ${inc})
+
+set_target_properties(Shaders PROPERTIES FOLDER Shader)

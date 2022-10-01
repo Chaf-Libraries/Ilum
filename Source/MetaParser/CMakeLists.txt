@@ -19,7 +19,6 @@ set_target_properties(
 	DEBUG_POSTFIX "${CMAKE_DEBUG_POSTFIX}"
 )
 
-target_link_libraries(${TARGET_NAME} PRIVATE Mustache)
 target_link_libraries(${TARGET_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/Source/Dependencies/llvm/lib/x64/libclang.lib)
 
 target_include_directories(${TARGET_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/Source/Dependencies/llvm/include)
@@ -43,3 +42,5 @@ add_custom_command(
         "${PROJECT_SOURCE_DIR}/Source/Dependencies/llvm/bin/x64/libclang.dll"
         "${PROJECT_SOURCE_DIR}/bin"
 )
+
+set_target_properties(MetaParser PROPERTIES FOLDER Tools)

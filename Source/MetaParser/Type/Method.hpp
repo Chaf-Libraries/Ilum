@@ -16,6 +16,8 @@ class Method : public TypeInfo
 
 	virtual ~Method() = default;
 
+	virtual bool ShouldReflection() const override;
+
 	bool IsConstructor() const;
 
 	bool IsStatic() const;

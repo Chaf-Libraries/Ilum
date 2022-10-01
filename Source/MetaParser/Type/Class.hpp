@@ -6,6 +6,7 @@ namespace Ilum
 {
 class Field;
 class Method;
+class MetaParser;
 
 struct BaseClass
 {
@@ -17,7 +18,7 @@ struct BaseClass
 class Class : public TypeInfo
 {
   public:
-	Class(const Cursor &cursor, const Namespace &current_namespace);
+	Class(MetaParser *parser, const Cursor &cursor, const Namespace &current_namespace);
 
 	std::string GetClassName();
 
@@ -31,6 +32,8 @@ class Class : public TypeInfo
 
 	bool IsMethodOverloaded(const std::string& method) const;
 
+	bool HasConstructor() const;
+
 	virtual kainjow::mustache::data GenerateReflection() const override;
 
   private:
@@ -42,6 +45,8 @@ class Class : public TypeInfo
 
 	std::vector<std::shared_ptr<Field>> m_fields;
 	std::vector<std::shared_ptr<Method>> m_methods;
+
+	bool m_has_constructor = false;
 
 	std::unordered_map<std::string, uint32_t> m_overload;
 

@@ -1,4 +1,7 @@
 add_subdirectory(Dependencies)
-add_subdirectory(Ilum)
+add_subdirectory(Runtime)
+add_subdirectory(Editor)
+add_subdirectory(Engine)
 add_subdirectory(Shaders)
 add_subdirectory(MetaParser)
+add_subdirectory(Test)

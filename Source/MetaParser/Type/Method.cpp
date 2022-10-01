@@ -27,6 +27,11 @@ Method::Method(const Cursor &cursor, const Namespace &current_namespace, Class *
 	}
 }
 
+bool Method::ShouldReflection() const
+{
+	return GetMetaData().GetFlag(NativeProperty::Enable) || m_parent->ShouldReflection();
+}
+
 bool Method::IsConstructor() const
 {
 	return IsMemberMethod() && (m_is_constructor || m_meta_info.GetFlag(NativeProperty::Constructor));

@@ -1,6 +1,7 @@
 #include "Class.hpp"
 #include "Field.hpp"
 #include "Method.hpp"
+#include "Parser/Parser.hpp"
 
 namespace Ilum
 {
@@ -9,9 +10,10 @@ BaseClass::BaseClass(const Cursor &cursor) :
 {
 }
 
-Class::Class(const Cursor &cursor, const Namespace &current_namespace) :
+Class::Class(MetaParser *parser, const Cursor &cursor, const Namespace &current_namespace) :
     TypeInfo(cursor, current_namespace), m_name(cursor.GetDisplayName()), m_qualified_name(cursor.GetType().GetDispalyName())
 {
+	bool need_recursion = false;
 	for (auto &child : cursor.GetChildren())
 	{
 		switch (child.GetKind())
@@ -29,8 +31,29 @@ Class::Class(const Cursor &cursor, const Namespace &current_namespace) :
 				m_methods.emplace_back(std::make_shared<Method>(child, current_namespace, this, false));
 				m_overload[m_methods.back()->GetName()]++;
 				break;
+			case CXCursor_EnumDecl:
+			case CXCursor_StructDecl:
+			case CXCursor_ClassDecl:
+				need_recursion = true;
+				break;
 			default:
 				break;
+		}
+	}
+
+	if (need_recursion)
+	{
+		Namespace class_namespace = current_namespace;
+		class_namespace.push_back(m_name);
+		parser->BuildClassAST(cursor, class_namespace);
+	}
+
+	for (auto& method : m_methods)
+	{
+		if (method->IsConstructor())
+		{
+			m_has_constructor = true;
+			return;
 		}
 	}
 }
@@ -65,11 +88,26 @@ bool Class::IsMethodOverloaded(const std::string &method) const
 	return m_overload.at(method) > 1;
 }
 
+bool Class::HasConstructor() const
+{
+	return m_has_constructor;
+}
+
 kainjow::mustache::data Class::GenerateReflection() const
 {
 	kainjow::mustache::data class_data{kainjow::mustache::data::type::object};
 	class_data["ClassQualifiedName"] = m_qualified_name;
 	class_data["ClassName"]          = m_name;
+	class_data["NoConstructor"]          = !m_has_constructor;
+
+	if (m_meta_info.Empty())
+	{
+		class_data["Meta"] = false;
+	}
+	else
+	{
+		class_data.set("Meta", m_meta_info.GenerateReflection());
+	}
 
 	// Field
 	{

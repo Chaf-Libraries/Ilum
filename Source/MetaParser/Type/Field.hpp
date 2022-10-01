@@ -12,6 +12,8 @@ class Field : public TypeInfo
 
 	virtual ~Field() = default;
 
+	virtual bool ShouldReflection() const override;
+
 	const std::string &GetName() const;
 
 	std::string GetQualifiedName() const;

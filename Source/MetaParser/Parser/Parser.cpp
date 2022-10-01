@@ -74,6 +74,11 @@ void MetaParser::GenerateFile()
 	{
 		for (auto &[path, schema] : m_schema_modules)
 		{
+			if (path.empty())
+			{
+				continue;
+			}
+
 			std::string output_path;
 			auto        filename = std::filesystem::u8path(path).filename().generic_string();
 
@@ -83,6 +88,7 @@ void MetaParser::GenerateFile()
 			{
 				output_path = output_dir + filename.substr(0, last_index) + ".generate.hpp";
 			}
+
 
 			generator->Generate(path, output_path, schema);
 		}
@@ -107,7 +113,7 @@ void MetaParser::BuildClassAST(const Cursor &cursor, Namespace &current_namespac
 		{
 			if (kind == CXCursor_ClassDecl || kind == CXCursor_StructDecl)
 			{
-				auto class_ptr = std::make_shared<Class>(child, current_namespace);
+				auto class_ptr = std::make_shared<Class>(this, child, current_namespace);
 				if (class_ptr->ShouldCompile())
 				{
 					auto file = class_ptr->GetSourceFile();
@@ -118,7 +124,6 @@ void MetaParser::BuildClassAST(const Cursor &cursor, Namespace &current_namespac
 			if (kind == CXCursor_EnumDecl)
 			{
 				auto enum_ptr = std::make_shared<Enum>(child, current_namespace);
-				std::cout << enum_ptr->GetName() << std::endl;
 				if (enum_ptr->ShouldCompile())
 				{
 					auto file = enum_ptr->GetSourceFile();

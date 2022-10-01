@@ -15,19 +15,20 @@ RTTR_REGISTRATION
     );
     {{/Enum}}
     {{#Class}}
-    rttr::registration::class_<{{ClassQualifiedName}}>("{{ClassName}}")
+    rttr::registration::class_<{{ClassQualifiedName}}>("{{ClassName}}"){{#Meta}}({{#MetaData}}rttr::metadata("{{&Key}}", {{&Value}}){{^IsLast}}, {{/IsLast}}{{/MetaData}}){{/Meta}}
     {{#Field}}
-        .property("{{FieldName}}", &{{FieldQualifiedName}}){{#Meta}}({{#MetaData}}metadata({{Key}}, {{Value}}){{^IsLast}}, {{/IsLast}}{{/MetaData}}){{/Meta}}
+        .property("{{FieldName}}", &{{FieldQualifiedName}}){{#Meta}}({{#MetaData}}rttr::metadata("{{&Key}}", {{&Value}}){{^IsLast}}, {{/IsLast}}{{/MetaData}}){{/Meta}}
     {{/Field}}
     {{#Constructor}}
-        {{^Static}}.constructor<{{#Params}}{{&Param}}{{^IsLast}}, {{/IsLast}}{{/Params}}>(){{/Static}}{{#Static}}.constructor(&{{MethodQualifiedName}}){{/Static}}{{#Meta}}({{#MetaData}}metadata({{Key}}, {{Value}}){{^IsLast}}, {{/IsLast}}{{/MetaData}}){{/Meta}}
+        {{^Static}}.constructor<{{#Params}}{{&Param}}{{^IsLast}}, {{/IsLast}}{{/Params}}>(){{/Static}}{{#Static}}.constructor(&{{MethodQualifiedName}}){{/Static}}{{#Meta}}({{#MetaData}}rttr::metadata("{{&Key}}", {{&Value}}){{^IsLast}}, {{/IsLast}}{{/MetaData}}){{/Meta}}
     {{/Constructor}}
+    {{#NoConstructor}}
+        .constructor<>()(rttr::policy::ctor::as_object)
+    {{/NoConstructor}}
     {{#Method}}
-        .method("{{MethodName}}", {{^Overload}}&{{MethodQualifiedName}}{{/Overload}}{{#Overload}}{{^Const}}rttr::select_overload<{{ReturnType}}({{#Params}}{{&Param}}{{^IsLast}}, {{/IsLast}}{{/Params}})>{{/Const}}{{#Const}}rttr::select_const<{{ClassQualifiedName}}, {{ReturnType}}, {{#Params}}{{&Param}}{{^IsLast}}, {{/IsLast}}{{/Params}}>{{/Const}}(&{{MethodQualifiedName}}){{/Overload}}){{#Meta}}({{#MetaData}}metadata({{Key}}, {{Value}}){{^IsLast}}, {{/IsLast}}{{/MetaData}}){{/Meta}}
+        .method("{{&MethodName}}", {{^Overload}}&{{&MethodQualifiedName}}{{/Overload}}{{#Overload}}{{^Const}}rttr::select_overload<{{&ReturnType}}({{#Params}}{{&Param}}{{^IsLast}}, {{/IsLast}}{{/Params}})>{{/Const}}{{#Const}}rttr::select_const<{{&ClassQualifiedName}}, {{&ReturnType}}, {{#Params}}{{&Param}}{{^IsLast}}, {{/IsLast}}{{/Params}}>{{/Const}}(&{{&MethodQualifiedName}}){{/Overload}}){{#Meta}}({{#MetaData}}rttr::metadata("{{&Key}}", {{&Value}}){{^IsLast}}, {{/IsLast}}{{/MetaData}}){{/Meta}}
     {{/Method}}
     ;
     {{/Class}}
 }
-
-
 }
