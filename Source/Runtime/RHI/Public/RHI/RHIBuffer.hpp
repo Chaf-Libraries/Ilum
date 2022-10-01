@@ -8,7 +8,7 @@ namespace Ilum
 {
 class RHIDevice;
 
-struct BufferDesc
+STRUCT(BufferDesc, Enable)
 {
 	std::string       name;
 	RHIBufferUsage    usage;

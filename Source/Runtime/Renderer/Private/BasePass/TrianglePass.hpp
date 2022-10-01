@@ -4,7 +4,7 @@
 
 namespace Ilum
 {
-STRUCT(TrianglePass, Enable, RenderPass("Triangle Pass"), Category("Basic Pass")) :
+STRUCT(TrianglePass, Enable, RenderPass("Triangle Pass"), Category("Base Pass")) :
     public RenderPass
 {
 	virtual RenderPassDesc CreateDesc() override;

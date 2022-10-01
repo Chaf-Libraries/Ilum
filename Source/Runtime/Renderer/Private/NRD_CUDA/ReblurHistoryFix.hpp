@@ -4,7 +4,8 @@
 
 namespace Ilum
 {
-struct [[RenderPass("Reblur History Fix"), Category("Nvidia Ray Tracing Denoisor")]] ReblurHistoryFix : public RenderPass
+STRUCT(ReblurHistoryFix, Enable, RenderPass("Reblur History Fix"), Category("Nvidia Ray Tracing Denoisor")) :
+    public RenderPass
 {
 	virtual RenderPassDesc CreateDesc() override;
 

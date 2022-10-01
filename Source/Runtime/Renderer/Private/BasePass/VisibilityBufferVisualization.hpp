@@ -4,7 +4,8 @@
 
 namespace Ilum
 {
-struct [[RenderPass("Visibility Buffer Visualization")]] VisibilityBufferVisualization : public RenderPass
+STRUCT(VisibilityBufferVisualization, Enable, RenderPass("Visibility Buffer Visualization"), Category("Visualization")) :
+    public RenderPass
 {
 	virtual RenderPassDesc CreateDesc() override;
 

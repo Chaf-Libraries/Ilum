@@ -4,7 +4,8 @@
 
 namespace Ilum
 {
-struct [[RenderPass("Visibility Buffer Pass")]] VisibilityBufferPass : public RenderPass
+STRUCT(VisibilityBufferPass, Enable, RenderPass("Visibility Buffer Pass"), Category("Base Pass")) :
+    public RenderPass
 {
 	virtual RenderPassDesc CreateDesc() override;
 
@@ -12,9 +13,8 @@ struct [[RenderPass("Visibility Buffer Pass")]] VisibilityBufferPass : public Re
 
 	struct Config
 	{
-		[[editor("slider"), min(0), max(100)]]
-		float       a = 100.f;
-		std::string m = "fuck you";
+		[[editor("slider"), min(0), max(100)]] float a = 100.f;
+		std::string                                  m = "fuck you";
 	};
 };
 }        // namespace Ilum

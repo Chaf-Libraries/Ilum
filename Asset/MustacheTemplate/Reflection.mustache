@@ -20,7 +20,7 @@ RTTR_REGISTRATION
         .property("{{FieldName}}", &{{FieldQualifiedName}}){{#Meta}}({{#MetaData}}rttr::metadata("{{&Key}}", {{&Value}}){{^IsLast}}, {{/IsLast}}{{/MetaData}}){{/Meta}}
     {{/Field}}
     {{#Constructor}}
-        {{^Static}}.constructor<{{#Params}}{{&Param}}{{^IsLast}}, {{/IsLast}}{{/Params}}>(){{/Static}}{{#Static}}.constructor(&{{MethodQualifiedName}}){{/Static}}{{#Meta}}({{#MetaData}}rttr::metadata("{{&Key}}", {{&Value}}){{^IsLast}}, {{/IsLast}}{{/MetaData}}){{/Meta}}
+        {{^Static}}.constructor<{{#Params}}{{&Param}}{{^IsLast}}, {{/IsLast}}{{/Params}}>(){{/Static}}{{#Static}}.constructor(&{{MethodQualifiedName}}){{/Static}}(rttr::policy::ctor::as_object)
     {{/Constructor}}
     {{#NoConstructor}}
         .constructor<>()(rttr::policy::ctor::as_object)
