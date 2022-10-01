@@ -20,14 +20,14 @@ namespace Ilum
 		return lhs = lhs | rhs;                                 \
 	}
 
-ENUM(RHIBackend, Reflection){
+ENUM(RHIBackend, Enable){
     Unknown,
     Vulkan,
     DX12,
     OpenGL,
     CUDA};
 
-ENUM(RHIShaderStage, Reflection){
+ENUM(RHIShaderStage, Enable){
     Vertex                 = 1,
     TessellationControl    = 1 << 1,
     TessellationEvaluation = 1 << 2,
@@ -45,23 +45,19 @@ ENUM(RHIShaderStage, Reflection){
 
 DEFINE_ENUMCLASS_OPERATION(RHIShaderStage);
 
-enum class RHIFeature
-{
-	RayTracing,
-	MeshShading,
-	BufferDeviceAddress,
-	Bindless
-};
+ENUM(RHIFeature, Enable){
+    RayTracing,
+    MeshShading,
+    BufferDeviceAddress,
+    Bindless};
 
-enum class RHIQueueFamily
-{
+ENUM(RHIQueueFamily, Enable){
 	Graphics,
 	Compute,
 	Transfer
 };
 
-enum class RHIFormat
-{
+ENUM(RHIFormat, Enable){
 	Undefined,
 	R16_UINT,
 	R16_SINT,
@@ -104,8 +100,7 @@ inline bool IsStencilFormat(RHIFormat format)
 	return format == RHIFormat::D24_UNORM_S8_UINT;
 }
 
-enum class RHIVertexSemantics
-{
+ENUM(RHIVertexSemantics, Enable){
 	Binormal,
 	Blend_Indices,
 	Blend_Weights,
@@ -116,15 +111,14 @@ enum class RHIVertexSemantics
 	Texcoord
 };
 
-enum class RHIMemoryUsage
-{
+ENUM(RHIMemoryUsage, Enable){
 	GPU_Only,
 	CPU_TO_GPU,
 	GPU_TO_CPU
 };
 
 // Texture
-enum class RHITextureDimension : uint64_t
+ENUM(RHITextureDimension, Enable) : uint64_t
 {
 	Texture1D        = 1,
 	Texture2D        = 1 << 1,
@@ -177,8 +171,7 @@ inline RHITextureDimension GetTextureDimension(uint32_t width, uint32_t height, 
 }
 
 // Buffer
-enum class RHIBufferUsage
-{
+ENUM(RHIBufferUsage, Enable){
 	Undefined             = 0,
 	Vertex                = 1,
 	Index                 = 1 << 1,
@@ -191,8 +184,7 @@ enum class RHIBufferUsage
 };
 DEFINE_ENUMCLASS_OPERATION(RHIBufferUsage);
 
-enum class RHITextureUsage
-{
+ENUM(RHITextureUsage, Enable){
 	Undefined       = 0,
 	Transfer        = 1,
 	ShaderResource  = 1 << 1,
@@ -202,8 +194,7 @@ enum class RHITextureUsage
 
 DEFINE_ENUMCLASS_OPERATION(RHITextureUsage);
 
-enum class RHIResourceState
-{
+ENUM(RHIResourceState, Enable){
 	Undefined,
 	VertexBuffer,
 	ConstantBuffer,
@@ -270,14 +261,12 @@ inline RHIBufferUsage ResourceStateToBufferUsage(RHIResourceState state)
 }
 
 // Sampler
-enum class RHIFilter
-{
+ENUM(RHIFilter, Enable){
 	Nearest,
 	Linear
 };
 
-enum class RHIAddressMode
-{
+ENUM(RHIAddressMode, Enable){
 	Repeat,
 	Mirrored_Repeat,
 	Clamp_To_Edge,
@@ -285,14 +274,12 @@ enum class RHIAddressMode
 	Mirror_Clamp_To_Edge
 };
 
-enum class RHIMipmapMode
-{
+ENUM(RHIMipmapMode, Enable){
 	Nearest,
 	Linear
 };
 
-enum class RHISamplerBorderColor
-{
+ENUM(RHISamplerBorderColor, Enable){
 	Float_Transparent_Black,
 	Int_Transparent_Black,
 	Float_Opaque_Black,
@@ -302,8 +289,7 @@ enum class RHISamplerBorderColor
 };
 
 // Pipeline State
-enum class RHICompareOp
-{
+ENUM(RHICompareOp, Enable){
 	Never,
 	Less,
 	Equal,
@@ -314,8 +300,7 @@ enum class RHICompareOp
 	Always
 };
 
-enum class RHILogicOp
-{
+ENUM(RHILogicOp, Enable){
 	Clear,
 	And,
 	And_Reverse,
@@ -334,8 +319,7 @@ enum class RHILogicOp
 	Set
 };
 
-enum class RHIBlendFactor
-{
+ENUM(RHIBlendFactor, Enable){
 	Zero,
 	One,
 	Src_Color,
@@ -357,8 +341,7 @@ enum class RHIBlendFactor
 	One_Minus_Src1_Alpha
 };
 
-enum class RHIBlendOp
-{
+ENUM(RHIBlendOp, Enable){
 	Add,
 	Subtract,
 	Reverse_Subtract,
@@ -366,48 +349,42 @@ enum class RHIBlendOp
 	Max
 };
 
-enum class RHICullMode
-{
+ENUM(RHICullMode, Enable){
 	None,
 	Front,
 	Back
 };
 
-enum class RHIFrontFace
-{
+ENUM(RHIFrontFace, Enable){
 	Counter_Clockwise,
 	Clockwise
 };
 
-enum class RHIPolygonMode
+ENUM(RHIPolygonMode, Enable)
 {
 	Wireframe,
 	Solid
 };
 
-enum class RHIPrimitiveTopology
-{
+ENUM(RHIPrimitiveTopology, Enable){
 	Point,
 	Line,
 	Triangle,
 	Patch
 };
 
-enum class RHIVertexInputRate
-{
+ENUM(RHIVertexInputRate, Enable){
 	Vertex,
 	Instance
 };
 
-enum class RHILoadAction
-{
+ENUM(RHILoadAction, Enable){
 	DontCare,
 	Load,
 	Clear
 };
 
-enum class RHIStoreAction
-{
+ENUM(RHIStoreAction, Enable){
 	DontCare,
 	Store
 };

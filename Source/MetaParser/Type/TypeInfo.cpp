@@ -9,12 +9,12 @@ TypeInfo::TypeInfo(const Cursor &cursor, const Namespace &current_namespace):
 
 bool TypeInfo::ShouldReflection() const
 {
-	return GetMetaData().GetFlag(NativeProperty::Reflection);
+	return GetMetaData().GetFlag(NativeProperty::Enable);
 }
 
 bool TypeInfo::ShouldSerialization() const
 {
-	return GetMetaData().GetFlag(NativeProperty::Serialization);
+	return GetMetaData().GetFlag(NativeProperty::Enable)  && !GetMetaData().GetFlag(NativeProperty::NoSerialization);
 }
 
 bool TypeInfo::ShouldCompile() const

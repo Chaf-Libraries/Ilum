@@ -4,8 +4,8 @@ namespace Ilum
 {
 namespace NativeProperty
 {
-inline const char *Reflection  = "Reflection";
-inline const char *Serialization  = "Serialization";
+inline const char *Enable  = "Enable";
+inline const char *NoSerialization  = "NoSerialization";
 inline const char *Constructor = "Constructor";
 };
 }        // namespace Ilum

@@ -46,77 +46,22 @@ using OutputArchive = cereal::XMLOutputArchive;
 #	error Must specify a type of serializer!
 #endif
 
-#define SERIALIZER_REGISTER_TYPE(TYPE)                                      \
-	cereal::TSerializer<OutputArchive>::GetInstance().RegisterType<TYPE>(); \
-	cereal::TSerializer<InputArchive>::GetInstance().RegisterType<TYPE>();
+#define SERIALIZE(...)
+#define DESERIALIZE(...)
 
-//#define SERIALIZER_DECLARATION(TYPE)                                  \
-//	template <class Archive>                                          \
-//	void serialize(Archive &ar, TYPE &t)                              \
-//	{                                                                 \
-//		rttr::variant var = t;                                        \
-//		Ilum::TSerializer<Archive>::GetInstance().Serialize(ar, var); \
-//		t = var.convert<TYPE>();                                      \
+//#define SERIALIZE(FILE, DATA, ...)                \
+//	{                                             \
+//		std::ofstream os(FILE, std::ios::binary); \
+//		OutputArchive archive(os);                \
+//		archive(DATA, __VA_ARGS__);               \
 //	}
-
-//template <class Archive, typename _Ty>
-//void generic_serialize(Archive &ar, _Ty &t)
-//{
-//	rttr::variant var = t;
-//	cereal::TSerializer<Archive>::GetInstance().Serialize(ar, var);
-//	t = var.convert<_Ty>();
-//}
-
-template <class Archive, typename _Ty1, typename... _Ty2>
-void generic_serialize(Archive &ar, _Ty1 &t1, _Ty2 &...t2)
-{
-	generic_serialize(ar, t1);
-	generic_serialize(ar, t2...);
-}
-
-#define SERIALIZE(FILE, DATA, ...)                     \
-	{                                                  \
-		std::ofstream os(FILE, std::ios::binary);      \
-		OutputArchive archive(os);                     \
-		generic_serialize(archive, DATA, __VA_ARGS__); \
-	}
-
-#define DESERIALIZE(FILE, DATA, ...)                        \
-	{                                                       \
-		std::ifstream is(FILE, std::ios::binary);           \
-		InputArchive  archive(is);                          \
-		generic_serialize(archive, DATA, __VA_ARGS__); \
-	}
-
-#define REFLECTION_CLASS_BEGIN(TYPE, ...)                                \
-	template <class Archive>                                             \
-	void serialize(Archive &ar, TYPE &t)                                 \
-	{                                                                    \
-		rttr::variant var = t;                                           \
-		TSerializer<Archive>::GetInstance().Serialize(ar, var);          \
-		t = var.convert<TYPE>();                                         \
-	}                                                                    \
-	namespace RTTR_REGISTRATION_NAMESPACE_##TYPE                         \
-	{                                                                    \
-		RTTR_REGISTRATION                                                \
-		{                                                                \
-			using CURRENT_TYPE = TYPE;                                   \
-			auto reg           = rttr::registration::class_<TYPE>(#TYPE) \
-			               .constructor<>(__VA_ARGS__)(rttr::policy::ctor::as_object);
-
-#define REFLECTION_CLASS_PROPERTY(PROPERTY)           \
-	reg.property(#PROPERTY, &CURRENT_TYPE::PROPERTY); \
-	SERIALIZER_REGISTER_TYPE(CURRENT_TYPE::PROPERTY)
-
-#define REFLECTION_CLASS_PROPERTY_META(PROPERTY, ...)              \
-	reg.property(#PROPERTY, &CURRENT_TYPE::PROPERTY)(__VA_ARGS__); \
-	SERIALIZER_REGISTER_TYPE(CURRENT_TYPE::PROPERTY)
-
-#define REFLECTION_CLASS_END()                                              \
-	TSerializer<OutputArchive>::GetInstance().RegisterType<CURRENT_TYPE>(); \
-	TSerializer<InputArchive>::GetInstance().RegisterType<CURRENT_TYPE>();  \
-	}                                                                       \
-	}
+//
+//#define DESERIALIZE(FILE, DATA, ...)              \
+//	{                                             \
+//		std::ifstream is(FILE, std::ios::binary); \
+//		InputArchive  archive(is);                \
+//		archive(DATA, __VA_ARGS__);               \
+//	}
 
 #if defined(__REFLECTION_PARSER__)
 #	define META(...) __attribute__((annotate(#    __VA_ARGS__)))
