@@ -30,6 +30,8 @@ jobs:
 
       - name: Checkout LFS objects
         run: git lfs checkout
+        
+      - name: Pull LFS objects
         run: git lfs pull
 
       - name: Build
