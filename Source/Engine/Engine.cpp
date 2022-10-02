@@ -25,31 +25,6 @@ Engine::Engine()
 
 	Path::GetInstance().SetCurrent("./");
 	Input::GetInstance().Bind(m_window.get());
-
-	RenderGraphDesc desc;
-	RenderGraphDesc desc1;
-	desc.textures.emplace(RGHandle(1), TextureDesc{});
-
-	std::vector<RGHandle> v1 = {RGHandle(1)};
-	std::vector<RGHandle> v2;
-
-	std::map<RGHandle, float> t1 = {{RGHandle(1), 0.f}};
-	std::map<RGHandle, float> t2;
-
-	RGHandle h1(1);
-	RGHandle h2;
-
-	{
-		std::ofstream os("test1.json", std::ios::binary);
-		OutputArchive archive(os);
-		Ilum::serialize(archive, desc);
-	}
-
-	{
-		std::ifstream is("test1.json", std::ios::binary);
-		InputArchive  archive(is);
-		Ilum::serialize(archive, desc1);
-	}
 }
 
 Engine::~Engine()
