@@ -49,6 +49,8 @@ add_custom_command(
 	COMMAND
 	  ${CMAKE_COMMAND} -E echo "************************************************************* "
 	COMMAND 
+		${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/_Generate
+	COMMAND 
 		${PROJECT_SOURCE_DIR}/bin/MetaParser.exe ${CMAKE_CURRENT_SOURCE_DIR}/Reflection.hpp ${ENGINE_FILES}
 	COMMAND
 	  ${CMAKE_COMMAND} -E echo "**** Reflection Finish **** "

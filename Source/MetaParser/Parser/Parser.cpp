@@ -68,8 +68,6 @@ void MetaParser::GenerateFile()
 		output_dir = m_output_path.substr(0, last_index + 1) + "_Generate/";
 	}
 
-	std::filesystem::create_directories(output_dir);
-
 	for (auto &generator : m_generators)
 	{
 		for (auto &[path, schema] : m_schema_modules)
