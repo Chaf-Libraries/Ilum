@@ -27,9 +27,10 @@ jobs:
         with:
           submodules: "recursive"
           lfs: true
-          
+
       - name: Checkout LFS objects
         run: git lfs checkout
+        run: git lfs pull
 
       - name: Build
         run: ./Build_VS2022.bat
