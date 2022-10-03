@@ -75,7 +75,7 @@ bool Path::DeletePath(const std::string &path)
 {
 	try
 	{
-		if (std::filesystem::exists(path) || std::filesystem::remove_all(path))
+		if (std::filesystem::exists(path) && std::filesystem::remove_all(path))
 		{
 			return true;
 		}

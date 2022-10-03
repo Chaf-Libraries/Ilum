@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Precompile.hpp"
-
 #include <Core/Macro.hpp>
 
 namespace Ilum

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Precompile.hpp"
 #include "RHIAccelerationStructure.hpp"
 #include "RHIBuffer.hpp"
 #include "RHICommand.hpp"

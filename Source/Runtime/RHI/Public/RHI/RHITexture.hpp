@@ -2,6 +2,8 @@
 
 #include "RHIDefinitions.hpp"
 
+#include <Core/Hash.hpp>
+
 #include <cstdint>
 #include <memory>
 

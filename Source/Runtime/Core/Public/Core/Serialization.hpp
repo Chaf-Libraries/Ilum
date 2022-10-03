@@ -83,7 +83,6 @@ void save(Archive &archive, rttr::variant const &var)
 	}
 	else if (type.is_enumeration())
 	{
-		std::string name = type.get_enumeration().value_to_name(m).to_string();
 		archive(type.get_enumeration().value_to_name(m).to_string());
 	}
 }

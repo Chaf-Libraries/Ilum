@@ -1,9 +1,8 @@
 #pragma once
 
-#include <RHI/RHITexture.hpp>
+#include "Precompile.hpp"
 
-#include <string>
-#include <vector>
+#include <RHI/RHITexture.hpp>
 
 namespace Ilum
 {
@@ -24,4 +23,4 @@ class TextureImporter
 
 	static TextureImportInfo ImportFromBuffer(const std::vector<uint8_t> &raw_data);
 };
-}        // namespace Ilum
+}
