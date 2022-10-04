@@ -9,7 +9,7 @@ namespace Ilum
 STRUCT(StaticMeshComponent, Enable) :
     public Component
 {
-	std::string uuid;
+	size_t uuid;
 
 	std::vector<std::string> materials;
 };

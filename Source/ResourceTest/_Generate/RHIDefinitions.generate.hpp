@@ -1,7 +1,7 @@
-#include "E:/Workspace/Ilum/Source/Runtime/RHI/Public/RHI/RHIDefinitions.hpp"
+#include "D:/Workspace/IlumEngine/Source/Runtime/RHI/Public/RHI/RHIDefinitions.hpp"
 #include <rttr/registration.h>
 
-namespace Ilum_7328119563694619655
+namespace Ilum_16289216835461568452
 {
 RTTR_REGISTRATION
 {

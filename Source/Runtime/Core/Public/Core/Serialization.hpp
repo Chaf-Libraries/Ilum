@@ -2,6 +2,35 @@
 
 #include <rttr/registration.h>
 
+#include <glm/glm.hpp>
+
+#include <entt.hpp>
+
+namespace cereal
+{
+template <class Archive, typename T, int N>
+void serialize(Archive &archive, glm::vec<N, T> &v)
+{
+	for (int i = 0; i < N; i++)
+	{
+		archive(v[i]);
+	}
+}
+
+template <class Archive>
+void serialize(Archive &archive, glm::mat4 &m)
+{
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			archive(m[i][j]);
+		}
+	}
+}
+
+}        // namespace cereal
+
 namespace rttr
 {
 template <class Archive>
@@ -70,10 +99,16 @@ void save(Archive &archive, rttr::variant const &var)
 			archive(key, val);
 		}
 	}
-	else if (type == rttr::type::get<std::string>())
-	{
-		archive(m.to_string());
+#define ARCHIVE_WRITE_SPECIAL_CASES(TYPE)     \
+	else if (type == rttr::type::get<TYPE>()) \
+	{                                         \
+		archive(m.convert<TYPE>());           \
 	}
+	ARCHIVE_WRITE_SPECIAL_CASES(std::string)
+	ARCHIVE_WRITE_SPECIAL_CASES(glm::vec3)
+	ARCHIVE_WRITE_SPECIAL_CASES(glm::vec4)
+	ARCHIVE_WRITE_SPECIAL_CASES(glm::mat4)
+	ARCHIVE_WRITE_SPECIAL_CASES(entt::entity)
 	else if (type.is_class())
 	{
 		for (auto &prop : type.get_properties())
@@ -83,7 +118,8 @@ void save(Archive &archive, rttr::variant const &var)
 	}
 	else if (type.is_enumeration())
 	{
-		archive(type.get_enumeration().value_to_name(m).to_string());
+		auto name = type.get_enumeration().value_to_name(m);
+		archive(m.convert<uint64_t>());
 	}
 }
 
@@ -167,7 +203,7 @@ void load(Archive &archive, rttr::variant &m)
 	}
 	else if (type.is_associative_container())
 	{
-		auto ass_view = m.create_associative_view();
+		auto   ass_view = m.create_associative_view();
 		size_t size     = 0;
 		archive(size);
 		for (size_t i = 0; i < size; i++)
@@ -184,6 +220,18 @@ void load(Archive &archive, rttr::variant &m)
 		archive(str);
 		m = str;
 	}
+#define ARCHIVE_READ_SPECIAL_CASES(TYPE)      \
+	else if (type == rttr::type::get<TYPE>()) \
+	{                                         \
+		TYPE t;                               \
+		archive(t);                           \
+		m = t;                                \
+	}
+	ARCHIVE_READ_SPECIAL_CASES(std::string)
+	ARCHIVE_READ_SPECIAL_CASES(glm::vec3)
+	ARCHIVE_READ_SPECIAL_CASES(glm::vec4)
+	ARCHIVE_READ_SPECIAL_CASES(glm::mat4)
+	ARCHIVE_READ_SPECIAL_CASES(entt::entity)
 	else if (type.is_class())
 	{
 		for (auto &prop : type.get_properties())
@@ -195,9 +243,9 @@ void load(Archive &archive, rttr::variant &m)
 	}
 	else if (type.is_enumeration())
 	{
-		std::string enum_name;
+		uint64_t enum_name = 0;
 		archive(enum_name);
-		m = type.get_enumeration().name_to_value(enum_name);
+		std::memcpy(&m, &enum_name, sizeof(uint64_t));
 	}
 }
 }        // namespace rttr

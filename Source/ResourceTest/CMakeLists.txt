@@ -31,7 +31,7 @@ target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/I
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 set_property(TARGET ${TARGET_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
 
-file(GLOB_RECURSE ENGINE_FILES "${PROJECT_SOURCE_DIR}/Source/Runtime/*.h*")
+file(GLOB_RECURSE ENGINE_FILES "${PROJECT_SOURCE_DIR}/Source/Runtime/*.h*" "${PROJECT_SOURCE_DIR}/Source/Runtime/*.inl")
 
 add_dependencies(${TARGET_NAME} MetaParser)
 

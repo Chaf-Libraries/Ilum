@@ -394,16 +394,13 @@ void RenderGraphEditor::Tick()
 	{
 		if (const auto *pay_load = ImGui::AcceptDragDropPayload("RenderGraph"))
 		{
-			ASSERT(pay_load->DataSize == sizeof(std::string));
-			std::string uuid = *static_cast<std::string *>(pay_load->Data);
-			auto       *meta = p_editor->GetRenderer()->GetResourceManager()->GetRenderGraph(uuid);
-			if (meta)
+			ASSERT(pay_load->DataSize == sizeof(size_t));
+			size_t uuid     = *static_cast<size_t *>(pay_load->Data);
+			auto  *resource = p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::RenderGraph>(uuid);
+			if (resource)
 			{
-				std::ifstream is("Asset/Meta/" + uuid + ".meta", std::ios::binary);
-				InputArchive  archive(is);
-				std::string   filename;
-				std::string   editor_state = "";
-				archive(ResourceType::RenderGraph, uuid, filename, m_desc, editor_state);
+				std::string editor_state = "";
+				resource->Load(m_desc, editor_state);
 				ImNodes::LoadCurrentEditorStateFromIniString(editor_state.data(), editor_state.size());
 				m_need_compile = true;
 			}
@@ -570,10 +567,7 @@ void RenderGraphEditor::Tick()
 						std::ofstream os("Asset/Meta/" + uuid + ".meta", std::ios::binary);
 						OutputArchive archive(os);
 						archive(ResourceType::RenderGraph, uuid, filename, m_desc, std::string(ImNodes::SaveCurrentEditorStateToIniString()));
-						RenderGraphMeta meta;
-						meta.name = filename;
-						meta.uuid = uuid;
-						p_editor->GetRenderer()->GetResourceManager()->AddRenderGraphMeta(std::move(meta));
+						p_editor->GetRenderer()->GetResourceManager()->Import<ResourceType::RenderGraph>("Asset/Meta/" + uuid + ".meta");
 					}
 					free(path);
 				}

@@ -75,39 +75,30 @@ void SceneView::DisplayPresent()
 	{
 		if (const auto *pay_load = ImGui::AcceptDragDropPayload("Scene"))
 		{
-			ASSERT(pay_load->DataSize == sizeof(std::string));
-			std::string uuid = *static_cast<std::string *>(pay_load->Data);
+			ASSERT(pay_load->DataSize == sizeof(size_t));
+			size_t uuid = *static_cast<size_t *>(pay_load->Data);
 
-			auto *meta  = p_editor->GetRenderer()->GetResourceManager()->GetScene(uuid);
+			auto *resource  = p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Scene>(uuid);
 			auto *scene = p_editor->GetRenderer()->GetScene();
 
-			if (meta)
+			if (resource)
 			{
-				std::ifstream is("Asset/Meta/" + uuid + ".meta", std::ios::binary);
-				InputArchive  archive(is);
-				std::string   filename;
-				archive(ResourceType::Scene, uuid, filename);
-				entt::snapshot_loader{(*scene)()}
-				    .entities(archive)
-				    .component<
-				        TagComponent,
-				        TransformComponent,
-				        HierarchyComponent>(archive);
+				resource->Load(scene);
 			}
 		}
 
 		if (const auto *pay_load = ImGui::AcceptDragDropPayload("Model"))
 		{
-			ASSERT(pay_load->DataSize == sizeof(std::string));
-			std::string uuid = *static_cast<std::string *>(pay_load->Data);
+			ASSERT(pay_load->DataSize == sizeof(size_t));
+			size_t uuid = *static_cast<size_t *>(pay_load->Data);
 
-			auto *meta   = p_editor->GetRenderer()->GetResourceManager()->GetModel(uuid);
-			auto  entity = p_editor->GetRenderer()->GetScene()->CreateEntity(meta->name);
+			auto *resource   = p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Model>(uuid);
+			auto  entity   = p_editor->GetRenderer()->GetScene()->CreateEntity(resource->GetName());
 			auto &cmpt   = entity.AddComponent<StaticMeshComponent>();
 			cmpt.uuid    = uuid;
-			if (meta)
+			if (resource)
 			{
-				cmpt.materials.resize(meta->submeshes.size());
+				cmpt.materials.resize(resource->GetSubmeshes().size());
 				std::fill(cmpt.materials.begin(), cmpt.materials.end(), "");
 			}
 			p_editor->GetRenderer()->UpdateGPUScene();

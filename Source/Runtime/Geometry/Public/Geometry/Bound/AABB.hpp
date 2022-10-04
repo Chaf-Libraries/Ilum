@@ -1,12 +1,13 @@
 #pragma once
 
 #include <glm/glm.hpp>
+#include <glm/vec3.hpp>
 
 #include <vector>
 
 namespace Ilum
 {
-struct AABB
+STRUCT(AABB, Enable)
 {
   public:
 	glm::vec3 min = glm::vec3(std::numeric_limits<float>::max());

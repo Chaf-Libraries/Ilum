@@ -4,10 +4,7 @@
 #include <Core/Path.hpp>
 #include <Renderer/Renderer.hpp>
 #include <Resource/ResourceManager.hpp>
-#include <Resource/ResourceMeta.hpp>
-#include <Scene/Component/HierarchyComponent.hpp>
-#include <Scene/Component/TagComponent.hpp>
-#include <Scene/Component/TransformComponent.hpp>
+#include <Scene/Component/AllComponent.hpp>
 #include <Scene/Entity.hpp>
 
 #include <imgui.h>
@@ -139,30 +136,10 @@ void SceneHierarchy::Tick()
 						OutputArchive archive(os);
 						entt::snapshot{(*scene)()}
 						    .entities(archive)
-						    .component<
-						        TagComponent,
-						        TransformComponent,
-						        HierarchyComponent>(archive);
+						    .component<ALL_COMPONENTS>(archive);
 						scene->SetName(filename);
 					}
-					// Save as engine meta
-					{
-						std::string   uuid = std::to_string(Hash(filename));
-						std::ofstream os("Asset/Meta/" + uuid + ".meta", std::ios::binary);
-						OutputArchive archive(os);
-						archive(ResourceType::Scene, uuid, filename);
-						entt::snapshot{(*scene)()}
-						    .entities(archive)
-						    .component<
-						        TagComponent,
-						        TransformComponent,
-						        HierarchyComponent>(archive);
-
-						SceneMeta meta = {};
-						meta.name      = filename;
-						meta.uuid      = uuid;
-						p_editor->GetRenderer()->GetResourceManager()->AddSceneMeta(std::move(meta));
-					}
+					p_editor->GetRenderer()->GetResourceManager()->Import<ResourceType::Scene>(dir + filename + ".scene");
 					free(path);
 				}
 			}

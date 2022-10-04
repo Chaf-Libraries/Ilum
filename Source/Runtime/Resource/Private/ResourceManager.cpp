@@ -4,20 +4,84 @@
 #include <Core/Path.hpp>
 #include <RHI/RHIContext.hpp>
 
+#include <filesystem>
+
 namespace Ilum
 {
-static const TextureDesc ThumbnailDesc = {"", 48, 48, 1, 1, 1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource};
+inline void LoadTextureFromBuffer(RHIContext *rhi_context, std::unique_ptr<RHITexture> &texture, const TextureDesc &desc, const std::vector<uint8_t> &data)
+{
+	texture = rhi_context->CreateTexture(desc);
+
+	auto staging_buffer = rhi_context->CreateBuffer(BufferDesc{"", RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_TO_CPU, data.size()});
+	std::memcpy(staging_buffer->Map(), data.data(), data.size());
+	staging_buffer->Flush(0, data.size());
+	staging_buffer->Unmap();
+
+	auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Graphics);
+	cmd_buffer->Begin();
+	cmd_buffer->ResourceStateTransition({TextureStateTransition{
+	                                        texture.get(),
+	                                        RHIResourceState::Undefined,
+	                                        RHIResourceState::TransferDest,
+	                                        TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
+	                                    {});
+	cmd_buffer->CopyBufferToTexture(staging_buffer.get(), texture.get(), 0, 0, 1);
+	cmd_buffer->ResourceStateTransition({TextureStateTransition{
+	                                        texture.get(),
+	                                        RHIResourceState::TransferDest,
+	                                        RHIResourceState::ShaderResource,
+	                                        TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
+	                                    {});
+	cmd_buffer->End();
+
+	rhi_context->Execute(cmd_buffer);
+}
 
 struct IResourceManager
 {
   public:
+	IResourceManager(RHIContext *rhi_context) :
+	    p_rhi_context(rhi_context)
+	{
+	}
+
+	virtual ~IResourceManager() = default;
+
 	virtual Resource *GetResource(size_t uuid) = 0;
+
+	virtual const std::string &GetResourceMeta(size_t uuid) = 0;
 
 	virtual void EraseResource(size_t uuid) = 0;
 
 	virtual bool HasResource(size_t uuid) = 0;
 
-	virtual void AddResource(std::unique_ptr<Resource> &&resource) = 0;
+	virtual Resource *CreateResource(size_t uuid) = 0;
+
+	virtual void CacheResource(size_t uuid, const std::string &meta) = 0;
+
+	virtual size_t ResourceIndex(size_t uuid) = 0;
+
+	virtual bool IsResourceValid(size_t uuid) = 0;
+
+	const std::vector<size_t> &GetUUIDs() const
+	{
+		return m_uuids;
+	}
+
+	void Tick()
+	{
+		m_update = false;
+	}
+
+	bool IsUpdate()
+	{
+		return m_update;
+	}
+
+  protected:
+	RHIContext         *p_rhi_context = nullptr;
+	std::vector<size_t> m_uuids;
+	bool                m_update = false;
 };
 
 template <ResourceType _Ty>
@@ -25,28 +89,48 @@ struct TResourceManager : public IResourceManager
 {
 	std::vector<std::unique_ptr<TResource<_Ty>>> m_resource;
 	std::map<size_t, size_t>                     m_resource_lookup;
+	std::vector<std::unique_ptr<TResource<_Ty>>> m_deprecate_resource;
+
+	TResourceManager(RHIContext *rhi_context) :
+	    IResourceManager(rhi_context)
+	{
+	}
+
+	virtual ~TResourceManager() = default;
 
 	virtual Resource *GetResource(size_t uuid) override
 	{
 		if (m_resource_lookup.find(uuid) != m_resource_lookup.end())
 		{
-			return m_resource[m_resource_lookup.at(uuid)].get();
+			auto *resource = m_resource[m_resource_lookup.at(uuid)].get();
+			if (!resource->IsValid())
+			{
+				resource->Load(p_rhi_context);
+			}
+			return resource;
 		}
 		return nullptr;
+	}
+
+	virtual const std::string &GetResourceMeta(size_t uuid)
+	{
+		return m_resource.at(m_resource_lookup.at(uuid))->GetMeta();
 	}
 
 	virtual void EraseResource(size_t uuid) override
 	{
 		if (m_resource_lookup.find(uuid) != m_resource_lookup.end())
 		{
-			size_t last_uuid             = m_resource.back()->GetUUID();
+			size_t last_uuid = m_resource.back()->GetUUID();
 			if (m_resource.size() > 1)
 			{
 				m_resource_lookup[last_uuid] = m_resource_lookup[uuid];
-				std::swap(m_resource.back(), m_resource[uuid]);
+				std::swap(m_resource.back(), m_resource[m_resource_lookup[uuid]]);
 			}
+			m_deprecate_resource.emplace_back(std::move(m_resource.back()));
 			m_resource.pop_back();
 			m_resource_lookup.erase(uuid);
+			m_uuids.erase(std::remove(m_uuids.begin(), m_uuids.end(), uuid));
 			Path::GetInstance().DeletePath("Asset/Meta/" + std::to_string(uuid) + ".meta");
 		}
 	}
@@ -56,27 +140,80 @@ struct TResourceManager : public IResourceManager
 		return m_resource_lookup.find(uuid) != m_resource_lookup.end();
 	}
 
-	virtual void AddResource(std::unique_ptr<Resource> &&resource) override
+	virtual Resource *CreateResource(size_t uuid) override
 	{
-		m_resource_lookup.emplace(resource->GetUUID(), m_resource.size());
-		TResource<_Ty> *ptr = static_cast<TResource<_Ty> *>(std::move(resource).release());
-		m_resource.emplace_back(std::unique_ptr<TResource<_Ty>>(ptr));
+		m_resource_lookup.emplace(uuid, m_resource.size());
+		m_resource.emplace_back(std::make_unique<TResource<_Ty>>(uuid));
+		m_uuids.push_back(uuid);
+		return m_resource.back().get();
+	}
+
+	virtual void CacheResource(size_t uuid, const std::string &meta) override
+	{
+		m_resource_lookup.emplace(uuid, m_resource.size());
+		m_resource.emplace_back(std::make_unique<TResource<_Ty>>(uuid, meta, p_rhi_context));
+		m_uuids.push_back(uuid);
+	}
+
+	virtual size_t ResourceIndex(size_t uuid) override
+	{
+		return m_resource_lookup.at(uuid);
+	}
+
+	virtual bool IsResourceValid(size_t uuid) override
+	{
+		return m_resource_lookup.find(uuid) != m_resource_lookup.end() && m_resource.at(m_resource_lookup.at(uuid))->IsValid();
 	}
 };
 
 struct ResourceManager::Impl
 {
-	std::map<ResourceType, std::unique_ptr<IResourceManager>> m_managers;
+	std::map<ResourceType, std::unique_ptr<IResourceManager>>     m_managers;
+	std::unordered_map<ResourceType, std::unique_ptr<RHITexture>> m_thumbnails;
 };
 
 ResourceManager::ResourceManager(RHIContext *rhi_context) :
     p_rhi_context(rhi_context), m_impl(std::make_unique<Impl>())
 {
-	m_impl->m_managers.emplace(ResourceType::Texture2D, std::make_unique<TResourceManager<ResourceType::Texture2D>>());
+	m_impl->m_managers.emplace(ResourceType::Texture, std::make_unique<TResourceManager<ResourceType::Texture>>(p_rhi_context));
+	m_impl->m_managers.emplace(ResourceType::Model, std::make_unique<TResourceManager<ResourceType::Model>>(p_rhi_context));
+	m_impl->m_managers.emplace(ResourceType::Scene, std::make_unique<TResourceManager<ResourceType::Scene>>(p_rhi_context));
+	m_impl->m_managers.emplace(ResourceType::RenderGraph, std::make_unique<TResourceManager<ResourceType::RenderGraph>>(p_rhi_context));
+
+	{
+		TextureImportInfo info;
+
+		info           = TextureImporter::Import("Asset/Icon/scene.png");
+		info.desc.mips = 1;
+		LoadTextureFromBuffer(p_rhi_context, m_impl->m_thumbnails[ResourceType::Scene], info.desc, info.data);
+
+		info           = TextureImporter::Import("Asset/Icon/render_graph.png");
+		info.desc.mips = 1;
+		LoadTextureFromBuffer(p_rhi_context, m_impl->m_thumbnails[ResourceType::RenderGraph], info.desc, info.data);
+
+		info           = TextureImporter::Import("Asset/Icon/model.png");
+		info.desc.mips = 1;
+		LoadTextureFromBuffer(p_rhi_context, m_impl->m_thumbnails[ResourceType::Model], info.desc, info.data);
+
+		info           = TextureImporter::Import("Asset/Icon/texture.png");
+		info.desc.mips = 1;
+		LoadTextureFromBuffer(p_rhi_context, m_impl->m_thumbnails[ResourceType::Texture], info.desc, info.data);
+	}
+
+	ScanLocalMeta();
 }
 
 ResourceManager::~ResourceManager()
 {
+	m_impl.reset();
+}
+
+void ResourceManager::Tick()
+{
+	for (auto &[type, manager] : m_impl->m_managers)
+	{
+		manager->Tick();
+	}
 }
 
 Resource *ResourceManager::GetResource(size_t uuid, ResourceType type)
@@ -91,118 +228,73 @@ void ResourceManager::EraseResource(size_t uuid, ResourceType type)
 
 void ResourceManager::Import(const std::string &path, ResourceType type)
 {
-	switch (type)
+	if (!Path::GetInstance().IsExist(path))
 	{
-		case Ilum::ResourceType::Model:
-			ImportModel(path);
-			break;
-		case Ilum::ResourceType::Texture2D:
-			ImportTexture2D(path);
-			break;
-		default:
-			break;
-	}
-}
-
-void ResourceManager::ImportTexture2D(const std::string &path)
-{
-	size_t uuid = Hash(path);
-	if (m_impl->m_managers.at(ResourceType::Texture2D)->HasResource(uuid))
-	{
-		LOG_INFO("{} is already cached", path);
+		LOG_ERROR("Resource {} is not found", path);
 		return;
 	}
 
-	TextureImportInfo info = TextureImporter::Import(path);
+	size_t uuid = Hash(path);
 
-	std::string meta_info = fmt::format("Name: {}\nOriginal Path: {}\nWidth: {}\nHeight: {}\nMips: {}\nLayers: {}\nFormat: {}",
-	                                    Path::GetInstance().GetFileName(path), path, info.desc.width, info.desc.height, info.desc.mips, info.desc.layers, rttr::type::get_by_name("Ilum::RHIFormat").get_enumeration().value_to_name(info.desc.format).to_string());
-
-	SERIALIZE("Asset/Meta/" + std::to_string(uuid) + ".meta", ResourceType::Texture2D, uuid, meta_info, info);
-
-	BufferDesc buffer_desc = {};
-	buffer_desc.size       = info.data.size();
-	buffer_desc.usage      = RHIBufferUsage::Transfer;
-	buffer_desc.memory     = RHIMemoryUsage::CPU_TO_GPU;
-
-	auto staging_buffer = p_rhi_context->CreateBuffer(buffer_desc);
-	std::memcpy(staging_buffer->Map(), info.data.data(), buffer_desc.size);
-	staging_buffer->Flush(0, buffer_desc.size);
-	staging_buffer->Unmap();
-
-	auto thumbnail_buffer = p_rhi_context->CreateBuffer(BufferDesc{"", RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_TO_CPU, 48 * 48 * 4 * sizeof(uint8_t)});
-
-	TextureDesc thumbnail_desc = ThumbnailDesc;
-	thumbnail_desc.name        = Path::GetInstance().GetFileName(path, false) + " - thumbnail";
-
-	std::unique_ptr<Resource> resource = std::make_unique<TResource<ResourceType::Texture2D>>(uuid, meta_info);
-
-	auto *texture = static_cast<TResource<ResourceType::Texture2D> *>(resource.get());
-
-	texture->SetTexture(p_rhi_context->CreateTexture(info.desc));
-	texture->SetThumbnail(p_rhi_context->CreateTexture(thumbnail_desc));
-
+	if (m_impl->m_managers.at(type)->HasResource(uuid))
 	{
-		auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Graphics);
-		cmd_buffer->Begin();
-		cmd_buffer->ResourceStateTransition({TextureStateTransition{
-		                                         texture->GetTexture(),
-		                                         RHIResourceState::Undefined,
-		                                         RHIResourceState::TransferDest,
-		                                         TextureRange{RHITextureDimension::Texture2D, 0, texture->GetTexture()->GetDesc().mips, 0, 1}},
-		                                     TextureStateTransition{
-		                                         texture->GetThumbnail(),
-		                                         RHIResourceState::Undefined,
-		                                         RHIResourceState::TransferDest,
-		                                         TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
-		                                    {});
-		cmd_buffer->CopyBufferToTexture(staging_buffer.get(), texture->GetTexture(), 0, 0, 1);
-		cmd_buffer->GenerateMipmaps(texture->GetTexture(), RHIResourceState::Undefined, RHIFilter::Linear);
-		cmd_buffer->ResourceStateTransition({TextureStateTransition{
-		                                        texture->GetTexture(),
-		                                        RHIResourceState::TransferDest,
-		                                        RHIResourceState::TransferSource,
-		                                        TextureRange{RHITextureDimension::Texture2D, 0, texture->GetTexture()->GetDesc().mips, 0, 1}}},
-		                                    {});
-		cmd_buffer->BlitTexture(
-		    texture->GetTexture(),
-		    TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1},
-		    RHIResourceState::TransferSource,
-		    texture->GetThumbnail(),
-		    TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1},
-		    RHIResourceState::TransferDest,
-		    RHIFilter::Nearest);
-		cmd_buffer->ResourceStateTransition({TextureStateTransition{
-		                                         texture->GetTexture(),
-		                                         RHIResourceState::TransferSource,
-		                                         RHIResourceState::ShaderResource,
-		                                         TextureRange{RHITextureDimension::Texture2D, 0, texture->GetTexture()->GetDesc().mips, 0, 1}},
-		                                     TextureStateTransition{
-		                                         texture->GetThumbnail(),
-		                                         RHIResourceState::TransferDest,
-		                                         RHIResourceState::TransferSource,
-		                                         TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
-		                                    {});
-		cmd_buffer->CopyTextureToBuffer(texture->GetThumbnail(), thumbnail_buffer.get(), 0, 0, 1);
-		cmd_buffer->ResourceStateTransition({TextureStateTransition{
-		                                        texture->GetThumbnail(),
-		                                        RHIResourceState::TransferSource,
-		                                        RHIResourceState::ShaderResource,
-		                                        TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
-		                                    {});
-		cmd_buffer->End();
-
-		p_rhi_context->Execute(cmd_buffer);
+		LOG_INFO("Resource {} is already cached", path);
 	}
-
-	info.thumbnail_data.resize(thumbnail_buffer->GetDesc().size);
-	std::memcpy(info.thumbnail_data.data(), thumbnail_buffer->Map(), thumbnail_buffer->GetDesc().size);
-	thumbnail_buffer->Unmap();
-
-	m_impl->m_managers.at(ResourceType::Texture2D)->AddResource(std::move(resource));
+	else
+	{
+		Resource *resource = m_impl->m_managers.at(type)->CreateResource(uuid);
+		resource->Import(p_rhi_context, path);
+		ScanLocalMeta();
+	}
 }
 
-void ResourceManager::ImportModel(const std::string &path)
+RHITexture *ResourceManager::GetThumbnail(ResourceType type)
 {
+	return m_impl->m_thumbnails.at(type).get();
+}
+
+size_t ResourceManager::GetResourceIndex(size_t uuid, ResourceType type)
+{
+	return m_impl->m_managers.at(type)->ResourceIndex(uuid);
+}
+
+const std::string &ResourceManager::GetResourceMeta(size_t uuid, ResourceType type)
+{
+	return m_impl->m_managers.at(type)->GetResourceMeta(uuid);
+}
+
+bool ResourceManager::IsUpdate(ResourceType type)
+{
+	return m_impl->m_managers.at(type)->IsUpdate();
+}
+
+bool ResourceManager::IsValid(size_t uuid, ResourceType type)
+{
+	return m_impl->m_managers.at(type)->IsResourceValid(uuid);
+}
+
+const std::vector<size_t> &ResourceManager::GetResourceUUID(ResourceType type) const
+{
+	return m_impl->m_managers.at(type)->GetUUIDs();
+}
+
+void ResourceManager::ScanLocalMeta()
+{
+	const std::string meta_path = "Asset/Meta";
+	for (const auto &path : std::filesystem::directory_iterator(meta_path))
+	{
+		if (Path::GetInstance().GetFileExtension(path.path().string()) != ".meta")
+		{
+			continue;
+		}
+		ResourceType type = ResourceType::None;
+		std::string  meta = "";
+		size_t       uuid = 0;
+		DESERIALIZE(path.path(), type, uuid, meta);
+		if (!m_impl->m_managers.at(type)->HasResource(uuid))
+		{
+			m_impl->m_managers.at(type)->CacheResource(uuid, meta);
+		}
+	}
 }
 }        // namespace Ilum

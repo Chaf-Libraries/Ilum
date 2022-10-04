@@ -24,8 +24,11 @@ target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:
 target_link_libraries(${TARGET_NAME} PRIVATE Core)
 target_link_libraries(${TARGET_NAME} PRIVATE RHI)
 target_link_libraries(${TARGET_NAME} PRIVATE Geometry)
+target_link_libraries(${TARGET_NAME} PRIVATE RenderCore)
+target_link_libraries(${TARGET_NAME} PRIVATE Scene)
 target_link_libraries(${TARGET_NAME} PRIVATE assimp::assimp)
 target_link_libraries(${TARGET_NAME} PRIVATE meshoptimizer)
+target_link_libraries(${TARGET_NAME} PRIVATE entt)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/Public")
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Private")

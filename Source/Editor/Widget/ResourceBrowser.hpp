@@ -13,11 +13,11 @@ class ResourceBrowser : public Widget
 
 	virtual void Tick() override;
 
-  private:
-	void DrawTextureBrowser();
-	void DrawModelBrowser();
-	void DrawSceneBrowser();
-	void DrawRenderGraphBrowser();
+ // private:
+	//void DrawTextureBrowser();
+	//void DrawModelBrowser();
+	//void DrawSceneBrowser();
+	//void DrawRenderGraphBrowser();
 
   private:
 	const float m_button_size = 70.f;

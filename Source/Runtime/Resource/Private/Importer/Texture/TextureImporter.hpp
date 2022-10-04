@@ -1,17 +1,14 @@
 #pragma once
 
-#include "Precompile.hpp"
-
 #include <RHI/RHITexture.hpp>
 
 namespace Ilum
 {
-STRUCT(TextureImportInfo, Enable)
+struct TextureImportInfo
 {
 	TextureDesc desc;
 
 	std::vector<uint8_t> data;
-	std::vector<uint8_t> thumbnail_data;
 };
 
 class TextureImporter

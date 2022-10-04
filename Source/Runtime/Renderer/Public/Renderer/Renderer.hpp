@@ -25,7 +25,7 @@ struct ViewInfo
 	uint32_t  frame_count;
 };
 
-struct [[serialization(false), reflection(false)]] StaticBatch
+struct StaticBatch
 {
 	std::vector<RHIBuffer *>   static_vertex_buffers;
 	std::vector<RHIBuffer *>   static_index_buffers;

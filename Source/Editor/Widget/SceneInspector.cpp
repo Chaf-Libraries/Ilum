@@ -74,9 +74,9 @@ inline bool DrawComponent<StaticMeshComponent>(Editor *editor, Entity &entity, b
 	std::function<bool(StaticMeshComponent &)> func = [&](StaticMeshComponent &t) -> bool {
 		ImGui::Text("UUID");
 		ImGui::SameLine();
-		if (ImGui::Button(t.uuid.c_str(), ImVec2(ImGui::GetContentRegionAvailWidth() * 0.8f, 25.f)))
+		if (ImGui::Button(std::to_string(t.uuid).c_str(), ImVec2(ImGui::GetContentRegionAvailWidth() * 0.8f, 25.f)))
 		{
-			t.uuid = "";
+			t.uuid = ~0;
 			return true;
 		}
 		if (ImGui::BeginDragDropTarget())
@@ -84,21 +84,21 @@ inline bool DrawComponent<StaticMeshComponent>(Editor *editor, Entity &entity, b
 			if (const auto *pay_load = ImGui::AcceptDragDropPayload("Model"))
 			{
 				ASSERT(pay_load->DataSize == sizeof(std::string));
-				t.uuid = *static_cast<std::string *>(pay_load->Data);
+				t.uuid = *static_cast<size_t *>(pay_load->Data);
 				ImGui::EndDragDropTarget();
 				return true;
 			}
 			ImGui::EndDragDropTarget();
 		}
 
-		auto *meta = editor->GetRenderer()->GetResourceManager()->GetModel(t.uuid);
-		if (!meta)
+		auto *resource = editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Model>(t.uuid);
+		if (!resource)
 		{
 			return false;
 		}
 		for (uint32_t i = 0; i < t.materials.size(); i++)
 		{
-			if (ImGui::TreeNode(meta->submeshes[i].name.c_str()))
+			if (ImGui::TreeNode(resource->GetSubmeshes()[i].name.c_str()))
 			{
 				ImGui::Text("Material editor here");
 				ImGui::TreePop();

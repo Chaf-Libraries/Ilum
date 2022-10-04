@@ -73,10 +73,10 @@ inline void System::Execute<StaticMeshComponent>(Renderer *renderer)
 	renderer->GetScene()->GroupExecute<StaticMeshComponent>([&](uint32_t entity, StaticMeshComponent &static_mesh) {
 		if (static_mesh.update)
 		{
-			auto meta = renderer->GetResourceManager()->GetModel(static_mesh.uuid);
-			if (meta)
+			auto *resource = renderer->GetResourceManager()->GetResource<ResourceType::Model>(static_mesh.uuid);
+			if (resource)
 			{
-				static_mesh.materials.resize(meta->submeshes.size());
+				static_mesh.materials.resize(resource->GetSubmeshes().size());
 				std::fill(static_mesh.materials.begin(), static_mesh.materials.end(), "");
 			}
 			else
@@ -87,4 +87,4 @@ inline void System::Execute<StaticMeshComponent>(Renderer *renderer)
 		}
 	});
 }
-}
+}        // namespace Ilum
