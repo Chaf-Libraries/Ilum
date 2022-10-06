@@ -79,16 +79,22 @@ struct IResourceManager
 	}
 
   protected:
-	RHIContext         *p_rhi_context = nullptr;
+	RHIContext *p_rhi_context = nullptr;
+
 	std::vector<size_t> m_uuids;
-	bool                m_update = false;
+
+	bool m_update = false;
 };
 
 template <ResourceType _Ty>
 struct TResourceManager : public IResourceManager
 {
 	std::vector<std::unique_ptr<TResource<_Ty>>> m_resource;
-	std::map<size_t, size_t>                     m_resource_lookup;
+
+	std::map<size_t, size_t> m_resource_lookup;
+
+	std::vector<TResource<_Ty>*> m_valid_resource;
+
 	std::vector<std::unique_ptr<TResource<_Ty>>> m_deprecate_resource;
 
 	TResourceManager(RHIContext *rhi_context) :
@@ -105,7 +111,8 @@ struct TResourceManager : public IResourceManager
 			auto *resource = m_resource[m_resource_lookup.at(uuid)].get();
 			if (!resource->IsValid())
 			{
-				resource->Load(p_rhi_context);
+				resource->Load(p_rhi_context, m_valid_resource.size());
+				m_valid_resource.push_back(resource);
 			}
 			return resource;
 		}
@@ -122,10 +129,15 @@ struct TResourceManager : public IResourceManager
 		if (m_resource_lookup.find(uuid) != m_resource_lookup.end())
 		{
 			size_t last_uuid = m_resource.back()->GetUUID();
+			auto  *resource  = m_resource[m_resource_lookup.at(uuid)].get();
 			if (m_resource.size() > 1)
 			{
 				m_resource_lookup[last_uuid] = m_resource_lookup[uuid];
 				std::swap(m_resource.back(), m_resource[m_resource_lookup[uuid]]);
+			}
+			if (std::find(m_valid_resource.begin(), m_valid_resource.end(), resource) != m_valid_resource.end())
+			{
+				m_valid_resource.erase(std::remove(m_valid_resource.begin(), m_valid_resource.end(), resource));
 			}
 			m_deprecate_resource.emplace_back(std::move(m_resource.back()));
 			m_resource.pop_back();

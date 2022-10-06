@@ -46,7 +46,8 @@ STRUCT(Submesh, Enable)
 	uint32_t indices_offset;
 	uint32_t meshlet_count;
 	uint32_t meshlet_offset;
-	// TODO: Material
+	
+	size_t material;
 };
 
 template <>
@@ -59,7 +60,7 @@ class TResource<ResourceType::Model> : public Resource
 
 	virtual ~TResource() override = default;
 
-	virtual void Load(RHIContext *rhi_context) override;
+	virtual void Load(RHIContext *rhi_context, size_t index) override;
 
 	virtual void Import(RHIContext *rhi_context, const std::string &path) override;
 

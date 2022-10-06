@@ -14,13 +14,15 @@ TResource<ResourceType::Scene>::TResource(size_t uuid) :
 TResource<ResourceType::Scene>::TResource(size_t uuid, const std::string &meta, RHIContext *rhi_context) :
     Resource(uuid, meta, rhi_context)
 {
-	m_valid = true;
 }
 
-void TResource<ResourceType::Scene>::Load(RHIContext *rhi_context)
+void TResource<ResourceType::Scene>::Load(RHIContext *rhi_context, size_t index)
 {
 	ResourceType type = ResourceType::None;
 	DESERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".meta", type, m_uuid, m_meta);
+
+	m_valid = true;
+	m_index = index;
 }
 
 void TResource<ResourceType::Scene>::Import(RHIContext *rhi_context, const std::string &path)
@@ -47,8 +49,6 @@ void TResource<ResourceType::Scene>::Import(RHIContext *rhi_context, const std::
 		    .entities(archive)
 		    .component<ALL_COMPONENTS>(archive);
 	}
-
-	m_valid = true;
 }
 
 void TResource<ResourceType::Scene>::Load(Scene *scene)

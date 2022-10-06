@@ -9,6 +9,8 @@
 #include <Scene/Entity.hpp>
 #include <Scene/Scene.hpp>
 
+#include <cereal/types/vector.hpp>
+
 namespace Ilum
 {
 struct InstanceData
@@ -173,9 +175,9 @@ void Renderer::DrawScene(RHICommand *cmd_buffer, RHIPipelineState *pipeline_stat
 {
 }
 
-const StaticBatch &Renderer::GetStaticBatch() const
+const SceneInfo &Renderer::GetSceneInfo() const
 {
-	return m_static_batch;
+	return m_scene_info;
 }
 
 RHIShader *Renderer::RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, const std::vector<std::string> &macros, bool cuda)
@@ -280,16 +282,35 @@ ShaderMeta Renderer::RequireShaderMeta(RHIShader *shader) const
 
 void Renderer::UpdateScene()
 {
-	m_static_batch.static_vertex_buffers.clear();
-	m_static_batch.static_index_buffers.clear();
-	m_static_batch.meshlet_vertex_buffers.clear();
-	m_static_batch.meshlet_primitive_buffers.clear();
-	m_static_batch.meshlet_buffers.clear();
-	m_static_batch.meshlet_count.clear();
+	m_scene_info.static_vertex_buffers.clear();
+	m_scene_info.static_index_buffers.clear();
+	m_scene_info.meshlet_vertex_buffers.clear();
+	m_scene_info.meshlet_primitive_buffers.clear();
+	m_scene_info.meshlet_buffers.clear();
+	m_scene_info.meshlet_count.clear();
 
 	std::vector<InstanceData> instances;
 	instances.reserve(p_scene->Size());
 
+	std::unordered_map<const TResource<ResourceType::Model> *, uint32_t> model_index;
+
+	// Collect Model Info
+	uint32_t current_model = 0;
+	for (auto &uuid : p_resource_manager->GetResourceUUID<ResourceType::Model>())
+	{
+		if (p_resource_manager->IsValid<ResourceType::Model>(uuid))
+		{
+			auto *resource = p_resource_manager->GetResource<ResourceType::Model>(uuid);
+			m_scene_info.static_vertex_buffers.push_back(resource->GetVertexBuffer());
+			m_scene_info.static_index_buffers.push_back(resource->GetIndexBuffer());
+			m_scene_info.meshlet_vertex_buffers.push_back(resource->GetMeshletVertexBuffer());
+			m_scene_info.meshlet_primitive_buffers.push_back(resource->GetMeshletPrimitiveBuffer());
+			m_scene_info.meshlet_buffers.push_back(resource->GetMeshletBuffer());
+			model_index[resource] = current_model++;
+		}
+	}
+
+	// Collect Texture Info
 
 
 	// Update TLAS
@@ -297,7 +318,7 @@ void Renderer::UpdateScene()
 	desc.instances.reserve(p_scene->Size());
 	desc.name = p_scene->GetName();
 	p_scene->GroupExecute<StaticMeshComponent, TransformComponent>([&](uint32_t entity, StaticMeshComponent &static_mesh, TransformComponent &transform) {
-		auto* resource = p_resource_manager->GetResource<ResourceType::Model>(static_mesh.uuid);
+		auto *resource = p_resource_manager->GetResource<ResourceType::Model>(static_mesh.uuid);
 		if (resource)
 		{
 			for (uint32_t i = 0; i < resource->GetSubmeshes().size(); i++)
@@ -306,21 +327,19 @@ void Renderer::UpdateScene()
 				instance_info.transform              = transform.world_transform * resource->GetSubmeshes()[i].pre_transform;
 				instance_info.material_id            = 0;
 				instance_info.blas                   = resource->GetBLAS(i);
-				desc.instances.emplace_back(std::move(instance_info));
-
-				InstanceData instance_data = {};
 
 				AABB aabb = resource->GetSubmeshes()[i].aabb.Transform(instance_info.transform);
 
-				instance_data.aabb_max    = aabb.max;
-				instance_data.aabb_min    = aabb.min;
-				// TODO:
-				//instance_data.instance_id = model_index[meta];
+				desc.instances.emplace_back(std::move(instance_info));
+
+				InstanceData instance_data = {};
+				instance_data.aabb_max     = aabb.max;
+				instance_data.aabb_min     = aabb.min;
+				instance_data.instance_id = model_index[resource];
 				instance_data.transform   = instance_info.transform;
 				instance_data.material    = 0;
 				instances.emplace_back(std::move(instance_data));
-				// TODO:
-				// m_static_batch.meshlet_count.push_back(meta->submeshes[i].meshlet_count);
+				m_scene_info.meshlet_count.push_back(resource->GetSubmeshes()[i].meshlet_count);
 			}
 		}
 	});
@@ -328,11 +347,11 @@ void Renderer::UpdateScene()
 	if (!desc.instances.empty())
 	{
 		{
-			if (!m_static_batch.instance_buffer || m_static_batch.instance_buffer->GetDesc().size != instances.size() * sizeof(InstanceData))
+			if (!m_scene_info.instance_buffer || m_scene_info.instance_buffer->GetDesc().size != instances.size() * sizeof(InstanceData))
 			{
-				m_static_batch.instance_buffer = p_rhi_context->CreateBuffer<InstanceData>(instances.size() * sizeof(InstanceData), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+				m_scene_info.instance_buffer = p_rhi_context->CreateBuffer<InstanceData>(instances.size() * sizeof(InstanceData), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
 			}
-			m_static_batch.instance_buffer->CopyToDevice(instances.data(), instances.size() * sizeof(InstanceData), 0);
+			m_scene_info.instance_buffer->CopyToDevice(instances.data(), instances.size() * sizeof(InstanceData), 0);
 		}
 
 		{

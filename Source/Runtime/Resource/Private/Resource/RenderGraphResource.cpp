@@ -12,13 +12,16 @@ TResource<ResourceType::RenderGraph>::TResource(size_t uuid) :
 TResource<ResourceType::RenderGraph>::TResource(size_t uuid, const std::string &meta, RHIContext *rhi_context) :
     Resource(uuid, meta, rhi_context)
 {
-	m_valid = true;
+
 }
 
-void TResource<ResourceType::RenderGraph>::Load(RHIContext *rhi_context)
+void TResource<ResourceType::RenderGraph>::Load(RHIContext *rhi_context, size_t index)
 {
 	ResourceType type = ResourceType::None;
 	DESERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".meta", type, m_uuid, m_meta);
+
+	m_valid = true;
+	m_index = index;
 }
 
 void TResource<ResourceType::RenderGraph>::Import(RHIContext *rhi_context, const std::string &path)
@@ -30,8 +33,6 @@ void TResource<ResourceType::RenderGraph>::Import(RHIContext *rhi_context, const
 	m_meta = fmt::format("Passes: {}\nTextures: {}\nBuffers: {}", desc.passes.size(), desc.textures.size(), desc.buffers.size());
 
 	SERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".meta", ResourceType::RenderGraph, m_uuid, m_meta, desc, editor_layout);
-
-	m_valid = true;
 }
 
 void TResource<ResourceType::RenderGraph>::Load(RenderGraphDesc &desc, std::string &editor_layout)

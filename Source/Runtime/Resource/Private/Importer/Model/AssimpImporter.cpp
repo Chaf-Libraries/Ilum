@@ -4,7 +4,7 @@
 
 #include <assimp/DefaultLogger.hpp>
 #include <assimp/Importer.hpp>
-#include <assimp/pbrmaterial.h>
+#include <assimp/material.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 

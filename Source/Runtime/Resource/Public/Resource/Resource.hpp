@@ -21,7 +21,7 @@ class Resource
   public:
 	explicit Resource(size_t uuid);
 
-	explicit Resource(size_t uuid, const std::string& meta, RHIContext *rhi_context);
+	explicit Resource(size_t uuid, const std::string &meta, RHIContext *rhi_context);
 
 	virtual ~Resource() = default;
 
@@ -37,14 +37,17 @@ class Resource
 
 	bool IsValid() const;
 
-	virtual void Load(RHIContext *rhi_context) = 0;
+	virtual void Load(RHIContext *rhi_context, size_t index) = 0;
 
 	virtual void Import(RHIContext *rhi_context, const std::string &path) = 0;
 
   protected:
 	std::string m_meta;
-	size_t      m_uuid;
-	bool        m_valid = false;
+
+	size_t m_uuid;
+	size_t m_index;
+
+	bool m_valid = false;
 };
 
 template <ResourceType _Ty>

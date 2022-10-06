@@ -25,13 +25,16 @@ struct ViewInfo
 	uint32_t  frame_count;
 };
 
-struct StaticBatch
+struct SceneInfo
 {
+	std::vector<RHITexture *> texture2d_array;
+
 	std::vector<RHIBuffer *>   static_vertex_buffers;
 	std::vector<RHIBuffer *>   static_index_buffers;
 	std::vector<RHIBuffer *>   meshlet_vertex_buffers;
 	std::vector<RHIBuffer *>   meshlet_primitive_buffers;
 	std::vector<RHIBuffer *>   meshlet_buffers;
+
 	std::unique_ptr<RHIBuffer> instance_buffer;
 
 	std::vector<uint32_t> meshlet_count;
@@ -78,7 +81,7 @@ class Renderer
 
 	void DrawScene(RHICommand *cmd_buffer, RHIPipelineState *pipeline_state, RHIDescriptor *descriptor, bool mesh_shader);
 
-	const StaticBatch &GetStaticBatch() const;
+	const SceneInfo &GetSceneInfo() const;
 
   public:
 	// Shader utils
@@ -114,6 +117,6 @@ class Renderer
 
 	std::unique_ptr<RHIAccelerationStructure> m_tlas = nullptr;
 
-	StaticBatch m_static_batch;
+	SceneInfo m_scene_info;
 };
 }        // namespace Ilum

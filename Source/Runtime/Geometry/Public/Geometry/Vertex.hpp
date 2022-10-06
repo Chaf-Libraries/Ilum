@@ -4,7 +4,7 @@
 
 namespace Ilum
 {
-struct Vertex
+STRUCT(Vertex, Enable)
 {
 	alignas(16) glm::vec3 position;
 	alignas(16) glm::vec3 normal;

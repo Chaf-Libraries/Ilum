@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Resource/ModelResource.hpp"
+#include "Importer/Texture/TextureImporter.hpp"
 
 #include <Geometry/Vertex.hpp>
 
@@ -23,9 +24,7 @@ struct ModelImportInfo
 
 	AABB aabb;
 
-	// TODO: Material
-
-	// std::vector<TextureImportInfo> textures;
+	 std::unordered_map<size_t, TextureImportInfo> textures;
 };
 
 class ModelImporter

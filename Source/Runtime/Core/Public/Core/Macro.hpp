@@ -7,12 +7,6 @@
 
 #include <rttr/registration.h>
 
-#include <cereal/types/array.hpp>
-#include <cereal/types/map.hpp>
-#include <cereal/types/string.hpp>
-#include <cereal/types/unordered_map.hpp>
-#include <cereal/types/vector.hpp>
-
 #include <fstream>
 
 #define SERIALIZER_TYPE_JSON 0
@@ -36,8 +30,8 @@ using InputArchive  = cereal::JSONInputArchive;
 using OutputArchive = cereal::JSONOutputArchive;
 #elif SERIALIZER_TYPE == SERIALIZER_TYPE_BINARY
 #	include <cereal/archives/binary.hpp>
-using InputArchive  = cereal::BinaryInputArchive;
-using OutputArchive = cereal::BinaryOutputArchive;
+using InputArchive  = Ilum::Deserializer<cereal::BinaryInputArchive>;
+using OutputArchive = Ilum::Serializer<cereal::BinaryOutputArchive>;
 #elif SERIALIZER_TYPE == SERIALIZER_TYPE_XML
 #	include <cereal/archives/xml.hpp>
 using InputArchive  = cereal::XMLInputArchive;

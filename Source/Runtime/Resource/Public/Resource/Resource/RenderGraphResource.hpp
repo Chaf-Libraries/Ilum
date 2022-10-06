@@ -16,7 +16,7 @@ class TResource<ResourceType::RenderGraph> : public Resource
 
 	virtual ~TResource() override = default;
 
-	virtual void Load(RHIContext *rhi_context) override;
+	virtual void Load(RHIContext *rhi_context, size_t index) override;
 
 	virtual void Import(RHIContext *rhi_context, const std::string &path) override;
 

@@ -72,23 +72,23 @@ RenderGraph::RenderTask VisibilityBufferPass::Create(const RenderPassDesc &desc,
 		cmd_buffer->SetScissor(render_target->GetWidth(), render_target->GetHeight());
 		cmd_buffer->BeginRenderPass(render_target.get());
 
-		const auto &batch = renderer->GetStaticBatch();
+		const auto &scene_info = renderer->GetSceneInfo();
 
 		descriptor
 		    ->BindBuffer("View", renderer->GetViewBuffer())
-		    .BindBuffer("VertexBuffer", batch.static_vertex_buffers)
-		    .BindBuffer("IndexBuffer", batch.static_index_buffers)
-		    .BindBuffer("MeshletVertexBuffer", batch.meshlet_vertex_buffers)
-		    .BindBuffer("MeshletPrimitiveBuffer", batch.meshlet_primitive_buffers)
-		    .BindBuffer("MeshletBuffer", batch.meshlet_buffers)
-		    .BindBuffer("InstanceBuffer", batch.instance_buffer.get());
+		    .BindBuffer("VertexBuffer", scene_info.static_vertex_buffers)
+		    .BindBuffer("IndexBuffer", scene_info.static_index_buffers)
+		    .BindBuffer("MeshletVertexBuffer", scene_info.meshlet_vertex_buffers)
+		    .BindBuffer("MeshletPrimitiveBuffer", scene_info.meshlet_primitive_buffers)
+		    .BindBuffer("MeshletBuffer", scene_info.meshlet_buffers)
+		    .BindBuffer("InstanceBuffer", scene_info.instance_buffer.get());
 
-		for (uint32_t i = 0; i < batch.meshlet_count.size(); i++)
+		for (uint32_t i = 0; i < scene_info.meshlet_count.size(); i++)
 		{
 			descriptor->SetConstant("instance_idx", i);
 			cmd_buffer->BindDescriptor(descriptor.get());
 			cmd_buffer->BindPipelineState(pipeline_state.get());
-			cmd_buffer->DrawMeshTask(batch.meshlet_count[i]);
+			cmd_buffer->DrawMeshTask(scene_info.meshlet_count[i]);
 		}
 		cmd_buffer->EndRenderPass();
 	};
