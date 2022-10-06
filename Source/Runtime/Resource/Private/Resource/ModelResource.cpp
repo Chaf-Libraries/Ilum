@@ -26,7 +26,7 @@ void TResource<ResourceType::Model>::Load(RHIContext *rhi_context, size_t index)
 	std::vector<uint32_t> meshlet_vertices;
 	std::vector<uint32_t> meshlet_primitives;
 
-	DESERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".meta", ResourceType::Model, m_uuid, m_meta,
+	DESERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".asset", ResourceType::Model, m_uuid, m_meta,
 	          name, m_submeshes, vertices, indices, meshlets, meshlet_vertices, meshlet_primitives, m_aabb);
 
 	m_vertex_buffer            = rhi_context->CreateBuffer<Vertex>(vertices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::Vertex | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
@@ -80,14 +80,14 @@ void TResource<ResourceType::Model>::Import(RHIContext *rhi_context, const std::
 	m_meta = fmt::format("Name: {}\nSubmeshes: {}\nVertices: {}\nTriangles: {}\nMeshlets: {}",
 	                     Path::GetInstance().GetFileName(path), path, info.submeshes.size(), info.vertices.size(), info.indices.size() / 3, info.meshlets.size());
 
-	SERIALIZE("Asset/Meta/" + std::to_string(uuid) + ".meta", ResourceType::Model, uuid, m_meta,
+	SERIALIZE("Asset/Meta/" + std::to_string(uuid) + ".asset", ResourceType::Model, uuid, m_meta,
 	          info.name, info.submeshes, info.vertices, info.indices, info.meshlets, info.meshlet_vertices, info.meshlet_primitives, info.aabb);
 
 	for (auto &[tex_uuid, texture_info] : info.textures)
 	{
 		std::string meta = fmt::format("Name: {}\nOriginal Path: {}\nWidth: {}\nHeight: {}\nMips: {}\nLayers: {}\nFormat: {}",
 		                               Path::GetInstance().GetFileName(path), path, texture_info.desc.width, texture_info.desc.height, texture_info.desc.mips, texture_info.desc.layers, rttr::type::get_by_name("RHIFormat").get_enumeration().value_to_name(texture_info.desc.format).to_string());
-		SERIALIZE("Asset/Meta/" + std::to_string(tex_uuid) + ".meta", ResourceType::Texture, uuid, meta, texture_info.desc, texture_info.data);
+		SERIALIZE("Asset/Meta/" + std::to_string(tex_uuid) + ".asset", ResourceType::Texture, uuid, meta, texture_info.desc, texture_info.data);
 	}
 }
 

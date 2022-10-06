@@ -73,7 +73,7 @@ void SceneView::DisplayPresent()
 
 	if (ImGui::BeginDragDropTarget())
 	{
-		if (const auto *pay_load = ImGui::AcceptDragDropPayload("Scene"))
+		if (const auto *pay_load = ImGui::AcceptDragDropPayload(typeid(ResourceType::Scene).name())
 		{
 			ASSERT(pay_load->DataSize == sizeof(size_t));
 			size_t uuid = *static_cast<size_t *>(pay_load->Data);

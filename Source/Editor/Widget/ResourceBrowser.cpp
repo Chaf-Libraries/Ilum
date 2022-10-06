@@ -79,7 +79,8 @@ inline void DrawResource(ResourceManager *manager, float button_size)
 			if (ImGui::MenuItem("Delete"))
 			{
 				manager->EraseResource<_Ty>(uuid);
-				break;
+				ImGui::EndPopup();
+				return;
 			}
 			ImGui::EndPopup();
 		}
@@ -178,7 +179,7 @@ void ResourceBrowser::Tick()
 	if (ImGui::Button("Import"))
 	{
 		char *path = nullptr;
-		if (NFD_OpenDialog("jpg,png,bmp,jpeg,dds,gltf", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
+		if (NFD_OpenDialog("jpg,png,bmp,jpeg,dds,gltf,obj,glb,fbx,scene,rg", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
 		{
 			std::string extension = Path::GetInstance().GetFileExtension(path);
 			if (IsResourceFile<ResourceType::Texture>(extension))

@@ -417,6 +417,11 @@ class Deserializer
 
 	~Deserializer() = default;
 
+	void DeserializeVariant(rttr::variant& var)
+	{
+		Deserialize(std::forward<rttr::variant>(var));
+	}
+
 	template <typename T, cereal::traits::EnableIf<cereal::traits::is_input_serializable<T, Archive>::value> = cereal::traits::sfinae>
 	void Deserialize(T &&t)
 	{
@@ -424,17 +429,18 @@ class Deserializer
 	}
 
 	template <typename T, cereal::traits::EnableIf<!cereal::traits::is_input_serializable<T, Archive>::value> = cereal::traits::sfinae>
-	std::enable_if_t<!std::is_same_v<T, rttr::variant>> Deserialize(T &&t)
+	std::enable_if_t<!std::is_same_v<std::remove_reference_t<T>, rttr::variant>> Deserialize(T &&t)
 	{
-		rttr::variant var = t;
-		var               = var.extract_wrapped_value();
-		Deserialize(std::forward<rttr::variant>(var));
+		std::remove_reference_t<T> tmp = t;
+		rttr::variant var = tmp;
+		//var               = var.extract_wrapped_value();
+		DeserializeVariant(var);
 		auto temp = var.convert<std::remove_reference_t<T>>();
 		t         = std::move(temp);
 	}
 
 	template <typename T, cereal::traits::EnableIf<!cereal::traits::is_input_serializable<T, Archive>::value> = cereal::traits::sfinae>
-	std::enable_if_t<std::is_same_v<T, rttr::variant>> Deserialize(T &&var)
+	std::enable_if_t<std::is_same_v<std::remove_reference_t<T>, rttr::variant>> Deserialize(T &&var)
 	{
 		std::string name;
 		Deserialize(name);
@@ -561,6 +567,8 @@ class Deserializer
 			Deserialize(enum_name);
 			std::memcpy(&m, &enum_name, sizeof(uint64_t));
 		}
+
+		var = std::move(m);
 	}
 
 	template <typename T1, typename... Tn>

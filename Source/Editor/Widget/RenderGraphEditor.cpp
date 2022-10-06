@@ -392,7 +392,7 @@ void RenderGraphEditor::Tick()
 
 	if (ImGui::BeginDragDropTarget())
 	{
-		if (const auto *pay_load = ImGui::AcceptDragDropPayload("RenderGraph"))
+		if (const auto *pay_load = ImGui::AcceptDragDropPayload(typeid(ResourceType::RenderGraph).name()))
 		{
 			ASSERT(pay_load->DataSize == sizeof(size_t));
 			size_t uuid     = *static_cast<size_t *>(pay_load->Data);
@@ -561,14 +561,7 @@ void RenderGraphEditor::Tick()
 					std::string dir      = Path::GetInstance().GetFileDirectory(path);
 					std::string filename = Path::GetInstance().GetFileName(path, false);
 					SERIALIZE(dir + filename + ".rg", m_desc, std::string(ImNodes::SaveCurrentEditorStateToIniString()));
-					// Save as engine meta
-					{
-						std::string   uuid = std::to_string(Hash(filename));
-						std::ofstream os("Asset/Meta/" + uuid + ".meta", std::ios::binary);
-						OutputArchive archive(os);
-						archive(ResourceType::RenderGraph, uuid, filename, m_desc, std::string(ImNodes::SaveCurrentEditorStateToIniString()));
-						p_editor->GetRenderer()->GetResourceManager()->Import<ResourceType::RenderGraph>("Asset/Meta/" + uuid + ".meta");
-					}
+					p_editor->GetRenderer()->GetResourceManager()->Import<ResourceType::RenderGraph>(dir + filename + ".rg");
 					free(path);
 				}
 			}

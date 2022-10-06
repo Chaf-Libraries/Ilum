@@ -17,7 +17,7 @@ TResource<ResourceType::Texture>::TResource(size_t uuid, const std::string &meta
 	ResourceType         type = ResourceType::None;
 	TextureDesc          desc;
 	std::vector<uint8_t> thumbnail_data;
-	DESERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".meta", type, m_uuid, m_meta, desc);
+	DESERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".asset", type, m_uuid, m_meta, desc);
 }
 
 void TResource<ResourceType::Texture>::Load(RHIContext *rhi_context, size_t index)
@@ -25,7 +25,7 @@ void TResource<ResourceType::Texture>::Load(RHIContext *rhi_context, size_t inde
 	ResourceType         type = ResourceType::None;
 	TextureDesc          desc;
 	std::vector<uint8_t> data;
-	DESERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".meta", type, m_uuid, m_meta, desc, data);
+	DESERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".asset", type, m_uuid, m_meta, desc, data);
 
 	m_texture   = rhi_context->CreateTexture(desc);
 
@@ -74,7 +74,7 @@ void TResource<ResourceType::Texture>::Import(RHIContext *rhi_context, const std
 	m_meta = fmt::format("Name: {}\nOriginal Path: {}\nWidth: {}\nHeight: {}\nMips: {}\nLayers: {}\nFormat: {}",
 	                     Path::GetInstance().GetFileName(path), path, info.desc.width, info.desc.height, info.desc.mips, info.desc.layers, rttr::type::get_by_name("RHIFormat").get_enumeration().value_to_name(info.desc.format).to_string());
 
-	SERIALIZE("Asset/Meta/" + std::to_string(uuid) + ".meta", ResourceType::Texture, uuid, m_meta, info.desc, info.data);
+	SERIALIZE("Asset/Meta/" + std::to_string(uuid) + ".asset", ResourceType::Texture, uuid, m_meta, info.desc, info.data);
 }
 
 RHITexture *TResource<ResourceType::Texture>::GetTexture() const

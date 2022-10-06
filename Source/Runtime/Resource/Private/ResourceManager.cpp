@@ -143,7 +143,7 @@ struct TResourceManager : public IResourceManager
 			m_resource.pop_back();
 			m_resource_lookup.erase(uuid);
 			m_uuids.erase(std::remove(m_uuids.begin(), m_uuids.end(), uuid));
-			Path::GetInstance().DeletePath("Asset/Meta/" + std::to_string(uuid) + ".meta");
+			Path::GetInstance().DeletePath("Asset/Meta/" + std::to_string(uuid) + ".asset");
 		}
 	}
 
@@ -295,7 +295,7 @@ void ResourceManager::ScanLocalMeta()
 	const std::string meta_path = "Asset/Meta";
 	for (const auto &path : std::filesystem::directory_iterator(meta_path))
 	{
-		if (Path::GetInstance().GetFileExtension(path.path().string()) != ".meta")
+		if (Path::GetInstance().GetFileExtension(path.path().string()) != ".asset")
 		{
 			continue;
 		}

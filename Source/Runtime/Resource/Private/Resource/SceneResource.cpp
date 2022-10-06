@@ -19,7 +19,7 @@ TResource<ResourceType::Scene>::TResource(size_t uuid, const std::string &meta, 
 void TResource<ResourceType::Scene>::Load(RHIContext *rhi_context, size_t index)
 {
 	ResourceType type = ResourceType::None;
-	DESERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".meta", type, m_uuid, m_meta);
+	DESERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".asset", type, m_uuid, m_meta);
 
 	m_valid = true;
 	m_index = index;
@@ -42,7 +42,7 @@ void TResource<ResourceType::Scene>::Import(RHIContext *rhi_context, const std::
 	                     registry.size());
 
 	{
-		std::ofstream os("Asset/Meta/" + std::to_string(m_uuid) + ".meta", std::ios::binary);
+		std::ofstream os("Asset/Meta/" + std::to_string(m_uuid) + ".asset", std::ios::binary);
 		OutputArchive archive(os);
 		archive(ResourceType::Scene, m_uuid, m_meta);
 		entt::snapshot{registry}
@@ -53,7 +53,7 @@ void TResource<ResourceType::Scene>::Import(RHIContext *rhi_context, const std::
 
 void TResource<ResourceType::Scene>::Load(Scene *scene)
 {
-	std::ifstream is("Asset/Meta/" + std::to_string(m_uuid) + ".meta", std::ios::binary);
+	std::ifstream is("Asset/Meta/" + std::to_string(m_uuid) + ".asset", std::ios::binary);
 	InputArchive  archive(is);
 	archive(ResourceType::Scene, m_uuid, m_meta);
 	entt::snapshot_loader{(*scene)()}

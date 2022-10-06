@@ -81,7 +81,7 @@ inline bool DrawComponent<StaticMeshComponent>(Editor *editor, Entity &entity, b
 		}
 		if (ImGui::BeginDragDropTarget())
 		{
-			if (const auto *pay_load = ImGui::AcceptDragDropPayload("Model"))
+			if (const auto *pay_load = ImGui::AcceptDragDropPayload(typeid(ResourceType::Model).name()))
 			{
 				ASSERT(pay_load->DataSize == sizeof(std::string));
 				t.uuid = *static_cast<size_t *>(pay_load->Data);

@@ -18,7 +18,7 @@ TResource<ResourceType::RenderGraph>::TResource(size_t uuid, const std::string &
 void TResource<ResourceType::RenderGraph>::Load(RHIContext *rhi_context, size_t index)
 {
 	ResourceType type = ResourceType::None;
-	DESERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".meta", type, m_uuid, m_meta);
+	DESERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".asset", type, m_uuid, m_meta);
 
 	m_valid = true;
 	m_index = index;
@@ -32,11 +32,11 @@ void TResource<ResourceType::RenderGraph>::Import(RHIContext *rhi_context, const
 
 	m_meta = fmt::format("Passes: {}\nTextures: {}\nBuffers: {}", desc.passes.size(), desc.textures.size(), desc.buffers.size());
 
-	SERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".meta", ResourceType::RenderGraph, m_uuid, m_meta, desc, editor_layout);
+	SERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".asset", ResourceType::RenderGraph, m_uuid, m_meta, desc, editor_layout);
 }
 
 void TResource<ResourceType::RenderGraph>::Load(RenderGraphDesc &desc, std::string &editor_layout)
 {
-	DESERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".meta", ResourceType::RenderGraph, m_uuid, m_meta, desc, editor_layout);
+	DESERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".asset", ResourceType::RenderGraph, m_uuid, m_meta, desc, editor_layout);
 }
 }        // namespace Ilum

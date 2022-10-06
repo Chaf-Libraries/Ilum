@@ -26,8 +26,8 @@
 
 #if SERIALIZER_TYPE == SERIALIZER_TYPE_JSON
 #	include <cereal/archives/json.hpp>
-using InputArchive  = cereal::JSONInputArchive;
-using OutputArchive = cereal::JSONOutputArchive;
+using InputArchive  =Ilum::Deserializer<cereal::JSONInputArchive>;
+using OutputArchive = Ilum::Serializer<cereal::JSONOutputArchive>;
 #elif SERIALIZER_TYPE == SERIALIZER_TYPE_BINARY
 #	include <cereal/archives/binary.hpp>
 using InputArchive  = Ilum::Deserializer<cereal::BinaryInputArchive>;
