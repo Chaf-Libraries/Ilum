@@ -30,9 +30,7 @@ RHIFence *Frame::AllocateFence()
 {
 	if (m_fences.size() > m_active_fence_index)
 	{
-		auto *fence = m_fences[m_active_fence_index].get();
-		m_active_fence_index++;
-		return fence;
+		return m_fences[m_active_fence_index++].get();
 	}
 
 	while (m_fences.size() <= m_active_fence_index)
@@ -49,7 +47,7 @@ RHISemaphore *Frame::AllocateSemaphore()
 {
 	if (m_semaphores.size() > m_active_semaphore_index)
 	{
-		return m_semaphores[m_active_semaphore_index].get();
+		return m_semaphores[m_active_semaphore_index++].get();
 	}
 
 	while (m_semaphores.size() <= m_active_semaphore_index)

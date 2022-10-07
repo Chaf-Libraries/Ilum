@@ -46,7 +46,7 @@ Swapchain::Swapchain(RHIDevice *device, void *window_handle, uint32_t width, uin
 
 	swapchain.As(&m_handle);
 
-	Resize(m_width, m_height);
+	Resize(m_width, m_height, m_vsync);
 
 	m_fence_value.resize(3, 0);
 }
@@ -83,7 +83,7 @@ void Swapchain::AcquireNextTexture(RHISemaphore *signal_semaphore, RHIFence *sig
 
 	m_fence_value[m_frame_index] = current_fence_value + 1;
 
-	Resize(m_width, m_height);
+	Resize(m_width, m_height, m_vsync);
 }
 
 RHITexture *Swapchain::GetCurrentTexture()
@@ -105,7 +105,7 @@ bool Swapchain::Present(RHISemaphore *semaphore)
 	return true;
 }
 
-void Swapchain::Resize(uint32_t width, uint32_t height)
+void Swapchain::Resize(uint32_t width, uint32_t height, bool vsync)
 {
 	m_textures.clear();
 

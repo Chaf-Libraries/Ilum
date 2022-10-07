@@ -23,6 +23,8 @@ class Command : public RHICommand
 
 	VkCommandBuffer GetHandle() const;
 
+	virtual void SetName(const std::string &name) override;
+
 	virtual void Begin() override;
 	virtual void End() override;
 

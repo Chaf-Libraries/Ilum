@@ -20,11 +20,15 @@ namespace Ilum
 class RHIContext
 {
   public:
-	RHIContext(Window *window);
+	RHIContext(Window *window, bool vsync = true);
 
 	~RHIContext();
 
 	RHIBackend GetBackend() const;
+
+	bool IsVsync() const;
+
+	void SetVsync(bool vsync);
 
 	bool IsFeatureSupport(RHIFeature feature) const;
 
@@ -62,7 +66,7 @@ class RHIContext
 	}
 
 	// Create Sampler
-	RHISampler* CreateSampler(const SamplerDesc &desc, bool cuda = false);
+	RHISampler *CreateSampler(const SamplerDesc &desc, bool cuda = false);
 
 	// Create Command
 	RHICommand *CreateCommand(RHIQueueFamily family, bool cuda = false);
@@ -91,6 +95,8 @@ class RHIContext
 	// Create Semaphore
 	std::unique_ptr<RHISemaphore> CreateSemaphore(bool cuda = false);
 
+	RHISemaphore *CreateFrameSemaphore();
+
 	std::unique_ptr<RHISemaphore> MapToCUDASemaphore(RHISemaphore *semaphore);
 
 	// Create Acceleration Structure
@@ -102,16 +108,12 @@ class RHIContext
 	// Execute immediate command buffer
 	void Execute(RHICommand *cmd_buffer);
 
-	void Execute(std::vector<RHICommand *> &&cmd_buffers, std::vector<RHISemaphore *> &&wait_semaphores, std::vector<RHISemaphore *> &&signal_semaphores, RHIFence* fence = nullptr);
+	void Execute(std::vector<RHICommand *> &&cmd_buffers, std::vector<RHISemaphore *> &&wait_semaphores, std::vector<RHISemaphore *> &&signal_semaphores, RHIFence *fence = nullptr);
 
 	void Reset();
 
 	// Get Back Buffer
 	RHITexture *GetBackBuffer();
-
-	// Resource conversion between different rhi backend
-	RHITexture *ResourceConvert(RHITexture *src_texture, RHIBackend target);
-	RHIBuffer  *ResourceConvert(RHIBuffer *src_buffer, RHIBackend target);
 
 	// Frame
 	void BeginFrame();
@@ -119,6 +121,7 @@ class RHIContext
 
   private:
 	uint32_t m_current_frame = 0;
+	bool     m_vsync         = false;
 
   private:
 	Window *p_window = nullptr;

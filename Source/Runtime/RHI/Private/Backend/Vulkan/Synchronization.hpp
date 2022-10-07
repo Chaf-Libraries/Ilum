@@ -25,7 +25,10 @@ class Semaphore : public RHISemaphore
 {
   public:
 	Semaphore(RHIDevice *device);
+
 	virtual ~Semaphore() override;
+
+	virtual void SetName(const std::string &name) override;
 
 	VkSemaphore GetHandle() const;
 

@@ -1,15 +1,19 @@
 #include "RHISwapchain.hpp"
 #include "RHIDevice.hpp"
 
-#	include "Backend/Vulkan/Swapchain.hpp"
-#	include "Backend/DX12/Swapchain.hpp"
-#	include "Backend/CUDA/Swapchain.hpp"
+#include "Backend/Vulkan/Swapchain.hpp"
+#include "Backend/DX12/Swapchain.hpp"
 
 namespace Ilum
 {
 RHISwapchain::RHISwapchain(RHIDevice *device, uint32_t width, uint32_t height, bool vsync) :
     p_device(device), m_width(width), m_height(height), m_vsync(vsync)
 {
+}
+
+bool RHISwapchain::GetVsync() const
+{
+	return m_vsync;
 }
 
 uint32_t RHISwapchain::GetWidth() const
@@ -30,8 +34,6 @@ std::unique_ptr<RHISwapchain> RHISwapchain::Create(RHIDevice *device, void *wind
 			return std::make_unique<Vulkan::Swapchain>(device, window_handle, width, height, vsync);
 		case RHIBackend::DX12:
 			return std::make_unique<DX12::Swapchain>(device, window_handle, width, height, vsync);
-		case RHIBackend::CUDA:
-			return std::make_unique<CUDA::Swapchain>(device, window_handle, width, height, vsync);
 		default:
 			break;
 	}

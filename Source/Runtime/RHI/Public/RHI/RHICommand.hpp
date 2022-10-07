@@ -37,6 +37,8 @@ class RHICommand
 
 	static std::unique_ptr<RHICommand> Create(RHIDevice *device, RHIQueueFamily family);
 
+	virtual void SetName(const std::string &name) = 0;
+
 	virtual void Begin() = 0;
 	virtual void End()   = 0;
 

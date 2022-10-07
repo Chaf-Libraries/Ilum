@@ -65,7 +65,11 @@ void Engine::Tick()
 			std::this_thread::sleep_for(std::chrono::milliseconds(16));
 		}
 
-		m_window->SetTitle(fmt::format("IlumEngine - {} {} fps", m_scene->GetName(), m_timer.FrameRate()));
+		m_window->SetTitle(fmt::format("IlumEngine | Scene - {} | Version - {} | Backend - {} | FPS - {}",
+		                               m_scene->GetName(),
+		                               "1.0Beta",
+		                               rttr::type::get<RHIBackend>().get_enumeration().value_to_name(m_rhi_context->GetBackend()).to_string(),
+		                               m_timer.FrameRate()));
 	}
 }
 }        // namespace Ilum

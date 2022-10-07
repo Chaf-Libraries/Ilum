@@ -1,7 +1,7 @@
 #include "Synchronization.hpp"
-#include "Device.hpp"
 #include "Backend/Vulkan/Device.hpp"
 #include "Backend/Vulkan/Synchronization.hpp"
+#include "Device.hpp"
 
 namespace Ilum::CUDA
 {
@@ -41,6 +41,10 @@ Semaphore::Semaphore(Device *device, Vulkan::Device *vk_device, Vulkan::Semaphor
 Semaphore::~Semaphore()
 {
 	cudaDestroyExternalSemaphore(m_handle);
+}
+
+void Semaphore::SetName(const std::string &name)
+{
 }
 
 void Semaphore::Signal()

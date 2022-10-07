@@ -208,7 +208,7 @@ void SceneHierarchy::DrawNode(Entity &entity)
 	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_DefaultOpen | (p_editor->GetSelectedEntity() == entity ? ImGuiTreeNodeFlags_Selected : 0) | (has_child ? 0 : ImGuiTreeNodeFlags_Leaf);
 
 	ImGui::PushID((uint32_t) entity.GetHandle());
-	bool open = ImGui::TreeNodeEx(std::to_string(entity).c_str(), flags, "%s", tag.c_str());
+	bool open = ImGui::TreeNodeEx(std::to_string(entity).c_str(), flags, "%s", tag.empty() ? " " : tag.c_str());
 
 	ImGui::PopStyleVar();
 
@@ -246,9 +246,13 @@ void SceneHierarchy::DrawNode(Entity &entity)
 		{
 			if (pay_load->DataSize == sizeof(Entity))
 			{
-				SetAsSon(scene, entity, *static_cast<Entity *>(pay_load->Data));
-				entity.GetComponent<HierarchyComponent>().update                                 = true;
-				static_cast<Entity *>(pay_load->Data)->GetComponent<HierarchyComponent>().update = true;
+				Entity &new_son = *static_cast<Entity *>(pay_load->Data);
+				if (entity.GetComponent<HierarchyComponent>().parent != new_son)
+				{
+					SetAsSon(scene, entity, *static_cast<Entity *>(pay_load->Data));
+					entity.GetComponent<HierarchyComponent>().update                                 = true;
+					static_cast<Entity *>(pay_load->Data)->GetComponent<HierarchyComponent>().update = true;
+				}
 			}
 		}
 		ImGui::EndDragDropTarget();

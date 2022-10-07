@@ -29,7 +29,7 @@ class Swapchain : public RHISwapchain
 
 	virtual bool Present(RHISemaphore *semaphore) override;
 
-	virtual void Resize(uint32_t width, uint32_t height) override;
+	virtual void Resize(uint32_t width, uint32_t height, bool vsync) override;
 
   private:
 	std::vector<std::unique_ptr<Texture>> m_textures;

@@ -601,7 +601,7 @@ static void ImGuiWindowCreate(ImGuiViewport *viewport)
 #endif        // _WIN32
 	    static_cast<uint32_t>(viewport->Size.x),
 	    static_cast<uint32_t>(viewport->Size.y),
-	    true);
+	    gContext->IsVsync());
 
 	window->viewport_data = std::make_unique<ViewportResources>();
 
@@ -620,7 +620,7 @@ static void ImGuiWindowDestroy(ImGuiViewport *viewport)
 
 static void ImGuiWindowSetSize(ImGuiViewport *viewport, const ImVec2 size)
 {
-	static_cast<WindowData *>(viewport->RendererUserData)->swapchain->Resize(static_cast<uint32_t>(size.x), static_cast<uint32_t>(size.y));
+	static_cast<WindowData *>(viewport->RendererUserData)->swapchain->Resize(static_cast<uint32_t>(size.x), static_cast<uint32_t>(size.y), gContext->IsVsync());
 }
 
 static void ImGuiWindowRender(ImGuiViewport *viewport, void *)

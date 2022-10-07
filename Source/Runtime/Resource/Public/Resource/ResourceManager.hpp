@@ -16,6 +16,8 @@ class ResourceManager
 
 	void Tick();
 
+	bool IsUpdate();
+
 	template <ResourceType _Ty>
 	void Import(const std::string &path)
 	{
@@ -71,6 +73,12 @@ class ResourceManager
 		return GetResourceUUID(_Ty);
 	}
 
+	template <ResourceType _Ty>
+	const std::vector<size_t> &GetResourceValidUUID() const
+	{
+		return GetResourceValidUUID(_Ty);
+	}
+
   private:
 	Resource *GetResource(size_t uuid, ResourceType type);
 
@@ -89,6 +97,8 @@ class ResourceManager
 	bool IsValid(size_t uuid, ResourceType type);
 
 	const std::vector<size_t> &GetResourceUUID(ResourceType type) const;
+
+	const std::vector<size_t> &GetResourceValidUUID(ResourceType type) const;
 
   private:
 	void ScanLocalMeta();

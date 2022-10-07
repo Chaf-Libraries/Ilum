@@ -1,6 +1,6 @@
 #pragma once
 
-#include "RenderGraphBuilder.hpp"
+#include "../RenderGraphBuilder.hpp"
 
 namespace Ilum
 {
@@ -95,8 +95,7 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 				// Insert semaphores
 				{
 					if (iter->second.prev_pass.IsValid() &&
-					    iter->second.bind_point != BindPoint::None &&
-					    (desc.passes.at(iter->second.prev_pass).bind_point != iter->second.bind_point || iter->second.bind_point == BindPoint::CUDA))
+					    desc.passes.at(iter->second.prev_pass).bind_point != iter->second.bind_point)
 					{
 						BindPoint current_bind_point = iter->second.bind_point;
 						BindPoint last_bind_point    = desc.passes.at(iter->second.prev_pass).bind_point;
@@ -109,6 +108,7 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 						else
 						{
 							auto semaphore = p_rhi_context->CreateSemaphore();
+							semaphore->SetName(fmt::format("Semaphore - Signal by ({}) | Wait by ({})", desc.passes.at(iter->second.prev_pass).name, iter->second.name));
 							if (last_bind_point == BindPoint::CUDA)
 							{
 								auto cuda_semaphore = p_rhi_context->MapToCUDASemaphore(semaphore.get());

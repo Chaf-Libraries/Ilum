@@ -16,6 +16,8 @@ class RHISwapchain
 
 	virtual ~RHISwapchain() = default;
 
+	bool GetVsync() const;
+
 	uint32_t GetWidth() const;
 
 	uint32_t GetHeight() const;
@@ -32,7 +34,7 @@ class RHISwapchain
 
 	virtual bool Present(RHISemaphore *semaphore) = 0;
 
-	virtual void Resize(uint32_t width, uint32_t height) = 0;
+	virtual void Resize(uint32_t width, uint32_t height, bool vsync) = 0;
 
   protected:
 	RHIDevice *p_device = nullptr;

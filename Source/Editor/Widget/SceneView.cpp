@@ -86,9 +86,8 @@ void SceneView::DisplayPresent()
 			}
 		}
 
-		if (const auto *pay_load = ImGui::AcceptDragDropPayload("Model"))
+		if (const auto *pay_load = ImGui::AcceptDragDropPayload(typeid(ResourceType::Model).name()))
 		{
-			ASSERT(pay_load->DataSize == sizeof(size_t));
 			size_t uuid = *static_cast<size_t *>(pay_load->Data);
 
 			auto *resource   = p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Model>(uuid);

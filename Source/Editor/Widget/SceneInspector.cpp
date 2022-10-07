@@ -74,16 +74,18 @@ inline bool DrawComponent<StaticMeshComponent>(Editor *editor, Entity &entity, b
 	std::function<bool(StaticMeshComponent &)> func = [&](StaticMeshComponent &t) -> bool {
 		ImGui::Text("UUID");
 		ImGui::SameLine();
-		if (ImGui::Button(std::to_string(t.uuid).c_str(), ImVec2(ImGui::GetContentRegionAvailWidth() * 0.8f, 25.f)))
+		ImGui::PushID(&t.uuid);
+		if (ImGui::Button(t.uuid == ~0 ? "" : std ::to_string(t.uuid).c_str(), ImVec2(ImGui::GetContentRegionAvailWidth() * 0.8f, 25.f)))
 		{
 			t.uuid = ~0;
+			ImGui::PopID();
 			return true;
 		}
+		ImGui::PopID();
 		if (ImGui::BeginDragDropTarget())
 		{
 			if (const auto *pay_load = ImGui::AcceptDragDropPayload(typeid(ResourceType::Model).name()))
 			{
-				ASSERT(pay_load->DataSize == sizeof(std::string));
 				t.uuid = *static_cast<size_t *>(pay_load->Data);
 				ImGui::EndDragDropTarget();
 				return true;

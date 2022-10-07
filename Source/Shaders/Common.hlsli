@@ -41,7 +41,11 @@ struct InstanceData
     uint material_id;
 
     float3 aabb_max;
-    uint instance_id;
+    uint model_id;
+    
+    uint meshlet_count;
+    uint meshlet_offset;
+    uint submesh_id;
 };
 
 struct Meshlet

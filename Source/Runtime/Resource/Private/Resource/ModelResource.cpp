@@ -19,7 +19,6 @@ TResource<ResourceType::Model>::TResource(size_t uuid, const std::string &meta, 
 
 void TResource<ResourceType::Model>::Load(RHIContext *rhi_context, size_t index)
 {
-	std::string           name;
 	std::vector<Vertex>   vertices;
 	std::vector<uint32_t> indices;
 	std::vector<Meshlet>  meshlets;
@@ -27,7 +26,7 @@ void TResource<ResourceType::Model>::Load(RHIContext *rhi_context, size_t index)
 	std::vector<uint32_t> meshlet_primitives;
 
 	DESERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".asset", ResourceType::Model, m_uuid, m_meta,
-	          name, m_submeshes, vertices, indices, meshlets, meshlet_vertices, meshlet_primitives, m_aabb);
+	            m_name, m_submeshes, vertices, indices, meshlets, meshlet_vertices, meshlet_primitives, m_aabb);
 
 	m_vertex_buffer            = rhi_context->CreateBuffer<Vertex>(vertices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::Vertex | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
 	m_index_buffer             = rhi_context->CreateBuffer<uint32_t>(indices.size(), RHIBufferUsage::Transfer | RHIBufferUsage::Index | RHIBufferUsage::ShaderResource | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_Only);
@@ -77,8 +76,9 @@ void TResource<ResourceType::Model>::Import(RHIContext *rhi_context, const std::
 
 	ModelImportInfo info = ModelImporter::Import(path);
 
+	m_name = info.name;
 	m_meta = fmt::format("Name: {}\nSubmeshes: {}\nVertices: {}\nTriangles: {}\nMeshlets: {}",
-	                     Path::GetInstance().GetFileName(path), path, info.submeshes.size(), info.vertices.size(), info.indices.size() / 3, info.meshlets.size());
+	                     m_name, path, info.submeshes.size(), info.vertices.size(), info.indices.size() / 3, info.meshlets.size());
 
 	SERIALIZE("Asset/Meta/" + std::to_string(uuid) + ".asset", ResourceType::Model, uuid, m_meta,
 	          info.name, info.submeshes, info.vertices, info.indices, info.meshlets, info.meshlet_vertices, info.meshlet_primitives, info.aabb);

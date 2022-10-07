@@ -10,8 +10,8 @@
 
 namespace Ilum
 {
-RHIContext::RHIContext(Window *window) :
-    p_window(window)
+RHIContext::RHIContext(Window *window, bool vsync) :
+    p_window(window), m_vsync(vsync)
 {
 	m_cuda_device = RHIDevice::Create(RHIBackend::CUDA);
 
@@ -28,7 +28,7 @@ RHIContext::RHIContext(Window *window) :
 #	error "Please specify a rhi backend!"
 #endif        // RHI_BACKEND
 
-	m_swapchain = RHISwapchain::Create(m_device.get(), p_window->GetNativeHandle(), p_window->GetWidth(), p_window->GetHeight(), true);
+	m_swapchain = RHISwapchain::Create(m_device.get(), p_window->GetNativeHandle(), p_window->GetWidth(), p_window->GetHeight(), m_vsync);
 
 	m_queue      = RHIQueue::Create(m_device.get());
 	m_cuda_queue = RHIQueue::Create(m_cuda_device.get());
@@ -76,6 +76,16 @@ RHIBackend RHIContext::GetBackend() const
 #else
 #	error "Please specify a rhi backend!"
 #endif        // RHI_BACKEND
+}
+
+bool RHIContext::IsVsync() const
+{
+	return m_vsync;
+}
+
+void RHIContext::SetVsync(bool vsync)
+{
+	m_vsync = vsync;
 }
 
 bool RHIContext::IsFeatureSupport(RHIFeature feature) const
@@ -143,7 +153,7 @@ std::unique_ptr<RHIBuffer> RHIContext::CreateBuffer(size_t size, RHIBufferUsage 
 	return RHIBuffer::Create(m_device.get(), desc);
 }
 
-RHISampler* RHIContext::CreateSampler(const SamplerDesc &desc, bool cuda)
+RHISampler *RHIContext::CreateSampler(const SamplerDesc &desc, bool cuda)
 {
 	size_t hash = Hash(cuda, desc.address_mode_u, desc.address_mode_v, desc.address_mode_w, desc.anisotropic, desc.border_color, desc.mag_filter, desc.max_lod, desc.min_filter, desc.min_lod, desc.mipmap_mode, desc.mip_lod_bias);
 
@@ -199,6 +209,11 @@ RHIFence *RHIContext::CreateFrameFence()
 std::unique_ptr<RHISemaphore> RHIContext::CreateSemaphore(bool cuda)
 {
 	return RHISemaphore::Create(m_device.get());
+}
+
+RHISemaphore *RHIContext::CreateFrameSemaphore()
+{
+	return m_frames[m_current_frame]->AllocateSemaphore();
 }
 
 std::unique_ptr<RHISemaphore> RHIContext::MapToCUDASemaphore(RHISemaphore *semaphore)
@@ -266,16 +281,6 @@ RHITexture *RHIContext::GetBackBuffer()
 	return m_swapchain->GetCurrentTexture();
 }
 
-RHITexture *RHIContext::ResourceConvert(RHITexture *src_texture, RHIBackend target)
-{
-	return nullptr;
-}
-
-RHIBuffer *RHIContext::ResourceConvert(RHIBuffer *src_buffer, RHIBackend target)
-{
-	return nullptr;
-}
-
 void RHIContext::BeginFrame()
 {
 	m_swapchain->AcquireNextTexture(m_present_complete[m_current_frame].get(), nullptr);
@@ -328,9 +333,10 @@ void RHIContext::EndFrame()
 
 	if (!m_swapchain->Present(m_render_complete[m_current_frame].get()) ||
 	    p_window->GetWidth() != m_swapchain->GetWidth() ||
-	    p_window->GetHeight() != m_swapchain->GetHeight())
+	    p_window->GetHeight() != m_swapchain->GetHeight() ||
+	    m_vsync != m_swapchain->GetVsync())
 	{
-		m_swapchain->Resize(p_window->GetWidth(), p_window->GetHeight());
+		m_swapchain->Resize(p_window->GetWidth(), p_window->GetHeight(), m_vsync);
 		LOG_INFO("Swapchain resize to {} x {}", p_window->GetWidth(), p_window->GetHeight());
 	}
 

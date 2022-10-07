@@ -22,6 +22,8 @@ class Semaphore : public RHISemaphore
 
 	~Semaphore();
 
+	virtual void SetName(const std::string &name) override;
+
 	void Signal();
 
 	void Wait();

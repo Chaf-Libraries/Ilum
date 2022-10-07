@@ -42,12 +42,11 @@ void ASmain(CSParam param)
     uint stride = 0;
     
     InstanceData instance = InstanceBuffer[push_constants.instance_idx];
-    uint instance_id = instance.instance_id;
+    uint model_id = instance.model_id;
+    uint submesh_id = instance.submesh_id;
     uint meshlet_id = param.DispatchThreadID.x;
     
-    MeshletBuffer[instance_id].GetDimensions(meshlet_count, stride);
-    
-    if (meshlet_id < meshlet_count)
+    if (meshlet_id < instance.meshlet_count)
     {
         visible = true;
     }
@@ -69,28 +68,23 @@ void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut v
 {
     uint meshlet_id = pay_load.meshletIndices[param.GroupID.x];
    
-    uint meshlet_count = 0;
-    uint stride = 0;
-   
     InstanceData instance = InstanceBuffer[push_constants.instance_idx];
-    uint instance_id = instance.instance_id;
+    uint model_id = instance.model_id;
    
-    MeshletBuffer[instance_id].GetDimensions(meshlet_count, stride);
-   
-    if (meshlet_id >= meshlet_count)
+    if (meshlet_id >= instance.meshlet_count)
     {
-        //return;
+        return;
     }
     
-    float4x4 transform = InstanceBuffer[push_constants.instance_idx].transform;
+    float4x4 transform = instance.transform;
     
-    Meshlet meshlet = MeshletBuffer[instance_id][meshlet_id];
+    Meshlet meshlet = MeshletBuffer[model_id][meshlet_id];
     SetMeshOutputCounts(meshlet.vertices_count, meshlet.indices_count / 3);
     
     for (uint i = param.GroupThreadID.x; i < meshlet.vertices_count; i += 32)
     {
-        uint vertex_index = meshlet.vertices_offset + MeshletVertexBuffer[instance_id][meshlet.meshlet_vertices_offset + i];
-        Vertex vertex = VertexBuffer[instance_id][vertex_index];
+        uint vertex_index = meshlet.vertices_offset + MeshletVertexBuffer[model_id][meshlet.meshlet_vertices_offset + i];
+        Vertex vertex = VertexBuffer[model_id][vertex_index];
     
         verts[i].Position = mul(View.view_projection_matrix, mul(transform, float4(vertex.position.xyz, 1.0)));
         verts[i].Texcoord = vertex.texcoord.xy;
@@ -98,12 +92,12 @@ void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut v
     
     for (i = param.GroupThreadID.x; i < meshlet.indices_count / 3; i += 32)
     {
-        prims[i].InstanceID = instance_id;
+        prims[i].InstanceID = model_id;
         prims[i].MeshletID = meshlet_id;
         prims[i].PrimitiveID = i;
        
         uint v0, v1, v2;
-        UnPackTriangle(MeshletPrimitiveBuffer[instance_id][i + meshlet.meshlet_primitive_offset], v0, v1, v2);
+        UnPackTriangle(MeshletPrimitiveBuffer[model_id][i + meshlet.meshlet_primitive_offset], v0, v1, v2);
        
         tris[i] = uint3(v0, v1, v2);
     }

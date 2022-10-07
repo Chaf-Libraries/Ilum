@@ -68,6 +68,11 @@ struct IResourceManager
 		return m_uuids;
 	}
 
+	const std::vector<size_t> &GetValidUUIDs() const
+	{
+		return m_valid_uuids;
+	}
+
 	void Tick()
 	{
 		m_update = false;
@@ -82,6 +87,7 @@ struct IResourceManager
 	RHIContext *p_rhi_context = nullptr;
 
 	std::vector<size_t> m_uuids;
+	std::vector<size_t> m_valid_uuids;
 
 	bool m_update = false;
 };
@@ -92,8 +98,6 @@ struct TResourceManager : public IResourceManager
 	std::vector<std::unique_ptr<TResource<_Ty>>> m_resource;
 
 	std::map<size_t, size_t> m_resource_lookup;
-
-	std::vector<TResource<_Ty>*> m_valid_resource;
 
 	std::vector<std::unique_ptr<TResource<_Ty>>> m_deprecate_resource;
 
@@ -111,8 +115,8 @@ struct TResourceManager : public IResourceManager
 			auto *resource = m_resource[m_resource_lookup.at(uuid)].get();
 			if (!resource->IsValid())
 			{
-				resource->Load(p_rhi_context, m_valid_resource.size());
-				m_valid_resource.push_back(resource);
+				resource->Load(p_rhi_context, m_valid_uuids.size());
+				m_valid_uuids.push_back(uuid);
 			}
 			return resource;
 		}
@@ -135,15 +139,16 @@ struct TResourceManager : public IResourceManager
 				m_resource_lookup[last_uuid] = m_resource_lookup[uuid];
 				std::swap(m_resource.back(), m_resource[m_resource_lookup[uuid]]);
 			}
-			if (std::find(m_valid_resource.begin(), m_valid_resource.end(), resource) != m_valid_resource.end())
+			if (std::find(m_valid_uuids.begin(), m_valid_uuids.end(), uuid) != m_valid_uuids.end())
 			{
-				m_valid_resource.erase(std::remove(m_valid_resource.begin(), m_valid_resource.end(), resource));
+				m_valid_uuids.erase(std::remove(m_valid_uuids.begin(), m_valid_uuids.end(), uuid));
 			}
 			m_deprecate_resource.emplace_back(std::move(m_resource.back()));
 			m_resource.pop_back();
 			m_resource_lookup.erase(uuid);
 			m_uuids.erase(std::remove(m_uuids.begin(), m_uuids.end(), uuid));
 			Path::GetInstance().DeletePath("Asset/Meta/" + std::to_string(uuid) + ".asset");
+			m_update = true;
 		}
 	}
 
@@ -157,6 +162,7 @@ struct TResourceManager : public IResourceManager
 		m_resource_lookup.emplace(uuid, m_resource.size());
 		m_resource.emplace_back(std::make_unique<TResource<_Ty>>(uuid));
 		m_uuids.push_back(uuid);
+		m_update = true;
 		return m_resource.back().get();
 	}
 
@@ -165,11 +171,17 @@ struct TResourceManager : public IResourceManager
 		m_resource_lookup.emplace(uuid, m_resource.size());
 		m_resource.emplace_back(std::make_unique<TResource<_Ty>>(uuid, meta, p_rhi_context));
 		m_uuids.push_back(uuid);
+		m_update = true;
 	}
 
 	virtual size_t ResourceIndex(size_t uuid) override
 	{
-		return m_resource_lookup.at(uuid);
+		auto iter = std::find(m_valid_uuids.begin(), m_valid_uuids.end(), uuid);
+		if (iter != m_valid_uuids.end())
+		{
+			return iter - m_valid_uuids.begin();
+		}
+		return size_t(~0);
 	}
 
 	virtual bool IsResourceValid(size_t uuid) override
@@ -213,6 +225,12 @@ ResourceManager::ResourceManager(RHIContext *rhi_context) :
 	}
 
 	ScanLocalMeta();
+}
+
+bool ResourceManager::IsUpdate()
+{
+	return m_impl->m_managers.at(ResourceType::Model)->IsUpdate() ||
+	       m_impl->m_managers.at(ResourceType::Texture)->IsUpdate();
 }
 
 ResourceManager::~ResourceManager()
@@ -288,6 +306,11 @@ bool ResourceManager::IsValid(size_t uuid, ResourceType type)
 const std::vector<size_t> &ResourceManager::GetResourceUUID(ResourceType type) const
 {
 	return m_impl->m_managers.at(type)->GetUUIDs();
+}
+
+const std::vector<size_t> &ResourceManager::GetResourceValidUUID(ResourceType type) const
+{
+	return m_impl->m_managers.at(type)->GetValidUUIDs();
 }
 
 void ResourceManager::ScanLocalMeta()

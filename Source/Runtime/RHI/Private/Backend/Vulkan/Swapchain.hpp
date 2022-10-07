@@ -26,7 +26,7 @@ class Swapchain : public RHISwapchain
 
 	virtual bool Present(RHISemaphore *semaphore) override;
 
-	virtual void Resize(uint32_t width, uint32_t height) override;
+	virtual void Resize(uint32_t width, uint32_t height, bool vsync) override;
 
   private:
 	VkSurfaceKHR   m_surface   = VK_NULL_HANDLE;
@@ -40,7 +40,6 @@ class Swapchain : public RHISwapchain
 	uint32_t                 m_image_count = 0;
 	VkSurfaceFormatKHR       m_surface_format;
 	VkSurfaceCapabilitiesKHR m_capabilities;
-	VkPresentModeKHR         m_present_mode;
 
 	uint32_t m_frame_index = 0;
 };

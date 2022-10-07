@@ -30,5 +30,7 @@ class Semaphore : public RHISemaphore
 {
   public:
 	Semaphore(RHIDevice *device);
+
+	virtual void SetName(const std::string &name) override;
 };
 }        // namespace Ilum::DX12

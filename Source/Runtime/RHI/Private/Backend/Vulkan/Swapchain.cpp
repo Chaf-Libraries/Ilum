@@ -58,6 +58,37 @@ inline std::optional<uint32_t> GetQueueFamilyIndex(const std::vector<VkQueueFami
 	return std::optional<uint32_t>();
 }
 
+inline VkPresentModeKHR GetPresentMode(const VkPhysicalDevice &physical_device, const VkSurfaceKHR &surface, bool vsync)
+{
+	uint32_t                      presentmode_count;
+	std::vector<VkPresentModeKHR> presentmodes;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &presentmode_count, nullptr);
+	if (presentmode_count != 0)
+	{
+		presentmodes.resize(presentmode_count);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(physical_device, surface, &presentmode_count, presentmodes.data());
+	}
+
+	for (VkPresentModeKHR present_mode : presentmodes)
+	{
+		if (!vsync)
+		{
+			if (VK_PRESENT_MODE_MAILBOX_KHR == present_mode)
+			{
+				return VK_PRESENT_MODE_MAILBOX_KHR;
+			}
+		}
+		else
+		{
+			if (VK_PRESENT_MODE_FIFO_KHR == present_mode)
+			{
+				return VK_PRESENT_MODE_FIFO_KHR;
+			}
+		}
+	}
+	return VK_PRESENT_MODE_FIFO_KHR;
+}
+
 Swapchain::Swapchain(RHIDevice *device, void *window_handle, uint32_t width, uint32_t height, bool vsync) :
     RHISwapchain(device, width, height, vsync)
 {
@@ -84,16 +115,6 @@ Swapchain::Swapchain(RHIDevice *device, void *window_handle, uint32_t width, uin
 		vkGetPhysicalDeviceSurfaceFormatsKHR(static_cast<Device *>(device)->GetPhysicalDevice(), m_surface, &format_count, formats.data());
 	}
 
-	// present modes
-	uint32_t                      presentmode_count;
-	std::vector<VkPresentModeKHR> presentmodes;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(static_cast<Device *>(device)->GetPhysicalDevice(), m_surface, &presentmode_count, nullptr);
-	if (presentmode_count != 0)
-	{
-		presentmodes.resize(presentmode_count);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(static_cast<Device *>(device)->GetPhysicalDevice(), m_surface, &presentmode_count, presentmodes.data());
-	}
-
 	// Choose swapchain surface format
 	for (const auto &surface_format : formats)
 	{
@@ -106,31 +127,6 @@ Swapchain::Swapchain(RHIDevice *device, void *window_handle, uint32_t width, uin
 	if (m_surface_format.format == VK_FORMAT_UNDEFINED)
 	{
 		m_surface_format = formats[0];
-	}
-
-	// Choose swapchain present mode
-	for (VkPresentModeKHR present_mode : presentmodes)
-	{
-		if (!vsync)
-		{
-			if (VK_PRESENT_MODE_MAILBOX_KHR == present_mode)
-			{
-				m_present_mode = VK_PRESENT_MODE_MAILBOX_KHR;
-				break;
-			}
-		}
-		else
-		{
-			if (VK_PRESENT_MODE_FIFO_KHR == present_mode)
-			{
-				m_present_mode = VK_PRESENT_MODE_FIFO_KHR;
-				break;
-			}
-		}
-	}
-	if (m_present_mode == VK_PRESENT_MODE_MAX_ENUM_KHR)
-	{
-		m_present_mode = VK_PRESENT_MODE_FIFO_KHR;
 	}
 
 	// Choose swapchain extent
@@ -188,7 +184,7 @@ Swapchain::Swapchain(RHIDevice *device, void *window_handle, uint32_t width, uin
 
 	vkGetDeviceQueue(static_cast<Device *>(p_device)->GetDevice(), m_present_family, 0, &m_present_queue);
 
-	Resize(chosen_extent.width, chosen_extent.height);
+	Resize(chosen_extent.width, chosen_extent.height, m_vsync);
 }
 
 Swapchain::~Swapchain()
@@ -258,12 +254,13 @@ bool Swapchain::Present(RHISemaphore *semaphore)
 	return result == VK_SUCCESS;
 }
 
-void Swapchain::Resize(uint32_t width, uint32_t height)
+void Swapchain::Resize(uint32_t width, uint32_t height, bool vsync)
 {
 	p_device->WaitIdle();
 
 	m_width  = width;
 	m_height = height;
+	m_vsync  = vsync;
 
 	VkSwapchainCreateInfoKHR createInfo = {};
 	createInfo.sType                    = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -281,7 +278,7 @@ void Swapchain::Resize(uint32_t width, uint32_t height)
 	createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	createInfo.preTransform     = m_capabilities.currentTransform;
 	createInfo.compositeAlpha   = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-	createInfo.presentMode      = m_present_mode;
+	createInfo.presentMode      = GetPresentMode(static_cast<Device *>(p_device)->GetPhysicalDevice(), m_surface, m_vsync);
 	createInfo.clipped          = VK_TRUE;
 
 	createInfo.oldSwapchain = m_swapchain;
@@ -330,15 +327,15 @@ void Swapchain::Resize(uint32_t width, uint32_t height)
 
 		auto vk_cmd_buffer = cmd_buffer->GetHandle();
 
-		VkSubmitInfo submit_info = {};
-		submit_info.sType        = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submit_info.commandBufferCount      = 1;
-		submit_info.pCommandBuffers         = &vk_cmd_buffer;
-		submit_info.signalSemaphoreCount    = 0;
-		submit_info.pSignalSemaphores       = nullptr;
-		submit_info.waitSemaphoreCount      = 0;
-		submit_info.pWaitSemaphores         = nullptr;
-		submit_info.pWaitDstStageMask       = nullptr;
+		VkSubmitInfo submit_info         = {};
+		submit_info.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submit_info.commandBufferCount   = 1;
+		submit_info.pCommandBuffers      = &vk_cmd_buffer;
+		submit_info.signalSemaphoreCount = 0;
+		submit_info.pSignalSemaphores    = nullptr;
+		submit_info.waitSemaphoreCount   = 0;
+		submit_info.pWaitSemaphores      = nullptr;
+		submit_info.pWaitDstStageMask    = nullptr;
 
 		vkQueueSubmit(m_present_queue, 1, &submit_info, fence ? fence->GetHandle() : nullptr);
 		fence->Wait();

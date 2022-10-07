@@ -11,6 +11,10 @@ Command::Command(RHIDevice *device, RHIQueueFamily family) :
 {
 }
 
+void Command::SetName(const std::string &name)
+{
+}
+
 void Command::Begin()
 {
 	m_state = CommandState::Recording;

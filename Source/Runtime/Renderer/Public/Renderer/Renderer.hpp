@@ -27,7 +27,7 @@ struct ViewInfo
 
 struct SceneInfo
 {
-	std::vector<RHITexture *> texture2d_array;
+	std::vector<RHITexture *> textures;
 
 	std::vector<RHIBuffer *>   static_vertex_buffers;
 	std::vector<RHIBuffer *>   static_index_buffers;

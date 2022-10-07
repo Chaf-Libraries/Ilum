@@ -21,7 +21,11 @@ struct InstanceData
 	uint32_t  material;
 
 	glm::vec3 aabb_max;
-	uint32_t  instance_id;
+	uint32_t  model_id;
+
+	alignas(16) uint32_t meshlet_count;
+	uint32_t meshlet_offset;
+	uint32_t submesh_id;
 };
 
 Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resource_manager) :
@@ -81,7 +85,7 @@ void Renderer::Tick()
 {
 	m_present_texture = nullptr;
 
-	if (m_update_scene)
+	if (m_update_scene || p_resource_manager->IsUpdate())
 	{
 		UpdateScene();
 		m_update_scene = false;
@@ -91,6 +95,8 @@ void Renderer::Tick()
 	{
 		m_render_graph->Execute();
 	}
+
+	p_resource_manager->Tick();
 }
 
 void Renderer::SetRenderGraph(std::unique_ptr<RenderGraph> &&render_graph)
@@ -183,6 +189,11 @@ const SceneInfo &Renderer::GetSceneInfo() const
 RHIShader *Renderer::RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, const std::vector<std::string> &macros, bool cuda)
 {
 	size_t hash = Hash(filename, entry_point, stage, macros, cuda);
+
+	if (!Path::GetInstance().IsExist("./bin/Shaders"))
+	{
+		Path::GetInstance().CreatePath("./bin/Shaders");
+	}
 
 	if (m_shader_cache.find(hash) != m_shader_cache.end())
 	{
@@ -292,26 +303,40 @@ void Renderer::UpdateScene()
 	std::vector<InstanceData> instances;
 	instances.reserve(p_scene->Size());
 
-	std::unordered_map<const TResource<ResourceType::Model> *, uint32_t> model_index;
-
-	// Collect Model Info
-	uint32_t current_model = 0;
-	for (auto &uuid : p_resource_manager->GetResourceUUID<ResourceType::Model>())
 	{
-		if (p_resource_manager->IsValid<ResourceType::Model>(uuid))
+		size_t model_count = p_resource_manager->GetResourceValidUUID<ResourceType::Model>().size();
+		if (m_scene_info.static_vertex_buffers.capacity() < model_count)
 		{
-			auto *resource = p_resource_manager->GetResource<ResourceType::Model>(uuid);
-			m_scene_info.static_vertex_buffers.push_back(resource->GetVertexBuffer());
-			m_scene_info.static_index_buffers.push_back(resource->GetIndexBuffer());
-			m_scene_info.meshlet_vertex_buffers.push_back(resource->GetMeshletVertexBuffer());
-			m_scene_info.meshlet_primitive_buffers.push_back(resource->GetMeshletPrimitiveBuffer());
-			m_scene_info.meshlet_buffers.push_back(resource->GetMeshletBuffer());
-			model_index[resource] = current_model++;
+			m_scene_info.static_vertex_buffers.reserve(model_count);
+			m_scene_info.static_index_buffers.reserve(model_count);
+			m_scene_info.meshlet_vertex_buffers.reserve(model_count);
+			m_scene_info.meshlet_primitive_buffers.reserve(model_count);
+			m_scene_info.meshlet_buffers.reserve(model_count);
 		}
 	}
 
-	// Collect Texture Info
+	// Collect Model Info
+	for (auto &uuid : p_resource_manager->GetResourceValidUUID<ResourceType::Model>())
+	{
+		auto *resource = p_resource_manager->GetResource<ResourceType::Model>(uuid);
+		m_scene_info.static_vertex_buffers.push_back(resource->GetVertexBuffer());
+		m_scene_info.static_index_buffers.push_back(resource->GetIndexBuffer());
+		m_scene_info.meshlet_vertex_buffers.push_back(resource->GetMeshletVertexBuffer());
+		m_scene_info.meshlet_primitive_buffers.push_back(resource->GetMeshletPrimitiveBuffer());
+		m_scene_info.meshlet_buffers.push_back(resource->GetMeshletBuffer());
+	}
 
+	// Collect Texture Info
+	{
+		size_t texture_count = p_resource_manager->GetResourceValidUUID<ResourceType::Texture>().size();
+		m_scene_info.textures.reserve(texture_count);
+	}
+
+	for (auto &uuid : p_resource_manager->GetResourceValidUUID<ResourceType::Texture>())
+	{
+		auto *resource = p_resource_manager->GetResource<ResourceType::Texture>(uuid);
+		m_scene_info.textures.push_back(resource->GetTexture());
+	}
 
 	// Update TLAS
 	TLASDesc desc = {};
@@ -323,8 +348,10 @@ void Renderer::UpdateScene()
 		{
 			for (uint32_t i = 0; i < resource->GetSubmeshes().size(); i++)
 			{
+				const Submesh &submesh = resource->GetSubmeshes()[i];
+
 				TLASDesc::InstanceInfo instance_info = {};
-				instance_info.transform              = transform.world_transform * resource->GetSubmeshes()[i].pre_transform;
+				instance_info.transform              = transform.world_transform * submesh.pre_transform;
 				instance_info.material_id            = 0;
 				instance_info.blas                   = resource->GetBLAS(i);
 
@@ -335,9 +362,12 @@ void Renderer::UpdateScene()
 				InstanceData instance_data = {};
 				instance_data.aabb_max     = aabb.max;
 				instance_data.aabb_min     = aabb.min;
-				instance_data.instance_id = model_index[resource];
-				instance_data.transform   = instance_info.transform;
-				instance_data.material    = 0;
+				instance_data.model_id  = static_cast<uint32_t>(p_resource_manager->GetResourceIndex<ResourceType::Model>(static_mesh.uuid));
+				instance_data.transform    = instance_info.transform;
+				instance_data.material     = 0;
+				instance_data.submesh_id   = i;
+				instance_data.meshlet_offset  = submesh.meshlet_offset;
+				instance_data.meshlet_count   = submesh.meshlet_count;
 				instances.emplace_back(std::move(instance_data));
 				m_scene_info.meshlet_count.push_back(resource->GetSubmeshes()[i].meshlet_count);
 			}

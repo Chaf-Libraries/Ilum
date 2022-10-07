@@ -25,7 +25,10 @@ class RHISemaphore
 {
   public:
 	RHISemaphore(RHIDevice *device);
+
 	virtual ~RHISemaphore() = default;
+
+	virtual void SetName(const std::string &name) = 0;
 
 	static std::unique_ptr<RHISemaphore> Create(RHIDevice *device);
 

@@ -98,6 +98,16 @@ VkCommandBuffer Command::GetHandle() const
 	return m_handle;
 }
 
+void Command::SetName(const std::string &name)
+{
+	VkDebugUtilsObjectNameInfoEXT info = {};
+	info.sType                         = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+	info.pObjectName                   = name.c_str();
+	info.objectHandle                  = (uint64_t) m_handle;
+	info.objectType                    = VK_OBJECT_TYPE_COMMAND_BUFFER;
+	static_cast<Device *>(p_device)->SetVulkanObjectName(info);
+}
+
 void Command::Begin()
 {
 	ASSERT(m_state == CommandState::Initial);

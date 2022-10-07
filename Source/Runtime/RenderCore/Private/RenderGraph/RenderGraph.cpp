@@ -88,11 +88,14 @@ void RenderGraph::Execute()
 
 	std::vector<RHICommand *> cmd_buffers;
 	cmd_buffers.reserve(m_render_passes.size());
+	RHISemaphore *last_semaphore = nullptr;
 	for (auto &pass : m_render_passes)
 	{
-		if (pass.bind_point != last_bind_point)
+		if (pass.bind_point != last_bind_point && !cmd_buffers.empty())
 		{
-			p_rhi_context->Submit(std::move(cmd_buffers));
+			RHISemaphore *signal_semaphore = p_rhi_context->CreateFrameSemaphore();
+			p_rhi_context->Submit(std::move(cmd_buffers), last_semaphore ? std::vector<RHISemaphore *>{last_semaphore} : std::vector<RHISemaphore *>{}, {signal_semaphore});
+			last_semaphore = signal_semaphore;
 			cmd_buffers.clear();
 			last_bind_point = pass.bind_point;
 		}
@@ -115,6 +118,7 @@ void RenderGraph::Execute()
 			}
 
 			auto *cmd_buffer = p_rhi_context->CreateCommand(family);
+			cmd_buffer->SetName(pass.name);
 			cmd_buffer->Begin();
 			cmd_buffer->BeginMarker(pass.name);
 			pass.profiler->Begin(cmd_buffer, p_rhi_context->GetSwapchain()->GetCurrentFrameIndex());
@@ -126,18 +130,18 @@ void RenderGraph::Execute()
 			cmd_buffers.push_back(cmd_buffer);
 		}
 
-		if (!pass.wait_semaphores.empty() || !pass.signal_semaphores.empty())
-		{
-			std::vector<RHISemaphore *> wait_semaphores = pass.wait_semaphores;
-			std::vector<RHISemaphore *> signal_semaphores = pass.signal_semaphores;
-			p_rhi_context->Submit(std::move(cmd_buffers), std::move(wait_semaphores), std::move(signal_semaphores));
-			cmd_buffers.clear();
-		}
+		//if (!pass.wait_semaphores.empty() || !pass.signal_semaphores.empty())
+		//{
+		//	std::vector<RHISemaphore *> wait_semaphores = pass.wait_semaphores;
+		//	std::vector<RHISemaphore *> signal_semaphores = pass.signal_semaphores;
+		//	p_rhi_context->Submit(std::move(cmd_buffers), std::move(wait_semaphores), std::move(signal_semaphores));
+		//	cmd_buffers.clear();
+		//}
 	}
 
 	if (!cmd_buffers.empty())
 	{
-		p_rhi_context->Submit(std::move(cmd_buffers));
+		p_rhi_context->Submit(std::move(cmd_buffers), last_semaphore ? std::vector<RHISemaphore *>{last_semaphore} : std::vector<RHISemaphore *>{}, {});
 	}
 }
 
