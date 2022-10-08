@@ -199,14 +199,14 @@ ModelImportInfo AssimpImporter::ImportImpl(const std::string &filename)
 				tmp_meshlet.indices_offset  = static_cast<uint32_t>(info.indices.size());
 				tmp_meshlet.indices_count   = meshlet.triangle_count * 3;
 
-				tmp_meshlet.meshlet_vertices_offset  = meshlet_vertices_offset + meshlet.vertex_offset;
-				tmp_meshlet.meshlet_primitive_offset = meshlet_primitive_offset + meshlet.triangle_offset / 3;
+				tmp_meshlet.meshlet_vertices_offset  = meshlet_vertices_offset;
+				tmp_meshlet.meshlet_primitive_offset = meshlet_primitive_offset;
 
 				for (uint32_t j = 0; j < meshlet.triangle_count * 3; j += 3)
 				{
-					uint8_t v0 = meshlet_vertices[meshlet.vertex_offset + meshlet_triangles[meshlet.triangle_offset + j]];
-					uint8_t v1 = meshlet_vertices[meshlet.vertex_offset + meshlet_triangles[meshlet.triangle_offset + j + 1]];
-					uint8_t v2 = meshlet_vertices[meshlet.vertex_offset + meshlet_triangles[meshlet.triangle_offset + j + 2]];
+					uint8_t v0 = meshlet_triangles[meshlet.triangle_offset + j];
+					uint8_t v1 = meshlet_triangles[meshlet.triangle_offset + j + 1];
+					uint8_t v2 = meshlet_triangles[meshlet.triangle_offset + j + 2];
 					meshlet_primitives.push_back(PackTriangle(v0, v1, v2));
 				}
 
@@ -214,10 +214,10 @@ ModelImportInfo AssimpImporter::ImportImpl(const std::string &filename)
 				                                          meshlet.triangle_count, &vertices[0].position.x, vertices.size(), sizeof(Vertex));
 				std::memcpy(&tmp_meshlet.bound, &bound, sizeof(tmp_meshlet.bound));
 				info.meshlets.emplace_back(std::move(tmp_meshlet));
-			}
 
-			meshlet_vertices_offset += static_cast<uint32_t>(meshlet_vertices.size());
-			meshlet_primitive_offset += static_cast<uint32_t>(meshlet_triangles.size()) / 3;
+				meshlet_primitive_offset += meshlet.triangle_count * 3;
+				meshlet_vertices_offset += meshlet.vertex_count;
+			}
 
 			info.meshlet_vertices.insert(info.meshlet_vertices.end(), std::make_move_iterator(meshlet_vertices.begin()), std::make_move_iterator(meshlet_vertices.end()));
 			info.meshlet_primitives.insert(info.meshlet_primitives.end(), std::make_move_iterator(meshlet_primitives.begin()), std::make_move_iterator(meshlet_primitives.end()));

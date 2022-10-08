@@ -114,7 +114,7 @@ class RenderGraph
 	using RenderTask  = std::function<void(RenderGraph &, RHICommand *, rttr::variant &)>;
 	using BarrierTask = std::function<void(RenderGraph &, RHICommand *)>;
 
-	struct [[reflection(false), serialization(false)]] RenderPassInfo
+	struct RenderPassInfo
 	{
 		std::string name;
 
@@ -124,9 +124,6 @@ class RenderGraph
 
 		RenderTask  execute;
 		BarrierTask barrier;
-
-		std::vector<RHISemaphore *> wait_semaphores;
-		std::vector<RHISemaphore *> signal_semaphores;
 
 		std::unique_ptr<RHIProfiler> profiler = nullptr;
 	};
@@ -164,9 +161,7 @@ class RenderGraph
 	    BindPoint                     bind_point,
 	    const rttr::variant          &config,
 	    RenderTask                  &&execute,
-	    BarrierTask                 &&barrier,
-	    std::vector<RHISemaphore *> &&wait_semaphores   = {},
-	    std::vector<RHISemaphore *> &&signal_semaphores = {});
+	    BarrierTask                 &&barrier);
 
 	RenderGraph &AddInitializeBarrier(BarrierTask &&barrier);
 
@@ -178,7 +173,7 @@ class RenderGraph
 
 	RenderGraph &RegisterBuffer(const BufferCreateInfo &create_info);
 
-	RenderGraph &RegisterSemaphore(std::unique_ptr<RHISemaphore> &&semaphore);
+	RHISemaphore *MapToCUDASemaphore(RHISemaphore *semaphore);
 
   private:
 	RHIContext *p_rhi_context = nullptr;
@@ -194,7 +189,7 @@ class RenderGraph
 	std::vector<std::unique_ptr<RHIBuffer>> m_buffers;
 	std::map<RGHandle, RHIBuffer *>         m_buffer_lookup;
 
-	std::vector<std::unique_ptr<RHISemaphore>> m_semaphores;
+	std::map<RHISemaphore*, std::unique_ptr<RHISemaphore>> m_cuda_semaphore_map;
 
 	bool m_init = false;
 };

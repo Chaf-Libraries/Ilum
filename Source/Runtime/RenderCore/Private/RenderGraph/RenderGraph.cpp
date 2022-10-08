@@ -93,8 +93,11 @@ void RenderGraph::Execute()
 	{
 		if (pass.bind_point != last_bind_point && !cmd_buffers.empty())
 		{
-			RHISemaphore *signal_semaphore = p_rhi_context->CreateFrameSemaphore();
-			p_rhi_context->Submit(std::move(cmd_buffers), last_semaphore ? std::vector<RHISemaphore *>{last_semaphore} : std::vector<RHISemaphore *>{}, {signal_semaphore});
+			RHISemaphore *pass_semaphore   = p_rhi_context->CreateFrameSemaphore();
+			RHISemaphore *signal_semaphore = pass.bind_point == BindPoint::CUDA ? MapToCUDASemaphore(pass_semaphore) : pass_semaphore;
+			RHISemaphore *wait_semaphore   = last_semaphore ? (pass.bind_point == BindPoint::CUDA ? MapToCUDASemaphore(last_semaphore) : last_semaphore) : nullptr;
+
+			p_rhi_context->Submit(std::move(cmd_buffers), wait_semaphore ? std::vector<RHISemaphore *>{wait_semaphore} : std::vector<RHISemaphore *>{}, {signal_semaphore});
 			last_semaphore = signal_semaphore;
 			cmd_buffers.clear();
 			last_bind_point = pass.bind_point;
@@ -129,14 +132,6 @@ void RenderGraph::Execute()
 			cmd_buffer->End();
 			cmd_buffers.push_back(cmd_buffer);
 		}
-
-		//if (!pass.wait_semaphores.empty() || !pass.signal_semaphores.empty())
-		//{
-		//	std::vector<RHISemaphore *> wait_semaphores = pass.wait_semaphores;
-		//	std::vector<RHISemaphore *> signal_semaphores = pass.signal_semaphores;
-		//	p_rhi_context->Submit(std::move(cmd_buffers), std::move(wait_semaphores), std::move(signal_semaphores));
-		//	cmd_buffers.clear();
-		//}
 	}
 
 	if (!cmd_buffers.empty())
@@ -151,13 +146,11 @@ const std::vector<RenderGraph::RenderPassInfo> &RenderGraph::GetRenderPasses() c
 }
 
 RenderGraph &RenderGraph::AddPass(
-    const std::string            &name,
-    BindPoint                     bind_point,
-    const rttr::variant          &config,
-    RenderTask                  &&task,
-    BarrierTask                 &&barrier,
-    std::vector<RHISemaphore *> &&wait_semaphores,
-    std::vector<RHISemaphore *> &&signal_semaphores)
+    const std::string   &name,
+    BindPoint            bind_point,
+    const rttr::variant &config,
+    RenderTask         &&task,
+    BarrierTask        &&barrier)
 {
 	m_render_passes.emplace_back(RenderPassInfo{
 	    name,
@@ -165,8 +158,6 @@ RenderGraph &RenderGraph::AddPass(
 	    config,
 	    std::move(task),
 	    std::move(barrier),
-	    std::move(wait_semaphores),
-	    std::move(signal_semaphores),
 	    p_rhi_context->CreateProfiler()});
 	return *this;
 }
@@ -240,9 +231,13 @@ RenderGraph &RenderGraph::RegisterBuffer(const BufferCreateInfo &create_info)
 	return *this;
 }
 
-RenderGraph &RenderGraph::RegisterSemaphore(std::unique_ptr<RHISemaphore> &&semaphore)
+RHISemaphore *RenderGraph::MapToCUDASemaphore(RHISemaphore *semaphore)
 {
-	m_semaphores.emplace_back(std::move(semaphore));
-	return *this;
+	if (m_cuda_semaphore_map.find(semaphore) != m_cuda_semaphore_map.end())
+	{
+		return m_cuda_semaphore_map.at(semaphore).get();
+	}
+	m_cuda_semaphore_map.emplace(semaphore, p_rhi_context->MapToCUDASemaphore(semaphore));
+	return m_cuda_semaphore_map.at(semaphore).get();
 }
 }        // namespace Ilum

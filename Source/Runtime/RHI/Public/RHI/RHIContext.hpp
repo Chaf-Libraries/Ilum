@@ -24,6 +24,8 @@ class RHIContext
 
 	~RHIContext();
 
+	const std::string &GetDeviceName() const;
+
 	RHIBackend GetBackend() const;
 
 	bool IsVsync() const;
@@ -40,20 +42,20 @@ class RHIContext
 
 	// Create Texture
 	std::unique_ptr<RHITexture> CreateTexture(const TextureDesc &desc);
-	std::unique_ptr<RHITexture> CreateTexture2D(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples = 1, bool external = false);
-	std::unique_ptr<RHITexture> CreateTexture3D(uint32_t width, uint32_t height, uint32_t depth, RHIFormat format, RHITextureUsage usage, bool external = false);
-	std::unique_ptr<RHITexture> CreateTextureCube(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, bool external = false);
-	std::unique_ptr<RHITexture> CreateTexture2DArray(uint32_t width, uint32_t height, uint32_t layers, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples = 1, bool external = false);
+	std::unique_ptr<RHITexture> CreateTexture2D(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples = 1);
+	std::unique_ptr<RHITexture> CreateTexture3D(uint32_t width, uint32_t height, uint32_t depth, RHIFormat format, RHITextureUsage usage);
+	std::unique_ptr<RHITexture> CreateTextureCube(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap);
+	std::unique_ptr<RHITexture> CreateTexture2DArray(uint32_t width, uint32_t height, uint32_t layers, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples = 1);
 
 	// Texture Conversion
 	std::unique_ptr<RHITexture> MapToCUDATexture(RHITexture *texture);
 
 	// Create Buffer
-	std::unique_ptr<RHIBuffer> CreateBuffer(const BufferDesc &desc, bool cuda = false);
-	std::unique_ptr<RHIBuffer> CreateBuffer(size_t size, RHIBufferUsage usage, RHIMemoryUsage memory, bool cuda = false);
+	std::unique_ptr<RHIBuffer> CreateBuffer(const BufferDesc &desc);
+	std::unique_ptr<RHIBuffer> CreateBuffer(size_t size, RHIBufferUsage usage, RHIMemoryUsage memory);
 
 	template <typename T>
-	std::unique_ptr<RHIBuffer> CreateBuffer(size_t count, RHIBufferUsage usage, RHIMemoryUsage memory, bool cuda = false)
+	std::unique_ptr<RHIBuffer> CreateBuffer(size_t count, RHIBufferUsage usage, RHIMemoryUsage memory)
 	{
 		BufferDesc desc = {};
 		desc.count      = count;
@@ -62,11 +64,11 @@ class RHIContext
 		desc.memory     = memory;
 		desc.size       = desc.count * desc.stride;
 
-		return CreateBuffer(desc, cuda);
+		return CreateBuffer(desc);
 	}
 
 	// Create Sampler
-	RHISampler *CreateSampler(const SamplerDesc &desc, bool cuda = false);
+	RHISampler *CreateSampler(const SamplerDesc &desc);
 
 	// Create Command
 	RHICommand *CreateCommand(RHIQueueFamily family, bool cuda = false);
@@ -95,12 +97,13 @@ class RHIContext
 	// Create Semaphore
 	std::unique_ptr<RHISemaphore> CreateSemaphore(bool cuda = false);
 
+	// Create Frame Semaphore
 	RHISemaphore *CreateFrameSemaphore();
 
 	std::unique_ptr<RHISemaphore> MapToCUDASemaphore(RHISemaphore *semaphore);
 
 	// Create Acceleration Structure
-	std::unique_ptr<RHIAccelerationStructure> CreateAcccelerationStructure(bool cuda = false);
+	std::unique_ptr<RHIAccelerationStructure> CreateAcccelerationStructure();
 
 	// Submit command buffer
 	void Submit(std::vector<RHICommand *> &&cmd_buffers, std::vector<RHISemaphore *> &&wait_semaphores = {}, std::vector<RHISemaphore *> &&signal_semaphores = {});

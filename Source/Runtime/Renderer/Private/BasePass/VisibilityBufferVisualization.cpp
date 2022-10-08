@@ -8,6 +8,7 @@ RenderPassDesc VisibilityBufferVisualization::CreateDesc()
 	desc.SetName("VisibilityBufferVisualization")
 	    .SetBindPoint(BindPoint::Compute)
 	    .Read("VisibilityBuffer", RenderResourceDesc::Type::Texture, RHIResourceState::ShaderResource)
+	    .Read("DepthBuffer", RenderResourceDesc::Type::Texture, RHIResourceState::ShaderResource)
 	    .Write("InstanceID", RenderResourceDesc::Type::Texture, RHIResourceState::UnorderedAccess)
 	    .Write("PrimitiveID", RenderResourceDesc::Type::Texture, RHIResourceState::UnorderedAccess)
 	    .Write("MeshletID", RenderResourceDesc::Type::Texture, RHIResourceState::UnorderedAccess);
@@ -28,12 +29,14 @@ RenderGraph::RenderTask VisibilityBufferVisualization::Create(const RenderPassDe
 
 	return [=](RenderGraph &render_graph, RHICommand *cmd_buffer, rttr::variant &config) {
 		auto *visibility_buffer   = render_graph.GetTexture(desc.resources.at("VisibilityBuffer").handle);
+		auto *depth_buffer   = render_graph.GetTexture(desc.resources.at("DepthBuffer").handle);
 		auto *instance_id_buffer  = render_graph.GetTexture(desc.resources.at("InstanceID").handle);
 		auto *primitive_id_buffer = render_graph.GetTexture(desc.resources.at("PrimitiveID").handle);
 		auto *meshlet_id_buffer   = render_graph.GetTexture(desc.resources.at("MeshletID").handle);
 
 		descriptor
 		    ->BindTexture("VisibilityBuffer", visibility_buffer, RHITextureDimension::Texture2D)
+		    .BindTexture("DepthBuffer", depth_buffer, RHITextureDimension::Texture2D)
 		    .BindTexture("InstanceID", instance_id_buffer, RHITextureDimension::Texture2D)
 		    .BindTexture("PrimitiveID", primitive_id_buffer, RHITextureDimension::Texture2D)
 		    .BindTexture("MeshletID", meshlet_id_buffer, RHITextureDimension::Texture2D);

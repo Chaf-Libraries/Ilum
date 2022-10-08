@@ -80,10 +80,6 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 						if (desc.textures.find(resource.handle) != desc.textures.end())
 						{
 							desc.textures[resource.handle].usage |= ResourceStateToTextureUsage(resource.state);
-							if (iter->second.bind_point == BindPoint::CUDA)
-							{
-								desc.textures[resource.handle].external = true;
-							}
 						}
 						else if (desc.buffers.find(resource.handle) != desc.buffers.end())
 						{
@@ -93,47 +89,47 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 				}
 
 				// Insert semaphores
-				{
-					if (iter->second.prev_pass.IsValid() &&
-					    desc.passes.at(iter->second.prev_pass).bind_point != iter->second.bind_point)
-					{
-						BindPoint current_bind_point = iter->second.bind_point;
-						BindPoint last_bind_point    = desc.passes.at(iter->second.prev_pass).bind_point;
+				//{
+				//	if (iter->second.prev_pass.IsValid() &&
+				//	    desc.passes.at(iter->second.prev_pass).bind_point != iter->second.bind_point)
+				//	{
+				//		BindPoint current_bind_point = iter->second.bind_point;
+				//		BindPoint last_bind_point    = desc.passes.at(iter->second.prev_pass).bind_point;
 
-						if ((last_bind_point == BindPoint::Compute || last_bind_point == BindPoint::RayTracing) &&
-						    (current_bind_point == BindPoint::Compute || current_bind_point == BindPoint::RayTracing))
-						{
-							// Pass
-						}
-						else
-						{
-							auto semaphore = p_rhi_context->CreateSemaphore();
-							semaphore->SetName(fmt::format("Semaphore - Signal by ({}) | Wait by ({})", desc.passes.at(iter->second.prev_pass).name, iter->second.name));
-							if (last_bind_point == BindPoint::CUDA)
-							{
-								auto cuda_semaphore = p_rhi_context->MapToCUDASemaphore(semaphore.get());
-								pass_semaphores[iter->second.prev_pass].signal_semaphores.push_back(cuda_semaphore.get());
-								render_graph->RegisterSemaphore(std::move(cuda_semaphore));
-							}
-							else
-							{
-								pass_semaphores[iter->second.prev_pass].signal_semaphores.push_back(semaphore.get());
-							}
+				//		if ((last_bind_point == BindPoint::Compute || last_bind_point == BindPoint::RayTracing) &&
+				//		    (current_bind_point == BindPoint::Compute || current_bind_point == BindPoint::RayTracing))
+				//		{
+				//			// Pass
+				//		}
+				//		else
+				//		{
+				//			auto semaphore = p_rhi_context->CreateSemaphore();
+				//			semaphore->SetName(fmt::format("Semaphore - Signal by ({}) | Wait by ({})", desc.passes.at(iter->second.prev_pass).name, iter->second.name));
+				//			if (last_bind_point == BindPoint::CUDA)
+				//			{
+				//				auto cuda_semaphore = p_rhi_context->MapToCUDASemaphore(semaphore.get());
+				//				pass_semaphores[iter->second.prev_pass].signal_semaphores.push_back(cuda_semaphore.get());
+				//				render_graph->RegisterSemaphore(std::move(cuda_semaphore));
+				//			}
+				//			else
+				//			{
+				//				pass_semaphores[iter->second.prev_pass].signal_semaphores.push_back(semaphore.get());
+				//			}
 
-							if (current_bind_point == BindPoint::CUDA)
-							{
-								auto cuda_semaphore = p_rhi_context->MapToCUDASemaphore(semaphore.get());
-								pass_semaphores[iter->first].wait_semaphores.push_back(cuda_semaphore.get());
-								render_graph->RegisterSemaphore(std::move(cuda_semaphore));
-							}
-							else
-							{
-								pass_semaphores[iter->first].wait_semaphores.push_back(semaphore.get());
-							}
-							render_graph->RegisterSemaphore(std::move(semaphore));
-						}
-					}
-				}
+				//			if (current_bind_point == BindPoint::CUDA)
+				//			{
+				//				auto cuda_semaphore = p_rhi_context->MapToCUDASemaphore(semaphore.get());
+				//				pass_semaphores[iter->first].wait_semaphores.push_back(cuda_semaphore.get());
+				//				render_graph->RegisterSemaphore(std::move(cuda_semaphore));
+				//			}
+				//			else
+				//			{
+				//				pass_semaphores[iter->first].wait_semaphores.push_back(semaphore.get());
+				//			}
+				//			render_graph->RegisterSemaphore(std::move(semaphore));
+				//		}
+				//	}
+				//}
 
 				// Add pass
 				resource_states.push_back(pass_resource_state);
@@ -173,21 +169,14 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 				bool alias = false;
 				for (auto &pool : texture_pools)
 				{
-					if (desc.textures[handle].external)
+					if (pool.start > (--resource.end())->first ||
+					    pool.end < resource.begin()->first)
 					{
-						render_graph->RegisterTexture(RenderGraph::TextureCreateInfo{desc.textures[handle], handle});
-					}
-					else
-					{
-						if (pool.start > (--resource.end())->first ||
-						    pool.end < resource.begin()->first)
-						{
-							pool.handles.push_back(handle);
-							pool.start = std::min(pool.start, (--resource.end())->first);
-							pool.end   = std::max(pool.end, resource.begin()->first);
-							alias      = true;
-							break;
-						}
+						pool.handles.push_back(handle);
+						pool.start = std::min(pool.start, (--resource.end())->first);
+						pool.end   = std::max(pool.end, resource.begin()->first);
+						alias      = true;
+						break;
 					}
 				}
 				if (!alias)
@@ -332,9 +321,7 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 		    std::move(render_task.convert<RenderGraph::RenderTask>()),
 		    [=](RenderGraph &render_graph, RHICommand *cmd_buffer) {
 			    cmd_buffer->ResourceStateTransition(texture_state_transitions, buffer_state_transitions);
-		    },
-		    std::move(pass_semaphores[pass_handles[i]].wait_semaphores),
-		    std::move(pass_semaphores[pass_handles[i]].signal_semaphores));
+		    });
 	}
 
 	return render_graph;

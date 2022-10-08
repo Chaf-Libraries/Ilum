@@ -1,8 +1,10 @@
 #include "RHIContext.hpp"
-#include "Backend/CUDA/Synchronization.hpp"
-#include "Backend/CUDA/Texture.hpp"
 #include "Backend/Vulkan/Synchronization.hpp"
 #include "Backend/Vulkan/Texture.hpp"
+#ifdef CUDA_ENABLE
+#	include "Backend/CUDA/Synchronization.hpp"
+#	include "Backend/CUDA/Texture.hpp"
+#endif        // CUDA_ENABLE
 
 #include <Core/Time.hpp>
 
@@ -13,11 +15,12 @@ namespace Ilum
 RHIContext::RHIContext(Window *window, bool vsync) :
     p_window(window), m_vsync(vsync)
 {
+#ifdef CUDA_ENABLE
 	m_cuda_device = RHIDevice::Create(RHIBackend::CUDA);
+#endif
 
 #ifdef RHI_BACKEND_VULKAN
 	m_device = RHIDevice::Create(RHIBackend::Vulkan);
-	LOG_INFO("RHI Backend: Vulkan");
 #elif RHI_BACKEND_DX12
 	m_device = RHIDevice::Create(RHIBackend::DX12);
 	LOG_INFO("RHI Backend: DX12");
@@ -30,13 +33,17 @@ RHIContext::RHIContext(Window *window, bool vsync) :
 
 	m_swapchain = RHISwapchain::Create(m_device.get(), p_window->GetNativeHandle(), p_window->GetWidth(), p_window->GetHeight(), m_vsync);
 
-	m_queue      = RHIQueue::Create(m_device.get());
+	m_queue = RHIQueue::Create(m_device.get());
+#ifdef CUDA_ENABLE
 	m_cuda_queue = RHIQueue::Create(m_cuda_device.get());
+#endif
 
 	for (uint32_t i = 0; i < m_swapchain->GetTextureCount(); i++)
 	{
 		m_frames.emplace_back(RHIFrame::Create(m_device.get()));
+#ifdef CUDA_ENABLE
 		m_cuda_frames.emplace_back(RHIFrame::Create(m_cuda_device.get()));
+#endif
 		m_present_complete.emplace_back(RHISemaphore::Create(m_device.get()));
 		m_render_complete.emplace_back(RHISemaphore::Create(m_device.get()));
 	}
@@ -63,6 +70,11 @@ RHIContext::~RHIContext()
 	m_queue.reset();
 	m_device.reset();
 	m_cuda_device.reset();
+}
+
+const std::string &RHIContext::GetDeviceName() const
+{
+	return m_device->GetName();
 }
 
 RHIBackend RHIContext::GetBackend() const
@@ -113,37 +125,42 @@ std::unique_ptr<RHITexture> RHIContext::CreateTexture(const TextureDesc &desc)
 	return RHITexture::Create(m_device.get(), desc);
 }
 
-std::unique_ptr<RHITexture> RHIContext::CreateTexture2D(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples, bool external)
+std::unique_ptr<RHITexture> RHIContext::CreateTexture2D(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples)
 {
-	return RHITexture::Create2D(m_device.get(), width, height, format, usage, mipmap, samples, external);
+	return RHITexture::Create2D(m_device.get(), width, height, format, usage, mipmap, samples);
 }
 
-std::unique_ptr<RHITexture> RHIContext::CreateTexture3D(uint32_t width, uint32_t height, uint32_t depth, RHIFormat format, RHITextureUsage usage, bool external)
+std::unique_ptr<RHITexture> RHIContext::CreateTexture3D(uint32_t width, uint32_t height, uint32_t depth, RHIFormat format, RHITextureUsage usage)
 {
-	return RHITexture::Create3D(m_device.get(), width, height, depth, format, usage, external);
+	return RHITexture::Create3D(m_device.get(), width, height, depth, format, usage);
 }
 
-std::unique_ptr<RHITexture> RHIContext::CreateTextureCube(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, bool external)
+std::unique_ptr<RHITexture> RHIContext::CreateTextureCube(uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap)
 {
-	return RHITexture::CreateCube(m_device.get(), width, height, format, usage, mipmap, external);
+	return RHITexture::CreateCube(m_device.get(), width, height, format, usage, mipmap);
 }
 
-std::unique_ptr<RHITexture> RHIContext::CreateTexture2DArray(uint32_t width, uint32_t height, uint32_t layers, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples, bool external)
+std::unique_ptr<RHITexture> RHIContext::CreateTexture2DArray(uint32_t width, uint32_t height, uint32_t layers, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples)
 {
-	return RHITexture::Create2DArray(m_device.get(), width, height, layers, format, usage, mipmap, samples, external);
+	return RHITexture::Create2DArray(m_device.get(), width, height, layers, format, usage, mipmap, samples);
 }
 
 std::unique_ptr<RHITexture> RHIContext::MapToCUDATexture(RHITexture *texture)
 {
+#ifdef CUDA_ENABLE
 	return std::make_unique<CUDA::Texture>(static_cast<CUDA::Device *>(m_cuda_device.get()), static_cast<Vulkan::Device *>(m_device.get()), static_cast<Vulkan::Texture *>(texture));
+#else
+	LOG_ERROR("CUDA is not supported!");
+	return nullptr;
+#endif        // CUDA_ENABLE
 }
 
-std::unique_ptr<RHIBuffer> RHIContext::CreateBuffer(const BufferDesc &desc, bool cuda)
+std::unique_ptr<RHIBuffer> RHIContext::CreateBuffer(const BufferDesc &desc)
 {
-	return cuda ? RHIBuffer::Create(m_cuda_device.get(), desc) : RHIBuffer::Create(m_device.get(), desc);
+	return RHIBuffer::Create(m_device.get(), desc);
 }
 
-std::unique_ptr<RHIBuffer> RHIContext::CreateBuffer(size_t size, RHIBufferUsage usage, RHIMemoryUsage memory, bool cuda)
+std::unique_ptr<RHIBuffer> RHIContext::CreateBuffer(size_t size, RHIBufferUsage usage, RHIMemoryUsage memory)
 {
 	BufferDesc desc = {};
 	desc.size       = size;
@@ -153,16 +170,16 @@ std::unique_ptr<RHIBuffer> RHIContext::CreateBuffer(size_t size, RHIBufferUsage 
 	return RHIBuffer::Create(m_device.get(), desc);
 }
 
-RHISampler *RHIContext::CreateSampler(const SamplerDesc &desc, bool cuda)
+RHISampler *RHIContext::CreateSampler(const SamplerDesc &desc)
 {
-	size_t hash = Hash(cuda, desc.address_mode_u, desc.address_mode_v, desc.address_mode_w, desc.anisotropic, desc.border_color, desc.mag_filter, desc.max_lod, desc.min_filter, desc.min_lod, desc.mipmap_mode, desc.mip_lod_bias);
+	size_t hash = Hash(desc.address_mode_u, desc.address_mode_v, desc.address_mode_w, desc.anisotropic, desc.border_color, desc.mag_filter, desc.max_lod, desc.min_filter, desc.min_lod, desc.mipmap_mode, desc.mip_lod_bias);
 
 	if (m_samplers.find(hash) != m_samplers.end())
 	{
 		return m_samplers.at(hash).get();
 	}
 
-	m_samplers.emplace(hash, cuda ? RHISampler::Create(m_cuda_device.get(), desc) : RHISampler::Create(m_device.get(), desc));
+	m_samplers.emplace(hash, RHISampler::Create(m_device.get(), desc));
 	return m_samplers.at(hash).get();
 }
 
@@ -173,12 +190,12 @@ RHICommand *RHIContext::CreateCommand(RHIQueueFamily family, bool cuda)
 
 std::unique_ptr<RHIDescriptor> RHIContext::CreateDescriptor(const ShaderMeta &meta, bool cuda)
 {
-	return cuda ? RHIDescriptor::Create(m_cuda_device.get(), meta) : RHIDescriptor::Create(m_device.get(), meta);
+	return RHIDescriptor::Create(cuda ? m_cuda_device.get() : m_device.get(), meta);
 }
 
 std::unique_ptr<RHIPipelineState> RHIContext::CreatePipelineState(bool cuda)
 {
-	return cuda ? RHIPipelineState::Create(m_cuda_device.get()) : RHIPipelineState::Create(m_device.get());
+	return RHIPipelineState::Create(cuda ? m_cuda_device.get() : m_device.get());
 }
 
 std::unique_ptr<RHIShader> RHIContext::CreateShader(const std::string &entry_point, const std::vector<uint8_t> &source, bool cuda)
@@ -218,13 +235,18 @@ RHISemaphore *RHIContext::CreateFrameSemaphore()
 
 std::unique_ptr<RHISemaphore> RHIContext::MapToCUDASemaphore(RHISemaphore *semaphore)
 {
+#ifdef CUDA_ENABLE
 	return std::make_unique<CUDA::Semaphore>(
 	    static_cast<CUDA::Device *>(m_cuda_device.get()),
 	    static_cast<Vulkan::Device *>(m_device.get()),
 	    static_cast<Vulkan::Semaphore *>(semaphore));
+#else
+	LOG_ERROR("CUDA is not supported!");
+	return nullptr;
+#endif        // CUDA_ENABLE
 }
 
-std::unique_ptr<RHIAccelerationStructure> RHIContext::CreateAcccelerationStructure(bool cuda)
+std::unique_ptr<RHIAccelerationStructure> RHIContext::CreateAcccelerationStructure()
 {
 	return RHIAccelerationStructure::Create(m_device.get());
 }

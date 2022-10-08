@@ -11,7 +11,8 @@ inline static VkDescriptorPool                                  DescriptorPool =
 inline static std::unordered_map<size_t, VkDescriptorSetLayout> DescriptorSetLayouts;
 inline static std::unordered_map<size_t, VkDescriptorSet>       DescriptorSet;
 
-inline static size_t DescriptorCount = 0;
+inline static uint32_t DescriptorCount    = 0;
+inline static uint32_t MaxDescriptorCount = 0;
 
 inline static std::unordered_map<DescriptorType, VkDescriptorType> DescriptorTypeMap = {
     {DescriptorType::Sampler, VK_DESCRIPTOR_TYPE_SAMPLER},
@@ -30,6 +31,8 @@ Descriptor::Descriptor(RHIDevice *device, const ShaderMeta &meta) :
 		VkPhysicalDeviceProperties properties = {};
 		vkGetPhysicalDeviceProperties(static_cast<Device *>(p_device)->GetPhysicalDevice(), &properties);
 
+		MaxDescriptorCount = 16384ul;
+
 		VkDescriptorPoolSize pool_sizes[] =
 		    {
 		        {VK_DESCRIPTOR_TYPE_SAMPLER, properties.limits.maxDescriptorSetSamplers},
@@ -39,13 +42,12 @@ Descriptor::Descriptor(RHIDevice *device, const ShaderMeta &meta) :
 		        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, properties.limits.maxDescriptorSetStorageBuffers},
 		        {VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1024},
 		    };
-
 		// Create descriptor pool
 		VkDescriptorPoolCreateInfo descriptor_pool_create_info = {};
 		descriptor_pool_create_info.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		descriptor_pool_create_info.pPoolSizes                 = pool_sizes;
 		descriptor_pool_create_info.poolSizeCount              = 6;
-		descriptor_pool_create_info.maxSets                    = 4096;
+		descriptor_pool_create_info.maxSets                    = MaxDescriptorCount;
 		descriptor_pool_create_info.flags                      = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
 
 		vkCreateDescriptorPool(static_cast<Device *>(p_device)->GetDevice(), &descriptor_pool_create_info, nullptr, &DescriptorPool);
@@ -357,114 +359,116 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 	// Check update
 	for (auto &[set, dirty] : m_binding_dirty)
 	{
-		if (dirty)
+		size_t hash = 0;
+		for (auto &[name, binding_hash] : m_binding_hash)
 		{
-			size_t hash = 0;
-			for (auto &[name, binding_hash] : m_binding_hash)
+			if (m_descriptor_lookup[name].first == set)
 			{
-				if (m_descriptor_lookup[name].first == set)
-				{
-					HashCombine(hash, binding_hash);
-				}
+				HashCombine(hash, binding_hash);
 			}
-
-			if (DescriptorSet.find(hash) != DescriptorSet.end())
-			{
-				VkDescriptorSet descriptor_set = DescriptorSet[hash];
-				m_descriptor_sets[set]         = descriptor_set;
-				return m_descriptor_sets;
-			}
-
-			// Allocate descriptor set
-			VkDescriptorSetAllocateInfo allocate_info = {};
-			allocate_info.sType                       = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-			allocate_info.descriptorPool              = DescriptorPool;
-			allocate_info.descriptorSetCount          = 1;
-			allocate_info.pSetLayouts                 = &m_descriptor_set_layouts.at(set);
-
-			VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
-			vkAllocateDescriptorSets(static_cast<Device *>(p_device)->GetDevice(), &allocate_info, &descriptor_set);
-
-			DescriptorSet.emplace(hash, descriptor_set);
-			m_descriptor_sets[set] = descriptor_set;
-
-			std::vector<VkWriteDescriptorSet>                write_sets;
-			std::vector<std::vector<VkDescriptorImageInfo>>  image_infos  = {};
-			std::vector<std::vector<VkDescriptorBufferInfo>> buffer_infos = {};
-			for (auto &descriptor : m_meta.descriptors)
-			{
-				if (descriptor.set == set)
-				{
-					bool     is_texture       = false;
-					bool     is_buffer        = false;
-					uint32_t descriptor_count = 0;
-
-					image_infos.push_back({});
-					buffer_infos.push_back({});
-
-					// Handle Texture
-					if (descriptor.type == DescriptorType::TextureSRV ||
-					    descriptor.type == DescriptorType::TextureUAV)
-					{
-						is_texture = true;
-						for (auto &view : m_texture_resolves[descriptor.name].views)
-						{
-							image_infos.back().push_back(VkDescriptorImageInfo{
-							    VK_NULL_HANDLE,
-							    view,
-							    m_texture_resolves[descriptor.name].layout});
-						}
-						descriptor_count = static_cast<uint32_t>(image_infos.back().size());
-					}
-
-					// Handle Sampler
-					if (descriptor.type == DescriptorType::Sampler)
-					{
-						is_texture = true;
-						for (auto &sampler : m_texture_resolves[descriptor.name].samplers)
-						{
-							image_infos.back().push_back(VkDescriptorImageInfo{
-							    sampler,
-							    VK_NULL_HANDLE,
-							    VK_IMAGE_LAYOUT_UNDEFINED});
-						}
-						descriptor_count = static_cast<uint32_t>(image_infos.back().size());
-					}
-
-					// Handle Buffer
-					if (descriptor.type == DescriptorType::ConstantBuffer ||
-					    descriptor.type == DescriptorType::StructuredBuffer)
-					{
-						is_buffer = true;
-						for (uint32_t i = 0; i < m_buffer_resolves[descriptor.name].buffers.size(); i++)
-						{
-							buffer_infos.back().push_back(VkDescriptorBufferInfo{
-							    m_buffer_resolves[descriptor.name].buffers[i],
-							    m_buffer_resolves[descriptor.name].offsets[i],
-							    m_buffer_resolves[descriptor.name].ranges[i]});
-						}
-						descriptor_count = static_cast<uint32_t>(buffer_infos.back().size());
-					}
-
-					VkWriteDescriptorSet write_set = {};
-					write_set.sType                = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-					write_set.dstSet               = m_descriptor_sets[set];
-					write_set.dstBinding           = descriptor.binding;
-					write_set.dstArrayElement      = 0;
-					write_set.descriptorCount      = descriptor_count;
-					write_set.descriptorType       = DescriptorTypeMap[descriptor.type];
-					write_set.pImageInfo           = is_texture ? image_infos.back().data() : nullptr;
-					write_set.pBufferInfo          = is_buffer ? buffer_infos.back().data() : nullptr;
-					write_set.pTexelBufferView     = nullptr;
-
-					write_sets.push_back(write_set);
-				}
-			}
-
-			vkUpdateDescriptorSets(static_cast<Device *>(p_device)->GetDevice(), static_cast<uint32_t>(write_sets.size()), write_sets.data(), 0, nullptr);
-
-			dirty = false;
 		}
+
+		if (DescriptorSet.find(hash) != DescriptorSet.end())
+		{
+			VkDescriptorSet descriptor_set = DescriptorSet[hash];
+			m_descriptor_sets[set]         = descriptor_set;
+			return m_descriptor_sets;
+		}
+
+		if (DescriptorSet.size() >= MaxDescriptorCount)
+		{
+			p_device->WaitIdle();
+			vkResetDescriptorPool(static_cast<Device *>(p_device)->GetDevice(), DescriptorPool, 0);
+			DescriptorSet.clear();
+		}
+
+		// Allocate descriptor set
+		VkDescriptorSetAllocateInfo allocate_info = {};
+		allocate_info.sType                       = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+		allocate_info.descriptorPool              = DescriptorPool;
+		allocate_info.descriptorSetCount          = 1;
+		allocate_info.pSetLayouts                 = &m_descriptor_set_layouts.at(set);
+
+		VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
+		vkAllocateDescriptorSets(static_cast<Device *>(p_device)->GetDevice(), &allocate_info, &descriptor_set);
+
+		DescriptorSet.emplace(hash, descriptor_set);
+		m_descriptor_sets[set] = descriptor_set;
+
+		std::vector<VkWriteDescriptorSet>                write_sets;
+		std::vector<std::vector<VkDescriptorImageInfo>>  image_infos  = {};
+		std::vector<std::vector<VkDescriptorBufferInfo>> buffer_infos = {};
+		for (auto &descriptor : m_meta.descriptors)
+		{
+			if (descriptor.set == set)
+			{
+				bool     is_texture       = false;
+				bool     is_buffer        = false;
+				uint32_t descriptor_count = 0;
+
+				image_infos.push_back({});
+				buffer_infos.push_back({});
+
+				// Handle Texture
+				if (descriptor.type == DescriptorType::TextureSRV ||
+				    descriptor.type == DescriptorType::TextureUAV)
+				{
+					is_texture = true;
+					for (auto &view : m_texture_resolves[descriptor.name].views)
+					{
+						image_infos.back().push_back(VkDescriptorImageInfo{
+						    VK_NULL_HANDLE,
+						    view,
+						    m_texture_resolves[descriptor.name].layout});
+					}
+					descriptor_count = static_cast<uint32_t>(image_infos.back().size());
+				}
+
+				// Handle Sampler
+				if (descriptor.type == DescriptorType::Sampler)
+				{
+					is_texture = true;
+					for (auto &sampler : m_texture_resolves[descriptor.name].samplers)
+					{
+						image_infos.back().push_back(VkDescriptorImageInfo{
+						    sampler,
+						    VK_NULL_HANDLE,
+						    VK_IMAGE_LAYOUT_UNDEFINED});
+					}
+					descriptor_count = static_cast<uint32_t>(image_infos.back().size());
+				}
+
+				// Handle Buffer
+				if (descriptor.type == DescriptorType::ConstantBuffer ||
+				    descriptor.type == DescriptorType::StructuredBuffer)
+				{
+					is_buffer = true;
+					for (uint32_t i = 0; i < m_buffer_resolves[descriptor.name].buffers.size(); i++)
+					{
+						buffer_infos.back().push_back(VkDescriptorBufferInfo{
+						    m_buffer_resolves[descriptor.name].buffers[i],
+						    m_buffer_resolves[descriptor.name].offsets[i],
+						    m_buffer_resolves[descriptor.name].ranges[i]});
+					}
+					descriptor_count = static_cast<uint32_t>(buffer_infos.back().size());
+				}
+
+				VkWriteDescriptorSet write_set = {};
+				write_set.sType                = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				write_set.dstSet               = m_descriptor_sets[set];
+				write_set.dstBinding           = descriptor.binding;
+				write_set.dstArrayElement      = 0;
+				write_set.descriptorCount      = descriptor_count;
+				write_set.descriptorType       = DescriptorTypeMap[descriptor.type];
+				write_set.pImageInfo           = is_texture ? image_infos.back().data() : nullptr;
+				write_set.pBufferInfo          = is_buffer ? buffer_infos.back().data() : nullptr;
+				write_set.pTexelBufferView     = nullptr;
+
+				write_sets.push_back(write_set);
+			}
+		}
+
+		vkUpdateDescriptorSets(static_cast<Device *>(p_device)->GetDevice(), static_cast<uint32_t>(write_sets.size()), write_sets.data(), 0, nullptr);
 	}
 
 	return m_descriptor_sets;

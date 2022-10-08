@@ -343,11 +343,6 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(cons
 	arguments.emplace_back(L"-fspv-extension=SPV_EXT_shader_viewport_index_layer");
 	arguments.emplace_back(L"-fspv-extension=SPV_NV_mesh_shader");
 
-	if (stage & RHIShaderStage::Vertex || stage & RHIShaderStage::Geometry || stage & RHIShaderStage::TessellationEvaluation)
-	{
-		arguments.emplace_back(L"-fvk-invert-y");
-	}
-
 	for (const auto &macro : macros)
 	{
 		arguments.emplace_back(to_wstring(std::string("-D") + macro));
@@ -686,9 +681,9 @@ std::vector<uint8_t> ShaderCompiler::Compile(const ShaderDesc &desc, ShaderMeta 
 				meta = SpirvReflection::GetInstance().Reflect(CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(hlsl, desc.stage, desc.entry_point, desc.macros));
 
 				// Fix name
-				for (auto& descriptor : meta.descriptors)
+				for (auto &descriptor : meta.descriptors)
 				{
-					for (auto& before_descriptor : before_meta.descriptors)
+					for (auto &before_descriptor : before_meta.descriptors)
 					{
 						if (descriptor == before_descriptor)
 						{

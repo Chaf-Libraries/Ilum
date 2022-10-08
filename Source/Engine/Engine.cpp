@@ -65,10 +65,16 @@ void Engine::Tick()
 			std::this_thread::sleep_for(std::chrono::milliseconds(16));
 		}
 
-		m_window->SetTitle(fmt::format("IlumEngine | Scene - {} | Version - {} | Backend - {} | FPS - {}",
+		m_window->SetTitle(fmt::format("IlumEngine | Scene - {} | Version - {} | GPU - {} | Backend - {} | CUDA - {} | FPS - {}",
 		                               m_scene->GetName(),
 		                               "1.0Beta",
+		                               m_rhi_context->GetDeviceName(),
 		                               rttr::type::get<RHIBackend>().get_enumeration().value_to_name(m_rhi_context->GetBackend()).to_string(),
+#ifdef CUDA_ENABLE
+		                               "Enable",
+#else
+		                               "Disable",
+#endif        // CUDA_ENABLE
 		                               m_timer.FrameRate()));
 	}
 }

@@ -1,12 +1,13 @@
 #include "Common.hlsli"
 
-ConstantBuffer<ViewInfo> View : register(b0);
-StructuredBuffer<Vertex> VertexBuffer[] : register(t1);
-StructuredBuffer<uint> IndexBuffer[] : register(t2);
-StructuredBuffer<uint> MeshletVertexBuffer[] : register(t3);
-StructuredBuffer<uint> MeshletPrimitiveBuffer[] : register(t4);
-StructuredBuffer<Meshlet> MeshletBuffer[] : register(t5);
-StructuredBuffer<InstanceData> InstanceBuffer : register(t6);
+ConstantBuffer<ViewInfo> View;
+StructuredBuffer<Vertex> VertexBuffer[];
+StructuredBuffer<uint> IndexBuffer[];
+StructuredBuffer<uint> MeshletVertexBuffer[];
+StructuredBuffer<uint> MeshletPrimitiveBuffer[];
+StructuredBuffer<Meshlet> MeshletBuffer[];
+StructuredBuffer<InstanceData> InstanceBuffer;
+RWStructuredBuffer<uint> DebugBuffer;
 
 struct VertexOut
 {
@@ -37,16 +38,15 @@ groupshared PayLoad s_payload;
 [numthreads(32, 1, 1)]
 void ASmain(CSParam param)
 {
-    bool visible = true;
+    bool visible = false;
     uint meshlet_count = 0;
     uint stride = 0;
     
     InstanceData instance = InstanceBuffer[push_constants.instance_idx];
     uint model_id = instance.model_id;
-    uint submesh_id = instance.submesh_id;
     uint meshlet_id = param.DispatchThreadID.x;
     
-    if (meshlet_id < instance.meshlet_count)
+    if (meshlet_id <= instance.meshlet_count)
     {
         visible = true;
     }
@@ -83,28 +83,27 @@ void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut v
     
     for (uint i = param.GroupThreadID.x; i < meshlet.vertices_count; i += 32)
     {
-        uint vertex_index = meshlet.vertices_offset + MeshletVertexBuffer[model_id][meshlet.meshlet_vertices_offset + i];
+        uint vertex_index = meshlet.vertices_offset + MeshletVertexBuffer[model_id][i + meshlet.meshlet_vertices_offset];
         Vertex vertex = VertexBuffer[model_id][vertex_index];
-    
+        
         verts[i].Position = mul(View.view_projection_matrix, mul(transform, float4(vertex.position.xyz, 1.0)));
         verts[i].Texcoord = vertex.texcoord.xy;
     }
     
     for (i = param.GroupThreadID.x; i < meshlet.indices_count / 3; i += 32)
     {
-        prims[i].InstanceID = model_id;
+        prims[i].InstanceID = push_constants.instance_idx;
         prims[i].MeshletID = meshlet_id;
         prims[i].PrimitiveID = i;
        
         uint v0, v1, v2;
         UnPackTriangle(MeshletPrimitiveBuffer[model_id][i + meshlet.meshlet_primitive_offset], v0, v1, v2);
-       
+        DebugBuffer[meshlet_id] = meshlet.meshlet_primitive_offset;
         tris[i] = uint3(v0, v1, v2);
     }
 }
 
-uint PSmain(VertexOut verts, PrimitiveOut prims) : SV_TARGET0
+uint PSmain(VertexOut vert, PrimitiveOut prim) : SV_TARGET0
 {
-    //return prims.MeshletID;
-    return PackVisibilityBuffer(prims.InstanceID, prims.MeshletID, prims.PrimitiveID);
+    return PackVisibilityBuffer(prim.InstanceID, prim.MeshletID, prim.PrimitiveID);
 }

@@ -585,10 +585,26 @@ void RenderGraphEditor::Tick()
 								if (ImGui::MenuItem(pass_name.c_str()))
 								{
 									auto pass = type.create();
-									m_desc.passes.emplace(
-									    RGHandle(m_current_handle++),
-									    rttr::type::get(pass).get_method("CreateDesc").invoke(pass).convert<RenderPassDesc>());
-									m_need_compile = true;
+
+									RenderPassDesc pass_desc = rttr::type::get(pass).get_method("CreateDesc").invoke(pass).convert<RenderPassDesc>();
+									if (pass_desc.bind_point == BindPoint::CUDA)
+									{
+#ifndef CUDA_ENABLE
+										LOG_WARN("CUDA Pass is not supported!");
+#else
+										m_desc.passes.emplace(
+										    RGHandle(m_current_handle++),
+										    rttr::type::get(pass).get_method("CreateDesc").invoke(pass).convert<RenderPassDesc>());
+										m_need_compile = true;
+#endif        // !CUDA_ENABLE
+									}
+									else
+									{
+										m_desc.passes.emplace(
+										    RGHandle(m_current_handle++),
+										    rttr::type::get(pass).get_method("CreateDesc").invoke(pass).convert<RenderPassDesc>());
+										m_need_compile = true;
+									}
 								}
 								ImGui::EndMenu();
 							}

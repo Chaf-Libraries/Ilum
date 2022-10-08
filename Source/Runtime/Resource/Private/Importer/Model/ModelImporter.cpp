@@ -19,6 +19,6 @@ ModelImportInfo ModelImporter::Import(const std::string &filename)
 
 uint32_t ModelImporter::PackTriangle(uint8_t v0, uint8_t v1, uint8_t v2)
 {
-	return (v0 & 0xff) + ((v1 & 0xff) << 8) + ((v2 & 0xff) << 16);
+	return static_cast<uint32_t>(v0) + (static_cast<uint32_t>(v1) << 8) + (static_cast<uint32_t>(v2) << 16);
 }
 }        // namespace Ilum

@@ -115,7 +115,7 @@ void Command::DrawMeshTask(uint32_t thread_x, uint32_t thread_y, uint32_t thread
 {
 }
 
-void Command::DrawMeshTask(uint32_t task_count, uint32_t task_offset)
+void Command::DrawMeshTask(uint32_t thread_count, uint32_t block_size, uint32_t task_offset)
 {
 }
 

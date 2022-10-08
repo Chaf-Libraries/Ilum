@@ -1,9 +1,11 @@
 #include "RHISampler.hpp"
 #include "RHIDevice.hpp"
 
-#include "Backend/CUDA/Sampler.hpp"
 #include "Backend/DX12/Sampler.hpp"
 #include "Backend/Vulkan/Sampler.hpp"
+#ifdef CUDA_ENABLE
+#	include "Backend/CUDA/Sampler.hpp"
+#endif        // CUDA_ENABLE
 
 namespace Ilum
 {
@@ -52,8 +54,10 @@ std::unique_ptr<RHISampler> RHISampler::Create(RHIDevice *device, const SamplerD
 			return std::make_unique<Vulkan::Sampler>(device, desc);
 		case RHIBackend::DX12:
 			return std::make_unique<DX12::Sampler>(device, desc);
+#ifdef CUDA_ENABLE
 		case RHIBackend::CUDA:
 			return std::make_unique<CUDA::Sampler>(device, desc);
+#endif
 		default:
 			break;
 	}

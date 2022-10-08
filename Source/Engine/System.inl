@@ -25,10 +25,6 @@ inline void System::Execute<TransformComponent, HierarchyComponent>(Renderer *re
 			{
 				transform.local_transform = glm::scale(glm::translate(glm::mat4(1.f), transform.translation) * glm::mat4_cast(glm::qua<float>(glm::radians(transform.rotation))), transform.scale);
 				transform.world_transform = parent.GetComponent<TransformComponent>().world_transform * transform.local_transform;
-				if (entity.HasComponent<StaticMeshComponent>())
-				{
-					renderer->UpdateGPUScene();
-				}
 			}
 		}
 		else
@@ -37,7 +33,6 @@ inline void System::Execute<TransformComponent, HierarchyComponent>(Renderer *re
 			{
 				transform.local_transform = glm::scale(glm::translate(glm::mat4(1.f), transform.translation) * glm::mat4_cast(glm::qua<float>(glm::radians(transform.rotation))), transform.scale);
 				transform.world_transform = transform.local_transform;
-				renderer->UpdateGPUScene();
 			}
 		}
 
@@ -86,7 +81,6 @@ inline void System::Execute<StaticMeshComponent>(Renderer *renderer)
 			{
 				static_mesh.materials.clear();
 			}
-			renderer->UpdateGPUScene();
 		}
 	});
 }

@@ -6,9 +6,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 file(GLOB_RECURSE HEADER_FILES "*.hpp")
 file(GLOB_RECURSE SOURCE_FILES "*.cpp")
 
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${HEADER_FILES} ${SOURCE_FILES})
+file(GLOB_RECURSE PUBLIC_FILES "Public/*.hpp" "Public/*.cpp")
+file(GLOB PRIVATE_FILES "Private/*.hpp" "Private/*.cpp")
 
-add_library(${TARGET_NAME} ${HEADER_FILES} ${SOURCE_FILES})
+file(GLOB_RECURSE VULKAN_FILES "Private/Backend/Vulkan/*.hpp" "Private/Backend/Vulkan/*.cpp")
+file(GLOB_RECURSE DX12_FILES "Private/Backend/DX12/*.hpp" "Private/Backend/DX12/*.cpp")
+file(GLOB_RECURSE CUDA_FILES "Private/Backend/CUDA/*.hpp" "Private/Backend/CUDA/*.cpp")
+
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${PUBLIC_FILES} ${PRIVATE_FILES} ${VULKAN_FILES} ${DX12_FILES} ${CUDA_FILES})
+
+if(ENABLE_CUDA)
+	add_library(${TARGET_NAME} ${PUBLIC_FILES} ${PRIVATE_FILES} ${VULKAN_FILES} ${DX12_FILES} ${CUDA_FILES})
+else()
+	add_library(${TARGET_NAME} ${PUBLIC_FILES} ${PRIVATE_FILES} ${VULKAN_FILES} ${DX12_FILES})
+endif()
 
 set_target_properties(
 	${TARGET_NAME} 

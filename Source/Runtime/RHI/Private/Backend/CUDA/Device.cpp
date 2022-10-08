@@ -9,19 +9,9 @@ Device::Device() :
 {
 	LOG_INFO("Initializing RHI backend CUDA...");
 
-	int32_t device_count = 0;
-	cudaGetDeviceCount(&device_count);
-	for (int32_t i = 0; i < device_count; i++)
-	{
-		cudaDeviceProp prop;
-		cudaGetDeviceProperties(&prop, i);
-		std::stringstream ss;
-		ss << "\nFound physical device [" << i << "]\n";
-		ss << "Name: " << prop.name << "\n";
-		ss << "Vendor: ";
-		ss << "Nvidia\n";
-		LOG_INFO("{}", ss.str());
-	}
+	cudaDeviceProp prop;
+	cudaGetDeviceProperties(&prop, 0);
+	m_name = prop.name;
 
 	cuInit(0);
 	cuDeviceGet(&m_device, 0);

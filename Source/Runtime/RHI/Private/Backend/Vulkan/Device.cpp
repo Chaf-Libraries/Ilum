@@ -51,6 +51,7 @@ static const std::vector<const char *> DeviceExtensions = {
     VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,
     VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
     VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,
+	VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME,
 #ifdef _WIN64
     VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
     VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME
@@ -131,61 +132,9 @@ inline uint32_t ScorePhysicalDevice(VkPhysicalDevice physical_device, const std:
 		}
 	}
 
-	VkPhysicalDeviceProperties       properties        = {};
-	VkPhysicalDeviceFeatures         features          = {};
-	VkPhysicalDeviceMemoryProperties memory_properties = {};
+	VkPhysicalDeviceProperties properties = {};
 
 	vkGetPhysicalDeviceProperties(physical_device, &properties);
-	vkGetPhysicalDeviceFeatures(physical_device, &features);
-	vkGetPhysicalDeviceMemoryProperties(physical_device, &memory_properties);
-
-	// Logging gpu
-	std::stringstream ss;
-	ss << "\nFound physical device [" << properties.deviceID << "]\n";
-	ss << "Name: " << properties.deviceName << "\n";
-	ss << "Type: ";
-	switch (static_cast<int32_t>(properties.deviceType))
-	{
-		case 1:
-			ss << "Integrated\n";
-			break;
-		case 2:
-			ss << "Discrete\n";
-			break;
-		case 3:
-			ss << "Virtual\n";
-			break;
-		case 4:
-			ss << "CPU\n";
-			break;
-		default:
-			ss << "Other " << properties.deviceType << "\n";
-	}
-
-	ss << "Vendor: ";
-	switch (properties.vendorID)
-	{
-		case 0x8086:
-			ss << "Intel\n";
-			break;
-		case 0x10DE:
-			ss << "Nvidia\n";
-			break;
-		case 0x1002:
-			ss << "AMD\n";
-			break;
-		default:
-			ss << properties.vendorID << "\n";
-	}
-
-	uint32_t supportedVersion[3] = {
-	    VK_VERSION_MAJOR(properties.apiVersion),
-	    VK_VERSION_MINOR(properties.apiVersion),
-	    VK_VERSION_PATCH(properties.apiVersion)};
-
-	ss << "API Version: " << supportedVersion[0] << "." << supportedVersion[1] << "." << supportedVersion[2] << "\n";
-
-	LOG_INFO("{}", ss.str());
 
 	// Score discrete gpu
 	if (properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
@@ -333,7 +282,7 @@ void Device::CreateInstance()
 	{
 		std::string sdk_version_str = std::to_string(VK_VERSION_MAJOR(sdk_version)) + "." + std::to_string(VK_VERSION_MINOR(sdk_version)) + "." + std::to_string(VK_VERSION_PATCH(sdk_version));
 		std::string api_version_str = std::to_string(VK_VERSION_MAJOR(api_version)) + "." + std::to_string(VK_VERSION_MINOR(api_version)) + "." + std::to_string(VK_VERSION_PATCH(api_version));
-		LOG_INFO("Driver support version {} is higher than API version {}, upgrade your VulkanSDK!", sdk_version_str, api_version_str);
+		LOG_WARN("Driver support version {} is higher than API version {}, upgrade your VulkanSDK!", sdk_version_str, api_version_str);
 	}
 
 	app_info.pApplicationName   = "IlumEngine";
@@ -417,6 +366,10 @@ void Device::CreatePhysicalDevice()
 
 	// Select suitable physical device
 	m_physical_device = SelectPhysicalDevice(physical_devices, DeviceExtensions, m_supported_device_extensions);
+
+	VkPhysicalDeviceProperties properties = {};
+	vkGetPhysicalDeviceProperties(m_physical_device, &properties);
+	m_name = properties.deviceName;
 }
 
 void Device::CreateLogicalDevice()
@@ -647,11 +600,6 @@ void Device::CreateLogicalDevice()
 			}
 		}
 	}
-
-	LOG_INFO("Feature RayTracing Support: {}", m_feature_support[RHIFeature::RayTracing]);
-	LOG_INFO("Feature MeshShading Support: {}", m_feature_support[RHIFeature::MeshShading]);
-	LOG_INFO("Feature Buffer Device Address Support: {}", m_feature_support[RHIFeature::BufferDeviceAddress]);
-	LOG_INFO("Feature Bindless Support: {}", m_feature_support[RHIFeature::Bindless]);
 
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_feature = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
 	VkPhysicalDeviceRayTracingPipelineFeaturesKHR    ray_tracing_pipeline_feature   = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};

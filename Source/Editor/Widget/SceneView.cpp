@@ -77,8 +77,8 @@ void SceneView::DisplayPresent()
 		{
 			size_t uuid = *static_cast<size_t *>(pay_load->Data);
 
-			auto *resource  = p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Scene>(uuid);
-			auto *scene = p_editor->GetRenderer()->GetScene();
+			auto *resource = p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Scene>(uuid);
+			auto *scene    = p_editor->GetRenderer()->GetScene();
 
 			if (resource)
 			{
@@ -90,16 +90,15 @@ void SceneView::DisplayPresent()
 		{
 			size_t uuid = *static_cast<size_t *>(pay_load->Data);
 
-			auto *resource   = p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Model>(uuid);
+			auto *resource = p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Model>(uuid);
 			auto  entity   = p_editor->GetRenderer()->GetScene()->CreateEntity(resource->GetName());
-			auto &cmpt   = entity.AddComponent<StaticMeshComponent>();
-			cmpt.uuid    = uuid;
+			auto &cmpt     = entity.AddComponent<StaticMeshComponent>();
+			cmpt.uuid      = uuid;
 			if (resource)
 			{
 				cmpt.materials.resize(resource->GetSubmeshes().size());
 				std::fill(cmpt.materials.begin(), cmpt.materials.end(), "");
 			}
-			p_editor->GetRenderer()->UpdateGPUScene();
 		}
 	}
 }
@@ -146,6 +145,8 @@ void SceneView::UpdateCamera()
 
 		glm::vec3 direction = glm::vec3(0.f);
 
+		m_camera.speed = glm::clamp(m_camera.speed + 0.5f * ImGui::GetIO().MouseWheel, 0.f, 30.f);
+
 		if (Input::GetInstance().IsKeyPressed(KeyCode::W))
 		{
 			direction += forward;
@@ -171,9 +172,9 @@ void SceneView::UpdateCamera()
 			direction -= up;
 		}
 
-		// m_camera.velocity = SmoothStep(m_camera.velocity, direction, 0.2f);
+		 m_camera.velocity = SmoothStep(m_camera.velocity, direction * m_camera.speed, 0.2f);
 
-		m_camera.position += direction * delta_time * m_camera.speed;
+		m_camera.position += delta_time * m_camera.velocity;
 
 		m_view_info.position    = m_camera.position;
 		m_view_info.view_matrix = glm::lookAt(m_camera.position, m_camera.position + forward, up);
@@ -182,6 +183,7 @@ void SceneView::UpdateCamera()
 	else if (m_hide_cursor)
 	{
 		m_hide_cursor = false;
+		m_camera.velocity = glm::vec3(0.f);
 	}
 
 	m_view_info.view_projection_matrix = m_view_info.projection_matrix * m_view_info.view_matrix;

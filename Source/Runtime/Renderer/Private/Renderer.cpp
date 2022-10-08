@@ -85,18 +85,14 @@ void Renderer::Tick()
 {
 	m_present_texture = nullptr;
 
-	if (m_update_scene || p_resource_manager->IsUpdate())
-	{
-		UpdateScene();
-		m_update_scene = false;
-	}
+	p_resource_manager->Tick();
+
+	UpdateScene();
 
 	if (m_render_graph)
 	{
 		m_render_graph->Execute();
 	}
-
-	p_resource_manager->Tick();
 }
 
 void Renderer::SetRenderGraph(std::unique_ptr<RenderGraph> &&render_graph)
@@ -165,11 +161,6 @@ void Renderer::Reset()
 RHITexture *Renderer::GetDummyTexture(DummyTexture dummy) const
 {
 	return m_dummy_textures.at(dummy).get();
-}
-
-void Renderer::UpdateGPUScene()
-{
-	m_update_scene = true;
 }
 
 RHIAccelerationStructure *Renderer::GetTLAS() const
@@ -359,15 +350,15 @@ void Renderer::UpdateScene()
 
 				desc.instances.emplace_back(std::move(instance_info));
 
-				InstanceData instance_data = {};
-				instance_data.aabb_max     = aabb.max;
-				instance_data.aabb_min     = aabb.min;
-				instance_data.model_id  = static_cast<uint32_t>(p_resource_manager->GetResourceIndex<ResourceType::Model>(static_mesh.uuid));
-				instance_data.transform    = instance_info.transform;
-				instance_data.material     = 0;
-				instance_data.submesh_id   = i;
-				instance_data.meshlet_offset  = submesh.meshlet_offset;
-				instance_data.meshlet_count   = submesh.meshlet_count;
+				InstanceData instance_data   = {};
+				instance_data.aabb_max       = aabb.max;
+				instance_data.aabb_min       = aabb.min;
+				instance_data.model_id       = static_cast<uint32_t>(p_resource_manager->GetResourceIndex<ResourceType::Model>(static_mesh.uuid));
+				instance_data.transform      = instance_info.transform;
+				instance_data.material       = 0;
+				instance_data.submesh_id     = i;
+				instance_data.meshlet_offset = submesh.meshlet_offset;
+				instance_data.meshlet_count  = submesh.meshlet_count;
 				instances.emplace_back(std::move(instance_data));
 				m_scene_info.meshlet_count.push_back(resource->GetSubmeshes()[i].meshlet_count);
 			}

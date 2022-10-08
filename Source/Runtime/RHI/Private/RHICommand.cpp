@@ -1,9 +1,11 @@
 #include "RHICommand.hpp"
 #include "RHIDevice.hpp"
 
-#include "Backend/CUDA/Command.hpp"
 #include "Backend/DX12/Command.hpp"
 #include "Backend/Vulkan/Command.hpp"
+#ifdef CUDA_ENABLE
+#	include "Backend/CUDA/Command.hpp"
+#endif        // CUDA_ENABLE
 
 namespace Ilum
 {
@@ -41,8 +43,10 @@ std::unique_ptr<RHICommand> RHICommand::Create(RHIDevice *device, RHIQueueFamily
 			return std::make_unique<Vulkan::Command>(device, family);
 		case RHIBackend::DX12:
 			return std::make_unique<Vulkan::Command>(device, family);
+#ifdef CUDA_ENABLE
 		case RHIBackend::CUDA:
 			return std::make_unique<Vulkan::Command>(device, family);
+#endif
 		default:
 			break;
 	}

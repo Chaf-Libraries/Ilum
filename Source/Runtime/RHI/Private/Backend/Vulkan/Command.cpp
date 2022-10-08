@@ -237,7 +237,7 @@ void Command::BindPipelineState(RHIPipelineState *pipeline_state)
 void Command::SetViewport(float width, float height, float x, float y)
 {
 	// Flip y
-	VkViewport viewport = {x, y, width, height, 0.f, 1.f};
+	VkViewport viewport = {x, y + height, width, -height, 0.f, 1.f};
 	vkCmdSetViewport(m_handle, 0, 1, &viewport);
 }
 
@@ -267,9 +267,9 @@ void Command::DrawMeshTask(uint32_t thread_x, uint32_t thread_y, uint32_t thread
 	vkCmdDrawMeshTasksEXT(m_handle, (thread_x + block_x - 1) / block_x, (thread_y + block_y - 1) / block_y, (thread_z + block_z - 1) / block_z);
 }
 
-void Command::DrawMeshTask(uint32_t task_count, uint32_t task_offset)
+void Command::DrawMeshTask(uint32_t thread_count, uint32_t block_size, uint32_t task_offset)
 {
-	vkCmdDrawMeshTasksNV(m_handle, task_count, task_offset);
+	vkCmdDrawMeshTasksNV(m_handle, (thread_count + block_size - 1) / block_size, task_offset);
 }
 
 void Command::TraceRay(uint32_t width, uint32_t height, uint32_t depth)

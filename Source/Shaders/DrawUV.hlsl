@@ -120,7 +120,7 @@ static float3 colors[3] =
 VSOutput VSmain(uint VertexIndex : SV_VertexID)
 {
     VSOutput output = (VSOutput) 0;
-    output.Pos = mul(mul((View.projection_matrix), (View.view_matrix)), mul(push_constants.transform, float4(positions[VertexIndex], 0.0, 1.0)));
+    output.Pos = mul(View.view_projection_matrix, mul(push_constants.transform, float4(positions[VertexIndex], 0.0, 1.0)));
     output.Color = colors[VertexIndex];
     return output;
 }

@@ -63,6 +63,7 @@ inline void DrawResource(ResourceManager *manager, float button_size)
 
 	for (auto &uuid : manager->GetResourceUUID<_Ty>())
 	{
+		ImGui::PushID(&uuid);
 		ImGui::ImageButton(manager->GetThumbnail<_Ty>(), ImVec2{button_size, button_size});
 
 		// Drag&Drop source
@@ -80,6 +81,7 @@ inline void DrawResource(ResourceManager *manager, float button_size)
 			{
 				manager->EraseResource<_Ty>(uuid);
 				ImGui::EndPopup();
+				ImGui::PopID();
 				return;
 			}
 			ImGui::EndPopup();
@@ -100,6 +102,8 @@ inline void DrawResource(ResourceManager *manager, float button_size)
 		{
 			ImGui::SameLine();
 		}
+
+		ImGui::PopID();
 	}
 }
 
@@ -114,6 +118,8 @@ inline void DrawResource<ResourceType::Texture>(ResourceManager *manager, float 
 
 	for (auto &uuid : manager->GetResourceUUID<ResourceType::Texture>())
 	{
+		ImGui::PushID(&uuid);
+
 		if (manager->IsValid<ResourceType::Texture>(uuid))
 		{
 			ImGui::ImageButton(manager->GetResource<ResourceType::Texture>(uuid)->GetTexture(), ImVec2{button_size, button_size});
@@ -129,6 +135,7 @@ inline void DrawResource<ResourceType::Texture>(ResourceManager *manager, float 
 			const size_t uuid_ = uuid;
 			ImGui::SetDragDropPayload(typeid(ResourceType::Texture).name(), &uuid_, sizeof(size_t));
 			ImGui::EndDragDropSource();
+			break;
 		}
 
 		std::string uuid_str = std::to_string(uuid);
@@ -138,6 +145,7 @@ inline void DrawResource<ResourceType::Texture>(ResourceManager *manager, float 
 			{
 				manager->EraseResource<ResourceType::Texture>(uuid);
 				ImGui::EndPopup();
+				ImGui::PopID();
 				return;
 			}
 			ImGui::EndPopup();
@@ -158,6 +166,8 @@ inline void DrawResource<ResourceType::Texture>(ResourceManager *manager, float 
 		{
 			ImGui::SameLine();
 		}
+
+		ImGui::PopID();
 	}
 }
 

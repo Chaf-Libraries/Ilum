@@ -24,7 +24,7 @@ struct DepthStencilAttachment
 	RHILoadAction  stencil_load  = RHILoadAction::DontCare;
 	RHIStoreAction stencil_store = RHIStoreAction::DontCare;
 
-	float    clear_depth   = 0.f;
+	float    clear_depth   = std::numeric_limits<float>::max();
 	uint32_t clear_stencil = 0;
 };
 

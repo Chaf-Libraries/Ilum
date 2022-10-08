@@ -7,8 +7,9 @@
 
 namespace Ilum::DX12
 {
-inline void GetHardwareAdapter(IDXGIFactory1 *pFactory, IDXGIAdapter1 **ppAdapter)
+inline const std::string GetHardwareAdapter(IDXGIFactory1 *pFactory, IDXGIAdapter1 **ppAdapter)
 {
+	std::string device_name = "";
 	*ppAdapter = nullptr;
 
 	ComPtr<IDXGIAdapter1> adapter;
@@ -27,26 +28,7 @@ inline void GetHardwareAdapter(IDXGIFactory1 *pFactory, IDXGIAdapter1 **ppAdapte
 			DXGI_ADAPTER_DESC1 desc;
 			adapter->GetDesc1(&desc);
 
-			std::stringstream ss;
-			ss << "\nFound physical device [" << desc.DeviceId << "]\n";
-			ss << "Name: " << _bstr_t(desc.Description) << "\n";
-			ss << "Vendor: ";
-			switch (desc.VendorId)
-			{
-				case 0x8086:
-					ss << "Intel\n";
-					break;
-				case 0x10DE:
-					ss << "Nvidia\n";
-					break;
-				case 0x1002:
-					ss << "AMD\n";
-					break;
-				default:
-					ss << desc.VendorId;
-			}
-
-			LOG_INFO("{}", ss.str());
+			device_name = _bstr_t(desc.Description);
 
 			if (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE)
 			{
@@ -80,6 +62,7 @@ inline void GetHardwareAdapter(IDXGIFactory1 *pFactory, IDXGIAdapter1 **ppAdapte
 	}
 
 	*ppAdapter = adapter.Detach();
+	return device_name;
 }
 
 Device::Device():
@@ -99,7 +82,7 @@ Device::Device():
 	CreateDXGIFactory2(dxgi_factory_flags, IID_PPV_ARGS(&m_factory));
 
 	ComPtr<IDXGIAdapter1> hardware_adapter;
-	GetHardwareAdapter(m_factory.Get(), &hardware_adapter);
+	m_name = GetHardwareAdapter(m_factory.Get(), &hardware_adapter);
 
 	D3D12CreateDevice(hardware_adapter.Get(), D3D_FEATURE_LEVEL_11_0, IID_PPV_ARGS(&m_handle));
 
@@ -130,11 +113,6 @@ Device::Device():
 		// TODO: I don't know where to check bindless, set to true for now
 		m_feature_support[RHIFeature::Bindless] = true;
 	}
-
-	LOG_INFO("Feature RayTracing Support: {}", m_feature_support[RHIFeature::RayTracing]);
-	LOG_INFO("Feature MeshShading Support: {}", m_feature_support[RHIFeature::MeshShading]);
-	LOG_INFO("Feature Buffer Device Address Support: {}", m_feature_support[RHIFeature::BufferDeviceAddress]);
-	LOG_INFO("Feature Bindless Support: {}", m_feature_support[RHIFeature::Bindless]);
 }
 
 Device::~Device()

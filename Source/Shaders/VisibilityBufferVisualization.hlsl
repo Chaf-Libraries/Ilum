@@ -1,9 +1,10 @@
 #include "Common.hlsli"
 
-Texture2D<uint> VisibilityBuffer : register(t0);
-RWTexture2D<float4> InstanceID : register(u1);
-RWTexture2D<float4> PrimitiveID : register(u2);
-RWTexture2D<float4> MeshletID : register(u3);
+Texture2D<uint> VisibilityBuffer;
+Texture2D<float> DepthBuffer;
+RWTexture2D<float4> InstanceID;
+RWTexture2D<float4> PrimitiveID;
+RWTexture2D<float4> MeshletID;
 
 uint hash(uint a)
 {
@@ -27,15 +28,27 @@ void CSmain(CSParam param)
         return;
     }
     
+    if (DepthBuffer.Load(int3(param.DispatchThreadID.xy, 0)).r > 3e38f)
+    {
+        InstanceID[param.DispatchThreadID.xy] = 0.f;
+        PrimitiveID[param.DispatchThreadID.xy] = 0.f;
+        MeshletID[param.DispatchThreadID.xy] = 0.f;
+        return;
+    }
+    
     uint vbuffer = VisibilityBuffer.Load(int3(param.DispatchThreadID.xy, 0));
     uint instance_id = 0;
     uint primitive_id = 0;
     uint meshlet_id = 0;
+    
     UnPackVisibilityBuffer(vbuffer, instance_id, meshlet_id, primitive_id);
+    
     uint mhash = hash(instance_id);
     InstanceID[param.DispatchThreadID.xy] = float4(float3(float(mhash & 255), float((mhash >> 8) & 255), float((mhash >> 16) & 255)) / 255.0, 1.0);
+    
     mhash = hash(primitive_id);
     PrimitiveID[param.DispatchThreadID.xy] = float4(float3(float(mhash & 255), float((mhash >> 8) & 255), float((mhash >> 16) & 255)) / 255.0, 1.0);
+    
     mhash = hash(meshlet_id);
     MeshletID[param.DispatchThreadID.xy] = float4(float3(float(mhash & 255), float((mhash >> 8) & 255), float((mhash >> 16) & 255)) / 255.0, 1.0);
 }

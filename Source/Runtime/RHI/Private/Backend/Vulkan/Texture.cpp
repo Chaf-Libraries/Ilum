@@ -93,82 +93,79 @@ Texture::Texture(Device *device, const TextureDesc &desc) :
 	}
 
 	// External memory use vkallocate method
-	if (m_desc.external)
+#ifdef CUDA_ENABLE
+	VkExternalMemoryImageCreateInfo external_create_info = {};
+
+	external_create_info.sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
+	external_create_info.pNext = nullptr;
+#	ifdef _WIN64
+	external_create_info.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+#	else
+	external_create_info.handleTypes        = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
+#	endif
+	create_info.pNext = &external_create_info;
+
+	vkCreateImage(static_cast<Device *>(p_device)->GetDevice(), &create_info, nullptr, &m_handle);
+
+	VkMemoryRequirements memory_req = {};
+	vkGetImageMemoryRequirements(static_cast<Device *>(p_device)->GetDevice(), m_handle, &memory_req);
+	m_memory_size = memory_req.size;
+
+#	ifdef _WIN64
+	WindowsSecurityAttributes winSecurityAttributes;
+
+	VkExportMemoryWin32HandleInfoKHR vulkanExportMemoryWin32HandleInfoKHR = {};
+	vulkanExportMemoryWin32HandleInfoKHR.sType =
+	    VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR;
+	vulkanExportMemoryWin32HandleInfoKHR.pNext       = NULL;
+	vulkanExportMemoryWin32HandleInfoKHR.pAttributes = &winSecurityAttributes;
+	vulkanExportMemoryWin32HandleInfoKHR.dwAccess =
+	    DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE;
+	vulkanExportMemoryWin32HandleInfoKHR.name = (LPCWSTR) NULL;
+#	endif
+	VkExportMemoryAllocateInfoKHR export_memory_allocate_info = {};
+	export_memory_allocate_info.sType =
+	    VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR;
+#	ifdef _WIN64
+	export_memory_allocate_info.pNext       = &vulkanExportMemoryWin32HandleInfoKHR;
+	export_memory_allocate_info.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
+#	else
+	export_memory_allocate_info.pNext       = NULL;
+	export_memory_allocate_info.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
+#	endif
+
+	VkMemoryAllocateInfo allocate_Info = {};
+	allocate_Info.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocate_Info.allocationSize       = memory_req.size;
+	allocate_Info.pNext                = &export_memory_allocate_info;
+
+	VkPhysicalDeviceMemoryProperties physical_device_properties = {};
+	vkGetPhysicalDeviceMemoryProperties(static_cast<Device *>(p_device)->GetPhysicalDevice(), &physical_device_properties);
+
+	for (uint32_t i = 0; i < physical_device_properties.memoryTypeCount; i++)
 	{
-		VkExternalMemoryImageCreateInfo external_create_info = {};
-
-		external_create_info.sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
-		external_create_info.pNext = nullptr;
-#ifdef _WIN64
-		external_create_info.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
-#else
-		external_create_info.handleTypes        = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
-#endif
-		create_info.pNext = &external_create_info;
-
-		vkCreateImage(static_cast<Device *>(p_device)->GetDevice(), &create_info, nullptr, &m_handle);
-
-		VkMemoryRequirements memory_req = {};
-		vkGetImageMemoryRequirements(static_cast<Device *>(p_device)->GetDevice(), m_handle, &memory_req);
-		m_memory_size = memory_req.size;
-
-#ifdef _WIN64
-		WindowsSecurityAttributes winSecurityAttributes;
-
-		VkExportMemoryWin32HandleInfoKHR vulkanExportMemoryWin32HandleInfoKHR = {};
-		vulkanExportMemoryWin32HandleInfoKHR.sType =
-		    VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHR;
-		vulkanExportMemoryWin32HandleInfoKHR.pNext       = NULL;
-		vulkanExportMemoryWin32HandleInfoKHR.pAttributes = &winSecurityAttributes;
-		vulkanExportMemoryWin32HandleInfoKHR.dwAccess =
-		    DXGI_SHARED_RESOURCE_READ | DXGI_SHARED_RESOURCE_WRITE;
-		vulkanExportMemoryWin32HandleInfoKHR.name = (LPCWSTR) NULL;
-#endif
-		VkExportMemoryAllocateInfoKHR export_memory_allocate_info = {};
-		export_memory_allocate_info.sType =
-		    VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHR;
-#ifdef _WIN64
-		export_memory_allocate_info.pNext       = &vulkanExportMemoryWin32HandleInfoKHR;
-		export_memory_allocate_info.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT;
-#else
-		export_memory_allocate_info.pNext       = NULL;
-		export_memory_allocate_info.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT_KHR;
-#endif
-
-		VkMemoryAllocateInfo allocate_Info = {};
-		allocate_Info.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-		allocate_Info.allocationSize       = memory_req.size;
-		allocate_Info.pNext                = &export_memory_allocate_info;
-
-		VkPhysicalDeviceMemoryProperties physical_device_properties = {};
-		vkGetPhysicalDeviceMemoryProperties(static_cast<Device *>(p_device)->GetPhysicalDevice(), &physical_device_properties);
-
-		for (uint32_t i = 0; i < physical_device_properties.memoryTypeCount; i++)
+		if ((memory_req.memoryTypeBits & (1 << i)) &&
+		    (physical_device_properties.memoryTypes[i].propertyFlags & (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) ==
+		        (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
 		{
-			if ((memory_req.memoryTypeBits & (1 << i)) &&
-			    (physical_device_properties.memoryTypes[i].propertyFlags & (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) ==
-			        (VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT))
-			{
-				allocate_Info.memoryTypeIndex = i;
-				break;
-			}
+			allocate_Info.memoryTypeIndex = i;
+			break;
 		}
-
-		vkAllocateMemory(static_cast<Device *>(p_device)->GetDevice(), &allocate_Info, nullptr, &m_memory);
-		vkBindImageMemory(static_cast<Device *>(p_device)->GetDevice(), m_handle, m_memory, 0);
 	}
-	else
-	{
-		VmaAllocationCreateInfo allocation_create_info = {};
 
-		allocation_create_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+	vkAllocateMemory(static_cast<Device *>(p_device)->GetDevice(), &allocate_Info, nullptr, &m_memory);
+	vkBindImageMemory(static_cast<Device *>(p_device)->GetDevice(), m_handle, m_memory, 0);
+#else
+	VmaAllocationCreateInfo allocation_create_info = {};
 
-		vmaCreateImage(static_cast<Device *>(p_device)->GetAllocator(), &create_info, &allocation_create_info, &m_handle, &m_allocation, nullptr);
+	allocation_create_info.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-		VkMemoryRequirements memory_req = {};
-		vkGetImageMemoryRequirements(static_cast<Device *>(p_device)->GetDevice(), m_handle, &memory_req);
-		m_memory_size = memory_req.size;
-	}
+	vmaCreateImage(static_cast<Device *>(p_device)->GetAllocator(), &create_info, &allocation_create_info, &m_handle, &m_allocation, nullptr);
+
+	VkMemoryRequirements memory_req = {};
+	vkGetImageMemoryRequirements(static_cast<Device *>(p_device)->GetDevice(), m_handle, &memory_req);
+	m_memory_size = memory_req.size;
+#endif        // CUDA_ENABLE
 
 	if (!m_desc.name.empty())
 	{

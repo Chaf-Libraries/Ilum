@@ -94,12 +94,6 @@ HANDLE GetVkImageMemHandle(Vulkan::Device *device, Vulkan::Texture *texture, VkE
 {
 	HANDLE handle = {};
 
-	if (!texture->GetDesc().external)
-	{
-		LOG_ERROR("Texture {} is not external accessable!", texture->GetDesc().name);
-		return handle;
-	}
-
 	VkMemoryGetWin32HandleInfoKHR handle_info = {};
 
 	handle_info.sType      = VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR;

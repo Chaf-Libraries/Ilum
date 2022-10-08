@@ -15,23 +15,27 @@
 
 namespace Ilum
 {
-inline void DeleteNode(Scene *scene, Entity &entity)
+inline bool DeleteNode(Scene *scene, Entity &entity)
 {
 	if (!entity)
 	{
-		return;
+		return false;
 	}
 
 	auto child   = Entity(scene, entity.GetComponent<HierarchyComponent>().first);
 	auto sibling = child ? Entity(scene, child.GetComponent<HierarchyComponent>().next) : Entity(nullptr, entt::null);
+
 	while (sibling)
 	{
 		auto tmp = Entity(scene, sibling.GetComponent<HierarchyComponent>().next);
 		DeleteNode(scene, sibling);
 		sibling = tmp;
 	}
+
 	DeleteNode(scene, child);
 	entity.Destroy();
+
+	return true;
 }
 
 inline bool IsParentOf(Scene *scene, Entity &lhs, Entity &rhs)
@@ -194,6 +198,7 @@ void SceneHierarchy::Tick()
 void SceneHierarchy::DrawNode(Entity &entity)
 {
 	auto *scene = p_editor->GetRenderer()->GetScene();
+
 	if (!entity || !scene)
 	{
 		return;

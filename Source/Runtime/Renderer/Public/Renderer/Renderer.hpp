@@ -75,8 +75,6 @@ class Renderer
 
 	RHITexture *GetDummyTexture(DummyTexture dummy) const;
 
-	void UpdateGPUScene();
-
 	RHIAccelerationStructure *GetTLAS() const;
 
 	void DrawScene(RHICommand *cmd_buffer, RHIPipelineState *pipeline_state, RHIDescriptor *descriptor, bool mesh_shader);
@@ -93,8 +91,6 @@ class Renderer
 	void UpdateScene();
 
   private:
-	bool m_update_scene = false;
-
 	RHIContext *p_rhi_context = nullptr;
 
 	Scene *p_scene = nullptr;
