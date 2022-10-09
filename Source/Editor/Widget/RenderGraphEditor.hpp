@@ -16,6 +16,9 @@ class RenderGraphEditor : public Widget
 	virtual void Tick() override;
 
   private:
+	void DrawMenu();
+
+  private:
 	enum class ResourcePinType
 	{
 		None,
@@ -34,7 +37,7 @@ class RenderGraphEditor : public Widget
 		PassBuffer
 	};
 
-	int32_t GetPinID(const RGHandle& handle, ResourcePinType pin);
+	int32_t GetPinID(const RGHandle &handle, ResourcePinType pin);
 
 	int32_t GetPinID(RGHandle *handle, PassPinType pin);
 

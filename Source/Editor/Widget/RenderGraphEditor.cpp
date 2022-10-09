@@ -1,21 +1,13 @@
 #include "RenderGraphEditor.hpp"
 #include "Editor/Editor.hpp"
 
+#include <Core/Macro.hpp>
 #include <Core/Path.hpp>
 #include <ImGui/ImGuiHelper.hpp>
 #include <RenderCore/RenderGraph/RenderGraph.hpp>
 #include <RenderCore/RenderGraph/RenderGraphBuilder.hpp>
 #include <Renderer/Renderer.hpp>
 #include <Resource/ResourceManager.hpp>
-
-#include <cereal/cereal.hpp>
-#include <cereal/types/array.hpp>
-#include <cereal/types/map.hpp>
-#include <cereal/types/string.hpp>
-#include <cereal/types/unordered_map.hpp>
-#include <cereal/types/vector.hpp>
-
-#include <Core/Macro.hpp>
 
 #include <imnodes.h>
 #pragma warning(push, 0)
@@ -38,6 +30,8 @@ void RenderGraphEditor::Tick()
 	static auto editor_context = ImNodes::EditorContextCreate();
 
 	ImGui::Begin(m_name.c_str(), &m_active, ImGuiWindowFlags_MenuBar);
+
+	DrawMenu();
 
 	ImNodes::EditorContextSet(editor_context);
 
@@ -330,22 +324,7 @@ void RenderGraphEditor::Tick()
 
 			ImGui::SameLine();
 
-			ImNodes::BeginStaticAttribute(static_cast<int32_t>((size_t) &texture));
-			ImGui::PushID(&texture);
-
-			{
-				m_need_compile |= ImGui::EditVariant(texture.name, texture);
-
-			}
-			ImGui::PopID();
-
-			ImNodes::EndStaticAttribute();
-
-			ImGui::SameLine();
-
 			ImNodes::BeginOutputAttribute(GetPinID(handle, ResourcePinType::TextureRead));
-			const float label_width = ImGui::CalcTextSize("Read").x;
-			 ImGui::Indent(node_width - label_width);
 			ImGui::TextUnformatted("Read");
 			ImNodes::EndOutputAttribute();
 
@@ -528,6 +507,11 @@ void RenderGraphEditor::Tick()
 		ImGui::EndChild();
 	}
 
+	ImGui::End();
+}
+
+void RenderGraphEditor::DrawMenu()
+{
 	if (ImGui::BeginMenuBar())
 	{
 		if (ImGui::BeginMenu("File"))
@@ -704,8 +688,6 @@ void RenderGraphEditor::Tick()
 
 		ImGui::EndMenuBar();
 	}
-
-	ImGui::End();
 }
 
 int32_t RenderGraphEditor::GetPinID(RGHandle *handle, PassPinType pin)

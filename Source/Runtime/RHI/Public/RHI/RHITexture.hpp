@@ -15,12 +15,24 @@ STRUCT(TextureDesc, Enable)
 {
 	std::string name;
 
+	META(Min(1))
 	uint32_t        width;
+
+	META(Min(1))
 	uint32_t        height;
+
+	META(Min(1))
 	uint32_t        depth;
+
+	META(Min(1))
 	uint32_t        mips;
+
+	META(Min(1))
 	uint32_t        layers;
+
+	META(Min(1))
 	uint32_t        samples;
+
 	RHIFormat       format;
 	RHITextureUsage usage;
 };
@@ -28,10 +40,10 @@ STRUCT(TextureDesc, Enable)
 struct TextureRange
 {
 	RHITextureDimension dimension;
-	[[min(0)]] uint32_t base_mip;
-	[[min(1)]] uint32_t mip_count;
-	[[min(0)]] uint32_t base_layer;
-	[[min(1)]] uint32_t layer_count;
+	uint32_t base_mip;
+	uint32_t mip_count;
+	uint32_t base_layer;
+	uint32_t layer_count;
 
 	size_t Hash() const
 	{

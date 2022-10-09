@@ -1,8 +1,10 @@
 #include "ImGuiHelper.hpp"
 
+#include <RHI/RHITexture.hpp>
+
 #include <glm/gtc/type_ptr.hpp>
 
-#include <RHI/RHITexture.hpp>
+#include <rttr/variant.h>
 
 namespace ImGui
 {
@@ -120,7 +122,8 @@ struct VariantEditor<glm::vec<N, T>>
 		if (N == 1)
 		{
 			T val = var.convert<T>();
-			if (ImGui::DragScalar(name.c_str(), data_type, &val, 0.01f, &min_val, &max_val, "%.2f"))
+
+			if (ImGui::DragScalar(name.c_str(), data_type, &val, 0.1f, &min_val, &max_val, rttr::type::get<T>() == rttr::type::get<float>() ? "%.2f" : "%d"))
 			{
 				var = val;
 				return true;
@@ -129,7 +132,7 @@ struct VariantEditor<glm::vec<N, T>>
 		else
 		{
 			glm::vec<N, T> val = var.convert<glm::vec<N, T>>();
-			if (ImGui::DragScalarN(name.c_str(), data_type, &val.x, N, 0.01f, &min_val, &max_val, "%.2f"))
+			if (ImGui::DragScalarN(name.c_str(), data_type, &val.x, N, 0.1f, &min_val, &max_val, rttr::type::get<T>() == rttr::type::get<float>() ? "%.2f" : "%d"))
 			{
 				var = val;
 				return true;
