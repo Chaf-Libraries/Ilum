@@ -6,27 +6,27 @@
 
 namespace ImGui
 {
-bool EditVariantImpl(const rttr::variant &var);
+bool EditVariantImpl(const std::string &name, rttr::variant &var, const rttr::property *prop = nullptr);
 
 template <typename T>
-inline bool EditVariant(T &var)
+inline bool EditVariant(const std::string &name, T &var)
 {
 	rttr::variant rttr_var = var;
-	bool          update   = EditVariantImpl(rttr_var);
+	bool          update   = EditVariantImpl(name, rttr_var);
 	var                    = rttr_var.convert<T>();
 	return update;
 }
 
 template <>
-inline bool EditVariant<rttr::variant>(rttr::variant &var)
+inline bool EditVariant<rttr::variant>(const std::string &name, rttr::variant &var)
 {
-	return EditVariantImpl(var);
+	return EditVariantImpl(name, var);
 }
 
 template <>
-inline bool EditVariant<const rttr::variant>(const rttr::variant &var)
+inline bool EditVariant<const rttr::variant>(const std::string &name, const rttr::variant &var)
 {
-	return EditVariantImpl(var);
+	return EditVariantImpl(name, *const_cast<rttr::variant *>(&var));
 }
 }        // namespace ImGui
 
@@ -164,4 +164,4 @@ static inline std::ostream &operator<<(std::ostream &ostream, const ImVec4 a)
 	return ostream;
 }
 
-}
+}        // namespace Ilum

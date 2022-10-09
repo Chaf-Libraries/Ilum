@@ -47,8 +47,10 @@ bool MetaParser::Parse(const std::string &input_path)
 
 	std::string include1 = std::string("-I") + PROJECT_SOURCE_DIR + "/Source/Ilum";
 	std::string include2 = std::string("-I") + PROJECT_SOURCE_DIR + "/Source/Dependencies/glm";
+	std::string include3 = std::string("-I") + PROJECT_SOURCE_DIR + "/Source/Dependencies/rttr/src";
 	m_arguments.push_back(include1.c_str());
 	m_arguments.push_back(include2.c_str());
+	m_arguments.push_back(include3.c_str());
 	m_translation_unit = clang_createTranslationUnitFromSourceFile(
 	    m_index, input_path.c_str(), static_cast<int32_t>(m_arguments.size()), m_arguments.data(), 0, nullptr);
 	auto cursor = clang_getTranslationUnitCursor(m_translation_unit);

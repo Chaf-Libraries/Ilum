@@ -330,9 +330,22 @@ void RenderGraphEditor::Tick()
 
 			ImGui::SameLine();
 
+			ImNodes::BeginStaticAttribute(static_cast<int32_t>((size_t) &texture));
+			ImGui::PushID(&texture);
+
+			{
+				m_need_compile |= ImGui::EditVariant(texture.name, texture);
+
+			}
+			ImGui::PopID();
+
+			ImNodes::EndStaticAttribute();
+
+			ImGui::SameLine();
+
 			ImNodes::BeginOutputAttribute(GetPinID(handle, ResourcePinType::TextureRead));
 			const float label_width = ImGui::CalcTextSize("Read").x;
-			ImGui::Indent(node_width - label_width);
+			 ImGui::Indent(node_width - label_width);
 			ImGui::TextUnformatted("Read");
 			ImNodes::EndOutputAttribute();
 
@@ -462,7 +475,7 @@ void RenderGraphEditor::Tick()
 			{
 				ImGui::PushID(static_cast<int32_t>(handle.GetHandle()));
 				ImGui::Text("Texture - %s", texture.name.c_str());
-				m_need_compile |= ImGui::EditVariant(texture);
+				m_need_compile |= ImGui::EditVariant(texture.name, texture);
 				ImGui::PopID();
 				ImGui::Separator();
 			}
@@ -474,7 +487,7 @@ void RenderGraphEditor::Tick()
 			if (ImNodes::IsNodeSelected(static_cast<int32_t>(handle.GetHandle())))
 			{
 				ImGui::PushID(static_cast<int32_t>(handle.GetHandle()));
-				m_need_compile |= ImGui::EditVariant(buffer);
+				m_need_compile |= ImGui::EditVariant(buffer.name, buffer);
 				ImGui::PopID();
 				ImGui::Separator();
 			}
@@ -498,7 +511,7 @@ void RenderGraphEditor::Tick()
 					ImGui::PushID(static_cast<int32_t>(handle.GetHandle()));
 					ImGui::Text("Pass - %s", pass.name.c_str());
 					ImGui::Text("Bind Point: %s", bind_points.at(pass.bind_point));
-					m_need_compile |= ImGui::EditVariant(pass.config);
+					m_need_compile |= ImGui::EditVariant(pass.name, pass.config);
 					ImGui::PopID();
 					ImGui::Separator();
 				}

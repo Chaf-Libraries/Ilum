@@ -4,8 +4,7 @@
 #include <RHI/RHIContext.hpp>
 #include <RenderCore/ShaderCompiler/ShaderCompiler.hpp>
 #include <Resource/ResourceManager.hpp>
-#include <Scene/Component/StaticMeshComponent.hpp>
-#include <Scene/Component/TransformComponent.hpp>
+#include <Scene/Component/AllComponent.hpp>
 #include <Scene/Entity.hpp>
 #include <Scene/Scene.hpp>
 

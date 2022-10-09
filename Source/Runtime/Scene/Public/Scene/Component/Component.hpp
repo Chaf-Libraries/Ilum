@@ -4,8 +4,11 @@
 
 namespace Ilum
 {
-struct Component
+STRUCT(Component, Enable)
 {
+	META(Editor("Disable"))
 	bool update = false;
+
+	RTTR_ENABLE();
 };
 }        // namespace Ilum

@@ -32,7 +32,7 @@ void RenderGraphInspector::Tick()
 			ImGui::PushID(&pass.config);
 			if (ImGui::TreeNode(pass.name.c_str()))
 			{
-				ImGui::EditVariant(pass.config);
+				ImGui::EditVariant(pass.name, pass.config);
 				ImGui::TreePop();
 			}
 			ImGui::PopID();

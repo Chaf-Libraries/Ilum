@@ -204,7 +204,7 @@ ModelImportInfo AssimpImporter::ImportImpl(const std::string &filename)
 				tmp_meshlet.indices_offset  = static_cast<uint32_t>(info.indices.size());
 				tmp_meshlet.indices_count   = meshlet.triangle_count * 3;
 
-				tmp_meshlet.meshlet_vertices_offset  = static_cast<uint32_t>(info.meshlet_vertices.size()) + meshlet.vertex_offset;
+				tmp_meshlet.meshlet_vertices_offset  = meshlet_vertices_offset + meshlet.vertex_offset;
 				tmp_meshlet.meshlet_primitive_offset = meshlet_primitive_offset;
 
 				for (uint32_t j = 0; j < meshlet.triangle_count; j++)

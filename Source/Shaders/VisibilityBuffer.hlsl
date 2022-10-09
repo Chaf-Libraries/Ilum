@@ -7,7 +7,6 @@ StructuredBuffer<uint> MeshletVertexBuffer[];
 StructuredBuffer<uint> MeshletPrimitiveBuffer[];
 StructuredBuffer<Meshlet> MeshletBuffer[];
 StructuredBuffer<InstanceData> InstanceBuffer;
-RWStructuredBuffer<uint> DebugBuffer;
 
 struct VertexOut
 {
@@ -46,7 +45,7 @@ void ASmain(CSParam param)
     uint model_id = instance.model_id;
     uint meshlet_id = param.DispatchThreadID.x;
     
-    if (meshlet_id <= instance.meshlet_count)
+    if (meshlet_id < instance.meshlet_count)
     {
         visible = true;
     }
@@ -66,12 +65,12 @@ void ASmain(CSParam param)
 [numthreads(32, 1, 1)]
 void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut verts[64], out indices uint3 tris[124], out primitives PrimitiveOut prims[124])
 {
-    uint meshlet_id = pay_load.meshletIndices[param.GroupID.x];
-   
     InstanceData instance = InstanceBuffer[push_constants.instance_idx];
     uint model_id = instance.model_id;
+    
+    uint meshlet_id = pay_load.meshletIndices[param.GroupID.x] + instance.meshlet_offset;
    
-    if (meshlet_id >= instance.meshlet_count)
+    if (meshlet_id >= instance.meshlet_count + instance.meshlet_offset)
     {
         return;
     }
@@ -98,7 +97,6 @@ void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut v
        
         uint v0, v1, v2;
         UnPackTriangle(MeshletPrimitiveBuffer[model_id][i + meshlet.meshlet_primitive_offset], v0, v1, v2);
-        DebugBuffer[meshlet_id] = meshlet.meshlet_primitive_offset;
         tris[i] = uint3(v0, v1, v2);
     }
 }

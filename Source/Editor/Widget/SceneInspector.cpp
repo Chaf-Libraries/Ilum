@@ -4,10 +4,7 @@
 
 #include <Renderer/Renderer.hpp>
 #include <Resource/ResourceManager.hpp>
-#include <Scene/Component/HierarchyComponent.hpp>
-#include <Scene/Component/StaticMeshComponent.hpp>
-#include <Scene/Component/TagComponent.hpp>
-#include <Scene/Component/TransformComponent.hpp>
+#include <Scene/Component/AllComponent.hpp>
 #include <Scene/Scene.hpp>
 
 #include <imgui.h>
@@ -64,7 +61,7 @@ inline bool TDrawComponent(Entity &entity, std::function<bool(T &)> &&callback, 
 template <typename T>
 inline bool DrawComponent(Editor *editor, Entity &entity, bool static_mode = false)
 {
-	std::function<bool(T &)> func = [&](T &t) -> bool { return ImGui::EditVariant<T>(t); };
+	std::function<bool(T &)> func = [&](T &t) -> bool { return ImGui::EditVariant<T>("", t); };
 	return TDrawComponent(entity, std::move(func), static_mode);
 }
 
@@ -151,6 +148,18 @@ bool AddComponent(Entity &entity)
 	return false;
 }
 
+template <typename Base, typename T>
+inline bool HasComponent(Entity &entity)
+{
+	return std::is_base_of_v<Base, T> && entity.HasComponent<T>();
+}
+
+template <typename Base, typename T1, typename T2, typename... Tn>
+inline bool HasComponent(Entity &entity)
+{
+	return HasComponent<Base, T1>(entity) || HasComponent<Base, T2, Tn...>(entity);
+}
+
 template <typename T1, typename T2, typename... Tn>
 bool DrawComponent(Editor *editor, Entity &entity, bool static_mode)
 {
@@ -169,13 +178,34 @@ bool EditComponent(Entity &entity)
 	return update;
 }
 
+template <typename T>
+bool AddComponents(Entity &entity)
+{
+	return AddComponent<T>(entity);
+}
+
 template <typename T1, typename T2, typename... Tn>
-bool AddComponent(Entity &entity)
+bool AddComponents(Entity &entity)
 {
 	bool update = false;
 	update |= AddComponent<T1>(entity);
-	update |= AddComponent<T2, Tn...>(entity);
+	update |= AddComponents<T2, Tn...>(entity);
 	return update;
+}
+
+template <typename Base, typename T1, typename... Tn>
+inline void AddComponent(Entity &entity)
+{
+	if (HasComponent<Base, T1, Tn...>(entity))
+	{
+		return;
+	}
+
+	if (ImGui::BeginMenu(rttr::type::get<Base>().get_name().to_string().c_str()))
+	{
+		AddComponents<T1, Tn...>(entity);
+		ImGui::EndMenu();
+	}
 }
 
 SceneInspector::SceneInspector(Editor *editor) :
@@ -194,8 +224,9 @@ void SceneInspector::Tick()
 	auto entity = p_editor->GetSelectedEntity();
 	if (entity.IsValid())
 	{
-		DrawComponent<TagComponent, TransformComponent, HierarchyComponent>(p_editor, entity, true);
-		DrawComponent<StaticMeshComponent>(p_editor, entity);
+		DrawComponent<FIXED_COMPONENTS>(p_editor, entity, true);
+		DrawComponent<MESH_COMPONENTS>(p_editor, entity, false);
+		DrawComponent<LIGHT_COMPONENTS>(p_editor, entity, false);
 
 		if (ImGui::Button("Add Component"))
 		{
@@ -204,7 +235,8 @@ void SceneInspector::Tick()
 
 		if (ImGui::BeginPopup("AddComponent"))
 		{
-			AddComponent<TagComponent, TransformComponent, StaticMeshComponent>(entity);
+			AddComponent<MESH_COMPONENTS>(entity);
+			AddComponent<LIGHT_COMPONENTS>(entity);
 			ImGui::EndPopup();
 		}
 	}

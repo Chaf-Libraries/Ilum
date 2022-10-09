@@ -1,9 +1,6 @@
 #include "Scene.hpp"
 #include "Component/HierarchyComponent.hpp"
-#include "Component/StaticMeshComponent.hpp"
-#include "Component/TagComponent.hpp"
-#include "Component/TransformComponent.hpp"
-//#include "System/System.hpp"
+#include "Component/AllComponent.hpp"
 #include "Entity.hpp"
 
 namespace Ilum
