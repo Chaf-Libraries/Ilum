@@ -112,7 +112,7 @@ std::vector<MetaInfo::Property> MetaInfo::ExtractProperties(const Cursor &cursor
 		auto &&item_details = MetaUtils::Split(property_item, "(");
 
 		size_t left_bracket  = property_item.find_first_of("(");
-		size_t right_bracket = property_item.find_first_of(")");
+		size_t right_bracket = property_item.find_last_of(")");
 
 		auto &&key   = property_item.substr(0, left_bracket);
 		auto &&value = property_item.substr(left_bracket + 1, left_bracket < right_bracket ? right_bracket - left_bracket - 1 : 0);

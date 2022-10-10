@@ -49,19 +49,6 @@ class Serializer
 
 	~Serializer() = default;
 
-	// template <typename T, cereal::traits::EnableIf<!cereal::traits::is_output_serializable<T, Archive>::value> = cereal::traits::sfinae>
-	// void operator()(T &&t)
-	//{
-	//	rttr::variant var = t;
-	//	serialize(var);
-	// }
-
-	// template <typename T, cereal::traits::EnableIf<cereal::traits::is_output_serializable<T, Archive>::value> = cereal::traits::sfinae>
-	// void operator()(T &&t)
-	//{
-	//	m_archive(std::forward<T>(t));
-	// }
-
 	template <typename T, cereal::traits::EnableIf<cereal::traits::is_output_serializable<T, Archive>::value> = cereal::traits::sfinae>
 	void Serialize(T &&t)
 	{

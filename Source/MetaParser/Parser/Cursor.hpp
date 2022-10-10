@@ -48,6 +48,8 @@ class Cursor
 
 	bool IsDefinition() const;
 
+	bool IsPureVirtualMethod() const;
+
 	CursorType GetType() const;
 
 	std::vector<Cursor> GetChildren() const;

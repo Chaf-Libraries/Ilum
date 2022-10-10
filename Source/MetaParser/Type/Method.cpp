@@ -13,6 +13,8 @@ Method::Method(const Cursor &cursor, const Namespace &current_namespace, Class *
 
 	m_is_const = m_qualified_name.substr(m_qualified_name.find_first_of(")")).find("const") < m_qualified_name.length();
 
+	m_is_pure_virtual = cursor.IsPureVirtualMethod();
+
 	while (m_return_type.back() == ' ')
 	{
 		m_return_type.pop_back();
@@ -45,6 +47,11 @@ bool Method::IsStatic() const
 bool Method::IsMemberMethod() const
 {
 	return m_parent != nullptr;
+}
+
+bool Method::IsPureVirtualMethod() const
+{
+	return m_is_pure_virtual;
 }
 
 const std::string &Method::GetName() const

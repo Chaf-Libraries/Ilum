@@ -65,48 +65,48 @@ inline bool DrawComponent(Editor *editor, Entity &entity, bool static_mode = fal
 	return TDrawComponent(entity, std::move(func), static_mode);
 }
 
-template <>
-inline bool DrawComponent<StaticMeshComponent>(Editor *editor, Entity &entity, bool static_mode)
-{
-	std::function<bool(StaticMeshComponent &)> func = [&](StaticMeshComponent &t) -> bool {
-		ImGui::Text("UUID");
-		ImGui::SameLine();
-		ImGui::PushID(&t.uuid);
-		if (ImGui::Button(t.uuid == ~0 ? "" : std ::to_string(t.uuid).c_str(), ImVec2(ImGui::GetContentRegionAvailWidth() * 0.8f, 25.f)))
-		{
-			t.uuid = ~0;
-			ImGui::PopID();
-			return true;
-		}
-		ImGui::PopID();
-		if (ImGui::BeginDragDropTarget())
-		{
-			if (const auto *pay_load = ImGui::AcceptDragDropPayload(typeid(ResourceType::Model).name()))
-			{
-				t.uuid = *static_cast<size_t *>(pay_load->Data);
-				ImGui::EndDragDropTarget();
-				return true;
-			}
-			ImGui::EndDragDropTarget();
-		}
-
-		auto *resource = editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Model>(t.uuid);
-		if (!resource)
-		{
-			return false;
-		}
-		for (uint32_t i = 0; i < t.materials.size(); i++)
-		{
-			if (ImGui::TreeNode(resource->GetSubmeshes()[i].name.c_str()))
-			{
-				ImGui::Text("Material editor here");
-				ImGui::TreePop();
-			}
-		}
-		return false;
-	};
-	return TDrawComponent(entity, std::move(func), static_mode);
-}
+//template <>
+//inline bool DrawComponent<StaticMeshComponent>(Editor *editor, Entity &entity, bool static_mode)
+//{
+//	std::function<bool(StaticMeshComponent &)> func = [&](StaticMeshComponent &t) -> bool {
+//		ImGui::Text("UUID");
+//		ImGui::SameLine();
+//		ImGui::PushID(&t.uuid);
+//		if (ImGui::Button(t.uuid == ~0 ? "" : std ::to_string(t.uuid).c_str(), ImVec2(ImGui::GetContentRegionAvailWidth() * 0.8f, 25.f)))
+//		{
+//			t.uuid = ~0;
+//			ImGui::PopID();
+//			return true;
+//		}
+//		ImGui::PopID();
+//		if (ImGui::BeginDragDropTarget())
+//		{
+//			if (const auto *pay_load = ImGui::AcceptDragDropPayload(rttr::type::get<ResourceType>().get_enumeration().value_to_name(ResourceType::Model).to_string().c_str()))
+//			{
+//				t.uuid = *static_cast<size_t *>(pay_load->Data);
+//				ImGui::EndDragDropTarget();
+//				return true;
+//			}
+//			ImGui::EndDragDropTarget();
+//		}
+//
+//		auto *resource = editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Model>(t.uuid);
+//		if (!resource)
+//		{
+//			return false;
+//		}
+//		for (uint32_t i = 0; i < t.materials.size(); i++)
+//		{
+//			if (ImGui::TreeNode(resource->GetSubmeshes()[i].name.c_str()))
+//			{
+//				ImGui::Text("Material editor here");
+//				ImGui::TreePop();
+//			}
+//		}
+//		return false;
+//	};
+//	return TDrawComponent(entity, std::move(func), static_mode);
+//}
 
 template <>
 inline bool DrawComponent<HierarchyComponent>(Editor *editor, Entity &entity, bool static_mode)

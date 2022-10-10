@@ -75,7 +75,7 @@ inline void System::Execute<StaticMeshComponent>(Renderer *renderer)
 			if (resource)
 			{
 				static_mesh.materials.resize(resource->GetSubmeshes().size());
-				std::fill(static_mesh.materials.begin(), static_mesh.materials.end(), "");
+				std::fill(static_mesh.materials.begin(), static_mesh.materials.end(), (size_t) ~0);
 			}
 			else
 			{

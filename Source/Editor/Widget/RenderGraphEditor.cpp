@@ -19,21 +19,21 @@ namespace Ilum
 RenderGraphEditor::RenderGraphEditor(Editor *editor) :
     Widget("Render Graph Editor", editor)
 {
+	m_context = ImNodes::EditorContextCreate();
 }
 
 RenderGraphEditor::~RenderGraphEditor()
 {
+	ImNodes::EditorContextFree(m_context);
 }
 
 void RenderGraphEditor::Tick()
 {
-	static auto editor_context = ImNodes::EditorContextCreate();
-
 	ImGui::Begin(m_name.c_str(), &m_active, ImGuiWindowFlags_MenuBar);
 
-	DrawMenu();
+	ImNodes::EditorContextSet(m_context);
 
-	ImNodes::EditorContextSet(editor_context);
+	DrawMenu();
 
 	// Handle selection
 	std::vector<int32_t> selected_links;
@@ -384,7 +384,7 @@ void RenderGraphEditor::Tick()
 
 	if (ImGui::BeginDragDropTarget())
 	{
-		if (const auto *pay_load = ImGui::AcceptDragDropPayload(typeid(ResourceType::RenderGraph).name()))
+		if (const auto *pay_load = ImGui::AcceptDragDropPayload(rttr::type::get<ResourceType>().get_enumeration().value_to_name(ResourceType::RenderGraph).to_string().c_str()))
 		{
 			ASSERT(pay_load->DataSize == sizeof(size_t));
 			size_t uuid     = *static_cast<size_t *>(pay_load->Data);
@@ -512,6 +512,7 @@ void RenderGraphEditor::Tick()
 
 void RenderGraphEditor::DrawMenu()
 {
+	ImGui::PushID("RenderGraphEditor");
 	if (ImGui::BeginMenuBar())
 	{
 		if (ImGui::BeginMenu("File"))
@@ -523,7 +524,7 @@ void RenderGraphEditor::DrawMenu()
 				{
 					std::string editor_state = "";
 					DESERIALIZE(path, m_desc, editor_state);
-					ImNodes::LoadCurrentEditorStateFromIniString(editor_state.data(), editor_state.size());
+					ImNodes::LoadEditorStateFromIniString(m_context, editor_state.data(), editor_state.size());
 
 					// Update max current id
 					m_current_handle = 0;
@@ -570,51 +571,52 @@ void RenderGraphEditor::DrawMenu()
 		{
 			if (ImGui::BeginMenu("Pass"))
 			{
-				for (auto &type : rttr::type::get_types())
+				for (const auto &type : rttr::type::get_types())
 				{
 					if (type.get_metadata("RenderPass"))
 					{
 						std::string pass_name = type.get_metadata("RenderPass").get_value<std::string>();
-						if (type.get_metadata("Category"))
-						{
-							if (ImGui::BeginMenu(type.get_metadata("Category").get_value<std::string>().c_str()))
-							{
-								if (ImGui::MenuItem(pass_name.c_str()))
-								{
-									auto pass = type.create();
 
-									RenderPassDesc pass_desc = rttr::type::get(pass).get_method("CreateDesc").invoke(pass).convert<RenderPassDesc>();
-									if (pass_desc.bind_point == BindPoint::CUDA)
-									{
-#ifndef CUDA_ENABLE
-										LOG_WARN("CUDA Pass is not supported!");
-#else
-										m_desc.passes.emplace(
-										    RGHandle(m_current_handle++),
-										    rttr::type::get(pass).get_method("CreateDesc").invoke(pass).convert<RenderPassDesc>());
-										m_need_compile = true;
-#endif        // !CUDA_ENABLE
-									}
-									else
-									{
-										m_desc.passes.emplace(
-										    RGHandle(m_current_handle++),
-										    rttr::type::get(pass).get_method("CreateDesc").invoke(pass).convert<RenderPassDesc>());
-										m_need_compile = true;
-									}
-								}
-								ImGui::EndMenu();
-							}
-						}
-						else
+						bool has_category = type.get_metadata("Category").is_valid();
+						bool has_create   = false;
+
+						if (has_category ? ImGui::BeginMenu(type.get_metadata("Category").get_value<std::string>().c_str()) : true)
 						{
 							if (ImGui::MenuItem(pass_name.c_str()))
 							{
 								auto pass = type.create();
-								m_desc.passes.emplace(
-								    RGHandle(m_current_handle++),
-								    rttr::type::get(pass).get_method("CreateDesc").invoke(pass).convert<RenderPassDesc>());
-								m_need_compile = true;
+
+								RenderPassDesc pass_desc = type.get_method("CreateDesc").invoke(pass).convert<RenderPassDesc>();
+								if (pass_desc.bind_point == BindPoint::CUDA)
+								{
+#ifndef CUDA_ENABLE
+									LOG_WARN("CUDA Pass is not supported!");
+#else
+									m_desc.passes.emplace(
+									    RGHandle(m_current_handle++),
+									    rttr::type::get(pass).get_method("CreateDesc").invoke(pass).convert<RenderPassDesc>());
+									m_need_compile = true;
+#endif        // !CUDA_ENABLE
+								}
+								else
+								{
+									m_desc.passes.emplace(
+									    RGHandle(m_current_handle++),
+									    rttr::type::get(pass).get_method("CreateDesc").invoke(pass).convert<RenderPassDesc>());
+									m_need_compile = true;
+								}
+
+								has_create = true;
+							}
+
+							if (has_category)
+							{
+								ImGui::EndMenu();
+							}
+
+							if (has_create)
+							{
+								break;
 							}
 						}
 					}
@@ -688,6 +690,7 @@ void RenderGraphEditor::DrawMenu()
 
 		ImGui::EndMenuBar();
 	}
+	ImGui::PopID();
 }
 
 int32_t RenderGraphEditor::GetPinID(RGHandle *handle, PassPinType pin)

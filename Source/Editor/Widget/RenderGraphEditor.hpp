@@ -4,6 +4,8 @@
 
 #include <RenderCore/RenderGraph/RenderGraph.hpp>
 
+struct ImNodesEditorContext;
+
 namespace Ilum
 {
 class RenderGraphEditor : public Widget
@@ -44,6 +46,8 @@ class RenderGraphEditor : public Widget
 	bool ValidLink(ResourcePinType resource, PassPinType pass);
 
   private:
+	ImNodesEditorContext* m_context = nullptr;
+
 	RenderGraphDesc m_desc;
 
 	bool m_need_compile = false;

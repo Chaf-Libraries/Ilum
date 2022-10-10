@@ -13,8 +13,9 @@ STRUCT(MeshComponent, Enable) :
 STRUCT(StaticMeshComponent, Enable) :
     public MeshComponent
 {
+	META(DragDrop("Model"))
 	size_t uuid;
 
-	std::vector<std::string> materials;
+	std::vector<size_t> materials;
 };
 }        // namespace Ilum

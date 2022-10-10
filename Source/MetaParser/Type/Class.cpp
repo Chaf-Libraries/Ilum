@@ -30,6 +30,7 @@ Class::Class(MetaParser *parser, const Cursor &cursor, const Namespace &current_
 			case CXCursor_CXXMethod:
 				m_methods.emplace_back(std::make_shared<Method>(child, current_namespace, this, false));
 				m_overload[m_methods.back()->GetName()]++;
+				m_is_abstract |= m_methods.back()->IsPureVirtualMethod();
 				break;
 			case CXCursor_EnumDecl:
 			case CXCursor_StructDecl:
@@ -48,7 +49,7 @@ Class::Class(MetaParser *parser, const Cursor &cursor, const Namespace &current_
 		parser->BuildClassAST(cursor, class_namespace);
 	}
 
-	for (auto& method : m_methods)
+	for (auto &method : m_methods)
 	{
 		if (method->IsConstructor())
 		{
@@ -93,12 +94,17 @@ bool Class::HasConstructor() const
 	return m_has_constructor;
 }
 
+bool Class::IsAbstract() const
+{
+	return m_is_abstract;
+}
+
 kainjow::mustache::data Class::GenerateReflection() const
 {
 	kainjow::mustache::data class_data{kainjow::mustache::data::type::object};
 	class_data["ClassQualifiedName"] = m_qualified_name;
 	class_data["ClassName"]          = m_name;
-	class_data["NoConstructor"]          = !m_has_constructor;
+	class_data["NoConstructor"]      = !m_has_constructor && !m_is_abstract;
 
 	if (m_meta_info.Empty())
 	{

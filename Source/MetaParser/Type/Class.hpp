@@ -34,6 +34,8 @@ class Class : public TypeInfo
 
 	bool HasConstructor() const;
 
+	bool IsAbstract() const;
+
 	virtual kainjow::mustache::data GenerateReflection() const override;
 
   private:
@@ -47,6 +49,8 @@ class Class : public TypeInfo
 	std::vector<std::shared_ptr<Method>> m_methods;
 
 	bool m_has_constructor = false;
+
+	bool m_is_abstract = false;
 
 	std::unordered_map<std::string, uint32_t> m_overload;
 

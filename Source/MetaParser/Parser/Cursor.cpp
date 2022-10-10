@@ -94,6 +94,11 @@ bool Cursor::IsDefinition() const
 	return clang_isCursorDefinition(m_handle);
 }
 
+bool Cursor::IsPureVirtualMethod() const
+{
+	return clang_CXXMethod_isPureVirtual(m_handle);
+}
+
 CursorType Cursor::GetType() const
 {
 	return clang_getCursorType(m_handle);

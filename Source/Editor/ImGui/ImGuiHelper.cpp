@@ -146,7 +146,12 @@ struct VariantEditor<glm::vec<N, T>>
 	{
 		ASSERT(typeid(T) == typeid(float) && (N == 3 || N == 4));
 		glm::vec<N, T> val = var.convert<glm::vec<N, T>>();
-		if (ImGui::ColorEdit3(name.c_str(), (float *) &val.x))
+		if (N == 3 && ImGui::ColorEdit3(name.c_str(), (float *) &val.x))
+		{
+			var = val;
+			return true;
+		}
+		else if (N == 4 && ImGui::ColorEdit4(name.c_str(), (float *) &val.x))
 		{
 			var = val;
 			return true;
@@ -185,19 +190,42 @@ struct VariantEditor<glm::vec<N, T>>
 		T min_val = prop && prop->get_metadata("Min").is_valid() ? prop->get_metadata("Min").convert<T>() : std::numeric_limits<T>::lowest();
 		T max_val = prop && prop->get_metadata("Max").is_valid() ? prop->get_metadata("Max").convert<T>() : std::numeric_limits<T>::max();
 
+		bool update = false;
+
 		if (prop && prop->get_metadata("Editor") == "ColorEdit")
 		{
-			return ColorEdit<T, N>(name, var);
+			update = ColorEdit<T, N>(name, var);
 		}
 		else if (prop && prop->get_metadata("Editor") == "Slider")
 		{
-			return SliderScalars<T, N>(name, var, data_type, min_val, max_val);
+			update = SliderScalars<T, N>(name, var, data_type, min_val, max_val);
 		}
 		else
 		{
-			return DragScalars<T, N>(name, var, data_type, min_val, max_val);
+			update = DragScalars<T, N>(name, var, data_type, min_val, max_val);
 		}
-		return false;
+
+		if (prop && prop->get_metadata("DragDrop").is_valid())
+		{
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const auto *pay_load = ImGui::AcceptDragDropPayload(prop->get_metadata("DragDrop").convert<std::string>().c_str()))
+				{
+					if (N == 1)
+					{
+						var = *static_cast<T *>(pay_load->Data);
+					}
+					else
+					{
+						var = *static_cast<glm::vec<N, T> *>(pay_load->Data);
+					}
+					update = true;
+				}
+				ImGui::EndDragDropTarget();
+			}
+		}
+
+		return update;
 	}
 };
 
@@ -212,25 +240,29 @@ inline static std::unordered_map<rttr::type, std::function<bool(const std::strin
     {rttr::type::get<float>(), [](const std::string &name, rttr::variant &var, const rttr::property *prop) -> bool { return Impl::VariantEditor<glm::vec1>()(name, var, prop); }},
     {rttr::type::get<int32_t>(), [](const std::string &name, rttr::variant &var, const rttr::property *prop) -> bool { return Impl::VariantEditor<glm::ivec1>()(name, var, prop); }},
     {rttr::type::get<uint32_t>(), [](const std::string &name, rttr::variant &var, const rttr::property *prop) -> bool { return Impl::VariantEditor<glm::uvec1>()(name, var, prop); }},
-    {rttr::type::get<glm::uvec2>(), [](const std::string &name, rttr::variant &var, const rttr::property *prop) -> bool { return Impl::VariantEditor<glm::uvec2>()(name, var, prop); }},
+    {rttr::type::get<size_t>(), [](const std::string &name, rttr::variant &var, const rttr::property *prop) -> bool { return Impl::VariantEditor<glm::u64vec1>()(name, var, prop); }},
 
     EDIT_ITEM(bool),
 
+    EDIT_ITEM(glm::vec1),
     EDIT_ITEM(glm::vec2),
     EDIT_ITEM(glm::vec3),
     EDIT_ITEM(glm::vec4),
     EDIT_ITEM(glm::vec4),
 
+    EDIT_ITEM(glm::ivec1),
     EDIT_ITEM(glm::ivec2),
     EDIT_ITEM(glm::ivec3),
     EDIT_ITEM(glm::ivec4),
     EDIT_ITEM(glm::ivec4),
 
+    EDIT_ITEM(glm::uvec1),
     EDIT_ITEM(glm::uvec2),
     EDIT_ITEM(glm::uvec3),
     EDIT_ITEM(glm::uvec4),
     EDIT_ITEM(glm::uvec4),
 
+    EDIT_ITEM(glm::u64vec1),
     EDIT_ITEM(glm::u64vec2),
     EDIT_ITEM(glm::u64vec3),
     EDIT_ITEM(glm::u64vec4),
@@ -288,6 +320,22 @@ bool EditVariantImpl(const std::string &name, rttr::variant &var, const rttr::pr
 		}
 
 		update = false;
+	}
+	else if (var.get_type().is_sequential_container())
+	{
+		auto     seq_view = var.create_sequential_view();
+		uint32_t count    = 0;
+		for (size_t i = 0; i < seq_view.get_size(); i++)
+		{
+			std::string elem_name = fmt::format("{} - {}", name, i);
+			if (ImGui::TreeNode(elem_name.c_str()))
+			{
+				rttr::variant elem = seq_view.get_value_type().create();
+				update             = EditVariantImpl(elem_name.c_str(), elem, prop);
+				seq_view.set_value(i, elem);
+				ImGui::TreePop();
+			}
+		}
 	}
 	else if (var.get_type().is_class())
 	{

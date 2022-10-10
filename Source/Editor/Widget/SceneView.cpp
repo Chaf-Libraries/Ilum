@@ -70,7 +70,7 @@ void SceneView::DisplayPresent()
 
 	if (ImGui::BeginDragDropTarget())
 	{
-		if (const auto *pay_load = ImGui::AcceptDragDropPayload(typeid(ResourceType::Scene).name()))
+		if (const auto *pay_load = ImGui::AcceptDragDropPayload(rttr::type::get<ResourceType>().get_enumeration().value_to_name(ResourceType::Scene).to_string().c_str()))
 		{
 			size_t uuid = *static_cast<size_t *>(pay_load->Data);
 
@@ -83,7 +83,7 @@ void SceneView::DisplayPresent()
 			}
 		}
 
-		if (const auto *pay_load = ImGui::AcceptDragDropPayload(typeid(ResourceType::Model).name()))
+		if (const auto *pay_load = ImGui::AcceptDragDropPayload(rttr::type::get<ResourceType>().get_enumeration().value_to_name(ResourceType::Model).to_string().c_str()))
 		{
 			size_t uuid = *static_cast<size_t *>(pay_load->Data);
 
@@ -94,7 +94,7 @@ void SceneView::DisplayPresent()
 			if (resource)
 			{
 				cmpt.materials.resize(resource->GetSubmeshes().size());
-				std::fill(cmpt.materials.begin(), cmpt.materials.end(), "");
+				std::fill(cmpt.materials.begin(), cmpt.materials.end(), (size_t) ~0);
 			}
 		}
 	}
