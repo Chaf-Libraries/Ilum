@@ -4,29 +4,34 @@
 
 #include <rttr/type.h>
 
+namespace Ilum
+{
+class Editor;
+}
+
 namespace ImGui
 {
-bool EditVariantImpl(const std::string &name, rttr::variant &var, const rttr::property *prop = nullptr);
+bool EditVariantImpl(const std::string &name, Ilum::Editor* editor, rttr::variant &var, const rttr::property *prop = nullptr);
 
 template <typename T>
-inline bool EditVariant(const std::string &name, T &var)
+inline bool EditVariant(const std::string &name, Ilum::Editor *editor, T &var)
 {
 	rttr::variant rttr_var = var;
-	bool          update   = EditVariantImpl(name, rttr_var);
+	bool          update   = EditVariantImpl(name, editor, rttr_var);
 	var                    = rttr_var.convert<T>();
 	return update;
 }
 
 template <>
-inline bool EditVariant<rttr::variant>(const std::string &name, rttr::variant &var)
+inline bool EditVariant<rttr::variant>(const std::string &name, Ilum::Editor *editor, rttr::variant &var)
 {
-	return EditVariantImpl(name, var);
+	return EditVariantImpl(name, editor, var);
 }
 
 template <>
-inline bool EditVariant<const rttr::variant>(const std::string &name, const rttr::variant &var)
+inline bool EditVariant<const rttr::variant>(const std::string &name, Ilum::Editor *editor, const rttr::variant &var)
 {
-	return EditVariantImpl(name, *const_cast<rttr::variant *>(&var));
+	return EditVariantImpl(name, editor, *const_cast<rttr::variant *>(&var));
 }
 }        // namespace ImGui
 

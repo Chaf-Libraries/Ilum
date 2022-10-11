@@ -4,20 +4,6 @@
 
 namespace Ilum
 {
-#define DEFINE_ENUMCLASS_OPERATION(EnumClass)                   \
-	inline EnumClass operator|(EnumClass lhs, EnumClass rhs)    \
-	{                                                           \
-		return (EnumClass) ((uint64_t) lhs | (uint64_t) rhs);   \
-	}                                                           \
-	inline bool operator&(EnumClass lhs, EnumClass rhs)         \
-	{                                                           \
-		return (bool) ((uint64_t) lhs & (uint64_t) rhs);        \
-	}                                                           \
-	inline EnumClass &operator|=(EnumClass &lhs, EnumClass rhs) \
-	{                                                           \
-		return lhs = lhs | rhs;                                 \
-	}
-
 ENUM(RHIBackend, Enable){
     Unknown,
     Vulkan,

@@ -1,9 +1,13 @@
 #pragma once
 
 #include "MaterialGraphEditor.hpp"
+#include "Editor.hpp"
 #include "ImGui/ImGuiHelper.hpp"
 
 #include <Core/Path.hpp>
+#include <RHI/RHIContext.hpp>
+#include <RenderCore/MaterialGraph/MaterialGraphBuilder.hpp>
+#include <Renderer/Renderer.hpp>
 
 #include <imnodes.h>
 
@@ -86,15 +90,18 @@ void MaterialGraphEditor::Tick()
 	// Draw nodes
 	for (auto &[node_handle, desc] : m_desc.nodes)
 	{
-		const float node_width = 120.0f;
+		const float node_width = 100.0f;
 
-		ImGui::PushItemWidth(100.f);
+		ImGui::PushItemWidth(50.f);
 		ImNodes::BeginNode(static_cast<int32_t>(node_handle));
 		ImNodes::BeginNodeTitleBar();
 		ImGui::Text(desc.name.c_str());
 		ImNodes::EndNodeTitleBar();
 		ImNodes::BeginStaticAttribute(static_cast<int32_t>(node_handle));
-		ImGui::EditVariant("", desc.data);
+		if (desc.data)
+		{
+			ImGui::EditVariant("", p_editor, desc.data);
+		}
 		ImNodes::EndStaticAttribute();
 		// Draw Pin
 		for (auto &[pin_handle, pin] : desc.pins)
@@ -103,20 +110,24 @@ void MaterialGraphEditor::Tick()
 			{
 				ImNodes::BeginInputAttribute(static_cast<int32_t>(pin.handle));
 				ImGui::Text(pin.name.c_str());
-				ImGui::SameLine();
 				if (!m_desc.HasLink(pin.handle))
 				{
-					ImGui::EditVariant("", pin.data);
+					ImGui::SameLine();
+					ImGui::EditVariant("", p_editor, pin.data);
 				}
 				ImNodes::EndInputAttribute();
 			}
 			if (pin.attribute == MaterialNodePin::Attribute::Output)
 			{
 				ImNodes::BeginOutputAttribute(static_cast<int32_t>(pin.handle));
+				if (pin.data)
+				{
+					ImGui::EditVariant("", p_editor, pin.data);
+					ImGui::SameLine();
+				}
 				const float label_width = ImGui::CalcTextSize(pin.name.c_str()).x;
 				ImGui::Indent(node_width - label_width);
 				ImGui::Text(pin.name.c_str());
-				ImGui::SameLine();
 				ImNodes::EndOutputAttribute();
 			}
 		}
@@ -134,6 +145,7 @@ void MaterialGraphEditor::Tick()
 		}
 	}
 
+	ImNodes::MiniMap(0.1f);
 	ImNodes::EndNodeEditor();
 
 	// Create New Edges
@@ -147,7 +159,7 @@ void MaterialGraphEditor::Tick()
 
 	// Inspector
 	{
-		ImGui::BeginChild("Render Graph Inspector", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
+		ImGui::BeginChild("Material Graph Inspector", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
 		ImGui::PushItemWidth(ImGui::GetColumnWidth(1) * 0.7f);
 
@@ -242,7 +254,6 @@ void MaterialGraphEditor::DrawMenu()
 					}
 				}
 			}
-
 			ImGui::EndMenu();
 		}
 
@@ -251,6 +262,12 @@ void MaterialGraphEditor::DrawMenu()
 			m_desc.links.clear();
 			m_desc.nodes.clear();
 			m_desc.node_query.clear();
+		}
+
+		if (ImGui::MenuItem("Compile"))
+		{
+			MaterialGraphBuilder builder(p_editor->GetRHIContext());
+			auto material = builder.Compile(m_desc);
 		}
 
 		ImGui::EndMenuBar();

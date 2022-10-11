@@ -4,6 +4,10 @@
 
 namespace Ilum
 {
+class RHIContext;
+class RHIBuffer;
+class RHIDescriptor;
+
 STRUCT(MaterialGraphDesc, Enable)
 {
 	std::map<size_t, MaterialNodeDesc> nodes;
@@ -21,5 +25,22 @@ STRUCT(MaterialGraphDesc, Enable)
 	void Link(size_t source, size_t target);
 
 	bool HasLink(size_t target);
+
+	size_t LinkFrom(size_t target_pin);
+
+	const MaterialNodeDesc &GetNode(size_t pin);
+};
+
+class MaterialGraph
+{
+	friend class MaterialGraphBuilder;
+
+  public:
+	MaterialGraph(RHIContext *rhi_context);
+
+	~MaterialGraph() = default;
+
+  private:
+	RHIContext *p_rhi_context = nullptr;
 };
 }        // namespace Ilum

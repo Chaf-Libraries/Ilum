@@ -7,37 +7,33 @@ MaterialNodeDesc RGB::Create(size_t &handle)
 {
 	MaterialNodeDesc desc;
 
-	desc.AddPin(handle, "Out", "float3", MaterialNodePin::Attribute::Output, RGBColor())
+	desc
+	    .AddPin(handle, "RGB", MaterialNodePin::Type::Float3, MaterialNodePin::Attribute::Input, RGBColor())
+		.AddPin(handle, "Out", MaterialNodePin::Type::Float3, MaterialNodePin::Attribute::Output)
 	    .SetName<RGB>();
 
 	return desc;
 }
 
-std::string RGB::EmitHLSL(const MaterialNodeDesc &desc, MaterialGraphDesc &graph, std::string &source)
+void RGB::EmitHLSL(const MaterialNodeDesc &desc, MaterialGraphDesc &graph, MaterialEmitInfo &info)
 {
-	std::string output      = fmt::format("v{}", desc.GetPin("Out").handle);
-	std::string output_type = desc.GetPin("Out").type;
-	RGBColor    data        = desc.GetPin("Out").data.convert<RGBColor>();
-	source += fmt::format("float3 {} = float3({}, {}, {});\n", output, data.color.x, data.color.y, data.color.z);
-	return output;
+
 }
 
 MaterialNodeDesc RGBA::Create(size_t &handle)
 {
 	MaterialNodeDesc desc;
 
-	desc.AddPin(handle, "Out", "float4", MaterialNodePin::Attribute::Output, RGBAColor())
+	desc
+	    .AddPin(handle, "RGBA", MaterialNodePin::Type::Float4, MaterialNodePin::Attribute::Input, RGBAColor())
+		.AddPin(handle, "Out", MaterialNodePin::Type::Float4, MaterialNodePin::Attribute::Output)
 	    .SetName<RGBA>();
 
 	return desc;
 }
 
-std::string RGBA::EmitHLSL(const MaterialNodeDesc &desc, MaterialGraphDesc &graph, std::string &source)
+void RGBA::EmitHLSL(const MaterialNodeDesc &desc, MaterialGraphDesc &graph, MaterialEmitInfo &info)
 {
-	std::string output      = fmt::format("v{}", desc.GetPin("Out").handle);
-	std::string output_type = desc.GetPin("Out").type;
-	RGBAColor   data        = desc.GetPin("Out").data.convert<RGBAColor>();
-	source += fmt::format("float4 {} = float4({}, {}, {});\n", output, data.color.x, data.color.y, data.color.z, data.color.w);
-	return output;
+
 }
 }        // namespace Ilum::MGNode

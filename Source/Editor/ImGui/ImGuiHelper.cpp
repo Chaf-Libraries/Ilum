@@ -1,6 +1,9 @@
 #include "ImGuiHelper.hpp"
+#include "Editor/Editor.hpp"
 
 #include <RHI/RHITexture.hpp>
+#include <Renderer/Renderer.hpp>
+#include <Resource/ResourceManager.hpp>
 
 #include <glm/gtc/type_ptr.hpp>
 
@@ -8,6 +11,19 @@
 
 namespace ImGui
 {
+inline rttr::variant GetMetaData(const std::string &key, rttr::variant &var, const rttr::property *prop)
+{
+	if (prop && prop->get_metadata(key))
+	{
+		return prop->get_metadata(key);
+	}
+	else if (var && var.get_type().get_metadata(key))
+	{
+		return var.get_type().get_metadata(key);
+	}
+	return {};
+}
+
 namespace Impl
 {
 using MetaCallback = std::function<rttr::variant(std::string)>;
@@ -37,7 +53,12 @@ struct VariantEditor<Ilum::RHITexture *>
 	inline bool operator()(const std::string &name, rttr::variant &var, const rttr::property *prop)
 	{
 		auto val = var.convert<Ilum::RHITexture *>();
-		if (prop && prop->get_metadata("Editor") == "Button")
+		if (!val)
+		{
+			return false;
+		}
+
+		if (GetMetaData("Editor", var, prop) == "Button")
 		{
 			ImGui::ImageButton(val, ImVec2{100, 100});
 		}
@@ -64,11 +85,11 @@ struct VariantEditor<std::string>
 			return true;
 		}
 
-		if (prop && prop->get_metadata("DragDrop").is_valid())
+		if (GetMetaData("DragDrop", var, prop))
 		{
 			if (ImGui::BeginDragDropTarget())
 			{
-				if (const auto *pay_load = ImGui::AcceptDragDropPayload(prop->get_metadata("DragDrop").convert<std::string>().c_str()))
+				if (const auto *pay_load = ImGui::AcceptDragDropPayload(GetMetaData("DragDrop", var, prop).convert<std::string>().c_str()))
 				{
 					ASSERT(pay_load->DataSize == sizeof(std::string));
 					str = *static_cast<std::string *>(pay_load->Data);
@@ -123,7 +144,7 @@ struct VariantEditor<glm::vec<N, T>>
 		{
 			T val = var.convert<T>();
 
-			if (ImGui::DragScalar(name.c_str(), data_type, &val, 0.1f, &min_val, &max_val, rttr::type::get<T>() == rttr::type::get<float>() ? "%.2f" : "%d"))
+			if (ImGui::DragScalar(name.c_str(), data_type, &val, 0.1f, &min_val, &max_val, rttr::type::get<T>() == rttr::type::get<float>() ? "%.2f" : (rttr::type::get<T>() == rttr::type::get<size_t>() ? "%ld" : "%d")))
 			{
 				var = val;
 				return true;
@@ -132,7 +153,7 @@ struct VariantEditor<glm::vec<N, T>>
 		else
 		{
 			glm::vec<N, T> val = var.convert<glm::vec<N, T>>();
-			if (ImGui::DragScalarN(name.c_str(), data_type, &val.x, N, 0.1f, &min_val, &max_val, rttr::type::get<T>() == rttr::type::get<float>() ? "%.2f" : "%d"))
+			if (ImGui::DragScalarN(name.c_str(), data_type, &val.x, N, 0.1f, &min_val, &max_val, rttr::type::get<T>() == rttr::type::get<float>() ? "%.2f" : (rttr::type::get<T>() == rttr::type::get<size_t>() ? "%ld" : "%d")))
 			{
 				var = val;
 				return true;
@@ -146,12 +167,30 @@ struct VariantEditor<glm::vec<N, T>>
 	{
 		ASSERT(typeid(T) == typeid(float) && (N == 3 || N == 4));
 		glm::vec<N, T> val = var.convert<glm::vec<N, T>>();
-		if (N == 3 && ImGui::ColorEdit3(name.c_str(), (float *) &val.x))
+		if (N == 3 && ImGui::ColorEdit3(name.c_str(), (float *) &val.x, ImGuiColorEditFlags_NoInputs))
 		{
 			var = val;
 			return true;
 		}
-		else if (N == 4 && ImGui::ColorEdit4(name.c_str(), (float *) &val.x))
+		else if (N == 4 && ImGui::ColorEdit4(name.c_str(), (float *) &val.x, ImGuiColorEditFlags_NoInputs))
+		{
+			var = val;
+			return true;
+		}
+		return false;
+	}
+
+	template <typename T, glm::length_t N>
+	bool ColorPicker(const std::string &name, rttr::variant &var)
+	{
+		ASSERT(typeid(T) == typeid(float) && (N == 3 || N == 4));
+		glm::vec<N, T> val = var.convert<glm::vec<N, T>>();
+		if (N == 3 && ImGui::ColorPicker3(name.c_str(), (float *) &val.x, ImGuiColorEditFlags_NoInputs))
+		{
+			var = val;
+			return true;
+		}
+		else if (N == 4 && ImGui::ColorPicker4(name.c_str(), (float *) &val.x, ImGuiColorEditFlags_NoInputs))
 		{
 			var = val;
 			return true;
@@ -187,29 +226,35 @@ struct VariantEditor<glm::vec<N, T>>
 	{
 		ImGuiDataType data_type = GetDataType<T>();
 
-		T min_val = prop && prop->get_metadata("Min").is_valid() ? prop->get_metadata("Min").convert<T>() : std::numeric_limits<T>::lowest();
-		T max_val = prop && prop->get_metadata("Max").is_valid() ? prop->get_metadata("Max").convert<T>() : std::numeric_limits<T>::max();
+		std::string display_name = GetMetaData("Name", var, prop) ? GetMetaData("Name", var, prop).to_string() : name;
+
+		T min_val = GetMetaData("Min", var, prop) ? GetMetaData("Min", var, prop).convert<T>() : std::numeric_limits<T>::lowest();
+		T max_val = GetMetaData("Max", var, prop) ? GetMetaData("Max", var, prop).convert<T>() : std::numeric_limits<T>::max();
 
 		bool update = false;
 
-		if (prop && prop->get_metadata("Editor") == "ColorEdit")
+		if (GetMetaData("Editor", var, prop) == "ColorEdit")
 		{
-			update = ColorEdit<T, N>(name, var);
+			update = ColorEdit<T, N>(display_name, var);
 		}
-		else if (prop && prop->get_metadata("Editor") == "Slider")
+		else if (GetMetaData("Editor", var, prop) == "ColorPicker")
 		{
-			update = SliderScalars<T, N>(name, var, data_type, min_val, max_val);
+			update = ColorPicker<T, N>(display_name, var);
+		}
+		else if (GetMetaData("Editor", var, prop) == "Slider")
+		{
+			update = SliderScalars<T, N>(display_name, var, data_type, min_val, max_val);
 		}
 		else
 		{
-			update = DragScalars<T, N>(name, var, data_type, min_val, max_val);
+			update = DragScalars<T, N>(display_name, var, data_type, min_val, max_val);
 		}
 
-		if (prop && prop->get_metadata("DragDrop").is_valid())
+		if (GetMetaData("DragDrop", var, prop))
 		{
 			if (ImGui::BeginDragDropTarget())
 			{
-				if (const auto *pay_load = ImGui::AcceptDragDropPayload(prop->get_metadata("DragDrop").convert<std::string>().c_str()))
+				if (const auto *pay_load = ImGui::AcceptDragDropPayload(GetMetaData("DragDrop", var, prop).convert<std::string>().c_str()))
 				{
 					if (N == 1)
 					{
@@ -270,17 +315,11 @@ inline static std::unordered_map<rttr::type, std::function<bool(const std::strin
 
     EDIT_ITEM(std::string)};
 
-void DisplayImage(const rttr::variant &var)
-{
-	Ilum::RHITexture *texture = var.convert<Ilum::RHITexture *>();
-	ImGui::Image(texture, ImVec2{100, 100});
-}
-
-bool EditVariantImpl(const std::string &name, rttr::variant &var, const rttr::property *prop)
+bool EditVariantImpl(const std::string &name, Ilum::Editor *editor, rttr::variant &var, const rttr::property *prop)
 {
 	bool update = false;
 
-	if (prop && prop->get_metadata("Editor") == "Disable")
+	if (GetMetaData("Editor", var, prop) == "Disable")
 	{
 		return false;
 	}
@@ -293,6 +332,12 @@ bool EditVariantImpl(const std::string &name, rttr::variant &var, const rttr::pr
 	else if (EditorMap.find(var.get_type()) != EditorMap.end())
 	{
 		update = EditorMap[var.get_type()](name, var, prop);
+		if (var.get_type() == rttr::type::get<size_t>() && GetMetaData("Editor", var, prop) == "Texture")
+		{
+			auto          resource = editor->GetRenderer()->GetResourceManager()->GetResource<Ilum::ResourceType::Texture>(var.convert<size_t>());
+			rttr::variant texture  = resource ? resource->GetTexture() : nullptr;
+			Impl::VariantEditor<Ilum::RHITexture *>()(name, texture, prop);
+		}
 	}
 	else if (var.get_type().is_enumeration())
 	{
@@ -331,7 +376,7 @@ bool EditVariantImpl(const std::string &name, rttr::variant &var, const rttr::pr
 			if (ImGui::TreeNode(elem_name.c_str()))
 			{
 				rttr::variant elem = seq_view.get_value_type().create();
-				update             = EditVariantImpl(elem_name.c_str(), elem, prop);
+				update             = EditVariantImpl(elem_name.c_str(), editor, elem, prop);
 				seq_view.set_value(i, elem);
 				ImGui::TreePop();
 			}
@@ -342,7 +387,7 @@ bool EditVariantImpl(const std::string &name, rttr::variant &var, const rttr::pr
 		for (auto &property_ : var.get_type().get_properties())
 		{
 			auto prop_val = property_.get_value(var);
-			update        = EditVariantImpl(property_.get_name().to_string().c_str(), prop_val, &property_);
+			update        = EditVariantImpl(property_.get_name().to_string().c_str(), editor, prop_val, &property_);
 			property_.set_value(var, prop_val);
 		}
 	}

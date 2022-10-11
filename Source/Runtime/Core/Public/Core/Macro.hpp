@@ -66,6 +66,20 @@ using OutputArchive = cereal::XMLOutputArchive;
 #	define ENUM(enum_name, ...) enum class enum_name
 #endif        // __REFLECTION_PARSER__
 
+#define DEFINE_ENUMCLASS_OPERATION(EnumClass)                   \
+	inline EnumClass operator|(EnumClass lhs, EnumClass rhs)    \
+	{                                                           \
+		return (EnumClass) ((uint64_t) lhs | (uint64_t) rhs);   \
+	}                                                           \
+	inline bool operator&(EnumClass lhs, EnumClass rhs)         \
+	{                                                           \
+		return (bool) ((uint64_t) lhs & (uint64_t) rhs);        \
+	}                                                           \
+	inline EnumClass &operator|=(EnumClass &lhs, EnumClass rhs) \
+	{                                                           \
+		return lhs = lhs | rhs;                                 \
+	}
+
 #ifdef NDEBUG
 #	define ASSERT(x)
 #else

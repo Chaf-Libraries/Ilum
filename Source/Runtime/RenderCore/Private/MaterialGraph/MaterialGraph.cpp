@@ -2,6 +2,8 @@
 
 #include "MaterialGraph/MaterialGraph.hpp"
 
+#include <RHI/RHIContext.hpp>
+
 namespace Ilum
 {
 void MaterialGraphDesc::AddNode(size_t &handle, MaterialNodeDesc &&desc)
@@ -9,6 +11,7 @@ void MaterialGraphDesc::AddNode(size_t &handle, MaterialNodeDesc &&desc)
 	for (auto &[pin_handle, name] : desc.pin_index)
 	{
 		node_query[pin_handle] = handle;
+		desc.handle            = handle;
 	}
 	nodes.emplace(handle++, std::move(desc));
 }
@@ -41,7 +44,7 @@ void MaterialGraphDesc::EraseNode(size_t handle)
 void MaterialGraphDesc::EraseLink(size_t source, size_t target)
 {
 	if (links.find(target) != links.end() &&
-		links.at(target) == source)
+	    links.at(target) == source)
 	{
 		links.erase(target);
 	}
@@ -55,7 +58,7 @@ void MaterialGraphDesc::Link(size_t source, size_t target)
 	const auto &src_pin = src_node.GetPin(source);
 	const auto &dst_pin = dst_node.GetPin(target);
 
-	if (src_pin.type == dst_pin.type &&
+	if ((src_pin.type & dst_pin.type) &&
 	    src_pin.attribute != dst_pin.attribute)
 	{
 		links[target] = source;
@@ -66,4 +69,20 @@ bool MaterialGraphDesc::HasLink(size_t target)
 {
 	return links.find(target) != links.end();
 }
+
+size_t MaterialGraphDesc::LinkFrom(size_t target_pin)
+{
+	return links.at(target_pin);
+}
+
+const MaterialNodeDesc &MaterialGraphDesc::GetNode(size_t pin)
+{
+	return nodes.at(node_query.at(pin));
+}
+
+MaterialGraph::MaterialGraph(RHIContext *rhi_context) :
+    p_rhi_context(rhi_context)
+{
+}
+
 }        // namespace Ilum

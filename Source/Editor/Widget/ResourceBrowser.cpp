@@ -136,7 +136,6 @@ inline void DrawResource<ResourceType::Texture>(ResourceManager *manager, float 
 			const size_t uuid_ = uuid;
 			ImGui::SetDragDropPayload(rttr::type::get<ResourceType>().get_enumeration().value_to_name(ResourceType::Texture).to_string().c_str(), &uuid_, sizeof(size_t));
 			ImGui::EndDragDropSource();
-			break;
 		}
 
 		std::string uuid_str = std::to_string(uuid);

@@ -33,6 +33,7 @@ target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/Pu
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Private")
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Public/RenderCore")
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Dependencies/slang")
+target_include_directories(${TARGET_NAME} PRIVATE "${PROJECT_SOURCE_DIR}/Source/Dependencies/Mustache")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 
 add_custom_command(

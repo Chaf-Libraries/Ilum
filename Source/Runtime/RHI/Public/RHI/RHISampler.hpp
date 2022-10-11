@@ -6,6 +6,13 @@ namespace Ilum
 {
 class RHIDevice;
 
+ENUM(SamplerStateType, Enable){
+    LinearClamp,
+    LinearWarp,
+    NearestClamp,
+    NearestWarp,
+};
+
 struct SamplerDesc
 {
 	RHIFilter min_filter;
@@ -15,13 +22,14 @@ struct SamplerDesc
 	RHIAddressMode address_mode_v;
 	RHIAddressMode address_mode_w;
 	RHIMipmapMode  mipmap_mode;
+
 	RHISamplerBorderColor border_color = RHISamplerBorderColor::Float_Transparent_Black;
 
 	bool anisotropic = false;
 
 	float mip_lod_bias = 0.f;
-	float min_lod = 0.f;
-	float max_lod = 100.f;
+	float min_lod      = 0.f;
+	float max_lod      = 100.f;
 
 	static SamplerDesc LinearClamp;
 	static SamplerDesc LinearWarp;
@@ -39,7 +47,7 @@ class RHISampler
 	static std::unique_ptr<RHISampler> Create(RHIDevice *device, const SamplerDesc &desc);
 
   protected:
-	RHIDevice *p_device = nullptr;
+	RHIDevice  *p_device = nullptr;
 	SamplerDesc m_desc;
 };
 }        // namespace Ilum

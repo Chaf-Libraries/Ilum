@@ -7,6 +7,7 @@ StructuredBuffer<uint> MeshletVertexBuffer[];
 StructuredBuffer<uint> MeshletPrimitiveBuffer[];
 StructuredBuffer<Meshlet> MeshletBuffer[];
 StructuredBuffer<InstanceData> InstanceBuffer;
+Texture2D<float> TextureArray[];
 
 struct VertexOut
 {
