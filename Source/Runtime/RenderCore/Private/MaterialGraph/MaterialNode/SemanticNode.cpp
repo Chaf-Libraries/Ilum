@@ -29,6 +29,7 @@ void OutputNode::EmitHLSL(const MaterialNodeDesc &desc, MaterialGraphDesc &graph
 	surface_bsdf_node.get_type().get_method("EmitHLSL").invoke(surface_bsdf_node, surface_bsdf_node_desc, graph, surface_bsdf_info).to_string();
 
 	info.includes.insert(std::make_move_iterator(surface_bsdf_info.includes.begin()), std::make_move_iterator(surface_bsdf_info.includes.end()));
+	info.definitions.insert(info.definitions.end(), std::make_move_iterator(surface_bsdf_info.definitions.begin()), std::make_move_iterator(surface_bsdf_info.definitions.end()));
 	info.type_name = surface_bsdf_info.type_name;
 }
 }        // namespace Ilum::MGNode

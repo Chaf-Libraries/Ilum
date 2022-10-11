@@ -68,10 +68,18 @@ std::unique_ptr<MaterialGraph> MaterialGraphBuilder::Compile(MaterialGraphDesc &
 		}
 		mustache_data.set("Include", includes);
 	}
+	{
+		kainjow::mustache::data definitions{kainjow::mustache::data::type::list};
+		for (auto &definition_block : emit_info.definitions)
+		{
+			kainjow::mustache::data definition{kainjow::mustache::data::type::object};
+			definition["Definition"] = definition_block;
+			definitions << definition;
+		}
+		mustache_data.set("BxDFDefitions", definitions);
+	}
 
 	std::string shader = mustache.render(mustache_data);
-
-	// surface_bsdf_node.get_type().get_method("EmitHLSL").invoke(surface_bsdf_node, surface_bsdf_info).to_string();
 
 	return nullptr;
 }

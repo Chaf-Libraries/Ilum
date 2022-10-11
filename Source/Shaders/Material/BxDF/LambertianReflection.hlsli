@@ -1,22 +1,24 @@
-#ifndef LAMBERTIANREFLECTION_HLSLI
-#define LAMBERTIANREFLECTION_HLSLI
+#ifndef LAMBERTIAN_REFLECTION_HLSLI
+#define LAMBERTIAN_REFLECTION_HLSLI
 
 #include "../Utils/BxDFType.hlsli"
 #include "../../Math.hlsli"
 
 struct LambertianReflection
 {
-    float3 R;
+    float3 BaseColor;
     static const uint BxDF_Type = BxDF_REFLECTION | BxDF_DIFFUSE;
     
-    void Init(float3 color)
+    static LambertianReflection Create(float3 color)
     {
-        R = color;
+        LambertianReflection bxdf;
+        bxdf.BaseColor = color;
+        return bxdf;
     }
-    
+     
     float3 Eval(float3 wi, float3 wo)
     {
-        return R * InvPI;
+        return BaseColor * InvPI;
     }
     
     float Pdf(float3 wi, float3 wo)
@@ -35,5 +37,4 @@ struct LambertianReflection
         return Eval(wo, wi);
     }
 };
-
 #endif
