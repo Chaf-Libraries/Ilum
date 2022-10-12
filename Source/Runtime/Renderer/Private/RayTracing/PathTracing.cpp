@@ -18,9 +18,9 @@ RenderGraph::RenderTask PathTracing::Create(const RenderPassDesc &desc, RenderGr
 
 	std::shared_ptr<RHIPipelineState> pipeline_state = std::move(renderer->GetRHIContext()->CreatePipelineState());
 
-	auto *ray_gen_shader     = renderer->RequireShader("Source/Shaders/PathTracing.hlsl", "RayGenMain", RHIShaderStage::RayGen);
-	auto *closest_hit_shader = renderer->RequireShader("Source/Shaders/PathTracing.hlsl", "ClosesthitMain", RHIShaderStage::ClosestHit);
-	auto *miss_shader        = renderer->RequireShader("Source/Shaders/PathTracing.hlsl", "MissMain", RHIShaderStage::Miss);
+	auto *ray_gen_shader     = renderer->RequireShader("Source/Shaders/PathTracing.hlsl", "RayGenMain", RHIShaderStage::RayGen, {"RAYGEN_STAGE"});
+	auto *closest_hit_shader = renderer->RequireShader("Source/Shaders/PathTracing.hlsl", "ClosesthitMain", RHIShaderStage::ClosestHit, {"CLOSESTHIT_STAGE"});
+	auto *miss_shader        = renderer->RequireShader("Source/Shaders/PathTracing.hlsl", "MissMain", RHIShaderStage::Miss, {"MISS_STAGE"});
 
 	pipeline_state->SetShader(RHIShaderStage::RayGen, ray_gen_shader);
 	pipeline_state->SetShader(RHIShaderStage::ClosestHit, closest_hit_shader);
@@ -36,6 +36,12 @@ RenderGraph::RenderTask PathTracing::Create(const RenderPassDesc &desc, RenderGr
 		auto *output = render_graph.GetTexture(desc.resources.at("Output").handle);
 
 		const auto &scene_info = renderer->GetSceneInfo();
+
+		if (scene_info.meshlet_count.empty())
+		{
+			return;
+		}
+
 		descriptor
 		    ->BindBuffer("View", renderer->GetViewBuffer())
 		    .BindTexture("OutputImage", output, RHITextureDimension::Texture2D)

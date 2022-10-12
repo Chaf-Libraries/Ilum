@@ -15,6 +15,11 @@ class ShaderBindingTableInfo
 	ShaderBindingTableInfo(Device *device, uint32_t handle_count) :
 	    p_device(device)
 	{
+		if (handle_count == 0)
+		{
+			return;
+		}
+
 		VkPhysicalDeviceRayTracingPipelinePropertiesKHR raytracing_pipeline_properties = {};
 		raytracing_pipeline_properties.sType                                           = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
 		VkPhysicalDeviceProperties2 deviceProperties2                                  = {};

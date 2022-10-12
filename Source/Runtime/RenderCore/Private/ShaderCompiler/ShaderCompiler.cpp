@@ -335,6 +335,7 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(cons
 	arguments.emplace_back(to_wstring(GetTargetProfile(stage)));
 	arguments.emplace_back(L"-I");
 	arguments.emplace_back(to_wstring(Path::GetInstance().GetCurrent() + "/Source/Shaders"));
+	arguments.emplace_back(to_wstring("-DRUNTIME"));
 	arguments.emplace_back(L"-spirv");
 	arguments.emplace_back(L"-fspv-target-env=vulkan1.3");
 	arguments.emplace_back(L"-fspv-extension=SPV_KHR_ray_tracing");

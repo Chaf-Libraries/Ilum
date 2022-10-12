@@ -412,6 +412,7 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 		std::vector<VkWriteDescriptorSet>                write_sets;
 		std::vector<std::vector<VkDescriptorImageInfo>>  image_infos  = {};
 		std::vector<std::vector<VkDescriptorBufferInfo>> buffer_infos = {};
+		std::vector<VkWriteDescriptorSetAccelerationStructureKHR> write_descriptor_set_acceleration_structures = {};
 		for (auto &descriptor : m_meta.descriptors)
 		{
 			if (descriptor.set == set)
@@ -469,14 +470,15 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 				}
 
 				// Handle Acceleration Structure
-				VkWriteDescriptorSetAccelerationStructureKHR write_set_as = {};
 				if (descriptor.type == DescriptorType::AccelerationStructure)
 				{
 					is_as = true;
 
+					VkWriteDescriptorSetAccelerationStructureKHR write_set_as = {};
 					write_set_as.sType                      = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
 					write_set_as.accelerationStructureCount = static_cast<uint32_t>(m_acceleration_structure_resolves[descriptor.name].acceleration_structures.size());
 					write_set_as.pAccelerationStructures    = m_acceleration_structure_resolves[descriptor.name].acceleration_structures.data();
+					write_descriptor_set_acceleration_structures.push_back(write_set_as);
 
 					descriptor_count = static_cast<uint32_t>(m_acceleration_structure_resolves[descriptor.name].acceleration_structures.size());
 				}
@@ -491,7 +493,7 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 				write_set.pImageInfo           = is_texture ? image_infos.back().data() : nullptr;
 				write_set.pBufferInfo          = is_buffer ? buffer_infos.back().data() : nullptr;
 				write_set.pTexelBufferView     = nullptr;
-				write_set.pNext                = is_as ? &write_set_as : nullptr;
+				write_set.pNext                = is_as ? &write_descriptor_set_acceleration_structures.back() : nullptr;
 				write_sets.push_back(write_set);
 			}
 		}

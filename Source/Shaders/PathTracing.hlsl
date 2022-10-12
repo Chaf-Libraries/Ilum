@@ -3,6 +3,7 @@
 RaytracingAccelerationStructure TopLevelAS;
 RWTexture2D<float4> OutputImage;
 
+#ifdef RAYGEN_STAGE
 [shader("raygeneration")]
 void RayGenMain()
 {
@@ -25,7 +26,9 @@ void RayGenMain()
 
     OutputImage[int2(launchIndex.x, launchDimensions.y - launchIndex.y)] = float4(color, 1.0f);
 }
+#endif
 
+#ifdef CLOSESTHIT_STAGE
 [shader("closesthit")]
 void ClosesthitMain(inout SurfaceInteraction interaction : SV_RayPayload, BuiltInTriangleIntersectionAttributes attributes)
 {
@@ -34,9 +37,12 @@ void ClosesthitMain(inout SurfaceInteraction interaction : SV_RayPayload, BuiltI
     ray.Origin = WorldRayOrigin();
     interaction.Init(ray, attributes);
 }
+#endif
 
+#ifdef MISS_STAGE
 [shader("miss")]
 void MissMain(inout SurfaceInteraction interaction : SV_RayPayload)
 {
     interaction.t = Infinity;
 }
+#endif
