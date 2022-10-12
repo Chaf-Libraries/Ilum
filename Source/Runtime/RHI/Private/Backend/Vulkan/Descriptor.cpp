@@ -1,4 +1,5 @@
 #include "Descriptor.hpp"
+#include "AccelerationStructure.hpp"
 #include "Buffer.hpp"
 #include "Definitions.hpp"
 #include "Device.hpp"
@@ -351,6 +352,19 @@ RHIDescriptor &Descriptor::BindConstant(const std::string &name, const void *con
 
 RHIDescriptor &Descriptor::BindAccelerationStructure(const std::string &name, RHIAccelerationStructure *acceleration_structure)
 {
+	if (m_binding_hash.find(name) == m_binding_hash.end())
+	{
+		return *this;
+	}
+
+	size_t hash = Hash(acceleration_structure);
+	if (m_binding_hash[name] != hash)
+	{
+		m_acceleration_structure_resolves[name].acceleration_structures = {static_cast<AccelerationStructure *>(acceleration_structure)->GetHandle()};
+		m_binding_hash[name]                                            = hash;
+		m_binding_dirty[m_descriptor_lookup[name].first]                = true;
+	}
+
 	return *this;
 }
 
@@ -404,6 +418,7 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 			{
 				bool     is_texture       = false;
 				bool     is_buffer        = false;
+				bool     is_as            = false;
 				uint32_t descriptor_count = 0;
 
 				image_infos.push_back({});
@@ -453,6 +468,19 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 					descriptor_count = static_cast<uint32_t>(buffer_infos.back().size());
 				}
 
+				// Handle Acceleration Structure
+				VkWriteDescriptorSetAccelerationStructureKHR write_set_as = {};
+				if (descriptor.type == DescriptorType::AccelerationStructure)
+				{
+					is_as = true;
+
+					write_set_as.sType                      = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+					write_set_as.accelerationStructureCount = static_cast<uint32_t>(m_acceleration_structure_resolves[descriptor.name].acceleration_structures.size());
+					write_set_as.pAccelerationStructures    = m_acceleration_structure_resolves[descriptor.name].acceleration_structures.data();
+
+					descriptor_count = static_cast<uint32_t>(m_acceleration_structure_resolves[descriptor.name].acceleration_structures.size());
+				}
+
 				VkWriteDescriptorSet write_set = {};
 				write_set.sType                = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 				write_set.dstSet               = m_descriptor_sets[set];
@@ -463,7 +491,7 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 				write_set.pImageInfo           = is_texture ? image_infos.back().data() : nullptr;
 				write_set.pBufferInfo          = is_buffer ? buffer_infos.back().data() : nullptr;
 				write_set.pTexelBufferView     = nullptr;
-
+				write_set.pNext                = is_as ? &write_set_as : nullptr;
 				write_sets.push_back(write_set);
 			}
 		}
@@ -499,7 +527,14 @@ VkDescriptorSetLayout Descriptor::CreateDescriptorSetLayout(const ShaderMeta &me
 		layout_binding.stageFlags                   = ToVulkanShaderStages(descriptor.stage);
 		layout_binding.descriptorCount              = descriptor.array_size == 0 ? 1024 : descriptor.array_size;
 		descriptor_set_layout_bindings.push_back(layout_binding);
-		descriptor_binding_flags.push_back(binding_flags | (descriptor.array_size == 0 ? VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT : 0));
+		if (descriptor.type != DescriptorType::AccelerationStructure)
+		{
+			descriptor_binding_flags.push_back(binding_flags | (descriptor.array_size == 0 ? VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT : 0));
+		}
+		else
+		{
+			descriptor_binding_flags.push_back(0);
+		}
 	}
 
 	VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info = {};

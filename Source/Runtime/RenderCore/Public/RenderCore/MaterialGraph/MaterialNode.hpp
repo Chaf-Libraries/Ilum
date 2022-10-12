@@ -93,15 +93,19 @@ STRUCT(MaterialNodeDesc, Enable)
 struct MaterialEmitInfo
 {
 	std::vector<std::string> definitions;
+
+	std::unordered_map<size_t, std::string> expression;
+
 	std::string type_name;
 	std::string name;
 
-	std::map<std::string, MaterialNodePin::Type> uniform_resource;
+	std::vector<std::pair<std::string, std::vector<rttr::variant>>> resources;
+
 	std::unordered_set<std::string> includes;
 
-	bool IsRecursion() const
+	bool IsExpression(size_t pin) const
 	{
-		return name.empty();
+		return expression.find(pin) != expression.end();
 	}
 };
 
@@ -114,7 +118,7 @@ STRUCT(MaterialNode, Enable)
 		return true;
 	}
 
-	virtual void EmitHLSL(const MaterialNodeDesc &desc, MaterialGraphDesc &graph, MaterialEmitInfo& info) = 0;
+	virtual void EmitHLSL(const MaterialNodeDesc &desc, MaterialGraphDesc &graph, MaterialEmitInfo &info) = 0;
 
 	RTTR_ENABLE();
 };

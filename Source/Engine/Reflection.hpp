@@ -21,6 +21,7 @@
 #include "_Generate/DebugPass.generate.hpp"
 #include "_Generate/TrianglePass.generate.hpp"
 #include "_Generate/VisibilityBufferPass.generate.hpp"
+#include "_Generate/PathTracing.generate.hpp"
 #include "_Generate/Resource.generate.hpp"
 #include "_Generate/ModelResource.generate.hpp"
 #include "_Generate/Component.generate.hpp"

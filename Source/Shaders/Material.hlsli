@@ -3,6 +3,9 @@
 #ifndef MATERIAL_HLSLI
 #define MATERIAL_HLSLI
 
+#include "Material/Cast.hlsli"
+#include "Common.hlsli"
+
 {{#Include}}
 {{&IncludePath}}
 {{/Include}}

@@ -1,4 +1,5 @@
 #include "ResourceNode.hpp"
+#include "MaterialGraph/MaterialGraph.hpp"
 
 namespace Ilum::MGNode
 {
@@ -38,6 +39,16 @@ MaterialNodeDesc SamplerState::Create(size_t &handle)
 
 void SamplerState::EmitHLSL(const MaterialNodeDesc &desc, MaterialGraphDesc &graph, MaterialEmitInfo &info)
 {
+	if (graph.HasLink(desc.GetPin("In").handle))
+	{
+		const auto &variable_desc = graph.GetNode(graph.LinkFrom(desc.GetPin("In").handle));
+		auto        variable_node = rttr::type::get_by_name(variable_desc.name).create();
+		variable_node.get_type().get_method("EmitHLSL").invoke(variable_node, variable_desc, graph, info);
 
+		if (info.IsExpression(graph.LinkFrom(desc.GetPin("In").handle)))
+		{
+			//info.expression.emplace(desc.GetPin("Out"), fmt::format("TextureArray[{}].Sample"));
+		}
+	}
 }
 }        // namespace Ilum::MGNode

@@ -382,6 +382,8 @@ void Renderer::UpdateScene()
 			p_rhi_context->Submit({cmd_buffer});
 		}
 	}
+
+	m_scene_info.top_level_as = m_tlas.get();
 }
 
 }        // namespace Ilum

@@ -1,14 +1,5 @@
 #include "Common.hlsli"
 
-ConstantBuffer<ViewInfo> View;
-StructuredBuffer<Vertex> VertexBuffer[];
-StructuredBuffer<uint> IndexBuffer[];
-StructuredBuffer<uint> MeshletVertexBuffer[];
-StructuredBuffer<uint> MeshletPrimitiveBuffer[];
-StructuredBuffer<Meshlet> MeshletBuffer[];
-StructuredBuffer<InstanceData> InstanceBuffer;
-Texture2D<float> TextureArray[];
-
 struct VertexOut
 {
     float4 Position : SV_Position;

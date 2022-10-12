@@ -1,29 +1,33 @@
-
-#include "../BSDF.hlsli"
-
-struct BlendBxDF
+struct {{BxDFName}}
 {
+    static const uint BxDF_Type = {{BxDFTypeA}}::BxDF_Type | {{BxDFTypeB}}::BxDF_Type;
+    {{BxDFTypeA}} bxdf_A;
+    {{BxDFTypeB}} bxdf_B;
     float weight;
     
-    BSDF A;
-    BSDF B;
-    
-    void Init(float weight_)
+    static {{BxDFName}} Create()
     {
-        weight = weight_;
+        {{#Definitions}}
+        {{Definition}}
+        {{/Definitions}}
+        {{BxDFName}} result;
+        result.bxdf_A = {{BxDFTypeA}}::Create();
+        result.bxdf_B = {{BxDFTypeB}}::Create();
+        result.weight = {{&Weight}};
+        return result;
+    }
+     
+    float3 Eval(float3 wi, float3 wo)
+    {
+        return bxdf_A.Eval(wi, wo) * (1.0 - weight) + bxdf_B.Eval(wi, wo) * weight;
     }
     
-    float3 Eval(float3 V, float3 L)
+    float Pdf(float3 wi, float3 wo)
     {
-        return A.Eval(V, L) * (1.f - weight) + B.Eval(V, L) * weight;
+        return bxdf_A.Pdf(wi, wo) * (1.0 - weight) + bxdf_B.Pdf(wi, wo) * weight;
     }
     
-    float Pdf(float3 V, float3 L)
-    {
-        return A.Pdf(V, L) * (1.f - weight) + B.Pdf(V, L) * weight;
-    }
-    
-    float3 Samplef(float V, float sample1, float2 sample2, out float3 L, out float pdf)
+    float3 Samplef(float3 wi, float sample1, float2 sample2, out float3 wo, out float pdf)
     {
         return 0.f;
     }

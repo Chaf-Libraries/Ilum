@@ -1,5 +1,6 @@
 #pragma once
 
+#include "RenderCore/MaterialGraph/MaterialGraph.hpp"
 #include "RenderCore/MaterialGraph/MaterialNode.hpp"
 
 namespace Ilum::MGNode
@@ -49,6 +50,49 @@ struct ToVariableNode : public MaterialNode
 
 	virtual void EmitHLSL(const MaterialNodeDesc &desc, MaterialGraphDesc &graph, MaterialEmitInfo &info) override
 	{
+		const char                                       *pin_name[] = {"X", "Y", "Z", "W"};
+		const std::unordered_map<rttr::type, std::string> type_name  = {
+            {rttr::type::get<float>(), "float"},
+            {rttr::type::get<bool>(), "bool"},
+            {rttr::type::get<uint32_t>(), "int"},
+            {rttr::type::get<int32_t>(), "uint"},
+        };
+
+		std::string components[N];
+
+		for (int32_t i = 0; i < N; i++)
+		{
+			if (graph.HasLink(desc.GetPin(pin_name[i]).handle))
+			{
+				const auto &variable_desc = graph.GetNode(graph.LinkFrom(desc.GetPin(pin_name[i]).handle));
+				auto        variable_node = rttr::type::get_by_name(variable_desc.name).create();
+				variable_node.get_type().get_method("EmitHLSL").invoke(variable_node, variable_desc, graph, info);
+				if (info.IsExpression(graph.LinkFrom(desc.GetPin(pin_name[i]).handle)))
+				{
+					components[i] = fmt::format("({})", info.expression.at(graph.LinkFrom(desc.GetPin(pin_name[i]).handle)));
+				}
+				else
+				{
+					components[i] = "S" + std::to_string(graph.LinkFrom(desc.GetPin(pin_name[i]).handle));
+				}
+			}
+			else
+			{
+				components[i] = desc.GetPin(pin_name[i]).data.to_string();
+			}
+		}
+
+		std::string shader_type_name = type_name.at(rttr::type::get<T>()) + (N == 1 ? std::string() : std::to_string(N));
+
+		std::string defintion = shader_type_name + " S" + std::to_string(desc.GetPin("Out").handle) + " = " + shader_type_name + "(";
+
+		for (int32_t i = 0; i < N - 1 && i >= 0; i++)
+		{
+			defintion += components[i] + ", ";
+		}
+		defintion += components[N - 1] + ");";
+
+		info.definitions.push_back(defintion);
 	}
 };
 
@@ -80,7 +124,37 @@ struct SplitVectorNode : public MaterialNode
 
 	virtual void EmitHLSL(const MaterialNodeDesc &desc, MaterialGraphDesc &graph, MaterialEmitInfo &info) override
 	{
-		std::string output = fmt::format("v{}", desc.GetPin("Out").handle);
+		if (graph.HasLink(desc.GetPin("In").handle))
+		{
+			const auto &variable_desc = graph.GetNode(graph.LinkFrom(desc.GetPin("In").handle));
+			auto        variable_node = rttr::type::get_by_name(variable_desc.name).create();
+			variable_node.get_type().get_method("EmitHLSL").invoke(variable_node, variable_desc, graph, info);
+
+			MaterialNodePin::Type pin_type = variable_desc.GetPin(graph.LinkFrom(desc.GetPin("In").handle)).type;
+
+			const char *pin_name[]  = {"X", "Y", "Z", "W"};
+			const char *cmpt_name[] = {"x", "y", "z", "w"};
+
+			const std::unordered_map<MaterialNodePin::Type, std::string> type_name = {
+			    {MaterialNodePin::Type::Bool2, "bool"},
+			    {MaterialNodePin::Type::Bool3, "bool"},
+			    {MaterialNodePin::Type::Bool4, "bool"},
+			    {MaterialNodePin::Type::Int2, "int"},
+			    {MaterialNodePin::Type::Int3, "int"},
+			    {MaterialNodePin::Type::Int4, "int"},
+			    {MaterialNodePin::Type::Uint2, "uint"},
+			    {MaterialNodePin::Type::Uint3, "uint"},
+			    {MaterialNodePin::Type::Uint4, "uint"},
+			    {MaterialNodePin::Type::Float2, "float"},
+			    {MaterialNodePin::Type::Float3, "float"},
+			    {MaterialNodePin::Type::Float4, "float"},
+			};
+
+			for (int32_t i = 0; i < N; i++)
+			{
+				info.expression.emplace(desc.GetPin(pin_name[i]).handle, fmt::format("S{}.{}", graph.LinkFrom(desc.GetPin("In").handle), cmpt_name[i]));
+			}
+		}
 	}
 };
 

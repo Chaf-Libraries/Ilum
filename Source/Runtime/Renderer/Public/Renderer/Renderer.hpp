@@ -29,13 +29,15 @@ struct SceneInfo
 {
 	std::vector<RHITexture *> textures;
 
-	std::vector<RHIBuffer *>   static_vertex_buffers;
-	std::vector<RHIBuffer *>   static_index_buffers;
-	std::vector<RHIBuffer *>   meshlet_vertex_buffers;
-	std::vector<RHIBuffer *>   meshlet_primitive_buffers;
-	std::vector<RHIBuffer *>   meshlet_buffers;
+	std::vector<RHIBuffer *> static_vertex_buffers;
+	std::vector<RHIBuffer *> static_index_buffers;
+	std::vector<RHIBuffer *> meshlet_vertex_buffers;
+	std::vector<RHIBuffer *> meshlet_primitive_buffers;
+	std::vector<RHIBuffer *> meshlet_buffers;
 
-	std::unique_ptr<RHIBuffer> instance_buffer;
+	std::unique_ptr<RHIBuffer> instance_buffer = nullptr;
+
+	RHIAccelerationStructure *top_level_as = nullptr;
 
 	std::vector<uint32_t> meshlet_count;
 };

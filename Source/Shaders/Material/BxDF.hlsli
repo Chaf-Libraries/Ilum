@@ -5,8 +5,8 @@ struct {{BxDFName}}
     
     static {{BxDFName}} Create()
     {
-        {{BxDFName}} result;
         {{&Definitions}}
+        {{BxDFName}} result;
         result.bxdf = {{BxDFType}}::Create({{Parameter}});
         return result;
     }

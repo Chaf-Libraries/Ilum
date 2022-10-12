@@ -22,7 +22,7 @@ STRUCT(BlendBxDFNode, Enable, MaterialNode("Blend BxDF"), Category("BxDF")) :
 	STRUCT(BlendWeight, Enable)
 	{
 		META(Editor("Slider"), Min(0.f), Max(1.f), Name(""))
-		float weight = 0.5f;
+		float Weight = 0.5f;
 	};
 
 	virtual MaterialNodeDesc Create(size_t & handle) override;
