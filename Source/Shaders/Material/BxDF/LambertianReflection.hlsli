@@ -1,7 +1,7 @@
 #ifndef LAMBERTIAN_REFLECTION_HLSLI
 #define LAMBERTIAN_REFLECTION_HLSLI
 
-#include "../Utils/BxDFType.hlsli"
+#include "../BxDFType.hlsli"
 #include "../../Math.hlsli"
 
 struct LambertianReflection

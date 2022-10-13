@@ -115,42 +115,57 @@ struct BinaryOpNode : public MaterialNode
 		    {MaterialNodePin::Type::Float4, "Float4"},
 		};
 
-		std::string lhs;
-		std::string rhs;
-
 		MaterialNodePin::Type lhs_type = MaterialNodePin::Type::Float;
 		MaterialNodePin::Type rhs_type = MaterialNodePin::Type::Float;
 
-		if (graph.HasLink(desc.GetPin("LHS").handle))
-		{
-			const auto &variable_desc = graph.GetNode(graph.LinkFrom(desc.GetPin("LHS").handle));
-			auto        variable_node = rttr::type::get_by_name(variable_desc.name).create();
-			variable_node.get_type().get_method("EmitHLSL").invoke(variable_node, variable_desc, graph, info);
+		std::string lhs = graph.GetEmitExpression(desc, "LHS", info);
+		std::string rhs = graph.GetEmitExpression(desc, "RHS", info);
 
-			lhs_type = variable_desc.GetPin(graph.LinkFrom(desc.GetPin("LHS").handle)).type;
+		size_t lhs_src = graph.LinkFrom(desc.GetPin("LHS").handle);
+		size_t rhs_src = graph.LinkFrom(desc.GetPin("RHS").handle);
 
-			lhs = "S" + std::to_string(graph.LinkFrom(desc.GetPin("LHS").handle));
-		}
-
-		if (graph.HasLink(desc.GetPin("RHS").handle))
-		{
-			const auto &variable_desc = graph.GetNode(graph.LinkFrom(desc.GetPin("RHS").handle));
-			auto        variable_node = rttr::type::get_by_name(variable_desc.name).create();
-			variable_node.get_type().get_method("EmitHLSL").invoke(variable_node, variable_desc, graph, info);
-
-			rhs_type = variable_desc.GetPin(graph.LinkFrom(desc.GetPin("RHS").handle)).type;
-
-			rhs = "S" + std::to_string(graph.LinkFrom(desc.GetPin("RHS").handle));
-		}
+		lhs_type = graph.GetNode(graph.LinkFrom(lhs_src)).GetPin(lhs_src).type;
+		rhs_type = graph.GetNode(graph.LinkFrom(rhs_src)).GetPin(rhs_src).type;
 
 		if (lhs_type == rhs_type)
 		{
-			info.expression.emplace(desc.GetPin("Out").handle, fmt::format("({} + {})", lhs, rhs));
+			info.expression.emplace(desc.GetPin("Out").handle, fmt::format("({} {} {})", lhs, op, rhs));
 		}
 		else
 		{
 			info.expression.emplace(desc.GetPin("Out").handle, fmt::format("({} {} Cast{}({}))", lhs, op, type_name.at(lhs_type), rhs));
 		}
+
+		// if (graph.HasLink(desc.GetPin("LHS").handle))
+		//{
+		//	const auto &variable_desc = graph.GetNode(graph.LinkFrom(desc.GetPin("LHS").handle));
+		//	auto        variable_node = rttr::type::get_by_name(variable_desc.name).create();
+		//	variable_node.get_type().get_method("EmitHLSL").invoke(variable_node, variable_desc, graph, info);
+
+		//	lhs_type = variable_desc.GetPin(graph.LinkFrom(desc.GetPin("LHS").handle)).type;
+
+		//	lhs = "S" + std::to_string(graph.LinkFrom(desc.GetPin("LHS").handle));
+		//}
+
+		// if (graph.HasLink(desc.GetPin("RHS").handle))
+		//{
+		//	const auto &variable_desc = graph.GetNode(graph.LinkFrom(desc.GetPin("RHS").handle));
+		//	auto        variable_node = rttr::type::get_by_name(variable_desc.name).create();
+		//	variable_node.get_type().get_method("EmitHLSL").invoke(variable_node, variable_desc, graph, info);
+
+		//	rhs_type = variable_desc.GetPin(graph.LinkFrom(desc.GetPin("RHS").handle)).type;
+
+		//	rhs = "S" + std::to_string(graph.LinkFrom(desc.GetPin("RHS").handle));
+		//}
+
+		// if (lhs_type == rhs_type)
+		//{
+		//	info.expression.emplace(desc.GetPin("Out").handle, fmt::format("({} + {})", lhs, rhs));
+		// }
+		// else
+		//{
+		//	info.expression.emplace(desc.GetPin("Out").handle, fmt::format("({} {} Cast{}({}))", lhs, op, type_name.at(lhs_type), rhs));
+		// }
 	}
 };
 

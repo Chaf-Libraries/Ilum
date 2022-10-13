@@ -27,7 +27,7 @@ struct {{BxDFName}}
         return bxdf_A.Pdf(wi, wo) * (1.0 - weight) + bxdf_B.Pdf(wi, wo) * weight;
     }
     
-    float3 Samplef(float3 wi, float sample1, float2 sample2, out float3 wo, out float pdf)
+    float3 Samplef(float3 wi, float sample1, float2 sample2, inout float3 wo, inout float pdf)
     {
         return 0.f;
     }

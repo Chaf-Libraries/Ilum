@@ -22,9 +22,10 @@ struct InstanceData
 	glm::vec3 aabb_max;
 	uint32_t  model_id;
 
-	alignas(16) uint32_t meshlet_count;
+	uint32_t meshlet_count;
 	uint32_t meshlet_offset;
-	uint32_t submesh_id;
+	uint32_t vertex_offset;
+	uint32_t index_offset;
 };
 
 Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resource_manager) :
@@ -355,7 +356,8 @@ void Renderer::UpdateScene()
 				instance_data.model_id       = static_cast<uint32_t>(p_resource_manager->GetResourceIndex<ResourceType::Model>(static_mesh.uuid));
 				instance_data.transform      = instance_info.transform;
 				instance_data.material       = 0;
-				instance_data.submesh_id     = i;
+				instance_data.vertex_offset  = submesh.vertices_offset;
+				instance_data.index_offset  = submesh.indices_offset;
 				instance_data.meshlet_offset = submesh.meshlet_offset;
 				instance_data.meshlet_count  = submesh.meshlet_count;
 				instances.emplace_back(std::move(instance_data));

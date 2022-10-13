@@ -29,6 +29,11 @@ STRUCT(MaterialGraphDesc, Enable)
 	size_t LinkFrom(size_t target_pin);
 
 	const MaterialNodeDesc &GetNode(size_t pin);
+
+	std::string GetEmitResult(const MaterialNodeDesc &desc, const std::string &pin_name, MaterialEmitInfo& emit_info);
+
+	std::string GetEmitExpression(const MaterialNodeDesc &desc, const std::string &pin_name, MaterialEmitInfo &emit_info);
+
 };
 
 class MaterialGraph

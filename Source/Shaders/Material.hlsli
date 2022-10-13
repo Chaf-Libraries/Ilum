@@ -1,4 +1,4 @@
-#ifdef MATERIAL_COMPILATION
+#ifdef RUNTIME
 
 #ifndef MATERIAL_HLSLI
 #define MATERIAL_HLSLI
@@ -35,7 +35,7 @@ struct Material
         return bxdfs.Pdf(wi, wo);
     }
     
-    float3 Samplef(float3 wi, float sample1, float2 sample2, out float3 wo, out float pdf)
+    float3 Samplef(float3 wi, float sample1, float2 sample2, inout float3 wo, inout float pdf)
     {
         return bxdfs.Samplef(wi, sample1, sample2. wo, pdf);
     }
@@ -65,7 +65,7 @@ struct Material
         return 0.f;
     }
     
-    float3 Samplef(float3 wi, float sample1, float2 sample2, out float3 wo, out float pdf)
+    float3 Samplef(float3 wo, float sample1, float2 sample2, inout float3 wi, inout float pdf)
     {
         return 0.f;
     }

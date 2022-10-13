@@ -5,7 +5,9 @@ struct {{BxDFName}}
     
     static {{BxDFName}} Create()
     {
-        {{&Definitions}}
+        {{#Definitions}}
+        {{Definition}}
+        {{/Definitions}}
         {{BxDFName}} result;
         result.bxdf = {{BxDFType}}::Create({{Parameter}});
         return result;
@@ -21,7 +23,7 @@ struct {{BxDFName}}
         return bxdf.Pdf(wi, wo);
     }
     
-    float3 Samplef(float3 wi, float sample1, float2 sample2, out float3 wo, out float pdf)
+    float3 Samplef(float3 wi, float sample1, float2 sample2, inout float3 wo, inout float pdf)
     {
         return bxdf.Samplef(wi, sample1, sample2, wo, pdf);
     }

@@ -99,8 +99,6 @@ struct MaterialEmitInfo
 	std::string type_name;
 	std::string name;
 
-	std::vector<std::pair<std::string, std::vector<rttr::variant>>> resources;
-
 	std::unordered_set<std::string> includes;
 
 	bool IsExpression(size_t pin) const

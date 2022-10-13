@@ -19,7 +19,9 @@ enum class DummyTexture
 struct ViewInfo
 {
 	glm::mat4 view_matrix;
+	glm::mat4 inv_view_matrix;
 	glm::mat4 projection_matrix;
+	glm::mat4 inv_projection_matrix;
 	glm::mat4 view_projection_matrix;
 	glm::vec3 position;
 	uint32_t  frame_count;

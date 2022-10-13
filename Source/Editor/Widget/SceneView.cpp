@@ -107,6 +107,7 @@ void SceneView::UpdateCamera()
 
 	m_view_info.frame_count++;
 	m_view_info.projection_matrix = m_camera.project_matrix;
+	m_view_info.inv_projection_matrix = glm::inverse(m_camera.project_matrix);
 
 	if (!ImGui::IsWindowFocused() || !ImGui::IsWindowHovered())
 	{
@@ -175,6 +176,7 @@ void SceneView::UpdateCamera()
 
 		m_view_info.position    = m_camera.position;
 		m_view_info.view_matrix = glm::lookAt(m_camera.position, m_camera.position + forward, up);
+		m_view_info.inv_view_matrix = glm::inverse(m_view_info.view_matrix);
 		m_view_info.frame_count = 0;
 	}
 	else if (m_hide_cursor)

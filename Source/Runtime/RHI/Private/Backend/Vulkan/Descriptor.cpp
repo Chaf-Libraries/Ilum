@@ -357,7 +357,7 @@ RHIDescriptor &Descriptor::BindAccelerationStructure(const std::string &name, RH
 		return *this;
 	}
 
-	size_t hash = Hash(acceleration_structure);
+	size_t hash = Hash(static_cast<AccelerationStructure*>(acceleration_structure)->GetHandle());
 	if (m_binding_hash[name] != hash)
 	{
 		m_acceleration_structure_resolves[name].acceleration_structures = {static_cast<AccelerationStructure *>(acceleration_structure)->GetHandle()};

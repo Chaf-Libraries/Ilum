@@ -20,7 +20,6 @@ void LambertianReflection::EmitHLSL(const MaterialNodeDesc &desc, MaterialGraphD
 {
 	info.includes.insert("Material/BxDF/LambertianReflection.hlsli");
 	info.type_name = "LambertianReflection" + std::to_string(desc.handle);
-	
 
 	{
 		std::vector<uint8_t> material_data;
@@ -30,13 +29,21 @@ void LambertianReflection::EmitHLSL(const MaterialNodeDesc &desc, MaterialGraphD
 		kainjow::mustache::mustache mustache = {material_shader};
 
 		kainjow::mustache::data mustache_data{kainjow::mustache::data::type::object};
-		mustache_data["BxDFName"] = info.type_name;
-		mustache_data["BxDFType"] = "LambertianReflection";
-		mustache_data["Parameter"] = "float3(1.0, 1.0, 1.0)";
+		mustache_data["BxDFName"]  = info.type_name;
+		mustache_data["BxDFType"]  = "LambertianReflection";
+
+		kainjow::mustache::data definitions{kainjow::mustache::data::type::list};
+
+		{
+			std::string base_color = graph.GetEmitExpression(desc, "BaseColor", info);
+			BaseColor   pin_data       = desc.GetPin("BaseColor").data.convert<BaseColor>();
+			mustache_data["Parameter"] = base_color.empty() ? fmt::format("float3({}, {}, {})", pin_data.base_color.x, pin_data.base_color.y, pin_data.base_color.z) : fmt::format("CastFloat3({})", base_color);
+		}
+
+		mustache_data.set("Definitions", definitions);
+
 
 		info.definitions.push_back(std::string(mustache.render(mustache_data).c_str()));
 	}
-
-
 }
 }        // namespace Ilum::MGNode

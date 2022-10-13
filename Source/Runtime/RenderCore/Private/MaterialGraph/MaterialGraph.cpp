@@ -80,6 +80,53 @@ const MaterialNodeDesc &MaterialGraphDesc::GetNode(size_t pin)
 	return nodes.at(node_query.at(pin));
 }
 
+std::string MaterialGraphDesc::GetEmitResult(const MaterialNodeDesc &desc, const std::string &pin_name, MaterialEmitInfo &emit_info)
+{
+	if (HasLink(desc.GetPin(pin_name).handle))
+	{
+		size_t source_link = LinkFrom(desc.GetPin(pin_name).handle);
+
+		const auto &link_node_desc = GetNode(LinkFrom(desc.GetPin(pin_name).handle));
+		auto        link_node      = rttr::type::get_by_name(link_node_desc.name).create();
+		link_node.get_type().get_method("EmitHLSL").invoke(link_node, link_node_desc, *this, emit_info);
+		if (emit_info.IsExpression(LinkFrom(desc.GetPin(pin_name).handle)))
+		{
+			return emit_info.expression.at(LinkFrom(desc.GetPin(pin_name).handle));
+		}
+		else
+		{
+			return "S" + std::to_string(LinkFrom(desc.GetPin(pin_name).handle));
+		}
+	}
+	else
+	{
+		return "";
+	}
+}
+
+std::string MaterialGraphDesc::GetEmitExpression(const MaterialNodeDesc &desc, const std::string &pin_name, MaterialEmitInfo &emit_info)
+{
+	if (HasLink(desc.GetPin(pin_name).handle))
+	{
+		size_t source_pin = LinkFrom(desc.GetPin(pin_name).handle);
+
+		if (emit_info.expression.find(source_pin) != emit_info.expression.end())
+		{
+			return emit_info.expression.at(source_pin);
+		}
+
+		const auto &source_node_desc = GetNode(source_pin);
+		auto        source_node        = rttr::type::get_by_name(source_node_desc.name).create();
+		source_node.get_type().get_method("EmitHLSL").invoke(source_node, source_node_desc, *this, emit_info);
+
+		return emit_info.expression.at(source_pin);
+	}
+	else
+	{
+		return "";
+	}
+}
+
 MaterialGraph::MaterialGraph(RHIContext *rhi_context) :
     p_rhi_context(rhi_context)
 {

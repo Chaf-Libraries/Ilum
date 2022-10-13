@@ -238,6 +238,7 @@ struct SurfaceInteraction
         Vertex v2 = VertexBuffer[instance.model_id][instance.vertex_offset + IndexBuffer[instance.model_id][instance.index_offset + 3 * primitive_id + 2]];
         
         // World position
+        const float3 position = v0.position * bary.x + v1.position * bary.y + v2.position * bary.z;
         const float3 world_position = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
         
         // Texcoord
@@ -246,7 +247,7 @@ struct SurfaceInteraction
         // Normal
         float3 normal = normalize(v0.normal * bary.x + v1.normal * bary.y + v2.normal * bary.z);
         const float3 world_normal = normalize(mul(WorldToObject4x3(), normal).xyz);
-        const float3 geo_normal = normalize(cross(v2.position.xyz - v0.position.xyz, v1.position.xyz - v0.position.xyz));
+         float3 geo_normal = normalize(mul(WorldToObject4x3(), normalize(cross(v2.position.xyz - v0.position.xyz, v1.position.xyz - v0.position.xyz))).xyz);
         
         // Interaction attribute
         t = RayTCurrent();
@@ -258,20 +259,6 @@ struct SurfaceInteraction
     }
 };
 
-bool SceneIntersection(RayDesc ray, RaytracingAccelerationStructure as, inout SurfaceInteraction interaction)
-{
-    TraceRay(
-        as, // RaytracingAccelerationStructure
-        RAY_FLAG_NONE, // RayFlags
-        0xFF, // InstanceInclusionMask
-        0, // RayContributionToHitGroupIndex
-        1, // MultiplierForGeometryContributionToHitGroupIndex
-        0, // MissShaderIndex
-        ray, // Ray
-        interaction // Payload
-    );
-    
-    return interaction.t != Infinity;
-}
+
 
 #endif

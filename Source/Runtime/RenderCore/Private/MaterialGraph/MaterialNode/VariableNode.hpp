@@ -50,7 +50,34 @@ struct ToVariableNode : public MaterialNode
 
 	virtual void EmitHLSL(const MaterialNodeDesc &desc, MaterialGraphDesc &graph, MaterialEmitInfo &info) override
 	{
-		const char                                       *pin_name[] = {"X", "Y", "Z", "W"};
+		const char *pin_name[] = {"X", "Y", "Z", "W"};
+		const std::unordered_map<rttr::type, std::string> type_name  = {
+            {rttr::type::get<float>(), "float"},
+            {rttr::type::get<bool>(), "bool"},
+            {rttr::type::get<uint32_t>(), "int"},
+            {rttr::type::get<int32_t>(), "uint"},
+        };
+
+		std::string cmpt[N];
+		std::string expr = fmt::format("{}{}(", type_name.at(rttr::type::get<T>()), N);
+
+		for (int32_t i = 0; i < N; i++)
+		{
+			std::string var = graph.GetEmitExpression(desc, pin_name[i], info);
+			expr += var.empty() ? desc.GetPin(pin_name[i]).data.to_string() : var;
+			if (i < N - 1)
+			{
+				expr += ", ";
+			}
+		}
+		expr += ")";
+
+		info.expression.emplace(desc.GetPin("Out").handle, expr);
+
+
+
+
+		/*const char                                       *pin_name[] = {"X", "Y", "Z", "W"};
 		const std::unordered_map<rttr::type, std::string> type_name  = {
             {rttr::type::get<float>(), "float"},
             {rttr::type::get<bool>(), "bool"},
@@ -92,7 +119,7 @@ struct ToVariableNode : public MaterialNode
 		}
 		defintion += components[N - 1] + ");";
 
-		info.definitions.push_back(defintion);
+		info.definitions.push_back(defintion);*/
 	}
 };
 
@@ -154,6 +181,10 @@ struct SplitVectorNode : public MaterialNode
 			{
 				info.expression.emplace(desc.GetPin(pin_name[i]).handle, fmt::format("S{}.{}", graph.LinkFrom(desc.GetPin("In").handle), cmpt_name[i]));
 			}
+		}
+		else
+		{
+
 		}
 	}
 };
