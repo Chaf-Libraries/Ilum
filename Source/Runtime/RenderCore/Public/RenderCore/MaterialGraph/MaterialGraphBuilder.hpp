@@ -13,7 +13,7 @@ class MaterialGraphBuilder
 
 	~MaterialGraphBuilder() = default;
 
-	std::unique_ptr<MaterialGraph> Compile(MaterialGraphDesc &desc);
+	void Compile(MaterialGraph *graph);
 
   private:
 	RHIContext *p_rhi_context = nullptr;

@@ -19,9 +19,9 @@ class ResourceManager
 	bool IsUpdate();
 
 	template <ResourceType _Ty>
-	void Import(const std::string &path)
+	size_t Import(const std::string &path)
 	{
-		Import(path, _Ty);
+		return Import(path, _Ty);
 	}
 
 	template <ResourceType _Ty>
@@ -84,7 +84,7 @@ class ResourceManager
 
 	void EraseResource(size_t uuid, ResourceType type);
 
-	void Import(const std::string &path, ResourceType type);
+	size_t Import(const std::string &path, ResourceType type);
 
 	RHITexture *GetThumbnail(ResourceType type);
 

@@ -9,7 +9,8 @@ ENUM(ResourceType, Enable){
     Model,
     Texture,
     Scene,
-    RenderGraph};
+    RenderGraph,
+    Material};
 
 class RHIContext;
 
@@ -60,3 +61,4 @@ class TResource : public Resource
 #include "Resource/RenderGraphResource.hpp"
 #include "Resource/SceneResource.hpp"
 #include "Resource/TextureResource.hpp"
+#include "Resource/MaterialResource.hpp"

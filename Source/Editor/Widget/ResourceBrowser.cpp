@@ -52,6 +52,12 @@ bool IsResourceFile<ResourceType::Scene>(const std::string &extension)
 	return extension == ".scene";
 }
 
+template <>
+bool IsResourceFile<ResourceType::Material>(const std::string &extension)
+{
+	return extension == ".mat";
+}
+
 template <ResourceType _Ty>
 inline void DrawResource(ResourceManager *manager, float button_size)
 {
@@ -93,7 +99,6 @@ inline void DrawResource(ResourceManager *manager, float button_size)
 			ImGui::SetNextWindowPos(ImVec2(pos.x + 10.f, pos.y + 10.f));
 			ImGui::Begin(uuid_str.c_str(), NULL, ImGuiWindowFlags_Tooltip | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar);
 			ImGui::Text("%s", manager->GetResourceMeta<_Ty>(uuid).c_str());
-			ImGui::Separator();
 			ImGui::End();
 		}
 
@@ -189,7 +194,7 @@ void ResourceBrowser::Tick()
 	if (ImGui::Button("Import"))
 	{
 		char *path = nullptr;
-		if (NFD_OpenDialog("jpg,png,bmp,jpeg,dds,gltf,obj,glb,fbx,scene,rg", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
+		if (NFD_OpenDialog("jpg,png,bmp,jpeg,dds,gltf,obj,glb,fbx,scene,rg,mat", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
 		{
 			std::string extension = Path::GetInstance().GetFileExtension(path);
 			if (IsResourceFile<ResourceType::Texture>(extension))
@@ -208,6 +213,10 @@ void ResourceBrowser::Tick()
 			{
 				resource_manager->Import<ResourceType::RenderGraph>(path);
 			}
+			else if (IsResourceFile<ResourceType::Material>(extension))
+			{
+				resource_manager->Import<ResourceType::Material>(path);
+			}
 		}
 	}
 
@@ -215,10 +224,10 @@ void ResourceBrowser::Tick()
 
 	auto region_width = ImGui::GetContentRegionAvailWidth();
 
-	static const char  *ASSET_TYPE[] = {"None", "Model", "Texture", "Scene", "RenderGraph"};
+	static const char  *ASSET_TYPE[] = {"None", "Model", "Texture", "Scene", "RenderGraph", "Material"};
 	static ResourceType type         = ResourceType::None;
 
-	ImGui::Combo("Resource Type", reinterpret_cast<int32_t *>(&type), ASSET_TYPE, 5);
+	ImGui::Combo("Resource Type", reinterpret_cast<int32_t *>(&type), ASSET_TYPE, 6);
 
 	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.f, 0.f));
 	ImGui::Separator();
@@ -239,6 +248,9 @@ void ResourceBrowser::Tick()
 			break;
 		case ResourceType::RenderGraph:
 			DrawResource<ResourceType::RenderGraph>(resource_manager, m_button_size);
+			break;
+		case ResourceType::Material:
+			DrawResource<ResourceType::Material>(resource_manager, m_button_size);
 			break;
 		default:
 			break;

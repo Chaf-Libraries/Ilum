@@ -8,7 +8,7 @@ namespace Ilum
 {
 void MaterialGraphDesc::AddNode(size_t &handle, MaterialNodeDesc &&desc)
 {
-	for (auto &[pin_handle, name] : desc.pin_index)
+	for (auto &[pin_handle, pin] : desc.pins)
 	{
 		node_query[pin_handle] = handle;
 		desc.handle            = handle;
@@ -22,8 +22,8 @@ void MaterialGraphDesc::EraseNode(size_t handle)
 
 	for (auto iter = links.begin(); iter != links.end();)
 	{
-		if (desc.pin_index.find(iter->first) != desc.pin_index.end() ||
-		    desc.pin_index.find(iter->second) != desc.pin_index.end())
+		if (desc.pins.find(iter->first) != desc.pins.end() ||
+		    desc.pins.find(iter->second) != desc.pins.end())
 		{
 			iter = links.erase(iter);
 		}
@@ -33,7 +33,7 @@ void MaterialGraphDesc::EraseNode(size_t handle)
 		}
 	}
 
-	for (auto &[handle, name] : desc.pin_index)
+	for (auto &[handle, name] : desc.pins)
 	{
 		node_query.erase(handle);
 	}
@@ -65,71 +65,52 @@ void MaterialGraphDesc::Link(size_t source, size_t target)
 	}
 }
 
-bool MaterialGraphDesc::HasLink(size_t target)
+void MaterialGraphDesc::UpdateNode(size_t node_handle)
+{
+	auto &node_desc = nodes[node_handle];
+
+	auto node = rttr::type::get_by_name(node_desc.name).create();
+
+	node.get_type().get_method("Update").invoke(node, node_desc);
+}
+
+bool MaterialGraphDesc::HasLink(size_t target) const
 {
 	return links.find(target) != links.end();
 }
 
-size_t MaterialGraphDesc::LinkFrom(size_t target_pin)
+size_t MaterialGraphDesc::LinkFrom(size_t target_pin) const
 {
 	return links.at(target_pin);
 }
 
-const MaterialNodeDesc &MaterialGraphDesc::GetNode(size_t pin)
+const MaterialNodeDesc &MaterialGraphDesc::GetNode(size_t pin) const
 {
 	return nodes.at(node_query.at(pin));
 }
 
-std::string MaterialGraphDesc::GetEmitResult(const MaterialNodeDesc &desc, const std::string &pin_name, MaterialEmitInfo &emit_info)
+MaterialGraph::MaterialGraph(RHIContext *rhi_context, const MaterialGraphDesc &desc) :
+    p_rhi_context(rhi_context), m_desc(desc)
 {
-	if (HasLink(desc.GetPin(pin_name).handle))
-	{
-		size_t source_link = LinkFrom(desc.GetPin(pin_name).handle);
-
-		const auto &link_node_desc = GetNode(LinkFrom(desc.GetPin(pin_name).handle));
-		auto        link_node      = rttr::type::get_by_name(link_node_desc.name).create();
-		link_node.get_type().get_method("EmitHLSL").invoke(link_node, link_node_desc, *this, emit_info);
-		if (emit_info.IsExpression(LinkFrom(desc.GetPin(pin_name).handle)))
-		{
-			return emit_info.expression.at(LinkFrom(desc.GetPin(pin_name).handle));
-		}
-		else
-		{
-			return "S" + std::to_string(LinkFrom(desc.GetPin(pin_name).handle));
-		}
-	}
-	else
-	{
-		return "";
-	}
 }
 
-std::string MaterialGraphDesc::GetEmitExpression(const MaterialNodeDesc &desc, const std::string &pin_name, MaterialEmitInfo &emit_info)
+MaterialGraphDesc &MaterialGraph::GetDesc()
 {
-	if (HasLink(desc.GetPin(pin_name).handle))
-	{
-		size_t source_pin = LinkFrom(desc.GetPin(pin_name).handle);
-
-		if (emit_info.expression.find(source_pin) != emit_info.expression.end())
-		{
-			return emit_info.expression.at(source_pin);
-		}
-
-		const auto &source_node_desc = GetNode(source_pin);
-		auto        source_node        = rttr::type::get_by_name(source_node_desc.name).create();
-		source_node.get_type().get_method("EmitHLSL").invoke(source_node, source_node_desc, *this, emit_info);
-
-		return emit_info.expression.at(source_pin);
-	}
-	else
-	{
-		return "";
-	}
+	return m_desc;
 }
 
-MaterialGraph::MaterialGraph(RHIContext *rhi_context) :
-    p_rhi_context(rhi_context)
+void MaterialGraph::EmitShader(size_t pin, ShaderEmitContext &context)
 {
+	const auto &desc = m_desc.GetNode(pin);
+	auto        node = rttr::type::get_by_name(desc.name).create();
+	node.get_type().get_method("EmitShader").invoke(node, desc, this, context);
+}
+
+void MaterialGraph::Validate(size_t pin, ShaderValidateContext &context)
+{
+	const auto &desc = m_desc.GetNode(pin);
+	auto        node = rttr::type::get_by_name(desc.name).create();
+	node.get_type().get_method("Validate").invoke(node, desc, this, context);
 }
 
 }        // namespace Ilum

@@ -363,8 +363,6 @@ bool EditVariantImpl(const std::string &name, Ilum::Editor *editor, rttr::varian
 			var    = enumeration.name_to_value(enums[current_enum_idx]);
 			update = true;
 		}
-
-		update = false;
 	}
 	else if (var.get_type().is_sequential_container())
 	{

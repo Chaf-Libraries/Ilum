@@ -24,8 +24,10 @@ class MaterialGraphEditor : public Widget
   private:
 	ImNodesEditorContext *m_context = nullptr;
 
-	MaterialGraphDesc m_desc;
+	std::string m_material_name = "";
 
-	size_t        m_current_handle = 0;
+	size_t m_uuid = size_t(~0);
+
+	size_t m_current_handle = 0;
 };
 }        // namespace Ilum

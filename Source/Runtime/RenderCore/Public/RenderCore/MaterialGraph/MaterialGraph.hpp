@@ -24,16 +24,13 @@ STRUCT(MaterialGraphDesc, Enable)
 
 	void Link(size_t source, size_t target);
 
-	bool HasLink(size_t target);
+	void UpdateNode(size_t node);
 
-	size_t LinkFrom(size_t target_pin);
+	bool HasLink(size_t target) const;
 
-	const MaterialNodeDesc &GetNode(size_t pin);
+	size_t LinkFrom(size_t target_pin) const;
 
-	std::string GetEmitResult(const MaterialNodeDesc &desc, const std::string &pin_name, MaterialEmitInfo& emit_info);
-
-	std::string GetEmitExpression(const MaterialNodeDesc &desc, const std::string &pin_name, MaterialEmitInfo &emit_info);
-
+	const MaterialNodeDesc &GetNode(size_t node_handle) const;
 };
 
 class MaterialGraph
@@ -41,11 +38,18 @@ class MaterialGraph
 	friend class MaterialGraphBuilder;
 
   public:
-	MaterialGraph(RHIContext *rhi_context);
+	MaterialGraph(RHIContext *rhi_context, const MaterialGraphDesc &desc);
 
 	~MaterialGraph() = default;
 
+	MaterialGraphDesc &GetDesc();
+
+	void EmitShader(size_t pin, ShaderEmitContext &context);
+
+	void Validate(size_t pin, ShaderValidateContext &context);
+
   private:
-	RHIContext *p_rhi_context = nullptr;
+	RHIContext       *p_rhi_context = nullptr;
+	MaterialGraphDesc m_desc;
 };
 }        // namespace Ilum

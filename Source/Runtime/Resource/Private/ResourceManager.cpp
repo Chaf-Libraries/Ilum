@@ -203,6 +203,7 @@ ResourceManager::ResourceManager(RHIContext *rhi_context) :
 	m_impl->m_managers.emplace(ResourceType::Model, std::make_unique<TResourceManager<ResourceType::Model>>(p_rhi_context));
 	m_impl->m_managers.emplace(ResourceType::Scene, std::make_unique<TResourceManager<ResourceType::Scene>>(p_rhi_context));
 	m_impl->m_managers.emplace(ResourceType::RenderGraph, std::make_unique<TResourceManager<ResourceType::RenderGraph>>(p_rhi_context));
+	m_impl->m_managers.emplace(ResourceType::Material, std::make_unique<TResourceManager<ResourceType::Material>>(p_rhi_context));
 
 	{
 		TextureImportInfo info;
@@ -222,6 +223,10 @@ ResourceManager::ResourceManager(RHIContext *rhi_context) :
 		info           = TextureImporter::Import("Asset/Icon/texture.png");
 		info.desc.mips = 1;
 		LoadTextureFromBuffer(p_rhi_context, m_impl->m_thumbnails[ResourceType::Texture], info.desc, info.data);
+
+		info           = TextureImporter::Import("Asset/Icon/material.png");
+		info.desc.mips = 1;
+		LoadTextureFromBuffer(p_rhi_context, m_impl->m_thumbnails[ResourceType::Material], info.desc, info.data);
 	}
 
 	ScanLocalMeta();
@@ -256,12 +261,12 @@ void ResourceManager::EraseResource(size_t uuid, ResourceType type)
 	m_impl->m_managers.at(type)->EraseResource(uuid);
 }
 
-void ResourceManager::Import(const std::string &path, ResourceType type)
+size_t ResourceManager::Import(const std::string &path, ResourceType type)
 {
 	if (!Path::GetInstance().IsExist(path))
 	{
 		LOG_ERROR("Resource {} is not found", path);
-		return;
+		return size_t(~0);
 	}
 
 	size_t uuid = Hash(path);
@@ -276,6 +281,8 @@ void ResourceManager::Import(const std::string &path, ResourceType type)
 		resource->Import(p_rhi_context, path);
 		ScanLocalMeta();
 	}
+
+	return uuid;
 }
 
 RHITexture *ResourceManager::GetThumbnail(ResourceType type)

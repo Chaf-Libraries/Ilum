@@ -60,11 +60,7 @@ void RayGenMain()
 
 #ifdef CLOSESTHIT_STAGE
 
-#ifndef RUNTIME
 #include "Material.hlsli"
-#else
-#include "bin/Materials/123412383234.hlsli"
-#endif
 
 [shader("closesthit")]
 void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleIntersectionAttributes attributes)
@@ -73,9 +69,11 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
     ray.Direction = WorldRayDirection();
     ray.Origin = WorldRayOrigin();
     pay_load.interaction.Init(ray, attributes);
+        
+    Material material;
+    material.Init();
     
-    Material material = Material::Create();
-    pay_load.color = material.Eval(0, 0);
+    pay_load.color = material.SurfaceBSDFEval(0, 0);
 }
 #endif
 

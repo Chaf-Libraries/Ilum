@@ -8,6 +8,7 @@
 #include <RHI/RHIContext.hpp>
 #include <RenderCore/MaterialGraph/MaterialGraphBuilder.hpp>
 #include <Renderer/Renderer.hpp>
+#include <Resource/ResourceManager.hpp>
 
 #include <imnodes.h>
 
@@ -30,6 +31,10 @@ MaterialGraphEditor::~MaterialGraphEditor()
 
 void MaterialGraphEditor::Tick()
 {
+	auto *material_graph = p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Material>(m_uuid) ?
+	                           p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Material>(m_uuid)->Get() :
+                               nullptr;
+
 	ImGui::Begin(m_name.c_str(), &m_active, ImGuiWindowFlags_MenuBar);
 
 	ImNodes::EditorContextSet(m_context);
@@ -57,91 +62,110 @@ void MaterialGraphEditor::Tick()
 
 	ImNodes::BeginNodeEditor();
 
-	// Popup Window
-	if (!selected_links.empty() || !selected_nodes.empty())
+	if (material_graph)
 	{
-		if (ImGui::BeginPopupContextWindow(0, 1, true))
+		// Popup Window
+		if (!selected_links.empty() || !selected_nodes.empty())
 		{
-			if (ImGui::MenuItem("Remove"))
+			if (ImGui::BeginPopupContextWindow(0, 1, true))
 			{
-				for (const auto &node : selected_nodes)
+				if (ImGui::MenuItem("Remove"))
 				{
-					m_desc.EraseNode(static_cast<size_t>(node));
-				}
-				for (const auto &link : selected_links)
-				{
-					for (auto iter = m_desc.links.begin(); iter != m_desc.links.end();)
+					for (const auto &node : selected_nodes)
 					{
-						if (static_cast<int32_t>(Hash(iter->second, iter->first)) == link)
+						material_graph->GetDesc().EraseNode(static_cast<size_t>(node));
+					}
+					for (const auto &link : selected_links)
+					{
+						for (auto iter = material_graph->GetDesc().links.begin(); iter != material_graph->GetDesc().links.end();)
 						{
-							iter = m_desc.links.erase(iter);
-						}
-						else
-						{
-							iter++;
+							if (static_cast<int32_t>(Hash(iter->second, iter->first)) == link)
+							{
+								iter = material_graph->GetDesc().links.erase(iter);
+							}
+							else
+							{
+								iter++;
+							}
 						}
 					}
 				}
+				ImGui::EndPopup();
 			}
-			ImGui::EndPopup();
 		}
-	}
 
-	// Draw nodes
-	for (auto &[node_handle, desc] : m_desc.nodes)
-	{
-		const float node_width = 100.0f;
+		// Draw nodes
+		for (auto &[node_handle, desc] : material_graph->GetDesc().nodes)
+		{
+			float node_width = 100.f;
 
-		ImGui::PushItemWidth(50.f);
-		ImNodes::BeginNode(static_cast<int32_t>(node_handle));
-		ImNodes::BeginNodeTitleBar();
-		ImGui::Text(desc.name.c_str());
-		ImNodes::EndNodeTitleBar();
-		ImNodes::BeginStaticAttribute(static_cast<int32_t>(node_handle));
-		if (desc.data)
-		{
-			ImGui::EditVariant("", p_editor, desc.data);
-		}
-		ImNodes::EndStaticAttribute();
-		// Draw Pin
-		for (auto &[pin_handle, pin] : desc.pins)
-		{
-			if (pin.attribute == MaterialNodePin::Attribute::Input)
+			bool update = false;
+
+			ImGui::PushItemWidth(100.f);
+			ImNodes::BeginNode(static_cast<int32_t>(node_handle));
+			ImNodes::BeginNodeTitleBar();
+			ImGui::Text(desc.name.c_str());
+			node_width = std::max(node_width, ImGui::CalcTextSize(desc.name.c_str()).x);
+			ImNodes::EndNodeTitleBar();
+			ImNodes::BeginStaticAttribute(static_cast<int32_t>(node_handle));
+			if (desc.data)
 			{
-				ImNodes::BeginInputAttribute(static_cast<int32_t>(pin.handle));
-				ImGui::Text(pin.name.c_str());
-				if (!m_desc.HasLink(pin.handle))
-				{
-					ImGui::SameLine();
-					ImGui::EditVariant("", p_editor, pin.data);
-				}
-				ImNodes::EndInputAttribute();
+				update |= ImGui::EditVariant("", p_editor, desc.data);
 			}
-			if (pin.attribute == MaterialNodePin::Attribute::Output)
+			ImNodes::EndStaticAttribute();
+			// Draw Pin
+			for (auto &[pin_name, pin] : desc.pins)
 			{
-				ImNodes::BeginOutputAttribute(static_cast<int32_t>(pin.handle));
-				if (pin.data)
+				if (!pin.enable)
 				{
-					ImGui::EditVariant("", p_editor, pin.data);
-					ImGui::SameLine();
+					continue;
 				}
-				const float label_width = ImGui::CalcTextSize(pin.name.c_str()).x;
-				ImGui::Indent(node_width - label_width);
-				ImGui::Text(pin.name.c_str());
-				ImNodes::EndOutputAttribute();
+
+				if (pin.attribute == MaterialNodePin::Attribute::Input)
+				{
+					ImNodes::BeginInputAttribute(static_cast<int32_t>(pin.handle));
+					ImGui::Text(pin.name.c_str());
+					float item_width = ImGui::CalcTextSize(pin.name.c_str()).x;
+					if (!material_graph->GetDesc().HasLink(pin.handle))
+					{
+						ImGui::SameLine();
+						update |= ImGui::EditVariant("", p_editor, pin.data);
+						item_width += ImGui::CalcItemWidth();
+					}
+					node_width = std::max(node_width, item_width);
+					ImNodes::EndInputAttribute();
+				}
+				if (pin.attribute == MaterialNodePin::Attribute::Output)
+				{
+					ImNodes::BeginOutputAttribute(static_cast<int32_t>(pin.handle));
+					if (pin.data)
+					{
+						update |= ImGui::EditVariant("", p_editor, pin.data);
+						ImGui::SameLine();
+					}
+					const float label_width = ImGui::CalcTextSize(pin.name.c_str()).x;
+					ImGui::Indent(node_width - label_width);
+					ImGui::Text(pin.name.c_str());
+					ImNodes::EndOutputAttribute();
+				}
+			}
+			ImGui::PopItemWidth();
+			ImNodes::EndNode();
+
+			if (update)
+			{
+				material_graph->GetDesc().UpdateNode(node_handle);
 			}
 		}
-		ImGui::PopItemWidth();
-		ImNodes::EndNode();
-	}
 
-	// Draw Edges
-	{
-		for (auto &[target, source] : m_desc.links)
+		// Draw Edges
 		{
-			// ImNodes::PushColorStyle(ImNodesCol_Link, color);
-			ImNodes::Link(static_cast<int32_t>(Hash(source, target)), static_cast<int32_t>(source), static_cast<int32_t>(target));
-			// ImNodes::PopColorStyle();
+			for (auto &[target, source] : material_graph->GetDesc().links)
+			{
+				// ImNodes::PushColorStyle(ImNodesCol_Link, color);
+				ImNodes::Link(static_cast<int32_t>(Hash(source, target)), static_cast<int32_t>(source), static_cast<int32_t>(target));
+				// ImNodes::PopColorStyle();
+			}
 		}
 	}
 
@@ -153,7 +177,7 @@ void MaterialGraphEditor::Tick()
 		int32_t src = 0, dst = 0;
 		if (ImNodes::IsLinkCreated(&src, &dst))
 		{
-			m_desc.Link(static_cast<size_t>(src), static_cast<size_t>(dst));
+			material_graph->GetDesc().Link(static_cast<size_t>(src), static_cast<size_t>(dst));
 		}
 	}
 
@@ -178,23 +202,47 @@ void MaterialGraphEditor::Tick()
 
 void MaterialGraphEditor::DrawMenu()
 {
+	auto *material_graph = p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Material>(m_uuid) ?
+	                           p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Material>(m_uuid)->Get() :
+                               nullptr;
+
 	if (ImGui::BeginMenuBar())
 	{
 		if (ImGui::BeginMenu("File"))
 		{
+			if (ImGui::MenuItem("New"))
+			{
+				char *path = nullptr;
+				if (NFD_SaveDialog("mat", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
+				{
+					MaterialGraphDesc desc;
+					std::string       dir      = Path::GetInstance().GetFileDirectory(path);
+					std::string       filename = Path::GetInstance().GetFileName(path, false);
+					SERIALIZE(dir + filename + ".mat", desc, std::string(ImNodes::SaveCurrentEditorStateToIniString()));
+
+					m_uuid = p_editor->GetRenderer()->GetResourceManager()->Import<ResourceType::Material>(dir + filename + ".mat");
+
+					m_current_handle = 0;
+
+					free(path);
+				}
+			}
+
 			if (ImGui::MenuItem("Load"))
 			{
 				char *path = nullptr;
 				if (NFD_OpenDialog("mat", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
 				{
-					std::string editor_state = "";
-					DESERIALIZE(path, m_desc, editor_state);
+					m_uuid = p_editor->GetRenderer()->GetResourceManager()->Import<ResourceType::Material>(path);
+					std::string editor_state = p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Material>(m_uuid)->GetEditorState();
+					auto       *material_graph = p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Material>(m_uuid)->Get();
+
 					ImNodes::LoadEditorStateFromIniString(m_context, editor_state.data(), editor_state.size());
 
 					// Update max current id
 					m_current_handle = 0;
 
-					for (auto &[node_handle, node] : m_desc.nodes)
+					for (auto &[node_handle, node] : material_graph->GetDesc().nodes)
 					{
 						m_current_handle = std::max(m_current_handle, node_handle);
 						for (auto &[pin_name, pin] : node.pins)
@@ -207,67 +255,69 @@ void MaterialGraphEditor::DrawMenu()
 				}
 			}
 
-			if (ImGui::MenuItem("Save"))
+			 if (material_graph && ImGui::MenuItem("Save"))
 			{
 				char *path = nullptr;
 				if (NFD_SaveDialog("mat", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
 				{
 					std::string dir      = Path::GetInstance().GetFileDirectory(path);
 					std::string filename = Path::GetInstance().GetFileName(path, false);
-					SERIALIZE(dir + filename + ".mat", m_desc, std::string(ImNodes::SaveCurrentEditorStateToIniString()));
-					// p_editor->GetRenderer()->GetResourceManager()->Import<ResourceType::RenderGraph>(dir + filename + ".mat");
+					SERIALIZE(dir + filename + ".mat", material_graph->GetDesc(), std::string(ImNodes::SaveCurrentEditorStateToIniString()));
 					free(path);
 				}
-			}
+			 }
 
 			ImGui::EndMenu();
 		}
 
-		if (ImGui::BeginMenu("Add"))
+		if (material_graph)
 		{
-			for (const auto &type : rttr::type::get_types())
+			if (ImGui::BeginMenu("Add"))
 			{
-				if (type.get_metadata("MaterialNode").is_valid())
+				for (const auto &type : rttr::type::get_types())
 				{
-					bool has_create   = false;
-					bool has_category = type.get_metadata("Category").is_valid();
-
-					if (has_category ? ImGui::BeginMenu(type.get_metadata("Category").get_value<std::string>().c_str()) : true)
+					if (type.get_metadata("MaterialNode").is_valid())
 					{
-						if (ImGui::MenuItem(type.get_metadata("MaterialNode").get_value<std::string>().c_str()))
-						{
-							auto var       = type.create();
-							auto node_desc = rttr::type::get(var).get_method("Create").invoke(var, m_current_handle).convert<MaterialNodeDesc>();
-							m_desc.AddNode(m_current_handle, std::move(node_desc));
-							has_create = true;
-						}
+						bool has_create   = false;
+						bool has_category = type.get_metadata("Category").is_valid();
 
-						if (has_category)
+						if (has_category ? ImGui::BeginMenu(type.get_metadata("Category").get_value<std::string>().c_str()) : true)
 						{
-							ImGui::EndMenu();
-						}
+							if (ImGui::MenuItem(type.get_metadata("MaterialNode").get_value<std::string>().c_str()))
+							{
+								auto var       = type.create();
+								auto node_desc = rttr::type::get(var).get_method("Create").invoke(var, m_current_handle).convert<MaterialNodeDesc>();
+								material_graph->GetDesc().AddNode(m_current_handle, std::move(node_desc));
+								has_create = true;
+							}
 
-						if (has_create)
-						{
-							break;
+							if (has_category)
+							{
+								ImGui::EndMenu();
+							}
+
+							if (has_create)
+							{
+								break;
+							}
 						}
 					}
 				}
+				ImGui::EndMenu();
 			}
-			ImGui::EndMenu();
-		}
 
-		if (ImGui::MenuItem("Clear"))
-		{
-			m_desc.links.clear();
-			m_desc.nodes.clear();
-			m_desc.node_query.clear();
-		}
+			if (ImGui::MenuItem("Clear"))
+			{
+				material_graph->GetDesc().links.clear();
+				material_graph->GetDesc().nodes.clear();
+				material_graph->GetDesc().node_query.clear();
+			}
 
-		if (ImGui::MenuItem("Compile"))
-		{
-			MaterialGraphBuilder builder(p_editor->GetRHIContext());
-			auto material = builder.Compile(m_desc);
+			if (ImGui::MenuItem("Compile"))
+			{
+				MaterialGraphBuilder builder(p_editor->GetRHIContext());
+				builder.Compile(material_graph);
+			}
 		}
 
 		ImGui::EndMenuBar();

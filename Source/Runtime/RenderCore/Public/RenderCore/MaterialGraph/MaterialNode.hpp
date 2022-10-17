@@ -4,7 +4,7 @@
 
 namespace Ilum
 {
-struct MaterialGraphDesc;
+class MaterialGraph;
 
 STRUCT(MaterialNodePin, Enable)
 {
@@ -14,34 +14,22 @@ STRUCT(MaterialNodePin, Enable)
 
 	ENUM(Type, Enable) :
 	    uint64_t{
-	        Float        = 1,
-	        Float2       = 1 << 2,
-	        Float3       = 1 << 3,
-	        Float4       = 1 << 4,
-	        Int          = 1 << 5,
-	        Int2         = 1 << 6,
-	        Int3         = 1 << 7,
-	        Int4         = 1 << 8,
-	        Uint         = 1 << 9,
-	        Uint2        = 1 << 10,
-	        Uint3        = 1 << 11,
-	        Uint4        = 1 << 12,
-	        Bool         = 1 << 13,
-	        Bool2        = 1 << 14,
-	        Bool3        = 1 << 15,
-	        Bool4        = 1 << 16,
-	        Texture2D    = 1 << 17,
-	        Texture3D    = 1 << 18,
-	        TextureCube  = 1 << 19,
-	        SamplerState = 1 << 20,
-	        BSDF         = 1 << 21,
+	        Float  = 1,
+	        Float3 = 1 << 1,
+	        BSDF   = 1 << 2,
 	    };
 
-	Type          type;
-	Attribute     attribute;
-	std::string   name;
-	size_t        handle;
+	Type type;
+
+	Attribute attribute;
+
+	std::string name;
+
+	size_t handle;
+
 	rttr::variant data;
+
+	bool enable = true;
 };
 
 DEFINE_ENUMCLASS_OPERATION(MaterialNodePin::Type)
@@ -52,28 +40,34 @@ STRUCT(MaterialNodeDesc, Enable)
 
 	size_t handle;
 
-	std::map<std::string, MaterialNodePin> pins;
-	std::map<size_t, std::string>          pin_index;
+	std::map<size_t, MaterialNodePin> pins;
+
+	std::map<std::string, size_t> pin_index;
 
 	rttr::variant data;
 
 	MaterialNodeDesc &AddPin(size_t & handle, const std::string &name, MaterialNodePin::Type type, MaterialNodePin::Attribute attribute, rttr::variant data = {})
 	{
 		MaterialNodePin pin{type, attribute, name, handle, data};
-		pin_index.emplace(handle, name);
-		pins.emplace(name, pin);
+		pin_index.emplace(name, handle);
+		pins.emplace(handle, pin);
 		handle++;
 		return *this;
 	}
 
+	MaterialNodePin &GetPin(const std::string &name)
+	{
+		return pins.at(pin_index.at(name));
+	}
+
 	const MaterialNodePin &GetPin(const std::string &name) const
 	{
-		return pins.at(name);
+		return pins.at(pin_index.at(name));
 	}
 
 	const MaterialNodePin &GetPin(size_t handle) const
 	{
-		return pins.at(pin_index.at(handle));
+		return pins.at(handle);
 	}
 
 	template <typename T>
@@ -90,33 +84,32 @@ STRUCT(MaterialNodeDesc, Enable)
 	}
 };
 
-struct MaterialEmitInfo
+struct ShaderEmitContext
 {
-	std::vector<std::string> definitions;
+	std::vector<std::string>        declarations;
+	std::vector<std::string>        definitions;
+	std::vector<std::string>        functions;
+	std::unordered_set<std::string> headers;
+	std::unordered_set<size_t>      finish;
+	std::string                     result;
+};
 
-	std::unordered_map<size_t, std::string> expression;
-
-	std::string type_name;
-	std::string name;
-
-	std::unordered_set<std::string> includes;
-
-	bool IsExpression(size_t pin) const
-	{
-		return expression.find(pin) != expression.end();
-	}
+struct ShaderValidateContext
+{
+	std::unordered_set<size_t> valid_nodes;
+	std::vector<std::string>   error_infos;
+	std::unordered_set<size_t> finish;
 };
 
 STRUCT(MaterialNode, Enable)
 {
 	virtual MaterialNodeDesc Create(size_t & handle) = 0;
 
-	virtual bool Validate(const MaterialNodeDesc &node, MaterialGraphDesc &graph)
-	{
-		return true;
-	}
+	virtual void Validate(const MaterialNodeDesc &node, MaterialGraph *graph, ShaderValidateContext &context) = 0;
 
-	virtual void EmitHLSL(const MaterialNodeDesc &desc, MaterialGraphDesc &graph, MaterialEmitInfo &info) = 0;
+	virtual void Update(MaterialNodeDesc & node) = 0;
+
+	virtual void EmitShader(const MaterialNodeDesc &desc, MaterialGraph *graph, ShaderEmitContext &context) = 0;
 
 	RTTR_ENABLE();
 };

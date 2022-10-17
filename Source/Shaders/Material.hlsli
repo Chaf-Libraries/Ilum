@@ -1,75 +1,82 @@
-#ifdef RUNTIME
-
 #ifndef MATERIAL_HLSLI
 #define MATERIAL_HLSLI
 
-#include "Material/Cast.hlsli"
-#include "Common.hlsli"
-
-{{#Include}}
-{{&IncludePath}}
-{{/Include}}
-
-{{#BxDFDefitions}}
-{{&Definition}}
-{{/BxDFDefitions}}
-
+#ifndef RUNTIME
 struct Material
 {
-    {{&BxDFType}} bxdfs;
-
-    static Material Create()
+    void Init()
     {
-        Material material;
-        material.bxdfs = {{&BxDFType}}::Create();
-        return material;
     }
 
-    float3 Eval(float3 wi, float3 wo)
+    float3 SurfaceBSDFEval(float3 wi, float3 wo)
     {
-        return bxdfs.Eval(wi, wo);
+        return 0.f;
     }
-    
-    float Pdf(float3 wi, float3 wo)
+
+    float SurfaceBSDFPdf(float3 wi, float3 wo)
     {
-        return bxdfs.Pdf(wi, wo);
+        return 0.f;
     }
     
-    float3 Samplef(float3 wi, float sample1, float2 sample2, inout float3 wo, inout float pdf)
+    float3 SurfaceBSDFSamplef(float3 wo, float uc, float2 u, inout float3 wi, inout float pdf)
     {
-        return bxdfs.Samplef(wi, sample1, sample2. wo, pdf);
+        return 0.f;
     }
-};
-
-#endif
-
+}
 #else
 
-#ifndef MATERIAL_HLSLI
-#define MATERIAL_HLSLI
+{{#Headers}}
+{{Header}}
+{{/Headers}}
+
 struct Material
 {
-    static Material Create()
+    {{#Declarations}}
+    {{Declaration}}
+    {{/Declarations}}
+
+    {{#Functions}}
+    {{Function}}
+    {{/Functions}}
+
+    void Init()
     {
-        Material material;
-        return material;
+        {{#Definitions}}
+        {{Definition}}
+        {{/Definitions}}
     }
 
-    float3 Eval(float3 wi, float3 wo)
+    float3 _Eval(float3 wi, float3 wo)
+    {
+        return 0.f;
+    }
+
+    float _Pdf(float3 wi, float3 wo)
     {
         return 0.f;
     }
     
-    float Pdf(float3 wi, float3 wo)
+    float3 _Samplef(float3 wo, float uc, float2 u, inout float3 wi, inout float pdf)
     {
         return 0.f;
+    }
+
+    float3 SurfaceBSDFEval(float3 wi, float3 wo)
+    {
+        return {{SurfaceBSDF}}_Eval(wo, wi);
+    }
+
+    float SurfaceBSDFPdf(float3 wi, float3 wo)
+    {
+        return {{SurfaceBSDF}}_Pdf(wi, wo);
     }
     
-    float3 Samplef(float3 wo, float sample1, float2 sample2, inout float3 wi, inout float pdf)
+    float3 SurfaceBSDFSamplef(float3 wo, float uc, float2 u, inout float3 wi, inout float pdf)
     {
-        return 0.f;
+        return {{SurfaceBSDF}}_Samplef(wo, uc, u. wi, pdf);
     }
-};
+}
+
 #endif
 
 #endif
