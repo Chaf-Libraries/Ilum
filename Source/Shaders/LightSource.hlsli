@@ -9,15 +9,15 @@ static const uint LightType_Unknown = 4;
 
 struct Light
 {
-    uint type;
     float3 color;
-    float intensity;
+    uint type;
     float3 position;
+    float intensity;
+    float3 direction; // Spot/Directional
     float range; // Point
     float radius; // Point/Spot
     float cut_off; // Spot
     float outer_cut_off; // Spot
-    float3 direction; // Spot/Directional
     
     float3 Li(float3 p, out float3 wi)
     {

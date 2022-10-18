@@ -81,10 +81,12 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
     
     float3 wo = pay_load.interaction.p - View.position;
     
-    for (uint i = 0; i < light_count; i++)
+    for (uint i = 0; i < 1; i++)
     {
         float3 wi = 0.f;
-       pay_load.color += LightBuffer[i].Li(pay_load.interaction.p, wi) * material.SurfaceBSDFEval(wi, wo);
+       //pay_load.color += LightBuffer[i].Li(pay_load.interaction.p, wi) * material.SurfaceBSDFEval(wi, wo);
+        pay_load.color += LightBuffer[i].color;
+
     }
 }
 #endif

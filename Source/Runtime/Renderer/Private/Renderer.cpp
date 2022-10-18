@@ -369,15 +369,15 @@ void Renderer::UpdateScene()
 	{
 		struct LightData
 		{
-			uint32_t  type;
 			glm::vec3 color;
-			float     intensity;
+			uint32_t   type;
 			glm::vec3 position;
-			float     range;
-			float     radius;
-			float     cut_off;
-			float     outer_cut_off;
-			alignas(16) glm::vec3 direction;
+			float  intensity;
+			glm::vec3  direction;
+			float  range;
+			alignas(16) float radius;
+			float  cut_off;
+			float  outer_cut_off;
 		};
 		std::vector<LightData> light_data;
 		light_data.reserve(16);
@@ -400,7 +400,7 @@ void Renderer::UpdateScene()
 				p_rhi_context->WaitIdle();
 				m_scene_info.light_buffer = p_rhi_context->CreateBuffer<LightData>(light_data.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
 			}
-			m_scene_info.light_buffer->CopyToDevice(light_data.data(), light_data.size() * sizeof(LightData));
+			m_scene_info.light_buffer->CopyToDevice(light_data.data(), light_data.size() * sizeof(LightData), 0);
 		}
 		else if (!m_scene_info.light_buffer)
 		{
