@@ -20,6 +20,8 @@ class TResource<ResourceType::RenderGraph> : public Resource
 
 	virtual void Import(RHIContext *rhi_context, const std::string &path) override;
 
-	void Load(RenderGraphDesc &desc, std::string& editor_layout);
+	void Load(RenderGraphDesc &desc, std::string &editor_layout);
+
+	void Save(const RenderGraphDesc &desc, const std::string &editor_layout);
 };
 }        // namespace Ilum

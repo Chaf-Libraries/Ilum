@@ -58,23 +58,6 @@ void MaterialGraphBuilder::Compile(MaterialGraph *graph)
 			}
 			return;
 		}
-
-		if (validate_context.valid_nodes.size() != graph->GetDesc().nodes.size())
-		{
-			std::vector<size_t> node_removal;
-			for (auto &[handle, node] : graph->GetDesc().nodes)
-			{
-				if (validate_context.valid_nodes.find(handle) == validate_context.valid_nodes.end())
-				{
-					node_removal.emplace_back(handle);
-					LOG_INFO("Node {} is never used, culling it", node.name);
-				}
-			}
-			for (auto &handle : node_removal)
-			{
-				graph->GetDesc().EraseNode(handle);
-			}
-		}
 	}
 
 	// Emit Shader
@@ -85,6 +68,11 @@ void MaterialGraphBuilder::Compile(MaterialGraph *graph)
 		auto        output_node      = rttr::type::get_by_name(output_node_desc.name).create();
 
 		output_node.get_type().get_method("EmitShader").invoke(output_node, output_node_desc, graph, emit_context);
+
+		std::vector<uint8_t> shader_data(emit_context.result.size());
+		std::memcpy(shader_data.data(), emit_context.result.data(), emit_context.result.size());
+
+		Path::GetInstance().Save("bin/Materials/" + std::to_string(Hash(graph->GetDesc().name)) + ".hlsli", shader_data);
 	}
 }
 }        // namespace Ilum

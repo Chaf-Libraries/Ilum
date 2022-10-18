@@ -35,6 +35,11 @@ void MaterialGraphEditor::Tick()
 	                           p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Material>(m_uuid)->Get() :
                                nullptr;
 
+	if (material_graph)
+	{
+		material_graph->SetUpdate(false);
+	}
+
 	ImGui::Begin(m_name.c_str(), &m_active, ImGuiWindowFlags_MenuBar);
 
 	ImNodes::EditorContextSet(m_context);
@@ -57,9 +62,6 @@ void MaterialGraphEditor::Tick()
 		ImNodes::GetSelectedNodes(selected_nodes.data());
 	}
 
-	ImGui::Columns(2);
-	ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() * 0.8f);
-
 	ImNodes::BeginNodeEditor();
 
 	if (material_graph)
@@ -81,7 +83,7 @@ void MaterialGraphEditor::Tick()
 						{
 							if (static_cast<int32_t>(Hash(iter->second, iter->first)) == link)
 							{
-								iter = material_graph->GetDesc().links.erase(iter);
+								iter     = material_graph->GetDesc().links.erase(iter);
 							}
 							else
 							{
@@ -108,6 +110,7 @@ void MaterialGraphEditor::Tick()
 			node_width = std::max(node_width, ImGui::CalcTextSize(desc.name.c_str()).x);
 			ImNodes::EndNodeTitleBar();
 			ImNodes::BeginStaticAttribute(static_cast<int32_t>(node_handle));
+			auto type = desc.data.get_type();
 			if (desc.data)
 			{
 				update |= ImGui::EditVariant("", p_editor, desc.data);
@@ -172,6 +175,35 @@ void MaterialGraphEditor::Tick()
 	ImNodes::MiniMap(0.1f);
 	ImNodes::EndNodeEditor();
 
+	// Drag Drop Material
+	{
+		if (ImGui::BeginDragDropTarget())
+		{
+			if (const auto *pay_load = ImGui::AcceptDragDropPayload(rttr::type::get<ResourceType>().get_enumeration().value_to_name(ResourceType::Material).to_string().c_str()))
+			{
+				ASSERT(pay_load->DataSize == sizeof(size_t));
+				size_t uuid     = *static_cast<size_t *>(pay_load->Data);
+				auto  *resource = p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Material>(uuid);
+				if (resource)
+				{
+					m_uuid = uuid;
+
+					std::string editor_state = resource->GetEditorState();
+					ImNodes::LoadEditorStateFromIniString(m_context, editor_state.data(), editor_state.length());
+
+					for (auto &[node_handle, node] : resource->Get()->GetDesc().nodes)
+					{
+						m_current_handle = std::max(node_handle, m_current_handle);
+						for (auto &[pin_handle, pin] : node.pins)
+						{
+							m_current_handle = std::max(pin_handle, m_current_handle);
+						}
+					}
+				}
+			}
+		}
+	}
+
 	// Create New Edges
 	{
 		int32_t src = 0, dst = 0;
@@ -179,22 +211,6 @@ void MaterialGraphEditor::Tick()
 		{
 			material_graph->GetDesc().Link(static_cast<size_t>(src), static_cast<size_t>(dst));
 		}
-	}
-
-	// Inspector
-	{
-		ImGui::BeginChild("Material Graph Inspector", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
-
-		ImGui::PushItemWidth(ImGui::GetColumnWidth(1) * 0.7f);
-
-		ImGui::PopItemWidth();
-
-		if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
-		{
-			ImGui::SetScrollHereY(1.0f);
-		}
-
-		ImGui::EndChild();
 	}
 
 	ImGui::End();
@@ -208,66 +224,25 @@ void MaterialGraphEditor::DrawMenu()
 
 	if (ImGui::BeginMenuBar())
 	{
-		if (ImGui::BeginMenu("File"))
+		if (ImGui::MenuItem("New"))
 		{
-			if (ImGui::MenuItem("New"))
+			ImGui::OpenPopup("New Material");
+		}
+		if (ImGui::BeginPopup("New Material"))
+		{
+			static std::string name;
+			ImGui::EditVariant("", p_editor, name);
+			ImGui::SameLine();
+			if (ImGui::Button("Create"))
 			{
-				char *path = nullptr;
-				if (NFD_SaveDialog("mat", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
-				{
-					MaterialGraphDesc desc;
-					std::string       dir      = Path::GetInstance().GetFileDirectory(path);
-					std::string       filename = Path::GetInstance().GetFileName(path, false);
-					SERIALIZE(dir + filename + ".mat", desc, std::string(ImNodes::SaveCurrentEditorStateToIniString()));
-
-					m_uuid = p_editor->GetRenderer()->GetResourceManager()->Import<ResourceType::Material>(dir + filename + ".mat");
-
-					m_current_handle = 0;
-
-					free(path);
-				}
+				m_uuid = Hash(name);
+				p_editor->GetRenderer()->GetResourceManager()->CreateResource<ResourceType::Material>(m_uuid);
+				MaterialGraphDesc desc;
+				desc.name        = name;
+				std::string meta = fmt::format("Name: {}", name);
+				SERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".asset", ResourceType::Material, m_uuid, meta, desc, std::string(ImNodes::SaveCurrentEditorStateToIniString()));
 			}
-
-			if (ImGui::MenuItem("Load"))
-			{
-				char *path = nullptr;
-				if (NFD_OpenDialog("mat", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
-				{
-					m_uuid = p_editor->GetRenderer()->GetResourceManager()->Import<ResourceType::Material>(path);
-					std::string editor_state = p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Material>(m_uuid)->GetEditorState();
-					auto       *material_graph = p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Material>(m_uuid)->Get();
-
-					ImNodes::LoadEditorStateFromIniString(m_context, editor_state.data(), editor_state.size());
-
-					// Update max current id
-					m_current_handle = 0;
-
-					for (auto &[node_handle, node] : material_graph->GetDesc().nodes)
-					{
-						m_current_handle = std::max(m_current_handle, node_handle);
-						for (auto &[pin_name, pin] : node.pins)
-						{
-							m_current_handle = std::max(m_current_handle, pin.handle);
-						}
-					}
-
-					free(path);
-				}
-			}
-
-			 if (material_graph && ImGui::MenuItem("Save"))
-			{
-				char *path = nullptr;
-				if (NFD_SaveDialog("mat", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
-				{
-					std::string dir      = Path::GetInstance().GetFileDirectory(path);
-					std::string filename = Path::GetInstance().GetFileName(path, false);
-					SERIALIZE(dir + filename + ".mat", material_graph->GetDesc(), std::string(ImNodes::SaveCurrentEditorStateToIniString()));
-					free(path);
-				}
-			 }
-
-			ImGui::EndMenu();
+			ImGui::EndPopup();
 		}
 
 		if (material_graph)
@@ -317,6 +292,17 @@ void MaterialGraphEditor::DrawMenu()
 			{
 				MaterialGraphBuilder builder(p_editor->GetRHIContext());
 				builder.Compile(material_graph);
+				p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Material>(m_uuid)->Save(ImNodes::SaveCurrentEditorStateToIniString());
+				p_editor->GetRenderer()->Reset();
+				material_graph->SetUpdate(true);
+			}
+
+			if (material_graph)
+			{
+				if (ImGui::Button(material_graph->GetDesc().name.c_str()))
+				{
+					m_uuid = size_t(~0);
+				}
 			}
 		}
 

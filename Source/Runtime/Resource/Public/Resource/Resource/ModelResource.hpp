@@ -64,6 +64,8 @@ class TResource<ResourceType::Model> : public Resource
 
 	virtual void Import(RHIContext *rhi_context, const std::string &path) override;
 
+	void Save();
+
 	const std::string &GetName() const;
 
 	const std::vector<Submesh> &GetSubmeshes() const;

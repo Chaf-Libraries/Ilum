@@ -5,6 +5,8 @@
 #include <Renderer/Renderer.hpp>
 #include <Resource/ResourceManager.hpp>
 
+#include <Scene/Component/MeshComponent.hpp>
+
 #include <glm/gtc/type_ptr.hpp>
 
 #include <rttr/variant.h>
@@ -367,17 +369,18 @@ bool EditVariantImpl(const std::string &name, Ilum::Editor *editor, rttr::varian
 	else if (var.get_type().is_sequential_container())
 	{
 		auto     seq_view = var.create_sequential_view();
-		uint32_t count    = 0;
-		for (size_t i = 0; i < seq_view.get_size(); i++)
+		size_t   idx      = 0;
+		for (auto& seq_elem : seq_view)
 		{
-			std::string elem_name = fmt::format("{} - {}", name, i);
+			std::string elem_name = fmt::format("{} - {}", name, idx);
 			if (ImGui::TreeNode(elem_name.c_str()))
 			{
-				rttr::variant elem = seq_view.get_value_type().create();
-				update             = EditVariantImpl(elem_name.c_str(), editor, elem, prop);
-				seq_view.set_value(i, elem);
+				rttr::variant elem = seq_elem.extract_wrapped_value();
+				update = EditVariantImpl(elem_name.c_str(), editor, elem, prop);
+				seq_view.set_value(idx, elem);
 				ImGui::TreePop();
 			}
+			idx++;
 		}
 	}
 	else if (var.get_type().is_class())

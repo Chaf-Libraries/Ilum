@@ -8,7 +8,7 @@ RenderPassDesc RayTracingAmbientOcclusion::CreateDesc()
 
 	desc.name = "RayTracingAmbientOcclusion";
 	desc
-	    .SetName("RayTracingAmbientOcclusion")
+	    .SetName<RayTracingAmbientOcclusion>()
 	    .SetBindPoint(BindPoint::RayTracing)
 	    .Write("VisibilityBuffer", RenderResourceDesc::Type::Texture, RHIResourceState::RenderTarget)
 	    .Write("DepthBuffer", RenderResourceDesc::Type::Texture, RHIResourceState::DepthWrite);

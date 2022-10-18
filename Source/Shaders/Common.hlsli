@@ -3,6 +3,7 @@
 
 #include "Math.hlsli"
 #include "RayTracingUtlis.hlsli"
+#include "LightSource.hlsli"
 
 struct ViewInfo
 {
@@ -118,12 +119,14 @@ void UnPackVisibilityBuffer(uint visibility_buffer, out uint instance_id, out ui
 }
 
 ConstantBuffer<ViewInfo> View;
+
 StructuredBuffer<Vertex> VertexBuffer[];
 StructuredBuffer<uint> IndexBuffer[];
 StructuredBuffer<uint> MeshletVertexBuffer[];
 StructuredBuffer<uint> MeshletPrimitiveBuffer[];
 StructuredBuffer<Meshlet> MeshletBuffer[];
 StructuredBuffer<InstanceData> InstanceBuffer;
+
 Texture2D TextureArray[];
 SamplerState SamplerStateArray[];
 

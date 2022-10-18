@@ -2,6 +2,8 @@
 
 #include <Core/Path.hpp>
 #include <RHI/RHIContext.hpp>
+#include <RenderCore/MaterialGraph/MaterialGraph.hpp>
+#include <RenderCore/MaterialGraph/MaterialGraphBuilder.hpp>
 #include <RenderCore/ShaderCompiler/ShaderCompiler.hpp>
 #include <Resource/ResourceManager.hpp>
 #include <Scene/Component/AllComponent.hpp>
@@ -154,6 +156,7 @@ Scene *Renderer::GetScene() const
 
 void Renderer::Reset()
 {
+	p_rhi_context->WaitIdle();
 	m_shader_cache.clear();
 	m_shader_meta_cache.clear();
 }
@@ -177,16 +180,16 @@ const SceneInfo &Renderer::GetSceneInfo() const
 	return m_scene_info;
 }
 
-RHIShader *Renderer::RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, const std::vector<std::string> &macros, bool cuda)
+RHIShader *Renderer::RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, std::vector<std::string> &&macros, std::vector<std::string> &&includes, bool cuda, bool force_recompile)
 {
-	size_t hash = Hash(filename, entry_point, stage, macros, cuda);
+	size_t hash = Hash(filename, entry_point, stage, macros, includes, cuda);
 
 	if (!Path::GetInstance().IsExist("./bin/Shaders"))
 	{
 		Path::GetInstance().CreatePath("./bin/Shaders");
 	}
 
-	if (m_shader_cache.find(hash) != m_shader_cache.end())
+	if (m_shader_cache.find(hash) != m_shader_cache.end() && !force_recompile)
 	{
 		return m_shader_cache.at(hash).get();
 	}
@@ -196,7 +199,7 @@ RHIShader *Renderer::RequireShader(const std::string &filename, const std::strin
 	std::vector<uint8_t> shader_bin;
 	ShaderMeta           meta;
 
-	if (Path::GetInstance().IsExist(cache_path))
+	if (Path::GetInstance().IsExist(cache_path) && !force_recompile)
 	{
 		// Read from cache
 		size_t last_write = 0;
@@ -225,6 +228,10 @@ RHIShader *Renderer::RequireShader(const std::string &filename, const std::strin
 		ShaderDesc desc = {};
 		desc.code.resize(shader_code.size());
 		std::memcpy(desc.code.data(), shader_code.data(), shader_code.size());
+		for (auto &include : includes)
+		{
+			desc.code = fmt::format("#include \"{}\"\n", include) + desc.code;
+		}
 		desc.source      = Path::GetInstance().GetFileExtension(filename) == ".hlsl" ? ShaderSource::HLSL : ShaderSource::GLSL;
 		desc.stage       = stage;
 		desc.entry_point = entry_point;
@@ -282,6 +289,21 @@ ShaderMeta Renderer::RequireShaderMeta(RHIShader *shader) const
 	return m_shader_meta_cache.at(shader);
 }
 
+RHIShader *Renderer::RequireMaterialShader(MaterialGraph *material_graph, const std::string &filename, const std::string &entry_point, RHIShaderStage stage, std::vector<std::string> &&macros, std::vector<std::string> &&includes)
+{
+	size_t material_hash = Hash(material_graph->GetDesc().name);
+	if (!Path::GetInstance().IsExist("bin/Materials/" + std::to_string(material_hash) + ".hlsli") || material_graph->Update())
+	{
+		MaterialGraphBuilder builder(p_rhi_context);
+		builder.Compile(material_graph);
+	}
+
+	macros.push_back("MATERIAL_COMPILATION");
+	includes.push_back("bin/Materials/" + std::to_string(material_hash) + ".hlsli");
+
+	return RequireShader(filename, entry_point, stage, std::move(macros), std::move(includes), false, material_graph->Update());
+}
+
 void Renderer::UpdateScene()
 {
 	m_scene_info.static_vertex_buffers.clear();
@@ -290,6 +312,8 @@ void Renderer::UpdateScene()
 	m_scene_info.meshlet_primitive_buffers.clear();
 	m_scene_info.meshlet_buffers.clear();
 	m_scene_info.meshlet_count.clear();
+	m_scene_info.textures.clear();
+	m_scene_info.materials.clear();
 
 	std::vector<InstanceData> instances;
 	instances.reserve(p_scene->Size());
@@ -329,6 +353,62 @@ void Renderer::UpdateScene()
 		m_scene_info.textures.push_back(resource->GetTexture());
 	}
 
+	// Collect Material Info
+	{
+		size_t material_count = p_resource_manager->GetResourceValidUUID<ResourceType::Material>().size();
+		m_scene_info.materials.reserve(material_count);
+	}
+
+	for (auto &uuid : p_resource_manager->GetResourceValidUUID<ResourceType::Material>())
+	{
+		auto *resource = p_resource_manager->GetResource<ResourceType::Material>(uuid);
+		m_scene_info.materials.push_back(resource->Get());
+	}
+
+	// Collect Light Info
+	{
+		struct LightData
+		{
+			uint32_t  type;
+			glm::vec3 color;
+			float     intensity;
+			glm::vec3 position;
+			float     range;
+			float     radius;
+			float     cut_off;
+			float     outer_cut_off;
+			alignas(16) glm::vec3 direction;
+		};
+		std::vector<LightData> light_data;
+		light_data.reserve(16);
+		// Point Light
+		p_scene->GroupExecute<PointLightComponent, TransformComponent>([&](uint32_t entity, PointLightComponent &light, TransformComponent &transform) {
+			LightData data = {};
+			data.type      = static_cast<uint32_t>(LightType::Point);
+			data.color     = light.color;
+			data.intensity = light.intensity;
+			data.radius    = light.radius;
+			data.position  = transform.world_transform[3];
+			data.range     = light.range;
+			light_data.push_back(data);
+		});
+
+		if (!light_data.empty())
+		{
+			if (!m_scene_info.light_buffer || light_data.size() * sizeof(LightData) != m_scene_info.light_buffer->GetDesc().size)
+			{
+				p_rhi_context->WaitIdle();
+				m_scene_info.light_buffer = p_rhi_context->CreateBuffer<LightData>(light_data.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+			}
+			m_scene_info.light_buffer->CopyToDevice(light_data.data(), light_data.size() * sizeof(LightData));
+		}
+		else if (!m_scene_info.light_buffer)
+		{
+			p_rhi_context->WaitIdle();
+			m_scene_info.light_buffer = p_rhi_context->CreateBuffer<LightData>(1, RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+		}
+	}
+
 	// Update TLAS
 	TLASDesc desc = {};
 	desc.instances.reserve(p_scene->Size());
@@ -357,7 +437,7 @@ void Renderer::UpdateScene()
 				instance_data.transform      = instance_info.transform;
 				instance_data.material       = 0;
 				instance_data.vertex_offset  = submesh.vertices_offset;
-				instance_data.index_offset  = submesh.indices_offset;
+				instance_data.index_offset   = submesh.indices_offset;
 				instance_data.meshlet_offset = submesh.meshlet_offset;
 				instance_data.meshlet_count  = submesh.meshlet_count;
 				instances.emplace_back(std::move(instance_data));
@@ -371,6 +451,7 @@ void Renderer::UpdateScene()
 		{
 			if (!m_scene_info.instance_buffer || m_scene_info.instance_buffer->GetDesc().size != instances.size() * sizeof(InstanceData))
 			{
+				p_rhi_context->WaitIdle();
 				m_scene_info.instance_buffer = p_rhi_context->CreateBuffer<InstanceData>(instances.size() * sizeof(InstanceData), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
 			}
 			m_scene_info.instance_buffer->CopyToDevice(instances.data(), instances.size() * sizeof(InstanceData), 0);

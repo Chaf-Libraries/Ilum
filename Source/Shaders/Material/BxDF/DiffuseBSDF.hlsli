@@ -89,18 +89,18 @@ struct DiffuseBSDF
 {
     static float3 Eval(float3 R, float sigma, float3 wo, float3 wi)
     {
-        sigma == 0.f ? LambertianReflection::Eval(R, wo, wi) : OrenNayarReflection::Eval(R, sigma, wo, wi);
+        return sigma == 0.f ? LambertianReflection::Eval(R, wo, wi) : OrenNayarReflection::Eval(R, sigma, wo, wi);
     }
 
-    static float3 Pdf(float3 R, float sigma, float3 wo, float3 wi)
+    static float Pdf(float3 R, float sigma, float3 wo, float3 wi)
     {
-        sigma == 0.f ? LambertianReflection::Pdf(wo, wi) : OrenNayarReflection::Pdf(wo, wi);
+        return sigma == 0.f ? LambertianReflection::Pdf(wo, wi) : OrenNayarReflection::Pdf(wo, wi);
     }
 
     static float3 Samplef(float3 R, float sigma, float3 wo, float uc, float2 u, out float3 wi, out float pdf)
     {
-        sigma == 0.f ? LambertianReflection::Samplef(R, wo, uc, u, wi, pdf) : OrenNayarReflection::Samplef(R, sigma, wo, u, wi, pdf);
+        return sigma == 0.f ? LambertianReflection::Samplef(R, wo, uc, u, wi, pdf) : OrenNayarReflection::Samplef(R, sigma, wo, uc, u, wi, pdf);
     }
-}
+};
 
 #endif

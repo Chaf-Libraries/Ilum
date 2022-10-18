@@ -73,7 +73,6 @@ class Serializer
 			type = m.get_type();
 		}
 		std::string name = type.get_name().to_string();
-
 		Serialize(name);
 
 		if (type.is_arithmetic())
@@ -149,7 +148,6 @@ class Serializer
 		}
 		else if (type.is_enumeration())
 		{
-			auto name = type.get_enumeration().value_to_name(m);
 			Serialize(m.convert<uint64_t>());
 		}
 	}
@@ -329,9 +327,9 @@ class Deserializer
 		}
 		else if (type.is_enumeration())
 		{
-			uint64_t enum_name = 0;
-			Deserialize(enum_name);
-			std::memcpy(&m, &enum_name, sizeof(uint64_t));
+			uint64_t enum_val = 0;
+			Deserialize(enum_val);
+			std::memcpy(&m, &enum_val, sizeof(uint64_t));
 		}
 
 		var = std::move(m);

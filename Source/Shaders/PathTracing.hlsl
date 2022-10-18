@@ -73,7 +73,19 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
     Material material;
     material.Init();
     
-    pay_load.color = material.SurfaceBSDFEval(0, 0);
+    uint light_count = 0;
+    uint stride = 0;
+    LightBuffer.GetDimensions(light_count, stride);
+    
+    pay_load.color = 0.f;
+    
+    float3 wo = pay_load.interaction.p - View.position;
+    
+    for (uint i = 0; i < light_count; i++)
+    {
+        float3 wi = 0.f;
+       pay_load.color += LightBuffer[i].Li(pay_load.interaction.p, wi) * material.SurfaceBSDFEval(wi, wo);
+    }
 }
 #endif
 

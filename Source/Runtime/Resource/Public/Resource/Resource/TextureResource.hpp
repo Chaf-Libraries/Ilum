@@ -23,6 +23,6 @@ class TResource<ResourceType::Texture> : public Resource
 	RHITexture *GetTexture() const;
 
   private:
-	std::unique_ptr<RHITexture> m_texture   = nullptr;
+	std::unique_ptr<RHITexture> m_texture = nullptr;
 };
 }        // namespace Ilum

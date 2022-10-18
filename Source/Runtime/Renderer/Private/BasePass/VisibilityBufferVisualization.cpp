@@ -5,7 +5,7 @@ namespace Ilum
 RenderPassDesc VisibilityBufferVisualization::CreateDesc()
 {
 	RenderPassDesc desc = {};
-	desc.SetName("VisibilityBufferVisualization")
+	desc.SetName<VisibilityBufferVisualization>()
 	    .SetBindPoint(BindPoint::Compute)
 	    .Read("VisibilityBuffer", RenderResourceDesc::Type::Texture, RHIResourceState::ShaderResource)
 	    .Read("DepthBuffer", RenderResourceDesc::Type::Texture, RHIResourceState::ShaderResource)

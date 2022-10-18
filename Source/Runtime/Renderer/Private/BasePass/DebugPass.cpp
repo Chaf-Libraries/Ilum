@@ -6,7 +6,7 @@ RenderPassDesc DebugPass::CreateDesc()
 {
 	RenderPassDesc desc;
 	desc
-	    .SetName("DebugPass")
+	    .SetName<DebugPass>()
 	    .SetBindPoint(BindPoint::None)
 		.Read("Debug", RenderResourceDesc::Type::Texture, RHIResourceState::TransferSource);
 	return desc;

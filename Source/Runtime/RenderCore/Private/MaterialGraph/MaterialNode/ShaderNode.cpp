@@ -52,7 +52,7 @@ MaterialNodeDesc MixShader::Create(size_t &handle)
 	return desc.SetName<AddShader>()
 	    .AddPin(handle, "BSDF A", MaterialNodePin::Type::BSDF, MaterialNodePin::Attribute::Input)
 	    .AddPin(handle, "BSDF B", MaterialNodePin::Type::BSDF, MaterialNodePin::Attribute::Input)
-	    .AddPin(handle, "Frac", MaterialNodePin::Type::BSDF, MaterialNodePin::Attribute::Input, Data{})
+	    .AddPin(handle, "Frac", MaterialNodePin::Type::BSDF, MaterialNodePin::Attribute::Input, MixShaderData{})
 	    .AddPin(handle, "BSDF", MaterialNodePin::Type::BSDF, MaterialNodePin::Attribute::Output);
 }
 
@@ -95,8 +95,8 @@ MaterialNodeDesc DiffuseBSDF::Create(size_t &handle)
 {
 	MaterialNodeDesc desc;
 	return desc.SetName<DiffuseBSDF>()
-	    .AddPin(handle, "Color", MaterialNodePin::Type::Float, MaterialNodePin::Attribute::Input, Color{})
-	    .AddPin(handle, "Roughness", MaterialNodePin::Type::Float, MaterialNodePin::Attribute::Input, Roughness{})
+	    .AddPin(handle, "Color", MaterialNodePin::Type::Float3, MaterialNodePin::Attribute::Input, DiffuseBSDFColor{})
+	    .AddPin(handle, "Roughness", MaterialNodePin::Type::Float, MaterialNodePin::Attribute::Input, DiffuseBSDFRoughness{})
 	    .AddPin(handle, "BSDF", MaterialNodePin::Type::BSDF, MaterialNodePin::Attribute::Output);
 }
 
@@ -142,7 +142,7 @@ void DiffuseBSDF::EmitShader(const MaterialNodeDesc &desc, MaterialGraph *graph,
 	}
 	else
 	{
-		auto pin = desc.GetPin("Color").data.convert<Color>();
+		auto pin = desc.GetPin("Color").data.convert<DiffuseBSDFColor>();
 		color    = fmt::format("float3({}, {}, {})", pin.color.x, pin.color.y, pin.color.z);
 	}
 
@@ -153,7 +153,7 @@ void DiffuseBSDF::EmitShader(const MaterialNodeDesc &desc, MaterialGraph *graph,
 	}
 	else
 	{
-		auto pin  = desc.GetPin("Roughness").data.convert<Roughness>();
+		auto pin  = desc.GetPin("Roughness").data.convert<DiffuseBSDFRoughness>();
 		roughness = fmt::format("{}", pin.roughness);
 	}
 
@@ -171,7 +171,7 @@ void DiffuseBSDF::EmitShader(const MaterialNodeDesc &desc, MaterialGraph *graph,
 	mustache_data["BxDFName"]    = bxdf_name;
 	mustache_data["EvalFunc"]    = fmt::format("DiffuseBSDF::Eval({}, {}, wo, wi)", color, roughness);
 	mustache_data["PdfFunc"]     = fmt::format("DiffuseBSDF::Pdf({}, {}, wo, wi)", color, roughness);
-	mustache_data["SamplefFunc"] = fmt::format("DiffuseBSDF::Samplef({}, {}, wo, u, wi, pdf)", color, roughness);
+	mustache_data["SamplefFunc"] = fmt::format("DiffuseBSDF::Samplef({}, {}, wo, uc, u, wi, pdf)", color, roughness);
 
 	context.functions.emplace_back(std::string(mustache.render(mustache_data).c_str()));
 	context.finish.emplace(desc.handle);

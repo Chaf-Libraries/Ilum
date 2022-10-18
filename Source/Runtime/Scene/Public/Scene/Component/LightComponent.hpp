@@ -6,6 +6,14 @@
 
 namespace Ilum
 {
+ENUM(LightType, Enable){
+    Point       = 0,
+    Spot        = 1,
+    Directional = 2,
+    Area        = 3,
+    Unknown     = 4,
+};
+
 STRUCT(LightComponent, Enable) :
     public Component
 {

@@ -11,7 +11,7 @@ RenderPassDesc TrianglePass::CreateDesc()
 	RenderPassDesc desc = {};
 
 	desc
-	    .SetName("TrianglePass")
+	    .SetName<TrianglePass>()
 	    .SetBindPoint(BindPoint::Rasterization)
 	    .Write("Output", RenderResourceDesc::Type::Texture, RHIResourceState::RenderTarget)
 	    .SetConfig(Config());

@@ -7,6 +7,7 @@ namespace Ilum
 {
 class Scene;
 class ResourceManager;
+class MaterialGraph;
 
 enum class DummyTexture
 {
@@ -29,7 +30,10 @@ struct ViewInfo
 
 struct SceneInfo
 {
-	std::vector<RHITexture *> textures;
+	std::vector<RHITexture *>    textures;
+	std::vector<MaterialGraph *> materials;
+
+	std::unique_ptr<RHIBuffer> light_buffer = nullptr;
 
 	std::vector<RHIBuffer *> static_vertex_buffers;
 	std::vector<RHIBuffer *> static_index_buffers;
@@ -87,9 +91,11 @@ class Renderer
 
   public:
 	// Shader utils
-	RHIShader *RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, const std::vector<std::string> &macros = {}, bool cuda = false);
+	RHIShader *RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, std::vector<std::string> &&macros = {}, std::vector<std::string> &&includes = {}, bool cuda = false, bool force_recompile = false);
 
 	ShaderMeta RequireShaderMeta(RHIShader *shader) const;
+
+	RHIShader *RequireMaterialShader(MaterialGraph *material_graph, const std::string &filename, const std::string &entry_point, RHIShaderStage stage, std::vector<std::string> &&macros = {}, std::vector<std::string> &&includes = {});
 
   private:
 	void UpdateScene();

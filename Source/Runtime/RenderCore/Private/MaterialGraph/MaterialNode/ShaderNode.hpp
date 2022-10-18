@@ -27,7 +27,7 @@ STRUCT(MixShader, Enable, MaterialNode("Mix Shader"), Category("Shader")) :
 
 	virtual void EmitShader(const MaterialNodeDesc &desc, MaterialGraph *graph, ShaderEmitContext &context) override;
 
-	STRUCT(Data, Enable)
+	STRUCT(MixShaderData, Enable)
 	{
 		META(Min(0.f), Max(1.f), Editor("Slider"), Name(""))
 		float frac = 0.5f;
@@ -45,13 +45,13 @@ STRUCT(DiffuseBSDF, Enable, MaterialNode("Diffuse BSDF"), Category("Shader")) :
 
 	virtual void EmitShader(const MaterialNodeDesc &desc, MaterialGraph *graph, ShaderEmitContext &context) override;
 
-	STRUCT(Color, Enable)
+	STRUCT(DiffuseBSDFColor, Enable)
 	{
 		META(Editor("ColorEdit"), Name(""))
 		glm::vec3 color = glm::vec3(1.f);
 	};
 
-	STRUCT(Roughness, Enable)
+	STRUCT(DiffuseBSDFRoughness, Enable)
 	{
 		META(Min(0.f), Max(1.f), Editor("Slider"), Name(""))
 		float roughness = 0.5f;

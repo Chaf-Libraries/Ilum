@@ -27,7 +27,7 @@ void TResource<ResourceType::Texture>::Load(RHIContext *rhi_context, size_t inde
 	std::vector<uint8_t> data;
 	DESERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".asset", type, m_uuid, m_meta, desc, data);
 
-	m_texture   = rhi_context->CreateTexture(desc);
+	m_texture = rhi_context->CreateTexture(desc);
 
 	{
 		BufferDesc buffer_desc = {};
@@ -43,10 +43,10 @@ void TResource<ResourceType::Texture>::Load(RHIContext *rhi_context, size_t inde
 		auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Graphics);
 		cmd_buffer->Begin();
 		cmd_buffer->ResourceStateTransition({TextureStateTransition{
-		                                         m_texture.get(),
-		                                         RHIResourceState::Undefined,
-		                                         RHIResourceState::TransferDest,
-		                                         TextureRange{RHITextureDimension::Texture2D, 0, m_texture.get()->GetDesc().mips, 0, 1}}},
+		                                        m_texture.get(),
+		                                        RHIResourceState::Undefined,
+		                                        RHIResourceState::TransferDest,
+		                                        TextureRange{RHITextureDimension::Texture2D, 0, m_texture.get()->GetDesc().mips, 0, 1}}},
 		                                    {});
 		cmd_buffer->CopyBufferToTexture(staging_buffer.get(), m_texture.get(), 0, 0, 1);
 		cmd_buffer->GenerateMipmaps(m_texture.get(), RHIResourceState::Undefined, RHIFilter::Linear);

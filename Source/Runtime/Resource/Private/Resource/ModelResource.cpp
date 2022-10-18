@@ -91,6 +91,24 @@ void TResource<ResourceType::Model>::Import(RHIContext *rhi_context, const std::
 	}
 }
 
+void TResource<ResourceType::Model>::Save()
+{
+	std::vector<Vertex>   vertices(m_vertex_buffer->GetDesc().size / sizeof(Vertex));
+	std::vector<uint32_t> indices(m_index_buffer->GetDesc().size / sizeof(uint32_t));
+	std::vector<Meshlet>  meshlets(m_meshlet_buffer->GetDesc().size / sizeof(Meshlet));
+	std::vector<uint32_t> meshlet_vertices(m_meshlet_vertex_buffer->GetDesc().size / sizeof(uint32_t));
+	std::vector<uint32_t> meshlet_primitives(m_meshlet_primitive_buffer->GetDesc().size / sizeof(uint32_t));
+
+	m_vertex_buffer->CopyToHost(vertices.data(), vertices.size() * sizeof(Vertex), 0);
+	m_index_buffer->CopyToHost(indices.data(), indices.size() * sizeof(uint32_t), 0);
+	m_meshlet_vertex_buffer->CopyToHost(meshlet_vertices.data(), meshlet_vertices.size() * sizeof(uint32_t), 0);
+	m_meshlet_primitive_buffer->CopyToHost(meshlet_primitives.data(), meshlet_primitives.size() * sizeof(uint32_t), 0);
+	m_meshlet_buffer->CopyToHost(meshlets.data(), meshlets.size() * sizeof(Meshlet), 0);
+
+	SERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".asset", ResourceType::Model, m_uuid, m_meta,
+	            m_name, m_submeshes, vertices, indices, meshlets, meshlet_vertices, meshlet_primitives, m_aabb);
+}
+
 const std::string &TResource<ResourceType::Model>::GetName() const
 {
 	return m_name;

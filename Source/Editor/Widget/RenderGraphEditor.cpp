@@ -391,9 +391,32 @@ void RenderGraphEditor::Tick()
 			auto  *resource = p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::RenderGraph>(uuid);
 			if (resource)
 			{
+				m_desc.buffers.clear();
+				m_desc.textures.clear();
+				m_desc.passes.clear();
 				std::string editor_state = "";
 				resource->Load(m_desc, editor_state);
 				ImNodes::LoadCurrentEditorStateFromIniString(editor_state.data(), editor_state.size());
+
+				// Update max current id
+				m_current_handle = 0;
+
+				for (auto &[handle, pass] : m_desc.passes)
+				{
+					m_current_handle = std::max(handle.GetHandle(), m_current_handle);
+				}
+
+				for (auto &[handle, texture] : m_desc.textures)
+				{
+					m_current_handle = std::max(handle.GetHandle(), m_current_handle);
+				}
+
+				for (auto &[handle, buffer] : m_desc.buffers)
+				{
+					m_current_handle = std::max(handle.GetHandle(), m_current_handle);
+				}
+
+				m_current_handle++;
 				m_need_compile = true;
 			}
 		}
@@ -522,6 +545,10 @@ void RenderGraphEditor::DrawMenu()
 				char *path = nullptr;
 				if (NFD_OpenDialog("rg", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
 				{
+					m_desc.buffers.clear();
+					m_desc.textures.clear();
+					m_desc.passes.clear();
+
 					std::string editor_state = "";
 					DESERIALIZE(path, m_desc, editor_state);
 					ImNodes::LoadEditorStateFromIniString(m_context, editor_state.data(), editor_state.size());

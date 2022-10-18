@@ -113,4 +113,13 @@ void MaterialGraph::Validate(size_t pin, ShaderValidateContext &context)
 	node.get_type().get_method("Validate").invoke(node, desc, this, context);
 }
 
+void MaterialGraph::SetUpdate(bool update)
+{
+	m_update = update;
+}
+
+bool MaterialGraph::Update()
+{
+	return m_update;
+}
 }        // namespace Ilum

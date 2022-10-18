@@ -1,6 +1,7 @@
 #include "Resource/RenderGraphResource.hpp"
 
 #include <RenderCore/RenderGraph/RenderGraph.hpp>
+#include <Core/Path.hpp>
 
 namespace Ilum
 {
@@ -12,7 +13,6 @@ TResource<ResourceType::RenderGraph>::TResource(size_t uuid) :
 TResource<ResourceType::RenderGraph>::TResource(size_t uuid, const std::string &meta, RHIContext *rhi_context) :
     Resource(uuid, meta, rhi_context)
 {
-
 }
 
 void TResource<ResourceType::RenderGraph>::Load(RHIContext *rhi_context, size_t index)
@@ -30,7 +30,7 @@ void TResource<ResourceType::RenderGraph>::Import(RHIContext *rhi_context, const
 	RenderGraphDesc desc;
 	DESERIALIZE(path, desc, editor_layout);
 
-	m_meta = fmt::format("Passes: {}\nTextures: {}\nBuffers: {}", desc.passes.size(), desc.textures.size(), desc.buffers.size());
+	m_meta = fmt::format("Name: {}\nPasses: {}\nTextures: {}\nBuffers: {}", Path::GetInstance().GetFileName(path, false), desc.passes.size(), desc.textures.size(), desc.buffers.size());
 
 	SERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".asset", ResourceType::RenderGraph, m_uuid, m_meta, desc, editor_layout);
 }
@@ -39,4 +39,11 @@ void TResource<ResourceType::RenderGraph>::Load(RenderGraphDesc &desc, std::stri
 {
 	DESERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".asset", ResourceType::RenderGraph, m_uuid, m_meta, desc, editor_layout);
 }
+
+void TResource<ResourceType::RenderGraph>::Save(const RenderGraphDesc &desc, const std::string &editor_layout)
+{
+	m_meta = fmt::format("Passes: {}\nTextures: {}\nBuffers: {}", desc.passes.size(), desc.textures.size(), desc.buffers.size());
+	SERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".asset", ResourceType::RenderGraph, m_uuid, m_meta, desc, editor_layout);
+}
+
 }        // namespace Ilum

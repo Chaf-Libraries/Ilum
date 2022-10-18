@@ -20,6 +20,8 @@ class TResource<ResourceType::Material> : public Resource
 
 	virtual void Import(RHIContext *rhi_context, const std::string &path) override;
 
+	void Save(const std::string &editor_state);
+
 	MaterialGraph *Get();
 
 	const std::string &GetEditorState() const;
@@ -28,5 +30,7 @@ class TResource<ResourceType::Material> : public Resource
 	std::unique_ptr<MaterialGraph> m_material_graph;
 
 	std::string m_editor_state;
+
+	size_t m_last_update;
 };
 }        // namespace Ilum

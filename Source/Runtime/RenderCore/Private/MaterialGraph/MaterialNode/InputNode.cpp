@@ -8,8 +8,8 @@ MaterialNodeDesc RGB::Create(size_t &handle)
 
 	return desc
 	    .SetName<RGB>()
-	    .AddPin(handle, "Color", MaterialNodePin::Type::Float, MaterialNodePin::Attribute::Output)
-	    .SetData(Data());
+	    .AddPin(handle, "Color", MaterialNodePin::Type::Float3, MaterialNodePin::Attribute::Output)
+	    .SetData(RGBData());
 }
 
 void RGB::Update(MaterialNodeDesc &node)
@@ -33,7 +33,7 @@ void RGB::EmitShader(const MaterialNodeDesc &desc, MaterialGraph *graph, ShaderE
 		return;
 	}
 
-	Data color = desc.data.convert<Data>();
+	RGBData color = desc.data.convert<RGBData>();
 	context.declarations.emplace_back(fmt::format("float3 _S{};", desc.GetPin("Color").handle));
 	context.definitions.emplace_back(fmt::format("_S{} = float3({}, {}, {});", desc.GetPin("Color").handle, color.color.x, color.color.y, color.color.z));
 

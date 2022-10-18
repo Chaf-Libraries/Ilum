@@ -16,6 +16,12 @@ STRUCT(StaticMeshComponent, Enable) :
 	META(DragDrop("Model"))
 	size_t uuid;
 
-	std::vector<size_t> materials;
+	STRUCT(MaterialID, Enable)
+	{
+		META(DragDrop("Material"), NAME(""))
+		size_t material_id=100;
+	};
+
+	std::vector<MaterialID> materials;
 };
 }        // namespace Ilum

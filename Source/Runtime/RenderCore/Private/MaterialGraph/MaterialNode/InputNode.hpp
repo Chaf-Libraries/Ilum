@@ -15,7 +15,7 @@ STRUCT(RGB, Enable, MaterialNode("RGB"), Category("Input")) :
 
 	virtual void EmitShader(const MaterialNodeDesc &desc, MaterialGraph *graph, ShaderEmitContext &context) override;
 
-	STRUCT(Data, Enable)
+	STRUCT(RGBData, Enable)
 	{
 		META(Editor("ColorEdit"), Name(""))
 		glm::vec3 color = glm::vec3(0.f);

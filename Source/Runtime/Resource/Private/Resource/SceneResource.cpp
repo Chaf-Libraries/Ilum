@@ -27,6 +27,8 @@ void TResource<ResourceType::Scene>::Load(RHIContext *rhi_context, size_t index)
 
 void TResource<ResourceType::Scene>::Import(RHIContext *rhi_context, const std::string &path)
 {
+	m_name = Path::GetInstance().GetFileName(path, false);
+
 	entt::registry registry;
 
 	{
@@ -37,9 +39,7 @@ void TResource<ResourceType::Scene>::Import(RHIContext *rhi_context, const std::
 		    .component<ALL_COMPONENTS>(archive);
 	}
 
-	m_meta = fmt::format("Name: {}\nEntities: {}",
-	                     Path::GetInstance().GetFileName(path, false),
-	                     registry.size());
+	m_meta = fmt::format("Name: {}", m_name);
 
 	{
 		std::ofstream os("Asset/Meta/" + std::to_string(m_uuid) + ".asset", std::ios::binary);
@@ -57,6 +57,17 @@ void TResource<ResourceType::Scene>::Load(Scene *scene)
 	InputArchive  archive(is);
 	archive(ResourceType::Scene, m_uuid, m_meta);
 	entt::snapshot_loader{(*scene)()}
+	    .entities(archive)
+	    .component<ALL_COMPONENTS>(archive);
+}
+
+void TResource<ResourceType::Scene>::Save(Scene *scene)
+{
+	m_meta = fmt::format("Name: {}", m_name);
+	std::ofstream os("Asset/Meta/" + std::to_string(m_uuid) + ".asset", std::ios::binary);
+	OutputArchive archive(os);
+	archive(ResourceType::Scene, m_uuid, m_meta);
+	entt::snapshot{(*scene)()}
 	    .entities(archive)
 	    .component<ALL_COMPONENTS>(archive);
 }

@@ -19,6 +19,12 @@ class ResourceManager
 	bool IsUpdate();
 
 	template <ResourceType _Ty>
+	TResource<_Ty> *CreateResource(size_t uuid)
+	{
+		return CreateResource(uuid, _Ty)->CastTo<_Ty>();
+	}
+
+	template <ResourceType _Ty>
 	size_t Import(const std::string &path)
 	{
 		return Import(path, _Ty);
@@ -81,6 +87,8 @@ class ResourceManager
 
   private:
 	Resource *GetResource(size_t uuid, ResourceType type);
+
+	Resource *CreateResource(size_t uuid, ResourceType type);
 
 	void EraseResource(size_t uuid, ResourceType type);
 

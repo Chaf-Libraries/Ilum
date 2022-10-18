@@ -94,7 +94,6 @@ void SceneView::DisplayPresent()
 			if (resource)
 			{
 				cmpt.materials.resize(resource->GetSubmeshes().size());
-				std::fill(cmpt.materials.begin(), cmpt.materials.end(), (size_t) ~0);
 			}
 		}
 	}

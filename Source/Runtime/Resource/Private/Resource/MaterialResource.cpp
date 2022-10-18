@@ -2,6 +2,7 @@
 
 #include <Core/Path.hpp>
 #include <RenderCore/MaterialGraph/MaterialGraph.hpp>
+#include <RenderCore/MaterialGraph/MaterialGraphBuilder.hpp>
 
 namespace Ilum
 {
@@ -37,9 +38,18 @@ void TResource<ResourceType::Material>::Import(RHIContext *rhi_context, const st
 
 	m_material_graph = std::make_unique<MaterialGraph>(rhi_context, desc);
 
-	m_meta = fmt::format("Name: {}\nNodes: {}\n", Path::GetInstance().GetFileName(path, false), desc.nodes.size());
+	m_meta = fmt::format("Name: {}\nNodes: {}\n", desc.name, desc.nodes.size());
 
 	SERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".asset", ResourceType::Material, m_uuid, m_meta, desc, m_editor_state);
+}
+
+void TResource<ResourceType::Material>::Save(const std::string &editor_state)
+{
+	m_meta = fmt::format("Name: {}\nNodes: {}\n", m_material_graph->GetDesc().name, m_material_graph->GetDesc().nodes.size());
+
+	m_editor_state = editor_state;
+
+	SERIALIZE("Asset/Meta/" + std::to_string(m_uuid) + ".asset", ResourceType::Material, m_uuid, m_meta, m_material_graph->GetDesc(), m_editor_state);
 }
 
 MaterialGraph *TResource<ResourceType::Material>::Get()

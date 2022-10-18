@@ -10,7 +10,7 @@ MaterialNodeDesc ScalarCalculation::Create(size_t &handle)
 	    .AddPin(handle, "X", MaterialNodePin::Type::Float, MaterialNodePin::Attribute::Input, float(0))
 	    .AddPin(handle, "Y", MaterialNodePin::Type::Float, MaterialNodePin::Attribute::Input, float(0))
 	    .AddPin(handle, "Out", MaterialNodePin::Type::Float, MaterialNodePin::Attribute::Output)
-	    .SetData(Type());
+	    .SetData(ScalarCalculationType());
 }
 
 void ScalarCalculation::Validate(const MaterialNodeDesc &node, MaterialGraph *graph, ShaderValidateContext &context)
@@ -199,7 +199,7 @@ MaterialNodeDesc VectorCalculation::Create(size_t &handle)
 	    .AddPin(handle, "X", MaterialNodePin::Type::Float3, MaterialNodePin::Attribute::Input, glm::vec3(0))
 	    .AddPin(handle, "Y", MaterialNodePin::Type::Float3, MaterialNodePin::Attribute::Input, glm::vec3(0))
 	    .AddPin(handle, "Out", MaterialNodePin::Type::Float3, MaterialNodePin::Attribute::Output)
-	    .SetData(Type());
+	    .SetData(VectorCalculationType());
 }
 
 void VectorCalculation::Validate(const MaterialNodeDesc &node, MaterialGraph *graph, ShaderValidateContext &context)
@@ -231,8 +231,11 @@ void VectorCalculation::Update(MaterialNodeDesc &node)
 	{
 		case Type::Scale:
 			node.GetPin("Y").enable = true;
-			node.GetPin("Y").type   = MaterialNodePin::Type::Float;
-			node.GetPin("Y").data   = float(0);
+			if (node.GetPin("Y").type != MaterialNodePin::Type::Float)
+			{
+				node.GetPin("Y").type = MaterialNodePin::Type::Float;
+				node.GetPin("Y").data = float(0);
+			}
 			break;
 		case Type::Length:
 			node.GetPin("Y").enable = false;
@@ -241,8 +244,11 @@ void VectorCalculation::Update(MaterialNodeDesc &node)
 		case Type::Distance:
 		case Type::Dot:
 			node.GetPin("Y").enable = true;
-			node.GetPin("Y").type   = MaterialNodePin::Type::Float3;
-			node.GetPin("Y").data   = glm::vec3(0);
+			if (node.GetPin("Y").type != MaterialNodePin::Type::Float3)
+			{
+				node.GetPin("Y").type = MaterialNodePin::Type::Float3;
+				node.GetPin("Y").data = glm::vec3(0);
+			}
 			node.GetPin("Out").type = MaterialNodePin::Type::Float;
 			break;
 		case Type::Cross:
@@ -253,8 +259,11 @@ void VectorCalculation::Update(MaterialNodeDesc &node)
 		case Type::Maximum:
 		case Type::Minimum:
 			node.GetPin("Y").enable = true;
-			node.GetPin("Y").type   = MaterialNodePin::Type::Float3;
-			node.GetPin("Y").data   = glm::vec3(0);
+			if (node.GetPin("Y").type != MaterialNodePin::Type::Float3)
+			{
+				node.GetPin("Y").type = MaterialNodePin::Type::Float3;
+				node.GetPin("Y").data = glm::vec3(0);
+			}
 			node.GetPin("Out").type = MaterialNodePin::Type::Float3;
 			break;
 		case Type::Sin:

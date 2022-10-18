@@ -166,8 +166,45 @@ void Buffer::CopyToDevice(const void *data, size_t size, size_t offset)
 
 void Buffer::CopyToHost(void *data, size_t size, size_t offset)
 {
-	void *mapped = Map();
-	std::memcpy(data, (uint8_t *) mapped + offset, size);
+	if (m_desc.memory == RHIMemoryUsage::GPU_TO_CPU)
+	{
+		void *mapped = Map();
+		std::memcpy(data, (uint8_t *) mapped + offset, size);
+		Unmap();
+		Flush(offset, size);
+	}
+	else
+	{
+		auto    fence = std::make_unique<Fence>(p_device);
+		VkQueue queue = VK_NULL_HANDLE;
+		vkGetDeviceQueue(static_cast<Device *>(p_device)->GetDevice(), static_cast<Device *>(p_device)->GetQueueFamily(RHIQueueFamily::Transfer), 0, &queue);
+		auto staging_buffer = std::make_unique<Buffer>(p_device, BufferDesc{"", RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_TO_CPU, size});
+
+		{
+			auto cmd_buffer = std::make_unique<Command>(p_device, RHIQueueFamily::Transfer);
+			cmd_buffer->Init();
+			cmd_buffer->Begin();
+			cmd_buffer->CopyBufferToBuffer(this, staging_buffer.get(), size, 0, offset);
+			cmd_buffer->End();
+
+			auto vk_cmd_buffer = cmd_buffer->GetHandle();
+
+			VkSubmitInfo submit_info         = {};
+			submit_info.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+			submit_info.commandBufferCount   = 1;
+			submit_info.pCommandBuffers      = &vk_cmd_buffer;
+			submit_info.signalSemaphoreCount = 0;
+			submit_info.pSignalSemaphores    = nullptr;
+			submit_info.waitSemaphoreCount   = 0;
+			submit_info.pWaitSemaphores      = nullptr;
+			submit_info.pWaitDstStageMask    = nullptr;
+
+			vkQueueSubmit(queue, 1, &submit_info, fence ? fence->GetHandle() : nullptr);
+			fence->Wait();
+
+			std::memcpy(data, (uint8_t *) staging_buffer->Map(), size);
+		}
+	}
 }
 
 void *Buffer::Map()

@@ -77,7 +77,7 @@ void MaterialOutput::EmitShader(const MaterialNodeDesc &desc, MaterialGraph *gra
 		for (auto &header_data : context.headers)
 		{
 			kainjow::mustache::data header{kainjow::mustache::data::type::object};
-			header["Header"] = header_data;
+			header["Header"] = fmt::format("#include \"{}\"", header_data);
 			headers << header;
 		}
 		mustache_data.set("Headers", headers);

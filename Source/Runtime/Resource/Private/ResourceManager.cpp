@@ -73,10 +73,7 @@ struct IResourceManager
 		return m_valid_uuids;
 	}
 
-	void Tick()
-	{
-		m_update = false;
-	}
+	virtual void Tick() = 0;
 
 	bool IsUpdate()
 	{
@@ -159,6 +156,11 @@ struct TResourceManager : public IResourceManager
 
 	virtual Resource *CreateResource(size_t uuid) override
 	{
+		if (m_resource_lookup.find(uuid) != m_resource_lookup.end())
+		{
+			LOG_WARN("Resource with UUID {} is already existed!", uuid);
+			return m_resource.at(m_resource_lookup.at(uuid)).get();
+		}
 		m_resource_lookup.emplace(uuid, m_resource.size());
 		m_resource.emplace_back(std::make_unique<TResource<_Ty>>(uuid));
 		m_uuids.push_back(uuid);
@@ -187,6 +189,16 @@ struct TResourceManager : public IResourceManager
 	virtual bool IsResourceValid(size_t uuid) override
 	{
 		return m_resource_lookup.find(uuid) != m_resource_lookup.end() && m_resource.at(m_resource_lookup.at(uuid))->IsValid();
+	}
+
+	virtual void Tick() override
+	{
+		if (m_update)
+		{
+			p_rhi_context->WaitIdle();
+			m_deprecate_resource.clear();
+			m_update = false;
+		}
 	}
 };
 
@@ -256,6 +268,11 @@ Resource *ResourceManager::GetResource(size_t uuid, ResourceType type)
 	return m_impl->m_managers.at(type)->GetResource(uuid);
 }
 
+Resource *ResourceManager::CreateResource(size_t uuid, ResourceType type)
+{
+	return m_impl->m_managers.at(type)->CreateResource(uuid);
+}
+
 void ResourceManager::EraseResource(size_t uuid, ResourceType type)
 {
 	m_impl->m_managers.at(type)->EraseResource(uuid);
@@ -273,14 +290,12 @@ size_t ResourceManager::Import(const std::string &path, ResourceType type)
 
 	if (m_impl->m_managers.at(type)->HasResource(uuid))
 	{
-		LOG_INFO("Resource {} is already cached", path);
+		m_impl->m_managers.at(type)->EraseResource(uuid);
 	}
-	else
-	{
-		Resource *resource = m_impl->m_managers.at(type)->CreateResource(uuid);
-		resource->Import(p_rhi_context, path);
-		ScanLocalMeta();
-	}
+
+	Resource *resource = m_impl->m_managers.at(type)->CreateResource(uuid);
+	resource->Import(p_rhi_context, path);
+	ScanLocalMeta();
 
 	return uuid;
 }

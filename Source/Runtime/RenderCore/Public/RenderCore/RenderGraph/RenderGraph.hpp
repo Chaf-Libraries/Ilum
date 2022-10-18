@@ -77,9 +77,10 @@ STRUCT(RenderPassDesc, Enable)
 		return *this;
 	}
 
-	RenderPassDesc &SetName(const std::string &name)
+	template<typename T>
+	RenderPassDesc &SetName()
 	{
-		this->name = name;
+		this->name = rttr::type::get<T>().get_name().to_string();
 		return *this;
 	}
 

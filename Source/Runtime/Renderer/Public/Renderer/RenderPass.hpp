@@ -7,7 +7,7 @@
 
 namespace Ilum
 {
-struct [[serialization(false), reflection(false)]] RenderPass
+struct RenderPass
 {
 	virtual RenderPassDesc CreateDesc() = 0;
 

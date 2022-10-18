@@ -21,5 +21,10 @@ class TResource<ResourceType::Scene> : public Resource
 	virtual void Import(RHIContext *rhi_context, const std::string &path) override;
 
 	void Load(Scene *scene);
+
+	void Save(Scene *scene);
+
+  private:
+	std::string m_name;
 };
 }        // namespace Ilum

@@ -6,7 +6,7 @@ RenderPassDesc PresentPass::CreateDesc()
 {
 	RenderPassDesc desc;
 	desc
-	    .SetName("PresentPass")
+	    .SetName<PresentPass>()
 	    .SetBindPoint(BindPoint::None)
 	    .Read("Present", RenderResourceDesc::Type::Texture, RHIResourceState::ShaderResource);
 

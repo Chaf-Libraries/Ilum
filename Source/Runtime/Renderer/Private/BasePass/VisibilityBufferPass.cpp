@@ -12,7 +12,7 @@ RenderPassDesc VisibilityBufferPass::CreateDesc()
 
 	desc.name = "VisibilityBufferPass";
 	desc
-	    .SetName("VisibilityBufferPass")
+	    .SetName<VisibilityBufferPass>()
 	    .SetBindPoint(BindPoint::Rasterization)
 	    .Write("VisibilityBuffer", RenderResourceDesc::Type::Texture, RHIResourceState::RenderTarget)
 	    .Write("DepthBuffer", RenderResourceDesc::Type::Texture, RHIResourceState::DepthWrite);

@@ -10,6 +10,8 @@ class RHIDescriptor;
 
 STRUCT(MaterialGraphDesc, Enable)
 {
+	std::string name;
+
 	std::map<size_t, MaterialNodeDesc> nodes;
 
 	std::map<size_t, size_t> links;        // Target - Source
@@ -48,8 +50,15 @@ class MaterialGraph
 
 	void Validate(size_t pin, ShaderValidateContext &context);
 
+	void SetUpdate(bool update);
+
+	bool Update();
+
   private:
-	RHIContext       *p_rhi_context = nullptr;
+	RHIContext *p_rhi_context = nullptr;
+
 	MaterialGraphDesc m_desc;
+
+	bool m_update = false;
 };
 }        // namespace Ilum

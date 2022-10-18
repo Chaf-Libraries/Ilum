@@ -74,8 +74,14 @@ inline void System::Execute<StaticMeshComponent>(Renderer *renderer)
 			auto *resource = renderer->GetResourceManager()->GetResource<ResourceType::Model>(static_mesh.uuid);
 			if (resource)
 			{
-				static_mesh.materials.resize(resource->GetSubmeshes().size());
-				std::fill(static_mesh.materials.begin(), static_mesh.materials.end(), (size_t) ~0);
+				if (resource->GetSubmeshes().size() != static_mesh.materials.size())
+				{
+					static_mesh.materials.resize(resource->GetSubmeshes().size());
+				}
+				for (auto& material : static_mesh.materials)
+				{
+					renderer->GetResourceManager()->GetResource<ResourceType::Material>(material.material_id);
+				}
 			}
 			else
 			{

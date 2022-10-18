@@ -48,6 +48,11 @@ STRUCT(ScalarCalculation, Enable, MaterialNode("Scalar Calculation"), Category("
 	    Cosh,
 	    Tanh,
 	};
+
+	STRUCT(ScalarCalculationType, Enable)
+	{
+		Type type;
+	};
 };
 
 STRUCT(VectorCalculation, Enable, MaterialNode("Vector Calculation"), Category("Convert")) :
@@ -84,6 +89,11 @@ STRUCT(VectorCalculation, Enable, MaterialNode("Vector Calculation"), Category("
 	    Abs,
 
 	    Normalize,
+	};
+
+	STRUCT(VectorCalculationType, Enable)
+	{
+		Type type;
 	};
 };
 }        // namespace Ilum::MGNode
