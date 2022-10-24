@@ -53,10 +53,10 @@ Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resou
 		glm::vec4 white_transparent = {1.f, 1.f, 1.f, 0.f};
 		glm::vec4 black_transparent = {0.f, 0.f, 0.f, 0.f};
 
-		white_opaque_buffer->CopyToDevice(&white_opaque);
-		black_opaque_buffer->CopyToDevice(&black_opaque);
-		white_transparent_buffer->CopyToDevice(&white_transparent);
-		black_transparent_buffer->CopyToDevice(&black_transparent);
+		white_opaque_buffer->CopyToDevice(&white_opaque, sizeof(white_opaque));
+		black_opaque_buffer->CopyToDevice(&black_opaque, sizeof(white_opaque));
+		white_transparent_buffer->CopyToDevice(&white_transparent, sizeof(white_opaque));
+		black_transparent_buffer->CopyToDevice(&black_transparent, sizeof(white_opaque));
 
 		auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Graphics);
 		cmd_buffer->Begin();
@@ -141,7 +141,7 @@ RHITexture *Renderer::GetPresentTexture() const
 
 void Renderer::SetViewInfo(const ViewInfo &view_info)
 {
-	m_view_buffer->CopyToDevice(&view_info);
+	m_view_buffer->CopyToDevice(&view_info, sizeof(ViewInfo));
 }
 
 RHIBuffer *Renderer::GetViewBuffer() const

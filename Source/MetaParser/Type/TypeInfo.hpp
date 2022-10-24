@@ -37,6 +37,8 @@ class TypeInfo
 		return kainjow::mustache::data{};
 	}
 
+	AccessSpecifier GetAccessSpecifier() const;
+
   protected:
 	MetaInfo m_meta_info;
 
@@ -45,6 +47,8 @@ class TypeInfo
 	std::string m_alias_cn;
 
 	Namespace m_namespace;
+
+	AccessSpecifier m_access_specifier;
 
   private:
 	Cursor m_root_cursor;

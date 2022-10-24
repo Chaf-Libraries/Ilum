@@ -10,42 +10,33 @@ class RHIDevice;
 
 STRUCT(BufferDesc, Enable)
 {
-	std::string       name;
-	RHIBufferUsage    usage;
-	RHIMemoryUsage    memory;
-	[[min(1)]] size_t size;
-	[[min(0)]] size_t stride;
-	[[min(0)]] size_t count;
+	std::string    name;
+	RHIBufferUsage usage;
+	RHIMemoryUsage memory;
+	META(Min(1))
+	size_t size;
+	META(Min(0))
+	size_t stride;
+	META(Min(0))
+	size_t count;
 };
 
 class RHIBuffer
 {
   public:
-	RHIBuffer(RHIDevice *device, const BufferDesc &desc);
+	RHIBuffer(RHIDevice * device, const BufferDesc &desc);
 
 	virtual ~RHIBuffer() = default;
 
 	RHIBackend GetBackend() const;
 
-	static std::unique_ptr<RHIBuffer> Create(RHIDevice *device, const BufferDesc &desc);
+	static std::unique_ptr<RHIBuffer> Create(RHIDevice * device, const BufferDesc &desc);
 
 	const BufferDesc &GetDesc() const;
 
 	virtual void CopyToDevice(const void *data, size_t size, size_t offset = 0) = 0;
 
-	template <typename T>
-	void CopyToDevice(const T *data, size_t offset = 0)
-	{
-		CopyToDevice(data, sizeof(T), offset);
-	}
-
-	virtual void CopyToHost(void *data, size_t size, size_t offset) = 0;
-
-	template <typename T>
-	void CopyToHost(T *data, size_t offset = 0)
-	{
-		CopyToHost(data, sizeof(T), offset);
-	}
+	virtual void CopyToHost(void *data, size_t size, size_t offset = 0) = 0;
 
 	virtual void *Map()                             = 0;
 	virtual void  Unmap()                           = 0;
@@ -54,9 +45,11 @@ class RHIBuffer
   protected:
 	RHIDevice *p_device = nullptr;
 	BufferDesc m_desc;
+
+	RTTR_REGISTRATION_FRIEND
 };
 
-struct [[reflection(false), serialization(false)]] BufferStateTransition
+struct BufferStateTransition
 {
 	RHIBuffer       *buffer;
 	RHIResourceState src;

@@ -15,6 +15,9 @@ Method::Method(const Cursor &cursor, const Namespace &current_namespace, Class *
 
 	m_is_pure_virtual = cursor.IsPureVirtualMethod();
 
+	m_is_template = cursor.GetNumTemplateArguments() != -1;
+	std::cout << cursor.GetDisplayName() << " " << m_name << " " << cursor.GetNumTemplateArguments() << std::endl;
+
 	while (m_return_type.back() == ' ')
 	{
 		m_return_type.pop_back();
@@ -54,6 +57,11 @@ bool Method::IsPureVirtualMethod() const
 	return m_is_pure_virtual;
 }
 
+bool Method::IsTemplateMethod() const
+{
+	return m_is_template;
+}
+
 const std::string &Method::GetName() const
 {
 	return m_name;
@@ -84,6 +92,21 @@ kainjow::mustache::data Method::GenerateReflection() const
 		method_data["Static"] = false;
 		method_data.set("Params", constructor_params);
 		return method_data;
+	}
+
+	switch (m_access_specifier)
+	{
+		case AccessSpecifier::Public:
+			method_data["Public"] = true;
+			break;
+		case AccessSpecifier::Private:
+			method_data["Private"] = true;
+			break;
+		case AccessSpecifier::Protected:
+			method_data["Protected"] = true;
+			break;
+		default:
+			break;
 	}
 
 	if (m_meta_info.GetFlag(NativeProperty::Constructor))

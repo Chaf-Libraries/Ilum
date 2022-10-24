@@ -120,7 +120,10 @@ kainjow::mustache::data Class::GenerateReflection() const
 		kainjow::mustache::data field_list{kainjow::mustache::data::type::list};
 		for (auto &field : m_fields)
 		{
-			field_list << field->GenerateReflection();
+			if (field->GetAccessSpecifier() == AccessSpecifier::Public)
+			{
+				field_list << field->GenerateReflection();
+			}
 		}
 		class_data.set("Field", field_list);
 	}
@@ -135,11 +138,14 @@ kainjow::mustache::data Class::GenerateReflection() const
 			{
 				constructor_list << method->GenerateReflection();
 			}
-			else
+			else if (!method->IsTemplateMethod())
 			{
-				auto method_data        = method->GenerateReflection();
-				method_data["Overload"] = IsMethodOverloaded(method->GetName());
-				method_list << method_data;
+				if (method->GetAccessSpecifier() == AccessSpecifier::Public)
+				{
+					auto method_data        = method->GenerateReflection();
+					method_data["Overload"] = IsMethodOverloaded(method->GetName());
+					method_list << method_data;
+				}
 			}
 		}
 		class_data.set("Method", method_list);

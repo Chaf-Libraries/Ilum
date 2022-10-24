@@ -28,6 +28,20 @@ kainjow::mustache::data Field::GenerateReflection() const
 	kainjow::mustache::data field{kainjow::mustache::data::type::object};
 	field["FieldName"]          = m_name;
 	field["FieldQualifiedName"] = m_parent->GetQualifiedName() + "::" + m_name;
+	switch (m_access_specifier)
+	{
+		case AccessSpecifier::Public:
+			field["Public"] = true;
+			break;
+		case AccessSpecifier::Private:
+			field["Private"] = true;
+			break;
+		case AccessSpecifier::Protected:
+			field["Protected"] = true;
+			break;
+		default:
+			break;
+	}
 
 	if (m_meta_info.Empty())
 	{

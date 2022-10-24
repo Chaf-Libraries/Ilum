@@ -6,6 +6,13 @@ namespace Ilum
 {
 class Cursor;
 
+enum class AccessSpecifier
+{
+	Public,
+	Private,
+	Protected,
+};
+
 class CursorType
 {
   public:
@@ -16,6 +23,8 @@ class CursorType
 	std::string GetDispalyName() const;
 
 	int32_t GetArgumentCount() const;
+
+	int32_t GetNumTemplateArguments() const;
 
 	CursorType GetArgument(uint32_t index) const;
 
@@ -55,6 +64,10 @@ class Cursor
 	std::vector<Cursor> GetChildren() const;
 
 	void VisitChildren(CXCursorVisitor visitor, void *data = nullptr);
+
+	AccessSpecifier GetAccessSpecifier() const;
+
+	int32_t GetNumTemplateArguments() const;
 
   private:
 	CXCursor m_handle;

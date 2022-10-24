@@ -26,6 +26,8 @@ class Method : public TypeInfo
 
 	bool IsPureVirtualMethod() const;
 
+	bool IsTemplateMethod() const;
+
 	const std::string &GetName() const;
 
 	virtual kainjow::mustache::data GenerateReflection() const override;
@@ -48,5 +50,7 @@ class Method : public TypeInfo
 	bool m_is_constructor;
 
 	bool m_is_pure_virtual;
+
+	bool m_is_template;
 };
 }        // namespace Ilum

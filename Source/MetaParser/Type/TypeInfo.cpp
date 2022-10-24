@@ -3,7 +3,7 @@
 namespace Ilum
 {
 TypeInfo::TypeInfo(const Cursor &cursor, const Namespace &current_namespace):
-    m_meta_info(cursor), m_root_cursor(cursor), m_namespace(current_namespace), m_enabled(true)
+    m_meta_info(cursor), m_root_cursor(cursor), m_namespace(current_namespace), m_enabled(true), m_access_specifier(cursor.GetAccessSpecifier())
 {
 }
 
@@ -40,5 +40,10 @@ Namespace TypeInfo::GetCurrentNamespace() const
 Cursor &TypeInfo::GetCursor()
 {
 	return m_root_cursor;
+}
+
+AccessSpecifier TypeInfo::GetAccessSpecifier() const
+{
+	return m_access_specifier;
 }
 }        // namespace Ilum

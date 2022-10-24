@@ -6,6 +6,7 @@
 #include <cassert>
 
 #include <rttr/registration.h>
+#include <rttr/registration_friend.h>
 
 #include <fstream>
 
@@ -26,7 +27,7 @@
 
 #if SERIALIZER_TYPE == SERIALIZER_TYPE_JSON
 #	include <cereal/archives/json.hpp>
-using InputArchive  =Ilum::Deserializer<cereal::JSONInputArchive>;
+using InputArchive  = Ilum::Deserializer<cereal::JSONInputArchive>;
 using OutputArchive = Ilum::Serializer<cereal::JSONOutputArchive>;
 #elif SERIALIZER_TYPE == SERIALIZER_TYPE_BINARY
 #	include <cereal/archives/binary.hpp>
@@ -40,18 +41,18 @@ using OutputArchive = cereal::XMLOutputArchive;
 #	error Must specify a type of serializer!
 #endif
 
-#define SERIALIZE(FILE, DATA, ...)                 \
-	{                                              \
-		std::ofstream os(FILE, std::ios::binary);  \
-		OutputArchive archive(os);                 \
-		archive(DATA, __VA_ARGS__); \
+#define SERIALIZE(FILE, DATA, ...)                \
+	{                                             \
+		std::ofstream os(FILE, std::ios::binary); \
+		OutputArchive archive(os);                \
+		archive(DATA, __VA_ARGS__);               \
 	}
 
-#define DESERIALIZE(FILE, DATA, ...)               \
-	{                                              \
-		std::ifstream is(FILE, std::ios::binary);  \
-		InputArchive  archive(is);                 \
-		archive(DATA, __VA_ARGS__); \
+#define DESERIALIZE(FILE, DATA, ...)              \
+	{                                             \
+		std::ifstream is(FILE, std::ios::binary); \
+		InputArchive  archive(is);                \
+		archive(DATA, __VA_ARGS__);               \
 	}
 
 #if defined(__REFLECTION_PARSER__)

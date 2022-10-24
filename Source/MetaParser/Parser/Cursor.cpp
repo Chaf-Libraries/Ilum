@@ -30,6 +30,11 @@ int32_t CursorType::GetArgumentCount() const
 	return clang_getNumArgTypes(m_handle);
 }
 
+int32_t CursorType::GetNumTemplateArguments() const
+{
+	return clang_Type_getNumTemplateArguments(m_handle);
+}
+
 CursorType CursorType::GetArgument(uint32_t index) const
 {
 	return clang_getArgType(m_handle, index);
@@ -126,5 +131,26 @@ std::vector<Cursor> Cursor::GetChildren() const
 void Cursor::VisitChildren(CXCursorVisitor visitor, void *data)
 {
 	clang_visitChildren(m_handle, visitor, data);
+}
+
+AccessSpecifier Cursor::GetAccessSpecifier() const
+{
+	switch (clang_getCXXAccessSpecifier(m_handle))
+	{
+		case CX_CXXPublic:
+			return AccessSpecifier::Public;
+		case CX_CXXPrivate:
+			return AccessSpecifier::Private;
+		case CX_CXXProtected:
+			return AccessSpecifier::Protected;
+		default:
+			break;
+	}
+	return AccessSpecifier::Private;
+}
+
+int32_t Cursor::GetNumTemplateArguments() const
+{
+	return clang_Cursor_getNumTemplateArguments(m_handle);
 }
 }        // namespace Ilum
