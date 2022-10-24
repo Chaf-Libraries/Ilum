@@ -16,7 +16,6 @@ Method::Method(const Cursor &cursor, const Namespace &current_namespace, Class *
 	m_is_pure_virtual = cursor.IsPureVirtualMethod();
 
 	m_is_template = cursor.GetNumTemplateArguments() != -1;
-	std::cout << cursor.GetDisplayName() << " " << m_name << " " << cursor.GetNumTemplateArguments() << std::endl;
 
 	while (m_return_type.back() == ' ')
 	{

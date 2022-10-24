@@ -120,6 +120,7 @@ class RHIContext
 
 	// Frame
 	void BeginFrame();
+
 	void EndFrame();
 
   private:

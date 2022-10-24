@@ -3,10 +3,18 @@ cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 project(IlumEngine VERSION 0.0.1)
 message(STATUS "[Project] ${PROJECT_NAME} ${PROJECT_VERSION}")
 
-enable_language(CXX)
-enable_language(CUDA)
+find_package(CUDAToolkit)
 
-set(CMAKE_DEBUG_POSTFIX d)
+enable_language(CXX)
+
+if(${CUDAToolkit_FOUND})
+  enable_language(CUDA)
+  add_definitions(-DCUDA_ENABLE)
+  set(ENABLE_CUDA TRUE)
+  message(STATUS "Enable CUDA")
+else()
+  set(ENABLE_CUDA FALSE)
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

@@ -13,10 +13,13 @@ STRUCT(BufferDesc, Enable)
 	std::string    name;
 	RHIBufferUsage usage;
 	RHIMemoryUsage memory;
+
 	META(Min(1))
 	size_t size;
+
 	META(Min(0))
 	size_t stride;
+
 	META(Min(0))
 	size_t count;
 };
@@ -45,8 +48,6 @@ class RHIBuffer
   protected:
 	RHIDevice *p_device = nullptr;
 	BufferDesc m_desc;
-
-	RTTR_REGISTRATION_FRIEND
 };
 
 struct BufferStateTransition
