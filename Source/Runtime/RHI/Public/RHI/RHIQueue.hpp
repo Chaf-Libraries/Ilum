@@ -11,7 +11,7 @@ class RHICommand;
 class RHISemaphore;
 class RHIFence;
 
-struct [[serialization(false), reflection(false)]] SubmitInfo
+struct SubmitInfo
 {
 	RHIQueueFamily queue_family;
 	bool           is_cuda;

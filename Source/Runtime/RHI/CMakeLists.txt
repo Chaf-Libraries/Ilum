@@ -47,13 +47,7 @@ target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/P
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DRHI_BACKEND_VULKAN")
 
-
 file(GLOB REFLECTION_FILES "*.hpp")
-
-# add_custom_command(
-# 	TARGET ${TARGET_NAME} POST_BUILD 
-# 	COMMAND python ${PROJECT_SOURCE_DIR}/Scripts/Preprocess.py ${PROJECT_SOURCE_DIR}/Source/_Generate/${TARGET_NAME}_Generate.meta ${HEADER_FILES} ${SOURCE_FILES}
-# )
 
 target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Private/Precompile.hpp)
 set_target_properties(RHI PROPERTIES FOLDER Runtime)

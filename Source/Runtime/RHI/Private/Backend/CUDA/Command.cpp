@@ -1,5 +1,6 @@
 #include "Command.hpp"
 #include "Descriptor.hpp"
+#include "Device.hpp"
 #include "PipelineState.hpp"
 #include "Shader.hpp"
 #include "Texture.hpp"
@@ -153,5 +154,25 @@ void Command::Execute()
 	{
 		task();
 	}
+}
+
+void Command::Execute(std::function<void(void)> &&task)
+{
+	m_calls.emplace_back(std::move(task));
+}
+
+void Command::EventRecord(cudaEvent_t &cuda_event)
+{
+	m_calls.emplace_back([&]() {
+		cudaEventRecord(cuda_event, static_cast<Device *>(p_device)->GetSteam());
+	});
+}
+
+void Command::EventElapsedTime(cudaEvent_t begin, cudaEvent_t end, float &time)
+{
+	m_calls.emplace_back([&]() {
+		cudaEventSynchronize(end);
+		auto error = cudaEventElapsedTime(&time, begin, end);
+	});
 }
 }        // namespace Ilum::CUDA

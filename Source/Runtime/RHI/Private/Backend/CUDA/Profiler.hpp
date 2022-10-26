@@ -2,9 +2,10 @@
 
 #include "RHI/RHIProfiler.hpp"
 
-#include <volk.h>
+#include <cuda.h>
+#include <cuda_runtime.h>
 
-namespace Ilum::Vulkan
+namespace Ilum::CUDA
 {
 class Profiler : public RHIProfiler
 {
@@ -18,8 +19,7 @@ class Profiler : public RHIProfiler
 	virtual void End(RHICommand *cmd_buffer) override;
 
   private:
-	std::vector<VkQueryPool> m_query_pools;
-	uint32_t                 m_current_index = 0;
-	VkCommandBuffer          m_cmd_buffer    = VK_NULL_HANDLE;
+	std::vector<cudaEvent_t> m_start_events;
+	std::vector<cudaEvent_t> m_end_events;
 };
-}        // namespace Ilum::Vulkan
+}        // namespace Ilum::CUDA

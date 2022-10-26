@@ -1,9 +1,11 @@
 #include "RHIContext.hpp"
+#include "Backend/Vulkan/Buffer.hpp"
 #include "Backend/Vulkan/Synchronization.hpp"
 #include "Backend/Vulkan/Texture.hpp"
 #ifdef CUDA_ENABLE
 #	include "Backend/CUDA/Synchronization.hpp"
 #	include "Backend/CUDA/Texture.hpp"
+#	include "Backend/CUDA/Buffer.hpp"
 #endif        // CUDA_ENABLE
 
 #include <Core/Time.hpp>
@@ -170,6 +172,16 @@ std::unique_ptr<RHIBuffer> RHIContext::CreateBuffer(size_t size, RHIBufferUsage 
 	return RHIBuffer::Create(m_device.get(), desc);
 }
 
+std::unique_ptr<RHIBuffer> RHIContext::MapToCUDABuffer(RHIBuffer *buffer)
+{
+#ifdef CUDA_ENABLE
+	return std::make_unique<CUDA::Buffer>(static_cast<CUDA::Device *>(m_cuda_device.get()), static_cast<Vulkan::Device *>(m_device.get()), static_cast<Vulkan::Buffer *>(buffer));
+#else
+	LOG_ERROR("CUDA is not supported!");
+	return nullptr;
+#endif        // CUDA_ENABLE
+}
+
 RHISampler *RHIContext::CreateSampler(const SamplerDesc &desc)
 {
 	size_t hash = Hash(desc.address_mode_u, desc.address_mode_v, desc.address_mode_w, desc.anisotropic, desc.border_color, desc.mag_filter, desc.max_lod, desc.min_filter, desc.min_lod, desc.mipmap_mode, desc.mip_lod_bias);
@@ -210,7 +222,7 @@ std::unique_ptr<RHIRenderTarget> RHIContext::CreateRenderTarget(bool cuda)
 
 std::unique_ptr<RHIProfiler> RHIContext::CreateProfiler(bool cuda)
 {
-	return RHIProfiler::Create(m_device.get(), m_swapchain->GetTextureCount());
+	return RHIProfiler::Create(cuda ? m_cuda_device.get() : m_device.get(), m_swapchain->GetTextureCount());
 }
 
 std::unique_ptr<RHIFence> RHIContext::CreateFence()

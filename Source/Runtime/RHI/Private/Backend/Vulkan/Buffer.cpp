@@ -236,6 +236,13 @@ VkBuffer Buffer::GetHandle() const
 	return m_handle;
 }
 
+VkDeviceMemory Buffer::GetMemory() const
+{
+	VmaAllocationInfo info = {};
+	vmaGetAllocationInfo(static_cast<Device *>(p_device)->GetAllocator(), m_allocation, &info);
+	return info.deviceMemory;
+}
+
 uint64_t Buffer::GetDeviceAddress() const
 {
 	return m_device_address;

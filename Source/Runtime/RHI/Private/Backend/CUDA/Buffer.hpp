@@ -2,12 +2,22 @@
 
 #include "RHI/RHIBuffer.hpp"
 
+#include <cuda_runtime.h>
+
+namespace Ilum::Vulkan
+{
+class Device;
+class Buffer;
+}        // namespace Ilum::Vulkan
+
 namespace Ilum::CUDA
 {
+class Device;
+
 class Buffer : public RHIBuffer
 {
   public:
-	Buffer(RHIDevice *device, const BufferDesc &desc);
+	Buffer(Device *device, Vulkan::Device *vk_device, Vulkan::Buffer *vk_buffer);
 
 	virtual ~Buffer() override;
 
@@ -15,7 +25,7 @@ class Buffer : public RHIBuffer
 
 	virtual void CopyToHost(void *data, size_t size, size_t offset) override;
 
-	virtual void* Map() override;
+	virtual void *Map() override;
 
 	virtual void Unmap() override;
 
@@ -27,5 +37,6 @@ class Buffer : public RHIBuffer
 
   private:
 	void *m_handle = nullptr;
+	cudaExternalMemory_t m_memory = nullptr;
 };
 }        // namespace Ilum::CUDA

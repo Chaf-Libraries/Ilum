@@ -179,6 +179,8 @@ Texture::Texture(Device *device, Vulkan::Device *vk_device, Vulkan::Texture *vk_
 
 Texture::~Texture()
 {
+	cudaDeviceSynchronize();
+
 	cudaDestroyTextureObject(m_texture_handle);
 
 	for (auto &surface : m_surfaces)

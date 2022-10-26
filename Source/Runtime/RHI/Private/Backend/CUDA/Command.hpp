@@ -2,6 +2,8 @@
 
 #include "RHI/RHICommand.hpp"
 
+#include <cuda_runtime.h>
+
 namespace Ilum::CUDA
 {
 class Command : public RHICommand
@@ -11,7 +13,7 @@ class Command : public RHICommand
 
 	virtual ~Command() = default;
 
-	virtual void SetName(const std::string &name) override;
+	virtual void SetName(const std::string &name);
 
 	virtual void Begin() override;
 	virtual void End() override;
@@ -36,7 +38,7 @@ class Command : public RHICommand
 	virtual void Draw(uint32_t vertex_count, uint32_t instance_count = 1, uint32_t first_vertex = 0, uint32_t first_instance = 0) override;
 	virtual void DrawIndexed(uint32_t index_count, uint32_t instance_count = 1, uint32_t first_index = 0, uint32_t vertex_offset = 0, uint32_t first_instance = 0) override;
 	virtual void DrawMeshTask(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, uint32_t block_x, uint32_t block_y, uint32_t block_z) override;
-	virtual void DrawMeshTask(uint32_t thread_count, uint32_t block_size, uint32_t task_offset) override;
+	virtual void DrawMeshTask(uint32_t thread_count, uint32_t block_size, uint32_t task_offset = 0) override;
 
 	virtual void TraceRay(uint32_t width, uint32_t height, uint32_t depth) override;
 
@@ -52,6 +54,12 @@ class Command : public RHICommand
 	virtual void ResourceStateTransition(const std::vector<TextureStateTransition> &texture_transitions, const std::vector<BufferStateTransition> &buffer_transitions) override;
 
 	void Execute();
+
+	void Execute(std::function<void(void)> &&task);
+
+	void EventRecord(cudaEvent_t &cuda_event);
+
+	void EventElapsedTime(cudaEvent_t begin, cudaEvent_t end, float &time);
 
   private:
 	RHIDescriptor    *p_descriptor     = nullptr;

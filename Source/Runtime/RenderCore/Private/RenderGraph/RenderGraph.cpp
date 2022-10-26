@@ -94,11 +94,11 @@ void RenderGraph::Execute()
 		if (pass.bind_point != last_bind_point && !cmd_buffers.empty())
 		{
 			RHISemaphore *pass_semaphore   = p_rhi_context->CreateFrameSemaphore();
-			RHISemaphore *signal_semaphore = pass.bind_point == BindPoint::CUDA ? MapToCUDASemaphore(pass_semaphore) : pass_semaphore;
-			RHISemaphore *wait_semaphore   = last_semaphore ? (pass.bind_point == BindPoint::CUDA ? MapToCUDASemaphore(last_semaphore) : last_semaphore) : nullptr;
+			RHISemaphore *signal_semaphore = last_bind_point == BindPoint::CUDA ? MapToCUDASemaphore(pass_semaphore) : pass_semaphore;
+			RHISemaphore *wait_semaphore   = last_semaphore ? pass.bind_point == BindPoint::CUDA ? MapToCUDASemaphore(last_semaphore) : last_semaphore : nullptr;
 
 			p_rhi_context->Submit(std::move(cmd_buffers), wait_semaphore ? std::vector<RHISemaphore *>{wait_semaphore} : std::vector<RHISemaphore *>{}, {signal_semaphore});
-			last_semaphore = signal_semaphore;
+			last_semaphore = pass_semaphore;
 			cmd_buffers.clear();
 			last_bind_point = pass.bind_point;
 		}
@@ -107,7 +107,9 @@ void RenderGraph::Execute()
 		{
 			auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Compute, true);
 			cmd_buffer->Begin();
+			pass.profiler->Begin(cmd_buffer, p_rhi_context->GetSwapchain()->GetCurrentFrameIndex());
 			pass.execute(*this, cmd_buffer, pass.config);
+			pass.profiler->End(cmd_buffer);
 			cmd_buffer->End();
 			cmd_buffers.push_back(cmd_buffer);
 		}
@@ -127,7 +129,7 @@ void RenderGraph::Execute()
 			pass.profiler->Begin(cmd_buffer, p_rhi_context->GetSwapchain()->GetCurrentFrameIndex());
 			pass.barrier(*this, cmd_buffer);
 			pass.execute(*this, cmd_buffer, pass.config);
-			pass.profiler->End();
+			pass.profiler->End(cmd_buffer);
 			cmd_buffer->EndMarker();
 			cmd_buffer->End();
 			cmd_buffers.push_back(cmd_buffer);
@@ -158,7 +160,7 @@ RenderGraph &RenderGraph::AddPass(
 	    config,
 	    std::move(task),
 	    std::move(barrier),
-	    p_rhi_context->CreateProfiler()});
+	    p_rhi_context->CreateProfiler(bind_point == BindPoint::CUDA)});
 	return *this;
 }
 

@@ -41,6 +41,8 @@ class Buffer : public RHIBuffer
 
 	VkBuffer GetHandle() const;
 
+	VkDeviceMemory GetMemory() const;
+
 	uint64_t GetDeviceAddress() const;
 
   private:

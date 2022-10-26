@@ -29,10 +29,6 @@ std::unique_ptr<RHIBuffer> RHIBuffer::Create(RHIDevice *device, const BufferDesc
 			return std::make_unique<Vulkan::Buffer>(device, desc);
 		case RHIBackend::DX12:
 			return std::make_unique<DX12::Buffer>(device, desc);
-#ifdef CUDA_ENABLE
-		case RHIBackend::CUDA:
-			return std::make_unique<CUDA::Buffer>(device, desc);
-#endif        // CUDA_ENABLE
 		default:
 			break;
 	}

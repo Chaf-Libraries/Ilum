@@ -17,10 +17,6 @@ namespace Ilum::CUDA
 class Texture : public RHITexture
 {
   public:
-	// Texture(Device *device, const TextureDesc &desc);
-
-	// Texture(Device *device, cudaArray_t cuda_array, const TextureDesc &desc);
-
 	Texture(Device *device, Vulkan::Device *vk_device, Vulkan::Texture *vk_texture);
 
 	virtual ~Texture() override;

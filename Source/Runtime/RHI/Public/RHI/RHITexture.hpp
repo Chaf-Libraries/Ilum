@@ -77,7 +77,7 @@ class RHITexture
 	TextureDesc m_desc;
 };
 
-struct [[reflection(false), serialization(false)]] TextureStateTransition
+struct TextureStateTransition
 {
 	RHITexture      *texture;
 	RHIResourceState src;

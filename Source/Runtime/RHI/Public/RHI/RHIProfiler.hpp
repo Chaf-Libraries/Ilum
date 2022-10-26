@@ -37,11 +37,12 @@ class RHIProfiler
 
 	virtual void Begin(RHICommand *cmd_buffer, uint32_t frame_index) = 0;
 
-	virtual void End() = 0;
+	virtual void End(RHICommand *cmd_buffer) = 0;
 
   protected:
 	RHIDevice *p_device = nullptr;
-	uint32_t     m_frame_count;
+	uint32_t   m_frame_count;
+	uint32_t   m_current_index = 0;
 	ProfileState m_state;
 };
 }        // namespace Ilum

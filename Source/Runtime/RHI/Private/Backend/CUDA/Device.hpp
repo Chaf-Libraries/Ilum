@@ -1,6 +1,6 @@
 #pragma once
 
-#include "RHIDevice.hpp"
+#include "RHI/RHIDevice.hpp"
 
 #include <cuda.h>
 #include <cuda_runtime.h>

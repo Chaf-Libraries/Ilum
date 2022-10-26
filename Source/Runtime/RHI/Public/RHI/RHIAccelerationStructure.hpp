@@ -7,9 +7,9 @@ class RHIBuffer;
 class RHICommand;
 class RHIAccelerationStructure;
 
-struct [[serialization(false), reflection(false)]] TLASDesc
+struct TLASDesc
 {
-	struct [[serialization(false), reflection(false)]] InstanceInfo
+	struct InstanceInfo
 	{
 		glm::mat4 transform;
 		uint32_t  material_id;
@@ -22,7 +22,7 @@ struct [[serialization(false), reflection(false)]] TLASDesc
 	std::vector<InstanceInfo> instances;
 };
 
-struct [[serialization(false), reflection(false)]] BLASDesc
+struct BLASDesc
 {
 	std::string name;
 

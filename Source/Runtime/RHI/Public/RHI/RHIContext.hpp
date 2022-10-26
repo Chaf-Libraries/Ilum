@@ -67,6 +67,9 @@ class RHIContext
 		return CreateBuffer(desc);
 	}
 
+	// Buffer Conversion
+	std::unique_ptr<RHIBuffer> MapToCUDABuffer(RHIBuffer *buffer);
+
 	// Create Sampler
 	RHISampler *CreateSampler(const SamplerDesc &desc);
 
