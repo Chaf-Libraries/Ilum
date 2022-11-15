@@ -19,6 +19,7 @@ set_target_properties(
 
 target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->")
 target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/WX->")
+target_compile_options(${TARGET_NAME} PRIVATE "/bigobj")
 
 target_link_libraries(${TARGET_NAME} PRIVATE Core)
 target_link_libraries(${TARGET_NAME} PRIVATE Geometry)
@@ -39,6 +40,7 @@ target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Pre
 file(GLOB_RECURSE ENGINE_FILES "${PROJECT_SOURCE_DIR}/Source/Runtime/*.h*")
 
 add_dependencies(${TARGET_NAME} MetaParser)
+
 
 add_custom_command(
 	TARGET ${TARGET_NAME} PRE_BUILD  

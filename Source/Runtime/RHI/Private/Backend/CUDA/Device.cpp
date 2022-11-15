@@ -26,7 +26,7 @@ Device::~Device()
 
 void Device::WaitIdle()
 {
-	cudaDeviceSynchronize();
+	cudaStreamSynchronize(m_steam);
 }
 
 bool Device::IsFeatureSupport(RHIFeature feature)

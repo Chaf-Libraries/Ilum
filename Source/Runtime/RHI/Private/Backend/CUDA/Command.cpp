@@ -12,6 +12,13 @@ Command::Command(RHIDevice *device, RHIQueueFamily family) :
 {
 }
 
+Command::~Command()
+{
+	m_calls.clear();
+	p_descriptor = nullptr;
+	p_pipeline_state = nullptr;
+}
+
 void Command::SetName(const std::string &name)
 {
 }

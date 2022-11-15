@@ -3,8 +3,8 @@ set(TARGET_NAME Renderer)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-file(GLOB_RECURSE HEADER_FILES "*.hpp")
-file(GLOB_RECURSE SOURCE_FILES "*.cpp")
+file(GLOB_RECURSE HEADER_FILES "*.hpp" "*.cuh")
+file(GLOB_RECURSE SOURCE_FILES "*.cpp" "*.cu")
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${HEADER_FILES} ${SOURCE_FILES})
 
@@ -33,6 +33,9 @@ target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/Pu
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Private")
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Public/Renderer")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
+
+set_property(TARGET ${TARGET_NAME} PROPERTY CUDA_ARCHITECTURES OFF)
+set_target_properties(${TARGET_NAME} PROPERTIES CUDA_RUNTIME_LIBRARY ON)
 
 target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Private/Precompile.hpp)
 set_target_properties(Renderer PROPERTIES FOLDER Runtime)

@@ -107,7 +107,7 @@ HANDLE GetVkImageMemHandle(Vulkan::Device *device, Vulkan::Texture *texture, VkE
 }
 
 Texture::Texture(Device *device, Vulkan::Device *vk_device, Vulkan::Texture *vk_texture) :
-    RHITexture(device, vk_texture->GetDesc())
+    RHITexture(device, vk_texture->GetDesc()), p_device(device)
 {
 	cudaExternalMemoryHandleDesc cuda_external_memory_handle_desc = {};
 
@@ -179,7 +179,7 @@ Texture::Texture(Device *device, Vulkan::Device *vk_device, Vulkan::Texture *vk_
 
 Texture::~Texture()
 {
-	cudaDeviceSynchronize();
+	p_device->WaitIdle();
 
 	cudaDestroyTextureObject(m_texture_handle);
 

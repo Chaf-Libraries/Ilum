@@ -7,6 +7,8 @@ find_package(CUDAToolkit)
 
 enable_language(CXX)
 
+set(CMAKE_DEBUG_POSTFIX d)
+
 if(${CUDAToolkit_FOUND})
   enable_language(CUDA)
   add_definitions(-DCUDA_ENABLE)
@@ -34,12 +36,5 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/lib")
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo;MinSizeRel" CACHE STRING "My multi config types" FORCE)
 
 find_package(assimp REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Source/Dependencies/assimp/lib/cmake/assimp-5.2)
-
-if (MSVC)
-  add_compile_options(/bigobj)
-  add_definitions("/wd5030")
-else ()
-  add_compile_options(-Wa,-mbig-obj)
-endif ()
 
 add_subdirectory(Source)

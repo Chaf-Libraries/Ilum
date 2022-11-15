@@ -28,6 +28,8 @@ class Texture : public RHITexture
 	const cudaTextureObject_t *GetTextureHandle() const;
 
   private:
+	Device *p_device = nullptr;
+
 	cudaTextureObject_t m_texture_handle;
 
 	std::vector<cudaSurfaceObject_t> m_surfaces;

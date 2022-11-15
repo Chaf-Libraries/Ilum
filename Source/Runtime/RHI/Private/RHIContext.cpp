@@ -61,6 +61,7 @@ RHIContext::~RHIContext()
 	}
 
 	m_frames.clear();
+	m_cuda_frames.clear();
 
 	m_present_complete.clear();
 	m_render_complete.clear();
@@ -70,8 +71,10 @@ RHIContext::~RHIContext()
 	m_samplers.clear();
 
 	m_queue.reset();
-	m_device.reset();
+
 	m_cuda_device.reset();
+
+	m_device.reset();
 }
 
 const std::string &RHIContext::GetDeviceName() const

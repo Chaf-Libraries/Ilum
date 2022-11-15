@@ -11,7 +11,7 @@ class Command : public RHICommand
   public:
 	Command(RHIDevice *device, RHIQueueFamily family);
 
-	virtual ~Command() = default;
+	virtual ~Command();
 
 	virtual void SetName(const std::string &name);
 
