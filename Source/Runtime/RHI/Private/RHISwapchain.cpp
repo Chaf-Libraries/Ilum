@@ -1,8 +1,7 @@
 #include "RHISwapchain.hpp"
 #include "RHIDevice.hpp"
 
-#include "Backend/Vulkan/Swapchain.hpp"
-#include "Backend/DX12/Swapchain.hpp"
+#include <Core/Plugin.hpp>
 
 namespace Ilum
 {
@@ -28,16 +27,7 @@ uint32_t RHISwapchain::GetHeight() const
 
 std::unique_ptr<RHISwapchain> RHISwapchain::Create(RHIDevice *device, void *window_handle, uint32_t width, uint32_t height, bool vsync)
 {
-	switch (device->GetBackend())
-	{
-		case RHIBackend::Vulkan:
-			return std::make_unique<Vulkan::Swapchain>(device, window_handle, width, height, vsync);
-		case RHIBackend::DX12:
-			return std::make_unique<DX12::Swapchain>(device, window_handle, width, height, vsync);
-		default:
-			break;
-	}
-	return nullptr;
+	return std::unique_ptr<RHISwapchain>(std::move(PluginManager::GetInstance().Call<RHISwapchain *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreateSwapchain", device, window_handle, width, height, vsync)));
 }
 
 }        // namespace Ilum

@@ -9,22 +9,22 @@ namespace Ilum
 class RHIDevice
 {
   public:
-	RHIDevice(RHIBackend backend);
+	RHIDevice(const std::string &backend = "Vulkan");
 
 	virtual ~RHIDevice() = default;
 
-	static std::unique_ptr<RHIDevice> Create(RHIBackend backend = RHIBackend::Vulkan);
+	static std::unique_ptr<RHIDevice> Create(const std::string &backend = "Vulkan");
 
 	const std::string &GetName() const;
 
-	RHIBackend GetBackend() const;
+	const std::string GetBackend() const;
 
 	virtual void WaitIdle() = 0;
 
 	virtual bool IsFeatureSupport(RHIFeature feature) = 0;
 
   protected:
-	RHIBackend m_backend;
+	const std::string m_backend;
 	std::string m_name;
 };
 }        // namespace Ilum

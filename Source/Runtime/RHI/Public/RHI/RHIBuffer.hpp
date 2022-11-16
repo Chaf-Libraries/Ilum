@@ -27,13 +27,13 @@ STRUCT(BufferDesc, Enable)
 class RHIBuffer
 {
   public:
-	RHIBuffer(RHIDevice * device, const BufferDesc &desc);
+	RHIBuffer(RHIDevice *device, const BufferDesc &desc);
 
 	virtual ~RHIBuffer() = default;
 
-	RHIBackend GetBackend() const;
+	const std::string GetBackend() const;
 
-	static std::unique_ptr<RHIBuffer> Create(RHIDevice * device, const BufferDesc &desc);
+	static std::unique_ptr<RHIBuffer> Create(RHIDevice *device, const BufferDesc &desc);
 
 	const BufferDesc &GetDesc() const;
 
@@ -41,9 +41,10 @@ class RHIBuffer
 
 	virtual void CopyToHost(void *data, size_t size, size_t offset = 0) = 0;
 
-	virtual void *Map()                             = 0;
-	virtual void  Unmap()                           = 0;
-	virtual void  Flush(size_t offset, size_t size) = 0;
+	virtual void *Map()   = 0;
+	virtual void  Unmap() = 0;
+
+	virtual void Flush(size_t offset, size_t size) = 0;
 
   protected:
 	RHIDevice *p_device = nullptr;

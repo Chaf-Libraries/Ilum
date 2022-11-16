@@ -20,13 +20,15 @@ namespace Ilum
 class RHIContext
 {
   public:
-	RHIContext(Window *window, bool vsync = true);
+	RHIContext(Window *window, const std::string &backend = "Vulkan", bool vsync = true);
 
 	~RHIContext();
 
 	const std::string &GetDeviceName() const;
 
-	RHIBackend GetBackend() const;
+	const std::string GetBackend() const;
+
+	bool HasCUDA() const;
 
 	bool IsVsync() const;
 

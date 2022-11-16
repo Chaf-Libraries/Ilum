@@ -1,11 +1,7 @@
 #include "RHIShader.hpp"
 #include "RHIDevice.hpp"
 
-#include "Backend/DX12/Shader.hpp"
-#include "Backend/Vulkan/Shader.hpp"
-#ifdef CUDA_ENABLE
-#	include "Backend/CUDA/Shader.hpp"
-#endif        // CUDA_ENABLE
+#include <Core/Plugin.hpp>
 
 namespace Ilum
 {
@@ -16,20 +12,7 @@ RHIShader::RHIShader(RHIDevice *device, const std::string &entry_point, const st
 
 std::unique_ptr<RHIShader> RHIShader::Create(RHIDevice *device, const std::string &entry_point, const std::vector<uint8_t> &source)
 {
-	switch (device->GetBackend())
-	{
-		case RHIBackend::Vulkan:
-			return std::make_unique<Vulkan::Shader>(device, entry_point, source);
-		case RHIBackend::DX12:
-			return std::make_unique<DX12::Shader>(device, entry_point, source);
-#ifdef CUDA_ENABLE
-		case RHIBackend::CUDA:
-			return std::make_unique<CUDA::Shader>(device, entry_point, source);
-#endif        // CUDA_ENABLE
-		default:
-			break;
-	}
-	return nullptr;
+	return std::unique_ptr<RHIShader>(std::move(PluginManager::GetInstance().Call<RHIShader *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreateShader", device, entry_point, source)));
 }
 
 const std::string &RHIShader::GetEntryPoint() const

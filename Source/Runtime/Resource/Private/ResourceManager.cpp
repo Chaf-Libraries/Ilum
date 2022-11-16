@@ -14,7 +14,6 @@ inline void LoadTextureFromBuffer(RHIContext *rhi_context, std::unique_ptr<RHITe
 
 	auto staging_buffer = rhi_context->CreateBuffer(BufferDesc{"", RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_TO_CPU, data.size()});
 	std::memcpy(staging_buffer->Map(), data.data(), data.size());
-	staging_buffer->Flush(0, data.size());
 	staging_buffer->Unmap();
 
 	auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Graphics);

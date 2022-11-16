@@ -29,7 +29,7 @@ class RHICommand
 
 	RHIQueueFamily GetQueueFamily() const;
 
-	RHIBackend GetBackend() const;
+	const std::string GetBackend() const;
 
 	CommandState GetState() const;
 

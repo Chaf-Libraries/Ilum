@@ -1,11 +1,7 @@
 #include "RHIFrame.hpp"
 #include "RHIDevice.hpp"
 
-#include "Backend/Vulkan/Frame.hpp"
-#include "Backend/DX12/Frame.hpp"
-#ifdef CUDA_ENABLE
-#	include "Backend/CUDA/Frame.hpp"
-#endif        // CUDA_ENABLE
+#include <Core/Plugin.hpp>
 
 namespace Ilum
 {
@@ -16,20 +12,6 @@ RHIFrame::RHIFrame(RHIDevice *device) :
 
 std::unique_ptr<RHIFrame> RHIFrame::Create(RHIDevice *device)
 {
-	switch (device->GetBackend())
-	{
-		case RHIBackend::Vulkan:
-			return std::make_unique<Vulkan::Frame>(device);
-		case RHIBackend::DX12:
-			break;
-#ifdef CUDA_ENABLE
-		case RHIBackend::CUDA:
-			return std::make_unique<CUDA::Frame>(device);
-#endif        // CUDA_ENABLE
-		default:
-			break;
-	}
-
-	return nullptr;
+	return std::unique_ptr<RHIFrame>(std::move(PluginManager::GetInstance().Call<RHIFrame *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreateFrame", device)));
 }
 }        // namespace Ilum

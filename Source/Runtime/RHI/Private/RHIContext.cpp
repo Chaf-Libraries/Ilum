@@ -1,51 +1,41 @@
 #include "RHIContext.hpp"
-#include "Backend/Vulkan/Buffer.hpp"
-#include "Backend/Vulkan/Synchronization.hpp"
-#include "Backend/Vulkan/Texture.hpp"
-#ifdef CUDA_ENABLE
-#	include "Backend/CUDA/Synchronization.hpp"
-#	include "Backend/CUDA/Texture.hpp"
-#	include "Backend/CUDA/Buffer.hpp"
-#endif        // CUDA_ENABLE
 
+#include <Core/Path.hpp>
+#include <Core/Plugin.hpp>
 #include <Core/Time.hpp>
 
 #undef CreateSemaphore
 
 namespace Ilum
 {
-RHIContext::RHIContext(Window *window, bool vsync) :
+RHIContext::RHIContext(Window *window, const std::string &backend, bool vsync) :
     p_window(window), m_vsync(vsync)
 {
-#ifdef CUDA_ENABLE
-	m_cuda_device = RHIDevice::Create(RHIBackend::CUDA);
-#endif
+	if (Path::GetInstance().IsExist("lib/RHI.CUDA.dll"))
+	{
+		m_cuda_device = RHIDevice::Create("CUDA");
+	}
 
-#ifdef RHI_BACKEND_VULKAN
-	m_device = RHIDevice::Create(RHIBackend::Vulkan);
-#elif RHI_BACKEND_DX12
-	m_device = RHIDevice::Create(RHIBackend::DX12);
-	LOG_INFO("RHI Backend: DX12");
-#elif RHI_BACKEND_OPENGL
-	m_device = RHIDevice::Create(RHIBackend::OpenGL);
-	LOG_INFO("RHI Backend: OpenGL");
-#else
-#	error "Please specify a rhi backend!"
-#endif        // RHI_BACKEND
+	m_device = RHIDevice::Create(backend);
 
 	m_swapchain = RHISwapchain::Create(m_device.get(), p_window->GetNativeHandle(), p_window->GetWidth(), p_window->GetHeight(), m_vsync);
 
 	m_queue = RHIQueue::Create(m_device.get());
-#ifdef CUDA_ENABLE
-	m_cuda_queue = RHIQueue::Create(m_cuda_device.get());
-#endif
+
+	if (m_cuda_device)
+	{
+		m_cuda_queue = RHIQueue::Create(m_cuda_device.get());
+	}
 
 	for (uint32_t i = 0; i < m_swapchain->GetTextureCount(); i++)
 	{
 		m_frames.emplace_back(RHIFrame::Create(m_device.get()));
-#ifdef CUDA_ENABLE
-		m_cuda_frames.emplace_back(RHIFrame::Create(m_cuda_device.get()));
-#endif
+
+		if (m_cuda_device)
+		{
+			m_cuda_frames.emplace_back(RHIFrame::Create(m_cuda_device.get()));
+		}
+
 		m_present_complete.emplace_back(RHISemaphore::Create(m_device.get()));
 		m_render_complete.emplace_back(RHISemaphore::Create(m_device.get()));
 	}
@@ -82,17 +72,14 @@ const std::string &RHIContext::GetDeviceName() const
 	return m_device->GetName();
 }
 
-RHIBackend RHIContext::GetBackend() const
+const std::string RHIContext::GetBackend() const
 {
-#ifdef RHI_BACKEND_VULKAN
-	return RHIBackend::Vulkan;
-#elif RHI_BACKEND_DX12
-	return RHIBackend::DX12;
-#elif RHI_BACKEND_OPENGL
-	return RHIBackend::OpenGL;
-#else
-#	error "Please specify a rhi backend!"
-#endif        // RHI_BACKEND
+	return m_device->GetBackend();
+}
+
+bool RHIContext::HasCUDA() const
+{
+	return m_cuda_device != nullptr;
 }
 
 bool RHIContext::IsVsync() const
@@ -152,12 +139,12 @@ std::unique_ptr<RHITexture> RHIContext::CreateTexture2DArray(uint32_t width, uin
 
 std::unique_ptr<RHITexture> RHIContext::MapToCUDATexture(RHITexture *texture)
 {
-#ifdef CUDA_ENABLE
-	return std::make_unique<CUDA::Texture>(static_cast<CUDA::Device *>(m_cuda_device.get()), static_cast<Vulkan::Device *>(m_device.get()), static_cast<Vulkan::Texture *>(texture));
-#else
-	LOG_ERROR("CUDA is not supported!");
+	if (m_cuda_device)
+	{
+		HANDLE mem_handle = PluginManager::GetInstance().Call<HANDLE>(fmt::format("RHI.{}.dll", m_device->GetBackend()), "GetTextureMemHandle", m_device.get(), texture);
+		return std::unique_ptr<RHITexture>(std::move(PluginManager::GetInstance().Call<RHITexture *>("RHI.CUDA.dll", fmt::format("MapTexture{}ToCUDA", m_device->GetBackend()), m_device.get(), texture->GetDesc(), mem_handle, texture->GetMemorySize())));
+	}
 	return nullptr;
-#endif        // CUDA_ENABLE
 }
 
 std::unique_ptr<RHIBuffer> RHIContext::CreateBuffer(const BufferDesc &desc)
@@ -177,12 +164,12 @@ std::unique_ptr<RHIBuffer> RHIContext::CreateBuffer(size_t size, RHIBufferUsage 
 
 std::unique_ptr<RHIBuffer> RHIContext::MapToCUDABuffer(RHIBuffer *buffer)
 {
-#ifdef CUDA_ENABLE
-	return std::make_unique<CUDA::Buffer>(static_cast<CUDA::Device *>(m_cuda_device.get()), static_cast<Vulkan::Device *>(m_device.get()), static_cast<Vulkan::Buffer *>(buffer));
-#else
-	LOG_ERROR("CUDA is not supported!");
+	if (m_cuda_device)
+	{
+		HANDLE mem_handle = PluginManager::GetInstance().Call<HANDLE>(fmt::format("RHI.{}.dll", m_device->GetBackend()), "GetBufferMemHandle", m_device.get(), buffer);
+		return std::unique_ptr<RHIBuffer>(std::move(PluginManager::GetInstance().Call<RHIBuffer *>("RHI.CUDA.dll", fmt::format("MapBuffer{}ToCUDA", m_device->GetBackend()), m_device.get(), buffer->GetDesc(), mem_handle)));
+	}
 	return nullptr;
-#endif        // CUDA_ENABLE
 }
 
 RHISampler *RHIContext::CreateSampler(const SamplerDesc &desc)
@@ -250,15 +237,12 @@ RHISemaphore *RHIContext::CreateFrameSemaphore()
 
 std::unique_ptr<RHISemaphore> RHIContext::MapToCUDASemaphore(RHISemaphore *semaphore)
 {
-#ifdef CUDA_ENABLE
-	return std::make_unique<CUDA::Semaphore>(
-	    static_cast<CUDA::Device *>(m_cuda_device.get()),
-	    static_cast<Vulkan::Device *>(m_device.get()),
-	    static_cast<Vulkan::Semaphore *>(semaphore));
-#else
-	LOG_ERROR("CUDA is not supported!");
+	if (m_cuda_device)
+	{
+		HANDLE mem_handle = PluginManager::GetInstance().Call<HANDLE>(fmt::format("RHI.{}.dll", m_device->GetBackend()), "GetSemaphoreHandle", m_device.get(), semaphore);
+		return std::unique_ptr<RHISemaphore>(std::move(PluginManager::GetInstance().Call<RHISemaphore *>("RHI.CUDA.dll", fmt::format("MapSemaphore{}ToCUDA", m_device->GetBackend()), m_device.get(), mem_handle)));
+	}
 	return nullptr;
-#endif        // CUDA_ENABLE
 }
 
 std::unique_ptr<RHIAccelerationStructure> RHIContext::CreateAcccelerationStructure()
@@ -269,7 +253,7 @@ std::unique_ptr<RHIAccelerationStructure> RHIContext::CreateAcccelerationStructu
 void RHIContext::Submit(std::vector<RHICommand *> &&cmd_buffers, std::vector<RHISemaphore *> &&wait_semaphores, std::vector<RHISemaphore *> &&signal_semaphores)
 {
 	SubmitInfo submit_info        = {};
-	submit_info.is_cuda           = cmd_buffers.empty() ? false : cmd_buffers[0]->GetBackend() == RHIBackend::CUDA;
+	submit_info.is_cuda           = cmd_buffers.empty() ? false : cmd_buffers[0]->GetBackend() == "CUDA";
 	submit_info.queue_family      = cmd_buffers.empty() ? RHIQueueFamily::Graphics : cmd_buffers[0]->GetQueueFamily();
 	submit_info.cmd_buffers       = std::move(cmd_buffers);
 	submit_info.wait_semaphores   = std::move(wait_semaphores);
@@ -279,7 +263,7 @@ void RHIContext::Submit(std::vector<RHICommand *> &&cmd_buffers, std::vector<RHI
 
 void RHIContext::Execute(RHICommand *cmd_buffer)
 {
-	if (cmd_buffer->GetBackend() == RHIBackend::CUDA)
+	if (cmd_buffer->GetBackend() == "CUDA")
 	{
 		m_cuda_queue->Execute(cmd_buffer);
 	}
@@ -292,7 +276,7 @@ void RHIContext::Execute(RHICommand *cmd_buffer)
 void RHIContext::Execute(std::vector<RHICommand *> &&cmd_buffers, std::vector<RHISemaphore *> &&wait_semaphores, std::vector<RHISemaphore *> &&signal_semaphores, RHIFence *fence)
 {
 	SubmitInfo submit_info        = {};
-	submit_info.is_cuda           = cmd_buffers.empty() ? false : cmd_buffers[0]->GetBackend() == RHIBackend::CUDA;
+	submit_info.is_cuda           = cmd_buffers.empty() ? false : cmd_buffers[0]->GetBackend() == "CUDA";
 	submit_info.queue_family      = cmd_buffers.empty() ? RHIQueueFamily::Graphics : cmd_buffers[0]->GetQueueFamily();
 	submit_info.cmd_buffers       = std::move(cmd_buffers);
 	submit_info.wait_semaphores   = std::move(wait_semaphores);

@@ -1,11 +1,7 @@
 #include "RHIBuffer.hpp"
 #include "RHIDevice.hpp"
 
-#include "Backend/DX12/Buffer.hpp"
-#include "Backend/Vulkan/Buffer.hpp"
-#ifdef CUDA_ENABLE
-#	include "Backend/CUDA/Buffer.hpp"
-#endif        // CUDA_ENABLE
+#include <Core/Plugin.hpp>
 
 namespace Ilum
 {
@@ -14,25 +10,14 @@ RHIBuffer::RHIBuffer(RHIDevice *device, const BufferDesc &desc) :
 {
 }
 
-RHIBackend RHIBuffer::GetBackend() const
+const std::string RHIBuffer::GetBackend() const
 {
 	return p_device->GetBackend();
 }
 
 std::unique_ptr<RHIBuffer> RHIBuffer::Create(RHIDevice *device, const BufferDesc &desc)
 {
-	switch (device->GetBackend())
-	{
-		case RHIBackend::Unknown:
-			break;
-		case RHIBackend::Vulkan:
-			return std::make_unique<Vulkan::Buffer>(device, desc);
-		case RHIBackend::DX12:
-			return std::make_unique<DX12::Buffer>(device, desc);
-		default:
-			break;
-	}
-	return nullptr;
+	return std::unique_ptr<RHIBuffer>(std::move(PluginManager::GetInstance().Call<RHIBuffer *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreateBuffer", device, desc)));
 }
 
 const BufferDesc &RHIBuffer::GetDesc() const

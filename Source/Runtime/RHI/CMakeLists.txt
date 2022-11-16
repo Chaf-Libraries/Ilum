@@ -32,14 +32,6 @@ target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:
 target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/WX->")
 
 target_link_libraries(${TARGET_NAME} PRIVATE Core)
-target_link_libraries(${TARGET_NAME} PRIVATE vulkan)
-target_link_libraries(${TARGET_NAME} PRIVATE volk)
-target_link_libraries(${TARGET_NAME} PRIVATE vma)
-target_link_libraries(${TARGET_NAME} PRIVATE D3D12MemoryAllocator)
-target_link_libraries(${TARGET_NAME} PRIVATE cuda.lib)
-target_link_libraries(${TARGET_NAME} PRIVATE cudart.lib)
-target_link_libraries(${TARGET_NAME} PRIVATE glad)
-target_link_libraries(${TARGET_NAME} PRIVATE opengl32.lib)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/Public")
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Private")
@@ -49,5 +41,4 @@ target_compile_definitions(${TARGET_NAME} PRIVATE "-DRHI_BACKEND_VULKAN")
 
 file(GLOB REFLECTION_FILES "*.hpp")
 
-target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Private/Precompile.hpp)
 set_target_properties(RHI PROPERTIES FOLDER Runtime)

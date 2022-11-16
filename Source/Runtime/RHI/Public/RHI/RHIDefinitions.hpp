@@ -4,13 +4,6 @@
 
 namespace Ilum
 {
-ENUM(RHIBackend, Enable){
-    Unknown,
-    Vulkan,
-    DX12,
-    OpenGL,
-    CUDA};
-
 ENUM(RHIShaderStage, Enable){
     Vertex                 = 1,
     TessellationControl    = 1 << 1,

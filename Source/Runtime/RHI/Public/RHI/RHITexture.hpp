@@ -16,22 +16,22 @@ STRUCT(TextureDesc, Enable)
 	std::string name;
 
 	META(Min(1))
-	uint32_t        width;
+	uint32_t width;
 
 	META(Min(1))
-	uint32_t        height;
+	uint32_t height;
 
 	META(Min(1))
-	uint32_t        depth;
+	uint32_t depth;
 
 	META(Min(1))
-	uint32_t        mips;
+	uint32_t mips;
 
 	META(Min(1))
-	uint32_t        layers;
+	uint32_t layers;
 
 	META(Min(1))
-	uint32_t        samples;
+	uint32_t samples;
 
 	RHIFormat       format;
 	RHITextureUsage usage;
@@ -40,10 +40,10 @@ STRUCT(TextureDesc, Enable)
 struct TextureRange
 {
 	RHITextureDimension dimension;
-	uint32_t base_mip;
-	uint32_t mip_count;
-	uint32_t base_layer;
-	uint32_t layer_count;
+	uint32_t            base_mip;
+	uint32_t            mip_count;
+	uint32_t            base_layer;
+	uint32_t            layer_count;
 
 	size_t Hash() const
 	{
@@ -62,9 +62,11 @@ class RHITexture
 
 	const TextureDesc &GetDesc() const;
 
-	RHIBackend GetBackend() const;
+	const std::string GetBackend() const;
 
 	virtual std::unique_ptr<RHITexture> Alias(const TextureDesc &desc);
+
+	virtual size_t GetMemorySize() const = 0;
 
 	static std::unique_ptr<RHITexture> Create(RHIDevice *device, const TextureDesc &desc);
 	static std::unique_ptr<RHITexture> Create2D(RHIDevice *device, uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples = 1);
@@ -73,15 +75,17 @@ class RHITexture
 	static std::unique_ptr<RHITexture> Create2DArray(RHIDevice *device, uint32_t width, uint32_t height, uint32_t layers, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples = 1);
 
   protected:
-	RHIBackend  m_backend;
+	RHIDevice  *p_device = nullptr;
 	TextureDesc m_desc;
 };
 
 struct TextureStateTransition
 {
-	RHITexture      *texture;
+	RHITexture *texture;
+
 	RHIResourceState src;
 	RHIResourceState dst;
-	TextureRange     range;
+
+	TextureRange range;
 };
 }        // namespace Ilum

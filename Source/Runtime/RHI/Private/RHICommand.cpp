@@ -1,11 +1,7 @@
 #include "RHICommand.hpp"
 #include "RHIDevice.hpp"
 
-#include "Backend/DX12/Command.hpp"
-#include "Backend/Vulkan/Command.hpp"
-#ifdef CUDA_ENABLE
-#	include "Backend/CUDA/Command.hpp"
-#endif        // CUDA_ENABLE
+#include <Core/Plugin.hpp>
 
 namespace Ilum
 {
@@ -19,7 +15,7 @@ RHIQueueFamily RHICommand::GetQueueFamily() const
 	return m_family;
 }
 
-RHIBackend RHICommand::GetBackend() const
+const std::string RHICommand::GetBackend() const
 {
 	return p_device->GetBackend();
 }
@@ -37,20 +33,7 @@ void RHICommand::Init()
 
 std::unique_ptr<RHICommand> RHICommand::Create(RHIDevice *device, RHIQueueFamily family)
 {
-	switch (device->GetBackend())
-	{
-		case RHIBackend::Vulkan:
-			return std::make_unique<Vulkan::Command>(device, family);
-		case RHIBackend::DX12:
-			return std::make_unique<Vulkan::Command>(device, family);
-#ifdef CUDA_ENABLE
-		case RHIBackend::CUDA:
-			return std::make_unique<Vulkan::Command>(device, family);
-#endif
-		default:
-			break;
-	}
-	return nullptr;
+	return std::unique_ptr<RHICommand>(std::move(PluginManager::GetInstance().Call<RHICommand *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreateCommand", device, family)));
 }
 
 }        // namespace Ilum

@@ -7,8 +7,6 @@ find_package(CUDAToolkit)
 
 enable_language(CXX)
 
-set(CMAKE_DEBUG_POSTFIX d)
-
 if(${CUDAToolkit_FOUND})
   enable_language(CUDA)
   add_definitions(-DCUDA_ENABLE)

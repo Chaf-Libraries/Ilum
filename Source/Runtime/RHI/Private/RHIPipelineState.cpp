@@ -1,11 +1,8 @@
 #include "RHIPipelineState.hpp"
 #include "RHIDevice.hpp"
 
-#include "Backend/DX12/PipelineState.hpp"
-#include "Backend/Vulkan/PipelineState.hpp"
-#ifdef CUDA_ENABLE
-#	include "Backend/CUDA/PipelineState.hpp"
-#endif
+#include <Core/Hash.hpp>
+#include <Core/Plugin.hpp>
 
 namespace Ilum
 {
@@ -16,20 +13,7 @@ RHIPipelineState::RHIPipelineState(RHIDevice *device) :
 
 std::unique_ptr<RHIPipelineState> RHIPipelineState::Create(RHIDevice *device)
 {
-	switch (device->GetBackend())
-	{
-		case RHIBackend::Vulkan:
-			return std::make_unique<Vulkan::PipelineState>(device);
-		case RHIBackend::DX12:
-			return std::make_unique<DX12::PipelineState>(device);
-#ifdef CUDA_ENABLE
-		case RHIBackend::CUDA:
-			return std::make_unique<CUDA::PipelineState>(device);
-#endif
-		default:
-			break;
-	}
-	return nullptr;
+	return std::unique_ptr<RHIPipelineState>(std::move(PluginManager::GetInstance().Call<RHIPipelineState *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreatePipelineState", device)));
 }
 
 RHIPipelineState &RHIPipelineState::SetShader(RHIShaderStage stage, RHIShader *shader)

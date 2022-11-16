@@ -242,19 +242,17 @@ RHIShader *Renderer::RequireShader(const std::string &filename, const std::strin
 		}
 		else
 		{
-			switch (p_rhi_context->GetBackend())
+			if (p_rhi_context->GetBackend() == "Vulkan")
 			{
-				case RHIBackend::Vulkan:
-					desc.target = ShaderTarget::SPIRV;
-					break;
-				case RHIBackend::DX12:
-					desc.target = ShaderTarget::DXIL;
-					break;
-				case RHIBackend::CUDA:
-					desc.target = ShaderTarget::PTX;
-					break;
-				default:
-					break;
+				desc.target = ShaderTarget::SPIRV;
+			}
+			else if (p_rhi_context->GetBackend() == "DX12")
+			{
+				desc.target = ShaderTarget::DXIL;
+			}
+			else if (p_rhi_context->GetBackend() == "CUDA")
+			{
+				desc.target = ShaderTarget::PTX;
 			}
 		}
 

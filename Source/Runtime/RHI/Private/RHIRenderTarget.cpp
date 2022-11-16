@@ -1,7 +1,7 @@
 #include "RHIRenderTarget.hpp"
 #include "RHIDevice.hpp"
 
-#include "Backend/Vulkan/RenderTarget.hpp"
+#include <Core/Plugin.hpp>
 
 namespace Ilum
 {
@@ -12,14 +12,7 @@ RHIRenderTarget::RHIRenderTarget(RHIDevice *device) :
 
 std::unique_ptr<RHIRenderTarget> RHIRenderTarget::Create(RHIDevice *device)
 {
-	switch (device->GetBackend())
-	{
-		case RHIBackend::Vulkan:
-			return std::make_unique<Vulkan::RenderTarget>(device);
-		default:
-			break;
-	}
-	return nullptr;
+	return std::unique_ptr<RHIRenderTarget>(std::move(PluginManager::GetInstance().Call<RHIRenderTarget *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreateRenderTarget", device)));
 }
 
 uint32_t RHIRenderTarget::GetWidth() const

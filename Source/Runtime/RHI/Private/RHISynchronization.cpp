@@ -1,8 +1,7 @@
 #include "RHISynchronization.hpp"
 #include "RHIDevice.hpp"
 
-#include "Backend/Vulkan/Synchronization.hpp"
-#include "Backend/DX12/Synchronization.hpp"
+#include <Core/Plugin.hpp>
 
 namespace Ilum
 {
@@ -13,16 +12,7 @@ RHIFence::RHIFence(RHIDevice *device) :
 
 std::unique_ptr<RHIFence> RHIFence::Create(RHIDevice *device)
 {
-	switch (device->GetBackend())
-	{
-		case RHIBackend::Vulkan:
-			return std::make_unique<Vulkan::Fence>(device);
-		case RHIBackend::DX12:
-			return std::make_unique<DX12::Fence>(device);
-		default:
-			break;
-	}
-	return nullptr;
+	return std::unique_ptr<RHIFence>(std::move(PluginManager::GetInstance().Call<RHIFence *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreateFence", device)));
 }
 
 RHISemaphore::RHISemaphore(RHIDevice *device) :
@@ -32,15 +22,6 @@ RHISemaphore::RHISemaphore(RHIDevice *device) :
 
 std::unique_ptr<RHISemaphore> RHISemaphore::Create(RHIDevice *device)
 {
-	switch (device->GetBackend())
-	{
-		case RHIBackend::Vulkan:
-			return std::make_unique<Vulkan::Semaphore>(device);
-		case RHIBackend::DX12:
-			return std::make_unique<DX12::Semaphore>(device);
-		default:
-			break;
-	}
-	return nullptr;
+	return std::unique_ptr<RHISemaphore>(std::move(PluginManager::GetInstance().Call<RHISemaphore *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreateSemaphore", device)));
 }
 }        // namespace Ilum

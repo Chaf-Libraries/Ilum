@@ -1,7 +1,7 @@
 #include "RHIAccelerationStructure.hpp"
 #include "RHIDevice.hpp"
 
-#include "Backend/Vulkan/AccelerationStructure.hpp"
+#include <Core/Plugin.hpp>
 
 namespace Ilum
 {
@@ -12,13 +12,6 @@ RHIAccelerationStructure::RHIAccelerationStructure(RHIDevice *device):
 
 std::unique_ptr<RHIAccelerationStructure> RHIAccelerationStructure::Create(RHIDevice *rhi_device)
 {
-	switch (rhi_device->GetBackend())
-	{
-		case RHIBackend::Vulkan:
-			return std::make_unique<Vulkan::AccelerationStructure>(rhi_device);
-		default:
-			break;
-	}
-	return nullptr;
+	return std::unique_ptr<RHIAccelerationStructure>(std::move(PluginManager::GetInstance().Call<RHIAccelerationStructure *>(fmt::format("RHI.{}.dll", rhi_device->GetBackend()), "CreateAccelerationStructure", rhi_device)));
 }
 }        // namespace Ilum

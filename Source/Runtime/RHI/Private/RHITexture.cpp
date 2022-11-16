@@ -1,13 +1,12 @@
 #include "RHITexture.hpp"
 #include "RHIDevice.hpp"
 
-#include "Backend/DX12/Texture.hpp"
-#include "Backend/Vulkan/Texture.hpp"
+#include <Core/Plugin.hpp>
 
 namespace Ilum
 {
 RHITexture::RHITexture(RHIDevice *device, const TextureDesc &desc) :
-    m_backend(device->GetBackend()), m_desc(desc)
+    p_device(device), m_desc(desc)
 {
 }
 
@@ -16,9 +15,9 @@ const TextureDesc &RHITexture::GetDesc() const
 	return m_desc;
 }
 
-RHIBackend RHITexture::GetBackend() const
+const std::string RHITexture::GetBackend() const
 {
-	return m_backend;
+	return p_device->GetBackend();
 }
 
 std::unique_ptr<RHITexture> RHITexture::Alias(const TextureDesc &desc)
@@ -28,16 +27,7 @@ std::unique_ptr<RHITexture> RHITexture::Alias(const TextureDesc &desc)
 
 std::unique_ptr<RHITexture> RHITexture::Create(RHIDevice *device, const TextureDesc &desc)
 {
-	switch (device->GetBackend())
-	{
-		case RHIBackend::Vulkan:
-			return std::make_unique<Vulkan::Texture>(static_cast<Vulkan::Device *>(device), desc);
-		case RHIBackend::DX12:
-			return std::make_unique<DX12::Texture>(static_cast<DX12::Device *>(device), desc);
-		default:
-			return nullptr;
-	}
-	return nullptr;
+	return std::unique_ptr<RHITexture>(std::move(PluginManager::GetInstance().Call<RHITexture *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreateTexture", device, desc)));
 }
 
 std::unique_ptr<RHITexture> RHITexture::Create2D(RHIDevice *device, uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples)
