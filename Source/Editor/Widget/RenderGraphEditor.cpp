@@ -3,9 +3,10 @@
 
 #include <Core/Macro.hpp>
 #include <Core/Path.hpp>
+#include <Core/Plugin.hpp>
 #include <ImGui/ImGuiHelper.hpp>
-#include <RenderCore/RenderGraph/RenderGraph.hpp>
-#include <RenderCore/RenderGraph/RenderGraphBuilder.hpp>
+#include <RenderGraph/RenderGraph.hpp>
+#include <RenderGraph/RenderGraphBuilder.hpp>
 #include <Renderer/Renderer.hpp>
 #include <Resource/ResourceManager.hpp>
 
@@ -13,6 +14,9 @@
 #pragma warning(push, 0)
 #include <nfd.h>
 #pragma warning(pop)
+
+#include <filesystem>
+#include <regex>
 
 namespace Ilum
 {
@@ -513,7 +517,7 @@ void RenderGraphEditor::Tick()
 					ImGui::PushID(static_cast<int32_t>(handle.GetHandle()));
 					ImGui::Text("Pass - %s", pass.name.c_str());
 					ImGui::Text("Bind Point: %s", bind_points.at(pass.bind_point));
-					m_need_compile |= ImGui::EditVariant(pass.name, p_editor, pass.config);
+					m_need_compile |= PluginManager::GetInstance().Call<bool>(fmt::format("Pass.{}.dll", pass.name), "OnImGui", &pass.config, ImGui::GetCurrentContext());
 					ImGui::PopID();
 					ImGui::Separator();
 				}
@@ -598,53 +602,23 @@ void RenderGraphEditor::DrawMenu()
 		{
 			if (ImGui::BeginMenu("Pass"))
 			{
-				for (const auto &type : rttr::type::get_types())
+				for (const auto &file : std::filesystem::directory_iterator("./lib/"))
 				{
-					if (type.get_metadata("RenderPass"))
+					std::string filename = file.path().filename().string();
+					if (std::regex_match(filename, std::regex("(Pass.)(.*)(.dll)")))
 					{
-						std::string pass_name = type.get_metadata("RenderPass").get_value<std::string>();
+						size_t begin = filename.find_first_of('.') + 1;
+						size_t end   = filename.find_last_of('.');
 
-						bool has_category = type.get_metadata("Category").is_valid();
-						bool has_create   = false;
+						std::string pass_name = filename.substr(begin, end - begin);
 
-						if (has_category ? ImGui::BeginMenu(type.get_metadata("Category").get_value<std::string>().c_str()) : true)
+						if (ImGui::MenuItem(pass_name.c_str()))
 						{
-							if (ImGui::MenuItem(pass_name.c_str()))
-							{
-								auto pass = type.create();
-
-								RenderPassDesc pass_desc = type.get_method("CreateDesc").invoke(pass).convert<RenderPassDesc>();
-								if (pass_desc.bind_point == BindPoint::CUDA)
-								{
-#ifndef CUDA_ENABLE
-									LOG_WARN("CUDA Pass is not supported!");
-#else
-									m_desc.passes.emplace(
-									    RGHandle(m_current_handle++),
-									    rttr::type::get(pass).get_method("CreateDesc").invoke(pass).convert<RenderPassDesc>());
-									m_need_compile = true;
-#endif        // !CUDA_ENABLE
-								}
-								else
-								{
-									m_desc.passes.emplace(
-									    RGHandle(m_current_handle++),
-									    rttr::type::get(pass).get_method("CreateDesc").invoke(pass).convert<RenderPassDesc>());
-									m_need_compile = true;
-								}
-
-								has_create = true;
-							}
-
-							if (has_category)
-							{
-								ImGui::EndMenu();
-							}
-
-							if (has_create)
-							{
-								break;
-							}
+							RenderPassDesc pass_desc;
+							PluginManager::GetInstance().Call(filename, "CreateDesc", &pass_desc);
+							pass_desc.name = pass_name;
+							m_desc.passes.emplace(RGHandle(m_current_handle++), std::move(pass_desc));
+							m_need_compile = true;
 						}
 					}
 				}

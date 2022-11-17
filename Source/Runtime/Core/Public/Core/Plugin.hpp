@@ -29,8 +29,21 @@ class PluginManager : public Singleton<PluginManager>
 
 		auto func = (FUNC) GetProcAddress(lib_handle, func_name.c_str());
 
+		if (!func)
+		{
+			if constexpr (std::is_same_v<_Ty, void>)
+			{
+				return;
+			}
+			else
+			{
+				return _Ty();
+			}
+		}
+
 		if constexpr (std::is_same_v<_Ty, void>)
 		{
+			func(args...);
 			return;
 		}
 		else if constexpr (sizeof...(Args) == 0)

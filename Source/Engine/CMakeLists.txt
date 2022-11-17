@@ -24,10 +24,10 @@ target_compile_options(${TARGET_NAME} PRIVATE "/bigobj")
 target_link_libraries(${TARGET_NAME} PRIVATE Core)
 target_link_libraries(${TARGET_NAME} PRIVATE Geometry)
 target_link_libraries(${TARGET_NAME} PRIVATE RHI)
-target_link_libraries(${TARGET_NAME} PRIVATE RenderCore)
 target_link_libraries(${TARGET_NAME} PRIVATE Scene)
 target_link_libraries(${TARGET_NAME} PRIVATE Resource)
 target_link_libraries(${TARGET_NAME} PRIVATE Renderer)
+target_link_libraries(${TARGET_NAME} PRIVATE MaterialGraph)
 target_link_libraries(${TARGET_NAME} PRIVATE Editor)
 target_link_libraries(${TARGET_NAME} PRIVATE entt)
 
@@ -40,7 +40,7 @@ target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Pre
 file(GLOB_RECURSE ENGINE_FILES "${PROJECT_SOURCE_DIR}/Source/Runtime/*.h*")
 
 add_dependencies(${TARGET_NAME} MetaParser)
-
+add_dependencies(${TARGET_NAME} Plugins)
 
 add_custom_command(
 	TARGET ${TARGET_NAME} PRE_BUILD  

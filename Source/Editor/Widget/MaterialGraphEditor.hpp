@@ -2,8 +2,8 @@
 
 #include "Widget.hpp"
 
-#include <RenderCore/MaterialGraph/MaterialGraph.hpp>
-#include <RenderCore/MaterialGraph/MaterialNode.hpp>
+#include <MaterialGraph/MaterialGraph.hpp>
+#include <MaterialGraph/MaterialNode.hpp>
 
 struct ImNodesEditorContext;
 

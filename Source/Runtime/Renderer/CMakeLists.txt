@@ -22,7 +22,9 @@ target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:
 
 target_link_libraries(${TARGET_NAME} PRIVATE Core)
 target_link_libraries(${TARGET_NAME} PRIVATE RHI)
-target_link_libraries(${TARGET_NAME} PRIVATE RenderCore)
+target_link_libraries(${TARGET_NAME} PRIVATE ShaderCompiler)
+target_link_libraries(${TARGET_NAME} PRIVATE RenderGraph)
+target_link_libraries(${TARGET_NAME} PRIVATE MaterialGraph)
 target_link_libraries(${TARGET_NAME} PRIVATE Scene)
 target_link_libraries(${TARGET_NAME} PRIVATE Geometry)
 target_link_libraries(${TARGET_NAME} PRIVATE Resource)

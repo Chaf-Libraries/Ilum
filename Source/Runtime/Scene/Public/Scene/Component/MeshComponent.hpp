@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Component.hpp"
-#include "Precompile.hpp"
 
 #include <vector>
 

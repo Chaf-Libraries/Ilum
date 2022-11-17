@@ -1,7 +1,7 @@
 #include "ImGuiContext.hpp"
 
 #include <Core/Path.hpp>
-#include <RenderCore/ShaderCompiler/ShaderCompiler.hpp>
+#include <ShaderCompiler/ShaderCompiler.hpp>
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>

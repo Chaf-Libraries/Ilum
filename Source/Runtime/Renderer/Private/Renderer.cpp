@@ -2,13 +2,14 @@
 
 #include <Core/Path.hpp>
 #include <RHI/RHIContext.hpp>
-#include <RenderCore/MaterialGraph/MaterialGraph.hpp>
-#include <RenderCore/MaterialGraph/MaterialGraphBuilder.hpp>
-#include <RenderCore/ShaderCompiler/ShaderCompiler.hpp>
+#include <MaterialGraph/MaterialGraph.hpp>
+#include <MaterialGraph/MaterialGraphBuilder.hpp>
+#include <RenderGraph/RenderGraph.hpp>
 #include <Resource/ResourceManager.hpp>
 #include <Scene/Component/AllComponent.hpp>
 #include <Scene/Entity.hpp>
 #include <Scene/Scene.hpp>
+#include <ShaderCompiler/ShaderCompiler.hpp>
 
 #include <cereal/types/vector.hpp>
 
@@ -250,10 +251,6 @@ RHIShader *Renderer::RequireShader(const std::string &filename, const std::strin
 			{
 				desc.target = ShaderTarget::DXIL;
 			}
-			else if (p_rhi_context->GetBackend() == "CUDA")
-			{
-				desc.target = ShaderTarget::PTX;
-			}
 		}
 
 		LOG_INFO("Compiling shader {} with entry point \"{}\"...", filename, entry_point);
@@ -368,14 +365,14 @@ void Renderer::UpdateScene()
 		struct LightData
 		{
 			glm::vec3 color;
-			uint32_t   type;
+			uint32_t  type;
 			glm::vec3 position;
-			float  intensity;
-			glm::vec3  direction;
-			float  range;
+			float     intensity;
+			glm::vec3 direction;
+			float     range;
 			alignas(16) float radius;
-			float  cut_off;
-			float  outer_cut_off;
+			float cut_off;
+			float outer_cut_off;
 		};
 		std::vector<LightData> light_data;
 		light_data.reserve(16);

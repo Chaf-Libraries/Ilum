@@ -2,7 +2,7 @@
 
 #include "Widget.hpp"
 
-#include <RenderCore/RenderGraph/RenderGraph.hpp>
+#include <RenderGraph/RenderGraph.hpp>
 
 struct ImNodesEditorContext;
 

@@ -1,13 +1,13 @@
 #pragma once
 
 #include <RHI/RHIContext.hpp>
-#include <RenderCore/RenderGraph/RenderGraph.hpp>
 
 namespace Ilum
 {
 class Scene;
 class ResourceManager;
 class MaterialGraph;
+class RenderGraph;
 
 enum class DummyTexture
 {

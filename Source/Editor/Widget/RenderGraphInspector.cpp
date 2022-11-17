@@ -3,6 +3,7 @@
 #include "Editor/ImGui/ImGuiHelper.hpp"
 
 #include <Core/Time.hpp>
+#include <RenderGraph/RenderGraph.hpp>
 #include <Renderer/Renderer.hpp>
 
 #include <imgui.h>

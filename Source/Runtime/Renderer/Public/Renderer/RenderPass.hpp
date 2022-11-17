@@ -1,7 +1,7 @@
 #pragma once
 
-#include <RenderCore/RenderGraph/RenderGraph.hpp>
-#include <RenderCore/RenderGraph/RenderGraphBuilder.hpp>
+#include <RenderGraph/RenderGraph.hpp>
+#include <RenderGraph/RenderGraphBuilder.hpp>
 
 #include "Renderer.hpp"
 

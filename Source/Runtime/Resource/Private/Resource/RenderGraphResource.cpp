@@ -1,6 +1,6 @@
 #include "Resource/RenderGraphResource.hpp"
 
-#include <RenderCore/RenderGraph/RenderGraph.hpp>
+#include <RenderGraph/RenderGraph.hpp>
 #include <Core/Path.hpp>
 
 namespace Ilum

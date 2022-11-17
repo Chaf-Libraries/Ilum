@@ -83,8 +83,6 @@
 
 #include "Common.hlsli"
 
-ConstantBuffer<ViewInfo> View : register(b0);
-
 struct VSOutput
 {
     float4 Pos : SV_POSITION;

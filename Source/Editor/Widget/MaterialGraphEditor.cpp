@@ -6,7 +6,7 @@
 
 #include <Core/Path.hpp>
 #include <RHI/RHIContext.hpp>
-#include <RenderCore/MaterialGraph/MaterialGraphBuilder.hpp>
+#include <MaterialGraph/MaterialGraphBuilder.hpp>
 #include <Renderer/Renderer.hpp>
 #include <Resource/ResourceManager.hpp>
 

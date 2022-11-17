@@ -1,8 +1,8 @@
 #include "Resource/MaterialResource.hpp"
 
 #include <Core/Path.hpp>
-#include <RenderCore/MaterialGraph/MaterialGraph.hpp>
-#include <RenderCore/MaterialGraph/MaterialGraphBuilder.hpp>
+#include "MaterialGraph/MaterialGraph.hpp"
+#include "MaterialGraph/MaterialGraphBuilder.hpp"
 
 namespace Ilum
 {
