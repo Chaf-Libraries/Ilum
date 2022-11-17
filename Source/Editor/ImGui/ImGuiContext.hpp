@@ -17,6 +17,8 @@ class GuiContext
 
 	void Render();
 
+	Window *GetWindow() const;
+
   private:
 	void SetStyle();
 

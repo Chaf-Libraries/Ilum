@@ -1,12 +1,13 @@
 #pragma once
 
 #include "Delegates.hpp"
+#include "Input.hpp"
 
 struct GLFWwindow;
 
 namespace Ilum
 {
-class Window
+class __declspec(dllexport) Window
 {
   public:
 	Window(const std::string &title, const std::string &icon, uint32_t width = 0, uint32_t height = 0);
@@ -16,14 +17,26 @@ class Window
 	bool Tick();
 
 	bool IsKeyDown(int32_t key) const;
+
 	bool IsMouseButtonDown(int32_t button) const;
 
 	void SetTitle(const std::string &title);
 
 	GLFWwindow *GetHandle() const;
+
 	void *GetNativeHandle() const;
-	uint32_t    GetWidth() const;
-	uint32_t    GetHeight() const;
+
+	uint32_t GetWidth() const;
+
+	uint32_t GetHeight() const;
+
+	bool IsKeyPressed(KeyCode keycode);
+
+	bool IsMouseButtonPressed(MouseCode button);
+
+	glm::vec2 GetMousePosition();
+
+	void SetCursorPosition(const glm::vec2 &pos);
 
   public:
 	MulticastDelegate<>                                   OnResetFunc;
@@ -46,9 +59,9 @@ class Window
 	std::string m_title;
 	float       m_mouse_wheel_h = 0.0f;
 	float       m_mouse_wheel   = 0.0f;
-	float       m_pos_delta_x     = 0.f;
-	float       m_pos_delta_y     = 0.f;
-	float       m_pos_last_x      = 0.f;
-	float       m_pos_last_y      = 0.f;
+	float       m_pos_delta_x   = 0.f;
+	float       m_pos_delta_y   = 0.f;
+	float       m_pos_last_x    = 0.f;
+	float       m_pos_last_y    = 0.f;
 };
 }        // namespace Ilum

@@ -5,7 +5,7 @@
 namespace Ilum
 {
 template <typename T>
-class Singleton
+class __declspec(dllexport) Singleton
 {
   protected:
 	Singleton() = default;

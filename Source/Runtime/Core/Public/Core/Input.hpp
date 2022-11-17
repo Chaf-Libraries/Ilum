@@ -1,8 +1,5 @@
 #pragma once
 
-#include "Singleton.hpp"
-#include "Window.hpp"
-
 #include <glm/glm.hpp>
 
 namespace Ilum
@@ -316,22 +313,18 @@ inline std::ostream &operator<<(std::ostream &os, MouseCode mouseCode)
 #define MOUSE_BUTTON_RIGHT ::Mouse::ButtonRight
 #define MOUSE_BUTTON_MIDDLE ::Mouse::ButtonMiddle
 
-class Input : public Singleton<Input>
-{
-  public:
-	Input()  = default;
-	~Input() = default;
-
-	void Bind(Window *window);
-
-	bool IsKeyPressed(KeyCode keycode);
-	bool IsMouseButtonPressed(MouseCode button);
-
-	glm::vec2 GetMousePosition();
-
-	void SetCursorPosition(const glm::vec2 &pos);
-
-  private:
-	Window *m_window;
-};
+//class __declspec(dllexport) Input : public Singleton<Input>
+//{
+//  public:
+//	Input()  = default;
+//
+//	~Input() = default;
+//
+//	void Bind(Window *window);
+//
+//
+//
+//  private:
+//	Window *m_window = nullptr;
+//};
 }        // namespace Ilum

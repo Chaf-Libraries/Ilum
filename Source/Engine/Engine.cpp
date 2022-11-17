@@ -3,7 +3,6 @@
 
 #include "Reflection.hpp"
 
-#include <Core/Input.hpp>
 #include <Core/Path.hpp>
 #include <Core/Window.hpp>
 #include <Editor/Editor.hpp>
@@ -24,7 +23,6 @@ Engine::Engine()
 	m_editor           = std::make_unique<Editor>(m_window.get(), m_rhi_context.get(), m_renderer.get());
 
 	Path::GetInstance().SetCurrent("./");
-	Input::GetInstance().Bind(m_window.get());
 }
 
 Engine::~Engine()

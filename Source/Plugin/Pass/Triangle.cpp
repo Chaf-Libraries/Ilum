@@ -1,5 +1,3 @@
-#include "RenderPass.hpp"
-
 #include <RenderGraph/RenderGraph.hpp>
 #include <RenderGraph/RenderGraphBuilder.hpp>
 #include <Renderer/Renderer.hpp>

@@ -27,6 +27,8 @@ class Editor
 
 	RHIContext *GetRHIContext() const;
 
+	Window *GetWindow() const;
+
 	void SelectEntity(const Entity &entity = Entity(nullptr, entt::null));
 
 	Entity GetSelectedEntity() const;

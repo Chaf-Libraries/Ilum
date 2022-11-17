@@ -40,7 +40,7 @@ add_custom_command(
 	TARGET ${TARGET_NAME} POST_BUILD 
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${PROJECT_SOURCE_DIR}/Source/Dependencies/llvm/bin/x64/libclang.dll"
-        "${PROJECT_SOURCE_DIR}/bin"
+        "${PROJECT_SOURCE_DIR}/bin/libclang.dll"
 )
 
 set_target_properties(MetaParser PROPERTIES FOLDER Tools)

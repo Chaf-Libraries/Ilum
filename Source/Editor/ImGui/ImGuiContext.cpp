@@ -650,6 +650,11 @@ void GuiContext::Render()
 	RHI_Render(ImGui::GetDrawData());
 }
 
+Window *GuiContext::GetWindow() const
+{
+	return p_window;
+}
+
 void GuiContext::InitializePlatformInterface()
 {
 	ImGuiPlatformIO &platform_io       = ImGui::GetPlatformIO();
