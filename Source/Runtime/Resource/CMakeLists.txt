@@ -40,10 +40,10 @@ add_custom_command(
 	TARGET ${TARGET_NAME} PRE_BUILD 
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${PROJECT_SOURCE_DIR}/Source/Dependencies/assimp/bin/assimp-vc143-mt.dll"
-        "${PROJECT_SOURCE_DIR}/bin"
+        "${PROJECT_SOURCE_DIR}/bin/assimp-vc143-mt.dll"
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${PROJECT_SOURCE_DIR}/Source/Dependencies/assimp/bin/assimp-vc143-mtd.dll"
-        "${PROJECT_SOURCE_DIR}/bin"
+        "${PROJECT_SOURCE_DIR}/bin/assimp-vc143-mtd.dll"
 )
 
 target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Private/Precompile.hpp)

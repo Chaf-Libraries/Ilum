@@ -39,10 +39,10 @@ add_custom_command(
 	TARGET ${TARGET_NAME} POST_BUILD 
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${PROJECT_SOURCE_DIR}/Source/Dependencies/dxc/bin/x64/dxil.dll"
-        "${PROJECT_SOURCE_DIR}/bin"
+        "${PROJECT_SOURCE_DIR}/bin/dxil.dll"
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${PROJECT_SOURCE_DIR}/Source/Dependencies/slang/bin/windows-x64/release/slang.dll"
-        "${PROJECT_SOURCE_DIR}/bin"
+        "${PROJECT_SOURCE_DIR}/bin/slang.dll"
 )
 
 set_target_properties(ShaderCompiler PROPERTIES FOLDER "Runtime/Render")
