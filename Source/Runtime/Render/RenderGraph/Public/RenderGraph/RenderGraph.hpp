@@ -73,7 +73,7 @@ struct PassConfig
 	}
 
   private:
-	virtual void _serialize(InputArchive &archive) = 0;
+	virtual void _serialize(InputArchive &archive)  = 0;
 	virtual void _serialize(OutputArchive &archive) = 0;
 };
 

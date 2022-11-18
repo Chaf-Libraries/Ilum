@@ -8,6 +8,7 @@ class Scene;
 class ResourceManager;
 class MaterialGraph;
 class RenderGraph;
+class ShaderBuilder;
 
 enum class DummyTexture
 {
@@ -113,9 +114,7 @@ class Renderer
 
 	std::unique_ptr<RenderGraph> m_render_graph = nullptr;
 
-	std::unordered_map<size_t, std::unique_ptr<RHIShader>> m_shader_cache;
-
-	std::unordered_map<RHIShader *, ShaderMeta> m_shader_meta_cache;
+	std::unique_ptr<ShaderBuilder> m_shader_builder = nullptr;
 
 	std::map<DummyTexture, std::unique_ptr<RHITexture>> m_dummy_textures;
 

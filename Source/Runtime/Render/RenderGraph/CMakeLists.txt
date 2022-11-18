@@ -20,8 +20,12 @@ set_target_properties(
 target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->")
 target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/WX->")
 
-target_link_libraries(${TARGET_NAME} PRIVATE Core)
-target_link_libraries(${TARGET_NAME} PRIVATE RHI)
+target_link_libraries(${TARGET_NAME} 
+	PRIVATE 
+		Core 
+		RHI 
+		ShaderCompiler
+)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/Public")
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Private")
