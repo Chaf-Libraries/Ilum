@@ -3,10 +3,17 @@
 #include <Core/Path.hpp>
 #include <RHI/RHIContext.hpp>
 
+#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
 namespace Ilum
 {
+STBImporter &STBImporter::GetInstance()
+{
+	static STBImporter importer;
+	return importer;
+}
+
 TextureImportInfo STBImporter::ImportImpl(const std::string &filename)
 {
 	TextureImportInfo info = {};

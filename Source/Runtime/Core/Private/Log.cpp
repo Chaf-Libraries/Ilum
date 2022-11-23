@@ -52,4 +52,10 @@ LogSystem::~LogSystem()
 	spdlog::drop_all();
 }
 
+LogSystem &LogSystem::GetInstance()
+{
+	static LogSystem log_system;
+	return log_system;
+}
+
 }        // namespace Ilum

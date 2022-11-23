@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Singleton.hpp"
-
 #include <atomic>
 #include <functional>
 #include <future>
@@ -183,11 +181,14 @@ class JobHandle
 	std::atomic<uint32_t> m_counter = 0;
 };
 
-class JobSystem : public Singleton<JobSystem>
+class JobSystem
 {
   public:
 	JobSystem();
+
 	~JobSystem();
+
+	static JobSystem &GetInstance();
 
 	size_t GetThreadCount();
 

@@ -35,6 +35,12 @@ Timer::~Timer()
 	p_impl = nullptr;
 }
 
+Timer &Timer::GetInstance()
+{
+	static Timer timer;
+	return timer;
+}
+
 float Timer::TotalTime()
 {
 	return p_impl->time;

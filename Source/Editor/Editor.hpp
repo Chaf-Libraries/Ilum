@@ -1,6 +1,7 @@
 #pragma once
 
-#include <Scene/Entity.hpp>
+#include <memory>
+#include <vector>
 
 namespace Ilum
 {
@@ -9,6 +10,7 @@ class RHIContext;
 class GuiContext;
 class Widget;
 class Renderer;
+class Node;
 
 class Editor
 {
@@ -29,18 +31,18 @@ class Editor
 
 	Window *GetWindow() const;
 
-	void SelectEntity(const Entity &entity = Entity(nullptr, entt::null));
+	void SelectNode(Node *node = nullptr);
 
-	Entity GetSelectedEntity() const;
+	Node *GetSelectedNode() const;
 
   private:
 	std::unique_ptr<GuiContext> m_imgui_context = nullptr;
 
 	RHIContext *p_rhi_context = nullptr;
-	Renderer *p_renderer = nullptr;
+	Renderer   *p_renderer    = nullptr;
 
 	std::vector<std::unique_ptr<Widget>> m_widgets;
 
-	Entity m_select = Entity(nullptr, entt::null);
+	Node *m_select = nullptr;
 };
 }        // namespace Ilum

@@ -34,5 +34,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/lib")
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo;MinSizeRel" CACHE STRING "My multi config types" FORCE)
 
 find_package(assimp REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Source/Dependencies/assimp/lib/cmake/assimp-5.2)
+find_package(glfw3 REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Source/Dependencies/GLFW/lib/cmake/glfw3)
+find_package(glslang REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Source/Dependencies/glslang/lib/cmake/glslang)
+find_package(spdlog REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Source/Dependencies/spdlog/lib/cmake/spdlog)
 
 add_subdirectory(Source)

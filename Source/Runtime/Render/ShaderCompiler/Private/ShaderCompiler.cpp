@@ -5,8 +5,8 @@
 
 #include <glslang/Include/ResourceLimits.h>
 
-#include <SPIRV/GLSL.std.450.h>
-#include <SPIRV/GlslangToSpv.h>
+#include <glslang/SPIRV/GLSL.std.450.h>
+#include <glslang/SPIRV/GlslangToSpv.h>
 
 #include <spirv_hlsl.hpp>
 
@@ -616,6 +616,12 @@ ShaderCompiler::~ShaderCompiler()
 
 	spDestroySession(Session);
 	Session = nullptr;
+}
+
+ShaderCompiler &ShaderCompiler::GetInstance()
+{
+	static ShaderCompiler shader_compiler;
+	return shader_compiler;
 }
 
 std::vector<uint8_t> ShaderCompiler::Compile(const ShaderDesc &desc, ShaderMeta &meta)

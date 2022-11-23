@@ -1,20 +1,24 @@
 #pragma once
 
-#include "Singleton.hpp"
-
 namespace Ilum
 {
-class Timer : public Singleton<Timer>
+class __declspec(dllexport) Timer
 {
   public:
 	Timer();
 
 	~Timer();
 
+	static Timer &GetInstance();
+
 	float TotalTime();
+
 	float DeltaTime();
+
 	float DeltaTimeSmoothed();
+
 	float FrameRate();
+
 	void  Tick();
 
   private:

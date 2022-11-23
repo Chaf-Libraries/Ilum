@@ -52,7 +52,7 @@ struct SceneInfo
 class Renderer
 {
   public:
-	Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resource_manager);
+	Renderer(RHIContext *rhi_context, Scene *scene);
 
 	~Renderer();
 
@@ -63,8 +63,6 @@ class Renderer
 	RenderGraph *GetRenderGraph() const;
 
 	RHIContext *GetRHIContext() const;
-
-	ResourceManager *GetResourceManager() const;
 
 	void SetViewport(float width, float height);
 
@@ -105,8 +103,6 @@ class Renderer
 	RHIContext *p_rhi_context = nullptr;
 
 	Scene *p_scene = nullptr;
-
-	ResourceManager *p_resource_manager = nullptr;
 
 	glm::vec2 m_viewport = {};
 

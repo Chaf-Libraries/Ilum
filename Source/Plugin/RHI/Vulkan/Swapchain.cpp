@@ -283,7 +283,7 @@ void Swapchain::Resize(uint32_t width, uint32_t height, bool vsync)
 
 	createInfo.oldSwapchain = m_swapchain;
 
-	vkCreateSwapchainKHR(static_cast<Device *>(p_device)->GetDevice(), &createInfo, nullptr, &m_swapchain);
+	auto result = vkCreateSwapchainKHR(static_cast<Device *>(p_device)->GetDevice(), &createInfo, nullptr, &m_swapchain);
 
 	{
 		m_textures.clear();

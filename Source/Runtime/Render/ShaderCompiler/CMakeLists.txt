@@ -8,7 +8,7 @@ file(GLOB_RECURSE SOURCE_FILES "*.cpp" "*.inl")
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${HEADER_FILES} ${SOURCE_FILES})
 
-add_library(${TARGET_NAME} ${HEADER_FILES} ${SOURCE_FILES})
+add_library(${TARGET_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES})
 
 set_target_properties(
 	${TARGET_NAME} 
@@ -22,8 +22,8 @@ target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:
 
 target_link_libraries(${TARGET_NAME} PRIVATE Core)
 target_link_libraries(${TARGET_NAME} PRIVATE RHI)
-target_link_libraries(${TARGET_NAME} PRIVATE glslang)
- target_link_libraries(${TARGET_NAME} PRIVATE SPIRV)
+target_link_libraries(${TARGET_NAME} PRIVATE glslang::glslang)
+ target_link_libraries(${TARGET_NAME} PRIVATE glslang::SPIRV)
  target_link_libraries(${TARGET_NAME} PRIVATE dxc)
  target_link_libraries(${TARGET_NAME} PRIVATE spirv-reflect-static)
  target_link_libraries(${TARGET_NAME} PRIVATE spirv-cross-hlsl)

@@ -86,3 +86,6 @@ using OutputArchive = cereal::XMLOutputArchive;
 #else
 #	define ASSERT(x) assert(x)
 #endif        // NDBUG
+
+#define EXPORT_API __declspec(dllexport)
+#define IMPORT_API __declspec(dllimport)

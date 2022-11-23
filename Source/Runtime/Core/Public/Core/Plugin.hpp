@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Singleton.hpp"
-
 #include <string>
 
 #ifdef _WIN64
@@ -13,12 +11,14 @@
 
 namespace Ilum
 {
-class PluginManager : public Singleton<PluginManager>
+class __declspec(dllexport) PluginManager
 {
   public:
 	PluginManager();
 
 	~PluginManager();
+
+	static PluginManager &GetInstance();
 
 	template <typename _Ty = void, typename... Args>
 	_Ty Call(const std::string &lib_path, const std::string &func_name, Args... args)

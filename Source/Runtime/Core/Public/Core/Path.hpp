@@ -1,12 +1,12 @@
 #pragma once
 
-#include "Singleton.hpp"
-
 namespace Ilum
 {
-class Path : public Singleton<Path>
+class __declspec(dllexport) Path
 {
   public:
+	static Path &GetInstance();
+
 	bool IsExist(const std::string &path);
 	bool IsFile(const std::string &path);
 	bool IsDirectory(const std::string &path);

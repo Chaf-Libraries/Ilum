@@ -19,6 +19,12 @@ PluginManager::~PluginManager()
 	delete m_impl;
 }
 
+PluginManager &PluginManager::GetInstance()
+{
+	static PluginManager plugin_manager;
+	return plugin_manager;
+}
+
 HMODULE PluginManager::GetLibrary(const std::string &lib_path)
 {
 	if (m_impl->modules.find(lib_path) == m_impl->modules.end())

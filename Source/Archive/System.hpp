@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Core/Singleton.hpp>
 #include <Renderer/Renderer.hpp>
 #include <Resource/ResourceManager.hpp>
 #include <Scene/Component/AllComponent.hpp>
@@ -9,9 +8,11 @@
 
 namespace Ilum
 {
-class System : public Singleton<System>
+class System
 {
   public:
+	static System &GetInstance();
+
 	template <typename... Tn>
 	void Execute(Renderer *renderer)
 	{

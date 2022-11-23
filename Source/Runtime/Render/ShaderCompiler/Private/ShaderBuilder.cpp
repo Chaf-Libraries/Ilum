@@ -8,16 +8,22 @@
 
 namespace Ilum
 {
+struct ShaderBuilder::Impl
+{
+	std::unordered_map<size_t, std::unique_ptr<RHIShader>> shader_cache;
+	std::unordered_map<RHIShader *, ShaderMeta> shader_meta_cache;
+};
+
 ShaderBuilder::ShaderBuilder(RHIContext *context) :
     p_rhi_context(context)
 {
+	m_impl = new Impl;
 }
 
 ShaderBuilder::~ShaderBuilder()
 {
 	p_rhi_context->WaitIdle();
-	m_shader_meta_cache.clear();
-	m_shader_cache.clear();
+	delete m_impl;
 }
 
 RHIShader *ShaderBuilder::RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, std::vector<std::string> &&macros, std::vector<std::string> &&includes, bool cuda, bool force_recompile)
@@ -29,9 +35,9 @@ RHIShader *ShaderBuilder::RequireShader(const std::string &filename, const std::
 		Path::GetInstance().CreatePath("./bin/Shaders");
 	}
 
-	if (m_shader_cache.find(hash) != m_shader_cache.end() && !force_recompile)
+	if (m_impl->shader_cache.find(hash) != m_impl->shader_cache.end() && !force_recompile)
 	{
-		return m_shader_cache.at(hash).get();
+		return m_impl->shader_cache.at(hash).get();
 	}
 
 	std::string cache_path = "./bin/Shaders/" + std::to_string(hash) + ".shader";
@@ -54,9 +60,9 @@ RHIShader *ShaderBuilder::RequireShader(const std::string &filename, const std::
 		{
 			LOG_INFO("Load shader {} with entry point \"{}\" from cache", filename, entry_point);
 			std::unique_ptr<RHIShader> shader = p_rhi_context->CreateShader(entry_point, shader_bin, cuda);
-			m_shader_meta_cache.emplace(shader.get(), std::move(meta));
-			m_shader_cache.emplace(hash, std::move(shader));
-			return m_shader_cache.at(hash).get();
+			m_impl->shader_meta_cache.emplace(shader.get(), std::move(meta));
+			m_impl->shader_cache.emplace(hash, std::move(shader));
+			return m_impl->shader_cache.at(hash).get();
 		}
 		LOG_INFO("Cache of shader {} with entry point \"{}\" is out of date, recompile it", filename, entry_point);
 	}
@@ -112,9 +118,9 @@ RHIShader *ShaderBuilder::RequireShader(const std::string &filename, const std::
 		    meta);
 
 		std::unique_ptr<RHIShader> shader = p_rhi_context->CreateShader(entry_point, shader_bin, cuda);
-		m_shader_meta_cache.emplace(shader.get(), std::move(meta));
-		m_shader_cache.emplace(hash, std::move(shader));
-		return m_shader_cache.at(hash).get();
+		m_impl->shader_meta_cache.emplace(shader.get(), std::move(meta));
+		m_impl->shader_cache.emplace(hash, std::move(shader));
+		return m_impl->shader_cache.at(hash).get();
 	}
 
 	return nullptr;
@@ -122,6 +128,6 @@ RHIShader *ShaderBuilder::RequireShader(const std::string &filename, const std::
 
 ShaderMeta ShaderBuilder::RequireShaderMeta(RHIShader *shader) const
 {
-	return m_shader_meta_cache.at(shader);
+	return m_impl->shader_meta_cache.at(shader);
 }
 }        // namespace Ilum

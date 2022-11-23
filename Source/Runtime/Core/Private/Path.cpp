@@ -7,6 +7,12 @@
 
 namespace Ilum
 {
+Path &Path::GetInstance()
+{
+	static Path path;
+	return path;
+}
+
 bool Path::IsExist(const std::string &path)
 {
 	try

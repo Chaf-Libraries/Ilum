@@ -1,14 +1,14 @@
 #pragma once
 
-#include <Core/Singleton.hpp>
-
 #include <RHI/RHIShader.hpp>
 
 namespace Ilum
 {
-class SpirvReflection : public Singleton<SpirvReflection>
+class __declspec(dllexport) SpirvReflection
 {
   public:
+	static SpirvReflection &GetInstance();
+
 	ShaderMeta Reflect(const std::vector<uint8_t> &spirv);
 };
 }        // namespace Ilum

@@ -102,6 +102,12 @@ inline void ParseNode(const std::string &file_path, aiMatrix4x4 transform, aiNod
 	}
 }
 
+AssimpImporter &AssimpImporter::GetInstance()
+{
+	static AssimpImporter importer;
+	return importer;
+}
+
 ModelImportInfo AssimpImporter::ImportImpl(const std::string &filename)
 {
 	ModelImportInfo info;

@@ -1,9 +1,9 @@
 #include "Editor.hpp"
 #include "Widget.hpp"
-
 #include "ImGui/ImGuiContext.hpp"
 
 #include <Core/Plugin.hpp>
+#include <SceneGraph/Node.hpp>
 
 #include <imgui.h>
 
@@ -81,12 +81,12 @@ Window *Editor::GetWindow() const
 	return m_imgui_context->GetWindow();
 }
 
-void Editor::SelectEntity(const Entity &entity)
+void Editor::SelectNode(Node *node)
 {
-	m_select = entity;
+	m_select = node;
 }
 
-Entity Editor::GetSelectedEntity() const
+Node *Editor::GetSelectedNode() const
 {
 	return m_select;
 }

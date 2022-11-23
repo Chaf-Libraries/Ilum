@@ -48,6 +48,12 @@ inline static std::unordered_map<SpvReflectFormat, RHIFormat> FormatMap = {
     {SPV_REFLECT_FORMAT_R32G32B32A32_SFLOAT, RHIFormat::R32G32B32A32_FLOAT},
 };
 
+SpirvReflection &SpirvReflection::GetInstance()
+{
+	static SpirvReflection spirv_reflection;
+	return spirv_reflection;
+}
+
 ShaderMeta SpirvReflection::Reflect(const std::vector<uint8_t> &spirv)
 {
 	SpvReflectShaderModule shader_module;

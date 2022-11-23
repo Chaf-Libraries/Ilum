@@ -1,7 +1,5 @@
 #pragma once
 
-#include <Core/Singleton.hpp>
-
 #include <RHI/RHIDefinitions.hpp>
 #include <RHI/RHIShader.hpp>
 
@@ -33,12 +31,14 @@ struct ShaderDesc
 	std::vector<std::string> macros = {};
 };
 
-class ShaderCompiler : public Singleton<ShaderCompiler>
+class __declspec(dllexport) ShaderCompiler
 {
   public:
 	ShaderCompiler();
 
 	~ShaderCompiler();
+
+	static ShaderCompiler &GetInstance();
 
 	std::vector<uint8_t> Compile(const ShaderDesc &desc, ShaderMeta& meta);
 };

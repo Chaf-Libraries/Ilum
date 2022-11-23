@@ -219,6 +219,12 @@ JobSystem::~JobSystem()
 	m_thread_pool.reset();
 }
 
+JobSystem &JobSystem::GetInstance()
+{
+	static JobSystem job_system;
+	return job_system;
+}
+
 size_t JobSystem::GetThreadCount()
 {
 	return m_thread_pool->GetThreadCount();

@@ -438,6 +438,12 @@ static DXGI_FORMAT GetDXGIFormat(const DDS_PIXELFORMAT &ddpf)
 	return DXGI_FORMAT_UNKNOWN;
 }
 
+DDSImporter &DDSImporter::GetInstance()
+{
+	static DDSImporter importer;
+	return importer;
+}
+
 TextureImportInfo DDSImporter::ImportImpl(const std::string &filename)
 {
 	TextureImportInfo info = {};

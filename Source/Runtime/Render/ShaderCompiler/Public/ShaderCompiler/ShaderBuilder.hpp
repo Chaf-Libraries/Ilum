@@ -4,7 +4,7 @@
 
 namespace Ilum
 {
-class ShaderBuilder
+class __declspec(dllexport) ShaderBuilder
 {
   public:
 	ShaderBuilder(RHIContext *context);
@@ -18,8 +18,8 @@ class ShaderBuilder
   private:
 	RHIContext *p_rhi_context = nullptr;
 
-	std::unordered_map<size_t, std::unique_ptr<RHIShader>> m_shader_cache;
+	struct Impl;
 
-	std::unordered_map<RHIShader *, ShaderMeta> m_shader_meta_cache;
+	Impl *m_impl = nullptr;
 };
 }        // namespace Ilum

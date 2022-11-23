@@ -5,10 +5,9 @@
 #include <MaterialGraph/MaterialGraphBuilder.hpp>
 #include <RHI/RHIContext.hpp>
 #include <RenderGraph/RenderGraph.hpp>
-#include <Resource/ResourceManager.hpp>
-#include <Scene/Component/AllComponent.hpp>
-#include <Scene/Entity.hpp>
-#include <Scene/Scene.hpp>
+#include <Components/AllComponents.hpp>
+#include <SceneGraph/Node.hpp>
+#include <SceneGraph/Scene.hpp>
 #include <ShaderCompiler/ShaderBuilder.hpp>
 #include <ShaderCompiler/ShaderCompiler.hpp>
 
@@ -32,8 +31,8 @@ struct InstanceData
 	uint32_t index_offset;
 };
 
-Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resource_manager) :
-    p_rhi_context(rhi_context), p_scene(scene), p_resource_manager(resource_manager), m_shader_builder(std::make_unique<ShaderBuilder>(p_rhi_context))
+Renderer::Renderer(RHIContext *rhi_context, Scene *scene) :
+    p_rhi_context(rhi_context), p_scene(scene), m_shader_builder(std::make_unique<ShaderBuilder>(p_rhi_context))
 {
 	m_view_buffer = p_rhi_context->CreateBuffer<ViewInfo>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
 	m_tlas        = p_rhi_context->CreateAcccelerationStructure();
@@ -89,8 +88,6 @@ void Renderer::Tick()
 {
 	m_present_texture = nullptr;
 
-	p_resource_manager->Tick();
-
 	UpdateScene();
 
 	if (m_render_graph)
@@ -114,11 +111,6 @@ RenderGraph *Renderer::GetRenderGraph() const
 RHIContext *Renderer::GetRHIContext() const
 {
 	return p_rhi_context;
-}
-
-ResourceManager *Renderer::GetResourceManager() const
-{
-	return p_resource_manager;
 }
 
 void Renderer::SetViewport(float width, float height)
@@ -207,167 +199,167 @@ RHIShader *Renderer::RequireMaterialShader(MaterialGraph *material_graph, const 
 
 void Renderer::UpdateScene()
 {
-	m_scene_info.static_vertex_buffers.clear();
-	m_scene_info.static_index_buffers.clear();
-	m_scene_info.meshlet_vertex_buffers.clear();
-	m_scene_info.meshlet_primitive_buffers.clear();
-	m_scene_info.meshlet_buffers.clear();
-	m_scene_info.meshlet_count.clear();
-	m_scene_info.textures.clear();
-	m_scene_info.materials.clear();
+	//m_scene_info.static_vertex_buffers.clear();
+	//m_scene_info.static_index_buffers.clear();
+	//m_scene_info.meshlet_vertex_buffers.clear();
+	//m_scene_info.meshlet_primitive_buffers.clear();
+	//m_scene_info.meshlet_buffers.clear();
+	//m_scene_info.meshlet_count.clear();
+	//m_scene_info.textures.clear();
+	//m_scene_info.materials.clear();
 
-	std::vector<InstanceData> instances;
-	instances.reserve(p_scene->Size());
+	//std::vector<InstanceData> instances;
+	//instances.reserve(p_scene->Size());
 
-	{
-		size_t model_count = p_resource_manager->GetResourceValidUUID<ResourceType::Model>().size();
-		if (m_scene_info.static_vertex_buffers.capacity() < model_count)
-		{
-			m_scene_info.static_vertex_buffers.reserve(model_count);
-			m_scene_info.static_index_buffers.reserve(model_count);
-			m_scene_info.meshlet_vertex_buffers.reserve(model_count);
-			m_scene_info.meshlet_primitive_buffers.reserve(model_count);
-			m_scene_info.meshlet_buffers.reserve(model_count);
-		}
-	}
+	//{
+	//	size_t model_count = p_resource_manager->GetResourceValidUUID<ResourceType::Model>().size();
+	//	if (m_scene_info.static_vertex_buffers.capacity() < model_count)
+	//	{
+	//		m_scene_info.static_vertex_buffers.reserve(model_count);
+	//		m_scene_info.static_index_buffers.reserve(model_count);
+	//		m_scene_info.meshlet_vertex_buffers.reserve(model_count);
+	//		m_scene_info.meshlet_primitive_buffers.reserve(model_count);
+	//		m_scene_info.meshlet_buffers.reserve(model_count);
+	//	}
+	//}
 
-	// Collect Model Info
-	for (auto &uuid : p_resource_manager->GetResourceValidUUID<ResourceType::Model>())
-	{
-		auto *resource = p_resource_manager->GetResource<ResourceType::Model>(uuid);
-		m_scene_info.static_vertex_buffers.push_back(resource->GetVertexBuffer());
-		m_scene_info.static_index_buffers.push_back(resource->GetIndexBuffer());
-		m_scene_info.meshlet_vertex_buffers.push_back(resource->GetMeshletVertexBuffer());
-		m_scene_info.meshlet_primitive_buffers.push_back(resource->GetMeshletPrimitiveBuffer());
-		m_scene_info.meshlet_buffers.push_back(resource->GetMeshletBuffer());
-	}
+	//// Collect Model Info
+	//for (auto &uuid : p_resource_manager->GetResourceValidUUID<ResourceType::Model>())
+	//{
+	//	auto *resource = p_resource_manager->GetResource<ResourceType::Model>(uuid);
+	//	m_scene_info.static_vertex_buffers.push_back(resource->GetVertexBuffer());
+	//	m_scene_info.static_index_buffers.push_back(resource->GetIndexBuffer());
+	//	m_scene_info.meshlet_vertex_buffers.push_back(resource->GetMeshletVertexBuffer());
+	//	m_scene_info.meshlet_primitive_buffers.push_back(resource->GetMeshletPrimitiveBuffer());
+	//	m_scene_info.meshlet_buffers.push_back(resource->GetMeshletBuffer());
+	//}
 
-	// Collect Texture Info
-	{
-		size_t texture_count = p_resource_manager->GetResourceValidUUID<ResourceType::Texture>().size();
-		m_scene_info.textures.reserve(texture_count);
-	}
+	//// Collect Texture Info
+	//{
+	//	size_t texture_count = p_resource_manager->GetResourceValidUUID<ResourceType::Texture>().size();
+	//	m_scene_info.textures.reserve(texture_count);
+	//}
 
-	for (auto &uuid : p_resource_manager->GetResourceValidUUID<ResourceType::Texture>())
-	{
-		auto *resource = p_resource_manager->GetResource<ResourceType::Texture>(uuid);
-		m_scene_info.textures.push_back(resource->GetTexture());
-	}
+	//for (auto &uuid : p_resource_manager->GetResourceValidUUID<ResourceType::Texture>())
+	//{
+	//	auto *resource = p_resource_manager->GetResource<ResourceType::Texture>(uuid);
+	//	m_scene_info.textures.push_back(resource->GetTexture());
+	//}
 
-	// Collect Material Info
-	{
-		size_t material_count = p_resource_manager->GetResourceValidUUID<ResourceType::Material>().size();
-		m_scene_info.materials.reserve(material_count);
-	}
+	//// Collect Material Info
+	//{
+	//	size_t material_count = p_resource_manager->GetResourceValidUUID<ResourceType::Material>().size();
+	//	m_scene_info.materials.reserve(material_count);
+	//}
 
-	for (auto &uuid : p_resource_manager->GetResourceValidUUID<ResourceType::Material>())
-	{
-		auto *resource = p_resource_manager->GetResource<ResourceType::Material>(uuid);
-		m_scene_info.materials.push_back(resource->Get());
-	}
+	//for (auto &uuid : p_resource_manager->GetResourceValidUUID<ResourceType::Material>())
+	//{
+	//	auto *resource = p_resource_manager->GetResource<ResourceType::Material>(uuid);
+	//	m_scene_info.materials.push_back(resource->Get());
+	//}
 
-	// Collect Light Info
-	{
-		struct LightData
-		{
-			glm::vec3 color;
-			uint32_t  type;
-			glm::vec3 position;
-			float     intensity;
-			glm::vec3 direction;
-			float     range;
-			alignas(16) float radius;
-			float cut_off;
-			float outer_cut_off;
-		};
-		std::vector<LightData> light_data;
-		light_data.reserve(16);
-		// Point Light
-		p_scene->GroupExecute<PointLightComponent, TransformComponent>([&](uint32_t entity, PointLightComponent &light, TransformComponent &transform) {
-			LightData data = {};
-			data.type      = static_cast<uint32_t>(LightType::Point);
-			data.color     = light.color;
-			data.intensity = light.intensity;
-			data.radius    = light.radius;
-			data.position  = transform.world_transform[3];
-			data.range     = light.range;
-			light_data.push_back(data);
-		});
+	//// Collect Light Info
+	//{
+	//	struct LightData
+	//	{
+	//		glm::vec3 color;
+	//		uint32_t  type;
+	//		glm::vec3 position;
+	//		float     intensity;
+	//		glm::vec3 direction;
+	//		float     range;
+	//		alignas(16) float radius;
+	//		float cut_off;
+	//		float outer_cut_off;
+	//	};
+	//	std::vector<LightData> light_data;
+	//	light_data.reserve(16);
+	//	// Point Light
+	//	p_scene->GroupExecute<PointLightComponent, TransformComponent>([&](uint32_t entity, PointLightComponent &light, TransformComponent &transform) {
+	//		LightData data = {};
+	//		data.type      = static_cast<uint32_t>(LightType::Point);
+	//		data.color     = light.color;
+	//		data.intensity = light.intensity;
+	//		data.radius    = light.radius;
+	//		data.position  = transform.world_transform[3];
+	//		data.range     = light.range;
+	//		light_data.push_back(data);
+	//	});
 
-		if (!light_data.empty())
-		{
-			if (!m_scene_info.light_buffer || light_data.size() * sizeof(LightData) != m_scene_info.light_buffer->GetDesc().size)
-			{
-				p_rhi_context->WaitIdle();
-				m_scene_info.light_buffer = p_rhi_context->CreateBuffer<LightData>(light_data.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
-			}
-			m_scene_info.light_buffer->CopyToDevice(light_data.data(), light_data.size() * sizeof(LightData), 0);
-		}
-		else if (!m_scene_info.light_buffer)
-		{
-			p_rhi_context->WaitIdle();
-			m_scene_info.light_buffer = p_rhi_context->CreateBuffer<LightData>(1, RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
-		}
-	}
+	//	if (!light_data.empty())
+	//	{
+	//		if (!m_scene_info.light_buffer || light_data.size() * sizeof(LightData) != m_scene_info.light_buffer->GetDesc().size)
+	//		{
+	//			p_rhi_context->WaitIdle();
+	//			m_scene_info.light_buffer = p_rhi_context->CreateBuffer<LightData>(light_data.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+	//		}
+	//		m_scene_info.light_buffer->CopyToDevice(light_data.data(), light_data.size() * sizeof(LightData), 0);
+	//	}
+	//	else if (!m_scene_info.light_buffer)
+	//	{
+	//		p_rhi_context->WaitIdle();
+	//		m_scene_info.light_buffer = p_rhi_context->CreateBuffer<LightData>(1, RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+	//	}
+	//}
 
-	// Update TLAS
-	TLASDesc desc = {};
-	desc.instances.reserve(p_scene->Size());
-	desc.name = p_scene->GetName();
-	p_scene->GroupExecute<StaticMeshComponent, TransformComponent>([&](uint32_t entity, StaticMeshComponent &static_mesh, TransformComponent &transform) {
-		auto *resource = p_resource_manager->GetResource<ResourceType::Model>(static_mesh.uuid);
-		if (resource)
-		{
-			for (uint32_t i = 0; i < resource->GetSubmeshes().size(); i++)
-			{
-				const Submesh &submesh = resource->GetSubmeshes()[i];
+	//// Update TLAS
+	//TLASDesc desc = {};
+	//desc.instances.reserve(p_scene->Size());
+	//desc.name = p_scene->GetName();
+	//p_scene->GroupExecute<StaticMeshComponent, TransformComponent>([&](uint32_t entity, StaticMeshComponent &static_mesh, TransformComponent &transform) {
+	//	auto *resource = p_resource_manager->GetResource<ResourceType::Model>(static_mesh.uuid);
+	//	if (resource)
+	//	{
+	//		for (uint32_t i = 0; i < resource->GetSubmeshes().size(); i++)
+	//		{
+	//			const Submesh &submesh = resource->GetSubmeshes()[i];
 
-				TLASDesc::InstanceInfo instance_info = {};
-				instance_info.transform              = transform.world_transform * submesh.pre_transform;
-				instance_info.material_id            = 0;
-				instance_info.blas                   = resource->GetBLAS(i);
+	//			TLASDesc::InstanceInfo instance_info = {};
+	//			instance_info.transform              = transform.world_transform * submesh.pre_transform;
+	//			instance_info.material_id            = 0;
+	//			instance_info.blas                   = resource->GetBLAS(i);
 
-				AABB aabb = resource->GetSubmeshes()[i].aabb.Transform(instance_info.transform);
+	//			AABB aabb = resource->GetSubmeshes()[i].aabb.Transform(instance_info.transform);
 
-				desc.instances.emplace_back(std::move(instance_info));
+	//			desc.instances.emplace_back(std::move(instance_info));
 
-				InstanceData instance_data   = {};
-				instance_data.aabb_max       = aabb.max;
-				instance_data.aabb_min       = aabb.min;
-				instance_data.model_id       = static_cast<uint32_t>(p_resource_manager->GetResourceIndex<ResourceType::Model>(static_mesh.uuid));
-				instance_data.transform      = instance_info.transform;
-				instance_data.material       = 0;
-				instance_data.vertex_offset  = submesh.vertices_offset;
-				instance_data.index_offset   = submesh.indices_offset;
-				instance_data.meshlet_offset = submesh.meshlet_offset;
-				instance_data.meshlet_count  = submesh.meshlet_count;
-				instances.emplace_back(std::move(instance_data));
-				m_scene_info.meshlet_count.push_back(resource->GetSubmeshes()[i].meshlet_count);
-			}
-		}
-	});
+	//			InstanceData instance_data   = {};
+	//			instance_data.aabb_max       = aabb.max;
+	//			instance_data.aabb_min       = aabb.min;
+	//			instance_data.model_id       = static_cast<uint32_t>(p_resource_manager->GetResourceIndex<ResourceType::Model>(static_mesh.uuid));
+	//			instance_data.transform      = instance_info.transform;
+	//			instance_data.material       = 0;
+	//			instance_data.vertex_offset  = submesh.vertices_offset;
+	//			instance_data.index_offset   = submesh.indices_offset;
+	//			instance_data.meshlet_offset = submesh.meshlet_offset;
+	//			instance_data.meshlet_count  = submesh.meshlet_count;
+	//			instances.emplace_back(std::move(instance_data));
+	//			m_scene_info.meshlet_count.push_back(resource->GetSubmeshes()[i].meshlet_count);
+	//		}
+	//	}
+	//});
 
-	if (!desc.instances.empty())
-	{
-		{
-			if (!m_scene_info.instance_buffer || m_scene_info.instance_buffer->GetDesc().size != instances.size() * sizeof(InstanceData))
-			{
-				p_rhi_context->WaitIdle();
-				m_scene_info.instance_buffer = p_rhi_context->CreateBuffer<InstanceData>(instances.size() * sizeof(InstanceData), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
-			}
-			m_scene_info.instance_buffer->CopyToDevice(instances.data(), instances.size() * sizeof(InstanceData), 0);
-		}
+	//if (!desc.instances.empty())
+	//{
+	//	{
+	//		if (!m_scene_info.instance_buffer || m_scene_info.instance_buffer->GetDesc().size != instances.size() * sizeof(InstanceData))
+	//		{
+	//			p_rhi_context->WaitIdle();
+	//			m_scene_info.instance_buffer = p_rhi_context->CreateBuffer<InstanceData>(instances.size() * sizeof(InstanceData), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+	//		}
+	//		m_scene_info.instance_buffer->CopyToDevice(instances.data(), instances.size() * sizeof(InstanceData), 0);
+	//	}
 
-		{
-			auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Compute);
-			cmd_buffer->Begin();
-			m_tlas->Update(cmd_buffer, desc);
-			cmd_buffer->End();
-			p_rhi_context->Submit({cmd_buffer});
-		}
-	}
+	//	{
+	//		auto *cmd_buffer = p_rhi_context->CreateCommand(RHIQueueFamily::Compute);
+	//		cmd_buffer->Begin();
+	//		m_tlas->Update(cmd_buffer, desc);
+	//		cmd_buffer->End();
+	//		p_rhi_context->Submit({cmd_buffer});
+	//	}
+	//}
 
-	m_scene_info.top_level_as = m_tlas.get();
+	//m_scene_info.top_level_as = m_tlas.get();
 }
 
 }        // namespace Ilum

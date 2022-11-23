@@ -24,12 +24,10 @@ target_compile_options(${TARGET_NAME} PRIVATE "/bigobj")
 target_link_libraries(${TARGET_NAME} PRIVATE Core)
 target_link_libraries(${TARGET_NAME} PRIVATE Geometry)
 target_link_libraries(${TARGET_NAME} PRIVATE RHI)
-target_link_libraries(${TARGET_NAME} PRIVATE Scene)
-target_link_libraries(${TARGET_NAME} PRIVATE Resource)
+target_link_libraries(${TARGET_NAME} PRIVATE SceneGraph)
 target_link_libraries(${TARGET_NAME} PRIVATE Renderer)
 target_link_libraries(${TARGET_NAME} PRIVATE MaterialGraph)
 target_link_libraries(${TARGET_NAME} PRIVATE Editor)
-target_link_libraries(${TARGET_NAME} PRIVATE entt)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Ilum")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
@@ -39,25 +37,25 @@ target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Pre
 
 file(GLOB_RECURSE ENGINE_FILES "${PROJECT_SOURCE_DIR}/Source/Runtime/*.h*")
 
-add_dependencies(${TARGET_NAME} MetaParser)
+# add_dependencies(${TARGET_NAME} MetaParser)
 add_dependencies(${TARGET_NAME} Plugins)
 
-add_custom_command(
-	TARGET ${TARGET_NAME} PRE_BUILD  
-	COMMAND
-	  ${CMAKE_COMMAND} -E echo "************************************************************* "
-	COMMAND
-	  ${CMAKE_COMMAND} -E echo "**** Generate Reflection Meta Info **** "
-	COMMAND
-	  ${CMAKE_COMMAND} -E echo "************************************************************* "
-	COMMAND 
-		${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/_Generate
-	COMMAND 
-		${PROJECT_SOURCE_DIR}/bin/MetaParser.exe ${CMAKE_CURRENT_SOURCE_DIR}/Reflection.hpp ${ENGINE_FILES}
-	COMMAND
-	  ${CMAKE_COMMAND} -E echo "**** Reflection Finish **** "
-	COMMAND
-	  ${CMAKE_COMMAND} -E echo "************************************************************* "
-)
+# add_custom_command(
+# 	TARGET ${TARGET_NAME} PRE_BUILD  
+# 	COMMAND
+# 	  ${CMAKE_COMMAND} -E echo "************************************************************* "
+# 	COMMAND
+# 	  ${CMAKE_COMMAND} -E echo "**** Generate Reflection Meta Info **** "
+# 	COMMAND
+# 	  ${CMAKE_COMMAND} -E echo "************************************************************* "
+# 	COMMAND 
+# 		${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_SOURCE_DIR}/_Generate
+# 	COMMAND 
+# 		${PROJECT_SOURCE_DIR}/bin/MetaParser.exe ${CMAKE_CURRENT_SOURCE_DIR}/Reflection.hpp ${ENGINE_FILES}
+# 	COMMAND
+# 	  ${CMAKE_COMMAND} -E echo "**** Reflection Finish **** "
+# 	COMMAND
+# 	  ${CMAKE_COMMAND} -E echo "************************************************************* "
+# )
 
 set_target_properties(${TARGET_NAME} PROPERTIES FOLDER Engine)

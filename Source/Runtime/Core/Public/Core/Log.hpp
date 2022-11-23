@@ -1,7 +1,5 @@
 #pragma once
 
-#include "Singleton.hpp"
-
 #include <spdlog/sinks/base_sink.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/base_sink.h>
@@ -10,7 +8,7 @@
 
 namespace Ilum
 {
-class Sink : public spdlog::sinks::base_sink<std::mutex>
+class __declspec(dllexport) Sink : public spdlog::sinks::base_sink<std::mutex>
 {
   public:
 	struct LogMsg
@@ -36,7 +34,7 @@ class Sink : public spdlog::sinks::base_sink<std::mutex>
 	std::deque<LogMsg> m_log_msgs;
 };
 
-class LogSystem final : public Singleton<LogSystem>
+class __declspec(dllexport) LogSystem final
 {
   public:
 	enum class LogLevel : uint8_t
@@ -50,7 +48,10 @@ class LogSystem final : public Singleton<LogSystem>
 
   public:
 	LogSystem();
+
 	~LogSystem();
+
+	static LogSystem &GetInstance();
 
 	template <typename... Args>
 	void Log(LogLevel level, Args &&...args)
