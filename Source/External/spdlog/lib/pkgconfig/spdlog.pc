@@ -1,0 +1,13 @@
+prefix=C:/Program Files (x86)/spdlog
+exec_prefix=${prefix}
+includedir=${prefix}/include
+libdir=${exec_prefix}/lib
+
+Name: libspdlog
+Description: Fast C++ logging library.
+URL: https://github.com/gabime/spdlog
+Version: 1.11.0
+CFlags: -I${includedir} -DSPDLOG_SHARED_LIB -DFMT_SHARED -DSPDLOG_COMPILED_LIB
+Libs: -L${libdir} -lspdlog -pthread
+Requires: 
+
