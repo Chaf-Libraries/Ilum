@@ -1,7 +1,6 @@
 #include <Components/AllComponents.hpp>
 #include <Editor/Editor.hpp>
 #include <Editor/Widget.hpp>
-#include <SceneGraph/Component.hpp>
 #include <SceneGraph/Node.hpp>
 
 #include <imgui.h>
@@ -58,7 +57,7 @@ class SceneInspector : public Widget
 
 		if (ImGui::BeginPopup("AddComponent"))
 		{
-			AddComponents<Cmpt::Light, Cmpt::PointLight>();
+			AddComponents<Cmpt::Light, Cmpt::PointLight, Cmpt::SpotLight, Cmpt::DirectionalLight, Cmpt::PolygonLight>();
 			ImGui::EndPopup();
 		}
 
@@ -95,6 +94,7 @@ class SceneInspector : public Widget
 			{
 				select->EraseComponent(type);
 				update = true;
+				break;
 			}
 		}
 
@@ -123,8 +123,14 @@ class SceneInspector : public Widget
 		}
 	}
 
-	template <typename _Base, typename... _TyN,
-	          typename = std::is_base_of<_Base, _TyN...>>
+	template <typename _Ty1, typename _Ty2, typename... _TyN>
+	void AddComponent()
+	{
+		AddComponent<_Ty1>();
+		AddComponent<_Ty2, _TyN...>();
+	}
+
+	template <typename _Base, typename... _TyN>
 	void AddComponents()
 	{
 		if (ImGui::BeginMenu(typeid(_Base).name()))

@@ -8,12 +8,12 @@ namespace Ilum
 {
 namespace Cmpt
 {
-class DirectionalLight : public Light
+class PolygonLight : public Light
 {
   public:
-	DirectionalLight(Node *node);
+	PolygonLight(Node *node);
 
-	virtual ~DirectionalLight() = default;
+	virtual ~PolygonLight() = default;
 
 	virtual void OnImGui() override;
 

@@ -1,4 +1,4 @@
-#include "Light/SpotLight.hpp"
+#include "Light/PolygonLight.hpp"
 
 #include <imgui.h>
 
@@ -6,27 +6,27 @@ namespace Ilum
 {
 namespace Cmpt
 {
-SpotLight::SpotLight(Node *node) :
-    Light("Spot Light", node)
+PolygonLight::PolygonLight(Node *node) :
+    Light("Point Light", node)
 {
 }
 
-void SpotLight::OnImGui()
+void PolygonLight::OnImGui()
 {
 	ImGui::DragFloat("Intensity", &m_data.intensity, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
 }
 
-std::type_index SpotLight::GetType() const
+std::type_index PolygonLight::GetType() const
 {
-	return typeid(SpotLight);
+	return typeid(PolygonLight);
 }
 
-size_t SpotLight::GetDataSize() const
+size_t PolygonLight::GetDataSize() const
 {
 	return sizeof(m_data);
 }
 
-void *SpotLight::GetData() const
+void *PolygonLight::GetData() const
 {
 	return (void *) (&m_data);
 }

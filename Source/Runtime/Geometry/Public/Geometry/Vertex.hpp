@@ -4,11 +4,12 @@
 
 namespace Ilum
 {
-STRUCT(Vertex, Enable)
+struct Vertex
 {
 	alignas(16) glm::vec3 position;
 	alignas(16) glm::vec3 normal;
 	alignas(16) glm::vec3 tangent;
-	alignas(16) glm::vec2 texcoord;
+	glm::vec2 uv0;
+	glm::vec2 uv1;
 };
 }        // namespace Ilum

@@ -10,6 +10,8 @@ class RHIDevice;
 class RHIFence;
 class RHISemaphore;
 class RHICommand;
+class RHIDescriptor;
+struct ShaderMeta;
 
 class RHIFrame
 {
@@ -25,6 +27,8 @@ class RHIFrame
 	virtual RHISemaphore *AllocateSemaphore() = 0;
 
 	virtual RHICommand *AllocateCommand(RHIQueueFamily family) = 0;
+
+	virtual RHIDescriptor *AllocateDescriptor(const ShaderMeta &meta) = 0;
 
 	virtual void Reset() = 0;
 

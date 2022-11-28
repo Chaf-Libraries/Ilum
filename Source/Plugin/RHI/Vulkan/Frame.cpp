@@ -2,6 +2,7 @@
 #include "Command.hpp"
 #include "Device.hpp"
 #include "Synchronization.hpp"
+#include "Descriptor.hpp"
 
 namespace Ilum::Vulkan
 {
@@ -104,6 +105,32 @@ RHICommand *Frame::AllocateCommand(RHIQueueFamily family)
 	return cmd.get();
 }
 
+RHIDescriptor *Frame::AllocateDescriptor(const ShaderMeta &meta)
+{
+	if (m_descriptors.find(meta.hash) == m_descriptors.end())
+	{
+		m_descriptors.emplace(meta.hash, std::vector<std::unique_ptr<Descriptor>>{});
+		m_active_descriptor_index[meta.hash] = 0;
+	}
+
+	if (m_descriptors[meta.hash].size() > m_active_descriptor_index[meta.hash])
+	{
+		auto &descriptor = m_descriptors[meta.hash][m_active_descriptor_index[meta.hash]];
+		m_active_descriptor_index[meta.hash]++;
+		return descriptor.get();
+	}
+
+	while (m_descriptors[meta.hash].size() <= m_active_descriptor_index[meta.hash])
+	{
+		m_descriptors[meta.hash].emplace_back(std::make_unique<Descriptor>(p_device, meta));
+	}
+
+	m_active_descriptor_index[meta.hash]++;
+
+	auto &descriptor = m_descriptors[meta.hash].back();
+	return descriptor.get();
+}
+
 void Frame::Reset()
 {
 	std::vector<VkFence> fences;
@@ -129,6 +156,11 @@ void Frame::Reset()
 		{
 			cmd->SetState(CommandState::Available);
 		}
+	}
+
+	for (auto& [hash, index] : m_active_descriptor_index)
+	{
+		index = 0;
 	}
 
 	m_active_fence_index     = 0;

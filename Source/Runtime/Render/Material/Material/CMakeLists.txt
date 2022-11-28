@@ -1,4 +1,4 @@
-set(TARGET_NAME Geometry)
+set(TARGET_NAME Material)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -21,10 +21,11 @@ target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:
 target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/WX->")
 
 target_link_libraries(${TARGET_NAME} PRIVATE Core)
+target_link_libraries(${TARGET_NAME} PRIVATE RHI)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/Public")
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Private")
-target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Public/Geometry")
+target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Public/Material")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 
-set_target_properties(Geometry PROPERTIES FOLDER Runtime)
+set_target_properties(Material PROPERTIES FOLDER "Runtime/Render/Material")

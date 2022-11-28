@@ -29,7 +29,7 @@ class GuiContext
 	Window     *p_window  = nullptr;
 
 	std::unique_ptr<RHIPipelineState> m_pipeline_state = nullptr;
-	std::unique_ptr<RHIDescriptor>    m_descriptor     = nullptr;
+	RHIDescriptor*    m_descriptor     = nullptr;
 
 	RHISampler* m_sampler = nullptr;
 

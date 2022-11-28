@@ -13,11 +13,16 @@ class Frame : public RHIFrame
 
 	~Frame() = default;
 
-	RHIFence *AllocateFence();
+	virtual RHIFence *AllocateFence() override;
 
-	RHISemaphore *AllocateSemaphore();
+	virtual RHISemaphore *AllocateSemaphore() override;
 
-	RHICommand *AllocateCommand(RHIQueueFamily family);
+	virtual RHICommand *AllocateCommand(RHIQueueFamily family) override;
+
+	virtual RHIDescriptor* AllocateDescriptor(const ShaderMeta& meta) override
+	{
+		return nullptr;
+	}
 
 	void Reset();
 

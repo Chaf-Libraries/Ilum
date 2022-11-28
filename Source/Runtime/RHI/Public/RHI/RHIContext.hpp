@@ -79,7 +79,7 @@ class RHIContext
 	RHICommand *CreateCommand(RHIQueueFamily family, bool cuda = false);
 
 	// Create Descriptor
-	std::unique_ptr<RHIDescriptor> CreateDescriptor(const ShaderMeta &meta, bool cuda = false);
+	RHIDescriptor* CreateDescriptor(const ShaderMeta &meta, bool cuda = false);
 
 	// Create PipelineState
 	std::unique_ptr<RHIPipelineState> CreatePipelineState(bool cuda = false);

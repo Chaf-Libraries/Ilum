@@ -220,7 +220,7 @@ GuiContext::GuiContext(RHIContext *context, Window *window) :
 	io.Fonts->TexID = static_cast<ImTextureID>(m_font_atlas.get());
 
 	gPipelineState = m_pipeline_state.get();
-	gDescriptor    = m_descriptor.get();
+	gDescriptor    = m_descriptor;
 	gSampler       = m_sampler;
 	gRenderTarget  = m_render_target.get();
 

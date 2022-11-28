@@ -1,4 +1,4 @@
-#include "Bound/AABB.hpp"
+#include "AABB.hpp"
 
 namespace Ilum
 {

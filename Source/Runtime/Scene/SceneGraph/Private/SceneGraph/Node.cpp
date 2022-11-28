@@ -122,13 +122,10 @@ void Node::EraseComponent(std::type_index index)
 		if (iter->get() == cmpt_iter->second)
 		{
 			cmpt_list.erase(iter);
-			return;
+			break;
 		}
 	}
 
-	if (m_components.find(index) != m_components.end())
-	{
-		m_components.erase(index);
-	}
+	m_components.erase(cmpt_iter);
 }
 }        // namespace Ilum

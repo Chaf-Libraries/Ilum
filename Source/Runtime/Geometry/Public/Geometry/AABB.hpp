@@ -7,7 +7,7 @@
 
 namespace Ilum
 {
-STRUCT(AABB, Enable)
+struct AABB
 {
   public:
 	glm::vec3 min = glm::vec3(std::numeric_limits<float>::max());

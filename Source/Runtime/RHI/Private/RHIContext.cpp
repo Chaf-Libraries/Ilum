@@ -190,9 +190,9 @@ RHICommand *RHIContext::CreateCommand(RHIQueueFamily family, bool cuda)
 	return cuda ? m_cuda_frames[m_current_frame]->AllocateCommand(family) : m_frames[m_current_frame]->AllocateCommand(family);
 }
 
-std::unique_ptr<RHIDescriptor> RHIContext::CreateDescriptor(const ShaderMeta &meta, bool cuda)
+RHIDescriptor* RHIContext::CreateDescriptor(const ShaderMeta &meta, bool cuda)
 {
-	return RHIDescriptor::Create(cuda ? m_cuda_device.get() : m_device.get(), meta);
+	return cuda ? m_cuda_frames[m_current_frame]->AllocateDescriptor(meta) : m_frames[m_current_frame]->AllocateDescriptor(meta);
 }
 
 std::unique_ptr<RHIPipelineState> RHIContext::CreatePipelineState(bool cuda)
