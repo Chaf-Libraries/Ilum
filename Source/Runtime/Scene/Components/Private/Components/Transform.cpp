@@ -164,7 +164,7 @@ void Transform::Update()
 
 	glm::mat4 local_matrix = GetLocalTransform();
 
-	auto parent = p_node->GetParent();
+	auto parent = GetNode()->GetParent();
 
 	if (parent)
 	{

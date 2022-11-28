@@ -49,7 +49,7 @@ struct SceneInfo
 	std::vector<uint32_t> meshlet_count;
 };
 
-class Renderer
+class EXPORT_API Renderer
 {
   public:
 	Renderer(RHIContext *rhi_context, Scene *scene);
@@ -94,30 +94,13 @@ class Renderer
 
 	ShaderMeta RequireShaderMeta(RHIShader *shader) const;
 
-	RHIShader *RequireMaterialShader(MaterialGraph *material_graph, const std::string &filename, const std::string &entry_point, RHIShaderStage stage, std::vector<std::string> &&macros = {}, std::vector<std::string> &&includes = {});
+	// RHIShader *RequireMaterialShader(MaterialGraph *material_graph, const std::string &filename, const std::string &entry_point, RHIShaderStage stage, std::vector<std::string> &&macros = {}, std::vector<std::string> &&includes = {});
 
   private:
 	void UpdateScene();
 
   private:
-	RHIContext *p_rhi_context = nullptr;
-
-	Scene *p_scene = nullptr;
-
-	glm::vec2 m_viewport = {};
-
-	RHITexture *m_present_texture = nullptr;
-
-	std::unique_ptr<RenderGraph> m_render_graph = nullptr;
-
-	std::unique_ptr<ShaderBuilder> m_shader_builder = nullptr;
-
-	std::map<DummyTexture, std::unique_ptr<RHITexture>> m_dummy_textures;
-
-	std::unique_ptr<RHIBuffer> m_view_buffer = nullptr;
-
-	std::unique_ptr<RHIAccelerationStructure> m_tlas = nullptr;
-
-	SceneInfo m_scene_info;
+	struct Impl;
+	Impl *m_impl = nullptr;
 };
 }        // namespace Ilum

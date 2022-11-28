@@ -12,7 +12,7 @@ add_dependencies(Plugins ${TARGET_NAME})
 target_link_libraries(${TARGET_NAME} PRIVATE Core)
 target_link_libraries(${TARGET_NAME} PRIVATE RHI)
 target_link_libraries(${TARGET_NAME} PRIVATE vulkan)
-target_link_libraries(${TARGET_NAME} PRIVATE volk)
-target_link_libraries(${TARGET_NAME} PRIVATE vma)
 
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
+
+target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Fwd.hpp)

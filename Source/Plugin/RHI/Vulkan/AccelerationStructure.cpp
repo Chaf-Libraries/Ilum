@@ -1,7 +1,7 @@
 #include "AccelerationStructure.hpp"
+#include "Device.hpp"
 #include "Buffer.hpp"
 #include "Command.hpp"
-#include "Device.hpp"
 
 namespace Ilum::Vulkan
 {

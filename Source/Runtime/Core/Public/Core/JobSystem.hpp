@@ -1,5 +1,7 @@
 #pragma once
 
+#include "API.hpp"
+
 #include <atomic>
 #include <functional>
 #include <future>
@@ -181,7 +183,7 @@ class JobHandle
 	std::atomic<uint32_t> m_counter = 0;
 };
 
-class JobSystem
+class EXPORT_API JobSystem
 {
   public:
 	JobSystem();

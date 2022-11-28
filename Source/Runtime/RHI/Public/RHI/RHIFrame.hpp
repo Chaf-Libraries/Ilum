@@ -1,16 +1,9 @@
 #pragma once
 
-#include "RHIDefinitions.hpp"
-
-#include <memory>
+#include "Fwd.hpp"
 
 namespace Ilum
 {
-class RHIDevice;
-class RHIFence;
-class RHISemaphore;
-class RHICommand;
-class RHIDescriptor;
 struct ShaderMeta;
 
 class RHIFrame

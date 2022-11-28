@@ -1,13 +1,9 @@
 #pragma once
 
-#include "RHI/RHIDevice.hpp"
-
-#include <array>
+#include "Fwd.hpp"
 
 namespace Ilum
 {
-class RHIShader;
-
 struct DepthStencilState
 {
 	bool depth_test_enable  = true;

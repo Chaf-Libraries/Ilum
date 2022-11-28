@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Fwd.hpp"
+
 #include "RHIAccelerationStructure.hpp"
 #include "RHIBuffer.hpp"
 #include "RHICommand.hpp"
@@ -9,6 +11,7 @@
 #include "RHIPipelineState.hpp"
 #include "RHIProfiler.hpp"
 #include "RHIQueue.hpp"
+#include "RHIRenderTarget.hpp"
 #include "RHISampler.hpp"
 #include "RHIShader.hpp"
 #include "RHISwapchain.hpp"
@@ -79,7 +82,7 @@ class RHIContext
 	RHICommand *CreateCommand(RHIQueueFamily family, bool cuda = false);
 
 	// Create Descriptor
-	RHIDescriptor* CreateDescriptor(const ShaderMeta &meta, bool cuda = false);
+	RHIDescriptor *CreateDescriptor(const ShaderMeta &meta, bool cuda = false);
 
 	// Create PipelineState
 	std::unique_ptr<RHIPipelineState> CreatePipelineState(bool cuda = false);

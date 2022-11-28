@@ -41,7 +41,7 @@ class SceneHierarchy : public Widget
 			DrawNode(root);
 		}
 
-		if (ImGui::BeginPopupContextWindow(0, 1, false))
+		if (ImGui::BeginPopupContextWindow(0))
 		{
 			if (ImGui::MenuItem("New Entity"))
 			{

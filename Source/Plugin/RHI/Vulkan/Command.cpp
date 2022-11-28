@@ -110,7 +110,7 @@ void Command::SetName(const std::string &name)
 
 void Command::Begin()
 {
-	ASSERT(m_state == CommandState::Initial);
+	assert(m_state == CommandState::Initial);
 
 	VkCommandBufferBeginInfo begin_info = {};
 	begin_info.sType                    = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -124,7 +124,7 @@ void Command::Begin()
 
 void Command::End()
 {
-	ASSERT(m_state == CommandState::Recording);
+	assert(m_state == CommandState::Recording);
 	vkEndCommandBuffer(m_handle);
 	m_state = CommandState::Executable;
 
@@ -221,7 +221,7 @@ void Command::BindDescriptor(RHIDescriptor *descriptor)
 
 void Command::BindPipelineState(RHIPipelineState *pipeline_state)
 {
-	ASSERT(p_descriptor != nullptr);
+	assert(p_descriptor != nullptr);
 	p_pipeline_state = static_cast<PipelineState *>(pipeline_state);
 	vkCmdBindPipeline(m_handle, p_pipeline_state->GetPipelineBindPoint(), p_pipeline_state->GetPipeline(p_descriptor, p_render_target));
 	for (auto &[set, descriptor_set] : p_descriptor->GetDescriptorSet())

@@ -1,10 +1,12 @@
 #pragma once
 
+#include "Precompile.hpp"
+
 #include <RHI/RHIContext.hpp>
 
 namespace Ilum
 {
-class __declspec(dllexport) ShaderBuilder
+class EXPORT_API ShaderBuilder
 {
   public:
 	ShaderBuilder(RHIContext *context);

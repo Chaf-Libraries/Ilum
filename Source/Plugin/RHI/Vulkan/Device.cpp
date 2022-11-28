@@ -1,6 +1,3 @@
-#define VOLK_IMPLEMENTATION
-#define VMA_IMPLEMENTATION
-
 #include "Device.hpp"
 
 #ifdef _WIN64
@@ -9,8 +6,6 @@
 #	include <dxgi1_2.h>
 #	include <windows.h>
 #endif
-
-#include <optional>
 
 namespace Ilum::Vulkan
 {

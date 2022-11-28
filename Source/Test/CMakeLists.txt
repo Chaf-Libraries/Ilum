@@ -29,5 +29,3 @@ target_link_libraries(${TARGET_NAME} PRIVATE Components)
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Ilum")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 set_property(TARGET ${TARGET_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
-
-set_target_properties(${TARGET_NAME} PROPERTIES FOLDER Engine)

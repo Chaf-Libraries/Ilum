@@ -1,5 +1,7 @@
 #include "Time.hpp"
 
+#include <chrono>
+
 namespace Ilum
 {
 struct Timer::Impl

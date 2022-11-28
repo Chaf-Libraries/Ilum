@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 
+#include <iostream>
+
 namespace Ilum
 {
 /*KeyCode*/
@@ -312,19 +314,4 @@ inline std::ostream &operator<<(std::ostream &os, MouseCode mouseCode)
 #define MOUSE_BUTTON_LEFT ::Mouse::ButtonLeft
 #define MOUSE_BUTTON_RIGHT ::Mouse::ButtonRight
 #define MOUSE_BUTTON_MIDDLE ::Mouse::ButtonMiddle
-
-//class __declspec(dllexport) Input : public Singleton<Input>
-//{
-//  public:
-//	Input()  = default;
-//
-//	~Input() = default;
-//
-//	void Bind(Window *window);
-//
-//
-//
-//  private:
-//	Window *m_window = nullptr;
-//};
 }        // namespace Ilum

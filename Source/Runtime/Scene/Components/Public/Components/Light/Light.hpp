@@ -6,10 +6,10 @@ namespace Ilum
 {
 namespace Cmpt
 {
-class Light : public Component
+class EXPORT_API Light : public Component
 {
   public:
-	Light(const std::string &name, Node* node);
+	Light(const char *name, Node* node);
 
 	virtual ~Light() = default;
 

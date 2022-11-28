@@ -1,8 +1,6 @@
 #pragma once
 
-#include "RHI/RHISwapchain.hpp"
-
-#include <volk.h>
+#include "Fwd.hpp"
 
 namespace Ilum::Vulkan
 {

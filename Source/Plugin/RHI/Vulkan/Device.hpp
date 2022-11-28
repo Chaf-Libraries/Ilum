@@ -1,16 +1,6 @@
 #pragma once
 
-#include "Definitions.hpp"
-
-#include <RHI/RHIDevice.hpp>
-
-#include <volk.h>
-
-#include <vk_mem_alloc.h>
-
-#ifdef _WIN64
-#include <Windows.h>
-#endif        // _WIN64
+#include "Fwd.hpp"
 
 namespace Ilum::Vulkan
 {

@@ -1,16 +1,18 @@
 #pragma once
 
-#include "Macro.hpp"
+#include "API.hpp"
 
+#include <cassert>
 #include <cstdint>
 #include <functional>
+#include <thread>
 
 namespace Ilum
 {
 using DelegateHandle = uint32_t;
 
 template <typename... Args>
-class MulticastDelegate
+class EXPORT_API MulticastDelegate
 {
   public:
 	using Delegate = std::function<void(Args...)>;
@@ -80,7 +82,7 @@ class MulticastDelegate
 
 	void Unlock()
 	{
-		ASSERT(m_lock > 0);
+		assert(m_lock > 0);
 		m_lock--;
 	}
 

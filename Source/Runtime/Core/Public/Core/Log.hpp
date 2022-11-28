@@ -1,5 +1,7 @@
 #pragma once
 
+#include "API.hpp"
+
 #include <spdlog/sinks/base_sink.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/base_sink.h>
@@ -8,7 +10,7 @@
 
 namespace Ilum
 {
-class __declspec(dllexport) Sink : public spdlog::sinks::base_sink<std::mutex>
+class EXPORT_API Sink : public spdlog::sinks::base_sink<std::mutex>
 {
   public:
 	struct LogMsg
@@ -34,7 +36,7 @@ class __declspec(dllexport) Sink : public spdlog::sinks::base_sink<std::mutex>
 	std::deque<LogMsg> m_log_msgs;
 };
 
-class __declspec(dllexport) LogSystem final
+class EXPORT_API LogSystem final
 {
   public:
 	enum class LogLevel : uint8_t

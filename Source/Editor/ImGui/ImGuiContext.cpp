@@ -6,10 +6,11 @@
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
 
-#include <imnodes.h>
-#include <implot.h>
+#include <imnodes/imnodes.h>
 
-#include <IconsFontAwesome4.h>
+#include <implot/implot.h>
+
+#include <IconsFontAwesome/IconsFontAwesome4.h>
 
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
@@ -45,7 +46,7 @@ struct ViewportResources
 
 		for (uint32_t i = 0; i < 3; i++)
 		{
-			render_completes[i] = gContext->CreateSemaphore();
+			render_completes[i]  = gContext->CreateSemaphore();
 			present_completes[i] = gContext->CreateSemaphore();
 		}
 	}
@@ -635,10 +636,10 @@ static void ImGuiWindowPresent(ImGuiViewport *viewport, void *)
 	WindowData *window_data = static_cast<WindowData *>(viewport->RendererUserData);
 
 	gContext->Execute(
-		std::move(window_data->viewport_data->cmd_buffers), 
-		{window_data->viewport_data->present_completes.at(window_data->viewport_data->frame_index).get()}, 
-		{window_data->viewport_data->render_completes.at(window_data->viewport_data->frame_index).get()},
-		gContext->CreateFrameFence());
+	    std::move(window_data->viewport_data->cmd_buffers),
+	    {window_data->viewport_data->present_completes.at(window_data->viewport_data->frame_index).get()},
+	    {window_data->viewport_data->render_completes.at(window_data->viewport_data->frame_index).get()},
+	    gContext->CreateFrameFence());
 	window_data->viewport_data->cmd_buffers.clear();
 
 	window_data->swapchain->Present(window_data->viewport_data->render_completes.at(window_data->viewport_data->frame_index).get());

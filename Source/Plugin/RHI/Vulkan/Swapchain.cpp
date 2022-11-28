@@ -13,6 +13,8 @@
 #	include <Windows.h>
 #endif
 
+#include <algorithm>
+
 namespace Ilum::Vulkan
 {
 inline std::optional<uint32_t> GetQueueFamilyIndex(const std::vector<VkQueueFamilyProperties> &queue_family_properties, VkQueueFlagBits queue_flag)

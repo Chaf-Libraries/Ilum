@@ -1,9 +1,6 @@
 #pragma once
 
-#include "RHI/RHIPipelineState.hpp"
-#include "RHI/RHIShader.hpp"
-
-#include <volk.h>
+#include "Fwd.hpp"
 
 namespace Ilum::Vulkan
 {

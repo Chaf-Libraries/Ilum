@@ -9,7 +9,7 @@ namespace Ilum
 namespace Cmpt
 {
 StaticMesh::StaticMesh(Node *node) :
-    Shape(node)
+    Shape("Static Mesh", node)
 {
 }
 
@@ -27,8 +27,6 @@ std::type_index StaticMesh::GetType() const
 
 void StaticMesh::SetMesh(RHIContext *rhi_context, TriMesh &tri_mesh)
 {
-
-
 }
 
 RHIBuffer *StaticMesh::GetVertexBuffer() const

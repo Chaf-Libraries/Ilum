@@ -1,18 +1,9 @@
 #pragma once
 
-#include <glm/glm.hpp>
-
-#include <memory>
-#include <string>
-#include <vector>
+#include "Fwd.hpp"
 
 namespace Ilum
 {
-class RHIDevice;
-class RHIBuffer;
-class RHICommand;
-class RHIAccelerationStructure;
-
 struct TLASDesc
 {
 	struct InstanceInfo

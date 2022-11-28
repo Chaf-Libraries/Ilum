@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Core/Core.hpp>
+
 #include <string>
 #include <typeindex>
 
@@ -7,10 +9,10 @@ namespace Ilum
 {
 class Node;
 
-class Component
+class EXPORT_API Component
 {
   public:
-	Component(const std::string &name, Node* node);
+	Component(const char *name, Node *node);
 
 	Component(Component &&) = default;
 
@@ -20,10 +22,12 @@ class Component
 
 	virtual std::type_index GetType() const = 0;
 
-	const std::string &GetName();
+	const char *GetName() const;
 
-  protected:
-	const std::string m_name;
+	Node *GetNode() const;
+
+  private:
+	const char *m_name;
 
 	Node *p_node = nullptr;
 };

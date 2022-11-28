@@ -1,8 +1,10 @@
 #pragma once
 
+#include "API.hpp"
+
 namespace Ilum
 {
-class __declspec(dllexport) Timer
+class EXPORT_API Timer
 {
   public:
 	Timer();

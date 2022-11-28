@@ -2,9 +2,6 @@
 #include "Command.hpp"
 #include "Synchronization.hpp"
 
-#include <cuda.h>
-#include <cuda_runtime.h>
-
 namespace Ilum::CUDA
 {
 Queue::Queue(RHIDevice *device) :

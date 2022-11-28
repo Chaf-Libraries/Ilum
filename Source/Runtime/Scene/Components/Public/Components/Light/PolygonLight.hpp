@@ -8,7 +8,7 @@ namespace Ilum
 {
 namespace Cmpt
 {
-class PolygonLight : public Light
+class EXPORT_API PolygonLight : public Light
 {
   public:
 	PolygonLight(Node *node);

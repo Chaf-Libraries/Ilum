@@ -1,7 +1,5 @@
 #include "Texture.hpp"
 
-#include <volk.h>
-
 namespace Ilum::CUDA
 {
 cudaChannelFormatDesc GetCUDAChannelFormatDesc(RHIFormat format)

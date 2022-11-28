@@ -8,7 +8,7 @@ namespace Ilum
 {
 namespace Cmpt
 {
-class DirectionalLight : public Light
+class EXPORT_API DirectionalLight : public Light
 {
   public:
 	DirectionalLight(Node *node);

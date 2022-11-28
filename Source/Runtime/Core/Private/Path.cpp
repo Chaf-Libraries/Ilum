@@ -1,9 +1,10 @@
 #include "Path.hpp"
-#include "Macro.hpp"
+#include "Core.hpp"
 
+#include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
-#include <algorithm>
 
 namespace Ilum
 {

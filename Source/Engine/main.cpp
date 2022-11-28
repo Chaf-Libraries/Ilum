@@ -1,12 +1,11 @@
 #include "Engine.hpp"
 
-#include <rttr/registration.h>
-
-using namespace Ilum;
+#include <ShaderCompiler/ShaderCompiler.hpp>
 
 int main()
 {
 	Ilum::Engine engine;
+	//Ilum::ShaderCompiler::GetInstance();
 
 	engine.Tick();
 

@@ -1,10 +1,6 @@
 #pragma once
 
-#include "RHI/RHIBuffer.hpp"
-
-#include <volk.h>
-
-#include <vk_mem_alloc.h>
+#include "Fwd.hpp"
 
 namespace Ilum::Vulkan
 {

@@ -1,10 +1,10 @@
 #pragma once
 
+#include "Precompile.hpp"
+
 #include <RHI/RHIBuffer.hpp>
 #include <RHI/RHIContext.hpp>
 #include <RHI/RHITexture.hpp>
-
-#include <rttr/registration>
 
 namespace Ilum
 {
@@ -81,7 +81,7 @@ STRUCT(RenderPassDesc, Enable)
 {
 	std::string name;
 
-	rttr::variant config;
+	std::any config;
 
 	std::map<std::string, RenderResourceDesc> resources;
 
@@ -130,12 +130,12 @@ STRUCT(RenderGraphDesc, Enable)
 	std::map<RGHandle, BufferDesc> buffers;
 };
 
-class RenderGraph
+class EXPORT_API RenderGraph
 {
 	friend class RenderGraphBuilder;
 
   public:
-	using RenderTask  = std::function<void(RenderGraph &, RHICommand *, rttr::variant &)>;
+	using RenderTask  = std::function<void(RenderGraph &, RHICommand *, std::any &)>;
 	using BarrierTask = std::function<void(RenderGraph &, RHICommand *)>;
 
 	struct RenderPassInfo
@@ -144,7 +144,7 @@ class RenderGraph
 
 		BindPoint bind_point;
 
-		rttr::variant config;
+		std::any config;
 
 		RenderTask  execute;
 		BarrierTask barrier;
@@ -183,7 +183,7 @@ class RenderGraph
 	RenderGraph &AddPass(
 	    const std::string   &name,
 	    BindPoint            bind_point,
-	    const rttr::variant &config,
+	    const std::any &config,
 	    RenderTask         &&execute,
 	    BarrierTask        &&barrier);
 
@@ -200,21 +200,7 @@ class RenderGraph
 	RHISemaphore *MapToCUDASemaphore(RHISemaphore *semaphore);
 
   private:
-	RHIContext *p_rhi_context = nullptr;
-
-	BarrierTask m_initialize_barrier;
-
-	std::vector<RenderPassInfo> m_render_passes;
-
-	std::vector<std::unique_ptr<RHITexture>> m_textures;
-	std::map<RGHandle, RHITexture *>         m_texture_lookup;
-	std::map<RGHandle, RHITexture *>         m_cuda_textures;
-
-	std::vector<std::unique_ptr<RHIBuffer>> m_buffers;
-	std::map<RGHandle, RHIBuffer *>         m_buffer_lookup;
-
-	std::map<RHISemaphore *, std::unique_ptr<RHISemaphore>> m_cuda_semaphore_map;
-
-	bool m_init = false;
+	struct Impl;
+	Impl *m_impl = nullptr;
 };
 }        // namespace Ilum

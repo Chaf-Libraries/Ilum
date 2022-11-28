@@ -1,5 +1,7 @@
 #pragma once
 
+#include "API.hpp"
+
 #include <string>
 
 #ifdef _WIN64
@@ -11,7 +13,7 @@
 
 namespace Ilum
 {
-class __declspec(dllexport) PluginManager
+class EXPORT_API PluginManager
 {
   public:
 	PluginManager();

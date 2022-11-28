@@ -31,6 +31,6 @@ target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/P
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DRHI_BACKEND_VULKAN")
 
-file(GLOB REFLECTION_FILES "*.hpp")
+target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Public/RHI/Fwd.hpp)
 
 set_target_properties(RHI PROPERTIES FOLDER Runtime)

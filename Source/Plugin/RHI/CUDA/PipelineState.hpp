@@ -1,6 +1,6 @@
 #pragma once
 
-#include "RHI/RHIPipelineState.hpp"
+#include "Fwd.hpp"
 
 namespace Ilum::CUDA
 {

@@ -1,8 +1,6 @@
 #include "Synchronization.hpp"
 #include "Device.hpp"
 
-#include <volk.h>
-
 namespace Ilum::CUDA
 {
 

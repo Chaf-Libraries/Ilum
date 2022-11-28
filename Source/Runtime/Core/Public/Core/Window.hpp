@@ -1,5 +1,6 @@
 #pragma once
 
+#include "API.hpp"
 #include "Delegates.hpp"
 #include "Input.hpp"
 
@@ -7,7 +8,7 @@ struct GLFWwindow;
 
 namespace Ilum
 {
-class __declspec(dllexport) Window
+class EXPORT_API Window
 {
   public:
 	Window(const std::string &title, const std::string &icon, uint32_t width = 0, uint32_t height = 0);

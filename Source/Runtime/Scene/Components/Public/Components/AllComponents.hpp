@@ -6,3 +6,10 @@
 #include "Light/SpotLight.hpp"
 
 #include "Transform.hpp"
+
+struct ImGuiContext;
+
+extern "C"
+{
+	EXPORT_API void ConfigureImGui(ImGuiContext *context);
+}

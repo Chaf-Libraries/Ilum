@@ -8,7 +8,7 @@ file(GLOB_RECURSE SOURCE_FILES "*.cpp" "*.inl")
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${HEADER_FILES} ${SOURCE_FILES})
 
-add_library(${TARGET_NAME} ${HEADER_FILES} ${SOURCE_FILES})
+add_library(${TARGET_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES})
 
 set_target_properties(
 	${TARGET_NAME} 
@@ -20,16 +20,15 @@ set_target_properties(
 target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->")
 target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/WX->")
 
-target_link_libraries(${TARGET_NAME} 
-	PRIVATE 
-		Core 
-		RHI 
-		ShaderCompiler
-)
+target_link_libraries(${TARGET_NAME} PRIVATE Core)
+target_link_libraries(${TARGET_NAME} PRIVATE RHI)
+target_link_libraries(${TARGET_NAME} PRIVATE ShaderCompiler)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/Public")
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Private")
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Public/RenderGraph")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
+
+target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Public/RenderGraph/Precompile.hpp)
 
 set_target_properties(RenderGraph PROPERTIES FOLDER "Runtime/Render")

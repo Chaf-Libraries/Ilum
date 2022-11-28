@@ -1,16 +1,10 @@
 #pragma once
 
-#include <chrono>
-#include <thread>
-
-#pragma warning(disable : 5030)
+#include "Fwd.hpp"
 
 namespace Ilum
 {
-class RHIDevice;
-class RHICommand;
-
-struct [[serialization(false)]] ProfileState
+struct ProfileState
 {
 	std::chrono::time_point<std::chrono::high_resolution_clock> cpu_start;
 	std::chrono::time_point<std::chrono::high_resolution_clock> cpu_end;

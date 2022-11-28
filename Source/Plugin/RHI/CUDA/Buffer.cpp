@@ -1,11 +1,5 @@
 #include "Buffer.hpp"
 
-#ifdef _WIN64
-#	include <Windows.h>
-#endif        // _WIN64
-
-#include <volk.h>
-
 namespace Ilum::CUDA
 {
 Buffer::Buffer(RHIDevice *device, const BufferDesc &desc, HANDLE mem_handle) :

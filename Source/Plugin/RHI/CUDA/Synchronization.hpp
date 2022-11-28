@@ -1,13 +1,6 @@
 #pragma once
 
-#include "RHI/RHISynchronization.hpp"
-
-#include <cuda.h>
-#include <cuda_runtime.h>
-
-#ifdef _WIN64
-#	include <Windows.h>
-#endif        // _WIN64
+#include "Fwd.hpp"
 
 namespace Ilum::CUDA
 {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Core/Core.hpp>
+
 #include <algorithm>
 #include <memory>
 #include <string>
@@ -13,7 +15,7 @@ class Node;
 class Component;
 class RHIContext;
 
-class Scene
+class EXPORT_API Scene
 {
 	friend class Node;
 
@@ -37,9 +39,9 @@ class Scene
 
 		if (HasComponent<_Ty>())
 		{
-			result.resize(m_components.at(typeid(_Ty)).size());
+			result.resize(GetComponents().at(typeid(_Ty)).size());
 
-			auto &scene_components = m_components[typeid(_Ty)];
+			auto &scene_components = GetComponents()[typeid(_Ty)];
 
 			std::transform(scene_components.begin(), scene_components.end(), result.begin(),
 			               [](const std::unique_ptr<Component> &component) -> _Ty * {
@@ -53,7 +55,7 @@ class Scene
 	template <typename _Ty>
 	bool HasComponent() const
 	{
-		return m_components.find(typeid(_Ty)) != m_components.end();
+		return GetComponents().find(typeid(_Ty)) != GetComponents().end();
 	}
 
 	Node *CreateNode(const std::string &name = "untitled node");
@@ -61,10 +63,10 @@ class Scene
 	void EraseNode(Node *node);
 
   private:
-	std::string m_name;
+	std::unordered_map<std::type_index, std::vector<std::unique_ptr<Component>>> &GetComponents();
 
-	std::vector<std::unique_ptr<Node>> m_nodes;
-
-	std::unordered_map<std::type_index, std::vector<std::unique_ptr<Component>>> m_components;
+  private:
+	struct Impl;
+	Impl *m_impl = nullptr;
 };
 }        // namespace Ilum

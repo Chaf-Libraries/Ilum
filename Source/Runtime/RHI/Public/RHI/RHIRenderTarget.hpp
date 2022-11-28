@@ -1,11 +1,7 @@
 #pragma once
 
-#include "RHIDefinitions.hpp"
+#include "Fwd.hpp"
 #include "RHITexture.hpp"
-
-#include <array>
-#include <optional>
-#include <vector>
 
 namespace Ilum
 {

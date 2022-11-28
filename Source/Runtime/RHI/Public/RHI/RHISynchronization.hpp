@@ -1,12 +1,9 @@
 #pragma once
 
-#include <string>
-#include <memory>
+#include "Fwd.hpp"
 
 namespace Ilum
 {
-class RHIDevice;
-
 class RHIFence
 {
   public:

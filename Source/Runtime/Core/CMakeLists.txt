@@ -15,37 +15,27 @@ set_target_properties(
 	PROPERTIES 
 	CXX_STANDARD 17 
 	DEBUG_POSTFIX "${CMAKE_DEBUG_POSTFIX}"
+	LINK_FLAGS "/NODEFAULTLIB:MSVCRT"
 )
+
+#set_property(${TARGET_NAME} APPEND PROPERTY LINK_FLAGS )
 
 target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->")
 target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/WX->")
 
 target_link_libraries(${TARGET_NAME} PRIVATE glfw)
 target_link_libraries(${TARGET_NAME} PUBLIC spdlog::spdlog)
-target_link_libraries(${TARGET_NAME} PUBLIC glm)
-target_link_libraries(${TARGET_NAME} PUBLIC rttr_core_lib)
-target_link_libraries(${TARGET_NAME} PUBLIC cereal)
-target_link_libraries(${TARGET_NAME} PUBLIC entt)
+target_link_libraries(${TARGET_NAME} PUBLIC glm::glm)
+target_link_libraries(${TARGET_NAME} PUBLIC cereal::cereal)
+target_link_libraries(${TARGET_NAME} PUBLIC stb)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/Public")
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Private")
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Public/Core")
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Dependencies/stb")
+
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 
-target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Private/Precompile.hpp)
-
-add_custom_command(
-	TARGET ${TARGET_NAME} PRE_BUILD 
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${PROJECT_SOURCE_DIR}/Source/Dependencies/spdlog/bin/spdlogd.dll"
-        "${PROJECT_SOURCE_DIR}/bin/spdlogd.dll"
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${PROJECT_SOURCE_DIR}/Source/Dependencies/spdlog/bin/spdlog.dll"
-        "${PROJECT_SOURCE_DIR}/bin/spdlog.dll"
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${PROJECT_SOURCE_DIR}/Source/Dependencies/GLFW/bin/glfw3.dll"
-        "${PROJECT_SOURCE_DIR}/bin/glfw3.dll"
-)
+add_dependencies(${TARGET_NAME} External)
 
 set_target_properties(Core PROPERTIES FOLDER Runtime)

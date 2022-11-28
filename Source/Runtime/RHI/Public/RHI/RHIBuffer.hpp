@@ -1,13 +1,9 @@
 #pragma once
 
-#include "RHIDefinitions.hpp"
-
-#include <memory>
+#include "Fwd.hpp"
 
 namespace Ilum
 {
-class RHIDevice;
-
 STRUCT(BufferDesc, Enable)
 {
 	std::string    name;

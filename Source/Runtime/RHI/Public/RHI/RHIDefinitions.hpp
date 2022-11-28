@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Core/Macro.hpp>
+#include <Core/Core.hpp>
 
 namespace Ilum
 {

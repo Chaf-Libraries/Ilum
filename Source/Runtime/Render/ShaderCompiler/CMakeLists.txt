@@ -24,25 +24,18 @@ target_link_libraries(${TARGET_NAME} PRIVATE Core)
 target_link_libraries(${TARGET_NAME} PRIVATE RHI)
 target_link_libraries(${TARGET_NAME} PRIVATE glslang::glslang)
  target_link_libraries(${TARGET_NAME} PRIVATE glslang::SPIRV)
- target_link_libraries(${TARGET_NAME} PRIVATE dxc)
- target_link_libraries(${TARGET_NAME} PRIVATE spirv-reflect-static)
+ target_link_libraries(${TARGET_NAME} PRIVATE spirv_reflect)
  target_link_libraries(${TARGET_NAME} PRIVATE spirv-cross-hlsl)
- target_link_libraries(${TARGET_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/Source/Dependencies/slang/bin/windows-x64/release/slang.lib)
+ target_link_libraries(${TARGET_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/Source/External/slang/bin/windows-x64/release/slang.lib)
+ target_link_libraries(${TARGET_NAME} PRIVATE ${PROJECT_SOURCE_DIR}/Source/External/dxc/lib/x64/dxcompiler.lib)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/Public")
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Private")
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Public/ShaderCompiler")
-target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Dependencies/slang")
+target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/External/slang")
+target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/External/dxc/inc")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 
-add_custom_command(
-	TARGET ${TARGET_NAME} POST_BUILD 
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${PROJECT_SOURCE_DIR}/Source/Dependencies/dxc/bin/x64/dxil.dll"
-        "${PROJECT_SOURCE_DIR}/bin/dxil.dll"
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${PROJECT_SOURCE_DIR}/Source/Dependencies/slang/bin/windows-x64/release/slang.dll"
-        "${PROJECT_SOURCE_DIR}/bin/slang.dll"
-)
+target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Public/ShaderCompiler/Precompile.hpp)
 
 set_target_properties(ShaderCompiler PROPERTIES FOLDER "Runtime/Render")

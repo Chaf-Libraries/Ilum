@@ -1,3 +1,5 @@
+#include "Fwd.hpp"
+
 #include "AccelerationStructure.hpp"
 #include "Buffer.hpp"
 #include "Command.hpp"
@@ -21,82 +23,82 @@ using namespace Ilum::Vulkan;
 
 extern "C"
 {
-	__declspec(dllexport) RHIDevice *CreateDevice()
+	EXPORT_API RHIDevice *CreateDevice()
 	{
 		return new Device;
 	}
 
-	__declspec(dllexport) RHIFrame *CreateFrame(Device *device)
+	EXPORT_API RHIFrame *CreateFrame(Device *device)
 	{
 		return new Frame(device);
 	}
 
-	__declspec(dllexport) RHISwapchain *CreateSwapchain(Device *device, void *window_handle, uint32_t width, uint32_t height, bool vsync)
+	EXPORT_API RHISwapchain *CreateSwapchain(Device *device, void *window_handle, uint32_t width, uint32_t height, bool vsync)
 	{
 		return new Swapchain(device, window_handle, width, height, vsync);
 	}
 
-	__declspec(dllexport) RHIQueue *CreateQueue(Device *device)
+	EXPORT_API RHIQueue *CreateQueue(Device *device)
 	{
 		return new Queue(device);
 	}
 
-	__declspec(dllexport) RHIBuffer *CreateBuffer(Device *device, const BufferDesc &desc)
+	EXPORT_API RHIBuffer *CreateBuffer(Device *device, const BufferDesc &desc)
 	{
 		return new Buffer(device, desc);
 	}
 
-	__declspec(dllexport) RHITexture *CreateTexture(Device *device, const TextureDesc &desc)
+	EXPORT_API RHITexture *CreateTexture(Device *device, const TextureDesc &desc)
 	{
 		return new Texture(device, desc);
 	}
 
-	__declspec(dllexport) RHISampler *CreateSampler(Device *device, const SamplerDesc &desc)
+	EXPORT_API RHISampler *CreateSampler(Device *device, const SamplerDesc &desc)
 	{
 		return new Sampler(device, desc);
 	}
 
-	__declspec(dllexport) RHIShader *CreateShader(RHIDevice *device, const std::string &entry_point, const std::vector<uint8_t> &source)
+	EXPORT_API RHIShader *CreateShader(RHIDevice *device, const std::string &entry_point, const std::vector<uint8_t> &source)
 	{
 		return new Shader(device, entry_point, source);
 	}
 
-	__declspec(dllexport) RHIRenderTarget *CreateRenderTarget(Device *device)
+	EXPORT_API RHIRenderTarget *CreateRenderTarget(Device *device)
 	{
 		return new RenderTarget(device);
 	}
 
-	__declspec(dllexport) RHISemaphore *CreateSemaphore(Device *device)
+	EXPORT_API RHISemaphore *CreateSemaphore(Device *device)
 	{
 		return new Semaphore(device);
 	}
 
-	__declspec(dllexport) RHIFence *CreateFence(Device *device)
+	EXPORT_API RHIFence *CreateFence(Device *device)
 	{
 		return new Fence(device);
 	}
 
-	__declspec(dllexport) RHIDescriptor *CreateDescriptor(Device *device, const ShaderMeta &meta)
+	EXPORT_API RHIDescriptor *CreateDescriptor(Device *device, const ShaderMeta &meta)
 	{
 		return new Descriptor(device, meta);
 	}
 
-	__declspec(dllexport) RHIPipelineState *CreatePipelineState(Device *device)
+	EXPORT_API RHIPipelineState *CreatePipelineState(Device *device)
 	{
 		return new PipelineState(device);
 	}
 
-	__declspec(dllexport) RHIProfiler *CreateProfiler(RHIDevice *device, uint32_t frame_count)
+	EXPORT_API RHIProfiler *CreateProfiler(RHIDevice *device, uint32_t frame_count)
 	{
 		return new Profiler(device, frame_count);
 	}
 
-	__declspec(dllexport) RHIAccelerationStructure *CreateAccelerationStructure(Device *device)
+	EXPORT_API RHIAccelerationStructure *CreateAccelerationStructure(Device *device)
 	{
 		return new AccelerationStructure(device);
 	}
 
-	__declspec(dllexport) HANDLE GetTextureMemHandle(Device *device, Texture *texture)
+	EXPORT_API HANDLE GetTextureMemHandle(Device *device, Texture *texture)
 	{
 		HANDLE handle = {};
 
@@ -117,7 +119,7 @@ extern "C"
 		return handle;
 	}
 
-	__declspec(dllexport) HANDLE GetBufferMemHandle(Device *device, Buffer *buffer)
+	EXPORT_API HANDLE GetBufferMemHandle(Device *device, Buffer *buffer)
 	{
 		HANDLE handle = {};
 
@@ -138,7 +140,7 @@ extern "C"
 		return handle;
 	}
 
-	__declspec(dllexport) HANDLE GetSemaphoreHandle(Device *device, Semaphore *semaphore)
+	EXPORT_API HANDLE GetSemaphoreHandle(Device *device, Semaphore *semaphore)
 	{
 		HANDLE handle = {};
 

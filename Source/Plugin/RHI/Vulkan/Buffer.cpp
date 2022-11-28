@@ -1,6 +1,5 @@
 #include "Buffer.hpp"
 #include "Command.hpp"
-#include "Definitions.hpp"
 #include "Device.hpp"
 #include "Queue.hpp"
 #include "Synchronization.hpp"

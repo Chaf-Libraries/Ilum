@@ -1,14 +1,14 @@
 #pragma once
 
+#include "API.hpp"
 #include "Log.hpp"
-#include "Serialization.hpp"
 
 #include <cassert>
 
-#include <rttr/registration.h>
-#include <rttr/registration_friend.h>
-
 #include <fstream>
+
+#include <cereal/types/string.hpp>
+#include <cereal/types/vector.hpp>
 
 #define SERIALIZER_TYPE_JSON 0
 #define SERIALIZER_TYPE_BINARY 1
@@ -27,12 +27,12 @@
 
 #if SERIALIZER_TYPE == SERIALIZER_TYPE_JSON
 #	include <cereal/archives/json.hpp>
-using InputArchive  = Ilum::Deserializer<cereal::JSONInputArchive>;
-using OutputArchive = Ilum::Serializer<cereal::JSONOutputArchive>;
+using InputArchive  = cereal::JSONInputArchive;
+using OutputArchive = cereal::JSONOutputArchive;
 #elif SERIALIZER_TYPE == SERIALIZER_TYPE_BINARY
 #	include <cereal/archives/binary.hpp>
-using InputArchive  = Ilum::Deserializer<cereal::BinaryInputArchive>;
-using OutputArchive = Ilum::Serializer<cereal::BinaryOutputArchive>;
+using InputArchive  = cereal::BinaryInputArchive;
+using OutputArchive = cereal::BinaryOutputArchive;
 #elif SERIALIZER_TYPE == SERIALIZER_TYPE_XML
 #	include <cereal/archives/xml.hpp>
 using InputArchive  = cereal::XMLInputArchive;
@@ -80,12 +80,3 @@ using OutputArchive = cereal::XMLOutputArchive;
 	{                                                           \
 		return lhs = lhs | rhs;                                 \
 	}
-
-#ifdef NDEBUG
-#	define ASSERT(x)
-#else
-#	define ASSERT(x) assert(x)
-#endif        // NDBUG
-
-#define EXPORT_API __declspec(dllexport)
-#define IMPORT_API __declspec(dllimport)

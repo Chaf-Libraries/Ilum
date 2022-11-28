@@ -161,7 +161,7 @@ VkPipeline PipelineState::GetPipeline(Descriptor *descriptor, RenderTarget *rend
 	{
 		if (stage & RHIShaderStage::Fragment)
 		{
-			ASSERT(render_target != nullptr);
+			assert(render_target != nullptr);
 			return CreateGraphicsPipeline(descriptor, render_target);
 		}
 		else if (stage & RHIShaderStage::Compute)

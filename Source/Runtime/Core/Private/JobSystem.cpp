@@ -1,8 +1,8 @@
 #include "JobSystem.hpp"
-#include "Macro.hpp"
 
 #include <queue>
 #include <unordered_set>
+#include <cassert>
 
 namespace Ilum
 {
@@ -124,7 +124,7 @@ bool JobNode::Compile()
 
 void JobNode::Run()
 {
-	ASSERT(m_unfinish_dependents == 0 && "Some dependents haven't completed yet");
+	assert(m_unfinish_dependents == 0 && "Some dependents haven't completed yet");
 
 	m_task();
 

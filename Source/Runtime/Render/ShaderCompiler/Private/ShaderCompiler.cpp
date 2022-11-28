@@ -1,22 +1,18 @@
 #include "ShaderCompiler.hpp"
 #include "SpirvReflection.hpp"
 
-#include <Core/Path.hpp>
-
 #include <glslang/Include/ResourceLimits.h>
-
 #include <glslang/SPIRV/GLSL.std.450.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
 
 #include <spirv_hlsl.hpp>
 
-#include <atlbase.h>
 #include <dxcapi.h>
+#include <wrl.h>
 
 #include <slang.h>
 
-#include <regex>
-#include <sstream>
+using Microsoft::WRL::ComPtr;
 
 namespace glslang
 {
@@ -139,10 +135,10 @@ const TBuiltInResource DefaultTBuiltInResource = {
 
 namespace Ilum
 {
-static CComPtr<IDxcUtils>          DXCUtils              = nullptr;
-static CComPtr<IDxcCompiler3>      DXCCompiler           = nullptr;
-static CComPtr<IDxcIncludeHandler> DefaultIncludeHandler = nullptr;
-static SlangSession               *Session               = nullptr;
+static ComPtr<IDxcCompiler3>      DXCCompiler           = nullptr;
+static ComPtr<IDxcUtils>          DXCUtils              = nullptr;
+static ComPtr<IDxcIncludeHandler> DefaultIncludeHandler = nullptr;
+static SlangSession              *Session               = nullptr;
 
 std::wstring to_wstring(const std::string &str)
 {
@@ -309,8 +305,8 @@ std::vector<uint8_t> CompileShader<ShaderSource::GLSL, ShaderTarget::SPIRV>(cons
 template <>
 std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(const std::string &code, RHIShaderStage stage, const std::string &entry_point, const std::vector<std::string> &macros)
 {
-	DxcBuffer                 dxc_buffer    = {};
-	CComPtr<IDxcBlobEncoding> blob_encoding = nullptr;
+	DxcBuffer                dxc_buffer    = {};
+	ComPtr<IDxcBlobEncoding> blob_encoding = nullptr;
 
 	std::string shader_code = std::string(code.c_str());
 
@@ -337,6 +333,7 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(cons
 	arguments.emplace_back(to_wstring(Path::GetInstance().GetCurrent() + "/Source/Shaders"));
 	arguments.emplace_back(L"-I");
 	arguments.emplace_back(to_wstring(Path::GetInstance().GetCurrent()));
+	arguments.emplace_back(L"-HV 2021");
 	arguments.emplace_back(to_wstring("-DRUNTIME"));
 	arguments.emplace_back(L"-spirv");
 	arguments.emplace_back(L"-fspv-target-env=vulkan1.3");
@@ -366,7 +363,7 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(cons
 	    &dxc_buffer,
 	    arguments_lpcwstr.data(),
 	    static_cast<uint32_t>(arguments_lpcwstr.size()),
-	    DefaultIncludeHandler,
+	    DefaultIncludeHandler.Get(),
 	    IID_PPV_ARGS(&dxc_result));
 
 	// Get error buffer
@@ -436,8 +433,8 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(cons
 template <>
 std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::DXIL>(const std::string &code, RHIShaderStage stage, const std::string &entry_point, const std::vector<std::string> &macros)
 {
-	DxcBuffer                 dxc_buffer    = {};
-	CComPtr<IDxcBlobEncoding> blob_encoding = nullptr;
+	DxcBuffer                dxc_buffer    = {};
+	ComPtr<IDxcBlobEncoding> blob_encoding = nullptr;
 
 	std::string shader_code = std::string(code.c_str());
 
@@ -482,7 +479,7 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::DXIL>(const
 	    &dxc_buffer,
 	    arguments_lpcwstr.data(),
 	    static_cast<uint32_t>(arguments_lpcwstr.size()),
-	    DefaultIncludeHandler,
+	    DefaultIncludeHandler.Get(),
 	    IID_PPV_ARGS(&dxc_result));
 
 	// Get error buffer
@@ -613,6 +610,12 @@ ShaderCompiler::ShaderCompiler()
 ShaderCompiler::~ShaderCompiler()
 {
 	glslang::FinalizeProcess();
+
+	auto &manager = PluginManager::GetInstance();
+
+	DefaultIncludeHandler.Reset();
+	DXCUtils.Reset();
+	DXCCompiler.Reset();
 
 	spDestroySession(Session);
 	Session = nullptr;

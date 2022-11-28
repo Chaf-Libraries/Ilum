@@ -1,12 +1,6 @@
 #pragma once
 
-#include "RHI/RHIFrame.hpp"
-
-#include <volk.h>
-
-#include <thread>
-#include <unordered_map>
-#include <vector>
+#include "Fwd.hpp"
 
 namespace Ilum::Vulkan
 {

@@ -69,7 +69,7 @@ class SceneInspector : public Widget
 
 			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2{4, 4});
 			float line_height = GImGui->Font->FontSize + GImGui->Style.FramePadding.y * 2.0f;
-			bool  open        = ImGui::TreeNodeEx((void *) type.hash_code(), tree_node_flags, cmpt->GetName().c_str());
+			bool  open        = ImGui::TreeNodeEx((void *) type.hash_code(), tree_node_flags, cmpt->GetName());
 			ImGui::PopStyleVar();
 
 			bool remove_component = false;
@@ -146,6 +146,7 @@ extern "C"
 	__declspec(dllexport) SceneInspector *Create(Editor *editor, ImGuiContext *context)
 	{
 		ImGui::SetCurrentContext(context);
+		ConfigureImGui(context);
 		return new SceneInspector(editor);
 	}
 }

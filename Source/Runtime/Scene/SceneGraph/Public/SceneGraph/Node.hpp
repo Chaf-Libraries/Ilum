@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Core/Core.hpp>
+
 #include <memory>
 #include <string>
 #include <typeindex>
@@ -10,7 +12,7 @@ namespace Ilum
 class Component;
 class Scene;
 
-class Node
+class EXPORT_API Node
 {
   public:
 	Node(size_t id, Scene &scene, const std::string &name = "untitled node");
@@ -71,16 +73,7 @@ class Node
 	void AddComponent_(Component *component);
 
   private:
-	Scene &m_scene;
-
-	size_t m_id;
-
-	std::string m_name;
-
-	Node *m_parent = nullptr;
-
-	std::vector<Node *> m_children;
-
-	std::unordered_map<std::type_index, Component *> m_components;
+	struct Impl;
+	Impl *m_impl = nullptr;
 };
 }        // namespace Ilum

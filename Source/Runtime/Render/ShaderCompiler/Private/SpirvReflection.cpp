@@ -1,7 +1,5 @@
 #include "SpirvReflection.hpp"
 
-#include <Core/Hash.hpp>
-
 #include <spirv_reflect.h>
 
 namespace Ilum

@@ -1,21 +1,12 @@
 #pragma once
 
+#include "Precompile.hpp"
+
 #include "RenderGraph.hpp"
 
 namespace Ilum
 {
 class RenderGraph;
-
-template <typename T>
-void variadic_vector_emplace(std::vector<T> &)
-{}
-
-template <typename T, typename First, typename... Args>
-void variadic_vector_emplace(std::vector<T> &v, First &&first, Args &&...args)
-{
-	v.emplace_back(std::forward<First>(first));
-	variadic_vector_emplace(v, std::forward<Args>(args)...);
-}
 
 class RenderGraphBuilder
 {
@@ -24,7 +15,7 @@ class RenderGraphBuilder
 
 	~RenderGraphBuilder() = default;
 
-	RenderGraphBuilder &AddPass(RenderGraph &render_graph, const std::string &name, BindPoint bind_point, const rttr::variant &config, RenderGraph::RenderTask &&task, RenderGraph::BarrierTask &&barrier);
+	RenderGraphBuilder &AddPass(RenderGraph &render_graph, const std::string &name, BindPoint bind_point, const std::any &config, RenderGraph::RenderTask &&task, RenderGraph::BarrierTask &&barrier);
 
 	bool Validate(RenderGraphDesc &desc);
 

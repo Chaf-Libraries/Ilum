@@ -4,6 +4,8 @@
 #include <spdlog/details/log_msg_buffer.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
+#include <iostream>
+
 namespace Ilum
 {
 const std::deque<Sink::LogMsg> &Sink::GetLogs() const

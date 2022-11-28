@@ -4,9 +4,7 @@ project(IlumEngine VERSION 0.0.1)
 message(STATUS "[Project] ${PROJECT_NAME} ${PROJECT_VERSION}")
 
 include(CheckLanguage)
-
 enable_language(CXX)
-
 check_language(CUDA)
 if(CMAKE_CUDA_COMPILER)
   enable_language(CUDA)
@@ -17,9 +15,10 @@ else()
   message(STATUS "Disable CUDA")
 endif()
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(BUILD_SHARED_LIBS OFF)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -D_DEBUG")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
@@ -35,8 +34,14 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${PROJECT_SOURCE_DIR}/lib")
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;RelWithDebInfo;MinSizeRel" CACHE STRING "My multi config types" FORCE)
 
 find_package(assimp REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Source/External/assimp/lib/cmake/assimp-5.2)
-find_package(glfw3 REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Source/External/GLFW/lib/cmake/glfw3)
+find_package(glfw3 REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Source/External/glfw/lib/cmake/glfw3)
 find_package(glslang REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Source/External/glslang/lib/cmake/glslang)
 find_package(spdlog REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Source/External/spdlog/lib/cmake/spdlog)
+find_package(glm REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Source/External/glm/lib/cmake/glm)
+find_package(cereal REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Source/External/cereal/lib/cmake/cereal)
+find_package(spirv_cross_core REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Source/External/spirv_cross/share/spirv_cross_core/cmake)
+find_package(spirv_cross_util REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Source/External/spirv_cross/share/spirv_cross_util/cmake)
+find_package(spirv_cross_glsl REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Source/External/spirv_cross/share/spirv_cross_glsl/cmake)
+find_package(spirv_cross_hlsl REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/Source/External/spirv_cross/share/spirv_cross_hlsl/cmake)
 
 add_subdirectory(Source)

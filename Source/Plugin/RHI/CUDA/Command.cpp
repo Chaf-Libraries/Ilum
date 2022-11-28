@@ -78,7 +78,7 @@ void Command::SetScissor(uint32_t width, uint32_t height, int32_t offset_x, int3
 
 void Command::Dispatch(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, uint32_t block_x, uint32_t block_y, uint32_t block_z)
 {
-	ASSERT(p_descriptor != nullptr && p_pipeline_state != nullptr);
+	assert(p_descriptor != nullptr && p_pipeline_state != nullptr);
 
 	m_calls.emplace_back([=]() {
 		for (auto &[stage, shader] : p_pipeline_state->GetShaders())

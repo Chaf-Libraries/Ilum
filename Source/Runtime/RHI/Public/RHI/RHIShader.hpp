@@ -1,13 +1,9 @@
 #pragma once
 
-#include "RHIDefinitions.hpp"
-
-#include <vector>
+#include "Fwd.hpp"
 
 namespace Ilum
 {
-class RHIDevice;
-
 ENUM(DescriptorType, Enable){
     Sampler,
     TextureSRV,
@@ -29,6 +25,12 @@ STRUCT(ShaderMeta, Enable)
 			return location == other.location &&
 			       format == other.format;
 		}
+
+		template <typename Archive>
+		void serialize(Archive & archive)
+		{
+			archive(spirv_id, location, format);
+		}
 	};
 
 	STRUCT(Constant, Enable)
@@ -44,6 +46,12 @@ STRUCT(ShaderMeta, Enable)
 			return size == other.size &&
 			       offset == other.offset &&
 			       stage == other.stage;
+		}
+
+		template <typename Archive>
+		void serialize(Archive & archive)
+		{
+			archive(spirv_id, name, size, offset, stage);
 		}
 	};
 
@@ -63,6 +71,12 @@ STRUCT(ShaderMeta, Enable)
 			       set == other.set &&
 			       binding == other.binding &&
 			       type == other.type;
+		}
+
+		template <typename Archive>
+		void serialize(Archive & archive)
+		{
+			archive(spirv_id, name, array_size, set, binding, type, stage);
 		}
 	};
 
@@ -119,6 +133,12 @@ STRUCT(ShaderMeta, Enable)
 	std::vector<Variable>   outputs;
 
 	size_t hash = 0;
+
+	template <typename Archive>
+	void serialize(Archive & archive)
+	{
+		archive(descriptors, constants, inputs, outputs, hash);
+	}
 };
 
 class RHIShader

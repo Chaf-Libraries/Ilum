@@ -1,8 +1,6 @@
 #pragma once
 
-#include <RHI/RHIAccelerationStructure.hpp>
-
-#include <volk.h>
+#include "Fwd.hpp"
 
 namespace Ilum::Vulkan
 {

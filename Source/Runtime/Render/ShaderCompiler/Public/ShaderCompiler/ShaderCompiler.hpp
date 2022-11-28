@@ -1,10 +1,9 @@
 #pragma once
 
+#include "Precompile.hpp"
+
 #include <RHI/RHIDefinitions.hpp>
 #include <RHI/RHIShader.hpp>
-
-#include <string>
-#include <vector>
 
 namespace Ilum
 {
@@ -31,7 +30,7 @@ struct ShaderDesc
 	std::vector<std::string> macros = {};
 };
 
-class __declspec(dllexport) ShaderCompiler
+class EXPORT_API ShaderCompiler
 {
   public:
 	ShaderCompiler();

@@ -1,10 +1,6 @@
 #pragma once
 
-#include <RHI/RHIRenderTarget.hpp>
-
-#include <volk.h>
-
-#include <map>
+#include "Fwd.hpp"
 
 namespace Ilum::Vulkan
 {

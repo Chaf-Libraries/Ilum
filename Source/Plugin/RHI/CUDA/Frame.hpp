@@ -1,6 +1,6 @@
 #pragma once
 
-#include "RHI/RHIFrame.hpp"
+#include "Fwd.hpp"
 
 namespace Ilum::CUDA
 {

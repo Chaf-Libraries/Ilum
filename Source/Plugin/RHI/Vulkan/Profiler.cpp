@@ -50,7 +50,7 @@ void Profiler::Begin(RHICommand *cmd_buffer, uint32_t frame_index)
 
 void Profiler::End(RHICommand *cmd_buffer)
 {
-	ASSERT(m_cmd_buffer != VK_NULL_HANDLE);
+	assert(m_cmd_buffer != VK_NULL_HANDLE);
 	vkCmdWriteTimestamp(m_cmd_buffer, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, m_query_pools[m_current_index], 1);
 	m_state.cpu_end = std::chrono::high_resolution_clock::now();
 }

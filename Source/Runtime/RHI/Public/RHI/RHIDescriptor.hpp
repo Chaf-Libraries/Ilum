@@ -1,18 +1,11 @@
 #pragma once
 
-#include "RHIAccelerationStructure.hpp"
-#include "RHIBuffer.hpp"
-#include "RHISampler.hpp"
+#include "Fwd.hpp"
 #include "RHIShader.hpp"
 #include "RHITexture.hpp"
 
-#include <string>
-#include <vector>
-
 namespace Ilum
 {
-class RHIDevice;
-
 class RHIDescriptor
 {
   public:

@@ -1,6 +1,5 @@
 #include "Texture.hpp"
 #include "Definitions.hpp"
-
 #include "Device.hpp"
 
 #include <dxgi1_2.h>

@@ -1,10 +1,6 @@
 #pragma once
 
-#include "RHI/RHIProfiler.hpp"
-
-#include <volk.h>
-
-#include <vector>
+#include "Fwd.hpp"
 
 namespace Ilum::Vulkan
 {

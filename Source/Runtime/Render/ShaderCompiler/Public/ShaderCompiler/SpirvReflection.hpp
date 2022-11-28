@@ -1,10 +1,12 @@
 #pragma once
 
+#include "Precompile.hpp"
+
 #include <RHI/RHIShader.hpp>
 
 namespace Ilum
 {
-class __declspec(dllexport) SpirvReflection
+class EXPORT_API SpirvReflection
 {
   public:
 	static SpirvReflection &GetInstance();

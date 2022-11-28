@@ -8,6 +8,11 @@
 
 #include <unordered_map>
 
+#ifdef _WIN64
+#include <Windows.h>
+#endif        // _WIN64
+
+
 namespace Ilum::Vulkan
 {
 enum class VulkanFeature

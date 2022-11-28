@@ -9,7 +9,7 @@ file(GLOB_RECURSE INLINE_FILES "*.inl")
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${HEADER_FILES} ${SOURCE_FILES} ${INLINE_FILES})
 
-add_library(${TARGET_NAME} ${HEADER_FILES} ${SOURCE_FILES} ${INLINE_FILES})
+add_library(${TARGET_NAME} STATIC ${HEADER_FILES} ${SOURCE_FILES} ${INLINE_FILES})
 
 set_target_properties(
 	${TARGET_NAME} 
@@ -27,7 +27,6 @@ target_link_libraries(${TARGET_NAME} PRIVATE Material)
 target_link_libraries(${TARGET_NAME} PRIVATE Geometry)
 target_link_libraries(${TARGET_NAME} PRIVATE SceneGraph)
 target_link_libraries(${TARGET_NAME} PRIVATE imgui)
-target_link_libraries(${TARGET_NAME} PRIVATE cereal)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/Public")
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Private")

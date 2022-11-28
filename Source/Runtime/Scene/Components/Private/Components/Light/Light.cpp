@@ -4,7 +4,7 @@ namespace Ilum
 {
 namespace Cmpt
 {
-Light::Light(const std::string &name, Node *node) :
+Light::Light(const char *name, Node *node) :
     Component(name, node)
 {
 }

@@ -8,7 +8,7 @@ file(GLOB_RECURSE SOURCE_FILES "*.cpp" "*.cu")
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${HEADER_FILES} ${SOURCE_FILES})
 
-add_library(${TARGET_NAME} ${HEADER_FILES} ${SOURCE_FILES})
+add_library(${TARGET_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES})
 
 set_target_properties(
 	${TARGET_NAME} 
@@ -24,12 +24,9 @@ target_link_libraries(${TARGET_NAME} PRIVATE Core)
 target_link_libraries(${TARGET_NAME} PRIVATE RHI)
 target_link_libraries(${TARGET_NAME} PRIVATE ShaderCompiler)
 target_link_libraries(${TARGET_NAME} PRIVATE RenderGraph)
-target_link_libraries(${TARGET_NAME} PRIVATE MaterialGraph)
 target_link_libraries(${TARGET_NAME} PRIVATE SceneGraph)
 target_link_libraries(${TARGET_NAME} PRIVATE Components)
 target_link_libraries(${TARGET_NAME} PRIVATE Geometry)
-target_link_libraries(${TARGET_NAME} PRIVATE rttr_core_lib)
-target_link_libraries(${TARGET_NAME} PRIVATE entt)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/Public")
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Private")
@@ -39,5 +36,4 @@ target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 set_property(TARGET ${TARGET_NAME} PROPERTY CUDA_ARCHITECTURES OFF)
 set_target_properties(${TARGET_NAME} PROPERTIES CUDA_RUNTIME_LIBRARY ON)
 
-target_precompile_headers(${TARGET_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Private/Precompile.hpp)
 set_target_properties(Renderer PROPERTIES FOLDER Runtime/Render)

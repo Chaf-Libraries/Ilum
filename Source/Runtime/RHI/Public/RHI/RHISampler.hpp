@@ -1,11 +1,9 @@
 #pragma once
 
-#include "RHIDefinitions.hpp"
+#include "Fwd.hpp"
 
 namespace Ilum
 {
-class RHIDevice;
-
 ENUM(SamplerStateType, Enable){
     LinearClamp,
     LinearWarp,

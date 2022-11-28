@@ -1,14 +1,9 @@
 #pragma once
 
-#include <Core/Window.hpp>
+#include "Fwd.hpp"
 
 namespace Ilum
 {
-class RHISemaphore;
-class RHIFence;
-class RHIDevice;
-class RHITexture;
-
 class RHISwapchain
 {
   public:

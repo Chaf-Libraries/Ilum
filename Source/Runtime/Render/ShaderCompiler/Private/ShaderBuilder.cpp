@@ -1,10 +1,7 @@
 #include "ShaderBuilder.hpp"
 #include "ShaderCompiler.hpp"
 
-#include <Core/Path.hpp>
 #include <RHI/RHIDefinitions.hpp>
-
-#include <filesystem>
 
 namespace Ilum
 {

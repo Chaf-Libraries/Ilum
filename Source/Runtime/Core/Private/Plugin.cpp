@@ -16,6 +16,10 @@ PluginManager::PluginManager()
 
 PluginManager::~PluginManager()
 {
+	for (auto& [name, h_module] : m_impl->modules)
+	{
+		FreeLibrary(h_module);
+	}
 	delete m_impl;
 }
 

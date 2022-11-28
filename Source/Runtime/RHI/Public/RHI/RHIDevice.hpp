@@ -1,8 +1,6 @@
 #pragma once
 
-#include <Core/Window.hpp>
-
-#include "RHIDefinitions.hpp"
+#include "Fwd.hpp"
 
 namespace Ilum
 {

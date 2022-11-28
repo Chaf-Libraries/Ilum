@@ -3,13 +3,18 @@
 
 namespace Ilum
 {
-Component::Component(const std::string &name, Node *node) :
+Component::Component(const char *name, Node *node) :
     m_name(name), p_node(node)
 {
 }
 
-const std::string &Component::GetName()
+const char *Component::GetName() const
 {
 	return m_name;
+}
+
+Node *Component::GetNode() const
+{
+	return p_node;
 }
 }        // namespace Ilum

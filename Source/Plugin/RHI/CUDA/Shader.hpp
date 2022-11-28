@@ -1,8 +1,6 @@
 #pragma once
 
-#include "RHI/RHIShader.hpp"
-
-#include <cuda.h>
+#include "Fwd.hpp"
 
 namespace Ilum::CUDA
 {

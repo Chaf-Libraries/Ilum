@@ -1,2 +1,1 @@
-add_subdirectory(MaterialGraph)
 add_subdirectory(Material)

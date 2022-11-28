@@ -1,11 +1,6 @@
 #pragma once
 
-#include "Device.hpp"
-#include "RHI/RHITexture.hpp"
-
-#include <volk.h>
-
-#include <vk_mem_alloc.h>
+#include "Fwd.hpp"
 
 namespace Ilum::Vulkan
 {

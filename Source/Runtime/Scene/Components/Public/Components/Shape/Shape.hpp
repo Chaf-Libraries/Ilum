@@ -6,10 +6,10 @@ namespace Ilum
 {
 namespace Cmpt
 {
-class Shape : public Component
+class EXPORT_API Shape : public Component
 {
   public:
-	Shape(Node *node);
+	Shape(const char *name, Node *node);
 
 	virtual void OnImGui() = 0;
 

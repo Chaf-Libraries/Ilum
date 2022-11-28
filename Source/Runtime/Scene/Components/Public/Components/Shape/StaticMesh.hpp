@@ -10,7 +10,7 @@ namespace Ilum
 {
 namespace Cmpt
 {
-class StaticMesh : public Shape
+class EXPORT_API StaticMesh : public Shape
 {
   public:
 	struct Submesh

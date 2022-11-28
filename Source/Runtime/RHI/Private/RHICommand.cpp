@@ -27,7 +27,7 @@ CommandState RHICommand::GetState() const
 
 void RHICommand::Init()
 {
-	ASSERT(m_state == CommandState::Available);
+	assert(m_state == CommandState::Available);
 	m_state = CommandState::Initial;
 }
 

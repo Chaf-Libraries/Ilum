@@ -4,6 +4,8 @@
 
 #include <Core/Plugin.hpp>
 
+#include <set>
+
 namespace Ilum
 {
 template <typename... Args>

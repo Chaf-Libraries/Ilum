@@ -1,16 +1,9 @@
 #pragma once
 
-#include "RHIDefinitions.hpp"
-
-#include <Core/Hash.hpp>
-
-#include <cstdint>
-#include <memory>
+#include "Fwd.hpp"
 
 namespace Ilum
 {
-class RHIDevice;
-
 STRUCT(TextureDesc, Enable)
 {
 	std::string name;

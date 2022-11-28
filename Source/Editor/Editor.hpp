@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Core/Core.hpp>
+
 #include <memory>
 #include <vector>
 
@@ -12,7 +14,7 @@ class Widget;
 class Renderer;
 class Node;
 
-class Editor
+class EXPORT_API Editor
 {
   public:
 	Editor(Window *window, RHIContext *rhi_context, Renderer *renderer);
@@ -36,13 +38,7 @@ class Editor
 	Node *GetSelectedNode() const;
 
   private:
-	std::unique_ptr<GuiContext> m_imgui_context = nullptr;
-
-	RHIContext *p_rhi_context = nullptr;
-	Renderer   *p_renderer    = nullptr;
-
-	std::vector<std::unique_ptr<Widget>> m_widgets;
-
-	Node *m_select = nullptr;
+	struct Impl;
+	Impl* m_impl = nullptr;
 };
 }        // namespace Ilum

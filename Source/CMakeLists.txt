@@ -1,4 +1,4 @@
-add_subdirectory(Dependencies)
+add_subdirectory(External)
 add_subdirectory(Runtime)
 add_subdirectory(Editor)
 add_subdirectory(Engine)

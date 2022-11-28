@@ -1,16 +1,9 @@
 #pragma once
 
-#include "RHIDefinitions.hpp"
-
-#include <vector>
+#include "Fwd.hpp"
 
 namespace Ilum
 {
-class RHIDevice;
-class RHICommand;
-class RHISemaphore;
-class RHIFence;
-
 struct SubmitInfo
 {
 	RHIQueueFamily queue_family;
