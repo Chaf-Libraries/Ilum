@@ -41,16 +41,6 @@ class SceneHierarchy : public Widget
 			DrawNode(root);
 		}
 
-		if (ImGui::BeginPopupContextWindow(0))
-		{
-			if (ImGui::MenuItem("New Entity"))
-			{
-				auto *node = p_editor->GetRenderer()->GetScene()->CreateNode();
-				node->AddComponent(std::make_unique<Cmpt::Transform>(node));
-			}
-			ImGui::EndPopup();
-		}
-
 		ImGui::End();
 	}
 

@@ -6,9 +6,6 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
-#include <typeindex>
-#include <unordered_set>
-
 using namespace Ilum;
 
 class SceneInspector : public Widget
@@ -38,27 +35,11 @@ class SceneInspector : public Widget
 			char buf[64] = {0};
 			std::memcpy(buf, select->GetName().data(), sizeof(buf));
 			ImGui::PushItemWidth(150.f);
-			if (ImGui::InputText("##Tag", buf, sizeof(buf)))
+			if (ImGui::InputText("Tag", buf, sizeof(buf)))
 			{
 				select->SetName(buf);
 			}
 			ImGui::PopItemWidth();
-		}
-
-		ImGui::SameLine();
-
-		// Add Components
-		ImGui::PushItemWidth(-1);
-		if (ImGui::Button("Add Component"))
-		{
-			ImGui::OpenPopup("AddComponent");
-		}
-		ImGui::PopItemWidth();
-
-		if (ImGui::BeginPopup("AddComponent"))
-		{
-			AddComponents<Cmpt::Light, Cmpt::PointLight, Cmpt::SpotLight, Cmpt::DirectionalLight, Cmpt::PolygonLight>();
-			ImGui::EndPopup();
 		}
 
 		for (auto &[type, cmpt] : select->GetComponents())
@@ -99,45 +80,6 @@ class SceneInspector : public Widget
 		}
 
 		ImGui::End();
-	}
-
-	template <typename _Ty>
-	bool HasComponent()
-	{
-		return p_editor->GetSelectedNode()->HasComponent<_Ty>();
-	}
-
-	template <typename _Ty1, typename... _TyN>
-	bool HasComponent()
-	{
-		return HasComponent<_Ty1>() || HasComponent<_TyN...>();
-	}
-
-	template <typename _Ty>
-	void AddComponent()
-	{
-		if (ImGui::MenuItem(typeid(_Ty).name()))
-		{
-			p_editor->GetSelectedNode()->AddComponent(std::make_unique<_Ty>(p_editor->GetSelectedNode()));
-			ImGui::CloseCurrentPopup();
-		}
-	}
-
-	template <typename _Ty1, typename _Ty2, typename... _TyN>
-	void AddComponent()
-	{
-		AddComponent<_Ty1>();
-		AddComponent<_Ty2, _TyN...>();
-	}
-
-	template <typename _Base, typename... _TyN>
-	void AddComponents()
-	{
-		if (ImGui::BeginMenu(typeid(_Base).name()))
-		{
-			AddComponent<_TyN...>();
-			ImGui::EndMenu();
-		}
 	}
 };
 

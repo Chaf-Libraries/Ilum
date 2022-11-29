@@ -12,9 +12,13 @@ endfunction()
 # target_link_libraries(Editor.SceneView PRIVATE Renderer glm imgui ImGuizmo Resource Scene RHI Geometry glfw)
 # 
 add_widget(SceneHierarchy)
-target_link_libraries(Editor.SceneHierarchy PRIVATE SceneGraph imgui nfd Components Renderer RHI)
+target_link_libraries(Editor.SceneHierarchy PRIVATE SceneGraph imgui Components Renderer RHI)
 set_target_properties(Editor.SceneHierarchy PROPERTIES LINK_FLAGS "/NODEFAULTLIB:MSVCRT")
 
 add_widget(SceneInspector)
-target_link_libraries(Editor.SceneInspector PRIVATE SceneGraph imgui nfd Components Renderer RHI)
+target_link_libraries(Editor.SceneInspector PRIVATE SceneGraph imgui Components Renderer RHI)
 set_target_properties(Editor.SceneInspector PROPERTIES LINK_FLAGS "/NODEFAULTLIB:MSVCRT")
+
+add_widget(MainMenu)
+target_link_libraries(Editor.MainMenu PRIVATE SceneGraph imgui nfd Components Renderer RHI)
+set_target_properties(Editor.MainMenu PROPERTIES LINK_FLAGS "/NODEFAULTLIB:MSVCRT")
