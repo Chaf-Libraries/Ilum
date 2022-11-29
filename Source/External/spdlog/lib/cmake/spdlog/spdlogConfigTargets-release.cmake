@@ -12,8 +12,8 @@ set_target_properties(spdlog::spdlog PROPERTIES
   IMPORTED_LOCATION_RELEASE "${_IMPORT_PREFIX}/bin/spdlog.dll"
   )
 
-list(APPEND _cmake_import_check_targets spdlog::spdlog )
-list(APPEND _cmake_import_check_files_for_spdlog::spdlog "${_IMPORT_PREFIX}/lib/spdlog.lib" "${_IMPORT_PREFIX}/bin/spdlog.dll" )
+list(APPEND _IMPORT_CHECK_TARGETS spdlog::spdlog )
+list(APPEND _IMPORT_CHECK_FILES_FOR_spdlog::spdlog "${_IMPORT_PREFIX}/lib/spdlog.lib" "${_IMPORT_PREFIX}/bin/spdlog.dll" )
 
 # Commands beyond this point should not need to know the version.
 set(CMAKE_IMPORT_FILE_VERSION)

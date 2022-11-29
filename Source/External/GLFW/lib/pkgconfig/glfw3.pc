@@ -1,7 +1,7 @@
-prefix=C:/Program Files (x86)/GLFW
+prefix=E:/Workspace/Ilum_Deps/glfw/build/install
 exec_prefix=${prefix}
-includedir=C:/Program Files (x86)/GLFW/include
-libdir=C:/Program Files (x86)/GLFW/lib
+includedir=E:/Workspace/Ilum_Deps/glfw/build/install/include
+libdir=E:/Workspace/Ilum_Deps/glfw/build/install/lib
 
 Name: GLFW
 Description: A multi-platform library for OpenGL, window and input

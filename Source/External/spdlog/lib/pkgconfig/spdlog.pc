@@ -1,4 +1,4 @@
-prefix=C:/Program Files (x86)/spdlog
+prefix=E:/Workspace/Ilum_Deps/spdlog/build/install
 exec_prefix=${prefix}
 includedir=${prefix}/include
 libdir=${exec_prefix}/lib
