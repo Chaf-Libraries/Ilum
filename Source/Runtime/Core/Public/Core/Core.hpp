@@ -1,11 +1,10 @@
 #pragma once
 
-#include "API.hpp"
+#include "Hash.hpp"
 #include "Log.hpp"
-
-#include <cassert>
-
-#include <fstream>
+#include "Precompile.hpp"
+#include "Path.hpp"
+#include "Plugin.hpp"
 
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>

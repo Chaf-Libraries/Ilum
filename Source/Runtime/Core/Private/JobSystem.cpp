@@ -1,8 +1,5 @@
 #include "JobSystem.hpp"
-
-#include <queue>
-#include <unordered_set>
-#include <cassert>
+#include "Precompile.hpp"
 
 namespace Ilum
 {
@@ -302,4 +299,4 @@ void JobSystem::WaitAll()
 {
 	m_thread_pool->WaitAll();
 }
-}
+}        // namespace Ilum

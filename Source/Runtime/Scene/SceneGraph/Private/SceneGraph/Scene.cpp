@@ -6,6 +6,14 @@ namespace Ilum
 {
 struct Scene::Impl
 {
+	Impl() = default;
+
+	~Impl()
+	{
+		nodes.clear();
+		components.clear();
+	}
+
 	std::string name;
 
 	std::vector<std::unique_ptr<Node>> nodes;
@@ -23,6 +31,7 @@ Scene::Scene(const std::string &name)
 Scene::~Scene()
 {
 	delete m_impl;
+	m_impl = nullptr;
 }
 
 void Scene::SetName(const std::string &name)

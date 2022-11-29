@@ -1,8 +1,8 @@
 #pragma once
 
-#include <glm/glm.hpp>
+#include "Precompile.hpp"
 
-#include <iostream>
+#include <glm/glm.hpp>
 
 namespace Ilum
 {

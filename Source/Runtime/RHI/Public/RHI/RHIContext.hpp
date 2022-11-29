@@ -20,6 +20,8 @@
 
 namespace Ilum
 {
+#undef CreateSemaphore
+
 class RHIContext
 {
   public:

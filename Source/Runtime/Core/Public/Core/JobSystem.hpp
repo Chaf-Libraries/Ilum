@@ -1,12 +1,6 @@
 #pragma once
 
-#include "API.hpp"
-
-#include <atomic>
-#include <functional>
-#include <future>
-#include <typeindex>
-#include <vector>
+#include "Precompile.hpp"
 
 namespace Ilum
 {

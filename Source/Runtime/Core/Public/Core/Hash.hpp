@@ -1,7 +1,6 @@
 #pragma once
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/hash.hpp>
+#include "Precompile.hpp"
 
 namespace Ilum
 {
@@ -9,13 +8,13 @@ template <class T>
 inline void HashCombine(size_t &seed, const T &v)
 {
 	std::hash<T> hasher;
-	glm::detail::hash_combine(seed, hasher(v));
+	seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 }
 
 template <typename T>
 inline void HashCombine(size_t &seed, const std::vector<T> &v)
 {
-	for (auto& data : v)
+	for (auto &data : v)
 	{
 		HashCombine(seed, data);
 	}
@@ -28,8 +27,8 @@ inline void HashCombine(size_t &seed, const T1 &v1, const T2 &...v2)
 	HashCombine(seed, v2...);
 }
 
-template<typename T>
-inline size_t Hash(const T& v)
+template <typename T>
+inline size_t Hash(const T &v)
 {
 	size_t hash = 0;
 	HashCombine(hash, v);

@@ -1,11 +1,6 @@
 #include "Path.hpp"
 #include "Core.hpp"
 
-#include <algorithm>
-#include <filesystem>
-#include <fstream>
-#include <sstream>
-
 namespace Ilum
 {
 Path &Path::GetInstance()

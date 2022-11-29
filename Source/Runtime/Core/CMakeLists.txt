@@ -38,4 +38,6 @@ target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 
 add_dependencies(${TARGET_NAME} External)
 
+target_precompile_headers(${TARGET_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/Public/Core/Precompile.hpp)
+
 set_target_properties(Core PROPERTIES FOLDER Runtime)

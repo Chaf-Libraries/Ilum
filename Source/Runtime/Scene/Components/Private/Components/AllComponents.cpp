@@ -2,7 +2,13 @@
 
 #include <imgui.h>
 
- void ConfigureImGui(ImGuiContext *context)
+namespace Ilum
 {
-	 return ImGui::SetCurrentContext(context);
- }
+namespace Cmpt
+{
+void SetImGuiContext(ImGuiContext *context)
+{
+	return ImGui::SetCurrentContext(context);
+}
+}        // namespace Cmpt
+}        // namespace Ilum

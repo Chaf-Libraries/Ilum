@@ -143,10 +143,10 @@ class SceneInspector : public Widget
 
 extern "C"
 {
-	__declspec(dllexport) SceneInspector *Create(Editor *editor, ImGuiContext *context)
+	EXPORT_API SceneInspector *Create(Editor *editor, ImGuiContext *context)
 	{
 		ImGui::SetCurrentContext(context);
-		ConfigureImGui(context);
+		Ilum::Cmpt::SetImGuiContext(context);
 		return new SceneInspector(editor);
 	}
 }

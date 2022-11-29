@@ -9,7 +9,10 @@
 
 struct ImGuiContext;
 
-extern "C"
+namespace Ilum
 {
-	EXPORT_API void ConfigureImGui(ImGuiContext *context);
+namespace Cmpt
+{
+EXPORT_API void SetImGuiContext(ImGuiContext *context);
 }
+}        // namespace Ilum

@@ -35,10 +35,8 @@ Node::Node(size_t id, Scene &scene, const std::string &name)
 
 Node::~Node()
 {
-	auto &components = m_impl->scene.GetComponents();
 	for (auto &[type, cmpt] : m_impl->components)
 	{
-		auto  iter             = components.find(type);
 		auto &scene_components = m_impl->scene.GetComponents()[type];
 		for (auto iter = scene_components.begin(); iter != scene_components.end(); iter++)
 		{

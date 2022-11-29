@@ -1,11 +1,6 @@
 #pragma once
 
-#include "API.hpp"
-
-#include <cassert>
-#include <cstdint>
-#include <functional>
-#include <thread>
+#include "Precompile.hpp"
 
 namespace Ilum
 {

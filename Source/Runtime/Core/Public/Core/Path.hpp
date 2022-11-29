@@ -1,11 +1,10 @@
 #pragma once
 
-#include <string>
-#include <vector>
+#include "Precompile.hpp"
 
 namespace Ilum
 {
-class __declspec(dllexport) Path
+class EXPORT_API Path
 {
   public:
 	static Path &GetInstance();

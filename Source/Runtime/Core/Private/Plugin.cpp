@@ -1,7 +1,5 @@
 #include "Plugin.hpp"
 
-#include <unordered_map>
-
 namespace Ilum
 {
 struct PluginManager::Impl

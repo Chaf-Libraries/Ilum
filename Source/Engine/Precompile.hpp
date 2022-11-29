@@ -1,5 +1,3 @@
 #pragma once
 
-#include <memory>
-
-#include <Core/Hash.hpp>
+#include <Core/Core.hpp>
