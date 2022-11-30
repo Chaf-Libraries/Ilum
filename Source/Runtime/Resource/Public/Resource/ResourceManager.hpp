@@ -1,14 +1,11 @@
 #pragma once
 
+#include "Resource.hpp"
+
 #include <RHI/RHIContext.hpp>
 
 namespace Ilum
 {
-class IResource;
-
-template <typename _Ty>
-class Resource;
-
 class EXPORT_API ResourceManager
 {
   public:
@@ -16,38 +13,38 @@ class EXPORT_API ResourceManager
 
 	~ResourceManager();
 
-	template <typename _Ty>
-	Resource<_Ty>* Get(size_t uuid)
+	template <ResourceType Type>
+	Resource<Type> *Get(size_t uuid)
 	{
-		return static_cast<Resource<_Ty> *>(Get(typeid(_Ty), uuid));
+		return static_cast<Resource<Type> *>(Get(Type, uuid));
 	}
 
-	template <typename _Ty>
+	template <ResourceType Type>
 	bool Has(size_t uuid)
 	{
-		return Has(Get(typeid(_Ty), uuid));
+		return Has(Get(Type, uuid));
 	}
 
-	template <typename _Ty>
+	template <ResourceType Type>
 	size_t Index(size_t uuid)
 	{
-		return Index(typeid(_Ty), uuid);
+		return Index(Type, uuid);
 	}
 
-	template<typename _Ty>
-	Resource<_Ty> *Import(size_t uuid)
+	template <ResourceType Type>
+	Resource<Type> *Import(const std::string& importer, const std::string &path)
 	{
-		return static_cast<Resource<_Ty> *>(Import(typeid(_Ty), uuid));
+		return static_cast<Resource<Type> *>(Import(Type, importer, path));
 	}
 
   private:
-	IResource *Get(std::type_index index, size_t uuid);
+	IResource *Get(ResourceType type, size_t uuid);
 
-	bool Has(std::type_index index, size_t uuid);
+	bool Has(ResourceType type, size_t uuid);
 
-	size_t Index(std::type_index index, size_t uuid);
+	size_t Index(ResourceType type, size_t uuid);
 
-	IResource *Import(std::type_index index, size_t uuid);
+	IResource *Import(ResourceType type, const std::string &importer, const std::string &path);
 
   private:
 	struct Impl;

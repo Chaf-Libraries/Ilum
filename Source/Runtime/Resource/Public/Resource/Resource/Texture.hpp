@@ -1,12 +1,11 @@
 #pragma once
 
-#include "Resource.hpp"
+#include "../Resource.hpp"
+
+#include <RHI/RHIContext.hpp>
 
 namespace Ilum
 {
-class RHITexture;
-class RHIContext;
-
 template <>
 class EXPORT_API Resource<ResourceType::Texture> final : public IResource
 {
@@ -16,6 +15,8 @@ class EXPORT_API Resource<ResourceType::Texture> final : public IResource
 	virtual ~Resource() override;
 
 	RHITexture *GetTexture() const;
+
+	const std::string &GetName() const;
 
   private:
 	struct Impl;

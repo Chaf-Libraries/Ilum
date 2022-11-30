@@ -53,29 +53,12 @@ class SceneInspector : public Widget
 			bool  open        = ImGui::TreeNodeEx((void *) type.hash_code(), tree_node_flags, cmpt->GetName());
 			ImGui::PopStyleVar();
 
-			bool remove_component = false;
-			if (cmpt->GetType() != typeid(Cmpt::Transform))
-			{
-				ImGui::SameLine(content_region_available.x - line_height * 0.5f);
-				if (ImGui::Button("-", ImVec2{line_height, line_height}))
-				{
-					remove_component = true;
-				}
-			}
-
 			bool update = false;
 
 			if (open)
 			{
 				cmpt->OnImGui();
 				ImGui::TreePop();
-			}
-
-			if (remove_component)
-			{
-				select->EraseComponent(type);
-				update = true;
-				break;
 			}
 		}
 

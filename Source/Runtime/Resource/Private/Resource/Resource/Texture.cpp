@@ -54,4 +54,9 @@ RHITexture *Resource<ResourceType::Texture>::GetTexture() const
 {
 	return m_impl->texture.get();
 }
+
+const std::string &Resource<ResourceType::Texture>::GetName() const
+{
+	return m_impl->texture->GetDesc().name;
+}
 }        // namespace Ilum

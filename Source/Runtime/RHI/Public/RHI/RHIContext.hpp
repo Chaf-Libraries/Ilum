@@ -25,7 +25,7 @@ namespace Ilum
 class RHIContext
 {
   public:
-	RHIContext(Window *window, const std::string &backend = "Vulkan", bool vsync = true);
+	RHIContext(Window *window, const std::string &backend = "Vulkan", bool vsync = false);
 
 	~RHIContext();
 
