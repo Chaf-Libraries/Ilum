@@ -32,7 +32,7 @@ class Command : public RHICommand
 	virtual void BeginRenderPass(RHIRenderTarget *render_target) override;
 	virtual void EndRenderPass() override;
 
-	virtual void BindVertexBuffer(RHIBuffer *vertex_buffer) override;
+	virtual void BindVertexBuffer(uint32_t binding, RHIBuffer *vertex_buffer) override;
 	virtual void BindIndexBuffer(RHIBuffer *index_buffer, bool is_short = false) override;
 
 	virtual void BindDescriptor(RHIDescriptor *descriptor) override;

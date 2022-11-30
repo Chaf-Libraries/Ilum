@@ -32,7 +32,7 @@ class EXPORT_API StaticMesh : public Shape
 
 	virtual std::type_index GetType() const override;
 
-	void SetMesh(RHIContext *rhi_context, TriMesh &tri_mesh);
+	void SetMesh(RHIContext *rhi_context);
 
 	RHIBuffer *GetVertexBuffer() const;
 

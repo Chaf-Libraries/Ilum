@@ -1,5 +1,6 @@
 #include "Resource.hpp"
 #include "Resource/Texture.hpp"
+#include "Resource/Model.hpp"
 
 namespace Ilum
 {

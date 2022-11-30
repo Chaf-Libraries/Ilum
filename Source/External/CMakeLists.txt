@@ -28,6 +28,9 @@ add_custom_command(
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/slang/bin/windows-x64/release/slang.dll"
         "${PROJECT_SOURCE_DIR}/bin/slang.dll"
+	COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_CURRENT_SOURCE_DIR}/meshoptimizer/bin/meshoptimizer.dll"
+        "${PROJECT_SOURCE_DIR}/bin/meshoptimizer.dll"
 )
 
 add_subdirectory(stb)

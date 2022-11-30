@@ -513,7 +513,7 @@ static void RHI_Render(ImDrawData *draw_data, WindowData *window_data = nullptr)
 
 	for (int32_t i = 0; i < draw_data->CmdListsCount; i++)
 	{
-		cmd_buffer->BindVertexBuffer(vertex_buffer.get());
+		cmd_buffer->BindVertexBuffer(0, vertex_buffer.get());
 		cmd_buffer->BindIndexBuffer(index_buffer.get(), true);
 
 		ImDrawList *cmd_list_imgui = draw_data->CmdLists[i];

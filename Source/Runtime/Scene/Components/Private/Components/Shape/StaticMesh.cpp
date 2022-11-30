@@ -25,7 +25,7 @@ std::type_index StaticMesh::GetType() const
 	return typeid(StaticMesh);
 }
 
-void StaticMesh::SetMesh(RHIContext *rhi_context, TriMesh &tri_mesh)
+void StaticMesh::SetMesh(RHIContext *rhi_context)
 {
 }
 

@@ -201,12 +201,12 @@ void Command::EndRenderPass()
 	p_render_target = nullptr;
 }
 
-void Command::BindVertexBuffer(RHIBuffer *vertex_buffer)
+void Command::BindVertexBuffer(uint32_t binding, RHIBuffer *vertex_buffer)
 {
 	Buffer  *vk_vertex_buffer = static_cast<Buffer *>(vertex_buffer);
 	size_t   offset           = 0;
 	VkBuffer handle           = vk_vertex_buffer->GetHandle();
-	vkCmdBindVertexBuffers(m_handle, 0, 1, &handle, &offset);
+	vkCmdBindVertexBuffers(m_handle, binding, 1, &handle, &offset);
 }
 
 void Command::BindIndexBuffer(RHIBuffer *index_buffer, bool is_short)

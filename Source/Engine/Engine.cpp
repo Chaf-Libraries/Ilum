@@ -22,7 +22,7 @@ Engine::Engine()
 
 	Path::GetInstance().SetCurrent("./");
 
-	auto resource = m_resource_manager->Import<ResourceType::Texture>("STB", "Asset/Texture/default.png");
+	auto resource = m_resource_manager->Import<ResourceType::Model>("Assimp", "D:\\Workspace\\Ilum\\Asset\\Model\\dancing_vampire.dae");
 }
 
 Engine::~Engine()

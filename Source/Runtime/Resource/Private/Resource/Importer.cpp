@@ -11,5 +11,6 @@ std::unique_ptr<Importer<Type>> &Importer<Type>::GetInstance(const std::string &
 	return importer;
 }
 
+template class EXPORT_API Importer<ResourceType::Model>;
 template class EXPORT_API Importer<ResourceType::Texture>;
 }        // namespace Ilum

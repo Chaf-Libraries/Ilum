@@ -2,6 +2,7 @@
 #include "Resource.hpp"
 #include "Importer.hpp"
 #include "Resource/Texture.hpp"
+#include "Resource/Model.hpp"
 
 #include <RHI/RHIContext.hpp>
 
@@ -110,7 +111,7 @@ ResourceManager::ResourceManager(RHIContext *rhi_context)
 {
 	m_impl = new Impl;
 	m_impl->managers.emplace(ResourceType::Texture, std::make_unique<TResourceManager<ResourceType::Texture>>(rhi_context));
-	//m_impl->managers.emplace(ResourceType::Model, std::make_unique<TResourceManager<ResourceType::Model>>(rhi_context));
+	m_impl->managers.emplace(ResourceType::Model, std::make_unique<TResourceManager<ResourceType::Model>>(rhi_context));
 }
 
 ResourceManager::~ResourceManager()

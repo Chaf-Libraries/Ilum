@@ -50,7 +50,7 @@ void Command::EndRenderPass()
 {
 }
 
-void Command::BindVertexBuffer(RHIBuffer *vertex_buffer)
+void Command::BindVertexBuffer(uint32_t binding, RHIBuffer *vertex_buffer)
 {
 }
 
