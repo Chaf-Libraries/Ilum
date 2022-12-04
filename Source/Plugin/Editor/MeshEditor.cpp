@@ -113,7 +113,7 @@ class MeshEditor : public Widget
 
 				const char *shading_mode[] = {"None", "Shading", "Normal", "UV", "Texture"};
 				ImGui::PushItemWidth(80);
-				ImGui::Combo("Mode", reinterpret_cast<int32_t *>(&m_shading_mode), shading_mode, 4);
+				ImGui::Combo("Mode", reinterpret_cast<int32_t *>(&m_shading_mode), shading_mode, 5);
 				ImGui::PopItemWidth();
 				if (m_shading_mode == ShadingMode::Shading)
 				{
@@ -215,7 +215,7 @@ class MeshEditor : public Widget
 				m_mesh.indices.push_back(index + indices_offset);
 			}
 
-			indices_offset += static_cast<uint32_t>(mesh.indices.size());
+			indices_offset += static_cast<uint32_t>(mesh.vertices.size());
 		}
 
 		m_view.center /= vertices_count;
