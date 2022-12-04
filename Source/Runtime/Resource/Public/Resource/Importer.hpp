@@ -16,6 +16,9 @@ class Importer
 
 	static std::unique_ptr<Importer<Type>> &GetInstance(const std::string &plugin);
 
-	virtual std::unique_ptr<Resource<Type>> Import(const std::string &path, RHIContext *rhi_context) = 0;
+	static std::unique_ptr<Resource<Type>> Import(const std::string &path, RHIContext *rhi_context);
+
+  protected:
+	virtual std::unique_ptr<Resource<Type>> Import_(const std::string &path, RHIContext *rhi_context) = 0;
 };
 }        // namespace Ilum

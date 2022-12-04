@@ -32,9 +32,9 @@ class EXPORT_API ResourceManager
 	}
 
 	template <ResourceType Type>
-	Resource<Type> *Import(const std::string& importer, const std::string &path)
+	Resource<Type> *Import(const std::string &path)
 	{
-		return static_cast<Resource<Type> *>(Import(Type, importer, path));
+		return static_cast<Resource<Type> *>(Import(Type, path));
 	}
 
   private:
@@ -44,7 +44,7 @@ class EXPORT_API ResourceManager
 
 	size_t Index(ResourceType type, size_t uuid);
 
-	IResource *Import(ResourceType type, const std::string &importer, const std::string &path);
+	IResource *Import(ResourceType type, const std::string &path);
 
   private:
 	struct Impl;

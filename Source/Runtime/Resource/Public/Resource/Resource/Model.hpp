@@ -22,9 +22,9 @@ class EXPORT_API Resource<ResourceType::Model> final : public IResource
 		uint32_t primitive_count;
 
 		glm::vec3 center;
-		glm::vec3 cone_axis;
+		float     radius;
 
-		float radius;
+		glm::vec3 cone_axis;
 		float cone_cutoff;
 	};
 
@@ -32,8 +32,6 @@ class EXPORT_API Resource<ResourceType::Model> final : public IResource
 	{
 		alignas(16) glm::vec3 position;
 		alignas(16) glm::vec3 normal;
-		alignas(16) glm::vec3 tangent;
-		alignas(16) glm::vec3 bitangent;
 
 		glm::vec2 texcoord0;
 		glm::vec2 texcoord1;
@@ -44,14 +42,16 @@ class EXPORT_API Resource<ResourceType::Model> final : public IResource
 
 	struct Bone
 	{
-		int32_t id;
-
+		int32_t   id;
 		glm::mat4 offset;
 	};
 
 	struct Mesh
 	{
-		bool has_skeleton = false;
+		std::string name;
+
+		// Transform
+		glm::mat4 transform;
 
 		// Vertex
 		std::vector<Vertex> vertices;
@@ -63,35 +63,40 @@ class EXPORT_API Resource<ResourceType::Model> final : public IResource
 		std::vector<uint32_t> meshlet_vertices;
 		std::vector<uint32_t> meshlet_primitives;
 		std::vector<Meshlet>  meshlets;
-	};
 
-	struct Node
-	{
-		std::string name;
+		// Skeleton animation
+		std::map<std::string, Bone> bones;
 
-		int32_t mesh_id;
+		inline bool HasSkeleton() const
+		{
+			return !bones.empty();
+		}
 	};
 
   public:
-	Resource(RHIContext *rhi_context, Mesh &&mesh);
+	Resource(const std::string &name, RHIContext *rhi_context, std::vector<Mesh> &&meshes);
 
 	virtual ~Resource() override;
 
 	const std::string &GetName() const;
 
-	bool HasAnimation() const;
+	bool HasAnimation(uint32_t idx) const;
 
-	RHIBuffer *GetVertexBuffer() const;
+	const std::vector<Mesh> &GetMeshes() const;
 
-	RHIBuffer *GetIndexBuffer() const;
+	uint32_t GetMeshCount() const;
 
-	RHIBuffer *GetMeshletVertexBuffer() const;
+	RHIBuffer *GetVertexBuffer(uint32_t idx) const;
 
-	RHIBuffer *GetMeshletPrimitiveBuffer() const;
+	RHIBuffer *GetIndexBuffer(uint32_t idx) const;
 
-	RHIBuffer *GetMeshletBuffer() const;
+	RHIBuffer *GetMeshletVertexBuffer(uint32_t idx) const;
 
-	RHIAccelerationStructure *GetBLAS(uint32_t submesh_id) const;
+	RHIBuffer *GetMeshletPrimitiveBuffer(uint32_t idx) const;
+
+	RHIBuffer *GetMeshletBuffer(uint32_t idx) const;
+
+	RHIAccelerationStructure *GetBLAS(uint32_t idx) const;
 
   private:
 	struct Impl;

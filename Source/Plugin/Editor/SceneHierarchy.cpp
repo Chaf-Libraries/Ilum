@@ -21,7 +21,11 @@ class SceneHierarchy : public Widget
 
 	virtual void Tick() override
 	{
-		ImGui::Begin(m_name.c_str());
+		if (!ImGui::Begin(m_name.c_str()))
+		{
+			ImGui::End();
+			return;
+		}
 
 		if (ImGui::BeginDragDropTarget())
 		{

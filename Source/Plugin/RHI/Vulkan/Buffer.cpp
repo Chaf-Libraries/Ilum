@@ -187,9 +187,9 @@ Buffer::Buffer(RHIDevice *device, const BufferDesc &desc) :
 
 Buffer::~Buffer()
 {
-	Unmap();
-
 	vkDeviceWaitIdle(static_cast<Device *>(p_device)->GetDevice());
+
+	Unmap();
 
 	if (m_allocation)
 	{

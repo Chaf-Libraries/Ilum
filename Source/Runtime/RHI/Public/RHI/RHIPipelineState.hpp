@@ -184,6 +184,9 @@ struct VertexInputState
 
 	inline bool operator==(const VertexInputState &state) const
 	{
+		bool same_input_attributes = false;
+		bool same_input_bindings   = false;
+
 		if (input_attributes.size() == state.input_attributes.size())
 		{
 			for (uint32_t i = 0; i < input_attributes.size(); i++)
@@ -193,26 +196,22 @@ struct VertexInputState
 					return false;
 				}
 			}
-			return true;
+			same_input_attributes = true;
 		}
-		else
+
+		if (input_bindings.size() == state.input_bindings.size())
 		{
-			if (input_bindings.size() == state.input_bindings.size())
+			for (uint32_t i = 0; i < input_bindings.size(); i++)
 			{
-				for (uint32_t i = 0; i < input_bindings.size(); i++)
+				if (input_bindings[i] != state.input_bindings[i])
 				{
-					if (input_bindings[i] != state.input_bindings[i])
-					{
-						return false;
-					}
+					return false;
 				}
-				return true;
 			}
-			else
-			{
-				return false;
-			}
+			same_input_bindings = true;
 		}
+
+		return same_input_attributes && same_input_bindings;
 	}
 
 	inline bool operator!=(const VertexInputState &state) const
@@ -258,12 +257,12 @@ class RHIPipelineState
 	void ClearShader();
 
 	const std::vector<std::pair<RHIShaderStage, RHIShader *>> &GetShaders() const;
-	const DepthStencilState  &GetDepthStencilState() const;
-	const BlendState         &GetBlendState() const;
-	const RasterizationState &GetRasterizationState() const;
-	const MultisampleState   &GetMultisampleState() const;
-	const VertexInputState   &GetVertexInputState() const;
-	const InputAssemblyState &GetInputAssemblyState() const;
+	const DepthStencilState                                   &GetDepthStencilState() const;
+	const BlendState                                          &GetBlendState() const;
+	const RasterizationState                                  &GetRasterizationState() const;
+	const MultisampleState                                    &GetMultisampleState() const;
+	const VertexInputState                                    &GetVertexInputState() const;
+	const InputAssemblyState                                  &GetInputAssemblyState() const;
 
 	size_t GetHash();
 

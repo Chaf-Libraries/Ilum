@@ -448,8 +448,14 @@ static void RHI_Render(ImDrawData *draw_data, WindowData *window_data = nullptr)
 	for (int n = 0; n < draw_data->CmdListsCount; n++)
 	{
 		const ImDrawList *cmd_list = draw_data->CmdLists[n];
-		memcpy(vtx_dst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
-		memcpy(idx_dst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
+		if (vtx_dst)
+		{
+			memcpy(vtx_dst, cmd_list->VtxBuffer.Data, cmd_list->VtxBuffer.Size * sizeof(ImDrawVert));
+		}
+		if (idx_dst)
+		{
+			memcpy(idx_dst, cmd_list->IdxBuffer.Data, cmd_list->IdxBuffer.Size * sizeof(ImDrawIdx));
+		}
 		vtx_dst += cmd_list->VtxBuffer.Size;
 		idx_dst += cmd_list->IdxBuffer.Size;
 	}

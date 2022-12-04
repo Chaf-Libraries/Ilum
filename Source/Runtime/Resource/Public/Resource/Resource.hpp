@@ -7,7 +7,8 @@ namespace Ilum
 enum class ResourceType
 {
 	Model,
-	Texture
+	Texture,
+	Animation,
 };
 
 class EXPORT_API IResource

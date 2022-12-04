@@ -14,6 +14,7 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <memory_resource>
 #include <optional>
 #include <queue>
 #include <regex>

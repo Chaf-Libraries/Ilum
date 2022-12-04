@@ -2,7 +2,6 @@
 
 #include "Shape.hpp"
 
-#include <Geometry/TriMesh.hpp>
 #include <Material/Material.hpp>
 #include <RHI/RHIContext.hpp>
 

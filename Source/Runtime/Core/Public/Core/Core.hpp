@@ -1,10 +1,11 @@
 #pragma once
 
+#include "Container.hpp"
 #include "Hash.hpp"
 #include "Log.hpp"
-#include "Precompile.hpp"
 #include "Path.hpp"
 #include "Plugin.hpp"
+#include "Precompile.hpp"
 
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>

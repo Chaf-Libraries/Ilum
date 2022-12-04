@@ -74,16 +74,17 @@ class AssimpImporter : public Importer<ResourceType::Model>
 		std::vector<Mesh> meshes;
 
 		std::map<std::string, Bone> bone_map;
-
-		int32_t bone_counter = 0;
 	};
 
 	void ProcessMesh(const aiScene *scene, aiMesh *mesh, aiMatrix4x4 transform, ModelData &data)
 	{
 		Mesh result;
 
+		result.name = mesh->mName.C_Str();
+		result.transform = ToMatrix(transform);
+
 		result.vertices.reserve(mesh->mNumVertices);
-		result.indices.reserve(mesh->mNumFaces * 3);
+		result.indices.reserve(mesh->mNumFaces * 3U);
 
 		// Process vertices
 		for (uint32_t j = 0; j < mesh->mNumVertices; j++)
@@ -91,11 +92,8 @@ class AssimpImporter : public Importer<ResourceType::Model>
 			Vertex vertex;
 			vertex.position  = glm::vec3(mesh->mVertices[j].x, mesh->mVertices[j].y, mesh->mVertices[j].z);
 			vertex.normal    = glm::vec3(mesh->mNormals[j].x, mesh->mNormals[j].y, mesh->mNormals[j].z);
-			vertex.bitangent = glm::vec3(mesh->mBitangents[j].x, mesh->mBitangents[j].y, mesh->mBitangents[j].z);
-			vertex.tangent   = glm::vec3(mesh->mTangents[j].x, mesh->mTangents[j].y, mesh->mTangents[j].z);
-			vertex.texcoord0 = glm::vec2(mesh->mTextureCoords[0][j].x, mesh->mTextureCoords[0][j].y);
+			vertex.texcoord0 = mesh->mTextureCoords[0] ? glm::vec2(mesh->mTextureCoords[0][j].x, mesh->mTextureCoords[0][j].y) : glm::vec2(0.f);
 			vertex.texcoord1 = mesh->mTextureCoords[1] ? glm::vec2(mesh->mTextureCoords[1][j].x, mesh->mTextureCoords[1][j].y) : glm::vec2(0.f);
-
 			result.vertices.emplace_back(vertex);
 		}
 
@@ -112,26 +110,30 @@ class AssimpImporter : public Importer<ResourceType::Model>
 		{
 			if (mesh->mNumBones > 0)
 			{
-				result.has_skeleton = true;
 				for (uint32_t bone_index = 0; bone_index < mesh->mNumBones; bone_index++)
 				{
-					int32_t bone_id = -1;
+					int32_t     bone_id   = -1;
 					std::string bone_name = mesh->mBones[bone_index]->mName.C_Str();
+
 					if (data.bone_map.find(bone_name) == data.bone_map.end())
 					{
-						Bone bone = {};
-						bone.id   = data.bone_counter;
+						Bone bone   = {};
+						bone.id     = static_cast<uint32_t>(data.bone_map.size());
 						bone.offset = ToMatrix(mesh->mBones[bone_index]->mOffsetMatrix);
+
 						data.bone_map[bone_name] = bone;
-						bone_id                  = data.bone_counter;
-						data.bone_counter++;
+
+						bone_id = bone.id;
 					}
 					else
 					{
 						bone_id = data.bone_map.at(bone_name).id;
 					}
-					auto weights    = mesh->mBones[bone_index]->mWeights;
-					uint32_t  weight_num = mesh->mBones[bone_index]->mNumWeights;
+
+					result.bones[bone_name] = data.bone_map.at(bone_name);
+
+					auto     weights    = mesh->mBones[bone_index]->mWeights;
+					uint32_t weight_num = mesh->mBones[bone_index]->mNumWeights;
 
 					for (uint32_t weight_index = 0; weight_index < weight_num; weight_index++)
 					{
@@ -170,16 +172,36 @@ class AssimpImporter : public Importer<ResourceType::Model>
 
 		// Merge meshlets
 		const meshopt_Meshlet &last = meshlets[meshlet_count - 1];
-		meshlet_vertices.resize(last.vertex_offset + last.vertex_count);
-		meshlet_triangles.resize(last.triangle_offset + ((last.triangle_count * 3 + 3) & ~3));
+		meshlet_vertices.resize((size_t) last.vertex_offset + last.vertex_count);
+		meshlet_triangles.resize((size_t) last.triangle_offset + ((last.triangle_count * 3 + 3) & ~3));
 		meshlets.resize(meshlet_count);
 
-		result.meshlet_vertices = std::move(meshlet_vertices);
-
-		result.meshlet_primitives.reserve(meshlet_triangles.size() / 3);
-		for (uint32_t i = 0; i < meshlet_triangles.size() / 3; i++)
+		result.meshlets.reserve(meshlets.size());
+		for (auto &meshlet : meshlets)
 		{
-			result.meshlet_primitives.push_back(PackTriangle(meshlet_triangles[3 * i], meshlet_triangles[3 * i + 1], meshlet_triangles[3 * i + 2]));
+			auto bound = meshopt_computeMeshletBounds(&meshlet_vertices[meshlet.vertex_offset], &meshlet_triangles[meshlet.triangle_offset],
+			                                          meshlet.triangle_count, &result.vertices[0].position.x, result.vertices.size(), sizeof(Vertex));
+
+			Meshlet tmp = {};
+
+			tmp.meshlet_primitive_offset = meshlet.triangle_offset / 3U;
+			tmp.meshlet_vertex_offset    = meshlet.vertex_offset;
+			tmp.vertex_count             = meshlet.vertex_count;
+			tmp.primitive_count          = meshlet.triangle_count;
+			tmp.cone_cutoff              = bound.cone_cutoff;
+			tmp.radius                   = bound.radius;
+
+			std::memcpy(&tmp.center, bound.center, sizeof(float) * 3);
+			std::memcpy(&tmp.cone_axis, bound.cone_axis, sizeof(float) * 3);
+
+			result.meshlets.emplace_back(std::move(tmp));
+		}
+
+		result.meshlet_vertices = std::move(meshlet_vertices);
+		result.meshlet_primitives.reserve(meshlet_triangles.size() / 3);
+		for (size_t i = 0; i < meshlet_triangles.size() / 3; i++)
+		{
+			result.meshlet_primitives.push_back(PackTriangle(meshlet_triangles[3U * i], meshlet_triangles[3U * i + 1U], meshlet_triangles[3U * i + 2U]));
 		}
 
 		data.meshes.emplace_back(std::move(result));
@@ -201,57 +223,22 @@ class AssimpImporter : public Importer<ResourceType::Model>
 		}
 	}
 
-	void ProcessBone(const aiScene *assimp_scene, aiMesh *assimp_mesh, std::map<std::string, Bone> &bone_map, Mesh &mesh)
-	{
-		for (uint32_t bone_index = 0; bone_index < assimp_mesh->mNumBones; bone_index++)
-		{
-			int32_t     bone_id   = -1;
-			std::string bone_name = assimp_mesh->mBones[bone_index]->mName.C_Str();
-
-			if (bone_map.find(bone_name) == bone_map.end())
-			{
-				// Bone bone;
-			}
-			else
-			{
-				bone_id = bone_map[bone_name].id;
-			}
-
-			auto   *weights    = assimp_mesh->mBones[bone_index]->mWeights;
-			int32_t weight_num = assimp_mesh->mBones[bone_index]->mNumWeights;
-
-			for (int weight_index = 0; weight_index < weight_num; ++weight_index)
-			{
-				int32_t vertex_id = weights[weight_index].mVertexId;
-				float   weight    = weights[weight_index].mWeight;
-
-				for (int32_t i = 0; i < 4; ++i)
-				{
-					if (mesh.vertices[vertex_id].bones[i] < 0)
-					{
-						mesh.vertices[vertex_id].weights[i] = weight;
-						mesh.vertices[vertex_id].bones[i]   = bone_id;
-						break;
-					}
-				}
-			}
-		}
-	}
-
-	virtual std::unique_ptr<Resource<ResourceType::Model>> Import(const std::string &path, RHIContext *rhi_context) override
+  protected:
+	virtual std::unique_ptr<Resource<ResourceType::Model>> Import_(const std::string &path, RHIContext *rhi_context) override
 	{
 		std::string model_name = Path::GetInstance().GetFileName(path, false);
 
 		Assimp::Importer importer;
 
-		if (const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace))
+		if (const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals))
 		{
 			LOG_INFO("Model {} preprocess finish", path);
 
-			ModelData data;
-
+			ModelData   data;
 			aiMatrix4x4 identity;
 			ProcessNode(scene, scene->mRootNode, data, identity);
+
+			return std::make_unique<Resource<ResourceType::Model>>(model_name, rhi_context, std::move(data.meshes));
 		}
 
 		return nullptr;

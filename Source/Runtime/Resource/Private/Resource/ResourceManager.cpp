@@ -25,7 +25,7 @@ struct IResourceManager
 
 	virtual void Erase(size_t uuid) = 0;
 
-	virtual IResource *Import(const std::string &importer, const std::string &path) = 0;
+	virtual IResource *Import(const std::string &path) = 0;
 
 	RHIContext *rhi_context = nullptr;
 };
@@ -85,11 +85,11 @@ struct TResourceManager : public IResourceManager
 		lookup.erase(uuid);
 	}
 
-	virtual IResource *Import(const std::string &importer, const std::string &path) override
+	virtual IResource *Import(const std::string &path) override
 	{
 		if (lookup.find(Hash(path)) == lookup.end())
 		{
-			std::unique_ptr<Resource<_Ty>> resource = Importer<_Ty>::GetInstance(importer)->Import(path, rhi_context);
+			std::unique_ptr<Resource<_Ty>> resource = Importer<_Ty>::Import(path, rhi_context);
 			lookup.emplace(Hash(path), resources.size());
 			resources.emplace_back(std::move(resource));
 			return resources.back().get();
@@ -134,8 +134,8 @@ size_t ResourceManager::Index(ResourceType type, size_t uuid)
 	return m_impl->managers.at(type)->Index(uuid);
 }
 
-IResource *ResourceManager::Import(ResourceType type, const std::string &importer, const std::string &path)
+IResource *ResourceManager::Import(ResourceType type, const std::string &path)
 {
-	return m_impl->managers.at(type)->Import(importer, path);
+	return m_impl->managers.at(type)->Import(path);
 }
 }        // namespace Ilum

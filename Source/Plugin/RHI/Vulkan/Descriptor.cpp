@@ -373,7 +373,7 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 	// Check update
 	for (auto &[set, dirty] : m_binding_dirty)
 	{
-		size_t hash = 0;
+		size_t hash = Hash(m_descriptor_set_layouts.at(set));
 		for (auto &[name, binding_hash] : m_binding_hash)
 		{
 			if (m_descriptor_lookup[name].first == set)

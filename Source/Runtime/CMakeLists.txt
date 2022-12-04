@@ -1,6 +1,7 @@
 add_subdirectory(Core)
 add_subdirectory(RHI)
 add_subdirectory(Geometry)
+add_subdirectory(Animation)
 add_subdirectory(Render)
 add_subdirectory(Resource)
 add_subdirectory(Scene)

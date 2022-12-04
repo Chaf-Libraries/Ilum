@@ -42,4 +42,13 @@ inline size_t Hash(const T1 &v1, const T2 &...v2)
 	HashCombine(hash, v1, v2...);
 	return hash;
 }
+
+struct PairHash
+{
+	template <class T1, class T2>
+	std::size_t operator()(const std::pair<T1, T2> &p) const
+	{
+		return Hash(p.first, p.second);
+	}
+};
 }        // namespace Ilum

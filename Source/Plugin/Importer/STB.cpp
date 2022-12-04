@@ -8,8 +8,8 @@ using namespace Ilum;
 
 class STBImporter : public Importer<ResourceType::Texture>
 {
-  public:
-	virtual std::unique_ptr<Resource<ResourceType::Texture>> Import(const std::string &path, RHIContext* rhi_context) override
+  protected:
+	virtual std::unique_ptr<Resource<ResourceType::Texture>> Import_(const std::string &path, RHIContext* rhi_context) override
 	{
 		TextureDesc desc = {};
 		desc.name        = Path::GetInstance().GetFileName(path, false);

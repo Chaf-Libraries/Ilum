@@ -1,0 +1,12 @@
+function(add_subdivision name)
+    set(TARGET_NAME Geometry.Subdivision.${name})
+    add_library(${TARGET_NAME} MODULE ${name}.cpp)
+    set_target_properties(${TARGET_NAME} PROPERTIES FOLDER "Plugin/Geometry")
+    target_link_libraries(${TARGET_NAME} PRIVATE Core)
+    target_link_libraries(${TARGET_NAME} PRIVATE Geometry)
+    add_dependencies(Plugins ${TARGET_NAME})
+    target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
+    set_target_properties(${TARGET_NAME} PROPERTIES LINK_FLAGS "/NODEFAULTLIB:MSVCRT")
+endfunction()
+
+add_subdivision(Loop)
