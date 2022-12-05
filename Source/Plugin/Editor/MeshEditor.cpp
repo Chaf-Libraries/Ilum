@@ -112,7 +112,7 @@ class MeshEditor : public Widget
 				ImGui::Checkbox("Wireframe", &m_wireframe);
 
 				const char *shading_mode[] = {"None", "Shading", "Normal", "UV", "Texture"};
-				ImGui::PushItemWidth(80);
+				ImGui::PushItemWidth(90);
 				ImGui::Combo("Mode", reinterpret_cast<int32_t *>(&m_shading_mode), shading_mode, 5);
 				ImGui::PopItemWidth();
 				if (m_shading_mode == ShadingMode::Shading)

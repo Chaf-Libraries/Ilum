@@ -9,6 +9,7 @@ function(add_widget name)
     target_link_libraries(${TARGET_NAME} PRIVATE imgui)
     add_dependencies(Plugins ${TARGET_NAME})
     target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
+set_target_properties(${TARGET_NAME} PROPERTIES LINK_FLAGS "/NODEFAULTLIB:MSVCRT")
 endfunction()
 
 # add_widget(SceneView)
@@ -16,16 +17,15 @@ endfunction()
 # 
 add_widget(SceneHierarchy)
 target_link_libraries(Editor.SceneHierarchy PRIVATE SceneGraph Components)
-set_target_properties(Editor.SceneHierarchy PROPERTIES LINK_FLAGS "/NODEFAULTLIB:MSVCRT")
 
 add_widget(SceneInspector)
 target_link_libraries(Editor.SceneInspector PRIVATE SceneGraph Components)
-set_target_properties(Editor.SceneInspector PROPERTIES LINK_FLAGS "/NODEFAULTLIB:MSVCRT")
 
 add_widget(MainMenu)
 target_link_libraries(Editor.MainMenu PRIVATE SceneGraph nfd Components)
-set_target_properties(Editor.MainMenu PROPERTIES LINK_FLAGS "/NODEFAULTLIB:MSVCRT")
 
-add_widget(MeshEditor)
-target_link_libraries(Editor.MeshEditor PRIVATE nfd Geometry Resource)
-set_target_properties(Editor.MeshEditor PROPERTIES LINK_FLAGS "/NODEFAULTLIB:MSVCRT")
+# add_widget(MeshEditor)
+# target_link_libraries(Editor.MeshEditor PRIVATE nfd Geometry Resource)
+
+add_widget(AnimationEditor)
+target_link_libraries(Editor.AnimationEditor PRIVATE nfd Animation Resource)

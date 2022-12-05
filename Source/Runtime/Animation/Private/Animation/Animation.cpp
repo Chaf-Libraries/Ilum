@@ -5,17 +5,25 @@ namespace Ilum
 struct Animation::Impl
 {
 	std::string       name;
-	Node              root;
+	float             duration;
+	float             ticks_per_sec;
 	std::vector<Bone> bones;
 };
 
-Animation::Animation(const std::string &name, std::vector<Bone> &&bones, Node &&root)
+Animation::Animation(const std::string &name, std::vector<Bone> &&bones, float duration, float ticks_per_sec)
 {
 	m_impl = new Impl;
 
 	m_impl->name  = name;
-	m_impl->root  = std::move(root);
+	m_impl->duration = duration;
+	m_impl->ticks_per_sec = ticks_per_sec;
 	m_impl->bones = std::move(bones);
+}
+
+Animation::Animation(Animation &&animation) :
+    m_impl(animation.m_impl)
+{
+	animation.m_impl = nullptr;
 }
 
 Animation::~Animation()
@@ -24,11 +32,6 @@ Animation::~Animation()
 	{
 		delete m_impl;
 	}
-}
-
-const Animation::Node &Animation::GetRoot() const
-{
-	return m_impl->root;
 }
 
 Bone *Animation::GetBone(const std::string &name)

@@ -43,17 +43,17 @@ Resource<ResourceType::Model>::Resource(const std::string &name, RHIContext *rhi
 
 		std::unique_ptr<RHIAccelerationStructure> blas = nullptr;
 
-		vertex_buffer            = rhi_context->CreateBuffer<Vertex>(mesh.vertices.size(), RHIBufferUsage::Vertex | RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, mesh.HasSkeleton() ? RHIMemoryUsage::CPU_TO_GPU : RHIMemoryUsage::GPU_Only);
-		index_buffer             = rhi_context->CreateBuffer<uint32_t>(mesh.indices.size(), RHIBufferUsage::Index | RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, mesh.HasSkeleton() ? RHIMemoryUsage::CPU_TO_GPU : RHIMemoryUsage::GPU_Only);
-		meshlet_vertex_buffer    = rhi_context->CreateBuffer<uint32_t>(mesh.meshlet_vertices.size(), RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, mesh.HasSkeleton() ? RHIMemoryUsage::CPU_TO_GPU : RHIMemoryUsage::GPU_Only);
-		meshlet_primitive_buffer = rhi_context->CreateBuffer<uint32_t>(mesh.meshlet_primitives.size(), RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, mesh.HasSkeleton() ? RHIMemoryUsage::CPU_TO_GPU : RHIMemoryUsage::GPU_Only);
-		meshlet_buffer           = rhi_context->CreateBuffer<Meshlet>(mesh.meshlets.size(), RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, mesh.HasSkeleton() ? RHIMemoryUsage::CPU_TO_GPU : RHIMemoryUsage::GPU_Only);
+		//vertex_buffer            = rhi_context->CreateBuffer<Vertex>(mesh.vertices.size(), RHIBufferUsage::Vertex | RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, mesh.HasSkeleton() ? RHIMemoryUsage::CPU_TO_GPU : RHIMemoryUsage::GPU_Only);
+		//index_buffer             = rhi_context->CreateBuffer<uint32_t>(mesh.indices.size(), RHIBufferUsage::Index | RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, mesh.HasSkeleton() ? RHIMemoryUsage::CPU_TO_GPU : RHIMemoryUsage::GPU_Only);
+		//meshlet_vertex_buffer    = rhi_context->CreateBuffer<uint32_t>(mesh.meshlet_vertices.size(), RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, mesh.HasSkeleton() ? RHIMemoryUsage::CPU_TO_GPU : RHIMemoryUsage::GPU_Only);
+		//meshlet_primitive_buffer = rhi_context->CreateBuffer<uint32_t>(mesh.meshlet_primitives.size(), RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, mesh.HasSkeleton() ? RHIMemoryUsage::CPU_TO_GPU : RHIMemoryUsage::GPU_Only);
+		//meshlet_buffer           = rhi_context->CreateBuffer<Meshlet>(mesh.meshlets.size(), RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, mesh.HasSkeleton() ? RHIMemoryUsage::CPU_TO_GPU : RHIMemoryUsage::GPU_Only);
 
-		vertex_buffer->CopyToDevice(mesh.vertices.data(), mesh.vertices.size() * sizeof(Vertex));
-		index_buffer->CopyToDevice(mesh.indices.data(), mesh.indices.size() * sizeof(uint32_t));
-		meshlet_vertex_buffer->CopyToDevice(mesh.meshlet_vertices.data(), mesh.meshlet_vertices.size() * sizeof(uint32_t));
-		meshlet_primitive_buffer->CopyToDevice(mesh.meshlet_primitives.data(), mesh.meshlet_primitives.size() * sizeof(uint32_t));
-		meshlet_buffer->CopyToDevice(mesh.meshlets.data(), mesh.meshlets.size() * sizeof(Meshlet));
+		//vertex_buffer->CopyToDevice(mesh.vertices.data(), mesh.vertices.size() * sizeof(Vertex));
+		//index_buffer->CopyToDevice(mesh.indices.data(), mesh.indices.size() * sizeof(uint32_t));
+		//meshlet_vertex_buffer->CopyToDevice(mesh.meshlet_vertices.data(), mesh.meshlet_vertices.size() * sizeof(uint32_t));
+		//meshlet_primitive_buffer->CopyToDevice(mesh.meshlet_primitives.data(), mesh.meshlet_primitives.size() * sizeof(uint32_t));
+		//meshlet_buffer->CopyToDevice(mesh.meshlets.data(), mesh.meshlets.size() * sizeof(Meshlet));
 
 		// TODO: Ray Tracing for skeleton mesh
 		blas = rhi_context->CreateAcccelerationStructure();
@@ -93,7 +93,8 @@ const std::string &Resource<ResourceType::Model>::GetName() const
 
 bool Resource<ResourceType::Model>::HasAnimation(uint32_t idx) const
 {
-	return !m_impl->meshes.at(idx).bones.empty();
+	//return !m_impl->meshes.at(idx).bones.empty();
+	return false;
 }
 
 const std::vector<Resource<ResourceType::Model>::Mesh> &Resource<ResourceType::Model>::GetMeshes() const

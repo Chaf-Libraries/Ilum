@@ -38,6 +38,8 @@ class EXPORT_API Bone
 
 	~Bone();
 
+	Bone(Bone &&bone);
+
 	void Update(float time);
 
 	glm::mat4 GetLocalTransform() const;

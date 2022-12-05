@@ -22,7 +22,7 @@ Engine::Engine()
 
 	Path::GetInstance().SetCurrent("./");
 
-	auto resource = m_resource_manager->Import<ResourceType::Model>("E:\\Workspace\\LearnOpenGL\\resources\\objects\\vampire\\dancing_vampire.dae");
+	auto resource = m_resource_manager->Import<ResourceType::Model>("./Asset/Model/halo/scene.gltf");
 }
 
 Engine::~Engine()

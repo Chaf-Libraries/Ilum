@@ -25,17 +25,21 @@ class EXPORT_API Resource<ResourceType::Model> final : public IResource
 		float     radius;
 
 		glm::vec3 cone_axis;
-		float cone_cutoff;
+		float     cone_cutoff;
 	};
 
 	struct Vertex
 	{
 		alignas(16) glm::vec3 position;
 		alignas(16) glm::vec3 normal;
+		alignas(16) glm::vec3 tangent;
 
 		glm::vec2 texcoord0;
 		glm::vec2 texcoord1;
+	};
 
+	struct SkinnedVertex : public Vertex
+	{
 		int32_t bones[MAX_BONE_INFLUENCE]   = {-1};
 		float   weights[MAX_BONE_INFLUENCE] = {0.f};
 	};
@@ -50,28 +54,49 @@ class EXPORT_API Resource<ResourceType::Model> final : public IResource
 	{
 		std::string name;
 
-		// Transform
-		glm::mat4 transform;
-
-		// Vertex
-		std::vector<Vertex> vertices;
-
-		// Index
+		std::vector<Vertex>   vertices;
 		std::vector<uint32_t> indices;
-
-		// Meshlet
-		std::vector<uint32_t> meshlet_vertices;
-		std::vector<uint32_t> meshlet_primitives;
-		std::vector<Meshlet>  meshlets;
-
-		// Skeleton animation
-		std::map<std::string, Bone> bones;
-
-		inline bool HasSkeleton() const
-		{
-			return !bones.empty();
-		}
 	};
+
+	struct SkinnedMesh
+	{
+		std::string name;
+
+		std::map<std::string, Bone> bones;
+	};
+
+	struct Node
+	{
+		glm::mat4 transform;
+		uint32_t  mesh = ~0U;
+	};
+
+	// struct Mesh
+	//{
+	//	std::string name;
+
+	//	// Transform
+	//	glm::mat4 transform;
+
+	//	// Vertex
+	//	std::vector<Vertex> vertices;
+
+	//	// Index
+	//	std::vector<uint32_t> indices;
+
+	//	// Meshlet
+	//	std::vector<uint32_t> meshlet_vertices;
+	//	std::vector<uint32_t> meshlet_primitives;
+	//	std::vector<Meshlet>  meshlets;
+
+	//	// Skeleton animation
+	//	std::map<std::string, Bone> bones;
+
+	//	inline bool HasSkeleton() const
+	//	{
+	//		return !bones.empty();
+	//	}
+	//};
 
   public:
 	Resource(const std::string &name, RHIContext *rhi_context, std::vector<Mesh> &&meshes);

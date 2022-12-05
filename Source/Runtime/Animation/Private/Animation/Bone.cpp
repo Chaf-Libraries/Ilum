@@ -33,9 +33,19 @@ Bone::Bone(
 	m_impl->local_transfrom = glm::mat4(1.f);
 }
 
+Bone::Bone(Bone &&bone) :
+    m_impl(bone.m_impl)
+{
+	bone.m_impl = nullptr;
+}
+
 Bone::~Bone()
 {
-	delete m_impl;
+	if (m_impl)
+	{
+		delete m_impl;
+		m_impl = nullptr;
+	}
 }
 
 void Bone::Update(float time)

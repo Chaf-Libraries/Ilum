@@ -19,11 +19,11 @@ class EXPORT_API Animation
   public:
 	Animation() = default;
 
-	Animation(const std::string &name, std::vector<Bone> &&bones, Node &&root);
+	Animation(const std::string &name, std::vector<Bone> &&bones, float duration, float ticks_per_sec);
+
+	Animation(Animation &&animation);
 
 	~Animation();
-
-	const Node &GetRoot() const;
 
 	Bone *GetBone(const std::string &name);
 
