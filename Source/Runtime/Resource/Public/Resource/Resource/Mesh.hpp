@@ -5,12 +5,10 @@
 #include <Geometry/AABB.hpp>
 #include <RHI/RHIContext.hpp>
 
-#define MAX_BONE_INFLUENCE 4
-
 namespace Ilum
 {
 template <>
-class EXPORT_API Resource<ResourceType::Model> final : public IResource
+class EXPORT_API Resource<ResourceType::Mesh> final : public IResource
 {
   public:
 	struct Meshlet
@@ -38,37 +36,26 @@ class EXPORT_API Resource<ResourceType::Model> final : public IResource
 		glm::vec2 texcoord1;
 	};
 
-	struct SkinnedVertex : public Vertex
+	struct Submesh
 	{
-		int32_t bones[MAX_BONE_INFLUENCE]   = {-1};
-		float   weights[MAX_BONE_INFLUENCE] = {0.f};
-	};
-
-	struct Bone
-	{
-		int32_t   id;
-		glm::mat4 offset;
+		uint32_t vertex_offset = 0;
+		uint32_t vertex_count  = 0;
+		uint32_t index_offset  = 0;
+		uint32_t index_count   = 0;
 	};
 
 	struct Mesh
 	{
-		std::string name;
-
 		std::vector<Vertex>   vertices;
 		std::vector<uint32_t> indices;
+
+		std::vector<Submesh> submeshes;
 	};
 
-	struct SkinnedMesh
+	struct BoneInfo
 	{
-		std::string name;
-
-		std::map<std::string, Bone> bones;
-	};
-
-	struct Node
-	{
-		glm::mat4 transform;
-		uint32_t  mesh = ~0U;
+		uint32_t  id;
+		glm::mat4 offset;
 	};
 
 	// struct Mesh
@@ -99,7 +86,7 @@ class EXPORT_API Resource<ResourceType::Model> final : public IResource
 	//};
 
   public:
-	Resource(const std::string &name, RHIContext *rhi_context, std::vector<Mesh> &&meshes);
+	Resource(RHIContext *rhi_context, const std::string &name, std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices);
 
 	virtual ~Resource() override;
 

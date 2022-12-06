@@ -6,9 +6,12 @@ namespace Ilum
 {
 enum class ResourceType
 {
-	Model,
+	Prefab,
+	Mesh,
+	SkinnedMesh,
 	Texture,
 	Animation,
+	Material,
 };
 
 class EXPORT_API IResource

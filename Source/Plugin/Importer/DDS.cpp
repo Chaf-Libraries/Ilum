@@ -1,6 +1,7 @@
 #include <RHI/RHITexture.hpp>
 #include <Resource/Importer.hpp>
 #include <Resource/Resource/Texture.hpp>
+#include <Resource/ResourceManager.hpp>
 
 #include <dxgiformat.h>
 
@@ -439,16 +440,17 @@ static DXGI_FORMAT GetDXGIFormat(const DDS_PIXELFORMAT &ddpf)
 class DDSImporter : public Importer<ResourceType::Texture>
 {
   protected:
-	virtual std::unique_ptr<Resource<ResourceType::Texture>> Import_(const std::string &path, RHIContext *rhi_context) override
+	virtual void Import_(ResourceManager *manager, const std::string &path, RHIContext *rhi_context) override
+
 	{
 		TextureDesc desc;
-		desc.name         = Path::GetInstance().GetFileName(path, false);
-		desc.width        = 1;
-		desc.height       = 1;
-		desc.depth        = 1;
-		desc.mips         = 1;
-		desc.layers       = 1;
-		desc.samples      = 1;
+		desc.name    = Path::GetInstance().GetFileName(path, false);
+		desc.width   = 1;
+		desc.height  = 1;
+		desc.depth   = 1;
+		desc.mips    = 1;
+		desc.layers  = 1;
+		desc.samples = 1;
 
 		std::vector<uint8_t> raw_data;
 		Path::GetInstance().Read(path, raw_data, true);
@@ -459,14 +461,14 @@ class DDSImporter : public Importer<ResourceType::Texture>
 		uint32_t dwMagicNumber = *(const uint32_t *) (data);
 		if (dwMagicNumber != DDS_MAGIC)
 		{
-			return {};
+			return;
 		}
 
 		auto header = reinterpret_cast<const DDS_HEADER *>(data + sizeof(uint32_t));
 		if (header->size != sizeof(DDS_HEADER) ||
 		    header->ddspf.size != sizeof(DDS_PIXELFORMAT))
 		{
-			return {};
+			return;
 		}
 
 		size_t offset = sizeof(DDS_HEADER) + sizeof(uint32_t);
@@ -482,7 +484,7 @@ class DDSImporter : public Importer<ResourceType::Texture>
 
 		if (data_size < offset)
 		{
-			return {};
+			return;
 		}
 
 		desc.width  = header->width;
@@ -496,7 +498,7 @@ class DDSImporter : public Importer<ResourceType::Texture>
 			desc.layers = d3d10ext->arraySize;
 			if (desc.layers == 0)
 			{
-				return {};
+				return;
 			}
 
 			if (FormatMap.find(d3d10ext->dxgiFormat) != FormatMap.end())
@@ -505,7 +507,7 @@ class DDSImporter : public Importer<ResourceType::Texture>
 			}
 			else
 			{
-				return {};
+				return;
 			}
 		}
 		else
@@ -517,7 +519,7 @@ class DDSImporter : public Importer<ResourceType::Texture>
 			}
 			else
 			{
-				return {};
+				return;
 			}
 
 			if (header->flags & DDS_HEADER_FLAGS_VOLUME)
@@ -534,7 +536,7 @@ class DDSImporter : public Importer<ResourceType::Texture>
 					// Require all six faces to be defined
 					if ((header->caps2 & DDS_CUBEMAP_ALLFACES) != DDS_CUBEMAP_ALLFACES)
 					{
-						return {};
+						return;
 					}
 
 					desc.layers = 6;
@@ -553,7 +555,9 @@ class DDSImporter : public Importer<ResourceType::Texture>
 		desc.mips  = static_cast<uint32_t>(std::floor(std::log2(std::max(desc.width, desc.height))) + 1);
 		desc.usage = RHITextureUsage::ShaderResource | RHITextureUsage::Transfer;
 
-		return std::make_unique<Resource<ResourceType::Texture>>(rhi_context, std::move(final_data), desc);
+		manager->Add<ResourceType::Texture>(
+		    std::make_unique<Resource<ResourceType::Texture>>(rhi_context, std::move(final_data), desc),
+		    Hash(path));
 	}
 };
 

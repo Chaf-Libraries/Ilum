@@ -5,6 +5,7 @@
 namespace Ilum
 {
 class RHIContext;
+class ResourceManager;
 
 template <ResourceType Type>
 class Importer
@@ -16,9 +17,9 @@ class Importer
 
 	static std::unique_ptr<Importer<Type>> &GetInstance(const std::string &plugin);
 
-	static std::unique_ptr<Resource<Type>> Import(const std::string &path, RHIContext *rhi_context);
+	static void Import(ResourceManager* manager, const std::string &path, RHIContext *rhi_context);
 
   protected:
-	virtual std::unique_ptr<Resource<Type>> Import_(const std::string &path, RHIContext *rhi_context) = 0;
+	virtual void Import_(ResourceManager *manager, const std::string &path, RHIContext *rhi_context) = 0;
 };
 }        // namespace Ilum

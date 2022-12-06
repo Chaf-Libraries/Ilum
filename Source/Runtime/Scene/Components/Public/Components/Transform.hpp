@@ -27,6 +27,8 @@ class EXPORT_API Transform : public Component
 
 	const glm::vec3 &GetScale() const;
 
+	const glm::mat4 GetLocalTransform() const;
+
 	const glm::mat4 &GetWorldTransform() const;
 
 	void SetTranslation(const glm::vec3 &translation);
@@ -39,8 +41,6 @@ class EXPORT_API Transform : public Component
 
   private:
 	void Update();
-
-	glm::mat4 GetLocalTransform();
 
   private:
 	glm::vec3 m_translation = {0.f, 0.f, 0.f};

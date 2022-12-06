@@ -4,7 +4,8 @@
 #include "Light/PointLight.hpp"
 #include "Light/PolygonLight.hpp"
 #include "Light/SpotLight.hpp"
-
+#include "Renderable/MeshRenderer.hpp"
+#include "Renderable/SkinnedMeshRenderer.hpp"
 #include "Transform.hpp"
 
 struct ImGuiContext;

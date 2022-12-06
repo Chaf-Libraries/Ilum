@@ -56,7 +56,7 @@ class SceneHierarchy : public Widget
 
 		// Setting up
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5, 5));
-		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_FramePadding | ImGuiTreeNodeFlags_DefaultOpen | (p_editor->GetSelectedNode() == node ? ImGuiTreeNodeFlags_Selected : 0) | (has_child ? 0 : ImGuiTreeNodeFlags_Leaf);
+		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_FramePadding | (p_editor->GetSelectedNode() == node ? ImGuiTreeNodeFlags_Selected : 0) | (has_child ? 0 : ImGuiTreeNodeFlags_Leaf);
 
 		ImGui::PushID(static_cast<int32_t>((uint64_t) node));
 		bool open = ImGui::TreeNodeEx(std::to_string((uint64_t) node).c_str(), flags, "%s", node->GetName().empty() ? " " : node->GetName().c_str());

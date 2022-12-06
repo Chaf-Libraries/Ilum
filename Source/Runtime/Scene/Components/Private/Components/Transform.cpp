@@ -126,6 +126,11 @@ const glm::vec3 &Transform::GetScale() const
 	return m_scale;
 }
 
+const glm::mat4 Transform::GetLocalTransform() const
+{
+	return glm::scale(glm::translate(glm::mat4(1.f), m_translation) * glm::mat4_cast(glm::qua<float>(glm::radians(m_rotation))), m_scale);
+}
+
 const glm::mat4 &Transform::GetWorldTransform() const
 {
 	const_cast<Transform *>(this)->Update();
@@ -173,12 +178,6 @@ void Transform::Update()
 	}
 
 	m_dirty = false;
-}
-
-glm::mat4 Transform::GetLocalTransform()
-{
-	glm::scale(glm::translate(glm::mat4(1.f), m_translation) * glm::mat4_cast(glm::qua<float>(glm::radians(m_rotation))), m_scale);
-	return glm::mat4();
 }
 }        // namespace Cmpt
 }        // namespace Ilum

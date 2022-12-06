@@ -1,6 +1,7 @@
 #include "Importer.hpp"
-#include "Resource/Model.hpp"
+#include "Resource/Prefab.hpp"
 #include "Resource/Texture.hpp"
+#include "Resource/Animation.hpp"
 
 #include <Core/Plugin.hpp>
 
@@ -15,23 +16,15 @@ const std::map<ResourceType, std::map<std::string, std::string>> PluginMap = {
          {".bmp", "STB"},
          {".dds", "DDS"},
      }},
-    {ResourceType::Model,
+    {ResourceType::Prefab,
      {
-         {".obj", "Assimp.Model"},
-         {".gltf", "Assimp.Model"},
-         {".glb", "Assimp.Model"},
-         {".dae", "Assimp.Model"},
-         {".fbx", "Assimp.Model"},
-         {".ply", "Assimp.Model"},
-         {".blend", "Assimp.Model"},
-     }},
-    {ResourceType::Animation,
-     {
-         {".gltf", "Assimp.Animation"},
-         {".glb", "Assimp.Animation"},
-         {".dae", "Assimp.Animation"},
-         {".fbx", "Assimp.Animation"},
-         {".blend", "Assimp.Animation"},
+         {".obj", "Assimp"},
+         {".gltf", "Assimp"},
+         {".glb", "Assimp"},
+         {".dae", "Assimp"},
+         {".fbx", "Assimp"},
+         {".ply", "Assimp"},
+         {".blend", "Assimp"},
      }},
 };
 
@@ -43,11 +36,14 @@ std::unique_ptr<Importer<Type>> &Importer<Type>::GetInstance(const std::string &
 }
 
 template <ResourceType Type>
-std::unique_ptr<Resource<Type>> Importer<Type>::Import(const std::string &path, RHIContext *rhi_context)
+void Importer<Type>::Import(ResourceManager *manager, const std::string &path, RHIContext *rhi_context)
 {
-	return GetInstance(PluginMap.at(Type).at(Path::GetInstance().GetFileExtension(path)))->Import_(path, rhi_context);
+	return GetInstance(PluginMap.at(Type).at(Path::GetInstance().GetFileExtension(path)))->Import_(manager, path, rhi_context);
 }
 
-template class EXPORT_API Importer<ResourceType::Model>;
+template class EXPORT_API Importer<ResourceType::Prefab>;
 template class EXPORT_API Importer<ResourceType::Texture>;
+template class EXPORT_API Importer<ResourceType::Mesh>;
+template class EXPORT_API Importer<ResourceType::SkinnedMesh>;
+template class EXPORT_API Importer<ResourceType::Animation>;
 }        // namespace Ilum

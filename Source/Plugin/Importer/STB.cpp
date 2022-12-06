@@ -1,6 +1,7 @@
 #include <RHI/RHITexture.hpp>
 #include <Resource/Importer.hpp>
 #include <Resource/Resource/Texture.hpp>
+#include <Resource/ResourceManager.hpp>
 
 #include <stb_image.h>
 
@@ -9,7 +10,7 @@ using namespace Ilum;
 class STBImporter : public Importer<ResourceType::Texture>
 {
   protected:
-	virtual std::unique_ptr<Resource<ResourceType::Texture>> Import_(const std::string &path, RHIContext* rhi_context) override
+	virtual void Import_(ResourceManager *manager, const std::string &path, RHIContext *rhi_context) override
 	{
 		TextureDesc desc = {};
 		desc.name        = Path::GetInstance().GetFileName(path, false);
@@ -58,7 +59,9 @@ class STBImporter : public Importer<ResourceType::Texture>
 
 		stbi_image_free(raw_data);
 
-		return std::make_unique<Resource<ResourceType::Texture>>(rhi_context, std::move(data), desc);
+		manager->Add<ResourceType::Texture>(
+		    std::make_unique<Resource<ResourceType::Texture>>(rhi_context, std::move(data), desc),
+		    Hash(path));
 	}
 };
 

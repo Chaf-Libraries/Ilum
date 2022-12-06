@@ -1,9 +1,9 @@
 #include "Renderer.hpp"
 
+#include <Components/AllComponents.hpp>
 #include <Core/Path.hpp>
 #include <RHI/RHIContext.hpp>
 #include <RenderGraph/RenderGraph.hpp>
-#include <Components/AllComponents.hpp>
 #include <SceneGraph/Node.hpp>
 #include <SceneGraph/Scene.hpp>
 #include <ShaderCompiler/ShaderBuilder.hpp>
@@ -35,6 +35,8 @@ struct Renderer::Impl
 
 	Scene *scene = nullptr;
 
+	ResourceManager *resource_manager = nullptr;
+
 	glm::vec2 viewport = {};
 
 	RHITexture *present_texture = nullptr;
@@ -52,12 +54,13 @@ struct Renderer::Impl
 	SceneInfo scene_info;
 };
 
-Renderer::Renderer(RHIContext *rhi_context, Scene *scene) 
+Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resource_manager)
 {
-	m_impl = new Impl;
-	m_impl->rhi_context = rhi_context;
-	m_impl->scene       = scene;
-	m_impl->shader_builder = std::make_unique<ShaderBuilder>(rhi_context);
+	m_impl                   = new Impl;
+	m_impl->rhi_context      = rhi_context;
+	m_impl->scene            = scene;
+	m_impl->resource_manager = resource_manager;
+	m_impl->shader_builder   = std::make_unique<ShaderBuilder>(rhi_context);
 
 	m_impl->view_buffer = m_impl->rhi_context->CreateBuffer<ViewInfo>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
 	m_impl->tlas        = m_impl->rhi_context->CreateAcccelerationStructure();
@@ -139,6 +142,11 @@ RHIContext *Renderer::GetRHIContext() const
 	return m_impl->rhi_context;
 }
 
+ResourceManager *Renderer::GetResourceManager() const
+{
+	return m_impl->resource_manager;
+}
+
 void Renderer::SetViewport(float width, float height)
 {
 	m_impl->viewport = glm::vec2{width, height};
@@ -208,7 +216,7 @@ ShaderMeta Renderer::RequireShaderMeta(RHIShader *shader) const
 	return m_impl->shader_builder->RequireShaderMeta(shader);
 }
 
-//RHIShader *Renderer::RequireMaterialShader(MaterialGraph *material_graph, const std::string &filename, const std::string &entry_point, RHIShaderStage stage, std::vector<std::string> &&macros, std::vector<std::string> &&includes)
+// RHIShader *Renderer::RequireMaterialShader(MaterialGraph *material_graph, const std::string &filename, const std::string &entry_point, RHIShaderStage stage, std::vector<std::string> &&macros, std::vector<std::string> &&includes)
 //{
 //	size_t material_hash = Hash(material_graph->GetDesc().name);
 //	if (!Path::GetInstance().IsExist("bin/Materials/" + std::to_string(material_hash) + ".hlsli") || material_graph->Update())
@@ -221,21 +229,21 @@ ShaderMeta Renderer::RequireShaderMeta(RHIShader *shader) const
 //	includes.push_back("bin/Materials/" + std::to_string(material_hash) + ".hlsli");
 //
 //	return RequireShader(filename, entry_point, stage, std::move(macros), std::move(includes), false, material_graph->Update());
-//}
+// }
 
 void Renderer::UpdateScene()
 {
-	//m_scene_info.static_vertex_buffers.clear();
-	//m_scene_info.static_index_buffers.clear();
-	//m_scene_info.meshlet_vertex_buffers.clear();
-	//m_scene_info.meshlet_primitive_buffers.clear();
-	//m_scene_info.meshlet_buffers.clear();
-	//m_scene_info.meshlet_count.clear();
-	//m_scene_info.textures.clear();
-	//m_scene_info.materials.clear();
+	// m_scene_info.static_vertex_buffers.clear();
+	// m_scene_info.static_index_buffers.clear();
+	// m_scene_info.meshlet_vertex_buffers.clear();
+	// m_scene_info.meshlet_primitive_buffers.clear();
+	// m_scene_info.meshlet_buffers.clear();
+	// m_scene_info.meshlet_count.clear();
+	// m_scene_info.textures.clear();
+	// m_scene_info.materials.clear();
 
-	//std::vector<InstanceData> instances;
-	//instances.reserve(p_scene->Size());
+	// std::vector<InstanceData> instances;
+	// instances.reserve(p_scene->Size());
 
 	//{
 	//	size_t model_count = p_resource_manager->GetResourceValidUUID<ResourceType::Model>().size();
@@ -250,7 +258,7 @@ void Renderer::UpdateScene()
 	//}
 
 	//// Collect Model Info
-	//for (auto &uuid : p_resource_manager->GetResourceValidUUID<ResourceType::Model>())
+	// for (auto &uuid : p_resource_manager->GetResourceValidUUID<ResourceType::Model>())
 	//{
 	//	auto *resource = p_resource_manager->GetResource<ResourceType::Model>(uuid);
 	//	m_scene_info.static_vertex_buffers.push_back(resource->GetVertexBuffer());
@@ -258,7 +266,7 @@ void Renderer::UpdateScene()
 	//	m_scene_info.meshlet_vertex_buffers.push_back(resource->GetMeshletVertexBuffer());
 	//	m_scene_info.meshlet_primitive_buffers.push_back(resource->GetMeshletPrimitiveBuffer());
 	//	m_scene_info.meshlet_buffers.push_back(resource->GetMeshletBuffer());
-	//}
+	// }
 
 	//// Collect Texture Info
 	//{
@@ -266,11 +274,11 @@ void Renderer::UpdateScene()
 	//	m_scene_info.textures.reserve(texture_count);
 	//}
 
-	//for (auto &uuid : p_resource_manager->GetResourceValidUUID<ResourceType::Texture>())
+	// for (auto &uuid : p_resource_manager->GetResourceValidUUID<ResourceType::Texture>())
 	//{
 	//	auto *resource = p_resource_manager->GetResource<ResourceType::Texture>(uuid);
 	//	m_scene_info.textures.push_back(resource->GetTexture());
-	//}
+	// }
 
 	//// Collect Material Info
 	//{
@@ -278,11 +286,11 @@ void Renderer::UpdateScene()
 	//	m_scene_info.materials.reserve(material_count);
 	//}
 
-	//for (auto &uuid : p_resource_manager->GetResourceValidUUID<ResourceType::Material>())
+	// for (auto &uuid : p_resource_manager->GetResourceValidUUID<ResourceType::Material>())
 	//{
 	//	auto *resource = p_resource_manager->GetResource<ResourceType::Material>(uuid);
 	//	m_scene_info.materials.push_back(resource->Get());
-	//}
+	// }
 
 	//// Collect Light Info
 	//{
@@ -329,10 +337,10 @@ void Renderer::UpdateScene()
 	//}
 
 	//// Update TLAS
-	//TLASDesc desc = {};
-	//desc.instances.reserve(p_scene->Size());
-	//desc.name = p_scene->GetName();
-	//p_scene->GroupExecute<StaticMeshComponent, TransformComponent>([&](uint32_t entity, StaticMeshComponent &static_mesh, TransformComponent &transform) {
+	// TLASDesc desc = {};
+	// desc.instances.reserve(p_scene->Size());
+	// desc.name = p_scene->GetName();
+	// p_scene->GroupExecute<StaticMeshComponent, TransformComponent>([&](uint32_t entity, StaticMeshComponent &static_mesh, TransformComponent &transform) {
 	//	auto *resource = p_resource_manager->GetResource<ResourceType::Model>(static_mesh.uuid);
 	//	if (resource)
 	//	{
@@ -365,7 +373,7 @@ void Renderer::UpdateScene()
 	//	}
 	//});
 
-	//if (!desc.instances.empty())
+	// if (!desc.instances.empty())
 	//{
 	//	{
 	//		if (!m_scene_info.instance_buffer || m_scene_info.instance_buffer->GetDesc().size != instances.size() * sizeof(InstanceData))
@@ -385,7 +393,7 @@ void Renderer::UpdateScene()
 	//	}
 	//}
 
-	//m_scene_info.top_level_as = m_tlas.get();
+	// m_scene_info.top_level_as = m_tlas.get();
 }
 
 }        // namespace Ilum

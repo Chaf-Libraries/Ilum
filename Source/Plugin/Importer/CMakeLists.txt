@@ -10,8 +10,8 @@ function(add_importer name)
     set_target_properties(${TARGET_NAME} PROPERTIES LINK_FLAGS "/NODEFAULTLIB:MSVCRT")
 endfunction()
 
-add_importer(Assimp.Model)
-target_link_libraries(Importer.Assimp.Model PRIVATE assimp::assimp Geometry meshoptimizer::meshoptimizer Animation)
+add_importer(Assimp)
+target_link_libraries(Importer.Assimp PRIVATE assimp::assimp Geometry meshoptimizer::meshoptimizer Animation)
 
 # add_importer(Assimp.Animation)
 # target_link_libraries(Importer.Assimp.Animation PRIVATE assimp::assimp Animation)

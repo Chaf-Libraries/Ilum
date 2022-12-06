@@ -1,8 +1,11 @@
 #include "ResourceManager.hpp"
-#include "Resource.hpp"
 #include "Importer.hpp"
+#include "Resource.hpp"
+#include "Resource/Animation.hpp"
+#include "Resource/Mesh.hpp"
+#include "Resource/SkinnedMesh.hpp"
+#include "Resource/Prefab.hpp"
 #include "Resource/Texture.hpp"
-#include "Resource/Model.hpp"
 
 #include <RHI/RHIContext.hpp>
 
@@ -25,7 +28,11 @@ struct IResourceManager
 
 	virtual void Erase(size_t uuid) = 0;
 
-	virtual IResource *Import(const std::string &path) = 0;
+	virtual void Import(ResourceManager *manager, const std::string &path) = 0;
+
+	virtual void Add(std::unique_ptr<IResource> &&resource, size_t uuid) = 0;
+
+	virtual const std::vector<size_t> GetResources() const = 0;
 
 	RHIContext *rhi_context = nullptr;
 };
@@ -85,16 +92,25 @@ struct TResourceManager : public IResourceManager
 		lookup.erase(uuid);
 	}
 
-	virtual IResource *Import(const std::string &path) override
+	virtual void Import(ResourceManager *manager, const std::string &path) override
 	{
-		if (lookup.find(Hash(path)) == lookup.end())
+		Importer<_Ty>::Import(manager, path, rhi_context);
+	}
+
+	virtual void Add(std::unique_ptr<IResource> &&resource, size_t uuid) override
+	{
+		if (lookup.find(uuid) == lookup.end())
 		{
-			std::unique_ptr<Resource<_Ty>> resource = Importer<_Ty>::Import(path, rhi_context);
-			lookup.emplace(Hash(path), resources.size());
-			resources.emplace_back(std::move(resource));
-			return resources.back().get();
+			lookup.emplace(uuid, resources.size());
+			resources.emplace_back(std::unique_ptr<Resource<_Ty>>(dynamic_cast<Resource<_Ty> *>(resource.release())));
 		}
-		return nullptr;
+	}
+
+	virtual const std::vector<size_t> GetResources() const override
+	{
+		std::vector<size_t> uuids(lookup.size());
+		std::transform(lookup.begin(), lookup.end(), uuids.begin(), [](const auto &iter) { return iter.first; });
+		return uuids;
 	}
 
 	std::vector<std::unique_ptr<Resource<_Ty>>> resources;
@@ -111,7 +127,10 @@ ResourceManager::ResourceManager(RHIContext *rhi_context)
 {
 	m_impl = new Impl;
 	m_impl->managers.emplace(ResourceType::Texture, std::make_unique<TResourceManager<ResourceType::Texture>>(rhi_context));
-	m_impl->managers.emplace(ResourceType::Model, std::make_unique<TResourceManager<ResourceType::Model>>(rhi_context));
+	m_impl->managers.emplace(ResourceType::Mesh, std::make_unique<TResourceManager<ResourceType::Mesh>>(rhi_context));
+	m_impl->managers.emplace(ResourceType::SkinnedMesh, std::make_unique<TResourceManager<ResourceType::SkinnedMesh>>(rhi_context));
+	m_impl->managers.emplace(ResourceType::Animation, std::make_unique<TResourceManager<ResourceType::Animation>>(rhi_context));
+	m_impl->managers.emplace(ResourceType::Prefab, std::make_unique<TResourceManager<ResourceType::Prefab>>(rhi_context));
 }
 
 ResourceManager::~ResourceManager()
@@ -134,8 +153,18 @@ size_t ResourceManager::Index(ResourceType type, size_t uuid)
 	return m_impl->managers.at(type)->Index(uuid);
 }
 
-IResource *ResourceManager::Import(ResourceType type, const std::string &path)
+void ResourceManager::Import(ResourceType type, const std::string &path)
 {
-	return m_impl->managers.at(type)->Import(path);
+	m_impl->managers.at(type)->Import(this, path);
+}
+
+void ResourceManager::Add(ResourceType type, std::unique_ptr<IResource> &&resource, size_t uuid)
+{
+	m_impl->managers.at(type)->Add(std::move(resource), uuid);
+}
+
+const std::vector<size_t> ResourceManager::GetResources(ResourceType type) const
+{
+	return m_impl->managers.at(type)->GetResources();
 }
 }        // namespace Ilum

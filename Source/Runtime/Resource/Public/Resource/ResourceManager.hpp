@@ -22,7 +22,7 @@ class EXPORT_API ResourceManager
 	template <ResourceType Type>
 	bool Has(size_t uuid)
 	{
-		return Has(Get(Type, uuid));
+		return Has(Type, uuid);
 	}
 
 	template <ResourceType Type>
@@ -32,9 +32,21 @@ class EXPORT_API ResourceManager
 	}
 
 	template <ResourceType Type>
-	Resource<Type> *Import(const std::string &path)
+	void Import(const std::string &path)
 	{
-		return static_cast<Resource<Type> *>(Import(Type, path));
+		 Import(Type, path);
+	}
+
+	template<ResourceType Type>
+	void Add(std::unique_ptr<Resource<Type>>&& resource, size_t uuid)
+	{
+		Add(Type, std::move(resource), uuid);
+	}
+
+	template <ResourceType Type>
+	const std::vector<size_t> GetResources() const
+	{
+		return GetResources(Type);
 	}
 
   private:
@@ -44,7 +56,11 @@ class EXPORT_API ResourceManager
 
 	size_t Index(ResourceType type, size_t uuid);
 
-	IResource *Import(ResourceType type, const std::string &path);
+	void Import(ResourceType type, const std::string &path);
+
+	void Add(ResourceType type, std::unique_ptr<IResource> &&resource, size_t uuid);
+
+	const std::vector<size_t> GetResources(ResourceType type) const;
 
   private:
 	struct Impl;

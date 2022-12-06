@@ -12,9 +12,9 @@ function(add_widget name)
 set_target_properties(${TARGET_NAME} PROPERTIES LINK_FLAGS "/NODEFAULTLIB:MSVCRT")
 endfunction()
 
-# add_widget(SceneView)
-# target_link_libraries(Editor.SceneView PRIVATE Renderer glm imgui ImGuizmo Resource Scene RHI Geometry glfw)
-# 
+add_widget(SceneView)
+target_link_libraries(Editor.SceneView PRIVATE Resource SceneGraph glfw Components)
+
 add_widget(SceneHierarchy)
 target_link_libraries(Editor.SceneHierarchy PRIVATE SceneGraph Components)
 
@@ -29,3 +29,6 @@ target_link_libraries(Editor.MainMenu PRIVATE SceneGraph nfd Components)
 
 add_widget(AnimationEditor)
 target_link_libraries(Editor.AnimationEditor PRIVATE nfd Animation Resource)
+
+add_widget(ResourceBrowser)
+target_link_libraries(Editor.ResourceBrowser PRIVATE nfd Resource)

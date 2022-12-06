@@ -52,7 +52,7 @@ struct SceneInfo
 class EXPORT_API Renderer
 {
   public:
-	Renderer(RHIContext *rhi_context, Scene *scene);
+	Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager* resource_manager);
 
 	~Renderer();
 
@@ -63,6 +63,8 @@ class EXPORT_API Renderer
 	RenderGraph *GetRenderGraph() const;
 
 	RHIContext *GetRHIContext() const;
+
+	ResourceManager *GetResourceManager() const;
 
 	void SetViewport(float width, float height);
 

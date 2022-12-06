@@ -25,7 +25,6 @@ class AnimationEditor : public Widget
 			return;
 		}
 
-
 		ImGui::End();
 	}
 };

@@ -8,6 +8,7 @@ struct Bone::Impl
 {
 	std::string name;
 	uint32_t    id;
+	glm::mat4   offset;
 
 	std::vector<KeyPosition> positions;
 	std::vector<KeyRotation> rotations;
@@ -19,6 +20,7 @@ struct Bone::Impl
 Bone::Bone(
     const std::string         &name,
     uint32_t                   id,
+    glm::mat4                  offset,
     std::vector<KeyPosition> &&positions,
     std::vector<KeyRotation> &&rotations,
     std::vector<KeyScale>    &&scales)
@@ -27,13 +29,14 @@ Bone::Bone(
 
 	m_impl->name            = name;
 	m_impl->id              = id;
+	m_impl->offset          = offset;
 	m_impl->positions       = std::move(positions);
 	m_impl->rotations       = std::move(rotations);
 	m_impl->scales          = std::move(scales);
 	m_impl->local_transfrom = glm::mat4(1.f);
 }
 
-Bone::Bone(Bone &&bone) :
+Bone::Bone(Bone &&bone) noexcept :
     m_impl(bone.m_impl)
 {
 	bone.m_impl = nullptr;
@@ -69,6 +72,11 @@ std::string Bone::GetBoneName() const
 uint32_t Bone::GetBoneID() const
 {
 	return m_impl->id;
+}
+
+glm::mat4 Bone::GetBoneOffset() const
+{
+	return m_impl->offset;
 }
 
 size_t Bone::GetPositionIndex(float time) const
@@ -107,12 +115,25 @@ size_t Bone::GetScaleIndex(float time) const
 	return ~0U;
 }
 
-float Bone::GetScaleFactor(float last, float next, float time)
+glm::mat4 Bone::GetLocalTransform(float time) const
+{
+	glm::mat4 translation = InterpolatePosition(time);
+	glm::mat4 rotation    = InterpolateRotation(time);
+	glm::mat4 scale       = InterpolateScaling(time);
+	return translation * rotation * scale;
+}
+
+glm::mat4 Bone::GetTransformedOffset(float time) const
+{
+	return GetLocalTransform() * m_impl->offset;
+}
+
+float Bone::GetScaleFactor(float last, float next, float time) const
 {
 	return (time - last) / (next - last);
 }
 
-glm::mat4 Bone::InterpolatePosition(float time)
+glm::mat4 Bone::InterpolatePosition(float time) const
 {
 	if (m_impl->positions.size() == 1)
 	{
@@ -127,7 +148,7 @@ glm::mat4 Bone::InterpolatePosition(float time)
 	return glm::translate(glm::mat4(1.f), final_position);
 }
 
-glm::mat4 Bone::InterpolateRotation(float time)
+glm::mat4 Bone::InterpolateRotation(float time) const
 {
 	if (m_impl->positions.size() == 1)
 	{
@@ -144,7 +165,7 @@ glm::mat4 Bone::InterpolateRotation(float time)
 	return glm::toMat4(final_rotation);
 }
 
-glm::mat4 Bone::InterpolateScaling(float time)
+glm::mat4 Bone::InterpolateScaling(float time) const
 {
 	if (m_impl->scales.size() == 1)
 	{

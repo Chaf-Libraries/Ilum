@@ -17,12 +17,13 @@ Engine::Engine()
 	m_rhi_context      = std::make_unique<RHIContext>(m_window.get(), "Vulkan", true);
 	m_resource_manager = std::make_unique<ResourceManager>(m_rhi_context.get());
 	m_scene            = std::make_unique<Scene>("Default Scene");
-	m_renderer         = std::make_unique<Renderer>(m_rhi_context.get(), m_scene.get());
+	m_renderer         = std::make_unique<Renderer>(m_rhi_context.get(), m_scene.get(), m_resource_manager.get());
 	m_editor           = std::make_unique<Editor>(m_window.get(), m_rhi_context.get(), m_renderer.get());
 
 	Path::GetInstance().SetCurrent("./");
 
-	auto resource = m_resource_manager->Import<ResourceType::Model>("./Asset/Model/halo/scene.gltf");
+	m_resource_manager->Import<ResourceType::Prefab>("./Asset/Model/halo/scene.gltf");
+	m_resource_manager->Import<ResourceType::Texture>("./Asset/Texture/default.png");
 }
 
 Engine::~Engine()
