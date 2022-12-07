@@ -25,7 +25,7 @@ class EXPORT_API IResource
 
 	size_t GetUUID() const;
 
-  private:
+  protected:
 	const std::string m_name;
 };
 

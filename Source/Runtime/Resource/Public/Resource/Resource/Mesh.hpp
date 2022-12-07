@@ -36,22 +36,6 @@ class EXPORT_API Resource<ResourceType::Mesh> final : public IResource
 		glm::vec2 texcoord1;
 	};
 
-	struct Submesh
-	{
-		uint32_t vertex_offset = 0;
-		uint32_t vertex_count  = 0;
-		uint32_t index_offset  = 0;
-		uint32_t index_count   = 0;
-	};
-
-	struct Mesh
-	{
-		std::vector<Vertex>   vertices;
-		std::vector<uint32_t> indices;
-
-		std::vector<Submesh> submeshes;
-	};
-
 	struct BoneInfo
 	{
 		uint32_t  id;
@@ -90,23 +74,26 @@ class EXPORT_API Resource<ResourceType::Mesh> final : public IResource
 
 	virtual ~Resource() override;
 
-	bool HasAnimation(uint32_t idx) const;
+	RHIBuffer *GetVertexBuffer() const;
 
-	const std::vector<Mesh> &GetMeshes() const;
+	RHIBuffer *GetIndexBuffer() const;
 
-	uint32_t GetMeshCount() const;
+	RHIBuffer *GetMeshletVertexBuffer() const;
 
-	RHIBuffer *GetVertexBuffer(uint32_t idx) const;
+	RHIBuffer *GetMeshletPrimitiveBuffer() const;
 
-	RHIBuffer *GetIndexBuffer(uint32_t idx) const;
+	RHIBuffer *GetMeshletBuffer() const;
 
-	RHIBuffer *GetMeshletVertexBuffer(uint32_t idx) const;
+	RHIAccelerationStructure *GetBLAS() const;
 
-	RHIBuffer *GetMeshletPrimitiveBuffer(uint32_t idx) const;
+	const std::vector<Vertex> &GetVertices() const;
 
-	RHIBuffer *GetMeshletBuffer(uint32_t idx) const;
+	const std::vector<uint32_t> &GetIndices() const;
 
-	RHIAccelerationStructure *GetBLAS(uint32_t idx) const;
+	void Update(RHIContext *rhi_context, std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices);
+
+  private:
+	void UpdateBuffer(RHIContext *rhi_context);
 
   private:
 	struct Impl;

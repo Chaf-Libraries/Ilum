@@ -24,8 +24,8 @@ target_link_libraries(Editor.SceneInspector PRIVATE SceneGraph Components)
 add_widget(MainMenu)
 target_link_libraries(Editor.MainMenu PRIVATE SceneGraph nfd Components)
 
-# add_widget(MeshEditor)
-# target_link_libraries(Editor.MeshEditor PRIVATE nfd Geometry Resource)
+add_widget(MeshEditor)
+target_link_libraries(Editor.MeshEditor PRIVATE Resource Geometry)
 
 add_widget(AnimationEditor)
 target_link_libraries(Editor.AnimationEditor PRIVATE nfd Animation Resource)

@@ -4,82 +4,23 @@ namespace Ilum
 {
 struct Resource<ResourceType::Mesh>::Impl
 {
-	std::string name;
+	std::vector<Vertex>   vertices;
+	std::vector<uint32_t> indices;
 
-	std::vector<Mesh> meshes;
+	std::unique_ptr<RHIBuffer> vertex_buffer            = nullptr;
+	std::unique_ptr<RHIBuffer> index_buffer             = nullptr;
+	std::unique_ptr<RHIBuffer> meshlet_vertex_buffer    = nullptr;
+	std::unique_ptr<RHIBuffer> meshlet_primitive_buffer = nullptr;
+	std::unique_ptr<RHIBuffer> meshlet_buffer           = nullptr;
 
-	std::vector<std::unique_ptr<RHIBuffer>> vertex_buffer;
-	std::vector<std::unique_ptr<RHIBuffer>> index_buffer;
-	std::vector<std::unique_ptr<RHIBuffer>> meshlet_vertex_buffer;
-	std::vector<std::unique_ptr<RHIBuffer>> meshlet_primitive_buffer;
-	std::vector<std::unique_ptr<RHIBuffer>> meshlet_buffer;
-
-	std::vector<std::unique_ptr<RHIAccelerationStructure>> blas;
+	std::unique_ptr<RHIAccelerationStructure> blas = nullptr;
 };
 
-Resource<ResourceType::Mesh>::Resource(RHIContext *rhi_context, const std::string &name, std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices):
+Resource<ResourceType::Mesh>::Resource(RHIContext *rhi_context, const std::string &name, std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices) :
     IResource(name)
 {
-	//m_impl         = new Impl;
-	//m_impl->name   = name;
-	//m_impl->meshes = std::move(meshes);
-
-	//m_impl->vertex_buffer.reserve(m_impl->meshes.size());
-	//m_impl->index_buffer.reserve(m_impl->meshes.size());
-	//m_impl->meshlet_vertex_buffer.reserve(m_impl->meshes.size());
-	//m_impl->meshlet_primitive_buffer.reserve(m_impl->meshes.size());
-	//m_impl->meshlet_buffer.reserve(m_impl->meshes.size());
-	//m_impl->blas.reserve(m_impl->meshes.size());
-
-	////auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Compute);
-	////cmd_buffer->Begin();
-
-	//for (const auto &mesh : m_impl->meshes)
-	//{
-	//	std::unique_ptr<RHIBuffer> vertex_buffer            = nullptr;
-	//	std::unique_ptr<RHIBuffer> index_buffer             = nullptr;
-	//	std::unique_ptr<RHIBuffer> meshlet_vertex_buffer    = nullptr;
-	//	std::unique_ptr<RHIBuffer> meshlet_primitive_buffer = nullptr;
-	//	std::unique_ptr<RHIBuffer> meshlet_buffer           = nullptr;
-
-	//	std::unique_ptr<RHIAccelerationStructure> blas = nullptr;
-
-	//	//vertex_buffer            = rhi_context->CreateBuffer<Vertex>(mesh.vertices.size(), RHIBufferUsage::Vertex | RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, mesh.HasSkeleton() ? RHIMemoryUsage::CPU_TO_GPU : RHIMemoryUsage::GPU_Only);
-	//	//index_buffer             = rhi_context->CreateBuffer<uint32_t>(mesh.indices.size(), RHIBufferUsage::Index | RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, mesh.HasSkeleton() ? RHIMemoryUsage::CPU_TO_GPU : RHIMemoryUsage::GPU_Only);
-	//	//meshlet_vertex_buffer    = rhi_context->CreateBuffer<uint32_t>(mesh.meshlet_vertices.size(), RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, mesh.HasSkeleton() ? RHIMemoryUsage::CPU_TO_GPU : RHIMemoryUsage::GPU_Only);
-	//	//meshlet_primitive_buffer = rhi_context->CreateBuffer<uint32_t>(mesh.meshlet_primitives.size(), RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, mesh.HasSkeleton() ? RHIMemoryUsage::CPU_TO_GPU : RHIMemoryUsage::GPU_Only);
-	//	//meshlet_buffer           = rhi_context->CreateBuffer<Meshlet>(mesh.meshlets.size(), RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, mesh.HasSkeleton() ? RHIMemoryUsage::CPU_TO_GPU : RHIMemoryUsage::GPU_Only);
-
-	//	//vertex_buffer->CopyToDevice(mesh.vertices.data(), mesh.vertices.size() * sizeof(Vertex));
-	//	//index_buffer->CopyToDevice(mesh.indices.data(), mesh.indices.size() * sizeof(uint32_t));
-	//	//meshlet_vertex_buffer->CopyToDevice(mesh.meshlet_vertices.data(), mesh.meshlet_vertices.size() * sizeof(uint32_t));
-	//	//meshlet_primitive_buffer->CopyToDevice(mesh.meshlet_primitives.data(), mesh.meshlet_primitives.size() * sizeof(uint32_t));
-	//	//meshlet_buffer->CopyToDevice(mesh.meshlets.data(), mesh.meshlets.size() * sizeof(Meshlet));
-
-	//	// TODO: Ray Tracing for skeleton mesh
-	//	blas = rhi_context->CreateAcccelerationStructure();
-
-	//	BLASDesc desc        = {};
-	//	//desc.name            = mesh.name;
-	//	desc.vertex_buffer   = vertex_buffer.get();
-	//	desc.index_buffer    = index_buffer.get();
-	//	desc.vertices_count  = static_cast<uint32_t>(mesh.vertices.size());
-	//	desc.vertices_offset = 0;
-	//	desc.indices_count   = static_cast<uint32_t>(mesh.indices.size());
-	//	desc.indices_offset  = 0;
-
-	//	//blas->Update(cmd_buffer, desc);
-
-	//	m_impl->vertex_buffer.emplace_back(std::move(vertex_buffer));
-	//	m_impl->index_buffer.emplace_back(std::move(index_buffer));
-	//	m_impl->meshlet_vertex_buffer.emplace_back(std::move(meshlet_vertex_buffer));
-	//	m_impl->meshlet_primitive_buffer.emplace_back(std::move(meshlet_primitive_buffer));
-	//	m_impl->meshlet_buffer.emplace_back(std::move(meshlet_buffer));
-	//	m_impl->blas.emplace_back(std::move(blas));
-	//}
-
-	//cmd_buffer->End();
-	//rhi_context->Execute(cmd_buffer);
+	m_impl = new Impl;
+	Update(rhi_context, std::move(vertices), std::move(indices));
 }
 
 Resource<ResourceType::Mesh>::~Resource()
@@ -87,49 +28,84 @@ Resource<ResourceType::Mesh>::~Resource()
 	delete m_impl;
 }
 
-bool Resource<ResourceType::Mesh>::HasAnimation(uint32_t idx) const
+RHIBuffer *Resource<ResourceType::Mesh>::GetVertexBuffer() const
 {
-	//return !m_impl->meshes.at(idx).bones.empty();
-	return false;
+	return m_impl->vertex_buffer.get();
 }
 
-const std::vector<Resource<ResourceType::Mesh>::Mesh> &Resource<ResourceType::Mesh>::GetMeshes() const
+RHIBuffer *Resource<ResourceType::Mesh>::GetIndexBuffer() const
 {
-	return m_impl->meshes;
+	return m_impl->index_buffer.get();
 }
 
-uint32_t Resource<ResourceType::Mesh>::GetMeshCount() const
+RHIBuffer *Resource<ResourceType::Mesh>::GetMeshletVertexBuffer() const
 {
-	return static_cast<uint32_t>(m_impl->meshes.size());
+	return m_impl->meshlet_vertex_buffer.get();
 }
 
-RHIBuffer *Resource<ResourceType::Mesh>::GetVertexBuffer(uint32_t idx) const
+RHIBuffer *Resource<ResourceType::Mesh>::GetMeshletPrimitiveBuffer() const
 {
-	return m_impl->vertex_buffer.at(idx).get();
+	return m_impl->meshlet_primitive_buffer.get();
 }
 
-RHIBuffer *Resource<ResourceType::Mesh>::GetIndexBuffer(uint32_t idx) const
+RHIBuffer *Resource<ResourceType::Mesh>::GetMeshletBuffer() const
 {
-	return m_impl->index_buffer.at(idx).get();
+	return m_impl->meshlet_buffer.get();
 }
 
-RHIBuffer *Resource<ResourceType::Mesh>::GetMeshletVertexBuffer(uint32_t idx) const
+RHIAccelerationStructure *Resource<ResourceType::Mesh>::GetBLAS() const
 {
-	return m_impl->meshlet_vertex_buffer.at(idx).get();
+	return m_impl->blas.get();
 }
 
-RHIBuffer *Resource<ResourceType::Mesh>::GetMeshletPrimitiveBuffer(uint32_t idx) const
+const std::vector<Resource<ResourceType::Mesh>::Vertex> &Resource<ResourceType::Mesh>::GetVertices() const
 {
-	return m_impl->meshlet_primitive_buffer.at(idx).get();
+	return m_impl->vertices;
 }
 
-RHIBuffer *Resource<ResourceType::Mesh>::GetMeshletBuffer(uint32_t idx) const
+const std::vector<uint32_t> &Resource<ResourceType::Mesh>::GetIndices() const
 {
-	return m_impl->meshlet_buffer.at(idx).get();
+	return m_impl->indices;
 }
 
-RHIAccelerationStructure *Resource<ResourceType::Mesh>::GetBLAS(uint32_t idx) const
+void Resource<ResourceType::Mesh>::Update(RHIContext *rhi_context, std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices)
 {
-	return m_impl->blas.at(idx).get();
+	m_impl->vertices = std::move(vertices);
+	m_impl->indices  = std::move(indices);
+	UpdateBuffer(rhi_context);
+}
+
+void Resource<ResourceType::Mesh>::UpdateBuffer(RHIContext *rhi_context)
+{
+	auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Compute);
+	cmd_buffer->Begin();
+
+	m_impl->vertex_buffer = rhi_context->CreateBuffer<Vertex>(m_impl->vertices.size(), RHIBufferUsage::Vertex | RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
+	m_impl->index_buffer  = rhi_context->CreateBuffer<uint32_t>(m_impl->indices.size(), RHIBufferUsage::Index | RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
+	// m_impl->meshlet_vertex_buffer    = rhi_context->CreateBuffer<uint32_t>(m_impl->meshlet_vertices.size(), RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer,  RHIMemoryUsage::GPU_Only);
+	// m_impl->meshlet_primitive_buffer = rhi_context->CreateBuffer<uint32_t>(m_impl->meshlet_primitives.size(), RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
+	// m_impl->meshlet_buffer           = rhi_context->CreateBuffer<Meshlet>(m_impl->meshlets.size(), RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
+
+	m_impl->vertex_buffer->CopyToDevice(m_impl->vertices.data(), m_impl->vertices.size() * sizeof(Vertex));
+	m_impl->index_buffer->CopyToDevice(m_impl->indices.data(), m_impl->indices.size() * sizeof(uint32_t));
+	// m_impl->meshlet_vertex_buffer->CopyToDevice(m_impl->meshlet_vertices.data(), m_impl->meshlet_vertices.size() * sizeof(uint32_t));
+	// m_impl->meshlet_primitive_buffer->CopyToDevice(m_impl->meshlet_primitives.data(), m_impl->meshlet_primitives.size() * sizeof(uint32_t));
+	// m_impl->meshlet_buffer->CopyToDevice(m_impl->meshlets.data(), m_impl->meshlets.size() * sizeof(Meshlet));
+
+	m_impl->blas = rhi_context->CreateAcccelerationStructure();
+
+	BLASDesc desc        = {};
+	desc.name            = m_name;
+	desc.vertex_buffer   = m_impl->vertex_buffer.get();
+	desc.index_buffer    = m_impl->index_buffer.get();
+	desc.vertices_count  = static_cast<uint32_t>(m_impl->vertices.size());
+	desc.vertices_offset = 0;
+	desc.indices_count   = static_cast<uint32_t>(m_impl->indices.size());
+	desc.indices_offset  = 0;
+
+	m_impl->blas->Update(cmd_buffer, desc);
+
+	cmd_buffer->End();
+	rhi_context->Execute(cmd_buffer);
 }
 }        // namespace Ilum

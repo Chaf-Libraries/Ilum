@@ -19,11 +19,7 @@
 
 using namespace Ilum;
 
-// using Meshlet = Resource<ResourceType::Mesh>::Meshlet;
-using Mesh   = Resource<ResourceType::Mesh>::Mesh;
 using Vertex = Resource<ResourceType::Mesh>::Vertex;
-// using SkinnedMesh   = Resource<ResourceType::Mesh>::SkinnedMesh;
-using Submesh       = Resource<ResourceType::Mesh>::Submesh;
 using SkinnedVertex = Resource<ResourceType::SkinnedMesh>::SkinnedVertex;
 using Node          = Resource<ResourceType::Prefab>::Node;
 using BoneInfo      = Resource<ResourceType::Mesh>::BoneInfo;
@@ -80,9 +76,6 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
   public:
 	struct ModelInfo
 	{
-		std::vector<Mesh> meshes;
-		// std::vector<SkinnedMesh> skinned_meshes;
-
 		std::map<size_t, size_t> mesh_table;                // hash - idx
 		std::map<size_t, size_t> skinned_mesh_table;        // hash - idx
 
