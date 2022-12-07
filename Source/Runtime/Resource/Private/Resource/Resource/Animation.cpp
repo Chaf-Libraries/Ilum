@@ -9,7 +9,8 @@ struct Resource<ResourceType::Animation>::Impl
 	Animation animation;
 };
 
-Resource<ResourceType::Animation>::Resource(Animation &&animation)
+Resource<ResourceType::Animation>::Resource(const std::string &name, Animation &&animation):
+    IResource(name)
 {
 	m_impl = new Impl;
 }

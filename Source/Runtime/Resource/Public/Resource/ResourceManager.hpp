@@ -14,15 +14,15 @@ class EXPORT_API ResourceManager
 	~ResourceManager();
 
 	template <ResourceType Type>
-	Resource<Type> *Get(size_t uuid)
+	Resource<Type> *Get(const std::string &name)
 	{
-		return static_cast<Resource<Type> *>(Get(Type, uuid));
+		return static_cast<Resource<Type> *>(Get(Type, Hash(name)));
 	}
 
 	template <ResourceType Type>
-	bool Has(size_t uuid)
+	bool Has(const std::string& name)
 	{
-		return Has(Type, uuid);
+		return Has(Type, Hash(name));
 	}
 
 	template <ResourceType Type>
@@ -38,13 +38,13 @@ class EXPORT_API ResourceManager
 	}
 
 	template<ResourceType Type>
-	void Add(std::unique_ptr<Resource<Type>>&& resource, size_t uuid)
+	void Add(std::unique_ptr<Resource<Type>>&& resource)
 	{
-		Add(Type, std::move(resource), uuid);
+		Add(Type, std::move(resource));
 	}
 
 	template <ResourceType Type>
-	const std::vector<size_t> GetResources() const
+	const std::vector<std::string> GetResources() const
 	{
 		return GetResources(Type);
 	}
@@ -58,9 +58,9 @@ class EXPORT_API ResourceManager
 
 	void Import(ResourceType type, const std::string &path);
 
-	void Add(ResourceType type, std::unique_ptr<IResource> &&resource, size_t uuid);
+	void Add(ResourceType type, std::unique_ptr<IResource> &&resource);
 
-	const std::vector<size_t> GetResources(ResourceType type) const;
+	const std::vector<std::string> GetResources(ResourceType type) const;
 
   private:
 	struct Impl;

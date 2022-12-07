@@ -76,14 +76,14 @@ class SceneView : public Widget
 	}
 
 	template <ResourceType _Ty>
-	void DropTarget(Editor *editor, size_t uuid)
+	void DropTarget(Editor *editor, const std::string &name)
 	{
 	}
 
 	template <>
-	void DropTarget<ResourceType::Prefab>(Editor *editor, size_t uuid)
+	void DropTarget<ResourceType::Prefab>(Editor *editor, const std::string& name)
 	{
-		auto *prefab = editor->GetRenderer()->GetResourceManager()->Get<ResourceType::Prefab>(uuid);
+		auto *prefab = editor->GetRenderer()->GetResourceManager()->Get<ResourceType::Prefab>(name);
 		if (prefab)
 		{
 			auto                                   &root        = prefab->GetRoot();
@@ -104,7 +104,7 @@ class SceneView : public Widget
 				transform->SetRotation(rotation);
 				transform->SetScale(scale);
 
-				std::vector<size_t> materials;
+				std::vector<std::string> materials;
 				Cmpt::Renderable*    renderable = nullptr;
 				for (auto &[type, uuid] : prefab_node.resources)
 				{
@@ -158,7 +158,7 @@ class SceneView : public Widget
 	{
 		if (const auto *pay_load = ImGui::AcceptDragDropPayload("Prefab"))
 		{
-			DropTarget<ResourceType::Prefab>(editor, *static_cast<size_t *>(pay_load->Data));
+			DropTarget<ResourceType::Prefab>(editor, static_cast<const char *>(pay_load->Data));
 		}
 	}
 

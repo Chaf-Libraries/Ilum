@@ -10,7 +10,7 @@ template <>
 class EXPORT_API Resource<ResourceType::Animation> final : public IResource
 {
   public:
-	Resource(Animation &&animation);
+	Resource(const std::string& name, Animation &&animation);
 
 	virtual ~Resource() override;
 

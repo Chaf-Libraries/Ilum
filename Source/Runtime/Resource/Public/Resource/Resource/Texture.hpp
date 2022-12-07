@@ -16,8 +16,6 @@ class EXPORT_API Resource<ResourceType::Texture> final : public IResource
 
 	RHITexture *GetTexture() const;
 
-	const std::string &GetName() const;
-
   private:
 	struct Impl;
 	Impl *m_impl = nullptr;

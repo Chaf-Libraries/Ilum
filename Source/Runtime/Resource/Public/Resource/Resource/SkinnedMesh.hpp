@@ -30,8 +30,6 @@ class EXPORT_API Resource<ResourceType::SkinnedMesh> final : public IResource
 
 	virtual ~Resource() override;
 
-	const std::string &GetName() const;
-
   private:
 	struct Impl;
 	Impl *m_impl = nullptr;

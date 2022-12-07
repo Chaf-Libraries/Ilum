@@ -90,8 +90,6 @@ class EXPORT_API Resource<ResourceType::Mesh> final : public IResource
 
 	virtual ~Resource() override;
 
-	const std::string &GetName() const;
-
 	bool HasAnimation(uint32_t idx) const;
 
 	const std::vector<Mesh> &GetMeshes() const;

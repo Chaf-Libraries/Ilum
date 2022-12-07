@@ -3,8 +3,8 @@
 #include "Resource.hpp"
 #include "Resource/Animation.hpp"
 #include "Resource/Mesh.hpp"
-#include "Resource/SkinnedMesh.hpp"
 #include "Resource/Prefab.hpp"
+#include "Resource/SkinnedMesh.hpp"
 #include "Resource/Texture.hpp"
 
 #include <RHI/RHIContext.hpp>
@@ -32,7 +32,7 @@ struct IResourceManager
 
 	virtual void Add(std::unique_ptr<IResource> &&resource, size_t uuid) = 0;
 
-	virtual const std::vector<size_t> GetResources() const = 0;
+	virtual const std::vector<std::string> GetResources() const = 0;
 
 	RHIContext *rhi_context = nullptr;
 };
@@ -106,11 +106,13 @@ struct TResourceManager : public IResourceManager
 		}
 	}
 
-	virtual const std::vector<size_t> GetResources() const override
+	virtual const std::vector<std::string> GetResources() const override
 	{
-		std::vector<size_t> uuids(lookup.size());
-		std::transform(lookup.begin(), lookup.end(), uuids.begin(), [](const auto &iter) { return iter.first; });
-		return uuids;
+		std::vector<std::string> handles(resources.size());
+		std::transform(resources.begin(), resources.end(), handles.begin(), [](const auto &resource) {
+			return resource->GetName();
+		});
+		return handles;
 	}
 
 	std::vector<std::unique_ptr<Resource<_Ty>>> resources;
@@ -158,12 +160,13 @@ void ResourceManager::Import(ResourceType type, const std::string &path)
 	m_impl->managers.at(type)->Import(this, path);
 }
 
-void ResourceManager::Add(ResourceType type, std::unique_ptr<IResource> &&resource, size_t uuid)
+void ResourceManager::Add(ResourceType type, std::unique_ptr<IResource> &&resource)
 {
+	size_t uuid = resource->GetUUID();
 	m_impl->managers.at(type)->Add(std::move(resource), uuid);
 }
 
-const std::vector<size_t> ResourceManager::GetResources(ResourceType type) const
+const std::vector<std::string> ResourceManager::GetResources(ResourceType type) const
 {
 	return m_impl->managers.at(type)->GetResources();
 }

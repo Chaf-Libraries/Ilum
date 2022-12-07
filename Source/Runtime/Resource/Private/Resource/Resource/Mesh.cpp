@@ -17,7 +17,8 @@ struct Resource<ResourceType::Mesh>::Impl
 	std::vector<std::unique_ptr<RHIAccelerationStructure>> blas;
 };
 
-Resource<ResourceType::Mesh>::Resource(RHIContext *rhi_context, const std::string &name, std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices)
+Resource<ResourceType::Mesh>::Resource(RHIContext *rhi_context, const std::string &name, std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices):
+    IResource(name)
 {
 	//m_impl         = new Impl;
 	//m_impl->name   = name;
@@ -84,11 +85,6 @@ Resource<ResourceType::Mesh>::Resource(RHIContext *rhi_context, const std::strin
 Resource<ResourceType::Mesh>::~Resource()
 {
 	delete m_impl;
-}
-
-const std::string &Resource<ResourceType::Mesh>::GetName() const
-{
-	return m_impl->name;
 }
 
 bool Resource<ResourceType::Mesh>::HasAnimation(uint32_t idx) const

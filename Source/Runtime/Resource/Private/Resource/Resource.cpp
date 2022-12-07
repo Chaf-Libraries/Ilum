@@ -7,6 +7,21 @@
 
 namespace Ilum
 {
+IResource::IResource(const std::string& name) :
+    m_name(name)
+{
+}
+
+const std::string &IResource::GetName() const
+{
+	return m_name;
+}
+
+size_t IResource::GetUUID() const
+{
+	return Hash(m_name);
+}
+
 template class EXPORT_API Resource<ResourceType::Mesh>;
 template class EXPORT_API Resource<ResourceType::SkinnedMesh>;
 template class EXPORT_API Resource<ResourceType::Texture>;

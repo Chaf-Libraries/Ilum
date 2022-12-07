@@ -9,7 +9,8 @@ struct Resource<ResourceType::Texture>::Impl
 	std::unique_ptr<RHITexture> texture = nullptr;
 };
 
-Resource<ResourceType::Texture>::Resource(RHIContext *rhi_context, std::vector<uint8_t> &&data, const TextureDesc &desc)
+Resource<ResourceType::Texture>::Resource(RHIContext *rhi_context, std::vector<uint8_t> &&data, const TextureDesc &desc):
+    IResource(desc.name)
 {
 	m_impl = new Impl;
 
@@ -53,10 +54,5 @@ Resource<ResourceType::Texture>::~Resource()
 RHITexture *Resource<ResourceType::Texture>::GetTexture() const
 {
 	return m_impl->texture.get();
-}
-
-const std::string &Resource<ResourceType::Texture>::GetName() const
-{
-	return m_impl->texture->GetDesc().name;
 }
 }        // namespace Ilum

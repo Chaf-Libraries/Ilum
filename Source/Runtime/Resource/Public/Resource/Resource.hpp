@@ -17,9 +17,16 @@ enum class ResourceType
 class EXPORT_API IResource
 {
   public:
-	IResource() = default;
+	explicit IResource(const std::string &name);
 
 	virtual ~IResource() = default;
+
+	const std::string &GetName() const;
+
+	size_t GetUUID() const;
+
+  private:
+	const std::string m_name;
 };
 
 template <ResourceType Type>

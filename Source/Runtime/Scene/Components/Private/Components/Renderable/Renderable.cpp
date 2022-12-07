@@ -14,29 +14,60 @@ Renderable::Renderable(const char *name, Node *node) :
 {
 }
 
-//void Renderable::OnImGui()
-//{
-//	if (ImGui::TreeNode("Submesh"))
-//	{
-//		for (auto &uuid : m_submeshes)
-//		{
-//			ImGui::PushID(static_cast<int32_t>(uuid));
-//			ImGui::Button(std::to_string(uuid).c_str(), ImVec2(200.f, 5.f));
-//			ImGui::PopID();
-//		}
-//
-//		ImGui::TreePop();
-//	}
-//}
-
-void Renderable::AddMaterial(size_t uuid)
+void Renderable::OnImGui()
 {
-	m_materials.emplace_back(uuid);
+	if (ImGui::TreeNode("Material"))
+	{
+		for (auto &material : m_materials)
+		{
+			ImGui::PushID(material.c_str());
+
+			if (ImGui::Button(material.c_str(), ImVec2(ImGui::GetContentRegionAvail().x * 0.8f, 30.f)))
+			{
+				material = "";
+			}
+
+			if (ImGui::BeginDragDropSource())
+			{
+				ImGui::SetDragDropPayload("Material", material.c_str(), material.length() + 1);
+				ImGui::EndDragDropSource();
+			}
+
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const auto *pay_load = ImGui::AcceptDragDropPayload("Material"))
+				{
+					material = *static_cast<std::string *>(pay_load->Data);
+				}
+			}
+
+			ImGui::PopID();
+		}
+
+		if (ImGui::Button("+"))
+		{
+			m_materials.emplace_back("");
+		}
+
+		ImGui::SameLine();
+
+		if (ImGui::Button("-"))
+		{
+			m_materials.pop_back();
+		}
+
+		ImGui::TreePop();
+	}
 }
 
-void Renderable::AddSubmesh(size_t uuid)
+void Renderable::AddMaterial(const std::string &material)
 {
-	m_submeshes.emplace_back(uuid);
+	m_materials.emplace_back(material);
+}
+
+void Renderable::AddSubmesh(const std::string &submesh)
+{
+	m_submeshes.emplace_back(submesh);
 }
 }        // namespace Cmpt
 }        // namespace Ilum

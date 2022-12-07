@@ -11,6 +11,8 @@ class EXPORT_API MeshRenderer : public Renderable
   public:
 	MeshRenderer(Node *node);
 
+	virtual ~MeshRenderer() = default;
+
 	virtual void OnImGui() override;
 
 	virtual std::type_index GetType() const override;

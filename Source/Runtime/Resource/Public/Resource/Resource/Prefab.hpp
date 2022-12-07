@@ -17,15 +17,13 @@ class EXPORT_API Resource<ResourceType::Prefab> final : public IResource
 
 		std::vector<Node> children;
 
-		std::vector<std::pair<ResourceType, size_t>> resources;
+		std::vector<std::pair<ResourceType, std::string>> resources;
 	};
 
   public:
 	Resource(const std::string &name, Node &&root);
 
 	virtual ~Resource() override;
-
-	const std::string &GetName() const;
 
 	const Node &GetRoot() const;
 

@@ -467,15 +467,13 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 	//	return ~0U;
 	//}
 
-	size_t ProcessMesh(ResourceManager *manager, RHIContext *rhi_context, const aiScene *assimp_scene, ModelInfo &data, aiMesh *assimp_mesh)
+	std::string ProcessMesh(ResourceManager *manager, RHIContext *rhi_context, const aiScene *assimp_scene, ModelInfo &data, aiMesh *assimp_mesh)
 	{
 		std::string name = assimp_mesh->mName.C_Str();
 
-		size_t uuid = Hash(name);
-
-		if (manager->Has<ResourceType::Mesh>(uuid))
+		if (manager->Has<ResourceType::Mesh>(name))
 		{
-			return uuid;
+			return name;
 		}
 
 		std::vector<Vertex>   vertices;
@@ -502,19 +500,17 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			}
 		}
 
-		manager->Add<ResourceType::Mesh>(std::make_unique<Resource<ResourceType::Mesh>>(rhi_context, name, std::move(vertices), std::move(indices)), uuid);
-		return uuid;
+		manager->Add<ResourceType::Mesh>(std::make_unique<Resource<ResourceType::Mesh>>(rhi_context, name, std::move(vertices), std::move(indices)));
+		return name;
 	}
 
-	size_t ProcessSkinnedMesh(ResourceManager *manager, RHIContext *rhi_context, const aiScene *assimp_scene, ModelInfo &data, aiMesh *assimp_mesh)
+	std::string ProcessSkinnedMesh(ResourceManager *manager, RHIContext *rhi_context, const aiScene *assimp_scene, ModelInfo &data, aiMesh *assimp_mesh)
 	{
 		std::string name = assimp_mesh->mName.C_Str();
 
-		size_t uuid = Hash(name);
-
-		if (manager->Has<ResourceType::SkinnedMesh>(uuid))
+		if (manager->Has<ResourceType::SkinnedMesh>(name))
 		{
-			return uuid;
+			return name;
 		}
 
 		std::vector<SkinnedVertex> vertices;
@@ -583,8 +579,8 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			}
 		}
 
-		manager->Add<ResourceType::SkinnedMesh>(std::make_unique<Resource<ResourceType::SkinnedMesh>>(rhi_context, name, std::move(vertices), std::move(indices)), uuid);
-		return uuid;
+		manager->Add<ResourceType::SkinnedMesh>(std::make_unique<Resource<ResourceType::SkinnedMesh>>(rhi_context, name, std::move(vertices), std::move(indices)));
+		return name;
 	}
 
 	Node ProcessNode(ResourceManager *manager, RHIContext *rhi_context, const aiScene *assimp_scene, aiNode *assimp_node, ModelInfo &data, aiMatrix4x4 transform = aiMatrix4x4())
@@ -621,13 +617,10 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
   protected:
 	virtual void Import_(ResourceManager *manager, const std::string &path, RHIContext *rhi_context) override
 	{
-		size_t uuid = Hash(path);
-		if (manager->Has<ResourceType::Prefab>(uuid))
+		if (manager->Has<ResourceType::Prefab>(path))
 		{
 			return;
 		}
-
-		std::string model_name = Path::GetInstance().GetFileName(path, false);
 
 		Assimp::Importer importer;
 
@@ -640,7 +633,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			data.root = ProcessNode(manager, rhi_context, scene, scene->mRootNode, data, identity);
 			ProcessAnimation(scene, data);
 
-			manager->Add<ResourceType::Prefab>(std::make_unique<Resource<ResourceType::Prefab>>(model_name, std::move(data.root)), uuid);
+			manager->Add<ResourceType::Prefab>(std::make_unique<Resource<ResourceType::Prefab>>(path, std::move(data.root)));
 
 			// return std::make_unique<Resource<ResourceType::Mesh>>(model_name, rhi_context, std::move(data.meshes));
 		}

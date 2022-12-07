@@ -59,15 +59,13 @@ class STBImporter : public Importer<ResourceType::Texture>
 
 		stbi_image_free(raw_data);
 
-		manager->Add<ResourceType::Texture>(
-		    std::make_unique<Resource<ResourceType::Texture>>(rhi_context, std::move(data), desc),
-		    Hash(path));
+		manager->Add<ResourceType::Texture>(std::make_unique<Resource<ResourceType::Texture>>(rhi_context, std::move(data), desc));
 	}
 };
 
 extern "C"
 {
-	EXPORT_API STBImporter* Create()
+	EXPORT_API STBImporter *Create()
 	{
 		return new STBImporter;
 	}

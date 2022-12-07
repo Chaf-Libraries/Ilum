@@ -11,17 +11,19 @@ class EXPORT_API Renderable : public Component
   public:
 	Renderable(const char *name, Node *node);
 
-	virtual void OnImGui() override =0;
+	virtual ~Renderable() = default;
 
-	virtual std::type_index GetType() const override = 0;
+	virtual void OnImGui() override;
 
-	void AddMaterial(size_t uuid);
+	virtual std::type_index GetType() const = 0;
 
-	void AddSubmesh(size_t uuid);
+	void AddMaterial(const std::string &material);
+
+	void AddSubmesh(const std::string &submesh);
 
   protected:
-	std::vector<size_t> m_submeshes;
-	std::vector<size_t> m_materials;
+	std::vector<std::string> m_submeshes;
+	std::vector<std::string> m_materials;
 };
 }        // namespace Cmpt
 }        // namespace Ilum

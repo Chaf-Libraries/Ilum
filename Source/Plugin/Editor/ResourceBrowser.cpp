@@ -28,23 +28,21 @@ class ResourceBrowser : public Widget
 		style.ItemSpacing    = ImVec2(10.f, 10.f);
 		float window_visible = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
 
-		const std::vector<size_t> resources = manager->GetResources<_Ty>();
+		const std::vector<std::string> resources = manager->GetResources<_Ty>();
 
-		for (auto &uuid : resources)
+		for (const auto &resource : resources)
 		{
-			ImGui::PushID(static_cast<int32_t>(uuid));
+			ImGui::PushID(resource.c_str());
 			ImGui::ImageButton(ImGui::GetIO().Fonts->TexID, ImVec2{button_size, button_size});
 
 			// Drag&Drop source
 			if (ImGui::BeginDragDropSource())
 			{
-				const size_t uuid_ = uuid;
-				ImGui::SetDragDropPayload(m_resource_types.at(_Ty), &uuid, sizeof(size_t));
+				ImGui::SetDragDropPayload(m_resource_types.at(_Ty), resource.c_str(), resource.length() + 1);
 				ImGui::EndDragDropSource();
 			}
 
-			std::string uuid_str = std::to_string(uuid);
-			if (ImGui::BeginPopupContextItem(uuid_str.c_str()))
+			if (ImGui::BeginPopupContextItem(resource.c_str()))
 			{
 				if (ImGui::MenuItem("Delete"))
 				{
@@ -58,10 +56,10 @@ class ResourceBrowser : public Widget
 			else if (ImGui::IsItemHovered() && ImGui::IsWindowFocused())
 			{
 				ImVec2 pos = ImGui::GetIO().MousePos;
-				//ImGui::SetNextWindowPos(ImVec2(pos.x + 10.f, pos.y + 10.f));
-				// ImGui::Begin(uuid_str.c_str(), NULL, ImGuiWindowFlags_Tooltip | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar);
-				// ImGui::Text("%s", manager->GetResourceMeta<_Ty>(uuid).c_str());
-				// ImGui::End();
+				// ImGui::SetNextWindowPos(ImVec2(pos.x + 10.f, pos.y + 10.f));
+				//  ImGui::Begin(uuid_str.c_str(), NULL, ImGuiWindowFlags_Tooltip | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar);
+				//  ImGui::Text("%s", manager->GetResourceMeta<_Ty>(uuid).c_str());
+				//  ImGui::End();
 			}
 
 			float last_button = ImGui::GetItemRectMax().x;
