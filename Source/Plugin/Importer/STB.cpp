@@ -59,7 +59,7 @@ class STBImporter : public Importer<ResourceType::Texture>
 
 		stbi_image_free(raw_data);
 
-		manager->Add<ResourceType::Texture>(std::make_unique<Resource<ResourceType::Texture>>(rhi_context, std::move(data), desc));
+		manager->Add<ResourceType::Texture>(rhi_context, std::move(data), desc);
 	}
 };
 

@@ -100,6 +100,7 @@ struct RasterizationState
 	RHICullMode    cull_mode        = RHICullMode::Back;
 	RHIFrontFace   front_face       = RHIFrontFace::Counter_Clockwise;
 	RHIPolygonMode polygon_mode     = RHIPolygonMode::Solid;
+	float          line_width       = 1.f;
 	float          depth_bias       = 0.f;
 	float          depth_bias_clamp = 0.f;
 	float          depth_bias_slope = 0.f;

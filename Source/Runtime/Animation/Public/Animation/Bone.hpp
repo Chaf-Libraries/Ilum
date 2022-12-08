@@ -32,7 +32,7 @@ class EXPORT_API Bone
 	Bone(
 	    const std::string         &name,
 	    uint32_t                   id,
-		glm::mat4 offset,
+	    glm::mat4                  offset,
 	    std::vector<KeyPosition> &&positions,
 	    std::vector<KeyRotation> &&rotations,
 	    std::vector<KeyScale>    &&scales);

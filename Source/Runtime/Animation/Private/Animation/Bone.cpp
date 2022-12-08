@@ -1,5 +1,7 @@
 #include "Bone.hpp"
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
 namespace Ilum
@@ -88,31 +90,31 @@ size_t Bone::GetPositionIndex(float time) const
 			return index;
 		}
 	}
-	return ~0U;
+	return m_impl->positions.size() - 2;
 }
 
 size_t Bone::GetRotationIndex(float time) const
 {
-	for (size_t index = 0; index < m_impl->positions.size() - 1; index++)
+	for (size_t index = 0; index < m_impl->rotations.size() - 1; index++)
 	{
 		if (time < m_impl->rotations[index + 1].time_stamp)
 		{
 			return index;
 		}
 	}
-	return ~0U;
+	return m_impl->rotations.size() - 2;
 }
 
 size_t Bone::GetScaleIndex(float time) const
 {
-	for (size_t index = 0; index < m_impl->positions.size() - 1; index++)
+	for (size_t index = 0; index < m_impl->scales.size() - 1; index++)
 	{
-		if (time < m_impl->positions[index + 1].time_stamp)
+		if (time < m_impl->scales[index + 1].time_stamp)
 		{
 			return index;
 		}
 	}
-	return ~0U;
+	return m_impl->scales.size() - 2;
 }
 
 glm::mat4 Bone::GetLocalTransform(float time) const
@@ -142,7 +144,7 @@ glm::mat4 Bone::InterpolatePosition(float time) const
 
 	size_t    p0             = GetPositionIndex(time);
 	size_t    p1             = p0 + 1;
-	float     scale_factor   = GetScaleFactor(m_impl->positions[p0].time_stamp, m_impl->positions[p1].time_stamp, time);
+	float     scale_factor   = GetScaleFactor(m_impl->positions[p0].time_stamp, m_impl->positions[p1].time_stamp, glm::clamp(time, 0.f, m_impl->positions.back().time_stamp));
 	glm::vec3 final_position = glm::mix(m_impl->positions[p0].position, m_impl->positions[p1].position, scale_factor);
 
 	return glm::translate(glm::mat4(1.f), final_position);
@@ -150,7 +152,7 @@ glm::mat4 Bone::InterpolatePosition(float time) const
 
 glm::mat4 Bone::InterpolateRotation(float time) const
 {
-	if (m_impl->positions.size() == 1)
+	if (m_impl->rotations.size() == 1)
 	{
 		auto rotation = glm::normalize(m_impl->rotations[0].orientation);
 		return glm::toMat4(rotation);
@@ -158,7 +160,7 @@ glm::mat4 Bone::InterpolateRotation(float time) const
 
 	size_t    p0             = GetRotationIndex(time);
 	size_t    p1             = p0 + 1;
-	float     scale_factor   = GetScaleFactor(m_impl->rotations[p0].time_stamp, m_impl->rotations[p1].time_stamp, time);
+	float     scale_factor   = GetScaleFactor(m_impl->rotations[p0].time_stamp, m_impl->rotations[p1].time_stamp, glm::clamp(time, 0.f, m_impl->rotations.back().time_stamp));
 	glm::quat final_rotation = glm::slerp(m_impl->rotations[p0].orientation, m_impl->rotations[p1].orientation, scale_factor);
 	final_rotation           = glm::normalize(final_rotation);
 
@@ -174,7 +176,7 @@ glm::mat4 Bone::InterpolateScaling(float time) const
 
 	size_t    p0           = GetScaleIndex(time);
 	size_t    p1           = p0 + 1;
-	float     scale_factor = GetScaleFactor(m_impl->scales[p0].time_stamp, m_impl->scales[p1].time_stamp, time);
+	float     scale_factor = GetScaleFactor(m_impl->scales[p0].time_stamp, m_impl->scales[p1].time_stamp, glm::clamp(time, 0.f, m_impl->scales.back().time_stamp));
 	glm::vec3 final_scale  = glm::mix(m_impl->scales[p0].scale, m_impl->scales[p1].scale, scale_factor);
 
 	return glm::scale(glm::mat4(1.f), final_scale);

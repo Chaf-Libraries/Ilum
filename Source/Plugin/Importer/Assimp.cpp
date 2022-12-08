@@ -1,4 +1,5 @@
 #include <Resource/Importer.hpp>
+#include <Resource/Resource/Animation.hpp>
 #include <Resource/Resource/Mesh.hpp>
 #include <Resource/Resource/Prefab.hpp>
 #include <Resource/Resource/SkinnedMesh.hpp>
@@ -19,10 +20,10 @@
 
 using namespace Ilum;
 
-using Vertex = Resource<ResourceType::Mesh>::Vertex;
+using Vertex        = Resource<ResourceType::Mesh>::Vertex;
 using SkinnedVertex = Resource<ResourceType::SkinnedMesh>::SkinnedVertex;
 using Node          = Resource<ResourceType::Prefab>::Node;
-using BoneInfo      = Resource<ResourceType::Mesh>::BoneInfo;
+using BoneInfo      = Resource<ResourceType::Animation>::BoneInfo;
 
 inline uint32_t PackTriangle(uint8_t v0, uint8_t v1, uint8_t v2)
 {
@@ -68,7 +69,7 @@ inline glm::vec4 ToVector(const aiColor4D &color)
 
 inline glm::quat ToQuaternion(const aiQuaternion &quat)
 {
-	return glm::quat(quat.x, quat.y, quat.z, quat.w);
+	return glm::quat(quat.w, quat.x, quat.y, quat.z);
 }
 
 class AssimpImporter : public Importer<ResourceType::Prefab>
@@ -240,13 +241,12 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 	//	}
 	//}
 
-	void ProcessAnimation(const aiScene *assimp_scene, ModelInfo &data)
+	void ProcessAnimation(RHIContext *rhi_context, ResourceManager *manager, const aiScene *assimp_scene, ModelInfo &data)
 	{
 		for (uint32_t i = 0; i < assimp_scene->mNumAnimations; i++)
 		{
 			std::vector<Bone> bones;
 			const auto       *assimp_animation = assimp_scene->mAnimations[i];
-			Animation         animation;
 			for (uint32_t j = 0; j < assimp_animation->mNumChannels; j++)
 			{
 				auto        channel   = assimp_animation->mChannels[j];
@@ -292,7 +292,24 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 
 				bones.emplace_back(bone_name, bone_id, data.bones.at(bone_name).offset, std::move(key_positions), std::move(key_rotations), std::move(key_scales));
 			}
-			data.animations.emplace_back(assimp_animation->mName.C_Str(), std::move(bones), static_cast<float>(assimp_animation->mDuration), static_cast<float>(assimp_animation->mTicksPerSecond));
+
+			std::function<void(std::map<std::string, std::string> &, const Node &, const std::string &parent)> build_skeleton =
+			    [&](std::map<std::string, std::string> &hierarchy, const Node &node, std::string parent) {
+				    if (std::find_if(bones.begin(), bones.end(), [&](const Bone &bone) { return node.name == bone.GetBoneName(); }) != bones.end())
+				    {
+					    hierarchy[node.name] = parent;
+					    parent               = node.name;
+				    }
+				    for (const auto &child : node.children)
+				    {
+					    build_skeleton(hierarchy, child, parent);
+				    }
+			    };
+
+			std::map<std::string, std::string> hierarchy;
+			build_skeleton(hierarchy, data.root, "");
+
+			manager->Add<ResourceType::Animation>(rhi_context, assimp_animation->mName.length == 0 ? std::to_string(Hash(assimp_animation)) : assimp_animation->mName.C_Str(), std::move(bones), std::move(hierarchy), static_cast<float>(assimp_animation->mDuration), static_cast<float>(assimp_animation->mTicksPerSecond));
 		}
 	}
 
@@ -493,7 +510,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			}
 		}
 
-		manager->Add<ResourceType::Mesh>(std::make_unique<Resource<ResourceType::Mesh>>(rhi_context, name, std::move(vertices), std::move(indices)));
+		manager->Add<ResourceType::Mesh>(rhi_context, name, std::move(vertices), std::move(indices));
 		return name;
 	}
 
@@ -515,7 +532,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			SkinnedVertex vertex = {};
 			vertex.position      = glm::vec3(assimp_mesh->mVertices[j].x, assimp_mesh->mVertices[j].y, assimp_mesh->mVertices[j].z);
 			vertex.normal        = glm::vec3(assimp_mesh->mNormals[j].x, assimp_mesh->mNormals[j].y, assimp_mesh->mNormals[j].z);
-			vertex.tangent       = glm::vec3(assimp_mesh->mTangents[j].x, assimp_mesh->mTangents[j].y, assimp_mesh->mTangents[j].z);
+			vertex.tangent       = assimp_mesh->mTangents ? glm::vec3(assimp_mesh->mTangents[j].x, assimp_mesh->mTangents[j].y, assimp_mesh->mTangents[j].z) : glm::vec3(0.f);
 			vertex.texcoord0     = assimp_mesh->mTextureCoords[0] ? glm::vec2(assimp_mesh->mTextureCoords[0][j].x, assimp_mesh->mTextureCoords[0][j].y) : glm::vec2(0.f);
 			vertex.texcoord1     = assimp_mesh->mTextureCoords[1] ? glm::vec2(assimp_mesh->mTextureCoords[1][j].x, assimp_mesh->mTextureCoords[1][j].y) : glm::vec2(0.f);
 			vertices.emplace_back(std::move(vertex));
@@ -572,7 +589,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			}
 		}
 
-		manager->Add<ResourceType::SkinnedMesh>(std::make_unique<Resource<ResourceType::SkinnedMesh>>(rhi_context, name, std::move(vertices), std::move(indices)));
+		manager->Add<ResourceType::SkinnedMesh>(rhi_context, name, std::move(vertices), std::move(indices));
 		return name;
 	}
 
@@ -624,9 +641,22 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			ModelInfo   data;
 			aiMatrix4x4 identity;
 			data.root = ProcessNode(manager, rhi_context, scene, scene->mRootNode, data, identity);
-			ProcessAnimation(scene, data);
+			ProcessAnimation(rhi_context, manager, scene, data);
 
-			manager->Add<ResourceType::Prefab>(std::make_unique<Resource<ResourceType::Prefab>>(path, std::move(data.root)));
+			std::function<void(const Node &)> func = [&](const Node &node) {
+				if (data.bones.find(node.name) != data.bones.end())
+				{
+					data.bones[node.name].offset = node.transform * data.bones[node.name].offset;
+				}
+				for (auto &child : node.children)
+				{
+					func(child);
+				}
+			};
+
+			 func(data.root);
+
+			manager->Add<ResourceType::Prefab>(path, std::move(data.root));
 
 			// return std::make_unique<Resource<ResourceType::Mesh>>(model_name, rhi_context, std::move(data.meshes));
 		}

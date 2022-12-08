@@ -317,7 +317,7 @@ VkPipeline PipelineState::CreateGraphicsPipeline(Descriptor *descriptor, RenderT
 	rasterization_state_create_info.frontFace                              = ToVulkanFrontFace[m_rasterization_state.front_face];
 	rasterization_state_create_info.flags                                  = 0;
 	rasterization_state_create_info.depthBiasEnable                        = VK_TRUE;
-	rasterization_state_create_info.lineWidth                              = 1;
+	rasterization_state_create_info.lineWidth                              = m_rasterization_state.line_width;
 
 	// Color Blend State
 	std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachment_states(m_blend_state.attachment_states.size());

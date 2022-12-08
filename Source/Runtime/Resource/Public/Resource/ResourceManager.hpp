@@ -20,7 +20,7 @@ class EXPORT_API ResourceManager
 	}
 
 	template <ResourceType Type>
-	bool Has(const std::string& name)
+	bool Has(const std::string &name)
 	{
 		return Has(Type, Hash(name));
 	}
@@ -34,13 +34,13 @@ class EXPORT_API ResourceManager
 	template <ResourceType Type>
 	void Import(const std::string &path)
 	{
-		 Import(Type, path);
+		Import(Type, path);
 	}
 
-	template<ResourceType Type>
-	void Add(std::unique_ptr<Resource<Type>>&& resource)
+	template <ResourceType Type, typename... Args>
+	void Add(Args &&...args)
 	{
-		Add(Type, std::move(resource));
+		Add(Type, std::make_unique<Resource<Type>>(std::forward<Args>(args)...));
 	}
 
 	template <ResourceType Type>

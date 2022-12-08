@@ -2,19 +2,37 @@
 
 #include "../Resource.hpp"
 
+#include <Animation/Bone.hpp>
+
 namespace Ilum
 {
 class Animation;
+class RHIContext;
 
 template <>
 class EXPORT_API Resource<ResourceType::Animation> final : public IResource
 {
   public:
-	Resource(const std::string& name, Animation &&animation);
+	struct BoneInfo
+	{
+		uint32_t  id;
+		glm::mat4 offset;
+	};
+
+  public:
+	Resource(RHIContext* rhi_context, const std::string &name, std::vector<Bone> &&bones, std::map<std::string, std::string>&& hierarchy, float duration, float ticks_per_sec);
 
 	virtual ~Resource() override;
 
-	const Animation &GetAnimation() const;
+	const std::vector<Bone> &GetBones() const;
+
+	Bone *GetBone(const std::string &name);
+
+	uint32_t GetBoneCount() const;
+
+	uint32_t GetMaxBoneIndex() const;
+
+	const std::map<std::string, std::string> &GetHierarchy() const;
 
   private:
 	struct Impl;

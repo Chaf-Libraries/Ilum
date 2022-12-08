@@ -555,7 +555,7 @@ class DDSImporter : public Importer<ResourceType::Texture>
 		desc.mips  = static_cast<uint32_t>(std::floor(std::log2(std::max(desc.width, desc.height))) + 1);
 		desc.usage = RHITextureUsage::ShaderResource | RHITextureUsage::Transfer;
 
-		manager->Add<ResourceType::Texture>(std::make_unique<Resource<ResourceType::Texture>>(rhi_context, std::move(final_data), desc));
+		manager->Add<ResourceType::Texture>(rhi_context, std::move(final_data), desc);
 	}
 };
 

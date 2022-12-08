@@ -71,11 +71,9 @@ class MeshEditor : public Widget
 
 		ImGui::Columns(2);
 
-		ImGui::SetColumnWidth(0, ImGui::GetWindowWidth() * 0.2f);
-
 		// Inspector
 		{
-			ImGui::BeginChild("Render Graph Inspector", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
+			ImGui::BeginChild("Mesh Editor Inspector", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
 			ImGui::Text("Mesh Editor Inspector");
 
@@ -410,13 +408,6 @@ class MeshEditor : public Widget
 			m_view.radius += m_scale_factor * ImGui::GetIO().MouseWheel * delta_time;
 		}
 
-		// if (ImGui::IsMouseDragging(ImGuiMouseButton_Middle))
-		//{
-		//	ImVec2 delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Middle);
-		//	ImGui::ResetMouseDragDelta(ImGuiMouseButton_Middle);
-		//	m_view.radius += m_scale_factor * delta.y * delta_time;
-		// }
-		//  z=x, x = y, y= z
 		glm::vec3 position = m_view.center + m_view.radius * glm::vec3(glm::sin(glm::radians(m_view.phi)) * glm::sin(glm::radians(m_view.theta)), glm::cos(glm::radians(m_view.phi)), glm::sin(glm::radians(m_view.phi)) * glm::cos(glm::radians(m_view.theta)));
 
 		UniformBlock block = {};

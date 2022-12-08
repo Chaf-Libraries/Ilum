@@ -36,12 +36,6 @@ class EXPORT_API Resource<ResourceType::Mesh> final : public IResource
 		glm::vec2 texcoord1;
 	};
 
-	struct BoneInfo
-	{
-		uint32_t  id;
-		glm::mat4 offset;
-	};
-
 	// struct Mesh
 	//{
 	//	std::string name;
