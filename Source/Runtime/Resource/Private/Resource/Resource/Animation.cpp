@@ -8,15 +8,22 @@ struct Resource<ResourceType::Animation>::Impl
 {
 	std::vector<Bone> bones;
 
-	std::map<std::string, std::string> hierarchy;
+	std::map<std::string, std::pair<glm::mat4, std::string>> hierarchy;
+
+	float m_max_timestamp = 0.f;
 };
 
-Resource<ResourceType::Animation>::Resource(RHIContext *rhi_context, const std::string &name, std::vector<Bone> &&bones, std::map<std::string, std::string> &&hierarchy, float duration, float ticks_per_sec) :
+Resource<ResourceType::Animation>::Resource(RHIContext *rhi_context, const std::string &name, std::vector<Bone> &&bones, std::map<std::string, std::pair<glm::mat4, std::string>> &&hierarchy, float duration, float ticks_per_sec) :
     IResource(name)
 {
 	m_impl            = new Impl;
 	m_impl->bones     = std::move(bones);
 	m_impl->hierarchy = std::move(hierarchy);
+
+	for (auto& bone : m_impl->bones)
+	{
+		m_impl->m_max_timestamp = glm::max(m_impl->m_max_timestamp, bone.GetMaxTimeStamp());
+	}
 }
 
 const std::vector<Bone> &Resource<ResourceType::Animation>::GetBones() const
@@ -45,7 +52,12 @@ uint32_t Resource<ResourceType::Animation>::GetMaxBoneIndex() const
 	return idx;
 }
 
-const std::map<std::string, std::string> &Resource<ResourceType::Animation>::GetHierarchy() const
+float Resource<ResourceType::Animation>::GetMaxTimeStamp() const
+{
+	return m_impl->m_max_timestamp;
+}
+
+const std::map<std::string, std::pair<glm::mat4, std::string>> &Resource<ResourceType::Animation>::GetHierarchy() const
 {
 	return m_impl->hierarchy;
 }

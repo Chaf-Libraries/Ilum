@@ -87,9 +87,6 @@ class EXPORT_API Resource<ResourceType::Mesh> final : public IResource
 	void Update(RHIContext *rhi_context, std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices);
 
   private:
-	void UpdateBuffer(RHIContext *rhi_context);
-
-  private:
 	struct Impl;
 	Impl *m_impl = nullptr;
 };

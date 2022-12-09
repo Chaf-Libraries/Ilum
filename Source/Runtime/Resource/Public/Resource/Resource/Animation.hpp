@@ -20,7 +20,7 @@ class EXPORT_API Resource<ResourceType::Animation> final : public IResource
 	};
 
   public:
-	Resource(RHIContext* rhi_context, const std::string &name, std::vector<Bone> &&bones, std::map<std::string, std::string>&& hierarchy, float duration, float ticks_per_sec);
+	Resource(RHIContext *rhi_context, const std::string &name, std::vector<Bone> &&bones, std::map<std::string, std::pair<glm::mat4, std::string>> &&hierarchy, float duration, float ticks_per_sec);
 
 	virtual ~Resource() override;
 
@@ -32,7 +32,9 @@ class EXPORT_API Resource<ResourceType::Animation> final : public IResource
 
 	uint32_t GetMaxBoneIndex() const;
 
-	const std::map<std::string, std::string> &GetHierarchy() const;
+	float GetMaxTimeStamp() const;
+
+	const std::map<std::string, std::pair<glm::mat4, std::string>> &GetHierarchy() const;
 
   private:
 	struct Impl;

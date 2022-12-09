@@ -1,8 +1,8 @@
 #include "Bone.hpp"
 
 #define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/quaternion.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 namespace Ilum
 {
@@ -15,6 +15,8 @@ struct Bone::Impl
 	std::vector<KeyPosition> positions;
 	std::vector<KeyRotation> rotations;
 	std::vector<KeyScale>    scales;
+
+	float max_timestamp = 0.f;
 
 	glm::mat4 local_transfrom;
 };
@@ -36,6 +38,21 @@ Bone::Bone(
 	m_impl->rotations       = std::move(rotations);
 	m_impl->scales          = std::move(scales);
 	m_impl->local_transfrom = glm::mat4(1.f);
+
+	if (!m_impl->positions.empty())
+	{
+		m_impl->max_timestamp = m_impl->positions.back().time_stamp;
+	}
+
+	if (!m_impl->rotations.empty())
+	{
+		m_impl->max_timestamp = m_impl->rotations.back().time_stamp;
+	}
+
+	if (!m_impl->scales.empty())
+	{
+		m_impl->max_timestamp = m_impl->scales.back().time_stamp;
+	}
 }
 
 Bone::Bone(Bone &&bone) noexcept :
@@ -128,6 +145,11 @@ glm::mat4 Bone::GetLocalTransform(float time) const
 glm::mat4 Bone::GetTransformedOffset(float time) const
 {
 	return GetLocalTransform() * m_impl->offset;
+}
+
+float Bone::GetMaxTimeStamp() const
+{
+	return m_impl->max_timestamp;
 }
 
 float Bone::GetScaleFactor(float last, float next, float time) const

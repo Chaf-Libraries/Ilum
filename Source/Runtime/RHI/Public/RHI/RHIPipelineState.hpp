@@ -110,6 +110,7 @@ struct RasterizationState
 		return cull_mode == state.cull_mode &&
 		       front_face == state.front_face &&
 		       polygon_mode == state.polygon_mode &&
+		       line_width == state.line_width &&
 		       depth_bias == state.depth_bias &&
 		       depth_bias_clamp == state.depth_bias_clamp &&
 		       depth_bias_slope == state.depth_bias_slope;

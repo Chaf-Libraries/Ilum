@@ -67,6 +67,8 @@ class EXPORT_API Bone
 
 	glm::mat4 GetTransformedOffset(float time) const;
 
+	float GetMaxTimeStamp() const;
+
   private:
 	float GetScaleFactor(float last, float next, float time) const;
 

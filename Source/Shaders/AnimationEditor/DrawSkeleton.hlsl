@@ -1,11 +1,6 @@
-//#define SHADING
-//#define DRAW_NORMAL
-//#define DRAW_UV
-//#define DRAW_TEXTURE
-//#define WIREFRAME
-
 struct VSInput
 {
+    float3 Position : POSITIONT0;
     uint BoneID : BLENDINDICES0;
 };
 
@@ -43,7 +38,8 @@ float4 GenerateColor(uint a)
 VSOutput VSmain(VSInput input)
 {
     VSOutput output = (VSOutput) 0;
-    output.Position = mul(UniformBuffer.transform, mul(BoneMatrices[input.BoneID], float4(0.f, 0.f, 0.f, 1.0f)));
+    //output.Position = mul(UniformBuffer.transform, mul(BoneMatrices[input.BoneID], float4(input.Position, 1.0f)));
+    output.Position = mul(UniformBuffer.transform, mul(BoneMatrices[input.BoneID], float4(input.Position, 1.0f)));
     output.Color = GenerateColor(input.BoneID);
     return output;
 }

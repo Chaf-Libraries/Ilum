@@ -293,21 +293,22 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 				bones.emplace_back(bone_name, bone_id, data.bones.at(bone_name).offset, std::move(key_positions), std::move(key_rotations), std::move(key_scales));
 			}
 
-			std::function<void(std::map<std::string, std::string> &, const Node &, const std::string &parent)> build_skeleton =
-			    [&](std::map<std::string, std::string> &hierarchy, const Node &node, std::string parent) {
+			std::function<void(std::map<std::string, std::pair<glm::mat4, std::string>> &, const Node &, const std::string &, glm::mat4)> build_skeleton =
+			    [&](std::map<std::string, std::pair<glm::mat4, std::string>> &hierarchy, const Node &node, std::string parent, glm::mat4 transform) {
+				    transform *= node.transform;
 				    if (std::find_if(bones.begin(), bones.end(), [&](const Bone &bone) { return node.name == bone.GetBoneName(); }) != bones.end())
 				    {
-					    hierarchy[node.name] = parent;
+					    hierarchy[node.name] = std::make_pair(transform, parent);
 					    parent               = node.name;
 				    }
 				    for (const auto &child : node.children)
 				    {
-					    build_skeleton(hierarchy, child, parent);
+					    build_skeleton(hierarchy, child, parent, transform);
 				    }
 			    };
 
-			std::map<std::string, std::string> hierarchy;
-			build_skeleton(hierarchy, data.root, "");
+			std::map<std::string, std::pair<glm::mat4, std::string>> hierarchy;
+			build_skeleton(hierarchy, data.root, "", glm::mat4(1.f));
 
 			manager->Add<ResourceType::Animation>(rhi_context, assimp_animation->mName.length == 0 ? std::to_string(Hash(assimp_animation)) : assimp_animation->mName.C_Str(), std::move(bones), std::move(hierarchy), static_cast<float>(assimp_animation->mDuration), static_cast<float>(assimp_animation->mTicksPerSecond));
 		}
@@ -597,9 +598,9 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 	{
 		Node node = {};
 
-		transform = transform * assimp_node->mTransformation;
+		//transform = transform * assimp_node->mTransformation;
 
-		node.transform = ToMatrix(transform);
+		node.transform = ToMatrix(assimp_node->mTransformation);
 		node.name      = assimp_node->mName.C_Str();
 
 		for (uint32_t i = 0; i < assimp_node->mNumMeshes; i++)
@@ -643,22 +644,22 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			data.root = ProcessNode(manager, rhi_context, scene, scene->mRootNode, data, identity);
 			ProcessAnimation(rhi_context, manager, scene, data);
 
-			std::function<void(const Node &)> func = [&](const Node &node) {
+			std::function<void(const Node &, glm::mat4)> func = [&](const Node &node, glm::mat4 parent) {
 				if (data.bones.find(node.name) != data.bones.end())
 				{
-					data.bones[node.name].offset = node.transform * data.bones[node.name].offset;
+					glm::mat4 offset             = data.bones[node.name].offset;
+					parent = parent * node.transform*offset;
+					data.bones[node.name].offset = parent;
 				}
 				for (auto &child : node.children)
 				{
-					func(child);
+					func(child, parent);
 				}
 			};
 
-			 func(data.root);
+			//func(data.root, glm::mat4(1.f));
 
 			manager->Add<ResourceType::Prefab>(path, std::move(data.root));
-
-			// return std::make_unique<Resource<ResourceType::Mesh>>(model_name, rhi_context, std::move(data.meshes));
 		}
 	}
 };

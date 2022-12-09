@@ -21,14 +21,24 @@ class EXPORT_API Resource<ResourceType::SkinnedMesh> final : public IResource
 		glm::vec2 texcoord0;
 		glm::vec2 texcoord1;
 
-		int32_t bones[MAX_BONE_INFLUENCE]   = {-1};
-		float   weights[MAX_BONE_INFLUENCE] = {0.f};
+		int32_t bones[MAX_BONE_INFLUENCE]   = {-1, -1, -1, -1};
+		float   weights[MAX_BONE_INFLUENCE] = {0.f, 0.f, 0.f, 0.f};
 	};
 
   public:
 	Resource(RHIContext *rhi_context, const std::string &name, std::vector<SkinnedVertex> &&vertices, std::vector<uint32_t> &&indices);
 
 	virtual ~Resource() override;
+
+	RHIBuffer *GetVertexBuffer() const;
+
+	RHIBuffer *GetIndexBuffer() const;
+
+	const std::vector<SkinnedVertex> &GetVertices() const;
+
+	const std::vector<uint32_t> &GetIndices() const;
+
+	void Update(RHIContext *rhi_context, std::vector<SkinnedVertex> &&vertices, std::vector<uint32_t> &&indices);
 
   private:
 	struct Impl;

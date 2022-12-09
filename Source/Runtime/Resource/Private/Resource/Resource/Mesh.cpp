@@ -72,11 +72,7 @@ void Resource<ResourceType::Mesh>::Update(RHIContext *rhi_context, std::vector<V
 {
 	m_impl->vertices = std::move(vertices);
 	m_impl->indices  = std::move(indices);
-	UpdateBuffer(rhi_context);
-}
 
-void Resource<ResourceType::Mesh>::UpdateBuffer(RHIContext *rhi_context)
-{
 	auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Compute);
 	cmd_buffer->Begin();
 
@@ -92,18 +88,18 @@ void Resource<ResourceType::Mesh>::UpdateBuffer(RHIContext *rhi_context)
 	// m_impl->meshlet_primitive_buffer->CopyToDevice(m_impl->meshlet_primitives.data(), m_impl->meshlet_primitives.size() * sizeof(uint32_t));
 	// m_impl->meshlet_buffer->CopyToDevice(m_impl->meshlets.data(), m_impl->meshlets.size() * sizeof(Meshlet));
 
-	//m_impl->blas = rhi_context->CreateAcccelerationStructure();
+	// m_impl->blas = rhi_context->CreateAcccelerationStructure();
 
-	//BLASDesc desc        = {};
-	//desc.name            = m_name;
-	//desc.vertex_buffer   = m_impl->vertex_buffer.get();
-	//desc.index_buffer    = m_impl->index_buffer.get();
-	//desc.vertices_count  = static_cast<uint32_t>(m_impl->vertices.size());
-	//desc.vertices_offset = 0;
-	//desc.indices_count   = static_cast<uint32_t>(m_impl->indices.size());
-	//desc.indices_offset  = 0;
+	// BLASDesc desc        = {};
+	// desc.name            = m_name;
+	// desc.vertex_buffer   = m_impl->vertex_buffer.get();
+	// desc.index_buffer    = m_impl->index_buffer.get();
+	// desc.vertices_count  = static_cast<uint32_t>(m_impl->vertices.size());
+	// desc.vertices_offset = 0;
+	// desc.indices_count   = static_cast<uint32_t>(m_impl->indices.size());
+	// desc.indices_offset  = 0;
 
-	//m_impl->blas->Update(cmd_buffer, desc);
+	// m_impl->blas->Update(cmd_buffer, desc);
 
 	cmd_buffer->End();
 	rhi_context->Execute(cmd_buffer);
