@@ -45,7 +45,7 @@ class MeshEditor : public Widget
 
 		VertexInputState vertex_input_state = {};
 		vertex_input_state.input_bindings   = {
-            VertexInputState::InputBinding{0, sizeof(Resource<ResourceType::Mesh>::Vertex), RHIVertexInputRate::Vertex}};
+            VertexInputState::InputBinding{0, sizeof(VertexData), RHIVertexInputRate::Vertex}};
 
 		BlendState blend_state = {};
 		blend_state.attachment_states.resize(1);
@@ -79,13 +79,11 @@ class MeshEditor : public Widget
 
 			if (ImGui::TreeNode("Mesh"))
 			{
-				ImGui::Text("Mesh Name: %s", m_mesh_name.c_str());
 				ImGui::Text("Vertices Count: %ld", m_mesh.vertices.size());
 				ImGui::Text("Triangle Count: %ld", m_mesh.indices.size() / 3);
 
-				if (ImGui::Button(m_mesh_name.c_str(), ImVec2(150.f, 20.f)))
+				if (ImGui::Button("Clear", ImVec2(150.f, 20.f)))
 				{
-					m_mesh_name = "";
 					m_mesh.vertices.clear();
 					m_mesh.indices.clear();
 				}
@@ -94,10 +92,16 @@ class MeshEditor : public Widget
 				{
 					if (const auto *pay_load = ImGui::AcceptDragDropPayload("Mesh"))
 					{
-						m_mesh_name    = static_cast<const char *>(pay_load->Data);
-						auto *resource = p_editor->GetRenderer()->GetResourceManager()->Get<ResourceType::Mesh>(m_mesh_name);
-						m_mesh.indices = resource->GetIndices();
-						m_mesh.vertices.resize(resource->GetVertices().size());
+						std::string mesh_name = static_cast<const char *>(pay_load->Data);
+						auto       *resource  = p_editor->GetRenderer()->GetResourceManager()->Get<ResourceType::Mesh>(mesh_name);
+
+						m_mesh.indices.resize(resource->GetIndexCount());
+						m_mesh.vertices.resize(resource->GetVertexCount());
+
+						std::vector<Resource<ResourceType::Mesh>::Vertex> vertices(resource->GetVertexCount());
+
+						resource->GetVertexBuffer()->CopyToHost(vertices.data(), vertices.size() * sizeof(Resource<ResourceType::Mesh>::Vertex));
+						resource->GetIndexBuffer()->CopyToHost(m_mesh.indices.data(), m_mesh.indices.size() * sizeof(uint32_t));
 
 						glm::vec3 min_bound = glm::vec3(std::numeric_limits<float>::max());
 						glm::vec3 max_bound = glm::vec3(-std::numeric_limits<float>::max());
@@ -105,9 +109,9 @@ class MeshEditor : public Widget
 						for (uint32_t i = 0; i < m_mesh.vertices.size(); i++)
 						{
 							VertexData data = {};
-							data.position   = resource->GetVertices()[i].position;
-							data.normal     = resource->GetVertices()[i].normal;
-							data.uv         = resource->GetVertices()[i].texcoord0;
+							data.position   = vertices[i].position;
+							data.normal     = vertices[i].normal;
+							data.uv         = vertices[i].texcoord0;
 
 							min_bound = glm::min(min_bound, data.position);
 							max_bound = glm::max(max_bound, data.position);
@@ -118,6 +122,8 @@ class MeshEditor : public Widget
 						m_view.center /= static_cast<float>(m_mesh.vertices.size());
 						m_view.radius  = glm::length(max_bound - min_bound);
 						m_scale_factor = m_view.radius;
+
+						UpdateBuffer();
 					}
 					ImGui::EndDragDropTarget();
 				}
@@ -179,7 +185,7 @@ class MeshEditor : public Widget
 		UpdateCamera(ImGui::GetColumnWidth(1), ImGui::GetContentRegionAvail().y);
 
 		// Model Viewer
-		if (p_editor->GetRenderer()->GetResourceManager()->Has<ResourceType::Mesh>(m_mesh_name))
+		if (m_vertex_buffer && m_index_buffer)
 		{
 			Render(static_cast<uint32_t>(ImGui::GetColumnWidth(1)), static_cast<uint32_t>(ImGui::GetContentRegionAvail().y));
 			if (m_render_texture)
@@ -193,33 +199,24 @@ class MeshEditor : public Widget
 
 	void UpdateBuffer()
 	{
-		auto *rhi_context      = p_editor->GetRenderer()->GetRHIContext();
-		auto *resource_manager = p_editor->GetRenderer()->GetResourceManager();
-
-		if (resource_manager->Has<ResourceType::Mesh>(m_mesh_name))
+		if (!m_mesh.vertices.empty() && !m_mesh.indices.empty())
 		{
-			auto *resource = resource_manager->Get<ResourceType::Mesh>(m_mesh_name);
-
-			std::vector<Resource<ResourceType::Mesh>::Vertex> vertices(m_mesh.vertices.size());
-			std::transform(m_mesh.vertices.begin(), m_mesh.vertices.end(), vertices.begin(), [](const auto &data) {
-				Resource<ResourceType::Mesh>::Vertex v = {};
-
-				v.position  = data.position;
-				v.normal    = data.normal;
-				v.texcoord0 = data.uv;
-
-				return v;
-			});
-			std::vector<uint32_t> indices = m_mesh.indices;
-
-			resource->Update(rhi_context, std::move(vertices), std::move(indices));
+			if (!m_vertex_buffer || m_mesh.vertices.size() * sizeof(VertexData) > m_vertex_buffer->GetDesc().size)
+			{
+				m_vertex_buffer = p_editor->GetRHIContext()->CreateBuffer<VertexData>(m_mesh.vertices.size(), RHIBufferUsage::Vertex | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
+			}
+			if (!m_index_buffer || m_mesh.indices.size() * sizeof(uint32_t) > m_index_buffer->GetDesc().size)
+			{
+				m_index_buffer = p_editor->GetRHIContext()->CreateBuffer<uint32_t>(m_mesh.indices.size(), RHIBufferUsage::Index | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
+			}
+			m_vertex_buffer->CopyToDevice(m_mesh.vertices.data(), m_mesh.vertices.size() * sizeof(VertexData));
+			m_index_buffer->CopyToDevice(m_mesh.indices.data(), m_mesh.indices.size() * sizeof(uint32_t));
 		}
 	}
 
 	void Render(uint32_t width, uint32_t height)
 	{
 		auto *rhi_context = p_editor->GetRHIContext();
-		auto *resource    = p_editor->GetRenderer()->GetResourceManager()->Get<ResourceType::Mesh>(m_mesh_name);
 
 		auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Graphics);
 		cmd_buffer->Begin();
@@ -303,23 +300,23 @@ class MeshEditor : public Widget
 			    m_shading_mode == ShadingMode::Normal)
 			{
 				vertex_input_state.input_attributes = {
-				    VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, position)},
-				    VertexInputState::InputAttribute{RHIVertexSemantics::Normal, 1, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, normal)},
+				    VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(VertexData, position)},
+				    VertexInputState::InputAttribute{RHIVertexSemantics::Normal, 1, 0, RHIFormat::R32G32B32_FLOAT, offsetof(VertexData, normal)},
 				};
 			}
 			else if (m_shading_mode == ShadingMode::UV)
 			{
 				vertex_input_state.input_attributes = {
-				    VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, position)},
-				    VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 1, 0, RHIFormat::R32G32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, texcoord0)},
+				    VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(VertexData, position)},
+				    VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 1, 0, RHIFormat::R32G32_FLOAT, offsetof(VertexData, uv)},
 				};
 			}
 			else if (m_shading_mode == ShadingMode::Texture)
 			{
 				vertex_input_state.input_attributes = {
-				    VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, position)},
-				    VertexInputState::InputAttribute{RHIVertexSemantics::Normal, 1, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, normal)},
-				    VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 2, 0, RHIFormat::R32G32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, texcoord0)},
+				    VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(VertexData, position)},
+				    VertexInputState::InputAttribute{RHIVertexSemantics::Normal, 1, 0, RHIFormat::R32G32B32_FLOAT, offsetof(VertexData, normal)},
+				    VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 2, 0, RHIFormat::R32G32_FLOAT, offsetof(VertexData, uv)},
 				};
 			}
 			m_pipeline_state->SetVertexInputState(vertex_input_state);
@@ -336,8 +333,8 @@ class MeshEditor : public Widget
 			cmd_buffer->BeginRenderPass(m_render_target.get());
 			cmd_buffer->BindDescriptor(descriptor);
 			cmd_buffer->BindPipelineState(m_pipeline_state.get());
-			cmd_buffer->BindVertexBuffer(0, resource->GetVertexBuffer());
-			cmd_buffer->BindIndexBuffer(resource->GetIndexBuffer());
+			cmd_buffer->BindVertexBuffer(0, m_vertex_buffer.get());
+			cmd_buffer->BindIndexBuffer(m_index_buffer.get());
 			cmd_buffer->SetViewport((float) m_render_target->GetWidth(), (float) m_render_target->GetHeight());
 			cmd_buffer->SetScissor(m_render_target->GetWidth(), m_render_target->GetHeight());
 			cmd_buffer->DrawIndexed(static_cast<uint32_t>(m_mesh.indices.size()));
@@ -363,7 +360,7 @@ class MeshEditor : public Widget
 
 			VertexInputState vertex_input_state = m_pipeline_state->GetVertexInputState();
 			vertex_input_state.input_attributes = {
-			    VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, position)},
+			    VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(VertexData, position)},
 			};
 			m_pipeline_state->SetVertexInputState(vertex_input_state);
 
@@ -379,8 +376,8 @@ class MeshEditor : public Widget
 			cmd_buffer->BeginRenderPass(m_render_target.get());
 			cmd_buffer->BindDescriptor(descriptor);
 			cmd_buffer->BindPipelineState(m_pipeline_state.get());
-			cmd_buffer->BindVertexBuffer(0, resource->GetVertexBuffer());
-			cmd_buffer->BindIndexBuffer(resource->GetIndexBuffer());
+			cmd_buffer->BindVertexBuffer(0, m_vertex_buffer.get());
+			cmd_buffer->BindIndexBuffer(m_index_buffer.get());
 			cmd_buffer->SetViewport((float) m_render_target->GetWidth(), (float) m_render_target->GetHeight());
 			cmd_buffer->SetScissor(m_render_target->GetWidth(), m_render_target->GetHeight());
 			cmd_buffer->DrawIndexed(static_cast<uint32_t>(m_mesh.indices.size()));
@@ -422,9 +419,9 @@ class MeshEditor : public Widget
 	}
 
   private:
-	std::string m_mesh_name = "";
-
 	TriMesh m_mesh;
+
+	std::string m_mesh_name;
 
 	struct
 	{
@@ -436,6 +433,9 @@ class MeshEditor : public Widget
 
 	std::unique_ptr<RHIPipelineState> m_pipeline_state = nullptr;
 	std::unique_ptr<RHIRenderTarget>  m_render_target  = nullptr;
+
+	std::unique_ptr<RHIBuffer> m_vertex_buffer = nullptr;
+	std::unique_ptr<RHIBuffer> m_index_buffer  = nullptr;
 
 	std::unique_ptr<RHIBuffer> m_uniform_buffer = nullptr;
 

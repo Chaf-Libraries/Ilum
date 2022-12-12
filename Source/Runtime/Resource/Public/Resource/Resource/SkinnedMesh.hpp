@@ -2,21 +2,25 @@
 
 #include "../Resource.hpp"
 
-#include <RHI/RHIContext.hpp>
+#include <Geometry/Meshlet.hpp>
 
 #define MAX_BONE_INFLUENCE 4
 
 namespace Ilum
 {
+class RHIContext;
+class RHIBuffer;
+class RHIAccelerationStructure;
+
 template <>
 class EXPORT_API Resource<ResourceType::SkinnedMesh> final : public IResource
 {
   public:
-	struct SkinnedVertex
+	struct alignas(16) SkinnedVertex
 	{
-		alignas(16) glm::vec3 position;
-		alignas(16) glm::vec3 normal;
-		alignas(16) glm::vec3 tangent;
+		glm::vec3 position;
+		glm::vec3 normal;
+		glm::vec3 tangent;
 
 		glm::vec2 texcoord0;
 		glm::vec2 texcoord1;
@@ -26,7 +30,7 @@ class EXPORT_API Resource<ResourceType::SkinnedMesh> final : public IResource
 	};
 
   public:
-	Resource(RHIContext *rhi_context, const std::string &name, std::vector<SkinnedVertex> &&vertices, std::vector<uint32_t> &&indices);
+	Resource(RHIContext *rhi_context, const std::string &name, std::vector<SkinnedVertex> &&vertices, std::vector<uint32_t> &&indices, std::vector<Meshlet>&& meshlets, std::vector<uint32_t>&& meshletdata);
 
 	virtual ~Resource() override;
 
@@ -34,11 +38,13 @@ class EXPORT_API Resource<ResourceType::SkinnedMesh> final : public IResource
 
 	RHIBuffer *GetIndexBuffer() const;
 
-	const std::vector<SkinnedVertex> &GetVertices() const;
+	size_t GetVertexCount() const;
 
-	const std::vector<uint32_t> &GetIndices() const;
+	size_t GetIndexCount() const;
 
-	void Update(RHIContext *rhi_context, std::vector<SkinnedVertex> &&vertices, std::vector<uint32_t> &&indices);
+	size_t GetBoneCount() const;
+
+	void Update(RHIContext *rhi_context, std::vector<SkinnedVertex> &&vertices, std::vector<uint32_t> &&indices, std::vector<Meshlet> &&meshlets, std::vector<uint32_t> &&meshletdata);
 
   private:
 	struct Impl;

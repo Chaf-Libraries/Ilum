@@ -3,34 +3,23 @@
 #include "../Resource.hpp"
 
 #include <Geometry/AABB.hpp>
-#include <RHI/RHIContext.hpp>
+#include <Geometry/Meshlet.hpp>
 
 namespace Ilum
 {
+class RHIContext;
+class RHIBuffer;
+class RHIAccelerationStructure;
+
 template <>
 class EXPORT_API Resource<ResourceType::Mesh> final : public IResource
 {
   public:
-	struct Meshlet
+	struct alignas(16) Vertex
 	{
-		uint32_t meshlet_vertex_offset;
-		uint32_t meshlet_primitive_offset;
-
-		uint32_t vertex_count;
-		uint32_t primitive_count;
-
-		glm::vec3 center;
-		float     radius;
-
-		glm::vec3 cone_axis;
-		float     cone_cutoff;
-	};
-
-	struct Vertex
-	{
-		alignas(16) glm::vec3 position;
-		alignas(16) glm::vec3 normal;
-		alignas(16) glm::vec3 tangent;
+		glm::vec3 position;
+		glm::vec3 normal;
+		glm::vec3 tangent;
 
 		glm::vec2 texcoord0;
 		glm::vec2 texcoord1;
@@ -64,7 +53,7 @@ class EXPORT_API Resource<ResourceType::Mesh> final : public IResource
 	//};
 
   public:
-	Resource(RHIContext *rhi_context, const std::string &name, std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices);
+	Resource(RHIContext *rhi_context, const std::string &name, std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices, std::vector<Meshlet> &&meshlets, std::vector<uint32_t> &&meshlet_data);
 
 	virtual ~Resource() override;
 
@@ -72,19 +61,17 @@ class EXPORT_API Resource<ResourceType::Mesh> final : public IResource
 
 	RHIBuffer *GetIndexBuffer() const;
 
-	RHIBuffer *GetMeshletVertexBuffer() const;
-
-	RHIBuffer *GetMeshletPrimitiveBuffer() const;
+	RHIBuffer *GetMeshletDataBuffer() const;
 
 	RHIBuffer *GetMeshletBuffer() const;
 
 	RHIAccelerationStructure *GetBLAS() const;
 
-	const std::vector<Vertex> &GetVertices() const;
+	size_t GetVertexCount() const;
 
-	const std::vector<uint32_t> &GetIndices() const;
+	size_t GetIndexCount() const;
 
-	void Update(RHIContext *rhi_context, std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices);
+	void Update(RHIContext *rhi_context, std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices, std::vector<Meshlet> &&meshlets, std::vector<uint32_t> &&meshlet_data);
 
   private:
 	struct Impl;

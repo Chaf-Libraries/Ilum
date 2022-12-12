@@ -13,13 +13,6 @@ template <>
 class EXPORT_API Resource<ResourceType::Animation> final : public IResource
 {
   public:
-	struct BoneInfo
-	{
-		uint32_t  id;
-		glm::mat4 offset;
-	};
-
-  public:
 	Resource(RHIContext *rhi_context, const std::string &name, std::vector<Bone> &&bones, std::map<std::string, std::pair<glm::mat4, std::string>> &&hierarchy, float duration, float ticks_per_sec);
 
 	virtual ~Resource() override;

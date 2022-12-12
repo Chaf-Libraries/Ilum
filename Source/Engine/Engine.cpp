@@ -1,5 +1,5 @@
 #include "Engine.hpp"
-//#include "System.hpp"
+// #include "System.hpp"
 
 #include <Core/Path.hpp>
 #include <Core/Window.hpp>
@@ -22,10 +22,10 @@ Engine::Engine()
 
 	Path::GetInstance().SetCurrent("./");
 
-	//m_resource_manager->Import<ResourceType::Prefab>("./Asset/Model/halo/scene.gltf");
- m_resource_manager->Import<ResourceType::Prefab>("./Asset/Model/vampire/dancing_vampire.dae");
- //m_resource_manager->Import<ResourceType::Prefab>("E:/Workspace/glTF-Sample-Models/2.0/Fox/glTF/Fox.gltf");
-	
+	m_resource_manager->Import<ResourceType::Prefab>("./Asset/Model/SciFiHelmet/glTF/SciFiHelmet.gltf");
+	m_resource_manager->Import<ResourceType::Prefab>("./Asset/Model/vampire/dancing_vampire.dae");
+	// m_resource_manager->Import<ResourceType::Prefab>("E:/Workspace/glTF-Sample-Models/2.0/Fox/glTF/Fox.gltf");
+
 	m_resource_manager->Import<ResourceType::Texture>("./Asset/Texture/default.png");
 }
 

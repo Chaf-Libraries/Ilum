@@ -3,11 +3,6 @@
 struct VSInput
 {
     float3 Position : POSITIONT0;
-    float3 Normal : NORMAL0;
-    float3 Tangent : TANGENT0;
-    float2 Texcoord0 : TEXCOORD0;
-    float2 Texcoord1 : TEXCOORD1;
-    
     int4 BoneID : BLENDINDICES0;
     float4 BoneWeight : BLENDWEIGHT0;
 };

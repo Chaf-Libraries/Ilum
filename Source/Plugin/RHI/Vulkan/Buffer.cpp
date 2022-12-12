@@ -287,7 +287,7 @@ void Buffer::CopyToHost(void *data, size_t size, size_t offset)
 			submit_info.pWaitSemaphores      = nullptr;
 			submit_info.pWaitDstStageMask    = nullptr;
 
-			vkQueueSubmit(queue, 1, &submit_info, fence ? fence->GetHandle() : nullptr);
+			vkQueueSubmit(queue, 1, &submit_info, fence->GetHandle());
 			fence->Wait();
 
 			std::memcpy(data, (uint8_t *) staging_buffer->Map(), size);

@@ -91,14 +91,6 @@ class AnimationEditor : public Widget
 					m_roots.clear();
 				}
 
-				if (resource)
-				{
-					if (ImGui::SliderFloat("Time", &m_time, 0.f, resource->GetMaxTimeStamp()))
-					{
-						UpdateBuffer(m_time);
-					}
-				}
-
 				if (ImGui::BeginDragDropTarget())
 				{
 					if (const auto *pay_load = ImGui::AcceptDragDropPayload("Animation"))
@@ -135,11 +127,6 @@ class AnimationEditor : public Widget
 							{
 								UpdateVertexBuffer(bone_vertices, root, resource);
 							}
-							/*std::vector<BoneVertex> bone_vertices(resource->GetBoneCount());
-							for (uint32_t i = 0; i < resource->GetBoneCount(); i++)
-							{
-							    bone_vertices[i].bone_id = resource->GetBones()[i].GetBoneID();
-							}*/
 
 							m_vertex_buffer = p_editor->GetRHIContext()->CreateBuffer<BoneVertex>(bone_vertices.size(), RHIBufferUsage::Vertex | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
 							m_vertex_buffer->CopyToDevice(bone_vertices.data(), bone_vertices.size() * sizeof(BoneVertex));
@@ -150,6 +137,28 @@ class AnimationEditor : public Widget
 						}
 					}
 					ImGui::EndDragDropTarget();
+				}
+
+				ImGui::SameLine();
+
+				if (ImGui::Button(m_start ? "Stop" : "Start", ImVec2(150.f, 20.f)))
+				{
+					m_start = !m_start;
+				}
+
+				if (m_start)
+				{
+					m_time += ImGui::GetIO().DeltaTime * 1000.f;
+					if (m_time > (resource ? resource->GetMaxTimeStamp() : 1000.f))
+					{
+						m_time -= resource ? resource->GetMaxTimeStamp() : 1000.f;
+					}
+					UpdateBuffer(m_time);
+				}
+
+				if (ImGui::SliderFloat("Time", &m_time, 0.f, resource ? resource->GetMaxTimeStamp() : 1000.f))
+				{
+					UpdateBuffer(m_time);
 				}
 
 				// Draw hierarchy
@@ -237,15 +246,15 @@ class AnimationEditor : public Widget
 
 	void UpdateVertexBuffer(std::vector<BoneVertex> &vertices, const HierarchyNode &node, Resource<ResourceType::Animation> *resource, Bone *parent = nullptr, glm::mat4 parent_transform = glm::mat4(1.f))
 	{
-		auto     *bone              = resource->GetBone(node.name);
-		uint32_t  current_id        = bone->GetBoneID();
+		auto    *bone       = resource->GetBone(node.name);
+		uint32_t current_id = bone->GetBoneID();
 		if (parent)
 		{
 			BoneVertex p0 = {}, p1 = {};
 			p0.bone_id  = parent->GetBoneID();
 			p1.bone_id  = current_id;
 			p0.position = glm::vec3(parent_transform * glm::vec4(0.f, 0.f, 0.f, 1.f));
-			p1.position = glm::vec3(node.transform*glm::vec4(0.f, 0.f, 0.f, 1.f));
+			p1.position = glm::vec3(node.transform * glm::vec4(0.f, 0.f, 0.f, 1.f));
 
 			vertices.push_back(p0);
 			vertices.push_back(p1);
@@ -299,7 +308,7 @@ class AnimationEditor : public Widget
 			return;
 		}
 
-		glm::mat4 node_transform = bone->GetLocalTransform(time);
+		glm::mat4 node_transform        = bone->GetLocalTransform(time);
 		glm::mat4 global_transformation = parent * node_transform;
 		if (skinned_matrices)
 		{
@@ -388,50 +397,50 @@ class AnimationEditor : public Widget
 		}
 
 		/*{
-			VertexInputState vertex_input_state = {};
-			vertex_input_state.input_bindings   = {
-                VertexInputState::InputBinding{0, sizeof(BoneVertex), RHIVertexInputRate::Vertex}};
-			vertex_input_state.input_attributes = {
-			    VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(BoneVertex, position)},
-			    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Indices, 1, 0, RHIFormat::R32_UINT, offsetof(BoneVertex, bone_id)},
-			};
+		    VertexInputState vertex_input_state = {};
+		    vertex_input_state.input_bindings   = {
+		        VertexInputState::InputBinding{0, sizeof(BoneVertex), RHIVertexInputRate::Vertex}};
+		    vertex_input_state.input_attributes = {
+		        VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(BoneVertex, position)},
+		        VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Indices, 1, 0, RHIFormat::R32_UINT, offsetof(BoneVertex, bone_id)},
+		    };
 
-			InputAssemblyState input_assembly_state = {};
-			input_assembly_state.topology           = RHIPrimitiveTopology::Line;
+		    InputAssemblyState input_assembly_state = {};
+		    input_assembly_state.topology           = RHIPrimitiveTopology::Line;
 
-			RasterizationState rasterization_state = {};
-			rasterization_state.polygon_mode       = RHIPolygonMode::Wireframe;
-			rasterization_state.line_width         = 1.f;
+		    RasterizationState rasterization_state = {};
+		    rasterization_state.polygon_mode       = RHIPolygonMode::Wireframe;
+		    rasterization_state.line_width         = 1.f;
 
-			auto *vertex_shader   = p_editor->GetRenderer()->RequireShader("./Source/Shaders/AnimationEditor/DrawSkeleton.hlsl", "VSmain", RHIShaderStage::Vertex);
-			auto *fragment_shader = p_editor->GetRenderer()->RequireShader("./Source/Shaders/AnimationEditor/DrawSkeleton.hlsl", "PSmain", RHIShaderStage::Fragment);
+		    auto *vertex_shader   = p_editor->GetRenderer()->RequireShader("./Source/Shaders/AnimationEditor/DrawSkeleton.hlsl", "VSmain", RHIShaderStage::Vertex);
+		    auto *fragment_shader = p_editor->GetRenderer()->RequireShader("./Source/Shaders/AnimationEditor/DrawSkeleton.hlsl", "PSmain", RHIShaderStage::Fragment);
 
-			m_pipeline_state->ClearShader();
-			m_pipeline_state->SetShader(RHIShaderStage::Vertex, vertex_shader);
-			m_pipeline_state->SetShader(RHIShaderStage::Fragment, fragment_shader);
-			m_pipeline_state->SetVertexInputState(vertex_input_state);
-			m_pipeline_state->SetInputAssemblyState(input_assembly_state);
-			m_pipeline_state->SetRasterizationState(rasterization_state);
+		    m_pipeline_state->ClearShader();
+		    m_pipeline_state->SetShader(RHIShaderStage::Vertex, vertex_shader);
+		    m_pipeline_state->SetShader(RHIShaderStage::Fragment, fragment_shader);
+		    m_pipeline_state->SetVertexInputState(vertex_input_state);
+		    m_pipeline_state->SetInputAssemblyState(input_assembly_state);
+		    m_pipeline_state->SetRasterizationState(rasterization_state);
 
-			ShaderMeta meta = p_editor->GetRenderer()->RequireShaderMeta(vertex_shader);
-			meta += p_editor->GetRenderer()->RequireShaderMeta(fragment_shader);
+		    ShaderMeta meta = p_editor->GetRenderer()->RequireShaderMeta(vertex_shader);
+		    meta += p_editor->GetRenderer()->RequireShaderMeta(fragment_shader);
 
-			m_render_target->Clear();
-			m_render_target->Set(0, m_render_texture.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, ColorAttachment{RHILoadAction::Clear, RHIStoreAction::Store});
-			m_render_target->Set(m_depth_texture.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, DepthStencilAttachment{});
+		    m_render_target->Clear();
+		    m_render_target->Set(0, m_render_texture.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, ColorAttachment{RHILoadAction::Clear, RHIStoreAction::Store});
+		    m_render_target->Set(m_depth_texture.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, DepthStencilAttachment{});
 
-			auto *descriptor = rhi_context->CreateDescriptor(meta);
-			descriptor->BindBuffer("UniformBuffer", m_uniform_buffer.get())
-			    .BindBuffer("BoneMatrices", m_skinned_buffer.get());
+		    auto *descriptor = rhi_context->CreateDescriptor(meta);
+		    descriptor->BindBuffer("UniformBuffer", m_uniform_buffer.get())
+		        .BindBuffer("BoneMatrices", m_skinned_buffer.get());
 
-			cmd_buffer->BeginRenderPass(m_render_target.get());
-			cmd_buffer->BindDescriptor(descriptor);
-			cmd_buffer->BindPipelineState(m_pipeline_state.get());
-			cmd_buffer->BindVertexBuffer(0, m_vertex_buffer.get());
-			cmd_buffer->SetViewport((float) m_render_target->GetWidth(), (float) m_render_target->GetHeight());
-			cmd_buffer->SetScissor(m_render_target->GetWidth(), m_render_target->GetHeight());
-			cmd_buffer->Draw(static_cast<uint32_t>(m_vertex_buffer->GetDesc().size / sizeof(BoneVertex)));
-			cmd_buffer->EndRenderPass();
+		    cmd_buffer->BeginRenderPass(m_render_target.get());
+		    cmd_buffer->BindDescriptor(descriptor);
+		    cmd_buffer->BindPipelineState(m_pipeline_state.get());
+		    cmd_buffer->BindVertexBuffer(0, m_vertex_buffer.get());
+		    cmd_buffer->SetViewport((float) m_render_target->GetWidth(), (float) m_render_target->GetHeight());
+		    cmd_buffer->SetScissor(m_render_target->GetWidth(), m_render_target->GetHeight());
+		    cmd_buffer->Draw(static_cast<uint32_t>(m_vertex_buffer->GetDesc().size / sizeof(BoneVertex)));
+		    cmd_buffer->EndRenderPass();
 		}*/
 
 		{
@@ -440,12 +449,8 @@ class AnimationEditor : public Widget
                 VertexInputState::InputBinding{0, sizeof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex), RHIVertexInputRate::Vertex}};
 			vertex_input_state.input_attributes = {
 			    VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, position)},
-			    VertexInputState::InputAttribute{RHIVertexSemantics::Normal, 1, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, normal)},
-			    VertexInputState::InputAttribute{RHIVertexSemantics::Tangent, 2, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, tangent)},
-			    VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 3, 0, RHIFormat::R32G32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, texcoord0)},
-			    VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 4, 0, RHIFormat::R32G32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, texcoord1)},
-			    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Indices, 5, 0, RHIFormat::R32G32B32A32_SINT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, bones)},
-			    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Weights, 6, 0, RHIFormat::R32G32B32A32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, weights)},
+			    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Indices, 1, 0, RHIFormat::R32G32B32A32_SINT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, bones)},
+			    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Weights, 2, 0, RHIFormat::R32G32B32A32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, weights)},
 			};
 
 			InputAssemblyState input_assembly_state = {};
@@ -490,7 +495,7 @@ class AnimationEditor : public Widget
 				{
 					cmd_buffer->BindVertexBuffer(0, skinned_mesh->GetVertexBuffer());
 					cmd_buffer->BindIndexBuffer(skinned_mesh->GetIndexBuffer());
-					cmd_buffer->DrawIndexed(static_cast<uint32_t>(skinned_mesh->GetIndices().size()));
+					cmd_buffer->DrawIndexed(static_cast<uint32_t>(skinned_mesh->GetIndexCount()));
 				}
 			}
 
@@ -516,6 +521,8 @@ class AnimationEditor : public Widget
 	std::unique_ptr<RHITexture> m_depth_texture  = nullptr;
 
 	bool m_wireframe = false;
+
+	bool m_start = false;
 
 	std::unique_ptr<RHIBuffer> m_uniform_buffer = nullptr;
 	std::unique_ptr<RHIBuffer> m_skinned_buffer = nullptr;
