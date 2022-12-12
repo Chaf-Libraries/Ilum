@@ -13,6 +13,8 @@ class EXPORT_API ResourceManager
 
 	~ResourceManager();
 
+	void Tick();
+
 	template <ResourceType Type>
 	Resource<Type> *Get(const std::string &name)
 	{

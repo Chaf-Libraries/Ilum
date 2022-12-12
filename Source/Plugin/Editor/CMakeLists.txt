@@ -9,7 +9,6 @@ function(add_widget name)
     target_link_libraries(${TARGET_NAME} PRIVATE imgui)
     add_dependencies(Plugins ${TARGET_NAME})
     target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
-set_target_properties(${TARGET_NAME} PROPERTIES LINK_FLAGS "/NODEFAULTLIB:MSVCRT")
 endfunction()
 
 add_widget(SceneView)

@@ -15,7 +15,6 @@ set_target_properties(
 	PROPERTIES 
 	CXX_STANDARD 17 
 	DEBUG_POSTFIX "${CMAKE_DEBUG_POSTFIX}"
-	LINK_FLAGS "/NODEFAULTLIB:MSVCRT"
 )
 
 target_compile_options(${TARGET_NAME} PUBLIC "$<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/permissive->")

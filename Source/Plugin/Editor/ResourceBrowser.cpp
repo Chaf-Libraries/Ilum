@@ -81,11 +81,15 @@ class ResourceBrowser : public Widget
 			return;
 		}
 
+		auto* resource_manager = p_editor->GetRenderer()->GetResourceManager();
+		resource_manager->Tick();
+
 		ImGui::Columns(2);
 		ImGui::SetColumnWidth(0, 200.f);
 
 		if (ImGui::Button("Import"))
 		{
+
 		}
 
 		for (auto &[type, name] : m_resource_types)
@@ -107,19 +111,19 @@ class ResourceBrowser : public Widget
 		switch (m_current_type)
 		{
 			case ResourceType::Prefab:
-				DrawResource<ResourceType::Prefab>(p_editor->GetRenderer()->GetResourceManager(), 100.f);
+				DrawResource<ResourceType::Prefab>(resource_manager, 100.f);
 				break;
 			case ResourceType::Mesh:
-				DrawResource<ResourceType::Mesh>(p_editor->GetRenderer()->GetResourceManager(), 100.f);
+				DrawResource<ResourceType::Mesh>(resource_manager, 100.f);
 				break;
 			case ResourceType::SkinnedMesh:
-				DrawResource<ResourceType::SkinnedMesh>(p_editor->GetRenderer()->GetResourceManager(), 100.f);
+				DrawResource<ResourceType::SkinnedMesh>(resource_manager, 100.f);
 				break;
 			case ResourceType::Texture2D:
-				DrawResource<ResourceType::Texture2D>(p_editor->GetRenderer()->GetResourceManager(), 100.f);
+				DrawResource<ResourceType::Texture2D>(resource_manager, 100.f);
 				break;
 			case ResourceType::Animation:
-				DrawResource<ResourceType::Animation>(p_editor->GetRenderer()->GetResourceManager(), 100.f);
+				DrawResource<ResourceType::Animation>(resource_manager, 100.f);
 				break;
 			default:
 				break;

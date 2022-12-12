@@ -20,6 +20,8 @@ struct IResourceManager
 
 	virtual ~IResourceManager() = default;
 
+	virtual void Tick() = 0;
+
 	virtual IResource *Get(size_t uuid) = 0;
 
 	virtual bool Has(size_t uuid) = 0;
@@ -46,6 +48,12 @@ struct TResourceManager : public IResourceManager
 	}
 
 	virtual ~TResourceManager() = default;
+
+	virtual void Tick() override
+	{
+		deprecates.clear();
+		update = false;
+	}
 
 	virtual Resource<_Ty> *Get(size_t uuid) override
 	{
@@ -85,11 +93,12 @@ struct TResourceManager : public IResourceManager
 				lookup[last_uuid] = lookup[uuid];
 				std::swap(resources.back(), resources[lookup[uuid]]);
 			}
-		}
 
-		deprecates.emplace_back(std::move(resources.back()));
-		resources.pop_back();
-		lookup.erase(uuid);
+			deprecates.emplace_back(std::move(resources.back()));
+			resources.pop_back();
+			lookup.erase(uuid);
+			update = true;
+		}
 	}
 
 	virtual void Import(ResourceManager *manager, const std::string &path) override
@@ -103,6 +112,7 @@ struct TResourceManager : public IResourceManager
 		{
 			lookup.emplace(uuid, resources.size());
 			resources.emplace_back(std::unique_ptr<Resource<_Ty>>(dynamic_cast<Resource<_Ty> *>(resource.release())));
+			update = true;
 		}
 	}
 
@@ -118,6 +128,8 @@ struct TResourceManager : public IResourceManager
 	std::vector<std::unique_ptr<Resource<_Ty>>> resources;
 	std::unordered_map<size_t, size_t>          lookup;        // uuid - index
 	std::vector<std::unique_ptr<Resource<_Ty>>> deprecates;
+
+	bool update = false;
 };
 
 struct ResourceManager::Impl
@@ -138,6 +150,14 @@ ResourceManager::ResourceManager(RHIContext *rhi_context)
 ResourceManager::~ResourceManager()
 {
 	delete m_impl;
+}
+
+void ResourceManager::Tick()
+{
+	for (auto& [type, manager] : m_impl->managers)
+	{
+		manager->Tick();
+	}
 }
 
 IResource *ResourceManager::Get(ResourceType type, size_t uuid)
