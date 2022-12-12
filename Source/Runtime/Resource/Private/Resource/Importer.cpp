@@ -8,7 +8,7 @@
 namespace Ilum
 {
 const std::map<ResourceType, std::map<std::string, std::string>> PluginMap = {
-    {ResourceType::Texture,
+    {ResourceType::Texture2D,
      {
          {".png", "STB"},
          {".jpg", "STB"},
@@ -42,7 +42,7 @@ void Importer<Type>::Import(ResourceManager *manager, const std::string &path, R
 }
 
 template class EXPORT_API Importer<ResourceType::Prefab>;
-template class EXPORT_API Importer<ResourceType::Texture>;
+template class EXPORT_API Importer<ResourceType::Texture2D>;
 template class EXPORT_API Importer<ResourceType::Mesh>;
 template class EXPORT_API Importer<ResourceType::SkinnedMesh>;
 template class EXPORT_API Importer<ResourceType::Animation>;

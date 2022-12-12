@@ -437,7 +437,7 @@ static DXGI_FORMAT GetDXGIFormat(const DDS_PIXELFORMAT &ddpf)
 	return DXGI_FORMAT_UNKNOWN;
 }
 
-class DDSImporter : public Importer<ResourceType::Texture>
+class DDSImporter : public Importer<ResourceType::Texture2D>
 {
   protected:
 	virtual void Import_(ResourceManager *manager, const std::string &path, RHIContext *rhi_context) override
@@ -544,6 +544,18 @@ class DDSImporter : public Importer<ResourceType::Texture>
 			}
 		}
 
+		if (desc.depth > 1)
+		{
+			LOG_WARN("Texture is not 2D Texture!");
+			return;
+		}
+
+		if (desc.layers > 1)
+		{
+			LOG_WARN("Texture is not 2D Texture!");
+			return;
+		}
+
 		uint8_t *tex_data = data + offset;
 		data_size -= offset;
 
@@ -555,7 +567,7 @@ class DDSImporter : public Importer<ResourceType::Texture>
 		desc.mips  = static_cast<uint32_t>(std::floor(std::log2(std::max(desc.width, desc.height))) + 1);
 		desc.usage = RHITextureUsage::ShaderResource | RHITextureUsage::Transfer;
 
-		manager->Add<ResourceType::Texture>(rhi_context, std::move(final_data), desc);
+		manager->Add<ResourceType::Texture2D>(rhi_context, std::move(final_data), desc);
 	}
 };
 

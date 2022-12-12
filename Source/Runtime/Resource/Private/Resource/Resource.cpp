@@ -24,7 +24,7 @@ size_t IResource::GetUUID() const
 
 template class EXPORT_API Resource<ResourceType::Mesh>;
 template class EXPORT_API Resource<ResourceType::SkinnedMesh>;
-template class EXPORT_API Resource<ResourceType::Texture>;
+template class EXPORT_API Resource<ResourceType::Texture2D>;
 template class EXPORT_API Resource<ResourceType::Prefab>;
 template class EXPORT_API Resource<ResourceType::Animation>;
 }        // namespace Ilum

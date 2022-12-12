@@ -7,7 +7,7 @@
 namespace Ilum
 {
 template <>
-class EXPORT_API Resource<ResourceType::Texture> final : public IResource
+class EXPORT_API Resource<ResourceType::Texture2D> final : public IResource
 {
   public:
 	Resource(RHIContext *rhi_context, std::vector<uint8_t> &&data, const TextureDesc& desc);

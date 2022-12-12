@@ -115,8 +115,8 @@ class ResourceBrowser : public Widget
 			case ResourceType::SkinnedMesh:
 				DrawResource<ResourceType::SkinnedMesh>(p_editor->GetRenderer()->GetResourceManager(), 100.f);
 				break;
-			case ResourceType::Texture:
-				DrawResource<ResourceType::Texture>(p_editor->GetRenderer()->GetResourceManager(), 100.f);
+			case ResourceType::Texture2D:
+				DrawResource<ResourceType::Texture2D>(p_editor->GetRenderer()->GetResourceManager(), 100.f);
 				break;
 			case ResourceType::Animation:
 				DrawResource<ResourceType::Animation>(p_editor->GetRenderer()->GetResourceManager(), 100.f);
@@ -135,7 +135,7 @@ class ResourceBrowser : public Widget
 	    {ResourceType::Mesh, "Mesh"},
 	    {ResourceType::SkinnedMesh, "SkinnedMesh"},
 	    {ResourceType::Prefab, "Prefab"},
-	    {ResourceType::Texture, "Texture"},
+	    {ResourceType::Texture2D, "Texture2D"},
 	    {ResourceType::Animation, "Animation"},
 	};
 };

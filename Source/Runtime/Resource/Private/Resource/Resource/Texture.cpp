@@ -4,12 +4,12 @@
 
 namespace Ilum
 {
-struct Resource<ResourceType::Texture>::Impl
+struct Resource<ResourceType::Texture2D>::Impl
 {
 	std::unique_ptr<RHITexture> texture = nullptr;
 };
 
-Resource<ResourceType::Texture>::Resource(RHIContext *rhi_context, std::vector<uint8_t> &&data, const TextureDesc &desc):
+Resource<ResourceType::Texture2D>::Resource(RHIContext *rhi_context, std::vector<uint8_t> &&data, const TextureDesc &desc):
     IResource(desc.name)
 {
 	m_impl = new Impl;
@@ -46,12 +46,12 @@ Resource<ResourceType::Texture>::Resource(RHIContext *rhi_context, std::vector<u
 	rhi_context->Execute(cmd_buffer);
 }
 
-Resource<ResourceType::Texture>::~Resource()
+Resource<ResourceType::Texture2D>::~Resource()
 {
 	delete m_impl;
 }
 
-RHITexture *Resource<ResourceType::Texture>::GetTexture() const
+RHITexture *Resource<ResourceType::Texture2D>::GetTexture() const
 {
 	return m_impl->texture.get();
 }

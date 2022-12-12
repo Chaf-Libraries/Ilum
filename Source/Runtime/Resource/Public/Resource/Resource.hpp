@@ -9,7 +9,7 @@ enum class ResourceType
 	Prefab,
 	Mesh,
 	SkinnedMesh,
-	Texture,
+	Texture2D,
 	Animation,
 	Material,
 };

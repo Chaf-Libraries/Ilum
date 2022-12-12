@@ -7,7 +7,7 @@
 
 using namespace Ilum;
 
-class STBImporter : public Importer<ResourceType::Texture>
+class STBImporter : public Importer<ResourceType::Texture2D>
 {
   protected:
 	virtual void Import_(ResourceManager *manager, const std::string &path, RHIContext *rhi_context) override
@@ -59,7 +59,7 @@ class STBImporter : public Importer<ResourceType::Texture>
 
 		stbi_image_free(raw_data);
 
-		manager->Add<ResourceType::Texture>(rhi_context, std::move(data), desc);
+		manager->Add<ResourceType::Texture2D>(rhi_context, std::move(data), desc);
 	}
 };
 

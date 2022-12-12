@@ -128,7 +128,7 @@ struct ResourceManager::Impl
 ResourceManager::ResourceManager(RHIContext *rhi_context)
 {
 	m_impl = new Impl;
-	m_impl->managers.emplace(ResourceType::Texture, std::make_unique<TResourceManager<ResourceType::Texture>>(rhi_context));
+	m_impl->managers.emplace(ResourceType::Texture2D, std::make_unique<TResourceManager<ResourceType::Texture2D>>(rhi_context));
 	m_impl->managers.emplace(ResourceType::Mesh, std::make_unique<TResourceManager<ResourceType::Mesh>>(rhi_context));
 	m_impl->managers.emplace(ResourceType::SkinnedMesh, std::make_unique<TResourceManager<ResourceType::SkinnedMesh>>(rhi_context));
 	m_impl->managers.emplace(ResourceType::Animation, std::make_unique<TResourceManager<ResourceType::Animation>>(rhi_context));
