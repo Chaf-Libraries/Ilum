@@ -4,9 +4,42 @@ namespace Ilum
 {
 namespace Cmpt
 {
-Camera::Camera(const char *name, Node *node):
+Camera::Camera(const char *name, Node *node) :
     Component(name, node)
 {
+}
+
+void Camera::SetAspect(float aspect)
+{
+	m_dirty |= (m_aspect != aspect);
+	m_aspect = aspect;
+}
+
+float Camera::GetAspect()
+{
+	return m_aspect;
+}
+
+void Camera::SetNearPlane(float near_plane)
+{
+	m_dirty = (m_near != near_plane);
+	m_near  = near_plane;
+}
+
+void Camera::SetFarPlane(float far_plane)
+{
+	m_dirty = (m_far != far_plane);
+	m_far   = far_plane;
+}
+
+float Camera::GetNearPlane() const
+{
+	return m_near;
+}
+
+float Camera::GetFarPlane() const
+{
+	return m_far;
 }
 
 glm::mat4 Camera::GetViewMatrix()

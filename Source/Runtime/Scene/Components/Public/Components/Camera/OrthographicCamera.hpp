@@ -17,29 +17,24 @@ class EXPORT_API OrthographicCamera : public Camera
 
 	virtual std::type_index GetType() const override;
 
-	void SetFov(float fov);
+	void SetScale(float scale);
+	
+	void SetOffset(float x, float y);
 
-	void SetAspect(float aspect);
+	float GetScale() const;
 
-	void SetNearPlane(float near_plane);
+	float GetOffsetX() const;
 
-	void SetFarPlane(float far_plane);
-
-	float GetFov() const;
-
-	float GetAspect() const;
-
-	float GetNearPlane() const;
-
-	float GetFarPlane() const;
+	float GetOffsetY() const;
 
   protected:
 	virtual void Update() override;
 
   private:
 	bool  m_dirty  = false;
-	float m_near   = 0.01f;
-	float m_far    = 1000.f;
+	float m_scale = 1.f;
+	float m_offset_x = 0.f;
+	float m_offset_y = 0.f;
 };
 }        // namespace Cmpt
 }        // namespace Ilum

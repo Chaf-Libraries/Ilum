@@ -83,10 +83,21 @@ class MainMenu : public Widget
 				{
 					if (ImGui::MenuItem("Perspective Camera"))
 					{
+						auto *node = p_editor->GetRenderer()->GetScene()->CreateNode("Perspective Camera");
+						node->AddComponent(std::make_unique<Cmpt::Transform>(node));
+						auto* camera = node->AddComponent(std::make_unique<Cmpt::PerspectiveCamera>(node));
+
+						if (!p_editor->GetMainCamera())
+						{
+							p_editor->SetMainCamera(camera);
+						}
 					}
 
 					if (ImGui::MenuItem("Orthographic Camera"))
 					{
+						auto *node = p_editor->GetRenderer()->GetScene()->CreateNode("Orthographic Camera");
+						node->AddComponent(std::make_unique<Cmpt::Transform>(node));
+						node->AddComponent(std::make_unique<Cmpt::OrthographicCamera>(node));
 					}
 
 					ImGui::EndMenu();

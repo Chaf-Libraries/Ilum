@@ -2,6 +2,7 @@
 #include "ImGui/ImGuiContext.hpp"
 #include "Widget.hpp"
 
+#include <Components/Camera/Camera.hpp>
 #include <Core/Plugin.hpp>
 #include <SceneGraph/Node.hpp>
 
@@ -22,6 +23,8 @@ struct Editor::Impl
 	std::vector<std::unique_ptr<Widget>> widgets;
 
 	Node *select = nullptr;
+
+	Cmpt::Camera *main_camera = nullptr;
 };
 
 Editor::Editor(Window *window, RHIContext *rhi_context, Renderer *renderer)
@@ -104,9 +107,18 @@ void Editor::SelectNode(Node *node)
 	m_impl->select = node;
 }
 
+void Editor::SetMainCamera(Cmpt::Camera *camera)
+{
+	m_impl->main_camera = camera;
+}
+
 Node *Editor::GetSelectedNode() const
 {
 	return m_impl->select;
 }
 
+Cmpt::Camera *Editor::GetMainCamera() const
+{
+	return m_impl->main_camera;
+}
 }        // namespace Ilum

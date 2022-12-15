@@ -121,12 +121,19 @@ class SceneHierarchy : public Widget
 		if (node_deleted)
 		{
 			auto *scene = p_editor->GetRenderer()->GetScene();
-			scene->EraseNode(node);
+
+			if ((node->HasComponent<Cmpt::OrthographicCamera>() &&node->GetComponent<Cmpt::OrthographicCamera>()==p_editor->GetMainCamera())||
+			    (node->HasComponent<Cmpt::PerspectiveCamera>() && node->GetComponent<Cmpt::PerspectiveCamera>() == p_editor->GetMainCamera()))
+			{
+				p_editor->SetMainCamera();
+			}
 
 			if (p_editor->GetSelectedNode() == node)
 			{
 				p_editor->SelectNode();
 			}
+
+			scene->EraseNode(node);
 		}
 	}
 };

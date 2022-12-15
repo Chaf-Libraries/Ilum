@@ -14,6 +14,7 @@ namespace Cmpt
 PerspectiveCamera::PerspectiveCamera(Node *node) :
     Camera("Perspective Camera", node)
 {
+	Update();
 }
 
 void PerspectiveCamera::OnImGui()
@@ -31,46 +32,13 @@ std::type_index PerspectiveCamera::GetType() const
 
 void PerspectiveCamera::SetFov(float fov)
 {
-	m_dirty |= m_fov != fov;
+	m_dirty |= (m_fov != fov);
 	m_fov = fov;
-}
-
-void PerspectiveCamera::SetAspect(float aspect)
-{
-	m_dirty |= m_aspect != aspect;
-	m_aspect = aspect;
-}
-
-void PerspectiveCamera::SetNearPlane(float near_plane)
-{
-	m_dirty |= m_near != near_plane;
-	m_near = near_plane;
-}
-
-void PerspectiveCamera::SetFarPlane(float far_plane)
-{
-	m_dirty |= m_far != far_plane;
-	m_far = far_plane;
 }
 
 float PerspectiveCamera::GetFov() const
 {
 	return m_fov;
-}
-
-float PerspectiveCamera::GetAspect() const
-{
-	return m_aspect;
-}
-
-float PerspectiveCamera::GetNearPlane() const
-{
-	return m_near;
-}
-
-float PerspectiveCamera::GetFarPlane() const
-{
-	return m_far;
 }
 
 void PerspectiveCamera::Update()

@@ -14,6 +14,11 @@ class Widget;
 class Renderer;
 class Node;
 
+namespace Cmpt
+{
+class Camera;
+}
+
 class EXPORT_API Editor
 {
   public:
@@ -35,7 +40,11 @@ class EXPORT_API Editor
 
 	void SelectNode(Node *node = nullptr);
 
+	void SetMainCamera(Cmpt::Camera *camera = nullptr);
+
 	Node *GetSelectedNode() const;
+
+	Cmpt::Camera *GetMainCamera() const;
 
   private:
 	struct Impl;

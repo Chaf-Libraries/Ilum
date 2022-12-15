@@ -10,15 +10,20 @@ class MaterialGraph;
 class RenderGraph;
 class ShaderBuilder;
 
-//enum class DummyTexture
+namespace Cmpt
+{
+class Camera;
+}
+
+// enum class DummyTexture
 //{
 //	WhiteOpaque,
 //	BlackOpaque,
 //	WhiteTransparent,
 //	BlackTransparent
-//};
+// };
 //
-//struct ViewInfo
+// struct ViewInfo
 //{
 //	glm::mat4 view_matrix;
 //	glm::mat4 inv_view_matrix;
@@ -27,9 +32,9 @@ class ShaderBuilder;
 //	glm::mat4 view_projection_matrix;
 //	glm::vec3 position;
 //	uint32_t  frame_count;
-//};
+// };
 //
-//struct SceneInfo
+// struct SceneInfo
 //{
 //	std::vector<RHITexture *>    textures;
 //	std::vector<MaterialGraph *> materials;
@@ -47,12 +52,12 @@ class ShaderBuilder;
 //	RHIAccelerationStructure *top_level_as = nullptr;
 //
 //	std::vector<uint32_t> meshlet_count;
-//};
+// };
 
 class EXPORT_API Renderer
 {
   public:
-	Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager* resource_manager);
+	Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resource_manager);
 
 	~Renderer();
 
@@ -74,21 +79,23 @@ class EXPORT_API Renderer
 
 	RHITexture *GetPresentTexture() const;
 
-	//void SetViewInfo(const ViewInfo &view_info);
+	void UpdateView(Cmpt::Camera *camera);
 
-	//RHIBuffer *GetViewBuffer() const;
+	// void SetViewInfo(const ViewInfo &view_info);
 
-	//Scene *GetScene() const;
+	// RHIBuffer *GetViewBuffer() const;
+
+	Scene *GetScene() const;
 
 	void Reset();
 
-	//RHITexture *GetDummyTexture(DummyTexture dummy) const;
+	// RHITexture *GetDummyTexture(DummyTexture dummy) const;
 
-	//RHIAccelerationStructure *GetTLAS() const;
+	// RHIAccelerationStructure *GetTLAS() const;
 
-	//void DrawScene(RHICommand *cmd_buffer, RHIPipelineState *pipeline_state, RHIDescriptor *descriptor, bool mesh_shader);
+	// void DrawScene(RHICommand *cmd_buffer, RHIPipelineState *pipeline_state, RHIDescriptor *descriptor, bool mesh_shader);
 
-	//const SceneInfo &GetSceneInfo() const;
+	// const SceneInfo &GetSceneInfo() const;
 
   public:
 	// Shader utils

@@ -23,7 +23,7 @@ struct View
 		glm::mat4 view_projection_matrix;
 		glm::vec3 position;
 		uint32_t  frame_count;
-	};
+	}info;
 
 	std::unique_ptr<RHIBuffer> buffer = nullptr;
 };

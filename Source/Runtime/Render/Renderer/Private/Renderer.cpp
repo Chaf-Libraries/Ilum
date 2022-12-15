@@ -1,4 +1,5 @@
 #include "Renderer.hpp"
+#include "RenderData.hpp"
 
 #include <Components/AllComponents.hpp>
 #include <Core/Path.hpp>
@@ -47,13 +48,13 @@ struct Renderer::Impl
 
 	std::unique_ptr<ShaderBuilder> shader_builder = nullptr;
 
-	//std::map<DummyTexture, std::unique_ptr<RHITexture>> dummy_textures;
+	// std::map<DummyTexture, std::unique_ptr<RHITexture>> dummy_textures;
 
-	//std::unique_ptr<RHIBuffer> view_buffer = nullptr;
+	// std::unique_ptr<RHIBuffer> view_buffer = nullptr;
 
-	//std::unique_ptr<RHIAccelerationStructure> tlas = nullptr;
+	// std::unique_ptr<RHIAccelerationStructure> tlas = nullptr;
 
-	//SceneInfo scene_info;
+	// SceneInfo scene_info;
 };
 
 Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resource_manager)
@@ -64,8 +65,8 @@ Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resou
 	m_impl->resource_manager = resource_manager;
 	m_impl->shader_builder   = std::make_unique<ShaderBuilder>(rhi_context);
 
-	//m_impl->view_buffer = m_impl->rhi_context->CreateBuffer<ViewInfo>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
-	//m_impl->tlas        = m_impl->rhi_context->CreateAcccelerationStructure();
+	// m_impl->view_buffer = m_impl->rhi_context->CreateBuffer<ViewInfo>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
+	// m_impl->tlas        = m_impl->rhi_context->CreateAcccelerationStructure();
 
 	//// Create dummy texture
 	//{
@@ -166,47 +167,56 @@ void Renderer::SetPresentTexture(RHITexture *present_texture)
 
 RHITexture *Renderer::GetPresentTexture() const
 {
-	return m_impl->present_texture ? m_impl->present_texture : m_impl->dummy_textures.at(DummyTexture::BlackOpaque).get();
+	//return m_impl->present_texture ? m_impl->present_texture : m_impl->dummy_textures.at(DummyTexture::BlackOpaque).get();
+	return nullptr;
 }
 
-//void Renderer::SetViewInfo(const ViewInfo &view_info)
+void Renderer::UpdateView(Cmpt::Camera *camera)
+{
+	if (camera)
+	{
+		auto *view = m_impl->black_board.Get<View>();
+	}
+}
+
+// void Renderer::SetViewInfo(const ViewInfo &view_info)
 //{
 //	m_impl->view_buffer->CopyToDevice(&view_info, sizeof(ViewInfo));
-//}
+// }
 //
-//RHIBuffer *Renderer::GetViewBuffer() const
+// RHIBuffer *Renderer::GetViewBuffer() const
 //{
 //	return m_impl->view_buffer.get();
-//}
+// }
 //
-//Scene *Renderer::GetScene() const
-//{
-//	return m_impl->scene;
-//}
+Scene *Renderer::GetScene() const
+{
+	return m_impl->scene;
+}
 
 void Renderer::Reset()
 {
 	m_impl->rhi_context->WaitIdle();
 }
 
-//RHITexture *Renderer::GetDummyTexture(DummyTexture dummy) const
+// RHITexture *Renderer::GetDummyTexture(DummyTexture dummy) const
 //{
 //	return m_impl->dummy_textures.at(dummy).get();
-//}
+// }
 //
-//RHIAccelerationStructure *Renderer::GetTLAS() const
+// RHIAccelerationStructure *Renderer::GetTLAS() const
 //{
 //	return m_impl->tlas.get();
-//}
+// }
 //
-//void Renderer::DrawScene(RHICommand *cmd_buffer, RHIPipelineState *pipeline_state, RHIDescriptor *descriptor, bool mesh_shader)
+// void Renderer::DrawScene(RHICommand *cmd_buffer, RHIPipelineState *pipeline_state, RHIDescriptor *descriptor, bool mesh_shader)
 //{
-//}
+// }
 //
-//const SceneInfo &Renderer::GetSceneInfo() const
+// const SceneInfo &Renderer::GetSceneInfo() const
 //{
 //	return m_impl->scene_info;
-//}
+// }
 
 RHIShader *Renderer::RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, std::vector<std::string> &&macros, std::vector<std::string> &&includes, bool cuda, bool force_recompile)
 {
