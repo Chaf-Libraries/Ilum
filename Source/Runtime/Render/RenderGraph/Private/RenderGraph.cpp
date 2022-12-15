@@ -88,7 +88,7 @@ RHITexture *RenderGraph::GetCUDATexture(RGHandle handle)
 	return m_impl->cuda_textures.at(handle);
 }
 
-void RenderGraph::Execute()
+void RenderGraph::Execute(RenderGraphBlackboard &black_board)
 {
 	if (m_impl->render_passes.empty())
 	{
@@ -131,7 +131,7 @@ void RenderGraph::Execute()
 			auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Compute, true);
 			cmd_buffer->Begin();
 			pass.profiler->Begin(cmd_buffer, m_impl->rhi_context->GetSwapchain()->GetCurrentFrameIndex());
-			pass.execute(*this, cmd_buffer, pass.config);
+			pass.execute(*this, cmd_buffer, pass.config, black_board);
 			pass.profiler->End(cmd_buffer);
 			cmd_buffer->End();
 			cmd_buffers.push_back(cmd_buffer);
@@ -151,7 +151,7 @@ void RenderGraph::Execute()
 			cmd_buffer->BeginMarker(pass.name);
 			pass.profiler->Begin(cmd_buffer, m_impl->rhi_context->GetSwapchain()->GetCurrentFrameIndex());
 			pass.barrier(*this, cmd_buffer);
-			pass.execute(*this, cmd_buffer, pass.config);
+			pass.execute(*this, cmd_buffer, pass.config, black_board);
 			pass.profiler->End(cmd_buffer);
 			cmd_buffer->EndMarker();
 			cmd_buffer->End();
@@ -173,7 +173,7 @@ const std::vector<RenderGraph::RenderPassInfo> &RenderGraph::GetRenderPasses() c
 RenderGraph &RenderGraph::AddPass(
     const std::string   &name,
     BindPoint            bind_point,
-    const std::any &config,
+    const Variant &config,
     RenderTask         &&task,
     BarrierTask        &&barrier)
 {

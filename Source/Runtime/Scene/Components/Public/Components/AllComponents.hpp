@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Camera/OrthographicCamera.hpp"
+#include "Camera/PerspectiveCamera.hpp"
 #include "Light/DirectionalLight.hpp"
 #include "Light/PointLight.hpp"
 #include "Light/PolygonLight.hpp"

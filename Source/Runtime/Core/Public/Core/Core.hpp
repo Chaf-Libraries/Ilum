@@ -6,7 +6,9 @@
 #include "Path.hpp"
 #include "Plugin.hpp"
 #include "Precompile.hpp"
+#include "Variant.hpp"
 
+#include <cereal/types/array.hpp>
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
 
@@ -56,10 +58,10 @@ using OutputArchive = cereal::XMLOutputArchive;
 	}
 
 #if defined(__REFLECTION_PARSER__)
-#	define META(...) __attribute__((annotate(#    __VA_ARGS__)))
-#	define CLASS(class_name, ...) class __attribute__((annotate(#    __VA_ARGS__))) class_name
-#	define STRUCT(struct_name, ...) struct __attribute__((annotate(#    __VA_ARGS__))) struct_name
-#	define ENUM(enum_name, ...) enum class __attribute__((annotate(#    __VA_ARGS__))) enum_name
+#	define META(...) __attribute__((annotate(#__VA_ARGS__)))
+#	define CLASS(class_name, ...) class __attribute__((annotate(#__VA_ARGS__))) class_name
+#	define STRUCT(struct_name, ...) struct __attribute__((annotate(#__VA_ARGS__))) struct_name
+#	define ENUM(enum_name, ...) enum class __attribute__((annotate(#__VA_ARGS__))) enum_name
 #else
 #	define META(...)
 #	define CLASS(class_name, ...) class class_name

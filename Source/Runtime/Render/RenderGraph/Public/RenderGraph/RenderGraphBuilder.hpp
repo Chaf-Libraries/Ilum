@@ -8,14 +8,14 @@ namespace Ilum
 {
 class RenderGraph;
 
-class RenderGraphBuilder
+class EXPORT_API RenderGraphBuilder
 {
   public:
 	RenderGraphBuilder(RHIContext *rhi_context);
 
 	~RenderGraphBuilder() = default;
 
-	RenderGraphBuilder &AddPass(RenderGraph &render_graph, const std::string &name, BindPoint bind_point, const std::any &config, RenderGraph::RenderTask &&task, RenderGraph::BarrierTask &&barrier);
+	RenderGraphBuilder &AddPass(RenderGraph &render_graph, const std::string &name, BindPoint bind_point, const Variant &config, RenderGraph::RenderTask &&task, RenderGraph::BarrierTask &&barrier);
 
 	bool Validate(RenderGraphDesc &desc);
 

@@ -26,7 +26,7 @@ class EXPORT_API Component
 
 	Node *GetNode() const;
 
-  private:
+  protected:
 	const char *m_name;
 
 	Node *p_node = nullptr;

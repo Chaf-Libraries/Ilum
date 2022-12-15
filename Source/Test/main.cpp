@@ -1,18 +1,32 @@
 #include <iostream>
-#include <SceneGraph/Scene.hpp>
-#include <SceneGraph/Node.hpp>
-#include <Components/Transform.hpp>
+#include <RenderGraph/RenderGraphBlackboard.hpp>
+#include <RHI/RHIBuffer.hpp>
 
 using namespace Ilum;
 
+struct TestStruct
+{
+	~TestStruct()
+	{
+		std::cout << "Fuck you";
+	}
+};
+
+struct LightData
+{
+	std::unique_ptr<RHIBuffer> directional_lights;
+	std::unique_ptr<RHIBuffer> point_lights;
+	int                        a;
+	float                      b;
+	TestStruct                 test;
+};
+
 int main()
 {
-	Scene scene;
+	RenderGraphBlackboard black_board;
+	auto                 *light_buffer = black_board.Get<LightData>();
+	light_buffer->a                    = 1;
+	light_buffer->b                    = 0.2f;
 
-	auto* node = scene.CreateNode("Test");
-	node->AddComponent(std::make_unique<Cmpt::Transform>(node));
-	scene.EraseNode(node);
-
-	std::cout << "Fuck";
 	return 0;
 }

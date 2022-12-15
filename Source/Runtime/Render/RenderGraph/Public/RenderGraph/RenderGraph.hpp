@@ -2,13 +2,15 @@
 
 #include "Precompile.hpp"
 
+#include "RenderGraphBlackboard.hpp"
+
 #include <RHI/RHIBuffer.hpp>
 #include <RHI/RHIContext.hpp>
 #include <RHI/RHITexture.hpp>
 
 namespace Ilum
 {
-STRUCT(RGHandle, Enable)
+struct EXPORT_API RGHandle
 {
 	size_t handle;
 
@@ -27,7 +29,7 @@ STRUCT(RGHandle, Enable)
 	size_t GetHandle() const;
 };
 
-STRUCT(RenderResourceDesc, Enable)
+struct RenderResourceDesc
 {
 	ENUM(Type, Enable){
 	    Buffer,
@@ -81,7 +83,7 @@ STRUCT(RenderPassDesc, Enable)
 {
 	std::string name;
 
-	std::any config;
+	Variant config;
 
 	std::map<std::string, RenderResourceDesc> resources;
 
@@ -135,7 +137,7 @@ class EXPORT_API RenderGraph
 	friend class RenderGraphBuilder;
 
   public:
-	using RenderTask  = std::function<void(RenderGraph &, RHICommand *, std::any &)>;
+	using RenderTask  = std::function<void(RenderGraph &, RHICommand *, Variant &, RenderGraphBlackboard&)>;
 	using BarrierTask = std::function<void(RenderGraph &, RHICommand *)>;
 
 	struct RenderPassInfo
@@ -144,7 +146,7 @@ class EXPORT_API RenderGraph
 
 		BindPoint bind_point;
 
-		std::any config;
+		Variant config;
 
 		RenderTask  execute;
 		BarrierTask barrier;
@@ -163,7 +165,7 @@ class EXPORT_API RenderGraph
 
 	RHITexture *GetCUDATexture(RGHandle handle);
 
-	void Execute();
+	void Execute(RenderGraphBlackboard &black_board);
 
 	const std::vector<RenderPassInfo> &GetRenderPasses() const;
 
@@ -181,11 +183,11 @@ class EXPORT_API RenderGraph
 	};
 
 	RenderGraph &AddPass(
-	    const std::string   &name,
-	    BindPoint            bind_point,
-	    const std::any &config,
-	    RenderTask         &&execute,
-	    BarrierTask        &&barrier);
+	    const std::string &name,
+	    BindPoint          bind_point,
+	    const Variant    &config,
+	    RenderTask       &&execute,
+	    BarrierTask      &&barrier);
 
 	RenderGraph &AddInitializeBarrier(BarrierTask &&barrier);
 

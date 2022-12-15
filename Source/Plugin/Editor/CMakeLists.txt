@@ -31,3 +31,9 @@ target_link_libraries(Editor.AnimationEditor PRIVATE nfd Animation Resource Geom
 
 add_widget(ResourceBrowser)
 target_link_libraries(Editor.ResourceBrowser PRIVATE nfd Resource)
+
+add_widget(RenderGraphEditor)
+target_link_libraries(Editor.RenderGraphEditor PRIVATE RenderGraph)
+
+add_widget(ShaderToy)
+target_link_libraries(Editor.ShaderToy)

@@ -43,15 +43,17 @@ struct Renderer::Impl
 
 	std::unique_ptr<RenderGraph> render_graph = nullptr;
 
+	RenderGraphBlackboard black_board;
+
 	std::unique_ptr<ShaderBuilder> shader_builder = nullptr;
 
-	std::map<DummyTexture, std::unique_ptr<RHITexture>> dummy_textures;
+	//std::map<DummyTexture, std::unique_ptr<RHITexture>> dummy_textures;
 
-	std::unique_ptr<RHIBuffer> view_buffer = nullptr;
+	//std::unique_ptr<RHIBuffer> view_buffer = nullptr;
 
-	std::unique_ptr<RHIAccelerationStructure> tlas = nullptr;
+	//std::unique_ptr<RHIAccelerationStructure> tlas = nullptr;
 
-	SceneInfo scene_info;
+	//SceneInfo scene_info;
 };
 
 Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resource_manager)
@@ -62,50 +64,50 @@ Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resou
 	m_impl->resource_manager = resource_manager;
 	m_impl->shader_builder   = std::make_unique<ShaderBuilder>(rhi_context);
 
-	m_impl->view_buffer = m_impl->rhi_context->CreateBuffer<ViewInfo>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
-	m_impl->tlas        = m_impl->rhi_context->CreateAcccelerationStructure();
+	//m_impl->view_buffer = m_impl->rhi_context->CreateBuffer<ViewInfo>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
+	//m_impl->tlas        = m_impl->rhi_context->CreateAcccelerationStructure();
 
-	// Create dummy texture
-	{
-		m_impl->dummy_textures[DummyTexture::WhiteOpaque]      = m_impl->rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
-		m_impl->dummy_textures[DummyTexture::BlackOpaque]      = m_impl->rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
-		m_impl->dummy_textures[DummyTexture::WhiteTransparent] = m_impl->rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
-		m_impl->dummy_textures[DummyTexture::BlackTransparent] = m_impl->rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
+	//// Create dummy texture
+	//{
+	//	m_impl->dummy_textures[DummyTexture::WhiteOpaque]      = m_impl->rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
+	//	m_impl->dummy_textures[DummyTexture::BlackOpaque]      = m_impl->rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
+	//	m_impl->dummy_textures[DummyTexture::WhiteTransparent] = m_impl->rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
+	//	m_impl->dummy_textures[DummyTexture::BlackTransparent] = m_impl->rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
 
-		auto white_opaque_buffer      = m_impl->rhi_context->CreateBuffer<glm::vec4>(1, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
-		auto black_opaque_buffer      = m_impl->rhi_context->CreateBuffer<glm::vec4>(1, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
-		auto white_transparent_buffer = m_impl->rhi_context->CreateBuffer<glm::vec4>(1, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
-		auto black_transparent_buffer = m_impl->rhi_context->CreateBuffer<glm::vec4>(1, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
+	//	auto white_opaque_buffer      = m_impl->rhi_context->CreateBuffer<glm::vec4>(1, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
+	//	auto black_opaque_buffer      = m_impl->rhi_context->CreateBuffer<glm::vec4>(1, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
+	//	auto white_transparent_buffer = m_impl->rhi_context->CreateBuffer<glm::vec4>(1, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
+	//	auto black_transparent_buffer = m_impl->rhi_context->CreateBuffer<glm::vec4>(1, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
 
-		glm::vec4 white_opaque      = {1.f, 1.f, 1.f, 1.f};
-		glm::vec4 black_opaque      = {0.f, 0.f, 0.f, 1.f};
-		glm::vec4 white_transparent = {1.f, 1.f, 1.f, 0.f};
-		glm::vec4 black_transparent = {0.f, 0.f, 0.f, 0.f};
+	//	glm::vec4 white_opaque      = {1.f, 1.f, 1.f, 1.f};
+	//	glm::vec4 black_opaque      = {0.f, 0.f, 0.f, 1.f};
+	//	glm::vec4 white_transparent = {1.f, 1.f, 1.f, 0.f};
+	//	glm::vec4 black_transparent = {0.f, 0.f, 0.f, 0.f};
 
-		white_opaque_buffer->CopyToDevice(&white_opaque, sizeof(white_opaque));
-		black_opaque_buffer->CopyToDevice(&black_opaque, sizeof(white_opaque));
-		white_transparent_buffer->CopyToDevice(&white_transparent, sizeof(white_opaque));
-		black_transparent_buffer->CopyToDevice(&black_transparent, sizeof(white_opaque));
+	//	white_opaque_buffer->CopyToDevice(&white_opaque, sizeof(white_opaque));
+	//	black_opaque_buffer->CopyToDevice(&black_opaque, sizeof(white_opaque));
+	//	white_transparent_buffer->CopyToDevice(&white_transparent, sizeof(white_opaque));
+	//	black_transparent_buffer->CopyToDevice(&black_transparent, sizeof(white_opaque));
 
-		auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Graphics);
-		cmd_buffer->Begin();
-		cmd_buffer->ResourceStateTransition({TextureStateTransition{m_impl->dummy_textures[DummyTexture::WhiteOpaque].get(), RHIResourceState::Undefined, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
-		                                     TextureStateTransition{m_impl->dummy_textures[DummyTexture::BlackOpaque].get(), RHIResourceState::Undefined, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
-		                                     TextureStateTransition{m_impl->dummy_textures[DummyTexture::WhiteTransparent].get(), RHIResourceState::Undefined, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
-		                                     TextureStateTransition{m_impl->dummy_textures[DummyTexture::BlackTransparent].get(), RHIResourceState::Undefined, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
-		                                    {});
-		cmd_buffer->CopyBufferToTexture(white_opaque_buffer.get(), m_impl->dummy_textures[DummyTexture::WhiteOpaque].get(), 0, 0, 1);
-		cmd_buffer->CopyBufferToTexture(black_opaque_buffer.get(), m_impl->dummy_textures[DummyTexture::BlackOpaque].get(), 0, 0, 1);
-		cmd_buffer->CopyBufferToTexture(white_transparent_buffer.get(), m_impl->dummy_textures[DummyTexture::WhiteTransparent].get(), 0, 0, 1);
-		cmd_buffer->CopyBufferToTexture(black_transparent_buffer.get(), m_impl->dummy_textures[DummyTexture::BlackTransparent].get(), 0, 0, 1);
-		cmd_buffer->ResourceStateTransition({TextureStateTransition{m_impl->dummy_textures[DummyTexture::WhiteOpaque].get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
-		                                     TextureStateTransition{m_impl->dummy_textures[DummyTexture::BlackOpaque].get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
-		                                     TextureStateTransition{m_impl->dummy_textures[DummyTexture::WhiteTransparent].get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
-		                                     TextureStateTransition{m_impl->dummy_textures[DummyTexture::BlackTransparent].get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
-		                                    {});
-		cmd_buffer->End();
-		m_impl->rhi_context->Execute(cmd_buffer);
-	}
+	//	auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Graphics);
+	//	cmd_buffer->Begin();
+	//	cmd_buffer->ResourceStateTransition({TextureStateTransition{m_impl->dummy_textures[DummyTexture::WhiteOpaque].get(), RHIResourceState::Undefined, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+	//	                                     TextureStateTransition{m_impl->dummy_textures[DummyTexture::BlackOpaque].get(), RHIResourceState::Undefined, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+	//	                                     TextureStateTransition{m_impl->dummy_textures[DummyTexture::WhiteTransparent].get(), RHIResourceState::Undefined, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+	//	                                     TextureStateTransition{m_impl->dummy_textures[DummyTexture::BlackTransparent].get(), RHIResourceState::Undefined, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
+	//	                                    {});
+	//	cmd_buffer->CopyBufferToTexture(white_opaque_buffer.get(), m_impl->dummy_textures[DummyTexture::WhiteOpaque].get(), 0, 0, 1);
+	//	cmd_buffer->CopyBufferToTexture(black_opaque_buffer.get(), m_impl->dummy_textures[DummyTexture::BlackOpaque].get(), 0, 0, 1);
+	//	cmd_buffer->CopyBufferToTexture(white_transparent_buffer.get(), m_impl->dummy_textures[DummyTexture::WhiteTransparent].get(), 0, 0, 1);
+	//	cmd_buffer->CopyBufferToTexture(black_transparent_buffer.get(), m_impl->dummy_textures[DummyTexture::BlackTransparent].get(), 0, 0, 1);
+	//	cmd_buffer->ResourceStateTransition({TextureStateTransition{m_impl->dummy_textures[DummyTexture::WhiteOpaque].get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+	//	                                     TextureStateTransition{m_impl->dummy_textures[DummyTexture::BlackOpaque].get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+	//	                                     TextureStateTransition{m_impl->dummy_textures[DummyTexture::WhiteTransparent].get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+	//	                                     TextureStateTransition{m_impl->dummy_textures[DummyTexture::BlackTransparent].get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
+	//	                                    {});
+	//	cmd_buffer->End();
+	//	m_impl->rhi_context->Execute(cmd_buffer);
+	//}
 }
 
 Renderer::~Renderer()
@@ -121,7 +123,7 @@ void Renderer::Tick()
 
 	if (m_impl->render_graph)
 	{
-		m_impl->render_graph->Execute();
+		m_impl->render_graph->Execute(m_impl->black_board);
 	}
 }
 
@@ -167,44 +169,44 @@ RHITexture *Renderer::GetPresentTexture() const
 	return m_impl->present_texture ? m_impl->present_texture : m_impl->dummy_textures.at(DummyTexture::BlackOpaque).get();
 }
 
-void Renderer::SetViewInfo(const ViewInfo &view_info)
-{
-	m_impl->view_buffer->CopyToDevice(&view_info, sizeof(ViewInfo));
-}
-
-RHIBuffer *Renderer::GetViewBuffer() const
-{
-	return m_impl->view_buffer.get();
-}
-
-Scene *Renderer::GetScene() const
-{
-	return m_impl->scene;
-}
+//void Renderer::SetViewInfo(const ViewInfo &view_info)
+//{
+//	m_impl->view_buffer->CopyToDevice(&view_info, sizeof(ViewInfo));
+//}
+//
+//RHIBuffer *Renderer::GetViewBuffer() const
+//{
+//	return m_impl->view_buffer.get();
+//}
+//
+//Scene *Renderer::GetScene() const
+//{
+//	return m_impl->scene;
+//}
 
 void Renderer::Reset()
 {
 	m_impl->rhi_context->WaitIdle();
 }
 
-RHITexture *Renderer::GetDummyTexture(DummyTexture dummy) const
-{
-	return m_impl->dummy_textures.at(dummy).get();
-}
-
-RHIAccelerationStructure *Renderer::GetTLAS() const
-{
-	return m_impl->tlas.get();
-}
-
-void Renderer::DrawScene(RHICommand *cmd_buffer, RHIPipelineState *pipeline_state, RHIDescriptor *descriptor, bool mesh_shader)
-{
-}
-
-const SceneInfo &Renderer::GetSceneInfo() const
-{
-	return m_impl->scene_info;
-}
+//RHITexture *Renderer::GetDummyTexture(DummyTexture dummy) const
+//{
+//	return m_impl->dummy_textures.at(dummy).get();
+//}
+//
+//RHIAccelerationStructure *Renderer::GetTLAS() const
+//{
+//	return m_impl->tlas.get();
+//}
+//
+//void Renderer::DrawScene(RHICommand *cmd_buffer, RHIPipelineState *pipeline_state, RHIDescriptor *descriptor, bool mesh_shader)
+//{
+//}
+//
+//const SceneInfo &Renderer::GetSceneInfo() const
+//{
+//	return m_impl->scene_info;
+//}
 
 RHIShader *Renderer::RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, std::vector<std::string> &&macros, std::vector<std::string> &&includes, bool cuda, bool force_recompile)
 {

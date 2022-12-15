@@ -83,8 +83,6 @@ GuiContext::GuiContext(RHIContext *context, Window *window) :
 	gResource = std::make_unique<ViewportResources>("mainwindows");
 
 	ImGui::CreateContext();
-	ImNodes::CreateContext();
-	ImPlot::CreateContext();
 
 	SetStyle();
 
@@ -231,8 +229,6 @@ GuiContext::GuiContext(RHIContext *context, Window *window) :
 GuiContext::~GuiContext()
 {
 	ImGui_ImplGlfw_Shutdown();
-	ImPlot::DestroyContext();
-	ImNodes::DestroyContext();
 	ImGui::DestroyContext();
 
 	gContext       = nullptr;

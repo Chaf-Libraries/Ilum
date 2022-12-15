@@ -10,44 +10,44 @@ class MaterialGraph;
 class RenderGraph;
 class ShaderBuilder;
 
-enum class DummyTexture
-{
-	WhiteOpaque,
-	BlackOpaque,
-	WhiteTransparent,
-	BlackTransparent
-};
-
-struct ViewInfo
-{
-	glm::mat4 view_matrix;
-	glm::mat4 inv_view_matrix;
-	glm::mat4 projection_matrix;
-	glm::mat4 inv_projection_matrix;
-	glm::mat4 view_projection_matrix;
-	glm::vec3 position;
-	uint32_t  frame_count;
-};
-
-struct SceneInfo
-{
-	std::vector<RHITexture *>    textures;
-	std::vector<MaterialGraph *> materials;
-
-	std::unique_ptr<RHIBuffer> light_buffer = nullptr;
-
-	std::vector<RHIBuffer *> static_vertex_buffers;
-	std::vector<RHIBuffer *> static_index_buffers;
-	std::vector<RHIBuffer *> meshlet_vertex_buffers;
-	std::vector<RHIBuffer *> meshlet_primitive_buffers;
-	std::vector<RHIBuffer *> meshlet_buffers;
-
-	std::unique_ptr<RHIBuffer> instance_buffer = nullptr;
-
-	RHIAccelerationStructure *top_level_as = nullptr;
-
-	std::vector<uint32_t> meshlet_count;
-};
+//enum class DummyTexture
+//{
+//	WhiteOpaque,
+//	BlackOpaque,
+//	WhiteTransparent,
+//	BlackTransparent
+//};
+//
+//struct ViewInfo
+//{
+//	glm::mat4 view_matrix;
+//	glm::mat4 inv_view_matrix;
+//	glm::mat4 projection_matrix;
+//	glm::mat4 inv_projection_matrix;
+//	glm::mat4 view_projection_matrix;
+//	glm::vec3 position;
+//	uint32_t  frame_count;
+//};
+//
+//struct SceneInfo
+//{
+//	std::vector<RHITexture *>    textures;
+//	std::vector<MaterialGraph *> materials;
+//
+//	std::unique_ptr<RHIBuffer> light_buffer = nullptr;
+//
+//	std::vector<RHIBuffer *> static_vertex_buffers;
+//	std::vector<RHIBuffer *> static_index_buffers;
+//	std::vector<RHIBuffer *> meshlet_vertex_buffers;
+//	std::vector<RHIBuffer *> meshlet_primitive_buffers;
+//	std::vector<RHIBuffer *> meshlet_buffers;
+//
+//	std::unique_ptr<RHIBuffer> instance_buffer = nullptr;
+//
+//	RHIAccelerationStructure *top_level_as = nullptr;
+//
+//	std::vector<uint32_t> meshlet_count;
+//};
 
 class EXPORT_API Renderer
 {
@@ -74,21 +74,21 @@ class EXPORT_API Renderer
 
 	RHITexture *GetPresentTexture() const;
 
-	void SetViewInfo(const ViewInfo &view_info);
+	//void SetViewInfo(const ViewInfo &view_info);
 
-	RHIBuffer *GetViewBuffer() const;
+	//RHIBuffer *GetViewBuffer() const;
 
-	Scene *GetScene() const;
+	//Scene *GetScene() const;
 
 	void Reset();
 
-	RHITexture *GetDummyTexture(DummyTexture dummy) const;
+	//RHITexture *GetDummyTexture(DummyTexture dummy) const;
 
-	RHIAccelerationStructure *GetTLAS() const;
+	//RHIAccelerationStructure *GetTLAS() const;
 
-	void DrawScene(RHICommand *cmd_buffer, RHIPipelineState *pipeline_state, RHIDescriptor *descriptor, bool mesh_shader);
+	//void DrawScene(RHICommand *cmd_buffer, RHIPipelineState *pipeline_state, RHIDescriptor *descriptor, bool mesh_shader);
 
-	const SceneInfo &GetSceneInfo() const;
+	//const SceneInfo &GetSceneInfo() const;
 
   public:
 	// Shader utils
