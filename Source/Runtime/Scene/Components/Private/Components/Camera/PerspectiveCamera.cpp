@@ -14,7 +14,6 @@ namespace Cmpt
 PerspectiveCamera::PerspectiveCamera(Node *node) :
     Camera("Perspective Camera", node)
 {
-	Update();
 }
 
 void PerspectiveCamera::OnImGui()
@@ -41,18 +40,14 @@ float PerspectiveCamera::GetFov() const
 	return m_fov;
 }
 
-void PerspectiveCamera::Update()
+void PerspectiveCamera::UpdateProjection()
 {
 	if (m_dirty)
 	{
 		auto *transform = p_node->GetComponent<Cmpt::Transform>();
 
-		m_view                = glm::inverse(transform->GetWorldTransform());
 		m_projection          = glm::perspective(glm::radians(m_fov), m_aspect, m_near, m_far);
-		m_view_projection     = m_projection * m_view;
-		m_inv_view            = transform->GetWorldTransform();
 		m_inv_projection      = glm::inverse(m_projection);
-		m_inv_view_projection = glm::inverse(m_view_projection);
 
 		m_dirty = false;
 	}

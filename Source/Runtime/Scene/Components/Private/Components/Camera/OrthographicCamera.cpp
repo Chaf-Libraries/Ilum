@@ -14,7 +14,6 @@ namespace Cmpt
 OrthographicCamera::OrthographicCamera(Node *node) :
     Camera("Orthographic Camera", node)
 {
-	Update();
 }
 
 void OrthographicCamera::OnImGui()
@@ -60,7 +59,7 @@ float OrthographicCamera::GetOffsetY() const
 	return m_offset_y;
 }
 
-void OrthographicCamera::Update()
+void OrthographicCamera::UpdateProjection()
 {
 	if (m_dirty)
 	{
@@ -71,12 +70,8 @@ void OrthographicCamera::Update()
 		float top   = m_offset_y + m_scale * 0.5f;
 		float bottom   = m_offset_y - m_scale * 0.5f;
 
-		m_view                = glm::inverse(transform->GetWorldTransform());
 		m_projection          = glm::ortho(left, right, bottom, top);
-		m_view_projection     = m_projection * m_view;
-		m_inv_view            = transform->GetWorldTransform();
 		m_inv_projection      = glm::inverse(m_projection);
-		m_inv_view_projection = glm::inverse(m_view_projection);
 
 		m_dirty = false;
 	}

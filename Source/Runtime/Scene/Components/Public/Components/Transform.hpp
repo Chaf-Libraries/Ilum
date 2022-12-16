@@ -29,7 +29,7 @@ class EXPORT_API Transform : public Component
 
 	const glm::mat4 GetLocalTransform() const;
 
-	const glm::mat4 &GetWorldTransform() const;
+	const glm::mat4 GetWorldTransform();
 
 	void SetTranslation(const glm::vec3 &translation);
 

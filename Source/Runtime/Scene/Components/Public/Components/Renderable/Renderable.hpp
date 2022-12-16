@@ -21,6 +21,10 @@ class EXPORT_API Renderable : public Component
 
 	void AddSubmesh(const std::string &submesh);
 
+	const std::vector<std::string> &GetSubmeshes() const;
+
+	const std::vector<std::string> &GetMaterials() const;
+
   protected:
 	std::vector<std::string> m_submeshes;
 	std::vector<std::string> m_materials;

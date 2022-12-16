@@ -5,6 +5,10 @@
 #include <Core/Path.hpp>
 #include <RHI/RHIContext.hpp>
 #include <RenderGraph/RenderGraph.hpp>
+#include <Resource/Resource/Mesh.hpp>
+#include <Resource/Resource/SkinnedMesh.hpp>
+#include <Resource/Resource/Texture.hpp>
+#include <Resource/ResourceManager.hpp>
 #include <SceneGraph/Node.hpp>
 #include <SceneGraph/Scene.hpp>
 #include <ShaderCompiler/ShaderBuilder.hpp>
@@ -14,22 +18,6 @@
 
 namespace Ilum
 {
-struct InstanceData
-{
-	glm::mat4 transform;
-
-	glm::vec3 aabb_min;
-	uint32_t  material;
-
-	glm::vec3 aabb_max;
-	uint32_t  model_id;
-
-	uint32_t meshlet_count;
-	uint32_t meshlet_offset;
-	uint32_t vertex_offset;
-	uint32_t index_offset;
-};
-
 struct Renderer::Impl
 {
 	RHIContext *rhi_context = nullptr;
@@ -47,14 +35,6 @@ struct Renderer::Impl
 	RenderGraphBlackboard black_board;
 
 	std::unique_ptr<ShaderBuilder> shader_builder = nullptr;
-
-	// std::map<DummyTexture, std::unique_ptr<RHITexture>> dummy_textures;
-
-	// std::unique_ptr<RHIBuffer> view_buffer = nullptr;
-
-	// std::unique_ptr<RHIAccelerationStructure> tlas = nullptr;
-
-	// SceneInfo scene_info;
 };
 
 Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resource_manager)
@@ -65,50 +45,60 @@ Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resou
 	m_impl->resource_manager = resource_manager;
 	m_impl->shader_builder   = std::make_unique<ShaderBuilder>(rhi_context);
 
-	// m_impl->view_buffer = m_impl->rhi_context->CreateBuffer<ViewInfo>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
-	// m_impl->tlas        = m_impl->rhi_context->CreateAcccelerationStructure();
+	// View
+	{
+		auto *view   = m_impl->black_board.Add<View>();
+		view->buffer = m_impl->rhi_context->CreateBuffer<View::Info>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
+	}
 
-	//// Create dummy texture
-	//{
-	//	m_impl->dummy_textures[DummyTexture::WhiteOpaque]      = m_impl->rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
-	//	m_impl->dummy_textures[DummyTexture::BlackOpaque]      = m_impl->rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
-	//	m_impl->dummy_textures[DummyTexture::WhiteTransparent] = m_impl->rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
-	//	m_impl->dummy_textures[DummyTexture::BlackTransparent] = m_impl->rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
+	// GPU Scene
+	{
+		auto *gpu_scene = m_impl->black_board.Add<GPUScene>();
+		gpu_scene->TLAS = m_impl->rhi_context->CreateAcccelerationStructure();
+	}
 
-	//	auto white_opaque_buffer      = m_impl->rhi_context->CreateBuffer<glm::vec4>(1, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
-	//	auto black_opaque_buffer      = m_impl->rhi_context->CreateBuffer<glm::vec4>(1, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
-	//	auto white_transparent_buffer = m_impl->rhi_context->CreateBuffer<glm::vec4>(1, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
-	//	auto black_transparent_buffer = m_impl->rhi_context->CreateBuffer<glm::vec4>(1, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
+	// Dummy Textures
+	{
+		auto *dummy_texture              = m_impl->black_board.Add<DummyTexture>();
+		dummy_texture->white_opaque      = m_impl->rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
+		dummy_texture->black_opaque      = m_impl->rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
+		dummy_texture->white_transparent = m_impl->rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
+		dummy_texture->black_transparent = m_impl->rhi_context->CreateTexture2D(1, 1, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
 
-	//	glm::vec4 white_opaque      = {1.f, 1.f, 1.f, 1.f};
-	//	glm::vec4 black_opaque      = {0.f, 0.f, 0.f, 1.f};
-	//	glm::vec4 white_transparent = {1.f, 1.f, 1.f, 0.f};
-	//	glm::vec4 black_transparent = {0.f, 0.f, 0.f, 0.f};
+		auto white_opaque_buffer      = m_impl->rhi_context->CreateBuffer<glm::vec4>(1, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
+		auto black_opaque_buffer      = m_impl->rhi_context->CreateBuffer<glm::vec4>(1, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
+		auto white_transparent_buffer = m_impl->rhi_context->CreateBuffer<glm::vec4>(1, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
+		auto black_transparent_buffer = m_impl->rhi_context->CreateBuffer<glm::vec4>(1, RHIBufferUsage::Transfer, RHIMemoryUsage::CPU_TO_GPU);
 
-	//	white_opaque_buffer->CopyToDevice(&white_opaque, sizeof(white_opaque));
-	//	black_opaque_buffer->CopyToDevice(&black_opaque, sizeof(white_opaque));
-	//	white_transparent_buffer->CopyToDevice(&white_transparent, sizeof(white_opaque));
-	//	black_transparent_buffer->CopyToDevice(&black_transparent, sizeof(white_opaque));
+		glm::vec4 white_opaque      = {1.f, 1.f, 1.f, 1.f};
+		glm::vec4 black_opaque      = {0.f, 0.f, 0.f, 1.f};
+		glm::vec4 white_transparent = {1.f, 1.f, 1.f, 0.f};
+		glm::vec4 black_transparent = {0.f, 0.f, 0.f, 0.f};
 
-	//	auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Graphics);
-	//	cmd_buffer->Begin();
-	//	cmd_buffer->ResourceStateTransition({TextureStateTransition{m_impl->dummy_textures[DummyTexture::WhiteOpaque].get(), RHIResourceState::Undefined, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
-	//	                                     TextureStateTransition{m_impl->dummy_textures[DummyTexture::BlackOpaque].get(), RHIResourceState::Undefined, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
-	//	                                     TextureStateTransition{m_impl->dummy_textures[DummyTexture::WhiteTransparent].get(), RHIResourceState::Undefined, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
-	//	                                     TextureStateTransition{m_impl->dummy_textures[DummyTexture::BlackTransparent].get(), RHIResourceState::Undefined, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
-	//	                                    {});
-	//	cmd_buffer->CopyBufferToTexture(white_opaque_buffer.get(), m_impl->dummy_textures[DummyTexture::WhiteOpaque].get(), 0, 0, 1);
-	//	cmd_buffer->CopyBufferToTexture(black_opaque_buffer.get(), m_impl->dummy_textures[DummyTexture::BlackOpaque].get(), 0, 0, 1);
-	//	cmd_buffer->CopyBufferToTexture(white_transparent_buffer.get(), m_impl->dummy_textures[DummyTexture::WhiteTransparent].get(), 0, 0, 1);
-	//	cmd_buffer->CopyBufferToTexture(black_transparent_buffer.get(), m_impl->dummy_textures[DummyTexture::BlackTransparent].get(), 0, 0, 1);
-	//	cmd_buffer->ResourceStateTransition({TextureStateTransition{m_impl->dummy_textures[DummyTexture::WhiteOpaque].get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
-	//	                                     TextureStateTransition{m_impl->dummy_textures[DummyTexture::BlackOpaque].get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
-	//	                                     TextureStateTransition{m_impl->dummy_textures[DummyTexture::WhiteTransparent].get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
-	//	                                     TextureStateTransition{m_impl->dummy_textures[DummyTexture::BlackTransparent].get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
-	//	                                    {});
-	//	cmd_buffer->End();
-	//	m_impl->rhi_context->Execute(cmd_buffer);
-	//}
+		white_opaque_buffer->CopyToDevice(&white_opaque, sizeof(white_opaque));
+		black_opaque_buffer->CopyToDevice(&black_opaque, sizeof(white_opaque));
+		white_transparent_buffer->CopyToDevice(&white_transparent, sizeof(white_opaque));
+		black_transparent_buffer->CopyToDevice(&black_transparent, sizeof(white_opaque));
+
+		auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Graphics);
+		cmd_buffer->Begin();
+		cmd_buffer->ResourceStateTransition({TextureStateTransition{dummy_texture->white_opaque.get(), RHIResourceState::Undefined, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+		                                     TextureStateTransition{dummy_texture->black_opaque.get(), RHIResourceState::Undefined, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+		                                     TextureStateTransition{dummy_texture->white_transparent.get(), RHIResourceState::Undefined, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+		                                     TextureStateTransition{dummy_texture->black_transparent.get(), RHIResourceState::Undefined, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
+		                                    {});
+		cmd_buffer->CopyBufferToTexture(white_opaque_buffer.get(), dummy_texture->white_opaque.get(), 0, 0, 1);
+		cmd_buffer->CopyBufferToTexture(black_opaque_buffer.get(), dummy_texture->black_opaque.get(), 0, 0, 1);
+		cmd_buffer->CopyBufferToTexture(white_transparent_buffer.get(), dummy_texture->white_transparent.get(), 0, 0, 1);
+		cmd_buffer->CopyBufferToTexture(black_transparent_buffer.get(), dummy_texture->black_transparent.get(), 0, 0, 1);
+		cmd_buffer->ResourceStateTransition({TextureStateTransition{dummy_texture->white_opaque.get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+		                                     TextureStateTransition{dummy_texture->black_opaque.get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+		                                     TextureStateTransition{dummy_texture->white_transparent.get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}},
+		                                     TextureStateTransition{dummy_texture->black_transparent.get(), RHIResourceState::TransferDest, RHIResourceState::ShaderResource, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
+		                                    {});
+		cmd_buffer->End();
+		m_impl->rhi_context->Execute(cmd_buffer);
+	}
 }
 
 Renderer::~Renderer()
@@ -120,7 +110,7 @@ void Renderer::Tick()
 {
 	m_impl->present_texture = nullptr;
 
-	UpdateScene();
+	UpdateGPUScene();
 
 	if (m_impl->render_graph)
 	{
@@ -167,8 +157,7 @@ void Renderer::SetPresentTexture(RHITexture *present_texture)
 
 RHITexture *Renderer::GetPresentTexture() const
 {
-	//return m_impl->present_texture ? m_impl->present_texture : m_impl->dummy_textures.at(DummyTexture::BlackOpaque).get();
-	return nullptr;
+	return m_impl->present_texture ? m_impl->present_texture : m_impl->black_board.Get<DummyTexture>()->black_opaque.get();
 }
 
 void Renderer::UpdateView(Cmpt::Camera *camera)
@@ -176,19 +165,21 @@ void Renderer::UpdateView(Cmpt::Camera *camera)
 	if (camera)
 	{
 		auto *view = m_impl->black_board.Get<View>();
+
+		View::Info view_info = {};
+
+		view_info.position                   = camera->GetNode()->GetComponent<Cmpt::Transform>()->GetWorldTransform()[3];
+		view_info.projection_matrix          = camera->GetProjectionMatrix();
+		view_info.view_matrix                = camera->GetViewMatrix();
+		view_info.inv_projection_matrix      = camera->GetInvProjectionMatrix();
+		view_info.inv_view_matrix            = camera->GetInvViewMatrix();
+		view_info.view_projection_matrix     = camera->GetViewProjectionMatrix();
+		view_info.inv_view_projection_matrix = camera->GetInvViewProjectionMatrix();
+
+		view->buffer->CopyToDevice(&view_info, sizeof(View::Info));
 	}
 }
 
-// void Renderer::SetViewInfo(const ViewInfo &view_info)
-//{
-//	m_impl->view_buffer->CopyToDevice(&view_info, sizeof(ViewInfo));
-// }
-//
-// RHIBuffer *Renderer::GetViewBuffer() const
-//{
-//	return m_impl->view_buffer.get();
-// }
-//
 Scene *Renderer::GetScene() const
 {
 	return m_impl->scene;
@@ -243,8 +234,119 @@ ShaderMeta Renderer::RequireShaderMeta(RHIShader *shader) const
 //	return RequireShader(filename, entry_point, stage, std::move(macros), std::move(includes), false, material_graph->Update());
 // }
 
-void Renderer::UpdateScene()
+void Renderer::UpdateGPUScene()
 {
+	auto *gpu_scene = m_impl->black_board.Get<GPUScene>();
+
+	// Update Mesh Buffer
+	if (m_impl->resource_manager->Update<ResourceType::Mesh>())
+	{
+		gpu_scene->mesh_buffer.vertex_buffers.clear();
+		gpu_scene->mesh_buffer.index_buffers.clear();
+		gpu_scene->mesh_buffer.meshlet_buffers.clear();
+		gpu_scene->mesh_buffer.meshlet_data_buffers.clear();
+		auto resources = m_impl->resource_manager->GetResources<ResourceType::Mesh>();
+		for (auto &resource : resources)
+		{
+			auto *mesh = m_impl->resource_manager->Get<ResourceType::Mesh>(resource);
+			gpu_scene->mesh_buffer.vertex_buffers.push_back(mesh->GetVertexBuffer());
+			gpu_scene->mesh_buffer.index_buffers.push_back(mesh->GetIndexBuffer());
+			gpu_scene->mesh_buffer.meshlet_buffers.push_back(mesh->GetMeshletBuffer());
+			gpu_scene->mesh_buffer.meshlet_data_buffers.push_back(mesh->GetMeshletDataBuffer());
+		}
+	}
+
+	// Update Skinned Mesh Buffer
+	{
+		if (m_impl->resource_manager->Update<ResourceType::SkinnedMesh>())
+		{
+			gpu_scene->skinned_mesh_buffer.vertex_buffers.clear();
+			gpu_scene->skinned_mesh_buffer.index_buffers.clear();
+			gpu_scene->skinned_mesh_buffer.meshlet_buffers.clear();
+			gpu_scene->skinned_mesh_buffer.meshlet_data_buffers.clear();
+			auto resources = m_impl->resource_manager->GetResources<ResourceType::SkinnedMesh>();
+			for (auto &resource : resources)
+			{
+				auto *skinned_mesh = m_impl->resource_manager->Get<ResourceType::SkinnedMesh>(resource);
+				gpu_scene->skinned_mesh_buffer.vertex_buffers.push_back(skinned_mesh->GetVertexBuffer());
+				gpu_scene->skinned_mesh_buffer.index_buffers.push_back(skinned_mesh->GetIndexBuffer());
+				gpu_scene->skinned_mesh_buffer.meshlet_buffers.push_back(skinned_mesh->GetMeshletBuffer());
+				gpu_scene->skinned_mesh_buffer.meshlet_data_buffers.push_back(skinned_mesh->GetMeshletDataBuffer());
+			}
+		}
+	}
+
+	// Update 2D Textures
+	if (m_impl->resource_manager->Update<ResourceType::Texture2D>())
+	{
+		gpu_scene->textures.texture_2d.clear();
+
+		auto resources = m_impl->resource_manager->GetResources<ResourceType::Texture2D>();
+		for (auto &resource : resources)
+		{
+			auto *texture2d = m_impl->resource_manager->Get<ResourceType::Texture2D>(resource);
+			gpu_scene->textures.texture_2d.push_back(texture2d->GetTexture());
+		}
+	}
+
+	// Update Mesh
+	{
+		std::vector<GPUScene::Instance> instances;
+
+		auto meshes = m_impl->scene->GetComponents<Cmpt::MeshRenderer>();
+		for (auto &mesh : meshes)
+		{
+			auto &submeshes = mesh->GetSubmeshes();
+			for (auto &submesh : submeshes)
+			{
+				GPUScene::Instance instance = {};
+				instance.transform          = mesh->GetNode()->GetComponent<Cmpt::Transform>()->GetWorldTransform();
+				instance.mesh_id            = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Mesh>(submesh));
+				instances.push_back(instance);
+			}
+		}
+
+		if (!instances.empty())
+		{
+			if (!gpu_scene->mesh_instances ||
+			    gpu_scene->mesh_instances->GetDesc().size < instances.size() * sizeof(GPUScene::Instance))
+			{
+				gpu_scene->mesh_instances = m_impl->rhi_context->CreateBuffer<GPUScene::Instance>(instances.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+			}
+
+			gpu_scene->mesh_instances->CopyToDevice(instances.data(), instances.size() * sizeof(GPUScene::Instance));
+		}
+	}
+
+	// Update Skinned Mesh
+	{
+		std::vector<GPUScene::Instance> instances;
+
+		auto meshes = m_impl->scene->GetComponents<Cmpt::SkinnedMeshRenderer>();
+		for (auto &mesh : meshes)
+		{
+			auto &submeshes = mesh->GetSubmeshes();
+			for (auto &submesh : submeshes)
+			{
+				GPUScene::Instance instance = {};
+				instance.transform          = mesh->GetNode()->GetComponent<Cmpt::Transform>()->GetWorldTransform();
+				instance.mesh_id            = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::SkinnedMesh>(submesh));
+				instances.push_back(instance);
+			}
+		}
+
+		if (!instances.empty())
+		{
+			if (!gpu_scene->skinned_mesh_instances ||
+			    gpu_scene->skinned_mesh_instances->GetDesc().size < instances.size() * sizeof(GPUScene::Instance))
+			{
+				gpu_scene->skinned_mesh_instances = m_impl->rhi_context->CreateBuffer<GPUScene::Instance>(instances.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+			}
+
+			gpu_scene->skinned_mesh_instances->CopyToDevice(instances.data(), instances.size() * sizeof(GPUScene::Instance));
+		}
+	}
+
 	// m_scene_info.static_vertex_buffers.clear();
 	// m_scene_info.static_index_buffers.clear();
 	// m_scene_info.meshlet_vertex_buffers.clear();

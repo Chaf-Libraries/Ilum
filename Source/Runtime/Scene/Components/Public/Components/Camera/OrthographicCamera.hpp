@@ -28,7 +28,7 @@ class EXPORT_API OrthographicCamera : public Camera
 	float GetOffsetY() const;
 
   protected:
-	virtual void Update() override;
+	virtual void UpdateProjection() override;
 
   private:
 	bool  m_dirty  = false;

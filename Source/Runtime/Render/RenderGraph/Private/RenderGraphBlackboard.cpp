@@ -2,13 +2,13 @@
 
 namespace Ilum
 {
-RenderGraphBlackboard &RenderGraphBlackboard::Add(std::type_index type, std::shared_ptr<void> &&ptr)
+std::shared_ptr<void> &RenderGraphBlackboard::Add(std::type_index type, std::shared_ptr<void> &&ptr)
 {
 	if (m_data.find(type) == m_data.end())
 	{
 		m_data.emplace(type, std::move(ptr));
 	}
-	return *this;
+	return m_data.at(type);
 }
 
 bool RenderGraphBlackboard::Has(std::type_index type)

@@ -33,17 +33,15 @@ class EXPORT_API Scene
 	const std::vector<Node *> GetRoots() const;
 
 	template <typename _Ty>
-	const std::vector<_Ty *> &GetComponents() const
+	std::vector<_Ty *> GetComponents()
 	{
 		std::vector<_Ty *> result;
 
 		if (HasComponent<_Ty>())
 		{
-			result.resize(GetComponents().at(typeid(_Ty)).size());
+			auto &scene_components = GetComponents().at(typeid(_Ty));
 
-			auto &scene_components = GetComponents()[typeid(_Ty)];
-
-			std::transform(scene_components.begin(), scene_components.end(), result.begin(),
+			std::transform(scene_components.begin(), scene_components.end(), std::back_inserter(result),
 			               [](const std::unique_ptr<Component> &component) -> _Ty * {
 				               return static_cast<_Ty *>(component.get());
 			               });
@@ -53,7 +51,7 @@ class EXPORT_API Scene
 	}
 
 	template <typename _Ty>
-	bool HasComponent() const
+	bool HasComponent()
 	{
 		return GetComponents().find(typeid(_Ty)) != GetComponents().end();
 	}

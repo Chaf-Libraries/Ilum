@@ -28,15 +28,21 @@ class EXPORT_API ResourceManager
 	}
 
 	template <ResourceType Type>
-	size_t Index(size_t uuid)
+	size_t Index(const std::string &name)
 	{
-		return Index(Type, uuid);
+		return Index(Type, Hash(name));
 	}
 
 	template <ResourceType Type>
 	void Import(const std::string &path)
 	{
 		Import(Type, path);
+	}
+
+	template <ResourceType Type>
+	void Erase(const std::string &path)
+	{
+		Erase(Type, Hash(path));
 	}
 
 	template <ResourceType Type, typename... Args>
@@ -51,6 +57,12 @@ class EXPORT_API ResourceManager
 		return GetResources(Type);
 	}
 
+	template <ResourceType Type>
+	bool Update() const
+	{
+		return Update(Type);
+	}
+
   private:
 	IResource *Get(ResourceType type, size_t uuid);
 
@@ -60,9 +72,13 @@ class EXPORT_API ResourceManager
 
 	void Import(ResourceType type, const std::string &path);
 
+	void Erase(ResourceType type, size_t uuid);
+
 	void Add(ResourceType type, std::unique_ptr<IResource> &&resource);
 
 	const std::vector<std::string> GetResources(ResourceType type) const;
+
+	bool Update(ResourceType type) const;
 
   private:
 	struct Impl;

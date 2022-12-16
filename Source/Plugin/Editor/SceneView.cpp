@@ -16,6 +16,8 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#include <IconsFontAwesome/IconsFontAwesome5.h>
+
 #include <ImGuizmo/ImGuizmo.h>
 
 #include <GLFW/glfw3.h>
@@ -44,28 +46,6 @@ class SceneView : public Widget
 		glm::vec2 viewport = glm::vec2(0.f);
 	} m_camera_config;
 
-	// struct
-	//{
-	//	float fov        = 45.f;
-	//	float aspect     = 1.f;
-	//	float near_plane = 0.01f;
-	//	float far_plane  = 1000.f;
-
-	//	float speed     = 1.f;
-	//	float sensitity = 1.f;
-
-	//	float yaw   = 0.f;
-	//	float pitch = 0.f;
-
-	//	glm::vec2 viewport = glm::vec2(0.f);
-
-	//	glm::vec3 velocity      = glm::vec3(0.f);
-	//	glm::vec3 position      = glm::vec3(0.f);
-	//	glm::vec3 last_position = glm::vec3(0.f);
-
-	//	glm::mat4 project_matrix = glm::mat4(1.f);
-	//} m_camera;
-
 	glm::vec2 m_cursor_position = glm::vec2(0.f);
 
 	bool m_hide_cursor = false;
@@ -86,9 +66,12 @@ class SceneView : public Widget
 	{
 		if (!ImGui::Begin(m_name.c_str()) || !p_editor->GetMainCamera())
 		{
+			ShowToolBar();
 			ImGui::End();
 			return;
 		}
+
+		ShowToolBar();
 
 		auto *camera = p_editor->GetMainCamera();
 
@@ -114,6 +97,7 @@ class SceneView : public Widget
 		ImGui::End();
 	}
 
+  private:
 	template <ResourceType _Ty>
 	void DropTarget(Editor *editor, const std::string &name)
 	{
@@ -125,8 +109,9 @@ class SceneView : public Widget
 		auto *prefab = editor->GetRenderer()->GetResourceManager()->Get<ResourceType::Prefab>(name);
 		if (prefab)
 		{
-			auto                                   &root        = prefab->GetRoot();
-			auto                                   *scene       = editor->GetRenderer()->GetScene();
+			auto &root  = prefab->GetRoot();
+			auto *scene = editor->GetRenderer()->GetScene();
+
 			std::function<Node *(decltype(root) &)> create_node = [&](decltype(root) &prefab_node) {
 				Node *node = scene->CreateNode(prefab_node.name);
 
@@ -201,7 +186,6 @@ class SceneView : public Widget
 		}
 	}
 
-  private:
 	void DisplayPresent()
 	{
 		auto *renderer = p_editor->GetRenderer();
@@ -214,22 +198,6 @@ class SceneView : public Widget
 		{
 			DropTarget(p_editor);
 		}
-
-		/*if (ImGui::BeginDragDropTarget())
-		{
-		    if (const auto *pay_load = ImGui::AcceptDragDropPayload(rttr::type::get<ResourceType>().get_enumeration().value_to_name(ResourceType::Scene).to_string().c_str()))
-		    {
-		        size_t uuid = *static_cast<size_t *>(pay_load->Data);
-
-		        auto *resource = p_editor->GetRenderer()->GetResourceManager()->GetResource<ResourceType::Scene>(uuid);
-		        auto *scene    = p_editor->GetRenderer()->GetScene();
-
-		        if (resource)
-		        {
-		            resource->Load(scene);
-		        }
-		    }
-		}*/
 	}
 
 	void UpdateCamera()
@@ -264,7 +232,7 @@ class SceneView : public Widget
 
 			if (delta_pos.x != 0.f)
 			{
-				yaw += m_camera_config.sensitity * delta_time * delta_pos.x;
+				yaw += m_camera_config.sensitity * delta_time * delta_pos.x * 0.1f;
 				glm::vec3 rotation = transform->GetRotation();
 				rotation.y         = -glm::degrees(yaw) - 90.f;
 				transform->SetRotation(rotation);
@@ -272,17 +240,17 @@ class SceneView : public Widget
 
 			if (delta_pos.y != 0.f)
 			{
-				pitch += m_camera_config.sensitity * delta_time * delta_pos.y;
+				pitch -= m_camera_config.sensitity * delta_time * delta_pos.y * 0.1f;
 				glm::vec3 rotation = transform->GetRotation();
-				rotation.x         = -glm::degrees(pitch);
+				rotation.x         = glm::degrees(pitch);
 				transform->SetRotation(rotation);
 			}
 
 			glm::vec3 forward = {};
 
-			forward.x = glm::cos(glm::radians(yaw)) * glm::cos(glm::radians(pitch));
-			forward.y = glm::sin(glm::radians(pitch));
-			forward.z = glm::sin(glm::radians(yaw)) * glm::cos(glm::radians(pitch));
+			forward.x = glm::cos(yaw) * glm::cos(pitch);
+			forward.y = glm::sin(pitch);
+			forward.z = glm::sin(yaw) * glm::cos(pitch);
 
 			forward = glm::normalize(forward);
 
@@ -324,7 +292,7 @@ class SceneView : public Widget
 		}
 		else if (m_hide_cursor)
 		{
-			m_hide_cursor     = false;
+			m_hide_cursor            = false;
 			m_camera_config.velocity = glm::vec3(0.f);
 		}
 
@@ -333,7 +301,7 @@ class SceneView : public Widget
 
 	void MoveEntity()
 	{
-		Node *node = p_editor->GetSelectedNode();
+		Node *node   = p_editor->GetSelectedNode();
 		auto *camera = p_editor->GetMainCamera();
 
 		if (!node)
@@ -364,11 +332,88 @@ class SceneView : public Widget
 			transform->SetScale(scale);
 		}
 	}
+
+	void ShowToolBar()
+	{
+#define SHOW_TIPS(str)               \
+	if (ImGui::IsItemHovered())      \
+	{                                \
+		ImGui::BeginTooltip();       \
+		ImGui::TextUnformatted(str); \
+		ImGui::EndTooltip();         \
+	}
+
+		ImGui::Indent();
+		ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.f);
+		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.f, 0.f));
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.f, 5.f));
+
+		ImGui::SameLine();
+
+		if (ImGui::Button(ICON_FA_CAMERA, ImVec2(20.f, 20.f)))
+		{
+			ImGui::OpenPopup("CameraPopup");
+		}
+
+		SHOW_TIPS("Camera");
+
+		ImGui::SameLine();
+
+		if (ImGui::Button(ICON_FA_SAVE, ImVec2(20.f, 20.f)))
+		{
+		}
+
+		SHOW_TIPS("Save");
+
+		if (ImGui::BeginPopup("CameraPopup"))
+		{
+			auto perspective_cameras  = p_editor->GetRenderer()->GetScene()->GetComponents<Cmpt::PerspectiveCamera>();
+			auto orthographic_cameras = p_editor->GetRenderer()->GetScene()->GetComponents<Cmpt::OrthographicCamera>();
+
+			ImGui::PushItemWidth(80.f);
+			ImGui::Text("Camera Properties");
+			if ((!perspective_cameras.empty() || !orthographic_cameras.empty()) && ImGui::BeginMenu("Main Camera"))
+			{
+				for (auto &perspective_camera : perspective_cameras)
+				{
+					bool selected = perspective_camera == p_editor->GetMainCamera();
+					if (ImGui::MenuItem(perspective_camera->GetNode()->GetName().c_str(), nullptr, &selected))
+					{
+						p_editor->SetMainCamera(perspective_camera);
+					}
+				}
+				for (auto &orthographic_camera : orthographic_cameras)
+				{
+					bool selected = orthographic_camera == p_editor->GetMainCamera();
+					if (ImGui::MenuItem(orthographic_camera->GetNode()->GetName().c_str(), nullptr, &selected))
+					{
+						p_editor->SetMainCamera(orthographic_camera);
+					}
+				}
+				ImGui::EndMenu();
+			}
+			ImGui::DragFloat("Speed", &m_camera_config.speed, 0.01f, 0.f, std::numeric_limits<float>::max());
+			ImGui::DragFloat("Sensitity", &m_camera_config.sensitity, 0.01f, 0.f, std::numeric_limits<float>::max());
+			ImGui::PopItemWidth();
+			ImGui::EndPopup();
+		}
+
+		ImGui::PopStyleVar();
+		ImGui::PopStyleVar();
+		ImGui::PopStyleVar();
+		ImGui::PopStyleColor();
+
+		ImGui::Unindent();
+	}
+
+  private:
+	std::map<std::string, std::unique_ptr<RHITexture>> m_icons;
 };
 
 extern "C"
 {
-	__declspec(dllexport) SceneView *Create(Editor *editor, ImGuiContext *context)
+	EXPORT_API SceneView *Create(Editor *editor, ImGuiContext *context)
 	{
 		ImGui::SetCurrentContext(context);
 		return new SceneView(editor);

@@ -131,9 +131,9 @@ const glm::mat4 Transform::GetLocalTransform() const
 	return glm::scale(glm::translate(glm::mat4(1.f), m_translation) * glm::mat4_cast(glm::qua<float>(glm::radians(m_rotation))), m_scale);
 }
 
-const glm::mat4 &Transform::GetWorldTransform() const
+ const glm::mat4 Transform::GetWorldTransform()
 {
-	const_cast<Transform *>(this)->Update();
+	Update();
 	return m_world_transform;
 }
 
@@ -175,6 +175,10 @@ void Transform::Update()
 	{
 		auto *transform   = parent->GetComponent<Transform>();
 		m_world_transform = transform->GetWorldTransform() * local_matrix;
+	}
+	else
+	{
+		m_world_transform = local_matrix;
 	}
 
 	m_dirty = false;

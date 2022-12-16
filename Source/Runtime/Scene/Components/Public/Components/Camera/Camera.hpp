@@ -44,7 +44,9 @@ class EXPORT_API Camera : public Component
 	glm::mat4 GetInvViewProjectionMatrix();
 
   protected:
-	virtual void Update() = 0;
+	virtual void UpdateProjection() = 0;
+
+	void UpdateView();
 
   protected:
 	bool m_dirty = false;

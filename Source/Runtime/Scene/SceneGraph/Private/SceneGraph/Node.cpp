@@ -37,7 +37,7 @@ Node::~Node()
 {
 	for (auto &[type, cmpt] : m_impl->components)
 	{
-		auto &scene_components = m_impl->scene.GetComponents()[type];
+		auto &scene_components = m_impl->scene.GetComponents().at(type);
 		for (auto iter = scene_components.begin(); iter != scene_components.end(); iter++)
 		{
 			if (iter->get() == cmpt)

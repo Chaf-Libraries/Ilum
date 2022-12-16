@@ -36,6 +36,8 @@ struct IResourceManager
 
 	virtual const std::vector<std::string> GetResources() const = 0;
 
+	virtual bool Update() const = 0;
+
 	RHIContext *rhi_context = nullptr;
 };
 
@@ -125,6 +127,11 @@ struct TResourceManager : public IResourceManager
 		return handles;
 	}
 
+	virtual bool Update() const override
+	{
+		return update;
+	}
+
 	std::vector<std::unique_ptr<Resource<_Ty>>> resources;
 	std::unordered_map<size_t, size_t>          lookup;        // uuid - index
 	std::vector<std::unique_ptr<Resource<_Ty>>> deprecates;
@@ -154,7 +161,7 @@ ResourceManager::~ResourceManager()
 
 void ResourceManager::Tick()
 {
-	for (auto& [type, manager] : m_impl->managers)
+	for (auto &[type, manager] : m_impl->managers)
 	{
 		manager->Tick();
 	}
@@ -180,6 +187,11 @@ void ResourceManager::Import(ResourceType type, const std::string &path)
 	m_impl->managers.at(type)->Import(this, path);
 }
 
+void ResourceManager::Erase(ResourceType type, size_t uuid)
+{
+	m_impl->managers.at(type)->Erase(uuid);
+}
+
 void ResourceManager::Add(ResourceType type, std::unique_ptr<IResource> &&resource)
 {
 	size_t uuid = resource->GetUUID();
@@ -189,5 +201,10 @@ void ResourceManager::Add(ResourceType type, std::unique_ptr<IResource> &&resour
 const std::vector<std::string> ResourceManager::GetResources(ResourceType type) const
 {
 	return m_impl->managers.at(type)->GetResources();
+}
+
+bool ResourceManager::Update(ResourceType type) const
+{
+	return m_impl->managers.at(type)->Update();
 }
 }        // namespace Ilum

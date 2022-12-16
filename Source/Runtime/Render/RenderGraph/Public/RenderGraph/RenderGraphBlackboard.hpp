@@ -12,9 +12,9 @@ class EXPORT_API RenderGraphBlackboard
 	~RenderGraphBlackboard() = default;
 
 	template <typename _Ty>
-	RenderGraphBlackboard &Add()
+	_Ty *Add()
 	{
-		return Add(typeid(_Ty), std::make_shared<_Ty>());
+		return std::static_pointer_cast<_Ty>(Add(typeid(_Ty), std::make_shared<_Ty>())).get();
 	}
 
 	template <typename _Ty>
@@ -24,7 +24,7 @@ class EXPORT_API RenderGraphBlackboard
 	}
 
 	template <typename _Ty>
-	_Ty* Get()
+	_Ty *Get()
 	{
 		if (!Has<_Ty>())
 		{
@@ -34,13 +34,13 @@ class EXPORT_API RenderGraphBlackboard
 	}
 
 	template <typename _Ty>
-	RenderGraphBlackboard& Erase()
+	RenderGraphBlackboard &Erase()
 	{
 		return Erase(typeid(_Ty));
 	}
 
   private:
-	RenderGraphBlackboard &Add(std::type_index type, std::shared_ptr<void> &&ptr);
+	std::shared_ptr<void> &Add(std::type_index type, std::shared_ptr<void> &&ptr);
 
 	bool Has(std::type_index type);
 

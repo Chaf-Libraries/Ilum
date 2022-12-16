@@ -10,7 +10,7 @@
 
 #include <implot/implot.h>
 
-#include <IconsFontAwesome/IconsFontAwesome4.h>
+#include <IconsFontAwesome/IconsFontAwesome5.h>
 
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32

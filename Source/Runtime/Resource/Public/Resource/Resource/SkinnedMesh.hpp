@@ -38,6 +38,10 @@ class EXPORT_API Resource<ResourceType::SkinnedMesh> final : public IResource
 
 	RHIBuffer *GetIndexBuffer() const;
 
+	RHIBuffer *GetMeshletBuffer() const;
+
+	RHIBuffer *GetMeshletDataBuffer() const;
+
 	size_t GetVertexCount() const;
 
 	size_t GetIndexCount() const;

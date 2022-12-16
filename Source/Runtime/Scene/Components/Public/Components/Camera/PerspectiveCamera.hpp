@@ -22,7 +22,7 @@ class EXPORT_API PerspectiveCamera : public Camera
 	float GetFov() const;
 
   protected:
-	virtual void Update() override;
+	virtual void UpdateProjection() override;
 
   private:
 	bool m_dirty = true;

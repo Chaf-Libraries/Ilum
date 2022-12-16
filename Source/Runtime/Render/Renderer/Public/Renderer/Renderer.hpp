@@ -106,7 +106,7 @@ class EXPORT_API Renderer
 	// RHIShader *RequireMaterialShader(MaterialGraph *material_graph, const std::string &filename, const std::string &entry_point, RHIShaderStage stage, std::vector<std::string> &&macros = {}, std::vector<std::string> &&includes = {});
 
   private:
-	void UpdateScene();
+	void UpdateGPUScene();
 
   private:
 	struct Impl;

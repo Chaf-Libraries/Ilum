@@ -7,6 +7,8 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#include <nfd.h>
+
 using namespace Ilum;
 
 class ResourceBrowser : public Widget
@@ -19,60 +21,6 @@ class ResourceBrowser : public Widget
 
 	virtual ~ResourceBrowser() = default;
 
-	template <ResourceType _Ty>
-	inline void DrawResource(ResourceManager *manager, float button_size)
-	{
-		float width = 0.f;
-
-		ImGuiStyle &style    = ImGui::GetStyle();
-		style.ItemSpacing    = ImVec2(10.f, 10.f);
-		float window_visible = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
-
-		const std::vector<std::string> resources = manager->GetResources<_Ty>();
-
-		for (const auto &resource : resources)
-		{
-			ImGui::PushID(resource.c_str());
-			ImGui::ImageButton(ImGui::GetIO().Fonts->TexID, ImVec2{button_size, button_size});
-
-			// Drag&Drop source
-			if (ImGui::BeginDragDropSource())
-			{
-				ImGui::SetDragDropPayload(m_resource_types.at(_Ty), resource.c_str(), resource.length() + 1);
-				ImGui::EndDragDropSource();
-			}
-
-			if (ImGui::BeginPopupContextItem(resource.c_str()))
-			{
-				if (ImGui::MenuItem("Delete"))
-				{
-					// manager->EraseResource<_Ty>(uuid);
-					ImGui::EndPopup();
-					ImGui::PopID();
-					return;
-				}
-				ImGui::EndPopup();
-			}
-			else if (ImGui::IsItemHovered() && ImGui::IsWindowFocused())
-			{
-				ImVec2 pos = ImGui::GetIO().MousePos;
-				// ImGui::SetNextWindowPos(ImVec2(pos.x + 10.f, pos.y + 10.f));
-				//  ImGui::Begin(uuid_str.c_str(), NULL, ImGuiWindowFlags_Tooltip | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar);
-				//  ImGui::Text("%s", manager->GetResourceMeta<_Ty>(uuid).c_str());
-				//  ImGui::End();
-			}
-
-			float last_button = ImGui::GetItemRectMax().x;
-			float next_button = last_button + style.ItemSpacing.x + button_size;
-			if (next_button < window_visible)
-			{
-				ImGui::SameLine();
-			}
-
-			ImGui::PopID();
-		}
-	}
-
 	virtual void Tick() override
 	{
 		if (!ImGui::Begin(m_name.c_str()))
@@ -81,7 +29,7 @@ class ResourceBrowser : public Widget
 			return;
 		}
 
-		auto* resource_manager = p_editor->GetRenderer()->GetResourceManager();
+		auto *resource_manager = p_editor->GetRenderer()->GetResourceManager();
 		resource_manager->Tick();
 
 		ImGui::Columns(2);
@@ -89,7 +37,22 @@ class ResourceBrowser : public Widget
 
 		if (ImGui::Button("Import"))
 		{
-
+			char *path = nullptr;
+			if (NFD_OpenDialog("jpg,png,bmp,jpeg,dds,gltf,obj,glb,fbx,ply,blend,dae", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
+			{
+				ResourceType type = m_resource_map.at(Path::GetInstance().GetFileExtension(path));
+				switch (type)
+				{
+					case ResourceType::Prefab:
+						resource_manager->Import<ResourceType::Prefab>(path);
+						break;
+					case ResourceType::Texture2D:
+						resource_manager->Import<ResourceType::Texture2D>(path);
+						break;
+					default:
+						break;
+				}
+			}
 		}
 
 		for (auto &[type, name] : m_resource_types)
@@ -133,6 +96,61 @@ class ResourceBrowser : public Widget
 	}
 
   private:
+	template <ResourceType _Ty>
+	inline void DrawResource(ResourceManager *manager, float button_size)
+	{
+		float width = 0.f;
+
+		ImGuiStyle &style    = ImGui::GetStyle();
+		style.ItemSpacing    = ImVec2(10.f, 10.f);
+		float window_visible = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
+
+		const std::vector<std::string> resources = manager->GetResources<_Ty>();
+
+		for (const auto &resource : resources)
+		{
+			ImGui::PushID(resource.c_str());
+			ImGui::ImageButton(ImGui::GetIO().Fonts->TexID, ImVec2{button_size, button_size});
+
+			// Drag&Drop source
+			if (ImGui::BeginDragDropSource())
+			{
+				ImGui::SetDragDropPayload(m_resource_types.at(_Ty), resource.c_str(), resource.length() + 1);
+				ImGui::EndDragDropSource();
+			}
+
+			if (ImGui::BeginPopupContextItem(resource.c_str()))
+			{
+				if (ImGui::MenuItem("Delete"))
+				{
+					manager->Erase<_Ty>(resource);
+					ImGui::EndPopup();
+					ImGui::PopID();
+					return;
+				}
+				ImGui::EndPopup();
+			}
+			else if (ImGui::IsItemHovered() && ImGui::IsWindowFocused())
+			{
+				ImVec2 pos = ImGui::GetIO().MousePos;
+				// ImGui::SetNextWindowPos(ImVec2(pos.x + 10.f, pos.y + 10.f));
+				//  ImGui::Begin(uuid_str.c_str(), NULL, ImGuiWindowFlags_Tooltip | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar);
+				//  ImGui::Text("%s", manager->GetResourceMeta<_Ty>(uuid).c_str());
+				//  ImGui::End();
+			}
+
+			float last_button = ImGui::GetItemRectMax().x;
+			float next_button = last_button + style.ItemSpacing.x + button_size;
+			if (next_button < window_visible)
+			{
+				ImGui::SameLine();
+			}
+
+			ImGui::PopID();
+		}
+	}
+
+  private:
 	ResourceType m_current_type = ResourceType::Prefab;
 
 	std::unordered_map<ResourceType, const char *const> m_resource_types = {
@@ -141,6 +159,21 @@ class ResourceBrowser : public Widget
 	    {ResourceType::Prefab, "Prefab"},
 	    {ResourceType::Texture2D, "Texture2D"},
 	    {ResourceType::Animation, "Animation"},
+	};
+
+	std::unordered_map<std::string, ResourceType> m_resource_map = {
+	    {".jpg", ResourceType::Texture2D},
+	    {".png", ResourceType::Texture2D},
+	    {".bmp", ResourceType::Texture2D},
+	    {".jpeg", ResourceType::Texture2D},
+	    {".dds", ResourceType::Texture2D},
+	    {".gltf", ResourceType::Prefab},
+	    {".obj", ResourceType::Prefab},
+	    {".glb", ResourceType::Prefab},
+	    {".fbx", ResourceType::Prefab},
+	    {".ply", ResourceType::Prefab},
+	    {".blend", ResourceType::Prefab},
+	    {".dae", ResourceType::Prefab},
 	};
 };
 

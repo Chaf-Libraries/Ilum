@@ -38,6 +38,16 @@ RHIBuffer *Resource<ResourceType::SkinnedMesh>::GetIndexBuffer() const
 	return m_impl->index_buffer.get();
 }
 
+RHIBuffer *Resource<ResourceType::SkinnedMesh>::GetMeshletBuffer() const
+{
+	return m_impl->meshlet_buffer.get();
+}
+
+RHIBuffer *Resource<ResourceType::SkinnedMesh>::GetMeshletDataBuffer() const
+{
+	return m_impl->meshlet_data_buffer.get();
+}
+
 size_t Resource<ResourceType::SkinnedMesh>::GetVertexCount() const
 {
 	return m_impl->vertex_count;
@@ -58,7 +68,7 @@ void Resource<ResourceType::SkinnedMesh>::Update(RHIContext *rhi_context, std::v
 	m_impl->vertex_count = vertices.size();
 	m_impl->index_count  = indices.size();
 	std::unordered_set<int32_t> bone_set;
-	for (auto& v : vertices)
+	for (auto &v : vertices)
 	{
 		for (uint32_t i = 0; i < 4; i++)
 		{

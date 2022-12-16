@@ -2,6 +2,8 @@
 
 #include <RHI/RHIContext.hpp>
 
+#include <fstream>
+
 namespace Ilum
 {
 struct Resource<ResourceType::Texture2D>::Impl
@@ -12,6 +14,16 @@ struct Resource<ResourceType::Texture2D>::Impl
 Resource<ResourceType::Texture2D>::Resource(RHIContext *rhi_context, std::vector<uint8_t> &&data, const TextureDesc &desc):
     IResource(desc.name)
 {
+	std::vector<uint64_t> saving_data(data.size() / 8);
+	std::memcpy(saving_data.data(), data.data(), data.size());
+	std::ofstream os;
+	os.open("data.txt");
+	for (auto& d : saving_data)
+	{
+		os << d << ", ";
+	}
+	os.close();
+
 	m_impl = new Impl;
 
 	m_impl->texture = rhi_context->CreateTexture(desc);

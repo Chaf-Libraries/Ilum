@@ -1,4 +1,7 @@
 #include "Camera/Camera.hpp"
+#include "Transform.hpp"
+
+#include <SceneGraph/Node.hpp>
 
 namespace Ilum
 {
@@ -44,38 +47,45 @@ float Camera::GetFarPlane() const
 
 glm::mat4 Camera::GetViewMatrix()
 {
-	Update();
+	UpdateView();
 	return m_view;
 }
 
 glm::mat4 Camera::GetProjectionMatrix()
 {
-	Update();
+	UpdateProjection();
 	return m_projection;
 }
 
 glm::mat4 Camera::GetViewProjectionMatrix()
 {
-	Update();
-	return m_view_projection;
+	return GetProjectionMatrix() * GetViewMatrix();
 }
 
 glm::mat4 Camera::GetInvViewMatrix()
 {
-	Update();
+	UpdateView();
 	return m_inv_view;
 }
 
 glm::mat4 Camera::GetInvProjectionMatrix()
 {
-	Update();
+	UpdateProjection();
 	return m_inv_projection;
 }
 
 glm::mat4 Camera::GetInvViewProjectionMatrix()
 {
-	Update();
-	return m_inv_view_projection;
+	return GetInvViewMatrix() * GetInvProjectionMatrix();
+}
+
+void Camera::UpdateView()
+{
+	if (m_inv_view != p_node->GetComponent<Cmpt::Transform>()->GetWorldTransform())
+	{
+		m_inv_view = p_node->GetComponent<Cmpt::Transform>()->GetWorldTransform();
+		m_view     = glm::inverse(m_inv_view);
+	}
 }
 }        // namespace Cmpt
 }        // namespace Ilum
