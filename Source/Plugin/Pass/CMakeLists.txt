@@ -15,5 +15,5 @@ endfunction()
 
 add_pass(Present)
 # add_pass(Triangle)
-# add_pass(VisibilityBuffer)
+add_pass(VisibilityGeometryPass)
 # add_pass(VisibilityBufferVisualization)

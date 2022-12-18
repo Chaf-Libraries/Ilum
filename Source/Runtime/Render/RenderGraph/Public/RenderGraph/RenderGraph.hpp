@@ -27,6 +27,9 @@ struct EXPORT_API RGHandle
 	bool operator==(const RGHandle &rhs) const;
 
 	size_t GetHandle() const;
+
+	template <typename Archive>
+	void serialize(Archive &archive);
 };
 
 struct RenderResourceDesc
@@ -46,6 +49,12 @@ struct RenderResourceDesc
 	RHIResourceState state;
 
 	RGHandle handle;
+
+	template <typename Archive>
+	void serialize(Archive &archive)
+	{
+		archive(type, attribute, state, handle);
+	}
 };
 
 ENUM(BindPoint, Enable){
@@ -54,30 +63,6 @@ ENUM(BindPoint, Enable){
     Compute,
     RayTracing,
     CUDA};
-
-struct PassConfig
-{
-	template <typename Archive>
-	void serialize(Archive &archive)
-	{
-	}
-
-	template <>
-	void serialize(InputArchive &archive)
-	{
-		_serialize(archive);
-	}
-
-	template <>
-	void serialize(OutputArchive &archive)
-	{
-		_serialize(archive);
-	}
-
-  private:
-	virtual void _serialize(InputArchive &archive)  = 0;
-	virtual void _serialize(OutputArchive &archive) = 0;
-};
 
 STRUCT(RenderPassDesc, Enable)
 {
@@ -90,6 +75,12 @@ STRUCT(RenderPassDesc, Enable)
 	RGHandle prev_pass;
 
 	BindPoint bind_point;
+
+	template <typename Archive>
+	void serialize(Archive & archive)
+	{
+		archive(name, config, resources, prev_pass, bind_point);
+	}
 
 	RenderPassDesc &Write(const std::string &name, RenderResourceDesc::Type type, RHIResourceState state)
 	{
@@ -126,10 +117,14 @@ STRUCT(RenderPassDesc, Enable)
 STRUCT(RenderGraphDesc, Enable)
 {
 	std::map<RGHandle, RenderPassDesc> passes;
+	std::map<RGHandle, TextureDesc>    textures;
+	std::map<RGHandle, BufferDesc>     buffers;
 
-	std::map<RGHandle, TextureDesc> textures;
-
-	std::map<RGHandle, BufferDesc> buffers;
+	template<typename Archive>
+	void serialize(Archive & archive)
+	{
+		archive(passes, textures, buffers);
+	}
 };
 
 class EXPORT_API RenderGraph
@@ -137,7 +132,7 @@ class EXPORT_API RenderGraph
 	friend class RenderGraphBuilder;
 
   public:
-	using RenderTask  = std::function<void(RenderGraph &, RHICommand *, Variant &, RenderGraphBlackboard&)>;
+	using RenderTask  = std::function<void(RenderGraph &, RHICommand *, Variant &, RenderGraphBlackboard &)>;
 	using BarrierTask = std::function<void(RenderGraph &, RHICommand *)>;
 
 	struct RenderPassInfo
@@ -185,7 +180,7 @@ class EXPORT_API RenderGraph
 	RenderGraph &AddPass(
 	    const std::string &name,
 	    BindPoint          bind_point,
-	    const Variant    &config,
+	    const Variant     &config,
 	    RenderTask       &&execute,
 	    BarrierTask      &&barrier);
 

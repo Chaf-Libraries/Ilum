@@ -9,11 +9,6 @@
 
 using namespace Ilum;
 
-struct TestStruct
-{
-	float a;
-};
-
 class PresentPass : public IPass<PresentPass>
 {
   public:
@@ -24,14 +19,12 @@ class PresentPass : public IPass<PresentPass>
 	virtual void CreateDesc(RenderPassDesc *desc)
 	{
 		desc->SetBindPoint(BindPoint::None)
-		    .SetConfig(TestStruct())
 		    .Read("Present", RenderResourceDesc::Type::Texture, RHIResourceState::ShaderResource);
 	}
 
 	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
 	{
 		*task = [=](RenderGraph &render_graph, RHICommand *cmd_buffer, Variant &config, RenderGraphBlackboard& black_board) {
-			auto &test    = config.Convert<TestStruct>();
 			auto  texture = render_graph.GetTexture(desc.resources.at("Present").handle);
 			renderer->SetPresentTexture(texture);
 		};
@@ -39,8 +32,6 @@ class PresentPass : public IPass<PresentPass>
 
 	virtual void OnImGui(Variant *config)
 	{
-		auto &data = config->Convert<TestStruct>();
-		ImGui::DragFloat("data", &data.a);
 	}
 };
 

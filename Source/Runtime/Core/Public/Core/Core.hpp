@@ -9,7 +9,11 @@
 #include "Variant.hpp"
 
 #include <cereal/types/array.hpp>
+#include <cereal/types/map.hpp>
+#include <cereal/types/set.hpp>
 #include <cereal/types/string.hpp>
+#include <cereal/types/unordered_map.hpp>
+#include <cereal/types/unordered_set.hpp>
 #include <cereal/types/vector.hpp>
 
 #define SERIALIZER_TYPE_JSON 0

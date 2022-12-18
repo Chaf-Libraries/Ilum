@@ -32,6 +32,15 @@ size_t RGHandle::GetHandle() const
 	return handle;
 }
 
+template <typename Archive>
+void RGHandle::serialize(Archive &archive)
+{
+	archive(handle);
+}
+
+template EXPORT_API void RGHandle::serialize<InputArchive>(InputArchive &archive);
+template EXPORT_API void RGHandle::serialize<OutputArchive>(OutputArchive &archive);
+
 struct RenderGraph::Impl
 {
 	RHIContext *rhi_context = nullptr;
@@ -54,7 +63,7 @@ struct RenderGraph::Impl
 
 RenderGraph::RenderGraph(RHIContext *rhi_context)
 {
-	m_impl = new Impl;
+	m_impl              = new Impl;
 	m_impl->rhi_context = rhi_context;
 }
 
@@ -114,7 +123,7 @@ void RenderGraph::Execute(RenderGraphBlackboard &black_board)
 	RHISemaphore *last_semaphore = nullptr;
 	for (auto &pass : m_impl->render_passes)
 	{
-		if (pass.bind_point != last_bind_point && !cmd_buffers.empty())
+		if (pass.bind_point != last_bind_point && pass.bind_point != BindPoint::None && !cmd_buffers.empty())
 		{
 			RHISemaphore *pass_semaphore   = m_impl->rhi_context->CreateFrameSemaphore();
 			RHISemaphore *signal_semaphore = last_bind_point == BindPoint::CUDA ? MapToCUDASemaphore(pass_semaphore) : pass_semaphore;
@@ -171,11 +180,11 @@ const std::vector<RenderGraph::RenderPassInfo> &RenderGraph::GetRenderPasses() c
 }
 
 RenderGraph &RenderGraph::AddPass(
-    const std::string   &name,
-    BindPoint            bind_point,
-    const Variant &config,
-    RenderTask         &&task,
-    BarrierTask        &&barrier)
+    const std::string &name,
+    BindPoint          bind_point,
+    const Variant     &config,
+    RenderTask       &&task,
+    BarrierTask      &&barrier)
 {
 	m_impl->render_passes.emplace_back(RenderPassInfo{
 	    name,

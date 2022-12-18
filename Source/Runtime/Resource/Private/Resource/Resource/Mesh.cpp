@@ -6,15 +6,16 @@ namespace Ilum
 {
 struct Resource<ResourceType::Mesh>::Impl
 {
+	size_t vertex_count  = 0;
+	size_t index_count   = 0;
+	size_t meshlet_count = 0;
+
 	std::unique_ptr<RHIBuffer> vertex_buffer       = nullptr;
 	std::unique_ptr<RHIBuffer> index_buffer        = nullptr;
 	std::unique_ptr<RHIBuffer> meshlet_data_buffer = nullptr;
 	std::unique_ptr<RHIBuffer> meshlet_buffer      = nullptr;
 
 	std::unique_ptr<RHIAccelerationStructure> blas = nullptr;
-
-	size_t vertex_count = 0;
-	size_t index_count  = 0;
 };
 
 Resource<ResourceType::Mesh>::Resource(RHIContext *rhi_context, const std::string &name, std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices, std::vector<Meshlet> &&meshlets, std::vector<uint32_t> &&meshlet_data) :
@@ -64,10 +65,16 @@ size_t Resource<ResourceType::Mesh>::GetIndexCount() const
 	return m_impl->index_count;
 }
 
+size_t Resource<ResourceType::Mesh>::GetMeshletCount() const
+{
+	return m_impl->meshlet_count;
+}
+
 void Resource<ResourceType::Mesh>::Update(RHIContext *rhi_context, std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices, std::vector<Meshlet> &&meshlets, std::vector<uint32_t> &&meshlet_data)
 {
-	m_impl->vertex_count = vertices.size();
-	m_impl->index_count  = indices.size();
+	m_impl->vertex_count  = vertices.size();
+	m_impl->index_count   = indices.size();
+	m_impl->meshlet_count = meshlets.size();
 
 	auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Compute);
 	cmd_buffer->Begin();

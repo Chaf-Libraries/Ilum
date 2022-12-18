@@ -8,6 +8,7 @@ struct Resource<ResourceType::SkinnedMesh>::Impl
 {
 	size_t vertex_count = 0;
 	size_t index_count  = 0;
+	size_t meshlet_count = 0;
 	size_t bone_count   = 0;
 
 	std::unique_ptr<RHIBuffer> vertex_buffer       = nullptr;
@@ -58,6 +59,11 @@ size_t Resource<ResourceType::SkinnedMesh>::GetIndexCount() const
 	return m_impl->index_count;
 }
 
+size_t Resource<ResourceType::SkinnedMesh>::GetMeshletCount() const
+{
+	return m_impl->meshlet_count;
+}
+
 size_t Resource<ResourceType::SkinnedMesh>::GetBoneCount() const
 {
 	return m_impl->bone_count;
@@ -67,6 +73,8 @@ void Resource<ResourceType::SkinnedMesh>::Update(RHIContext *rhi_context, std::v
 {
 	m_impl->vertex_count = vertices.size();
 	m_impl->index_count  = indices.size();
+	m_impl->meshlet_count = meshlets.size();
+
 	std::unordered_set<int32_t> bone_set;
 	for (auto &v : vertices)
 	{

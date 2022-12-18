@@ -61,6 +61,4 @@ struct Light
     }
 };
 
-StructuredBuffer<Light> LightBuffer;
-
 #endif

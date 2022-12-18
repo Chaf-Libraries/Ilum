@@ -34,8 +34,8 @@ struct GPUScene
 	struct alignas(16) Instance
 	{
 		glm::mat4 transform;
-		uint32_t mesh_id;
-		uint32_t material_id;
+		uint32_t  mesh_id;
+		uint32_t  material_id;
 	};
 
 	struct
@@ -44,6 +44,11 @@ struct GPUScene
 		std::vector<RHIBuffer *> index_buffers;
 		std::vector<RHIBuffer *> meshlet_data_buffers;
 		std::vector<RHIBuffer *> meshlet_buffers;
+
+		std::unique_ptr<RHIBuffer> instances = nullptr;
+
+		uint32_t max_meshlet_count = 0;
+		uint32_t instance_count    = 0;
 	} mesh_buffer;
 
 	struct
@@ -52,15 +57,17 @@ struct GPUScene
 		std::vector<RHIBuffer *> index_buffers;
 		std::vector<RHIBuffer *> meshlet_data_buffers;
 		std::vector<RHIBuffer *> meshlet_buffers;
+
+		std::unique_ptr<RHIBuffer> instances = nullptr;
+
+		uint32_t max_meshlet_count = 0;
+		uint32_t instance_count    = 0;
 	} skinned_mesh_buffer;
 
 	struct
 	{
 		std::vector<RHITexture *> texture_2d;
 	} textures;
-
-	std::unique_ptr<RHIBuffer> mesh_instances         = nullptr;
-	std::unique_ptr<RHIBuffer> skinned_mesh_instances = nullptr;
 
 	std::unique_ptr<RHIAccelerationStructure> TLAS = nullptr;
 };

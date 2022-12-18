@@ -8,6 +8,8 @@
 #include <imgui_internal.h>
 #include <imnodes/imnodes.h>
 
+#include <nfd.h>
+
 using namespace Ilum;
 
 class RenderGraphEditor : public Widget
@@ -89,10 +91,27 @@ class RenderGraphEditor : public Widget
 		{
 			if (ImGui::MenuItem("Load"))
 			{
+				m_desc.buffers.clear();
+				m_desc.textures.clear();
+				m_desc.passes.clear();
+
+				char *path = nullptr;
+				if (NFD_OpenDialog("rg", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
+				{
+					std::string editor_state = "";
+					DESERIALIZE(path, m_desc, editor_state);
+					ImNodes::LoadCurrentEditorStateFromIniString(editor_state.data(), editor_state.length());
+				}
 			}
 
 			if (ImGui::MenuItem("Save"))
 			{
+				char *path = nullptr;
+				if (NFD_SaveDialog("rg", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
+				{
+					std::string editor_state = ImNodes::SaveCurrentEditorStateToIniString();
+					SERIALIZE(Path::GetInstance().GetFileExtension(path) == ".rg" ? path : std::string(path) + ".rg", m_desc, editor_state);
+				}
 			}
 
 			if (ImGui::MenuItem("Clear"))

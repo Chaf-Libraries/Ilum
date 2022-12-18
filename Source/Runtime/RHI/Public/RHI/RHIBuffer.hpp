@@ -18,6 +18,12 @@ STRUCT(BufferDesc, Enable)
 
 	META(Min(0))
 	size_t count;
+
+	template <typename Archive>
+	void serialize(Archive & archive)
+	{
+		archive(name, usage, memory, size, stride, count);
+	}
 };
 
 class RHIBuffer

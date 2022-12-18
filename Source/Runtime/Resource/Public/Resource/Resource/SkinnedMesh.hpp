@@ -46,6 +46,8 @@ class EXPORT_API Resource<ResourceType::SkinnedMesh> final : public IResource
 
 	size_t GetIndexCount() const;
 
+	size_t GetMeshletCount() const;
+
 	size_t GetBoneCount() const;
 
 	void Update(RHIContext *rhi_context, std::vector<SkinnedVertex> &&vertices, std::vector<uint32_t> &&indices, std::vector<Meshlet> &&meshlets, std::vector<uint32_t> &&meshletdata);

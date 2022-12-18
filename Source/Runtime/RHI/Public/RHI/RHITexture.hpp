@@ -28,6 +28,12 @@ STRUCT(TextureDesc, Enable)
 
 	RHIFormat       format = RHIFormat::Undefined;
 	RHITextureUsage usage  = RHITextureUsage::Undefined;
+
+	template<typename Archive>
+	void serialize(Archive & archive)
+	{
+		archive(name, width, height, depth, mips, layers, samples, format, usage);
+	}
 };
 
 struct TextureRange

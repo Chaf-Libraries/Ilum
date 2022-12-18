@@ -71,6 +71,8 @@ class EXPORT_API Resource<ResourceType::Mesh> final : public IResource
 
 	size_t GetIndexCount() const;
 
+	size_t GetMeshletCount() const;
+
 	void Update(RHIContext *rhi_context, std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices, std::vector<Meshlet> &&meshlets, std::vector<uint32_t> &&meshlet_data);
 
   private:
