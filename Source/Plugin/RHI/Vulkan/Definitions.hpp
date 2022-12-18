@@ -211,8 +211,8 @@ inline static std::unordered_map<RHIShaderStage, VkShaderStageFlagBits> ToVulkan
     {RHIShaderStage::Miss, VK_SHADER_STAGE_MISS_BIT_KHR},
     {RHIShaderStage::Intersection, VK_SHADER_STAGE_INTERSECTION_BIT_KHR},
     {RHIShaderStage::Callable, VK_SHADER_STAGE_CALLABLE_BIT_KHR},
-    {RHIShaderStage::Mesh, VK_SHADER_STAGE_MESH_BIT_NV},
-    {RHIShaderStage::Task, VK_SHADER_STAGE_TASK_BIT_NV},
+    {RHIShaderStage::Mesh, VK_SHADER_STAGE_MESH_BIT_EXT},
+    {RHIShaderStage::Task, VK_SHADER_STAGE_TASK_BIT_EXT},
 };
 
 inline static std::unordered_map<RHIVertexInputRate, VkVertexInputRate> ToVulkanVertexInputRate = {

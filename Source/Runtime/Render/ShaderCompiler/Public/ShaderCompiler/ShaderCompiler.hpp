@@ -39,7 +39,11 @@ class EXPORT_API ShaderCompiler
 
 	static ShaderCompiler &GetInstance();
 
-	std::vector<uint8_t> Compile(const ShaderDesc &desc, ShaderMeta& meta);
+	std::vector<uint8_t> Compile(const ShaderDesc &desc, ShaderMeta &meta);
+
+  private:
+	struct Impl;
+	Impl *m_impl = nullptr;
 };
 
 }        // namespace Ilum
