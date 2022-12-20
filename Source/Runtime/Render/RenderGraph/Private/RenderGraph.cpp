@@ -116,7 +116,8 @@ void RenderGraph::Execute(RenderGraphBlackboard &black_board)
 		m_impl->rhi_context->Submit({cmd_buffer});
 	}
 
-	BindPoint last_bind_point = m_impl->render_passes[0].bind_point;
+	BindPoint      last_bind_point = m_impl->render_passes[0].bind_point;
+	RHIQueueFamily family          = RHIQueueFamily::Graphics;
 
 	std::vector<RHICommand *> cmd_buffers;
 	cmd_buffers.reserve(m_impl->render_passes.size());
@@ -147,11 +148,14 @@ void RenderGraph::Execute(RenderGraphBlackboard &black_board)
 		}
 		else
 		{
-			RHIQueueFamily family = RHIQueueFamily::Graphics;
 			if (pass.bind_point == BindPoint::Compute ||
 			    pass.bind_point == BindPoint::RayTracing)
 			{
 				family = RHIQueueFamily::Compute;
+			}
+			else if (pass.bind_point==BindPoint::Rasterization)
+			{
+				family = RHIQueueFamily::Graphics;
 			}
 
 			auto *cmd_buffer = m_impl->rhi_context->CreateCommand(family);

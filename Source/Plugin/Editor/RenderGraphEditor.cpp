@@ -91,16 +91,32 @@ class RenderGraphEditor : public Widget
 		{
 			if (ImGui::MenuItem("Load"))
 			{
-				m_desc.buffers.clear();
-				m_desc.textures.clear();
-				m_desc.passes.clear();
-
 				char *path = nullptr;
 				if (NFD_OpenDialog("rg", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
 				{
+					m_desc.buffers.clear();
+					m_desc.textures.clear();
+					m_desc.passes.clear();
+
 					std::string editor_state = "";
 					DESERIALIZE(path, m_desc, editor_state);
 					ImNodes::LoadCurrentEditorStateFromIniString(editor_state.data(), editor_state.length());
+
+					m_current_handle = 0;
+
+					for (auto &[handle, buffer] : m_desc.buffers)
+					{
+						m_current_handle = glm::max(m_current_handle, handle.GetHandle());
+					}
+					for (auto &[handle, texture] : m_desc.textures)
+					{
+						m_current_handle = glm::max(m_current_handle, handle.GetHandle());
+					}
+					for (auto &[handle, pass] : m_desc.passes)
+					{
+						m_current_handle = glm::max(m_current_handle, handle.GetHandle());
+					}
+					m_current_handle++;
 				}
 			}
 

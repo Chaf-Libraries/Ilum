@@ -1,23 +1,24 @@
-#include <RenderGraph/RenderGraph.hpp>
-#include <RenderGraph/RenderGraphBuilder.hpp>
-#include <Renderer/Renderer.hpp>
-#include <iostream>
+#include "IPass.hpp"
 
 using namespace Ilum;
 
-extern "C"
+class VisibilityBufferVisualization : public IPass<VisibilityBufferVisualization>
 {
-	__declspec(dllexport) void CreateDesc(RenderPassDesc *desc)
+  public:
+	VisibilityBufferVisualization() = default;
+
+	~VisibilityBufferVisualization() = default;
+
+	virtual void CreateDesc(RenderPassDesc *desc)
 	{
 		desc->SetBindPoint(BindPoint::Compute)
 		    .Read("VisibilityBuffer", RenderResourceDesc::Type::Texture, RHIResourceState::ShaderResource)
 		    .Read("DepthBuffer", RenderResourceDesc::Type::Texture, RHIResourceState::ShaderResource)
 		    .Write("InstanceID", RenderResourceDesc::Type::Texture, RHIResourceState::UnorderedAccess)
-		    .Write("PrimitiveID", RenderResourceDesc::Type::Texture, RHIResourceState::UnorderedAccess)
-		    .Write("MeshletID", RenderResourceDesc::Type::Texture, RHIResourceState::UnorderedAccess);
+		    .Write("PrimitiveID", RenderResourceDesc::Type::Texture, RHIResourceState::UnorderedAccess);
 	}
 
-	__declspec(dllexport) void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
+	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
 	{
 		ShaderMeta meta;
 
@@ -25,27 +26,31 @@ extern "C"
 		meta += renderer->RequireShaderMeta(shader);
 
 		std::shared_ptr<RHIPipelineState> pipeline_state = std::move(renderer->GetRHIContext()->CreatePipelineState());
-		std::shared_ptr<RHIDescriptor>    descriptor     = std::move(renderer->GetRHIContext()->CreateDescriptor(meta));
 
 		pipeline_state->SetShader(RHIShaderStage::Compute, shader);
 
-		*task =  [=](RenderGraph &render_graph, RHICommand *cmd_buffer, rttr::variant &config) {
+		*task = [=](RenderGraph &render_graph, RHICommand *cmd_buffer, Variant &config, RenderGraphBlackboard &black_board) {
 			auto *visibility_buffer   = render_graph.GetTexture(desc.resources.at("VisibilityBuffer").handle);
 			auto *depth_buffer        = render_graph.GetTexture(desc.resources.at("DepthBuffer").handle);
 			auto *instance_id_buffer  = render_graph.GetTexture(desc.resources.at("InstanceID").handle);
 			auto *primitive_id_buffer = render_graph.GetTexture(desc.resources.at("PrimitiveID").handle);
-			auto *meshlet_id_buffer   = render_graph.GetTexture(desc.resources.at("MeshletID").handle);
 
-			descriptor
-			    ->BindTexture("VisibilityBuffer", visibility_buffer, RHITextureDimension::Texture2D)
+			auto *descriptor = renderer->GetRHIContext()->CreateDescriptor(meta);
+
+			descriptor->BindTexture("VisibilityBuffer", visibility_buffer, RHITextureDimension::Texture2D)
 			    .BindTexture("DepthBuffer", depth_buffer, RHITextureDimension::Texture2D)
 			    .BindTexture("InstanceID", instance_id_buffer, RHITextureDimension::Texture2D)
-			    .BindTexture("PrimitiveID", primitive_id_buffer, RHITextureDimension::Texture2D)
-			    .BindTexture("MeshletID", meshlet_id_buffer, RHITextureDimension::Texture2D);
+			    .BindTexture("PrimitiveID", primitive_id_buffer, RHITextureDimension::Texture2D);
 
-			cmd_buffer->BindDescriptor(descriptor.get());
+			cmd_buffer->BindDescriptor(descriptor);
 			cmd_buffer->BindPipelineState(pipeline_state.get());
 			cmd_buffer->Dispatch(visibility_buffer->GetDesc().width, visibility_buffer->GetDesc().height, 1, 32, 32, 1);
 		};
 	}
-}
+
+	virtual void OnImGui(Variant *config)
+	{
+	}
+};
+
+CONFIGURATION_PASS(VisibilityBufferVisualization)

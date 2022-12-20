@@ -96,7 +96,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 
 	struct MeshletInfo
 	{
-		std::vector<Meshlet> meshlets;
+		std::vector<Meshlet>  meshlets;
 		std::vector<uint32_t> meshletdata;
 	};
 
@@ -186,7 +186,14 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 		std::vector<uint32_t>        meshlet_vertices(meshlets.size() * max_vertices);
 		std::vector<uint8_t>         meshlet_triangles(meshlets.size() * max_triangles * 3);
 
-		meshlet_info.meshlets.resize(meshopt_buildMeshlets(meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(), indices.data(), indices.size(), &vertices[0].position.x, vertices.size(), sizeof(T), max_vertices, max_triangles, cone_weight));
+		meshlets.resize(meshopt_buildMeshlets(meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(), indices.data(), indices.size(), &vertices[0].position.x, vertices.size(), sizeof(T), max_vertices, max_triangles, cone_weight));
+
+		std::unordered_map<size_t, uint32_t> primitive_map;
+		for (size_t i = 0; i < indices.size() / 3; i++)
+		{
+			size_t hash         = Hash(indices[3 * i], indices[3 * i + 1], indices[3 * i + 2]);
+			primitive_map[hash] = static_cast<uint32_t>(i);
+		}
 
 		for (auto &meshlet : meshlets)
 		{
@@ -197,29 +204,38 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 				meshlet_info.meshletdata.push_back(meshlet_vertices[meshlet.vertex_offset + i]);
 			}
 
-			const uint32_t *index_group       = reinterpret_cast<const uint32_t *>(&meshlet_triangles[0] + meshlet.triangle_offset);
-			uint32_t        index_group_count = (meshlet.triangle_count * 3 + 3) / 4;
+			const uint8_t *index_group = &meshlet_triangles[0] + meshlet.triangle_offset;
 
-			for (uint32_t i = 0; i < index_group_count; i++)
+			for (uint32_t i = 0; i < meshlet.triangle_count; i++)
 			{
-				meshlet_info.meshletdata.push_back(index_group[i]);
+				size_t hash = Hash((uint32_t) index_group[3 * i] + meshlet.vertex_offset, (uint32_t) index_group[3 * i + 1] + meshlet.vertex_offset, (uint32_t) index_group[3 * i + 2] + meshlet.vertex_offset);
+				//if (primitive_map.find(hash) == primitive_map.end())
+				//{
+				//	LOG_INFO("Fuck");
+				//}
+				//uint32_t triangle = 0;
+				//triangle += index_group[3 * i] & 0xff;
+				//triangle += (index_group[3 * i + 1] & 0xff) << 8;
+				//triangle += (index_group[3 * i + 2] & 0xff) << 16;
+				meshlet_info.meshletdata.push_back(primitive_map.at(hash));
 			}
 
 			meshopt_Bounds bounds = meshopt_computeMeshletBounds(&meshlet_vertices[meshlet.vertex_offset], &meshlet_triangles[meshlet.triangle_offset], meshlet.triangle_count, &vertices[0].position.x, vertices.size(), sizeof(T));
 
-			Meshlet meshlet = {};
+			Meshlet tmp_meshlet = {};
 
-			meshlet.data_offset    = uint32_t(data_offset);
-			meshlet.triangle_count = meshlet.triangle_count;
-			meshlet.vertex_count   = meshlet.vertex_count;
-			meshlet.center         = glm::vec3(bounds.center[0], bounds.center[1], bounds.center[2]);
-			meshlet.radius         = bounds.radius;
-			meshlet.cone_axis[0]   = bounds.cone_axis_s8[0];
-			meshlet.cone_axis[1]   = bounds.cone_axis_s8[1];
-			meshlet.cone_axis[2]   = bounds.cone_axis_s8[2];
-			meshlet.cone_cutoff    = bounds.cone_cutoff_s8;
+			tmp_meshlet.data_offset    = uint32_t(data_offset);
+			tmp_meshlet.triangle_count = meshlet.triangle_count;
+			tmp_meshlet.vertex_count   = meshlet.vertex_count;
+			tmp_meshlet.vertex_offset   = meshlet.vertex_offset;
+			tmp_meshlet.center         = glm::vec3(bounds.center[0], bounds.center[1], bounds.center[2]);
+			tmp_meshlet.radius         = bounds.radius;
+			tmp_meshlet.cone_axis[0]   = bounds.cone_axis[0];
+			tmp_meshlet.cone_axis[1]   = bounds.cone_axis[1];
+			tmp_meshlet.cone_axis[2]   = bounds.cone_axis[2];
+			tmp_meshlet.cone_cutoff    = bounds.cone_cutoff;
 
-			meshlet_info.meshlets.emplace_back(meshlet);
+			meshlet_info.meshlets.push_back(tmp_meshlet);
 		}
 
 		return meshlet_info;

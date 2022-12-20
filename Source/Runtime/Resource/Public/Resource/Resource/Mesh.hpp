@@ -2,7 +2,6 @@
 
 #include "../Resource.hpp"
 
-#include <Geometry/AABB.hpp>
 #include <Geometry/Meshlet.hpp>
 
 namespace Ilum

@@ -70,12 +70,26 @@ Node *Scene::CreateNode(const std::string &name)
 
 void Scene::EraseNode(Node *node)
 {
-	for (auto iter = m_impl->nodes.begin(); iter != m_impl->nodes.end(); iter++)
-	{
-		if (iter->get() == node)
+	std::function<void(Node *, std::vector<Node *> &)> gather_nodes = [&](Node *node, std::vector<Node *>& nodes) {
+		nodes.push_back(node);
+		for (auto& child : node->GetChildren())
 		{
-			m_impl->nodes.erase(iter);
-			return;
+			gather_nodes(child, nodes);
+		}
+	};
+
+	std::vector<Node *> remove_nodes;
+	gather_nodes(node, remove_nodes);
+
+	for (auto iter = m_impl->nodes.begin(); iter != m_impl->nodes.end();)
+	{
+		if (std::find(remove_nodes.begin(), remove_nodes.end(), iter->get()) != remove_nodes.end())
+		{
+			iter=m_impl->nodes.erase(iter);
+		}
+		else
+		{
+			iter++;
 		}
 	}
 }

@@ -2,7 +2,11 @@
 
 #include <Core/Core.hpp>
 #include <RenderGraph/RenderGraph.hpp>
+#include <RenderGraph/RenderGraphBuilder.hpp>
+#include <Renderer/RenderData.hpp>
 #include <Renderer/Renderer.hpp>
+
+#include <imgui.h>
 
 namespace Ilum
 {

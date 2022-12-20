@@ -304,14 +304,18 @@ void Renderer::UpdateGPUScene()
 			auto &submeshes = mesh->GetSubmeshes();
 			for (auto &submesh : submeshes)
 			{
-				GPUScene::Instance instance = {};
-				instance.transform          = mesh->GetNode()->GetComponent<Cmpt::Transform>()->GetWorldTransform();
-				instance.mesh_id            = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Mesh>(submesh));
-				instances.push_back(instance);
-
 				auto *resource = m_impl->resource_manager->Get<ResourceType::Mesh>(submesh);
-				tlas_desc.instances.push_back(TLASDesc::InstanceInfo{instance.transform, instance.material_id, resource->GetBLAS()});
-				gpu_scene->mesh_buffer.max_meshlet_count = glm::max(gpu_scene->mesh_buffer.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
+
+				if (resource)
+				{
+					GPUScene::Instance instance = {};
+					instance.transform          = mesh->GetNode()->GetComponent<Cmpt::Transform>()->GetWorldTransform();
+					instance.mesh_id            = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Mesh>(submesh));
+					instances.push_back(instance);
+
+					tlas_desc.instances.push_back(TLASDesc::InstanceInfo{instance.transform, instance.material_id, resource->GetBLAS()});
+					gpu_scene->mesh_buffer.max_meshlet_count = glm::max(gpu_scene->mesh_buffer.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
+				}
 			}
 		}
 
@@ -341,14 +345,17 @@ void Renderer::UpdateGPUScene()
 			auto &submeshes = mesh->GetSubmeshes();
 			for (auto &submesh : submeshes)
 			{
-				GPUScene::Instance instance = {};
-				instance.transform          = mesh->GetNode()->GetComponent<Cmpt::Transform>()->GetWorldTransform();
-				instance.mesh_id            = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::SkinnedMesh>(submesh));
-				instances.push_back(instance);
-
 				auto *resource = m_impl->resource_manager->Get<ResourceType::SkinnedMesh>(submesh);
 
-				gpu_scene->skinned_mesh_buffer.max_meshlet_count = glm::max(gpu_scene->skinned_mesh_buffer.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
+				if (resource)
+				{
+					GPUScene::Instance instance = {};
+					instance.transform          = mesh->GetNode()->GetComponent<Cmpt::Transform>()->GetWorldTransform();
+					instance.mesh_id            = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::SkinnedMesh>(submesh));
+					instances.push_back(instance);
+
+					gpu_scene->skinned_mesh_buffer.max_meshlet_count = glm::max(gpu_scene->skinned_mesh_buffer.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
+				}
 			}
 		}
 
