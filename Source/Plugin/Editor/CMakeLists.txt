@@ -27,7 +27,7 @@ add_widget(MeshEditor)
 target_link_libraries(Editor.MeshEditor PRIVATE Resource Geometry)
 
 add_widget(AnimationEditor)
-target_link_libraries(Editor.AnimationEditor PRIVATE nfd Animation Resource Geometry)
+target_link_libraries(Editor.AnimationEditor PRIVATE nfd Resource Geometry)
 
 add_widget(ResourceBrowser)
 target_link_libraries(Editor.ResourceBrowser PRIVATE nfd Resource)

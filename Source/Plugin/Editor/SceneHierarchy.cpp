@@ -99,7 +99,7 @@ class SceneHierarchy : public Widget
 					if (node->GetParent() != new_son)
 					{
 						new_son->SetParent(node);
-						new_son->GetComponent<Cmpt::Transform>()->SetDirty(true);
+						new_son->GetComponent<Cmpt::Transform>()->SetDirty();
 						update = true;
 					}
 				}

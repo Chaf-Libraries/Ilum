@@ -13,14 +13,6 @@ using namespace Ilum;
 class AnimationEditor : public Widget
 {
   public:
-	struct HierarchyNode
-	{
-		std::string name;
-		glm::mat4   transform;
-
-		std::vector<HierarchyNode> children;
-	};
-
 	struct UniformBlock
 	{
 		glm::mat4 transform;
@@ -88,7 +80,8 @@ class AnimationEditor : public Widget
 				if (ImGui::Button(m_animation_name.c_str(), ImVec2(150.f, 20.f)))
 				{
 					m_animation_name = "";
-					m_roots.clear();
+					m_root.children.clear();
+					m_root.name = "";
 				}
 
 				if (ImGui::BeginDragDropTarget())
@@ -99,34 +92,19 @@ class AnimationEditor : public Widget
 						resource         = p_editor->GetRenderer()->GetResourceManager()->Get<ResourceType::Animation>(m_animation_name);
 						if (resource)
 						{
-							const auto              &hierarchy = resource->GetHierarchy();
-							std::vector<std::string> roots;
-							for (const auto &[child, info] : hierarchy)
-							{
-								if (info.second.empty())
-								{
-									roots.emplace_back(child);
-								}
-							}
+							m_root = resource->GetHierarchyNode();
 
 							glm::vec3 min_bound = glm::vec3(std::numeric_limits<float>::max());
 							glm::vec3 max_bound = glm::vec3(-std::numeric_limits<float>::max());
 
-							for (auto &root : roots)
-							{
-								m_roots.emplace_back(BuildHierarchy(hierarchy, root));
-								CalculateBound(resource, m_roots.back(), min_bound, max_bound);
-							}
+							CalculateBound(resource, m_root, min_bound, max_bound);
 
 							// Update skinned buffer
 							UpdateBuffer(m_time);
 
 							// Update vertex buffer
 							std::vector<BoneVertex> bone_vertices;
-							for (auto &root : m_roots)
-							{
-								UpdateVertexBuffer(bone_vertices, root, resource);
-							}
+							UpdateVertexBuffer(bone_vertices, m_root, resource);
 
 							m_vertex_buffer = p_editor->GetRHIContext()->CreateBuffer<BoneVertex>(bone_vertices.size(), RHIBufferUsage::Vertex | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
 							m_vertex_buffer->CopyToDevice(bone_vertices.data(), bone_vertices.size() * sizeof(BoneVertex));
@@ -148,7 +126,7 @@ class AnimationEditor : public Widget
 
 				if (m_start)
 				{
-					m_time += ImGui::GetIO().DeltaTime * 1000.f;
+					m_time += ImGui::GetIO().DeltaTime;
 					if (m_time > (resource ? resource->GetMaxTimeStamp() : 1000.f))
 					{
 						m_time -= resource ? resource->GetMaxTimeStamp() : 1000.f;
@@ -164,10 +142,7 @@ class AnimationEditor : public Widget
 				// Draw hierarchy
 				if (!m_animation_name.empty())
 				{
-					for (const auto &root : m_roots)
-					{
-						DrawHierarchy(root);
-					}
+					DrawHierarchy(resource, m_root);
 				}
 
 				ImGui::TreePop();
@@ -229,50 +204,52 @@ class AnimationEditor : public Widget
 		ImGui::End();
 	}
 
-	HierarchyNode BuildHierarchy(const std::map<std::string, std::pair<glm::mat4, std::string>> &hierarchy, const std::string &node)
-	{
-		HierarchyNode hierarchy_node;
-		hierarchy_node.name      = node;
-		hierarchy_node.transform = hierarchy.at(node).first;
-		for (const auto &[child, info] : hierarchy)
-		{
-			if (info.second == node)
-			{
-				hierarchy_node.children.emplace_back(BuildHierarchy(hierarchy, child));
-			}
-		}
-		return hierarchy_node;
-	}
-
 	void UpdateVertexBuffer(std::vector<BoneVertex> &vertices, const HierarchyNode &node, Resource<ResourceType::Animation> *resource, Bone *parent = nullptr, glm::mat4 parent_transform = glm::mat4(1.f))
 	{
-		auto    *bone       = resource->GetBone(node.name);
-		uint32_t current_id = bone->GetBoneID();
-		if (parent)
-		{
-			BoneVertex p0 = {}, p1 = {};
-			p0.bone_id  = parent->GetBoneID();
-			p1.bone_id  = current_id;
-			p0.position = glm::vec3(parent_transform * glm::vec4(0.f, 0.f, 0.f, 1.f));
-			p1.position = glm::vec3(node.transform * glm::vec4(0.f, 0.f, 0.f, 1.f));
+		auto *bone = resource->GetBone(node.name);
 
-			vertices.push_back(p0);
-			vertices.push_back(p1);
+		if (bone)
+		{
+			uint32_t current_id = bone->GetBoneID();
+			if (parent)
+			{
+				BoneVertex p0 = {}, p1 = {};
+				p0.bone_id  = parent->GetBoneID();
+				p1.bone_id  = current_id;
+				p0.position = glm::vec3(parent_transform * glm::vec4(0.f, 0.f, 0.f, 1.f));
+				p1.position = glm::vec3(parent_transform * node.transform * glm::vec4(0.f, 0.f, 0.f, 1.f));
+
+				vertices.push_back(p0);
+				vertices.push_back(p1);
+			}
 		}
+
 		for (auto &child : node.children)
 		{
-			UpdateVertexBuffer(vertices, child, resource, bone, node.transform);
+			UpdateVertexBuffer(vertices, child, resource, bone, parent_transform * node.transform);
 		}
 	}
 
-	void DrawHierarchy(const HierarchyNode &node)
+	void DrawHierarchy(Resource<ResourceType::Animation> *resource, const HierarchyNode &node)
 	{
-		if (ImGui::TreeNodeEx(node.name.c_str(), node.children.empty() ? ImGuiTreeNodeFlags_Leaf : ImGuiTreeNodeFlags_None))
+		Bone *bone = resource->GetBone(node.name);
+
+		bool open = false;
+		if (bone)
+		{
+			open = ImGui::TreeNodeEx(node.name.c_str(), node.children.empty() ? ImGuiTreeNodeFlags_Leaf : ImGuiTreeNodeFlags_None);
+		}
+
+		if (!bone || open)
 		{
 			for (auto &child : node.children)
 			{
-				DrawHierarchy(child);
+				DrawHierarchy(resource, child);
 			}
+		}
+
+		if (open)
+		{
 			ImGui::TreePop();
 		}
 	}
@@ -281,17 +258,17 @@ class AnimationEditor : public Widget
 	{
 		Bone *bone = resource->GetBone(node.name);
 
-		if (!bone)
+		glm::mat4 global_transformation = parent * node.transform;
+
+		if (bone)
 		{
-			return;
+			global_transformation = parent * bone->GetLocalTransform(0.f);
+
+			glm::vec3 position = glm::vec3(global_transformation * bone->GetBoneOffset() * glm::vec4(0.f, 0.f, 0.f, 1.f));
+
+			min_bound = glm::min(min_bound, position);
+			max_bound = glm::max(max_bound, position);
 		}
-
-		glm::mat4 global_transformation = parent * bone->GetLocalTransform(0.f);
-
-		glm::vec3 position = glm::vec3(global_transformation * bone->GetBoneOffset() * glm::vec4(0.f, 0.f, 0.f, 1.f));
-
-		min_bound = glm::min(min_bound, position);
-		max_bound = glm::max(max_bound, position);
 
 		for (auto &child : node.children)
 		{
@@ -303,19 +280,18 @@ class AnimationEditor : public Widget
 	{
 		Bone *bone = resource->GetBone(node.name);
 
-		if (!bone)
-		{
-			return;
-		}
+		glm::mat4 global_transformation = parent * node.transform;
 
-		glm::mat4 node_transform        = bone->GetLocalTransform(time);
-		glm::mat4 global_transformation = parent * node_transform;
-		if (skinned_matrices)
+		if (bone)
 		{
-			uint32_t  bone_id = bone->GetBoneID();
-			glm::mat4 offset  = bone->GetBoneOffset();
+			global_transformation = parent * bone->GetLocalTransform(time);
+			if (skinned_matrices)
+			{
+				uint32_t  bone_id = bone->GetBoneID();
+				glm::mat4 offset  = bone->GetBoneOffset();
 
-			skinned_matrices[bone_id] = global_transformation * offset;
+				skinned_matrices[bone_id] = global_transformation * offset;
+			}
 		}
 
 		for (auto &child : node.children)
@@ -337,10 +313,7 @@ class AnimationEditor : public Widget
 
 			glm::mat4 *skinned_matrices = static_cast<glm::mat4 *>(m_skinned_buffer->Map());
 
-			for (const auto &root : m_roots)
-			{
-				CalculateBoneTransform(time, resource, root, skinned_matrices);
-			}
+			CalculateBoneTransform(time, resource, m_root, skinned_matrices);
 
 			m_skinned_buffer->Unmap();
 		}
@@ -395,53 +368,6 @@ class AnimationEditor : public Widget
 		{
 			cmd_buffer->ResourceStateTransition({TextureStateTransition{m_render_texture.get(), RHIResourceState::ShaderResource, RHIResourceState::RenderTarget, TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}}, {});
 		}
-
-		/*{
-		    VertexInputState vertex_input_state = {};
-		    vertex_input_state.input_bindings   = {
-		        VertexInputState::InputBinding{0, sizeof(BoneVertex), RHIVertexInputRate::Vertex}};
-		    vertex_input_state.input_attributes = {
-		        VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(BoneVertex, position)},
-		        VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Indices, 1, 0, RHIFormat::R32_UINT, offsetof(BoneVertex, bone_id)},
-		    };
-
-		    InputAssemblyState input_assembly_state = {};
-		    input_assembly_state.topology           = RHIPrimitiveTopology::Line;
-
-		    RasterizationState rasterization_state = {};
-		    rasterization_state.polygon_mode       = RHIPolygonMode::Wireframe;
-		    rasterization_state.line_width         = 1.f;
-
-		    auto *vertex_shader   = p_editor->GetRenderer()->RequireShader("./Source/Shaders/AnimationEditor/DrawSkeleton.hlsl", "VSmain", RHIShaderStage::Vertex);
-		    auto *fragment_shader = p_editor->GetRenderer()->RequireShader("./Source/Shaders/AnimationEditor/DrawSkeleton.hlsl", "PSmain", RHIShaderStage::Fragment);
-
-		    m_pipeline_state->ClearShader();
-		    m_pipeline_state->SetShader(RHIShaderStage::Vertex, vertex_shader);
-		    m_pipeline_state->SetShader(RHIShaderStage::Fragment, fragment_shader);
-		    m_pipeline_state->SetVertexInputState(vertex_input_state);
-		    m_pipeline_state->SetInputAssemblyState(input_assembly_state);
-		    m_pipeline_state->SetRasterizationState(rasterization_state);
-
-		    ShaderMeta meta = p_editor->GetRenderer()->RequireShaderMeta(vertex_shader);
-		    meta += p_editor->GetRenderer()->RequireShaderMeta(fragment_shader);
-
-		    m_render_target->Clear();
-		    m_render_target->Set(0, m_render_texture.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, ColorAttachment{RHILoadAction::Clear, RHIStoreAction::Store});
-		    m_render_target->Set(m_depth_texture.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, DepthStencilAttachment{});
-
-		    auto *descriptor = rhi_context->CreateDescriptor(meta);
-		    descriptor->BindBuffer("UniformBuffer", m_uniform_buffer.get())
-		        .BindBuffer("BoneMatrices", m_skinned_buffer.get());
-
-		    cmd_buffer->BeginRenderPass(m_render_target.get());
-		    cmd_buffer->BindDescriptor(descriptor);
-		    cmd_buffer->BindPipelineState(m_pipeline_state.get());
-		    cmd_buffer->BindVertexBuffer(0, m_vertex_buffer.get());
-		    cmd_buffer->SetViewport((float) m_render_target->GetWidth(), (float) m_render_target->GetHeight());
-		    cmd_buffer->SetScissor(m_render_target->GetWidth(), m_render_target->GetHeight());
-		    cmd_buffer->Draw(static_cast<uint32_t>(m_vertex_buffer->GetDesc().size / sizeof(BoneVertex)));
-		    cmd_buffer->EndRenderPass();
-		}*/
 
 		{
 			VertexInputState vertex_input_state = {};
@@ -512,7 +438,7 @@ class AnimationEditor : public Widget
 
 	std::vector<std::string> m_skinned_meshes;
 
-	std::vector<HierarchyNode> m_roots;
+	HierarchyNode m_root;
 
 	std::unique_ptr<RHIPipelineState> m_pipeline_state = nullptr;
 	std::unique_ptr<RHIRenderTarget>  m_render_target  = nullptr;

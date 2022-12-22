@@ -60,7 +60,6 @@ VSOutput VSmain(VSInput input)
         }
         float4 local_position = mul(BoneMatrices[input.BoneID[i]], float4(input.Position, 1.0f));
         total_position += local_position * input.BoneWeight[i];
-        //float3 local_normal = mul(float3x3(BoneMatrices[input.BoneID[i]]), input.Normal);
     }
         
     output.Position = mul(UniformBuffer.transform, total_position);

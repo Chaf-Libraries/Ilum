@@ -57,6 +57,49 @@ void SkinnedMeshRenderer::OnImGui()
 		ImGui::TreePop();
 	}
 
+	if (ImGui::TreeNode("Animation"))
+	{
+		for (auto &animation : m_animations)
+		{
+			ImGui::PushID(animation.c_str());
+
+			if (ImGui::Button(animation.c_str(), ImVec2(ImGui::GetContentRegionAvail().x * 0.8f, 30.f)))
+			{
+				animation = "";
+			}
+
+			if (ImGui::BeginDragDropSource())
+			{
+				ImGui::SetDragDropPayload("Animation", animation.c_str(), animation.length() + 1);
+				ImGui::EndDragDropSource();
+			}
+
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const auto *pay_load = ImGui::AcceptDragDropPayload("Animation"))
+				{
+					animation = static_cast<const char *>(pay_load->Data);
+				}
+			}
+
+			ImGui::PopID();
+		}
+
+		if (ImGui::Button("+"))
+		{
+			m_animations.emplace_back("");
+		}
+
+		ImGui::SameLine();
+
+		if (ImGui::Button("-"))
+		{
+			m_animations.pop_back();
+		}
+
+		ImGui::TreePop();
+	}
+
 	Renderable::OnImGui();
 }
 

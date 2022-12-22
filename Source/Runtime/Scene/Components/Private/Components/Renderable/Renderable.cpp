@@ -70,6 +70,11 @@ void Renderable::AddSubmesh(const std::string &submesh)
 	m_submeshes.emplace_back(submesh);
 }
 
+void Renderable::AddAnimation(const std::string &animation)
+{
+	m_animations.emplace_back(animation);
+}
+
 const std::vector<std::string> &Renderable::GetSubmeshes() const
 {
 	return m_submeshes;
@@ -78,6 +83,11 @@ const std::vector<std::string> &Renderable::GetSubmeshes() const
 const std::vector<std::string> &Renderable::GetMaterials() const
 {
 	return m_materials;
+}
+
+const std::vector<std::string> &Renderable::GetAnimations() const
+{
+	return m_animations;
 }
 }        // namespace Cmpt
 }        // namespace Ilum

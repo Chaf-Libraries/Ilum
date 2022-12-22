@@ -14,42 +14,15 @@ template <>
 class EXPORT_API Resource<ResourceType::Mesh> final : public IResource
 {
   public:
-	struct alignas(16) Vertex
+	struct Vertex
 	{
-		glm::vec3 position;
-		glm::vec3 normal;
-		glm::vec3 tangent;
+		alignas(16) glm::vec3 position;
+		alignas(16) glm::vec3 normal;
+		alignas(16) glm::vec3 tangent;
 
-		glm::vec2 texcoord0;
+		alignas(16) glm::vec2 texcoord0;
 		glm::vec2 texcoord1;
 	};
-
-	// struct Mesh
-	//{
-	//	std::string name;
-
-	//	// Transform
-	//	glm::mat4 transform;
-
-	//	// Vertex
-	//	std::vector<Vertex> vertices;
-
-	//	// Index
-	//	std::vector<uint32_t> indices;
-
-	//	// Meshlet
-	//	std::vector<uint32_t> meshlet_vertices;
-	//	std::vector<uint32_t> meshlet_primitives;
-	//	std::vector<Meshlet>  meshlets;
-
-	//	// Skeleton animation
-	//	std::map<std::string, Bone> bones;
-
-	//	inline bool HasSkeleton() const
-	//	{
-	//		return !bones.empty();
-	//	}
-	//};
 
   public:
 	Resource(RHIContext *rhi_context, const std::string &name, std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices, std::vector<Meshlet> &&meshlets, std::vector<uint32_t> &&meshlet_data);

@@ -5,6 +5,7 @@
 #include <Core/Path.hpp>
 #include <RHI/RHIContext.hpp>
 #include <RenderGraph/RenderGraph.hpp>
+#include <Resource/Resource/Animation.hpp>
 #include <Resource/Resource/Mesh.hpp>
 #include <Resource/Resource/SkinnedMesh.hpp>
 #include <Resource/Resource/Texture.hpp>
@@ -35,15 +36,30 @@ struct Renderer::Impl
 	RenderGraphBlackboard black_board;
 
 	std::unique_ptr<ShaderBuilder> shader_builder = nullptr;
+
+	std::unique_ptr<RHIPipelineState> gpu_skinning_pipeline = nullptr;
+
+	ShaderMeta gpu_skinning_shader_meta;
+
+	float animation_time   = 0.f;
+	bool  update_animation = false;
 };
 
 Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resource_manager)
 {
-	m_impl                   = new Impl;
-	m_impl->rhi_context      = rhi_context;
-	m_impl->scene            = scene;
-	m_impl->resource_manager = resource_manager;
-	m_impl->shader_builder   = std::make_unique<ShaderBuilder>(rhi_context);
+	m_impl                        = new Impl;
+	m_impl->rhi_context           = rhi_context;
+	m_impl->scene                 = scene;
+	m_impl->resource_manager      = resource_manager;
+	m_impl->shader_builder        = std::make_unique<ShaderBuilder>(rhi_context);
+	m_impl->gpu_skinning_pipeline = rhi_context->CreatePipelineState();
+
+	// GPU Skinning Pipeline
+	{
+		RHIShader *shader = m_impl->shader_builder->RequireShader("./Source/Shaders/UpdateBoneMatrics.hlsl", "CSmain", RHIShaderStage::Compute);
+		m_impl->gpu_skinning_pipeline->SetShader(RHIShaderStage::Compute, shader);
+		m_impl->gpu_skinning_shader_meta = m_impl->shader_builder->RequireShaderMeta(shader);
+	}
 
 	// View
 	{
@@ -55,6 +71,8 @@ Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resou
 	{
 		auto *gpu_scene = m_impl->black_board.Add<GPUScene>();
 		gpu_scene->TLAS = m_impl->rhi_context->CreateAcccelerationStructure();
+
+		gpu_scene->animation_buffer.update_info = m_impl->rhi_context->CreateBuffer<GPUScene::AnimationBuffer::UpdateInfo>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
 	}
 
 	// Dummy Textures
@@ -150,6 +168,12 @@ glm::vec2 Renderer::GetViewport() const
 	return m_impl->viewport;
 }
 
+void Renderer::SetAnimationTime(float time)
+{
+	m_impl->animation_time   = time;
+	m_impl->update_animation = true;
+}
+
 void Renderer::SetPresentTexture(RHITexture *present_texture)
 {
 	m_impl->present_texture = present_texture;
@@ -158,6 +182,11 @@ void Renderer::SetPresentTexture(RHITexture *present_texture)
 RHITexture *Renderer::GetPresentTexture() const
 {
 	return m_impl->present_texture ? m_impl->present_texture : m_impl->black_board.Get<DummyTexture>()->black_opaque.get();
+}
+
+float Renderer::GetMaxAnimationTime() const
+{
+	return static_cast<float>(m_impl->black_board.Get<GPUScene>()->animation_buffer.max_frame_count) / 30.f;
 }
 
 void Renderer::UpdateView(Cmpt::Camera *camera)
@@ -190,25 +219,6 @@ void Renderer::Reset()
 	m_impl->rhi_context->WaitIdle();
 }
 
-// RHITexture *Renderer::GetDummyTexture(DummyTexture dummy) const
-//{
-//	return m_impl->dummy_textures.at(dummy).get();
-// }
-//
-// RHIAccelerationStructure *Renderer::GetTLAS() const
-//{
-//	return m_impl->tlas.get();
-// }
-//
-// void Renderer::DrawScene(RHICommand *cmd_buffer, RHIPipelineState *pipeline_state, RHIDescriptor *descriptor, bool mesh_shader)
-//{
-// }
-//
-// const SceneInfo &Renderer::GetSceneInfo() const
-//{
-//	return m_impl->scene_info;
-// }
-
 RHIShader *Renderer::RequireShader(const std::string &filename, const std::string &entry_point, RHIShaderStage stage, std::vector<std::string> &&macros, std::vector<std::string> &&includes, bool cuda, bool force_recompile)
 {
 	return m_impl->shader_builder->RequireShader(filename, entry_point, stage, std::move(macros), std::move(includes), cuda, force_recompile);
@@ -240,6 +250,9 @@ void Renderer::UpdateGPUScene()
 
 	TLASDesc tlas_desc = {};
 	tlas_desc.name     = m_impl->scene->GetName();
+
+	auto meshes         = m_impl->scene->GetComponents<Cmpt::MeshRenderer>();
+	auto skinned_meshes = m_impl->scene->GetComponents<Cmpt::SkinnedMeshRenderer>();
 
 	// Update Mesh Buffer
 	if (m_impl->resource_manager->Update<ResourceType::Mesh>())
@@ -279,11 +292,30 @@ void Renderer::UpdateGPUScene()
 		}
 	}
 
+	// Update Animation Buffer
+	{
+		if (m_impl->resource_manager->Update<ResourceType::Animation>())
+		{
+			gpu_scene->animation_buffer.bone_matrics.clear();
+			gpu_scene->animation_buffer.skinned_matrics.clear();
+			auto resources                              = m_impl->resource_manager->GetResources<ResourceType::Animation>();
+			gpu_scene->animation_buffer.max_bone_count  = 0;
+			gpu_scene->animation_buffer.max_frame_count = 0;
+			for (auto &resource : resources)
+			{
+				auto *animation = m_impl->resource_manager->Get<ResourceType::Animation>(resource);
+				gpu_scene->animation_buffer.skinned_matrics.push_back(animation->GetSkinnedMatrics());
+				gpu_scene->animation_buffer.bone_matrics.push_back(animation->GetBoneMatrics());
+				gpu_scene->animation_buffer.max_bone_count  = glm::max(gpu_scene->animation_buffer.max_bone_count, animation->GetBoneCount());
+				gpu_scene->animation_buffer.max_frame_count = glm::max(gpu_scene->animation_buffer.max_frame_count, animation->GetFrameCount());
+			}
+		}
+	}
+
 	// Update 2D Textures
 	if (m_impl->resource_manager->Update<ResourceType::Texture2D>())
 	{
 		gpu_scene->textures.texture_2d.clear();
-
 		auto resources = m_impl->resource_manager->GetResources<ResourceType::Texture2D>();
 		for (auto &resource : resources)
 		{
@@ -298,7 +330,6 @@ void Renderer::UpdateGPUScene()
 
 		gpu_scene->mesh_buffer.max_meshlet_count = 0;
 
-		auto meshes = m_impl->scene->GetComponents<Cmpt::MeshRenderer>();
 		for (auto &mesh : meshes)
 		{
 			auto &submeshes = mesh->GetSubmeshes();
@@ -339,21 +370,24 @@ void Renderer::UpdateGPUScene()
 
 		gpu_scene->skinned_mesh_buffer.max_meshlet_count = 0;
 
-		auto meshes = m_impl->scene->GetComponents<Cmpt::SkinnedMeshRenderer>();
-		for (auto &mesh : meshes)
+		for (auto &skinned_mesh : skinned_meshes)
 		{
-			auto &submeshes = mesh->GetSubmeshes();
-			for (auto &submesh : submeshes)
+			auto &submeshes = skinned_mesh->GetSubmeshes();
+			auto &animations = skinned_mesh->GetAnimations();
+			for (uint32_t i = 0; i < submeshes.size(); i++)
 			{
-				auto *resource = m_impl->resource_manager->Get<ResourceType::SkinnedMesh>(submesh);
+				auto *resource = m_impl->resource_manager->Get<ResourceType::SkinnedMesh>(submeshes[i]);
 
 				if (resource)
 				{
 					GPUScene::Instance instance = {};
-					instance.transform          = mesh->GetNode()->GetComponent<Cmpt::Transform>()->GetWorldTransform();
-					instance.mesh_id            = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::SkinnedMesh>(submesh));
+					instance.transform          = skinned_mesh->GetNode()->GetComponent<Cmpt::Transform>()->GetWorldTransform();
+					instance.mesh_id            = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::SkinnedMesh>(submeshes[i]));
+					if (animations.size() > i)
+					{
+						instance.animation_id = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Animation>(animations[i]));
+					}
 					instances.push_back(instance);
-
 					gpu_scene->skinned_mesh_buffer.max_meshlet_count = glm::max(gpu_scene->skinned_mesh_buffer.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
 				}
 			}
@@ -370,6 +404,36 @@ void Renderer::UpdateGPUScene()
 			}
 
 			gpu_scene->skinned_mesh_buffer.instances->CopyToDevice(instances.data(), instances.size() * sizeof(GPUScene::Instance));
+		}
+	}
+
+	// Update Animation
+	{
+		if (gpu_scene->animation_buffer.max_bone_count > 0 && m_impl->update_animation)
+		{
+			{
+				GPUScene::AnimationBuffer::UpdateInfo update_info = {};
+
+				update_info.count = static_cast<uint32_t>(gpu_scene->animation_buffer.bone_matrics.size());
+				update_info.time  = m_impl->animation_time;
+				gpu_scene->animation_buffer.update_info->CopyToDevice(&update_info, sizeof(update_info));
+			}
+
+			auto *descriptor = m_impl->rhi_context->CreateDescriptor(m_impl->gpu_skinning_shader_meta);
+			descriptor->BindBuffer("UpdateInfo", gpu_scene->animation_buffer.update_info.get());
+			auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Compute);
+			cmd_buffer->Begin();
+			for (size_t i = 0; i < gpu_scene->animation_buffer.bone_matrics.size(); i++)
+			{
+				descriptor->BindBuffer("BoneMatrics", gpu_scene->animation_buffer.bone_matrics[i])
+				    .BindTexture("SkinnedMatrics", gpu_scene->animation_buffer.skinned_matrics[i], RHITextureDimension::Texture2D);
+				cmd_buffer->BindDescriptor(descriptor);
+				cmd_buffer->BindPipelineState(m_impl->gpu_skinning_pipeline.get());
+			}
+			cmd_buffer->Dispatch(gpu_scene->animation_buffer.max_bone_count, 1, 1, 8, 1, 1);
+			cmd_buffer->End();
+			m_impl->rhi_context->Submit({cmd_buffer});
+			m_impl->update_animation = false;
 		}
 	}
 

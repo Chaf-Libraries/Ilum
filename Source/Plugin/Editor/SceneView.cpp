@@ -6,6 +6,7 @@
 #include <Editor/Widget.hpp>
 #include <Renderer/Renderer.hpp>
 #include <Resource/Resource/Prefab.hpp>
+#include <Resource/Resource/Animation.hpp>
 #include <Resource/ResourceManager.hpp>
 #include <SceneGraph/Node.hpp>
 #include <SceneGraph/Scene.hpp>
@@ -71,6 +72,8 @@ class SceneView : public Widget
 			return;
 		}
 
+		UpdateAnimation();
+
 		ShowToolBar();
 
 		auto *camera = p_editor->GetMainCamera();
@@ -129,6 +132,7 @@ class SceneView : public Widget
 				transform->SetScale(scale);
 
 				std::vector<std::string> materials;
+				std::vector<std::string> animations;
 				Cmpt::Renderable        *renderable = nullptr;
 				for (auto &[type, uuid] : prefab_node.resources)
 				{
@@ -152,6 +156,10 @@ class SceneView : public Widget
 							materials.push_back(uuid);
 						}
 						break;
+						case ResourceType::Animation: {
+							animations.push_back(uuid);
+						}
+						break;
 						default:
 							break;
 					}
@@ -162,6 +170,10 @@ class SceneView : public Widget
 					for (auto &uuid : materials)
 					{
 						renderable->AddMaterial(uuid);
+					}
+					for (auto &uuid : animations)
+					{
+						renderable->AddAnimation(uuid);
 					}
 				}
 
@@ -366,6 +378,33 @@ class SceneView : public Widget
 
 		SHOW_TIPS("Save");
 
+		ImGui::SameLine();
+
+		if (ImGui::Button(m_play_animation ? ICON_FA_PAUSE : ICON_FA_PLAY, ImVec2(20.f, 20.f)))
+		{
+			m_play_animation = !m_play_animation;
+		}
+
+		if (m_play_animation)
+		{
+			m_animation_time += ImGui::GetIO().DeltaTime * 0.5f;
+			if (m_animation_time > p_editor->GetRenderer()->GetMaxAnimationTime())
+			{
+				m_animation_time = 0.f;
+			}
+		}
+
+		ImGui::SameLine();
+
+		ImGui::PushItemWidth(200.f);
+		if (ImGui::SliderFloat("Animation Time", &m_animation_time, 0.f, p_editor->GetRenderer()->GetMaxAnimationTime()) || m_play_animation)
+		{
+			p_editor->GetRenderer()->SetAnimationTime(m_animation_time);
+		}
+		ImGui::PopItemWidth();
+
+		SHOW_TIPS("Play Animation");
+
 		if (ImGui::BeginPopup("CameraPopup"))
 		{
 			auto perspective_cameras  = p_editor->GetRenderer()->GetScene()->GetComponents<Cmpt::PerspectiveCamera>();
@@ -407,8 +446,28 @@ class SceneView : public Widget
 		ImGui::Unindent();
 	}
 
+	void UpdateAnimation()
+	{
+		if (m_play_animation)
+		{
+			m_animation_time += ImGui::GetIO().DeltaTime;
+
+			auto *resource_manager = p_editor->GetRenderer()->GetResourceManager();
+			auto  animation_names  = resource_manager->GetResources<ResourceType::Animation>();
+			for (auto &animation_name : animation_names)
+			{
+				auto *animation = resource_manager->Get<ResourceType::Animation>(animation_name);
+				animation;
+			}
+		}
+	}
+
   private:
 	std::map<std::string, std::unique_ptr<RHITexture>> m_icons;
+
+	float m_animation_time = 0.f;
+
+	bool m_play_animation = false;
 };
 
 extern "C"

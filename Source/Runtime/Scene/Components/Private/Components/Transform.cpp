@@ -103,7 +103,10 @@ void Transform::OnImGui()
 	update |= draw_vec3("Rotation", m_rotation, 0.f);
 	update |= draw_vec3("Scale", m_scale, 1.f);
 
-	SetDirty(update);
+	if (update)
+	{
+		SetDirty();
+	}
 }
 
 std::type_index Transform::GetType() const
@@ -140,24 +143,31 @@ const glm::mat4 Transform::GetLocalTransform() const
 void Transform::SetTranslation(const glm::vec3 &translation)
 {
 	m_translation = translation;
-	SetDirty(true);
+	SetDirty();
 }
 
 void Transform::SetRotation(const glm::vec3 &rotation)
 {
 	m_rotation = rotation;
-	SetDirty(true);
+	SetDirty();
 }
 
 void Transform::SetScale(const glm::vec3 &scale)
 {
 	m_scale = scale;
-	SetDirty(true);
+	SetDirty();
 }
 
-void Transform::SetDirty(bool dirty)
+void Transform::SetDirty()
 {
-	m_dirty = dirty;
+	if (!m_dirty)
+	{
+		m_dirty = true;
+		for (auto* child : p_node->GetChildren())
+		{
+			child->GetComponent<Transform>()->SetDirty();
+		}
+	}
 }
 
 void Transform::Update()

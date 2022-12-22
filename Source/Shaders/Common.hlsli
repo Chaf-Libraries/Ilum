@@ -5,6 +5,8 @@
 #include "RayTracingUtlis.hlsli"
 #include "LightSource.hlsli"
 
+#define MAX_BONE_INFLUENCE 4
+
 struct ViewInfo
 {
     float4x4 view_matrix;
@@ -64,6 +66,19 @@ struct Vertex
     float2 texcoord1;
 };
 
+struct SkinnedVertex
+{
+    float3 position;
+    float3 normal;
+    float3 tangent;
+
+    float2 texcoord0;
+    float2 texcoord1;
+
+    int4 bones;
+    float4 weights;
+};
+
 struct CSParam
 {
     uint3 DispatchThreadID : SV_DispatchThreadID;
@@ -101,6 +116,7 @@ struct InstanceData
     float4x4 transform;
     uint mesh_id;
     uint material_id;
+    uint animation_id;
 };
 
 //struct Meshlet

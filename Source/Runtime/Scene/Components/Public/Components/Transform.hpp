@@ -37,7 +37,7 @@ class EXPORT_API Transform : public Component
 
 	void SetScale(const glm::vec3 &scale);
 
-	void SetDirty(bool dirty);
+	void SetDirty();
 
   private:
 	void Update();

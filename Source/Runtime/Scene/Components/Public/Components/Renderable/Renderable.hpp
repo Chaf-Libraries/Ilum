@@ -21,13 +21,18 @@ class EXPORT_API Renderable : public Component
 
 	void AddSubmesh(const std::string &submesh);
 
+	void AddAnimation(const std::string &animation);
+
 	const std::vector<std::string> &GetSubmeshes() const;
 
 	const std::vector<std::string> &GetMaterials() const;
 
+	const std::vector<std::string> &GetAnimations() const;
+
   protected:
 	std::vector<std::string> m_submeshes;
 	std::vector<std::string> m_materials;
+	std::vector<std::string> m_animations;
 };
 }        // namespace Cmpt
 }        // namespace Ilum

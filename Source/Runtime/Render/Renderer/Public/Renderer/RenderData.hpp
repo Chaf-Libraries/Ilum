@@ -34,11 +34,12 @@ struct GPUScene
 	struct alignas(16) Instance
 	{
 		glm::mat4 transform;
-		uint32_t  mesh_id;
-		uint32_t  material_id;
+		uint32_t  mesh_id      = ~0U;
+		uint32_t  material_id  = ~0U;
+		uint32_t  animation_id = ~0U;
 	};
 
-	struct
+	struct MeshBuffer
 	{
 		std::vector<RHIBuffer *> vertex_buffers;
 		std::vector<RHIBuffer *> index_buffers;
@@ -51,7 +52,7 @@ struct GPUScene
 		uint32_t instance_count    = 0;
 	} mesh_buffer;
 
-	struct
+	struct SkinnedMeshBuffer
 	{
 		std::vector<RHIBuffer *> vertex_buffers;
 		std::vector<RHIBuffer *> index_buffers;
@@ -64,7 +65,24 @@ struct GPUScene
 		uint32_t instance_count    = 0;
 	} skinned_mesh_buffer;
 
-	struct
+	struct AnimationBuffer
+	{
+		struct UpdateInfo
+		{
+			uint32_t count;
+			float    time;
+		};
+
+		std::vector<RHITexture *> skinned_matrics;
+		std::vector<RHIBuffer *>  bone_matrics;
+
+		std::unique_ptr<RHIBuffer> update_info = nullptr;
+
+		uint32_t max_frame_count = 0;
+		uint32_t max_bone_count  = 0;
+	} animation_buffer;
+
+	struct TextureArray
 	{
 		std::vector<RHITexture *> texture_2d;
 	} textures;
