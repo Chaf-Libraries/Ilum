@@ -80,8 +80,6 @@ class EXPORT_API Bone
 
 	float GetMaxTimeStamp() const;
 
-	size_t GetFrameCount() const;
-
   private:
 	float GetScaleFactor(float last, float next, float time) const;
 

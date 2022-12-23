@@ -375,8 +375,10 @@ class AnimationEditor : public Widget
                 VertexInputState::InputBinding{0, sizeof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex), RHIVertexInputRate::Vertex}};
 			vertex_input_state.input_attributes = {
 			    VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, position)},
-			    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Indices, 1, 0, RHIFormat::R32G32B32A32_SINT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, bones)},
-			    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Weights, 2, 0, RHIFormat::R32G32B32A32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, weights)},
+			    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Indices, 1, 0, RHIFormat::R32G32B32A32_SINT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, bones[0])},
+			    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Indices, 2, 0, RHIFormat::R32G32B32A32_SINT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, bones[4])},
+			    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Weights, 3, 0, RHIFormat::R32G32B32A32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, weights[0])},
+			    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Weights, 4, 0, RHIFormat::R32G32B32A32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, weights[4])},
 			};
 
 			InputAssemblyState input_assembly_state = {};

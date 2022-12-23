@@ -16,8 +16,10 @@ struct VertexIn
     float3 Tangent : TANGENT0;
     float2 Texcoord0 : TEXCOORD0;
     float2 Texcoord1 : TEXCOORD1;
-    int4 Bones : BLENDINDICES0;
-    float4 Weights : BLENDWEIGHT0;
+    int4 Bones0 : BLENDINDICES0;
+    int4 Bones1 : BLENDINDICES1;
+    float4 Weights0 : BLENDWEIGHT0;
+    float4 Weights1 : BLENDWEIGHT1;
     uint InstanceID : SV_InstanceID;
 };
 
@@ -25,6 +27,7 @@ struct VertexOut
 {
     float4 Position : SV_Position;
     float2 Texcoord : TEXCOORD0;
+    uint InstanceID : COLOR0;
 };
 
 struct PrimitiveOut
@@ -123,14 +126,6 @@ void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut v
             DebugBuffer[15] = VertexBuffer[0][0].weights[1];
             DebugBuffer[16] = VertexBuffer[0][0].weights[2];
             DebugBuffer[17] = VertexBuffer[0][0].weights[0];
-            /*float3 normal;
-    float3 tangent;
-
-    float2 texcoord0;
-    float2 texcoord1;
-
-    int4 bones;
-    float4 weights;*/
             
             float4 total_position = 0.f;
             for (uint i = 0; i < MAX_BONE_INFLUENCE; i++)
@@ -159,14 +154,13 @@ void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut v
     
     for (uint i = param.GroupThreadID.x; i < meshlet_triangle_count; i += 32)
     {
-        uint primitive_id = MeshletDataBuffer[instance.mesh_id][meshlet.data_offset + meshlet_vertices_count + i];
+        uint primitive_id = MeshletDataBuffer[instance.mesh_id][meshlet.data_offset + meshlet.vertex_count + i];
         
         prims[i].InstanceID = instance_id;
         prims[i].PrimitiveID = primitive_id;
         
-        uint v0 = IndexBuffer[instance.mesh_id][primitive_id * 3] - meshlet.vertex_offset;
-        uint v1 = IndexBuffer[instance.mesh_id][primitive_id * 3 + 1] - meshlet.vertex_offset;
-        uint v2 = IndexBuffer[instance.mesh_id][primitive_id * 3 + 2] - meshlet.vertex_offset;
+        uint v0, v1, v2;
+        UnPackTriangle(MeshletDataBuffer[instance.mesh_id][meshlet.data_offset + meshlet.vertex_count + meshlet.triangle_count + i], v0, v1, v2);
         
         tris[i] = uint3(v0, v1, v2);
     }
@@ -180,11 +174,54 @@ uint PSmain(VertexOut vert, PrimitiveOut prim) : SV_TARGET0
 void VSmain(in VertexIn vert_in, out VertexOut vert_out, out PrimitiveOut prim)
 {
     InstanceData instance = InstanceBuffer[vert_in.InstanceID];
-    vert_out.Position = mul(ViewBuffer.view_projection_matrix, mul(instance.transform, float4(vert_in.Position.xyz, 1.0)));
+    if (instance.animation_id != ~0U)
+    {
+        uint bone_count = 0;
+        uint bone_stride = 0;
+        BoneMatrices[instance.animation_id].GetDimensions(bone_count, bone_stride);
+            
+        float4 total_position = 0.f;
+        for (uint i = 0; i < MAX_BONE_INFLUENCE; i++)
+        {
+            int bone = -1;
+            float weight = 0.f;
+            
+            if (i < 4)
+            {
+                bone = vert_in.Bones0[i];
+                weight = vert_in.Weights0[i];
+            }
+            else
+            {
+                bone = vert_in.Bones1[i - 4];
+                weight = vert_in.Weights1[i - 4];
+            }
+            
+            if (bone == -1)
+            {
+                continue;
+            }
+            if (bone >= bone_count)
+            {
+                total_position = float4(vert_in.Position, 1.0f);
+                break;
+            }
+
+            float4 local_position = mul(BoneMatrices[instance.animation_id][bone], float4(vert_in.Position, 1.0f));
+            total_position += local_position * weight;
+        }
+        vert_out.Position = mul(ViewBuffer.view_projection_matrix, mul(instance.transform, float4(total_position.xyz, 1.0)));
+    }
+    else
+    {
+        vert_out.Position = mul(ViewBuffer.view_projection_matrix, mul(instance.transform, float4(vert_in.Position.xyz, 1.0)));
+    }
     vert_out.Texcoord = vert_in.Texcoord0.xy;
+    vert_out.InstanceID = vert_in.InstanceID;
+
 }
 
-uint FSmain(VertexOut vert, PrimitiveOut prim, uint PrimitiveID : SV_PrimitiveID) : SV_Target0
+uint FSmain(VertexOut vert, uint PrimitiveID : SV_PrimitiveID) : SV_Target0
 {
-    return PackVisibilityBuffer(prim.InstanceID, PrimitiveID);
+    return PackVisibilityBuffer(vert.InstanceID, PrimitiveID);
 }

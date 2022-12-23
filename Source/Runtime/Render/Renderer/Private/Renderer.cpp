@@ -429,8 +429,8 @@ void Renderer::UpdateGPUScene()
 				    .BindTexture("SkinnedMatrics", gpu_scene->animation_buffer.skinned_matrics[i], RHITextureDimension::Texture2D);
 				cmd_buffer->BindDescriptor(descriptor);
 				cmd_buffer->BindPipelineState(m_impl->gpu_skinning_pipeline.get());
+				cmd_buffer->Dispatch(gpu_scene->animation_buffer.max_bone_count, 1, 1, 8, 1, 1);
 			}
-			cmd_buffer->Dispatch(gpu_scene->animation_buffer.max_bone_count, 1, 1, 8, 1, 1);
 			cmd_buffer->End();
 			m_impl->rhi_context->Submit({cmd_buffer});
 			m_impl->update_animation = false;

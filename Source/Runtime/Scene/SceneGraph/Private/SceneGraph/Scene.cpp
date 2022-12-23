@@ -30,6 +30,12 @@ Scene::Scene(const std::string &name)
 
 Scene::~Scene()
 {
+	auto roots = GetRoots();
+	for (auto& root : roots)
+	{
+		EraseNode(root);
+	}
+
 	delete m_impl;
 	m_impl = nullptr;
 }
@@ -80,16 +86,17 @@ void Scene::EraseNode(Node *node)
 
 	std::vector<Node *> remove_nodes;
 	gather_nodes(node, remove_nodes);
+	std::reverse(remove_nodes.begin(), remove_nodes.end());
 
-	for (auto iter = m_impl->nodes.begin(); iter != m_impl->nodes.end();)
+	for (auto* remove_node : remove_nodes)
 	{
-		if (std::find(remove_nodes.begin(), remove_nodes.end(), iter->get()) != remove_nodes.end())
+		for (auto iter = m_impl->nodes.begin(); iter != m_impl->nodes.end(); iter++)
 		{
-			iter=m_impl->nodes.erase(iter);
-		}
-		else
-		{
-			iter++;
+			if (iter->get() == remove_node)
+			{
+				m_impl->nodes.erase(iter);
+				break;
+			}
 		}
 	}
 }

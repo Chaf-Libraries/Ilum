@@ -35,6 +35,16 @@ Node::Node(size_t id, Scene &scene, const std::string &name)
 
 Node::~Node()
 {
+	for (auto &child : m_impl->children)
+	{
+		child->SetParent(nullptr);
+	}
+
+	if (m_impl->parent)
+	{
+		m_impl->parent->EraseChild(this);
+	}
+
 	for (auto &[type, cmpt] : m_impl->components)
 	{
 		auto &scene_components = m_impl->scene.GetComponents()[type];

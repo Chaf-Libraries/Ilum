@@ -21,6 +21,7 @@ struct VertexOut
 {
     float4 Position : SV_Position;
     float2 Texcoord : TEXCOORD0;
+    uint InstanceID : COLOR0;
 };
 
 struct PrimitiveOut
@@ -101,14 +102,13 @@ void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut v
     
     for (uint i = param.GroupThreadID.x; i < meshlet_triangle_count; i += 32)
     {
-        uint primitive_id = MeshletDataBuffer[instance.mesh_id][meshlet.data_offset + meshlet_vertices_count + i];
+        uint primitive_id = MeshletDataBuffer[instance.mesh_id][meshlet.data_offset + meshlet.vertex_count + i];
         
         prims[i].InstanceID = instance_id;
         prims[i].PrimitiveID = primitive_id;
         
-        uint v0 = IndexBuffer[instance.mesh_id][primitive_id * 3] - meshlet.vertex_offset;
-        uint v1 = IndexBuffer[instance.mesh_id][primitive_id * 3 + 1] - meshlet.vertex_offset;
-        uint v2 = IndexBuffer[instance.mesh_id][primitive_id * 3 + 2] - meshlet.vertex_offset;
+        uint v0, v1, v2;
+        UnPackTriangle(MeshletDataBuffer[instance.mesh_id][meshlet.data_offset + meshlet.vertex_count + meshlet.triangle_count + i], v0, v1, v2);
         
         tris[i] = uint3(v0, v1, v2);
     }
@@ -124,9 +124,11 @@ void VSmain(in VertexIn vert_in, out VertexOut vert_out, out PrimitiveOut prim)
     InstanceData instance = InstanceBuffer[vert_in.InstanceID];
     vert_out.Position = mul(ViewBuffer.view_projection_matrix, mul(instance.transform, float4(vert_in.Position.xyz, 1.0)));
     vert_out.Texcoord = vert_in.Texcoord0.xy;
+    vert_out.InstanceID = vert_in.InstanceID;
+
 }
 
-uint FSmain(VertexOut vert, PrimitiveOut prim, uint PrimitiveID : SV_PrimitiveID) : SV_Target0
+uint FSmain(VertexOut vert, uint PrimitiveID : SV_PrimitiveID) : SV_Target0
 {
-    return PackVisibilityBuffer(prim.InstanceID, PrimitiveID);
+    return PackVisibilityBuffer(vert.InstanceID, PrimitiveID);
 }

@@ -5,7 +5,7 @@
 #include "RayTracingUtlis.hlsli"
 #include "LightSource.hlsli"
 
-#define MAX_BONE_INFLUENCE 4
+#define MAX_BONE_INFLUENCE 8
 
 struct ViewInfo
 {
@@ -75,8 +75,8 @@ struct SkinnedVertex
     float2 texcoord0;
     float2 texcoord1;
 
-    int4 bones;
-    float4 weights;
+    int bones[8];
+    float weights[8];
 };
 
 struct CSParam

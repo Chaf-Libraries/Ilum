@@ -1,10 +1,12 @@
-#define MAX_BONE_INFLUENCE 4
+#define MAX_BONE_INFLUENCE 8
 
 struct VSInput
 {
     float3 Position : POSITIONT0;
-    int4 BoneID : BLENDINDICES0;
-    float4 BoneWeight : BLENDWEIGHT0;
+    int4 BoneID0 : BLENDINDICES0;
+    int4 BoneID1 : BLENDINDICES1;
+    float4 BoneWeight0 : BLENDWEIGHT0;
+    float4 BoneWeight1 : BLENDWEIGHT1;
 };
 
 struct UniformBlock
@@ -49,21 +51,37 @@ VSOutput VSmain(VSInput input)
     float4 total_position = 0.f;
     for (uint i = 0; i < MAX_BONE_INFLUENCE; i++)
     {
-        if (input.BoneID[i] == -1)
+        int bone = -1;
+        float weight = 0.f;
+        
+        if (i < 4)
+        {
+            bone = input.BoneID0[i];
+            weight = input.BoneWeight0[i];
+        }
+        else
+        {
+            bone = input.BoneID1[i - 4];
+            weight = input.BoneWeight1[i - 4];
+        }
+        
+        if (bone == -1)
         {
             continue;
         }
-        if (input.BoneID[i] >= bone_count)
+        
+        if (bone >= bone_count)
         {
             total_position = float4(input.Position, 1.0f);
             break;
         }
-        float4 local_position = mul(BoneMatrices[input.BoneID[i]], float4(input.Position, 1.0f));
-        total_position += local_position * input.BoneWeight[i];
+        
+        float4 local_position = mul(BoneMatrices[bone], float4(input.Position, 1.0f));
+        total_position += local_position * weight;
     }
         
     output.Position = mul(UniformBuffer.transform, total_position);
-    output.Color = GenerateColor(input.BoneID[0]);
+    output.Color = GenerateColor(input.BoneID0[0]);
     return output;
 }
 

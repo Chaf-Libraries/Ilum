@@ -15,6 +15,8 @@ struct Resource<ResourceType::Animation>::Impl
 
 	float m_max_timestamp = 0.f;
 
+	uint32_t m_bone_count = 0;
+
 	uint32_t frame_count = 0;
 };
 
@@ -31,8 +33,6 @@ struct Bone::Impl
 	float max_timestamp = 0.f;
 
 	glm::mat4 local_transfrom;
-
-	std::vector<BoneMatrix> bone_matrics;
 };
 
 Bone::Bone(
@@ -55,30 +55,17 @@ Bone::Bone(
 
 	if (!m_impl->positions.empty())
 	{
-		m_impl->max_timestamp = m_impl->positions.back().time_stamp;
+		m_impl->max_timestamp = glm::max(m_impl->max_timestamp, m_impl->positions.back().time_stamp);
 	}
 
 	if (!m_impl->rotations.empty())
 	{
-		m_impl->max_timestamp = m_impl->rotations.back().time_stamp;
+		m_impl->max_timestamp = glm::max(m_impl->max_timestamp, m_impl->rotations.back().time_stamp);
 	}
 
 	if (!m_impl->scales.empty())
 	{
-		m_impl->max_timestamp = m_impl->scales.back().time_stamp;
-	}
-
-	float    delta_time  = 1.f / 30.f;
-	uint32_t frame_count = static_cast<uint32_t>(m_impl->max_timestamp / delta_time);
-
-	for (uint32_t i = 0; i < frame_count; i++)
-	{
-		BoneMatrix matrix;
-		matrix.frame = delta_time * i;
-		Update(matrix.frame);
-		matrix.transform = GetLocalTransform();
-
-		m_impl->bone_matrics.push_back(matrix);
+		m_impl->max_timestamp = glm::max(m_impl->max_timestamp, m_impl->scales.back().time_stamp);
 	}
 }
 
@@ -163,26 +150,6 @@ size_t Bone::GetScaleIndex(float time) const
 
 glm::mat4 Bone::GetLocalTransform(float time) const
 {
-	// uint32_t p0 = std::min(uint32_t(time * 30.f), (uint32_t) m_impl->bone_matrics.size() - 1);
-	// uint32_t p1 = std::min(uint32_t(time * 30.f) + 1, (uint32_t) m_impl->bone_matrics.size() - 1);
-	//
-	// glm::mat4 mat0 = m_impl->bone_matrics[p0].transform;
-	// glm::mat4 mat1 = m_impl->bone_matrics[p1].transform;
-	//
-	// glm::quat rot0 = glm::quat_cast(mat0);
-	// glm::quat rot1 = glm::quat_cast(mat1);
-	//
-	// float factor = glm::fract(time);
-	//
-	// glm::quat finalRot = glm::slerp(rot0, rot1, factor);
-	//
-	// glm::mat4 finalMat = glm::mat4_cast(finalRot);
-	//
-	// finalMat[3] = mat0[3] * (1 - factor) + mat1[3] * factor;
-	//
-	// return finalMat;
-
-	// return glm::mix(m_impl->bone_matrics[p0].transform, m_impl->bone_matrics[p1].transform, glm::fract(time));
 	glm::mat4 translation = InterpolatePosition(time);
 	glm::mat4 rotation    = InterpolateRotation(time);
 	glm::mat4 scale       = InterpolateScaling(time);
@@ -199,11 +166,6 @@ float Bone::GetMaxTimeStamp() const
 	return m_impl->max_timestamp;
 }
 
-size_t Bone::GetFrameCount() const
-{
-	return static_cast<uint32_t>(m_impl->bone_matrics.size());
-}
-
 float Bone::GetScaleFactor(float last, float next, float time) const
 {
 	return (time - last) / (next - last);
@@ -211,6 +173,11 @@ float Bone::GetScaleFactor(float last, float next, float time) const
 
 glm::mat4 Bone::InterpolatePosition(float time) const
 {
+	if (m_impl->positions.empty())
+	{
+		return glm::mat4(1.f);
+	}
+
 	if (m_impl->positions.size() == 1)
 	{
 		return glm::translate(glm::mat4(1.f), m_impl->positions[0].position);
@@ -226,6 +193,11 @@ glm::mat4 Bone::InterpolatePosition(float time) const
 
 glm::mat4 Bone::InterpolateRotation(float time) const
 {
+	if (m_impl->rotations.empty())
+	{
+		return glm::mat4(1.f);
+	}
+
 	if (m_impl->rotations.size() == 1)
 	{
 		auto rotation = glm::normalize(m_impl->rotations[0].orientation);
@@ -243,6 +215,11 @@ glm::mat4 Bone::InterpolateRotation(float time) const
 
 glm::mat4 Bone::InterpolateScaling(float time) const
 {
+	if (m_impl->scales.empty())
+	{
+		return glm::mat4(1.f);
+	}
+
 	if (m_impl->scales.size() == 1)
 	{
 		return glm::scale(glm::mat4(1.f), m_impl->scales[0].scale);
@@ -284,7 +261,7 @@ Bone *Resource<ResourceType::Animation>::GetBone(const std::string &name)
 
 uint32_t Resource<ResourceType::Animation>::GetBoneCount() const
 {
-	return static_cast<uint32_t>(m_impl->bones.size());
+	return m_impl->m_bone_count;
 }
 
 uint32_t Resource<ResourceType::Animation>::GetMaxBoneIndex() const
@@ -333,22 +310,29 @@ void Resource<ResourceType::Animation>::Bake(RHIContext *rhi_context)
 		}
 	};
 
+	m_impl->m_bone_count = 0;
+	for (auto& bone : m_impl->bones)
+	{
+		m_impl->m_bone_count = glm::max(m_impl->m_bone_count, bone.GetBoneID());
+	}
+	m_impl->m_bone_count++;
+
 	// Bone matrics
-	m_impl->bone_matrics = rhi_context->CreateBuffer(sizeof(glm::mat4) * m_impl->bones.size(), RHIBufferUsage::ConstantBuffer | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+	m_impl->bone_matrics = rhi_context->CreateBuffer(sizeof(glm::mat4) * m_impl->m_bone_count, RHIBufferUsage::ConstantBuffer | RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
 
 	// Skinned Matrics
 	// X - bone id
 	// Y - frame transform float4x3
 	size_t frame_count      = static_cast<size_t>(m_impl->m_max_timestamp * 30.f);
-	m_impl->skinned_matrics = rhi_context->CreateTexture2D((uint32_t) m_impl->bones.size() * 3, (uint32_t) frame_count, RHIFormat::R32G32B32A32_FLOAT, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
+	m_impl->skinned_matrics = rhi_context->CreateTexture2D((uint32_t) m_impl->m_bone_count * 3, (uint32_t) frame_count, RHIFormat::R32G32B32A32_FLOAT, RHITextureUsage::Transfer | RHITextureUsage::ShaderResource, false);
 
-	std::vector<float> skinned_matrics(frame_count * 4ull * 3ull * m_impl->bones.size());
+	std::vector<float> skinned_matrics(frame_count * 4ull * 3ull * m_impl->m_bone_count);
 
 	for (size_t i = 0; i < frame_count; i++)
 	{
 		float time = static_cast<float>(i) / 30.f;
 
-		std::vector<glm::mat4> frame_skinned_matrics(m_impl->bones.size());
+		std::vector<glm::mat4> frame_skinned_matrics(m_impl->m_bone_count);
 		calculate_bone_transform(m_impl->hierarchy, time, frame_skinned_matrics, glm::mat4(1.f));
 
 		if (i == 0)
@@ -356,9 +340,9 @@ void Resource<ResourceType::Animation>::Bake(RHIContext *rhi_context)
 			m_impl->bone_matrics->CopyToDevice(frame_skinned_matrics.data(), frame_skinned_matrics.size() * sizeof(glm::mat4));
 		}
 
-		size_t offset = 4ull * 3ull * m_impl->bones.size() * i;
+		size_t offset = 4ull * 3ull * m_impl->m_bone_count * i;
 
-		for (size_t j = 0; j < m_impl->bones.size(); j++)
+		for (size_t j = 0; j < m_impl->m_bone_count; j++)
 		{
 			glm::mat4 transform = glm::transpose(frame_skinned_matrics[j]);
 

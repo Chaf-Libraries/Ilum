@@ -147,7 +147,9 @@ class SceneView : public Widget
 						}
 						break;
 						case ResourceType::SkinnedMesh: {
-							Cmpt::SkinnedMeshRenderer *skinned_mesh_renderer = node->AddComponent<Cmpt::SkinnedMeshRenderer>(std::make_unique<Cmpt::SkinnedMeshRenderer>(node));
+							Cmpt::SkinnedMeshRenderer *skinned_mesh_renderer = node->HasComponent<Cmpt::SkinnedMeshRenderer>() ?
+							                                               node->GetComponent<Cmpt::SkinnedMeshRenderer>() :
+							                                               node->AddComponent<Cmpt::SkinnedMeshRenderer>(std::make_unique<Cmpt::SkinnedMeshRenderer>(node));
 							skinned_mesh_renderer->AddSubmesh(uuid);
 							renderable = skinned_mesh_renderer;
 						}

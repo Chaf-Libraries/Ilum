@@ -4,7 +4,7 @@
 
 #include <Geometry/Meshlet.hpp>
 
-#define MAX_BONE_INFLUENCE 4
+#define MAX_BONE_INFLUENCE 8
 
 namespace Ilum
 {
@@ -25,8 +25,11 @@ class EXPORT_API Resource<ResourceType::SkinnedMesh> final : public IResource
 		alignas(16) glm::vec2 texcoord0;
 		glm::vec2 texcoord1;
 
-		glm::ivec4 bones   = glm::ivec4(-1);
-		glm::vec4  weights = glm::vec4(0.f);
+		int32_t bones[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
+		float   weights[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
+
+		//glm::ivec4 bones   = glm::ivec4(-1);
+		//glm::vec4  weights = glm::vec4(0.f);
 	};
 
   public:

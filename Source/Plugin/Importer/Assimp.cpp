@@ -119,7 +119,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 					Bone::KeyPosition data = {};
 
 					data.position   = ToVector(channel->mPositionKeys[position_idx].mValue);
-					data.time_stamp = static_cast<float>(channel->mPositionKeys[position_idx].mTime / 1000.f);
+					data.time_stamp = static_cast<float>(channel->mPositionKeys[position_idx].mTime / assimp_animation->mTicksPerSecond);
 					key_positions.push_back(data);
 				}
 
@@ -128,7 +128,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 					Bone::KeyRotation data = {};
 
 					data.orientation = ToQuaternion(channel->mRotationKeys[rotation_idx].mValue);
-					data.time_stamp  = static_cast<float>(channel->mRotationKeys[rotation_idx].mTime / 1000.f);
+					data.time_stamp  = static_cast<float>(channel->mRotationKeys[rotation_idx].mTime / assimp_animation->mTicksPerSecond);
 					key_rotations.push_back(data);
 				}
 
@@ -137,35 +137,58 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 					Bone::KeyScale data = {};
 
 					data.scale      = ToVector(channel->mScalingKeys[scale_idx].mValue);
-					data.time_stamp = static_cast<float>(channel->mScalingKeys[scale_idx].mTime / 1000.f);
+					data.time_stamp = static_cast<float>(channel->mScalingKeys[scale_idx].mTime / assimp_animation->mTicksPerSecond);
 					key_scales.push_back(data);
 				}
 
 				bones.emplace_back(bone_name, bone_id, data.bones.at(bone_name).offset, std::move(key_positions), std::move(key_rotations), std::move(key_scales));
 			}
 
+			if (bones.size() < data.bones.size())
+			{
+				for (auto &[name, bone] : data.bones)
+				{
+					bool found = false;
+					for (auto &anim_bone : bones)
+					{
+						if (anim_bone.GetBoneName() == name)
+						{
+							found = true;
+							break;
+						}
+					}
+					if (!found)
+					{
+						bones.emplace_back(name, bone.id, data.bones.at(name).offset, std::vector<Bone::KeyPosition>{}, std::vector<Bone::KeyRotation>{}, std::vector<Bone::KeyScale>{});
+					}
+				}
+			}
+
 			std::function<void(HierarchyNode &, Node &, glm::mat4)> build_skeleton =
 			    [&](HierarchyNode &hierarchy, Node &node, glm::mat4 transform) {
+				    uint32_t                                          skinned_mesh_count = 0;
+				    uint32_t                                          animation_count    = 0;
+				    std::vector<std::pair<ResourceType, std::string>> animations;
 				    for (auto &[type, uuid] : node.resources)
 				    {
-					    bool found = false;
 					    if (type == ResourceType::SkinnedMesh)
 					    {
-						    for (auto &bone : bones)
+						    skinned_mesh_count++;
+						    if (skinned_mesh_count > animation_count)
 						    {
-							    if (data.skinned_mesh_bones[uuid].find(bone.GetBoneID()) != data.skinned_mesh_bones[uuid].end())
+							    for (auto &bone : bones)
 							    {
-								    node.resources.push_back(std::make_pair(ResourceType::Animation, assimp_animation->mName.length == 0 ? std::to_string(Hash(assimp_animation)) : assimp_animation->mName.C_Str()));
-								    found = true;
-								    break;
+								    if (data.skinned_mesh_bones[uuid].find(bone.GetBoneID()) != data.skinned_mesh_bones[uuid].end())
+								    {
+									    animations.push_back(std::make_pair(ResourceType::Animation, assimp_animation->mName.length == 0 ? std::to_string(Hash(assimp_animation)) : assimp_animation->mName.C_Str()));
+									    animation_count++;
+									    break;
+								    }
 							    }
 						    }
 					    }
-					    if (found)
-					    {
-						    break;
-					    }
 				    }
+				    node.resources.insert(node.resources.end(), animations.begin(), animations.end());
 
 				    transform *= node.transform;
 				    hierarchy.name      = node.name;
@@ -196,8 +219,9 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 		const float  cone_weight   = 0.5f;
 
 		std::vector<meshopt_Meshlet> meshlets(meshopt_buildMeshletsBound(indices.size(), max_vertices, max_triangles));
-		std::vector<uint32_t>        meshlet_vertices(meshlets.size() * max_vertices);
-		std::vector<uint8_t>         meshlet_triangles(meshlets.size() * max_triangles * 3);
+
+		std::vector<uint32_t> meshlet_vertices(meshlets.size() * max_vertices);
+		std::vector<uint8_t>  meshlet_triangles(meshlets.size() * max_triangles * 3);
 
 		meshlets.resize(meshopt_buildMeshlets(meshlets.data(), meshlet_vertices.data(), meshlet_triangles.data(), indices.data(), indices.size(), &vertices[0].position.x, vertices.size(), sizeof(T), max_vertices, max_triangles, cone_weight));
 
@@ -221,8 +245,17 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 
 			for (uint32_t i = 0; i < meshlet.triangle_count; i++)
 			{
-				size_t hash = Hash((uint32_t) index_group[3 * i] + meshlet.vertex_offset, (uint32_t) index_group[3 * i + 1] + meshlet.vertex_offset, (uint32_t) index_group[3 * i + 2] + meshlet.vertex_offset);
+				size_t hash = Hash(meshlet_vertices[(uint32_t) index_group[3 * i] + meshlet.vertex_offset], meshlet_vertices[(uint32_t) index_group[3 * i + 1] + meshlet.vertex_offset], meshlet_vertices[(uint32_t) index_group[3 * i + 2] + meshlet.vertex_offset]);
 				meshlet_info.meshletdata.push_back(primitive_map.at(hash));
+			}
+
+			for (uint32_t i = 0; i < meshlet.triangle_count; i++)
+			{
+				uint32_t triangle = 0;
+				triangle += (uint32_t) index_group[3 * i];
+				triangle += (uint32_t) index_group[3 * i + 1] << 8;
+				triangle += (uint32_t) index_group[3 * i + 2] << 16;
+				meshlet_info.meshletdata.push_back(triangle);
 			}
 
 			meshopt_Bounds bounds = meshopt_computeMeshletBounds(&meshlet_vertices[meshlet.vertex_offset], &meshlet_triangles[meshlet.triangle_offset], meshlet.triangle_count, &vertices[0].position.x, vertices.size(), sizeof(T));
@@ -246,13 +279,11 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 		return meshlet_info;
 	}
 
-	std::string ProcessMesh(ResourceManager *manager, RHIContext *rhi_context, const aiScene *assimp_scene, ModelInfo &data, aiMesh *assimp_mesh)
+	void ProcessMesh(ResourceManager *manager, RHIContext *rhi_context, const std::string &mesh_name, const aiScene *assimp_scene, ModelInfo &data, aiMesh *assimp_mesh)
 	{
-		std::string name = assimp_mesh->mName.C_Str();
-
-		if (manager->Has<ResourceType::Mesh>(name))
+		if (manager->Has<ResourceType::Mesh>(mesh_name))
 		{
-			return name;
+			return;
 		}
 
 		std::vector<Vertex>   vertices;
@@ -280,17 +311,14 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 		}
 
 		MeshletInfo meshlet_info = ProcessMeshlet(vertices, indices);
-		manager->Add<ResourceType::Mesh>(rhi_context, name, std::move(vertices), std::move(indices), std::move(meshlet_info.meshlets), std::move(meshlet_info.meshletdata));
-		return name;
+		manager->Add<ResourceType::Mesh>(rhi_context, mesh_name, std::move(vertices), std::move(indices), std::move(meshlet_info.meshlets), std::move(meshlet_info.meshletdata));
 	}
 
-	std::string ProcessSkinnedMesh(ResourceManager *manager, RHIContext *rhi_context, const aiScene *assimp_scene, ModelInfo &data, aiMesh *assimp_mesh, std::unordered_set<uint32_t> &bones)
+	void ProcessSkinnedMesh(ResourceManager *manager, RHIContext *rhi_context, const std::string &mesh_name, const aiScene *assimp_scene, ModelInfo &data, aiMesh *assimp_mesh, std::unordered_set<uint32_t> &bones)
 	{
-		std::string name = assimp_mesh->mName.C_Str();
-
-		if (manager->Has<ResourceType::SkinnedMesh>(name))
+		if (manager->Has<ResourceType::SkinnedMesh>(mesh_name))
 		{
-			return name;
+			return;
 		}
 
 		std::vector<SkinnedVertex> vertices;
@@ -349,6 +377,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			{
 				int32_t vertex_id = weights[weight_index].mVertexId;
 				float   weight    = weights[weight_index].mWeight;
+
 				for (int i = 0; i < MAX_BONE_INFLUENCE; ++i)
 				{
 					if (vertices[vertex_id].bones[i] < 0)
@@ -362,8 +391,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 		}
 
 		MeshletInfo meshlet_info = ProcessMeshlet(vertices, indices);
-		manager->Add<ResourceType::SkinnedMesh>(rhi_context, name, std::move(vertices), std::move(indices), std::move(meshlet_info.meshlets), std::move(meshlet_info.meshletdata));
-		return name;
+		manager->Add<ResourceType::SkinnedMesh>(rhi_context, mesh_name, std::move(vertices), std::move(indices), std::move(meshlet_info.meshlets), std::move(meshlet_info.meshletdata));
 	}
 
 	Node ProcessNode(ResourceManager *manager, RHIContext *rhi_context, const aiScene *assimp_scene, aiNode *assimp_node, ModelInfo &data, aiMatrix4x4 transform = aiMatrix4x4())
@@ -378,13 +406,18 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			aiMesh *assimp_mesh = assimp_scene->mMeshes[assimp_node->mMeshes[i]];
 			if (assimp_mesh->HasBones())
 			{
+				std::string mesh_name = std::string(assimp_mesh->mName.C_Str()) + "." + std::to_string(i);
+
 				std::unordered_set<uint32_t> bones;
-				node.resources.emplace_back(std::make_pair(ResourceType::SkinnedMesh, ProcessSkinnedMesh(manager, rhi_context, assimp_scene, data, assimp_mesh, bones)));
-				data.skinned_mesh_bones[assimp_mesh->mName.C_Str()] = bones;
+				ProcessSkinnedMesh(manager, rhi_context, mesh_name, assimp_scene, data, assimp_mesh, bones);
+				node.resources.emplace_back(std::make_pair(ResourceType::SkinnedMesh, mesh_name));
+				data.skinned_mesh_bones[mesh_name] = bones;
 			}
 			else
 			{
-				node.resources.emplace_back(std::make_pair(ResourceType::Mesh, ProcessMesh(manager, rhi_context, assimp_scene, data, assimp_mesh)));
+				std::string mesh_name = std::string(assimp_mesh->mName.C_Str()) + "." + std::to_string(i);
+				ProcessMesh(manager, rhi_context, mesh_name, assimp_scene, data, assimp_mesh);
+				node.resources.emplace_back(std::make_pair(ResourceType::Mesh, mesh_name));
 			}
 		}
 
