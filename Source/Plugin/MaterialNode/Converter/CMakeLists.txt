@@ -1,0 +1,4 @@
+add_material_node(Converter Calculate)
+add_material_node(Converter VectorCalculate)
+add_material_node(Converter VectorSplit)
+add_material_node(Converter VectorMerge)

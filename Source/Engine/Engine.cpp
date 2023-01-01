@@ -6,7 +6,7 @@
 #include <RHI/RHIContext.hpp>
 #include <Renderer/Renderer.hpp>
 #include <Resource/ResourceManager.hpp>
-#include <SceneGraph/Scene.hpp>
+#include <Scene/Scene.hpp>
 
 namespace Ilum
 {

@@ -1,17 +1,17 @@
 #include "Renderer.hpp"
 #include "RenderData.hpp"
 
-#include <Components/AllComponents.hpp>
 #include <Core/Path.hpp>
 #include <RHI/RHIContext.hpp>
 #include <RenderGraph/RenderGraph.hpp>
 #include <Resource/Resource/Animation.hpp>
 #include <Resource/Resource/Mesh.hpp>
 #include <Resource/Resource/SkinnedMesh.hpp>
-#include <Resource/Resource/Texture.hpp>
+#include <Resource/Resource/Texture2D.hpp>
 #include <Resource/ResourceManager.hpp>
-#include <SceneGraph/Node.hpp>
-#include <SceneGraph/Scene.hpp>
+#include <Scene/Components/AllComponents.hpp>
+#include <Scene/Node.hpp>
+#include <Scene/Scene.hpp>
 #include <ShaderCompiler/ShaderBuilder.hpp>
 #include <ShaderCompiler/ShaderCompiler.hpp>
 
@@ -27,7 +27,7 @@ struct Renderer::Impl
 
 	ResourceManager *resource_manager = nullptr;
 
-	glm::vec2 viewport = {};
+	glm::vec2 viewport = {1.f, 1.f};
 
 	RHITexture *present_texture = nullptr;
 
@@ -372,7 +372,7 @@ void Renderer::UpdateGPUScene()
 
 		for (auto &skinned_mesh : skinned_meshes)
 		{
-			auto &submeshes = skinned_mesh->GetSubmeshes();
+			auto &submeshes  = skinned_mesh->GetSubmeshes();
 			auto &animations = skinned_mesh->GetAnimations();
 			for (uint32_t i = 0; i < submeshes.size(); i++)
 			{

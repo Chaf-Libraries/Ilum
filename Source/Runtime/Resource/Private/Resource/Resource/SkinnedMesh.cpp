@@ -6,10 +6,10 @@ namespace Ilum
 {
 struct Resource<ResourceType::SkinnedMesh>::Impl
 {
-	size_t vertex_count = 0;
-	size_t index_count  = 0;
+	size_t vertex_count  = 0;
+	size_t index_count   = 0;
 	size_t meshlet_count = 0;
-	size_t bone_count   = 0;
+	size_t bone_count    = 0;
 
 	std::unique_ptr<RHIBuffer> vertex_buffer       = nullptr;
 	std::unique_ptr<RHIBuffer> index_buffer        = nullptr;
@@ -71,8 +71,8 @@ size_t Resource<ResourceType::SkinnedMesh>::GetBoneCount() const
 
 void Resource<ResourceType::SkinnedMesh>::Update(RHIContext *rhi_context, std::vector<Resource<ResourceType::SkinnedMesh>::SkinnedVertex> &&vertices, std::vector<uint32_t> &&indices, std::vector<Meshlet> &&meshlets, std::vector<uint32_t> &&meshletdata)
 {
-	m_impl->vertex_count = vertices.size();
-	m_impl->index_count  = indices.size();
+	m_impl->vertex_count  = vertices.size();
+	m_impl->index_count   = indices.size();
 	m_impl->meshlet_count = meshlets.size();
 
 	std::unordered_set<int32_t> bone_set;

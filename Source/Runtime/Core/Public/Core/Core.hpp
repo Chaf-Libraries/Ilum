@@ -16,6 +16,11 @@
 #include <cereal/types/unordered_set.hpp>
 #include <cereal/types/vector.hpp>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/quaternion.hpp>
+
 #define SERIALIZER_TYPE_JSON 0
 #define SERIALIZER_TYPE_BINARY 1
 #define SERIALIZER_TYPE_XML 2
@@ -86,3 +91,28 @@ using OutputArchive = cereal::XMLOutputArchive;
 	{                                                           \
 		return lhs = lhs | rhs;                                 \
 	}
+
+namespace glm
+{
+template <class Archive>
+void serialize(Archive &archive, glm::vec3 &m)
+{
+	archive(m.x, m.y, m.z);
+}
+
+template <class Archive>
+void serialize(Archive &archive, glm::vec4 &m)
+{
+	archive(m.x, m.y, m.z, m.w);
+}
+
+template <class Archive>
+void serialize(Archive &archive, glm::mat4 &m)
+{
+	archive(
+	    m[0][0], m[0][1], m[0][2], m[0][3],
+	    m[1][0], m[1][1], m[1][2], m[1][3],
+	    m[2][0], m[2][1], m[2][2], m[2][3],
+	    m[3][0], m[3][1], m[3][2], m[3][3]);
+}
+}        // namespace glm

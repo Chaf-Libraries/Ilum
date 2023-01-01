@@ -1,6 +1,6 @@
 #include "Importer.hpp"
 #include "Resource/Prefab.hpp"
-#include "Resource/Texture.hpp"
+#include "Resource/Texture2D.hpp"
 #include "Resource/Animation.hpp"
 
 #include <Core/Plugin.hpp>
@@ -45,5 +45,6 @@ template class EXPORT_API Importer<ResourceType::Prefab>;
 template class EXPORT_API Importer<ResourceType::Texture2D>;
 template class EXPORT_API Importer<ResourceType::Mesh>;
 template class EXPORT_API Importer<ResourceType::SkinnedMesh>;
+template class EXPORT_API Importer<ResourceType::Material>;
 template class EXPORT_API Importer<ResourceType::Animation>;
 }        // namespace Ilum

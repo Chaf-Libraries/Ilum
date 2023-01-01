@@ -1,6 +1,6 @@
 #include <RHI/RHITexture.hpp>
 #include <Resource/Importer.hpp>
-#include <Resource/Resource/Texture.hpp>
+#include <Resource/Resource/Texture2D.hpp>
 #include <Resource/ResourceManager.hpp>
 
 #include <dxgiformat.h>

@@ -12,16 +12,16 @@ function(add_widget name)
 endfunction()
 
 add_widget(SceneView)
-target_link_libraries(Editor.SceneView PRIVATE Resource SceneGraph glfw Components)
+target_link_libraries(Editor.SceneView PRIVATE Resource Scene glfw)
 
 add_widget(SceneHierarchy)
-target_link_libraries(Editor.SceneHierarchy PRIVATE SceneGraph Components)
+target_link_libraries(Editor.SceneHierarchy PRIVATE Scene)
 
 add_widget(SceneInspector)
-target_link_libraries(Editor.SceneInspector PRIVATE SceneGraph Components)
+target_link_libraries(Editor.SceneInspector PRIVATE Scene)
 
 add_widget(MainMenu)
-target_link_libraries(Editor.MainMenu PRIVATE SceneGraph nfd Components)
+target_link_libraries(Editor.MainMenu PRIVATE Scene nfd)
 
 add_widget(MeshEditor)
 target_link_libraries(Editor.MeshEditor PRIVATE Resource Geometry)
@@ -34,6 +34,9 @@ target_link_libraries(Editor.ResourceBrowser PRIVATE nfd Resource)
 
 add_widget(RenderGraphEditor)
 target_link_libraries(Editor.RenderGraphEditor PRIVATE RenderGraph nfd)
+
+add_widget(MaterialGraphEditor)
+target_link_libraries(Editor.MaterialGraphEditor PRIVATE Material nfd Resource)
 
 add_widget(ShaderToy)
 target_link_libraries(Editor.ShaderToy)

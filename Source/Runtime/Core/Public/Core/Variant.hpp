@@ -15,9 +15,17 @@ class EXPORT_API Variant
 
 	Variant(const Variant &other);
 
+	template <typename _Ty>
+	Variant(const _Ty& var)
+	{
+		Set(&var, sizeof(_Ty));
+	}
+
 	Variant &operator=(Variant &&other) noexcept;
 
 	Variant &operator=(const Variant &other);
+
+	bool Empty() const;
 
 	template <typename _Ty>
 	void operator=(const _Ty &var)
@@ -26,16 +34,16 @@ class EXPORT_API Variant
 	}
 
 	template <typename _Ty>
-	_Ty &Convert()
+	_Ty *Convert() const
 	{
-		return *static_cast<_Ty *>(m_data);
+		return std::static_pointer_cast<_Ty>(m_data).get();
 	}
 
 	template <class Archive>
 	void save(Archive &archive) const
 	{
 		std::vector<uint8_t> data(m_size);
-		std::memcpy(data.data(), m_data, m_size);
+		std::memcpy(data.data(), m_data.get(), m_size);
 		archive(data);
 	}
 
@@ -44,14 +52,15 @@ class EXPORT_API Variant
 	{
 		std::vector<uint8_t> data;
 		archive(data);
-		std::memcpy(m_data, data.data(), m_size);
+		Set(data.data(), data.size());
 	}
 
   private:
 	void Set(const void *data, size_t size);
 
   private:
-	void           *m_data = nullptr;
-	size_t          m_size = 0;
+	std::shared_ptr<void> m_data = nullptr;
+
+	size_t m_size = 0;
 };
 }        // namespace Ilum

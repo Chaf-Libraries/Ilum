@@ -2,10 +2,11 @@
 #include "Importer.hpp"
 #include "Resource.hpp"
 #include "Resource/Animation.hpp"
+#include "Resource/Material.hpp"
 #include "Resource/Mesh.hpp"
 #include "Resource/Prefab.hpp"
 #include "Resource/SkinnedMesh.hpp"
-#include "Resource/Texture.hpp"
+#include "Resource/Texture2D.hpp"
 
 #include <RHI/RHIContext.hpp>
 
@@ -61,7 +62,12 @@ struct TResourceManager : public IResourceManager
 	{
 		if (lookup.find(uuid) != lookup.end())
 		{
-			return resources.at(lookup.at(uuid)).get();
+			auto *resource = resources.at(lookup.at(uuid)).get();
+			if (!resource->Validate())
+			{
+				resource->Load(rhi_context);
+			}
+			return resource;
 		}
 		return nullptr;
 	}
@@ -150,8 +156,72 @@ ResourceManager::ResourceManager(RHIContext *rhi_context)
 	m_impl->managers.emplace(ResourceType::Texture2D, std::make_unique<TResourceManager<ResourceType::Texture2D>>(rhi_context));
 	m_impl->managers.emplace(ResourceType::Mesh, std::make_unique<TResourceManager<ResourceType::Mesh>>(rhi_context));
 	m_impl->managers.emplace(ResourceType::SkinnedMesh, std::make_unique<TResourceManager<ResourceType::SkinnedMesh>>(rhi_context));
+	m_impl->managers.emplace(ResourceType::Material, std::make_unique<TResourceManager<ResourceType::Material>>(rhi_context));
 	m_impl->managers.emplace(ResourceType::Animation, std::make_unique<TResourceManager<ResourceType::Animation>>(rhi_context));
 	m_impl->managers.emplace(ResourceType::Prefab, std::make_unique<TResourceManager<ResourceType::Prefab>>(rhi_context));
+
+	for (const auto &file : std::filesystem::directory_iterator("Asset/Meta/"))
+	{
+		std::string filename = file.path().filename().string();
+		if (Path::GetInstance().GetFileExtension(filename) == ".asset")
+		{
+			std::string  resource_name = "";
+			ResourceType resource_type = ResourceType::Unknown;
+
+			size_t last_pos        = filename.find_last_of('.');
+			size_t second_last_pos = filename.substr(0, last_pos).find_last_of('.');
+
+			resource_name = filename.substr(0, second_last_pos);
+			resource_type = (ResourceType) (std::atoi(filename.substr(second_last_pos + 1, last_pos - second_last_pos).c_str()));
+
+			switch (resource_type)
+			{
+				case ResourceType::Unknown:
+					break;
+				case ResourceType::Prefab:
+					break;
+				case ResourceType::Mesh:
+					break;
+				case ResourceType::SkinnedMesh:
+					break;
+				case ResourceType::Texture2D:
+					Add<ResourceType::Texture2D>(rhi_context, resource_name);
+					break;
+				case ResourceType::Animation:
+					break;
+				case ResourceType::Material:
+					Add<ResourceType::Material>(rhi_context, resource_name);
+					break;
+				default:
+					break;
+			}
+
+			// DESERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, ResourceType::Texture2D), thumbnail_data, desc, data);
+
+			// ResourceType resource_type = ResourceType::Unknown;
+			// std::string  resource_name = "";
+			// DESERIALIZE(file.path().string(), resource_type, resource_name);
+			// switch (resource_type)
+			//{
+			//	case ResourceType::Prefab:
+			//		//Add<ResourceType::Prefab>()
+			//		break;
+			//	case ResourceType::Mesh:
+			//		break;
+			//	case ResourceType::SkinnedMesh:
+			//		break;
+			//	case ResourceType::Texture2D:
+			//		Add<ResourceType::Texture2D>(rhi_context, resource_name);
+			//		break;
+			//	case ResourceType::Animation:
+			//		break;
+			//	case ResourceType::Material:
+			//		break;
+			//	default:
+			//		break;
+			// }
+		}
+	}
 }
 
 ResourceManager::~ResourceManager()
@@ -189,6 +259,12 @@ void ResourceManager::Import(ResourceType type, const std::string &path)
 
 void ResourceManager::Erase(ResourceType type, size_t uuid)
 {
+	auto* resource = m_impl->managers.at(type)->Get(uuid);
+	std::string asset_path = fmt::format("Asset/Meta/{}.{}.asset", resource->GetName(), (uint32_t) type);
+	if (Path::GetInstance().IsExist(asset_path))
+	{
+		Path::GetInstance().DeletePath(asset_path);
+	}
 	m_impl->managers.at(type)->Erase(uuid);
 }
 

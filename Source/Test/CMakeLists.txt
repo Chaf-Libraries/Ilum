@@ -23,9 +23,8 @@ target_compile_options(${TARGET_NAME} PRIVATE "/bigobj")
 
 target_link_libraries(${TARGET_NAME} PRIVATE Core)
 target_link_libraries(${TARGET_NAME} PRIVATE RHI)
-target_link_libraries(${TARGET_NAME} PRIVATE SceneGraph)
+target_link_libraries(${TARGET_NAME} PRIVATE Scene)
 target_link_libraries(${TARGET_NAME} PRIVATE RenderGraph)
-target_link_libraries(${TARGET_NAME} PRIVATE Components)
 
 target_include_directories(${TARGET_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/Source/Ilum")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")

@@ -1,7 +1,7 @@
-#include <Components/AllComponents.hpp>
+#include <Scene/Components/AllComponents.hpp>
 #include <Editor/Editor.hpp>
 #include <Editor/Widget.hpp>
-#include <SceneGraph/Node.hpp>
+#include <Scene/Node.hpp>
 
 #include <imgui.h>
 #include <imgui_internal.h>

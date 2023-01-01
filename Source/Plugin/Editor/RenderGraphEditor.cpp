@@ -141,6 +141,15 @@ class RenderGraphEditor : public Widget
 			{
 				RenderGraphBuilder builder(p_editor->GetRHIContext());
 
+				for (auto &[tex_handle, texture] : m_desc.textures)
+				{
+					if (texture.width == 0 || texture.height == 0)
+					{
+						texture.width  = static_cast<uint32_t>(p_editor->GetRenderer()->GetViewport().x);
+						texture.height = static_cast<uint32_t>(p_editor->GetRenderer()->GetViewport().y);
+					}
+				}
+
 				auto *renderer     = p_editor->GetRenderer();
 				auto  render_graph = builder.Compile(m_desc, renderer);
 
@@ -638,6 +647,11 @@ class RenderGraphEditor : public Widget
 				    "R32G32B32A32_SINT",
 				    "R32G32B32A32_FLOAT"};
 				ImGui::Combo("Format", reinterpret_cast<int *>(&texture.format), formats, 29);
+				if (ImGui::Button("Auto Resize"))
+				{
+					texture.width  = static_cast<uint32_t>(p_editor->GetRenderer()->GetViewport().x);
+					texture.height = static_cast<uint32_t>(p_editor->GetRenderer()->GetViewport().y);
+				}
 				ImGui::PopID();
 				ImGui::Separator();
 			}
@@ -698,6 +712,15 @@ class RenderGraphEditor : public Widget
 		ImGui::BeginChild("Render Graph Inspector", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
 		ImGui::PushItemWidth(ImGui::GetColumnWidth(0) * 0.7f);
+
+		if (ImGui::Button("Auto Resize All Textures"))
+		{
+			for (auto &[tex_handle, texture] : m_desc.textures)
+			{
+				texture.width  = static_cast<uint32_t>(p_editor->GetRenderer()->GetViewport().x);
+				texture.height = static_cast<uint32_t>(p_editor->GetRenderer()->GetViewport().y);
+			}
+		}
 
 		EditTextureNode();
 		EditBufferNode();

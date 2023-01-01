@@ -7,7 +7,7 @@ struct Resource<ResourceType::Prefab>::Impl
 	Node root;
 };
 
-Resource<ResourceType::Prefab>::Resource(const std::string &name, Node &&root):
+Resource<ResourceType::Prefab>::Resource(const std::string &name, Node &&root) :
     IResource(name)
 {
 	m_impl       = new Impl;

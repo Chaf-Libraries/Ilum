@@ -1,9 +1,9 @@
-#include <Components/AllComponents.hpp>
+#include <Scene/Components/AllComponents.hpp>
 #include <Editor/Editor.hpp>
 #include <Editor/Widget.hpp>
 #include <Renderer/Renderer.hpp>
-#include <SceneGraph/Node.hpp>
-#include <SceneGraph/Scene.hpp>
+#include <Scene/Node.hpp>
+#include <Scene/Scene.hpp>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -30,15 +30,28 @@ class MainMenu : public Widget
 			{
 				if (ImGui::MenuItem("Load Scene"))
 				{
+					char *path = nullptr;
+					if (NFD_OpenDialog("scene", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
+					{
+						std::ifstream is(path, std::ios::binary);
+						InputArchive archive(is);
+						p_editor->GetRenderer()->GetScene()->Load(archive);
+					}
 				}
 
 				if (ImGui::MenuItem("Save Scene"))
 				{
+					char *path = nullptr;
+					if (NFD_SaveDialog("scene", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
+					{
+						std::ofstream os(Path::GetInstance().GetFileExtension(path) == ".scene" ? path : std::string(path) + ".scene", std::ios::binary);
+						OutputArchive archive(os);
+						p_editor->GetRenderer()->GetScene()->Save(archive);
+					}
 				}
 
 				if (ImGui::MenuItem("Import Model"))
 				{
-
 				}
 
 				ImGui::EndMenu();
@@ -50,7 +63,7 @@ class MainMenu : public Widget
 				{
 					if (ImGui::MenuItem("Spot Light"))
 					{
-						auto* node = p_editor->GetRenderer()->GetScene()->CreateNode("Spot Light");
+						auto *node = p_editor->GetRenderer()->GetScene()->CreateNode("Spot Light");
 						node->AddComponent(std::make_unique<Cmpt::Transform>(node));
 						node->AddComponent(std::make_unique<Cmpt::SpotLight>(node));
 					}
@@ -85,7 +98,7 @@ class MainMenu : public Widget
 					{
 						auto *node = p_editor->GetRenderer()->GetScene()->CreateNode("Perspective Camera");
 						node->AddComponent(std::make_unique<Cmpt::Transform>(node));
-						auto* camera = node->AddComponent(std::make_unique<Cmpt::PerspectiveCamera>(node));
+						auto *camera = node->AddComponent(std::make_unique<Cmpt::PerspectiveCamera>(node));
 
 						if (!p_editor->GetMainCamera())
 						{

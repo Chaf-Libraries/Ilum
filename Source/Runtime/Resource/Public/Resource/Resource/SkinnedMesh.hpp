@@ -27,9 +27,6 @@ class EXPORT_API Resource<ResourceType::SkinnedMesh> final : public IResource
 
 		int32_t bones[8] = {-1, -1, -1, -1, -1, -1, -1, -1};
 		float   weights[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
-
-		//glm::ivec4 bones   = glm::ivec4(-1);
-		//glm::vec4  weights = glm::vec4(0.f);
 	};
 
   public:

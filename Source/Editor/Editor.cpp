@@ -2,9 +2,9 @@
 #include "ImGui/ImGuiContext.hpp"
 #include "Widget.hpp"
 
-#include <Components/Camera/Camera.hpp>
 #include <Core/Plugin.hpp>
-#include <SceneGraph/Node.hpp>
+#include <Scene/Components/Camera/Camera.hpp>
+#include <Scene/Node.hpp>
 
 #include <imgui.h>
 

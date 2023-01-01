@@ -38,7 +38,7 @@ class ResourceBrowser : public Widget
 		if (ImGui::Button("Import"))
 		{
 			char *path = nullptr;
-			if (NFD_OpenDialog("jpg,png,bmp,jpeg,dds,gltf,obj,glb,fbx,ply,blend,dae", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
+			if (NFD_OpenDialog("jpg,png,bmp,jpeg,dds,gltf,obj,glb,fbx,ply,blend,dae,mat", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
 			{
 				ResourceType type = m_resource_map.at(Path::GetInstance().GetFileExtension(path));
 				switch (type)
@@ -85,6 +85,9 @@ class ResourceBrowser : public Widget
 			case ResourceType::Texture2D:
 				DrawResource<ResourceType::Texture2D>(resource_manager, 100.f);
 				break;
+			case ResourceType::Material:
+				DrawResource<ResourceType::Material>(resource_manager, 100.f);
+				break;
 			case ResourceType::Animation:
 				DrawResource<ResourceType::Animation>(resource_manager, 100.f);
 				break;
@@ -107,23 +110,25 @@ class ResourceBrowser : public Widget
 
 		const std::vector<std::string> resources = manager->GetResources<_Ty>();
 
-		for (const auto &resource : resources)
+		for (const auto &resource_name : resources)
 		{
-			ImGui::PushID(resource.c_str());
-			ImGui::ImageButton(ImGui::GetIO().Fonts->TexID, ImVec2{button_size, button_size});
+			auto *resource = manager->Get<_Ty>(resource_name);
+
+			ImGui::PushID(resource_name.c_str());
+			ImGui::ImageButton(resource->GetThumbnail() ? resource->GetThumbnail() : ImGui::GetIO().Fonts->TexID, ImVec2{button_size, button_size});
 
 			// Drag&Drop source
 			if (ImGui::BeginDragDropSource())
 			{
-				ImGui::SetDragDropPayload(m_resource_types.at(_Ty), resource.c_str(), resource.length() + 1);
+				ImGui::SetDragDropPayload(m_resource_types.at(_Ty), resource_name.c_str(), resource_name.length() + 1);
 				ImGui::EndDragDropSource();
 			}
 
-			if (ImGui::BeginPopupContextItem(resource.c_str()))
+			if (ImGui::BeginPopupContextItem(resource_name.c_str()))
 			{
 				if (ImGui::MenuItem("Delete"))
 				{
-					manager->Erase<_Ty>(resource);
+					manager->Erase<_Ty>(resource_name);
 					ImGui::EndPopup();
 					ImGui::PopID();
 					return;
@@ -133,10 +138,10 @@ class ResourceBrowser : public Widget
 			else if (ImGui::IsItemHovered() && ImGui::IsWindowFocused())
 			{
 				ImVec2 pos = ImGui::GetIO().MousePos;
-				// ImGui::SetNextWindowPos(ImVec2(pos.x + 10.f, pos.y + 10.f));
-				//  ImGui::Begin(uuid_str.c_str(), NULL, ImGuiWindowFlags_Tooltip | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar);
-				//  ImGui::Text("%s", manager->GetResourceMeta<_Ty>(uuid).c_str());
-				//  ImGui::End();
+				ImGui::SetNextWindowPos(ImVec2(pos.x + 10.f, pos.y + 10.f));
+				ImGui::Begin(resource_name.c_str(), NULL, ImGuiWindowFlags_Tooltip | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar);
+				ImGui::Text(resource_name.c_str());
+				ImGui::End();
 			}
 
 			float last_button = ImGui::GetItemRectMax().x;
@@ -159,6 +164,7 @@ class ResourceBrowser : public Widget
 	    {ResourceType::Prefab, "Prefab"},
 	    {ResourceType::Texture2D, "Texture2D"},
 	    {ResourceType::Animation, "Animation"},
+	    {ResourceType::Material, "Material"},
 	};
 
 	std::unordered_map<std::string, ResourceType> m_resource_map = {
@@ -167,6 +173,7 @@ class ResourceBrowser : public Widget
 	    {".bmp", ResourceType::Texture2D},
 	    {".jpeg", ResourceType::Texture2D},
 	    {".dds", ResourceType::Texture2D},
+	    {".mat", ResourceType::Material},
 	    {".gltf", ResourceType::Prefab},
 	    {".obj", ResourceType::Prefab},
 	    {".glb", ResourceType::Prefab},

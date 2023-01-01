@@ -1,15 +1,15 @@
 #pragma once
 
-#include <Components/AllComponents.hpp>
 #include <Core/Window.hpp>
 #include <Editor/Editor.hpp>
 #include <Editor/Widget.hpp>
 #include <Renderer/Renderer.hpp>
-#include <Resource/Resource/Prefab.hpp>
 #include <Resource/Resource/Animation.hpp>
+#include <Resource/Resource/Prefab.hpp>
 #include <Resource/ResourceManager.hpp>
-#include <SceneGraph/Node.hpp>
-#include <SceneGraph/Scene.hpp>
+#include <Scene/Components/AllComponents.hpp>
+#include <Scene/Node.hpp>
+#include <Scene/Scene.hpp>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -65,6 +65,23 @@ class SceneView : public Widget
 
 	virtual void Tick() override
 	{
+		if (!p_editor->GetMainCamera())
+		{
+			auto perspectives = p_editor->GetRenderer()->GetScene()->GetComponents<Cmpt::PerspectiveCamera>();
+			if (!perspectives.empty())
+			{
+				p_editor->SetMainCamera(perspectives[0]);
+			}
+			else
+			{
+				auto orthographics = p_editor->GetRenderer()->GetScene()->GetComponents<Cmpt::OrthographicCamera>();
+				if (!orthographics.empty())
+				{
+					p_editor->SetMainCamera(orthographics[0]);
+				}
+			}
+		}
+
 		if (!ImGui::Begin(m_name.c_str()) || !p_editor->GetMainCamera())
 		{
 			ShowToolBar();
@@ -148,8 +165,8 @@ class SceneView : public Widget
 						break;
 						case ResourceType::SkinnedMesh: {
 							Cmpt::SkinnedMeshRenderer *skinned_mesh_renderer = node->HasComponent<Cmpt::SkinnedMeshRenderer>() ?
-							                                               node->GetComponent<Cmpt::SkinnedMeshRenderer>() :
-							                                               node->AddComponent<Cmpt::SkinnedMeshRenderer>(std::make_unique<Cmpt::SkinnedMeshRenderer>(node));
+							                                                       node->GetComponent<Cmpt::SkinnedMeshRenderer>() :
+							                                                       node->AddComponent<Cmpt::SkinnedMeshRenderer>(std::make_unique<Cmpt::SkinnedMeshRenderer>(node));
 							skinned_mesh_renderer->AddSubmesh(uuid);
 							renderable = skinned_mesh_renderer;
 						}

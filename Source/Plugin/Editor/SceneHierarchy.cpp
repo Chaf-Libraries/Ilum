@@ -1,9 +1,9 @@
-#include <Components/AllComponents.hpp>
+#include <Scene/Components/AllComponents.hpp>
 #include <Editor/Editor.hpp>
 #include <Editor/Widget.hpp>
 #include <Renderer/Renderer.hpp>
-#include <SceneGraph/Node.hpp>
-#include <SceneGraph/Scene.hpp>
+#include <Scene/Node.hpp>
+#include <Scene/Scene.hpp>
 
 #include <imgui.h>
 

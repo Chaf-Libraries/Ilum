@@ -1,0 +1,1 @@
+add_material_node(BSDF DiffuseBSDF)
