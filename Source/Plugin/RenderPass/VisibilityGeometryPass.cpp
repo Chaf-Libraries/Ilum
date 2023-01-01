@@ -1,10 +1,10 @@
 #include "IPass.hpp"
 
-#include <Components/AllComponents.hpp>
+#include <Scene/Components/AllComponents.hpp>
 #include <Resource/Resource/Mesh.hpp>
 #include <Resource/Resource/SkinnedMesh.hpp>
 #include <Resource/ResourceManager.hpp>
-#include <SceneGraph/Scene.hpp>
+#include <Scene/Scene.hpp>
 
 using namespace Ilum;
 
@@ -46,7 +46,7 @@ class VisibilityGeometryPass : public IPass<VisibilityGeometryPass>
 		std::shared_ptr<RHIBuffer> debug_buffer = renderer->GetRHIContext()->CreateBuffer<uint32_t>(1000, RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::GPU_TO_CPU);
 
 		// Mesh Pipeline
-		if (/*renderer->GetRHIContext()->IsFeatureSupport(RHIFeature::MeshShading)*/false)
+		if (renderer->GetRHIContext()->IsFeatureSupport(RHIFeature::MeshShading))
 		{
 			auto *task_shader = renderer->RequireShader("Source/Shaders/VisibilityMeshPass.hlsl", "ASmain", RHIShaderStage::Task);
 			auto *mesh_shader = renderer->RequireShader("Source/Shaders/VisibilityMeshPass.hlsl", "MSmain", RHIShaderStage::Mesh);
@@ -113,7 +113,7 @@ class VisibilityGeometryPass : public IPass<VisibilityGeometryPass>
 		}
 
 		// Skinned Mesh Pipeline
-		if (/*renderer->GetRHIContext()->IsFeatureSupport(RHIFeature::MeshShading)*/false)
+		if (renderer->GetRHIContext()->IsFeatureSupport(RHIFeature::MeshShading))
 		{
 			auto *task_shader = renderer->RequireShader("Source/Shaders/VisibilitySkinnedMeshPass.hlsl", "ASmain", RHIShaderStage::Task);
 			auto *mesh_shader = renderer->RequireShader("Source/Shaders/VisibilitySkinnedMeshPass.hlsl", "MSmain", RHIShaderStage::Mesh);
@@ -198,7 +198,7 @@ class VisibilityGeometryPass : public IPass<VisibilityGeometryPass>
 			debug_buffer->CopyToHost(debug_data.data(), sizeof(float) * 1000);
 
 			// Mesh Shading
-			if (/*rhi_context->IsFeatureSupport(RHIFeature::MeshShading)*/false)
+			if (rhi_context->IsFeatureSupport(RHIFeature::MeshShading))
 			{
 				cmd_buffer->SetViewport(static_cast<float>(render_target->GetWidth()), static_cast<float>(render_target->GetHeight()));
 				cmd_buffer->SetScissor(render_target->GetWidth(), render_target->GetHeight());
