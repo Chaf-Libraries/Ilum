@@ -291,10 +291,10 @@ const HierarchyNode &Resource<ResourceType::Animation>::GetHierarchyNode() const
 
 void Resource<ResourceType::Animation>::Bake(RHIContext *rhi_context)
 {
-	std::function<void(const HierarchyNode &, float time, std::vector<glm::mat4> &, glm::mat4)> calculate_bone_transform = [&](const HierarchyNode &node, float time, std::vector<glm::mat4> &skinned_matrics, glm::mat4 parent) {
+	std::function<void(const HierarchyNode &, float time, std::vector<glm::mat4> &, glm::mat4, bool)> calculate_bone_transform = [&](const HierarchyNode &node, float time, std::vector<glm::mat4> &skinned_matrics, glm::mat4 parent, bool outside) {
 		Bone *bone = GetBone(node.name);
 
-		glm::mat4 global_transformation = parent * node.transform;
+		glm::mat4 global_transformation = outside ? glm::mat4(1.f) : parent * node.transform;
 
 		if (bone)
 		{
@@ -302,16 +302,18 @@ void Resource<ResourceType::Animation>::Bake(RHIContext *rhi_context)
 			uint32_t  bone_id        = bone->GetBoneID();
 			glm::mat4 offset         = bone->GetBoneOffset();
 			skinned_matrics[bone_id] = global_transformation * offset;
+
+			outside = false;
 		}
 
 		for (auto &child : node.children)
 		{
-			calculate_bone_transform(child, time, skinned_matrics, global_transformation);
+			calculate_bone_transform(child, time, skinned_matrics, global_transformation, outside);
 		}
 	};
 
 	m_impl->m_bone_count = 0;
-	for (auto& bone : m_impl->bones)
+	for (auto &bone : m_impl->bones)
 	{
 		m_impl->m_bone_count = glm::max(m_impl->m_bone_count, bone.GetBoneID());
 	}
@@ -333,7 +335,7 @@ void Resource<ResourceType::Animation>::Bake(RHIContext *rhi_context)
 		float time = static_cast<float>(i) / 30.f;
 
 		std::vector<glm::mat4> frame_skinned_matrics(m_impl->m_bone_count);
-		calculate_bone_transform(m_impl->hierarchy, time, frame_skinned_matrics, glm::mat4(1.f));
+		calculate_bone_transform(m_impl->hierarchy, time, frame_skinned_matrics, glm::mat4(1.f), true);
 
 		if (i == 0)
 		{

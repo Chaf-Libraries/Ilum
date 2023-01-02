@@ -27,6 +27,8 @@ class EXPORT_API Path
 	bool Read(const std::string &path, std::vector<uint8_t> &data, bool binary = false, uint32_t begin = 0, uint32_t end = 0);
 
 	std::string Toupper(const std::string &str);
+	std::string Replace(const std::string &str, char from, char to);
+	std::string ValidFileName(const std::string &str);
 
 	std::vector<std::string> Split(const std::string &str, char delim);
 };

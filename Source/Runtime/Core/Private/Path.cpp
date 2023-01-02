@@ -248,6 +248,30 @@ std::string Path::Toupper(const std::string &str)
 	return upper;
 }
 
+std::string Path::Replace(const std::string &str, char from, char to)
+{
+	std::string result = str;
+	std::replace(result.begin(), result.end(), from, to);
+	return result;
+}
+
+std::string Path::ValidFileName(const std::string &str)
+{
+	std::string result = str;
+
+	std::unordered_set<char> invalid_char = {'\\', '/', ':', '*', '?', '"', '<', '>', '|'};
+	
+	for (auto& c : result)
+	{
+		if (invalid_char.find(c) != invalid_char.end())
+		{
+			c = '_';
+		}
+	}
+
+	return result;
+}
+
 std::vector<std::string> Path::Split(const std::string &str, char delim)
 {
 	std::vector<std::string> tokens;

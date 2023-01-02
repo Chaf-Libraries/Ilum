@@ -10,15 +10,8 @@ function(add_importer name)
 endfunction()
 
 add_importer(Assimp)
-target_link_libraries(Importer.Assimp PRIVATE assimp::assimp Geometry meshoptimizer::meshoptimizer)
-
-# add_importer(Assimp.Animation)
-# target_link_libraries(Importer.Assimp.Animation PRIVATE assimp::assimp Animation)
+target_link_libraries(Importer.Assimp PRIVATE assimp::assimp Geometry meshoptimizer::meshoptimizer stb)
 
 add_importer(DDS)
-
 add_importer(STB)
 target_link_libraries(Importer.STB PRIVATE stb)
-
-# add_importer(CGLTF)
-# target_include_directories(Importer.CGLTF PRIVATE ${PROJECT_SOURCE_DIR}/Source/External/cgltf)

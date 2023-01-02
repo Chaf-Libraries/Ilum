@@ -76,9 +76,6 @@ void Resource<ResourceType::Mesh>::Update(RHIContext *rhi_context, std::vector<V
 	m_impl->index_count   = indices.size();
 	m_impl->meshlet_count = meshlets.size();
 
-	auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Compute);
-	cmd_buffer->Begin();
-
 	m_impl->vertex_buffer       = rhi_context->CreateBuffer<Vertex>(vertices.size(), RHIBufferUsage::Vertex | RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
 	m_impl->index_buffer        = rhi_context->CreateBuffer<uint32_t>(indices.size(), RHIBufferUsage::Index | RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
 	m_impl->meshlet_data_buffer = rhi_context->CreateBuffer<uint32_t>(meshlet_data.size(), RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
@@ -100,9 +97,10 @@ void Resource<ResourceType::Mesh>::Update(RHIContext *rhi_context, std::vector<V
 	desc.indices_count   = static_cast<uint32_t>(indices.size());
 	desc.indices_offset  = 0;
 
+	/*auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Compute);
+	cmd_buffer->Begin();
 	m_impl->blas->Update(cmd_buffer, desc);
-
 	cmd_buffer->End();
-	rhi_context->Execute(cmd_buffer);
+	rhi_context->Execute(cmd_buffer);*/
 }
 }        // namespace Ilum

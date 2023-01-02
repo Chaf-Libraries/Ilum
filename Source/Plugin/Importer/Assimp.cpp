@@ -3,6 +3,7 @@
 #include <Resource/Resource/Mesh.hpp>
 #include <Resource/Resource/Prefab.hpp>
 #include <Resource/Resource/SkinnedMesh.hpp>
+#include <Resource/Resource/Texture2D.hpp>
 #include <Resource/ResourceManager.hpp>
 
 #include <Geometry/Meshlet.hpp>
@@ -17,6 +18,8 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+
+#include <stb_image.h>
 
 using namespace Ilum;
 
@@ -92,121 +95,121 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 		std::vector<uint32_t> meshletdata;
 	};
 
-	void ProcessAnimation(RHIContext *rhi_context, ResourceManager *manager, const aiScene *assimp_scene, ModelInfo &data)
+	void ProcessAnimation(ResourceManager *manager, RHIContext *rhi_context, const std::string &path, uint32_t animation_id, const aiScene *assimp_scene, ModelInfo &data)
 	{
-		for (uint32_t i = 0; i < assimp_scene->mNumAnimations; i++)
+		std::vector<Bone> bones;
+
+		std::string animation_name   = fmt::format("{}.animation.{}", Path::GetInstance().ValidFileName(path), animation_id);
+		const auto *assimp_animation = assimp_scene->mAnimations[animation_id];
+
+		for (uint32_t j = 0; j < assimp_animation->mNumChannels; j++)
 		{
-			std::vector<Bone> bones;
-			const auto       *assimp_animation = assimp_scene->mAnimations[i];
-			for (uint32_t j = 0; j < assimp_animation->mNumChannels; j++)
+			auto        channel   = assimp_animation->mChannels[j];
+			std::string bone_name = channel->mNodeName.data;
+			if (data.bones.find(bone_name) == data.bones.end())
 			{
-				auto        channel   = assimp_animation->mChannels[j];
-				std::string bone_name = channel->mNodeName.data;
-				if (data.bones.find(bone_name) == data.bones.end())
-				{
-					data.bones[bone_name].id = static_cast<uint32_t>(data.bones.size());
-				}
-
-				// Parsing bone key frame data
-				uint32_t bone_id = data.bones[bone_name].id;
-
-				std::vector<Bone::KeyPosition> key_positions;
-				std::vector<Bone::KeyRotation> key_rotations;
-				std::vector<Bone::KeyScale>    key_scales;
-
-				for (uint32_t position_idx = 0; position_idx < channel->mNumPositionKeys; position_idx++)
-				{
-					Bone::KeyPosition data = {};
-
-					data.position   = ToVector(channel->mPositionKeys[position_idx].mValue);
-					data.time_stamp = static_cast<float>(channel->mPositionKeys[position_idx].mTime / assimp_animation->mTicksPerSecond);
-					key_positions.push_back(data);
-				}
-
-				for (uint32_t rotation_idx = 0; rotation_idx < channel->mNumRotationKeys; rotation_idx++)
-				{
-					Bone::KeyRotation data = {};
-
-					data.orientation = ToQuaternion(channel->mRotationKeys[rotation_idx].mValue);
-					data.time_stamp  = static_cast<float>(channel->mRotationKeys[rotation_idx].mTime / assimp_animation->mTicksPerSecond);
-					key_rotations.push_back(data);
-				}
-
-				for (uint32_t scale_idx = 0; scale_idx < channel->mNumScalingKeys; scale_idx++)
-				{
-					Bone::KeyScale data = {};
-
-					data.scale      = ToVector(channel->mScalingKeys[scale_idx].mValue);
-					data.time_stamp = static_cast<float>(channel->mScalingKeys[scale_idx].mTime / assimp_animation->mTicksPerSecond);
-					key_scales.push_back(data);
-				}
-
-				bones.emplace_back(bone_name, bone_id, data.bones.at(bone_name).offset, std::move(key_positions), std::move(key_rotations), std::move(key_scales));
+				data.bones[bone_name].id = static_cast<uint32_t>(data.bones.size());
 			}
 
-			if (bones.size() < data.bones.size())
+			// Parsing bone key frame data
+			uint32_t bone_id = data.bones[bone_name].id;
+
+			std::vector<Bone::KeyPosition> key_positions;
+			std::vector<Bone::KeyRotation> key_rotations;
+			std::vector<Bone::KeyScale>    key_scales;
+
+			for (uint32_t position_idx = 0; position_idx < channel->mNumPositionKeys; position_idx++)
 			{
-				for (auto &[name, bone] : data.bones)
-				{
-					bool found = false;
-					for (auto &anim_bone : bones)
-					{
-						if (anim_bone.GetBoneName() == name)
-						{
-							found = true;
-							break;
-						}
-					}
-					if (!found)
-					{
-						bones.emplace_back(name, bone.id, data.bones.at(name).offset, std::vector<Bone::KeyPosition>{}, std::vector<Bone::KeyRotation>{}, std::vector<Bone::KeyScale>{});
-					}
-				}
+				Bone::KeyPosition data = {};
+
+				data.position   = ToVector(channel->mPositionKeys[position_idx].mValue);
+				data.time_stamp = static_cast<float>(channel->mPositionKeys[position_idx].mTime / assimp_animation->mTicksPerSecond);
+				key_positions.push_back(data);
 			}
 
-			std::function<void(HierarchyNode &, Node &, glm::mat4)> build_skeleton =
-			    [&](HierarchyNode &hierarchy, Node &node, glm::mat4 transform) {
-				    uint32_t                                          skinned_mesh_count = 0;
-				    uint32_t                                          animation_count    = 0;
-				    std::vector<std::pair<ResourceType, std::string>> animations;
-				    for (auto &[type, uuid] : node.resources)
+			for (uint32_t rotation_idx = 0; rotation_idx < channel->mNumRotationKeys; rotation_idx++)
+			{
+				Bone::KeyRotation data = {};
+
+				data.orientation = ToQuaternion(channel->mRotationKeys[rotation_idx].mValue);
+				data.time_stamp  = static_cast<float>(channel->mRotationKeys[rotation_idx].mTime / assimp_animation->mTicksPerSecond);
+				key_rotations.push_back(data);
+			}
+
+			for (uint32_t scale_idx = 0; scale_idx < channel->mNumScalingKeys; scale_idx++)
+			{
+				Bone::KeyScale data = {};
+
+				data.scale      = ToVector(channel->mScalingKeys[scale_idx].mValue);
+				data.time_stamp = static_cast<float>(channel->mScalingKeys[scale_idx].mTime / assimp_animation->mTicksPerSecond);
+				key_scales.push_back(data);
+			}
+
+			bones.emplace_back(bone_name, bone_id, data.bones.at(bone_name).offset, std::move(key_positions), std::move(key_rotations), std::move(key_scales));
+		}
+
+		if (bones.size() < data.bones.size())
+		{
+			for (auto &[name, bone] : data.bones)
+			{
+				bool found = false;
+				for (auto &anim_bone : bones)
+				{
+					if (anim_bone.GetBoneName() == name)
+					{
+						found = true;
+						break;
+					}
+				}
+				if (!found)
+				{
+					bones.emplace_back(name, bone.id, data.bones.at(name).offset, std::vector<Bone::KeyPosition>{}, std::vector<Bone::KeyRotation>{}, std::vector<Bone::KeyScale>{});
+				}
+			}
+		}
+
+		std::function<void(HierarchyNode &, Node &)> build_skeleton =
+		    [&](HierarchyNode &hierarchy, Node &node) {
+			    uint32_t skinned_mesh_count = 0;
+			    uint32_t animation_count    = 0;
+
+			    std::vector<std::pair<ResourceType, std::string>> animations;
+			    for (auto &[type, uuid] : node.resources)
+			    {
+				    if (type == ResourceType::SkinnedMesh)
 				    {
-					    if (type == ResourceType::SkinnedMesh)
+					    skinned_mesh_count++;
+					    if (skinned_mesh_count > animation_count)
 					    {
-						    skinned_mesh_count++;
-						    if (skinned_mesh_count > animation_count)
+						    for (auto &bone : bones)
 						    {
-							    for (auto &bone : bones)
+							    if (data.skinned_mesh_bones[uuid].find(bone.GetBoneID()) != data.skinned_mesh_bones[uuid].end())
 							    {
-								    if (data.skinned_mesh_bones[uuid].find(bone.GetBoneID()) != data.skinned_mesh_bones[uuid].end())
-								    {
-									    animations.push_back(std::make_pair(ResourceType::Animation, assimp_animation->mName.length == 0 ? std::to_string(Hash(assimp_animation)) : assimp_animation->mName.C_Str()));
-									    animation_count++;
-									    break;
-								    }
+								    animations.push_back(std::make_pair(ResourceType::Animation, animation_name));
+								    animation_count++;
+								    break;
 							    }
 						    }
 					    }
 				    }
-				    node.resources.insert(node.resources.end(), animations.begin(), animations.end());
+			    }
+			    node.resources.insert(node.resources.end(), animations.begin(), animations.end());
 
-				    transform *= node.transform;
-				    hierarchy.name      = node.name;
-				    hierarchy.transform = transform;
-				    for (auto &child : node.children)
-				    {
-					    HierarchyNode node;
-					    build_skeleton(node, child, transform);
-					    hierarchy.children.push_back(node);
-				    }
-			    };
+			    hierarchy.name      = node.name;
+			    hierarchy.transform = node.transform;
+			    for (auto &child : node.children)
+			    {
+				    HierarchyNode node;
+				    build_skeleton(node, child);
+				    hierarchy.children.push_back(node);
+			    }
+		    };
 
-			HierarchyNode hierarchy;
-			build_skeleton(hierarchy, data.root, glm::mat4(1.f));
+		HierarchyNode hierarchy;
+		build_skeleton(hierarchy, data.root);
 
-			data.animations.push_back(assimp_animation->mName.length == 0 ? std::to_string(Hash(assimp_animation)) : assimp_animation->mName.C_Str());
-			manager->Add<ResourceType::Animation>(rhi_context, assimp_animation->mName.length == 0 ? std::to_string(Hash(assimp_animation)) : assimp_animation->mName.C_Str(), std::move(bones), std::move(hierarchy), static_cast<float>(assimp_animation->mDuration), static_cast<float>(assimp_animation->mTicksPerSecond));
-		}
+		data.animations.push_back(animation_name);
+		manager->Add<ResourceType::Animation>(rhi_context, animation_name, std::move(bones), std::move(hierarchy), static_cast<float>(assimp_animation->mDuration), static_cast<float>(assimp_animation->mTicksPerSecond));
 	}
 
 	template <typename T>
@@ -279,8 +282,11 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 		return meshlet_info;
 	}
 
-	void ProcessMesh(ResourceManager *manager, RHIContext *rhi_context, const std::string &mesh_name, const aiScene *assimp_scene, ModelInfo &data, aiMesh *assimp_mesh)
+	void ProcessMesh(ResourceManager *manager, RHIContext *rhi_context, const std::string &path, uint32_t mesh_id, const aiScene *assimp_scene, ModelInfo &data)
 	{
+		std::string mesh_name   = fmt::format("{}.mesh.{}", Path::GetInstance().ValidFileName(path), mesh_id);
+		aiMesh     *assimp_mesh = assimp_scene->mMeshes[mesh_id];
+
 		if (manager->Has<ResourceType::Mesh>(mesh_name))
 		{
 			return;
@@ -294,8 +300,8 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 		{
 			Vertex vertex    = {};
 			vertex.position  = glm::vec3(assimp_mesh->mVertices[j].x, assimp_mesh->mVertices[j].y, assimp_mesh->mVertices[j].z);
-			vertex.normal    = glm::vec3(assimp_mesh->mNormals[j].x, assimp_mesh->mNormals[j].y, assimp_mesh->mNormals[j].z);
-			vertex.tangent   = glm::vec3(assimp_mesh->mTangents[j].x, assimp_mesh->mTangents[j].y, assimp_mesh->mTangents[j].z);
+			vertex.normal    = assimp_mesh->mNormals ? glm::vec3(assimp_mesh->mNormals[j].x, assimp_mesh->mNormals[j].y, assimp_mesh->mNormals[j].z) : glm::vec3(0.f);
+			vertex.tangent   = assimp_mesh->mTangents ? glm::vec3(assimp_mesh->mTangents[j].x, assimp_mesh->mTangents[j].y, assimp_mesh->mTangents[j].z) : glm::vec3(0.f);
 			vertex.texcoord0 = assimp_mesh->mTextureCoords[0] ? glm::vec2(assimp_mesh->mTextureCoords[0][j].x, assimp_mesh->mTextureCoords[0][j].y) : glm::vec2(0.f);
 			vertex.texcoord1 = assimp_mesh->mTextureCoords[1] ? glm::vec2(assimp_mesh->mTextureCoords[1][j].x, assimp_mesh->mTextureCoords[1][j].y) : glm::vec2(0.f);
 			vertices.emplace_back(std::move(vertex));
@@ -314,15 +320,19 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 		manager->Add<ResourceType::Mesh>(rhi_context, mesh_name, std::move(vertices), std::move(indices), std::move(meshlet_info.meshlets), std::move(meshlet_info.meshletdata));
 	}
 
-	void ProcessSkinnedMesh(ResourceManager *manager, RHIContext *rhi_context, const std::string &mesh_name, const aiScene *assimp_scene, ModelInfo &data, aiMesh *assimp_mesh, std::unordered_set<uint32_t> &bones)
+	void ProcessSkinnedMesh(ResourceManager *manager, RHIContext *rhi_context, const std::string &path, uint32_t mesh_id, const aiScene *assimp_scene, ModelInfo &data)
 	{
+		std::string mesh_name   = fmt::format("{}.mesh.{}", Path::GetInstance().ValidFileName(path), mesh_id);
+		aiMesh     *assimp_mesh = assimp_scene->mMeshes[mesh_id];
+
 		if (manager->Has<ResourceType::SkinnedMesh>(mesh_name))
 		{
 			return;
 		}
 
-		std::vector<SkinnedVertex> vertices;
-		std::vector<uint32_t>      indices;
+		std::vector<SkinnedVertex>   vertices;
+		std::vector<uint32_t>        indices;
+		std::unordered_set<uint32_t> bones;
 
 		// Parsing vertices
 		for (uint32_t j = 0; j < assimp_mesh->mNumVertices; j++)
@@ -380,7 +390,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 
 				for (int i = 0; i < MAX_BONE_INFLUENCE; ++i)
 				{
-					if (vertices[vertex_id].bones[i] < 0)
+					if (vertices[vertex_id].bones[i] < 0 && weight > 0.f)
 					{
 						vertices[vertex_id].weights[i] = weight;
 						vertices[vertex_id].bones[i]   = bone_id;
@@ -391,10 +401,13 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 		}
 
 		MeshletInfo meshlet_info = ProcessMeshlet(vertices, indices);
+
+		data.skinned_mesh_bones[mesh_name] = bones;
+
 		manager->Add<ResourceType::SkinnedMesh>(rhi_context, mesh_name, std::move(vertices), std::move(indices), std::move(meshlet_info.meshlets), std::move(meshlet_info.meshletdata));
 	}
 
-	Node ProcessNode(ResourceManager *manager, RHIContext *rhi_context, const aiScene *assimp_scene, aiNode *assimp_node, ModelInfo &data, aiMatrix4x4 transform = aiMatrix4x4())
+	Node ProcessNode(ResourceManager *manager, RHIContext *rhi_context, const std::string &path, const aiScene *assimp_scene, aiNode *assimp_node, ModelInfo &data, aiMatrix4x4 transform = aiMatrix4x4())
 	{
 		Node node = {};
 
@@ -403,56 +416,190 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 
 		for (uint32_t i = 0; i < assimp_node->mNumMeshes; i++)
 		{
-			aiMesh *assimp_mesh = assimp_scene->mMeshes[assimp_node->mMeshes[i]];
+			aiMesh     *assimp_mesh = assimp_scene->mMeshes[assimp_node->mMeshes[i]];
+			std::string mesh_name   = fmt::format("{}.mesh.{}", Path::GetInstance().ValidFileName(path), assimp_node->mMeshes[i]);
+
 			if (assimp_mesh->HasBones())
 			{
-				std::string mesh_name = std::string(assimp_mesh->mName.C_Str()) + "." + std::to_string(i);
-
-				std::unordered_set<uint32_t> bones;
-				ProcessSkinnedMesh(manager, rhi_context, mesh_name, assimp_scene, data, assimp_mesh, bones);
 				node.resources.emplace_back(std::make_pair(ResourceType::SkinnedMesh, mesh_name));
-				data.skinned_mesh_bones[mesh_name] = bones;
 			}
 			else
 			{
-				std::string mesh_name = std::string(assimp_mesh->mName.C_Str()) + "." + std::to_string(i);
-				ProcessMesh(manager, rhi_context, mesh_name, assimp_scene, data, assimp_mesh);
 				node.resources.emplace_back(std::make_pair(ResourceType::Mesh, mesh_name));
 			}
 		}
 
 		for (uint32_t i = 0; i < assimp_node->mNumChildren; i++)
 		{
-			Node child = ProcessNode(manager, rhi_context, assimp_scene, assimp_node->mChildren[i], data, transform);
+			Node child = ProcessNode(manager, rhi_context, path, assimp_scene, assimp_node->mChildren[i], data, transform);
 			node.children.emplace_back(std::move(child));
 		}
 
 		return node;
 	}
 
+	void ProcessMaterial(ResourceManager *manager, RHIContext *rhi_context, const std::string &path, uint32_t material_id, const aiScene *assimp_scene)
+	{
+		std::string material_name   = fmt::format("{}.material.{}", Path::GetInstance().ValidFileName(path), material_id);
+		aiMaterial *assimp_material = assimp_scene->mMaterials[material_id];
+
+		float roughness          = 0.f;
+		float emissive_intensity = 0.f;
+
+		// Base Color
+		{
+			glm::vec4 base_color = glm::vec4(0.f);
+			aiString  color_texture;
+
+			assimp_material->Get(AI_MATKEY_BASE_COLOR, base_color.x);
+			assimp_material->GetTexture(AI_MATKEY_BASE_COLOR_TEXTURE, &color_texture);
+			ProcessTexture(manager, rhi_context, path, assimp_scene, color_texture.C_Str());
+		}
+
+		// Metallic
+		{
+			float    metallic = 0.f;
+			aiString metallic_texture;
+
+			assimp_material->Get(AI_MATKEY_METALLIC_FACTOR, metallic);
+			assimp_material->GetTexture(AI_MATKEY_METALLIC_TEXTURE, &metallic_texture);
+			ProcessTexture(manager, rhi_context, path, assimp_scene, metallic_texture.C_Str());
+		}
+
+		// Roughness
+		{
+			float    roughness = 0.f;
+			aiString roughness_texture;
+
+			assimp_material->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness);
+			assimp_material->GetTexture(AI_MATKEY_ROUGHNESS_TEXTURE, &roughness_texture);
+			ProcessTexture(manager, rhi_context, path, assimp_scene, roughness_texture.C_Str());
+		}
+
+		assimp_material->Get(AI_MATKEY_EMISSIVE_INTENSITY, emissive_intensity);
+	}
+
+	void ProcessTexture(ResourceManager *manager, RHIContext *rhi_context, const std::string &path, const aiScene *assimp_scene, const std::string &filename)
+	{
+		auto [assimp_texture, texture_id] = assimp_scene->GetEmbeddedTextureAndIndex(filename.c_str());
+		if (texture_id < 0 && filename.empty())
+		{
+			return;
+		}
+
+		if (texture_id < 0)
+		{
+			// External texture
+			auto &importer = Importer<ResourceType::Texture2D>::GetInstance("STB");
+			if (importer)
+			{
+				importer->Import(manager, Path::GetInstance().GetFileDirectory(path) + filename, rhi_context);
+			}
+		}
+		else
+		{
+			std::string texture_name = fmt::format("{}.texture.{}", Path::GetInstance().ValidFileName(path), texture_id);
+			if (manager->Has<ResourceType::Texture2D>(texture_name))
+			{
+				return;
+			}
+
+			TextureDesc desc = {};
+			desc.name        = texture_name;
+			desc.width       = 1;
+			desc.height      = 1;
+			desc.depth       = 1;
+			desc.mips        = 1;
+			desc.layers      = 1;
+			desc.samples     = 1;
+
+			void   *raw_data = nullptr;
+			size_t  size     = 0;
+			int32_t width = 0, height = 0, channel = 0;
+
+			const int32_t req_channel = 4;
+
+			stbi_uc *assimp_texture_data     = reinterpret_cast<stbi_uc *>(assimp_texture->pcData);
+			int32_t  assimp_texture_data_len = static_cast<int32_t>(assimp_texture->mWidth * glm::max(1u, assimp_texture->mHeight) * 4);
+
+			if (stbi_is_hdr_from_memory(assimp_texture_data, assimp_texture_data_len))
+			{
+				raw_data    = stbi_loadf_from_memory(assimp_texture_data, assimp_texture_data_len, &width, &height, &channel, req_channel);
+				size        = static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(req_channel) * sizeof(float);
+				desc.format = RHIFormat::R32G32B32A32_FLOAT;
+			}
+			else if (stbi_is_16_bit_from_memory(assimp_texture_data, assimp_texture_data_len))
+			{
+				raw_data = stbi_load_16_from_memory(assimp_texture_data, assimp_texture_data_len, &width, &height, &channel, req_channel);
+				size        = static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(req_channel) * sizeof(uint16_t);
+				desc.format = RHIFormat::R16G16B16A16_FLOAT;
+			}
+			else
+			{
+				raw_data    = stbi_load_from_memory(assimp_texture_data, assimp_texture_data_len, &width, &height, &channel, req_channel);
+				size        = static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(req_channel) * sizeof(uint8_t);
+				desc.format = RHIFormat::R8G8B8A8_UNORM;
+			}
+
+			desc.width  = static_cast<uint32_t>(width);
+			desc.height = static_cast<uint32_t>(height);
+			desc.mips   = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height))) + 1);
+			desc.usage  = RHITextureUsage::ShaderResource | RHITextureUsage::Transfer;
+
+			std::vector<uint8_t> data;
+
+			data.resize(size);
+			std::memcpy(data.data(), raw_data, size);
+
+			stbi_image_free(raw_data);
+
+			manager->Add<ResourceType::Texture2D>(rhi_context, std::move(data), desc);
+		}
+	}
+
   protected:
 	virtual void Import_(ResourceManager *manager, const std::string &path, RHIContext *rhi_context) override
 	{
-		if (manager->Has<ResourceType::Prefab>(path))
+		std::string prefab_name = Path::GetInstance().ValidFileName(path);
+
+		if (manager->Has<ResourceType::Prefab>(prefab_name))
 		{
 			return;
 		}
 
 		Assimp::Importer importer;
 
-		if (const aiScene *scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace))
+		if (const aiScene *assimp_scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace))
 		{
-			LOG_INFO("Model {} preprocess finish", path);
+			ModelInfo data;
 
-			ModelInfo   data;
-			aiMatrix4x4 identity;
-			data.root = ProcessNode(manager, rhi_context, scene, scene->mRootNode, data, identity);
-			ProcessAnimation(rhi_context, manager, scene, data);
-			for (auto &animation : data.animations)
+			for (uint32_t i = 0; i < assimp_scene->mNumMeshes; i++)
 			{
-				data.root.resources.push_back(std::make_pair(ResourceType::Animation, animation));
+				aiMesh *assimp_mesh = assimp_scene->mMeshes[i];
+				if (assimp_mesh->HasBones())
+				{
+					ProcessSkinnedMesh(manager, rhi_context, path, i, assimp_scene, data);
+				}
+				else
+				{
+					ProcessMesh(manager, rhi_context, path, i, assimp_scene, data);
+				}
 			}
-			manager->Add<ResourceType::Prefab>(path, std::move(data.root));
+
+			for (uint32_t i = 0; i < assimp_scene->mNumMaterials; i++)
+			{
+				ProcessMaterial(manager, rhi_context, path, i, assimp_scene);
+			}
+
+			aiMatrix4x4 identity;
+			data.root = ProcessNode(manager, rhi_context, path, assimp_scene, assimp_scene->mRootNode, data, identity);
+
+			for (uint32_t i = 0; i < assimp_scene->mNumAnimations; i++)
+			{
+				ProcessAnimation(manager, rhi_context, path, i, assimp_scene, data);
+			}
+
+			manager->Add<ResourceType::Prefab>(prefab_name, std::move(data.root));
 		}
 	}
 };

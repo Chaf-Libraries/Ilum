@@ -12,8 +12,15 @@ class STBImporter : public Importer<ResourceType::Texture2D>
   protected:
 	virtual void Import_(ResourceManager *manager, const std::string &path, RHIContext *rhi_context) override
 	{
+		std::string texture_name = Path::GetInstance().ValidFileName(path);
+
+		if (manager->Has<ResourceType::Texture2D>(texture_name))
+		{
+			return;
+		}
+
 		TextureDesc desc = {};
-		desc.name        = Path::GetInstance().GetFileName(path, false);
+		desc.name        = texture_name;
 		desc.width       = 1;
 		desc.height      = 1;
 		desc.depth       = 1;
