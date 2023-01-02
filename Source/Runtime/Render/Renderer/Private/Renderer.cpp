@@ -441,11 +441,11 @@ void Renderer::UpdateGPUScene()
 	{
 		if (!tlas_desc.instances.empty())
 		{
-			auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Compute);
+			/*auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Compute);
 			cmd_buffer->Begin();
 			gpu_scene->TLAS->Update(cmd_buffer, tlas_desc);
 			cmd_buffer->End();
-			m_impl->rhi_context->Submit({cmd_buffer});
+			m_impl->rhi_context->Submit({cmd_buffer});*/
 		}
 	}
 }

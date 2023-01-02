@@ -17,11 +17,11 @@ class InstanceAttribute : public MaterialNode<InstanceAttribute>
 		    .Output(handle++, "PrimitiveID", MaterialNodePin::Type::Float);
 	}
 
-	virtual void OnImGui(MaterialNodeDesc &node_desc) override
+	virtual void OnImGui(MaterialNodeDesc &node_desc, Editor* editor) override
 	{
 	}
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, MaterialGraph *graph) override
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, MaterialGraph *graph, MaterialCompilationContext &context) override
 	{
 	}
 };

@@ -2,7 +2,7 @@
 
 using namespace Ilum;
 
-class DiffuseBSDF : public MaterialNode<DiffuseBSDF>
+class PrincipledBSDF : public MaterialNode<PrincipledBSDF>
 {
   public:
 	virtual MaterialNodeDesc Create(size_t &handle) override
@@ -10,7 +10,7 @@ class DiffuseBSDF : public MaterialNode<DiffuseBSDF>
 		MaterialNodeDesc desc;
 		return desc
 		    .SetHandle(handle++)
-		    .SetName("DiffuseBSDF")
+		    .SetName("PrincipledBSDF")
 		    .SetCategory("BSDF")
 		    .Input(handle++, "Color", MaterialNodePin::Type::RGB, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, glm::vec3(1.f))
 		    .Input(handle++, "Roughness", MaterialNodePin::Type::Float, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, float(0.f))
@@ -26,4 +26,4 @@ class DiffuseBSDF : public MaterialNode<DiffuseBSDF>
 	}
 };
 
-CONFIGURATION_MATERIAL_NODE(DiffuseBSDF)
+CONFIGURATION_MATERIAL_NODE(PrincipledBSDF)

@@ -15,11 +15,11 @@ class RGB : public MaterialNode<RGB>
 		    .Output(handle++, "Color", MaterialNodePin::Type::RGB, glm::vec3(0.f));
 	}
 
-	virtual void OnImGui(MaterialNodeDesc &node_desc) override
+	virtual void OnImGui(MaterialNodeDesc &node_desc, Editor *editor) override
 	{
 	}
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, MaterialGraph *graph) override
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, MaterialGraph *graph, MaterialCompilationContext &context) override
 	{
 	}
 };

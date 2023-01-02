@@ -18,11 +18,11 @@ class VectorSplit : public MaterialNode<VectorSplit>
 		    .Output(handle++, "Z", MaterialNodePin::Type::Float);
 	}
 
-	virtual void OnImGui(MaterialNodeDesc &node_desc) override
+	virtual void OnImGui(MaterialNodeDesc &node_desc, Editor *editor) override
 	{
 	}
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, MaterialGraph *graph) override
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, MaterialGraph *graph, MaterialCompilationContext &context) override
 	{
 	}
 };

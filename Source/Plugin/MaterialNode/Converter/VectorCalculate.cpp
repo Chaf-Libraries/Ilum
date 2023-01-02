@@ -63,13 +63,13 @@ class VectorCalculate : public MaterialNode<VectorCalculate>
 		    .Output(handle++, "Out", MaterialNodePin::Type::Float3);
 	}
 
-	virtual void OnImGui(MaterialNodeDesc &node_desc) override
+	virtual void OnImGui(MaterialNodeDesc &node_desc, Editor *editor) override
 	{
 		CalculationType &type = *node_desc.GetVariant().Convert<CalculationType>();
 		ImGui::Combo("", (int32_t *) (&type), calculation_types.data(), static_cast<int32_t>(calculation_types.size()));
 	}
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, MaterialGraph *graph) override
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, MaterialGraph *graph, MaterialCompilationContext &context) override
 	{
 	}
 };

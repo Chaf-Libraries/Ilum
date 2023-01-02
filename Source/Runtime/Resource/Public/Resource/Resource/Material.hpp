@@ -7,6 +7,7 @@
 namespace Ilum
 {
 class MaterialGraphDesc;
+struct MaterialCompilationContext;
 
 template <>
 class EXPORT_API Resource<ResourceType::Material> final : public IResource

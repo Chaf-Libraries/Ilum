@@ -5,6 +5,8 @@
 namespace Ilum
 {
 class MaterialGraph;
+class Editor;
+struct MaterialCompilationContext;
 
 struct EXPORT_API MaterialNodePin
 {
@@ -99,8 +101,8 @@ class EXPORT_API MaterialNode
 
 	virtual MaterialNodeDesc Create(size_t &handle) = 0;
 
-	virtual void OnImGui(MaterialNodeDesc &node_desc) = 0;
+	virtual void OnImGui(MaterialNodeDesc &node_desc, Editor *editor) = 0;
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, MaterialGraph *graph) = 0;
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, MaterialGraph *graph, MaterialCompilationContext &context) = 0;
 };
 }        // namespace Ilum

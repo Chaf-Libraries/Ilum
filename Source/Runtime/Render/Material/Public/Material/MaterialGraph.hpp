@@ -51,4 +51,10 @@ class EXPORT_API MaterialGraphDesc
 	std::map<size_t, size_t> m_node_lookup;        // Pin ID - Node ID
 };
 
+struct MaterialCompilationContext
+{
+	std::map<std::string, std::string> variables;        // Variable name - definition
+	std::map<std::string, std::string> textures;
+	std::unordered_set<size_t>         finish_nodes;
+};
 }        // namespace Ilum

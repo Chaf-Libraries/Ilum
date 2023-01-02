@@ -18,11 +18,11 @@ class VertexAttribute : public MaterialNode<VertexAttribute>
 		    .Output(handle++, "UVW1", MaterialNodePin::Type::Float3);
 	}
 
-	virtual void OnImGui(MaterialNodeDesc &node_desc) override
+	virtual void OnImGui(MaterialNodeDesc &node_desc, Editor *editor) override
 	{
 	}
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, MaterialGraph *graph) override
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, MaterialGraph *graph, MaterialCompilationContext &context) override
 	{
 	}
 };

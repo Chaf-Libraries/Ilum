@@ -35,13 +35,9 @@ Editor::Editor(Window *window, RHIContext *rhi_context, Renderer *renderer)
 	m_impl->renderer      = renderer;
 	m_impl->rhi_context   = rhi_context;
 
-	for (const auto &file : std::filesystem::directory_iterator("./lib/"))
+	for (const auto &file : std::filesystem::directory_iterator("shared/Editor/"))
 	{
-		std::string filename = file.path().filename().string();
-		if (std::regex_match(filename, std::regex("(Editor.)(.*)(.dll)")))
-		{
-			m_impl->widgets.emplace_back(std::unique_ptr<Widget>(std::move(PluginManager::GetInstance().Call<Widget *>(filename, "Create", this, ImGui::GetCurrentContext()))));
-		}
+		m_impl->widgets.emplace_back(std::unique_ptr<Widget>(std::move(PluginManager::GetInstance().Call<Widget *>(file.path().string(), "Create", this, ImGui::GetCurrentContext()))));
 	}
 }
 
