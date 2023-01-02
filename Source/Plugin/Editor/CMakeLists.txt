@@ -9,6 +9,7 @@ function(add_widget name)
     target_link_libraries(${TARGET_NAME} PRIVATE imgui)
     add_dependencies(Plugins ${TARGET_NAME})
     target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
+    copy_shared_lib(${TARGET_NAME} Editor)
 endfunction()
 
 add_widget(SceneView)

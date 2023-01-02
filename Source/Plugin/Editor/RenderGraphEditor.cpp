@@ -207,24 +207,22 @@ class RenderGraphEditor : public Widget
 
 			if (ImGui::BeginMenu("New Pass"))
 			{
-				for (const auto &file : std::filesystem::directory_iterator("./lib/"))
+				for (const auto &file : std::filesystem::directory_iterator("shared/RenderPass/"))
 				{
 					std::string filename = file.path().filename().string();
-					if (std::regex_match(filename, std::regex("(Pass.)(.*)(.dll)")))
+
+					size_t begin = filename.find_first_of('.') + 1;
+					size_t end   = filename.find_last_of('.');
+
+					std::string pass_name = filename.substr(begin, end - begin);
+
+					if (ImGui::MenuItem(pass_name.c_str()))
 					{
-						size_t begin = filename.find_first_of('.') + 1;
-						size_t end   = filename.find_last_of('.');
-
-						std::string pass_name = filename.substr(begin, end - begin);
-
-						if (ImGui::MenuItem(pass_name.c_str()))
-						{
-							RenderPassDesc pass_desc;
-							PluginManager::GetInstance().Call(filename, "CreateDesc", &pass_desc);
-							pass_desc.name = pass_name;
-							m_desc.passes.emplace(RGHandle(m_current_handle++), std::move(pass_desc));
-							ImNodes::SetNodeScreenSpacePos(static_cast<int32_t>(m_current_handle) - 1, ImGui::GetMousePos());
-						}
+						RenderPassDesc pass_desc;
+						PluginManager::GetInstance().Call(file.path().string(), "CreateDesc", &pass_desc);
+						pass_desc.name = pass_name;
+						m_desc.passes.emplace(RGHandle(m_current_handle++), std::move(pass_desc));
+						ImNodes::SetNodeScreenSpacePos(static_cast<int32_t>(m_current_handle) - 1, ImGui::GetMousePos());
 					}
 				}
 				ImGui::EndMenu();
@@ -700,7 +698,7 @@ class RenderGraphEditor : public Widget
 				ImGui::PushID(static_cast<int32_t>(handle.GetHandle()));
 				ImGui::Text("Pass - %s", pass.name.c_str());
 				ImGui::Text("Bind Point: %s", bind_points.at(pass.bind_point));
-				PluginManager::GetInstance().Call<bool>(fmt::format("Pass.{}.dll", pass.name), "OnImGui", &pass.config, ImGui::GetCurrentContext());
+				PluginManager::GetInstance().Call<bool>(fmt::format("shared/RenderPass/RenderPass.{}.dll", pass.name), "OnImGui", &pass.config, ImGui::GetCurrentContext());
 				ImGui::PopID();
 				ImGui::Separator();
 			}

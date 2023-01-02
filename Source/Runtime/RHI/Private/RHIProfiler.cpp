@@ -12,7 +12,7 @@ RHIProfiler::RHIProfiler(RHIDevice *device, uint32_t frame_count) :
 
 std::unique_ptr<RHIProfiler> RHIProfiler::Create(RHIDevice *device, uint32_t frame_count)
 {
-	return std::unique_ptr<RHIProfiler>(std::move(PluginManager::GetInstance().Call<RHIProfiler *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreateProfiler", device, frame_count)));
+	return std::unique_ptr<RHIProfiler>(std::move(PluginManager::GetInstance().Call<RHIProfiler *>(fmt::format("shared/RHI/RHI.{}.dll", device->GetBackend()), "CreateProfiler", device, frame_count)));
 }
 
 const ProfileState &RHIProfiler::GetProfileState() const

@@ -17,7 +17,7 @@ const std::string RHIBuffer::GetBackend() const
 
 std::unique_ptr<RHIBuffer> RHIBuffer::Create(RHIDevice *device, const BufferDesc &desc)
 {
-	return std::unique_ptr<RHIBuffer>(std::move(PluginManager::GetInstance().Call<RHIBuffer *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreateBuffer", device, desc)));
+	return std::unique_ptr<RHIBuffer>(std::move(PluginManager::GetInstance().Call<RHIBuffer *>(fmt::format("shared/RHI/RHI.{}.dll", device->GetBackend()), "CreateBuffer", device, desc)));
 }
 
 const BufferDesc &RHIBuffer::GetDesc() const

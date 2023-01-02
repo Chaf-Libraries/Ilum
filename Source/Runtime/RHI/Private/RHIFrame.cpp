@@ -12,6 +12,6 @@ RHIFrame::RHIFrame(RHIDevice *device) :
 
 std::unique_ptr<RHIFrame> RHIFrame::Create(RHIDevice *device)
 {
-	return std::unique_ptr<RHIFrame>(std::move(PluginManager::GetInstance().Call<RHIFrame *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreateFrame", device)));
+	return std::unique_ptr<RHIFrame>(std::move(PluginManager::GetInstance().Call<RHIFrame *>(fmt::format("shared/RHI/RHI.{}.dll", device->GetBackend()), "CreateFrame", device)));
 }
 }        // namespace Ilum

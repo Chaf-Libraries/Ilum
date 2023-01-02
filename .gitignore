@@ -35,6 +35,7 @@
 /build/*
 /bin/*
 /lib/*
+/shared/*
 
 */_Generate/*
 

@@ -33,7 +33,7 @@ void RHICommand::Init()
 
 std::unique_ptr<RHICommand> RHICommand::Create(RHIDevice *device, RHIQueueFamily family)
 {
-	return std::unique_ptr<RHICommand>(std::move(PluginManager::GetInstance().Call<RHICommand *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreateCommand", device, family)));
+	return std::unique_ptr<RHICommand>(std::move(PluginManager::GetInstance().Call<RHICommand *>(fmt::format("shared/RHI/RHI.{}.dll", device->GetBackend()), "CreateCommand", device, family)));
 }
 
 }        // namespace Ilum

@@ -44,6 +44,6 @@ RHISampler::RHISampler(RHIDevice *device, const SamplerDesc &desc) :
 
 std::unique_ptr<RHISampler> RHISampler::Create(RHIDevice *device, const SamplerDesc &desc)
 {
-	return std::unique_ptr<RHISampler>(std::move(PluginManager::GetInstance().Call<RHISampler *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreateSampler", device, desc)));
+	return std::unique_ptr<RHISampler>(std::move(PluginManager::GetInstance().Call<RHISampler *>(fmt::format("shared/RHI/RHI.{}.dll", device->GetBackend()), "CreateSampler", device, desc)));
 }
 }        // namespace Ilum

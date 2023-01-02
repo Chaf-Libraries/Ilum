@@ -17,6 +17,6 @@ const ShaderMeta &RHIDescriptor::GetShaderMeta() const
 
 std::unique_ptr<RHIDescriptor> RHIDescriptor::Create(RHIDevice *device, const ShaderMeta &meta)
 {
-	return std::unique_ptr<RHIDescriptor>(std::move(PluginManager::GetInstance().Call<RHIDescriptor *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreateDescriptor", device, meta)));
+	return std::unique_ptr<RHIDescriptor>(std::move(PluginManager::GetInstance().Call<RHIDescriptor *>(fmt::format("shared/RHI/RHI.{}.dll", device->GetBackend()), "CreateDescriptor", device, meta)));
 }
 }        // namespace Ilum

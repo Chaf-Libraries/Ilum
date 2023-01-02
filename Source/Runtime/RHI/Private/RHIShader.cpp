@@ -12,7 +12,7 @@ RHIShader::RHIShader(RHIDevice *device, const std::string &entry_point, const st
 
 std::unique_ptr<RHIShader> RHIShader::Create(RHIDevice *device, const std::string &entry_point, const std::vector<uint8_t> &source)
 {
-	return std::unique_ptr<RHIShader>(std::move(PluginManager::GetInstance().Call<RHIShader *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreateShader", device, entry_point, source)));
+	return std::unique_ptr<RHIShader>(std::move(PluginManager::GetInstance().Call<RHIShader *>(fmt::format("shared/RHI/RHI.{}.dll", device->GetBackend()), "CreateShader", device, entry_point, source)));
 }
 
 const std::string &RHIShader::GetEntryPoint() const

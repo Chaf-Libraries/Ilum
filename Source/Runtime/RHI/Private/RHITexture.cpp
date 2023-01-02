@@ -27,7 +27,7 @@ std::unique_ptr<RHITexture> RHITexture::Alias(const TextureDesc &desc)
 
 std::unique_ptr<RHITexture> RHITexture::Create(RHIDevice *device, const TextureDesc &desc)
 {
-	return std::unique_ptr<RHITexture>(std::move(PluginManager::GetInstance().Call<RHITexture *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreateTexture", device, desc)));
+	return std::unique_ptr<RHITexture>(std::move(PluginManager::GetInstance().Call<RHITexture *>(fmt::format("shared/RHI/RHI.{}.dll", device->GetBackend()), "CreateTexture", device, desc)));
 }
 
 std::unique_ptr<RHITexture> RHITexture::Create2D(RHIDevice *device, uint32_t width, uint32_t height, RHIFormat format, RHITextureUsage usage, bool mipmap, uint32_t samples)

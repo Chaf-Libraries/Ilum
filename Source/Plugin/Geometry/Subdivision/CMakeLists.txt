@@ -6,6 +6,7 @@ function(add_subdivision name)
     target_link_libraries(${TARGET_NAME} PRIVATE Geometry)
     add_dependencies(Plugins ${TARGET_NAME})
     target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
+    copy_shared_lib(${TARGET_NAME} Geometry)
 endfunction()
 
 add_subdivision(Loop)

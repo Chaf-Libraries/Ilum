@@ -31,7 +31,7 @@ const std::map<ResourceType, std::map<std::string, std::string>> PluginMap = {
 template <ResourceType Type>
 std::unique_ptr<Importer<Type>> &Importer<Type>::GetInstance(const std::string &plugin)
 {
-	static std::unique_ptr<Importer<Type>> importer = std::unique_ptr<Importer<Type>>(PluginManager::GetInstance().Call<Importer<Type> *>(fmt::format("Importer.{}.dll", plugin), "Create"));
+	static std::unique_ptr<Importer<Type>> importer = std::unique_ptr<Importer<Type>>(PluginManager::GetInstance().Call<Importer<Type> *>(fmt::format("shared/Importer/Importer.{}.dll", plugin), "Create"));
 	return importer;
 }
 

@@ -149,10 +149,9 @@ class MeshEditor : public Widget
 
 			if (ImGui::TreeNode("Process"))
 			{
-				for (const auto &file : std::filesystem::directory_iterator("./lib/"))
+				for (const auto &file : std::filesystem::directory_iterator("shared/Geometry/"))
 				{
 					std::string filename = file.path().filename().string();
-					if (std::regex_match(filename, std::regex("(Geometry.)Subdivision.(.*)(.dll)")))
 					{
 						if (ImGui::TreeNode("Subdivision"))
 						{

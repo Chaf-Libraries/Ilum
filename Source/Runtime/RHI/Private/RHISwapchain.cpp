@@ -27,7 +27,7 @@ uint32_t RHISwapchain::GetHeight() const
 
 std::unique_ptr<RHISwapchain> RHISwapchain::Create(RHIDevice *device, void *window_handle, uint32_t width, uint32_t height, bool vsync)
 {
-	return std::unique_ptr<RHISwapchain>(std::move(PluginManager::GetInstance().Call<RHISwapchain *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreateSwapchain", device, window_handle, width, height, vsync)));
+	return std::unique_ptr<RHISwapchain>(std::move(PluginManager::GetInstance().Call<RHISwapchain *>(fmt::format("shared/RHI/RHI.{}.dll", device->GetBackend()), "CreateSwapchain", device, window_handle, width, height, vsync)));
 }
 
 }        // namespace Ilum

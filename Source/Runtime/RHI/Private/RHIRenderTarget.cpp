@@ -12,7 +12,7 @@ RHIRenderTarget::RHIRenderTarget(RHIDevice *device) :
 
 std::unique_ptr<RHIRenderTarget> RHIRenderTarget::Create(RHIDevice *device)
 {
-	return std::unique_ptr<RHIRenderTarget>(std::move(PluginManager::GetInstance().Call<RHIRenderTarget *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreateRenderTarget", device)));
+	return std::unique_ptr<RHIRenderTarget>(std::move(PluginManager::GetInstance().Call<RHIRenderTarget *>(fmt::format("shared/RHI/RHI.{}.dll", device->GetBackend()), "CreateRenderTarget", device)));
 }
 
 uint32_t RHIRenderTarget::GetWidth() const

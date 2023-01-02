@@ -154,10 +154,9 @@ class MaterialGraphEditor : public Widget
 		{
 			if (ImGui::BeginMenu("Node"))
 			{
-				for (const auto &file : std::filesystem::directory_iterator("./lib/"))
+				for (const auto &file : std::filesystem::directory_iterator("shared/Material/"))
 				{
 					std::string filename = file.path().filename().string();
-					if (std::regex_match(filename, std::regex("(Material.)(.*)(.*)(.dll)")))
 					{
 						size_t pos1 = filename.find_first_of('.');
 						size_t pos2 = filename.find_first_of('.', pos1 + 1);
@@ -171,7 +170,7 @@ class MaterialGraphEditor : public Widget
 							if (ImGui::MenuItem(node_name.c_str()))
 							{
 								MaterialNodeDesc desc;
-								PluginManager::GetInstance().Call(filename, "Create", &desc, &m_current_handle);
+								PluginManager::GetInstance().Call(file.path().string(), "Create", &desc, &m_current_handle);
 								resource->GetDesc().AddNode(m_current_handle++, std::move(desc));
 							}
 							ImGui::EndMenu();
@@ -214,7 +213,7 @@ class MaterialGraphEditor : public Widget
 							}
 						}
 					}
-					for (auto& node : m_select_nodes)
+					for (auto &node : m_select_nodes)
 					{
 						resource->GetDesc().EraseNode(node);
 					}
@@ -252,7 +251,7 @@ class MaterialGraphEditor : public Widget
 			ImNodes::BeginNodeTitleBar();
 			ImGui::Text(node_desc.GetName().c_str());
 			ImNodes::EndNodeTitleBar();
-			PluginManager::GetInstance().Call(fmt::format("Material.{}.{}.dll", node_desc.GetCategory(), node_desc.GetName()), "OnImGui", &node_desc, ImGui::GetCurrentContext());
+			PluginManager::GetInstance().Call(fmt::format("shared/Material/Material.{}.{}.dll", node_desc.GetCategory(), node_desc.GetName()), "OnImGui", &node_desc, p_editor, ImGui::GetCurrentContext());
 			for (auto &[pin_handle, pin] : node_desc.GetPins())
 			{
 				if (pin.attribute == MaterialNodePin::Attribute::Input)

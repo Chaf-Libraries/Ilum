@@ -13,7 +13,7 @@ RHIPipelineState::RHIPipelineState(RHIDevice *device) :
 
 std::unique_ptr<RHIPipelineState> RHIPipelineState::Create(RHIDevice *device)
 {
-	return std::unique_ptr<RHIPipelineState>(std::move(PluginManager::GetInstance().Call<RHIPipelineState *>(fmt::format("RHI.{}.dll", device->GetBackend()), "CreatePipelineState", device)));
+	return std::unique_ptr<RHIPipelineState>(std::move(PluginManager::GetInstance().Call<RHIPipelineState *>(fmt::format("shared/RHI/RHI.{}.dll", device->GetBackend()), "CreatePipelineState", device)));
 }
 
 RHIPipelineState &RHIPipelineState::SetShader(RHIShaderStage stage, RHIShader *shader)

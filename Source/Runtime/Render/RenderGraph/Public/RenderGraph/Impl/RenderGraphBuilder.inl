@@ -274,7 +274,7 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 
 		RenderGraph::RenderTask render_task;
 
-		PluginManager::GetInstance().Call(fmt::format("Pass.{}.dll", pass.name), "CreateCallback", &render_task, pass, *this, std::forward<Args>(args)...);
+		PluginManager::GetInstance().Call(fmt::format("shared/RenderPass/RenderPass.{}.dll", pass.name), "CreateCallback", &render_task, pass, *this, std::forward<Args>(args)...);
 
 		render_graph->AddPass(
 		    pass.name,

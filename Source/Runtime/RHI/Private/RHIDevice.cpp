@@ -11,7 +11,7 @@ RHIDevice::RHIDevice(const std::string &backend) :
 
 std::unique_ptr<RHIDevice> RHIDevice::Create(const std::string &backend)
 {
-	return std::unique_ptr<RHIDevice>(std::move(PluginManager::GetInstance().Call<RHIDevice *>(fmt::format("RHI.{}.dll", backend), "CreateDevice")));
+	return std::unique_ptr<RHIDevice>(std::move(PluginManager::GetInstance().Call<RHIDevice *>(fmt::format("shared/RHI/RHI.{}.dll", backend), "CreateDevice")));
 }
 
 const std::string &RHIDevice::GetName() const

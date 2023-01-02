@@ -7,6 +7,7 @@ function(add_importer name)
     target_link_libraries(${TARGET_NAME} PRIVATE Resource)
     add_dependencies(Plugins ${TARGET_NAME})
     target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
+    copy_shared_lib(${TARGET_NAME} Importer)
 endfunction()
 
 add_importer(Assimp)
