@@ -6,25 +6,23 @@ using namespace Ilum;
 
 class ImageTexture : public MaterialNode<ImageTexture>
 {
-	enum class Sampler
-	{
-		LinearClamp,
-		LinearWarp,
-		NearestClamp,
-		NearestWarp,
+	std::vector<const char *> filters = {
+	    "Nearest",
+	    "Linear",
 	};
 
-	std::vector<const char *> sampler_type = {
-	    "LinearClamp",
-	    "LinearWarp",
-	    "NearestClamp",
-	    "NearestWarp",
+	std::vector<const char *> address_modes = {
+	    "Repeat",
+	    "Mirror Repeat",
+	    "Clamp Edge",
+	    "Clamp Border",
+	    "Mirror Clamp",
 	};
 
 	struct ImageConfig
 	{
-		Sampler sampler;
-		char    filename[200];
+		SamplerDesc sampler;
+		char        filename[200];
 	};
 
   public:
@@ -36,7 +34,7 @@ class ImageTexture : public MaterialNode<ImageTexture>
 		    .SetName("ImageTexture")
 		    .SetCategory("Texture")
 		    .SetVariant(ImageConfig{})
-		    .Input(handle++, "UVW", MaterialNodePin::Type::Float3, MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3)
+		    .Input(handle++, "Texcoord", MaterialNodePin::Type::Float3, MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3)
 		    .Output(handle++, "Color", MaterialNodePin::Type::RGB)
 		    .Output(handle++, "Alpha", MaterialNodePin::Type::Float);
 	}
@@ -45,7 +43,44 @@ class ImageTexture : public MaterialNode<ImageTexture>
 	{
 		ImageConfig &config = *node_desc.GetVariant().Convert<ImageConfig>();
 
-		ImGui::Combo("", (int32_t *) (&config.sampler), sampler_type.data(), static_cast<int32_t>(sampler_type.size()));
+		auto edit_filter = [&](const std::string &name, size_t *filter) {
+			ImGui::PushID(name.c_str());
+			if (ImGui::BeginCombo("", name.c_str()))
+			{
+				for (size_t i = 0; i < filters.size(); i++)
+				{
+					if (ImGui::Selectable(filters[i], i == *filter))
+					{
+						*filter = i;
+					}
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::PopID();
+		};
+
+		auto edit_address_mode = [&](const std::string &name, size_t *address_mode) {
+			ImGui::PushID(name.c_str());
+			if (ImGui::BeginCombo("", name.c_str()))
+			{
+				for (size_t i = 0; i < address_modes.size(); i++)
+				{
+					if (ImGui::Selectable(address_modes[i], i == *address_mode))
+					{
+						*address_mode = i;
+					}
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::PopID();
+		};
+
+		edit_filter("Min Filter", (size_t *) (&config.sampler.min_filter));
+		edit_filter("Mag Filter", (size_t *) (&config.sampler.mag_filter));
+		edit_filter("Mipmap", (size_t *) (&config.sampler.mipmap_mode));
+		edit_address_mode("Address U", (size_t *) (&config.sampler.address_mode_u));
+		edit_address_mode("Address V", (size_t *) (&config.sampler.address_mode_v));
+		edit_address_mode("Address W", (size_t *) (&config.sampler.address_mode_w));
 
 		auto *resource_manager = editor->GetRenderer()->GetResourceManager();
 		if (resource_manager->Has<ResourceType::Texture2D>(config.filename))
@@ -71,8 +106,36 @@ class ImageTexture : public MaterialNode<ImageTexture>
 		}
 	}
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, MaterialGraph *graph, MaterialCompilationContext &context) override
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, Renderer *renderer, MaterialCompilationContext *context) override
 	{
+		if (context->IsCompiled(node_desc))
+		{
+			return;
+		}
+
+		std::map<std::string, std::string> parameters;
+
+		auto *config = node_desc.GetVariant().Convert<ImageConfig>();
+
+		context->samplers[fmt::format("sampler_{}", node_desc.GetHandle())] = config->sampler;
+		context->textures[fmt::format("texture_{}", node_desc.GetHandle())] = std::string(config->filename);
+
+		auto &texcoord_pin = node_desc.GetPin("Texcoord");
+
+		if (graph_desc.HasLink(texcoord_pin.handle))
+		{
+			auto &src_node = graph_desc.GetNode(graph_desc.LinkFrom(texcoord_pin.handle));
+			src_node.EmitHLSL(graph_desc, renderer, context);
+			parameters[texcoord_pin.name] = fmt::format("S_{}", src_node.GetPin(graph_desc.LinkFrom(texcoord_pin.handle)).handle);
+		}
+		else
+		{
+			parameters[texcoord_pin.name] = "float3(0.f, 0.f, 0.f)";
+		}
+
+		context->variables.emplace_back(fmt::format("float4 S_{} = Textures[texture_{}].Sample(Samplers[sampler_{}], {}.xy);", node_desc.GetHandle(), node_desc.GetHandle(), node_desc.GetHandle(), parameters["Texcoord"]));
+		context->variables.emplace_back(fmt::format("float3 S_{} = S_{}.xyz;", node_desc.GetPin("Color").handle, node_desc.GetHandle()));
+		context->variables.emplace_back(fmt::format("float S_{} = S_{}.w;", node_desc.GetPin("Alpha").handle, node_desc.GetHandle()));
 	}
 };
 

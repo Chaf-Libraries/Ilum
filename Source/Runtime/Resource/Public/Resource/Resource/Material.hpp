@@ -7,6 +7,8 @@
 namespace Ilum
 {
 class MaterialGraphDesc;
+class Renderer;
+
 struct MaterialCompilationContext;
 
 template <>
@@ -23,11 +25,13 @@ class EXPORT_API Resource<ResourceType::Material> final : public IResource
 
 	virtual void Load(RHIContext *rhi_context) override;
 
-	void Compile(const std::string &layout = "");
+	void Compile(Renderer* renderer, const std::string &layout = "");
 
 	const std::string &GetLayout() const;
 
 	MaterialGraphDesc &GetDesc();
+
+	bool IsValid() const;
 
   private:
 	struct Impl;

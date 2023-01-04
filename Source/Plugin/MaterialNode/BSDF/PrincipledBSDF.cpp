@@ -21,7 +21,7 @@ class PrincipledBSDF : public MaterialNode<PrincipledBSDF>
 	{
 	}
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, MaterialGraph *graph, MaterialCompilationContext &context) override
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, Renderer* renderer, MaterialCompilationContext *context) override
 	{
 	}
 };

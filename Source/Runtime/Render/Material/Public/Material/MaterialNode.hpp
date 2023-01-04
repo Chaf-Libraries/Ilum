@@ -4,8 +4,9 @@
 
 namespace Ilum
 {
-class MaterialGraph;
+class MaterialGraphDesc;
 class Editor;
+class Renderer;
 struct MaterialCompilationContext;
 
 struct EXPORT_API MaterialNodePin
@@ -16,7 +17,8 @@ struct EXPORT_API MaterialNodePin
 		Float   = 1,
 		Float3  = 1 << 1,
 		RGB     = 1 << 2,
-		BSDF    = 1 << 4
+		BSDF    = 1 << 4,
+		Media    = 1 << 5,
 	};
 
 	enum class Attribute
@@ -32,10 +34,12 @@ struct EXPORT_API MaterialNodePin
 	size_t      handle;
 	Variant     variant;
 
+	bool enable = true;
+
 	template <typename Archive>
 	void serialize(Archive &archive)
 	{
-		archive(type, accept, attribute, name, handle, variant);
+		archive(type, accept, attribute, name, handle, variant, enable);
 	}
 };
 
@@ -60,9 +64,15 @@ class EXPORT_API MaterialNodeDesc
 
 	const MaterialNodePin &GetPin(size_t handle) const;
 
+	MaterialNodePin &GetPin(size_t handle);
+
+	const MaterialNodePin &GetPin(const std::string &name) const;
+
+	MaterialNodePin &GetPin(const std::string &name);
+
 	MaterialNodeDesc &SetVariant(Variant variant);
 
-	Variant &GetVariant();
+	const Variant &GetVariant() const;
 
 	const std::string &GetName() const;
 
@@ -72,19 +82,22 @@ class EXPORT_API MaterialNodeDesc
 
 	size_t GetHandle() const;
 
+	void EmitHLSL(const MaterialGraphDesc &graph_desc, Renderer *renderer, MaterialCompilationContext *context) const;
+
 	template <typename Archive>
 	void serialize(Archive &archive)
 	{
-		archive(m_name, m_category, m_handle, m_pins, m_variant);
+		archive(m_name, m_category, m_handle, m_pins, m_pin_indices, m_variant);
 	}
 
   private:
 	std::string m_name;
 	std::string m_category;
 
-	size_t m_handle;
+	size_t m_handle = ~0ull;
 
 	std::map<size_t, MaterialNodePin> m_pins;
+	std::map<std::string, size_t>     m_pin_indices;
 
 	Variant m_variant;
 };
@@ -103,6 +116,6 @@ class EXPORT_API MaterialNode
 
 	virtual void OnImGui(MaterialNodeDesc &node_desc, Editor *editor) = 0;
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, MaterialGraph *graph, MaterialCompilationContext &context) = 0;
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, Renderer *renderer, MaterialCompilationContext *context) = 0;
 };
 }        // namespace Ilum

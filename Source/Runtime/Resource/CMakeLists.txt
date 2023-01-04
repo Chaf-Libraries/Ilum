@@ -30,6 +30,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE meshoptimizer::meshoptimizer)
 target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/Public")
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Private")
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Public/Resource")
+target_include_directories(${TARGET_NAME} PRIVATE "${PROJECT_SOURCE_DIR}/Source/External/mustache")
 target_compile_definitions(${TARGET_NAME} PRIVATE "-DNOMINMAX")
 
 set_target_properties(Resource PROPERTIES FOLDER Runtime)

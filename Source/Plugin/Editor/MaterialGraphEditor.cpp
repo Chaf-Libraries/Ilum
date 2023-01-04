@@ -187,7 +187,7 @@ class MaterialGraphEditor : public Widget
 
 			if (ImGui::MenuItem("Compile"))
 			{
-				resource->Compile(ImNodes::SaveCurrentEditorStateToIniString());
+				resource->Compile(p_editor->GetRenderer(), ImNodes::SaveCurrentEditorStateToIniString());
 			}
 
 			ImGui::EndMenuBar();
@@ -254,6 +254,11 @@ class MaterialGraphEditor : public Widget
 			PluginManager::GetInstance().Call(fmt::format("shared/Material/Material.{}.{}.dll", node_desc.GetCategory(), node_desc.GetName()), "OnImGui", &node_desc, p_editor, ImGui::GetCurrentContext());
 			for (auto &[pin_handle, pin] : node_desc.GetPins())
 			{
+				if (!pin.enable)
+				{
+					continue;
+				}
+
 				if (pin.attribute == MaterialNodePin::Attribute::Input)
 				{
 					ImNodes::PushColorStyle(ImNodesCol_Pin, m_pin_color[pin.type]);
@@ -339,6 +344,7 @@ class MaterialGraphEditor : public Widget
 
 	std::map<MaterialNodePin::Type, uint32_t> m_pin_color = {
 	    {MaterialNodePin::Type::BSDF, IM_COL32(0, 128, 0, 255)},
+	    {MaterialNodePin::Type::Media, IM_COL32(0, 0, 128, 255)},
 	    {MaterialNodePin::Type::Float, IM_COL32(0, 128, 128, 255)},
 	    {MaterialNodePin::Type::Float3, IM_COL32(128, 128, 0, 255)},
 	    {MaterialNodePin::Type::RGB, IM_COL32(128, 128, 0, 255)},

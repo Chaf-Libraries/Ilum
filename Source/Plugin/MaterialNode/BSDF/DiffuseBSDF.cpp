@@ -12,8 +12,7 @@ class DiffuseBSDF : public MaterialNode<DiffuseBSDF>
 		    .SetHandle(handle++)
 		    .SetName("DiffuseBSDF")
 		    .SetCategory("BSDF")
-		    .Input(handle++, "Color", MaterialNodePin::Type::RGB, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, glm::vec3(1.f))
-		    .Input(handle++, "Roughness", MaterialNodePin::Type::Float, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, float(0.f))
+		    .Input(handle++, "Reflectance", MaterialNodePin::Type::RGB, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, glm::vec3(1.f))
 		    .Output(handle++, "Out", MaterialNodePin::Type::BSDF);
 	}
 
@@ -21,8 +20,21 @@ class DiffuseBSDF : public MaterialNode<DiffuseBSDF>
 	{
 	}
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, MaterialGraph *graph, MaterialCompilationContext &context) override
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, Renderer *renderer, MaterialCompilationContext *context) override
 	{
+		if (context->IsCompiled(node_desc))
+		{
+			return;
+		}
+
+		std::map<std::string, std::string> parameters;
+
+		context->SetParameter<glm::vec3>(parameters, node_desc.GetPin("Reflectance"), graph_desc, renderer, context);
+
+		context->bsdfs.emplace_back(MaterialCompilationContext::BSDF{
+		    fmt::format("S_{}", node_desc.GetPin("Out").handle),
+		    "DiffuseBSDF",
+		    fmt::format("S_{}.Init({});", node_desc.GetPin("Out").handle, parameters["Reflectance"])});
 	}
 };
 

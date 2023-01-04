@@ -1,83 +1,60 @@
 #ifndef MATERIAL_HLSLI
 #define MATERIAL_HLSLI
 
-#ifdef MATERIAL_COMPILATION
-{{#Headers}}
-{{&Header}}
-{{/Headers}}
+#include "Attribute.hlsli"
+#include "Random.hlsli"
 
-struct Material
+#include "Material/BSDF/BSDF.hlsli"
+
+Texture2D<float4> Textures[];
+SamplerState Samplers[];
+
+cbuffer MaterialBuffer
 {
-    {{#Declarations}}
-    {{Declaration}}
-    {{/Declarations}}
+    {{#Textures}}
+    uint {{Texture}};
+    {{/Textures}}
 
-    {{#Functions}}
-    {{Function}}
-    {{/Functions}}
+    {{#Samplers}}
+    uint {{Sampler}};
+    {{/Samplers}}
+}
+
+struct BSDF
+{
+    {{&BxDFType}} {{&BxDFName}}
 
     void Init()
     {
-        {{#Definitions}}
-        {{Definition}}
-        {{/Definitions}}
+        {{#Initializations}}
+        {{&Initialization}}
+        {{/Initializations}}
     }
 
-    float3 _Eval(float3 wi, float3 wo)
+    float3 Eval(float3 wo, float3 wi, TransportMode mode)
     {
-        return 0.f;
+        return {{&BxDFName}}.Eval(wo, wi, mode);
     }
 
-    float _Pdf(float3 wi, float3 wo)
+    float PDF(float3 wo, float3 wi, TransportMode mode, SampleFlags flags)
     {
-        return 0.f;
-    }
-    
-    float3 _Samplef(float3 wo, float uc, float2 u, out float3 wi, out float pdf)
-    {
-        return 0.f;
+        return {{&BxDFName}}.PDF(wo, wi, mode, flags);
     }
 
-    float3 SurfaceBSDFEval(float3 wi, float3 wo)
+    BSDFSample Samplef(float3 wo, float uc, float2 u, TransportMode mode, SampleFlags flags)
     {
-        return {{SurfaceBSDF}}_Eval(wo, wi);
+        return {{&BxDFName}}.Samplef(wo, uc, u, mode, flags);
     }
-
-    float SurfaceBSDFPdf(float3 wi, float3 wo)
-    {
-        return {{SurfaceBSDF}}_Pdf(wi, wo);
-    }
-    
-    float3 SurfaceBSDFSamplef(float3 wo, float uc, float2 u, out float3 wi, out float pdf)
-    {
-        return {{SurfaceBSDF}}_Samplef(wo, uc, u, wi, pdf);
-    }
-};
-
-#else
+}
 
 struct Material
 {
+    BSDF bsdf;
+
     void Init()
     {
+        bsdf.Init();
     }
-
-    float3 SurfaceBSDFEval(float3 wi, float3 wo)
-    {
-        return 1.f;
-    }
-
-    float SurfaceBSDFPdf(float3 wi, float3 wo)
-    {
-        return 1.f;
-    }
-    
-    float3 SurfaceBSDFSamplef(float3 wo, float uc, float2 u, out float3 wi, out float pdf)
-    {
-        return 1.f;
-    }
-};
-
-#endif
+}
 
 #endif

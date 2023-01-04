@@ -19,8 +19,15 @@ class RGB : public MaterialNode<RGB>
 	{
 	}
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, MaterialGraph *graph, MaterialCompilationContext &context) override
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, Renderer *renderer, MaterialCompilationContext *context) override
 	{
+		if (context->IsCompiled(node_desc))
+		{
+			return;
+		}
+
+		glm::vec3 color = *node_desc.GetPin("Color").variant.Convert<glm::vec3>();
+		context->variables.emplace_back(fmt::format("float3 S_{} = float3({}, {}, {});", node_desc.GetPin("Color").handle, color.x, color.y, color.z));
 	}
 };
 

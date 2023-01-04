@@ -1,6 +1,6 @@
 #include "Common.hlsli"
 
-StructuredBuffer<InstanceData> InstanceBuffer;
+StructuredBuffer<Instance> InstanceBuffer;
 StructuredBuffer<Meshlet> MeshletBuffer[];
 StructuredBuffer<uint> MeshletDataBuffer[];
 StructuredBuffer<Vertex> VertexBuffer[];
@@ -52,7 +52,7 @@ void ASmain(CSParam param)
     
     if (instance_id < instance_count)
     {
-        InstanceData instance = InstanceBuffer[instance_id];
+        Instance instance = InstanceBuffer[instance_id];
         
         uint meshlet_count = 0;
         uint meshlet_stride = 0;
@@ -83,7 +83,7 @@ void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut v
     uint instance_id = pay_load.InstanceIndices[param.GroupID.x];
     uint meshlet_id = pay_load.MeshletIndices[param.GroupID.x];
     
-    InstanceData instance = InstanceBuffer[instance_id];
+    Instance instance = InstanceBuffer[instance_id];
     Meshlet meshlet = MeshletBuffer[instance.mesh_id][meshlet_id];
     
     uint meshlet_vertices_count = meshlet.vertex_count;
@@ -121,7 +121,7 @@ uint PSmain(VertexOut vert, PrimitiveOut prim) : SV_TARGET0
 
 void VSmain(in VertexIn vert_in, out VertexOut vert_out, out PrimitiveOut prim)
 {
-    InstanceData instance = InstanceBuffer[vert_in.InstanceID];
+    Instance instance = InstanceBuffer[vert_in.InstanceID];
     vert_out.Position = mul(ViewBuffer.view_projection_matrix, mul(instance.transform, float4(vert_in.Position.xyz, 1.0)));
     vert_out.Texcoord = vert_in.Texcoord0.xy;
     vert_out.InstanceID = vert_in.InstanceID;

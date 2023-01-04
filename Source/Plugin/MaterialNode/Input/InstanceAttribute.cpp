@@ -21,8 +21,16 @@ class InstanceAttribute : public MaterialNode<InstanceAttribute>
 	{
 	}
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, MaterialGraph *graph, MaterialCompilationContext &context) override
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, Renderer* renderer, MaterialCompilationContext *context) override
 	{
+		if (context->IsCompiled(node_desc))
+		{
+			return;
+		}
+
+		context->variables.emplace_back(fmt::format("float S_{} = instance_attribute.instance_id;", node_desc.GetPin("InstanceID").handle));
+		context->variables.emplace_back(fmt::format("float S_{} = instance_attribute.material_id;", node_desc.GetPin("MaterialID").handle));
+		context->variables.emplace_back(fmt::format("float S_{} = instance_attribute.primitive_id;", node_desc.GetPin("PrimitiveID").handle));
 	}
 };
 
