@@ -25,7 +25,7 @@ Resource<ResourceType::Texture2D>::Resource(RHIContext *rhi_context, std::vector
 	m_thumbnail     = rhi_context->CreateTexture2D(128, 128, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::ShaderResource | RHITextureUsage::Transfer, false);
 
 	BufferDesc buffer_desc = {};
-	buffer_desc.size       = data.size();
+	buffer_desc.size       = glm::max(data.size(), 4ull * 128ull * 128ull);
 	buffer_desc.usage      = RHIBufferUsage::Transfer;
 	buffer_desc.memory     = RHIMemoryUsage::CPU_TO_GPU;
 

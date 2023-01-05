@@ -342,6 +342,7 @@ void Renderer::UpdateGPUScene()
 					GPUScene::Instance instance = {};
 					instance.transform          = mesh->GetNode()->GetComponent<Cmpt::Transform>()->GetWorldTransform();
 					instance.mesh_id            = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Mesh>(submesh));
+					instance.material_id        = 0;
 					instances.push_back(instance);
 
 					tlas_desc.instances.push_back(TLASDesc::InstanceInfo{instance.transform, instance.material_id, resource->GetBLAS()});
@@ -441,11 +442,11 @@ void Renderer::UpdateGPUScene()
 	{
 		if (!tlas_desc.instances.empty())
 		{
-			/*auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Compute);
+			auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Compute);
 			cmd_buffer->Begin();
 			gpu_scene->TLAS->Update(cmd_buffer, tlas_desc);
 			cmd_buffer->End();
-			m_impl->rhi_context->Submit({cmd_buffer});*/
+			m_impl->rhi_context->Submit({cmd_buffer});
 		}
 	}
 }

@@ -13,7 +13,7 @@ namespace Ilum
 Engine::Engine()
 {
 	m_window           = std::make_unique<Window>("Ilum", "Asset/Icon/logo.bmp");
-	m_rhi_context      = std::make_unique<RHIContext>(m_window.get(), "Vulkan", true);
+	m_rhi_context      = std::make_unique<RHIContext>(m_window.get(), "Vulkan", false);
 	m_resource_manager = std::make_unique<ResourceManager>(m_rhi_context.get());
 	m_scene            = std::make_unique<Scene>("Default Scene");
 	m_renderer         = std::make_unique<Renderer>(m_rhi_context.get(), m_scene.get(), m_resource_manager.get());

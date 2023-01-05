@@ -6,19 +6,13 @@
 
 #include "Material/BSDF/BSDF.hlsli"
 
-Texture2D<float4> Textures[];
-SamplerState Samplers[];
+{{#Textures}}
+Texture2D<float4> {{Texture}};
+{{/Textures}}
 
-cbuffer MaterialBuffer
-{
-    {{#Textures}}
-    uint {{Texture}};
-    {{/Textures}}
-
-    {{#Samplers}}
-    uint {{Sampler}};
-    {{/Samplers}}
-}
+{{#Samplers}}
+SamplerState {{Sampler}};
+{{/Samplers}}
 
 struct BSDF
 {

@@ -97,10 +97,10 @@ void Resource<ResourceType::Mesh>::Update(RHIContext *rhi_context, std::vector<V
 	desc.indices_count   = static_cast<uint32_t>(indices.size());
 	desc.indices_offset  = 0;
 
-	/*auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Compute);
+	auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Compute);
 	cmd_buffer->Begin();
 	m_impl->blas->Update(cmd_buffer, desc);
 	cmd_buffer->End();
-	rhi_context->Execute(cmd_buffer);*/
+	rhi_context->Execute(cmd_buffer);
 }
 }        // namespace Ilum

@@ -148,14 +148,13 @@ void RenderGraph::Execute(RenderGraphBlackboard &black_board)
 		}
 		else
 		{
-			if (pass.bind_point == BindPoint::Compute ||
-			    pass.bind_point == BindPoint::RayTracing)
-			{
-				family = RHIQueueFamily::Compute;
-			}
-			else if (pass.bind_point==BindPoint::Rasterization)
+			if (pass.bind_point == BindPoint::Rasterization)
 			{
 				family = RHIQueueFamily::Graphics;
+			}
+			else
+			{
+				family = RHIQueueFamily::Compute;
 			}
 
 			auto *cmd_buffer = m_impl->rhi_context->CreateCommand(family);
