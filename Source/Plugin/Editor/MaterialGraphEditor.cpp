@@ -187,7 +187,7 @@ class MaterialGraphEditor : public Widget
 
 			if (ImGui::MenuItem("Compile"))
 			{
-				resource->Compile(p_editor->GetRenderer(), ImNodes::SaveCurrentEditorStateToIniString());
+				resource->Compile(p_editor->GetRenderer() ->GetRHIContext(), p_editor->GetRenderer()->GetResourceManager(), ImNodes::SaveCurrentEditorStateToIniString());
 			}
 
 			ImGui::EndMenuBar();

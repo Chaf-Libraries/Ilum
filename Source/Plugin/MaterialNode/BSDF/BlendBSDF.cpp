@@ -22,7 +22,7 @@ class BlendBSDF : public MaterialNode<BlendBSDF>
 	{
 	}
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, Renderer *renderer, MaterialCompilationContext *context) override
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, ResourceManager *manager, MaterialCompilationContext *context) override
 	{
 		if (context->IsCompiled(node_desc))
 		{
@@ -31,7 +31,7 @@ class BlendBSDF : public MaterialNode<BlendBSDF>
 
 		std::map<std::string, std::string> parameters;
 
-		context->SetParameter<float>(parameters, node_desc.GetPin("Weight"), graph_desc, renderer, context);
+		context->SetParameter<float>(parameters, node_desc.GetPin("Weight"), graph_desc, manager, context);
 
 		auto &bsdf1_node = node_desc.GetPin("X");
 		auto &bsdf2_node = node_desc.GetPin("Y");
@@ -43,7 +43,7 @@ class BlendBSDF : public MaterialNode<BlendBSDF>
 
 			{
 				auto &src_node = graph_desc.GetNode(graph_desc.LinkFrom(bsdf1_node.handle));
-				src_node.EmitHLSL(graph_desc, renderer, context);
+				src_node.EmitHLSL(graph_desc, manager, context);
 				auto &src_pin = src_node.GetPin(graph_desc.LinkFrom(bsdf1_node.handle));
 
 				bsdf1 = src_pin.handle;
@@ -51,7 +51,7 @@ class BlendBSDF : public MaterialNode<BlendBSDF>
 
 			{
 				auto &src_node = graph_desc.GetNode(graph_desc.LinkFrom(bsdf2_node.handle));
-				src_node.EmitHLSL(graph_desc, renderer, context);
+				src_node.EmitHLSL(graph_desc, manager, context);
 				auto &src_pin = src_node.GetPin(graph_desc.LinkFrom(bsdf2_node.handle));
 
 				bsdf2 = src_pin.handle;

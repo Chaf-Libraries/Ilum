@@ -103,7 +103,7 @@ class Calculate : public MaterialNode<Calculate>
 		}
 	}
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, Renderer *renderer, MaterialCompilationContext *context) override
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, ResourceManager *manager, MaterialCompilationContext *context) override
 	{
 		if (context->IsCompiled(node_desc))
 		{
@@ -111,8 +111,8 @@ class Calculate : public MaterialNode<Calculate>
 		}
 
 		std::map<std::string, std::string> parameters;
-		context->SetParameter<float>(parameters, node_desc.GetPin("X"), graph_desc, renderer, context);
-		context->SetParameter<float>(parameters, node_desc.GetPin("Y"), graph_desc, renderer, context);
+		context->SetParameter<float>(parameters, node_desc.GetPin("X"), graph_desc, manager, context);
+		context->SetParameter<float>(parameters, node_desc.GetPin("Y"), graph_desc, manager, context);
 
 		CalculationType type = *node_desc.GetVariant().Convert<CalculationType>();
 

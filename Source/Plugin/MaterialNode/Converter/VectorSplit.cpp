@@ -22,7 +22,7 @@ class VectorSplit : public MaterialNode<VectorSplit>
 	{
 	}
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, Renderer* renderer, MaterialCompilationContext *context) override
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, ResourceManager *manager, MaterialCompilationContext *context) override
 	{
 		if (context->IsCompiled(node_desc))
 		{
@@ -30,7 +30,7 @@ class VectorSplit : public MaterialNode<VectorSplit>
 		}
 
 		std::map<std::string, std::string> parameters;
-		context->SetParameter<glm::vec3>(parameters, node_desc.GetPin("In"), graph_desc, renderer, context);
+		context->SetParameter<glm::vec3>(parameters, node_desc.GetPin("In"), graph_desc, manager, context);
 		context->variables.emplace_back(fmt::format("float S_{} = {}.x;", node_desc.GetPin("X").handle, parameters["In"]));
 		context->variables.emplace_back(fmt::format("float S_{} = {}.y;", node_desc.GetPin("Y").handle, parameters["In"]));
 		context->variables.emplace_back(fmt::format("float S_{} = {}.z;", node_desc.GetPin("Z").handle, parameters["In"]));

@@ -94,7 +94,7 @@ class VectorCalculate : public MaterialNode<VectorCalculate>
 		}
 	}
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, Renderer *renderer, MaterialCompilationContext *context) override
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, ResourceManager *manager, MaterialCompilationContext *context) override
 	{
 		if (context->IsCompiled(node_desc))
 		{
@@ -104,14 +104,14 @@ class VectorCalculate : public MaterialNode<VectorCalculate>
 		CalculationType type = *node_desc.GetVariant().Convert<CalculationType>();
 
 		std::map<std::string, std::string> parameters;
-		context->SetParameter<glm::vec3>(parameters, node_desc.GetPin("X"), graph_desc, renderer, context);
+		context->SetParameter<glm::vec3>(parameters, node_desc.GetPin("X"), graph_desc, manager, context);
 		if (type == CalculationType::Scale)
 		{
-			context->SetParameter<float>(parameters, node_desc.GetPin("Y"), graph_desc, renderer, context);
+			context->SetParameter<float>(parameters, node_desc.GetPin("Y"), graph_desc, manager, context);
 		}
 		else
 		{
-			context->SetParameter<glm::vec3>(parameters, node_desc.GetPin("Y"), graph_desc, renderer, context);
+			context->SetParameter<glm::vec3>(parameters, node_desc.GetPin("Y"), graph_desc, manager, context);
 		}
 
 		switch (type)

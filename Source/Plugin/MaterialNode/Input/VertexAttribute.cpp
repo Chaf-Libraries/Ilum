@@ -23,7 +23,7 @@ class VertexAttribute : public MaterialNode<VertexAttribute>
 	{
 	}
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, Renderer* renderer, MaterialCompilationContext *context) override
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, ResourceManager *manager, MaterialCompilationContext *context) override
 	{
 		if (context->IsCompiled(node_desc))
 		{

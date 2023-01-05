@@ -20,7 +20,7 @@ class DiffuseBSDF : public MaterialNode<DiffuseBSDF>
 	{
 	}
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, Renderer *renderer, MaterialCompilationContext *context) override
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, ResourceManager *manager, MaterialCompilationContext *context) override
 	{
 		if (context->IsCompiled(node_desc))
 		{
@@ -29,7 +29,7 @@ class DiffuseBSDF : public MaterialNode<DiffuseBSDF>
 
 		std::map<std::string, std::string> parameters;
 
-		context->SetParameter<glm::vec3>(parameters, node_desc.GetPin("Reflectance"), graph_desc, renderer, context);
+		context->SetParameter<glm::vec3>(parameters, node_desc.GetPin("Reflectance"), graph_desc, manager, context);
 
 		context->bsdfs.emplace_back(MaterialCompilationContext::BSDF{
 		    fmt::format("S_{}", node_desc.GetPin("Out").handle),

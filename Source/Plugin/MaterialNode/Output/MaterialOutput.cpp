@@ -20,7 +20,7 @@ class MaterialOutput : public MaterialNode<MaterialOutput>
 	{
 	}
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, Renderer *renderer, MaterialCompilationContext *context) override
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, ResourceManager *manager, MaterialCompilationContext *context) override
 	{
 		if (context->IsCompiled(node_desc))
 		{
@@ -34,7 +34,7 @@ class MaterialOutput : public MaterialNode<MaterialOutput>
 		if (graph_desc.HasLink(surface_bsdf_pin.handle))
 		{
 			auto &surface_bsdf_node = graph_desc.GetNode(graph_desc.LinkFrom(surface_bsdf_pin.handle));
-			surface_bsdf_node.EmitHLSL(graph_desc, renderer, context);
+			surface_bsdf_node.EmitHLSL(graph_desc, manager, context);
 		}
 
 		// Volume BSDF

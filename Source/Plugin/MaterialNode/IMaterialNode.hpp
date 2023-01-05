@@ -21,8 +21,8 @@
 			ImGui::SetCurrentContext(context);                                                                                                                    \
 			NODE::GetInstance().OnImGui(*desc, editor);                                                                                                           \
 		}                                                                                                                                                         \
-		EXPORT_API void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, Renderer *renderer, MaterialCompilationContext *context) \
+		EXPORT_API void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, ResourceManager *manager, MaterialCompilationContext *context) \
 		{                                                                                                                                                         \
-			NODE::GetInstance().EmitHLSL(node_desc, graph_desc, renderer, context);                                                                               \
+			NODE::GetInstance().EmitHLSL(node_desc, graph_desc, manager, context);                                                                               \
 		}                                                                                                                                                         \
 	}

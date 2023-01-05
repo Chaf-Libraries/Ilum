@@ -22,7 +22,7 @@ class VectorMerge : public MaterialNode<VectorMerge>
 	{
 	}
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, Renderer* renderer, MaterialCompilationContext *context) override
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, ResourceManager *manager, MaterialCompilationContext *context) override
 	{
 		if (context->IsCompiled(node_desc))
 		{
@@ -30,9 +30,9 @@ class VectorMerge : public MaterialNode<VectorMerge>
 		}
 
 		std::map<std::string, std::string> parameters;
-		context->SetParameter<float>(parameters, node_desc.GetPin("X"), graph_desc, renderer, context);
-		context->SetParameter<float>(parameters, node_desc.GetPin("Y"), graph_desc, renderer, context);
-		context->SetParameter<float>(parameters, node_desc.GetPin("Z"), graph_desc, renderer, context);
+		context->SetParameter<float>(parameters, node_desc.GetPin("X"), graph_desc, manager, context);
+		context->SetParameter<float>(parameters, node_desc.GetPin("Y"), graph_desc, manager, context);
+		context->SetParameter<float>(parameters, node_desc.GetPin("Z"), graph_desc, manager, context);
 		context->variables.emplace_back(fmt::format("float3 S_{} = float3({}, {}, {});", node_desc.GetPin("Out").handle, parameters["X"], parameters["Y"], parameters["Z"]));
 	}
 };

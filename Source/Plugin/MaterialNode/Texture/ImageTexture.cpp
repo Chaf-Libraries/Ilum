@@ -106,7 +106,7 @@ class ImageTexture : public MaterialNode<ImageTexture>
 		}
 	}
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, Renderer *renderer, MaterialCompilationContext *context) override
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, ResourceManager *manager, MaterialCompilationContext *context) override
 	{
 		if (context->IsCompiled(node_desc))
 		{
@@ -125,7 +125,7 @@ class ImageTexture : public MaterialNode<ImageTexture>
 		if (graph_desc.HasLink(texcoord_pin.handle))
 		{
 			auto &src_node = graph_desc.GetNode(graph_desc.LinkFrom(texcoord_pin.handle));
-			src_node.EmitHLSL(graph_desc, renderer, context);
+			src_node.EmitHLSL(graph_desc, manager, context);
 			parameters[texcoord_pin.name] = fmt::format("S_{}", src_node.GetPin(graph_desc.LinkFrom(texcoord_pin.handle)).handle);
 		}
 		else
@@ -133,7 +133,7 @@ class ImageTexture : public MaterialNode<ImageTexture>
 			parameters[texcoord_pin.name] = "float3(0.f, 0.f, 0.f)";
 		}
 
-		context->variables.emplace_back(fmt::format("float4 S_{} = Textures[texture_{}].Sample(Samplers[sampler_{}], {}.xy);", node_desc.GetHandle(), node_desc.GetHandle(), node_desc.GetHandle(), parameters["Texcoord"]));
+		context->variables.emplace_back(fmt::format("float4 S_{} = texture_{}.Sample(sampler_{}, {}.xy);", node_desc.GetHandle(), node_desc.GetHandle(), node_desc.GetHandle(), parameters["Texcoord"]));
 		context->variables.emplace_back(fmt::format("float3 S_{} = S_{}.xyz;", node_desc.GetPin("Color").handle, node_desc.GetHandle()));
 		context->variables.emplace_back(fmt::format("float S_{} = S_{}.w;", node_desc.GetPin("Alpha").handle, node_desc.GetHandle()));
 	}
