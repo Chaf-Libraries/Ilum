@@ -28,6 +28,15 @@ struct MaterialCompilationContext
 
 	std::unordered_set<size_t> finish_nodes;
 
+	void Reset()
+	{
+		variables.clear();
+		textures.clear();
+		samplers.clear();
+		bsdfs.clear();
+		finish_nodes.clear();
+	}
+
 	bool IsCompiled(const MaterialNodeDesc &desc)
 	{
 		if (finish_nodes.find(desc.GetHandle()) == finish_nodes.end())
@@ -56,12 +65,12 @@ struct MaterialCompilationContext
 	}
 
 	template <typename T>
-	inline void SetParameter(std::map<std::string, std::string> &parameters, const MaterialNodePin &node_pin, const MaterialGraphDesc &graph_desc, Renderer *renderer, MaterialCompilationContext *context)
+	inline void SetParameter(std::map<std::string, std::string> &parameters, const MaterialNodePin &node_pin, const MaterialGraphDesc &graph_desc, ResourceManager *manager, MaterialCompilationContext *context)
 	{
 		if (graph_desc.HasLink(node_pin.handle))
 		{
 			auto &src_node = graph_desc.GetNode(graph_desc.LinkFrom(node_pin.handle));
-			src_node.EmitHLSL(graph_desc, renderer, context);
+			src_node.EmitHLSL(graph_desc, manager, context);
 			auto &src_pin = src_node.GetPin(graph_desc.LinkFrom(node_pin.handle));
 			if (src_pin.type != node_pin.type && src_pin.type == MaterialNodePin::Type::Float)
 			{

@@ -6,7 +6,7 @@ namespace Ilum
 {
 class MaterialGraphDesc;
 class Editor;
-class Renderer;
+class ResourceManager;
 struct MaterialCompilationContext;
 
 struct EXPORT_API MaterialNodePin
@@ -82,7 +82,7 @@ class EXPORT_API MaterialNodeDesc
 
 	size_t GetHandle() const;
 
-	void EmitHLSL(const MaterialGraphDesc &graph_desc, Renderer *renderer, MaterialCompilationContext *context) const;
+	void EmitHLSL(const MaterialGraphDesc &graph_desc, ResourceManager *manager, MaterialCompilationContext *context) const;
 
 	template <typename Archive>
 	void serialize(Archive &archive)
@@ -116,6 +116,6 @@ class EXPORT_API MaterialNode
 
 	virtual void OnImGui(MaterialNodeDesc &node_desc, Editor *editor) = 0;
 
-	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, Renderer *renderer, MaterialCompilationContext *context) = 0;
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, ResourceManager *manager, MaterialCompilationContext *context) = 0;
 };
 }        // namespace Ilum

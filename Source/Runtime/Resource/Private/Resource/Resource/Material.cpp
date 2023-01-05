@@ -1,4 +1,6 @@
 #include "Resource/Material.hpp"
+#include "Resource/Texture2D.hpp"
+#include "ResourceManager.hpp"
 
 #include <Material/MaterialCompiler.hpp>
 
@@ -9,7 +11,13 @@ namespace Ilum
 struct Resource<ResourceType::Material>::Impl
 {
 	MaterialGraphDesc desc;
-	std::string       layout;
+
+	MaterialCompilationContext context;
+
+	std::string layout;
+
+	std::unordered_map<std::string, RHISampler *> samplers;
+	std::unordered_map<std::string, RHITexture *> textures;
 
 	bool valid = false;
 };
@@ -49,19 +57,19 @@ void Resource<ResourceType::Material>::Load(RHIContext *rhi_context)
 	DESERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Material), thumbnail_data, m_impl->desc, m_impl->layout);
 }
 
-void Resource<ResourceType::Material>::Compile(Renderer *renderer, const std::string &layout)
+void Resource<ResourceType::Material>::Compile(RHIContext *rhi_context, ResourceManager *manager, const std::string &layout)
 {
 	m_impl->layout = layout;
 	m_impl->valid  = false;
 
-	MaterialCompilationContext context;
+	m_impl->context.Reset();
 
 	for (auto &[node_handle, node] : m_impl->desc.GetNodes())
 	{
-		node.EmitHLSL(m_impl->desc, renderer, &context);
+		node.EmitHLSL(m_impl->desc, manager, &m_impl->context);
 	}
 
-	if (!context.bsdfs.empty())
+	if (!m_impl->context.bsdfs.empty())
 	{
 		std::vector<uint8_t> shader_data;
 		Path::GetInstance().Read("Source/Shaders/Material.hlsli", shader_data);
@@ -74,26 +82,26 @@ void Resource<ResourceType::Material>::Compile(Renderer *renderer, const std::st
 			kainjow::mustache::data initializations{kainjow::mustache::data::type::list};
 			kainjow::mustache::data textures{kainjow::mustache::data::type::list};
 			kainjow::mustache::data samplers{kainjow::mustache::data::type::list};
-			for (auto &variable : context.variables)
+			for (auto &variable : m_impl->context.variables)
 			{
 				initializations << kainjow::mustache::data{"Initialization", variable};
 			}
-			for (auto &[texture, texture_name] : context.textures)
+			for (auto &[texture, texture_name] : m_impl->context.textures)
 			{
 				textures << kainjow::mustache::data{"Texture", texture};
 			}
-			for (auto &[sampler, desc] : context.samplers)
+			for (auto &[sampler, desc] : m_impl->context.samplers)
 			{
 				samplers << kainjow::mustache::data{"Sampler", sampler};
 			}
-			for (uint32_t i = 0; i < context.bsdfs.size() - 1; i++)
+			for (uint32_t i = 0; i < m_impl->context.bsdfs.size() - 1; i++)
 			{
-				initializations << kainjow::mustache::data{"Initialization", fmt::format("{} {}", context.bsdfs[i].type, context.bsdfs[i].initialization)};
+				initializations << kainjow::mustache::data{"Initialization", fmt::format("{} {}", m_impl->context.bsdfs[i].type, m_impl->context.bsdfs[i].initialization)};
 			}
-			initializations << kainjow::mustache::data{"Initialization", context.bsdfs.back().initialization};
+			initializations << kainjow::mustache::data{"Initialization", m_impl->context.bsdfs.back().initialization};
 
-			mustache_data.set("BxDFType", context.bsdfs.back().type);
-			mustache_data.set("BxDFName", context.bsdfs.back().name);
+			mustache_data.set("BxDFType", m_impl->context.bsdfs.back().type);
+			mustache_data.set("BxDFName", m_impl->context.bsdfs.back().name);
 			mustache_data.set("Initializations", initializations);
 			mustache_data.set("Textures", textures);
 			mustache_data.set("Samplers", samplers);
@@ -105,6 +113,12 @@ void Resource<ResourceType::Material>::Compile(Renderer *renderer, const std::st
 		std::memcpy(shader_data.data(), shader.data(), shader_data.size());
 
 		Path::GetInstance().Save(fmt::format("Asset/Material/{}.material.hlsli", m_impl->desc.GetName()), shader_data);
+
+		// Update samplers
+		for (auto& [sampler, desc] : m_impl->context.samplers)
+		{
+			m_impl->samplers[sampler] = rhi_context->CreateSampler(desc);
+		}
 	}
 
 	std::vector<uint8_t> thumbnail_data;
@@ -112,6 +126,28 @@ void Resource<ResourceType::Material>::Compile(Renderer *renderer, const std::st
 	SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Material), thumbnail_data, m_impl->desc, m_impl->layout);
 
 	m_impl->valid = true;
+}
+
+void Resource<ResourceType::Material>::Bind(RHIContext *rhi_context, RHIDescriptor *descriptor, ResourceManager *manager, RHITexture *dummy_texture)
+{
+	if (manager->Update<ResourceType::Texture2D>())
+	{
+		m_impl->textures.clear();
+		for (auto& [texture, texture_name] : m_impl->context.textures)
+		{
+			m_impl->textures[texture] = manager->Has<ResourceType::Texture2D>(texture_name) ? manager->Get<ResourceType::Texture2D>(texture_name)->GetTexture() : dummy_texture;
+		}
+	}
+
+	for (auto& [name, sampler] : m_impl->samplers)
+	{
+		descriptor->BindSampler(name, sampler);
+	}
+
+	for (auto& [name, texture] : m_impl->textures)
+	{
+		descriptor->BindTexture(name, texture, RHITextureDimension::Texture2D);
+	}
 }
 
 const std::string &Resource<ResourceType::Material>::GetLayout() const

@@ -88,8 +88,8 @@ size_t MaterialNodeDesc::GetHandle() const
 	return m_handle;
 }
 
-void MaterialNodeDesc::EmitHLSL(const MaterialGraphDesc &graph_desc, Renderer *renderer, MaterialCompilationContext *context) const
+void MaterialNodeDesc::EmitHLSL(const MaterialGraphDesc &graph_desc, ResourceManager *manager, MaterialCompilationContext *context) const
 {
-	PluginManager::GetInstance().Call(fmt::format("shared/Material/Material.{}.{}.dll", m_category, m_name), "EmitHLSL", *this, graph_desc, renderer, context);
+	PluginManager::GetInstance().Call(fmt::format("shared/Material/Material.{}.{}.dll", m_category, m_name), "EmitHLSL", *this, graph_desc, manager, context);
 }
 }        // namespace Ilum
