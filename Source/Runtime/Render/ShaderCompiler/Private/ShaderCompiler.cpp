@@ -346,6 +346,7 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(Shad
 	arguments.emplace_back(L"-fspv-extension=SPV_EXT_descriptor_indexing");
 	arguments.emplace_back(L"-fspv-extension=SPV_EXT_shader_viewport_index_layer");
 	arguments.emplace_back(L"-fspv-extension=SPV_EXT_mesh_shader");
+	arguments.emplace_back(L"-disable-payload-qualifiers");
 
 	for (const auto &macro : macros)
 	{
