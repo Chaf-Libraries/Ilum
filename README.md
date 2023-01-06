@@ -4,40 +4,90 @@
 
 Ilum Graphics Playground, name after *Planet Ilum* from [star wars]()
 
-## TODO List
+## Install
 
-- [ ] RHI
-  - [x] Vulkan
-  - [ ] DirectX12
-  - [x] CUDA
-  - [ ] OpenGL
-- [ ] RenderCore
-  - [x] Shader Compiler
-    - Source: GLSL/HLSL
-    - Target: SPIRV/DXIL/PTX
-  - [x] Shader Reflection: SPIRV reflection
-  - [ ] Render Graph
-    - [ ] Static Compilation
-    - [ ] Auto Barrier Insert
-    - [ ] Texture Memory Aliasing
-  - [ ] Material Graph
-- [ ] Scene Manager
-  - [ ] Entity Component System
-  - [ ] Asset Manager
-  - [ ] Model Importer
-    - [ ] .gltf
-    - [ ] .obj
-    - [ ] .fbx
+**Platform**
+
+* Windows 10
+* Visual Studio 2022
+* CMake >= 3.14
+* [optional] CUDA >= 11.7
+
+**Build**
+
+Run script `Build_VS2022.bat`
 
 ## Feature
 
-### Multiple Graphics/GPU Computation API Backend Support
+### Cross-Platform RHI
 
-![](./Doc/Img/RHI.png)
+* Vulkan
+* CUDA
 
-### Cross Platform Shader Compilation
+### Resource Manager
 
-![](./Doc/Img/shader.png)
+**Resource**
+
+* Mesh
+* Skinned Mesh
+* Texture2D
+* Material
+* Render Pipeline
+* Prefab
+
+### Scene Graph
+
+**Component**
+
+* Transform
+* Camera
+  * Perspective Camera
+  * Orthographic Camera
+* Light
+  * Spot Light
+  * Point Light
+  * Directional Light
+  * Polygon Light
+* Renderable
+  * Mesh Renderer
+  * Skinned Mesh Renderer
+
+### Render Graph
+
+**Render Pass**
+
+* Visibility Buffer Rendering
+* Visibility Buffer Visualization
+* Path Tracing
+
+### Material Graph
+
+**Material Node**
+
+* Input
+  * RGB
+* Output
+  * Material Output
+* Converter
+  * Scalar Calculation
+  * Vector Calculation
+  * Vector Merge
+  * Vector Split
+* Texture
+  * Image Texture
+* BSDF
+  * Diffuse BSDF
+  * Blend BSDF
+
+### Plugins
+
+You can extend the renderer features by adding these plugins:
+
+* RHI
+* Render Pass
+* Material Node
+* Importer
+* Editor
 
 ## Dependencies
 
