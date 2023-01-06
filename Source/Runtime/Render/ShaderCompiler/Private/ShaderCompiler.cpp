@@ -334,6 +334,7 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(Shad
 	arguments.emplace_back(to_wstring(GetTargetProfile(stage)));
 	arguments.emplace_back(L"-I");
 	arguments.emplace_back(to_wstring(Path::GetInstance().GetCurrent() + "/Source/Shaders"));
+	arguments.emplace_back(to_wstring(Path::GetInstance().GetCurrent() + "/Asset/Material"));
 	arguments.emplace_back(L"-I");
 	arguments.emplace_back(to_wstring(Path::GetInstance().GetCurrent()));
 	arguments.emplace_back(L"-HV 2021");

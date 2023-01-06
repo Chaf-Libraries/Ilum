@@ -22,6 +22,12 @@ class EXPORT_API Resource<ResourceType::Mesh> final : public IResource
 
 		alignas(16) glm::vec2 texcoord0;
 		glm::vec2 texcoord1;
+
+		template<typename Archive>
+		void serialize(Archive& archive)
+		{
+			archive(position, normal, tangent, texcoord0, texcoord1);
+		}
 	};
 
   public:

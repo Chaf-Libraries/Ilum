@@ -108,14 +108,14 @@ class ResourceBrowser : public Widget
 		style.ItemSpacing    = ImVec2(10.f, 10.f);
 		float window_visible = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
 
-		const std::vector<std::string> resources = manager->GetResources<_Ty>();
+		const std::vector<std::string> resources = manager->GetResources<_Ty>(false);
 
 		for (const auto &resource_name : resources)
 		{
-			auto *resource = manager->Get<_Ty>(resource_name);
+			auto *thumbnail = manager->GetThumbnail<_Ty>(resource_name);
 
 			ImGui::PushID(resource_name.c_str());
-			ImGui::ImageButton(resource->GetThumbnail() ? resource->GetThumbnail() : ImGui::GetIO().Fonts->TexID, ImVec2{button_size, button_size});
+			ImGui::ImageButton(thumbnail ? thumbnail : ImGui::GetIO().Fonts->TexID, ImVec2{button_size, button_size});
 
 			// Drag&Drop source
 			if (ImGui::BeginDragDropSource())

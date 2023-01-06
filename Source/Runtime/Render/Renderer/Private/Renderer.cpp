@@ -5,6 +5,7 @@
 #include <RHI/RHIContext.hpp>
 #include <RenderGraph/RenderGraph.hpp>
 #include <Resource/Resource/Animation.hpp>
+#include <Resource/Resource/Material.hpp>
 #include <Resource/Resource/Mesh.hpp>
 #include <Resource/Resource/SkinnedMesh.hpp>
 #include <Resource/Resource/Texture2D.hpp>
@@ -158,6 +159,11 @@ ResourceManager *Renderer::GetResourceManager() const
 	return m_impl->resource_manager;
 }
 
+RenderGraphBlackboard &Renderer::GetRenderGraphBlackboard()
+{
+	return m_impl->black_board;
+}
+
 void Renderer::SetViewport(float width, float height)
 {
 	m_impl->viewport = glm::vec2{width, height};
@@ -254,76 +260,6 @@ void Renderer::UpdateGPUScene()
 	auto meshes         = m_impl->scene->GetComponents<Cmpt::MeshRenderer>();
 	auto skinned_meshes = m_impl->scene->GetComponents<Cmpt::SkinnedMeshRenderer>();
 
-	// Update Mesh Buffer
-	if (m_impl->resource_manager->Update<ResourceType::Mesh>())
-	{
-		gpu_scene->mesh_buffer.vertex_buffers.clear();
-		gpu_scene->mesh_buffer.index_buffers.clear();
-		gpu_scene->mesh_buffer.meshlet_buffers.clear();
-		gpu_scene->mesh_buffer.meshlet_data_buffers.clear();
-		auto resources = m_impl->resource_manager->GetResources<ResourceType::Mesh>();
-		for (auto &resource : resources)
-		{
-			auto *mesh = m_impl->resource_manager->Get<ResourceType::Mesh>(resource);
-			gpu_scene->mesh_buffer.vertex_buffers.push_back(mesh->GetVertexBuffer());
-			gpu_scene->mesh_buffer.index_buffers.push_back(mesh->GetIndexBuffer());
-			gpu_scene->mesh_buffer.meshlet_buffers.push_back(mesh->GetMeshletBuffer());
-			gpu_scene->mesh_buffer.meshlet_data_buffers.push_back(mesh->GetMeshletDataBuffer());
-		}
-	}
-
-	// Update Skinned Mesh Buffer
-	{
-		if (m_impl->resource_manager->Update<ResourceType::SkinnedMesh>())
-		{
-			gpu_scene->skinned_mesh_buffer.vertex_buffers.clear();
-			gpu_scene->skinned_mesh_buffer.index_buffers.clear();
-			gpu_scene->skinned_mesh_buffer.meshlet_buffers.clear();
-			gpu_scene->skinned_mesh_buffer.meshlet_data_buffers.clear();
-			auto resources = m_impl->resource_manager->GetResources<ResourceType::SkinnedMesh>();
-			for (auto &resource : resources)
-			{
-				auto *skinned_mesh = m_impl->resource_manager->Get<ResourceType::SkinnedMesh>(resource);
-				gpu_scene->skinned_mesh_buffer.vertex_buffers.push_back(skinned_mesh->GetVertexBuffer());
-				gpu_scene->skinned_mesh_buffer.index_buffers.push_back(skinned_mesh->GetIndexBuffer());
-				gpu_scene->skinned_mesh_buffer.meshlet_buffers.push_back(skinned_mesh->GetMeshletBuffer());
-				gpu_scene->skinned_mesh_buffer.meshlet_data_buffers.push_back(skinned_mesh->GetMeshletDataBuffer());
-			}
-		}
-	}
-
-	// Update Animation Buffer
-	{
-		if (m_impl->resource_manager->Update<ResourceType::Animation>())
-		{
-			gpu_scene->animation_buffer.bone_matrics.clear();
-			gpu_scene->animation_buffer.skinned_matrics.clear();
-			auto resources                              = m_impl->resource_manager->GetResources<ResourceType::Animation>();
-			gpu_scene->animation_buffer.max_bone_count  = 0;
-			gpu_scene->animation_buffer.max_frame_count = 0;
-			for (auto &resource : resources)
-			{
-				auto *animation = m_impl->resource_manager->Get<ResourceType::Animation>(resource);
-				gpu_scene->animation_buffer.skinned_matrics.push_back(animation->GetSkinnedMatrics());
-				gpu_scene->animation_buffer.bone_matrics.push_back(animation->GetBoneMatrics());
-				gpu_scene->animation_buffer.max_bone_count  = glm::max(gpu_scene->animation_buffer.max_bone_count, animation->GetBoneCount());
-				gpu_scene->animation_buffer.max_frame_count = glm::max(gpu_scene->animation_buffer.max_frame_count, animation->GetFrameCount());
-			}
-		}
-	}
-
-	// Update 2D Textures
-	if (m_impl->resource_manager->Update<ResourceType::Texture2D>())
-	{
-		gpu_scene->textures.texture_2d.clear();
-		auto resources = m_impl->resource_manager->GetResources<ResourceType::Texture2D>();
-		for (auto &resource : resources)
-		{
-			auto *texture2d = m_impl->resource_manager->Get<ResourceType::Texture2D>(resource);
-			gpu_scene->textures.texture_2d.push_back(texture2d->GetTexture());
-		}
-	}
-
 	// Update Mesh
 	{
 		std::vector<GPUScene::Instance> instances;
@@ -333,8 +269,11 @@ void Renderer::UpdateGPUScene()
 		for (auto &mesh : meshes)
 		{
 			auto &submeshes = mesh->GetSubmeshes();
-			for (auto &submesh : submeshes)
+			auto &materials = mesh->GetMaterials();
+			for (uint32_t i = 0; i < submeshes.size(); i++)
 			{
+				auto &submesh  = submeshes[i];
+
 				auto *resource = m_impl->resource_manager->Get<ResourceType::Mesh>(submesh);
 
 				if (resource)
@@ -343,6 +282,16 @@ void Renderer::UpdateGPUScene()
 					instance.transform          = mesh->GetNode()->GetComponent<Cmpt::Transform>()->GetWorldTransform();
 					instance.mesh_id            = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Mesh>(submesh));
 					instance.material_id        = 0;
+
+					if (i < materials.size())
+					{
+						uint32_t material_id = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Material>(materials[i]));
+					}
+					else
+					{
+						instance.material_id = 0;
+					}
+
 					instances.push_back(instance);
 
 					tlas_desc.instances.push_back(TLASDesc::InstanceInfo{instance.transform, instance.material_id, resource->GetBLAS()});
@@ -447,6 +396,102 @@ void Renderer::UpdateGPUScene()
 			gpu_scene->TLAS->Update(cmd_buffer, tlas_desc);
 			cmd_buffer->End();
 			m_impl->rhi_context->Submit({cmd_buffer});
+		}
+	}
+
+	// Update Mesh Buffer
+	if (m_impl->resource_manager->Update<ResourceType::Mesh>())
+	{
+		gpu_scene->mesh_buffer.vertex_buffers.clear();
+		gpu_scene->mesh_buffer.index_buffers.clear();
+		gpu_scene->mesh_buffer.meshlet_buffers.clear();
+		gpu_scene->mesh_buffer.meshlet_data_buffers.clear();
+		auto resources = m_impl->resource_manager->GetResources<ResourceType::Mesh>();
+		for (auto &resource : resources)
+		{
+			auto *mesh = m_impl->resource_manager->Get<ResourceType::Mesh>(resource);
+			gpu_scene->mesh_buffer.vertex_buffers.push_back(mesh->GetVertexBuffer());
+			gpu_scene->mesh_buffer.index_buffers.push_back(mesh->GetIndexBuffer());
+			gpu_scene->mesh_buffer.meshlet_buffers.push_back(mesh->GetMeshletBuffer());
+			gpu_scene->mesh_buffer.meshlet_data_buffers.push_back(mesh->GetMeshletDataBuffer());
+		}
+	}
+
+	// Update Skinned Mesh Buffer
+	{
+		if (m_impl->resource_manager->Update<ResourceType::SkinnedMesh>())
+		{
+			gpu_scene->skinned_mesh_buffer.vertex_buffers.clear();
+			gpu_scene->skinned_mesh_buffer.index_buffers.clear();
+			gpu_scene->skinned_mesh_buffer.meshlet_buffers.clear();
+			gpu_scene->skinned_mesh_buffer.meshlet_data_buffers.clear();
+			auto resources = m_impl->resource_manager->GetResources<ResourceType::SkinnedMesh>();
+			for (auto &resource : resources)
+			{
+				auto *skinned_mesh = m_impl->resource_manager->Get<ResourceType::SkinnedMesh>(resource);
+				gpu_scene->skinned_mesh_buffer.vertex_buffers.push_back(skinned_mesh->GetVertexBuffer());
+				gpu_scene->skinned_mesh_buffer.index_buffers.push_back(skinned_mesh->GetIndexBuffer());
+				gpu_scene->skinned_mesh_buffer.meshlet_buffers.push_back(skinned_mesh->GetMeshletBuffer());
+				gpu_scene->skinned_mesh_buffer.meshlet_data_buffers.push_back(skinned_mesh->GetMeshletDataBuffer());
+			}
+		}
+	}
+
+	// Update Animation Buffer
+	{
+		if (m_impl->resource_manager->Update<ResourceType::Animation>())
+		{
+			gpu_scene->animation_buffer.bone_matrics.clear();
+			gpu_scene->animation_buffer.skinned_matrics.clear();
+
+			auto resources = m_impl->resource_manager->GetResources<ResourceType::Animation>();
+
+			gpu_scene->animation_buffer.max_bone_count  = 0;
+			gpu_scene->animation_buffer.max_frame_count = 0;
+			for (auto &resource : resources)
+			{
+				auto *animation = m_impl->resource_manager->Get<ResourceType::Animation>(resource);
+				gpu_scene->animation_buffer.skinned_matrics.push_back(animation->GetSkinnedMatrics());
+				gpu_scene->animation_buffer.bone_matrics.push_back(animation->GetBoneMatrics());
+				gpu_scene->animation_buffer.max_bone_count  = glm::max(gpu_scene->animation_buffer.max_bone_count, animation->GetBoneCount());
+				gpu_scene->animation_buffer.max_frame_count = glm::max(gpu_scene->animation_buffer.max_frame_count, animation->GetFrameCount());
+			}
+		}
+	}
+
+	// Update 2D Textures
+	if (m_impl->resource_manager->Update<ResourceType::Texture2D>())
+	{
+		gpu_scene->textures.texture_2d.clear();
+
+		{
+			auto resources = m_impl->resource_manager->GetResources<ResourceType::Texture2D>();
+			for (auto &resource : resources)
+			{
+				auto *texture2d = m_impl->resource_manager->Get<ResourceType::Texture2D>(resource);
+				gpu_scene->textures.texture_2d.push_back(texture2d->GetTexture());
+			}
+		}
+
+		{
+			auto resources = m_impl->resource_manager->GetResources<ResourceType::Material>();
+			for (auto &resource : resources)
+			{
+				auto *material = m_impl->resource_manager->Get<ResourceType::Material>(resource);
+				material->Update(m_impl->rhi_context, m_impl->resource_manager, m_impl->black_board.Get<DummyTexture>()->black_opaque.get());
+			}
+		}
+	}
+
+	// Update Material
+	if (m_impl->resource_manager->Update<ResourceType::Material>())
+	{
+		gpu_scene->materials.clear();
+		auto resources = m_impl->resource_manager->GetResources<ResourceType::Material>();
+		for (auto &resource : resources)
+		{
+			auto *material = m_impl->resource_manager->Get<ResourceType::Material>(resource);
+			gpu_scene->materials.push_back(&material->GetMaterialData());
 		}
 	}
 }

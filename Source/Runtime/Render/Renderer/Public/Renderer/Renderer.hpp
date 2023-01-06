@@ -8,6 +8,7 @@ class Scene;
 class ResourceManager;
 class MaterialGraph;
 class RenderGraph;
+class RenderGraphBlackboard;
 class ShaderBuilder;
 
 namespace Cmpt
@@ -31,6 +32,8 @@ class EXPORT_API Renderer
 	RHIContext *GetRHIContext() const;
 
 	ResourceManager *GetResourceManager() const;
+
+	RenderGraphBlackboard &GetRenderGraphBlackboard();
 
 	void SetViewport(float width, float height);
 

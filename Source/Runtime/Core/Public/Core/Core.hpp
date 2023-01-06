@@ -95,6 +95,12 @@ using OutputArchive = cereal::XMLOutputArchive;
 namespace glm
 {
 template <class Archive>
+void serialize(Archive &archive, glm::vec2 &m)
+{
+	archive(m.x, m.y);
+}
+
+template <class Archive>
 void serialize(Archive &archive, glm::vec3 &m)
 {
 	archive(m.x, m.y, m.z);

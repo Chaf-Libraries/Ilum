@@ -37,7 +37,7 @@ add_widget(RenderGraphEditor)
 target_link_libraries(Editor.RenderGraphEditor PRIVATE RenderGraph nfd)
 
 add_widget(MaterialGraphEditor)
-target_link_libraries(Editor.MaterialGraphEditor PRIVATE Material nfd Resource)
+target_link_libraries(Editor.MaterialGraphEditor PRIVATE Material nfd Resource Geometry RenderGraph)
 
 add_widget(ShaderToy)
 target_link_libraries(Editor.ShaderToy)

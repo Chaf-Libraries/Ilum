@@ -8,6 +8,7 @@ namespace Ilum
 {
 class MaterialGraphDesc;
 class ResourceManager;
+struct MaterialData;
 struct MaterialCompilationContext;
 
 template <>
@@ -24,9 +25,11 @@ class EXPORT_API Resource<ResourceType::Material> final : public IResource
 
 	virtual void Load(RHIContext *rhi_context) override;
 
-	void Compile(RHIContext *rhi_context, ResourceManager *manager, const std::string &layout = "");
+	void Compile(RHIContext *rhi_context, ResourceManager *manager, RHITexture *dummy_texture, const std::string &layout = "");
 
-	void Bind(RHIContext *rhi_context, RHIDescriptor *descriptor, ResourceManager *manager, RHITexture* dummy_texture);
+	void Update(RHIContext *rhi_context, ResourceManager *manager, RHITexture* dummy_texture);
+
+	const MaterialData &GetMaterialData() const;
 
 	const std::string &GetLayout() const;
 

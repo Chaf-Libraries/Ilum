@@ -1,6 +1,7 @@
 #pragma once
 
 #include <RHI/RHIContext.hpp>
+#include <Resource/Resource/Material.hpp>
 
 namespace Ilum
 {
@@ -82,10 +83,12 @@ struct GPUScene
 		uint32_t max_bone_count  = 0;
 	} animation_buffer;
 
-	struct TextureArray
+	struct Texture
 	{
 		std::vector<RHITexture *> texture_2d;
 	} textures;
+
+	std::vector<const MaterialData *> materials;
 
 	std::unique_ptr<RHIAccelerationStructure> TLAS = nullptr;
 };

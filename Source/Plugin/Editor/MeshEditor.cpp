@@ -398,10 +398,10 @@ class MeshEditor : public Widget
 			{
 				ImVec2 delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right);
 				ImGui::ResetMouseDragDelta(ImGuiMouseButton_Right);
-				m_view.phi -= delta.y * delta_time * 5.f;
-				m_view.theta -= delta.x * delta_time * 5.f;
+				m_view.phi -= delta.y * delta_time * 50.f;
+				m_view.theta -= delta.x * delta_time * 50.f;
 			}
-			m_view.radius += m_scale_factor * ImGui::GetIO().MouseWheel * delta_time;
+			m_view.radius += m_scale_factor * ImGui::GetIO().MouseWheel * delta_time * 10.f;
 		}
 
 		glm::vec3 position = m_view.center + m_view.radius * glm::vec3(glm::sin(glm::radians(m_view.phi)) * glm::sin(glm::radians(m_view.theta)), glm::cos(glm::radians(m_view.phi)), glm::sin(glm::radians(m_view.phi)) * glm::cos(glm::radians(m_view.theta)));

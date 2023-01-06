@@ -41,7 +41,7 @@ class SceneView : public Widget
 	struct
 	{
 		float speed     = 1.f;
-		float sensitity = 1.f;
+		float sensitity = 3.f;
 
 		glm::vec3 velocity = glm::vec3(0.f);
 		glm::vec2 viewport = glm::vec2(0.f);

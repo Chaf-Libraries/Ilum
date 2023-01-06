@@ -1,8 +1,11 @@
 #include <Editor/Editor.hpp>
 #include <Editor/Widget.hpp>
 #include <Material/MaterialGraph.hpp>
+#include <RenderGraph/RenderGraphBlackboard.hpp>
+#include <Renderer/RenderData.hpp>
 #include <Renderer/Renderer.hpp>
 #include <Resource/Resource/Material.hpp>
+#include <Resource/Resource/Mesh.hpp>
 #include <Resource/ResourceManager.hpp>
 
 #include <imgui.h>
@@ -21,6 +24,18 @@ class MaterialGraphEditor : public Widget
 	{
 		ImNodes::CreateContext();
 		m_context = ImNodes::EditorContextCreate();
+
+		std::vector<Resource<ResourceType::Mesh>::Vertex> vertices;
+
+		std::vector<uint32_t> indices;
+
+		DESERIALIZE("Asset/BuildIn/MaterialBall.asset", vertices, indices);
+
+		m_material_ball.vertex_buffer = editor->GetRenderer()->GetRHIContext()->CreateBuffer<Resource<ResourceType::Mesh>::Vertex>(vertices.size(), RHIBufferUsage::Vertex | RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
+		m_material_ball.index_buffer  = editor->GetRenderer()->GetRHIContext()->CreateBuffer<uint32_t>(indices.size(), RHIBufferUsage::Index | RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
+
+		m_material_ball.vertex_buffer->CopyToDevice(vertices.data(), vertices.size() * sizeof(Resource<ResourceType::Mesh>::Vertex));
+		m_material_ball.index_buffer->CopyToDevice(indices.data(), indices.size() * sizeof(uint32_t));
 	}
 
 	virtual ~MaterialGraphEditor() override
@@ -187,7 +202,11 @@ class MaterialGraphEditor : public Widget
 
 			if (ImGui::MenuItem("Compile"))
 			{
-				resource->Compile(p_editor->GetRenderer() ->GetRHIContext(), p_editor->GetRenderer()->GetResourceManager(), ImNodes::SaveCurrentEditorStateToIniString());
+				resource->Compile(
+				    p_editor->GetRenderer()->GetRHIContext(),
+				    p_editor->GetRenderer()->GetResourceManager(),
+				    p_editor->GetRenderer()->GetRenderGraphBlackboard().Get<DummyTexture>()->black_opaque.get(),
+				    ImNodes::SaveCurrentEditorStateToIniString());
 			}
 
 			ImGui::EndMenuBar();
@@ -332,6 +351,10 @@ class MaterialGraphEditor : public Widget
 		}
 	}
 
+	void Preview()
+	{
+	}
+
   private:
 	ImNodesEditorContext *m_context = nullptr;
 
@@ -341,6 +364,26 @@ class MaterialGraphEditor : public Widget
 
 	std::vector<int32_t> m_select_nodes;
 	std::vector<int32_t> m_select_links;
+
+	struct
+	{
+		glm::vec3 center = glm::vec3(0.f);
+		float     radius = 0.f;
+		float     theta  = 0.f;
+		float     phi    = 90.f;
+	} m_view;
+
+	struct
+	{
+		std::unique_ptr<RHIBuffer> vertex_buffer = nullptr;
+		std::unique_ptr<RHIBuffer> index_buffer  = nullptr;
+	} m_material_ball;
+
+	struct
+	{
+		std::unique_ptr<RHITexture>       render_target = nullptr;
+		std::unique_ptr<RHIPipelineState> pipeline      = nullptr;
+	} m_preview;
 
 	std::map<MaterialNodePin::Type, uint32_t> m_pin_color = {
 	    {MaterialNodePin::Type::BSDF, IM_COL32(0, 128, 0, 255)},

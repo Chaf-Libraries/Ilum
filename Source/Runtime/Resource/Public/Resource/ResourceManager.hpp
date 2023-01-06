@@ -22,6 +22,18 @@ class EXPORT_API ResourceManager
 	}
 
 	template <ResourceType Type>
+	RHITexture *GetThumbnail(const std::string &name)
+	{
+		return GetThumbnail(Type, Hash(name));
+	}
+
+	template <ResourceType Type>
+	bool Valid(const std::string &name)
+	{
+		return Valid(Type, Hash(name));
+	}
+
+	template <ResourceType Type>
 	bool Has(const std::string &name)
 	{
 		return Has(Type, Hash(name));
@@ -52,9 +64,9 @@ class EXPORT_API ResourceManager
 	}
 
 	template <ResourceType Type>
-	const std::vector<std::string> GetResources() const
+	const std::vector<std::string> GetResources(bool only_valid = true) const
 	{
-		return GetResources(Type);
+		return GetResources(Type, only_valid);
 	}
 
 	template <ResourceType Type>
@@ -66,6 +78,10 @@ class EXPORT_API ResourceManager
   private:
 	IResource *Get(ResourceType type, size_t uuid);
 
+	RHITexture* GetThumbnail(ResourceType type, size_t uuid);
+
+	bool Valid(ResourceType type, size_t uuid);
+
 	bool Has(ResourceType type, size_t uuid);
 
 	size_t Index(ResourceType type, size_t uuid);
@@ -76,7 +92,7 @@ class EXPORT_API ResourceManager
 
 	void Add(ResourceType type, std::unique_ptr<IResource> &&resource);
 
-	const std::vector<std::string> GetResources(ResourceType type) const;
+	const std::vector<std::string> GetResources(ResourceType type, bool only_valid) const;
 
 	bool Update(ResourceType type) const;
 

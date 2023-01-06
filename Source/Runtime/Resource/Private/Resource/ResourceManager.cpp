@@ -25,6 +25,12 @@ struct IResourceManager
 
 	virtual IResource *Get(size_t uuid) = 0;
 
+	virtual const std::string GetName(size_t uuid) = 0;
+
+	virtual RHITexture *GetThumbnail(size_t uuid) = 0;
+
+	virtual bool Valid(size_t uuid) = 0;
+
 	virtual bool Has(size_t uuid) = 0;
 
 	virtual size_t Index(size_t uuid) = 0;
@@ -35,7 +41,7 @@ struct IResourceManager
 
 	virtual void Add(std::unique_ptr<IResource> &&resource, size_t uuid) = 0;
 
-	virtual const std::vector<std::string> GetResources() const = 0;
+	virtual const std::vector<std::string> GetResources(bool only_valid) const = 0;
 
 	virtual bool Update() const = 0;
 
@@ -60,51 +66,94 @@ struct TResourceManager : public IResourceManager
 
 	virtual Resource<_Ty> *Get(size_t uuid) override
 	{
-		if (lookup.find(uuid) != lookup.end())
+		if (valid_lookup.find(uuid) != valid_lookup.end())
 		{
-			auto *resource = resources.at(lookup.at(uuid)).get();
-			if (!resource->Validate())
-			{
-				resource->Load(rhi_context);
-			}
+			auto *resource = valid_resources.at(valid_lookup.at(uuid));
 			return resource;
+		}
+		else if (resource_lookup.find(uuid) != resource_lookup.end())
+		{
+			auto &resource = resources[resource_lookup[uuid]];
+			resource->Load(rhi_context);
+			valid_lookup.emplace(uuid, valid_resources.size());
+			valid_resources.push_back(resource.get());
+			update = true;
+			return resource.get();
 		}
 		return nullptr;
 	}
 
+	virtual const std::string GetName(size_t uuid) override
+	{
+		return Has(uuid) ? resources[resource_lookup[uuid]]->GetName() : "";
+	}
+
+	virtual RHITexture *GetThumbnail(size_t uuid) override
+	{
+		return Has(uuid) ? resources.at(resource_lookup.at(uuid))->GetThumbnail() : nullptr;
+	}
+
+	virtual bool Valid(size_t uuid) override
+	{
+		return valid_lookup.find(uuid) != valid_lookup.end();
+	}
+
 	virtual bool Has(size_t uuid) override
 	{
-		return lookup.find(uuid) != lookup.end();
+		return resource_lookup.find(uuid) != resource_lookup.end();
 	}
 
 	virtual size_t Index(size_t uuid) override
 	{
-		return Has(uuid) ? lookup.at(uuid) : ~0U;
+		return (Valid(uuid) || Get(uuid)) ? valid_lookup.at(uuid) : ~0U;
 	}
 
 	virtual void Erase(size_t uuid) override
 	{
-		if (lookup.find(uuid) != lookup.end())
+		if (valid_lookup.find(uuid) != valid_lookup.end())
 		{
 			size_t last_uuid = ~0U;
-			if (resources.size() > 1)
+			if (valid_resources.size() > 1)
 			{
-				for (auto &[uuid_, index] : lookup)
+				for (auto &[uuid_, index] : valid_lookup)
 				{
-					if (index + 1 == lookup.size())
+					if (index + 1 == valid_lookup.size())
 					{
 						last_uuid = uuid_;
 						break;
 					}
 				}
 
-				lookup[last_uuid] = lookup[uuid];
-				std::swap(resources.back(), resources[lookup[uuid]]);
+				valid_lookup[last_uuid] = valid_lookup[uuid];
+				std::swap(valid_resources.back(), valid_resources[valid_lookup[uuid]]);
+			}
+
+			valid_resources.pop_back();
+			valid_lookup.erase(uuid);
+			update = true;
+		}
+
+		if (resource_lookup.find(uuid) != resource_lookup.end())
+		{
+			size_t last_uuid = ~0U;
+			if (resources.size() > 1)
+			{
+				for (auto &[uuid_, index] : resource_lookup)
+				{
+					if (index + 1 == resource_lookup.size())
+					{
+						last_uuid = uuid_;
+						break;
+					}
+				}
+
+				resource_lookup[last_uuid] = resource_lookup[uuid];
+				std::swap(resources.back(), resources[resource_lookup[uuid]]);
 			}
 
 			deprecates.emplace_back(std::move(resources.back()));
 			resources.pop_back();
-			lookup.erase(uuid);
+			resource_lookup.erase(uuid);
 			update = true;
 		}
 	}
@@ -116,20 +165,39 @@ struct TResourceManager : public IResourceManager
 
 	virtual void Add(std::unique_ptr<IResource> &&resource, size_t uuid) override
 	{
-		if (lookup.find(uuid) == lookup.end())
+		if (resource_lookup.find(uuid) == resource_lookup.end())
 		{
-			lookup.emplace(uuid, resources.size());
+			resource_lookup.emplace(uuid, resources.size());
 			resources.emplace_back(std::unique_ptr<Resource<_Ty>>(dynamic_cast<Resource<_Ty> *>(resource.release())));
+
+			if (resources.back()->Validate())
+			{
+				valid_lookup.emplace(uuid, valid_resources.size());
+				valid_resources.push_back(resources.back().get());
+			}
+
 			update = true;
 		}
 	}
 
-	virtual const std::vector<std::string> GetResources() const override
+	virtual const std::vector<std::string> GetResources(bool only_valid) const override
 	{
-		std::vector<std::string> handles(resources.size());
-		std::transform(resources.begin(), resources.end(), handles.begin(), [](const auto &resource) {
-			return resource->GetName();
-		});
+		std::vector<std::string> handles;
+		if (only_valid)
+		{
+			handles.resize(valid_resources.size());
+			std::transform(valid_resources.begin(), valid_resources.end(), handles.begin(), [](const auto &resource) {
+				return resource->GetName();
+			});
+		}
+		else
+		{
+			handles.resize(resources.size());
+			std::transform(resources.begin(), resources.end(), handles.begin(), [](const auto &resource) {
+				return resource->GetName();
+			});
+		}
+
 		return handles;
 	}
 
@@ -139,7 +207,11 @@ struct TResourceManager : public IResourceManager
 	}
 
 	std::vector<std::unique_ptr<Resource<_Ty>>> resources;
-	std::unordered_map<size_t, size_t>          lookup;        // uuid - index
+	std::unordered_map<size_t, size_t>          resource_lookup;
+	// std::unordered_map<size_t, size_t>          valid_lookup;        // uuid - index
+	std::vector<Resource<_Ty> *>       valid_resources;
+	std::unordered_map<size_t, size_t> valid_lookup;        // uuid - index
+
 	std::vector<std::unique_ptr<Resource<_Ty>>> deprecates;
 
 	bool update = false;
@@ -242,6 +314,16 @@ IResource *ResourceManager::Get(ResourceType type, size_t uuid)
 	return m_impl->managers.at(type)->Get(uuid);
 }
 
+RHITexture *ResourceManager::GetThumbnail(ResourceType type, size_t uuid)
+{
+	return m_impl->managers.at(type)->GetThumbnail(uuid);
+}
+
+bool ResourceManager::Valid(ResourceType type, size_t uuid)
+{
+	return m_impl->managers.at(type)->Valid(uuid);
+}
+
 bool ResourceManager::Has(ResourceType type, size_t uuid)
 {
 	return m_impl->managers.at(type)->Has(uuid);
@@ -259,8 +341,7 @@ void ResourceManager::Import(ResourceType type, const std::string &path)
 
 void ResourceManager::Erase(ResourceType type, size_t uuid)
 {
-	auto* resource = m_impl->managers.at(type)->Get(uuid);
-	std::string asset_path = fmt::format("Asset/Meta/{}.{}.asset", resource->GetName(), (uint32_t) type);
+	std::string asset_path = fmt::format("Asset/Meta/{}.{}.asset", m_impl->managers.at(type)->GetName(uuid), (uint32_t) type);
 	if (Path::GetInstance().IsExist(asset_path))
 	{
 		Path::GetInstance().DeletePath(asset_path);
@@ -274,9 +355,9 @@ void ResourceManager::Add(ResourceType type, std::unique_ptr<IResource> &&resour
 	m_impl->managers.at(type)->Add(std::move(resource), uuid);
 }
 
-const std::vector<std::string> ResourceManager::GetResources(ResourceType type) const
+const std::vector<std::string> ResourceManager::GetResources(ResourceType type, bool only_valid) const
 {
-	return m_impl->managers.at(type)->GetResources();
+	return m_impl->managers.at(type)->GetResources(only_valid);
 }
 
 bool ResourceManager::Update(ResourceType type) const

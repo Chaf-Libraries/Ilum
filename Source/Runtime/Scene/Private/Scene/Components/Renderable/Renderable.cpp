@@ -37,7 +37,7 @@ void Renderable::OnImGui()
 			{
 				if (const auto *pay_load = ImGui::AcceptDragDropPayload("Material"))
 				{
-					material = *static_cast<std::string *>(pay_load->Data);
+					material = static_cast<const char *>(pay_load->Data);
 				}
 			}
 

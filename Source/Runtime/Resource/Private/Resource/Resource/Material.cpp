@@ -3,6 +3,7 @@
 #include "ResourceManager.hpp"
 
 #include <Material/MaterialCompiler.hpp>
+#include <Material/MaterialData.hpp>
 
 #include <mustache.hpp>
 
@@ -16,8 +17,7 @@ struct Resource<ResourceType::Material>::Impl
 
 	std::string layout;
 
-	std::unordered_map<std::string, RHISampler *> samplers;
-	std::unordered_map<std::string, RHITexture *> textures;
+	MaterialData data;
 
 	bool valid = false;
 };
@@ -57,10 +57,14 @@ void Resource<ResourceType::Material>::Load(RHIContext *rhi_context)
 	DESERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Material), thumbnail_data, m_impl->desc, m_impl->layout);
 }
 
-void Resource<ResourceType::Material>::Compile(RHIContext *rhi_context, ResourceManager *manager, const std::string &layout)
+void Resource<ResourceType::Material>::Compile(RHIContext *rhi_context, ResourceManager *manager, RHITexture *dummy_texture, const std::string &layout)
 {
-	m_impl->layout = layout;
-	m_impl->valid  = false;
+	if (!layout.empty())
+	{
+		m_impl->layout = layout;
+	}
+
+	m_impl->valid = false;
 
 	m_impl->context.Reset();
 
@@ -112,13 +116,19 @@ void Resource<ResourceType::Material>::Compile(RHIContext *rhi_context, Resource
 		shader_data.resize(shader.length());
 		std::memcpy(shader_data.data(), shader.data(), shader_data.size());
 
-		Path::GetInstance().Save(fmt::format("Asset/Material/{}.material.hlsli", m_impl->desc.GetName()), shader_data);
+		m_impl->data.shader = fmt::format("Asset/Material/{}.material.hlsli", m_impl->desc.GetName());
+
+		Path::GetInstance().Save(m_impl->data.shader, shader_data);
 
 		// Update samplers
-		for (auto& [sampler, desc] : m_impl->context.samplers)
+		for (auto &[sampler, desc] : m_impl->context.samplers)
 		{
-			m_impl->samplers[sampler] = rhi_context->CreateSampler(desc);
+			m_impl->data.samplers[sampler] = rhi_context->CreateSampler(desc);
 		}
+	}
+	else
+	{
+		m_impl->data.shader = "Asset/Material/default.material.hlsli";
 	}
 
 	std::vector<uint8_t> thumbnail_data;
@@ -126,28 +136,29 @@ void Resource<ResourceType::Material>::Compile(RHIContext *rhi_context, Resource
 	SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Material), thumbnail_data, m_impl->desc, m_impl->layout);
 
 	m_impl->valid = true;
+
+	Update(rhi_context, manager, dummy_texture);
 }
 
-void Resource<ResourceType::Material>::Bind(RHIContext *rhi_context, RHIDescriptor *descriptor, ResourceManager *manager, RHITexture *dummy_texture)
+void Resource<ResourceType::Material>::Update(RHIContext *rhi_context, ResourceManager *manager, RHITexture *dummy_texture)
 {
-	if (manager->Update<ResourceType::Texture2D>())
+	if (!m_impl->valid)
 	{
-		m_impl->textures.clear();
-		for (auto& [texture, texture_name] : m_impl->context.textures)
+		Compile(rhi_context, manager, dummy_texture);
+	}
+	else
+	{
+		m_impl->data.textures.clear();
+		for (auto &[texture, texture_name] : m_impl->context.textures)
 		{
-			m_impl->textures[texture] = manager->Has<ResourceType::Texture2D>(texture_name) ? manager->Get<ResourceType::Texture2D>(texture_name)->GetTexture() : dummy_texture;
+			m_impl->data.textures[texture] = manager->Has<ResourceType::Texture2D>(texture_name) ? manager->Get<ResourceType::Texture2D>(texture_name)->GetTexture() : dummy_texture;
 		}
 	}
+}
 
-	for (auto& [name, sampler] : m_impl->samplers)
-	{
-		descriptor->BindSampler(name, sampler);
-	}
-
-	for (auto& [name, texture] : m_impl->textures)
-	{
-		descriptor->BindTexture(name, texture, RHITextureDimension::Texture2D);
-	}
+const MaterialData &Resource<ResourceType::Material>::GetMaterialData() const
+{
+	return m_impl->data;
 }
 
 const std::string &Resource<ResourceType::Material>::GetLayout() const
