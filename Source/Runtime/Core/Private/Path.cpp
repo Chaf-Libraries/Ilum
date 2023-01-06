@@ -68,7 +68,7 @@ bool Path::CreatePath(const std::string &path)
 	}
 	catch (std::filesystem::filesystem_error &e)
 	{
-		LOG_WARN("%s. %s", e.what(), path.c_str());
+		LOG_WARN("{}. {}", e.what(), path.c_str());
 	}
 	return false;
 }

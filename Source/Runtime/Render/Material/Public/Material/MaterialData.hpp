@@ -9,14 +9,15 @@ struct MaterialData
 	std::unordered_map<std::string, RHISampler *> samplers;
 	std::unordered_map<std::string, RHITexture *> textures;
 
-	std::string shader = "Asset/Material/default.material.hlsli";
+	std::string shader = "Material/Material.hlsli";
+	std::string signature = "Signature_0";
 
-	void Bind(RHIPipelineState* pipeline_state)
+	void Bind(RHIPipelineState *pipeline_state) const
 	{
 
 	}
 
-	void Bind(RHIDescriptor *descriptor)
+	void Bind(RHIDescriptor *descriptor) const
 	{
 		for (auto &[name, sampler] : samplers)
 		{

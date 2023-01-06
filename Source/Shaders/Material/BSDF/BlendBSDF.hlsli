@@ -10,11 +10,11 @@ struct BlendBSDF
     T2 bsdf_2;
     float weight;
 
-    void Init(T1 bsdf1, T2 bsdf2, float weight)
+    void Init(T1 bsdf1, T2 bsdf2, float weight_)
     {
         bsdf_1 = bsdf1;
         bsdf_2 = bsdf2;
-        weight = weight;
+        weight = weight_;
     }
 
     float3 Eval(float3 wo, float3 wi, TransportMode mode)

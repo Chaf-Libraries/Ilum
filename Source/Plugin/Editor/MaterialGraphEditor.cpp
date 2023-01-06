@@ -1,5 +1,6 @@
 #include <Editor/Editor.hpp>
 #include <Editor/Widget.hpp>
+#include <Material/MaterialData.hpp>
 #include <Material/MaterialGraph.hpp>
 #include <RenderGraph/RenderGraphBlackboard.hpp>
 #include <Renderer/RenderData.hpp>
@@ -31,11 +32,69 @@ class MaterialGraphEditor : public Widget
 
 		DESERIALIZE("Asset/BuildIn/MaterialBall.asset", vertices, indices);
 
-		m_material_ball.vertex_buffer = editor->GetRenderer()->GetRHIContext()->CreateBuffer<Resource<ResourceType::Mesh>::Vertex>(vertices.size(), RHIBufferUsage::Vertex | RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
-		m_material_ball.index_buffer  = editor->GetRenderer()->GetRHIContext()->CreateBuffer<uint32_t>(indices.size(), RHIBufferUsage::Index | RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
+		auto *rhi_context = editor->GetRenderer()->GetRHIContext();
+		auto *renderer    = editor->GetRenderer();
 
+		m_view.buffer = rhi_context->CreateBuffer<glm::mat4>(2, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
+		m_view.Reset();
+		m_view.Update();
+
+		{
+			glm::mat4 model = glm::mat4_cast(glm::qua<float>(glm::radians(glm::vec3(135.f, 0.f, 180.f))));
+			m_view.buffer->CopyToDevice(&model, sizeof(model), sizeof(glm::mat4));
+		}
+
+		m_material_ball.vertex_buffer = rhi_context->CreateBuffer<Resource<ResourceType::Mesh>::Vertex>(vertices.size(), RHIBufferUsage::Vertex | RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
+		m_material_ball.index_buffer  = rhi_context->CreateBuffer<uint32_t>(indices.size(), RHIBufferUsage::Index | RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
+
+		m_material_ball.indices_count = static_cast<uint32_t>(indices.size());
 		m_material_ball.vertex_buffer->CopyToDevice(vertices.data(), vertices.size() * sizeof(Resource<ResourceType::Mesh>::Vertex));
 		m_material_ball.index_buffer->CopyToDevice(indices.data(), indices.size() * sizeof(uint32_t));
+
+		m_preview.pipeline = rhi_context->CreatePipelineState();
+
+		BlendState blend_state;
+		blend_state.attachment_states.resize(1);
+		m_preview.pipeline->SetBlendState(blend_state);
+
+		RasterizationState rasterization_state;
+		rasterization_state.cull_mode  = RHICullMode::None;
+		rasterization_state.front_face = RHIFrontFace::Clockwise;
+		m_preview.pipeline->SetRasterizationState(rasterization_state);
+
+		DepthStencilState depth_stencil_state  = {};
+		depth_stencil_state.depth_write_enable = true;
+		depth_stencil_state.depth_test_enable  = true;
+		m_preview.pipeline->SetDepthStencilState(depth_stencil_state);
+
+		VertexInputState vertex_input_state = {};
+		vertex_input_state.input_bindings   = {
+            VertexInputState::InputBinding{0, sizeof(Resource<ResourceType::Mesh>::Vertex), RHIVertexInputRate::Vertex}};
+		vertex_input_state.input_attributes = {
+		    VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, position)},
+		    VertexInputState::InputAttribute{RHIVertexSemantics::Normal, 1, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, normal)},
+		    VertexInputState::InputAttribute{RHIVertexSemantics::Tangent, 2, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, tangent)},
+		    VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 3, 0, RHIFormat::R32G32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, texcoord0)},
+		    VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 4, 0, RHIFormat::R32G32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, texcoord1)},
+		};
+		m_preview.pipeline->SetVertexInputState(vertex_input_state);
+
+		// m_preview.meta = renderer->RequireShaderMeta(vertex_shader);
+		// m_preview.meta += renderer->RequireShaderMeta(frag_shader);
+
+		m_preview.render_target_texture = rhi_context->CreateTexture2D(500, 500, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false);
+		m_preview.depth_stencil_texture = rhi_context->CreateTexture2D(500, 500, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false);
+		m_preview.render_target         = rhi_context->CreateRenderTarget();
+		m_preview.render_target->Set(0, m_preview.render_target_texture.get(), RHITextureDimension::Texture2D, ColorAttachment{});
+		m_preview.render_target->Set(m_preview.depth_stencil_texture.get(), RHITextureDimension::Texture2D, DepthStencilAttachment{});
+
+		{
+			auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Graphics);
+			cmd_buffer->Begin();
+			cmd_buffer->ResourceStateTransition({TextureStateTransition{m_preview.render_target_texture.get(), RHIResourceState::Undefined, RHIResourceState::ShaderResource, TextureRange{}}}, {});
+			cmd_buffer->End();
+			rhi_context->Execute({cmd_buffer});
+		}
 	}
 
 	virtual ~MaterialGraphEditor() override
@@ -53,7 +112,8 @@ class MaterialGraphEditor : public Widget
 		}
 
 		auto *resource_manager = p_editor->GetRenderer()->GetResourceManager();
-		auto *resource         = resource_manager->Get<ResourceType::Material>(m_material_name);
+
+		auto *resource = resource_manager->Get<ResourceType::Material>(m_material_name);
 
 		ImGui::Columns(2);
 
@@ -63,33 +123,15 @@ class MaterialGraphEditor : public Widget
 
 			ImGui::Text("Material Editor Inspector");
 
+			if (resource)
 			{
-				ImGui::PushItemWidth(100.f);
-				char buf[128] = {0};
-				std::memcpy(buf, m_material_name.data(), sizeof(buf));
-				if (ImGui::InputText("##NewMaterial", buf, sizeof(buf)))
-				{
-					m_material_name = buf;
-				}
-				ImGui::PopItemWidth();
-
-				ImGui::SameLine();
-
-				if (!m_material_name.empty() && !resource)
-				{
-					if (ImGui::Button("New Material"))
-					{
-						MaterialGraphDesc desc;
-						desc.SetName(m_material_name);
-						resource_manager->Add<ResourceType::Material>(p_editor->GetRHIContext(), m_material_name, std::move(desc));
-						resource = resource_manager->Get<ResourceType::Material>(m_material_name);
-					}
-				}
-				else
-				{
-					ImGui::Text("Material Name");
-				}
+				Render(resource);
+				float width = glm::min(ImGui::GetColumnWidth(), 300.f);
+				ImGui::Image(m_preview.render_target_texture.get(), ImVec2(width, width));
+				UpdateCamera();
 			}
+
+			SetMaterial(resource, resource_manager);
 
 			if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
 			{
@@ -129,6 +171,35 @@ class MaterialGraphEditor : public Widget
 		ImGui::EndChild();
 
 		ImGui::End();
+	}
+
+	void SetMaterial(Resource<ResourceType::Material> *resource, ResourceManager *manager)
+	{
+		ImGui::PushItemWidth(100.f);
+		char buf[128] = {0};
+		std::memcpy(buf, m_material_name.data(), sizeof(buf));
+		if (ImGui::InputText("##NewMaterial", buf, sizeof(buf)))
+		{
+			m_material_name = buf;
+		}
+		ImGui::PopItemWidth();
+
+		ImGui::SameLine();
+
+		if (!m_material_name.empty() && !resource)
+		{
+			if (ImGui::Button("New Material"))
+			{
+				MaterialGraphDesc desc;
+				desc.SetName(m_material_name);
+				manager->Add<ResourceType::Material>(p_editor->GetRHIContext(), m_material_name, std::move(desc));
+				resource = manager->Get<ResourceType::Material>(m_material_name);
+			}
+		}
+		else
+		{
+			ImGui::Text("Material Name");
+		}
 	}
 
 	void DragDropResource()
@@ -351,8 +422,66 @@ class MaterialGraphEditor : public Widget
 		}
 	}
 
-	void Preview()
+	void UpdateCamera()
 	{
+		float delta_time = ImGui::GetIO().DeltaTime;
+
+		if (ImGui::IsItemHovered())
+		{
+			if (ImGui::IsMouseDragging(ImGuiMouseButton_Right))
+			{
+				ImVec2 delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right);
+				ImGui::ResetMouseDragDelta(ImGuiMouseButton_Right);
+				m_view.phi -= delta.y * delta_time * 50.f;
+				m_view.theta -= delta.x * delta_time * 50.f;
+			}
+			m_view.radius += ImGui::GetIO().MouseWheel * delta_time * 10.f;
+		}
+
+		m_view.Update();
+	}
+
+	void Render(Resource<ResourceType::Material> *resource)
+	{
+		auto *renderer    = p_editor->GetRenderer();
+		auto *rhi_context = p_editor->GetRHIContext();
+
+		auto &material_data = resource->GetMaterialData();
+
+		ShaderMeta meta;
+
+		{
+			auto *vertex_shader = renderer->RequireShader("Source/Shaders/MaterialEditor.hlsl", "VSmain", RHIShaderStage::Vertex, {"USE_MATERIAL", material_data.signature}, {material_data.shader});
+			auto *frag_shader   = renderer->RequireShader("Source/Shaders/MaterialEditor.hlsl", "PSmain", RHIShaderStage::Fragment, {"USE_MATERIAL", material_data.signature}, {material_data.shader});
+
+			m_preview.pipeline->ClearShader();
+			m_preview.pipeline->SetShader(RHIShaderStage::Vertex, vertex_shader);
+			m_preview.pipeline->SetShader(RHIShaderStage::Fragment, frag_shader);
+
+			meta = renderer->RequireShaderMeta(vertex_shader);
+			meta += renderer->RequireShaderMeta(frag_shader);
+		}
+
+		auto *descriptor = rhi_context->CreateDescriptor(meta);
+		descriptor->BindBuffer("UniformBuffer", m_view.buffer.get());
+		material_data.Bind(descriptor);
+
+		auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Graphics);
+		cmd_buffer->Begin();
+		cmd_buffer->ResourceStateTransition({TextureStateTransition{m_preview.render_target_texture.get(), RHIResourceState::ShaderResource, RHIResourceState::RenderTarget, TextureRange{}}}, {});
+		cmd_buffer->BeginRenderPass(m_preview.render_target.get());
+		cmd_buffer->SetViewport(static_cast<float>(m_preview.render_target->GetWidth()), static_cast<float>(m_preview.render_target->GetHeight()));
+		cmd_buffer->SetScissor(m_preview.render_target->GetWidth(), m_preview.render_target->GetHeight());
+		cmd_buffer->BindDescriptor(descriptor);
+		cmd_buffer->BindPipelineState(m_preview.pipeline.get());
+		cmd_buffer->BindVertexBuffer(0, m_material_ball.vertex_buffer.get());
+		cmd_buffer->BindIndexBuffer(m_material_ball.index_buffer.get());
+		cmd_buffer->DrawIndexed(m_material_ball.indices_count);
+		cmd_buffer->EndRenderPass();
+		cmd_buffer->ResourceStateTransition({TextureStateTransition{m_preview.render_target_texture.get(), RHIResourceState::RenderTarget, RHIResourceState::ShaderResource, TextureRange{}}}, {});
+		cmd_buffer->End();
+
+		rhi_context->Submit({cmd_buffer});
 	}
 
   private:
@@ -368,21 +497,64 @@ class MaterialGraphEditor : public Widget
 	struct
 	{
 		glm::vec3 center = glm::vec3(0.f);
-		float     radius = 0.f;
-		float     theta  = 0.f;
-		float     phi    = 90.f;
+
+		float radius = 5.f;
+		float theta  = 0.f;
+		float phi    = 90.f;
+
+		void Reset()
+		{
+			center = glm::vec3(0.f);
+			radius = 5.f;
+			theta  = 0.f;
+			phi    = 90.f;
+
+			Update();
+		}
+
+		void Update()
+		{
+			// float delta_time = ImGui::GetIO().DeltaTime;
+
+			// if (ImGui::IsWindowHovered())
+			//{
+			//	if (ImGui::IsMouseDragging(ImGuiMouseButton_Right))
+			//	{
+			//		ImVec2 delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right);
+			//		ImGui::ResetMouseDragDelta(ImGuiMouseButton_Right);
+			//		m_view.phi -= delta.y * delta_time * 50.f;
+			//		m_view.theta -= delta.x * delta_time * 50.f;
+			//	}
+			//	m_view.radius += m_scale_factor * ImGui::GetIO().MouseWheel * delta_time * 10.f;
+			// }
+
+			glm::vec3 position  = center + radius * glm::vec3(glm::sin(glm::radians(phi)) * glm::sin(glm::radians(theta)), glm::cos(glm::radians(phi)), glm::sin(glm::radians(phi)) * glm::cos(glm::radians(theta)));
+			glm::vec3 direction = glm::normalize(center - position);
+			glm::vec3 right     = glm::normalize(glm::cross(direction, glm::vec3{0.f, 1.f, 0.f}));
+			glm::vec3 up        = glm::normalize(glm::cross(right, direction));
+			glm::mat4 transform = glm::perspective(glm::radians(45.f), 1.f, 0.01f, 1000.f) * glm::lookAt(position, center, up);
+
+			buffer->CopyToDevice(&transform, sizeof(transform));
+		}
+
+		std::unique_ptr<RHIBuffer> buffer = nullptr;
+
 	} m_view;
 
 	struct
 	{
 		std::unique_ptr<RHIBuffer> vertex_buffer = nullptr;
 		std::unique_ptr<RHIBuffer> index_buffer  = nullptr;
+
+		uint32_t indices_count = 0;
 	} m_material_ball;
 
 	struct
 	{
-		std::unique_ptr<RHITexture>       render_target = nullptr;
-		std::unique_ptr<RHIPipelineState> pipeline      = nullptr;
+		std::unique_ptr<RHIPipelineState> pipeline              = nullptr;
+		std::unique_ptr<RHITexture>       render_target_texture = nullptr;
+		std::unique_ptr<RHITexture>       depth_stencil_texture = nullptr;
+		std::unique_ptr<RHIRenderTarget>  render_target         = nullptr;
 	} m_preview;
 
 	std::map<MaterialNodePin::Type, uint32_t> m_pin_color = {

@@ -73,7 +73,7 @@ void Resource<ResourceType::Material>::Compile(RHIContext *rhi_context, Resource
 		node.EmitHLSL(m_impl->desc, manager, &m_impl->context);
 	}
 
-	if (!m_impl->context.bsdfs.empty())
+	if (!m_impl->context.output.bsdf.empty())
 	{
 		std::vector<uint8_t> shader_data;
 		Path::GetInstance().Read("Source/Shaders/Material.hlsli", shader_data);
@@ -98,27 +98,37 @@ void Resource<ResourceType::Material>::Compile(RHIContext *rhi_context, Resource
 			{
 				samplers << kainjow::mustache::data{"Sampler", sampler};
 			}
-			for (uint32_t i = 0; i < m_impl->context.bsdfs.size() - 1; i++)
+			for (auto&bsdf: m_impl->context.bsdfs)
 			{
-				initializations << kainjow::mustache::data{"Initialization", fmt::format("{} {}", m_impl->context.bsdfs[i].type, m_impl->context.bsdfs[i].initialization)};
+				if (bsdf.name != m_impl->context.output.bsdf)
+				{
+					initializations << kainjow::mustache::data{"Initialization", fmt::format("{} {};", bsdf.type, bsdf.name)};
+					initializations << kainjow::mustache::data{"Initialization", fmt::format("{}", bsdf.initialization)};
+				}
+				else
+				{
+					mustache_data.set("BxDFType", bsdf.type);
+					mustache_data.set("BxDFName", bsdf.name);
+				}
 			}
 			initializations << kainjow::mustache::data{"Initialization", m_impl->context.bsdfs.back().initialization};
 
-			mustache_data.set("BxDFType", m_impl->context.bsdfs.back().type);
-			mustache_data.set("BxDFName", m_impl->context.bsdfs.back().name);
 			mustache_data.set("Initializations", initializations);
 			mustache_data.set("Textures", textures);
 			mustache_data.set("Samplers", samplers);
 		}
 
 		shader = mustache.render(mustache_data);
+		shader = std::string(shader.c_str());
+
+		m_impl->data.signature = fmt::format("Signature_{}", Hash(shader));
 
 		shader_data.resize(shader.length());
 		std::memcpy(shader_data.data(), shader.data(), shader_data.size());
 
-		m_impl->data.shader = fmt::format("Asset/Material/{}.material.hlsli", m_impl->desc.GetName());
+		m_impl->data.shader = fmt::format("{}.material.hlsli", m_impl->desc.GetName());
 
-		Path::GetInstance().Save(m_impl->data.shader, shader_data);
+		Path::GetInstance().Save(fmt::format("Asset/Material/{}", m_impl->data.shader), shader_data);
 
 		// Update samplers
 		for (auto &[sampler, desc] : m_impl->context.samplers)
@@ -128,7 +138,7 @@ void Resource<ResourceType::Material>::Compile(RHIContext *rhi_context, Resource
 	}
 	else
 	{
-		m_impl->data.shader = "Asset/Material/default.material.hlsli";
+		m_impl->data.shader = "Source/Shaders/Material/Material.hlsli";
 	}
 
 	std::vector<uint8_t> thumbnail_data;

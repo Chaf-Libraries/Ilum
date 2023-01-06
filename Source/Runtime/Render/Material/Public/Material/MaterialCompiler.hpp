@@ -26,6 +26,11 @@ struct MaterialCompilationContext
 
 	std::vector<BSDF> bsdfs;
 
+	struct
+	{
+		std::string bsdf = "";
+	}output;
+
 	std::unordered_set<size_t> finish_nodes;
 
 	void Reset()

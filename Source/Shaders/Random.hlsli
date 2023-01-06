@@ -1,7 +1,7 @@
 #ifndef __RANDOM_HLSL__
 #define __RANDOM_HLSL__
 
-#include "Constants.hlsli"
+#include "Math.hlsli"
 
 struct PCGSampler
 {

@@ -5,6 +5,8 @@
 #include "Random.hlsli"
 
 #include "Material/BSDF/BSDF.hlsli"
+#include "Material/BSDF/DiffuseBSDF.hlsli"
+#include "Material/BSDF/BlendBSDF.hlsli"
 
 {{#Textures}}
 Texture2D<float4> {{Texture}};
@@ -16,7 +18,7 @@ SamplerState {{Sampler}};
 
 struct BSDF
 {
-    {{&BxDFType}} {{&BxDFName}}
+    {{&BxDFType}} {{&BxDFName}};
 
     void Init()
     {
@@ -39,7 +41,7 @@ struct BSDF
     {
         return {{&BxDFName}}.Samplef(wo, uc, u, mode, flags);
     }
-}
+};
 
 struct Material
 {
@@ -49,6 +51,6 @@ struct Material
     {
         bsdf.Init();
     }
-}
+};
 
 #endif

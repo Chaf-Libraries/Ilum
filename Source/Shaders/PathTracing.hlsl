@@ -1,6 +1,7 @@
 #include "Interaction.hlsli"
 #include "Math.hlsli"
 #include "Common.hlsli"
+#include "Material/BSDF/BSDF.hlsli"
 
 RaytracingAccelerationStructure TopLevelAS;
 ConstantBuffer<View> ViewBuffer;
@@ -10,11 +11,13 @@ RWTexture2D<float4> Output;
 #define RAYGEN_SHADER
 #define CLOSESTHIT_SHADER
 #define MISS_SHADER
+#include "Material/Material.hlsli"
 #endif
 
 struct PayLoad
 {
     SurfaceInteraction interaction;
+
     float pdf;
     float3 wi;
     float4 color;
@@ -65,6 +68,9 @@ void RayGenMain()
 [shader("closesthit")]
 void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleIntersectionAttributes attributes)
 {
+    Material material;
+    material.Init();
+    
     RayDesc ray;
     ray.Direction = WorldRayDirection();
     ray.Origin = WorldRayOrigin();
@@ -78,7 +84,7 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
     //LightBuffer.GetDimensions(light_count, stride);
     
     pay_load.interaction.isect.t = RayTCurrent();
-    pay_load.color = 1.f;
+    pay_load.color = float4(material.bsdf.Eval(0, 0, TransportMode_Radiance), 1.f);
     
     //float3 wo = pay_load.interaction.p - View.position;
     

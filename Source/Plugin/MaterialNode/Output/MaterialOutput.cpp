@@ -35,6 +35,7 @@ class MaterialOutput : public MaterialNode<MaterialOutput>
 		{
 			auto &surface_bsdf_node = graph_desc.GetNode(graph_desc.LinkFrom(surface_bsdf_pin.handle));
 			surface_bsdf_node.EmitHLSL(graph_desc, manager, context);
+			context->output.bsdf = fmt::format("S_{}", surface_bsdf_node.GetPin(graph_desc.LinkFrom(surface_bsdf_pin.handle)).handle);
 		}
 
 		// Volume BSDF
