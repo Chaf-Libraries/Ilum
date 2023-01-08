@@ -176,13 +176,35 @@ RHISampler *RHIContext::CreateSampler(const SamplerDesc &desc)
 {
 	size_t hash = Hash(desc.address_mode_u, desc.address_mode_v, desc.address_mode_w, desc.anisotropic, desc.border_color, desc.mag_filter, desc.max_lod, desc.min_filter, desc.min_lod, desc.mipmap_mode, desc.mip_lod_bias);
 
-	if (m_samplers.find(hash) != m_samplers.end())
+	if (m_sampler_lookup.find(hash) == m_sampler_lookup.end())
 	{
-		return m_samplers.at(hash).get();
+		m_sampler_lookup.emplace(hash, m_samplers.size());
+		m_samplers.emplace_back(RHISampler::Create(m_device.get(), desc));
 	}
 
-	m_samplers.emplace(hash, RHISampler::Create(m_device.get(), desc));
-	return m_samplers.at(hash).get();
+	return m_samplers.at(m_sampler_lookup.at(hash)).get();
+}
+
+uint32_t RHIContext::GetSamplerIndex(const SamplerDesc &desc)
+{
+	size_t hash = Hash(desc.address_mode_u, desc.address_mode_v, desc.address_mode_w, desc.anisotropic, desc.border_color, desc.mag_filter, desc.max_lod, desc.min_filter, desc.min_lod, desc.mipmap_mode, desc.mip_lod_bias);
+	if (m_sampler_lookup.find(hash) == m_sampler_lookup.end())
+	{
+		CreateSampler(desc);
+	}
+	return static_cast<uint32_t>(m_sampler_lookup.at(hash));
+}
+
+std::vector<RHISampler *> RHIContext::GetSamplers() const
+{
+	std::vector<RHISampler *>samplers(m_samplers.size());
+	std::transform(m_samplers.begin(), m_samplers.end(), samplers.begin(), [](const std::unique_ptr<RHISampler> &sampler) { return sampler.get(); });
+	return samplers;
+}
+
+size_t RHIContext::GetSamplerCount() const
+{
+	return m_samplers.size();
 }
 
 RHICommand *RHIContext::CreateCommand(RHIQueueFamily family, bool cuda)
@@ -190,7 +212,7 @@ RHICommand *RHIContext::CreateCommand(RHIQueueFamily family, bool cuda)
 	return cuda ? m_cuda_frames[m_current_frame]->AllocateCommand(family) : m_frames[m_current_frame]->AllocateCommand(family);
 }
 
-RHIDescriptor* RHIContext::CreateDescriptor(const ShaderMeta &meta, bool cuda)
+RHIDescriptor *RHIContext::CreateDescriptor(const ShaderMeta &meta, bool cuda)
 {
 	return cuda ? m_cuda_frames[m_current_frame]->AllocateDescriptor(meta) : m_frames[m_current_frame]->AllocateDescriptor(meta);
 }

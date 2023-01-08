@@ -6,27 +6,34 @@ namespace Ilum
 {
 struct MaterialData
 {
-	std::unordered_map<std::string, RHISampler *> samplers;
-	std::unordered_map<std::string, RHITexture *> textures;
+	std::vector<uint32_t> textures;
+	std::vector<uint32_t> samplers;
 
-	std::string shader = "Material/Material.hlsli";
+	std::unique_ptr<RHIBuffer> uniform_buffer = nullptr;
+
+	std::string shader    = "Material/Material.hlsli";
 	std::string signature = "Signature_0";
+
+	void Reset()
+	{
+		textures.clear();
+		samplers.clear();
+		shader    = "Material/Material.hlsli";
+		signature = "Signature_0";
+	}
 
 	void Bind(RHIPipelineState *pipeline_state) const
 	{
-
 	}
 
-	void Bind(RHIDescriptor *descriptor) const
+	void Bind(RHIDescriptor *descriptor, const std::vector<RHITexture *> &textures, const std::vector<RHISampler *> &samplers) const
 	{
-		for (auto &[name, sampler] : samplers)
+		if (!textures.empty() || !samplers.empty())
 		{
-			descriptor->BindSampler(name, sampler);
-		}
-
-		for (auto &[name, texture] : textures)
-		{
-			descriptor->BindTexture(name, texture, RHITextureDimension::Texture2D);
+			descriptor
+			    ->BindTexture("Textures", textures, RHITextureDimension::Texture2D)
+			    .BindSampler("Samplers", samplers)
+			    .BindBuffer("UniformBuffer", uniform_buffer.get());
 		}
 	}
 };

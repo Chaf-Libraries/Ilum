@@ -4,18 +4,21 @@
 #include "Attribute.hlsli"
 #include "Random.hlsli"
 #include "Interaction.hlsli"
+#include "Material_Resource.hlsli"
 
 #include "Material/BSDF/BSDF.hlsli"
 #include "Material/BSDF/DiffuseBSDF.hlsli"
 #include "Material/BSDF/BlendBSDF.hlsli"
 
-{{#Textures}}
-Texture2D<float4> {{Texture}};
-{{/Textures}}
-
-{{#Samplers}}
-SamplerState {{Sampler}};
-{{/Samplers}}
+struct UniformBuffer
+{
+    {{#Textures}}
+    uint {{Texture}};
+    {{/Textures}}
+    {{#Samplers}}
+    uint {{Sampler}};
+    {{/Samplers}}
+}
 
 struct BSDF
 {

@@ -90,6 +90,8 @@ struct GPUScene
 
 	std::vector<const MaterialData *> materials;
 
+	std::vector<RHISampler *> samplers;
+
 	std::unique_ptr<RHIAccelerationStructure> TLAS = nullptr;
 };
 }        // namespace Ilum

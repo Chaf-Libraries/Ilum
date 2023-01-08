@@ -133,7 +133,7 @@ class ImageTexture : public MaterialNode<ImageTexture>
 			parameters[texcoord_pin.name] = "float3(0.f, 0.f, 0.f)";
 		}
 
-		context->variables.emplace_back(fmt::format("float4 S_{} = texture_{}.Sample(sampler_{}, {}.xy);", node_desc.GetHandle(), node_desc.GetHandle(), node_desc.GetHandle(), parameters["Texcoord"]));
+		context->variables.emplace_back(fmt::format("float4 S_{} = Textures[texture_{}].Sample(Samplers[sampler_{}], {}.xy);", node_desc.GetHandle(), node_desc.GetHandle(), node_desc.GetHandle(), parameters["Texcoord"]));
 		context->variables.emplace_back(fmt::format("float3 S_{} = S_{}.xyz;", node_desc.GetPin("Color").handle, node_desc.GetHandle()));
 		context->variables.emplace_back(fmt::format("float S_{} = S_{}.w;", node_desc.GetPin("Alpha").handle, node_desc.GetHandle()));
 	}

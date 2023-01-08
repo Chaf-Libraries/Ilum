@@ -445,6 +445,7 @@ class MaterialGraphEditor : public Widget
 	{
 		auto *renderer    = p_editor->GetRenderer();
 		auto *rhi_context = p_editor->GetRHIContext();
+		auto* gpu_scene = renderer->GetRenderGraphBlackboard().Get<GPUScene>();
 
 		auto &material_data = resource->GetMaterialData();
 
@@ -464,7 +465,7 @@ class MaterialGraphEditor : public Widget
 
 		auto *descriptor = rhi_context->CreateDescriptor(meta);
 		descriptor->BindBuffer("UniformBuffer", m_view.buffer.get());
-		material_data.Bind(descriptor);
+		material_data.Bind(descriptor, gpu_scene->textures.texture_2d, gpu_scene->samplers);
 
 		auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Graphics);
 		cmd_buffer->Begin();

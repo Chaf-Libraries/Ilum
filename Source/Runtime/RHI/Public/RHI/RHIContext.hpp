@@ -80,6 +80,12 @@ class RHIContext
 	// Create Sampler
 	RHISampler *CreateSampler(const SamplerDesc &desc);
 
+	uint32_t GetSamplerIndex(const SamplerDesc &desc);
+
+	std::vector<RHISampler *> GetSamplers() const;
+
+	size_t GetSamplerCount() const;
+
 	// Create Command
 	RHICommand *CreateCommand(RHIQueueFamily family, bool cuda = false);
 
@@ -156,6 +162,7 @@ class RHIContext
 
 	std::vector<SubmitInfo> m_submit_infos;
 
-	std::unordered_map<size_t, std::unique_ptr<RHISampler>> m_samplers;
+	std::vector<std::unique_ptr<RHISampler>> m_samplers;
+	std::unordered_map<size_t, size_t>       m_sampler_lookup;
 };
 }        // namespace Ilum

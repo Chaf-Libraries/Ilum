@@ -483,6 +483,12 @@ void Renderer::UpdateGPUScene()
 		}
 	}
 
+	// Update Sampler
+	if (m_impl->rhi_context->GetSamplerCount() != gpu_scene->samplers.size())
+	{
+		gpu_scene->samplers = m_impl->rhi_context->GetSamplers();
+	}
+
 	// Update Material
 	if (m_impl->resource_manager->Update<ResourceType::Material>())
 	{

@@ -67,6 +67,7 @@ void Resource<ResourceType::Material>::Compile(RHIContext *rhi_context, Resource
 	m_impl->valid = false;
 
 	m_impl->context.Reset();
+	m_impl->data.Reset();
 
 	for (auto &[node_handle, node] : m_impl->desc.GetNodes())
 	{
@@ -133,12 +134,8 @@ void Resource<ResourceType::Material>::Compile(RHIContext *rhi_context, Resource
 		// Update samplers
 		for (auto &[sampler, desc] : m_impl->context.samplers)
 		{
-			m_impl->data.samplers[sampler] = rhi_context->CreateSampler(desc);
+			m_impl->data.samplers.push_back(rhi_context->GetSamplerIndex(desc));
 		}
-	}
-	else
-	{
-		m_impl->data.shader = "Source/Shaders/Material/Material.hlsli";
 	}
 
 	std::vector<uint8_t> thumbnail_data;
@@ -159,10 +156,21 @@ void Resource<ResourceType::Material>::Update(RHIContext *rhi_context, ResourceM
 	else
 	{
 		m_impl->data.textures.clear();
+
 		for (auto &[texture, texture_name] : m_impl->context.textures)
 		{
-			m_impl->data.textures[texture] = manager->Has<ResourceType::Texture2D>(texture_name) ? manager->Get<ResourceType::Texture2D>(texture_name)->GetTexture() : dummy_texture;
+			m_impl->data.textures.push_back(static_cast<uint32_t>(manager->Index<ResourceType::Texture2D>(texture_name)));
 		}
+
+		if (!m_impl->data.uniform_buffer || m_impl->data.uniform_buffer->GetDesc().size != (m_impl->data.textures.size() + m_impl->data.samplers.size()) * sizeof(uint32_t))
+		{
+			m_impl->data.uniform_buffer = rhi_context->CreateBuffer<uint32_t>(m_impl->data.textures.size() + m_impl->data.samplers.size(), RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
+		}
+
+		std::vector<uint32_t> buffer_data = m_impl->data.textures;
+		buffer_data.insert(buffer_data.end(), m_impl->data.samplers.begin(), m_impl->data.samplers.end());
+
+		m_impl->data.uniform_buffer->CopyToDevice(buffer_data.data(), buffer_data.size() * sizeof(uint32_t));
 	}
 }
 
