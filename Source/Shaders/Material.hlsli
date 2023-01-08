@@ -3,6 +3,7 @@
 
 #include "Attribute.hlsli"
 #include "Random.hlsli"
+#include "Interaction.hlsli"
 
 #include "Material/BSDF/BSDF.hlsli"
 #include "Material/BSDF/DiffuseBSDF.hlsli"
@@ -20,7 +21,7 @@ struct BSDF
 {
     {{&BxDFType}} {{&BxDFName}};
 
-    void Init()
+    void Init(SurfaceInteraction surface_interaction)
     {
         {{#Initializations}}
         {{&Initialization}}
@@ -47,9 +48,9 @@ struct Material
 {
     BSDF bsdf;
 
-    void Init()
+    void Init(SurfaceInteraction surface_interaction)
     {
-        bsdf.Init();
+        bsdf.Init(surface_interaction);
     }
 };
 

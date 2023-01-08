@@ -1,3 +1,2 @@
 add_material_node(Input RGB)
-add_material_node(Input InstanceAttribute)
-add_material_node(Input VertexAttribute)
+add_material_node(Input SurfaceInteraction)

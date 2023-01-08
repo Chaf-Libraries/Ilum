@@ -2,6 +2,7 @@
 #define MATERIAL_HLSLI
 
 #include "BSDF/BSDF.hlsli"
+#include "../Interaction.hlsli"
 
 struct BSDF
 {
@@ -31,7 +32,7 @@ struct Material
 {
     BSDF bsdf;
     
-    void Init()
+    void Init(SurfaceInteraction surface_interaction)
     {
         bsdf.Init();
     }

@@ -21,7 +21,8 @@ ConstantBuffer<UniformBlock> UniformBuffer;
 
 struct VSOutput
 {
-    float4 Position : SV_Position;
+    float4 Position_ : SV_Position;
+    float3 Position : POSITION0;
     float3 Normal : NORMAL0;
     float2 Texcoord : TEXCOORD0;
 };
@@ -29,7 +30,8 @@ struct VSOutput
 VSOutput VSmain(VSInput input)
 {
     VSOutput output = (VSOutput) 0;
-    output.Position = mul(UniformBuffer.transform, mul(UniformBuffer.model, float4(input.Position, 1.f)));
+    output.Position_ = mul(UniformBuffer.transform, mul(UniformBuffer.model, float4(input.Position, 1.f)));
+    output.Position = output.Position_.xyz/output.Position_.w;
     output.Normal = input.Normal;
     output.Texcoord = input.Texcoord0;
     return output;
@@ -37,15 +39,20 @@ VSOutput VSmain(VSInput input)
 
 struct PSInput
 {
+    float3 Position : POSITION0;
     float3 Normal : NORMAL0;
     float2 Texcoord : TEXCOORD0;
 };
 
 float4 PSmain(PSInput input) : SV_TARGET
 {
+    SurfaceInteraction surface_interaction;
+    surface_interaction.Init(input.Position, input.Texcoord, 0, 0, 0, 0, 0, 0);
+    surface_interaction.isect.n = input.Normal;
+    surface_interaction.shading.n = input.Normal;
+    
     Material material;
-    material.Init();
-    //return float4(input.Normal, 1.f);
+    material.Init(surface_interaction);
 
     return float4(material.bsdf.Eval(1.f, 1.f, TransportMode_Radiance), 1.f);
 }

@@ -71,6 +71,8 @@ class ResourceBrowser : public Widget
 
 		ImGui::NextColumn();
 
+		ImGui::BeginChild("Resource Browser Viewer", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
+
 		switch (m_current_type)
 		{
 			case ResourceType::Prefab:
@@ -94,6 +96,13 @@ class ResourceBrowser : public Widget
 			default:
 				break;
 		}
+
+		if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+		{
+			ImGui::SetScrollHereY(1.0f);
+		}
+
+		ImGui::EndChild();
 
 		ImGui::End();
 	}
