@@ -23,7 +23,7 @@ struct SamplerDesc
 
 	RHISamplerBorderColor border_color = RHISamplerBorderColor::Float_Transparent_Black;
 
-	bool anisotropic = false;
+	bool anisotropic = true;
 
 	float mip_lod_bias = 0.f;
 	float min_lod      = 0.f;

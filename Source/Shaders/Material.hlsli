@@ -4,13 +4,13 @@
 #include "Attribute.hlsli"
 #include "Random.hlsli"
 #include "Interaction.hlsli"
-#include "Material_Resource.hlsli"
+#include "MaterialResource.hlsli"
 
 #include "Material/BSDF/BSDF.hlsli"
 #include "Material/BSDF/DiffuseBSDF.hlsli"
 #include "Material/BSDF/BlendBSDF.hlsli"
 
-struct UniformBuffer
+struct MaterialData
 {
     {{#Textures}}
     uint {{Texture}};
@@ -18,7 +18,7 @@ struct UniformBuffer
     {{#Samplers}}
     uint {{Sampler}};
     {{/Samplers}}
-}
+};
 
 struct BSDF
 {
@@ -26,6 +26,7 @@ struct BSDF
 
     void Init(SurfaceInteraction surface_interaction)
     {
+        MaterialData material_data = GetMaterialData < MaterialData > (surface_interaction.material);
         {{#Initializations}}
         {{&Initialization}}
         {{/Initializations}}

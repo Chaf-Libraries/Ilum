@@ -15,8 +15,8 @@ class SurfaceInteraction : public MaterialNode<SurfaceInteraction>
 		    .Output(handle++, "Position", MaterialNodePin::Type::Float3)
 		    .Output(handle++, "Normal", MaterialNodePin::Type::Float3)
 		    .Output(handle++, "UV", MaterialNodePin::Type::Float3)
-		    .Output(handle++, "Ray Direction", MaterialNodePin::Type::Float3)
-		    .Output(handle++, "Ray Distance", MaterialNodePin::Type::Float);
+		    .Output(handle++, "dUVdx", MaterialNodePin::Type::Float3)
+		    .Output(handle++, "dUVdy", MaterialNodePin::Type::Float3);
 	}
 
 	virtual void OnImGui(MaterialNodeDesc &node_desc, Editor *editor) override
@@ -31,10 +31,10 @@ class SurfaceInteraction : public MaterialNode<SurfaceInteraction>
 		}
 
 		context->variables.emplace_back(fmt::format("float3 S_{} = surface_interaction.isect.p;", node_desc.GetPin("Position").handle));
-		context->variables.emplace_back(fmt::format("float3 S_{} = surface_interaction.shading.n;", node_desc.GetPin("Normal").handle));
-		context->variables.emplace_back(fmt::format("float3 S_{} = float3(surface_interaction.isect.uv, 1.f);", node_desc.GetPin("UV").handle));
-		context->variables.emplace_back(fmt::format("float3 S_{} = surface_interaction.isect.wo;", node_desc.GetPin("Ray Direction").handle));
-		context->variables.emplace_back(fmt::format("float S_{} = surface_interaction.isect.t;", node_desc.GetPin("Ray Distance").handle));
+		context->variables.emplace_back(fmt::format("float3 S_{} = surface_interaction.isect.n;", node_desc.GetPin("Normal").handle));
+		context->variables.emplace_back(fmt::format("float3 S_{} = float3(surface_interaction.isect.uv, 0.f);", node_desc.GetPin("UV").handle));
+		context->variables.emplace_back(fmt::format("float3 S_{} = float3(surface_interaction.duvdx, 0.f);", node_desc.GetPin("dUVdx").handle));
+		context->variables.emplace_back(fmt::format("float3 S_{} = float3(surface_interaction.duvdy, 0.f);", node_desc.GetPin("dUVdy").handle));
 	}
 };
 

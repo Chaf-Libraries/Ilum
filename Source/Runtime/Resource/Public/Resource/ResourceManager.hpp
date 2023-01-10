@@ -75,6 +75,12 @@ class EXPORT_API ResourceManager
 		return Update(Type);
 	}
 
+	template <ResourceType Type>
+	void SetDirty()
+	{
+		SetDirty(Type);
+	}
+
   private:
 	IResource *Get(ResourceType type, size_t uuid);
 
@@ -95,6 +101,8 @@ class EXPORT_API ResourceManager
 	const std::vector<std::string> GetResources(ResourceType type, bool only_valid) const;
 
 	bool Update(ResourceType type) const;
+
+	void SetDirty(ResourceType type);
 
   private:
 	struct Impl;

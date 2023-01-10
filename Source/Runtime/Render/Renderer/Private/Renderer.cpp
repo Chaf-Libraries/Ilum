@@ -2,6 +2,7 @@
 #include "RenderData.hpp"
 
 #include <Core/Path.hpp>
+#include <Material/MaterialData.hpp>
 #include <RHI/RHIContext.hpp>
 #include <RenderGraph/RenderGraph.hpp>
 #include <Resource/Resource/Animation.hpp>
@@ -210,6 +211,7 @@ void Renderer::UpdateView(Cmpt::Camera *camera)
 		view_info.inv_view_matrix            = camera->GetInvViewMatrix();
 		view_info.view_projection_matrix     = camera->GetViewProjectionMatrix();
 		view_info.inv_view_projection_matrix = camera->GetInvViewProjectionMatrix();
+		view_info.viewport                   = m_impl->viewport;
 
 		view->buffer->CopyToDevice(&view_info, sizeof(View::Info));
 	}
@@ -272,7 +274,7 @@ void Renderer::UpdateGPUScene()
 			auto &materials = mesh->GetMaterials();
 			for (uint32_t i = 0; i < submeshes.size(); i++)
 			{
-				auto &submesh  = submeshes[i];
+				auto &submesh = submeshes[i];
 
 				auto *resource = m_impl->resource_manager->Get<ResourceType::Mesh>(submesh);
 
@@ -285,7 +287,7 @@ void Renderer::UpdateGPUScene()
 
 					if (i < materials.size())
 					{
-						uint32_t material_id = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Material>(materials[i]));
+						instance.material_id = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Material>(materials[i])) + 1;
 					}
 					else
 					{
@@ -492,12 +494,43 @@ void Renderer::UpdateGPUScene()
 	// Update Material
 	if (m_impl->resource_manager->Update<ResourceType::Material>())
 	{
-		gpu_scene->materials.clear();
+		gpu_scene->material.data.clear();
 		auto resources = m_impl->resource_manager->GetResources<ResourceType::Material>();
+
+		std::vector<uint32_t> material_data;
+		std::vector<uint32_t> material_offset;
+
 		for (auto &resource : resources)
 		{
 			auto *material = m_impl->resource_manager->Get<ResourceType::Material>(resource);
-			gpu_scene->materials.push_back(&material->GetMaterialData());
+
+			const auto &data = material->GetMaterialData();
+
+			material_offset.push_back(static_cast<uint32_t>(material_data.size() * sizeof(uint32_t)));
+			material_data.insert(material_data.end(), data.textures.begin(), data.textures.end());
+			material_data.insert(material_data.end(), data.samplers.begin(), data.samplers.end());
+
+			gpu_scene->material.data.push_back(&data);
+		}
+
+		if (!material_data.empty())
+		{
+			if (!gpu_scene->material.material_buffer ||
+			    material_data.size() * sizeof(uint32_t) != gpu_scene->material.material_buffer->GetDesc().size)
+			{
+				gpu_scene->material.material_buffer = m_impl->rhi_context->CreateBuffer<uint32_t>(material_data.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+			}
+			gpu_scene->material.material_buffer->CopyToDevice(material_data.data(), material_data.size() * sizeof(uint32_t));
+		}
+
+		if (!material_offset.empty())
+		{
+			if (!gpu_scene->material.material_offset ||
+			    material_offset.size() * sizeof(uint32_t) != gpu_scene->material.material_offset->GetDesc().size)
+			{
+				gpu_scene->material.material_offset = m_impl->rhi_context->CreateBuffer<uint32_t>(material_offset.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+			}
+			gpu_scene->material.material_offset->CopyToDevice(material_offset.data(), material_offset.size() * sizeof(uint32_t));
 		}
 	}
 }

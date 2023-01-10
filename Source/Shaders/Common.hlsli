@@ -5,31 +5,6 @@
 
 #define MAX_BONE_INFLUENCE 8
 
-struct View
-{
-    float4x4 view_matrix;
-    float4x4 inv_view_matrix;
-    float4x4 projection_matrix;
-    float4x4 inv_projection_matrix;
-    float4x4 view_projection_matrix;
-    float3 position;
-    uint frame_count;
-    
-    RayDesc CastRay(float2 sceneUV)
-    {
-        RayDesc ray;
-
-        float4 target = mul(inv_projection_matrix, float4(sceneUV.x, sceneUV.y, 1, 1));
-
-        ray.Origin = mul(inv_view_matrix, float4(0, 0, 0, 1)).xyz;
-        ray.Direction = mul(inv_view_matrix, float4(normalize(target.xyz), 0)).xyz;
-        ray.TMin = 0.0;
-        ray.TMax = Infinity;
-
-        return ray;
-    }
-};
-
 struct Vertex
 {
     float3 position;
@@ -73,6 +48,66 @@ struct Instance
     uint mesh_id;
     uint material_id;
     uint animation_id;
+};
+
+struct RayDiff
+{
+    float3 dOdx;
+    float3 dOdy;
+    float3 dDdx;
+    float3 dDdy;
+    
+    void Propagate(float3 direction, float t, float3 normal)
+    {
+        float3 dodx = dOdx + t * dDdx;
+        float3 dody = dOdy + t * dDdy;
+
+        float rcpDN = 1.0f / dot(direction, normal);
+        float dtdx = -dot(dodx, normal) * rcpDN;
+        float dtdy = -dot(dody, normal) * rcpDN;
+        dodx += direction * dtdx;
+        dody += direction * dtdy;
+
+        dOdx = dodx;
+        dOdy = dody;
+    } 
+};
+
+struct View
+{
+    float4x4 view_matrix;
+    float4x4 inv_view_matrix;
+    float4x4 projection_matrix;
+    float4x4 inv_projection_matrix;
+    float4x4 view_projection_matrix;
+    float3 position;
+    uint frame_count;
+    float2 viewport;
+    
+    void CastRay(float2 scene_uv, out RayDesc ray, out RayDiff ray_diff)
+    {
+        float yaw =atan2(-view_matrix[2][2], -view_matrix[0][2]);
+        float pitch = asin(-clamp(view_matrix[1][2], -1.f, 1.f));
+        float3 forward = normalize(float3(cos(yaw) * cos(pitch), sin(pitch), sin(yaw) * cos(pitch)));
+        float3 right = normalize(cross(forward, float3(0, 1, 0)));
+        float3 up = normalize(cross(right, forward));
+        
+        float4 target = mul(inv_projection_matrix, float4(scene_uv.x, scene_uv.y, 1, 1));
+
+        ray.Origin = mul(inv_view_matrix, float4(0, 0, 0, 1)).xyz;
+        ray.Direction = mul(inv_view_matrix, float4(normalize(target.xyz), 0)).xyz;
+        ray.TMin = 0.0;
+        ray.TMax = Infinity;
+
+        ray_diff.dOdx = 0;
+        ray_diff.dOdy = 0;
+        float dd = dot(ray.Direction, ray.Direction);
+        float divd = 2.0f / (dd * sqrt(dd));
+        float dr = dot(ray.Direction, right);
+        float du = dot(ray.Direction, up);
+        ray_diff.dDdx = ((dd * right) - (dr * ray.Direction)) * divd / viewport.x;
+        ray_diff.dDdy = -((dd * up) - (du * ray.Direction)) * divd / viewport.y;
+    }
 };
 
 struct CSParam

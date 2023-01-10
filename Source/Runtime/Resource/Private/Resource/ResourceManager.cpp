@@ -45,6 +45,8 @@ struct IResourceManager
 
 	virtual bool Update() const = 0;
 
+	virtual void SetDirty() = 0;
+
 	RHIContext *rhi_context = nullptr;
 };
 
@@ -206,6 +208,11 @@ struct TResourceManager : public IResourceManager
 		return update;
 	}
 
+	virtual void SetDirty() override
+	{
+		update = true;
+	}
+
 	std::vector<std::unique_ptr<Resource<_Ty>>> resources;
 	std::unordered_map<size_t, size_t>          resource_lookup;
 	// std::unordered_map<size_t, size_t>          valid_lookup;        // uuid - index
@@ -363,5 +370,10 @@ const std::vector<std::string> ResourceManager::GetResources(ResourceType type, 
 bool ResourceManager::Update(ResourceType type) const
 {
 	return m_impl->managers.at(type)->Update();
+}
+
+void ResourceManager::SetDirty(ResourceType type)
+{
+	return m_impl->managers.at(type)->SetDirty();
 }
 }        // namespace Ilum

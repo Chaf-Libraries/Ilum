@@ -16,7 +16,7 @@ Sampler::Sampler(RHIDevice *device, const SamplerDesc &desc) :
 	create_info.addressModeV        = ToVulkanAddressMode[desc.address_mode_v];
 	create_info.addressModeW        = ToVulkanAddressMode[desc.address_mode_w];
 	create_info.anisotropyEnable    = desc.anisotropic;
-	create_info.maxAnisotropy       = 1000.f;
+	create_info.maxAnisotropy       = 16.f;
 	create_info.mipLodBias          = desc.mip_lod_bias;
 	create_info.minLod              = desc.min_lod;
 	create_info.maxLod              = desc.max_lod;

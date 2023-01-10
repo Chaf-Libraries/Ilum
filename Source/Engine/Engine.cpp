@@ -54,6 +54,9 @@ void Engine::Tick()
 			// Render loop
 			m_renderer->Tick();
 
+			// Update resource manager
+			m_resource_manager->Tick();
+
 			// Render UI
 			m_editor->PreTick();
 			m_editor->Tick();

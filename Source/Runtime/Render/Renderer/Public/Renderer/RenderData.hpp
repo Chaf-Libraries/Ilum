@@ -25,6 +25,7 @@ struct View
 		glm::mat4 inv_view_projection_matrix;
 		glm::vec3 position;
 		uint32_t  frame_count;
+		glm::vec2 viewport;
 	};
 
 	std::unique_ptr<RHIBuffer> buffer = nullptr;
@@ -88,7 +89,13 @@ struct GPUScene
 		std::vector<RHITexture *> texture_2d;
 	} textures;
 
-	std::vector<const MaterialData *> materials;
+	struct
+	{
+		std::vector<const MaterialData *> data;
+
+		std::unique_ptr<RHIBuffer> material_buffer = nullptr;
+		std::unique_ptr<RHIBuffer> material_offset = nullptr;
+	} material;
 
 	std::vector<RHISampler *> samplers;
 

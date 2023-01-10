@@ -113,7 +113,7 @@ struct SurfaceInteraction
 {
     Interaction isect;
     
-    float3 dpdu, dpdv;
+    /*float3 dpdu, dpdv;
     float3 dndu, dndv;
     
     struct
@@ -121,51 +121,12 @@ struct SurfaceInteraction
         float3 n;
         float3 dpdu, dpdv;
         float3 dndu, dndv;
-    } shading;
+    } shading;*/
   
     uint material;
     float3 dpdx, dpdy;
-    float dudx, dvdx, dudy, dvdy;
-    
-    void Init(float3 p_, float2 uv_, float3 wo_, float t_, float3 dpdu_, float3 dpdv_, float3 dndu_, float3 dndv_)
-    {
-        isect.Init(p_, normalize(cross(dpdu, dpdv)), uv_, wo_, t_);
-        dpdu = dpdu_;
-        dpdv = dpdv_;
-        dndu = dndu_;
-        dndv = dndv_;
-        
-        shading.dpdu = dpdu_;
-        shading.dpdv = dpdv_;
-        shading.dndu = dndu_;
-        shading.dndv = dndv_;
-        shading.n = isect.n;
-    }
-    
-    void SetShadingGeometry(float3 ns, float3 dpdus, float3 dpdvs, float3 dndus, float3 dndvs, bool authoritative_orientation)
-    {
-        shading.n = ns;
-        if (authoritative_orientation)
-        {
-            isect.n = (dot(isect.n, shading.n) < 0.f) ? -isect.n : isect.n;
-        }
-        else
-        {
-            shading.n = (dot(shading.n, isect.n) < 0.f) ? -shading.n : shading.n;
-        }
-        
-        shading.dpdu = dpdus;
-        shading.dpdv = dpdvs;
-        shading.dndu = dndus;
-        shading.dndv = dndvs;
-        
-        while (dot(shading.dpdu, shading.dpdu) > 1e16 ||
-            dot(shading.dpdu, shading.dpdv) > 1e16)
-        {
-            shading.dpdu /= 1e8f;
-            shading.dpdv /= 1e8f;
-        }
-    }
+    float3 dndx, dndy;
+    float2 duvdx, duvdy;
 };
 
 #endif 

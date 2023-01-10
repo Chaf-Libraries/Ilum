@@ -35,13 +35,12 @@ class MaterialGraphEditor : public Widget
 		auto *rhi_context = editor->GetRenderer()->GetRHIContext();
 		auto *renderer    = editor->GetRenderer();
 
-		m_view.buffer = rhi_context->CreateBuffer<glm::mat4>(2, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
+		m_view.buffer = rhi_context->CreateBuffer(sizeof(m_view.uniform_block), RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
 		m_view.Reset();
 		m_view.Update();
 
 		{
-			glm::mat4 model = glm::mat4_cast(glm::qua<float>(glm::radians(glm::vec3(135.f, 0.f, 180.f))));
-			m_view.buffer->CopyToDevice(&model, sizeof(model), sizeof(glm::mat4));
+			m_view.uniform_block.model = glm::mat4_cast(glm::qua<float>(glm::radians(glm::vec3(135.f, 0.f, 180.f))));
 		}
 
 		m_material_ball.vertex_buffer = rhi_context->CreateBuffer<Resource<ResourceType::Mesh>::Vertex>(vertices.size(), RHIBufferUsage::Vertex | RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
@@ -222,6 +221,7 @@ class MaterialGraphEditor : public Widget
 							m_current_handle = glm::max(m_current_handle, pin_handle + 1);
 						}
 					}
+					m_view.uniform_block.material_id = static_cast<uint32_t>(p_editor->GetRenderer()->GetResourceManager()->Index<ResourceType::Material>(m_material_name));
 				}
 			}
 		}
@@ -445,7 +445,7 @@ class MaterialGraphEditor : public Widget
 	{
 		auto *renderer    = p_editor->GetRenderer();
 		auto *rhi_context = p_editor->GetRHIContext();
-		auto* gpu_scene = renderer->GetRenderGraphBlackboard().Get<GPUScene>();
+		auto *gpu_scene   = renderer->GetRenderGraphBlackboard().Get<GPUScene>();
 
 		auto &material_data = resource->GetMaterialData();
 
@@ -464,8 +464,11 @@ class MaterialGraphEditor : public Widget
 		}
 
 		auto *descriptor = rhi_context->CreateDescriptor(meta);
-		descriptor->BindBuffer("UniformBuffer", m_view.buffer.get());
-		material_data.Bind(descriptor, gpu_scene->textures.texture_2d, gpu_scene->samplers);
+		descriptor->BindBuffer("UniformBuffer", m_view.buffer.get())
+		    .BindTexture("Textures", gpu_scene->textures.texture_2d, RHITextureDimension::Texture2D)
+		    .BindSampler("Samplers", gpu_scene->samplers)
+		    .BindBuffer("MaterialOffsets", gpu_scene->material.material_offset.get())
+		    .BindBuffer("MaterialBuffer", gpu_scene->material.material_buffer.get());
 
 		auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Graphics);
 		cmd_buffer->Begin();
@@ -535,11 +538,18 @@ class MaterialGraphEditor : public Widget
 			glm::vec3 up        = glm::normalize(glm::cross(right, direction));
 			glm::mat4 transform = glm::perspective(glm::radians(45.f), 1.f, 0.01f, 1000.f) * glm::lookAt(position, center, up);
 
-			buffer->CopyToDevice(&transform, sizeof(transform));
+			uniform_block.transform = transform;
+			buffer->CopyToDevice(&uniform_block, sizeof(uniform_block));
 		}
 
-		std::unique_ptr<RHIBuffer> buffer = nullptr;
+		struct
+		{
+			glm::mat4 transform;
+			glm::mat4 model;
+			uint32_t  material_id;
+		} uniform_block;
 
+		std::unique_ptr<RHIBuffer> buffer = nullptr;
 	} m_view;
 
 	struct

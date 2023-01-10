@@ -15,6 +15,7 @@ struct UniformBlock
 {
     float4x4 transform;
     float4x4 model;
+    uint material_id;
 };
 
 ConstantBuffer<UniformBlock> UniformBuffer;
@@ -47,9 +48,12 @@ struct PSInput
 float4 PSmain(PSInput input) : SV_TARGET
 {
     SurfaceInteraction surface_interaction;
-    surface_interaction.Init(input.Position, input.Texcoord, 0, 0, 0, 0, 0, 0);
+    surface_interaction.isect.p = input.Position;
     surface_interaction.isect.n = input.Normal;
-    surface_interaction.shading.n = input.Normal;
+    surface_interaction.isect.uv = input.Texcoord;
+    surface_interaction.duvdx = ddx(input.Texcoord);
+    surface_interaction.duvdy = ddy(input.Texcoord);
+    surface_interaction.material = UniformBuffer.material_id;
     
     Material material;
     material.Init(surface_interaction);

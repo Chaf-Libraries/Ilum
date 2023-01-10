@@ -30,7 +30,6 @@ class ResourceBrowser : public Widget
 		}
 
 		auto *resource_manager = p_editor->GetRenderer()->GetResourceManager();
-		resource_manager->Tick();
 
 		ImGui::Columns(2);
 		ImGui::SetColumnWidth(0, 200.f);
