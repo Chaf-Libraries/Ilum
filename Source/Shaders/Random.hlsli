@@ -117,6 +117,4 @@ float2 Hammersley(uint i, uint N)
     return float2(float(i) / float(N), RadicalInverse_VdC(i));
 }
 
-static PCGSampler rng;
-
 #endif

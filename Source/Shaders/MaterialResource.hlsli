@@ -1,10 +1,10 @@
 #ifndef MATERIAL_RESOURCE_HLSLI
 #define MATERIAL_RESOURCE_HLSLI
 
-Texture2D<float4> Textures[];
-SamplerState Samplers[];
-StructuredBuffer<uint> MaterialOffsets;
-ByteAddressBuffer MaterialBuffer;
+Texture2D<float4> Textures[] : register(s996);
+SamplerState Samplers[] : register(s997);
+StructuredBuffer<uint> MaterialOffsets : register(t998);
+ByteAddressBuffer MaterialBuffer : register(t999);
 
 float4 SampleTexture2D(uint texture_id, uint sampler_id, float2 uv, float2 duvdx, float2 duvdy)
 {

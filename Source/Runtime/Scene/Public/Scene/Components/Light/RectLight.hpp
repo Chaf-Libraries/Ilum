@@ -8,12 +8,12 @@ namespace Ilum
 {
 namespace Cmpt
 {
-class EXPORT_API PolygonLight : public Light
+class EXPORT_API RectLight : public Light
 {
   public:
-	PolygonLight(Node *node);
+	RectLight(Node *node);
 
-	virtual ~PolygonLight() = default;
+	virtual ~RectLight() = default;
 
 	virtual void OnImGui() override;
 
@@ -25,13 +25,14 @@ class EXPORT_API PolygonLight : public Light
 
 	virtual size_t GetDataSize() const override;
 
-	virtual void *GetData() const override;
+	virtual void *GetData() override;
 
   private:
 	struct
 	{
-		float     intensity = 100.f;
-		glm::vec3 color     = glm::vec3(1.f);
+		glm::vec3 color = glm::vec3(1.f);
+
+		float intensity = 100.f;
 	} m_data;
 };
 }        // namespace Cmpt

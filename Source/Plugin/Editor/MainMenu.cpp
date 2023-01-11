@@ -82,11 +82,11 @@ class MainMenu : public Widget
 						node->AddComponent(std::make_unique<Cmpt::DirectionalLight>(node));
 					}
 
-					if (ImGui::MenuItem("Polygonal Light"))
+					if (ImGui::MenuItem("Rectangle Light"))
 					{
 						auto *node = p_editor->GetRenderer()->GetScene()->CreateNode("Polygonal Light");
 						node->AddComponent(std::make_unique<Cmpt::Transform>(node));
-						node->AddComponent(std::make_unique<Cmpt::PolygonLight>(node));
+						node->AddComponent(std::make_unique<Cmpt::RectLight>(node));
 					}
 
 					ImGui::EndMenu();

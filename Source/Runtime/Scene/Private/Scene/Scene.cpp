@@ -184,7 +184,7 @@ void Scene::Load(InputArchive &archive)
 		    {typeid(Cmpt::SpotLight).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::SpotLight>(std::make_unique<Cmpt::SpotLight>(node))->Load(archive); }},
 		    {typeid(Cmpt::PointLight).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::PointLight>(std::make_unique<Cmpt::PointLight>(node))->Load(archive); }},
 		    {typeid(Cmpt::DirectionalLight).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::DirectionalLight>(std::make_unique<Cmpt::DirectionalLight>(node))->Load(archive); }},
-		    {typeid(Cmpt::PolygonLight).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::PolygonLight>(std::make_unique<Cmpt::PolygonLight>(node))->Load(archive); }},
+		    {typeid(Cmpt::RectLight).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::RectLight>(std::make_unique<Cmpt::RectLight>(node))->Load(archive); }},
 		};
 
 		size_t component_type_count = 0;

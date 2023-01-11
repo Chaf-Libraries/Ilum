@@ -25,7 +25,7 @@ class EXPORT_API Light : public Component
 	virtual size_t GetDataSize() const = 0;
 
 	// GPU data info
-	virtual void *GetData() const = 0;
+	virtual void *GetData() = 0;
 
   private:
 	// Shadow

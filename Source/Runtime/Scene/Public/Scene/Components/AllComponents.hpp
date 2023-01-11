@@ -4,7 +4,7 @@
 #include "Camera/PerspectiveCamera.hpp"
 #include "Light/DirectionalLight.hpp"
 #include "Light/PointLight.hpp"
-#include "Light/PolygonLight.hpp"
+#include "Light/RectLight.hpp"
 #include "Light/SpotLight.hpp"
 #include "Renderable/MeshRenderer.hpp"
 #include "Renderable/SkinnedMeshRenderer.hpp"

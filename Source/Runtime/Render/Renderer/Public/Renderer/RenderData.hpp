@@ -84,6 +84,14 @@ struct GPUScene
 		uint32_t max_bone_count  = 0;
 	} animation_buffer;
 
+	struct LightBuffer
+	{
+		std::unique_ptr<RHIBuffer> light_buffer = nullptr;
+		std::unique_ptr<RHIBuffer> light_info   = nullptr;
+
+		uint32_t light_count = 0;
+	} light;
+
 	struct Texture
 	{
 		std::vector<RHITexture *> texture_2d;

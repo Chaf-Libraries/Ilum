@@ -84,29 +84,29 @@ struct View
     uint frame_count;
     float2 viewport;
     
-    void CastRay(float2 scene_uv, out RayDesc ray, out RayDiff ray_diff)
+    void CastRay(float2 scene_uv, float2 frame_dim, out RayDesc ray, out RayDiff ray_diff)
     {
         float yaw =atan2(-view_matrix[2][2], -view_matrix[0][2]);
         float pitch = asin(-clamp(view_matrix[1][2], -1.f, 1.f));
         float3 forward = normalize(float3(cos(yaw) * cos(pitch), sin(pitch), sin(yaw) * cos(pitch)));
         float3 right = normalize(cross(forward, float3(0, 1, 0)));
         float3 up = normalize(cross(right, forward));
-        
-        float4 target = mul(inv_projection_matrix, float4(scene_uv.x, scene_uv.y, 1, 1));
+        float3 target = mul(inv_projection_matrix, float4(scene_uv.x, scene_uv.y, 1, 1)).xyz;
 
         ray.Origin = mul(inv_view_matrix, float4(0, 0, 0, 1)).xyz;
-        ray.Direction = mul(inv_view_matrix, float4(normalize(target.xyz), 0)).xyz;
+        ray.Direction = normalize(mul(inv_view_matrix, float4(target, 0)).xyz);
         ray.TMin = 0.0;
         ray.TMax = Infinity;
 
+        float3 dir = forward + right * scene_uv.x + up * scene_uv.y;
         ray_diff.dOdx = 0;
         ray_diff.dOdy = 0;
-        float dd = dot(ray.Direction, ray.Direction);
+        float dd = dot(dir, dir);
         float divd = 2.0f / (dd * sqrt(dd));
-        float dr = dot(ray.Direction, right);
-        float du = dot(ray.Direction, up);
-        ray_diff.dDdx = ((dd * right) - (dr * ray.Direction)) * divd / viewport.x;
-        ray_diff.dDdy = -((dd * up) - (du * ray.Direction)) * divd / viewport.y;
+        float dr = dot(dir, right);
+        float du = dot(dir, up);
+        ray_diff.dDdx = ((dd * right) - (dr * dir)) * divd / frame_dim.x;
+        ray_diff.dDdy = -((dd * up) - (du * dir)) * divd / frame_dim.y;
     }
 };
 

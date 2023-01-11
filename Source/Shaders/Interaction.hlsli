@@ -123,10 +123,18 @@ struct SurfaceInteraction
         float3 dndu, dndv;
     } shading;*/
   
+    float3 geo_n;
     uint material;
     float3 dpdx, dpdy;
     float3 dndx, dndy;
     float2 duvdx, duvdy;
+};
+
+struct VisibilityTester
+{
+    SurfaceInteraction from;
+    float3 dir;
+    float dist;
 };
 
 #endif 

@@ -25,13 +25,16 @@ class EXPORT_API DirectionalLight : public Light
 
 	virtual size_t GetDataSize() const override;
 
-	virtual void *GetData() const override;
+	virtual void *GetData() override;
 
   private:
 	struct
 	{
+		glm::vec3 color = glm::vec3(1.f);
+
 		float     intensity = 100.f;
-		glm::vec3 color     = glm::vec3(1.f);
+
+		glm::vec3 direction = glm::vec3(1.f);
 	} m_data;
 };
 }        // namespace Cmpt

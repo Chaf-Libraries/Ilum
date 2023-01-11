@@ -259,8 +259,70 @@ void Renderer::UpdateGPUScene()
 	TLASDesc tlas_desc = {};
 	tlas_desc.name     = m_impl->scene->GetName();
 
-	auto meshes         = m_impl->scene->GetComponents<Cmpt::MeshRenderer>();
-	auto skinned_meshes = m_impl->scene->GetComponents<Cmpt::SkinnedMeshRenderer>();
+	auto meshes             = m_impl->scene->GetComponents<Cmpt::MeshRenderer>();
+	auto skinned_meshes     = m_impl->scene->GetComponents<Cmpt::SkinnedMeshRenderer>();
+	auto point_lights       = m_impl->scene->GetComponents<Cmpt::PointLight>();
+	auto spot_lights        = m_impl->scene->GetComponents<Cmpt::SpotLight>();
+	auto directional_lights = m_impl->scene->GetComponents<Cmpt::DirectionalLight>();
+	auto rectangle_lights   = m_impl->scene->GetComponents<Cmpt::RectLight>();
+
+	// Update Light
+	{
+		gpu_scene->light.light_count = static_cast<uint32_t>(point_lights.size() + spot_lights.size() + directional_lights.size() + rectangle_lights.size());
+
+#define GET_LIGHT_DATA_SIZE(Lights) \
+	(Lights.empty() ? 0 : Lights.size() * Lights[0]->GetDataSize())
+
+		std::vector<uint8_t>  light_data(GET_LIGHT_DATA_SIZE(point_lights) +
+		                                 GET_LIGHT_DATA_SIZE(spot_lights) +
+		                                 GET_LIGHT_DATA_SIZE(directional_lights) +
+		                                 GET_LIGHT_DATA_SIZE(rectangle_lights));
+		std::vector<uint32_t> light_info;        // Type - Offset
+		light_info.reserve(gpu_scene->light.light_count * 2);
+		uint32_t light_data_size = 0;
+
+#define COPY_LIGHT_DATA(Lights, Type)                                                             \
+	for (auto &light : Lights)                                                              \
+	{                                                                                             \
+		std::memcpy(light_data.data() + light_data_size, light->GetData(), light->GetDataSize()); \
+		light_info.push_back(Type);                                                               \
+		light_info.push_back(light_data_size);                                                    \
+		light_data_size += static_cast<uint32_t>(light->GetDataSize());                                                  \
+	}
+
+		COPY_LIGHT_DATA(point_lights, 0);
+		COPY_LIGHT_DATA(spot_lights, 1);
+		COPY_LIGHT_DATA(directional_lights, 2);
+		COPY_LIGHT_DATA(rectangle_lights, 3);
+
+		if (!light_data.empty())
+		{
+			if (!gpu_scene->light.light_buffer ||
+			    gpu_scene->light.light_buffer->GetDesc().size != light_data.size())
+			{
+				gpu_scene->light.light_buffer = m_impl->rhi_context->CreateBuffer(light_data.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+			}
+			gpu_scene->light.light_buffer->CopyToDevice(light_data.data(), light_data.size());
+		}
+		else
+		{
+			gpu_scene->light.light_buffer = m_impl->rhi_context->CreateBuffer(1, RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+		}
+		
+		if (!light_info.empty())
+		{
+			if (!gpu_scene->light.light_info ||
+			    gpu_scene->light.light_info->GetDesc().size != light_info.size() * sizeof(uint32_t))
+			{
+				gpu_scene->light.light_info = m_impl->rhi_context->CreateBuffer<uint32_t>(light_info.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+			}
+			gpu_scene->light.light_info->CopyToDevice(light_info.data(), light_info.size() * sizeof(uint32_t));
+		}
+		else
+		{
+			gpu_scene->light.light_info = m_impl->rhi_context->CreateBuffer<uint32_t>(1, RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+		}
+	}
 
 	// Update Mesh
 	{

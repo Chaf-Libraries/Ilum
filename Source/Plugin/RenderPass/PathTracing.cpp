@@ -74,7 +74,10 @@ class PathTracing : public IPass<PathTracing>
 				    .BindTexture("Textures", gpu_scene->textures.texture_2d, RHITextureDimension::Texture2D)
 				    .BindSampler("Samplers", gpu_scene->samplers)
 				    .BindBuffer("MaterialOffsets", gpu_scene->material.material_offset.get())
-				    .BindBuffer("MaterialBuffer", gpu_scene->material.material_buffer.get());
+				    .BindBuffer("MaterialBuffer", gpu_scene->material.material_buffer.get())
+				    .BindBuffer("LightBuffer", gpu_scene->light.light_buffer.get())
+				    .BindBuffer("LightInfo", gpu_scene->light.light_info.get());
+
 				auto *cmd_buffer_ = rhi_context->CreateCommand(RHIQueueFamily::Compute);
 				cmd_buffer->BindDescriptor(descriptor);
 				cmd_buffer->BindPipelineState(pipeline.pipeline.get());

@@ -25,13 +25,22 @@ class EXPORT_API SpotLight : public Light
 
 	virtual size_t GetDataSize() const override;
 
-	virtual void *GetData() const override;
+	virtual void *GetData() override;
 
   private:
 	struct
 	{
-		float     intensity = 100.f;
-		glm::vec3 color     = glm::vec3(1.f);
+		glm::vec3 color = glm::vec3(1.f);
+
+		float intensity = 100.f;
+
+		glm::vec3 position = glm::vec3(0.f);
+
+		float inner_angle = 12.5f;
+
+		glm::vec3 direction = glm::vec3(0.f);
+
+		float outer_angle = 17.5f;
 	} m_data;
 };
 }        // namespace Cmpt

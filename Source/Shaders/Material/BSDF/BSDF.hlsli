@@ -36,6 +36,31 @@ struct BSDFSample
     float pdf;
     BxDFFlags flags;
     float eta;
+    
+    bool IsReflection()
+    {
+        return flags & BSDF_Reflection;
+    }
+    
+    bool IsTransmission()
+    {
+        return flags & BSDF_Transmission;
+    }
+    
+    bool IsDiffuse()
+    {
+        return flags & BSDF_Diffuse;
+    }
+    
+    bool IsGlossy()
+    {
+        return flags & BSDF_Glossy;
+    }
+    
+    bool IsSpecular()
+    {
+        return flags & BSDF_Specular;
+    }
 };
 
 // struct BSDF
