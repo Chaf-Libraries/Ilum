@@ -171,6 +171,7 @@ void Transform::SetScale(const glm::vec3 &scale)
 
 void Transform::SetDirty()
 {
+	m_update = true;
 	if (!m_dirty)
 	{
 		m_dirty = true;

@@ -11,6 +11,14 @@ using namespace Ilum;
 
 class PathTracing : public IPass<PathTracing>
 {
+	struct Config
+	{
+		uint32_t max_bounce      = 5;
+		uint32_t max_spp         = 100;
+		uint32_t frame_count     = 0;
+		float    clamp_threshold = 4.f;
+	};
+
   public:
 	PathTracing() = default;
 
@@ -19,6 +27,7 @@ class PathTracing : public IPass<PathTracing>
 	virtual void CreateDesc(RenderPassDesc *desc)
 	{
 		desc->SetBindPoint(BindPoint::RayTracing)
+		    .SetConfig(Config())
 		    .Write("Output", RenderResourceDesc::Type::Texture, RHIResourceState::UnorderedAccess);
 	}
 
@@ -31,11 +40,30 @@ class PathTracing : public IPass<PathTracing>
 
 		pipeline.pipeline = std::shared_ptr<RHIPipelineState>(std::move(renderer->GetRHIContext()->CreatePipelineState()));
 
+		std::shared_ptr<RHIBuffer> config_buffer = std::shared_ptr<RHIBuffer>(std::move(renderer->GetRHIContext()->CreateBuffer(sizeof(Config), RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU)));
+
 		*task = [=](RenderGraph &render_graph, RHICommand *cmd_buffer, Variant &config, RenderGraphBlackboard &black_board) {
 			auto  output      = render_graph.GetTexture(desc.resources.at("Output").handle);
 			auto *gpu_scene   = black_board.Get<GPUScene>();
 			auto *view        = black_board.Get<View>();
 			auto *rhi_context = renderer->GetRHIContext();
+			auto *config_data = config.Convert<Config>();
+
+			config_buffer->CopyToDevice(config_data, sizeof(Config));
+
+			if (Component::IsUpdate())
+			{
+				config_data->frame_count = 0;
+			}
+			else
+			{
+				config_data->frame_count = glm::clamp(config_data->frame_count, 0u, config_data->max_spp);
+			}
+
+			if (config_data->frame_count == config_data->max_spp)
+			{
+				return;
+			}
 
 			// Setup material pipeline
 			ShaderMeta meta;
@@ -67,6 +95,7 @@ class PathTracing : public IPass<PathTracing>
 				auto *descriptor = rhi_context->CreateDescriptor(meta);
 				descriptor->BindAccelerationStructure("TopLevelAS", gpu_scene->TLAS.get())
 				    .BindTexture("Output", output, RHITextureDimension::Texture2D)
+				    .BindBuffer("ConfigBuffer", config_buffer.get())
 				    .BindBuffer("InstanceBuffer", gpu_scene->mesh_buffer.instances.get())
 				    .BindBuffer("ViewBuffer", view->buffer.get())
 				    .BindBuffer("VertexBuffer", gpu_scene->mesh_buffer.vertex_buffers)
@@ -78,16 +107,47 @@ class PathTracing : public IPass<PathTracing>
 				    .BindBuffer("LightBuffer", gpu_scene->light.light_buffer.get())
 				    .BindBuffer("LightInfo", gpu_scene->light.light_info.get());
 
-				auto *cmd_buffer_ = rhi_context->CreateCommand(RHIQueueFamily::Compute);
 				cmd_buffer->BindDescriptor(descriptor);
 				cmd_buffer->BindPipelineState(pipeline.pipeline.get());
 				cmd_buffer->TraceRay(output->GetDesc().width, output->GetDesc().height, 1);
+
+				config_data->frame_count++;
+			}
+			else
+			{
+				config_data->frame_count = 0;
 			}
 		};
 	}
 
 	virtual void OnImGui(Variant *config)
 	{
+		auto *config_data = config->Convert<Config>();
+
+		ImGui::Text("SPP: %d", config_data->frame_count);
+
+		// if (ImGui::Checkbox("Anti-Aliasing", reinterpret_cast<bool *>(&m_push_block.anti_alias)))
+		//{
+		//	camera->frame_count = 0;
+		// }
+		if (ImGui::SliderInt("Max Bounce", reinterpret_cast<int32_t *>(&config_data->max_bounce), 1, 100))
+		{
+			config_data->frame_count = 0;
+		}
+
+		if (ImGui::DragInt("Max SPP", reinterpret_cast<int32_t *>(&config_data->max_spp), 0.1f, 1, std::numeric_limits<int32_t>::max()))
+		{
+			config_data->frame_count = 0;
+		}
+
+		ImGui::ProgressBar(static_cast<float>(config_data->frame_count) / static_cast<float>(config_data->max_spp),
+		                   ImVec2(0.f, 0.f),
+		                   (std::to_string(config_data->frame_count) + "/" + std::to_string(config_data->max_spp)).c_str());
+
+		if (ImGui::DragFloat("Clamp Threshold", &config_data->clamp_threshold, 0.1f, 0.0f, std::numeric_limits<float>::max()))
+		{
+			config_data->frame_count = 0;
+		}
 	}
 };
 

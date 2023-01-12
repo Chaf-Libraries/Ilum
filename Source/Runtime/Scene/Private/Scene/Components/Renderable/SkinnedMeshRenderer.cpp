@@ -23,6 +23,7 @@ void SkinnedMeshRenderer::OnImGui()
 			if (ImGui::Button(submesh.c_str(), ImVec2(ImGui::GetContentRegionAvail().x * 0.8f, 30.f)))
 			{
 				submesh = "";
+				m_update = true;
 			}
 
 			if (ImGui::BeginDragDropSource())
@@ -36,6 +37,7 @@ void SkinnedMeshRenderer::OnImGui()
 				if (const auto *pay_load = ImGui::AcceptDragDropPayload("SkinnedMesh"))
 				{
 					submesh = static_cast<const char *>(pay_load->Data);
+					m_update = true;
 				}
 			}
 
@@ -45,6 +47,7 @@ void SkinnedMeshRenderer::OnImGui()
 		if (ImGui::Button("+"))
 		{
 			m_submeshes.emplace_back("");
+			m_update = true;
 		}
 
 		ImGui::SameLine();
@@ -52,6 +55,7 @@ void SkinnedMeshRenderer::OnImGui()
 		if (ImGui::Button("-"))
 		{
 			m_submeshes.pop_back();
+			m_update = true;
 		}
 
 		ImGui::TreePop();
@@ -66,6 +70,7 @@ void SkinnedMeshRenderer::OnImGui()
 			if (ImGui::Button(animation.c_str(), ImVec2(ImGui::GetContentRegionAvail().x * 0.8f, 30.f)))
 			{
 				animation = "";
+				m_update  = true;
 			}
 
 			if (ImGui::BeginDragDropSource())
@@ -79,6 +84,7 @@ void SkinnedMeshRenderer::OnImGui()
 				if (const auto *pay_load = ImGui::AcceptDragDropPayload("Animation"))
 				{
 					animation = static_cast<const char *>(pay_load->Data);
+					m_update  = true;
 				}
 			}
 
@@ -88,6 +94,7 @@ void SkinnedMeshRenderer::OnImGui()
 		if (ImGui::Button("+"))
 		{
 			m_animations.emplace_back("");
+			m_update = true;
 		}
 
 		ImGui::SameLine();
@@ -95,6 +102,7 @@ void SkinnedMeshRenderer::OnImGui()
 		if (ImGui::Button("-"))
 		{
 			m_animations.pop_back();
+			m_update = true;
 		}
 
 		ImGui::TreePop();

@@ -29,7 +29,6 @@ class EXPORT_API PerspectiveCamera : public Camera
 	virtual void UpdateProjection() override;
 
   private:
-	bool  m_dirty = true;
 	float m_fov   = 45.f;
 };
 }        // namespace Cmpt

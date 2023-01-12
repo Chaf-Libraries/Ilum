@@ -16,7 +16,7 @@ class EXPORT_API Component
 
 	Component(Component &&) = default;
 
-	virtual ~Component() = default;
+	virtual ~Component();
 
 	virtual void OnImGui() = 0;
 
@@ -30,8 +30,14 @@ class EXPORT_API Component
 
 	virtual void Load(InputArchive &archive) = 0;
 
+	static bool IsUpdate();
+
+	static void Update(bool update);
+
   protected:
 	const char *m_name;
+
+	static inline bool m_update = false;
 
 	Node *p_node = nullptr;
 };

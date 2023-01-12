@@ -5,11 +5,20 @@
 #include "Random.hlsli"
 #include "Material/BSDF/BSDF.hlsli"
 
+struct Config
+{
+    uint max_bounce;
+    uint max_spp;
+    uint frame_count;
+    float clamp_threshold;
+};
+
 RaytracingAccelerationStructure TopLevelAS;
 StructuredBuffer<Instance> InstanceBuffer;
 StructuredBuffer<Vertex> VertexBuffer[];
 StructuredBuffer<uint> IndexBuffer[];
 ConstantBuffer<View> ViewBuffer;
+ConstantBuffer<Config> ConfigBuffer;
 RWTexture2D<float4> Output;
 
 #ifndef RAYTRACING_PIPELINE
@@ -29,7 +38,7 @@ struct PayLoad
     
     float3 wi;
     float eta;
-    float3 radiance;
+    float4 radiance;
     float3 throughout;
     bool terminate;
     bool visible;
@@ -48,10 +57,10 @@ bool SceneIntersection(RayDesc ray, out PayLoad pay_load)
     pay_load.visible = true;
     TraceRay(
         TopLevelAS, // RaytracingAccelerationStructure
-        RAY_FLAG_FORCE_OPAQUE, // RayFlags
+        RAY_FLAG_NONE, // RayFlags
         0xFF, // InstanceInclusionMask
         0, // RayContributionToHitGroupIndex
-        0, // MultiplierForGeometryContributionToHitGroupIndex
+        1, // MultiplierForGeometryContributionToHitGroupIndex
         0, // MissShaderIndex
         ray, // Ray
         pay_load // Payload
@@ -67,7 +76,8 @@ bool Unoccluded(inout PayLoad pay_load, VisibilityTester visibility)
     shadow_ray.TMin = 0.0;
     shadow_ray.TMax = visibility.dist;
     
-    pay_load.visible = true;
+    PayLoad shadow_pay_load;
+    shadow_pay_load.visible = true;
     
     TraceRay(
         TopLevelAS, // RaytracingAccelerationStructure
@@ -77,12 +87,16 @@ bool Unoccluded(inout PayLoad pay_load, VisibilityTester visibility)
         1, // MultiplierForGeometryContributionToHitGroupIndex
         0, // MissShaderIndex
         shadow_ray, // Ray
-        pay_load // Payload
+        shadow_pay_load // Payload
     );
     
-    return !pay_load.visible;
+    return !shadow_pay_load.visible;
 }
 
+float Luminance(float3 color)
+{
+    return dot(color, float3(0.2126f, 0.7152f, 0.0722f)); //color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
+}
 
 #ifdef RAYGEN_SHADER
 [shader("raygeneration")]
@@ -100,14 +114,71 @@ void RayGenMain()
     
     RayDesc ray;
     ViewBuffer.CastRay(scene_uv, (float2) launch_dims, ray, pay_load.ray_diff);
-    float4 radiance = 0.f;
     
-    if (SceneIntersection(ray, pay_load))
+    for (uint bounce = 0; bounce < ConfigBuffer.max_bounce && !pay_load.terminate; bounce++)
     {
-        radiance = float4(pay_load.radiance, 1.f);
+        if (!SceneIntersection(ray, pay_load))
+        {
+            // Sample environment light
+            float pdf = 0;
+            //ray_payload.radiance += ray_payload.throughout * EnvironmentSampling(ray_payload, normalize(ray.Direction), pdf);
+            break;
+        }
+           
+        ray = pay_load.interaction.isect.SpawnRay(pay_load.wi);
+        
+        // Russian roulette
+        float3 rrBeta = pay_load.throughout * pay_load.eta;
+        float max_cmpt = max(rrBeta.x, max(rrBeta.y, rrBeta.z));
+        if (max_cmpt < 1.0 && bounce > 3)
+        {
+            float q = max(0.05, 1.0 - max_cmpt);
+            if (pay_load.rng.Get1D() < q)
+            {
+                break;
+            }
+            pay_load.throughout /= 1.0 - q;
+        }
     }
+    
+    // Clamp firefly
+    float lum = Luminance(pay_load.radiance.rgb);
+    if (lum > ConfigBuffer.clamp_threshold)
+    {
+        pay_load.radiance.rgb *= ConfigBuffer.clamp_threshold / lum;
+    }
+    
+    int2 launch_id = int2(launch_index.x, launch_dims.y - launch_index.y);
+    
+    // Temporal Accumulation
+    if (ConfigBuffer.frame_count == 0)
+    {
+        Output[launch_id] = pay_load.radiance;
+    }
+    else
+    {
+        float3 prev_color = Output[launch_id].rgb;
+        float4 accumulated_color = 0.f;
+        if ((isnan(prev_color.x) || isnan(prev_color.y) || isnan(prev_color.z)))
+        {
+            accumulated_color = pay_load.radiance;
+        }
+        else
+        {
+            accumulated_color = float4(lerp(prev_color, pay_load.radiance.rgb, 1.0 / float(ConfigBuffer.frame_count + 1)), pay_load.radiance.a);
+        }
 
-    Output[int2(launch_index.x, launch_dims.y - launch_index.y)] = float4(radiance);
+        Output[launch_id] = accumulated_color;
+    }
+    
+    //float4 radiance = 0.f;
+    //
+    //if (SceneIntersection(ray, pay_load))
+    //{
+    //    radiance = float4(pay_load.radiance, 1.f);
+    //}
+    //
+    //Output[int2(launch_index.x, launch_dims.y - launch_index.y)] = float4(radiance);
 }
 #endif
 
@@ -115,6 +186,8 @@ void RayGenMain()
 [shader("closesthit")]
 void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleIntersectionAttributes attributes)
 {
+    pay_load.visible = true;
+    
     SurfaceInteraction surface_interaction;
     
     const uint instance_id = InstanceIndex();
@@ -123,9 +196,9 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
     
     Instance instance = InstanceBuffer[instance_id];
 
-    Vertex v0 = VertexBuffer[instance_id][IndexBuffer[instance_id][primitve_id * 3]];
-    Vertex v1 = VertexBuffer[instance_id][IndexBuffer[instance_id][primitve_id * 3 + 1]];
-    Vertex v2 = VertexBuffer[instance_id][IndexBuffer[instance_id][primitve_id * 3 + 2]];
+    Vertex v0 = VertexBuffer[instance.mesh_id][IndexBuffer[instance.mesh_id][primitve_id * 3]];
+    Vertex v1 = VertexBuffer[instance.mesh_id][IndexBuffer[instance.mesh_id][primitve_id * 3 + 1]];
+    Vertex v2 = VertexBuffer[instance.mesh_id][IndexBuffer[instance.mesh_id][primitve_id * 3 + 2]];
     
     surface_interaction.isect.p = WorldRayOrigin() + WorldRayDirection() * RayTCurrent();
     surface_interaction.isect.uv = v0.texcoord0.xy * bary.x + v1.texcoord0.xy * bary.y + v2.texcoord0.xy * bary.z;
@@ -215,13 +288,8 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
             // TODO
         }
         
-        pay_load.radiance += Ld / light_select_pdf * pay_load.throughout;
-        
-       // float3 li = light.Li(surface_interaction.isect.p, pay_load.wi);
-        //pay_load.color += float4(li * material.bsdf.Eval(surface_interaction.isect.wo, pay_load.wi, TransportMode_Radiance), 1.f);
+        pay_load.radiance += float4(Ld / light_select_pdf * pay_load.throughout, 1.0);
     }
-    
-    pay_load.visible = true;
     
     // Sample BSDF to get new path direction
     uint sample_type;

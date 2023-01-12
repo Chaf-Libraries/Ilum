@@ -15,8 +15,8 @@ DirectionalLight::DirectionalLight(Node *node) :
 
 void DirectionalLight::OnImGui()
 {
-	ImGui::ColorEdit3("Color", &m_data.color.x);
-	ImGui::DragFloat("Intensity", &m_data.intensity, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
+	m_update |= ImGui::ColorEdit3("Color", &m_data.color.x);
+	m_update |= ImGui::DragFloat("Intensity", &m_data.intensity, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
 }
 
 void DirectionalLight::Save(OutputArchive &archive) const
@@ -27,6 +27,7 @@ void DirectionalLight::Save(OutputArchive &archive) const
 void DirectionalLight::Load(InputArchive &archive)
 {
 	archive(m_data.intensity);
+	m_update = true;
 }
 
 std::type_index DirectionalLight::GetType() const

@@ -15,10 +15,13 @@ PointLight::PointLight(Node *node) :
 
 void PointLight::OnImGui()
 {
-	ImGui::ColorEdit3("Color", &m_data.color.x);
-	ImGui::DragFloat("Intensity", &m_data.intensity, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
-	ImGui::DragFloat("Range", &m_data.range, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
-	ImGui::DragFloat("Radius", &m_data.radius, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
+	m_update |= ImGui::ColorEdit3("Color", &m_data.color.x);
+	 if (ImGui::DragFloat("Intensity", &m_data.intensity, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f"))
+	{
+		m_update |= true;
+	}
+	m_update |= ImGui::DragFloat("Range", &m_data.range, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
+	m_update |= ImGui::DragFloat("Radius", &m_data.radius, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
 }
 
 void PointLight::Save(OutputArchive &archive) const
@@ -29,6 +32,7 @@ void PointLight::Save(OutputArchive &archive) const
 void PointLight::Load(InputArchive &archive)
 {
 	archive(m_data.color, m_data.intensity, m_data.position, m_data.radius, m_data.range);
+	m_update = true;
 }
 
 std::type_index PointLight::GetType() const

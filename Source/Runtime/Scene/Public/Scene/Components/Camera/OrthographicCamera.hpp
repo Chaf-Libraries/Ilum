@@ -35,7 +35,6 @@ class EXPORT_API OrthographicCamera : public Camera
 	virtual void UpdateProjection() override;
 
   private:
-	bool  m_dirty    = false;
 	float m_scale    = 1.f;
 	float m_offset_x = 0.f;
 	float m_offset_y = 0.f;

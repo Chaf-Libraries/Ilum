@@ -14,7 +14,7 @@ Camera::Camera(const char *name, Node *node) :
 
 void Camera::SetAspect(float aspect)
 {
-	m_dirty |= (m_aspect != aspect);
+	m_update |= (m_aspect != aspect);
 	m_aspect = aspect;
 }
 
@@ -25,14 +25,14 @@ float Camera::GetAspect()
 
 void Camera::SetNearPlane(float near_plane)
 {
-	m_dirty = (m_near != near_plane);
-	m_near  = near_plane;
+	m_update |= (near_plane != m_near);
+	m_near   = near_plane;
 }
 
 void Camera::SetFarPlane(float far_plane)
 {
-	m_dirty = (m_far != far_plane);
-	m_far   = far_plane;
+	m_update |= (far_plane != m_far);
+	m_far    = far_plane;
 }
 
 float Camera::GetNearPlane() const

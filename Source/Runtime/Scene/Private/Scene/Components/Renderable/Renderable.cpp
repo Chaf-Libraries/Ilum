@@ -25,6 +25,7 @@ void Renderable::OnImGui()
 			if (ImGui::Button(material.c_str(), ImVec2(ImGui::GetContentRegionAvail().x * 0.8f, 30.f)))
 			{
 				material = "";
+				m_update = true;
 			}
 
 			if (ImGui::BeginDragDropSource())
@@ -38,6 +39,7 @@ void Renderable::OnImGui()
 				if (const auto *pay_load = ImGui::AcceptDragDropPayload("Material"))
 				{
 					material = static_cast<const char *>(pay_load->Data);
+					m_update = true;
 				}
 			}
 
@@ -47,6 +49,7 @@ void Renderable::OnImGui()
 		if (ImGui::Button("+"))
 		{
 			m_materials.emplace_back("");
+			m_update = true;
 		}
 
 		ImGui::SameLine();
@@ -54,6 +57,7 @@ void Renderable::OnImGui()
 		if (ImGui::Button("-"))
 		{
 			m_materials.pop_back();
+			m_update = true;
 		}
 
 		ImGui::TreePop();
@@ -68,21 +72,25 @@ void Renderable::Save(OutputArchive &archive) const
 void Renderable::Load(InputArchive &archive)
 {
 	archive(m_submeshes, m_materials, m_animations);
+	m_update = true;
 }
 
 void Renderable::AddMaterial(const std::string &material)
 {
 	m_materials.emplace_back(material);
+	m_update = true;
 }
 
 void Renderable::AddSubmesh(const std::string &submesh)
 {
 	m_submeshes.emplace_back(submesh);
+	m_update = true;
 }
 
 void Renderable::AddAnimation(const std::string &animation)
 {
 	m_animations.emplace_back(animation);
+	m_update = true;
 }
 
 const std::vector<std::string> &Renderable::GetSubmeshes() const

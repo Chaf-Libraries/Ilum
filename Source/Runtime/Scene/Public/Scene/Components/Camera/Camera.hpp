@@ -53,8 +53,6 @@ class EXPORT_API Camera : public Component
 	void UpdateView();
 
   protected:
-	bool m_dirty = false;
-
 	float m_aspect = 1.f;
 	float m_near   = 0.01f;
 	float m_far    = 1000.f;
