@@ -109,7 +109,7 @@ void RayGenMain()
     const float2 scene_uv = pixel_pos / float2(launch_dims.xy) * 2.0 - 1.0;
     
     PayLoad pay_load;
-    pay_load.rng.Init(launch_dims, launch_index, ViewBuffer.frame_count);
+    pay_load.rng.Init(launch_dims, launch_index, ConfigBuffer.frame_count);
     pay_load.Init();
     
     RayDesc ray;

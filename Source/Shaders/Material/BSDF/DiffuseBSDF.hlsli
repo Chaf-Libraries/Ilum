@@ -35,6 +35,8 @@ struct DiffuseBSDF
     {
         BSDFSample bsdf_sample;
         
+        bsdf_sample.Init();
+        
         if (!(flags & SampleFlags_Reflection))
         {
             return bsdf_sample;

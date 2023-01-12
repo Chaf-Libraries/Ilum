@@ -37,6 +37,15 @@ struct BSDFSample
     BxDFFlags flags;
     float eta;
     
+    void Init()
+    {
+        f = 0.f;
+        wi = 0.f;
+        pdf = 0.f;
+        flags = 0.f;
+        eta = 1.f;
+    }
+    
     bool IsReflection()
     {
         return flags & BSDF_Reflection;
