@@ -16,6 +16,12 @@ struct MaterialCompilationContext
 		std::string type = "";
 
 		std::string initialization = "";
+
+		template<typename Archive>
+		void serialize(Archive& archive)
+		{
+			archive(name, type, initialization);
+		}
 	};
 
 	std::vector<std::string> variables;
@@ -32,6 +38,12 @@ struct MaterialCompilationContext
 	}output;
 
 	std::unordered_set<size_t> finish_nodes;
+
+	template <typename Archive>
+	void serialize(Archive& archive)
+	{
+		archive(variables, textures, samplers, bsdfs, output.bsdf, finish_nodes);
+	}
 
 	void Reset()
 	{

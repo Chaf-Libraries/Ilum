@@ -36,7 +36,7 @@ Resource<ResourceType::Material>::Resource(RHIContext *rhi_context, const std::s
 
 	std::vector<uint8_t> thumbnail_data;
 
-	SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Material), thumbnail_data, m_impl->desc, m_impl->layout);
+	SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Material), thumbnail_data, m_impl->desc, m_impl->layout, m_impl->context);
 }
 
 Resource<ResourceType::Material>::~Resource()
@@ -54,7 +54,9 @@ void Resource<ResourceType::Material>::Load(RHIContext *rhi_context)
 	m_impl = new Impl;
 
 	std::vector<uint8_t> thumbnail_data;
-	DESERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Material), thumbnail_data, m_impl->desc, m_impl->layout);
+	DESERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Material), thumbnail_data, m_impl->desc, m_impl->layout, m_impl->context);
+
+	m_impl->valid = Path::GetInstance().IsExist(fmt::format("Asset/Material/{}", m_impl->data.shader));
 }
 
 void Resource<ResourceType::Material>::Compile(RHIContext *rhi_context, ResourceManager *manager, RHITexture *dummy_texture, const std::string &layout)
@@ -99,7 +101,7 @@ void Resource<ResourceType::Material>::Compile(RHIContext *rhi_context, Resource
 			{
 				samplers << kainjow::mustache::data{"Sampler", sampler};
 			}
-			for (auto&bsdf: m_impl->context.bsdfs)
+			for (auto &bsdf : m_impl->context.bsdfs)
 			{
 				if (bsdf.name != m_impl->context.output.bsdf)
 				{
@@ -130,17 +132,11 @@ void Resource<ResourceType::Material>::Compile(RHIContext *rhi_context, Resource
 		m_impl->data.shader = fmt::format("{}.material.hlsli", m_impl->desc.GetName());
 
 		Path::GetInstance().Save(fmt::format("Asset/Material/{}", m_impl->data.shader), shader_data);
-
-		// Update samplers
-		for (auto &[sampler, desc] : m_impl->context.samplers)
-		{
-			m_impl->data.samplers.push_back(rhi_context->GetSamplerIndex(desc));
-		}
 	}
 
 	std::vector<uint8_t> thumbnail_data;
 
-	SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Material), thumbnail_data, m_impl->desc, m_impl->layout);
+	SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Material), thumbnail_data, m_impl->desc, m_impl->layout, m_impl->context);
 
 	m_impl->valid = true;
 
@@ -158,10 +154,15 @@ void Resource<ResourceType::Material>::Update(RHIContext *rhi_context, ResourceM
 		manager->SetDirty<ResourceType::Material>();
 
 		m_impl->data.textures.clear();
-
 		for (auto &[texture, texture_name] : m_impl->context.textures)
 		{
 			m_impl->data.textures.push_back(static_cast<uint32_t>(manager->Index<ResourceType::Texture2D>(texture_name)));
+		}
+
+		m_impl->data.samplers.clear();
+		for (auto &[sampler, desc] : m_impl->context.samplers)
+		{
+			m_impl->data.samplers.push_back(rhi_context->GetSamplerIndex(desc));
 		}
 	}
 }

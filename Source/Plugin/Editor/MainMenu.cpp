@@ -84,7 +84,7 @@ class MainMenu : public Widget
 
 					if (ImGui::MenuItem("Rectangle Light"))
 					{
-						auto *node = p_editor->GetRenderer()->GetScene()->CreateNode("Polygonal Light");
+						auto *node = p_editor->GetRenderer()->GetScene()->CreateNode("Rectangle Light");
 						node->AddComponent(std::make_unique<Cmpt::Transform>(node));
 						node->AddComponent(std::make_unique<Cmpt::RectLight>(node));
 					}

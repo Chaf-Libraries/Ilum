@@ -523,30 +523,6 @@ void Renderer::UpdateGPUScene()
 		}
 	}
 
-	// Update 2D Textures
-	if (m_impl->resource_manager->Update<ResourceType::Texture2D>())
-	{
-		gpu_scene->textures.texture_2d.clear();
-
-		{
-			auto resources = m_impl->resource_manager->GetResources<ResourceType::Texture2D>();
-			for (auto &resource : resources)
-			{
-				auto *texture2d = m_impl->resource_manager->Get<ResourceType::Texture2D>(resource);
-				gpu_scene->textures.texture_2d.push_back(texture2d->GetTexture());
-			}
-		}
-
-		{
-			auto resources = m_impl->resource_manager->GetResources<ResourceType::Material>();
-			for (auto &resource : resources)
-			{
-				auto *material = m_impl->resource_manager->Get<ResourceType::Material>(resource);
-				material->Update(m_impl->rhi_context, m_impl->resource_manager, m_impl->black_board.Get<DummyTexture>()->black_opaque.get());
-			}
-		}
-	}
-
 	// Update Sampler
 	if (m_impl->rhi_context->GetSamplerCount() != gpu_scene->samplers.size())
 	{
@@ -554,7 +530,8 @@ void Renderer::UpdateGPUScene()
 	}
 
 	// Update Material
-	if (m_impl->resource_manager->Update<ResourceType::Material>())
+	if (m_impl->resource_manager->Update<ResourceType::Material>()||
+	    m_impl->resource_manager->Update<ResourceType::Texture2D>())
 	{
 		gpu_scene->material.data.clear();
 		auto resources = m_impl->resource_manager->GetResources<ResourceType::Material>();
@@ -565,6 +542,7 @@ void Renderer::UpdateGPUScene()
 		for (auto &resource : resources)
 		{
 			auto *material = m_impl->resource_manager->Get<ResourceType::Material>(resource);
+			material->Update(m_impl->rhi_context, m_impl->resource_manager, m_impl->black_board.Get<DummyTexture>()->black_opaque.get());
 
 			const auto &data = material->GetMaterialData();
 
@@ -593,6 +571,29 @@ void Renderer::UpdateGPUScene()
 				gpu_scene->material.material_offset = m_impl->rhi_context->CreateBuffer<uint32_t>(material_offset.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
 			}
 			gpu_scene->material.material_offset->CopyToDevice(material_offset.data(), material_offset.size() * sizeof(uint32_t));
+		}
+	}
+
+	// Update 2D Textures
+	if (m_impl->resource_manager->Update<ResourceType::Texture2D>())
+	{
+		gpu_scene->textures.texture_2d.clear();
+
+		{
+			auto resources = m_impl->resource_manager->GetResources<ResourceType::Texture2D>();
+			for (auto &resource : resources)
+			{
+				auto *texture2d = m_impl->resource_manager->Get<ResourceType::Texture2D>(resource);
+				gpu_scene->textures.texture_2d.push_back(texture2d->GetTexture());
+			}
+		}
+
+		{
+			auto resources = m_impl->resource_manager->GetResources<ResourceType::Material>();
+			for (auto &resource : resources)
+			{
+				auto *material = m_impl->resource_manager->Get<ResourceType::Material>(resource);
+			}
 		}
 	}
 }

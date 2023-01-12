@@ -82,6 +82,8 @@ STRUCT(ShaderMeta, Enable)
 
 	inline ShaderMeta &operator+=(const ShaderMeta &rhs)
 	{
+		HashCombine(hash, rhs.hash);
+
 		for (auto &rhs_descriptor : rhs.descriptors)
 		{
 			bool should_add = true;
