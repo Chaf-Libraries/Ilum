@@ -530,7 +530,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			}
 			else if (stbi_is_16_bit_from_memory(assimp_texture_data, assimp_texture_data_len))
 			{
-				raw_data = stbi_load_16_from_memory(assimp_texture_data, assimp_texture_data_len, &width, &height, &channel, req_channel);
+				raw_data    = stbi_load_16_from_memory(assimp_texture_data, assimp_texture_data_len, &width, &height, &channel, req_channel);
 				size        = static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(req_channel) * sizeof(uint16_t);
 				desc.format = RHIFormat::R16G16B16A16_FLOAT;
 			}
@@ -569,7 +569,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 
 		Assimp::Importer importer;
 
-		if (const aiScene *assimp_scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace))
+		if (const aiScene *assimp_scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace))
 		{
 			ModelInfo data;
 
