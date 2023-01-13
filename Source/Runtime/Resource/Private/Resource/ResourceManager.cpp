@@ -5,6 +5,7 @@
 #include "Resource/Material.hpp"
 #include "Resource/Mesh.hpp"
 #include "Resource/Prefab.hpp"
+#include "Resource/RenderPipeline.hpp"
 #include "Resource/SkinnedMesh.hpp"
 #include "Resource/Texture2D.hpp"
 
@@ -238,18 +239,22 @@ ResourceManager::ResourceManager(RHIContext *rhi_context)
 	m_impl->managers.emplace(ResourceType::Material, std::make_unique<TResourceManager<ResourceType::Material>>(rhi_context));
 	m_impl->managers.emplace(ResourceType::Animation, std::make_unique<TResourceManager<ResourceType::Animation>>(rhi_context));
 	m_impl->managers.emplace(ResourceType::Prefab, std::make_unique<TResourceManager<ResourceType::Prefab>>(rhi_context));
+	m_impl->managers.emplace(ResourceType::RenderPipeline, std::make_unique<TResourceManager<ResourceType::RenderPipeline>>(rhi_context));
 
-	std::unordered_map<ResourceType, std::function<void(RHIContext * , const std::string &)>> loading_meta = {
-#define LOADING_META(RESOURCE_TYPE)\
-	    {RESOURCE_TYPE, [&](RHIContext *rhi_context, const std::string &name) { Add<RESOURCE_TYPE>(rhi_context, name); }}
-	    
-		LOADING_META(ResourceType::Texture2D),
+	std::unordered_map<ResourceType, std::function<void(RHIContext *, const std::string &)>> loading_meta = {
+#define LOADING_META(RESOURCE_TYPE)                                                                                     \
+	{                                                                                                                   \
+		RESOURCE_TYPE, [&](RHIContext *rhi_context, const std::string &name) { Add<RESOURCE_TYPE>(rhi_context, name); } \
+	}
+
+	    LOADING_META(ResourceType::Texture2D),
 	    LOADING_META(ResourceType::Mesh),
 	    LOADING_META(ResourceType::SkinnedMesh),
 	    LOADING_META(ResourceType::Texture2D),
 	    LOADING_META(ResourceType::Material),
 	    LOADING_META(ResourceType::Animation),
 	    LOADING_META(ResourceType::Prefab),
+	    LOADING_META(ResourceType::RenderPipeline),
 	};
 
 	for (const auto &file : std::filesystem::directory_iterator("Asset/Meta/"))

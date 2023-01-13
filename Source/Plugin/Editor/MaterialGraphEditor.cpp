@@ -78,9 +78,6 @@ class MaterialGraphEditor : public Widget
 		};
 		m_preview.pipeline->SetVertexInputState(vertex_input_state);
 
-		// m_preview.meta = renderer->RequireShaderMeta(vertex_shader);
-		// m_preview.meta += renderer->RequireShaderMeta(frag_shader);
-
 		m_preview.render_target_texture = rhi_context->CreateTexture2D(500, 500, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false);
 		m_preview.depth_stencil_texture = rhi_context->CreateTexture2D(500, 500, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false);
 		m_preview.render_target         = rhi_context->CreateRenderTarget();

@@ -16,6 +16,7 @@ enum class ResourceType
 	Texture2D,
 	Animation,
 	Material,
+	RenderPipeline,
 };
 
 class EXPORT_API IResource

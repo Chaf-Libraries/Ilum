@@ -3,6 +3,7 @@
 #include "Resource/Material.hpp"
 #include "Resource/Mesh.hpp"
 #include "Resource/Prefab.hpp"
+#include "Resource/RenderPipeline.hpp"
 #include "Resource/SkinnedMesh.hpp"
 #include "Resource/Texture2D.hpp"
 
@@ -81,4 +82,5 @@ template class EXPORT_API Resource<ResourceType::Material>;
 template class EXPORT_API Resource<ResourceType::Texture2D>;
 template class EXPORT_API Resource<ResourceType::Prefab>;
 template class EXPORT_API Resource<ResourceType::Animation>;
+template class EXPORT_API Resource<ResourceType::RenderPipeline>;
 }        // namespace Ilum

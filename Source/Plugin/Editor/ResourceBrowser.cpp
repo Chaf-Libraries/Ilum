@@ -168,11 +168,12 @@ class ResourceBrowser : public Widget
 
 	std::unordered_map<ResourceType, const char *const> m_resource_types = {
 	    {ResourceType::Mesh, "Mesh"},
-	    {ResourceType::SkinnedMesh, "SkinnedMesh"},
+	    {ResourceType::SkinnedMesh, "Skinned Mesh"},
 	    {ResourceType::Prefab, "Prefab"},
-	    {ResourceType::Texture2D, "Texture2D"},
+	    {ResourceType::Texture2D, "Texture 2D"},
 	    {ResourceType::Animation, "Animation"},
 	    {ResourceType::Material, "Material"},
+	    {ResourceType::RenderPipeline, "Render Pipeline"},
 	};
 
 	std::unordered_map<std::string, ResourceType> m_resource_map = {
@@ -181,7 +182,6 @@ class ResourceBrowser : public Widget
 	    {".bmp", ResourceType::Texture2D},
 	    {".jpeg", ResourceType::Texture2D},
 	    {".dds", ResourceType::Texture2D},
-	    {".mat", ResourceType::Material},
 	    {".gltf", ResourceType::Prefab},
 	    {".obj", ResourceType::Prefab},
 	    {".glb", ResourceType::Prefab},
