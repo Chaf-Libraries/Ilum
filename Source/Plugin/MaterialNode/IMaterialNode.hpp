@@ -9,6 +9,25 @@
 
 #include <imgui.h>
 
+using namespace Ilum;
+
+template <typename _Ty>
+class MaterialNode
+{
+  public:
+	static _Ty &GetInstance()
+	{
+		static _Ty node;
+		return node;
+	}
+
+	virtual MaterialNodeDesc Create(size_t &handle) = 0;
+
+	virtual void OnImGui(MaterialNodeDesc &node_desc, Editor *editor) = 0;
+
+	virtual void EmitHLSL(const MaterialNodeDesc &node_desc, const MaterialGraphDesc &graph_desc, ResourceManager *manager, MaterialCompilationContext *context) = 0;
+};
+
 #define CONFIGURATION_MATERIAL_NODE(NODE)                                                                                                                         \
 	extern "C"                                                                                                                                                    \
 	{                                                                                                                                                             \

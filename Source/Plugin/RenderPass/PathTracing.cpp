@@ -9,7 +9,7 @@
 
 using namespace Ilum;
 
-class PathTracing : public IPass<PathTracing>
+class PathTracing : public RenderPass<PathTracing>
 {
 	struct Config
 	{
@@ -24,11 +24,14 @@ class PathTracing : public IPass<PathTracing>
 
 	~PathTracing() = default;
 
-	virtual void CreateDesc(RenderPassDesc *desc)
+		virtual RenderPassDesc Create(size_t &handle)
 	{
-		desc->SetBindPoint(BindPoint::RayTracing)
+		RenderPassDesc desc;
+		return desc.SetBindPoint(BindPoint::RayTracing)
+		    .SetName("PathTracing")
+		    .SetCategory("RayTracing")
 		    .SetConfig(Config())
-		    .Write("Output", RenderResourceDesc::Type::Texture, RHIResourceState::UnorderedAccess);
+		    .WriteTexture2D(handle++, "Output", 0, 0, RHIFormat::R16G16B16A16_FLOAT, RHIResourceState::UnorderedAccess);
 	}
 
 	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
@@ -43,7 +46,7 @@ class PathTracing : public IPass<PathTracing>
 		std::shared_ptr<RHIBuffer> config_buffer = std::shared_ptr<RHIBuffer>(std::move(renderer->GetRHIContext()->CreateBuffer(sizeof(Config), RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU)));
 
 		*task = [=](RenderGraph &render_graph, RHICommand *cmd_buffer, Variant &config, RenderGraphBlackboard &black_board) {
-			auto  output      = render_graph.GetTexture(desc.resources.at("Output").handle);
+			auto  output      = render_graph.GetTexture(desc.GetPin("Output").handle);
 			auto *gpu_scene   = black_board.Get<GPUScene>();
 			auto *view        = black_board.Get<View>();
 			auto *rhi_context = renderer->GetRHIContext();

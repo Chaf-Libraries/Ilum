@@ -1,25 +1,28 @@
 #include "IPass.hpp"
 
-#include <Scene/Components/AllComponents.hpp>
 #include <Resource/Resource/Mesh.hpp>
 #include <Resource/Resource/SkinnedMesh.hpp>
 #include <Resource/ResourceManager.hpp>
+#include <Scene/Components/AllComponents.hpp>
 #include <Scene/Scene.hpp>
 
 using namespace Ilum;
 
-class VisibilityGeometryPass : public IPass<VisibilityGeometryPass>
+class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 {
   public:
 	VisibilityGeometryPass() = default;
 
 	~VisibilityGeometryPass() = default;
 
-	virtual void CreateDesc(RenderPassDesc *desc)
+	virtual RenderPassDesc Create(size_t &handle)
 	{
-		desc->SetBindPoint(BindPoint::Rasterization)
-		    .Write("Visibility Buffer", RenderResourceDesc::Type::Texture, RHIResourceState::RenderTarget)
-		    .Write("Depth Stencil", RenderResourceDesc::Type::Texture, RHIResourceState::DepthWrite);
+		RenderPassDesc desc;
+		return desc.SetBindPoint(BindPoint::Rasterization)
+		    .SetName("VisibilityGeometryPass")
+		    .SetCategory("RenderPath")
+		    .WriteTexture2D(handle++, "Visibility Buffer", 0, 0, RHIFormat::R32_UINT, RHIResourceState::RenderTarget)
+		    .WriteTexture2D(handle++, "Depth Stencil", 0, 0, RHIFormat::D32_FLOAT, RHIResourceState::DepthWrite);
 	}
 
 	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
@@ -101,10 +104,10 @@ class VisibilityGeometryPass : public IPass<VisibilityGeometryPass>
                 VertexInputState::InputBinding{0, sizeof(Resource<ResourceType::Mesh>::Vertex), RHIVertexInputRate::Vertex}};
 			vertex_input_state.input_attributes = {
 			    VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, position)},
-			    //VertexInputState::InputAttribute{RHIVertexSemantics::Normal, 1, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, normal)},
-			    //VertexInputState::InputAttribute{RHIVertexSemantics::Tangent, 2, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, tangent)},
+			    // VertexInputState::InputAttribute{RHIVertexSemantics::Normal, 1, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, normal)},
+			    // VertexInputState::InputAttribute{RHIVertexSemantics::Tangent, 2, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, tangent)},
 			    VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 3, 0, RHIFormat::R32G32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, texcoord0)},
-			    //VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 4, 0, RHIFormat::R32G32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, texcoord1)},
+			    // VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 4, 0, RHIFormat::R32G32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, texcoord1)},
 			};
 			mesh_visibility_pipeline.pipeline->SetVertexInputState(vertex_input_state);
 
@@ -168,10 +171,10 @@ class VisibilityGeometryPass : public IPass<VisibilityGeometryPass>
                 VertexInputState::InputBinding{0, sizeof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex), RHIVertexInputRate::Vertex}};
 			vertex_input_state.input_attributes = {
 			    VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, position)},
-			    //VertexInputState::InputAttribute{RHIVertexSemantics::Normal, 1, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, normal)},
-			    //VertexInputState::InputAttribute{RHIVertexSemantics::Tangent, 2, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, tangent)},
+			    // VertexInputState::InputAttribute{RHIVertexSemantics::Normal, 1, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, normal)},
+			    // VertexInputState::InputAttribute{RHIVertexSemantics::Tangent, 2, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, tangent)},
 			    VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 3, 0, RHIFormat::R32G32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, texcoord0)},
-			    //VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 4, 0, RHIFormat::R32G32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, texcoord1)},
+			    // VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 4, 0, RHIFormat::R32G32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, texcoord1)},
 			    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Indices, 5, 0, RHIFormat::R32G32B32A32_SINT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, bones[0])},
 			    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Indices, 6, 0, RHIFormat::R32G32B32A32_SINT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, bones[4])},
 			    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Weights, 7, 0, RHIFormat::R32G32B32A32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, weights[0])},
@@ -184,8 +187,8 @@ class VisibilityGeometryPass : public IPass<VisibilityGeometryPass>
 		}
 
 		*task = [=](RenderGraph &render_graph, RHICommand *cmd_buffer, Variant &config, RenderGraphBlackboard &black_board) {
-			auto  visibility_buffer = render_graph.GetTexture(desc.resources.at("Visibility Buffer").handle);
-			auto  depth_stencil     = render_graph.GetTexture(desc.resources.at("Depth Stencil").handle);
+			auto  visibility_buffer = render_graph.GetTexture(desc.GetPin("Visibility Buffer").handle);
+			auto  depth_stencil     = render_graph.GetTexture(desc.GetPin("Depth Stencil").handle);
 			auto *rhi_context       = renderer->GetRHIContext();
 			auto *gpu_scene         = black_board.Get<GPUScene>();
 			auto *view              = black_board.Get<View>();

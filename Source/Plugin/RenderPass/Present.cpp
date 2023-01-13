@@ -9,23 +9,26 @@
 
 using namespace Ilum;
 
-class PresentPass : public IPass<PresentPass>
+class Present : public RenderPass<Present>
 {
   public:
-	PresentPass() = default;
+	Present() = default;
 
-	~PresentPass() = default;
+	~Present() = default;
 
-	virtual void CreateDesc(RenderPassDesc *desc)
+	virtual RenderPassDesc Create(size_t &handle)
 	{
-		desc->SetBindPoint(BindPoint::None)
-		    .Read("Present", RenderResourceDesc::Type::Texture, RHIResourceState::ShaderResource);
+		RenderPassDesc desc;
+		return desc.SetBindPoint(BindPoint::None)
+		    .SetName("Present")
+		    .SetCategory("Output")
+		    .ReadTexture2D(handle++, "Present", RHIResourceState::ShaderResource);
 	}
 
 	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
 	{
 		*task = [=](RenderGraph &render_graph, RHICommand *cmd_buffer, Variant &config, RenderGraphBlackboard& black_board) {
-			auto  texture = render_graph.GetTexture(desc.resources.at("Present").handle);
+			auto  texture = render_graph.GetTexture(desc.GetPin("Present").handle);
 			renderer->SetPresentTexture(texture);
 		};
 	}
@@ -35,4 +38,4 @@ class PresentPass : public IPass<PresentPass>
 	}
 };
 
-CONFIGURATION_PASS(PresentPass)
+CONFIGURATION_PASS(Present)

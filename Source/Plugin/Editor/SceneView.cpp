@@ -82,9 +82,8 @@ class SceneView : public Widget
 			}
 		}
 
-		if (!ImGui::Begin(m_name.c_str()) || !p_editor->GetMainCamera())
+		if (!ImGui::Begin(m_name.c_str()))
 		{
-			ShowToolBar();
 			ImGui::End();
 			return;
 		}
@@ -104,11 +103,17 @@ class SceneView : public Widget
 		m_camera_config.viewport.x = scene_view_size.x - (static_cast<uint32_t>(scene_view_size.x) % 2 != 0 ? 1.0f : 0.0f);
 		m_camera_config.viewport.y = scene_view_size.y - (static_cast<uint32_t>(scene_view_size.y) % 2 != 0 ? 1.0f : 0.0f);
 
-		UpdateCamera();
+		if (camera)
+		{
+			UpdateCamera();
+		}
 
 		ImGuizmo::SetRect(scene_view_position.x, scene_view_position.y, m_camera_config.viewport.x, m_camera_config.viewport.y);
 
-		ImGuizmo::DrawGrid(glm::value_ptr(camera->GetViewMatrix()), glm::value_ptr(camera->GetProjectionMatrix()), glm::value_ptr(glm::mat4(1.0)), 1000.f);
+		if (camera)
+		{
+			ImGuizmo::DrawGrid(glm::value_ptr(camera->GetViewMatrix()), glm::value_ptr(camera->GetProjectionMatrix()), glm::value_ptr(glm::mat4(1.0)), 1000.f);
+		}
 
 		DisplayPresent();
 
@@ -220,10 +225,13 @@ class SceneView : public Widget
 	void DisplayPresent()
 	{
 		auto *renderer = p_editor->GetRenderer();
-		renderer->SetViewport(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y);
+		renderer->SetViewport(m_camera_config.viewport.x, m_camera_config.viewport.y);
 		auto *present_texture = renderer->GetPresentTexture();
 
-		ImGui::Image(present_texture, ImGui::GetContentRegionAvail());
+		if (present_texture)
+		{
+			ImGui::Image(present_texture, ImGui::GetContentRegionAvail());
+		}
 
 		if (ImGui::BeginDragDropTarget())
 		{

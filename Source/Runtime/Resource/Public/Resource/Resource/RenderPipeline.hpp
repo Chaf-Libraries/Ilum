@@ -6,7 +6,7 @@
 
 namespace Ilum
 {
-struct RenderGraphDesc;
+class RenderGraphDesc;
 class RenderGraph;
 class Renderer;
 
@@ -24,7 +24,7 @@ class EXPORT_API Resource<ResourceType::RenderPipeline> final : public IResource
 
 	virtual void Load(RHIContext *rhi_context) override;
 
-	std::unique_ptr<RenderGraph> Compile(RHIContext *rhi_context, Renderer* renderer, const std::string &layout = "");
+	std::unique_ptr<RenderGraph> Compile(RHIContext *rhi_context, Renderer* renderer, glm::vec2 viewport, const std::string &layout = "");
 
 	const std::string &GetLayout() const;
 

@@ -7,7 +7,6 @@
 namespace Ilum
 {
 class RenderGraph;
-class Renderer;
 
 class EXPORT_API RenderGraphBuilder
 {
@@ -20,7 +19,10 @@ class EXPORT_API RenderGraphBuilder
 
 	bool Validate(RenderGraphDesc &desc);
 
-	std::unique_ptr<RenderGraph> Compile(RenderGraphDesc &desc, Renderer* renderer);
+	std::unique_ptr<RenderGraph> Compile();
+
+	template <typename... Args>
+	std::unique_ptr<RenderGraph> Compile(RenderGraphDesc &desc, Args &&...args);
 
   private:
 	RHIContext *p_rhi_context = nullptr;

@@ -5,6 +5,7 @@
 #include <Material/MaterialData.hpp>
 #include <RHI/RHIContext.hpp>
 #include <RenderGraph/RenderGraph.hpp>
+#include <RenderGraph/RenderGraphBlackboard.hpp>
 #include <Resource/Resource/Animation.hpp>
 #include <Resource/Resource/Material.hpp>
 #include <Resource/Resource/Mesh.hpp>

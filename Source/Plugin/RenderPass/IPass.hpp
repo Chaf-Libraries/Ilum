@@ -2,6 +2,7 @@
 
 #include <Core/Core.hpp>
 #include <RenderGraph/RenderGraph.hpp>
+#include <RenderGraph/RenderGraphBlackboard.hpp>
 #include <RenderGraph/RenderGraphBuilder.hpp>
 #include <Renderer/RenderData.hpp>
 #include <Renderer/Renderer.hpp>
@@ -10,7 +11,7 @@
 
 namespace Ilum
 {
-struct RenderPassDesc;
+class RenderPassDesc;
 class RenderGraphBuilder;
 class Renderer;
 }        // namespace Ilum
@@ -20,12 +21,12 @@ struct ImGuiContext;
 using namespace Ilum;
 
 template <typename T>
-class IPass
+class RenderPass
 {
   public:
-	IPass() = default;
+	RenderPass() = default;
 
-	~IPass() = default;
+	~RenderPass() = default;
 
 	static T &GetInstance()
 	{
@@ -33,8 +34,9 @@ class IPass
 		return instance;
 	}
 
-	virtual void CreateDesc(RenderPassDesc *desc)
+	virtual RenderPassDesc Create(size_t &handle)
 	{
+		return RenderPassDesc{};
 	}
 
 	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
@@ -49,9 +51,9 @@ class IPass
 #define CONFIGURATION_PASS(Pass)                                                                                                                   \
 	extern "C"                                                                                                                                     \
 	{                                                                                                                                              \
-		EXPORT_API void CreateDesc(RenderPassDesc *desc)                                                                                           \
+		EXPORT_API void Create(RenderPassDesc *desc, size_t &handle)                                                                           \
 		{                                                                                                                                          \
-			Pass::GetInstance().CreateDesc(desc);                                                                                                  \
+			*desc = Pass::GetInstance().Create(handle);                                                                                        \
 		}                                                                                                                                          \
 		EXPORT_API void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer) \
 		{                                                                                                                                          \

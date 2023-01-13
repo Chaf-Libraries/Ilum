@@ -1,130 +1,61 @@
 #pragma once
 
 #include "Precompile.hpp"
+#include "RenderPass.hpp"
 
-#include "RenderGraphBlackboard.hpp"
-
-#include <RHI/RHIBuffer.hpp>
 #include <RHI/RHIContext.hpp>
-#include <RHI/RHITexture.hpp>
 
 namespace Ilum
 {
-struct EXPORT_API RGHandle
+class RenderGraphBlackboard;
+
+class EXPORT_API RenderGraphDesc
 {
-	size_t handle;
+  public:
+	RenderGraphDesc() = default;
 
-	RGHandle();
+	~RenderGraphDesc() = default;
 
-	RGHandle(size_t handle);
+	RenderGraphDesc &SetName(const std::string &name);
 
-	~RGHandle() = default;
+	RenderGraphDesc &AddPass(size_t handle, RenderPassDesc &&desc);
 
-	bool IsValid();
+	void ErasePass(size_t handle);
 
-	bool operator<(const RGHandle &rhs) const;
+	void EraseLink(size_t source, size_t target);
 
-	bool operator==(const RGHandle &rhs) const;
+	RenderGraphDesc &Link(size_t source, size_t target);
 
-	size_t GetHandle() const;
+	bool HasLink(size_t target) const;
 
-	template <typename Archive>
-	void serialize(Archive &archive);
-};
+	size_t LinkFrom(size_t target) const;
 
-struct RenderResourceDesc
-{
-	ENUM(Type, Enable){
-	    Buffer,
-	    Texture};
+	std::set<size_t> LinkTo(size_t source) const;
 
-	ENUM(Attribute, Enable){
-	    Read,
-	    Write};
+	RenderPassDesc &GetPass(size_t handle);
 
-	Type type;
+	const std::string &GetName() const;
 
-	Attribute attribute;
+	std::map<size_t, RenderPassDesc> &GetPasses();
 
-	RHIResourceState state;
+	const std::map<size_t, size_t> &GetEdges() const;
 
-	RGHandle handle;
+	void Clear();
 
 	template <typename Archive>
 	void serialize(Archive &archive)
 	{
-		archive(type, attribute, state, handle);
-	}
-};
-
-ENUM(BindPoint, Enable){
-    None,
-    Rasterization,
-    Compute,
-    RayTracing,
-    CUDA};
-
-STRUCT(RenderPassDesc, Enable)
-{
-	std::string name;
-
-	Variant config;
-
-	std::map<std::string, RenderResourceDesc> resources;
-
-	RGHandle prev_pass;
-
-	BindPoint bind_point;
-
-	template <typename Archive>
-	void serialize(Archive & archive)
-	{
-		archive(name, config, resources, prev_pass, bind_point);
+		archive(m_name, m_passes, m_edges, m_pass_lookup);
 	}
 
-	RenderPassDesc &Write(const std::string &name, RenderResourceDesc::Type type, RHIResourceState state)
-	{
-		resources.emplace(name, RenderResourceDesc{type, RenderResourceDesc::Attribute::Write, state});
-		return *this;
-	}
+  private:
+	std::string m_name;
 
-	RenderPassDesc &Read(const std::string &name, RenderResourceDesc::Type type, RHIResourceState state)
-	{
-		resources.emplace(name, RenderResourceDesc{type, RenderResourceDesc::Attribute::Read, state});
-		return *this;
-	}
+	std::map<size_t, RenderPassDesc> m_passes;
 
-	RenderPassDesc &SetName(const std::string &name)
-	{
-		this->name = name;
-		return *this;
-	}
+	std::map<size_t, size_t> m_edges;        // Target - Source
 
-	template <typename T>
-	RenderPassDesc &SetConfig(T var)
-	{
-		config = var;
-		return *this;
-	}
-
-	RenderPassDesc &SetBindPoint(BindPoint bind_point)
-	{
-		this->bind_point = bind_point;
-		return *this;
-	}
-};
-
-STRUCT(RenderGraphDesc, Enable)
-{
-	std::map<RGHandle, RenderPassDesc> passes;
-	std::map<RGHandle, TextureDesc>    textures;
-	std::map<RGHandle, BufferDesc>     buffers;
-
-	template<typename Archive>
-	void serialize(Archive & archive)
-	{
-		archive(passes, textures, buffers);
-	}
+	std::map<size_t, size_t> m_pass_lookup;        // Pin ID - Node ID
 };
 
 class EXPORT_API RenderGraph
@@ -154,11 +85,11 @@ class EXPORT_API RenderGraph
 
 	~RenderGraph();
 
-	RHITexture *GetTexture(RGHandle handle);
+	RHITexture *GetTexture(size_t handle);
 
-	RHIBuffer *GetBuffer(RGHandle handle);
+	RHIBuffer *GetBuffer(size_t handle);
 
-	RHITexture *GetCUDATexture(RGHandle handle);
+	RHITexture *GetCUDATexture(size_t handle);
 
 	void Execute(RenderGraphBlackboard &black_board);
 
@@ -167,14 +98,14 @@ class EXPORT_API RenderGraph
   private:
 	struct TextureCreateInfo
 	{
-		TextureDesc desc;
-		RGHandle    handle;
+		TextureDesc      desc;
+		std::set<size_t> handles;
 	};
 
 	struct BufferCreateInfo
 	{
-		BufferDesc desc;
-		RGHandle   handle;
+		BufferDesc       desc;
+		std::set<size_t> handles;
 	};
 
 	RenderGraph &AddPass(

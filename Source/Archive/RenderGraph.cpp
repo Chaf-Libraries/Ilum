@@ -1,142 +1,45 @@
-#include "RenderGraph.hpp"
+#include "RenderGraph/RenderGraph.hpp"
 
 namespace Ilum
 {
-RenderGraphDesc &RenderGraphDesc::SetName(const std::string &name)
+RGHandle::RGHandle() :
+    handle(~0U)
 {
-	m_name = name;
-	return *this;
 }
 
-RenderGraphDesc &RenderGraphDesc::AddPass(size_t handle, RenderPassDesc &&desc)
+RGHandle::RGHandle(size_t handle) :
+    handle(handle)
 {
-	for (auto &[pin_handle, pin] : desc.GetPins())
-	{
-		m_pass_lookup[pin_handle] = handle;
-	}
-
-	m_pass_lookup[handle] = handle;
-	m_pass_lookup[handle] = handle;
-	m_pass_lookup[handle] = handle;
-	desc.SetHandle(handle);
-	m_passes.emplace(handle, std::move(desc));
-	return *this;
 }
 
-void RenderGraphDesc::ErasePass(size_t handle)
+bool RGHandle::IsValid()
 {
-	auto &desc = m_passes.at(handle);
-	auto &pins = desc.GetPins();
-
-	for (auto iter = m_edges.begin(); iter != m_edges.end();)
-	{
-		if (pins.find(iter->first) != pins.end() ||
-		    pins.find(iter->second) != pins.end()||
-		    m_passes.find(iter->first) != m_passes.end() ||
-		    m_passes.find(iter->second) != m_passes.end())
-		{
-			iter = m_edges.erase(iter);
-		}
-		else
-		{
-			iter++;
-		}
-	}
-
-	for (auto &[handle, name] : pins)
-	{
-		m_pass_lookup.erase(handle);
-	}
-
-	m_passes.erase(handle);
+	return handle != ~0U;
 }
 
-void RenderGraphDesc::EraseLink(size_t source, size_t target)
+bool RGHandle::operator<(const RGHandle &rhs) const
 {
-	if (m_edges.find(target) != m_edges.end() &&
-	    m_edges.at(target) == source)
-	{
-		m_edges.erase(target);
-	}
+	return handle < rhs.handle;
 }
 
-RenderGraphDesc &RenderGraphDesc::Link(size_t source, size_t target)
+bool RGHandle::operator==(const RGHandle &rhs) const
 {
-	const auto &src_node = m_passes.at(m_pass_lookup.at(source));
-	const auto &dst_node = m_passes.at(m_pass_lookup.at(target));
-
-	if ((source == src_node.GetHandle()) &&
-	    (target == dst_node.GetHandle()))
-	{
-		// Link Node
-		m_edges[target] = source;
-	}
-	else if ((source != src_node.GetHandle()) &&
-	         (target != dst_node.GetHandle()))
-	{
-		// Link Pin
-		const auto &src_pin = src_node.GetPin(source);
-		const auto &dst_pin = dst_node.GetPin(target);
-
-		if ((src_pin.type == dst_pin.type) &&
-		    src_pin.attribute != dst_pin.attribute)
-		{
-			m_edges[target] = source;
-		}
-	}
-
-	return *this;
+	return handle == rhs.handle;
 }
 
-bool RenderGraphDesc::HasLink(size_t target) const
+size_t RGHandle::GetHandle() const
 {
-	return m_edges.find(target) != m_edges.end();
+	return handle;
 }
 
-size_t RenderGraphDesc::LinkFrom(size_t target) const
+template <typename Archive>
+void RGHandle::serialize(Archive &archive)
 {
-	return m_edges.at(target);
+	archive(handle);
 }
 
-std::set<size_t> RenderGraphDesc::LinkTo(size_t source) const
-{
-	std::set<size_t> result;
-	for (auto& [dst, src] : m_edges)
-	{
-		if (src == source)
-		{
-			result.insert(dst);
-		}
-	}
-	return result;
-}
-
-RenderPassDesc &RenderGraphDesc::GetPass(size_t handle)
-{
-	return m_passes.at(m_pass_lookup.at(handle));
-}
-
-const std::string &RenderGraphDesc::GetName() const
-{
-	return m_name;
-}
-
-std::map<size_t, RenderPassDesc> &RenderGraphDesc::GetPasses()
-{
-	return m_passes;
-}
-
-const std::map<size_t, size_t> &RenderGraphDesc::GetEdges() const
-{
-	return m_edges;
-}
-
-void RenderGraphDesc::Clear()
-{
-	m_passes.clear();
-	m_edges.clear();
-	m_pass_lookup.clear();
-}
+template EXPORT_API void RGHandle::serialize<InputArchive>(InputArchive &archive);
+template EXPORT_API void RGHandle::serialize<OutputArchive>(OutputArchive &archive);
 
 struct RenderGraph::Impl
 {
@@ -147,11 +50,11 @@ struct RenderGraph::Impl
 	std::vector<RenderPassInfo> render_passes;
 
 	std::vector<std::unique_ptr<RHITexture>> textures;
-	std::map<size_t, RHITexture *>           texture_lookup;
-	std::map<size_t, RHITexture *>           cuda_textures;
+	std::map<RGHandle, RHITexture *>         texture_lookup;
+	std::map<RGHandle, RHITexture *>         cuda_textures;
 
 	std::vector<std::unique_ptr<RHIBuffer>> buffers;
-	std::map<size_t, RHIBuffer *>           buffer_lookup;
+	std::map<RGHandle, RHIBuffer *>         buffer_lookup;
 
 	std::map<RHISemaphore *, std::unique_ptr<RHISemaphore>> cuda_semaphore_map;
 
@@ -172,19 +75,19 @@ RenderGraph::~RenderGraph()
 	delete m_impl;
 }
 
-RHITexture *RenderGraph::GetTexture(size_t handle)
+RHITexture *RenderGraph::GetTexture(RGHandle handle)
 {
 	auto iter = m_impl->texture_lookup.find(handle);
 	return iter == m_impl->texture_lookup.end() ? nullptr : iter->second;
 }
 
-RHIBuffer *RenderGraph::GetBuffer(size_t handle)
+RHIBuffer *RenderGraph::GetBuffer(RGHandle handle)
 {
 	auto iter = m_impl->buffer_lookup.find(handle);
 	return iter == m_impl->buffer_lookup.end() ? nullptr : iter->second;
 }
 
-RHITexture *RenderGraph::GetCUDATexture(size_t handle)
+RHITexture *RenderGraph::GetCUDATexture(RGHandle handle)
 {
 	if (m_impl->cuda_textures.find(handle) == m_impl->cuda_textures.end())
 	{
@@ -306,10 +209,8 @@ RenderGraph &RenderGraph::RegisterTexture(const TextureCreateInfo &create_info)
 {
 	TextureDesc desc    = create_info.desc;
 	auto       &texture = m_impl->textures.emplace_back(m_impl->rhi_context->CreateTexture(desc));
-	for (auto& handle : create_info.handles)
-	{
-		m_impl->texture_lookup.emplace(handle, texture.get());
-	}
+	m_impl->texture_lookup.emplace(create_info.handle, texture.get());
+
 	return *this;
 }
 
@@ -352,10 +253,7 @@ RenderGraph &RenderGraph::RegisterTexture(const std::vector<TextureCreateInfo> &
 		TextureDesc desc = info.desc;
 		desc.usage |= RHITextureUsage::ShaderResource | RHITextureUsage::Transfer;
 		auto &texture = m_impl->textures.emplace_back(pool_texture->Alias(desc));
-		for (auto &handle : info.handles)
-		{
-			m_impl->texture_lookup.emplace(handle, texture.get());
-		}
+		m_impl->texture_lookup.emplace(info.handle, texture.get());
 	}
 
 	return *this;
@@ -366,10 +264,7 @@ RenderGraph &RenderGraph::RegisterBuffer(const BufferCreateInfo &create_info)
 	BufferDesc desc = create_info.desc;
 	desc.usage      = desc.usage | RHIBufferUsage::Transfer | RHIBufferUsage::ConstantBuffer;
 	auto &buffer    = m_impl->buffers.emplace_back(m_impl->rhi_context->CreateBuffer(desc));
-	for (auto &handle : create_info.handles)
-	{
-		m_impl->buffer_lookup.emplace(handle, buffer.get());
-	}
+	m_impl->buffer_lookup.emplace(create_info.handle, buffer.get());
 	return *this;
 }
 

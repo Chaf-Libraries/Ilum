@@ -2,20 +2,23 @@
 
 using namespace Ilum;
 
-class VisibilityBufferVisualization : public IPass<VisibilityBufferVisualization>
+class VisibilityBufferVisualization : public RenderPass<VisibilityBufferVisualization>
 {
   public:
 	VisibilityBufferVisualization() = default;
 
 	~VisibilityBufferVisualization() = default;
 
-	virtual void CreateDesc(RenderPassDesc *desc)
+	virtual RenderPassDesc Create(size_t &handle)
 	{
-		desc->SetBindPoint(BindPoint::Compute)
-		    .Read("VisibilityBuffer", RenderResourceDesc::Type::Texture, RHIResourceState::ShaderResource)
-		    .Read("DepthBuffer", RenderResourceDesc::Type::Texture, RHIResourceState::ShaderResource)
-		    .Write("InstanceID", RenderResourceDesc::Type::Texture, RHIResourceState::UnorderedAccess)
-		    .Write("PrimitiveID", RenderResourceDesc::Type::Texture, RHIResourceState::UnorderedAccess);
+		RenderPassDesc desc;
+		return desc.SetBindPoint(BindPoint::Compute)
+		    .SetName("VisibilityBufferVisualization")
+		    .SetCategory("RenderPath")
+		    .ReadTexture2D(handle++, "Visibility Buffer", RHIResourceState::ShaderResource)
+		    .ReadTexture2D(handle++, "Depth Buffer", RHIResourceState::ShaderResource)
+		    .WriteTexture2D(handle++, "Instance ID", 0, 0, RHIFormat::R8G8B8A8_UNORM, RHIResourceState::UnorderedAccess)
+		    .WriteTexture2D(handle++, "Primitive ID", 0, 0, RHIFormat::R8G8B8A8_UNORM, RHIResourceState::UnorderedAccess);
 	}
 
 	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
@@ -30,10 +33,10 @@ class VisibilityBufferVisualization : public IPass<VisibilityBufferVisualization
 		pipeline_state->SetShader(RHIShaderStage::Compute, shader);
 
 		*task = [=](RenderGraph &render_graph, RHICommand *cmd_buffer, Variant &config, RenderGraphBlackboard &black_board) {
-			auto *visibility_buffer   = render_graph.GetTexture(desc.resources.at("VisibilityBuffer").handle);
-			auto *depth_buffer        = render_graph.GetTexture(desc.resources.at("DepthBuffer").handle);
-			auto *instance_id_buffer  = render_graph.GetTexture(desc.resources.at("InstanceID").handle);
-			auto *primitive_id_buffer = render_graph.GetTexture(desc.resources.at("PrimitiveID").handle);
+			auto *visibility_buffer   = render_graph.GetTexture(desc.GetPin("Visibility Buffer").handle);
+			auto *depth_buffer        = render_graph.GetTexture(desc.GetPin("Depth Buffer").handle);
+			auto *instance_id_buffer  = render_graph.GetTexture(desc.GetPin("Instance ID").handle);
+			auto *primitive_id_buffer = render_graph.GetTexture(desc.GetPin("Primitive ID").handle);
 
 			auto *descriptor = renderer->GetRHIContext()->CreateDescriptor(meta);
 

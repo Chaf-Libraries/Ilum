@@ -92,6 +92,9 @@ class ResourceBrowser : public Widget
 			case ResourceType::Animation:
 				DrawResource<ResourceType::Animation>(resource_manager, 100.f);
 				break;
+			case ResourceType::RenderPipeline:
+				DrawResource<ResourceType::RenderPipeline>(resource_manager, 100.f);
+				break;
 			default:
 				break;
 		}
@@ -168,12 +171,12 @@ class ResourceBrowser : public Widget
 
 	std::unordered_map<ResourceType, const char *const> m_resource_types = {
 	    {ResourceType::Mesh, "Mesh"},
-	    {ResourceType::SkinnedMesh, "Skinned Mesh"},
+	    {ResourceType::SkinnedMesh, "SkinnedMesh"},
 	    {ResourceType::Prefab, "Prefab"},
-	    {ResourceType::Texture2D, "Texture 2D"},
+	    {ResourceType::Texture2D, "Texture2D"},
 	    {ResourceType::Animation, "Animation"},
 	    {ResourceType::Material, "Material"},
-	    {ResourceType::RenderPipeline, "Render Pipeline"},
+	    {ResourceType::RenderPipeline, "RenderPipeline"},
 	};
 
 	std::unordered_map<std::string, ResourceType> m_resource_map = {
