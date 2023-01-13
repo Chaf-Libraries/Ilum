@@ -209,7 +209,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 		build_skeleton(hierarchy, data.root);
 
 		data.animations.push_back(animation_name);
-		manager->Add<ResourceType::Animation>(rhi_context, animation_name, std::move(bones), std::move(hierarchy), static_cast<float>(assimp_animation->mDuration), static_cast<float>(assimp_animation->mTicksPerSecond));
+		manager->Add<ResourceType::Animation>(rhi_context, animation_name, std::move(bones), std::move(hierarchy));
 	}
 
 	template <typename T>
@@ -599,7 +599,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 				ProcessAnimation(manager, rhi_context, path, i, assimp_scene, data);
 			}
 
-			manager->Add<ResourceType::Prefab>(prefab_name, std::move(data.root));
+			manager->Add<ResourceType::Prefab>(rhi_context, prefab_name, std::move(data.root));
 		}
 	}
 };

@@ -18,6 +18,11 @@ struct Resource<ResourceType::Mesh>::Impl
 	std::unique_ptr<RHIAccelerationStructure> blas = nullptr;
 };
 
+Resource<ResourceType::Mesh>::Resource(RHIContext *rhi_context, const std::string &name) :
+    IResource(rhi_context, name, ResourceType::Mesh)
+{
+}
+
 Resource<ResourceType::Mesh>::Resource(RHIContext *rhi_context, const std::string &name, std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices, std::vector<Meshlet> &&meshlets, std::vector<uint32_t> &&meshlet_data) :
     IResource(name)
 {
@@ -28,6 +33,26 @@ Resource<ResourceType::Mesh>::Resource(RHIContext *rhi_context, const std::strin
 Resource<ResourceType::Mesh>::~Resource()
 {
 	delete m_impl;
+}
+
+bool Resource<ResourceType::Mesh>::Validate() const
+{
+	return m_impl != nullptr;
+}
+
+void Resource<ResourceType::Mesh>::Load(RHIContext *rhi_context)
+{
+	m_impl = new Impl;
+
+	std::vector<uint8_t>  thumbnail_data;
+	std::vector<Vertex>   vertices;
+	std::vector<uint32_t> indices;
+	std::vector<Meshlet>  meshlets;
+	std::vector<uint32_t> meshlet_data;
+
+	DESERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Mesh), thumbnail_data, vertices, indices, meshlets, meshlet_data);
+
+	Update(rhi_context, std::move(vertices), std::move(indices), std::move(meshlets), std::move(meshlet_data));
 }
 
 RHIBuffer *Resource<ResourceType::Mesh>::GetVertexBuffer() const
@@ -102,5 +127,8 @@ void Resource<ResourceType::Mesh>::Update(RHIContext *rhi_context, std::vector<V
 	m_impl->blas->Update(cmd_buffer, desc);
 	cmd_buffer->End();
 	rhi_context->Execute(cmd_buffer);
+
+	std::vector<uint8_t> thumbnail_data;
+	SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Mesh), thumbnail_data, vertices, indices, meshlets, meshlet_data);
 }
 }        // namespace Ilum

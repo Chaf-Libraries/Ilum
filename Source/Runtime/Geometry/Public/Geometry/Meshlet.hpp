@@ -4,7 +4,7 @@
 
 namespace Ilum
 {
-struct alignas(16) Meshlet
+struct Meshlet
 {
 	glm::vec3 center;
 	float     radius;
@@ -16,5 +16,11 @@ struct alignas(16) Meshlet
 	uint32_t vertex_offset;
 	uint32_t vertex_count;
 	uint32_t triangle_count;
+
+	template<typename Archive>
+	void serialize(Archive& archive)
+	{
+		archive(center, radius, cone_axis, cone_cutoff, data_offset, vertex_offset, vertex_count, triangle_count);
+	}
 };
 }        // namespace Ilum

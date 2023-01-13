@@ -215,7 +215,7 @@ struct TResourceManager : public IResourceManager
 
 	std::vector<std::unique_ptr<Resource<_Ty>>> resources;
 	std::unordered_map<size_t, size_t>          resource_lookup;
-	// std::unordered_map<size_t, size_t>          valid_lookup;        // uuid - index
+
 	std::vector<Resource<_Ty> *>       valid_resources;
 	std::unordered_map<size_t, size_t> valid_lookup;        // uuid - index
 
@@ -239,6 +239,19 @@ ResourceManager::ResourceManager(RHIContext *rhi_context)
 	m_impl->managers.emplace(ResourceType::Animation, std::make_unique<TResourceManager<ResourceType::Animation>>(rhi_context));
 	m_impl->managers.emplace(ResourceType::Prefab, std::make_unique<TResourceManager<ResourceType::Prefab>>(rhi_context));
 
+	std::unordered_map<ResourceType, std::function<void(RHIContext * , const std::string &)>> loading_meta = {
+#define LOADING_META(RESOURCE_TYPE)\
+	    {RESOURCE_TYPE, [&](RHIContext *rhi_context, const std::string &name) { Add<RESOURCE_TYPE>(rhi_context, name); }}
+	    
+		LOADING_META(ResourceType::Texture2D),
+	    LOADING_META(ResourceType::Mesh),
+	    LOADING_META(ResourceType::SkinnedMesh),
+	    LOADING_META(ResourceType::Texture2D),
+	    LOADING_META(ResourceType::Material),
+	    LOADING_META(ResourceType::Animation),
+	    LOADING_META(ResourceType::Prefab),
+	};
+
 	for (const auto &file : std::filesystem::directory_iterator("Asset/Meta/"))
 	{
 		std::string filename = file.path().filename().string();
@@ -253,52 +266,7 @@ ResourceManager::ResourceManager(RHIContext *rhi_context)
 			resource_name = filename.substr(0, second_last_pos);
 			resource_type = (ResourceType) (std::atoi(filename.substr(second_last_pos + 1, last_pos - second_last_pos).c_str()));
 
-			switch (resource_type)
-			{
-				case ResourceType::Unknown:
-					break;
-				case ResourceType::Prefab:
-					break;
-				case ResourceType::Mesh:
-					break;
-				case ResourceType::SkinnedMesh:
-					break;
-				case ResourceType::Texture2D:
-					Add<ResourceType::Texture2D>(rhi_context, resource_name);
-					break;
-				case ResourceType::Animation:
-					break;
-				case ResourceType::Material:
-					Add<ResourceType::Material>(rhi_context, resource_name);
-					break;
-				default:
-					break;
-			}
-
-			// DESERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, ResourceType::Texture2D), thumbnail_data, desc, data);
-
-			// ResourceType resource_type = ResourceType::Unknown;
-			// std::string  resource_name = "";
-			// DESERIALIZE(file.path().string(), resource_type, resource_name);
-			// switch (resource_type)
-			//{
-			//	case ResourceType::Prefab:
-			//		//Add<ResourceType::Prefab>()
-			//		break;
-			//	case ResourceType::Mesh:
-			//		break;
-			//	case ResourceType::SkinnedMesh:
-			//		break;
-			//	case ResourceType::Texture2D:
-			//		Add<ResourceType::Texture2D>(rhi_context, resource_name);
-			//		break;
-			//	case ResourceType::Animation:
-			//		break;
-			//	case ResourceType::Material:
-			//		break;
-			//	default:
-			//		break;
-			// }
+			loading_meta.at(resource_type)(rhi_context, resource_name);
 		}
 	}
 }

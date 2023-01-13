@@ -23,17 +23,23 @@ class EXPORT_API Resource<ResourceType::Mesh> final : public IResource
 		alignas(16) glm::vec2 texcoord0;
 		glm::vec2 texcoord1;
 
-		template<typename Archive>
-		void serialize(Archive& archive)
+		template <typename Archive>
+		void serialize(Archive &archive)
 		{
 			archive(position, normal, tangent, texcoord0, texcoord1);
 		}
 	};
 
   public:
+	Resource(RHIContext *rhi_context, const std::string &name);
+
 	Resource(RHIContext *rhi_context, const std::string &name, std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices, std::vector<Meshlet> &&meshlets, std::vector<uint32_t> &&meshlet_data);
 
 	virtual ~Resource() override;
+
+	virtual bool Validate() const override;
+
+	virtual void Load(RHIContext *rhi_context) override;
 
 	RHIBuffer *GetVertexBuffer() const;
 

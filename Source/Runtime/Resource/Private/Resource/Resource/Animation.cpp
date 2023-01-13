@@ -20,20 +20,20 @@ struct Resource<ResourceType::Animation>::Impl
 	uint32_t frame_count = 0;
 };
 
-struct Bone::Impl
-{
-	std::string name;
-	uint32_t    id;
-	glm::mat4   offset;
-
-	std::vector<KeyPosition> positions;
-	std::vector<KeyRotation> rotations;
-	std::vector<KeyScale>    scales;
-
-	float max_timestamp = 0.f;
-
-	glm::mat4 local_transfrom;
-};
+// struct Bone::Impl
+//{
+//	std::string name;
+//	uint32_t    id;
+//	glm::mat4   offset;
+//
+//	std::vector<KeyPosition> positions;
+//	std::vector<KeyRotation> rotations;
+//	std::vector<KeyScale>    scales;
+//
+//	float max_timestamp = 0.f;
+//
+//	glm::mat4 local_transfrom;
+// };
 
 Bone::Bone(
     const std::string         &name,
@@ -43,50 +43,33 @@ Bone::Bone(
     std::vector<KeyRotation> &&rotations,
     std::vector<KeyScale>    &&scales)
 {
-	m_impl = new Impl;
+	m_name            = name;
+	m_id              = id;
+	m_offset          = offset;
+	m_positions       = std::move(positions);
+	m_rotations       = std::move(rotations);
+	m_scales          = std::move(scales);
+	m_local_transfrom = glm::mat4(1.f);
 
-	m_impl->name            = name;
-	m_impl->id              = id;
-	m_impl->offset          = offset;
-	m_impl->positions       = std::move(positions);
-	m_impl->rotations       = std::move(rotations);
-	m_impl->scales          = std::move(scales);
-	m_impl->local_transfrom = glm::mat4(1.f);
-
-	if (!m_impl->positions.empty())
+	if (!m_positions.empty())
 	{
-		m_impl->max_timestamp = glm::max(m_impl->max_timestamp, m_impl->positions.back().time_stamp);
+		m_max_timestamp = glm::max(m_max_timestamp, m_positions.back().time_stamp);
 	}
 
-	if (!m_impl->rotations.empty())
+	if (!m_rotations.empty())
 	{
-		m_impl->max_timestamp = glm::max(m_impl->max_timestamp, m_impl->rotations.back().time_stamp);
+		m_max_timestamp = glm::max(m_max_timestamp, m_rotations.back().time_stamp);
 	}
 
-	if (!m_impl->scales.empty())
+	if (!m_scales.empty())
 	{
-		m_impl->max_timestamp = glm::max(m_impl->max_timestamp, m_impl->scales.back().time_stamp);
-	}
-}
-
-Bone::Bone(Bone &&bone) noexcept :
-    m_impl(bone.m_impl)
-{
-	bone.m_impl = nullptr;
-}
-
-Bone::~Bone()
-{
-	if (m_impl)
-	{
-		delete m_impl;
-		m_impl = nullptr;
+		m_max_timestamp = glm::max(m_max_timestamp, m_scales.back().time_stamp);
 	}
 }
 
 void Bone::Update(float time)
 {
-	m_impl->local_transfrom =
+	m_local_transfrom =
 	    InterpolatePosition(time) *
 	    InterpolateRotation(time) *
 	    InterpolateScaling(time);
@@ -94,58 +77,58 @@ void Bone::Update(float time)
 
 glm::mat4 Bone::GetLocalTransform() const
 {
-	return m_impl->local_transfrom;
+	return m_local_transfrom;
 }
 
 std::string Bone::GetBoneName() const
 {
-	return m_impl->name;
+	return m_name;
 }
 
 uint32_t Bone::GetBoneID() const
 {
-	return m_impl->id;
+	return m_id;
 }
 
 glm::mat4 Bone::GetBoneOffset() const
 {
-	return m_impl->offset;
+	return m_offset;
 }
 
 size_t Bone::GetPositionIndex(float time) const
 {
-	for (size_t index = 0; index < m_impl->positions.size() - 1; index++)
+	for (size_t index = 0; index < m_positions.size() - 1; index++)
 	{
-		if (time < m_impl->positions[index + 1].time_stamp)
+		if (time < m_positions[index + 1].time_stamp)
 		{
 			return index;
 		}
 	}
-	return m_impl->positions.size() - 2;
+	return m_positions.size() - 2;
 }
 
 size_t Bone::GetRotationIndex(float time) const
 {
-	for (size_t index = 0; index < m_impl->rotations.size() - 1; index++)
+	for (size_t index = 0; index < m_rotations.size() - 1; index++)
 	{
-		if (time < m_impl->rotations[index + 1].time_stamp)
+		if (time < m_rotations[index + 1].time_stamp)
 		{
 			return index;
 		}
 	}
-	return m_impl->rotations.size() - 2;
+	return m_rotations.size() - 2;
 }
 
 size_t Bone::GetScaleIndex(float time) const
 {
-	for (size_t index = 0; index < m_impl->scales.size() - 1; index++)
+	for (size_t index = 0; index < m_scales.size() - 1; index++)
 	{
-		if (time < m_impl->scales[index + 1].time_stamp)
+		if (time < m_scales[index + 1].time_stamp)
 		{
 			return index;
 		}
 	}
-	return m_impl->scales.size() - 2;
+	return m_scales.size() - 2;
 }
 
 glm::mat4 Bone::GetLocalTransform(float time) const
@@ -158,12 +141,12 @@ glm::mat4 Bone::GetLocalTransform(float time) const
 
 glm::mat4 Bone::GetTransformedOffset(float time) const
 {
-	return GetLocalTransform() * m_impl->offset;
+	return GetLocalTransform() * m_offset;
 }
 
 float Bone::GetMaxTimeStamp() const
 {
-	return m_impl->max_timestamp;
+	return m_max_timestamp;
 }
 
 float Bone::GetScaleFactor(float last, float next, float time) const
@@ -173,41 +156,41 @@ float Bone::GetScaleFactor(float last, float next, float time) const
 
 glm::mat4 Bone::InterpolatePosition(float time) const
 {
-	if (m_impl->positions.empty())
+	if (m_positions.empty())
 	{
 		return glm::mat4(1.f);
 	}
 
-	if (m_impl->positions.size() == 1)
+	if (m_positions.size() == 1)
 	{
-		return glm::translate(glm::mat4(1.f), m_impl->positions[0].position);
+		return glm::translate(glm::mat4(1.f), m_positions[0].position);
 	}
 
 	size_t    p0             = GetPositionIndex(time);
 	size_t    p1             = p0 + 1;
-	float     scale_factor   = GetScaleFactor(m_impl->positions[p0].time_stamp, m_impl->positions[p1].time_stamp, glm::clamp(time, 0.f, m_impl->positions.back().time_stamp));
-	glm::vec3 final_position = glm::mix(m_impl->positions[p0].position, m_impl->positions[p1].position, scale_factor);
+	float     scale_factor   = GetScaleFactor(m_positions[p0].time_stamp, m_positions[p1].time_stamp, glm::clamp(time, 0.f, m_positions.back().time_stamp));
+	glm::vec3 final_position = glm::mix(m_positions[p0].position, m_positions[p1].position, scale_factor);
 
 	return glm::translate(glm::mat4(1.f), final_position);
 }
 
 glm::mat4 Bone::InterpolateRotation(float time) const
 {
-	if (m_impl->rotations.empty())
+	if (m_rotations.empty())
 	{
 		return glm::mat4(1.f);
 	}
 
-	if (m_impl->rotations.size() == 1)
+	if (m_rotations.size() == 1)
 	{
-		auto rotation = glm::normalize(m_impl->rotations[0].orientation);
+		auto rotation = glm::normalize(m_rotations[0].orientation);
 		return glm::toMat4(rotation);
 	}
 
 	size_t    p0             = GetRotationIndex(time);
 	size_t    p1             = p0 + 1;
-	float     scale_factor   = GetScaleFactor(m_impl->rotations[p0].time_stamp, m_impl->rotations[p1].time_stamp, glm::clamp(time, 0.f, m_impl->rotations.back().time_stamp));
-	glm::quat final_rotation = glm::slerp(m_impl->rotations[p0].orientation, m_impl->rotations[p1].orientation, scale_factor);
+	float     scale_factor   = GetScaleFactor(m_rotations[p0].time_stamp, m_rotations[p1].time_stamp, glm::clamp(time, 0.f, m_rotations.back().time_stamp));
+	glm::quat final_rotation = glm::slerp(m_rotations[p0].orientation, m_rotations[p1].orientation, scale_factor);
 	final_rotation           = glm::normalize(final_rotation);
 
 	return glm::toMat4(final_rotation);
@@ -215,28 +198,34 @@ glm::mat4 Bone::InterpolateRotation(float time) const
 
 glm::mat4 Bone::InterpolateScaling(float time) const
 {
-	if (m_impl->scales.empty())
+	if (m_scales.empty())
 	{
 		return glm::mat4(1.f);
 	}
 
-	if (m_impl->scales.size() == 1)
+	if (m_scales.size() == 1)
 	{
-		return glm::scale(glm::mat4(1.f), m_impl->scales[0].scale);
+		return glm::scale(glm::mat4(1.f), m_scales[0].scale);
 	}
 
 	size_t    p0           = GetScaleIndex(time);
 	size_t    p1           = p0 + 1;
-	float     scale_factor = GetScaleFactor(m_impl->scales[p0].time_stamp, m_impl->scales[p1].time_stamp, glm::clamp(time, 0.f, m_impl->scales.back().time_stamp));
-	glm::vec3 final_scale  = glm::mix(m_impl->scales[p0].scale, m_impl->scales[p1].scale, scale_factor);
+	float     scale_factor = GetScaleFactor(m_scales[p0].time_stamp, m_scales[p1].time_stamp, glm::clamp(time, 0.f, m_scales.back().time_stamp));
+	glm::vec3 final_scale  = glm::mix(m_scales[p0].scale, m_scales[p1].scale, scale_factor);
 
 	return glm::scale(glm::mat4(1.f), final_scale);
 }
 
-Resource<ResourceType::Animation>::Resource(RHIContext *rhi_context, const std::string &name, std::vector<Bone> &&bones, HierarchyNode &&hierarchy, float duration, float ticks_per_sec) :
+Resource<ResourceType::Animation>::Resource(RHIContext *rhi_context, const std::string &name) :
+    IResource(rhi_context, name, ResourceType::Animation)
+{
+}
+
+Resource<ResourceType::Animation>::Resource(RHIContext *rhi_context, const std::string &name, std::vector<Bone> &&bones, HierarchyNode &&hierarchy) :
     IResource(name)
 {
-	m_impl            = new Impl;
+	m_impl = new Impl;
+
 	m_impl->bones     = std::move(bones);
 	m_impl->hierarchy = std::move(hierarchy);
 
@@ -244,6 +233,9 @@ Resource<ResourceType::Animation>::Resource(RHIContext *rhi_context, const std::
 	{
 		m_impl->m_max_timestamp = glm::max(m_impl->m_max_timestamp, bone.GetMaxTimeStamp());
 	}
+
+	std::vector<uint32_t> thumbnail_data;
+	SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Animation), thumbnail_data, m_impl->bones, m_impl->hierarchy, m_impl->m_max_timestamp);
 
 	Bake(rhi_context);
 }
@@ -389,5 +381,20 @@ RHIBuffer *Resource<ResourceType::Animation>::GetBoneMatrics() const
 Resource<ResourceType::Animation>::~Resource()
 {
 	delete m_impl;
+}
+
+bool Resource<ResourceType::Animation>::Validate() const
+{
+	return m_impl != nullptr;
+}
+
+void Resource<ResourceType::Animation>::Load(RHIContext *rhi_context)
+{
+	m_impl = new Impl;
+
+	std::vector<uint32_t> thumbnail_data;
+	DESERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Animation), thumbnail_data, m_impl->bones, m_impl->hierarchy, m_impl->m_max_timestamp);
+
+	Bake(rhi_context);
 }
 }        // namespace Ilum
