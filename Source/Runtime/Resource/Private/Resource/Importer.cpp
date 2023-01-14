@@ -48,4 +48,5 @@ template class EXPORT_API Importer<ResourceType::SkinnedMesh>;
 template class EXPORT_API Importer<ResourceType::Material>;
 template class EXPORT_API Importer<ResourceType::Animation>;
 template class EXPORT_API Importer<ResourceType::RenderPipeline>;
+template class EXPORT_API Importer<ResourceType::Scene>;
 }        // namespace Ilum

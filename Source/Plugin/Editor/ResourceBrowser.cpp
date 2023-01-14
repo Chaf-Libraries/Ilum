@@ -72,32 +72,21 @@ class ResourceBrowser : public Widget
 
 		ImGui::BeginChild("Resource Browser Viewer", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
-		switch (m_current_type)
-		{
-			case ResourceType::Prefab:
-				DrawResource<ResourceType::Prefab>(resource_manager, 100.f);
-				break;
-			case ResourceType::Mesh:
-				DrawResource<ResourceType::Mesh>(resource_manager, 100.f);
-				break;
-			case ResourceType::SkinnedMesh:
-				DrawResource<ResourceType::SkinnedMesh>(resource_manager, 100.f);
-				break;
-			case ResourceType::Texture2D:
-				DrawResource<ResourceType::Texture2D>(resource_manager, 100.f);
-				break;
-			case ResourceType::Material:
-				DrawResource<ResourceType::Material>(resource_manager, 100.f);
-				break;
-			case ResourceType::Animation:
-				DrawResource<ResourceType::Animation>(resource_manager, 100.f);
-				break;
-			case ResourceType::RenderPipeline:
-				DrawResource<ResourceType::RenderPipeline>(resource_manager, 100.f);
-				break;
-			default:
-				break;
-		}
+		std::unordered_map<ResourceType, std::function<void(void)>> draw_resources = {
+#define DRAW_RESOURCE(TYPE)\
+		    {TYPE, [&]() { DrawResource<TYPE>(resource_manager, 100.f); }}
+
+			DRAW_RESOURCE(ResourceType::Prefab),
+		    DRAW_RESOURCE(ResourceType::Mesh),
+		    DRAW_RESOURCE(ResourceType::SkinnedMesh),
+		    DRAW_RESOURCE(ResourceType::Texture2D),
+		    DRAW_RESOURCE(ResourceType::Material),
+		    DRAW_RESOURCE(ResourceType::Animation),
+		    DRAW_RESOURCE(ResourceType::RenderPipeline),
+		    DRAW_RESOURCE(ResourceType::Scene),
+		};
+
+		draw_resources.at(m_current_type)();
 
 		if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
 		{
@@ -177,6 +166,7 @@ class ResourceBrowser : public Widget
 	    {ResourceType::Animation, "Animation"},
 	    {ResourceType::Material, "Material"},
 	    {ResourceType::RenderPipeline, "RenderPipeline"},
+	    {ResourceType::Scene, "Scene"},
 	};
 
 	std::unordered_map<std::string, ResourceType> m_resource_map = {
@@ -190,7 +180,6 @@ class ResourceBrowser : public Widget
 	    {".glb", ResourceType::Prefab},
 	    {".fbx", ResourceType::Prefab},
 	    {".ply", ResourceType::Prefab},
-	    {".blend", ResourceType::Prefab},
 	    {".dae", ResourceType::Prefab},
 	};
 };

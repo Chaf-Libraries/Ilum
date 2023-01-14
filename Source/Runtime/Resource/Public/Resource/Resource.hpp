@@ -17,6 +17,7 @@ enum class ResourceType
 	Animation,
 	Material,
 	RenderPipeline,
+	Scene,
 };
 
 class EXPORT_API IResource

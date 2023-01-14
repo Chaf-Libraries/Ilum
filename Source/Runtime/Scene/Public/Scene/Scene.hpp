@@ -64,6 +64,8 @@ class EXPORT_API Scene
 
 	void Load(InputArchive &archive);
 
+	void Clear();
+
   private:
 	std::unordered_map<std::type_index, std::vector<std::unique_ptr<Component>>> &GetComponents();
 

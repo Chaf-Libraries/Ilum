@@ -6,6 +6,7 @@
 #include "Resource/Mesh.hpp"
 #include "Resource/Prefab.hpp"
 #include "Resource/RenderPipeline.hpp"
+#include "Resource/Scene.hpp"
 #include "Resource/SkinnedMesh.hpp"
 #include "Resource/Texture2D.hpp"
 
@@ -240,6 +241,7 @@ ResourceManager::ResourceManager(RHIContext *rhi_context)
 	m_impl->managers.emplace(ResourceType::Animation, std::make_unique<TResourceManager<ResourceType::Animation>>(rhi_context));
 	m_impl->managers.emplace(ResourceType::Prefab, std::make_unique<TResourceManager<ResourceType::Prefab>>(rhi_context));
 	m_impl->managers.emplace(ResourceType::RenderPipeline, std::make_unique<TResourceManager<ResourceType::RenderPipeline>>(rhi_context));
+	m_impl->managers.emplace(ResourceType::Scene, std::make_unique<TResourceManager<ResourceType::Scene>>(rhi_context));
 
 	std::unordered_map<ResourceType, std::function<void(RHIContext *, const std::string &)>> loading_meta = {
 #define LOADING_META(RESOURCE_TYPE)                                                                                     \
@@ -255,6 +257,7 @@ ResourceManager::ResourceManager(RHIContext *rhi_context)
 	    LOADING_META(ResourceType::Animation),
 	    LOADING_META(ResourceType::Prefab),
 	    LOADING_META(ResourceType::RenderPipeline),
+	    LOADING_META(ResourceType::Scene),
 	};
 
 	for (const auto &file : std::filesystem::directory_iterator("Asset/Meta/"))

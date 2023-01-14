@@ -83,4 +83,5 @@ template class EXPORT_API Resource<ResourceType::Texture2D>;
 template class EXPORT_API Resource<ResourceType::Prefab>;
 template class EXPORT_API Resource<ResourceType::Animation>;
 template class EXPORT_API Resource<ResourceType::RenderPipeline>;
+template class EXPORT_API Resource<ResourceType::Scene>;
 }        // namespace Ilum

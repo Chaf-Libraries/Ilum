@@ -109,11 +109,6 @@ std::unordered_map<std::type_index, std::vector<std::unique_ptr<Component>>> &Sc
 
 void Scene::Save(OutputArchive &archive)
 {
-	/*std::string name;
-
-	std::vector<std::unique_ptr<Node>> nodes;
-
-	std::unordered_map<std::type_index, std::vector<std::unique_ptr<Component>>> components;*/
 	archive(m_impl->name);
 
 	// Nodes
@@ -203,6 +198,15 @@ void Scene::Load(InputArchive &archive)
 				load_component_map.at(type_name)(node, archive);
 			}
 		}
+	}
+}
+
+void Scene::Clear()
+{
+	auto roots = GetRoots();
+	for (auto &root : roots)
+	{
+		EraseNode(root);
 	}
 }
 }        // namespace Ilum

@@ -8,6 +8,7 @@
 #include <Resource/Resource/Animation.hpp>
 #include <Resource/Resource/Prefab.hpp>
 #include <Resource/Resource/RenderPipeline.hpp>
+#include <Resource/Resource/Scene.hpp>
 #include <Resource/ResourceManager.hpp>
 #include <Scene/Components/AllComponents.hpp>
 #include <Scene/Node.hpp>
@@ -234,17 +235,31 @@ class SceneView : public Widget
 		}
 	}
 
+	template <>
+	void DropTarget<ResourceType::Scene>(Editor *editor, const std::string &name)
+	{
+		auto *resource = editor->GetRenderer()->GetResourceManager()->Get<ResourceType::Scene>(name);
+		auto *scene    = editor->GetRenderer()->GetScene();
+
+		if (resource)
+		{
+			auto *rhi_context = editor->GetRHIContext();
+			resource->Update(scene);
+			m_scene_name = name;
+		}
+	}
+
 	void DropTarget(Editor *editor)
 	{
-		if (const auto *pay_load = ImGui::AcceptDragDropPayload("Prefab"))
-		{
-			DropTarget<ResourceType::Prefab>(editor, static_cast<const char *>(pay_load->Data));
-		}
+#define DROP_TARGET(TYPE)                                                                  \
+	if (const auto *pay_load = ImGui::AcceptDragDropPayload(#TYPE))                        \
+	{                                                                                      \
+		DropTarget<ResourceType::TYPE>(editor, static_cast<const char *>(pay_load->Data)); \
+	}
 
-		if (const auto *pay_load = ImGui::AcceptDragDropPayload("RenderPipeline"))
-		{
-			DropTarget<ResourceType::RenderPipeline>(editor, static_cast<const char *>(pay_load->Data));
-		}
+		DROP_TARGET(Prefab)
+		DROP_TARGET(RenderPipeline)
+		DROP_TARGET(Scene)
 	}
 
 	void DisplayPresent()
@@ -368,7 +383,7 @@ class SceneView : public Widget
 		Node *node   = p_editor->GetSelectedNode();
 		auto *camera = p_editor->GetMainCamera();
 
-		if (!node)
+		if (!node || !camera)
 		{
 			return;
 		}
@@ -412,6 +427,15 @@ class SceneView : public Widget
 		ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.f);
 		ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.f, 0.f));
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.f, 5.f));
+
+		ImGui::SameLine();
+
+		if (ImGui::Button("Scene", ImVec2(60.f, 20.f)))
+		{
+			ImGui::OpenPopup("ScenePopup");
+		}
+
+		SHOW_TIPS("Scene");
 
 		ImGui::SameLine();
 
@@ -490,6 +514,41 @@ class SceneView : public Widget
 			ImGui::EndPopup();
 		}
 
+		if (ImGui::BeginPopup("ScenePopup"))
+		{
+			auto *manager = p_editor->GetRenderer()->GetResourceManager();
+			auto *scene   = p_editor->GetRenderer()->GetScene();
+
+			ImGui::PushItemWidth(80.f);
+			char buf[128] = {0};
+			std::memcpy(buf, m_scene_name.data(), sizeof(buf));
+			if (ImGui::InputText("##NewScene", buf, sizeof(buf)))
+			{
+				m_scene_name = buf;
+			}
+
+			auto *resource = manager->Get<ResourceType::Scene>(m_scene_name);
+
+			if (!m_scene_name.empty() && !resource)
+			{
+				if (ImGui::Button("New Scene"))
+				{
+					manager->Add<ResourceType::Scene>(p_editor->GetRHIContext(), m_scene_name, scene);
+					resource = manager->Get<ResourceType::Scene>(m_scene_name);
+				}
+			}
+			else
+			{
+				if (ImGui::Button("Save Scene"))
+				{
+					resource->Save(scene);
+				}
+			}
+
+			ImGui::PopItemWidth();
+			ImGui::EndPopup();
+		}
+
 		ImGui::PopStyleVar();
 		ImGui::PopStyleVar();
 		ImGui::PopStyleVar();
@@ -517,9 +576,10 @@ class SceneView : public Widget
   private:
 	std::map<std::string, std::unique_ptr<RHITexture>> m_icons;
 
-	float m_animation_time = 0.f;
+	std::string m_scene_name = "";
 
-	bool m_play_animation = false;
+	float m_animation_time = 0.f;
+	bool  m_play_animation = false;
 };
 
 extern "C"

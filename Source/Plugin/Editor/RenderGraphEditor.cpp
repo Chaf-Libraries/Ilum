@@ -43,10 +43,7 @@ class RenderGraphEditor : public Widget
 
 		auto *resource = resource_manager->Get<ResourceType::RenderPipeline>(m_pipeline_name);
 
-		// DrawMenu();
 		ImGui::Columns(2);
-
-		// DrawInspector();
 
 		{
 			ImGui::BeginChild("Render Pipeline Editor Inspector", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
@@ -54,6 +51,18 @@ class RenderGraphEditor : public Widget
 			ImGui::Text("Render Pipeline Editor Inspector");
 
 			SetRenderPipeline(resource, resource_manager);
+
+			ImGui::Separator();
+
+			if (resource)
+			{
+				for (auto &node : m_select_nodes)
+				{
+					auto &pass = resource->GetDesc().GetPass(static_cast<size_t>(node));
+					PluginManager::GetInstance().Call<bool>(fmt::format("shared/RenderPass/RenderPass.{}.{}.dll", pass.GetCategory(), pass.GetName()), "OnImGui", &pass.GetConfig(), ImGui::GetCurrentContext());
+					ImGui::Separator();
+				}
+			}
 
 			if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
 			{
@@ -65,41 +74,43 @@ class RenderGraphEditor : public Widget
 
 		ImGui::NextColumn();
 
-		ImGui::BeginChild("Render Graph Editor", ImVec2(0, 0), false, ImGuiWindowFlags_MenuBar);
-
-		if (resource)
 		{
-			MainMenuBar(resource);
-		}
+			ImGui::BeginChild("Render Graph Editor", ImVec2(0, 0), false, ImGuiWindowFlags_MenuBar);
 
-		HandleSelection();
-
-		ImNodes::BeginNodeEditor();
-
-		if (resource)
-		{
-			for (auto &new_node : m_new_nodes)
+			if (resource)
 			{
-				ImNodes::SetNodeScreenSpacePos(new_node, ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y));
+				MainMenuBar(resource);
 			}
-			m_new_nodes.clear();
 
-			PopupWindow(resource);
-			DrawNodes(resource);
-			DrawEdges(resource);
+			HandleSelection();
+
+			ImNodes::BeginNodeEditor();
+
+			if (resource)
+			{
+				for (auto &new_node : m_new_nodes)
+				{
+					ImNodes::SetNodeScreenSpacePos(new_node, ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y));
+				}
+				m_new_nodes.clear();
+
+				PopupWindow(resource);
+				DrawNodes(resource);
+				DrawEdges(resource);
+			}
+
+			ImNodes::MiniMap(0.1f);
+			ImNodes::EndNodeEditor();
+
+			DragDropResource();
+
+			if (resource)
+			{
+				AddEdge(resource);
+			}
+
+			ImGui::EndChild();
 		}
-
-		ImNodes::MiniMap(0.1f);
-		ImNodes::EndNodeEditor();
-
-		DragDropResource();
-
-		if (resource)
-		{
-			AddEdge(resource);
-		}
-
-		ImGui::EndChild();
 
 		ImGui::End();
 	}
@@ -263,7 +274,7 @@ class RenderGraphEditor : public Widget
 			{
 				if (pin.attribute == RenderPassPin::Attribute::Input)
 				{
-					 ImNodes::PushColorStyle(ImNodesCol_Pin, m_color[pin.type]);
+					ImNodes::PushColorStyle(ImNodesCol_Pin, m_color[pin.type]);
 					ImNodes::BeginInputAttribute(static_cast<int32_t>(pin_handle));
 					ImGui::TextUnformatted(pin.name.c_str());
 					if (!resource->GetDesc().HasLink(pin_handle))
@@ -273,17 +284,17 @@ class RenderGraphEditor : public Widget
 						ImGui::PopItemWidth();
 					}
 					ImNodes::EndInputAttribute();
-					 ImNodes::PopColorStyle();
+					ImNodes::PopColorStyle();
 				}
 				else
 				{
-					 ImNodes::PushColorStyle(ImNodesCol_Pin, m_color[pin.type]);
+					ImNodes::PushColorStyle(ImNodesCol_Pin, m_color[pin.type]);
 					ImNodes::BeginOutputAttribute(static_cast<int32_t>(pin_handle));
 					const float label_width = ImGui::CalcTextSize(pin.name.c_str()).x;
 					ImGui::Indent(node_width - label_width);
 					ImGui::TextUnformatted(pin.name.c_str());
 					ImNodes::EndOutputAttribute();
-					 ImNodes::PopColorStyle();
+					ImNodes::PopColorStyle();
 				}
 			}
 			ImNodes::EndNode();
@@ -1070,6 +1081,18 @@ class RenderGraphEditor : public Widget
 				}
 			}
 		}
+	}
+
+	void DrawInspector()
+	{
+		ImGui::BeginChild("Render Graph Inspector", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
+
+		if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+		{
+			ImGui::SetScrollHereY(1.0f);
+		}
+
+		ImGui::EndChild();
 	}
 
   private:
