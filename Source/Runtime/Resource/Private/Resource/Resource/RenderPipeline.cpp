@@ -46,7 +46,10 @@ void Resource<ResourceType::RenderPipeline>::Load(RHIContext *rhi_context)
 
 std::unique_ptr<RenderGraph> Resource<ResourceType::RenderPipeline>::Compile(RHIContext *rhi_context, Renderer *renderer, glm::vec2 viewport, const std::string &layout)
 {
-	m_impl->layout = layout;
+	if (!layout.empty())
+	{
+		m_impl->layout = layout;
+	}
 
 	std::vector<uint32_t> thumbnail_data;
 	SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::RenderPipeline), thumbnail_data, m_impl->desc, m_impl->layout);

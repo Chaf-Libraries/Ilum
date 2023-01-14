@@ -78,7 +78,7 @@ class RenderGraphEditor : public Widget
 
 		if (resource)
 		{
-			for (auto& new_node : m_new_nodes)
+			for (auto &new_node : m_new_nodes)
 			{
 				ImNodes::SetNodeScreenSpacePos(new_node, ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y));
 			}
@@ -263,7 +263,7 @@ class RenderGraphEditor : public Widget
 			{
 				if (pin.attribute == RenderPassPin::Attribute::Input)
 				{
-					// ImNodes::PushColorStyle(ImNodesCol_Pin, m_pin_color[pin.type]);
+					 ImNodes::PushColorStyle(ImNodesCol_Pin, m_color[pin.type]);
 					ImNodes::BeginInputAttribute(static_cast<int32_t>(pin_handle));
 					ImGui::TextUnformatted(pin.name.c_str());
 					if (!resource->GetDesc().HasLink(pin_handle))
@@ -273,17 +273,17 @@ class RenderGraphEditor : public Widget
 						ImGui::PopItemWidth();
 					}
 					ImNodes::EndInputAttribute();
-					// ImNodes::PopColorStyle();
+					 ImNodes::PopColorStyle();
 				}
 				else
 				{
-					// ImNodes::PushColorStyle(ImNodesCol_Pin, m_pin_color[pin.type]);
+					 ImNodes::PushColorStyle(ImNodesCol_Pin, m_color[pin.type]);
 					ImNodes::BeginOutputAttribute(static_cast<int32_t>(pin_handle));
 					const float label_width = ImGui::CalcTextSize(pin.name.c_str()).x;
 					ImGui::Indent(node_width - label_width);
 					ImGui::TextUnformatted(pin.name.c_str());
 					ImNodes::EndOutputAttribute();
-					// ImNodes::PopColorStyle();
+					 ImNodes::PopColorStyle();
 				}
 			}
 			ImNodes::EndNode();
@@ -301,12 +301,17 @@ class RenderGraphEditor : public Widget
 			if ((src == src_node.GetHandle()) &&
 			    (dst == dst_node.GetHandle()))
 			{
+				ImNodes::PushColorStyle(ImNodesCol_Link, m_color[RenderPassPin::Type::Unknown]);
 				ImNodes::Link(static_cast<int32_t>(Hash(src, dst)), -static_cast<int32_t>(src), static_cast<int32_t>(dst));
+				ImNodes::PopColorStyle();
 			}
 			else if ((src != src_node.GetHandle()) &&
 			         (dst != dst_node.GetHandle()))
 			{
+				auto type = src_node.GetPin(src).type;
+				ImNodes::PushColorStyle(ImNodesCol_Link, m_color[type]);
 				ImNodes::Link(static_cast<int32_t>(Hash(src, dst)), static_cast<int32_t>(src), static_cast<int32_t>(dst));
+				ImNodes::PopColorStyle();
 			}
 		}
 	}
@@ -1080,6 +1085,12 @@ class RenderGraphEditor : public Widget
 	std::vector<int32_t> m_new_nodes;
 
 	std::vector<std::tuple<int32_t, int32_t, uint32_t>> m_edges;
+
+	std::map<RenderPassPin::Type, uint32_t> m_color = {
+	    {RenderPassPin::Type::Buffer, IM_COL32(0, 128, 0, 255)},
+	    {RenderPassPin::Type::Texture, IM_COL32(128, 0, 0, 255)},
+	    {RenderPassPin::Type::Unknown, IM_COL32(255, 255, 255, 255)},
+	};
 };
 
 extern "C"

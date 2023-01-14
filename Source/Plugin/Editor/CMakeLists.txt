@@ -13,7 +13,7 @@ function(add_widget name)
 endfunction()
 
 add_widget(SceneView)
-target_link_libraries(Editor.SceneView PRIVATE Resource Scene glfw)
+target_link_libraries(Editor.SceneView PRIVATE Resource Scene glfw RenderGraph)
 
 add_widget(SceneHierarchy)
 target_link_libraries(Editor.SceneHierarchy PRIVATE Scene)

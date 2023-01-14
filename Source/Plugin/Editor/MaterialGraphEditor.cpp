@@ -406,7 +406,14 @@ class MaterialGraphEditor : public Widget
 	{
 		for (auto &[dst, src] : resource->GetDesc().GetEdges())
 		{
+			const auto &src_node = resource->GetDesc().GetNode(src);
+			const auto &dst_node = resource->GetDesc().GetNode(dst);
+
+			auto type = src_node.GetPin(src).type;
+
+			ImNodes::PushColorStyle(ImNodesCol_Link, m_pin_color[type]);
 			ImNodes::Link(static_cast<int32_t>(Hash(src, dst)), static_cast<int32_t>(src), static_cast<int32_t>(dst));
+			ImNodes::PopColorStyle();
 		}
 	}
 

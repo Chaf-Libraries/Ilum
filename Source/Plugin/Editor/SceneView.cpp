@@ -3,9 +3,11 @@
 #include <Core/Window.hpp>
 #include <Editor/Editor.hpp>
 #include <Editor/Widget.hpp>
+#include <RenderGraph/RenderGraph.hpp>
 #include <Renderer/Renderer.hpp>
 #include <Resource/Resource/Animation.hpp>
 #include <Resource/Resource/Prefab.hpp>
+#include <Resource/Resource/RenderPipeline.hpp>
 #include <Resource/ResourceManager.hpp>
 #include <Scene/Components/AllComponents.hpp>
 #include <Scene/Node.hpp>
@@ -132,6 +134,7 @@ class SceneView : public Widget
 	void DropTarget<ResourceType::Prefab>(Editor *editor, const std::string &name)
 	{
 		auto *prefab = editor->GetRenderer()->GetResourceManager()->Get<ResourceType::Prefab>(name);
+
 		if (prefab)
 		{
 			auto &root  = prefab->GetRoot();
@@ -214,11 +217,33 @@ class SceneView : public Widget
 		}
 	}
 
+	template <>
+	void DropTarget<ResourceType::RenderPipeline>(Editor *editor, const std::string &name)
+	{
+		auto *resource = editor->GetRenderer()->GetResourceManager()->Get<ResourceType::RenderPipeline>(name);
+
+		if (resource)
+		{
+			auto *rhi_context     = editor->GetRHIContext();
+			auto *renderer        = editor->GetRenderer();
+			auto  render_pipeline = resource->Compile(rhi_context, renderer, m_camera_config.viewport);
+			if (render_pipeline)
+			{
+				renderer->SetRenderGraph(std::move(render_pipeline));
+			}
+		}
+	}
+
 	void DropTarget(Editor *editor)
 	{
 		if (const auto *pay_load = ImGui::AcceptDragDropPayload("Prefab"))
 		{
 			DropTarget<ResourceType::Prefab>(editor, static_cast<const char *>(pay_load->Data));
+		}
+
+		if (const auto *pay_load = ImGui::AcceptDragDropPayload("RenderPipeline"))
+		{
+			DropTarget<ResourceType::RenderPipeline>(editor, static_cast<const char *>(pay_load->Data));
 		}
 	}
 
