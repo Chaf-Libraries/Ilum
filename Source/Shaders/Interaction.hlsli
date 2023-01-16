@@ -25,31 +25,37 @@ struct Frame
     
     void CreateCoordinateSystem(float3 normal)
     {
+        const float3 ref = abs(dot(normal, float3(0, 1, 0))) > 0.99f ? float3(0, 0, 1) : float3(0, 1, 0);
+
+        t = normalize(cross(ref, normal));
+        s = cross(normal, t);
         n = normal;
-        if (n.z < 0.f)
-        {
-            const float a = 1.0f / (1.0f - n.z);
-            const float b = n.x * n.y * a;
-            s = float3(1.0f - n.x * n.x * a, -b, n.x);
-            t = float3(b, n.y * n.y * a - 1.0f, -n.y);
-        }
-        else
-        {
-            const float a = 1.0f / (1.0f + n.z);
-            const float b = -n.x * n.y * a;
-            s = float3(1.0f - n.x * n.x * a, b, -n.x);
-            t = float3(b, 1.0f - n.y * n.y * a, -n.y);
-        }
+        
+        // n = normal;
+        // if (n.z < 0.f)
+        // {
+        //     const float a = 1.0f / (1.0f - n.z);
+        //     const float b = n.x * n.y * a;
+        //     s = float3(1.0f - n.x * n.x * a, -b, n.x);
+        //     t = float3(b, n.y * n.y * a - 1.0f, -n.y);
+        // }
+        // else
+        // {
+        //     const float a = 1.0f / (1.0f + n.z);
+        //     const float b = -n.x * n.y * a;
+        //     s = float3(1.0f - n.x * n.x * a, b, -n.x);
+        //     t = float3(b, 1.0f - n.y * n.y * a, -n.y);
+        // }
     }
     
     float3 ToLocal(float3 v)
     {
-        return float3(dot(v, s), dot(v, t), dot(v, n));
+        return normalize(float3(dot(v, t), dot(v, s), dot(v, n)));
     }
     
     float3 ToWorld(float3 v)
     {
-        return n * v.z + (t * v.y + s * v.x);
+        return normalize(t * v.x + s * v.y + n * v.z);
     }
     
     float CosTheta2(float3 v)
@@ -89,7 +95,7 @@ struct Interaction
         wo = wo_;
         t = t_;
     }
-    
+        
     RayDesc SpawnRay(float3 dir)
     {
         RayDesc ray;

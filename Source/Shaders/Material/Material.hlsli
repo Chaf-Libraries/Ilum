@@ -10,6 +10,11 @@ struct BSDF
     {
         
     }
+    
+    uint Flags()
+    {
+        return 0;
+    }
 
     float3 Eval(float3 wo, float3 wi, TransportMode mode)
     {

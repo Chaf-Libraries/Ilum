@@ -3,27 +3,41 @@
 
 #include "BSDF.hlsli"
 #include "../../Math.hlsli"
+#include "../../Interaction.hlsli"
 
 struct DiffuseBSDF
 {
-    float3 R;
+    float3 reflectance;
+    Frame frame;
 
-    void Init(float3 R_)
+    void Init(float3 reflectance_, float3 normal_)
     {
-        R = R_;
+        reflectance = reflectance_;
+        frame.CreateCoordinateSystem(normal_);
+    }
+    
+    uint Flags()
+    {
+        return BSDF_DiffuseReflection;
     }
 
-    float3 Eval(float3 wo, float3 wi, TransportMode mode)
+    float3 Eval(float3 woW, float3 wiW, TransportMode mode)
     {
+        float3 wo = frame.ToLocal(woW);
+        float3 wi = frame.ToLocal(wiW);
+        
         if (!SameHemisphere(wo, wi))
         {
             return 0.f;
         }
-        return R * InvPI;
+        return reflectance * InvPI;
     }
 
-    float PDF(float3 wo, float3 wi, TransportMode mode, SampleFlags flags)
+    float PDF(float3 woW, float3 wiW, TransportMode mode, SampleFlags flags)
     {
+        float3 wo = frame.ToLocal(woW);
+        float3 wi = frame.ToLocal(wiW);
+        
         if (!(flags & SampleFlags_Reflection) || !SameHemisphere(wo, wi))
         {
             return 0.f;
@@ -31,8 +45,10 @@ struct DiffuseBSDF
         return AbsCosTheta(wi) * InvPI;
     }
 
-    BSDFSample Samplef(float3 wo, float uc, float2 u, TransportMode mode, SampleFlags flags)
+    BSDFSample Samplef(float3 woW, float uc, float2 u, TransportMode mode, SampleFlags flags)
     {
+        float3 wo = frame.ToLocal(woW);
+        
         BSDFSample bsdf_sample;
         
         bsdf_sample.Init();
@@ -51,8 +67,8 @@ struct DiffuseBSDF
 
         float pdf = AbsCosTheta(wi) * InvPI;
 
-        bsdf_sample.f = R * InvPI;
-        bsdf_sample.wi = wi;
+        bsdf_sample.f = reflectance * InvPI;
+        bsdf_sample.wiW = frame.ToWorld(wi);
         bsdf_sample.pdf = pdf;
         bsdf_sample.flags = BSDF_DiffuseReflection;
         bsdf_sample.eta = 1;

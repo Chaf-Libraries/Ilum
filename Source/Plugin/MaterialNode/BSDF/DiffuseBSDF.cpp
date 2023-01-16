@@ -12,6 +12,7 @@ class DiffuseBSDF : public MaterialNode<DiffuseBSDF>
 		    .SetHandle(handle++)
 		    .SetName("DiffuseBSDF")
 		    .SetCategory("BSDF")
+		    .Input(handle++, "Normal", MaterialNodePin::Type::Float3, MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3)
 		    .Input(handle++, "Reflectance", MaterialNodePin::Type::RGB, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, glm::vec3(1.f))
 		    .Output(handle++, "Out", MaterialNodePin::Type::BSDF);
 	}
@@ -29,12 +30,17 @@ class DiffuseBSDF : public MaterialNode<DiffuseBSDF>
 
 		std::map<std::string, std::string> parameters;
 
+		if (!context->HasParameter<glm::vec3>(parameters, node_desc.GetPin("Normal"), graph_desc, manager, context))
+		{
+			parameters["Normal"] = "surface_interaction.isect.n";
+		}
+
 		context->SetParameter<glm::vec3>(parameters, node_desc.GetPin("Reflectance"), graph_desc, manager, context);
 
 		context->bsdfs.emplace_back(MaterialCompilationContext::BSDF{
 		    fmt::format("S_{}", node_desc.GetPin("Out").handle),
 		    "DiffuseBSDF",
-		    fmt::format("S_{}.Init({});", node_desc.GetPin("Out").handle, parameters["Reflectance"])});
+		    fmt::format("S_{}.Init({}, {});", node_desc.GetPin("Out").handle, parameters["Reflectance"], parameters["Normal"])});
 	}
 };
 

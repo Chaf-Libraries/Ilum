@@ -149,6 +149,12 @@ class MaterialGraphEditor : public Widget
 
 		if (resource)
 		{
+			for (auto &new_node : m_new_nodes)
+			{
+				ImNodes::SetNodeScreenSpacePos(new_node, ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y));
+			}
+			m_new_nodes.clear();
+
 			PopupWindow(resource);
 			DrawNodes(resource);
 			DrawEdges(resource);
@@ -330,10 +336,12 @@ class MaterialGraphEditor : public Widget
 
 	void DrawNodes(Resource<ResourceType::Material> *resource)
 	{
-		const float node_width = 120.0f;
-		ImGui::PushItemWidth(120.f);
+		
 		for (auto &[node_handle, node_desc] : resource->GetDesc().GetNodes())
 		{
+			const float node_width = glm::max(ImGui::CalcTextSize(node_desc.GetName().c_str()).x, 120.f);
+			ImGui::PushItemWidth(node_width);
+
 			ImNodes::BeginNode(static_cast<int32_t>(node_handle));
 			ImNodes::BeginNodeTitleBar();
 			ImGui::Text(node_desc.GetName().c_str());
@@ -380,8 +388,8 @@ class MaterialGraphEditor : public Widget
 				}
 			}
 			ImNodes::EndNode();
+			ImGui::PopItemWidth();
 		}
-		ImGui::PopItemWidth();
 	}
 
 	void HandleSelection()
@@ -501,6 +509,7 @@ class MaterialGraphEditor : public Widget
 
 	std::vector<int32_t> m_select_nodes;
 	std::vector<int32_t> m_select_links;
+	std::vector<int32_t> m_new_nodes;
 
 	struct
 	{
@@ -522,20 +531,6 @@ class MaterialGraphEditor : public Widget
 
 		void Update()
 		{
-			// float delta_time = ImGui::GetIO().DeltaTime;
-
-			// if (ImGui::IsWindowHovered())
-			//{
-			//	if (ImGui::IsMouseDragging(ImGuiMouseButton_Right))
-			//	{
-			//		ImVec2 delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Right);
-			//		ImGui::ResetMouseDragDelta(ImGuiMouseButton_Right);
-			//		m_view.phi -= delta.y * delta_time * 50.f;
-			//		m_view.theta -= delta.x * delta_time * 50.f;
-			//	}
-			//	m_view.radius += m_scale_factor * ImGui::GetIO().MouseWheel * delta_time * 10.f;
-			// }
-
 			glm::vec3 position  = center + radius * glm::vec3(glm::sin(glm::radians(phi)) * glm::sin(glm::radians(theta)), glm::cos(glm::radians(phi)), glm::sin(glm::radians(phi)) * glm::cos(glm::radians(theta)));
 			glm::vec3 direction = glm::normalize(center - position);
 			glm::vec3 right     = glm::normalize(glm::cross(direction, glm::vec3{0.f, 1.f, 0.f}));

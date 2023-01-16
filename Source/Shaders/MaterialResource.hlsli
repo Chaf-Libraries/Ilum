@@ -1,6 +1,8 @@
 #ifndef MATERIAL_RESOURCE_HLSLI
 #define MATERIAL_RESOURCE_HLSLI
 
+#include "Interaction.hlsli"
+
 Texture2D<float4> Textures[] : register(s996);
 SamplerState Samplers[] : register(s997);
 StructuredBuffer<uint> MaterialOffsets : register(t998);
@@ -29,6 +31,16 @@ T GetMaterialData(uint material_id)
         return data;
     }
     return MaterialBuffer.Load<T>(MaterialOffsets[material_id]);
+}
+
+void SetNormalMap(inout SurfaceInteraction interaction, float3 normal_vector)
+{
+    Frame frame;
+    frame.CreateCoordinateSystem(interaction.isect.n);
+    float3x3 TBN = float3x3(frame.t, frame.s, frame.n);
+    normal_vector = normalize(normal_vector * 2.0 - 1.0);
+    float3 normal = normalize(mul(normal_vector, TBN));
+    interaction.isect.n = dot(interaction.isect.n, normal) <= 0.0 ? normal : -normal;
 }
 
 #endif

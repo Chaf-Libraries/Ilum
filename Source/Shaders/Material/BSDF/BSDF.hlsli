@@ -29,21 +29,63 @@ static uint TransportMode_Importance = 1;
 #define TransportMode uint
 #define BxDFFlags uint
 
+bool IsReflective(uint f)
+{
+    return f & BSDF_Reflection;
+}
+
+bool IsTransmissive(uint f)
+{
+    return f & BSDF_Transmission;
+}
+
+bool IsDiffuse(uint f)
+{
+    return f & BSDF_Diffuse;
+}
+
+bool IsGlossy(uint f)
+{
+    return f & BSDF_Glossy;
+}
+
+bool IsSpecular(uint f)
+{
+    return f & BSDF_Specular;
+}
+
+bool IsNonSpecular(uint f)
+{
+    return f & (BSDF_Diffuse | BSDF_Glossy);
+}
+
 struct BSDFSample
 {
     float3 f;
-    float3 wi;
+    float3 wiW;
     float pdf;
     BxDFFlags flags;
     float eta;
+    bool pdfIsProportional;
     
     void Init()
     {
         f = 0.f;
-        wi = 0.f;
+        wiW = 0.f;
         pdf = 0.f;
         flags = 0.f;
         eta = 1.f;
+        pdfIsProportional = false;
+
+    }
+    
+    void Init(float3 f_, float3 wiW_, float pdf_, BxDFFlags flags_, float eta_)
+    {
+        f = f_;
+        wiW = wiW_;
+        pdf = pdf_;
+        flags = flags_;
+        eta = eta_;
     }
     
     bool IsReflection()

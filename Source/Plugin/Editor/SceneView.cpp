@@ -230,6 +230,7 @@ class SceneView : public Widget
 			auto  render_pipeline = resource->Compile(rhi_context, renderer, m_camera_config.viewport);
 			if (render_pipeline)
 			{
+				renderer->Reset();
 				renderer->SetRenderGraph(std::move(render_pipeline));
 			}
 		}

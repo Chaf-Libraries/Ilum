@@ -82,7 +82,7 @@ struct MaterialCompilationContext
 	}
 
 	template <typename T>
-	inline void SetParameter(std::map<std::string, std::string> &parameters, const MaterialNodePin &node_pin, const MaterialGraphDesc &graph_desc, ResourceManager *manager, MaterialCompilationContext *context)
+	inline bool HasParameter(std::map<std::string, std::string>& parameters, const MaterialNodePin& node_pin, const MaterialGraphDesc& graph_desc, ResourceManager* manager, MaterialCompilationContext* context)
 	{
 		if (graph_desc.HasLink(node_pin.handle))
 		{
@@ -101,8 +101,15 @@ struct MaterialCompilationContext
 			{
 				parameters[node_pin.name] = fmt::format("S_{}", src_pin.handle);
 			}
+			return true;
 		}
-		else
+		return false;
+	}
+
+	template <typename T>
+	inline void SetParameter(std::map<std::string, std::string> &parameters, const MaterialNodePin &node_pin, const MaterialGraphDesc &graph_desc, ResourceManager *manager, MaterialCompilationContext *context)
+	{
+		if (!HasParameter<T>(parameters, node_pin, graph_desc, manager, context))
 		{
 			SetParameter<T>(node_pin.name, parameters, *node_pin.variant.Convert<T>());
 		}

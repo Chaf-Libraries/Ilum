@@ -16,6 +16,11 @@ struct BlendBSDF
         bsdf_2 = bsdf2;
         weight = weight_;
     }
+    
+    uint Flags()
+    {
+        return bsdf_1.Flags() | bsdf_2.Flags();
+    }
 
     float3 Eval(float3 wo, float3 wi, TransportMode mode)
     {

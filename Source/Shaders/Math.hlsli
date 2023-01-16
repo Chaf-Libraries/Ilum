@@ -21,6 +21,26 @@ void CreateCoordinateSystem(in float3 N, out float3 Nt, out float3 Nb)
     Nb = cross(N, Nt);
 }
 
+float Sqr(float x)
+{
+    return x * x;
+}
+
+float LengthSquared(float2 x)
+{
+    return Sqr(x.x) + Sqr(x.y);
+}
+
+float LengthSquared(float3 x)
+{
+    return Sqr(x.x) + Sqr(x.y) + Sqr(x.z);
+}
+
+float3 FaceForward(float3 v1, float3 v2)
+{
+    return dot(v1, v2) > 0 ? v1 : -v1;
+}
+
 // Sampling Disk
 // Polar Mapping
 float2 UniformSampleDisk(float2 u)
@@ -242,24 +262,6 @@ float3 Faceforward(float3 v, float3 v2)
 bool SameHemisphere(float3 w, float3 wp)
 {
     return w.z * wp.z > 0;
-}
-
-bool Refract(float3 wi, float3 n, float eta, out float3 wt)
-{
-    float cosThetaI = dot(wi, n);
-    float sin2ThetaI = max(0.0, 1.0 - cosThetaI * cosThetaI);
-    float sin2ThetaT = eta * eta * sin2ThetaI;
-
-    if (sin2ThetaT >= 1.0)
-    {
-        return false;
-    }
-
-    float cosThetaT = sqrt(1.0 - sin2ThetaT);
-
-    wt = eta * (-wi) + (eta * cosThetaI - cosThetaT) * n;
-
-    return true;
 }
 
 float Radians(float deg)
