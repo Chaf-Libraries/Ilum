@@ -72,14 +72,34 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 		return nullptr;
 	}
 
+	const std::unordered_map<BindPoint, RHIQueueFamily> queue_family_map = {
+	    {BindPoint::None, RHIQueueFamily::Graphics},
+	    {BindPoint::Rasterization, RHIQueueFamily::Graphics},
+	    {BindPoint::RayTracing, RHIQueueFamily::Compute},
+	    {BindPoint::Compute, RHIQueueFamily::Compute},
+	    {BindPoint::CUDA, RHIQueueFamily::Compute},
+	};
+
+	struct ResourceState
+	{
+		RHIResourceState rhi_state;
+		RHIQueueFamily   family;
+
+		bool operator==(const ResourceState& lhs)
+		{
+			return this->rhi_state == lhs.rhi_state && this->family == lhs.family;
+		}
+	};
+
 	// Sorting passes
 	std::vector<size_t> ordered_passes;
 	ordered_passes.reserve(desc.GetPasses().size());
 
 	std::vector<size_t> pass_handles;
 
-	std::map<size_t, std::map<uint32_t, RHIResourceState>> resource_lifetime;
-	std::map<size_t, RHIResourceState>                     last_resource_state;
+	std::map<size_t, std::map<uint32_t, ResourceState>> resource_lifetime;
+
+	std::map<size_t, ResourceState> last_resource_state;
 
 	for (auto &[pass_handle, pass] : desc.GetPasses())
 	{
@@ -88,21 +108,12 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 		{
 			if (pin.attribute == RenderPassPin::Attribute::Output)
 			{
-				last_resource_state[pin_handle] = RHIResourceState::Undefined;
+				last_resource_state[pin_handle] = ResourceState{RHIResourceState::Undefined, queue_family_map.at(pass.GetBindPoint())};
 			}
 		}
 	}
 
-	// for (auto &[texture_handle, texture_desc] : desc.textures)
-	//{
-	//	last_resource_state[texture_handle] = RHIResourceState::Undefined;
-	// }
-	// for (auto &[buffer_handle, buffer_desc] : desc.buffers)
-	//{
-	//	last_resource_state[buffer_handle] = RHIResourceState::Undefined;
-	// }
-
-	std::vector<std::map<size_t, std::pair<RHIResourceState, RHIResourceState>>> resource_states;
+	std::vector<std::map<size_t, std::pair<ResourceState, ResourceState>>> resource_states;
 
 	struct PassSemaphore
 	{
@@ -130,24 +141,24 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 			if (!desc.HasLink(pass.GetHandle()) ||
 			    collected_passes.find(desc.LinkFrom(pass.GetHandle())) != collected_passes.end())
 			{
-				std::map<size_t, std::pair<RHIResourceState, RHIResourceState>> pass_resource_state;
+				std::map<size_t, std::pair<ResourceState, ResourceState>> pass_resource_state;
 
 				for (auto &[pin_handle, pin] : pass.GetPins())
 				{
 					size_t resource_pin = (pin.attribute == RenderPassPin::Attribute::Output) ? pin_handle : desc.LinkFrom(pin_handle);
 
-					RHIResourceState resource_state = pin.resource_state;
+					ResourceState resource_state = ResourceState{pin.resource_state, queue_family_map.at(pass.GetBindPoint())};
 
 					// Record resource state
 					if (pass.GetBindPoint() != BindPoint::CUDA)
 					{
+						pass_resource_state[resource_pin]         = std::make_pair(last_resource_state[resource_pin], resource_state);
 						last_resource_state[resource_pin]         = resource_state;
 						resource_lifetime[resource_pin][pass_idx] = resource_state;
-						pass_resource_state[resource_pin]         = std::make_pair(last_resource_state[resource_pin], resource_state);
 					}
 					else
 					{
-						RHIResourceState state = last_resource_state.find(resource_pin) != last_resource_state.end() ? last_resource_state[resource_pin] : RHIResourceState::Undefined;
+						ResourceState state = last_resource_state.find(resource_pin) != last_resource_state.end() ? last_resource_state[resource_pin] : ResourceState{RHIResourceState::Undefined, RHIQueueFamily::Graphics};
 
 						resource_lifetime[resource_pin][pass_idx] = state;
 						pass_resource_state[resource_pin]         = std::make_pair(state, state);
@@ -157,11 +168,11 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 					auto &resource = desc.GetPass(resource_pin).GetPin(resource_pin);
 					if (resource.type == RenderPassPin::Type::Texture)
 					{
-						resource.texture.usage |= ResourceStateToTextureUsage(resource_state);
+						resource.texture.usage |= ResourceStateToTextureUsage(resource_state.rhi_state);
 					}
 					else
 					{
-						resource.buffer.usage |= ResourceStateToBufferUsage(resource_state);
+						resource.buffer.usage |= ResourceStateToBufferUsage(resource_state.rhi_state);
 					}
 				}
 
@@ -178,59 +189,6 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 			}
 		}
 	}
-
-	//	for (auto iter = tmp_desc.passes.begin(); iter != tmp_desc.passes.end();)
-	//	{
-	//		if (!iter->second.prev_pass.IsValid() || collected_passes.find(iter->second.prev_pass) != collected_passes.end())
-	//		{
-	//			// Select pass
-	//			std::map<RGHandle, std::pair<RHIResourceState, RHIResourceState>> pass_resource_state;
-	//			for (auto &[name, resource] : iter->second.resources)
-	//			{
-	//				if (resource.handle.IsValid())
-	//				{
-	//					// Record resource state
-	//					if (iter->second.bind_point != BindPoint::CUDA)
-	//					{
-	//						last_resource_state[resource.handle]         = resource.state;
-	//						resource_lifetime[resource.handle][pass_idx] = resource.state;
-	//						pass_resource_state[resource.handle]         = std::make_pair(last_resource_state[resource.handle], resource.state);
-	//					}
-	//					else
-	//					{
-	//						RHIResourceState state = last_resource_state.find(resource.handle) != last_resource_state.end() ? last_resource_state[resource.handle] : RHIResourceState::Undefined;
-
-	//						resource_lifetime[resource.handle][pass_idx] = state;
-	//						pass_resource_state[resource.handle]         = std::make_pair(state, state);
-	//					}
-
-	//					// Set resource info
-	//					if (desc.textures.find(resource.handle) != desc.textures.end())
-	//					{
-	//						desc.textures[resource.handle].usage |= ResourceStateToTextureUsage(resource.state);
-	//					}
-	//					else if (desc.buffers.find(resource.handle) != desc.buffers.end())
-	//					{
-	//						desc.buffers[resource.handle].usage |= ResourceStateToBufferUsage(resource.state);
-	//					}
-	//				}
-	//			}
-
-	//			// Add pass
-	//			resource_states.push_back(pass_resource_state);
-	//			ordered_passes.push_back(iter->second);
-	//			pass_handles.push_back(iter->first);
-	//			collected_passes.insert(iter->first);
-
-	//			iter = tmp_desc.passes.erase(iter);
-	//			break;
-	//		}
-	//		else
-	//		{
-	//			iter++;
-	//		}
-	//	}
-	//}
 
 	std::set<size_t> alias_textures;
 
@@ -284,7 +242,7 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 			texture_create_infos.reserve(pool.handles.size());
 			for (auto &handle : pool.handles)
 			{
-				const auto &resource = desc.GetPass(handle).GetPin(handle);
+				const auto      &resource = desc.GetPass(handle).GetPin(handle);
 				std::set<size_t> handles  = desc.LinkTo(handle);
 				handles.insert(handle);
 				texture_create_infos.push_back(RenderGraph::TextureCreateInfo{resource.texture, handles});
@@ -297,72 +255,13 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 		}
 	}
 
-	// std::set<RGHandle> alias_textures;
-
-	// Register resource
-	//{
-	// Collect texture alias info
-	/*struct TexturePool
-	{
-	    std::vector<RGHandle> handles;
-
-	    uint32_t start;
-	    uint32_t end;
-	};
-
-	std::vector<TexturePool> texture_pools;
-
-	for (auto &[handle, resource] : resource_lifetime)
-	{
-	    if (desc.textures.find(handle) != desc.textures.end())
-	    {
-	        bool alias = false;
-	        for (auto &pool : texture_pools)
-	        {
-	            if (pool.start > (--resource.end())->first ||
-	                pool.end < resource.begin()->first)
-	            {
-	                pool.handles.push_back(handle);
-	                pool.start = std::min(pool.start, (--resource.end())->first);
-	                pool.end   = std::max(pool.end, resource.begin()->first);
-	                alias      = true;
-	                break;
-	            }
-	        }
-	        if (!alias)
-	        {
-	            texture_pools.push_back(TexturePool{{handle}, resource.begin()->first, (--resource.end())->first});
-	        }
-	    }
-	    else
-	    {
-	        render_graph->RegisterBuffer(RenderGraph::BufferCreateInfo{desc.buffers[handle], handle});
-	    }
-	}*/
-
-	/*for (auto &pool : texture_pools)
-	{
-	    std::vector<RenderGraph::TextureCreateInfo> texture_create_infos;
-	    texture_create_infos.reserve(pool.handles.size());
-	    for (auto &handle : pool.handles)
-	    {
-	        texture_create_infos.push_back(RenderGraph::TextureCreateInfo{desc.textures[handle], handle});
-	        if (pool.handles.size() > 1)
-	        {
-	            alias_textures.insert(handle);
-	        }
-	    }
-	    render_graph->RegisterTexture(texture_create_infos);
-	}
-}*/
-
 	// Resource state tracking
 	for (auto &resource_state : resource_states)
 	{
 		for (auto &[resource_handle, state_transition] : resource_state)
 		{
 			auto &[src, dst] = state_transition;
-			if (src == RHIResourceState::Undefined)
+			if (src.rhi_state == RHIResourceState::Undefined)
 			{
 				if (alias_textures.find(resource_handle) == alias_textures.end())
 				{
@@ -380,7 +279,7 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 		for (auto &[handle, resource_states] : resource_lifetime)
 		{
 			const auto &resource = desc.GetPass(handle).GetPin(handle);
-			if ((--resource_states.end())->second != RHIResourceState::Undefined)
+			if ((--resource_states.end())->second.rhi_state != RHIResourceState::Undefined)
 			{
 				if (resource.type == RenderPassPin::Type::Texture)
 				{
@@ -391,13 +290,15 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 					texture_state_transitions.push_back(TextureStateTransition{
 					    texture,
 					    RHIResourceState::Undefined,
-					    (--resource_states.end())->second,
+					    (--resource_states.end())->second.rhi_state,
 					    TextureRange{
 					        GetTextureDimension(texture_desc.width, texture_desc.height, texture_desc.depth, texture_desc.layers),
 					        0,
 					        texture_desc.mips,
 					        0,
-					        texture_desc.layers}});
+					        texture_desc.layers},
+					    (--resource_states.end())->second.family,
+					    (--resource_states.end())->second.family});
 				}
 				else
 				{
@@ -408,13 +309,27 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 					buffer_state_transitions.push_back(BufferStateTransition{
 					    buffer,
 					    RHIResourceState::Undefined,
-					    (--resource_states.end())->second});
+					    (--resource_states.end())->second.rhi_state});
 				}
 			}
 		}
 
-		render_graph->AddInitializeBarrier([=](RenderGraph &render_graph, RHICommand *cmd_buffer) {
-			cmd_buffer->ResourceStateTransition(texture_state_transitions, buffer_state_transitions);
+		render_graph->AddInitializeBarrier([=](RenderGraph &render_graph, RHICommand *graphics_cmd_buffer, RHICommand *compute_cmd_buffer) {
+			std::vector<TextureStateTransition> graphics_texture_transitions;
+			std::vector<TextureStateTransition> compute_texture_transitions;
+			for (auto& transition : texture_state_transitions)
+			{
+				if (transition.dst_family == RHIQueueFamily::Compute)
+				{
+					compute_texture_transitions.push_back(transition);
+				}
+				else
+				{
+					graphics_texture_transitions.push_back(transition);
+				}
+			}
+			graphics_cmd_buffer->ResourceStateTransition(graphics_texture_transitions, buffer_state_transitions);
+			compute_cmd_buffer->ResourceStateTransition(compute_texture_transitions, {});
 		});
 	}
 
@@ -442,14 +357,16 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 
 				texture_state_transitions.push_back(TextureStateTransition{
 				    texture,
-				    resource_transition.first,
-				    resource_transition.second,
+				    resource_transition.first.rhi_state,
+				    resource_transition.second.rhi_state,
 				    TextureRange{
 				        GetTextureDimension(texture_desc.width, texture_desc.height, texture_desc.depth, texture_desc.layers),
 				        0,
 				        texture_desc.mips,
 				        0,
-				        texture_desc.layers}});
+				        texture_desc.layers},
+				    i==0?resource_transition.second.family:resource_transition.first.family,
+				    resource_transition.second.family});
 			}
 			else
 			{
@@ -459,8 +376,8 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 
 				buffer_state_transitions.push_back(BufferStateTransition{
 				    buffer,
-				    resource_transition.first,
-				    resource_transition.second});
+				    resource_transition.first.rhi_state,
+				    resource_transition.second.rhi_state});
 			}
 		}
 

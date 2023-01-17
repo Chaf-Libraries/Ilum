@@ -26,26 +26,26 @@ struct Frame
     void CreateCoordinateSystem(float3 normal)
     {
         const float3 ref = abs(dot(normal, float3(0, 1, 0))) > 0.99f ? float3(0, 0, 1) : float3(0, 1, 0);
-
+        
         t = normalize(cross(ref, normal));
         s = cross(normal, t);
         n = normal;
         
-        // n = normal;
-        // if (n.z < 0.f)
-        // {
-        //     const float a = 1.0f / (1.0f - n.z);
-        //     const float b = n.x * n.y * a;
-        //     s = float3(1.0f - n.x * n.x * a, -b, n.x);
-        //     t = float3(b, n.y * n.y * a - 1.0f, -n.y);
-        // }
-        // else
-        // {
-        //     const float a = 1.0f / (1.0f + n.z);
-        //     const float b = -n.x * n.y * a;
-        //     s = float3(1.0f - n.x * n.x * a, b, -n.x);
-        //     t = float3(b, 1.0f - n.y * n.y * a, -n.y);
-        // }
+         //n = normal;
+         //if (n.z < 0.f)
+         //{
+         //    const float a = 1.0f / (1.0f - n.z);
+         //    const float b = n.x * n.y * a;
+         //    s = float3(1.0f - n.x * n.x * a, -b, n.x);
+         //    t = float3(b, n.y * n.y * a - 1.0f, -n.y);
+         //}
+         //else
+         //{
+         //    const float a = 1.0f / (1.0f + n.z);
+         //    const float b = -n.x * n.y * a;
+         //    s = float3(1.0f - n.x * n.x * a, b, -n.x);
+         //    t = float3(b, 1.0f - n.y * n.y * a, -n.y);
+         //}
     }
     
     float3 ToLocal(float3 v)

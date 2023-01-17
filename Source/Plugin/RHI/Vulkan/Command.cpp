@@ -452,6 +452,9 @@ void Command::BlitTexture(RHITexture *src_texture, const TextureRange &src_range
 
 void Command::ResourceStateTransition(const std::vector<TextureStateTransition> &texture_transitions, const std::vector<BufferStateTransition> &buffer_transitions)
 {
+	// TODO: 
+	// + Pipeline Stage Mask
+	// + Queue ownership transfer
 	if (texture_transitions.empty() && buffer_transitions.empty())
 	{
 		return;
@@ -508,13 +511,62 @@ void Command::ResourceStateTransition(const std::vector<TextureStateTransition> 
 		range.layerCount              = texture_transitions[i].range.layer_count;
 		range.levelCount              = texture_transitions[i].range.mip_count;
 
-		image_barrier.sType               = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		image_barrier.srcAccessMask       = vk_texture_state_src.access_mask;
-		image_barrier.dstAccessMask       = vk_texture_state_dst.access_mask;
-		image_barrier.oldLayout           = vk_texture_state_src.layout;
-		image_barrier.newLayout           = vk_texture_state_dst.layout;
-		image_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		image_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		image_barrier.sType         = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		image_barrier.srcAccessMask = vk_texture_state_src.access_mask;
+		image_barrier.dstAccessMask = vk_texture_state_dst.access_mask;
+		image_barrier.oldLayout     = vk_texture_state_src.layout;
+		image_barrier.newLayout     = vk_texture_state_dst.layout;
+
+		/*RHIQueueFamily src_family = RHIQueueFamily::Graphics;
+		RHIQueueFamily dst_family = RHIQueueFamily::Graphics;
+
+		switch (texture_transitions[i].src)
+		{
+			case RHIResourceState::TransferSource:
+			case RHIResourceState::TransferDest:
+
+			case RHIResourceState::ShaderResource:
+			case RHIResourceState::RenderTarget:
+			case RHIResourceState::DepthWrite:
+			case RHIResourceState::DepthRead:
+			case RHIResourceState::Present:
+				src_family = RHIQueueFamily::Graphics;
+				break;
+			case RHIResourceState::UnorderedAccess:
+				src_family = RHIQueueFamily::Compute;
+				break;
+			default:
+				break;
+		}
+
+		switch (texture_transitions[i].dst)
+		{
+			case RHIResourceState::TransferSource:
+			case RHIResourceState::TransferDest:
+			case RHIResourceState::ShaderResource:
+			case RHIResourceState::RenderTarget:
+			case RHIResourceState::DepthWrite:
+			case RHIResourceState::DepthRead:
+			case RHIResourceState::Present:
+				dst_family = RHIQueueFamily::Graphics;
+				break;
+			case RHIResourceState::UnorderedAccess:
+				dst_family = RHIQueueFamily::Compute;
+				break;
+			default:
+				break;
+		}*/
+		//if (texture_transitions[i].src_family == texture_transitions[i].dst_family)
+		{
+			image_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			image_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		}
+		//else
+		{
+			//image_barrier.srcQueueFamilyIndex = static_cast<Device *>(p_device)->GetQueueFamily(texture_transitions[i].src_family);
+			//image_barrier.dstQueueFamilyIndex = static_cast<Device *>(p_device)->GetQueueFamily(texture_transitions[i].dst_family);
+		}
+		
 		image_barrier.image               = static_cast<Texture *>(texture_transitions[i].texture)->GetHandle();
 		image_barrier.subresourceRange    = range;
 		image_barriers.push_back(image_barrier);
@@ -522,6 +574,6 @@ void Command::ResourceStateTransition(const std::vector<TextureStateTransition> 
 		dst_stage |= vk_texture_state_dst.stage;
 	}
 
-	vkCmdPipelineBarrier(m_handle, src_stage, dst_stage, 0, 0, nullptr, static_cast<uint32_t>(buffer_barriers.size()), buffer_barriers.data(), static_cast<uint32_t>(image_barriers.size()), image_barriers.data());
+	vkCmdPipelineBarrier(m_handle, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, static_cast<uint32_t>(buffer_barriers.size()), buffer_barriers.data(), static_cast<uint32_t>(image_barriers.size()), image_barriers.data());
 }
 }        // namespace Ilum::Vulkan

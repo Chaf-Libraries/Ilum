@@ -65,6 +65,7 @@ class EXPORT_API RenderGraph
   public:
 	using RenderTask  = std::function<void(RenderGraph &, RHICommand *, Variant &, RenderGraphBlackboard &)>;
 	using BarrierTask = std::function<void(RenderGraph &, RHICommand *)>;
+	using InitializeBarrierTask = std::function<void(RenderGraph &, RHICommand *, RHICommand *)>;
 
 	struct RenderPassInfo
 	{
@@ -115,7 +116,7 @@ class EXPORT_API RenderGraph
 	    RenderTask       &&execute,
 	    BarrierTask      &&barrier);
 
-	RenderGraph &AddInitializeBarrier(BarrierTask &&barrier);
+	RenderGraph &AddInitializeBarrier(InitializeBarrierTask &&barrier);
 
 	// Without memory alias
 	RenderGraph &RegisterTexture(const TextureCreateInfo &create_infos);

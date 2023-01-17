@@ -20,6 +20,7 @@ StructuredBuffer<uint> IndexBuffer[];
 ConstantBuffer<View> ViewBuffer;
 ConstantBuffer<Config> ConfigBuffer;
 RWTexture2D<float4> Output;
+Texture2D<float4> PrevImage;
 
 #ifndef RAYTRACING_PIPELINE
 #define RAYGEN_SHADER
@@ -157,7 +158,7 @@ void RayGenMain()
     }
     else
     {
-        float3 prev_color = Output[launch_id].rgb;
+        float3 prev_color = PrevImage.Load(int3(launch_id, 0)).rgb;
         float4 accumulated_color = 0.f;
         if ((isnan(prev_color.x) || isnan(prev_color.y) || isnan(prev_color.z)))
         {
@@ -192,8 +193,6 @@ float3 SampleLd(PayLoad pay_load, Material material)
     //    OffsetRayOrigin(pay_load.interaction.isect.wo, pay_load.interaction.isect.n);
     //}
     
-    float u = pay_load.rng.Get1D();
-    
     uint light_count, light_stride;
     LightInfo.GetDimensions(light_count, light_stride);
     light_count /= 2;
@@ -209,19 +208,22 @@ float3 SampleLd(PayLoad pay_load, Material material)
         
         float3 wi;
         VisibilityTester visibility;
-        float p_l;
-        float3 ls = light.SampleLi(pay_load.interaction, pay_load.rng.Get2D(), wi, p_l, visibility);
+        float light_sample_pdf;
+        float3 ls = light.SampleLi(pay_load.interaction, pay_load.rng.Get2D(), wi, light_sample_pdf, visibility);
         
         float3 wo = pay_load.interaction.isect.wo;
         float3 f = material.bsdf.Eval(wo, wi, TransportMode_Radiance) * abs(dot(wi, pay_load.interaction.isect.n));
         
-        if (IsBlack(f) || !Unoccluded(pay_load, visibility))
+        if (IsBlack(ls) || IsBlack(f) || !Unoccluded(pay_load, visibility))
         {
             return 0.f;
         }
         
+        float p_l = light_select_pdf * light_sample_pdf;
+        
         if (light.IsDelta())
         {
+            return ls;
             return ls * f / p_l;
         }
         else
@@ -230,7 +232,6 @@ float3 SampleLd(PayLoad pay_load, Material material)
             float w_l = PowerHeuristic(1, p_l, 1, p_b);
             return w_l * ls * f / p_l;
         }
-        
     }
     return 0.f;
 }
@@ -290,60 +291,14 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
     material.Init(surface_interaction);
     
     pay_load.interaction = surface_interaction;
-    
     float3 wo = surface_interaction.isect.wo;
     
     if (IsNonSpecular(material.bsdf.Flags()))
     {
         uint flags = material.bsdf.Flags();
         float3 Ld = SampleLd(pay_load, material);
-        pay_load.radiance += float4(pay_load.throughout * Ld, 1.f);
+        pay_load.radiance = float4(Ld, 1.f);
     }
-   
-    //uint light_count, light_stride;
-    //LightInfo.GetDimensions(light_count, light_stride);
-    //light_count /= 2;
-    
-    // Uniformly sample one light
-   // if (light_count > 0)
-   // {
-   //     uint light_id = (uint) min(light_count - 1, pay_load.rng.Get1D() * (float) light_count);
-   //     float light_select_pdf = 1.0 / (float) light_count;
-   //     
-   //     Light light;
-   //     light.Init(light_id);
-   //     
-   //     VisibilityTester visibility;
-   //     float light_sample_pdf, scattering_pdf;
-   //     float3 Li = light.SampleLi(surface_interaction, pay_load.rng.Get2D(), wi, light_sample_pdf, visibility);
-   //     float3 Ld = float3(0.0, 0.0, 0.0);
-   //     
-   //     if (!IsBlack(Li) && Unoccluded(pay_load, visibility) && light_sample_pdf != 0.0)
-   //     {
-   //         // Evaluate BSDF
-   //         float3 f = material.bsdf.Eval(wo, wi, TransportMode_Radiance) * abs(dot(wi, pay_load.interaction.isect.n));
-   //         scattering_pdf = material.bsdf.PDF(wo, wi, TransportMode_Radiance, BSDF_All);
-   //         // Add light's contribution to reflected radiance
-   //         if (light.IsDelta())
-   //         {
-   //             Ld += f * Li / light_sample_pdf;
-   //         }
-   //         else
-   //         {
-   //             // Light MIS
-   //             float weight = PowerHeuristic(1, light_sample_pdf, 1, scattering_pdf);
-   //             Ld += f * Li * weight / light_sample_pdf;
-   //         }
-   //     }
-   //     
-   //     // Sample BSDF with MIS
-   //     if (!light.IsDelta())
-   //     {
-   //         // TODO
-   //     }
-   //     
-   //     pay_load.radiance += float4(Ld / light_select_pdf * pay_load.throughout, 1.0);
-   // }
     
     // Sample BSDF to get new path direction
     uint sample_type;
@@ -363,21 +318,6 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
         pay_load.eta *= Sqr(bs.eta);
     }
     pay_load.wi = bs.wiW;
-    //if (bs.IsTransmission())
-    //{
-    //    pay_load.eta *= bs.eta * bs.eta;
-    //}
-    //
-    //if (bs.pdf > 0.0 && !IsBlack(bs.f) && abs(dot(bs.wiW, pay_load.interaction.isect.n)) != 0.0)
-    //{
-    //    pay_load.throughout *= bs.f * abs(dot(bs.wiW, pay_load.interaction.isect.n)) / bs.pdf;
-    //    pay_load.wi = bs.wiW;
-    //}
-    //else
-    //{
-    //    pay_load.terminate = true;
-    //    return;
-    //}
 }
 #endif
 

@@ -17,6 +17,7 @@ function(add_pass category name)
 endfunction()
 
 add_pass(Output Present)
+add_pass(Transfer CopyImageRGBA16)
 # add_pass(Triangle)
 add_pass(RenderPath VisibilityGeometryPass)
 add_pass(RenderPath VisibilityBufferVisualization)

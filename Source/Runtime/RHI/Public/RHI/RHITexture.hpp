@@ -86,5 +86,8 @@ struct TextureStateTransition
 	RHIResourceState dst;
 
 	TextureRange range;
+
+	RHIQueueFamily src_family = RHIQueueFamily::Graphics;
+	RHIQueueFamily dst_family = RHIQueueFamily::Graphics;
 };
 }        // namespace Ilum

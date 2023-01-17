@@ -25,7 +25,7 @@ TextureState TextureState::Create(RHIResourceState state)
 		case RHIResourceState::ShaderResource:
 			vk_state.layout      = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			vk_state.access_mask = VK_ACCESS_SHADER_READ_BIT;
-			vk_state.stage       = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+			vk_state.stage       = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 			break;
 		case RHIResourceState::UnorderedAccess:
 			vk_state.layout      = VK_IMAGE_LAYOUT_GENERAL;

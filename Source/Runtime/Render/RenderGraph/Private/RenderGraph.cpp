@@ -31,7 +31,7 @@ void RenderGraphDesc::ErasePass(size_t handle)
 	for (auto iter = m_edges.begin(); iter != m_edges.end();)
 	{
 		if (pins.find(iter->first) != pins.end() ||
-		    pins.find(iter->second) != pins.end()||
+		    pins.find(iter->second) != pins.end() ||
 		    m_passes.find(iter->first) != m_passes.end() ||
 		    m_passes.find(iter->second) != m_passes.end())
 		{
@@ -101,7 +101,7 @@ size_t RenderGraphDesc::LinkFrom(size_t target) const
 std::set<size_t> RenderGraphDesc::LinkTo(size_t source) const
 {
 	std::set<size_t> result;
-	for (auto& [dst, src] : m_edges)
+	for (auto &[dst, src] : m_edges)
 	{
 		if (src == source)
 		{
@@ -142,7 +142,7 @@ struct RenderGraph::Impl
 {
 	RHIContext *rhi_context = nullptr;
 
-	BarrierTask initialize_barrier;
+	InitializeBarrierTask initialize_barrier;
 
 	std::vector<RenderPassInfo> render_passes;
 
@@ -203,36 +203,26 @@ void RenderGraph::Execute(RenderGraphBlackboard &black_board)
 
 	if (!m_impl->init)
 	{
-		auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Graphics);
-		cmd_buffer->Begin();
-		cmd_buffer->BeginMarker("Initialize");
-		m_impl->initialize_barrier(*this, cmd_buffer);
+		auto *graphics_cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Graphics);
+		auto *compute_cmd_buffer  = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Compute);
+		graphics_cmd_buffer->Begin();
+		compute_cmd_buffer->Begin();
+		graphics_cmd_buffer->BeginMarker("Initialize - Graphics Queue");
+		compute_cmd_buffer->BeginMarker("Initialize - Compute Queue");
+		m_impl->initialize_barrier(*this, graphics_cmd_buffer, compute_cmd_buffer);
 		m_impl->init = true;
-		cmd_buffer->EndMarker();
-		cmd_buffer->End();
-		m_impl->rhi_context->Submit({cmd_buffer});
+		graphics_cmd_buffer->EndMarker();
+		compute_cmd_buffer->EndMarker();
+		graphics_cmd_buffer->End();
+		compute_cmd_buffer->End();
+		m_impl->rhi_context->Execute({graphics_cmd_buffer});
+		m_impl->rhi_context->Execute({compute_cmd_buffer});
 	}
 
-	BindPoint      last_bind_point = m_impl->render_passes[0].bind_point;
-	RHIQueueFamily family          = RHIQueueFamily::Graphics;
-
+	// Collect cmd buffers
 	std::vector<RHICommand *> cmd_buffers;
-	cmd_buffers.reserve(m_impl->render_passes.size());
-	RHISemaphore *last_semaphore = nullptr;
-	for (auto &pass : m_impl->render_passes)
+	for (auto& pass : m_impl->render_passes)
 	{
-		if (pass.bind_point != last_bind_point && pass.bind_point != BindPoint::None && !cmd_buffers.empty())
-		{
-			RHISemaphore *pass_semaphore   = m_impl->rhi_context->CreateFrameSemaphore();
-			RHISemaphore *signal_semaphore = last_bind_point == BindPoint::CUDA ? MapToCUDASemaphore(pass_semaphore) : pass_semaphore;
-			RHISemaphore *wait_semaphore   = last_semaphore ? pass.bind_point == BindPoint::CUDA ? MapToCUDASemaphore(last_semaphore) : last_semaphore : nullptr;
-
-			m_impl->rhi_context->Submit(std::move(cmd_buffers), wait_semaphore ? std::vector<RHISemaphore *>{wait_semaphore} : std::vector<RHISemaphore *>{}, {signal_semaphore});
-			last_semaphore = pass_semaphore;
-			cmd_buffers.clear();
-			last_bind_point = pass.bind_point;
-		}
-
 		if (pass.bind_point == BindPoint::CUDA)
 		{
 			auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Compute, true);
@@ -245,6 +235,7 @@ void RenderGraph::Execute(RenderGraphBlackboard &black_board)
 		}
 		else
 		{
+			RHIQueueFamily family = RHIQueueFamily::Graphics;
 			if (pass.bind_point == BindPoint::Rasterization)
 			{
 				family = RHIQueueFamily::Graphics;
@@ -270,7 +261,30 @@ void RenderGraph::Execute(RenderGraphBlackboard &black_board)
 
 	if (!cmd_buffers.empty())
 	{
-		m_impl->rhi_context->Submit(std::move(cmd_buffers), last_semaphore ? std::vector<RHISemaphore *>{last_semaphore} : std::vector<RHISemaphore *>{}, {});
+		RHIQueueFamily last_queue_family = cmd_buffers[0]->GetQueueFamily();
+		std::string    last_backend      = cmd_buffers[0]->GetBackend();
+		RHISemaphore             *last_semaphore    = nullptr;
+		std::vector<RHICommand *> submit_cmd_buffers;
+		for (auto *cmd_buffer : cmd_buffers)
+		{
+			if (last_queue_family != cmd_buffer->GetQueueFamily() || cmd_buffer->GetBackend() != last_backend && !submit_cmd_buffers.empty())
+			{
+				RHISemaphore *pass_semaphore   = m_impl->rhi_context->CreateFrameSemaphore();
+				RHISemaphore *signal_semaphore = last_backend == "CUDA" ? MapToCUDASemaphore(pass_semaphore) : pass_semaphore;
+				RHISemaphore *wait_semaphore   = last_semaphore ? last_backend == "CUDA" ? MapToCUDASemaphore(last_semaphore) : last_semaphore : nullptr;
+
+				m_impl->rhi_context->Submit(std::move(submit_cmd_buffers), wait_semaphore ? std::vector<RHISemaphore *>{wait_semaphore} : std::vector<RHISemaphore *>{}, {signal_semaphore});
+				submit_cmd_buffers.clear();
+				last_semaphore    = pass_semaphore;
+				last_queue_family = cmd_buffer->GetQueueFamily();
+			}
+
+			submit_cmd_buffers.push_back(cmd_buffer);
+		}
+		if (!submit_cmd_buffers.empty())
+		{
+			m_impl->rhi_context->Submit(std::move(submit_cmd_buffers), last_semaphore ? std::vector<RHISemaphore *>{last_semaphore} : std::vector<RHISemaphore *>{}, {});
+		}
 	}
 }
 
@@ -296,7 +310,7 @@ RenderGraph &RenderGraph::AddPass(
 	return *this;
 }
 
-RenderGraph &RenderGraph::AddInitializeBarrier(BarrierTask &&barrier)
+RenderGraph &RenderGraph::AddInitializeBarrier(InitializeBarrierTask &&barrier)
 {
 	m_impl->initialize_barrier = std::move(barrier);
 	return *this;
@@ -306,7 +320,7 @@ RenderGraph &RenderGraph::RegisterTexture(const TextureCreateInfo &create_info)
 {
 	TextureDesc desc    = create_info.desc;
 	auto       &texture = m_impl->textures.emplace_back(m_impl->rhi_context->CreateTexture(desc));
-	for (auto& handle : create_info.handles)
+	for (auto &handle : create_info.handles)
 	{
 		m_impl->texture_lookup.emplace(handle, texture.get());
 	}

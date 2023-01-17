@@ -24,13 +24,14 @@ class PathTracing : public RenderPass<PathTracing>
 
 	~PathTracing() = default;
 
-		virtual RenderPassDesc Create(size_t &handle)
+	virtual RenderPassDesc Create(size_t &handle)
 	{
 		RenderPassDesc desc;
 		return desc.SetBindPoint(BindPoint::RayTracing)
 		    .SetName("PathTracing")
 		    .SetCategory("RayTracing")
 		    .SetConfig(Config())
+		    .ReadTexture2D(handle++, "Prev", RHIResourceState::UnorderedAccess)
 		    .WriteTexture2D(handle++, "Output", 0, 0, RHIFormat::R16G16B16A16_FLOAT, RHIResourceState::UnorderedAccess);
 	}
 
@@ -47,6 +48,7 @@ class PathTracing : public RenderPass<PathTracing>
 
 		*task = [=](RenderGraph &render_graph, RHICommand *cmd_buffer, Variant &config, RenderGraphBlackboard &black_board) {
 			auto  output      = render_graph.GetTexture(desc.GetPin("Output").handle);
+			auto  prev_result      = render_graph.GetTexture(desc.GetPin("Prev").handle);
 			auto *gpu_scene   = black_board.Get<GPUScene>();
 			auto *view        = black_board.Get<View>();
 			auto *rhi_context = renderer->GetRHIContext();
@@ -98,6 +100,7 @@ class PathTracing : public RenderPass<PathTracing>
 				auto *descriptor = rhi_context->CreateDescriptor(meta);
 				descriptor->BindAccelerationStructure("TopLevelAS", gpu_scene->TLAS.get())
 				    .BindTexture("Output", output, RHITextureDimension::Texture2D)
+				    .BindTexture("PrevImage", prev_result, RHITextureDimension::Texture2D)
 				    .BindBuffer("ConfigBuffer", config_buffer.get())
 				    .BindBuffer("InstanceBuffer", gpu_scene->mesh_buffer.instances.get())
 				    .BindBuffer("ViewBuffer", view->buffer.get())
