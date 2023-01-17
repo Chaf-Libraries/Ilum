@@ -85,7 +85,7 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 		RHIResourceState rhi_state;
 		RHIQueueFamily   family;
 
-		bool operator==(const ResourceState& lhs)
+		bool operator==(const ResourceState &lhs)
 		{
 			return this->rhi_state == lhs.rhi_state && this->family == lhs.family;
 		}
@@ -317,7 +317,7 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 		render_graph->AddInitializeBarrier([=](RenderGraph &render_graph, RHICommand *graphics_cmd_buffer, RHICommand *compute_cmd_buffer) {
 			std::vector<TextureStateTransition> graphics_texture_transitions;
 			std::vector<TextureStateTransition> compute_texture_transitions;
-			for (auto& transition : texture_state_transitions)
+			for (auto &transition : texture_state_transitions)
 			{
 				if (transition.dst_family == RHIQueueFamily::Compute)
 				{
@@ -365,7 +365,7 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 				        texture_desc.mips,
 				        0,
 				        texture_desc.layers},
-				    i==0?resource_transition.second.family:resource_transition.first.family,
+				    i == 0 ? resource_transition.second.family : resource_transition.first.family,
 				    resource_transition.second.family});
 			}
 			else

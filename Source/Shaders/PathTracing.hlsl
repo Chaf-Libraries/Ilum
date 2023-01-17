@@ -20,7 +20,6 @@ StructuredBuffer<uint> IndexBuffer[];
 ConstantBuffer<View> ViewBuffer;
 ConstantBuffer<Config> ConfigBuffer;
 RWTexture2D<float4> Output;
-Texture2D<float4> PrevImage;
 
 #ifndef RAYTRACING_PIPELINE
 #define RAYGEN_SHADER
@@ -38,6 +37,7 @@ struct PayLoad
     PCGSampler rng;
     
     float3 wi;
+    float pdf;
     float eta;
     float4 radiance;
     float3 throughout;
@@ -47,6 +47,7 @@ struct PayLoad
     void Init()
     {
         radiance = 0.f;
+        pdf = 1.f;
         eta = 1.f;
         throughout = 1.f;
         terminate = false;
@@ -122,7 +123,6 @@ void RayGenMain()
         {
             // Sample environment light
             float pdf = 0;
-            //ray_payload.radiance += ray_payload.throughout * EnvironmentSampling(ray_payload, normalize(ray.Direction), pdf);
             break;
         }
            
@@ -158,7 +158,7 @@ void RayGenMain()
     }
     else
     {
-        float3 prev_color = PrevImage.Load(int3(launch_id, 0)).rgb;
+        float3 prev_color = Output.Load(int3(launch_id, 0)).rgb;
         float4 accumulated_color = 0.f;
         if ((isnan(prev_color.x) || isnan(prev_color.y) || isnan(prev_color.z)))
         {
@@ -168,18 +168,9 @@ void RayGenMain()
         {
             accumulated_color = float4(lerp(prev_color, pay_load.radiance.rgb, 1.0 / float(ConfigBuffer.frame_count + 1)), pay_load.radiance.a);
         }
-
+        
         Output[launch_id] = accumulated_color;
     }
-    
-    //float4 radiance = 0.f;
-    //
-    //if (SceneIntersection(ray, pay_load))
-    //{
-    //    radiance = float4(pay_load.radiance, 1.f);
-    //}
-    //
-    //Output[int2(launch_index.x, launch_dims.y - launch_index.y)] = float4(radiance);
 }
 #endif
 
@@ -223,7 +214,6 @@ float3 SampleLd(PayLoad pay_load, Material material)
         
         if (light.IsDelta())
         {
-            return ls;
             return ls * f / p_l;
         }
         else
@@ -297,7 +287,7 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
     {
         uint flags = material.bsdf.Flags();
         float3 Ld = SampleLd(pay_load, material);
-        pay_load.radiance = float4(Ld, 1.f);
+        pay_load.radiance = float4(pay_load.radiance.rgb + pay_load.throughout * Ld, 1.f);
     }
     
     // Sample BSDF to get new path direction
@@ -311,7 +301,7 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
     }
     
     pay_load.throughout *= bs.f * abs(dot(bs.wiW, pay_load.interaction.isect.n)) / bs.pdf;
-    float3 p_b = bs.pdfIsProportional ? material.bsdf.PDF(wo, bs.wiW, TransportMode_Radiance, BSDF_All) : bs.pdf;
+    pay_load.pdf = bs.pdfIsProportional ? material.bsdf.PDF(wo, bs.wiW, TransportMode_Radiance, BSDF_All) : bs.pdf;
     bool specular_bounce = bs.IsSpecular();
     if (bs.IsTransmission())
     {
