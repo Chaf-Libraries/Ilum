@@ -15,7 +15,7 @@ struct DiffuseTransmissionBSDF
     {
         reflectance = reflectance_;
         transmission = transmission_;
-        frame.CreateCoordinateSystem(normal_);
+        frame.FromZ(normal_);
     }
     
     uint Flags()

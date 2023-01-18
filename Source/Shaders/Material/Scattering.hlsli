@@ -2,6 +2,7 @@
 #define MICROFACET_HLSLI
 
 #include "../Math.hlsli"
+#include "../Interaction.hlsli"
 
 bool Refract(float3 wi, float3 n, float eta, out float etap, out float3 wt)
 {
@@ -25,11 +26,16 @@ bool Refract(float3 wi, float3 n, float eta, out float etap, out float3 wt)
     
     float cosTheta_t = sqrt(1 - sin2Theta_t);
 
-    wt = -wi / eta + (cosTheta_i / eta - cosTheta_t) * float3(n);
+    wt = -wi / eta + (cosTheta_i / eta - cosTheta_t) * n;
     // Provide relative IOR along ray to caller
     etap = eta;
     
     return true;
+}
+
+float3 Reflect(float3 wo, float3 n)
+{
+    return -wo + 2 * dot(wo, n) * n;
 }
 
 float HenyeyGreenstein(float cosTheta, float g)
@@ -131,29 +137,19 @@ struct TrowbridgeReitzDistribution
     
     float3 Sample_wm(float3 w, float2 u)
     {
-        // Transform _w_ to hemispherical configuration
-        float3 wh = normalize(float3(alpha_x * w.x, alpha_y * w.y, w.z));
-        if (wh.z < 0)
-        {
-            wh = -wh;
-        }
+        // Reference: https://jcgt.org/published/0007/04/01/paper.pdf
+        float3 vh = normalize(float3(alpha_x * w.x, alpha_y * w.y, w.z));
         
-        // Find orthonormal basis for visible normal sampling
-        float3 T1 = (wh.z < 0.99999f) ? normalize(cross(float3(0, 0, 1), wh))
-                                        : float3(1, 0, 0);
-        float3 T2 = cross(wh, T1);
-
-        // Generate uniformly distributed points on the unit disk
+        float len = vh.x * vh.x + vh.y * vh.y;
+        float3 T1 = len > 0 ? float3(-vh.y, -vh.x, 0.f) / sqrt(len) : float3(1, 0, 0);
+        float3 T2 = cross(vh, T1);
+        
         float2 p = UniformSampleDisk(u);
-
-        // Warp hemispherical projection for visible normal sampling
-        float h = sqrt(1 - Sqr(p.x));
-        p.y = lerp((1 + wh.z) / 2, h, p.y);
-
-        // Reproject to hemisphere and transform normal to ellipsoid configuration
-        float pz = sqrt(max(0, 1 - LengthSquared(float2(p))));
-        float3 nh = p.x * T1 + p.y * T2 + pz * wh;
-        return normalize(float3(alpha_x * nh.x, alpha_y * nh.y, max(1e-6f, nh.z)));
+        float s = 0.5 * (1.0 + vh.z);
+        p.y = (1.0 - s) * sqrt(1.0 - p.x * p.x) + s * p.y;
+        float3 nh = p.x * T1 + p.y * T2 + sqrt(max(0, 1.0 - p.x * p.x - p.y * p.y)) * vh;
+        
+        return normalize(float3(alpha_x * nh.x, alpha_y * nh.y, max(0, nh.z)));
     }
     
     float RoughnessToAlpha(float roughness)

@@ -13,7 +13,7 @@ struct DiffuseBSDF
     void Init(float3 reflectance_, float3 normal_)
     {
         reflectance = reflectance_;
-        frame.CreateCoordinateSystem(normal_);
+        frame.FromZ(normal_);
     }
     
     uint Flags()

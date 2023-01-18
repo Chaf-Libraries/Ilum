@@ -16,7 +16,7 @@ struct DielectricBSDF
     {
         distrib.Init(distrib.RoughnessToAlpha(roughness_u_), distrib.RoughnessToAlpha(roughness_v_));
         eta = eta_;
-        frame.CreateCoordinateSystem(normal_);
+        frame.FromZ(normal_);
     }
     
     uint Flags()
@@ -139,7 +139,6 @@ struct DielectricBSDF
         {
             // Compute PDF of rough dielectric reflection
             pdf = distrib.PDF(wo, wm) / (4 * abs(dot(wo, wm))) * pr / (pr + pt);
-
         }
         else
         {
@@ -175,9 +174,9 @@ struct DielectricBSDF
             }
             if (pr == 0 && pt == 0)
             {
-                //return bsdf_sample;
+                return bsdf_sample;
             }
-
+        
             if (uc < pr / (pr + pt))
             {
                 // Sample perfect specular dielectric BRDF
@@ -219,7 +218,7 @@ struct DielectricBSDF
         else
         {
             // Sample rough dielectric BSDF
-            float3 wm = distrib.Sample_wm(wo, u);
+            float3 wm = distrib.Sample_wm(Faceforward(wo, float3(0, 0, 1)), u);
             float R = FresnelDielectric(dot(wo, wm), eta);
             float T = 1 - R;
             // Compute probabilities _pr_ and _pt_ for sampling reflection and transmission
@@ -237,16 +236,15 @@ struct DielectricBSDF
                 return bsdf_sample;
             }
 
-            float pdf;
             if (uc < pr / (pr + pt))
             {
                 // Sample reflection at rough dielectric interface
-                float3 wi = reflect(wo, wm);
+                float3 wi = Reflect(wo, wm);
                 if (!SameHemisphere(wo, wi))
                 {
                     return bsdf_sample;
                 }
-
+            
                 bsdf_sample.f = distrib.D(wm) * distrib.G(wo, wi) * R / (4 * CosTheta(wi) * CosTheta(wo));
                 bsdf_sample.wiW = frame.ToWorld(wi);
                 bsdf_sample.pdf = distrib.PDF(wo, wm) / (4 * abs(dot(wo, wm))) * pr / (pr + pt);
@@ -255,7 +253,7 @@ struct DielectricBSDF
             }
             else
             {
-                // Sample transmission at rough dielectric interface
+               // Sample transmission at rough dielectric interface
                 float etap;
                 float3 wi;
                 bool tir = !Refract(wo, wm, eta, etap, wi);
@@ -263,22 +261,21 @@ struct DielectricBSDF
                 {
                     return bsdf_sample;
                 }
-                // Compute PDF of rough dielectric transmission
+               // Compute PDF of rough dielectric transmission
                 float denom = Sqr(dot(wi, wm) + dot(wo, wm) / etap);
                 float dwm_dwi = abs(dot(wi, wm)) / denom;
-                pdf = distrib.PDF(wo, wm) * dwm_dwi * pt / (pr + pt);
-
-                // Evaluate BRDF and return _BSDFSample_ for rough transmission
+            
+               // Evaluate BRDF and return _BSDFSample_ for rough transmission
                 float3 ft = T * distrib.D(wm) * distrib.G(wo, wi) * abs(dot(wi, wm) * dot(wo, wm) / (CosTheta(wi) * CosTheta(wo) * denom));
-                // Account for non-symmetry with transmission to different medium
+               // Account for non-symmetry with transmission to different medium
                 if (mode == TransportMode_Radiance)
                 {
                     ft /= Sqr(etap);
                 }
-                
+               
                 bsdf_sample.f = ft;
                 bsdf_sample.wiW = frame.ToWorld(wi);
-                bsdf_sample.pdf = pdf;
+                bsdf_sample.pdf = distrib.PDF(wo, wm) * dwm_dwi * pt / (pr + pt);
                 bsdf_sample.flags = BSDF_GlossyTransmission;
                 bsdf_sample.eta = etap;
                 return bsdf_sample;
