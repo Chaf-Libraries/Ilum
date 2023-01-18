@@ -1,6 +1,8 @@
 #ifndef INTERATION_HLSLI
 #define INTERATION_HLSLI
 
+#include "Math.hlsli"
+
 float3 OffsetRayOrigin(float3 p, float3 n)
 {
     const float intScale = 256.0f;
@@ -20,62 +22,48 @@ float3 OffsetRayOrigin(float3 p, float3 n)
 
 struct Frame
 {
-    float3 s, t;
-    float3 n;
+    float3 x, y, z;
     
-    void CreateCoordinateSystem(float3 normal)
+    void FromXZ(float3 x_, float3 z_)
     {
-        const float3 ref = abs(dot(normal, float3(0, 1, 0))) > 0.99f ? float3(0, 0, 1) : float3(0, 1, 0);
-        
-        t = normalize(cross(ref, normal));
-        s = cross(normal, t);
-        n = normal;
-        
-         //n = normal;
-         //if (n.z < 0.f)
-         //{
-         //    const float a = 1.0f / (1.0f - n.z);
-         //    const float b = n.x * n.y * a;
-         //    s = float3(1.0f - n.x * n.x * a, -b, n.x);
-         //    t = float3(b, n.y * n.y * a - 1.0f, -n.y);
-         //}
-         //else
-         //{
-         //    const float a = 1.0f / (1.0f + n.z);
-         //    const float b = -n.x * n.y * a;
-         //    s = float3(1.0f - n.x * n.x * a, b, -n.x);
-         //    t = float3(b, 1.0f - n.y * n.y * a, -n.y);
-         //}
+        x = x_;
+        y = cross(z_, x_);
+        z = z_;
     }
     
+    void FromXY(float3 x_, float3 y_)
+    {
+        x = x_;
+        y = y_;
+        z = cross(x, y);
+    }
+
+    void FromZ(float3 z_)
+    {
+        z = z_;
+        CoordinateSystem(z, x, y);
+    }
+
+    void FromX(float3 x_)
+    {
+        x = x_;
+        CoordinateSystem(x, y, z);
+    }
+
+    void FromY(float3 y_)
+    {
+        y = y_;
+        CoordinateSystem(y, z, x);
+    }
+
     float3 ToLocal(float3 v)
     {
-        return normalize(float3(dot(v, t), dot(v, s), dot(v, n)));
+        return float3(dot(v, x), dot(v, y), dot(v, z));
     }
-    
+
     float3 ToWorld(float3 v)
     {
-        return normalize(t * v.x + s * v.y + n * v.z);
-    }
-    
-    float CosTheta2(float3 v)
-    {
-        return v.z * v.z;
-    }
-    
-    float CosTheta(float3 v)
-    {
-        return v.z;
-    }
-    
-    float SinTheta2(float3 v)
-    {
-        return v.x * v.x + v.y * v.z;
-    }
-    
-    float SinTheta(float3 v)
-    {
-        return sqrt(max(SinTheta2(v), 0));
+        return v.x * x + v.y * y + v.z * z;
     }
 };
 
@@ -129,7 +117,7 @@ struct SurfaceInteraction
         float3 dndu, dndv;
     } shading;*/
   
-    float3 geo_n;
+    float3 shading_n;
     uint material;
     float3 dpdx, dpdy;
     float3 dndx, dndy;

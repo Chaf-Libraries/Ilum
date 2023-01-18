@@ -21,6 +21,19 @@ void CreateCoordinateSystem(in float3 N, out float3 Nt, out float3 Nb)
     Nb = cross(N, Nt);
 }
 
+void CoordinateSystem(float3 v1, out float3 v2, out float3 v3)
+{
+    const float3 ref = abs(dot(v1, float3(0, 1, 0))) > 0.99f ? float3(0, 0, 1) : float3(0, 1, 0);
+
+    v2 = normalize(cross(ref, v1));
+    v3 = cross(v1, v2);
+    //float sign = v1.z / abs(v1.z);
+    //float a = -1 / (sign + v1.z);
+    //float b = v1.x * v1.y * a;
+    //v2 = float3(1 + sign * v1.x * v1.x * a, sign * b, -sign * v1.x);
+    //v3 = float3(b, sign + v1.y * v1.y * a, -v1.y);
+}
+
 float Sqr(float x)
 {
     return x * x;

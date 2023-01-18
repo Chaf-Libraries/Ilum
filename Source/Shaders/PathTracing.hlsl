@@ -123,23 +123,24 @@ void RayGenMain()
         {
             // Sample environment light
             float pdf = 0;
+            pay_load.radiance = float4(pay_load.radiance.rgb + 0.1f * pay_load.throughout, 1.f);
             break;
         }
            
         ray = pay_load.interaction.isect.SpawnRay(pay_load.wi);
         
         // Russian roulette
-        float3 rrBeta = pay_load.throughout * pay_load.eta;
-        float max_cmpt = max(rrBeta.x, max(rrBeta.y, rrBeta.z));
-        if (max_cmpt < 1.0 && bounce > 3)
-        {
-            float q = max(0.05, 1.0 - max_cmpt);
-            if (pay_load.rng.Get1D() < q)
-            {
-                break;
-            }
-            pay_load.throughout /= 1.0 - q;
-        }
+       float3 rrBeta = pay_load.throughout * pay_load.eta;
+       float max_cmpt = max(rrBeta.x, max(rrBeta.y, rrBeta.z));
+       if (max_cmpt < 1.0 && bounce > 3)
+       {
+           float q = max(0.05, 1.0 - max_cmpt);
+           if (pay_load.rng.Get1D() < q)
+           {
+               break;
+           }
+           pay_load.throughout /= 1.0 - q;
+       }
     }
     
     // Clamp firefly
@@ -203,7 +204,7 @@ float3 SampleLd(PayLoad pay_load, Material material)
         float3 ls = light.SampleLi(pay_load.interaction, pay_load.rng.Get2D(), wi, light_sample_pdf, visibility);
         
         float3 wo = pay_load.interaction.isect.wo;
-        float3 f = material.bsdf.Eval(wo, wi, TransportMode_Radiance) * abs(dot(wi, pay_load.interaction.isect.n));
+        float3 f = material.bsdf.Eval(wo, wi, TransportMode_Radiance) * abs(dot(wi, pay_load.interaction.shading_n));
         
         if (IsBlack(ls) || IsBlack(f) || !Unoccluded(pay_load, visibility))
         {
@@ -225,7 +226,7 @@ float3 SampleLd(PayLoad pay_load, Material material)
     }
     return 0.f;
 }
-
+#include "Material/Scattering.hlsli"
 [shader("closesthit")]
 void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleIntersectionAttributes attributes)
 {
@@ -247,10 +248,7 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
     surface_interaction.isect.uv = v0.texcoord0.xy * bary.x + v1.texcoord0.xy * bary.y + v2.texcoord0.xy * bary.z;
     surface_interaction.isect.n = v0.normal.xyz * bary.x + v1.normal.xyz * bary.y + v2.normal.xyz * bary.z;
     surface_interaction.isect.n = normalize(mul(WorldToObject4x3(), normalize(surface_interaction.isect.n)).xyz);
-    if (dot(surface_interaction.isect.n, -WorldRayDirection()) <= 0)
-    {
-        surface_interaction.isect.n *= -1.0f;
-    }
+    surface_interaction.shading_n = dot(surface_interaction.isect.n, -WorldRayDirection()) <= 0 ? -surface_interaction.isect.n : surface_interaction.isect.n;
     surface_interaction.isect.wo = -normalize(WorldRayDirection());
     surface_interaction.isect.t = RayTCurrent();
     surface_interaction.material = instance.material_id;
@@ -258,10 +256,9 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
     float3 edge01 = mul(v1.position - v0.position, (float3x3) ObjectToWorld4x3()).xyz;
     float3 edge02 = mul(v2.position - v0.position, (float3x3) ObjectToWorld4x3()).xyz;
     float3 wgeom_normal = cross(edge01, edge02);
-    surface_interaction.geo_n = normalize(wgeom_normal);
     
     // Compute Differential
-    pay_load.ray_diff.Propagate(normalize(WorldRayDirection()), RayTCurrent(), surface_interaction.isect.n);
+    pay_load.ray_diff.Propagate(normalize(WorldRayDirection()), RayTCurrent(), surface_interaction.shading_n);
     
     float3 nu = cross(edge02, wgeom_normal);
     float3 nv = cross(edge01, wgeom_normal);
@@ -276,6 +273,22 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
     
     surface_interaction.duvdx = dBarydx.x * deltaUV1 + dBarydx.y * deltaUV2;
     surface_interaction.duvdy = dBarydy.x * deltaUV1 + dBarydy.y * deltaUV2;
+    
+    ///////////////////////////
+   //Frame frame;
+   //frame.FromZ(surface_interaction.isect.n);
+   //pay_load.radiance = float4(frame.z, 1.f);
+   //pay_load.terminate = true;
+   //return;
+    //Frame frame;
+    //frame.FromZ(surface_interaction.isect.n);
+    //TrowbridgeReitzDistribution distrib;
+    //distrib.Init(distrib.RoughnessToAlpha(0.9), distrib.RoughnessToAlpha(0.9));
+    //float3 wo_ = frame.ToLocal(surface_interaction.isect.wo);
+    //pay_load.radiance = float4(distrib.Sample_wm(wo_, pay_load.rng.Get2D()), 1.f);
+    //pay_load.terminate = true;
+    //return;
+    ////////////////////////
     
     Material material;
     material.Init(surface_interaction);
@@ -300,7 +313,7 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
         return;
     }
     
-    pay_load.throughout *= bs.f * abs(dot(bs.wiW, pay_load.interaction.isect.n)) / bs.pdf;
+    pay_load.throughout *= bs.f * abs(dot(bs.wiW, pay_load.interaction.shading_n)) / bs.pdf;
     pay_load.pdf = bs.pdfIsProportional ? material.bsdf.PDF(wo, bs.wiW, TransportMode_Radiance, BSDF_All) : bs.pdf;
     bool specular_bounce = bs.IsSpecular();
     if (bs.IsTransmission())
@@ -308,6 +321,10 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
         pay_load.eta *= Sqr(bs.eta);
     }
     pay_load.wi = bs.wiW;
+   //Frame frame;
+ // frame.FromZ(surface_interaction.isect.n);
+    //float3 a = dot(frame.y, frame.x);
+    //pay_load.radiance = float4(bs.f, 1.f);
 }
 #endif
 

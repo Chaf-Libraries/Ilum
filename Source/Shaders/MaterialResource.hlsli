@@ -36,8 +36,8 @@ T GetMaterialData(uint material_id)
 void SetNormalMap(inout SurfaceInteraction interaction, float3 normal_vector)
 {
     Frame frame;
-    frame.CreateCoordinateSystem(interaction.isect.n);
-    float3x3 TBN = float3x3(frame.t, frame.s, frame.n);
+    frame.FromZ(interaction.isect.n);
+    float3x3 TBN = float3x3(frame.x, frame.y, frame.z);
     normal_vector = normalize(normal_vector * 2.0 - 1.0);
     float3 normal = normalize(mul(normal_vector, TBN));
     interaction.isect.n = dot(interaction.isect.n, normal) <= 0.0 ? normal : -normal;

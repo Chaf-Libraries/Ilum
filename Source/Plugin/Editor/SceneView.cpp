@@ -132,6 +132,19 @@ class SceneView : public Widget
 	}
 
 	template <>
+	void DropTarget<ResourceType::Mesh>(Editor* editor, const std::string& name)
+	{
+		auto *resource = editor->GetRenderer()->GetResourceManager()->Get<ResourceType::Mesh>(name);
+		if (resource)
+		{
+			auto *node = p_editor->GetRenderer()->GetScene()->CreateNode(resource->GetName());
+			node->AddComponent<Cmpt::Transform>(std::make_unique<Cmpt::Transform>(node));
+			auto *mesh_renderer = node->AddComponent<Cmpt::MeshRenderer>(std::make_unique<Cmpt::MeshRenderer>(node));
+			mesh_renderer->AddSubmesh(resource->GetName());
+		}
+	}
+
+	template <>
 	void DropTarget<ResourceType::Prefab>(Editor *editor, const std::string &name)
 	{
 		auto *prefab = editor->GetRenderer()->GetResourceManager()->Get<ResourceType::Prefab>(name);
@@ -261,6 +274,7 @@ class SceneView : public Widget
 		DROP_TARGET(Prefab)
 		DROP_TARGET(RenderPipeline)
 		DROP_TARGET(Scene)
+		DROP_TARGET(Mesh)
 	}
 
 	void DisplayPresent()
