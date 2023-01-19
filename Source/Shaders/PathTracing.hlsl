@@ -71,15 +71,15 @@ bool SceneIntersection(RayDesc ray, out PayLoad pay_load)
     return pay_load.visible;
 }
 
-bool Unoccluded(inout PayLoad pay_load, VisibilityTester visibility)
+bool Unoccluded(SurfaceInteraction surface_interaction, Interaction isect)
 {
-    pay_load.interaction.isect.t = Infinity;
-    RayDesc shadow_ray = pay_load.interaction.isect.SpawnRay(normalize(visibility.dir));
+    float3 direction = normalize(isect.p - surface_interaction.isect.p);
+    RayDesc shadow_ray = surface_interaction.isect.SpawnRay(direction);
     shadow_ray.TMin = 0.0;
-    shadow_ray.TMax = visibility.dist;
+    shadow_ray.TMax = distance(isect.p, surface_interaction.isect.p);
     
-    PayLoad shadow_pay_load;
-    shadow_pay_load.visible = true;
+    PayLoad pay_load;
+    pay_load.visible = true;
     
     TraceRay(
         TopLevelAS, // RaytracingAccelerationStructure
@@ -89,10 +89,10 @@ bool Unoccluded(inout PayLoad pay_load, VisibilityTester visibility)
         1, // MultiplierForGeometryContributionToHitGroupIndex
         0, // MissShaderIndex
         shadow_ray, // Ray
-        shadow_pay_load // Payload
+        pay_load // Payload
     );
     
-    return !shadow_pay_load.visible;
+    return !pay_load.visible;
 }
 
 float Luminance(float3 color)
@@ -198,30 +198,33 @@ float3 SampleLd(PayLoad pay_load, Material material)
         Light light;
         light.Init(light_id);
         
-        float3 wi;
-        VisibilityTester visibility;
-        float light_sample_pdf;
-        float3 ls = light.SampleLi(pay_load.interaction, pay_load.rng.Get2D(), wi, light_sample_pdf, visibility);
+        LightSampleContext sample_context;
+        sample_context.n = pay_load.interaction.isect.n;
+        sample_context.ns = pay_load.interaction.shading_n;
+        sample_context.p = pay_load.interaction.isect.p;
+        
+        LightLiSample light_sample = light.SampleLi(sample_context, pay_load.rng.Get2D());
         
         float3 wo = pay_load.interaction.isect.wo;
-        float3 f = material.bsdf.Eval(wo, wi, TransportMode_Radiance) * abs(dot(wi, pay_load.interaction.shading_n));
+        float3 f = material.bsdf.Eval(wo, light_sample.wi, TransportMode_Radiance) * abs(dot(light_sample.wi, pay_load.interaction.shading_n));
         
-        if (IsBlack(ls) || IsBlack(f) || !Unoccluded(pay_load, visibility))
+        if (IsBlack(light_sample.L) || IsBlack(f) || !Unoccluded(pay_load.interaction, light_sample.isect))
         {
             return 0.f;
         }
         
-        float p_l = light_select_pdf * light_sample_pdf;
+        float p_l = light_select_pdf * light_sample.pdf;
         
         if (light.IsDelta())
         {
-            return ls * f / p_l;
+            //return f;
+            return light_sample.L * f / p_l;
         }
         else
         {
-            float p_b = material.bsdf.PDF(wo, wi, TransportMode_Radiance, BSDF_All);
+            float p_b = material.bsdf.PDF(wo, light_sample.wi, TransportMode_Radiance, BSDF_All);
             float w_l = PowerHeuristic(1, p_l, 1, p_b);
-            return w_l * ls * f / p_l;
+            return w_l * light_sample.L * f / p_l;
         }
     }
     return 0.f;

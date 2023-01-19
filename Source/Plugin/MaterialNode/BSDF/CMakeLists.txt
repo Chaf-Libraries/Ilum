@@ -1,4 +1,5 @@
 add_material_node(BSDF DiffuseBSDF)
 add_material_node(BSDF DiffuseTransmissionBSDF)
 add_material_node(BSDF DielectricBSDF)
+add_material_node(BSDF ConductorBSDF)
 add_material_node(BSDF BlendBSDF)

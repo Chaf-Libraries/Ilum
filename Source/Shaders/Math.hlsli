@@ -1,6 +1,8 @@
 #ifndef MATH_HLSLI
 #define MATH_HLSLI
 
+#include "Complex.hlsli"
+
 static const float PI = 3.14159265358979323846f;
 static const float InvPI = 0.31830988618379067154f;
 static const float Inv2PI = 0.15915494309189533577f;
@@ -47,6 +49,12 @@ float LengthSquared(float2 x)
 float LengthSquared(float3 x)
 {
     return Sqr(x.x) + Sqr(x.y) + Sqr(x.z);
+}
+
+float DistanceSquared(float3 v1, float3 v2)
+{
+    float3 v = v1 - v2;
+    return dot(v, v);
 }
 
 float3 FaceForward(float3 v1, float3 v2)
@@ -108,6 +116,11 @@ float3 UniformSampleSphere(float2 u)
 float UniformHemispherePdf()
 {
     return Inv2PI;
+}
+
+float UniformSpherePdf()
+{
+    return Inv4PI;
 }
 
 float3 SampleCosineHemisphere(float2 u)

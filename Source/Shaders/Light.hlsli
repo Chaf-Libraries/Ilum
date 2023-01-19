@@ -9,6 +9,55 @@
 #define DIRECTIONAL_LIGHT 2
 #define RECT_LIGHT 3
 
+struct LightLeSample
+{
+    float3 L;
+    RayDesc ray;
+    Interaction isect;
+    float pdf_pos;
+    float pdf_dir;
+    
+    void Create(float3 L_, RayDesc ray_, float pdf_pos_, float pdf_dir_)
+    {
+        L = L_;
+        ray = ray_;
+        pdf_pos = pdf_pos_;
+        pdf_dir = pdf_dir_;
+    }
+
+    void Create(float3 L_, RayDesc ray_, Interaction isect_, float pdf_pos_, float pdf_dir_)
+    {
+        L = L_;
+        ray = ray_;
+        isect = isect_;
+        pdf_pos = pdf_pos_;
+        pdf_dir = pdf_dir_;
+    }
+};
+
+struct LightLiSample
+{
+    float3 L;
+    float3 wi;
+    float pdf;
+    Interaction isect;
+    
+    void Create(float3 L_, float3 wi_, float pdf_, Interaction isect_)
+    {
+        L = L_;
+        wi = wi_;
+        pdf = pdf_;
+        isect = isect_;
+    }
+};
+
+struct LightSampleContext
+{
+    float3 p;
+    float3 n;
+    float3 ns;
+};
+
 struct PointLight
 {
     float3 color;
@@ -16,6 +65,51 @@ struct PointLight
     float3 position;
     float radius;
     float range;
+    
+    LightLeSample SampleLe(float2 u1, float2 u2, float time)
+    {
+        RayDesc ray;
+        ray.Origin = position;
+        ray.Direction = UniformSampleSphere(u1);
+        ray.TMin = 0.f;
+        ray.TMax = time;
+        
+        LightLeSample le_sample;
+        le_sample.Create(color * intensity, ray, 1, UniformSpherePdf());
+        
+        return le_sample;
+    }
+    
+    void PDF_Le(RayDesc ray, out float pdf_pos, out float pdf_dir)
+    {
+        pdf_pos = 0;
+        pdf_dir = UniformSpherePdf();
+    }
+
+    void PDF_Le(Interaction isect, float3 w, out float pdf_pos, out float pdf_dir)
+    {
+        
+    }
+
+    LightLiSample SampleLi(LightSampleContext ctx, float2 u)
+    {
+        float3 p = position;
+        float3 wi = normalize(p - ctx.p);
+        float3 L = color * intensity / DistanceSquared(p, ctx.p);
+        
+        Interaction isect;
+        isect.p = p;
+        
+        LightLiSample li_sample;
+        li_sample.Create(L, wi, 1, isect);
+        
+        return li_sample;
+    }
+
+    float PDF_Li(LightSampleContext ctx, float3 wi)
+    {
+        return 0.f;
+    }
 
     float3 Li(float3 p, out float3 wi)
     {
@@ -159,18 +253,41 @@ struct Light
         switch (light_type)
         {
             case POINT_LIGHT:
-                point_light = LightBuffer.Load<PointLight>(LightInfo[2 * light_id_ + 1]);
+                point_light = LightBuffer.Load < PointLight > (LightInfo[2 * light_id_ + 1]);
                 break;
             case SPOT_LIGHT:
-                spot_light = LightBuffer.Load<SpotLight>(LightInfo[2 * light_id_ + 1]);
+                spot_light = LightBuffer.Load < SpotLight > (LightInfo[2 * light_id_ + 1]);
                 break;
             case DIRECTIONAL_LIGHT:
-                directional_light = LightBuffer.Load<DirectionalLight>(LightInfo[2 * light_id_ + 1]);
+                directional_light = LightBuffer.Load < DirectionalLight > (LightInfo[2 * light_id_ + 1]);
                 break;
             case RECT_LIGHT:
-                rect_light = LightBuffer.Load<RectLight>(LightInfo[2 * light_id_ + 1]);
+                rect_light = LightBuffer.Load < RectLight > (LightInfo[2 * light_id_ + 1]);
                 break;
         }
+    }
+    
+    LightLiSample SampleLi(LightSampleContext ctx, float2 u)
+    {
+        switch (light_type)
+        {
+            case POINT_LIGHT:
+                return point_light.SampleLi(ctx, u);
+        }
+        
+        LightLiSample light_sample;
+        return light_sample;
+    }
+
+    float PDF_Li(LightSampleContext ctx, float3 wi)
+    {
+        switch (light_type)
+        {
+            case POINT_LIGHT:
+                return point_light.PDF_Li(ctx, wi);
+        }
+        
+        return 0;
     }
     
     float3 Li(float3 p, out float3 wi)

@@ -68,6 +68,26 @@ float FresnelDielectric(float cosTheta_i, float eta)
     return (Sqr(r_parl) + Sqr(r_perp)) / 2;
 }
 
+float FresnelComplex(float cosTheta_i, Complex eta)
+{
+    Complex cosTheta_i_ = ComplexFromReal(clamp(cosTheta_i, 0, 1));
+    // Compute complex $\cos\,\theta_\roman{t}$ for Fresnel equations using Snell's law
+    Complex sin2Theta_i = Sub(ComplexFromReal(1), Mul(cosTheta_i_, cosTheta_i_));
+    Complex sin2Theta_t = Div(sin2Theta_i, Mul(eta, eta));
+    Complex cosTheta_t = Sqrt(Sub(ComplexFromReal(1), sin2Theta_t));
+    
+    Complex r_parl = Div(Sub(Mul(eta, cosTheta_i_), cosTheta_t), Add(Mul(eta, cosTheta_i_), cosTheta_t));
+    Complex r_perp = Div(Sub(Mul(eta, cosTheta_t), cosTheta_i_), Add(Mul(eta, cosTheta_t), cosTheta_i_));
+
+    return (Norm(r_parl) + Norm(r_perp)) / 2;
+}
+
+float FresnelComplex(float cosTheta_i, float eta, float k)
+{
+    Complex eta_complex = CreateComplex(eta, k);
+    return FresnelComplex(cosTheta_i, eta_complex);
+}
+
 struct TrowbridgeReitzDistribution
 {
     float alpha_x, alpha_y;

@@ -10,6 +10,7 @@
 #include "Material/BSDF/DiffuseBSDF.hlsli"
 #include "Material/BSDF/DiffuseTransmissionBSDF.hlsli"
 #include "Material/BSDF/DielectricBSDF.hlsli"
+#include "Material/BSDF/ConductorBSDF.hlsli"
 #include "Material/BSDF/BlendBSDF.hlsli"
 
 struct MaterialData

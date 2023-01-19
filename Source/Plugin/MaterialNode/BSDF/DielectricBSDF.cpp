@@ -12,9 +12,9 @@ class DielectricBSDF : public MaterialNode<DielectricBSDF>
 		    .SetHandle(handle++)
 		    .SetName("DielectricBSDF")
 		    .SetCategory("BSDF")
-		    .Input(handle++, "RoughnessU", MaterialNodePin::Type::Float, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, float(1.f))
-		    .Input(handle++, "RoughnessV", MaterialNodePin::Type::Float, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, float(1.f))
-		    .Input(handle++, "Eta", MaterialNodePin::Type::Float, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, float(1.f))
+		    .Input(handle++, "Roughness", MaterialNodePin::Type::Float, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, float(0.1f))
+		    .Input(handle++, "Anisotropic", MaterialNodePin::Type::Float, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, float(0.f))
+		    .Input(handle++, "IOR", MaterialNodePin::Type::Float, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, float(1.f))
 		    .Input(handle++, "Normal", MaterialNodePin::Type::Float3, MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3)
 		    .Output(handle++, "Out", MaterialNodePin::Type::BSDF);
 	}
@@ -37,17 +37,17 @@ class DielectricBSDF : public MaterialNode<DielectricBSDF>
 			parameters["Normal"] = "surface_interaction.isect.n";
 		}
 
-		context->SetParameter<float>(parameters, node_desc.GetPin("RoughnessU"), graph_desc, manager, context);
-		context->SetParameter<float>(parameters, node_desc.GetPin("RoughnessV"), graph_desc, manager, context);
-		context->SetParameter<float>(parameters, node_desc.GetPin("Eta"), graph_desc, manager, context);
+		context->SetParameter<float>(parameters, node_desc.GetPin("Roughness"), graph_desc, manager, context);
+		context->SetParameter<float>(parameters, node_desc.GetPin("Anisotropic"), graph_desc, manager, context);
+		context->SetParameter<float>(parameters, node_desc.GetPin("IOR"), graph_desc, manager, context);
 
 		context->bsdfs.emplace_back(MaterialCompilationContext::BSDF{
 		    fmt::format("S_{}", node_desc.GetPin("Out").handle),
 		    "DielectricBSDF",
 		    fmt::format("S_{}.Init({}, {}, {}, {});", node_desc.GetPin("Out").handle,
-		                parameters["RoughnessU"],
-		                parameters["RoughnessV"],
-		                parameters["Eta"],
+		                parameters["Roughness"],
+		                parameters["Anisotropic"],
+		                parameters["IOR"],
 		                parameters["Normal"])});
 	}
 };

@@ -12,9 +12,13 @@ struct DielectricBSDF
     float eta;
     Frame frame;
 
-    void Init(float roughness_u_, float roughness_v_, float eta_, float3 normal_)
+    void Init(float roughness, float anisotropic, float eta_, float3 normal_)
     {
-        distrib.Init(distrib.RoughnessToAlpha(roughness_u_), distrib.RoughnessToAlpha(roughness_v_));
+        float aspect = sqrt(1.0 - anisotropic * 0.9);
+        float urough = max(0.001, roughness / aspect);
+        float vrough = max(0.001, roughness * aspect);
+        
+        distrib.Init((urough), (vrough));
         eta = eta_;
         frame.FromZ(normal_);
     }
@@ -24,7 +28,6 @@ struct DielectricBSDF
         uint flags = (eta == 1) ? BSDF_Transmission :
             (BSDF_Reflection | BSDF_Transmission);
         return flags | (distrib.EffectivelySmooth() ? BSDF_Specular : BSDF_Glossy);
-
     }
 
     float3 Eval(float3 woW, float3 wiW, TransportMode mode)
@@ -45,10 +48,10 @@ struct DielectricBSDF
         
         if (!reflect)
         {
-            etap = cosTheta_o > 0 ? eta : (1 / eta);
+            etap = cosTheta_o > 0 ? 1 / eta : eta;
         }
         
-        float3 wm = wi * etap + wo;
+        float3 wm = wo + wi * etap;
         if (cosTheta_i == 0 || cosTheta_o == 0 || LengthSquared(wm) == 0)
         {
             return 0.f;
@@ -63,15 +66,15 @@ struct DielectricBSDF
         }
         
         float F = FresnelDielectric(dot(wo, wm), eta);
-        if (reflect)
+        //if (reflect)
         {
              // Compute reflection at rough dielectric interface
-            return distrib.D(wm) * distrib.G(wo, wi) * F / abs(4 * cosTheta_i * cosTheta_o);
+           // return distrib.D(wm) * distrib.G(wo, wi) * F / abs(4 * cosTheta_i * cosTheta_o);
         }
-        else
+       // else
         {
             // Compute transmission at rough dielectric interface
-            float denom = Sqr(dot(wi, wm) + dot(wo, wm) / etap) * cosTheta_i * cosTheta_o;
+            float denom = Sqr(dot(wo, wm) + dot(wi, wm) * etap) * cosTheta_i * cosTheta_o;
             float ft = distrib.D(wm) * (1 - F) * distrib.G(wo, wi) * abs(dot(wi, wm) * dot(wo, wm) / denom);
             // Account for non-symmetry with transmission to different medium
             if (mode == TransportMode_Radiance)
