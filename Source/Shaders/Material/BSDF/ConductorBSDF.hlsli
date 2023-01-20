@@ -10,12 +10,16 @@ struct ConductorBSDF
 {
     Frame frame;
     TrowbridgeReitzDistribution distrib;
-    float eta;
-    float k;
+    float3 eta;
+    float3 k;
 
-    void Init(float roughness_u, float roughness_v, float eta_, float k_, float3 normal_)
+    void Init(float roughness, float anisotropic, float3 eta_, float3 k_, float3 normal_)
     {
-        distrib.Init(distrib.RoughnessToAlpha(roughness_u), distrib.RoughnessToAlpha(roughness_v));
+        float aspect = sqrt(1.0 - anisotropic * 0.9);
+        float urough = max(0.001, roughness / aspect);
+        float vrough = max(0.001, roughness * aspect);
+        
+        distrib.Init((urough), (vrough));
         eta = eta_;
         k = k_;
         frame.FromZ(normal_);
@@ -56,7 +60,7 @@ struct ConductorBSDF
         wm = normalize(wm);
 
         // Evaluate Fresnel factor _F_ for conductor BRDF
-        float F = FresnelComplex(abs(dot(wo, wm)), eta, k);
+        float3 F = FresnelComplex(abs(dot(wo, wm)), eta, k);
 
         return distrib.D(wm) * F * distrib.G(wo, wi) / (4 * cosTheta_i * cosTheta_o);
     }
@@ -132,7 +136,7 @@ struct ConductorBSDF
             return bsdf_sample;
         }
         // Evaluate Fresnel factor _F_ for conductor BRDF
-        float F = FresnelComplex(abs(dot(wo, wm)), eta, k);
+        float3 F = FresnelComplex(abs(dot(wo, wm)), eta, k);
 
         bsdf_sample.f = distrib.D(wm) * F * distrib.G(wo, wi) / (4 * cosTheta_i * cosTheta_o);
         bsdf_sample.wiW = frame.ToWorld(wi);

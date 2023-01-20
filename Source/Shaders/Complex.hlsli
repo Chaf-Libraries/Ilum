@@ -5,7 +5,6 @@ struct Complex
 {
     float re;
     float im;
-    
 };
 
 Complex CreateComplex(float re, float im)
@@ -63,8 +62,8 @@ Complex Div(Complex lhs, Complex rhs)
     float d = rhs.im;
     
     float s = rhs.re * rhs.re + rhs.im * rhs.im;
-    result.re = (a * c + b * d) / a;
-    result.im = (b * c - a * d) / a;
+    result.re = (a * c + b * d) / s;
+    result.im = (b * c - a * d) / s;
     
     return result;
 }

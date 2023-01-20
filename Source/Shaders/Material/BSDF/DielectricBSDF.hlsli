@@ -66,12 +66,12 @@ struct DielectricBSDF
         }
         
         float F = FresnelDielectric(dot(wo, wm), eta);
-        //if (reflect)
+        if (reflect)
         {
              // Compute reflection at rough dielectric interface
-           // return distrib.D(wm) * distrib.G(wo, wi) * F / abs(4 * cosTheta_i * cosTheta_o);
+            return distrib.D(wm) * distrib.G(wo, wi) * F / abs(4 * cosTheta_i * cosTheta_o);
         }
-       // else
+        else
         {
             // Compute transmission at rough dielectric interface
             float denom = Sqr(dot(wo, wm) + dot(wi, wm) * etap) * cosTheta_i * cosTheta_o;

@@ -51,9 +51,14 @@ class ImageTexture : public MaterialNode<ImageTexture>
 			{
 				for (size_t i = 0; i < filters.size(); i++)
 				{
-					if (ImGui::Selectable(filters[i], i == *filter))
+					const bool is_selected = i == *filter;
+					if (ImGui::Selectable(filters[i], is_selected))
 					{
 						*filter = i;
+					}
+					if (is_selected)
+					{
+						ImGui::SetItemDefaultFocus();
 					}
 				}
 				ImGui::EndCombo();
@@ -67,9 +72,14 @@ class ImageTexture : public MaterialNode<ImageTexture>
 			{
 				for (size_t i = 0; i < address_modes.size(); i++)
 				{
-					if (ImGui::Selectable(address_modes[i], i == *address_mode))
+					const bool is_selected = i == *address_mode;
+					if (ImGui::Selectable(address_modes[i], is_selected))
 					{
 						*address_mode = i;
+					}
+					if (is_selected)
+					{
+						ImGui::SetItemDefaultFocus();
 					}
 				}
 				ImGui::EndCombo();

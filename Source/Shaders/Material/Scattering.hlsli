@@ -77,15 +77,18 @@ float FresnelComplex(float cosTheta_i, Complex eta)
     Complex cosTheta_t = Sqrt(Sub(ComplexFromReal(1), sin2Theta_t));
     
     Complex r_parl = Div(Sub(Mul(eta, cosTheta_i_), cosTheta_t), Add(Mul(eta, cosTheta_i_), cosTheta_t));
-    Complex r_perp = Div(Sub(Mul(eta, cosTheta_t), cosTheta_i_), Add(Mul(eta, cosTheta_t), cosTheta_i_));
+    Complex r_perp = Div(Sub(cosTheta_i_, Mul(eta, cosTheta_t)), Add(Mul(eta, cosTheta_t), cosTheta_i_));
 
     return (Norm(r_parl) + Norm(r_perp)) / 2;
 }
 
-float FresnelComplex(float cosTheta_i, float eta, float k)
+float3 FresnelComplex(float cosTheta_i, float3 eta, float3 k)
 {
-    Complex eta_complex = CreateComplex(eta, k);
-    return FresnelComplex(cosTheta_i, eta_complex);
+    float3 result;
+    result.x = FresnelComplex(cosTheta_i, CreateComplex(eta.x, k.x));
+    result.y = FresnelComplex(cosTheta_i, CreateComplex(eta.y, k.y));
+    result.z = FresnelComplex(cosTheta_i, CreateComplex(eta.z, k.z));
+    return result;
 }
 
 struct TrowbridgeReitzDistribution
