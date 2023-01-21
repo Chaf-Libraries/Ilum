@@ -295,6 +295,7 @@ const std::vector<RenderGraph::RenderPassInfo> &RenderGraph::GetRenderPasses() c
 
 RenderGraph &RenderGraph::AddPass(
     const std::string &name,
+    const std::string &category,
     BindPoint          bind_point,
     const Variant     &config,
     RenderTask       &&task,
@@ -302,6 +303,7 @@ RenderGraph &RenderGraph::AddPass(
 {
 	m_impl->render_passes.emplace_back(RenderPassInfo{
 	    name,
+	    category,
 	    bind_point,
 	    config,
 	    std::move(task),

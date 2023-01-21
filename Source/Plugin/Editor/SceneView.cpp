@@ -132,7 +132,7 @@ class SceneView : public Widget
 	}
 
 	template <>
-	void DropTarget<ResourceType::Mesh>(Editor* editor, const std::string& name)
+	void DropTarget<ResourceType::Mesh>(Editor *editor, const std::string &name)
 	{
 		auto *resource = editor->GetRenderer()->GetResourceManager()->Get<ResourceType::Mesh>(name);
 		if (resource)
@@ -238,13 +238,13 @@ class SceneView : public Widget
 
 		if (resource)
 		{
-			auto *rhi_context     = editor->GetRHIContext();
-			auto *renderer        = editor->GetRenderer();
-			auto  render_pipeline = resource->Compile(rhi_context, renderer, m_camera_config.viewport);
-			if (render_pipeline)
+			auto *rhi_context = editor->GetRHIContext();
+			auto *renderer    = editor->GetRenderer();
+			auto render_graph    = resource->Compile(rhi_context, renderer, m_camera_config.viewport);
+
+			if (render_graph)
 			{
-				renderer->Reset();
-				renderer->SetRenderGraph(std::move(render_pipeline));
+				renderer->SetRenderGraph(std::move(render_graph));
 			}
 		}
 	}
@@ -257,9 +257,11 @@ class SceneView : public Widget
 
 		if (resource)
 		{
+			editor->SetMainCamera();
 			auto *rhi_context = editor->GetRHIContext();
 			resource->Update(scene);
 			m_scene_name = name;
+			scene->SetName(m_scene_name);
 		}
 	}
 
@@ -281,6 +283,7 @@ class SceneView : public Widget
 	{
 		auto *renderer = p_editor->GetRenderer();
 		renderer->SetViewport(m_camera_config.viewport.x, m_camera_config.viewport.y);
+
 		auto *present_texture = renderer->GetPresentTexture();
 
 		if (present_texture)

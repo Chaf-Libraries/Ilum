@@ -35,6 +35,7 @@ struct Renderer::Impl
 	RHITexture *present_texture = nullptr;
 
 	std::unique_ptr<RenderGraph> render_graph = nullptr;
+	std::unique_ptr<RenderGraph> new_render_graph = nullptr;
 
 	RenderGraphBlackboard black_board;
 
@@ -133,6 +134,13 @@ void Renderer::Tick()
 
 	UpdateGPUScene();
 
+	if (m_impl->new_render_graph)
+	{
+		m_impl->rhi_context->WaitIdle();
+		m_impl->render_graph = std::move(m_impl->new_render_graph);
+		m_impl->new_render_graph.reset();
+	}
+
 	if (m_impl->render_graph)
 	{
 		m_impl->render_graph->Execute(m_impl->black_board);
@@ -143,9 +151,7 @@ void Renderer::Tick()
 
 void Renderer::SetRenderGraph(std::unique_ptr<RenderGraph> &&render_graph)
 {
-	m_impl->rhi_context->WaitIdle();
-	m_impl->render_graph    = std::move(render_graph);
-	m_impl->present_texture = nullptr;
+	m_impl->new_render_graph = std::move(render_graph);
 }
 
 RenderGraph *Renderer::GetRenderGraph() const

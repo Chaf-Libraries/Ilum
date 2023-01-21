@@ -70,6 +70,7 @@ class EXPORT_API RenderGraph
 	struct RenderPassInfo
 	{
 		std::string name;
+		std::string category;
 
 		BindPoint bind_point;
 
@@ -111,6 +112,7 @@ class EXPORT_API RenderGraph
 
 	RenderGraph &AddPass(
 	    const std::string &name,
+	    const std::string &category,
 	    BindPoint          bind_point,
 	    const Variant     &config,
 	    RenderTask       &&execute,

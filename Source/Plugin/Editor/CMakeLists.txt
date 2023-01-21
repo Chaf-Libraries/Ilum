@@ -15,11 +15,11 @@ endfunction()
 add_widget(SceneView)
 target_link_libraries(Editor.SceneView PRIVATE Resource Scene glfw RenderGraph)
 
-add_widget(SceneHierarchy)
-target_link_libraries(Editor.SceneHierarchy PRIVATE Scene)
+add_widget(Hierarchy)
+target_link_libraries(Editor.Hierarchy PRIVATE Scene)
 
-add_widget(SceneInspector)
-target_link_libraries(Editor.SceneInspector PRIVATE Scene)
+add_widget(Inspector)
+target_link_libraries(Editor.Inspector PRIVATE Scene RenderGraph)
 
 add_widget(MainMenu)
 target_link_libraries(Editor.MainMenu PRIVATE Scene nfd)
@@ -38,6 +38,3 @@ target_link_libraries(Editor.RenderGraphEditor PRIVATE RenderGraph nfd Resource)
 
 add_widget(MaterialGraphEditor)
 target_link_libraries(Editor.MaterialGraphEditor PRIVATE Material nfd Resource Geometry RenderGraph)
-
-add_widget(ShaderToy)
-target_link_libraries(Editor.ShaderToy)

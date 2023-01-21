@@ -16,7 +16,7 @@ class EXPORT_API RenderGraphBuilder
 
 	~RenderGraphBuilder() = default;
 
-	RenderGraphBuilder &AddPass(RenderGraph &render_graph, const std::string &name, BindPoint bind_point, const Variant &config, RenderGraph::RenderTask &&task, RenderGraph::BarrierTask &&barrier);
+	RenderGraphBuilder &AddPass(RenderGraph &render_graph, const std::string &name, const std::string &category, BindPoint bind_point, const Variant &config, RenderGraph::RenderTask &&task, RenderGraph::BarrierTask &&barrier);
 
 	bool Validate(RenderGraphDesc &desc);
 

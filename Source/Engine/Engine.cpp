@@ -69,12 +69,9 @@ void Engine::Tick()
 			std::this_thread::sleep_for(std::chrono::milliseconds(16));
 		}
 
-		m_window->SetTitle(fmt::format("IlumEngine | Scene - {} | Version - {} | GPU - {} | Backend - {} | CUDA - {} | FPS - {}",
-		                               m_scene->GetName(),
+		m_window->SetTitle(fmt::format("IlumEngine v{} | Scene - {} | FPS - {}",
 		                               "1.0Beta",
-		                               m_rhi_context->GetDeviceName(),
-		                               m_rhi_context->GetBackend(),
-		                               m_rhi_context->HasCUDA() ? "Enable" : "Disable",
+		                               m_scene->GetName(),
 		                               m_timer.FrameRate()));
 	}
 }

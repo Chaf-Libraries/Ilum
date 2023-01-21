@@ -9,15 +9,15 @@
 
 using namespace Ilum;
 
-class SceneHierarchy : public Widget
+class Hierarchy : public Widget
 {
   public:
-	SceneHierarchy(Editor *editor) :
-	    Widget("Scene Hierarchy", editor)
+	Hierarchy(Editor *editor) :
+	    Widget("Hierarchy", editor)
 	{
 	}
 
-	virtual ~SceneHierarchy() override = default;
+	virtual ~Hierarchy() override = default;
 
 	virtual void Tick() override
 	{
@@ -43,6 +43,11 @@ class SceneHierarchy : public Widget
 		for (auto *root : roots)
 		{
 			DrawNode(root);
+		}
+
+		if (ImGui::IsMouseDown(ImGuiMouseButton_Left) && ImGui::IsWindowHovered())
+		{
+			p_editor->SelectNode();
 		}
 
 		ImGui::End();
@@ -140,9 +145,9 @@ class SceneHierarchy : public Widget
 
 extern "C"
 {
-	__declspec(dllexport) SceneHierarchy *Create(Editor *editor, ImGuiContext *context)
+	__declspec(dllexport) Hierarchy *Create(Editor *editor, ImGuiContext *context)
 	{
 		ImGui::SetCurrentContext(context);
-		return new SceneHierarchy(editor);
+		return new Hierarchy(editor);
 	}
 }

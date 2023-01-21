@@ -19,6 +19,8 @@ void Resource<ResourceType::Scene>::Update(Scene *scene)
 {
 	std::vector<uint32_t> thumbnail_data;
 
+	scene->Clear();
+
 	{
 		std::ifstream is(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Scene), std::ios::binary);
 		InputArchive input_archive(is);
