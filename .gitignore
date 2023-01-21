@@ -40,3 +40,7 @@
 */_Generate/*
 
 *.meta
+
+.vscode
+.xmake/
+build/
