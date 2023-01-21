@@ -247,7 +247,7 @@ std::vector<uint8_t> Resource<ResourceType::Mesh>::RenderPreview(RHIContext *rhi
 	cmd_buffer->BindPipelineState(pipeline_state.get());
 	cmd_buffer->BindVertexBuffer(0, m_impl->vertex_buffer.get());
 	cmd_buffer->BindIndexBuffer(m_impl->index_buffer.get());
-	cmd_buffer->DrawIndexed(m_impl->index_count);
+	cmd_buffer->DrawIndexed(static_cast<uint32_t>(m_impl->index_count));
 	cmd_buffer->EndRenderPass();
 	cmd_buffer->ResourceStateTransition({
 	                                        TextureStateTransition{m_thumbnail.get(), RHIResourceState::RenderTarget, RHIResourceState::TransferSource},
