@@ -220,7 +220,7 @@ Resource<ResourceType::Animation>::Resource(RHIContext *rhi_context, const std::
 	}
 
 	std::vector<uint8_t> thumbnail_data;
-	DESERIALIZE("Asset/BuildIn/animation_icon.asset", thumbnail_data);
+	DESERIALIZE("Asset/BuildIn/animation.icon.asset", thumbnail_data);
 	UpdateThumbnail(rhi_context, thumbnail_data);
 	SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Animation), thumbnail_data, m_impl->bones, m_impl->hierarchy, m_impl->m_max_timestamp);
 

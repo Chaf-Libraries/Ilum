@@ -40,7 +40,6 @@ class RenderGraphEditor : public Widget
 		}
 
 		auto *resource_manager = p_editor->GetRenderer()->GetResourceManager();
-
 		auto *resource = resource_manager->Get<ResourceType::RenderPipeline>(m_pipeline_name);
 
 		ImGui::Columns(2);
@@ -52,15 +51,16 @@ class RenderGraphEditor : public Widget
 
 			SetRenderPipeline(resource, resource_manager);
 
-			ImGui::Separator();
-
 			if (resource)
 			{
 				for (auto &node : m_select_nodes)
 				{
 					auto &pass = resource->GetDesc().GetPass(static_cast<size_t>(node));
-					PluginManager::GetInstance().Call<bool>(fmt::format("shared/RenderPass/RenderPass.{}.{}.dll", pass.GetCategory(), pass.GetName()), "OnImGui", &pass.GetConfig(), ImGui::GetCurrentContext());
-					ImGui::Separator();
+					if (!pass.GetConfig().Empty())
+					{
+						ImGui::Separator();
+						PluginManager::GetInstance().Call<bool>(fmt::format("shared/RenderPass/RenderPass.{}.{}.dll", pass.GetCategory(), pass.GetName()), "OnImGui", &pass.GetConfig(), ImGui::GetCurrentContext());
+					}
 				}
 			}
 

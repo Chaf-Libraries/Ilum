@@ -20,12 +20,6 @@ Engine::Engine()
 	m_editor           = std::make_unique<Editor>(m_window.get(), m_rhi_context.get(), m_renderer.get());
 
 	Path::GetInstance().SetCurrent("./");
-
-	//m_resource_manager->Import<ResourceType::Prefab>("./Asset/Model/SciFiHelmet/glTF/SciFiHelmet.gltf");
-	//m_resource_manager->Import<ResourceType::Prefab>("./Asset/Model/vampire/dancing_vampire.dae");
-	// m_resource_manager->Import<ResourceType::Prefab>("E:/Workspace/glTF-Sample-Models/2.0/Fox/glTF/Fox.gltf");
-
-	//m_resource_manager->Import<ResourceType::Texture2D>("./Asset/Icon/Camera.png");
 }
 
 Engine::~Engine()
@@ -47,9 +41,6 @@ void Engine::Tick()
 		if (m_window->GetWidth() != 0 && m_window->GetHeight() != 0)
 		{
 			m_rhi_context->BeginFrame();
-
-			// System::GetInstance().Tick(m_renderer.get());
-			// m_scene->Tick();
 
 			// Render loop
 			m_renderer->Tick();

@@ -23,7 +23,7 @@ Resource<ResourceType::RenderPipeline>::Resource(RHIContext *rhi_context, const 
 	m_impl->desc = std::move(desc);
 
 	std::vector<uint8_t> thumbnail_data;
-	DESERIALIZE("Asset/BuildIn/pipeline_icon.asset", thumbnail_data);
+	DESERIALIZE("Asset/BuildIn/pipeline.icon.asset", thumbnail_data);
 	UpdateThumbnail(rhi_context, thumbnail_data);
 	SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", name, (uint32_t) ResourceType::RenderPipeline), thumbnail_data, m_impl->desc, m_impl->layout);
 }

@@ -32,7 +32,7 @@ void Resource<ResourceType::Scene>::Update(Scene *scene)
 void Resource<ResourceType::Scene>::Save(RHIContext *rhi_context, Scene *scene)
 {
 	std::vector<uint8_t> thumbnail_data;
-	DESERIALIZE("Asset/BuildIn/scene_icon.asset", thumbnail_data);
+	DESERIALIZE("Asset/BuildIn/scene.icon.asset", thumbnail_data);
 	UpdateThumbnail(rhi_context, thumbnail_data);
 
 	{

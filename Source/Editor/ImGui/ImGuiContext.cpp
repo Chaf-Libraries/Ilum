@@ -5,9 +5,7 @@
 
 #include <imgui.h>
 #include <imgui_impl_glfw.h>
-
 #include <imnodes/imnodes.h>
-
 #include <implot/implot.h>
 
 #include <IconsFontAwesome/IconsFontAwesome5.h>
@@ -135,14 +133,14 @@ GuiContext::GuiContext(RHIContext *context, Window *window) :
 	vertex_input_state.input_bindings = {
 	    VertexInputState::InputBinding{0, sizeof(ImDrawVert), RHIVertexInputRate::Vertex}};
 
-	std::vector<uint8_t> raw_shader;
+	/*std::vector<uint8_t> raw_shader;
 	Path::GetInstance().Read("./Source/Shaders/ImGui.hlsl", raw_shader);
-
+	
 	std::string shader_source;
 	shader_source.resize(raw_shader.size());
 	std::memcpy(shader_source.data(), raw_shader.data(), raw_shader.size());
 	shader_source += "\n";
-
+	
 	ShaderDesc vertex_shader_desc  = {};
 	vertex_shader_desc.entry_point = "VSmain";
 	vertex_shader_desc.stage       = RHIShaderStage::Vertex;
@@ -150,7 +148,7 @@ GuiContext::GuiContext(RHIContext *context, Window *window) :
 	vertex_shader_desc.target      = ShaderTarget::SPIRV;
 	vertex_shader_desc.code        = shader_source;
 	vertex_shader_desc.macros      = {"VULKAN_BACKEND"};
-
+	
 	ShaderDesc fragment_shader_desc  = {};
 	fragment_shader_desc.entry_point = "PSmain";
 	fragment_shader_desc.stage       = RHIShaderStage::Fragment;
@@ -158,18 +156,26 @@ GuiContext::GuiContext(RHIContext *context, Window *window) :
 	fragment_shader_desc.target      = ShaderTarget::SPIRV;
 	fragment_shader_desc.code        = shader_source;
 	fragment_shader_desc.macros      = {"VULKAN_BACKEND"};
-
+	
 	ShaderMeta vertex_meta   = {};
 	ShaderMeta fragment_meta = {};
-
+	
 	auto vertex_shader_spirv   = ShaderCompiler::GetInstance().Compile(vertex_shader_desc, vertex_meta);
 	auto fragment_shader_spirv = ShaderCompiler::GetInstance().Compile(fragment_shader_desc, fragment_meta);
-
+	
 	m_vertex_shader   = p_context->CreateShader("VSmain", vertex_shader_spirv);
 	m_fragment_shader = p_context->CreateShader("PSmain", fragment_shader_spirv);
 
-	ShaderMeta shader_meta = vertex_meta;
-	shader_meta += fragment_meta;
+	ShaderMeta shader_meta= vertex_meta;
+	shader_meta += fragment_meta;*/
+
+	ShaderMeta shader_meta;
+	std::vector<uint8_t> vertex_shader_spirv;
+	std::vector<uint8_t> fragment_shader_spirv;
+	DESERIALIZE("Asset/BuildIn/ImGui.spv.asset", vertex_shader_spirv, fragment_shader_spirv, shader_meta);
+
+	m_vertex_shader   = p_context->CreateShader("VSmain", vertex_shader_spirv);
+	m_fragment_shader = p_context->CreateShader("PSmain", fragment_shader_spirv);
 
 	m_descriptor = p_context->CreateDescriptor(shader_meta);
 

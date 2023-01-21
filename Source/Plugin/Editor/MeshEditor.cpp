@@ -1,4 +1,3 @@
-
 #include <Editor/Editor.hpp>
 #include <Editor/Widget.hpp>
 #include <Geometry/Mesh/Mesh.hpp>
@@ -119,7 +118,7 @@ class MeshEditor : public Widget
 							m_mesh.vertices[i] = data;
 						}
 
-						m_view.center /= static_cast<float>(m_mesh.vertices.size());
+						m_view.center  = (max_bound + min_bound) * 0.5f;
 						m_view.radius  = glm::length(max_bound - min_bound);
 						m_scale_factor = m_view.radius;
 

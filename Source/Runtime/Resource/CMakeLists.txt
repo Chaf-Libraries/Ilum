@@ -26,6 +26,7 @@ target_link_libraries(${TARGET_NAME} PRIVATE RHI)
 target_link_libraries(${TARGET_NAME} PRIVATE Geometry)
 target_link_libraries(${TARGET_NAME} PRIVATE Material)
 target_link_libraries(${TARGET_NAME} PRIVATE RenderGraph)
+target_link_libraries(${TARGET_NAME} PRIVATE ShaderCompiler)
 target_link_libraries(${TARGET_NAME} PRIVATE Scene)
 target_link_libraries(${TARGET_NAME} PRIVATE meshoptimizer::meshoptimizer)
 

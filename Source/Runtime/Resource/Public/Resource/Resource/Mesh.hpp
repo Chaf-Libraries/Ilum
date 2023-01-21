@@ -60,6 +60,9 @@ class EXPORT_API Resource<ResourceType::Mesh> final : public IResource
 	void Update(RHIContext *rhi_context, std::vector<Vertex> &&vertices, std::vector<uint32_t> &&indices, std::vector<Meshlet> &&meshlets, std::vector<uint32_t> &&meshlet_data);
 
   private:
+	std::vector<uint8_t> RenderPreview(RHIContext *rhi_context, const glm::vec3& center, float radius);
+
+  private:
 	struct Impl;
 	Impl *m_impl = nullptr;
 };
