@@ -12,12 +12,12 @@ Resource<ResourceType::Scene>::Resource(RHIContext *rhi_context, const std::stri
 Resource<ResourceType::Scene>::Resource(RHIContext *rhi_context, const std::string &name, Scene *scene) :
     IResource(name)
 {
-	Save(scene);
+	Save(rhi_context, scene);
 }
 
 void Resource<ResourceType::Scene>::Update(Scene *scene)
 {
-	std::vector<uint32_t> thumbnail_data;
+	std::vector<uint8_t> thumbnail_data;
 
 	scene->Clear();
 
@@ -29,9 +29,11 @@ void Resource<ResourceType::Scene>::Update(Scene *scene)
 	}
 }
 
-void Resource<ResourceType::Scene>::Save(Scene *scene)
+void Resource<ResourceType::Scene>::Save(RHIContext *rhi_context, Scene *scene)
 {
-	std::vector<uint32_t> thumbnail_data;
+	std::vector<uint8_t> thumbnail_data;
+	DESERIALIZE("Asset/BuildIn/scene_icon.asset", thumbnail_data);
+	UpdateThumbnail(rhi_context, thumbnail_data);
 
 	{
 		std::ofstream os(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Scene), std::ios::binary);

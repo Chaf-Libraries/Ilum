@@ -20,6 +20,6 @@ class EXPORT_API Resource<ResourceType::Scene> final : public IResource
 
 	void Update(Scene *scene);
 
-	void Save(Scene *scene);
+	void Save(RHIContext *rhi_context, Scene *scene);
 };
 }        // namespace Ilum

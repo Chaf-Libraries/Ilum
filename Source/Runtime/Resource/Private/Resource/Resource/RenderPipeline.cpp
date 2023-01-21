@@ -22,7 +22,9 @@ Resource<ResourceType::RenderPipeline>::Resource(RHIContext *rhi_context, const 
 	m_impl       = new Impl;
 	m_impl->desc = std::move(desc);
 
-	std::vector<uint32_t> thumbnail_data;
+	std::vector<uint8_t> thumbnail_data;
+	DESERIALIZE("Asset/BuildIn/pipeline_icon.asset", thumbnail_data);
+	UpdateThumbnail(rhi_context, thumbnail_data);
 	SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", name, (uint32_t) ResourceType::RenderPipeline), thumbnail_data, m_impl->desc, m_impl->layout);
 }
 
@@ -40,7 +42,7 @@ void Resource<ResourceType::RenderPipeline>::Load(RHIContext *rhi_context)
 {
 	m_impl = new Impl;
 
-	std::vector<uint32_t> thumbnail_data;
+	std::vector<uint8_t> thumbnail_data;
 	DESERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::RenderPipeline), thumbnail_data, m_impl->desc, m_impl->layout);
 }
 
@@ -51,7 +53,7 @@ std::unique_ptr<RenderGraph> Resource<ResourceType::RenderPipeline>::Compile(RHI
 		m_impl->layout = layout;
 	}
 
-	std::vector<uint32_t> thumbnail_data;
+	std::vector<uint8_t> thumbnail_data;
 	SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::RenderPipeline), thumbnail_data, m_impl->desc, m_impl->layout);
 
 	RenderGraphDesc desc = m_impl->desc;

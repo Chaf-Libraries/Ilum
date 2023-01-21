@@ -18,7 +18,9 @@ Resource<ResourceType::Prefab>::Resource(RHIContext *rhi_context, const std::str
 	m_impl       = new Impl;
 	m_impl->root = std::move(root);
 
-	std::vector<uint32_t> thumbnail_data;
+	std::vector<uint8_t> thumbnail_data;
+	DESERIALIZE("Asset/BuildIn/prefab_icon.asset", thumbnail_data);
+	UpdateThumbnail(rhi_context, thumbnail_data);
 	SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Prefab), thumbnail_data, m_impl->root);
 }
 

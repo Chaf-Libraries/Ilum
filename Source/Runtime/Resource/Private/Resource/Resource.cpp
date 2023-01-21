@@ -27,6 +27,26 @@ IResource::IResource(RHIContext *rhi_context, const std::string &name, ResourceT
 		return;
 	}
 
+	UpdateThumbnail(rhi_context, thumbnail_data);
+}
+
+const std::string &IResource::GetName() const
+{
+	return m_name;
+}
+
+size_t IResource::GetUUID() const
+{
+	return Hash(m_name);
+}
+
+RHITexture *IResource::GetThumbnail() const
+{
+	return m_thumbnail ? m_thumbnail.get() : nullptr;
+}
+
+void IResource::UpdateThumbnail(RHIContext *rhi_context, const std::vector<uint8_t> &thumbnail_data)
+{
 	m_thumbnail = rhi_context->CreateTexture2D(128, 128, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::ShaderResource | RHITextureUsage::Transfer, false);
 
 	BufferDesc buffer_desc = {};
@@ -59,21 +79,6 @@ IResource::IResource(RHIContext *rhi_context, const std::string &name, ResourceT
 	cmd_buffer->End();
 
 	rhi_context->Execute(cmd_buffer);
-}
-
-const std::string &IResource::GetName() const
-{
-	return m_name;
-}
-
-size_t IResource::GetUUID() const
-{
-	return Hash(m_name);
-}
-
-RHITexture *IResource::GetThumbnail() const
-{
-	return m_thumbnail ? m_thumbnail.get() : nullptr;
 }
 
 template class EXPORT_API Resource<ResourceType::Mesh>;

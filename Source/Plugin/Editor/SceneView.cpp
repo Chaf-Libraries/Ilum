@@ -559,7 +559,7 @@ class SceneView : public Widget
 			{
 				if (ImGui::Button("Save Scene"))
 				{
-					resource->Save(scene);
+					resource->Save(p_editor->GetRHIContext(), scene);
 				}
 			}
 

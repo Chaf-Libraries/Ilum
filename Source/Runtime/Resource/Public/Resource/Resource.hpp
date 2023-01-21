@@ -45,6 +45,9 @@ class EXPORT_API IResource
 	RHITexture *GetThumbnail() const;
 
   protected:
+	void UpdateThumbnail(RHIContext *rhi_context, const std::vector<uint8_t> &thumbnail_data);
+
+  protected:
 	std::string m_name;
 
 	std::unique_ptr<RHITexture> m_thumbnail = nullptr;

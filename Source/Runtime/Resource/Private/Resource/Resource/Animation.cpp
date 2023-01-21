@@ -20,21 +20,6 @@ struct Resource<ResourceType::Animation>::Impl
 	uint32_t frame_count = 0;
 };
 
-// struct Bone::Impl
-//{
-//	std::string name;
-//	uint32_t    id;
-//	glm::mat4   offset;
-//
-//	std::vector<KeyPosition> positions;
-//	std::vector<KeyRotation> rotations;
-//	std::vector<KeyScale>    scales;
-//
-//	float max_timestamp = 0.f;
-//
-//	glm::mat4 local_transfrom;
-// };
-
 Bone::Bone(
     const std::string         &name,
     uint32_t                   id,
@@ -234,7 +219,9 @@ Resource<ResourceType::Animation>::Resource(RHIContext *rhi_context, const std::
 		m_impl->m_max_timestamp = glm::max(m_impl->m_max_timestamp, bone.GetMaxTimeStamp());
 	}
 
-	std::vector<uint32_t> thumbnail_data;
+	std::vector<uint8_t> thumbnail_data;
+	DESERIALIZE("Asset/BuildIn/animation_icon.asset", thumbnail_data);
+	UpdateThumbnail(rhi_context, thumbnail_data);
 	SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Animation), thumbnail_data, m_impl->bones, m_impl->hierarchy, m_impl->m_max_timestamp);
 
 	Bake(rhi_context);
@@ -392,7 +379,7 @@ void Resource<ResourceType::Animation>::Load(RHIContext *rhi_context)
 {
 	m_impl = new Impl;
 
-	std::vector<uint32_t> thumbnail_data;
+	std::vector<uint8_t> thumbnail_data;
 	DESERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Animation), thumbnail_data, m_impl->bones, m_impl->hierarchy, m_impl->m_max_timestamp);
 
 	Bake(rhi_context);

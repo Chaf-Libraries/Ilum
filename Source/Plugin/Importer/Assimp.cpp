@@ -562,11 +562,6 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 	{
 		std::string prefab_name = Path::GetInstance().ValidFileName(path);
 
-		if (manager->Has<ResourceType::Prefab>(prefab_name))
-		{
-			return;
-		}
-
 		Assimp::Importer importer;
 
 		if (const aiScene *assimp_scene = importer.ReadFile(path, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace))
@@ -599,7 +594,10 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 				ProcessAnimation(manager, rhi_context, path, i, assimp_scene, data);
 			}
 
-			manager->Add<ResourceType::Prefab>(rhi_context, prefab_name, std::move(data.root));
+			if (!manager->Has<ResourceType::Prefab>(prefab_name))
+			{
+				manager->Add<ResourceType::Prefab>(rhi_context, prefab_name, std::move(data.root));
+			}
 		}
 	}
 };
