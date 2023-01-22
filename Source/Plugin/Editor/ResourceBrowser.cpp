@@ -34,6 +34,8 @@ class ResourceBrowser : public Widget
 		ImGui::Columns(2);
 		ImGui::SetColumnWidth(0, 200.f);
 
+		ImGui::BeginChild("Resource Browser Category", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
+
 		if (ImGui::Button("Import"))
 		{
 			char *path = nullptr;
@@ -68,15 +70,24 @@ class ResourceBrowser : public Widget
 			}
 		}
 
+		if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+		{
+			ImGui::SetScrollHereY(1.0f);
+		}
+
+		ImGui::EndChild();
+
 		ImGui::NextColumn();
 
 		ImGui::BeginChild("Resource Browser Viewer", ImVec2(0, 0), false, ImGuiWindowFlags_HorizontalScrollbar);
 
 		std::unordered_map<ResourceType, std::function<void(void)>> draw_resources = {
-#define DRAW_RESOURCE(TYPE)\
-		    {TYPE, [&]() { DrawResource<TYPE>(resource_manager, 100.f); }}
+#define DRAW_RESOURCE(TYPE)                                          \
+	{                                                                \
+		TYPE, [&]() { DrawResource<TYPE>(resource_manager, 100.f); } \
+	}
 
-			DRAW_RESOURCE(ResourceType::Prefab),
+		    DRAW_RESOURCE(ResourceType::Prefab),
 		    DRAW_RESOURCE(ResourceType::Mesh),
 		    DRAW_RESOURCE(ResourceType::SkinnedMesh),
 		    DRAW_RESOURCE(ResourceType::Texture2D),

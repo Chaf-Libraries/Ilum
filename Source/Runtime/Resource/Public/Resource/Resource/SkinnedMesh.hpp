@@ -28,8 +28,8 @@ class EXPORT_API Resource<ResourceType::SkinnedMesh> final : public IResource
 		int32_t bones[8]   = {-1, -1, -1, -1, -1, -1, -1, -1};
 		float   weights[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
 
-		template<typename Archive>
-		void serialize(Archive& archive)
+		template <typename Archive>
+		void serialize(Archive &archive)
 		{
 			archive(position, normal, tangent, texcoord0, texcoord1, bones, weights);
 		}
@@ -63,6 +63,9 @@ class EXPORT_API Resource<ResourceType::SkinnedMesh> final : public IResource
 	size_t GetBoneCount() const;
 
 	void Update(RHIContext *rhi_context, std::vector<SkinnedVertex> &&vertices, std::vector<uint32_t> &&indices, std::vector<Meshlet> &&meshlets, std::vector<uint32_t> &&meshletdata);
+
+  private:
+	std::vector<uint8_t> RenderPreview(RHIContext *rhi_context, const glm::vec3 &center, float radius);
 
   private:
 	struct Impl;

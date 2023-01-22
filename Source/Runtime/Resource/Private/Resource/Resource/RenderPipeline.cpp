@@ -54,6 +54,7 @@ std::unique_ptr<RenderGraph> Resource<ResourceType::RenderPipeline>::Compile(RHI
 	}
 
 	std::vector<uint8_t> thumbnail_data;
+	DESERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::RenderPipeline), thumbnail_data);
 	SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::RenderPipeline), thumbnail_data, m_impl->desc, m_impl->layout);
 
 	RenderGraphDesc desc = m_impl->desc;
@@ -70,16 +71,16 @@ std::unique_ptr<RenderGraph> Resource<ResourceType::RenderPipeline>::Compile(RHI
 				{
 					return nullptr;
 				}
-				pin.texture.width = static_cast<uint32_t>(viewport.x);
+				pin.texture.width  = static_cast<uint32_t>(viewport.x);
 				pin.texture.height = static_cast<uint32_t>(viewport.y);
 			}
 		}
 	}
 
 	RenderGraphBuilder builder(rhi_context);
-	auto               render_graph = builder.Compile(desc, renderer);
 
-	
+	auto render_graph = builder.Compile(desc, renderer);
+
 	return render_graph;
 }
 

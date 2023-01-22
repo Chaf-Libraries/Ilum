@@ -11,13 +11,11 @@ struct VSInput
 struct VSOutput
 {
     float4 Position : SV_Position;
-    float3 Direction : POSITION0;
     float3 Normal : NORMAL0;
 };
 
 struct PSInput
 {
-    float3 Direction : POSITION0;
     float3 Normal : NORMAL0;
 };
 
@@ -34,13 +32,12 @@ VSOutput VSmain(VSInput input)
     float4 position = mul(UniformBuffer.transform, float4(input.Position, 1.0f));
     output.Position = position;
     output.Normal = input.Normal;
-    output.Direction = normalize(float3(0, 1, 1));
     return output;
 }
 
 float4 PSmain(PSInput input) : SV_TARGET
 {
     float3 norm = normalize(input.Normal);
-    float3 diffuse = max(dot(norm, input.Direction), 0.0);
+    float3 diffuse = max(dot(norm, normalize(float3(0, 1, 1))), 0.0);
     return float4(diffuse, 1.f);
 }

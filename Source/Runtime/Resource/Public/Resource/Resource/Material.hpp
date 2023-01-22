@@ -27,7 +27,7 @@ class EXPORT_API Resource<ResourceType::Material> final : public IResource
 
 	void Compile(RHIContext *rhi_context, ResourceManager *manager, RHITexture *dummy_texture, const std::string &layout = "");
 
-	void Update(RHIContext *rhi_context, ResourceManager *manager, RHITexture* dummy_texture);
+	void Update(RHIContext *rhi_context, ResourceManager *manager, RHITexture *dummy_texture);
 
 	const MaterialData &GetMaterialData() const;
 
@@ -36,6 +36,9 @@ class EXPORT_API Resource<ResourceType::Material> final : public IResource
 	MaterialGraphDesc &GetDesc();
 
 	bool IsValid() const;
+
+  private:
+	std::vector<uint8_t> RenderPreview(RHIContext *rhi_context);
 
   private:
 	struct Impl;

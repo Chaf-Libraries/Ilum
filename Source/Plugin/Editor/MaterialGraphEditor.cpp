@@ -72,9 +72,7 @@ class MaterialGraphEditor : public Widget
 		vertex_input_state.input_attributes = {
 		    VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, position)},
 		    VertexInputState::InputAttribute{RHIVertexSemantics::Normal, 1, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, normal)},
-		    VertexInputState::InputAttribute{RHIVertexSemantics::Tangent, 2, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, tangent)},
 		    VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 3, 0, RHIFormat::R32G32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, texcoord0)},
-		    VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 4, 0, RHIFormat::R32G32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, texcoord1)},
 		};
 		m_preview.pipeline->SetVertexInputState(vertex_input_state);
 
@@ -336,7 +334,6 @@ class MaterialGraphEditor : public Widget
 
 	void DrawNodes(Resource<ResourceType::Material> *resource)
 	{
-		
 		for (auto &[node_handle, node_desc] : resource->GetDesc().GetNodes())
 		{
 			const float node_width = glm::max(ImGui::CalcTextSize(node_desc.GetName().c_str()).x, 120.f);
@@ -515,16 +512,16 @@ class MaterialGraphEditor : public Widget
 	{
 		glm::vec3 center = glm::vec3(0.f);
 
-		float radius = 5.f;
+		float radius = 4.f;
 		float theta  = 0.f;
-		float phi    = 90.f;
+		float phi    = 60.f;
 
 		void Reset()
 		{
 			center = glm::vec3(0.f);
-			radius = 5.f;
+			radius = 4.f;
 			theta  = 0.f;
-			phi    = 90.f;
+			phi    = 60.f;
 
 			Update();
 		}
@@ -537,7 +534,8 @@ class MaterialGraphEditor : public Widget
 			glm::vec3 up        = glm::normalize(glm::cross(right, direction));
 			glm::mat4 transform = glm::perspective(glm::radians(45.f), 1.f, 0.01f, 1000.f) * glm::lookAt(position, center, up);
 
-			uniform_block.transform = transform;
+			uniform_block.transform  = transform;
+			uniform_block.camera_pos = position;
 			buffer->CopyToDevice(&uniform_block, sizeof(uniform_block));
 		}
 
@@ -545,6 +543,7 @@ class MaterialGraphEditor : public Widget
 		{
 			glm::mat4 transform;
 			glm::mat4 model;
+			glm::vec3 camera_pos;
 			uint32_t  material_id;
 		} uniform_block;
 
