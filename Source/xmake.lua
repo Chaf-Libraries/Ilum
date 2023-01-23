@@ -1,0 +1,7 @@
+includes("External")
+includes("Runtime")
+-- includes("Editor")
+-- includes("Engine")
+-- includes("Shaders")
+-- includes("Plugin")
+-- includes("Test")
