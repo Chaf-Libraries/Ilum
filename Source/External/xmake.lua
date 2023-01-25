@@ -16,7 +16,6 @@ add_requires("slang")
 add_requires("volk", {configs = {header_only = true}})
 add_requires("vulkan-headers")
 add_requires("vulkan-memory-allocator")
-add_requires("cuda")
 
 option("CUDA_ENABLE")
     on_check(function (option)
@@ -24,6 +23,7 @@ option("CUDA_ENABLE")
         local cuda = find_cuda()
         if cuda then
             option:enable(true)
+            add_requires("cuda")
         else
             option:enable(false)
         end
