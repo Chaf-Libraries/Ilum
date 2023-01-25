@@ -165,21 +165,21 @@ class MyRenderPass : public RenderPass<MyRenderPass>
 			// - RayTracing
 			// - CUDA
 			.SetBindPoint(BindPoint::Rasterization)
-            // Set render pass name
-		    .SetName("MyRenderPass")
+			// Set render pass name
+			.SetName("MyRenderPass")
 			// Set render pass category
-		    .SetCategory("MyRenderPassCategory")
+			.SetCategory("MyRenderPassCategory")
 			// Set config (Optional)
 			// Allow you to modify some value in runtime
 			.SetConfig(Config())
 			// Set resource dependency
-		    .ReadTexture2D(handle++, "Input", 
+			.ReadTexture2D(handle++, "Input", 
 				RHIResourceState::TransferSource)
-		    .WriteTexture2D(handle++, "Output",
-				// set w/h = 0 will use viewport size
-				0/*width*/, 0/*height*/, 
-				RHIFormat::R16G16B16A16_FLOAT, 
-				RHIResourceState::TransferDest);
+			.WriteTexture2D(handle++, "Output",
+			// set w/h = 0 will use viewport size
+			0/*width*/, 0/*height*/, 
+			RHIFormat::R16G16B16A16_FLOAT, 
+			RHIResourceState::TransferDest);
 	}
 
 	// Execution callback
