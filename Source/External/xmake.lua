@@ -23,12 +23,16 @@ option("CUDA_ENABLE")
         local cuda = find_cuda()
         if cuda then
             option:enable(true)
-            add_requires("cuda")
+            option:add("defines", "CUDA_ENABLE")
         else
             option:enable(false)
         end
-        option:add("defines", "CUDA_ENABLE")
     end)
+option_end()
+
+if has_config("CUDA_ENABLE") then
+    add_requires("cuda")
+end
 
 target("ImGui-Tools")
     set_kind("static")

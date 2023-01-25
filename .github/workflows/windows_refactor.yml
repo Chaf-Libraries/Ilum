@@ -19,8 +19,5 @@ jobs:
           xmake-version: latest
           actions-cache-folder: ".xmake-cache"
 
-      - name: Build Debug
-        run: xmake config -y -m debug -a x64 -o "build"
-
-      - name: Build Release
-        run: xmake config -y -m release -a x64 -o "build"
+      - name: Build
+        run: xmake -y
