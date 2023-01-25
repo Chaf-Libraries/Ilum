@@ -16,6 +16,10 @@ const std::map<ResourceType, std::map<std::string, std::string>> PluginMap = {
          {".bmp", "STB"},
          {".dds", "DDS"},
      }},
+    {ResourceType::TextureCube,
+     {
+         {".hdr", "STB"},
+     }},
     {ResourceType::Prefab,
      {
          {".obj", "Assimp"},
@@ -43,6 +47,7 @@ void Importer<Type>::Import(ResourceManager *manager, const std::string &path, R
 
 template class Importer<ResourceType::Prefab>;
 template class Importer<ResourceType::Texture2D>;
+template class Importer<ResourceType::TextureCube>;
 template class Importer<ResourceType::Mesh>;
 template class Importer<ResourceType::SkinnedMesh>;
 template class Importer<ResourceType::Material>;

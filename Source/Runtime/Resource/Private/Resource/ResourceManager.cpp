@@ -9,6 +9,7 @@
 #include "Resource/Scene.hpp"
 #include "Resource/SkinnedMesh.hpp"
 #include "Resource/Texture2D.hpp"
+#include "Resource/TextureCube.hpp"
 
 #include <RHI/RHIContext.hpp>
 
@@ -235,6 +236,7 @@ ResourceManager::ResourceManager(RHIContext *rhi_context)
 {
 	m_impl = new Impl;
 	m_impl->managers.emplace(ResourceType::Texture2D, std::make_unique<TResourceManager<ResourceType::Texture2D>>(rhi_context));
+	m_impl->managers.emplace(ResourceType::TextureCube, std::make_unique<TResourceManager<ResourceType::TextureCube>>(rhi_context));
 	m_impl->managers.emplace(ResourceType::Mesh, std::make_unique<TResourceManager<ResourceType::Mesh>>(rhi_context));
 	m_impl->managers.emplace(ResourceType::SkinnedMesh, std::make_unique<TResourceManager<ResourceType::SkinnedMesh>>(rhi_context));
 	m_impl->managers.emplace(ResourceType::Material, std::make_unique<TResourceManager<ResourceType::Material>>(rhi_context));
@@ -250,6 +252,7 @@ ResourceManager::ResourceManager(RHIContext *rhi_context)
 	}
 
 	    LOADING_META(ResourceType::Texture2D),
+	    LOADING_META(ResourceType::TextureCube),
 	    LOADING_META(ResourceType::Mesh),
 	    LOADING_META(ResourceType::SkinnedMesh),
 	    LOADING_META(ResourceType::Texture2D),

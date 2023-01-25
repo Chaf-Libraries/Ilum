@@ -1,6 +1,7 @@
 #include <RHI/RHITexture.hpp>
 #include <Resource/Importer.hpp>
 #include <Resource/Resource/Texture2D.hpp>
+#include <Resource/Resource/TextureCube.hpp>
 #include <Resource/ResourceManager.hpp>
 
 #include <stb_image.h>
@@ -56,7 +57,6 @@ class STBImporter : public Importer<ResourceType::Texture2D>
 
 		desc.width  = static_cast<uint32_t>(width);
 		desc.height = static_cast<uint32_t>(height);
-		desc.mips   = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height))) + 1);
 		desc.usage  = RHITextureUsage::ShaderResource | RHITextureUsage::Transfer;
 
 		std::vector<uint8_t> data;
@@ -66,7 +66,16 @@ class STBImporter : public Importer<ResourceType::Texture2D>
 
 		stbi_image_free(raw_data);
 
-		manager->Add<ResourceType::Texture2D>(rhi_context, std::move(data), desc);
+		if (Path::GetInstance().GetFileExtension(path) == ".hdr")
+		{
+			desc.mips = 1;
+			manager->Add<ResourceType::TextureCube>(rhi_context, std::move(data), desc);
+		}
+		else
+		{
+			desc.mips = static_cast<uint32_t>(std::floor(std::log2(std::max(width, height))) + 1);
+			manager->Add<ResourceType::Texture2D>(rhi_context, std::move(data), desc);
+		}
 	}
 };
 

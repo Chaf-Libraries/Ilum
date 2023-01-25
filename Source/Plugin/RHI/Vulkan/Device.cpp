@@ -22,18 +22,18 @@ PFN_vkGetMemoryWin32HandleKHR              vkGetMemoryWin32HandleKHR;
 
 // Vulkan Extension
 static const std::vector<const char *> InstanceExtensions =
-#ifdef _DEBUG
+#ifdef DEBUG
     {"VK_KHR_surface", "VK_KHR_win32_surface", "VK_EXT_debug_report", "VK_EXT_debug_utils"};
 #else
     {"VK_KHR_surface", "VK_KHR_win32_surface", "VK_EXT_debug_utils"};
 #endif
 
 static const std::vector<const char *> ValidationLayers =
-#ifdef _DEBUG
+#ifdef DEBUG
     {"VK_LAYER_KHRONOS_validation"};
 #else
     {};
-#endif        // _DEBUG
+#endif        // DEBUG
 
 static const std::vector<const char *> DeviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -299,7 +299,7 @@ void Device::CreateInstance()
 	create_info.enabledLayerCount       = 0;
 
 	// Enable validation layers
-#ifdef _DEBUG
+#ifdef DEBUG
 	// Enable validation layer
 	for (auto &layer : ValidationLayers)
 	{
@@ -314,7 +314,7 @@ void Device::CreateInstance()
 			LOG_ERROR("Validation layer was required, but not avaliable, disabling debugging");
 		}
 	}
-#endif        // _DEBUG
+#endif        // DEBUG
 
 	// Create instance
 	if (vkCreateInstance(&create_info, nullptr, &m_instance) != VK_SUCCESS)
@@ -339,7 +339,7 @@ void Device::CreateInstance()
 	vkGetMemoryWin32HandleKHR       = reinterpret_cast<PFN_vkGetMemoryWin32HandleKHR>(vkGetInstanceProcAddr(m_instance, "vkGetMemoryWin32HandleKHR"));
 
 	// Enable debugger
-#ifdef _DEBUG
+#ifdef DEBUG
 	if (vkCreateDebugUtilsMessengerEXT)
 	{
 		VkDebugUtilsMessengerCreateInfoEXT create_info{VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT};
@@ -349,7 +349,7 @@ void Device::CreateInstance()
 
 		vkCreateDebugUtilsMessengerEXT(m_instance, &create_info, nullptr, &vkDebugUtilsMessengerEXT);
 	}
-#endif        // _DEBUG
+#endif        // DEBUG
 }
 
 void Device::CreatePhysicalDevice()

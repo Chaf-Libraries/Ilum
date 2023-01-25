@@ -39,7 +39,7 @@ class ResourceBrowser : public Widget
 		if (ImGui::Button("Import"))
 		{
 			char *path = nullptr;
-			if (NFD_OpenDialog("jpg,png,bmp,jpeg,dds,gltf,obj,glb,fbx,ply,blend,dae,mat", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
+			if (NFD_OpenDialog("jpg,png,bmp,jpeg,dds,hdr,gltf,obj,glb,fbx,ply,blend,dae,mat", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
 			{
 				ResourceType type = m_resource_map.at(Path::GetInstance().GetFileExtension(path));
 				switch (type)
@@ -49,6 +49,9 @@ class ResourceBrowser : public Widget
 						break;
 					case ResourceType::Texture2D:
 						resource_manager->Import<ResourceType::Texture2D>(path);
+						break;
+					case ResourceType::TextureCube:
+						resource_manager->Import<ResourceType::TextureCube>(path);
 						break;
 					default:
 						break;
@@ -91,6 +94,7 @@ class ResourceBrowser : public Widget
 		    DRAW_RESOURCE(ResourceType::Mesh),
 		    DRAW_RESOURCE(ResourceType::SkinnedMesh),
 		    DRAW_RESOURCE(ResourceType::Texture2D),
+		    DRAW_RESOURCE(ResourceType::TextureCube),
 		    DRAW_RESOURCE(ResourceType::Material),
 		    DRAW_RESOURCE(ResourceType::Animation),
 		    DRAW_RESOURCE(ResourceType::RenderPipeline),
@@ -174,6 +178,7 @@ class ResourceBrowser : public Widget
 	    {ResourceType::SkinnedMesh, "SkinnedMesh"},
 	    {ResourceType::Prefab, "Prefab"},
 	    {ResourceType::Texture2D, "Texture2D"},
+	    {ResourceType::TextureCube, "TextureCube"},
 	    {ResourceType::Animation, "Animation"},
 	    {ResourceType::Material, "Material"},
 	    {ResourceType::RenderPipeline, "RenderPipeline"},
@@ -186,6 +191,7 @@ class ResourceBrowser : public Widget
 	    {".bmp", ResourceType::Texture2D},
 	    {".jpeg", ResourceType::Texture2D},
 	    {".dds", ResourceType::Texture2D},
+	    {".hdr", ResourceType::TextureCube},
 	    {".gltf", ResourceType::Prefab},
 	    {".obj", ResourceType::Prefab},
 	    {".glb", ResourceType::Prefab},

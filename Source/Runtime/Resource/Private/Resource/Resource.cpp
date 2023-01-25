@@ -6,6 +6,7 @@
 #include "Resource/RenderPipeline.hpp"
 #include "Resource/SkinnedMesh.hpp"
 #include "Resource/Texture2D.hpp"
+#include "Resource/TextureCube.hpp"
 
 #include <RHI/RHIContext.hpp>
 
@@ -85,6 +86,7 @@ template class Resource<ResourceType::Mesh>;
 template class Resource<ResourceType::SkinnedMesh>;
 template class Resource<ResourceType::Material>;
 template class Resource<ResourceType::Texture2D>;
+template class Resource<ResourceType::TextureCube>;
 template class Resource<ResourceType::Prefab>;
 template class Resource<ResourceType::Animation>;
 template class Resource<ResourceType::RenderPipeline>;

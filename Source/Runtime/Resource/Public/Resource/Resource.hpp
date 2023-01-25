@@ -18,6 +18,7 @@ enum class ResourceType
 	Material,
 	RenderPipeline,
 	Scene,
+	TextureCube,
 };
 
 class IResource
