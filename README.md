@@ -10,12 +10,22 @@ Ilum Graphics Playground, name after *Planet Ilum* from [star wars]()
 
 * Windows 10
 * Visual Studio 2022
-* CMake >= 3.14
+* xmake >= v2.7.5
 * [optional] CUDA >= 11.7
 
 **Build**
 
-Run script `Build_VS2022.bat`
+Ilum uses [xmake](https://xmake.io/#/) for cross-platform building. You can compile the whole project by simply run command:
+
+```shell
+xmake
+```
+
+or you can open the project by generating `.sln` file:
+
+```shell
+xmake project -k vsxmake
+```
 
 ## Feature
 
@@ -34,6 +44,8 @@ Run script `Build_VS2022.bat`
 * Material
 * Render Pipeline
 * Prefab
+* Scene
+* Animation
 
 ### Scene Graph
 
@@ -47,7 +59,7 @@ Run script `Build_VS2022.bat`
   * Spot Light
   * Point Light
   * Directional Light
-  * Polygon Light
+  * Rectangle Light
 * Renderable
   * Mesh Renderer
   * Skinned Mesh Renderer
