@@ -23,6 +23,10 @@ jobs:
       #     cuda: '11.7.0'
       #     sub-packages: '["nvcc", "visual_studio_integration", "cudart"]'
 
+      - uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
+          
       - uses: xmake-io/github-action-setup-xmake@v1
         with:
           xmake-version: latest
