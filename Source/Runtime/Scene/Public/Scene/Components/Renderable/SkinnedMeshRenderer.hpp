@@ -6,7 +6,7 @@ namespace Ilum
 {
 namespace Cmpt
 {
-class EXPORT_API SkinnedMeshRenderer : public Renderable
+class SkinnedMeshRenderer : public Renderable
 {
   public:
 	SkinnedMeshRenderer(Node *node);

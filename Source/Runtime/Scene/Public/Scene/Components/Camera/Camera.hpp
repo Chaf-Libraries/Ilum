@@ -8,7 +8,7 @@ namespace Ilum
 {
 namespace Cmpt
 {
-class EXPORT_API Camera : public Component
+class Camera : public Component
 {
   public:
 	Camera(const char *name, Node *node);

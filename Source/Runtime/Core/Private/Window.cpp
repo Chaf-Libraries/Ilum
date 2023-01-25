@@ -8,6 +8,7 @@
 #endif        // WIN32
 #include <GLFW/glfw3native.h>
 
+#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
 namespace Ilum

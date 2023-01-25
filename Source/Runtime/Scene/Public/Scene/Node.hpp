@@ -12,7 +12,7 @@ namespace Ilum
 class Component;
 class Scene;
 
-class EXPORT_API Node
+class Node
 {
   public:
 	Node(size_t id, Scene &scene, const std::string &name = "untitled node");

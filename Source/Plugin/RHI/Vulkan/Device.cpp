@@ -48,7 +48,7 @@ static const std::vector<const char *> DeviceExtensions = {
     VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,
     VK_KHR_EXTERNAL_MEMORY_EXTENSION_NAME,
     VK_KHR_EXTERNAL_SEMAPHORE_EXTENSION_NAME,
-	VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME,
+    VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME,
 #ifdef _WIN64
     VK_KHR_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME,
     VK_KHR_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME
@@ -601,7 +601,7 @@ void Device::CreateLogicalDevice()
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR acceleration_structure_feature = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
 	VkPhysicalDeviceRayTracingPipelineFeaturesKHR    ray_tracing_pipeline_feature   = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
 	VkPhysicalDeviceRayQueryFeaturesKHR              ray_query_features             = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_QUERY_FEATURES_KHR};
-	VkPhysicalDeviceMeshShaderFeaturesEXT             mesh_shader_feature            = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT};
+	VkPhysicalDeviceMeshShaderFeaturesEXT            mesh_shader_feature            = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT};
 
 	void  *feature_ptr_head = nullptr;
 	void **feature_ptr_tail = nullptr;
@@ -621,8 +621,8 @@ void Device::CreateLogicalDevice()
 
 	if (IsFeatureSupport(RHIFeature::MeshShading))
 	{
-		mesh_shader_feature.meshShader = VK_TRUE;
-		mesh_shader_feature.taskShader = VK_TRUE;
+		mesh_shader_feature.meshShader          = VK_TRUE;
+		mesh_shader_feature.taskShader          = VK_TRUE;
 		mesh_shader_feature.multiviewMeshShader = VK_TRUE;
 
 		if (!feature_ptr_head)
@@ -665,6 +665,27 @@ void Device::CreateLogicalDevice()
 	volkLoadDevice(m_logical_device);
 
 	// Create Vma allocator
+	VmaVulkanFunctions vma_vulkan_func{};
+	vma_vulkan_func.vkGetInstanceProcAddr               = vkGetInstanceProcAddr;
+	vma_vulkan_func.vkGetDeviceProcAddr                 = vkGetDeviceProcAddr;
+	vma_vulkan_func.vkAllocateMemory                    = vkAllocateMemory;
+	vma_vulkan_func.vkBindBufferMemory                  = vkBindBufferMemory;
+	vma_vulkan_func.vkBindImageMemory                   = vkBindImageMemory;
+	vma_vulkan_func.vkCreateBuffer                      = vkCreateBuffer;
+	vma_vulkan_func.vkCreateImage                       = vkCreateImage;
+	vma_vulkan_func.vkDestroyBuffer                     = vkDestroyBuffer;
+	vma_vulkan_func.vkDestroyImage                      = vkDestroyImage;
+	vma_vulkan_func.vkFlushMappedMemoryRanges           = vkFlushMappedMemoryRanges;
+	vma_vulkan_func.vkFreeMemory                        = vkFreeMemory;
+	vma_vulkan_func.vkGetBufferMemoryRequirements       = vkGetBufferMemoryRequirements;
+	vma_vulkan_func.vkGetImageMemoryRequirements        = vkGetImageMemoryRequirements;
+	vma_vulkan_func.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+	vma_vulkan_func.vkGetPhysicalDeviceProperties       = vkGetPhysicalDeviceProperties;
+	vma_vulkan_func.vkInvalidateMappedMemoryRanges      = vkInvalidateMappedMemoryRanges;
+	vma_vulkan_func.vkMapMemory                         = vkMapMemory;
+	vma_vulkan_func.vkUnmapMemory                       = vkUnmapMemory;
+	vma_vulkan_func.vkCmdCopyBuffer                     = vkCmdCopyBuffer;
+
 	VmaAllocatorCreateInfo allocator_info = {};
 	allocator_info.physicalDevice         = m_physical_device;
 	allocator_info.device                 = m_logical_device;
@@ -674,6 +695,8 @@ void Device::CreateLogicalDevice()
 
 	VkPhysicalDeviceMemoryProperties memory_properties = {};
 	vkGetPhysicalDeviceMemoryProperties(m_physical_device, &memory_properties);
+
+	allocator_info.pVulkanFunctions = &vma_vulkan_func;
 
 	if (vmaCreateAllocator(&allocator_info, &m_allocator) != VK_SUCCESS)
 	{

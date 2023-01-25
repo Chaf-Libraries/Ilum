@@ -16,6 +16,6 @@ namespace Ilum
 {
 namespace Cmpt
 {
-EXPORT_API void SetImGuiContext(ImGuiContext *context);
+void SetImGuiContext(ImGuiContext *context);
 }
 }        // namespace Ilum

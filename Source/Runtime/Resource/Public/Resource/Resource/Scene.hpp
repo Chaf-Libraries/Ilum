@@ -9,7 +9,7 @@ namespace Ilum
 class Scene;
 
 template <>
-class EXPORT_API Resource<ResourceType::Scene> final : public IResource
+class Resource<ResourceType::Scene> final : public IResource
 {
   public:
 	Resource(RHIContext *rhi_context, const std::string &name);

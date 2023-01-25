@@ -12,7 +12,7 @@ struct MaterialData;
 struct MaterialCompilationContext;
 
 template <>
-class EXPORT_API Resource<ResourceType::Material> final : public IResource
+class Resource<ResourceType::Material> final : public IResource
 {
   public:
 	Resource(RHIContext *rhi_context, const std::string &name);

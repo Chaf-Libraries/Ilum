@@ -54,14 +54,6 @@ void Editor::PreTick()
 
 void Editor::Tick()
 {
-	for (auto &widget : m_impl->widgets)
-	{
-		if (widget->GetActive())
-		{
-			widget->Tick();
-		}
-	}
-
 	if (ImGui::BeginMainMenuBar())
 	{
 		if (ImGui::BeginMenu("Widget"))
@@ -74,6 +66,14 @@ void Editor::Tick()
 		}
 
 		ImGui::EndMainMenuBar();
+	}
+
+	for (auto &widget : m_impl->widgets)
+	{
+		if (widget->GetActive())
+		{
+			widget->Tick();
+		}
 	}
 }
 

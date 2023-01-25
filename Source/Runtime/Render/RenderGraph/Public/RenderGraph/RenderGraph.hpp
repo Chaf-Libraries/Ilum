@@ -9,7 +9,7 @@ namespace Ilum
 {
 class RenderGraphBlackboard;
 
-class EXPORT_API RenderGraphDesc
+class  RenderGraphDesc
 {
   public:
 	RenderGraphDesc() = default;
@@ -58,7 +58,7 @@ class EXPORT_API RenderGraphDesc
 	std::map<size_t, size_t> m_pass_lookup;        // Pin ID - Node ID
 };
 
-class EXPORT_API RenderGraph
+class  RenderGraph
 {
 	friend class RenderGraphBuilder;
 

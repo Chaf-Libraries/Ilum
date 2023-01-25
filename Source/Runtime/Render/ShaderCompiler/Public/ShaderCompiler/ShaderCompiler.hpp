@@ -30,7 +30,7 @@ struct ShaderDesc
 	std::vector<std::string> macros = {};
 };
 
-class EXPORT_API ShaderCompiler
+class  ShaderCompiler
 {
   public:
 	ShaderCompiler();

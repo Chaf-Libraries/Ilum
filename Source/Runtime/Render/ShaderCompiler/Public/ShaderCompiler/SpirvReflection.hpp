@@ -6,7 +6,7 @@
 
 namespace Ilum
 {
-class EXPORT_API SpirvReflection
+class  SpirvReflection
 {
   public:
 	static SpirvReflection &GetInstance();

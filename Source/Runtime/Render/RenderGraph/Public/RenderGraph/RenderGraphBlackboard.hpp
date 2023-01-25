@@ -4,7 +4,7 @@
 
 namespace Ilum
 {
-class EXPORT_API RenderGraphBlackboard
+class  RenderGraphBlackboard
 {
   public:
 	RenderGraphBlackboard() = default;

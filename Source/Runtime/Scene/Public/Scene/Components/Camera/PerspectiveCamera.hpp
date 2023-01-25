@@ -6,7 +6,7 @@ namespace Ilum
 {
 namespace Cmpt
 {
-class EXPORT_API PerspectiveCamera : public Camera
+class PerspectiveCamera : public Camera
 {
   public:
 	PerspectiveCamera(Node *node);

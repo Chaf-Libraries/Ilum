@@ -6,7 +6,7 @@ namespace Ilum
 {
 namespace Cmpt
 {
-class EXPORT_API Light : public Component
+class Light : public Component
 {
   public:
 	Light(const char *name, Node *node);

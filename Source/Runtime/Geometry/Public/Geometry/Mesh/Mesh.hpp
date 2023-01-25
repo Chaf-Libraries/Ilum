@@ -13,7 +13,7 @@ struct VertexData
 	glm::vec2 uv       = glm::vec2(0.f);
 };
 
-struct EXPORT_API TriMesh
+struct  TriMesh
 {
 	std::vector<VertexData> vertices;
 	std::vector<uint32_t>   indices;
@@ -21,7 +21,7 @@ struct EXPORT_API TriMesh
 	void GenerateNormal();
 };
 
-class EXPORT_API Mesh
+class  Mesh
 {
   public:
 	enum class VertexNormalOption

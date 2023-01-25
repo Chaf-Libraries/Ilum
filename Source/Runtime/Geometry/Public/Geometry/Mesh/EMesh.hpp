@@ -5,7 +5,7 @@
 namespace Ilum
 {
 // Edge based data structure
-class EXPORT_API EMesh : public Mesh
+class  EMesh : public Mesh
 {
   public:
 	struct Vertex;

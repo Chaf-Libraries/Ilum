@@ -13,7 +13,7 @@ class RHIBuffer;
 class RHIAccelerationStructure;
 
 template <>
-class EXPORT_API Resource<ResourceType::SkinnedMesh> final : public IResource
+class Resource<ResourceType::SkinnedMesh> final : public IResource
 {
   public:
 	struct SkinnedVertex

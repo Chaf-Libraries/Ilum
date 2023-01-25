@@ -24,5 +24,5 @@ extern bool  SpectrumSamplesSorted(const float *lambda, const float *vals, int32
 extern void  SortSpectrumSamples(float *lambda, float *vals, int32_t n);
 extern float InterpolateSpectrumSamples(const float *lambda, const float *vals, int32_t n, float l);
 
-EXPORT_API glm::vec3 FromSampled(const float *lambda, const float *v, int32_t n);
+glm::vec3 FromSampled(const float *lambda, const float *v, int32_t n);
 }        // namespace Ilum

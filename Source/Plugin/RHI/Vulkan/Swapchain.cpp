@@ -105,7 +105,7 @@ Swapchain::Swapchain(Device *device, void *window_handle, uint32_t width, uint32
 #endif        // _WIN32
 
 	// m_capabilities
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(static_cast<Device *>(device)->GetPhysicalDevice(), m_surface, &m_capabilities);
+	auto result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(static_cast<Device *>(device)->GetPhysicalDevice(), m_surface, &m_capabilities);
 
 	// formats
 	uint32_t                        format_count;

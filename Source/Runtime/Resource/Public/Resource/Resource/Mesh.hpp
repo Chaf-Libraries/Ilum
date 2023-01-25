@@ -11,7 +11,7 @@ class RHIBuffer;
 class RHIAccelerationStructure;
 
 template <>
-class EXPORT_API Resource<ResourceType::Mesh> final : public IResource
+class Resource<ResourceType::Mesh> final : public IResource
 {
   public:
 	struct Vertex

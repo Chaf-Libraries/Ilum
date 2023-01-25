@@ -9,7 +9,7 @@ class Editor;
 class ResourceManager;
 struct MaterialCompilationContext;
 
-struct EXPORT_API MaterialNodePin
+struct MaterialNodePin
 {
 	enum class Type : uint64_t
 	{
@@ -45,7 +45,7 @@ struct EXPORT_API MaterialNodePin
 
 DEFINE_ENUMCLASS_OPERATION(MaterialNodePin::Type)
 
-class EXPORT_API MaterialNodeDesc
+class MaterialNodeDesc
 {
   public:
 	MaterialNodeDesc() = default;

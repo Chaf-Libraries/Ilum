@@ -6,7 +6,7 @@
 
 namespace Ilum
 {
-class EXPORT_API ShaderBuilder
+class  ShaderBuilder
 {
   public:
 	ShaderBuilder(RHIContext *context);

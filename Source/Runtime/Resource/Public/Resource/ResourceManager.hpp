@@ -6,7 +6,7 @@
 
 namespace Ilum
 {
-class EXPORT_API ResourceManager
+class ResourceManager
 {
   public:
 	ResourceManager(RHIContext *rhi_context);

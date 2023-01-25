@@ -13,7 +13,7 @@
 
 namespace Ilum
 {
-class EXPORT_API PluginManager
+class  PluginManager
 {
   public:
 	PluginManager();

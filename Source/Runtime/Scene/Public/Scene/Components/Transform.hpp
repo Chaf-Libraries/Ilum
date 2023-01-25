@@ -10,7 +10,7 @@ class Node;
 
 namespace Cmpt
 {
-class EXPORT_API Transform : public Component
+class Transform : public Component
 {
   public:
 	Transform(Node *node);

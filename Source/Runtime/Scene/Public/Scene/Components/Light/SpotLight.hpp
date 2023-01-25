@@ -8,7 +8,7 @@ namespace Ilum
 {
 namespace Cmpt
 {
-class EXPORT_API SpotLight : public Light
+class SpotLight : public Light
 {
   public:
 	SpotLight(Node *node);

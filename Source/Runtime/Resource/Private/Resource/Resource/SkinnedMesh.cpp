@@ -190,7 +190,10 @@ std::vector<uint8_t> Resource<ResourceType::SkinnedMesh>::RenderPreview(RHIConte
 	depth_stencil_state.depth_test_enable  = true;
 	depth_stencil_state.depth_write_enable = true;
 
-	m_thumbnail = rhi_context->CreateTexture2D(128, 128, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::ShaderResource | RHITextureUsage::Transfer | RHITextureUsage::RenderTarget, false);
+	if (!m_thumbnail)
+	{
+		m_thumbnail = rhi_context->CreateTexture2D(128, 128, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::ShaderResource | RHITextureUsage::Transfer | RHITextureUsage::RenderTarget, false);
+	}
 
 	auto depth_buffer    = rhi_context->CreateTexture2D(128, 128, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget, false);
 	auto uniform_buffer  = rhi_context->CreateBuffer<glm::mat4>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);

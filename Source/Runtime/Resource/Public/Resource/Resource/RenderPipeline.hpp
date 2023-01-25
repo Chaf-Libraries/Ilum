@@ -11,7 +11,7 @@ class RenderGraph;
 class Renderer;
 
 template <>
-class EXPORT_API Resource<ResourceType::RenderPipeline> final : public IResource
+class Resource<ResourceType::RenderPipeline> final : public IResource
 {
   public:
 	Resource(RHIContext *rhi_context, const std::string &name);

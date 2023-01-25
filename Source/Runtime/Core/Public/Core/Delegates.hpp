@@ -7,7 +7,7 @@ namespace Ilum
 using DelegateHandle = uint32_t;
 
 template <typename... Args>
-class EXPORT_API MulticastDelegate
+class  MulticastDelegate
 {
   public:
 	using Delegate = std::function<void(Args...)>;

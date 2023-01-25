@@ -81,12 +81,12 @@ void IResource::UpdateThumbnail(RHIContext *rhi_context, const std::vector<uint8
 	rhi_context->Execute(cmd_buffer);
 }
 
-template class EXPORT_API Resource<ResourceType::Mesh>;
-template class EXPORT_API Resource<ResourceType::SkinnedMesh>;
-template class EXPORT_API Resource<ResourceType::Material>;
-template class EXPORT_API Resource<ResourceType::Texture2D>;
-template class EXPORT_API Resource<ResourceType::Prefab>;
-template class EXPORT_API Resource<ResourceType::Animation>;
-template class EXPORT_API Resource<ResourceType::RenderPipeline>;
-template class EXPORT_API Resource<ResourceType::Scene>;
+template class Resource<ResourceType::Mesh>;
+template class Resource<ResourceType::SkinnedMesh>;
+template class Resource<ResourceType::Material>;
+template class Resource<ResourceType::Texture2D>;
+template class Resource<ResourceType::Prefab>;
+template class Resource<ResourceType::Animation>;
+template class Resource<ResourceType::RenderPipeline>;
+template class Resource<ResourceType::Scene>;
 }        // namespace Ilum

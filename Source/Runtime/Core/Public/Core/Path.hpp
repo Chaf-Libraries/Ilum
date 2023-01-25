@@ -4,7 +4,7 @@
 
 namespace Ilum
 {
-class EXPORT_API Path
+class  Path
 {
   public:
 	static Path &GetInstance();

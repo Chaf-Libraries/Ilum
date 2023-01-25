@@ -177,7 +177,7 @@ class JobHandle
 	std::atomic<uint32_t> m_counter = 0;
 };
 
-class EXPORT_API JobSystem
+class  JobSystem
 {
   public:
 	JobSystem();

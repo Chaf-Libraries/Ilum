@@ -9,7 +9,7 @@ namespace Ilum
 {
 class Node;
 
-class EXPORT_API Component
+class Component
 {
   public:
 	Component(const char *name, Node *node);

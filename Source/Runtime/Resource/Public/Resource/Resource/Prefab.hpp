@@ -7,7 +7,7 @@
 namespace Ilum
 {
 template <>
-class EXPORT_API Resource<ResourceType::Prefab> final : public IResource
+class Resource<ResourceType::Prefab> final : public IResource
 {
   public:
 	template <typename Archive>

@@ -8,7 +8,7 @@ file(GLOB_RECURSE SOURCE_FILES "*.cpp" "*.inl")
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}" FILES ${HEADER_FILES} ${SOURCE_FILES})
 
-add_library(${TARGET_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES})
+add_library(${TARGET_NAME} STATIC ${HEADER_FILES} ${SOURCE_FILES})
 
 set_target_properties(
 	${TARGET_NAME} 

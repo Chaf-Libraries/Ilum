@@ -4,7 +4,7 @@
 
 namespace Ilum
 {
-class EXPORT_API HEMesh : public Mesh
+class  HEMesh : public Mesh
 {
   public:
 	struct Vertex;

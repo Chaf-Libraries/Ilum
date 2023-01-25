@@ -4,14 +4,13 @@
 
 #include <volk.h>
 
-#include <vk_mem_alloc.h>
+#include "vk_mem_alloc.h"
 
 #include <unordered_map>
 
 #ifdef _WIN64
-#include <Windows.h>
+#	include <Windows.h>
 #endif        // _WIN64
-
 
 namespace Ilum::Vulkan
 {
@@ -358,6 +357,7 @@ inline static VkShaderStageFlags ToVulkanShaderStages(RHIShaderStage stage)
 	return flag;
 }
 
+#ifdef CUDA_ENABLE
 class WindowsSecurityAttributes
 {
   public:
@@ -371,5 +371,5 @@ class WindowsSecurityAttributes
 	SECURITY_ATTRIBUTES  m_winSecurityAttributes;
 	PSECURITY_DESCRIPTOR m_winPSecurityDescriptor;
 };
-
+#endif
 }        // namespace Ilum::Vulkan

@@ -6,7 +6,7 @@ namespace Ilum
 {
 namespace Cmpt
 {
-class EXPORT_API Renderable : public Component
+class Renderable : public Component
 {
   public:
 	Renderable(const char *name, Node *node);

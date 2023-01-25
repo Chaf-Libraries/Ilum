@@ -8,7 +8,7 @@ namespace Ilum
 {
 namespace Cmpt
 {
-class EXPORT_API RectLight : public Light
+class RectLight : public Light
 {
   public:
 	RectLight(Node *node);

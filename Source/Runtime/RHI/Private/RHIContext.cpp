@@ -11,7 +11,7 @@ namespace Ilum
 RHIContext::RHIContext(Window *window, const std::string &backend, bool vsync) :
     p_window(window), m_vsync(vsync)
 {
-	if (Path::GetInstance().IsExist("lib/RHI.CUDA.dll"))
+	if (Path::GetInstance().IsExist("shared/RHI/RHI.CUDA.dll"))
 	{
 		m_cuda_device = RHIDevice::Create("CUDA");
 	}

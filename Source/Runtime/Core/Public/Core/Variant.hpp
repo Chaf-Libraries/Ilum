@@ -4,7 +4,7 @@
 
 namespace Ilum
 {
-class EXPORT_API Variant
+class  Variant
 {
   public:
 	Variant() = default;

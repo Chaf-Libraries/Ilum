@@ -20,7 +20,7 @@ enum class ResourceType
 	Scene,
 };
 
-class EXPORT_API IResource
+class IResource
 {
   public:
 	explicit IResource(const std::string &name);
@@ -54,7 +54,7 @@ class EXPORT_API IResource
 };
 
 template <ResourceType Type>
-class EXPORT_API Resource : public IResource
+class Resource : public IResource
 {
   public:
 	Resource() = default;

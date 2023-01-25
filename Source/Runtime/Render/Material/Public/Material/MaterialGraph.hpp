@@ -4,7 +4,7 @@
 
 namespace Ilum
 {
-class EXPORT_API MaterialGraphDesc
+class MaterialGraphDesc
 {
   public:
 	MaterialGraphDesc() = default;

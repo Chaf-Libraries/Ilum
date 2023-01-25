@@ -1,21 +1,45 @@
-add_requires("assimp")
 add_requires("cereal")
--- add_requires("directxshadercompiler")
-add_requires("glfw")
-add_requires("glm")
--- add_requires("glslang")
--- add_requires("imgui")
--- add_requires("nativefiledialog")
+add_requires("glfw", {configs = {shared = true}})
 add_requires("spdlog")
--- add_requires("spirv-cross")
--- add_requires("spirv-reflect")
 add_requires("stb")
--- add_requires("volk")
--- add_requires("vulkan-memory-allocator")
-
+add_requires("glm")
+add_requires("glslang")
+add_requires("spirv-cross")
+add_requires("spirv-reflect")
+add_requires("directxshadercompiler")
+add_requires("assimp")
+add_requires("imgui docking")
+add_requires("nativefiledialog")
 add_requires("meshoptimizer")
 add_requires("mustache")
 add_requires("slang")
+add_requires("volk", {configs = {header_only = true}})
+add_requires("vulkan-headers")
+add_requires("vulkan-memory-allocator")
+add_requires("cuda")
+
+option("CUDA_ENABLE")
+    on_check(function (option)
+        import("detect.sdks.find_cuda")
+        local cuda = find_cuda()
+        if cuda then
+            option:enable(true)
+        else
+            option:enable(false)
+        end
+        option:add("defines", "CUDA_ENABLE")
+    end)
+
+target("ImGui-Tools")
+    set_kind("static")
+
+    add_files("imgui_tools/**.cpp")
+    add_headerfiles("imgui_tools/**.h")
+    add_includedirs("imgui_tools/", {public  = true})
+    add_packages("glfw", "imgui")
+
+    set_group("External")
+target_end()
 
 package("meshoptimizer")
     on_load(function (package)
@@ -54,7 +78,10 @@ package("slang")
         package:addenv("PATH", package:installdir("bin/windows-x64/release"))
 
         local result = {}
+        result.links = "slang"
         result.includedirs = package:installdir()
+        result.linkdirs = package:installdir("bin/windows-x64/release")
         return result
     end)
 package_end()
+

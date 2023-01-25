@@ -41,12 +41,12 @@ void Importer<Type>::Import(ResourceManager *manager, const std::string &path, R
 	return GetInstance(PluginMap.at(Type).at(Path::GetInstance().GetFileExtension(path)))->Import_(manager, path, rhi_context);
 }
 
-template class EXPORT_API Importer<ResourceType::Prefab>;
-template class EXPORT_API Importer<ResourceType::Texture2D>;
-template class EXPORT_API Importer<ResourceType::Mesh>;
-template class EXPORT_API Importer<ResourceType::SkinnedMesh>;
-template class EXPORT_API Importer<ResourceType::Material>;
-template class EXPORT_API Importer<ResourceType::Animation>;
-template class EXPORT_API Importer<ResourceType::RenderPipeline>;
-template class EXPORT_API Importer<ResourceType::Scene>;
+template class Importer<ResourceType::Prefab>;
+template class Importer<ResourceType::Texture2D>;
+template class Importer<ResourceType::Mesh>;
+template class Importer<ResourceType::SkinnedMesh>;
+template class Importer<ResourceType::Material>;
+template class Importer<ResourceType::Animation>;
+template class Importer<ResourceType::RenderPipeline>;
+template class Importer<ResourceType::Scene>;
 }        // namespace Ilum

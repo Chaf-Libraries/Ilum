@@ -6,13 +6,13 @@
 namespace Ilum
 {
 template <typename _Ty>
-class EXPORT_API MeshProcess
+class  MeshProcess
 {
   public:
 	static std::unique_ptr<_Ty> &GetInstance(const std::string &plugin);
 };
 
-class EXPORT_API Subdivision : public MeshProcess<Subdivision>
+class  Subdivision : public MeshProcess<Subdivision>
 {
   public:
 	virtual TriMesh Execute(const TriMesh &mesh) = 0;

@@ -4,10 +4,12 @@
 #	include <aclapi.h>
 #	include <dxgi1_6.h>
 #	include <windows.h>
+#	include <securitybaseapi.h>
 #endif
 
 namespace Ilum::Vulkan
 {
+#ifdef CUDA_ENABLE
 WindowsSecurityAttributes::WindowsSecurityAttributes()
 {
 	m_winPSecurityDescriptor = (PSECURITY_DESCRIPTOR) calloc(1, SECURITY_DESCRIPTOR_MIN_LENGTH + 2 * sizeof(void **));
@@ -59,4 +61,5 @@ WindowsSecurityAttributes::~WindowsSecurityAttributes()
 	}
 	free(m_winPSecurityDescriptor);
 }
+#endif
 }        // namespace Ilum::Vulkan

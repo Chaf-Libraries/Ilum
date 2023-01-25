@@ -9,7 +9,7 @@ namespace Ilum
 class RenderGraph;
 class Renderer;
 
-class EXPORT_API RenderGraphBuilder
+class  RenderGraphBuilder
 {
   public:
 	RenderGraphBuilder(RHIContext *rhi_context);

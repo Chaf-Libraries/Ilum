@@ -37,10 +37,11 @@
 /lib/*
 /shared/*
 
-*/_Generate/*
+**/Archive/*
 
 *.meta
 
 .vscode
 .xmake/
 build/
+vsxmake**

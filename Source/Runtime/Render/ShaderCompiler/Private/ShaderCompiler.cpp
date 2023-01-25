@@ -5,10 +5,11 @@
 #include <glslang/SPIRV/GLSL.std.450.h>
 #include <glslang/SPIRV/GlslangToSpv.h>
 
-#include <spirv_hlsl.hpp>
+#include <spirv_cross/spirv_hlsl.hpp>
+
+#include <wrl.h>
 
 #include <dxcapi.h>
-#include <wrl.h>
 
 #include <slang.h>
 
@@ -608,8 +609,11 @@ ShaderCompiler::ShaderCompiler()
 	glslang::InitializeProcess();
 
 	// Init dxc
-	PluginManager::GetInstance().Call("../Source/External/dxc/bin/x64/dxcompiler.dll", "DxcCreateInstance", CLSID_DxcUtils, IID_PPV_ARGS(&m_impl->DXCUtils));
-	PluginManager::GetInstance().Call("../Source/External/dxc/bin/x64/dxcompiler.dll", "DxcCreateInstance", CLSID_DxcCompiler, IID_PPV_ARGS(&m_impl->DXCCompiler));
+	PluginManager::GetInstance().Call("Source/External/dxc/bin/x64/dxcompiler.dll", "DxcCreateInstance", CLSID_DxcUtils, IID_PPV_ARGS(&m_impl->DXCUtils));
+	PluginManager::GetInstance().Call("Source/External/dxc/bin/x64/dxcompiler.dll", "DxcCreateInstance", CLSID_DxcCompiler, IID_PPV_ARGS(&m_impl->DXCCompiler));
+	//DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&m_impl->DXCUtils));
+	//DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&m_impl->DXCCompiler));
+
 	m_impl->DXCUtils->CreateDefaultIncludeHandler(&m_impl->DefaultIncludeHandler);
 
 	// Init slang

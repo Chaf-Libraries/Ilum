@@ -1,9 +1,0 @@
-libdir=E:/Workspace/Ilum_Deps/assimp/build/install/lib
-includedir=E:/Workspace/Ilum_Deps/assimp/build/install/include
-
-Name: Assimp
-Description: Import various well-known 3D model formats in an uniform manner.
-Version: 5.2.5
-Libs: -L${libdir} -lassimp
-Libs.private:  
-Cflags: -I${includedir}

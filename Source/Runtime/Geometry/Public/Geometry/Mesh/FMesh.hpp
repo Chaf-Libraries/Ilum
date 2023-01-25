@@ -5,7 +5,7 @@
 namespace Ilum
 {
 // Face based data structure only support triangle mesh
-class EXPORT_API FMesh : public Mesh
+class  FMesh : public Mesh
 {
   public:
 	struct Face;

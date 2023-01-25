@@ -15,7 +15,7 @@ class Node;
 class Component;
 class RHIContext;
 
-class EXPORT_API Scene
+class Scene
 {
 	friend class Node;
 

@@ -9,5 +9,5 @@ std::unique_ptr<_Ty> &MeshProcess<_Ty>::GetInstance(const std::string &plugin)
 	return ptr;
 }
 
-template EXPORT_API class MeshProcess<Subdivision>;
+template  class MeshProcess<Subdivision>;
 }        // namespace Ilum

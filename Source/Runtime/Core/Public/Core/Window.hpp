@@ -8,7 +8,7 @@ struct GLFWwindow;
 
 namespace Ilum
 {
-class EXPORT_API Window
+class  Window
 {
   public:
 	Window(const std::string &title, const std::string &icon, uint32_t width = 0, uint32_t height = 0);

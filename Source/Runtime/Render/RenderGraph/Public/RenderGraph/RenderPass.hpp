@@ -17,7 +17,7 @@ enum class BindPoint
 	CUDA
 };
 
-struct EXPORT_API RenderPassPin
+struct  RenderPassPin
 {
 	enum class Type
 	{
@@ -51,7 +51,7 @@ struct EXPORT_API RenderPassPin
 	}
 };
 
-class EXPORT_API RenderPassDesc
+class  RenderPassDesc
 {
   public:
 	RenderPassDesc() = default;

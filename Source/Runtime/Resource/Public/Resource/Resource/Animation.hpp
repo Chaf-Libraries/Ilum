@@ -12,7 +12,7 @@ class RHIContext;
 class RHIBuffer;
 class RHITexture;
 
-class EXPORT_API Bone
+class Bone
 {
   public:
 	struct KeyPosition
@@ -142,7 +142,7 @@ struct HierarchyNode
 };
 
 template <>
-class EXPORT_API Resource<ResourceType::Animation> final : public IResource
+class Resource<ResourceType::Animation> final : public IResource
 {
   public:
 	Resource(RHIContext *rhi_context, const std::string &name);
