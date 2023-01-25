@@ -1,7 +1,0 @@
-add_subdirectory(External)
-add_subdirectory(Runtime)
-add_subdirectory(Editor)
-add_subdirectory(Engine)
-add_subdirectory(Shaders)
-add_subdirectory(Plugin)
-add_subdirectory(Test)
