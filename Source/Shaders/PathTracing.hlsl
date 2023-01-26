@@ -28,6 +28,13 @@ RWTexture2D<float4> Output;
 #include "Material/Material.hlsli"
 #endif
 
+#define USE_SKYBOX
+
+#ifdef USE_SKYBOX
+TextureCube<float4> Skybox;
+SamplerState SkyboxSampler;
+#endif
+
 struct PayLoad
 {
     SurfaceInteraction interaction;
@@ -122,25 +129,31 @@ void RayGenMain()
         if (!SceneIntersection(ray, pay_load))
         {
             // Sample environment light
-            float pdf = 0;
-            pay_load.radiance = float4(pay_load.radiance.rgb + 0.1f * pay_load.throughout, 1.f);
+#ifdef USE_SKYBOX
+            // Environment Sampling (HDR)
+            // See:  https://arxiv.org/pdf/1901.05423.pdf
+            float pdf = 1.0;
+            float3 wi = normalize(ray.Direction);
+            pay_load.radiance = float4(Skybox.SampleLevel(SkyboxSampler, wi, 0.0).rgb * pay_load.throughout, 1.0);
+#else
+#endif
             break;
         }
            
         ray = pay_load.interaction.isect.SpawnRay(pay_load.wi);
         
         // Russian roulette
-       float3 rrBeta = pay_load.throughout * pay_load.eta;
-       float max_cmpt = max(rrBeta.x, max(rrBeta.y, rrBeta.z));
-       if (max_cmpt < 1.0 && bounce > 3)
-       {
-           float q = max(0.05, 1.0 - max_cmpt);
-           if (pay_load.rng.Get1D() < q)
-           {
-               break;
-           }
-           pay_load.throughout /= 1.0 - q;
-       }
+        float3 rrBeta = pay_load.throughout * pay_load.eta;
+        float max_cmpt = max(rrBeta.x, max(rrBeta.y, rrBeta.z));
+        if (max_cmpt < 1.0 && bounce > 3)
+        {
+            float q = max(0.05, 1.0 - max_cmpt);
+            if (pay_load.rng.Get1D() < q)
+            {
+                break;
+            }
+            pay_load.throughout /= 1.0 - q;
+        }
     }
     
     // Clamp firefly
