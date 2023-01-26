@@ -95,6 +95,8 @@ struct GPUScene
 	struct Texture
 	{
 		std::vector<RHITexture *> texture_2d;
+
+		RHITexture *texture_cube = nullptr;
 	} textures;
 
 	struct

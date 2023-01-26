@@ -55,11 +55,14 @@ class RenderGraphEditor : public Widget
 			{
 				for (auto &node : m_select_nodes)
 				{
-					auto &pass = resource->GetDesc().GetPass(static_cast<size_t>(node));
-					if (!pass.GetConfig().Empty())
+					if (resource->GetDesc().HasPass(node))
 					{
-						ImGui::Separator();
-						PluginManager::GetInstance().Call<bool>(fmt::format("shared/RenderPass/RenderPass.{}.{}.dll", pass.GetCategory(), pass.GetName()), "OnImGui", &pass.GetConfig(), ImGui::GetCurrentContext());
+						auto &pass = resource->GetDesc().GetPass(static_cast<size_t>(node));
+						if (!pass.GetConfig().Empty())
+						{
+							ImGui::Separator();
+							PluginManager::GetInstance().Call<bool>(fmt::format("shared/RenderPass/RenderPass.{}.{}.dll", pass.GetCategory(), pass.GetName()), "OnImGui", &pass.GetConfig(), ImGui::GetCurrentContext());
+						}
 					}
 				}
 			}
@@ -167,6 +170,9 @@ class RenderGraphEditor : public Widget
 						resource->GetDesc().ErasePass(node);
 					}
 				}
+
+				m_select_nodes.clear();
+				m_select_links.clear();
 			}
 
 			ImGui::EndPopup();

@@ -325,7 +325,7 @@ class MeshEditor : public Widget
 
 			auto *descriptor = rhi_context->CreateDescriptor(meta);
 			descriptor->BindTexture("UVTexture", m_uv_texture.get(), RHITextureDimension::Texture2D)
-			    .BindSampler("UVSampler", rhi_context->CreateSampler(SamplerDesc::LinearWarp))
+			    .BindSampler("UVSampler", rhi_context->CreateSampler(SamplerDesc::LinearWarp()))
 			    .BindBuffer("UniformBuffer", m_uniform_buffer.get());
 
 			cmd_buffer->BeginRenderPass(m_render_target.get());
@@ -368,7 +368,7 @@ class MeshEditor : public Widget
 
 			auto *descriptor = rhi_context->CreateDescriptor(meta);
 			descriptor->BindTexture("UVTexture", m_uv_texture.get(), RHITextureDimension::Texture2D)
-			    .BindSampler("UVSampler", rhi_context->CreateSampler(SamplerDesc::LinearWarp))
+			    .BindSampler("UVSampler", rhi_context->CreateSampler(SamplerDesc::LinearWarp()))
 			    .BindBuffer("UniformBuffer", m_uniform_buffer.get());
 
 			cmd_buffer->BeginRenderPass(m_render_target.get());

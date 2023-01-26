@@ -2,8 +2,8 @@ add_runtime_moulde(
     "ShaderCompiler",
     "Runtime/Render",
     false, 
-    {"Core", "RHI"}, 
-    {"glslang", "spirv-cross", "spirv-reflect", "directxshadercompiler", "slang"}
+    {"Core", "RHI", "spirv-reflect"}, 
+    {"glslang", "spirv-cross", "directxshadercompiler", "slang"}
 )
 
 add_runtime_moulde(

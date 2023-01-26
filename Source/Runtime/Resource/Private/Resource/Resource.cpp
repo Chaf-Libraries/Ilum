@@ -48,7 +48,7 @@ RHITexture *IResource::GetThumbnail() const
 
 void IResource::UpdateThumbnail(RHIContext *rhi_context, const std::vector<uint8_t> &thumbnail_data)
 {
-	m_thumbnail = rhi_context->CreateTexture2D(128, 128, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::ShaderResource | RHITextureUsage::Transfer, false);
+	m_thumbnail = rhi_context->CreateTexture2D(128, 128, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::ShaderResource | RHITextureUsage::Transfer | RHITextureUsage::RenderTarget, false);
 
 	BufferDesc buffer_desc = {};
 	buffer_desc.size       = thumbnail_data.size();

@@ -106,12 +106,12 @@ Resource<ResourceType::TextureCube>::Resource(RHIContext *rhi_context, std::vect
 	glm::mat4 projection_matrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
 	glm::mat4 views_matrix[] =
 	    {
-	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
-	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
+	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
 	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
 	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)),
-	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
-	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, -1.0f, 0.0f)),
+	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
+	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
 	    };
 	std::array<glm::mat4, 6> inv_view_projections = {};
 
@@ -123,7 +123,7 @@ Resource<ResourceType::TextureCube>::Resource(RHIContext *rhi_context, std::vect
 	uniform_buffer->CopyToDevice(inv_view_projections.data(), sizeof(glm::mat4) * 6);
 	descriptor->BindBuffer("UniformBuffer", uniform_buffer.get())
 	    .BindTexture("InputTexture", cubemap2d.get(), RHITextureDimension::Texture2D)
-	    .BindSampler("TexSampler", rhi_context->CreateSampler(SamplerDesc::LinearClamp));
+	    .BindSampler("TexSampler", rhi_context->CreateSampler(SamplerDesc::LinearClamp()));
 
 	auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Graphics);
 	cmd_buffer->Begin();

@@ -171,7 +171,20 @@ void Scene::Load(InputArchive &archive)
 	// Components
 	{
 		const std::unordered_map<std::string, std::function<void(Node *&, InputArchive &)>> load_component_map = {
-		    {typeid(Cmpt::Transform).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::Transform>(std::make_unique<Cmpt::Transform>(node))->Load(archive); }},
+#define LOAD_COMPONENT(Cmpt) \
+	{typeid(Cmpt).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt>(std::make_unique<Cmpt>(node))->Load(archive); }}
+
+			LOAD_COMPONENT(Cmpt::Transform),
+		    LOAD_COMPONENT(Cmpt::PerspectiveCamera),
+		    LOAD_COMPONENT(Cmpt::OrthographicCamera),
+		    LOAD_COMPONENT(Cmpt::MeshRenderer),
+		    LOAD_COMPONENT(Cmpt::SkinnedMeshRenderer),
+		    LOAD_COMPONENT(Cmpt::SpotLight),
+		    LOAD_COMPONENT(Cmpt::PointLight),
+		    LOAD_COMPONENT(Cmpt::DirectionalLight),
+		    LOAD_COMPONENT(Cmpt::RectLight),
+		    LOAD_COMPONENT(Cmpt::EnvironmentLight),
+		   /* {typeid(Cmpt::Transform).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::Transform>(std::make_unique<Cmpt::Transform>(node))->Load(archive); }},
 		    {typeid(Cmpt::PerspectiveCamera).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::PerspectiveCamera>(std::make_unique<Cmpt::PerspectiveCamera>(node))->Load(archive); }},
 		    {typeid(Cmpt::OrthographicCamera).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::OrthographicCamera>(std::make_unique<Cmpt::OrthographicCamera>(node))->Load(archive); }},
 		    {typeid(Cmpt::MeshRenderer).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::MeshRenderer>(std::make_unique<Cmpt::MeshRenderer>(node))->Load(archive); }},
@@ -179,7 +192,7 @@ void Scene::Load(InputArchive &archive)
 		    {typeid(Cmpt::SpotLight).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::SpotLight>(std::make_unique<Cmpt::SpotLight>(node))->Load(archive); }},
 		    {typeid(Cmpt::PointLight).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::PointLight>(std::make_unique<Cmpt::PointLight>(node))->Load(archive); }},
 		    {typeid(Cmpt::DirectionalLight).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::DirectionalLight>(std::make_unique<Cmpt::DirectionalLight>(node))->Load(archive); }},
-		    {typeid(Cmpt::RectLight).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::RectLight>(std::make_unique<Cmpt::RectLight>(node))->Load(archive); }},
+		    {typeid(Cmpt::RectLight).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::RectLight>(std::make_unique<Cmpt::RectLight>(node))->Load(archive); }},*/
 		};
 
 		size_t component_type_count = 0;

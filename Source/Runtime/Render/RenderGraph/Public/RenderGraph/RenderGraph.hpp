@@ -32,6 +32,8 @@ class  RenderGraphDesc
 
 	std::set<size_t> LinkTo(size_t source) const;
 
+	bool HasPass(size_t handle) const;
+
 	RenderPassDesc &GetPass(size_t handle);
 
 	const std::string &GetName() const;

@@ -344,7 +344,7 @@ void Buffer::Flush(size_t offset, size_t size)
 		range.size   = m_desc.size;
 		range.pNext  = nullptr;
 
-		vkFlushMappedMemoryRanges(static_cast<Device *>(p_device)->GetDevice(), 1, &range);
+		//vkFlushMappedMemoryRanges(static_cast<Device *>(p_device)->GetDevice(), 1, &range);
 	}
 }
 

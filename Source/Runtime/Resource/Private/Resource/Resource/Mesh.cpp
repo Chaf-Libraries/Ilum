@@ -183,6 +183,11 @@ std::vector<uint8_t> Resource<ResourceType::Mesh>::RenderPreview(RHIContext *rhi
 
 	    SERIALIZE("Asset/BuildIn/mesh.preview.asset", vertex_shader_spirv, fragment_shader_spirv, shader_meta);
 	}*/
+	bool has_thumbnail = (m_thumbnail != nullptr);
+	if (!m_thumbnail)
+	{
+		m_thumbnail = rhi_context->CreateTexture2D(128, 128, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::ShaderResource | RHITextureUsage::Transfer | RHITextureUsage::RenderTarget, false);
+	}
 
 	ShaderMeta           shader_meta;
 	std::vector<uint8_t> vertex_shader_spirv;
@@ -195,11 +200,6 @@ std::vector<uint8_t> Resource<ResourceType::Mesh>::RenderPreview(RHIContext *rhi
 	DepthStencilState depth_stencil_state  = {};
 	depth_stencil_state.depth_test_enable  = true;
 	depth_stencil_state.depth_write_enable = true;
-
-	if (!m_thumbnail)
-	{
-		m_thumbnail = rhi_context->CreateTexture2D(128, 128, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::ShaderResource | RHITextureUsage::Transfer | RHITextureUsage::RenderTarget, false);
-	}
 
 	auto depth_buffer    = rhi_context->CreateTexture2D(128, 128, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget, false);
 	auto uniform_buffer  = rhi_context->CreateBuffer<glm::mat4>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
@@ -239,7 +239,7 @@ std::vector<uint8_t> Resource<ResourceType::Mesh>::RenderPreview(RHIContext *rhi
 	auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Graphics);
 	cmd_buffer->Begin();
 	cmd_buffer->ResourceStateTransition({
-	                                        TextureStateTransition{m_thumbnail.get(), RHIResourceState::Undefined, RHIResourceState::RenderTarget},
+	                                        TextureStateTransition{m_thumbnail.get(), has_thumbnail ? RHIResourceState::ShaderResource : RHIResourceState::Undefined, RHIResourceState::RenderTarget},
 	                                        TextureStateTransition{depth_buffer.get(), RHIResourceState::Undefined, RHIResourceState::DepthWrite},
 	                                    },
 	                                    {});

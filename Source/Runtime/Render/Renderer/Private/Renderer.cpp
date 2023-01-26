@@ -11,6 +11,7 @@
 #include <Resource/Resource/Mesh.hpp>
 #include <Resource/Resource/SkinnedMesh.hpp>
 #include <Resource/Resource/Texture2D.hpp>
+#include <Resource/Resource/TextureCube.hpp>
 #include <Resource/ResourceManager.hpp>
 #include <Scene/Components/AllComponents.hpp>
 #include <Scene/Node.hpp>
@@ -34,7 +35,7 @@ struct Renderer::Impl
 
 	RHITexture *present_texture = nullptr;
 
-	std::unique_ptr<RenderGraph> render_graph = nullptr;
+	std::unique_ptr<RenderGraph> render_graph     = nullptr;
 	std::unique_ptr<RenderGraph> new_render_graph = nullptr;
 
 	RenderGraphBlackboard black_board;
@@ -274,6 +275,7 @@ void Renderer::UpdateGPUScene()
 	auto spot_lights        = m_impl->scene->GetComponents<Cmpt::SpotLight>();
 	auto directional_lights = m_impl->scene->GetComponents<Cmpt::DirectionalLight>();
 	auto rectangle_lights   = m_impl->scene->GetComponents<Cmpt::RectLight>();
+	auto environment_lights = m_impl->scene->GetComponents<Cmpt::EnvironmentLight>();
 
 	// Update Light
 	{
@@ -291,12 +293,12 @@ void Renderer::UpdateGPUScene()
 		uint32_t light_data_size = 0;
 
 #define COPY_LIGHT_DATA(Lights, Type)                                                             \
-	for (auto &light : Lights)                                                              \
+	for (auto &light : Lights)                                                                    \
 	{                                                                                             \
 		std::memcpy(light_data.data() + light_data_size, light->GetData(), light->GetDataSize()); \
 		light_info.push_back(Type);                                                               \
 		light_info.push_back(light_data_size);                                                    \
-		light_data_size += static_cast<uint32_t>(light->GetDataSize());                                                  \
+		light_data_size += static_cast<uint32_t>(light->GetDataSize());                           \
 	}
 
 		COPY_LIGHT_DATA(point_lights, 0);
@@ -317,7 +319,7 @@ void Renderer::UpdateGPUScene()
 		{
 			gpu_scene->light.light_buffer = m_impl->rhi_context->CreateBuffer(1, RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
 		}
-		
+
 		if (!light_info.empty())
 		{
 			if (!gpu_scene->light.light_info ||
@@ -330,6 +332,23 @@ void Renderer::UpdateGPUScene()
 		else
 		{
 			gpu_scene->light.light_info = m_impl->rhi_context->CreateBuffer<uint32_t>(1, RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+		}
+
+		if (environment_lights.empty())
+		{
+			gpu_scene->textures.texture_cube = nullptr;
+		}
+		else
+		{
+			auto resource = m_impl->resource_manager->Get<ResourceType::TextureCube>(static_cast<const char *>(environment_lights.back()->GetData()));
+			if (resource)
+			{
+				gpu_scene->textures.texture_cube = resource->GetTexture();
+			}
+			else
+			{
+				gpu_scene->textures.texture_cube = nullptr;
+			}
 		}
 	}
 
@@ -547,7 +566,7 @@ void Renderer::UpdateGPUScene()
 	}
 
 	// Update Material
-	if (m_impl->resource_manager->Update<ResourceType::Material>()||
+	if (m_impl->resource_manager->Update<ResourceType::Material>() ||
 	    m_impl->resource_manager->Update<ResourceType::Texture2D>())
 	{
 		Component::Update(true);

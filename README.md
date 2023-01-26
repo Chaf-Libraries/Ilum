@@ -227,13 +227,21 @@ class MyRenderPass : public RenderPass<MyRenderPass>
 CONFIGURATION_PASS(MyRenderPass)
 ```
 
-
-
 #### Add new material node
 
 #### Add new importer
 
 #### Add new editor widget
+
+## Gallery
+
+### Editor
+
+
+
+### Demo
+
+
 
 ## Dependencies
 

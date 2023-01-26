@@ -80,6 +80,7 @@ struct View
     float4x4 projection_matrix;
     float4x4 inv_projection_matrix;
     float4x4 view_projection_matrix;
+    float4x4 inv_view_projection_matrix;
     float3 position;
     uint frame_count;
     float2 viewport;

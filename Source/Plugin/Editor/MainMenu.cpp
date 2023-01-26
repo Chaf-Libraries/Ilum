@@ -58,6 +58,13 @@ class MainMenu : public Widget
 						node->AddComponent(std::make_unique<Cmpt::RectLight>(node));
 					}
 
+					if (ImGui::MenuItem("Environment Light"))
+					{
+						auto *node = p_editor->GetRenderer()->GetScene()->CreateNode("Environment Light");
+						node->AddComponent(std::make_unique<Cmpt::Transform>(node));
+						node->AddComponent(std::make_unique<Cmpt::EnvironmentLight>(node));
+					}
+
 					ImGui::EndMenu();
 				}
 

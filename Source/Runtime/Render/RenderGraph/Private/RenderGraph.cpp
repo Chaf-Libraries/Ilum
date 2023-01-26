@@ -111,6 +111,11 @@ std::set<size_t> RenderGraphDesc::LinkTo(size_t source) const
 	return result;
 }
 
+bool RenderGraphDesc::HasPass(size_t handle) const
+{
+	return m_passes.find(handle) != m_passes.end();
+}
+
 RenderPassDesc &RenderGraphDesc::GetPass(size_t handle)
 {
 	return m_passes.at(m_pass_lookup.at(handle));
@@ -221,7 +226,7 @@ void RenderGraph::Execute(RenderGraphBlackboard &black_board)
 
 	// Collect cmd buffers
 	std::vector<RHICommand *> cmd_buffers;
-	for (auto& pass : m_impl->render_passes)
+	for (auto &pass : m_impl->render_passes)
 	{
 		if (pass.bind_point == BindPoint::CUDA)
 		{
@@ -261,8 +266,8 @@ void RenderGraph::Execute(RenderGraphBlackboard &black_board)
 
 	if (!cmd_buffers.empty())
 	{
-		RHIQueueFamily last_queue_family = cmd_buffers[0]->GetQueueFamily();
-		std::string    last_backend      = cmd_buffers[0]->GetBackend();
+		RHIQueueFamily            last_queue_family = cmd_buffers[0]->GetQueueFamily();
+		std::string               last_backend      = cmd_buffers[0]->GetBackend();
 		RHISemaphore             *last_semaphore    = nullptr;
 		std::vector<RHICommand *> submit_cmd_buffers;
 		for (auto *cmd_buffer : cmd_buffers)
