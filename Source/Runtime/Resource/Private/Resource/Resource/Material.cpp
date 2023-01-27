@@ -212,6 +212,7 @@ std::vector<uint8_t> Resource<ResourceType::Material>::RenderPreview(RHIContext 
 	shader_source += "\n";
 
 	ShaderDesc vertex_shader_desc  = {};
+	vertex_shader_desc.path        = "./Source/Shaders/Preview/Material.hlsl";
 	vertex_shader_desc.entry_point = "VSmain";
 	vertex_shader_desc.stage       = RHIShaderStage::Vertex;
 	vertex_shader_desc.source      = ShaderSource::HLSL;
@@ -220,6 +221,7 @@ std::vector<uint8_t> Resource<ResourceType::Material>::RenderPreview(RHIContext 
 	vertex_shader_desc.macros      = {"USE_MATERIAL", m_impl->data.signature};
 
 	ShaderDesc fragment_shader_desc  = {};
+	fragment_shader_desc.path        = "./Source/Shaders/Preview/Material.hlsl";
 	fragment_shader_desc.entry_point = "PSmain";
 	fragment_shader_desc.stage       = RHIShaderStage::Fragment;
 	fragment_shader_desc.source      = ShaderSource::HLSL;

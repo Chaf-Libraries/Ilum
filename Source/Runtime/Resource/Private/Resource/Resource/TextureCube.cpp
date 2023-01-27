@@ -49,6 +49,7 @@ Resource<ResourceType::TextureCube>::Resource(RHIContext *rhi_context, std::vect
 	shader_source += "\n";
 
 	ShaderDesc vertex_shader_desc  = {};
+	vertex_shader_desc.path = "./Source/Shaders/PreProcess/EquirectangularToCubemap.hlsl";
 	vertex_shader_desc.entry_point = "VSmain";
 	vertex_shader_desc.stage       = RHIShaderStage::Vertex;
 	vertex_shader_desc.source      = ShaderSource::HLSL;
@@ -56,6 +57,7 @@ Resource<ResourceType::TextureCube>::Resource(RHIContext *rhi_context, std::vect
 	vertex_shader_desc.code        = shader_source;
 
 	ShaderDesc fragment_shader_desc  = {};
+	fragment_shader_desc.path = "./Source/Shaders/PreProcess/EquirectangularToCubemap.hlsl";
 	fragment_shader_desc.entry_point = "PSmain";
 	fragment_shader_desc.stage       = RHIShaderStage::Fragment;
 	fragment_shader_desc.source      = ShaderSource::HLSL;

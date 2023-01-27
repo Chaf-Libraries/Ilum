@@ -150,6 +150,7 @@ std::vector<uint8_t> Resource<ResourceType::SkinnedMesh>::RenderPreview(RHIConte
 	    shader_source += "\n";
 
 	    ShaderDesc vertex_shader_desc  = {};
+		vertex_shader_desc.path="./Source/Shaders/Preview/Mesh.hlsl";
 	    vertex_shader_desc.entry_point = "VSmain";
 	    vertex_shader_desc.stage       = RHIShaderStage::Vertex;
 	    vertex_shader_desc.source      = ShaderSource::HLSL;
@@ -157,6 +158,7 @@ std::vector<uint8_t> Resource<ResourceType::SkinnedMesh>::RenderPreview(RHIConte
 	    vertex_shader_desc.code        = shader_source;
 
 	    ShaderDesc fragment_shader_desc  = {};
+	    fragment_shader_desc.path="./Source/Shaders/Preview/Mesh.hlsl";
 	    fragment_shader_desc.entry_point = "PSmain";
 	    fragment_shader_desc.stage       = RHIShaderStage::Fragment;
 	    fragment_shader_desc.source      = ShaderSource::HLSL;

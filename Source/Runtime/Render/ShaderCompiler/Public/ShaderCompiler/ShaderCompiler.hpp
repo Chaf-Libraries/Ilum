@@ -22,15 +22,17 @@ enum class ShaderTarget
 
 struct ShaderDesc
 {
-	std::string              code;
-	ShaderSource             source;
-	ShaderTarget             target;
-	RHIShaderStage           stage;
-	std::string              entry_point;
+	std::string    code;
+	std::string    path;
+	ShaderSource   source;
+	ShaderTarget   target;
+	RHIShaderStage stage;
+	std::string    entry_point;
+
 	std::vector<std::string> macros = {};
 };
 
-class  ShaderCompiler
+class ShaderCompiler
 {
   public:
 	ShaderCompiler();

@@ -69,6 +69,7 @@ RHIShader *ShaderBuilder::RequireShader(const std::string &filename, const std::
 		Path::GetInstance().Read(filename, shader_code);
 
 		ShaderDesc desc = {};
+		desc.path       = filename;
 		desc.code.resize(shader_code.size());
 		std::memcpy(desc.code.data(), shader_code.data(), shader_code.size());
 		for (auto &include : includes)

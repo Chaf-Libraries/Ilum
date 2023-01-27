@@ -227,30 +227,30 @@ inline EShLanguage GetShaderLanguage(RHIShaderStage stage)
 }
 
 template <ShaderSource Src, ShaderTarget Tar>
-inline std::vector<uint8_t> CompileShader(ShaderCompiler::Impl *impl, const std::string &code, RHIShaderStage stage, const std::string &entry_point, const std::vector<std::string> &macros)
+inline std::vector<uint8_t> CompileShader(ShaderCompiler::Impl *impl, const ShaderDesc &desc)
 {
 	return {};
 }
 
 template <>
-std::vector<uint8_t> CompileShader<ShaderSource::GLSL, ShaderTarget::SPIRV>(ShaderCompiler::Impl *impl, const std::string &code, RHIShaderStage stage, const std::string &entry_point, const std::vector<std::string> &macros)
+std::vector<uint8_t> CompileShader<ShaderSource::GLSL, ShaderTarget::SPIRV>(ShaderCompiler::Impl *impl, const ShaderDesc &desc)
 {
 	EShMessages msgs = static_cast<EShMessages>(EShMsgDefault | EShMsgVulkanRules | EShMsgSpvRules);
 
-	EShLanguage lang = GetShaderLanguage(stage);
+	EShLanguage lang = GetShaderLanguage(desc.stage);
 
 	std::string info_log = "";
 
 	const char *file_name_list[1] = {""};
-	const char *shader_source     = reinterpret_cast<const char *>(code.data());
+	const char *shader_source     = reinterpret_cast<const char *>(desc.code.data());
 
 	glslang::TShader shader(lang);
 	shader.setStringsWithLengthsAndNames(&shader_source, nullptr, file_name_list, 1);
-	shader.setEntryPoint(entry_point.c_str());
-	shader.setSourceEntryPoint(entry_point.c_str());
+	shader.setEntryPoint(desc.entry_point.c_str());
+	shader.setSourceEntryPoint(desc.entry_point.c_str());
 	shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_5);
 	shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_3);
-	for (const auto &macro : macros)
+	for (const auto &macro : desc.macros)
 	{
 		shader.setPreamble(macro.c_str());
 	}
@@ -307,12 +307,12 @@ std::vector<uint8_t> CompileShader<ShaderSource::GLSL, ShaderTarget::SPIRV>(Shad
 }
 
 template <>
-std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(ShaderCompiler::Impl *impl, const std::string &code, RHIShaderStage stage, const std::string &entry_point, const std::vector<std::string> &macros)
+std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(ShaderCompiler::Impl *impl, const ShaderDesc &desc)
 {
 	DxcBuffer                dxc_buffer    = {};
 	ComPtr<IDxcBlobEncoding> blob_encoding = nullptr;
 
-	std::string shader_code = std::string(code.c_str());
+	std::string shader_code = std::string(desc.code.c_str());
 
 	{
 		if (FAILED(impl->DXCUtils->CreateBlobFromPinned(shader_code.data(), static_cast<uint32_t>(shader_code.size()), CP_UTF8, &blob_encoding)))
@@ -330,15 +330,17 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(Shad
 
 	// Compile arguments
 	arguments.emplace_back(L"-E");
-	arguments.emplace_back(to_wstring(entry_point));
+	arguments.emplace_back(to_wstring(desc.entry_point));
 	arguments.emplace_back(L"-T");
-	arguments.emplace_back(to_wstring(GetTargetProfile(stage)));
+	arguments.emplace_back(to_wstring(GetTargetProfile(desc.stage)));
 	arguments.emplace_back(L"-I");
 	arguments.emplace_back(to_wstring(Path::GetInstance().GetCurrent() + "/Source/Shaders"));
 	arguments.emplace_back(L"-I");
 	arguments.emplace_back(to_wstring(Path::GetInstance().GetCurrent() + "/Asset/Material"));
 	arguments.emplace_back(L"-I");
 	arguments.emplace_back(to_wstring(Path::GetInstance().GetCurrent()));
+	arguments.emplace_back(L"-I");
+	arguments.emplace_back(to_wstring(Path::GetInstance().GetCurrent() + "/" + Path::GetInstance().GetFileDirectory(desc.path)));
 	arguments.emplace_back(L"-HV 2021");
 	arguments.emplace_back(to_wstring("-DRUNTIME"));
 	arguments.emplace_back(L"-spirv");
@@ -352,7 +354,7 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(Shad
 	arguments.emplace_back(L"-fspv-extension=SPV_AMD_shader_explicit_vertex_parameter");
 	arguments.emplace_back(L"-disable-payload-qualifiers");
 
-	for (const auto &macro : macros)
+	for (const auto &macro : desc.macros)
 	{
 		arguments.emplace_back(to_wstring(std::string("-D") + macro));
 	}
@@ -439,12 +441,12 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(Shad
 }
 
 template <>
-std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::DXIL>(ShaderCompiler::Impl *impl, const std::string &code, RHIShaderStage stage, const std::string &entry_point, const std::vector<std::string> &macros)
+std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::DXIL>(ShaderCompiler::Impl *impl, const ShaderDesc &desc)
 {
 	DxcBuffer                dxc_buffer    = {};
 	ComPtr<IDxcBlobEncoding> blob_encoding = nullptr;
 
-	std::string shader_code = std::string(code.c_str());
+	std::string shader_code = std::string(desc.code.c_str());
 
 	{
 		if (FAILED(impl->DXCUtils->CreateBlobFromPinned(shader_code.c_str(), static_cast<uint32_t>(shader_code.size()), CP_UTF8, &blob_encoding)))
@@ -462,13 +464,13 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::DXIL>(Shade
 
 	// Compile arguments
 	arguments.emplace_back(L"-E");
-	arguments.emplace_back(to_wstring(entry_point));
+	arguments.emplace_back(to_wstring(desc.entry_point));
 	arguments.emplace_back(L"-T");
-	arguments.emplace_back(to_wstring(GetTargetProfile(stage)));
+	arguments.emplace_back(to_wstring(GetTargetProfile(desc.stage)));
 	arguments.emplace_back(L"-I");
 	arguments.emplace_back(to_wstring(Path::GetInstance().GetCurrent() + "/Source/Shaders"));
 
-	for (const auto &macro : macros)
+	for (const auto &macro : desc.macros)
 	{
 		arguments.emplace_back(to_wstring(std::string("-D") + macro));
 	}
@@ -555,15 +557,15 @@ std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::DXIL>(Shade
 }
 
 template <>
-std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::PTX>(ShaderCompiler::Impl *impl, const std::string &code, RHIShaderStage stage, const std::string &entry_point, const std::vector<std::string> &macros)
+std::vector<uint8_t> CompileShader<ShaderSource::HLSL, ShaderTarget::PTX>(ShaderCompiler::Impl *impl, const ShaderDesc &desc)
 {
 	SlangCompileRequest *request = spCreateCompileRequest(impl->Session);
 
 	spSetCodeGenTarget(request, SLANG_PTX);
 
 	int translationUnitIndex = spAddTranslationUnit(request, SLANG_SOURCE_LANGUAGE_SLANG, "");
-	spAddTranslationUnitSourceString(request, translationUnitIndex, nullptr, std::string(code.c_str()).c_str());
-	int entryPointIndex = spAddEntryPoint(request, translationUnitIndex, entry_point.c_str(), SLANG_STAGE_COMPUTE);
+	spAddTranslationUnitSourceString(request, translationUnitIndex, nullptr, std::string(desc.code.c_str()).c_str());
+	int entryPointIndex = spAddEntryPoint(request, translationUnitIndex, desc.entry_point.c_str(), SLANG_STAGE_COMPUTE);
 
 	int anyErrors = spCompile(request);
 
@@ -611,8 +613,8 @@ ShaderCompiler::ShaderCompiler()
 	// Init dxc
 	PluginManager::GetInstance().Call("Source/External/dxc/bin/x64/dxcompiler.dll", "DxcCreateInstance", CLSID_DxcUtils, IID_PPV_ARGS(&m_impl->DXCUtils));
 	PluginManager::GetInstance().Call("Source/External/dxc/bin/x64/dxcompiler.dll", "DxcCreateInstance", CLSID_DxcCompiler, IID_PPV_ARGS(&m_impl->DXCCompiler));
-	//DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&m_impl->DXCUtils));
-	//DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&m_impl->DXCCompiler));
+	// DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&m_impl->DXCUtils));
+	// DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&m_impl->DXCCompiler));
 
 	m_impl->DXCUtils->CreateDefaultIncludeHandler(&m_impl->DefaultIncludeHandler);
 
@@ -649,11 +651,11 @@ std::vector<uint8_t> ShaderCompiler::Compile(const ShaderDesc &desc, ShaderMeta 
 
 	if (desc.source == ShaderSource::GLSL)
 	{
-		spirv = CompileShader<ShaderSource::GLSL, ShaderTarget::SPIRV>(m_impl, desc.code, desc.stage, desc.entry_point, desc.macros);
+		spirv = CompileShader<ShaderSource::GLSL, ShaderTarget::SPIRV>(m_impl, desc);
 	}
 	else if (desc.source == ShaderSource::HLSL)
 	{
-		spirv = CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(m_impl, desc.code, desc.stage, desc.entry_point, desc.macros);
+		spirv = CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(m_impl, desc);
 	}
 
 	meta = SpirvReflection::GetInstance().Reflect(spirv);
@@ -666,18 +668,18 @@ std::vector<uint8_t> ShaderCompiler::Compile(const ShaderDesc &desc, ShaderMeta 
 	{
 		if (desc.source == ShaderSource::GLSL)
 		{
-			return CompileShader<ShaderSource::GLSL, ShaderTarget::DXIL>(m_impl, desc.code, desc.stage, desc.entry_point, desc.macros);
+			return CompileShader<ShaderSource::GLSL, ShaderTarget::DXIL>(m_impl, desc);
 		}
 		else
 		{
-			return CompileShader<ShaderSource::HLSL, ShaderTarget::DXIL>(m_impl, desc.code, desc.stage, desc.entry_point, desc.macros);
+			return CompileShader<ShaderSource::HLSL, ShaderTarget::DXIL>(m_impl, desc);
 		}
 	}
 	else if (desc.target == ShaderTarget::PTX)
 	{
 		if (desc.source == ShaderSource::GLSL)
 		{
-			return CompileShader<ShaderSource::GLSL, ShaderTarget::PTX>(m_impl, desc.code, desc.stage, desc.entry_point, desc.macros);
+			return CompileShader<ShaderSource::GLSL, ShaderTarget::PTX>(m_impl, desc);
 		}
 		else
 		{
@@ -706,7 +708,9 @@ std::vector<uint8_t> ShaderCompiler::Compile(const ShaderDesc &desc, ShaderMeta 
 				// Order may change, so re-reflect it
 				ShaderMeta before_meta = std::move(meta);
 
-				meta = SpirvReflection::GetInstance().Reflect(CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(m_impl, hlsl, desc.stage, desc.entry_point, desc.macros));
+				ShaderDesc hlsl_desc = desc;
+				hlsl_desc.code       = hlsl;
+				meta                 = SpirvReflection::GetInstance().Reflect(CompileShader<ShaderSource::HLSL, ShaderTarget::SPIRV>(m_impl, hlsl_desc));
 
 				// Fix name
 				for (auto &descriptor : meta.descriptors)
@@ -722,7 +726,9 @@ std::vector<uint8_t> ShaderCompiler::Compile(const ShaderDesc &desc, ShaderMeta 
 				}
 			}
 
-			return CompileShader<ShaderSource::HLSL, ShaderTarget::PTX>(m_impl, hlsl, desc.stage, desc.entry_point, desc.macros);
+			ShaderDesc hlsl_desc = desc;
+			hlsl_desc.code       = hlsl;
+			return CompileShader<ShaderSource::HLSL, ShaderTarget::PTX>(m_impl, hlsl_desc);
 		}
 	}
 
