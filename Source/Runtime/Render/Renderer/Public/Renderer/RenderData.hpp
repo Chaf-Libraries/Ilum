@@ -17,6 +17,7 @@ struct View
 {
 	struct Info
 	{
+		glm::vec4 frustum[6];
 		glm::mat4 view_matrix;
 		glm::mat4 inv_view_matrix;
 		glm::mat4 projection_matrix;

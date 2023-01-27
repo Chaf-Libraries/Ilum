@@ -22,7 +22,7 @@ target_end()
 
 target("Shader")
     add_rules("shader", "empty")
-    add_files("Shaders/**.hlsl")
+    add_headerfiles("Shaders/**.hlsl")
     add_headerfiles("Shaders/**.hlsli")
 target_end()
 

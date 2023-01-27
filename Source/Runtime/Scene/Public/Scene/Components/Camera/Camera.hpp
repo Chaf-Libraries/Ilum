@@ -47,6 +47,8 @@ class Camera : public Component
 
 	glm::mat4 GetInvViewProjectionMatrix();
 
+	const std::array<glm::vec4, 6> &GetFrustumPlanes();
+
   protected:
 	virtual void UpdateProjection() = 0;
 
@@ -56,6 +58,8 @@ class Camera : public Component
 	float m_aspect = 1.f;
 	float m_near   = 0.01f;
 	float m_far    = 1000.f;
+
+	std::array<glm::vec4, 6> m_frustum_planes;
 
 	glm::mat4 m_view                = glm::mat4(1.f);
 	glm::mat4 m_inv_view            = glm::mat4(1.f);

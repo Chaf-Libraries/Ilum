@@ -31,14 +31,15 @@ struct Meshlet
 {
     float3 center;
     float radius;
-    
-    float3 cone_axis;
-    float cone_cutoff;
 
     uint data_offset;
     uint vertex_offset;
     uint vertex_count;
     uint triangle_count;
+    
+    float3 cone_axis;
+    float cone_cutoff;
+    float3 cone_apex;
 };
 
 struct Instance
@@ -70,11 +71,12 @@ struct RayDiff
 
         dOdx = dodx;
         dOdy = dody;
-    } 
+    }
 };
 
 struct View
 {
+    float4 frustum[6];
     float4x4 view_matrix;
     float4x4 inv_view_matrix;
     float4x4 projection_matrix;
@@ -85,9 +87,41 @@ struct View
     uint frame_count;
     float2 viewport;
     
+    bool IsInsideFrustum(Meshlet meshlet, float4x4 model)
+    {
+        float sx = length(float3(model[0][0], model[0][1], model[0][2]));
+        float sy = length(float3(model[1][0], model[1][1], model[1][2]));
+        float sz = length(float3(model[2][0], model[2][1], model[2][2]));
+        
+        float3 radius = meshlet.radius * float3(sx, sy, sz);
+        float3 center = mul(model, float4(meshlet.center, 1.0)).xyz;
+        
+        // Frustum Culling
+        for (uint i = 0; i < 6; i++)
+        {
+            if (dot(frustum[i], float4(center, 1)) + length(radius) < 0.0)
+            {
+                return false;
+            }
+        }
+        
+        // Cone Culling
+        float3 cone_apex = mul(model, float4(meshlet.cone_apex, 1.0)).xyz;
+        
+        float3x3 rotation = float3x3(
+            model[0].xyz / sx,
+            model[1].xyz / sy,
+            model[2].xyz / sz
+        );
+
+        float3 cone_axis = mul(rotation, meshlet.cone_axis);
+        float result = dot(normalize(cone_apex - position), cone_axis);
+        return result < meshlet.cone_cutoff || result > 0.f;
+    }
+    
     void CastRay(float2 scene_uv, float2 frame_dim, out RayDesc ray, out RayDiff ray_diff)
     {
-        float yaw =atan2(-view_matrix[2][2], -view_matrix[0][2]);
+        float yaw = atan2(-view_matrix[2][2], -view_matrix[0][2]);
         float pitch = asin(-clamp(view_matrix[1][2], -1.f, 1.f));
         float3 forward = normalize(float3(cos(yaw) * cos(pitch), sin(pitch), sin(yaw) * cos(pitch)));
         float3 right = normalize(cross(forward, float3(0, 1, 0)));

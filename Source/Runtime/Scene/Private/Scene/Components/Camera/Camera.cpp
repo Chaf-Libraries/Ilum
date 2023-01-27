@@ -79,6 +79,55 @@ glm::mat4 Camera::GetInvViewProjectionMatrix()
 	return GetInvViewMatrix() * GetInvProjectionMatrix();
 }
 
+const std::array<glm::vec4, 6> &Camera::GetFrustumPlanes()
+{
+	glm::mat4 view_projection = GetViewProjectionMatrix();
+
+	// Left
+	m_frustum_planes[0].x = view_projection[0].w + view_projection[0].x;
+	m_frustum_planes[0].y = view_projection[1].w + view_projection[1].x;
+	m_frustum_planes[0].z = view_projection[2].w + view_projection[2].x;
+	m_frustum_planes[0].w = view_projection[3].w + view_projection[3].x;
+
+	// Right
+	m_frustum_planes[1].x = view_projection[0].w - view_projection[0].x;
+	m_frustum_planes[1].y = view_projection[1].w - view_projection[1].x;
+	m_frustum_planes[1].z = view_projection[2].w - view_projection[2].x;
+	m_frustum_planes[1].w = view_projection[3].w - view_projection[3].x;
+
+	// Top
+	m_frustum_planes[2].x = view_projection[0].w - view_projection[0].y;
+	m_frustum_planes[2].y = view_projection[1].w - view_projection[1].y;
+	m_frustum_planes[2].z = view_projection[2].w - view_projection[2].y;
+	m_frustum_planes[2].w = view_projection[3].w - view_projection[3].y;
+
+	// Bottom
+	m_frustum_planes[3].x = view_projection[0].w + view_projection[0].y;
+	m_frustum_planes[3].y = view_projection[1].w + view_projection[1].y;
+	m_frustum_planes[3].z = view_projection[2].w + view_projection[2].y;
+	m_frustum_planes[3].w = view_projection[3].w + view_projection[3].y;
+
+	// Near
+	m_frustum_planes[4].x = view_projection[0].w + view_projection[0].z;
+	m_frustum_planes[4].y = view_projection[1].w + view_projection[1].z;
+	m_frustum_planes[4].z = view_projection[2].w + view_projection[2].z;
+	m_frustum_planes[4].w = view_projection[3].w + view_projection[3].z;
+
+	// Far
+	m_frustum_planes[5].x = view_projection[0].w - view_projection[0].z;
+	m_frustum_planes[5].y = view_projection[1].w - view_projection[1].z;
+	m_frustum_planes[5].z = view_projection[2].w - view_projection[2].z;
+	m_frustum_planes[5].w = view_projection[3].w - view_projection[3].z;
+
+	for (auto &plane : m_frustum_planes)
+	{
+		float length = glm::length(glm::vec3(plane.x, plane.y, plane.z));
+		plane /= length;
+	}
+
+	return m_frustum_planes;
+}
+
 void Camera::UpdateView()
 {
 	if (m_inv_view != p_node->GetComponent<Cmpt::Transform>()->GetWorldTransform())

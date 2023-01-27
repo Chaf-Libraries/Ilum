@@ -72,6 +72,11 @@ float OrthographicCamera::GetOffsetY() const
 
 void OrthographicCamera::UpdateProjection()
 {
+	if (!m_update)
+	{
+		return;
+	}
+
 	auto *transform = p_node->GetComponent<Cmpt::Transform>();
 
 	float left   = m_offset_x - m_scale * m_aspect * 0.5f;

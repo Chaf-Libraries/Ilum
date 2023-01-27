@@ -271,10 +271,10 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			tmp_meshlet.vertex_offset  = meshlet.vertex_offset;
 			tmp_meshlet.center         = glm::vec3(bounds.center[0], bounds.center[1], bounds.center[2]);
 			tmp_meshlet.radius         = bounds.radius;
-			tmp_meshlet.cone_axis[0]   = bounds.cone_axis[0];
-			tmp_meshlet.cone_axis[1]   = bounds.cone_axis[1];
-			tmp_meshlet.cone_axis[2]   = bounds.cone_axis[2];
 			tmp_meshlet.cone_cutoff    = bounds.cone_cutoff;
+
+			std::memcpy(&tmp_meshlet.cone_axis, bounds.cone_axis, sizeof(glm::vec3));
+			std::memcpy(&tmp_meshlet.cone_apex, bounds.cone_apex, sizeof(glm::vec3));
 
 			meshlet_info.meshlets.push_back(tmp_meshlet);
 		}

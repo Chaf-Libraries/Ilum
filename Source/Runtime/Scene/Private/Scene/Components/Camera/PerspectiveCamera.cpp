@@ -53,6 +53,11 @@ float PerspectiveCamera::GetFov() const
 
 void PerspectiveCamera::UpdateProjection()
 {
+	if (!m_update)
+	{
+		return;
+	}
+
 	auto *transform = p_node->GetComponent<Cmpt::Transform>();
 
 	m_projection     = glm::perspective(glm::radians(m_fov), m_aspect, m_near, m_far);

@@ -214,6 +214,8 @@ void Renderer::UpdateView(Cmpt::Camera *camera)
 
 		View::Info view_info = {};
 
+		std::memcpy(view_info.frustum, camera->GetFrustumPlanes().data(), sizeof(glm::vec4) * 6);
+
 		view_info.position                   = camera->GetNode()->GetComponent<Cmpt::Transform>()->GetWorldTransform()[3];
 		view_info.projection_matrix          = camera->GetProjectionMatrix();
 		view_info.view_matrix                = camera->GetViewMatrix();
@@ -246,21 +248,6 @@ ShaderMeta Renderer::RequireShaderMeta(RHIShader *shader) const
 {
 	return m_impl->shader_builder->RequireShaderMeta(shader);
 }
-
-// RHIShader *Renderer::RequireMaterialShader(MaterialGraph *material_graph, const std::string &filename, const std::string &entry_point, RHIShaderStage stage, std::vector<std::string> &&macros, std::vector<std::string> &&includes)
-//{
-//	size_t material_hash = Hash(material_graph->GetDesc().name);
-//	if (!Path::GetInstance().IsExist("bin/Materials/" + std::to_string(material_hash) + ".hlsli") || material_graph->Update())
-//	{
-//		MaterialGraphBuilder builder(m_impl->rhi_context);
-//		builder.Compile(material_graph);
-//	}
-//
-//	macros.push_back("MATERIAL_COMPILATION");
-//	includes.push_back("bin/Materials/" + std::to_string(material_hash) + ".hlsli");
-//
-//	return RequireShader(filename, entry_point, stage, std::move(macros), std::move(includes), false, material_graph->Update());
-// }
 
 void Renderer::UpdateGPUScene()
 {
