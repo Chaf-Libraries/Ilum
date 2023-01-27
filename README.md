@@ -229,9 +229,21 @@ CONFIGURATION_PASS(MyRenderPass)
 
 #### Add new material node
 
+```c++
+
+```
+
 #### Add new importer
 
+```c++
+
+```
+
 #### Add new editor widget
+
+```c++
+
+```
 
 ## Gallery
 
