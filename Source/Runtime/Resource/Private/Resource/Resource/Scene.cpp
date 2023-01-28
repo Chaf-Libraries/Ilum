@@ -33,7 +33,10 @@ void Resource<ResourceType::Scene>::Save(RHIContext *rhi_context, Scene *scene)
 {
 	std::vector<uint8_t> thumbnail_data;
 	DESERIALIZE("Asset/BuildIn/scene.icon.asset", thumbnail_data);
-	UpdateThumbnail(rhi_context, thumbnail_data);
+	if (!m_thumbnail)
+	{
+		UpdateThumbnail(rhi_context, thumbnail_data);
+	}
 
 	{
 		std::ofstream os(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Scene), std::ios::binary);

@@ -107,8 +107,11 @@ class PathTracing : public RenderPass<PathTracing>
 				    .BindSampler("Samplers", gpu_scene->samplers)
 				    .BindBuffer("MaterialOffsets", gpu_scene->material.material_offset.get())
 				    .BindBuffer("MaterialBuffer", gpu_scene->material.material_buffer.get())
-				    .BindBuffer("LightBuffer", gpu_scene->light.light_buffer.get())
-				    .BindBuffer("LightInfo", gpu_scene->light.light_info.get());
+				    .BindBuffer("PointLightBuffer", gpu_scene->light.point_light_buffer.get())
+				    .BindBuffer("SpotLightBuffer", gpu_scene->light.spot_light_buffer.get())
+				    .BindBuffer("DirectionalLightBuffer", gpu_scene->light.directional_light_buffer.get())
+				    .BindBuffer("RectLightBuffer", gpu_scene->light.rect_light_buffer.get())
+				    .BindBuffer("LightInfoBuffer", gpu_scene->light.light_info_buffer.get());
 
 				if (gpu_scene->textures.texture_cube)
 				{

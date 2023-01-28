@@ -25,7 +25,7 @@ class VisibilityBufferVisualization : public RenderPass<VisibilityBufferVisualiz
 	{
 		ShaderMeta meta;
 
-		auto *shader = renderer->RequireShader("Source/Shaders/VisibilityBufferVisualization.hlsl", "CSmain", RHIShaderStage::Compute);
+		auto *shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityBufferVisualization.hlsl", "CSmain", RHIShaderStage::Compute);
 		meta += renderer->RequireShaderMeta(shader);
 
 		std::shared_ptr<RHIPipelineState> pipeline_state = std::move(renderer->GetRHIContext()->CreatePipelineState());

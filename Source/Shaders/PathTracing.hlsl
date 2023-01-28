@@ -19,6 +19,11 @@ StructuredBuffer<Vertex> VertexBuffer[];
 StructuredBuffer<uint> IndexBuffer[];
 ConstantBuffer<View> ViewBuffer;
 ConstantBuffer<Config> ConfigBuffer;
+StructuredBuffer<PointLight> PointLightBuffer;
+StructuredBuffer<SpotLight> SpotLightBuffer;
+StructuredBuffer<DirectionalLight> DirectionalLightBuffer;
+StructuredBuffer<RectLight> RectLightBuffer;
+ConstantBuffer<LightInfo> LightInfoBuffer;
 RWTexture2D<float4> Output;
 
 #ifndef RAYTRACING_PIPELINE
@@ -27,8 +32,6 @@ RWTexture2D<float4> Output;
 #define MISS_SHADER
 #include "Material/Material.hlsli"
 #endif
-
-#define USE_SKYBOX
 
 #ifdef USE_SKYBOX
 TextureCube<float4> Skybox;
@@ -46,7 +49,7 @@ struct PayLoad
     float3 wi;
     float pdf;
     float eta;
-    float4 radiance;
+    float3 radiance;
     float3 throughout;
     bool terminate;
     bool visible;
@@ -58,6 +61,92 @@ struct PayLoad
         eta = 1.f;
         throughout = 1.f;
         terminate = false;
+    }
+};
+
+struct Light
+{
+    PointLight point_light;
+    SpotLight spot_light;
+    DirectionalLight directional_light;
+    RectLight rect_light;
+    uint light_type;
+    
+    void Init(uint light_id)
+    {
+        uint point_light_offset = 0;
+        uint spot_light_offset = LightInfoBuffer.point_light_count;
+        uint directional_light_offset = spot_light_offset + LightInfoBuffer.spot_light_count;
+        uint rectangle_light_offset = directional_light_offset + LightInfoBuffer.directional_light_count;
+        uint light_count = rectangle_light_offset + LightInfoBuffer.rect_light_count;
+        
+        if (light_id < spot_light_offset)
+        {
+            light_type = POINT_LIGHT;
+            point_light = PointLightBuffer[light_id];
+            return;
+        }
+        else if (light_id < directional_light_offset)
+        {
+            light_type = SPOT_LIGHT;
+            spot_light = SpotLightBuffer[light_id - spot_light_offset];
+            return;
+        }
+        else if (light_id < rectangle_light_offset)
+        {
+            light_type = DIRECTIONAL_LIGHT;
+            directional_light = DirectionalLightBuffer[light_id - directional_light_offset];
+            return;
+        }
+        else if (light_id < light_count)
+        {
+            light_type = RECT_LIGHT;
+            point_light = PointLightBuffer[light_id - rectangle_light_offset];
+            return;
+        }
+    }
+    
+    LightLiSample SampleLi(LightSampleContext ctx, float2 u)
+    {
+        switch (light_type)
+        {
+            case POINT_LIGHT:
+                return point_light.SampleLi(ctx, u);
+            case SPOT_LIGHT:
+                return spot_light.SampleLi(ctx, u);
+        }
+        
+        LightLiSample light_sample;
+        return light_sample;
+    }
+
+    float PDF_Li(LightSampleContext ctx, float3 wi)
+    {
+        switch (light_type)
+        {
+            case POINT_LIGHT:
+                return point_light.PDF_Li(ctx, wi);
+            case SPOT_LIGHT:
+                return spot_light.PDF_Li(ctx, wi);
+        }
+        
+        return 0;
+    }
+    
+    bool IsDelta()
+    {
+        switch (light_type)
+        {
+            case POINT_LIGHT:
+                return point_light.IsDelta();
+            case SPOT_LIGHT:
+                return spot_light.IsDelta();
+            case DIRECTIONAL_LIGHT:
+                return directional_light.IsDelta();
+            case RECT_LIGHT:
+                return rect_light.IsDelta();
+        }
+        return false;
     }
 };
 
@@ -134,8 +223,10 @@ void RayGenMain()
             // See:  https://arxiv.org/pdf/1901.05423.pdf
             float pdf = 1.0;
             float3 wi = normalize(ray.Direction);
-            pay_load.radiance = float4(Skybox.SampleLevel(SkyboxSampler, wi, 0.0).rgb * pay_load.throughout, 1.0);
+            pay_load.radiance += float4(Skybox.SampleLevel(SkyboxSampler, wi, 0.0).rgb * pay_load.throughout, 1.0);
 #else
+            float pdf = 1.0;
+            //pay_load.radiance += 0.2f * pay_load.throughout;
 #endif
             break;
         }
@@ -157,10 +248,10 @@ void RayGenMain()
     }
     
     // Clamp firefly
-    float lum = Luminance(pay_load.radiance.rgb);
+    float lum = Luminance(pay_load.radiance);
     if (lum > ConfigBuffer.clamp_threshold)
     {
-        pay_load.radiance.rgb *= ConfigBuffer.clamp_threshold / lum;
+        pay_load.radiance *= ConfigBuffer.clamp_threshold / lum;
     }
     
     int2 launch_id = int2(launch_index.x, launch_dims.y - launch_index.y);
@@ -168,19 +259,19 @@ void RayGenMain()
     // Temporal Accumulation
     if (ConfigBuffer.frame_count == 0)
     {
-        Output[launch_id] = pay_load.radiance;
+        Output[launch_id] = float4(pay_load.radiance, 1.f);
     }
     else
     {
-        float3 prev_color = Output.Load(int3(launch_id, 0)).rgb;
+        float3 prev_color = Output.Load(int3(launch_id.x, launch_id.y, 0)).rgb;
         float4 accumulated_color = 0.f;
         if ((isnan(prev_color.x) || isnan(prev_color.y) || isnan(prev_color.z)))
         {
-            accumulated_color = pay_load.radiance;
+            accumulated_color = float4(pay_load.radiance, 1.f);
         }
         else
         {
-            accumulated_color = float4(lerp(prev_color, pay_load.radiance.rgb, 1.0 / float(ConfigBuffer.frame_count + 1)), pay_load.radiance.a);
+            accumulated_color = float4(lerp(prev_color, pay_load.radiance, 1.0 / float(ConfigBuffer.frame_count + 1)), 1.f);
         }
         
         Output[launch_id] = accumulated_color;
@@ -198,9 +289,7 @@ float3 SampleLd(PayLoad pay_load, Material material)
     //    OffsetRayOrigin(pay_load.interaction.isect.wo, pay_load.interaction.isect.n);
     //}
     
-    uint light_count, light_stride;
-    LightInfo.GetDimensions(light_count, light_stride);
-    light_count /= 2;
+    uint light_count = LightInfoBuffer.point_light_count + LightInfoBuffer.spot_light_count + LightInfoBuffer.directional_light_count + LightInfoBuffer.rect_light_count;
     
     // Uniformly sample one light
     if (light_count > 0)
@@ -316,7 +405,7 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
     {
         uint flags = material.bsdf.Flags();
         float3 Ld = SampleLd(pay_load, material);
-        pay_load.radiance = float4(pay_load.radiance.rgb + pay_load.throughout * Ld, 1.f);
+        pay_load.radiance = pay_load.radiance.rgb + pay_load.throughout * Ld;
     }
     
     // Sample BSDF to get new path direction

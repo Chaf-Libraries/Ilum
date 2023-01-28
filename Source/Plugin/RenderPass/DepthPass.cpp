@@ -8,21 +8,20 @@
 
 using namespace Ilum;
 
-class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
+class DepthPass : public RenderPass<DepthPass>
 {
   public:
-	VisibilityGeometryPass() = default;
+	DepthPass() = default;
 
-	~VisibilityGeometryPass() = default;
+	~DepthPass() = default;
 
 	virtual RenderPassDesc Create(size_t &handle)
 	{
 		RenderPassDesc desc;
 		return desc.SetBindPoint(BindPoint::Rasterization)
-		    .SetName("VisibilityGeometryPass")
+		    .SetName("DepthPass")
 		    .SetCategory("RenderPath")
-		    .WriteTexture2D(handle++, "Visibility Buffer", 0, 0, RHIFormat::R32_UINT, RHIResourceState::RenderTarget)
-		    .ReadTexture2D(handle++, "Depth Buffer", RHIResourceState::DepthRead);
+		    .WriteTexture2D(handle++, "Depth Stencil", 0, 0, RHIFormat::D32_FLOAT, RHIResourceState::DepthWrite);
 	}
 
 	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
@@ -49,17 +48,13 @@ class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 		// Mesh Pipeline
 		if (renderer->GetRHIContext()->IsFeatureSupport(RHIFeature::MeshShading))
 		{
-			auto *task_shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "ASmain", RHIShaderStage::Task);
-			auto *mesh_shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "MSmain", RHIShaderStage::Mesh);
-			auto *frag_shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "PSmain", RHIShaderStage::Fragment);
+			auto *task_shader = renderer->RequireShader("Source/Shaders/RenderPath/DepthPass.hlsl", "ASmain", RHIShaderStage::Task);
+			auto *mesh_shader = renderer->RequireShader("Source/Shaders/RenderPath/DepthPass.hlsl", "MSmain", RHIShaderStage::Mesh);
+			auto *frag_shader = renderer->RequireShader("Source/Shaders/RenderPath/DepthPass.hlsl", "PSmain", RHIShaderStage::Fragment);
 
 			mesh_visibility_pipeline.pipeline->SetShader(RHIShaderStage::Task, task_shader);
 			mesh_visibility_pipeline.pipeline->SetShader(RHIShaderStage::Mesh, mesh_shader);
 			mesh_visibility_pipeline.pipeline->SetShader(RHIShaderStage::Fragment, frag_shader);
-
-			BlendState blend_state;
-			blend_state.attachment_states.resize(1);
-			mesh_visibility_pipeline.pipeline->SetBlendState(blend_state);
 
 			RasterizationState rasterization_state;
 			rasterization_state.cull_mode  = RHICullMode::None;
@@ -67,9 +62,8 @@ class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 			mesh_visibility_pipeline.pipeline->SetRasterizationState(rasterization_state);
 
 			DepthStencilState depth_stencil_state  = {};
-			depth_stencil_state.depth_write_enable = false;
+			depth_stencil_state.depth_write_enable = true;
 			depth_stencil_state.depth_test_enable  = true;
-			depth_stencil_state.compare  = RHICompareOp::Equal;
 			mesh_visibility_pipeline.pipeline->SetDepthStencilState(depth_stencil_state);
 
 			mesh_visibility_pipeline.meta = renderer->RequireShaderMeta(task_shader);
@@ -78,15 +72,11 @@ class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 		}
 		else
 		{
-			auto *vertex_shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "VSmain", RHIShaderStage::Vertex);
-			auto *frag_shader   = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "FSmain", RHIShaderStage::Fragment);
+			auto *vertex_shader = renderer->RequireShader("Source/Shaders/RenderPath/DepthPass.hlsl", "VSmain", RHIShaderStage::Vertex);
+			auto *frag_shader   = renderer->RequireShader("Source/Shaders/RenderPath/DepthPass.hlsl", "FSmain", RHIShaderStage::Fragment);
 
 			mesh_visibility_pipeline.pipeline->SetShader(RHIShaderStage::Vertex, vertex_shader);
 			mesh_visibility_pipeline.pipeline->SetShader(RHIShaderStage::Fragment, frag_shader);
-
-			BlendState blend_state;
-			blend_state.attachment_states.resize(1);
-			mesh_visibility_pipeline.pipeline->SetBlendState(blend_state);
 
 			RasterizationState rasterization_state;
 			rasterization_state.cull_mode  = RHICullMode::None;
@@ -94,9 +84,8 @@ class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 			mesh_visibility_pipeline.pipeline->SetRasterizationState(rasterization_state);
 
 			DepthStencilState depth_stencil_state  = {};
-			depth_stencil_state.depth_write_enable = false;
+			depth_stencil_state.depth_write_enable = true;
 			depth_stencil_state.depth_test_enable  = true;
-			depth_stencil_state.compare  = RHICompareOp::Equal;
 			mesh_visibility_pipeline.pipeline->SetDepthStencilState(depth_stencil_state);
 
 			VertexInputState vertex_input_state = {};
@@ -115,17 +104,13 @@ class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 		// Skinned Mesh Pipeline
 		if (renderer->GetRHIContext()->IsFeatureSupport(RHIFeature::MeshShading))
 		{
-			auto *task_shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "ASmain", RHIShaderStage::Task, {"HAS_SKINNED"});
-			auto *mesh_shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "MSmain", RHIShaderStage::Mesh, {"HAS_SKINNED"});
-			auto *frag_shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "PSmain", RHIShaderStage::Fragment, {"HAS_SKINNED"});
+			auto *task_shader = renderer->RequireShader("Source/Shaders/RenderPath/DepthPass.hlsl", "ASmain", RHIShaderStage::Task, {"HAS_SKINNED"});
+			auto *mesh_shader = renderer->RequireShader("Source/Shaders/RenderPath/DepthPass.hlsl", "MSmain", RHIShaderStage::Mesh, {"HAS_SKINNED"});
+			auto *frag_shader = renderer->RequireShader("Source/Shaders/RenderPath/DepthPass.hlsl", "PSmain", RHIShaderStage::Fragment, {"HAS_SKINNED"});
 
 			skinned_mesh_visibility_pipeline.pipeline->SetShader(RHIShaderStage::Task, task_shader);
 			skinned_mesh_visibility_pipeline.pipeline->SetShader(RHIShaderStage::Mesh, mesh_shader);
 			skinned_mesh_visibility_pipeline.pipeline->SetShader(RHIShaderStage::Fragment, frag_shader);
-
-			BlendState blend_state;
-			blend_state.attachment_states.resize(1);
-			skinned_mesh_visibility_pipeline.pipeline->SetBlendState(blend_state);
 
 			RasterizationState rasterization_state;
 			rasterization_state.cull_mode  = RHICullMode::None;
@@ -133,9 +118,8 @@ class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 			skinned_mesh_visibility_pipeline.pipeline->SetRasterizationState(rasterization_state);
 
 			DepthStencilState depth_stencil_state  = {};
-			depth_stencil_state.depth_write_enable = false;
+			depth_stencil_state.depth_write_enable = true;
 			depth_stencil_state.depth_test_enable  = true;
-			depth_stencil_state.compare  = RHICompareOp::Equal;
 			skinned_mesh_visibility_pipeline.pipeline->SetDepthStencilState(depth_stencil_state);
 
 			skinned_mesh_visibility_pipeline.meta = renderer->RequireShaderMeta(task_shader);
@@ -144,15 +128,11 @@ class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 		}
 		else
 		{
-			auto *vertex_shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "VSmain", RHIShaderStage::Vertex, {"HAS_SKINNED"});
-			auto *frag_shader   = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "FSmain", RHIShaderStage::Fragment, {"HAS_SKINNED"});
+			auto *vertex_shader = renderer->RequireShader("Source/Shaders/RenderPath/DepthPass.hlsl", "VSmain", RHIShaderStage::Vertex, {"HAS_SKINNED"});
+			auto *frag_shader   = renderer->RequireShader("Source/Shaders/RenderPath/DepthPass.hlsl", "FSmain", RHIShaderStage::Fragment, {"HAS_SKINNED"});
 
 			skinned_mesh_visibility_pipeline.pipeline->SetShader(RHIShaderStage::Vertex, vertex_shader);
 			skinned_mesh_visibility_pipeline.pipeline->SetShader(RHIShaderStage::Fragment, frag_shader);
-
-			BlendState blend_state;
-			blend_state.attachment_states.resize(1);
-			skinned_mesh_visibility_pipeline.pipeline->SetBlendState(blend_state);
 
 			RasterizationState rasterization_state;
 			rasterization_state.cull_mode  = RHICullMode::None;
@@ -160,9 +140,8 @@ class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 			skinned_mesh_visibility_pipeline.pipeline->SetRasterizationState(rasterization_state);
 
 			DepthStencilState depth_stencil_state  = {};
-			depth_stencil_state.depth_write_enable = false;
+			depth_stencil_state.depth_write_enable = true;
 			depth_stencil_state.depth_test_enable  = true;
-			depth_stencil_state.compare  = RHICompareOp::Equal;
 			skinned_mesh_visibility_pipeline.pipeline->SetDepthStencilState(depth_stencil_state);
 
 			VertexInputState vertex_input_state = {};
@@ -176,6 +155,7 @@ class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 			    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Weights, 7, 0, RHIFormat::R32G32B32A32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, weights[0])},
 			    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Weights, 8, 0, RHIFormat::R32G32B32A32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, weights[4])},
 			};
+
 			skinned_mesh_visibility_pipeline.pipeline->SetVertexInputState(vertex_input_state);
 
 			skinned_mesh_visibility_pipeline.meta = renderer->RequireShaderMeta(vertex_shader);
@@ -183,15 +163,13 @@ class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 		}
 
 		*task = [=](RenderGraph &render_graph, RHICommand *cmd_buffer, Variant &config, RenderGraphBlackboard &black_board) {
-			auto  visibility_buffer = render_graph.GetTexture(desc.GetPin("Visibility Buffer").handle);
-			auto  depth_stencil     = render_graph.GetTexture(desc.GetPin("Depth Buffer").handle);
+			auto  depth_stencil     = render_graph.GetTexture(desc.GetPin("Depth Stencil").handle);
 			auto *rhi_context       = renderer->GetRHIContext();
 			auto *gpu_scene         = black_board.Get<GPUScene>();
 			auto *view              = black_board.Get<View>();
 
 			render_target->Clear();
-			render_target->Set(0, visibility_buffer, TextureRange{}, ColorAttachment{});
-			render_target->Set(depth_stencil, TextureRange{}, DepthStencilAttachment{RHILoadAction::Load});
+			render_target->Set(depth_stencil, TextureRange{}, DepthStencilAttachment{});
 
 			// Mesh Shading
 			if (rhi_context->IsFeatureSupport(RHIFeature::MeshShading))
@@ -312,4 +290,4 @@ class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 	}
 };
 
-CONFIGURATION_PASS(VisibilityGeometryPass)
+CONFIGURATION_PASS(DepthPass)

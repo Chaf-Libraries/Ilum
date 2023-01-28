@@ -215,7 +215,6 @@ void Renderer::UpdateView(Cmpt::Camera *camera)
 		View::Info view_info = {};
 
 		std::memcpy(view_info.frustum, camera->GetFrustumPlanes().data(), sizeof(glm::vec4) * 6);
-
 		view_info.position                   = camera->GetNode()->GetComponent<Cmpt::Transform>()->GetWorldTransform()[3];
 		view_info.projection_matrix          = camera->GetProjectionMatrix();
 		view_info.view_matrix                = camera->GetViewMatrix();
@@ -266,61 +265,103 @@ void Renderer::UpdateGPUScene()
 
 	// Update Light
 	{
-		gpu_scene->light.light_count = static_cast<uint32_t>(point_lights.size() + spot_lights.size() + directional_lights.size() + rectangle_lights.size());
+		//		gpu_scene->light.light_count = static_cast<uint32_t>(point_lights.size() + spot_lights.size() + directional_lights.size() + rectangle_lights.size());
+		//
+		// #define GET_LIGHT_DATA_SIZE(Lights) \
+//	(Lights.empty() ? 0 : Lights.size() * Lights[0]->GetDataSize())
+		//
+		//		std::vector<uint8_t>  light_data(GET_LIGHT_DATA_SIZE(point_lights) +
+		//		                                 GET_LIGHT_DATA_SIZE(spot_lights) +
+		//		                                 GET_LIGHT_DATA_SIZE(directional_lights) +
+		//		                                 GET_LIGHT_DATA_SIZE(rectangle_lights));
+		//		std::vector<uint32_t> light_info;        // Type - Offset
+		//		light_info.reserve(gpu_scene->light.light_count * 2);
+		//		uint32_t light_data_size = 0;
+		//
+		// #define COPY_LIGHT_DATA(Lights, Type)                                                             \
+//	for (auto &light : Lights)                                                                    \
+//	{                                                                                             \
+//		std::memcpy(light_data.data() + light_data_size, light->GetData(), light->GetDataSize()); \
+//		light_info.push_back(Type);                                                               \
+//		light_info.push_back(light_data_size);                                                    \
+//		light_data_size += static_cast<uint32_t>(light->GetDataSize());                           \
+//	}
+		//
+		//		COPY_LIGHT_DATA(point_lights, 0);
+		//		COPY_LIGHT_DATA(spot_lights, 1);
+		//		COPY_LIGHT_DATA(directional_lights, 2);
+		//		COPY_LIGHT_DATA(rectangle_lights, 3);
 
-#define GET_LIGHT_DATA_SIZE(Lights) \
-	(Lights.empty() ? 0 : Lights.size() * Lights[0]->GetDataSize())
+		// if (!light_data.empty())
+		//{
+		//	if (!gpu_scene->light.light_buffer ||
+		//	    gpu_scene->light.light_buffer->GetDesc().size != light_data.size())
+		//	{
+		//		gpu_scene->light.light_buffer = m_impl->rhi_context->CreateBuffer(light_data.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+		//	}
+		//	gpu_scene->light.light_buffer->CopyToDevice(light_data.data(), light_data.size());
+		// }
+		// else
+		//{
+		//	gpu_scene->light.light_buffer = m_impl->rhi_context->CreateBuffer(1, RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+		// }
 
-		std::vector<uint8_t>  light_data(GET_LIGHT_DATA_SIZE(point_lights) +
-		                                 GET_LIGHT_DATA_SIZE(spot_lights) +
-		                                 GET_LIGHT_DATA_SIZE(directional_lights) +
-		                                 GET_LIGHT_DATA_SIZE(rectangle_lights));
-		std::vector<uint32_t> light_info;        // Type - Offset
-		light_info.reserve(gpu_scene->light.light_count * 2);
-		uint32_t light_data_size = 0;
+		// if (!light_info.empty())
+		//{
+		//	if (!gpu_scene->light.light_info ||
+		//	    gpu_scene->light.light_info->GetDesc().size != light_info.size() * sizeof(uint32_t))
+		//	{
+		//		gpu_scene->light.light_info = m_impl->rhi_context->CreateBuffer<uint32_t>(light_info.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+		//	}
+		//	gpu_scene->light.light_info->CopyToDevice(light_info.data(), light_info.size() * sizeof(uint32_t));
+		// }
+		// else
+		//{
+		//	gpu_scene->light.light_info = m_impl->rhi_context->CreateBuffer<uint32_t>(1, RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+		// }
 
-#define COPY_LIGHT_DATA(Lights, Type)                                                             \
-	for (auto &light : Lights)                                                                    \
-	{                                                                                             \
-		std::memcpy(light_data.data() + light_data_size, light->GetData(), light->GetDataSize()); \
-		light_info.push_back(Type);                                                               \
-		light_info.push_back(light_data_size);                                                    \
-		light_data_size += static_cast<uint32_t>(light->GetDataSize());                           \
+		if (!gpu_scene->light.light_info_buffer)
+		{
+			gpu_scene->light.light_info_buffer = m_impl->rhi_context->CreateBuffer<GPUScene::LightBuffer::Info>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
+		}
+
+#define COPY_LIGHT_DATA(DATA, BUFFER)                                                                                                             \
+	if (!DATA.empty())                                                                                                                            \
+	{                                                                                                                                             \
+		size_t light_size = DATA.empty() ? 0 : DATA.size() * DATA[0]->GetDataSize();                                                              \
+		if (!gpu_scene->light.BUFFER || gpu_scene->light.BUFFER->GetDesc().size != light_size)                                                    \
+		{                                                                                                                                         \
+			gpu_scene->light.BUFFER = m_impl->rhi_context->CreateBuffer(light_size, RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU); \
+		}                                                                                                                                         \
+		auto  *light_buffer = gpu_scene->light.BUFFER->Map();                                                                                     \
+		size_t offset       = 0;                                                                                                                  \
+		for (auto &light : DATA)                                                                                                                  \
+		{                                                                                                                                         \
+			std::memcpy((uint8_t *) light_buffer + offset, light->GetData(), light->GetDataSize());                                               \
+			offset += light->GetDataSize();                                                                                                       \
+		}                                                                                                                                         \
+		gpu_scene->light.BUFFER->Unmap();                                                                                                         \
+	}                                                                                                                                             \
+	else                                                                                                                                          \
+	{                                                                                                                                             \
+		if (!gpu_scene->light.BUFFER)                                                                                                             \
+		{                                                                                                                                         \
+			gpu_scene->light.BUFFER = m_impl->rhi_context->CreateBuffer(1, RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);          \
+		}                                                                                                                                         \
 	}
 
-		COPY_LIGHT_DATA(point_lights, 0);
-		COPY_LIGHT_DATA(spot_lights, 1);
-		COPY_LIGHT_DATA(directional_lights, 2);
-		COPY_LIGHT_DATA(rectangle_lights, 3);
+		COPY_LIGHT_DATA(point_lights, point_light_buffer);
+		COPY_LIGHT_DATA(spot_lights, spot_light_buffer);
+		COPY_LIGHT_DATA(directional_lights, directional_light_buffer);
+		COPY_LIGHT_DATA(rectangle_lights, rect_light_buffer);
 
-		if (!light_data.empty())
-		{
-			if (!gpu_scene->light.light_buffer ||
-			    gpu_scene->light.light_buffer->GetDesc().size != light_data.size())
-			{
-				gpu_scene->light.light_buffer = m_impl->rhi_context->CreateBuffer(light_data.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
-			}
-			gpu_scene->light.light_buffer->CopyToDevice(light_data.data(), light_data.size());
-		}
-		else
-		{
-			gpu_scene->light.light_buffer = m_impl->rhi_context->CreateBuffer(1, RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
-		}
+		gpu_scene->light.info.point_light_count       = static_cast<uint32_t>(point_lights.size());
+		gpu_scene->light.info.spot_light_count        = static_cast<uint32_t>(spot_lights.size());
+		gpu_scene->light.info.directional_light_count = static_cast<uint32_t>(directional_lights.size());
+		gpu_scene->light.info.rect_light_count        = static_cast<uint32_t>(rectangle_lights.size());
+		gpu_scene->light.light_info_buffer->CopyToDevice(&gpu_scene->light.info, sizeof(gpu_scene->light.info));
 
-		if (!light_info.empty())
-		{
-			if (!gpu_scene->light.light_info ||
-			    gpu_scene->light.light_info->GetDesc().size != light_info.size() * sizeof(uint32_t))
-			{
-				gpu_scene->light.light_info = m_impl->rhi_context->CreateBuffer<uint32_t>(light_info.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
-			}
-			gpu_scene->light.light_info->CopyToDevice(light_info.data(), light_info.size() * sizeof(uint32_t));
-		}
-		else
-		{
-			gpu_scene->light.light_info = m_impl->rhi_context->CreateBuffer<uint32_t>(1, RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
-		}
-
+		// Copy environment light data
 		if (environment_lights.empty())
 		{
 			gpu_scene->textures.texture_cube = nullptr;

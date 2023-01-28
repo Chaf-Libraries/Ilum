@@ -17,7 +17,8 @@ struct Meshlet
 	glm::vec3 cone_axis;
 	float     cone_cutoff;
 
-	alignas(16) glm::vec3 cone_apex;
+	glm::vec3 cone_apex;
+	uint32_t  visible = false;
 
 	template <typename Archive>
 	void serialize(Archive &archive)

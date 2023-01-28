@@ -34,12 +34,13 @@ struct View
 
 struct GPUScene
 {
-	struct alignas(16) Instance
+	struct Instance
 	{
 		glm::mat4 transform;
 		uint32_t  mesh_id      = ~0U;
 		uint32_t  material_id  = ~0U;
 		uint32_t  animation_id = ~0U;
+		uint32_t  visible      = 0U;
 	};
 
 	struct MeshBuffer
@@ -87,10 +88,19 @@ struct GPUScene
 
 	struct LightBuffer
 	{
-		std::unique_ptr<RHIBuffer> light_buffer = nullptr;
-		std::unique_ptr<RHIBuffer> light_info   = nullptr;
+		struct Info
+		{
+			uint32_t point_light_count = 0;
+			uint32_t spot_light_count         = 0;
+			uint32_t directional_light_count = 0;
+			uint32_t rect_light_count         = 0;
+		}info;
 
-		uint32_t light_count = 0;
+		std::unique_ptr<RHIBuffer> point_light_buffer = nullptr;
+		std::unique_ptr<RHIBuffer> spot_light_buffer = nullptr;
+		std::unique_ptr<RHIBuffer> directional_light_buffer = nullptr;
+		std::unique_ptr<RHIBuffer> rect_light_buffer        = nullptr;
+		std::unique_ptr<RHIBuffer> light_info_buffer        = nullptr;
 	} light;
 
 	struct Texture

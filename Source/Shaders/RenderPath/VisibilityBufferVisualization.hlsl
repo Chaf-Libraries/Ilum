@@ -1,4 +1,4 @@
-#include "Common.hlsli"
+#include "../Common.hlsli"
 
 Texture2D<uint> VisibilityBuffer;
 Texture2D<float> DepthBuffer;

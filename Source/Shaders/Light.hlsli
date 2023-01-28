@@ -9,6 +9,16 @@
 #define DIRECTIONAL_LIGHT 2
 #define RECT_LIGHT 3
 
+#define LIGHT_TYPE_COUNT 4
+
+struct LightInfo
+{
+    uint point_light_count;
+    uint spot_light_count;
+    uint directional_light_count;
+    uint rect_light_count;
+};
+
 struct LightLeSample
 {
     float3 L;
@@ -148,6 +158,56 @@ struct SpotLight
     float inner_angle;
     float3 direction;
     float outer_angle;
+    float4x4 view_projection;
+    
+    float3 EvalL(float3 p, out float3 wi)
+    {
+        wi = normalize(position - p);
+        float light_angle_scale = 1.0 / max(0.001, cos(inner_angle) - cos(outer_angle));
+        float light_angle_offset = -cos(outer_angle) * light_angle_scale;
+        float cd = max(dot(-direction, wi), 0.0);
+        float angular_attenuation = saturate(cd * light_angle_scale + light_angle_offset);
+        return color.rgb * intensity * angular_attenuation * angular_attenuation;
+    }
+    
+    LightLeSample SampleLe(float2 u1, float2 u2, float time)
+    {
+        // TODO
+        
+        LightLeSample le_sample;
+        
+        return le_sample;
+    }
+    
+    void PDF_Le(RayDesc ray, out float pdf_pos, out float pdf_dir)
+    {
+        // TODO
+    }
+
+    void PDF_Le(Interaction isect, float3 w, out float pdf_pos, out float pdf_dir)
+    {
+        // TODO
+    }
+
+    LightLiSample SampleLi(LightSampleContext ctx, float2 u)
+    {
+        float3 p = position;
+        float3 wi;
+        float3 L = EvalL(ctx.p, wi) / DistanceSquared(p, ctx.p);
+        
+        Interaction isect;
+        isect.p = p;
+        
+        LightLiSample li_sample;
+        li_sample.Create(L, wi, 1, isect);
+        
+        return li_sample;
+    }
+
+    float PDF_Li(LightSampleContext ctx, float3 wi)
+    {
+        return 0.f;
+    }
 
     float3 Li(float3 p, out float3 wi)
     {
@@ -229,112 +289,6 @@ struct RectLight
     
     float3 SampleLi(SurfaceInteraction interaction, float2 u, out float3 wi, out float pdf, out VisibilityTester visibility)
     {
-        return 0.f;
-    }
-};
-
-// Shadow Map
-// Texture2D<float4> Textures[] : register(s996);
-// SamplerState Samplers[] : register(s997);
-StructuredBuffer<uint> LightInfo : register(t988);
-ByteAddressBuffer LightBuffer : register(t989);
-
-struct Light
-{
-    PointLight point_light;
-    SpotLight spot_light;
-    DirectionalLight directional_light;
-    RectLight rect_light;
-    uint light_type;
-    
-    void Init(uint light_id_)
-    {
-        light_type = LightInfo[2 * light_id_];
-        switch (light_type)
-        {
-            case POINT_LIGHT:
-                point_light = LightBuffer.Load < PointLight > (LightInfo[2 * light_id_ + 1]);
-                break;
-            case SPOT_LIGHT:
-                spot_light = LightBuffer.Load < SpotLight > (LightInfo[2 * light_id_ + 1]);
-                break;
-            case DIRECTIONAL_LIGHT:
-                directional_light = LightBuffer.Load < DirectionalLight > (LightInfo[2 * light_id_ + 1]);
-                break;
-            case RECT_LIGHT:
-                rect_light = LightBuffer.Load < RectLight > (LightInfo[2 * light_id_ + 1]);
-                break;
-        }
-    }
-    
-    LightLiSample SampleLi(LightSampleContext ctx, float2 u)
-    {
-        switch (light_type)
-        {
-            case POINT_LIGHT:
-                return point_light.SampleLi(ctx, u);
-        }
-        
-        LightLiSample light_sample;
-        return light_sample;
-    }
-
-    float PDF_Li(LightSampleContext ctx, float3 wi)
-    {
-        switch (light_type)
-        {
-            case POINT_LIGHT:
-                return point_light.PDF_Li(ctx, wi);
-        }
-        
-        return 0;
-    }
-    
-    float3 Li(float3 p, out float3 wi)
-    {
-        switch (light_type)
-        {
-            case POINT_LIGHT:
-                return point_light.Li(p, wi);
-            case SPOT_LIGHT:
-                return spot_light.Li(p, wi);
-            case DIRECTIONAL_LIGHT:
-                return directional_light.Li(p, wi);
-            case RECT_LIGHT:
-                return rect_light.Li(p, wi);
-        }
-        return 0.f;
-    }
-    
-    bool IsDelta()
-    {
-        switch (light_type)
-        {
-            case POINT_LIGHT:
-                return point_light.IsDelta();
-            case SPOT_LIGHT:
-                return spot_light.IsDelta();
-            case DIRECTIONAL_LIGHT:
-                return directional_light.IsDelta();
-            case RECT_LIGHT:
-                return rect_light.IsDelta();
-        }
-        return false;
-    }
-    
-    float3 SampleLi(SurfaceInteraction interaction, float2 u, out float3 wi, out float pdf, out VisibilityTester visibility)
-    {
-        switch (light_type)
-        {
-            case POINT_LIGHT:
-                return point_light.SampleLi(interaction, u, wi, pdf, visibility);
-            case SPOT_LIGHT:
-                return spot_light.SampleLi(interaction, u, wi, pdf, visibility);
-            case DIRECTIONAL_LIGHT:
-                return directional_light.SampleLi(interaction, u, wi, pdf, visibility);
-            case RECT_LIGHT:
-                return rect_light.SampleLi(interaction, u, wi, pdf, visibility);
-        }
         return 0.f;
     }
 };

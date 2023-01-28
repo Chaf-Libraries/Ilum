@@ -15,6 +15,30 @@ enum class CommandState
 	Pending
 };
 
+struct RHIDrawIndirectCommand
+{
+	uint32_t vertex_count;
+	uint32_t instance_count;
+	uint32_t vertex_offset;
+	uint32_t instance_offset;
+};
+
+struct RHIDrawIndexedIndirectCommand
+{
+	uint32_t index_count;
+	uint32_t instance_count;
+	uint32_t index_offset;
+	int32_t  vertex_offset;
+	uint32_t instance_offset;
+};
+
+struct RHIDispatchIndirectCommand
+{
+	uint32_t x;
+	uint32_t y;
+	uint32_t z;
+};
+
 class RHICommand
 {
   public:

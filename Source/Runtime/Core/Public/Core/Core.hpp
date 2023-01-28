@@ -19,6 +19,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/matrix_decompose.hpp>
 #include <glm/gtx/quaternion.hpp>
 
 #define SERIALIZER_TYPE_JSON 0
@@ -122,8 +123,8 @@ void serialize(Archive &archive, glm::mat4 &m)
 	    m[3][0], m[3][1], m[3][2], m[3][3]);
 }
 
-template<class Archive>
-void serialize(Archive& archive, glm::quat& m)
+template <class Archive>
+void serialize(Archive &archive, glm::quat &m)
 {
 	archive(m.x, m.y, m.z, m.w);
 }

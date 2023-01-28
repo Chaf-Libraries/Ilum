@@ -36,11 +36,13 @@ class SpotLight : public Light
 
 		glm::vec3 position = glm::vec3(0.f);
 
-		float inner_angle = 12.5f;
+		float inner_angle = glm::radians(30.f);
 
 		glm::vec3 direction = glm::vec3(0.f);
 
-		float outer_angle = 17.5f;
+		float outer_angle = glm::radians(60.f);
+
+		glm::mat4 view_projection = glm::mat4(1.f);
 	} m_data;
 };
 }        // namespace Cmpt

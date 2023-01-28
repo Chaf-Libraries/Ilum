@@ -40,6 +40,8 @@ struct Meshlet
     float3 cone_axis;
     float cone_cutoff;
     float3 cone_apex;
+    
+    uint visible;
 };
 
 struct Instance
@@ -49,6 +51,7 @@ struct Instance
     uint mesh_id;
     uint material_id;
     uint animation_id;
+    uint visible;
 };
 
 struct RayDiff

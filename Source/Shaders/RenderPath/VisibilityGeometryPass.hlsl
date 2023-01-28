@@ -1,13 +1,14 @@
-#include "Common.hlsli"
+#include "../Common.hlsli"
 
 StructuredBuffer<Instance> InstanceBuffer;
 StructuredBuffer<Meshlet> MeshletBuffer[];
 StructuredBuffer<uint> MeshletDataBuffer[];
-StructuredBuffer<SkinnedVertex> VertexBuffer[];
 StructuredBuffer<uint> IndexBuffer[];
-StructuredBuffer<float4x4> BoneMatrices[];
 ConstantBuffer<View> ViewBuffer;
-RWStructuredBuffer<float> DebugBuffer;
+
+#ifdef HAS_SKINNED
+StructuredBuffer<SkinnedVertex> VertexBuffer[];
+StructuredBuffer<float4x4> BoneMatrices[];
 
 struct VertexIn
 {
@@ -22,6 +23,19 @@ struct VertexIn
     float4 Weights1 : BLENDWEIGHT1;
     uint InstanceID : SV_InstanceID;
 };
+#else
+StructuredBuffer<Vertex> VertexBuffer[];
+
+struct VertexIn
+{
+    float3 Position : POSITION0;
+    float3 Normal : NORMAL0;
+    float3 Tangent : TANGENT0;
+    float2 Texcoord0 : TEXCOORD0;
+    float2 Texcoord1 : TEXCOORD1;
+    uint InstanceID : SV_InstanceID;
+};
+#endif
 
 struct VertexOut
 {
@@ -66,7 +80,12 @@ void ASmain(CSParam param)
         
         if (meshlet_id < meshlet_count)
         {
+#ifdef HAS_SKINNED
             visible = true;
+#else
+            Meshlet meshlet = MeshletBuffer[instance.mesh_id][meshlet_id];
+            visible = ViewBuffer.IsInsideFrustum(meshlet, instance.transform);
+#endif
         }
     }
 
@@ -100,6 +119,8 @@ void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut v
     for (uint i = param.GroupThreadID.x; i < meshlet_vertices_count; i += 32)
     {
         uint vertex_id = MeshletDataBuffer[instance.mesh_id][meshlet.data_offset + i];
+        
+#ifdef HAS_SKINNED
         SkinnedVertex vertex = VertexBuffer[instance.mesh_id][vertex_id];
         
         if (instance.animation_id != ~0U)
@@ -107,25 +128,6 @@ void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut v
             uint bone_count = 0;
             uint bone_stride = 0;
             BoneMatrices[instance.animation_id].GetDimensions(bone_count, bone_stride);
-            
-            DebugBuffer[0] = VertexBuffer[0][0].position[0];
-            DebugBuffer[1] = VertexBuffer[0][0].position[1];
-            DebugBuffer[2] = VertexBuffer[0][0].position[2];
-            DebugBuffer[3] = VertexBuffer[0][0].tangent[0];
-            DebugBuffer[4] = VertexBuffer[0][0].tangent[1];
-            DebugBuffer[5] = VertexBuffer[0][0].tangent[2];
-            DebugBuffer[6] = VertexBuffer[0][0].texcoord0[0];
-            DebugBuffer[7] = VertexBuffer[0][0].texcoord0[1];
-            DebugBuffer[8] = VertexBuffer[0][0].texcoord1[0];
-            DebugBuffer[9] = VertexBuffer[0][0].texcoord1[1];
-            DebugBuffer[10] = VertexBuffer[0][0].bones[0];
-            DebugBuffer[11] = VertexBuffer[0][0].bones[1];
-            DebugBuffer[12] = VertexBuffer[0][0].bones[2];
-            DebugBuffer[13] = VertexBuffer[0][0].bones[0];
-            DebugBuffer[14] = VertexBuffer[0][0].weights[0];
-            DebugBuffer[15] = VertexBuffer[0][0].weights[1];
-            DebugBuffer[16] = VertexBuffer[0][0].weights[2];
-            DebugBuffer[17] = VertexBuffer[0][0].weights[0];
             
             float4 total_position = 0.f;
             for (uint i = 0; i < MAX_BONE_INFLUENCE; i++)
@@ -150,6 +152,12 @@ void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut v
         }
         
         verts[i].Texcoord = vertex.texcoord0.xy;
+#else
+        Vertex vertex = VertexBuffer[instance.mesh_id][vertex_id];
+        
+        verts[i].Position = mul(ViewBuffer.view_projection_matrix, mul(instance.transform, float4(vertex.position.xyz, 1.0)));
+        verts[i].Texcoord = vertex.texcoord0.xy;
+#endif
     }
     
     for (uint i = param.GroupThreadID.x; i < meshlet_triangle_count; i += 32)
@@ -174,6 +182,8 @@ uint PSmain(VertexOut vert, PrimitiveOut prim) : SV_TARGET0
 void VSmain(in VertexIn vert_in, out VertexOut vert_out, out PrimitiveOut prim)
 {
     Instance instance = InstanceBuffer[vert_in.InstanceID];
+    
+#ifdef HAS_SKINNED
     if (instance.animation_id != ~0U)
     {
         uint bone_count = 0;
@@ -216,9 +226,12 @@ void VSmain(in VertexIn vert_in, out VertexOut vert_out, out PrimitiveOut prim)
     {
         vert_out.Position = mul(ViewBuffer.view_projection_matrix, mul(instance.transform, float4(vert_in.Position.xyz, 1.0)));
     }
+#else
+    vert_out.Position = mul(ViewBuffer.view_projection_matrix, mul(instance.transform, float4(vert_in.Position.xyz, 1.0)));
+#endif
+    
     vert_out.Texcoord = vert_in.Texcoord0.xy;
     vert_out.InstanceID = vert_in.InstanceID;
-
 }
 
 uint FSmain(VertexOut vert, uint PrimitiveID : SV_PrimitiveID) : SV_Target0

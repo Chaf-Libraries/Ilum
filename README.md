@@ -77,6 +77,9 @@ xmake project -k vsxmake
 **Render Pass**
 
 * Visibility Buffer Rendering
+  * Mesh shading with meshlet frustum culling (if GPU support `mesh_shader`)
+  * Usual rasterization without optimization
+
 * Visibility Buffer Visualization
 * Path Tracing
 
