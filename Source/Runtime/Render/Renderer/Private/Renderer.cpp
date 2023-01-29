@@ -48,6 +48,8 @@ struct Renderer::Impl
 
 	float animation_time   = 0.f;
 	bool  update_animation = false;
+
+	Cmpt::Camera *main_camera = nullptr;
 };
 
 Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resource_manager)
@@ -208,6 +210,8 @@ float Renderer::GetMaxAnimationTime() const
 
 void Renderer::UpdateView(Cmpt::Camera *camera)
 {
+	m_impl->main_camera = camera;
+
 	if (camera)
 	{
 		auto *view = m_impl->black_board.Get<View>();
@@ -337,7 +341,7 @@ void Renderer::UpdateGPUScene()
 		size_t offset       = 0;                                                                                                                  \
 		for (auto &light : DATA)                                                                                                                  \
 		{                                                                                                                                         \
-			std::memcpy((uint8_t *) light_buffer + offset, light->GetData(), light->GetDataSize());                                               \
+			std::memcpy((uint8_t *) light_buffer + offset, light->GetData(m_impl->main_camera), light->GetDataSize());                                               \
 			offset += light->GetDataSize();                                                                                                       \
 		}                                                                                                                                         \
 		gpu_scene->light.BUFFER->Unmap();                                                                                                         \

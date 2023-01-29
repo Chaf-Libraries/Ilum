@@ -67,7 +67,7 @@ class RHICommand
 	virtual void BeginRenderPass(RHIRenderTarget *render_target) = 0;
 	virtual void EndRenderPass()                                 = 0;
 
-	virtual void BindVertexBuffer(uint32_t binding, RHIBuffer *vertex_buffer)                      = 0;
+	virtual void BindVertexBuffer(uint32_t binding, RHIBuffer *vertex_buffer)    = 0;
 	virtual void BindIndexBuffer(RHIBuffer *index_buffer, bool is_short = false) = 0;
 
 	virtual void BindDescriptor(RHIDescriptor *descriptor)           = 0;
@@ -75,6 +75,9 @@ class RHICommand
 
 	virtual void SetViewport(float width, float height, float x = 0.f, float y = 0.f)                    = 0;
 	virtual void SetScissor(uint32_t width, uint32_t height, int32_t offset_x = 0, int32_t offset_y = 0) = 0;
+
+	// Depth Bias
+	virtual void SetDepthBias(float constant, float clamp, float slope) = 0;
 
 	// Drawcall
 	virtual void Dispatch(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, uint32_t block_x, uint32_t block_y, uint32_t block_z)                           = 0;

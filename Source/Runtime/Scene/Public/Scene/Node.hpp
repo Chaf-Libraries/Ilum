@@ -27,6 +27,8 @@ class Node
 
 	Node *GetParent();
 
+	Scene &GetScene();
+
 	void SetParent(Node *node);
 
 	const std::vector<Node *> &GetChildren() const;

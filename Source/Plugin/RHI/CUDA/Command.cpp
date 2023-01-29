@@ -15,7 +15,7 @@ Command::Command(RHIDevice *device, RHIQueueFamily family) :
 Command::~Command()
 {
 	m_calls.clear();
-	p_descriptor = nullptr;
+	p_descriptor     = nullptr;
 	p_pipeline_state = nullptr;
 }
 
@@ -73,6 +73,10 @@ void Command::SetViewport(float width, float height, float x, float y)
 }
 
 void Command::SetScissor(uint32_t width, uint32_t height, int32_t offset_x, int32_t offset_y)
+{
+}
+
+void Command::SetDepthBias(float constant, float clamp, float slope)
 {
 }
 

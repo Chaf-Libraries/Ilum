@@ -20,18 +20,17 @@ void PointLight::OnImGui()
 	{
 		m_update |= true;
 	}
-	m_update |= ImGui::DragFloat("Range", &m_data.range, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
 	m_update |= ImGui::DragFloat("Radius", &m_data.radius, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
 }
 
 void PointLight::Save(OutputArchive &archive) const
 {
-	archive(m_data.color, m_data.intensity, m_data.position, m_data.radius, m_data.range);
+	archive(m_data.color, m_data.intensity, m_data.position, m_data.radius);
 }
 
 void PointLight::Load(InputArchive &archive)
 {
-	archive(m_data.color, m_data.intensity, m_data.position, m_data.radius, m_data.range);
+	archive(m_data.color, m_data.intensity, m_data.position, m_data.radius);
 	m_update = true;
 }
 
@@ -45,9 +44,18 @@ size_t PointLight::GetDataSize() const
 	return sizeof(m_data);
 }
 
-void *PointLight::GetData()
+void *PointLight::GetData(Camera *camera)
 {
-	m_data.position = p_node->GetComponent<Cmpt::Transform>()->GetTranslation();
+	auto *transform = p_node->GetComponent<Cmpt::Transform>();
+
+	glm::vec3 scale;
+	glm::quat rotation;
+	glm::vec3 translation;
+	glm::vec3 skew;
+	glm::vec4 perspective;
+	glm::decompose(transform->GetWorldTransform(), scale, rotation, translation, skew, perspective);
+
+	m_data.position = translation;
 	return (void *) (&m_data);
 }
 }        // namespace Cmpt

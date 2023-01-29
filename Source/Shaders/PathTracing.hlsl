@@ -114,6 +114,8 @@ struct Light
                 return point_light.SampleLi(ctx, u);
             case SPOT_LIGHT:
                 return spot_light.SampleLi(ctx, u);
+            case DIRECTIONAL_LIGHT:
+                return directional_light.SampleLi(ctx, u);
         }
         
         LightLiSample light_sample;

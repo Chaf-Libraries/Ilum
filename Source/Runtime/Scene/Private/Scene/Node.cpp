@@ -81,6 +81,11 @@ Node *Node::GetParent()
 	return m_impl->parent;
 }
 
+Scene &Node::GetScene()
+{
+	return m_impl->scene;
+}
+
 void Node::SetParent(Node *node)
 {
 	if (m_impl->parent)

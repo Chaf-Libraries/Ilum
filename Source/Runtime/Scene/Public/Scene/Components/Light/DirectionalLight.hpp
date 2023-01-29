@@ -25,16 +25,20 @@ class DirectionalLight : public Light
 
 	virtual size_t GetDataSize() const override;
 
-	virtual void *GetData() override;
+	virtual void *GetData(Camera *camera = nullptr) override;
 
   private:
 	struct
 	{
 		glm::vec3 color = glm::vec3(1.f);
 
-		float     intensity = 100.f;
+		float intensity = 100.f;
 
-		glm::vec3 direction = glm::vec3(1.f);
+		glm::vec4 split_depth;
+		glm::mat4 view_projection[4];
+		glm::vec4 shadow_cam_pos[4];
+
+		alignas(16) glm::vec3 direction = glm::vec3(1.f);
 	} m_data;
 };
 }        // namespace Cmpt

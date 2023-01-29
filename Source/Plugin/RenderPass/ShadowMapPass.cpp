@@ -27,6 +27,25 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 		VeryHigh
 	};
 
+	const std::unordered_map<ShadowMapResolution, uint32_t> shadow_map_resolution = 
+	{
+	        {ShadowMapResolution::VeryHigh, 1024},
+	        {ShadowMapResolution::High, 768},
+	        {ShadowMapResolution::Medium, 512},
+	        {ShadowMapResolution::Low, 384},
+	        {ShadowMapResolution::VeryLow, 256},
+	};
+
+	struct Config
+	{
+		ShadowMapResolution shadow_map_resolution = ShadowMapResolution::Medium;
+		ShadowMapResolution cascade_shadow_map_resolution = ShadowMapResolution::Medium;
+		ShadowMapResolution omni_map_resolution = ShadowMapResolution::Medium;
+
+		float bias = 0.1f;
+		float slope = 0.1f;
+	};
+
   public:
 	ShadowMapPass() = default;
 
@@ -44,25 +63,27 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 	{
 		auto mesh_shadow_pipeline                 = CreatePipeline("Source/Shaders/Shading/Shadow/ShadowMap.hlsl", renderer, false);
 		auto skinned_mesh_shadow_pipeline         = CreatePipeline("Source/Shaders/Shading/Shadow/ShadowMap.hlsl", renderer, true);
-		//auto mesh_cascade_shadow_pipeline         = CreatePipeline("Source/Shaders/Shading/Shadow/CascadeShadowMap.hlsl", renderer, false);
-		//auto skinned_mesh_cascade_shadow_pipeline = CreatePipeline("Source/Shaders/Shading/Shadow/CascadeShadowMap.hlsl", renderer, true);
+		auto mesh_cascade_shadow_pipeline         = CreatePipeline("Source/Shaders/Shading/Shadow/CascadeShadowMap.hlsl", renderer, false);
+		auto skinned_mesh_cascade_shadow_pipeline = CreatePipeline("Source/Shaders/Shading/Shadow/CascadeShadowMap.hlsl", renderer, true);
+		auto mesh_omni_shadow_pipeline            = CreatePipeline("Source/Shaders/Shading/Shadow/OmniShadowMap.hlsl", renderer, false);
+		auto skinned_mesh_omni_shadow_pipeline    = CreatePipeline("Source/Shaders/Shading/Shadow/OmniShadowMap.hlsl", renderer, true);
 
 		std::shared_ptr<RHIRenderTarget> shadowmap_render_target         = std::shared_ptr<RHIRenderTarget>(std::move(renderer->GetRHIContext()->CreateRenderTarget()));
 		std::shared_ptr<RHIRenderTarget> cascade_shadowmap_render_target = std::shared_ptr<RHIRenderTarget>(std::move(renderer->GetRHIContext()->CreateRenderTarget()));
+		std::shared_ptr<RHIRenderTarget> omni_shadowmap_render_target    = std::shared_ptr<RHIRenderTarget>(std::move(renderer->GetRHIContext()->CreateRenderTarget()));
 
 		*task = [=](RenderGraph &render_graph, RHICommand *cmd_buffer, Variant &config, RenderGraphBlackboard &black_board) {
 			auto *rhi_context = renderer->GetRHIContext();
 			auto *scene       = renderer->GetScene();
 			auto *gpu_scene   = black_board.Get<GPUScene>();
-			auto *view        = black_board.Get<View>();
 
 			auto shadow_map_data = black_board.Has<ShadowMapData>() ? black_board.Add<ShadowMapData>() : black_board.Get<ShadowMapData>();
 
 			if (Component::IsUpdate())
 			{
 				RenderShadowMap(cmd_buffer, mesh_shadow_pipeline, skinned_mesh_shadow_pipeline, renderer, scene, gpu_scene, shadow_map_data, shadowmap_render_target.get());
-				RenderCascadeShadowMap(cmd_buffer, mesh_shadow_pipeline, skinned_mesh_shadow_pipeline, renderer, scene, gpu_scene, shadow_map_data, cascade_shadowmap_render_target.get());
-				RenderOmniShadowMap(cmd_buffer, mesh_shadow_pipeline, skinned_mesh_shadow_pipeline, renderer, scene, gpu_scene, shadow_map_data, shadowmap_render_target.get());
+				RenderCascadeShadowMap(cmd_buffer, mesh_cascade_shadow_pipeline, skinned_mesh_cascade_shadow_pipeline, renderer, scene, gpu_scene, shadow_map_data, cascade_shadowmap_render_target.get());
+				RenderOmniShadowMap(cmd_buffer, mesh_omni_shadow_pipeline, skinned_mesh_omni_shadow_pipeline, renderer, scene, gpu_scene, shadow_map_data, omni_shadowmap_render_target.get());
 			}
 		};
 	}
@@ -191,6 +212,8 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 
 		if (rhi_context->IsFeatureSupport(RHIFeature::MeshShading))
 		{
+			cmd_buffer->BeginMarker("Spot Light Shadow Mapping [Mesh Shader]");
+
 			cmd_buffer->SetViewport(static_cast<float>(render_target->GetWidth()), static_cast<float>(render_target->GetHeight()));
 			cmd_buffer->SetScissor(render_target->GetWidth(), render_target->GetHeight());
 
@@ -232,72 +255,77 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 			}
 
 			cmd_buffer->EndRenderPass();
+			cmd_buffer->EndMarker();
 		}
 		else
 		{
-			cmd_buffer->SetViewport(static_cast<float>(render_target->GetWidth()), static_cast<float>(render_target->GetHeight()));
-			cmd_buffer->SetScissor(render_target->GetWidth(), render_target->GetHeight());
-			cmd_buffer->BeginRenderPass(render_target);
+			// cmd_buffer->BeginMarker("Spot Light Shadow Mapping");
 
-			// Draw Mesh
-			if (gpu_scene->mesh_buffer.instance_count > 0)
-			{
-				auto meshes = renderer->GetScene()->GetComponents<Cmpt::MeshRenderer>();
+			// cmd_buffer->SetViewport(static_cast<float>(render_target->GetWidth()), static_cast<float>(render_target->GetHeight()));
+			// cmd_buffer->SetScissor(render_target->GetWidth(), render_target->GetHeight());
+			// cmd_buffer->BeginRenderPass(render_target);
 
-				auto *descriptor = rhi_context->CreateDescriptor(mesh_pipeline.meta);
-				descriptor->BindBuffer("InstanceBuffer", gpu_scene->mesh_buffer.instances.get());
+			//// Draw Mesh
+			// if (gpu_scene->mesh_buffer.instance_count > 0)
+			//{
+			//	auto meshes = renderer->GetScene()->GetComponents<Cmpt::MeshRenderer>();
 
-				cmd_buffer->BindDescriptor(descriptor);
-				cmd_buffer->BindPipelineState(mesh_pipeline.pipeline.get());
+			//	auto *descriptor = rhi_context->CreateDescriptor(mesh_pipeline.meta);
+			//	descriptor->BindBuffer("InstanceBuffer", gpu_scene->mesh_buffer.instances.get());
 
-				uint32_t instance_id = 0;
-				for (auto &mesh : meshes)
-				{
-					auto &submeshes = mesh->GetSubmeshes();
-					for (auto &submesh : submeshes)
-					{
-						auto *resource = renderer->GetResourceManager()->Get<ResourceType::Mesh>(submesh);
-						if (resource)
-						{
-							cmd_buffer->BindVertexBuffer(0, resource->GetVertexBuffer());
-							cmd_buffer->BindIndexBuffer(resource->GetIndexBuffer());
-							cmd_buffer->DrawIndexed(static_cast<uint32_t>(resource->GetIndexCount()), 1, 0, 0, instance_id);
-							instance_id++;
-						}
-					}
-				}
-			}
+			//	cmd_buffer->BindDescriptor(descriptor);
+			//	cmd_buffer->BindPipelineState(mesh_pipeline.pipeline.get());
 
-			// Draw Skinned Mesh
-			if (gpu_scene->skinned_mesh_buffer.instance_count > 0)
-			{
-				auto skinned_meshes = renderer->GetScene()->GetComponents<Cmpt::SkinnedMeshRenderer>();
+			//	uint32_t instance_id = 0;
+			//	for (auto &mesh : meshes)
+			//	{
+			//		auto &submeshes = mesh->GetSubmeshes();
+			//		for (auto &submesh : submeshes)
+			//		{
+			//			auto *resource = renderer->GetResourceManager()->Get<ResourceType::Mesh>(submesh);
+			//			if (resource)
+			//			{
+			//				cmd_buffer->BindVertexBuffer(0, resource->GetVertexBuffer());
+			//				cmd_buffer->BindIndexBuffer(resource->GetIndexBuffer());
+			//				cmd_buffer->DrawIndexed(static_cast<uint32_t>(resource->GetIndexCount()), 1, 0, 0, instance_id);
+			//				instance_id++;
+			//			}
+			//		}
+			//	}
+			//}
 
-				auto *descriptor = rhi_context->CreateDescriptor(skinned_mesh_pipeline.meta);
-				descriptor->BindBuffer("InstanceBuffer", gpu_scene->skinned_mesh_buffer.instances.get())
-				    .BindBuffer("BoneMatrices", gpu_scene->animation_buffer.bone_matrics);
+			//// Draw Skinned Mesh
+			// if (gpu_scene->skinned_mesh_buffer.instance_count > 0)
+			//{
+			//	auto skinned_meshes = renderer->GetScene()->GetComponents<Cmpt::SkinnedMeshRenderer>();
 
-				cmd_buffer->BindDescriptor(descriptor);
-				cmd_buffer->BindPipelineState(skinned_mesh_pipeline.pipeline.get());
+			//	auto *descriptor = rhi_context->CreateDescriptor(skinned_mesh_pipeline.meta);
+			//	descriptor->BindBuffer("InstanceBuffer", gpu_scene->skinned_mesh_buffer.instances.get())
+			//	    .BindBuffer("BoneMatrices", gpu_scene->animation_buffer.bone_matrics);
 
-				uint32_t instance_id = 0;
-				for (auto &skinned_mesh : skinned_meshes)
-				{
-					auto &submeshes = skinned_mesh->GetSubmeshes();
-					for (auto &submesh : submeshes)
-					{
-						auto *resource = renderer->GetResourceManager()->Get<ResourceType::SkinnedMesh>(submesh);
-						if (resource)
-						{
-							cmd_buffer->BindVertexBuffer(0, resource->GetVertexBuffer());
-							cmd_buffer->BindIndexBuffer(resource->GetIndexBuffer());
-							cmd_buffer->DrawIndexed(static_cast<uint32_t>(resource->GetIndexCount()), 1, 0, 0, instance_id);
-							instance_id++;
-						}
-					}
-				}
-			}
-			cmd_buffer->EndRenderPass();
+			//	cmd_buffer->BindDescriptor(descriptor);
+			//	cmd_buffer->BindPipelineState(skinned_mesh_pipeline.pipeline.get());
+
+			//	uint32_t instance_id = 0;
+			//	for (auto &skinned_mesh : skinned_meshes)
+			//	{
+			//		auto &submeshes = skinned_mesh->GetSubmeshes();
+			//		for (auto &submesh : submeshes)
+			//		{
+			//			auto *resource = renderer->GetResourceManager()->Get<ResourceType::SkinnedMesh>(submesh);
+			//			if (resource)
+			//			{
+			//				cmd_buffer->BindVertexBuffer(0, resource->GetVertexBuffer());
+			//				cmd_buffer->BindIndexBuffer(resource->GetIndexBuffer());
+			//				cmd_buffer->DrawIndexed(static_cast<uint32_t>(resource->GetIndexCount()), 1, 0, 0, instance_id);
+			//				instance_id++;
+			//			}
+			//		}
+			//	}
+			//}
+
+			// cmd_buffer->EndRenderPass();
+			// cmd_buffer->EndMarker();
 		}
 		cmd_buffer->ResourceStateTransition({TextureStateTransition{
 		                                        shadow_map_data->shadow_map.get(),
@@ -317,6 +345,157 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 	    ShadowMapData      *shadow_map_data,
 	    RHIRenderTarget    *render_target)
 	{
+		auto    *rhi_context        = renderer->GetRHIContext();
+		auto     directional_lights = scene->GetComponents<Cmpt::DirectionalLight>();
+		uint32_t layers             = glm::max(static_cast<uint32_t>(directional_lights.size() * 4ull), 1u);
+
+		if (!shadow_map_data->cascade_shadow_map ||
+		    shadow_map_data->cascade_shadow_map->GetDesc().layers < directional_lights.size() * 4)
+		{
+			shadow_map_data->cascade_shadow_map = rhi_context->CreateTexture2DArray(512, 512, layers, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false);
+			cmd_buffer->ResourceStateTransition({TextureStateTransition{
+			                                        shadow_map_data->cascade_shadow_map.get(),
+			                                        RHIResourceState::Undefined,
+			                                        RHIResourceState::DepthWrite,
+			                                        TextureRange{RHITextureDimension::Texture2DArray, 0, 1, 0, layers}}},
+			                                    {});
+		}
+		else
+		{
+			cmd_buffer->ResourceStateTransition({TextureStateTransition{
+			                                        shadow_map_data->cascade_shadow_map.get(),
+			                                        RHIResourceState::ShaderResource,
+			                                        RHIResourceState::DepthWrite,
+			                                        TextureRange{RHITextureDimension::Texture2DArray, 0, 1, 0, layers}}},
+			                                    {});
+		}
+
+		render_target->Clear();
+		render_target->Set(shadow_map_data->cascade_shadow_map.get(), RHITextureDimension::Texture2DArray, DepthStencilAttachment{});
+
+		if (rhi_context->IsFeatureSupport(RHIFeature::MeshShading))
+		{
+			cmd_buffer->BeginMarker("Directional Light Shadow Mapping [Mesh Shader]");
+
+			cmd_buffer->SetViewport(static_cast<float>(render_target->GetWidth()), static_cast<float>(render_target->GetHeight()));
+			cmd_buffer->SetScissor(render_target->GetWidth(), render_target->GetHeight());
+
+			cmd_buffer->BeginRenderPass(render_target);
+
+			// Draw Mesh
+			if (gpu_scene->mesh_buffer.instance_count > 0)
+			{
+				auto *descriptor = rhi_context->CreateDescriptor(mesh_pipeline.meta);
+				descriptor->BindBuffer("InstanceBuffer", gpu_scene->mesh_buffer.instances.get())
+				    .BindBuffer("VertexBuffer", gpu_scene->mesh_buffer.vertex_buffers)
+				    .BindBuffer("IndexBuffer", gpu_scene->mesh_buffer.index_buffers)
+				    .BindBuffer("MeshletBuffer", gpu_scene->mesh_buffer.meshlet_buffers)
+				    .BindBuffer("MeshletDataBuffer", gpu_scene->mesh_buffer.meshlet_data_buffers)
+				    .BindBuffer("DirectionalLightBuffer", gpu_scene->light.directional_light_buffer.get())
+				    .BindBuffer("LightInfoBuffer", gpu_scene->light.light_info_buffer.get());
+
+				cmd_buffer->BindDescriptor(descriptor);
+				cmd_buffer->BindPipelineState(mesh_pipeline.pipeline.get());
+				cmd_buffer->DrawMeshTask(gpu_scene->mesh_buffer.max_meshlet_count, gpu_scene->mesh_buffer.instance_count, static_cast<uint32_t>(directional_lights.size() * 4), 32, 1, 1);
+			}
+
+			// Draw Skinned Mesh
+			if (gpu_scene->skinned_mesh_buffer.instance_count > 0)
+			{
+				auto *descriptor = rhi_context->CreateDescriptor(skinned_mesh_pipeline.meta);
+				descriptor->BindBuffer("InstanceBuffer", gpu_scene->skinned_mesh_buffer.instances.get())
+				    .BindBuffer("BoneMatrices", gpu_scene->animation_buffer.bone_matrics)
+				    .BindBuffer("VertexBuffer", gpu_scene->skinned_mesh_buffer.vertex_buffers)
+				    .BindBuffer("IndexBuffer", gpu_scene->skinned_mesh_buffer.index_buffers)
+				    .BindBuffer("MeshletBuffer", gpu_scene->skinned_mesh_buffer.meshlet_buffers)
+				    .BindBuffer("MeshletDataBuffer", gpu_scene->skinned_mesh_buffer.meshlet_data_buffers)
+				    .BindBuffer("DirectionalLightBuffer", gpu_scene->light.directional_light_buffer.get())
+				    .BindBuffer("LightInfoBuffer", gpu_scene->light.light_info_buffer.get());
+
+				cmd_buffer->BindDescriptor(descriptor);
+				cmd_buffer->BindPipelineState(skinned_mesh_pipeline.pipeline.get());
+				cmd_buffer->DrawMeshTask(gpu_scene->skinned_mesh_buffer.max_meshlet_count, gpu_scene->skinned_mesh_buffer.instance_count, static_cast<uint32_t>(directional_lights.size() * 4), 32, 1, 1);
+			}
+
+			cmd_buffer->EndRenderPass();
+			cmd_buffer->EndMarker();
+		}
+		else
+		{
+			// cmd_buffer->BeginMarker("Spot Light Shadow Mapping");
+
+			// cmd_buffer->SetViewport(static_cast<float>(render_target->GetWidth()), static_cast<float>(render_target->GetHeight()));
+			// cmd_buffer->SetScissor(render_target->GetWidth(), render_target->GetHeight());
+			// cmd_buffer->BeginRenderPass(render_target);
+
+			//// Draw Mesh
+			// if (gpu_scene->mesh_buffer.instance_count > 0)
+			//{
+			//	auto meshes = renderer->GetScene()->GetComponents<Cmpt::MeshRenderer>();
+
+			//	auto *descriptor = rhi_context->CreateDescriptor(mesh_pipeline.meta);
+			//	descriptor->BindBuffer("InstanceBuffer", gpu_scene->mesh_buffer.instances.get());
+
+			//	cmd_buffer->BindDescriptor(descriptor);
+			//	cmd_buffer->BindPipelineState(mesh_pipeline.pipeline.get());
+
+			//	uint32_t instance_id = 0;
+			//	for (auto &mesh : meshes)
+			//	{
+			//		auto &submeshes = mesh->GetSubmeshes();
+			//		for (auto &submesh : submeshes)
+			//		{
+			//			auto *resource = renderer->GetResourceManager()->Get<ResourceType::Mesh>(submesh);
+			//			if (resource)
+			//			{
+			//				cmd_buffer->BindVertexBuffer(0, resource->GetVertexBuffer());
+			//				cmd_buffer->BindIndexBuffer(resource->GetIndexBuffer());
+			//				cmd_buffer->DrawIndexed(static_cast<uint32_t>(resource->GetIndexCount()), 1, 0, 0, instance_id);
+			//				instance_id++;
+			//			}
+			//		}
+			//	}
+			//}
+
+			//// Draw Skinned Mesh
+			// if (gpu_scene->skinned_mesh_buffer.instance_count > 0)
+			//{
+			//	auto skinned_meshes = renderer->GetScene()->GetComponents<Cmpt::SkinnedMeshRenderer>();
+
+			//	auto *descriptor = rhi_context->CreateDescriptor(skinned_mesh_pipeline.meta);
+			//	descriptor->BindBuffer("InstanceBuffer", gpu_scene->skinned_mesh_buffer.instances.get())
+			//	    .BindBuffer("BoneMatrices", gpu_scene->animation_buffer.bone_matrics);
+
+			//	cmd_buffer->BindDescriptor(descriptor);
+			//	cmd_buffer->BindPipelineState(skinned_mesh_pipeline.pipeline.get());
+
+			//	uint32_t instance_id = 0;
+			//	for (auto &skinned_mesh : skinned_meshes)
+			//	{
+			//		auto &submeshes = skinned_mesh->GetSubmeshes();
+			//		for (auto &submesh : submeshes)
+			//		{
+			//			auto *resource = renderer->GetResourceManager()->Get<ResourceType::SkinnedMesh>(submesh);
+			//			if (resource)
+			//			{
+			//				cmd_buffer->BindVertexBuffer(0, resource->GetVertexBuffer());
+			//				cmd_buffer->BindIndexBuffer(resource->GetIndexBuffer());
+			//				cmd_buffer->DrawIndexed(static_cast<uint32_t>(resource->GetIndexCount()), 1, 0, 0, instance_id);
+			//				instance_id++;
+			//			}
+			//		}
+			//	}
+			//}
+
+			// cmd_buffer->EndRenderPass();
+			// cmd_buffer->EndMarker();
+		}
+		cmd_buffer->ResourceStateTransition({TextureStateTransition{
+		                                        shadow_map_data->cascade_shadow_map.get(),
+		                                        RHIResourceState::DepthWrite,
+		                                        RHIResourceState::ShaderResource,
+		                                        TextureRange{RHITextureDimension::Texture2DArray, 0, 1, 0, layers}}},
+		                                    {});
 	}
 
 	void RenderOmniShadowMap(
@@ -329,6 +508,157 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 	    ShadowMapData      *shadow_map_data,
 	    RHIRenderTarget    *render_target)
 	{
+		auto    *rhi_context  = renderer->GetRHIContext();
+		auto     point_lights = scene->GetComponents<Cmpt::PointLight>();
+		uint32_t layers       = glm::max(static_cast<uint32_t>(point_lights.size() * 6ull), 1u);
+
+		if (!shadow_map_data->omni_shadow_map ||
+		    shadow_map_data->omni_shadow_map->GetDesc().layers < point_lights.size() * 6)
+		{
+			shadow_map_data->omni_shadow_map = rhi_context->CreateTexture2DArray(512, 512, layers, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false);
+			cmd_buffer->ResourceStateTransition({TextureStateTransition{
+			                                        shadow_map_data->omni_shadow_map.get(),
+			                                        RHIResourceState::Undefined,
+			                                        RHIResourceState::DepthWrite,
+			                                        TextureRange{RHITextureDimension::Texture2DArray, 0, 1, 0, layers}}},
+			                                    {});
+		}
+		else
+		{
+			cmd_buffer->ResourceStateTransition({TextureStateTransition{
+			                                        shadow_map_data->omni_shadow_map.get(),
+			                                        RHIResourceState::ShaderResource,
+			                                        RHIResourceState::DepthWrite,
+			                                        TextureRange{RHITextureDimension::Texture2DArray, 0, 1, 0, layers}}},
+			                                    {});
+		}
+
+		render_target->Clear();
+		render_target->Set(shadow_map_data->omni_shadow_map.get(), RHITextureDimension::Texture2DArray, DepthStencilAttachment{});
+
+		if (rhi_context->IsFeatureSupport(RHIFeature::MeshShading))
+		{
+			cmd_buffer->BeginMarker("Point Light Shadow Mapping [Mesh Shader]");
+
+			cmd_buffer->SetViewport(static_cast<float>(render_target->GetWidth()), static_cast<float>(render_target->GetHeight()));
+			cmd_buffer->SetScissor(render_target->GetWidth(), render_target->GetHeight());
+
+			cmd_buffer->BeginRenderPass(render_target);
+
+			// Draw Mesh
+			if (gpu_scene->mesh_buffer.instance_count > 0)
+			{
+				auto *descriptor = rhi_context->CreateDescriptor(mesh_pipeline.meta);
+				descriptor->BindBuffer("InstanceBuffer", gpu_scene->mesh_buffer.instances.get())
+				    .BindBuffer("VertexBuffer", gpu_scene->mesh_buffer.vertex_buffers)
+				    .BindBuffer("IndexBuffer", gpu_scene->mesh_buffer.index_buffers)
+				    .BindBuffer("MeshletBuffer", gpu_scene->mesh_buffer.meshlet_buffers)
+				    .BindBuffer("MeshletDataBuffer", gpu_scene->mesh_buffer.meshlet_data_buffers)
+				    .BindBuffer("PointLightBuffer", gpu_scene->light.point_light_buffer.get())
+				    .BindBuffer("LightInfoBuffer", gpu_scene->light.light_info_buffer.get());
+
+				cmd_buffer->BindDescriptor(descriptor);
+				cmd_buffer->BindPipelineState(mesh_pipeline.pipeline.get());
+				cmd_buffer->DrawMeshTask(gpu_scene->mesh_buffer.max_meshlet_count, gpu_scene->mesh_buffer.instance_count, static_cast<uint32_t>(point_lights.size() * 6), 32, 1, 1);
+			}
+
+			// Draw Skinned Mesh
+			if (gpu_scene->skinned_mesh_buffer.instance_count > 0)
+			{
+				auto *descriptor = rhi_context->CreateDescriptor(skinned_mesh_pipeline.meta);
+				descriptor->BindBuffer("InstanceBuffer", gpu_scene->skinned_mesh_buffer.instances.get())
+				    .BindBuffer("BoneMatrices", gpu_scene->animation_buffer.bone_matrics)
+				    .BindBuffer("VertexBuffer", gpu_scene->skinned_mesh_buffer.vertex_buffers)
+				    .BindBuffer("IndexBuffer", gpu_scene->skinned_mesh_buffer.index_buffers)
+				    .BindBuffer("MeshletBuffer", gpu_scene->skinned_mesh_buffer.meshlet_buffers)
+				    .BindBuffer("MeshletDataBuffer", gpu_scene->skinned_mesh_buffer.meshlet_data_buffers)
+				    .BindBuffer("PointLightBuffer", gpu_scene->light.point_light_buffer.get())
+				    .BindBuffer("LightInfoBuffer", gpu_scene->light.light_info_buffer.get());
+
+				cmd_buffer->BindDescriptor(descriptor);
+				cmd_buffer->BindPipelineState(skinned_mesh_pipeline.pipeline.get());
+				cmd_buffer->DrawMeshTask(gpu_scene->skinned_mesh_buffer.max_meshlet_count, gpu_scene->skinned_mesh_buffer.instance_count, static_cast<uint32_t>(point_lights.size() * 6), 32, 1, 1);
+			}
+
+			cmd_buffer->EndRenderPass();
+			cmd_buffer->EndMarker();
+		}
+		else
+		{
+			// cmd_buffer->BeginMarker("Spot Light Shadow Mapping");
+
+			// cmd_buffer->SetViewport(static_cast<float>(render_target->GetWidth()), static_cast<float>(render_target->GetHeight()));
+			// cmd_buffer->SetScissor(render_target->GetWidth(), render_target->GetHeight());
+			// cmd_buffer->BeginRenderPass(render_target);
+
+			//// Draw Mesh
+			// if (gpu_scene->mesh_buffer.instance_count > 0)
+			//{
+			//	auto meshes = renderer->GetScene()->GetComponents<Cmpt::MeshRenderer>();
+
+			//	auto *descriptor = rhi_context->CreateDescriptor(mesh_pipeline.meta);
+			//	descriptor->BindBuffer("InstanceBuffer", gpu_scene->mesh_buffer.instances.get());
+
+			//	cmd_buffer->BindDescriptor(descriptor);
+			//	cmd_buffer->BindPipelineState(mesh_pipeline.pipeline.get());
+
+			//	uint32_t instance_id = 0;
+			//	for (auto &mesh : meshes)
+			//	{
+			//		auto &submeshes = mesh->GetSubmeshes();
+			//		for (auto &submesh : submeshes)
+			//		{
+			//			auto *resource = renderer->GetResourceManager()->Get<ResourceType::Mesh>(submesh);
+			//			if (resource)
+			//			{
+			//				cmd_buffer->BindVertexBuffer(0, resource->GetVertexBuffer());
+			//				cmd_buffer->BindIndexBuffer(resource->GetIndexBuffer());
+			//				cmd_buffer->DrawIndexed(static_cast<uint32_t>(resource->GetIndexCount()), 1, 0, 0, instance_id);
+			//				instance_id++;
+			//			}
+			//		}
+			//	}
+			//}
+
+			//// Draw Skinned Mesh
+			// if (gpu_scene->skinned_mesh_buffer.instance_count > 0)
+			//{
+			//	auto skinned_meshes = renderer->GetScene()->GetComponents<Cmpt::SkinnedMeshRenderer>();
+
+			//	auto *descriptor = rhi_context->CreateDescriptor(skinned_mesh_pipeline.meta);
+			//	descriptor->BindBuffer("InstanceBuffer", gpu_scene->skinned_mesh_buffer.instances.get())
+			//	    .BindBuffer("BoneMatrices", gpu_scene->animation_buffer.bone_matrics);
+
+			//	cmd_buffer->BindDescriptor(descriptor);
+			//	cmd_buffer->BindPipelineState(skinned_mesh_pipeline.pipeline.get());
+
+			//	uint32_t instance_id = 0;
+			//	for (auto &skinned_mesh : skinned_meshes)
+			//	{
+			//		auto &submeshes = skinned_mesh->GetSubmeshes();
+			//		for (auto &submesh : submeshes)
+			//		{
+			//			auto *resource = renderer->GetResourceManager()->Get<ResourceType::SkinnedMesh>(submesh);
+			//			if (resource)
+			//			{
+			//				cmd_buffer->BindVertexBuffer(0, resource->GetVertexBuffer());
+			//				cmd_buffer->BindIndexBuffer(resource->GetIndexBuffer());
+			//				cmd_buffer->DrawIndexed(static_cast<uint32_t>(resource->GetIndexCount()), 1, 0, 0, instance_id);
+			//				instance_id++;
+			//			}
+			//		}
+			//	}
+			//}
+
+			// cmd_buffer->EndRenderPass();
+			// cmd_buffer->EndMarker();
+		}
+		cmd_buffer->ResourceStateTransition({TextureStateTransition{
+		                                        shadow_map_data->omni_shadow_map.get(),
+		                                        RHIResourceState::DepthWrite,
+		                                        RHIResourceState::ShaderResource,
+		                                        TextureRange{RHITextureDimension::Texture2DArray, 0, 1, 0, layers}}},
+		                                    {});
 	}
 
 	virtual void OnImGui(Variant *config)

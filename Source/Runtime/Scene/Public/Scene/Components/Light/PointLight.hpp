@@ -25,7 +25,7 @@ class PointLight : public Light
 
 	virtual size_t GetDataSize() const override;
 
-	virtual void *GetData() override;
+	virtual void *GetData(Camera *camera = nullptr) override;
 
   private:
 	struct
@@ -37,8 +37,6 @@ class PointLight : public Light
 		glm::vec3 position = glm::vec3(0.f);
 
 		float radius = 1.f;
-
-		float range = 1.f;
 	} m_data;
 };
 }        // namespace Cmpt

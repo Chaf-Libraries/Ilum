@@ -6,6 +6,8 @@ namespace Ilum
 {
 namespace Cmpt
 {
+class Camera;
+
 class Light : public Component
 {
   public:
@@ -25,7 +27,7 @@ class Light : public Component
 	virtual size_t GetDataSize() const = 0;
 
 	// GPU data info
-	virtual void *GetData() = 0;
+	virtual void *GetData(Camera *camera = nullptr) = 0;
 
   private:
 	// Shadow

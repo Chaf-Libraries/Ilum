@@ -28,6 +28,8 @@ struct IResourceManager
 
 	virtual IResource *Get(size_t uuid) = 0;
 
+	virtual size_t GetValidResourceCount() = 0;
+
 	virtual const std::string GetName(size_t uuid) = 0;
 
 	virtual RHITexture *GetThumbnail(size_t uuid) = 0;
@@ -86,6 +88,11 @@ struct TResourceManager : public IResourceManager
 			return resource.get();
 		}
 		return nullptr;
+	}
+
+	virtual size_t GetValidResourceCount() override
+	{
+		return valid_resources.size();
 	}
 
 	virtual const std::string GetName(size_t uuid) override
@@ -298,6 +305,11 @@ void ResourceManager::Tick()
 IResource *ResourceManager::Get(ResourceType type, size_t uuid)
 {
 	return m_impl->managers.at(type)->Get(uuid);
+}
+
+size_t ResourceManager::GetValidResourceCount(ResourceType type)
+{
+	return m_impl->managers.at(type)->GetValidResourceCount();
 }
 
 RHITexture *ResourceManager::GetThumbnail(ResourceType type, size_t uuid)

@@ -40,43 +40,43 @@ Resource<ResourceType::TextureCube>::Resource(RHIContext *rhi_context, std::vect
 	staging_buffer->CopyToDevice(data.data(), staging_buffer->GetDesc().size);
 
 	// Convert equirectangular to cubemap
-	/*std::vector<uint8_t> raw_shader;
-	Path::GetInstance().Read("./Source/Shaders/PreProcess/EquirectangularToCubemap.hlsl", raw_shader);
+	//std::vector<uint8_t> raw_shader;
+	//Path::GetInstance().Read("./Source/Shaders/PreProcess/EquirectangularToCubemap.hlsl", raw_shader);
 
-	std::string shader_source;
-	shader_source.resize(raw_shader.size());
-	std::memcpy(shader_source.data(), raw_shader.data(), raw_shader.size());
-	shader_source += "\n";
+	//std::string shader_source;
+	//shader_source.resize(raw_shader.size());
+	//std::memcpy(shader_source.data(), raw_shader.data(), raw_shader.size());
+	//shader_source += "\n";
 
-	ShaderDesc vertex_shader_desc  = {};
-	vertex_shader_desc.path = "./Source/Shaders/PreProcess/EquirectangularToCubemap.hlsl";
-	vertex_shader_desc.entry_point = "VSmain";
-	vertex_shader_desc.stage       = RHIShaderStage::Vertex;
-	vertex_shader_desc.source      = ShaderSource::HLSL;
-	vertex_shader_desc.target      = ShaderTarget::SPIRV;
-	vertex_shader_desc.code        = shader_source;
+	//ShaderDesc vertex_shader_desc  = {};
+	//vertex_shader_desc.path = "./Source/Shaders/PreProcess/EquirectangularToCubemap.hlsl";
+	//vertex_shader_desc.entry_point = "VSmain";
+	//vertex_shader_desc.stage       = RHIShaderStage::Vertex;
+	//vertex_shader_desc.source      = ShaderSource::HLSL;
+	//vertex_shader_desc.target      = ShaderTarget::SPIRV;
+	//vertex_shader_desc.code        = shader_source;
 
-	ShaderDesc fragment_shader_desc  = {};
-	fragment_shader_desc.path = "./Source/Shaders/PreProcess/EquirectangularToCubemap.hlsl";
-	fragment_shader_desc.entry_point = "PSmain";
-	fragment_shader_desc.stage       = RHIShaderStage::Fragment;
-	fragment_shader_desc.source      = ShaderSource::HLSL;
-	fragment_shader_desc.target      = ShaderTarget::SPIRV;
-	fragment_shader_desc.code        = shader_source;
+	//ShaderDesc fragment_shader_desc  = {};
+	//fragment_shader_desc.path = "./Source/Shaders/PreProcess/EquirectangularToCubemap.hlsl";
+	//fragment_shader_desc.entry_point = "PSmain";
+	//fragment_shader_desc.stage       = RHIShaderStage::Fragment;
+	//fragment_shader_desc.source      = ShaderSource::HLSL;
+	//fragment_shader_desc.target      = ShaderTarget::SPIRV;
+	//fragment_shader_desc.code        = shader_source;
 
-	ShaderMeta vertex_meta   = {};
-	ShaderMeta fragment_meta = {};
+	//ShaderMeta vertex_meta   = {};
+	//ShaderMeta fragment_meta = {};
 
-	auto vertex_shader_spirv   = ShaderCompiler::GetInstance().Compile(vertex_shader_desc, vertex_meta);
-	auto fragment_shader_spirv = ShaderCompiler::GetInstance().Compile(fragment_shader_desc, fragment_meta);
+	//auto vertex_shader_spirv   = ShaderCompiler::GetInstance().Compile(vertex_shader_desc, vertex_meta);
+	//auto fragment_shader_spirv = ShaderCompiler::GetInstance().Compile(fragment_shader_desc, fragment_meta);
 
-	auto vertex_shader   = rhi_context->CreateShader("VSmain", vertex_shader_spirv);
-	auto fragment_shader = rhi_context->CreateShader("PSmain", fragment_shader_spirv);
+	//auto vertex_shader   = rhi_context->CreateShader("VSmain", vertex_shader_spirv);
+	//auto fragment_shader = rhi_context->CreateShader("PSmain", fragment_shader_spirv);
 
-	ShaderMeta shader_meta = vertex_meta;
-	shader_meta += fragment_meta;
+	//ShaderMeta shader_meta = vertex_meta;
+	//shader_meta += fragment_meta;
 
-	SERIALIZE("Asset/BuildIn/equirectangular_to_cubemap.shader.asset", vertex_shader_spirv, fragment_shader_spirv, shader_meta);*/
+	//SERIALIZE("Asset/BuildIn/equirectangular_to_cubemap.shader.asset", vertex_shader_spirv, fragment_shader_spirv, shader_meta);
 
 	std::vector<uint8_t> vertex_shader_spirv, fragment_shader_spirv;
 	ShaderMeta           shader_meta;
@@ -96,7 +96,6 @@ Resource<ResourceType::TextureCube>::Resource(RHIContext *rhi_context, std::vect
 	auto pipeline_state = rhi_context->CreatePipelineState();
 	auto descriptor     = rhi_context->CreateDescriptor(shader_meta);
 	auto render_target  = rhi_context->CreateRenderTarget();
-	auto uniform_buffer = rhi_context->CreateBuffer(sizeof(glm::mat4) * 6, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
 
 	render_target->Set(0, m_impl->texture.get(), TextureRange{RHITextureDimension::Texture2DArray, 0, 1, 0, 6}, ColorAttachment{});
 
@@ -105,26 +104,7 @@ Resource<ResourceType::TextureCube>::Resource(RHIContext *rhi_context, std::vect
 	pipeline_state->SetBlendState(blend_state);
 	pipeline_state->SetDepthStencilState(depth_stencil_state);
 
-	glm::mat4 projection_matrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-	glm::mat4 views_matrix[] =
-	    {
-	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
-	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
-	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)),
-	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f)),
-	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, -1.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
-	        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
-	    };
-	std::array<glm::mat4, 6> inv_view_projections = {};
-
-	for (uint32_t i = 0; i < 6; i++)
-	{
-		inv_view_projections[i] = glm::inverse(projection_matrix * views_matrix[i]);
-	}
-
-	uniform_buffer->CopyToDevice(inv_view_projections.data(), sizeof(glm::mat4) * 6);
-	descriptor->BindBuffer("UniformBuffer", uniform_buffer.get())
-	    .BindTexture("InputTexture", cubemap2d.get(), RHITextureDimension::Texture2D)
+	descriptor->BindTexture("InputTexture", cubemap2d.get(), RHITextureDimension::Texture2D)
 	    .BindSampler("TexSampler", rhi_context->CreateSampler(SamplerDesc::LinearClamp()));
 
 	auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Graphics);

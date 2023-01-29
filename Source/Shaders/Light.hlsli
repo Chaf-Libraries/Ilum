@@ -74,7 +74,6 @@ struct PointLight
     float intensity;
     float3 position;
     float radius;
-    float range;
     
     LightLeSample SampleLe(float2 u1, float2 u2, float time)
     {
@@ -120,14 +119,6 @@ struct PointLight
     {
         return 0.f;
     }
-
-    float3 Li(float3 p, out float3 wi)
-    {
-        wi = normalize(position - p);
-        float d = length(position - p);
-        float attenuation = max(min(1.0 - pow(d / range, 4.0), 1.0), 0.0) / (d * d);
-        return color.rgb * intensity * attenuation;
-    }
     
     bool IsDelta()
     {
@@ -140,7 +131,7 @@ struct PointLight
         pdf = 1.0;
 
         float d = length(position - interaction.isect.p);
-        float attenuation = max(min(1.0 - pow(d / range, 4.0), 1.0), 0.0) / (d * d);
+        float attenuation = max(min(1.0 - pow(d, 4.0), 1.0), 0.0) / (d * d);
         
         visibility.from = interaction;
         visibility.dir = normalize(position - interaction.isect.p);
@@ -246,7 +237,24 @@ struct DirectionalLight
 {
     float3 color;
     float intensity;
+    float4 split_depth;
+    float4x4 view_projection[4];
+    float4 shadow_cam_pos[4];
     float3 direction;
+    
+    LightLiSample SampleLi(LightSampleContext ctx, float2 u)
+    {
+        float3 wi;
+        float3 L = color.rgb * intensity;
+        
+        Interaction isect;
+        isect.p = ctx.p + Infinity * normalize(direction);
+        
+        LightLiSample li_sample;
+        li_sample.Create(L, wi, 1, isect);
+        
+        return li_sample;
+    }
 
     float3 Li(float3 p, out float3 wi)
     {

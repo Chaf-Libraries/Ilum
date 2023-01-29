@@ -22,6 +22,12 @@ class ResourceManager
 	}
 
 	template <ResourceType Type>
+	size_t GetValidResourceCount() const
+	{
+		return GetValidResourceCount(Type);
+	}
+
+	template <ResourceType Type>
 	RHITexture *GetThumbnail(const std::string &name)
 	{
 		return GetThumbnail(Type, Hash(name));
@@ -83,6 +89,8 @@ class ResourceManager
 
   private:
 	IResource *Get(ResourceType type, size_t uuid);
+
+	size_t GetValidResourceCount(ResourceType type);
 
 	RHITexture* GetThumbnail(ResourceType type, size_t uuid);
 

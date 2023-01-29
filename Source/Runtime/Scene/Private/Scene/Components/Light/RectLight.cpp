@@ -35,7 +35,7 @@ size_t RectLight::GetDataSize() const
 	return sizeof(m_data);
 }
 
-void *RectLight::GetData()
+void *RectLight::GetData(Camera *camera)
 {
 	return (void *) (&m_data);
 }

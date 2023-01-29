@@ -54,7 +54,7 @@ size_t EnvironmentLight::GetDataSize() const
 	return m_texture.length() + 1;
 }
 
-void *EnvironmentLight::GetData()
+void *EnvironmentLight::GetData(Camera *camera)
 {
 	return m_texture.data();
 }

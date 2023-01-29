@@ -1,13 +1,52 @@
-static const float PI = 3.14159265358979323846f;
-
-struct UniformBlock
-{
-    float4x4 inv_view_projection[6];
-};
-
 Texture2D InputTexture;
 SamplerState TexSampler;
-ConstantBuffer<UniformBlock> UniformBuffer;
+
+static const float PI = 3.14159265358979323846f;
+static const float4x4 InvViewProjections[6] =
+{
+    // +X
+    float4x4(
+        -0, 0, -0, 1,
+        0, 1, 0, -0,
+        1, 0, -0, 0,
+        0, -0, -4.95, 5.0499997
+    ),
+    // -X
+    float4x4(
+        -0, 0, -0, -1,
+        0, 1, 0, -0,
+        -1, 0, -0, 0,
+        0, -0, -4.95, 5.0499997
+    ),
+    // +Y
+    float4x4(
+        1, 0, -0, 0,
+        0, -0, 0, 1,
+        -0, 1, -0, 0,
+        0, -0, -4.95, 5.0499997
+    ),
+    // -Y
+    float4x4(
+        1, 0, 0, 0,
+        0, -0, 0, -1,
+        -0, -1, -0, 0,
+        0, -0, -4.95, 5.0499997
+    ),
+    // +Z
+    float4x4(
+        1, 0, -0, 0,
+        0, 1, 0, -0,
+        -0, 0, -0, -1,
+        0, -0, -4.95, 5.0499997
+    ),
+    // -Z
+    float4x4(
+        -1, 0, -0, 0,
+        0, 1, 0, -0,
+        -0, -0, -0, 1,
+        0, -0, -4.95, 5.0499997
+    )
+};
 
 struct VSInput
 {
@@ -50,7 +89,7 @@ VSOutput VSmain(VSInput input)
     
     output.UV = float2((input.VertexID << 1) & 2, input.VertexID & 2);
     output.Position = float4(output.UV * 2.0 - 1.0, 1.0, 1.0);
-    output.Pos = mul(UniformBuffer.inv_view_projection[input.InstanceID], output.Position).xyz;
+    output.Pos = mul(InvViewProjections[input.InstanceID], output.Position).xyz;
     output.Layer = input.InstanceID;
 
     return output;

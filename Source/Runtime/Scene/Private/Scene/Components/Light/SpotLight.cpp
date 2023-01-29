@@ -48,7 +48,7 @@ size_t SpotLight::GetDataSize() const
 	return sizeof(m_data);
 }
 
-void *SpotLight::GetData()
+void *SpotLight::GetData(Camera *camera)
 {
 	auto *transform = p_node->GetComponent<Cmpt::Transform>();
 

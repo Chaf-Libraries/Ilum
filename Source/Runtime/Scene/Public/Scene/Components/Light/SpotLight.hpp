@@ -25,7 +25,7 @@ class SpotLight : public Light
 
 	virtual size_t GetDataSize() const override;
 
-	virtual void *GetData() override;
+	virtual void *GetData(Camera *camera = nullptr) override;
 
   private:
 	struct

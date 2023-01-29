@@ -247,6 +247,11 @@ void Command::SetScissor(uint32_t width, uint32_t height, int32_t offset_x, int3
 	vkCmdSetScissor(m_handle, 0, 1, &rect);
 }
 
+void Command::SetDepthBias(float constant, float clamp, float slope)
+{
+	vkCmdSetDepthBias(m_handle, constant, clamp, slope);
+}
+
 void Command::Dispatch(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, uint32_t block_x, uint32_t block_y, uint32_t block_z)
 {
 	vkCmdDispatch(m_handle, (thread_x + block_x - 1) / block_x, (thread_y + block_y - 1) / block_y, (thread_z + block_z - 1) / block_z);
@@ -452,7 +457,7 @@ void Command::BlitTexture(RHITexture *src_texture, const TextureRange &src_range
 
 void Command::ResourceStateTransition(const std::vector<TextureStateTransition> &texture_transitions, const std::vector<BufferStateTransition> &buffer_transitions)
 {
-	// TODO: 
+	// TODO:
 	// + Pipeline Stage Mask
 	// + Queue ownership transfer
 	if (texture_transitions.empty() && buffer_transitions.empty())
@@ -522,53 +527,53 @@ void Command::ResourceStateTransition(const std::vector<TextureStateTransition> 
 
 		switch (texture_transitions[i].src)
 		{
-			case RHIResourceState::TransferSource:
-			case RHIResourceState::TransferDest:
+		    case RHIResourceState::TransferSource:
+		    case RHIResourceState::TransferDest:
 
-			case RHIResourceState::ShaderResource:
-			case RHIResourceState::RenderTarget:
-			case RHIResourceState::DepthWrite:
-			case RHIResourceState::DepthRead:
-			case RHIResourceState::Present:
-				src_family = RHIQueueFamily::Graphics;
-				break;
-			case RHIResourceState::UnorderedAccess:
-				src_family = RHIQueueFamily::Compute;
-				break;
-			default:
-				break;
+		    case RHIResourceState::ShaderResource:
+		    case RHIResourceState::RenderTarget:
+		    case RHIResourceState::DepthWrite:
+		    case RHIResourceState::DepthRead:
+		    case RHIResourceState::Present:
+		        src_family = RHIQueueFamily::Graphics;
+		        break;
+		    case RHIResourceState::UnorderedAccess:
+		        src_family = RHIQueueFamily::Compute;
+		        break;
+		    default:
+		        break;
 		}
 
 		switch (texture_transitions[i].dst)
 		{
-			case RHIResourceState::TransferSource:
-			case RHIResourceState::TransferDest:
-			case RHIResourceState::ShaderResource:
-			case RHIResourceState::RenderTarget:
-			case RHIResourceState::DepthWrite:
-			case RHIResourceState::DepthRead:
-			case RHIResourceState::Present:
-				dst_family = RHIQueueFamily::Graphics;
-				break;
-			case RHIResourceState::UnorderedAccess:
-				dst_family = RHIQueueFamily::Compute;
-				break;
-			default:
-				break;
+		    case RHIResourceState::TransferSource:
+		    case RHIResourceState::TransferDest:
+		    case RHIResourceState::ShaderResource:
+		    case RHIResourceState::RenderTarget:
+		    case RHIResourceState::DepthWrite:
+		    case RHIResourceState::DepthRead:
+		    case RHIResourceState::Present:
+		        dst_family = RHIQueueFamily::Graphics;
+		        break;
+		    case RHIResourceState::UnorderedAccess:
+		        dst_family = RHIQueueFamily::Compute;
+		        break;
+		    default:
+		        break;
 		}*/
-		//if (texture_transitions[i].src_family == texture_transitions[i].dst_family)
+		// if (texture_transitions[i].src_family == texture_transitions[i].dst_family)
 		{
 			image_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			image_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		}
-		//else
+		// else
 		{
-			//image_barrier.srcQueueFamilyIndex = static_cast<Device *>(p_device)->GetQueueFamily(texture_transitions[i].src_family);
-			//image_barrier.dstQueueFamilyIndex = static_cast<Device *>(p_device)->GetQueueFamily(texture_transitions[i].dst_family);
+			// image_barrier.srcQueueFamilyIndex = static_cast<Device *>(p_device)->GetQueueFamily(texture_transitions[i].src_family);
+			// image_barrier.dstQueueFamilyIndex = static_cast<Device *>(p_device)->GetQueueFamily(texture_transitions[i].dst_family);
 		}
-		
-		image_barrier.image               = static_cast<Texture *>(texture_transitions[i].texture)->GetHandle();
-		image_barrier.subresourceRange    = range;
+
+		image_barrier.image            = static_cast<Texture *>(texture_transitions[i].texture)->GetHandle();
+		image_barrier.subresourceRange = range;
 		image_barriers.push_back(image_barrier);
 		src_stage |= vk_texture_state_src.stage;
 		dst_stage |= vk_texture_state_dst.stage;
