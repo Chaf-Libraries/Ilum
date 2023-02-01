@@ -21,7 +21,6 @@ end
 add_pass_plugin("Output", "Present")
 add_pass_plugin("Transfer", "CopyImageRGBA16")
 add_pass_plugin("RayTracing", "PathTracing")
-add_pass_plugin("RenderPath", "DepthPass")
 add_pass_plugin("RenderPath", "VisibilityGeometryPass")
 add_pass_plugin("RenderPath", "VisibilityLightingPass")
 add_pass_plugin("RenderPath", "VisibilityBufferVisualization")

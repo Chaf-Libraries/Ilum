@@ -10,6 +10,12 @@ using namespace Ilum;
 
 class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 {
+	struct PipelineDesc
+	{
+		std::shared_ptr<RHIPipelineState> pipeline = nullptr;
+		ShaderMeta                        meta;
+	};
+
   public:
 	VisibilityGeometryPass() = default;
 
@@ -22,165 +28,15 @@ class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 		    .SetName("VisibilityGeometryPass")
 		    .SetCategory("RenderPath")
 		    .WriteTexture2D(handle++, "Visibility Buffer", 0, 0, RHIFormat::R32_UINT, RHIResourceState::RenderTarget)
-		    .ReadTexture2D(handle++, "Depth Buffer", RHIResourceState::DepthRead);
+		    .WriteTexture2D(handle++, "Depth Buffer", 0, 0, RHIFormat::D32_FLOAT, RHIResourceState::DepthWrite);
 	}
 
 	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
 	{
-		struct
-		{
-			std::shared_ptr<RHIPipelineState> pipeline = nullptr;
-			ShaderMeta                        meta;
-		} mesh_visibility_pipeline;
+		std::shared_ptr<RHIRenderTarget> render_target = std::shared_ptr<RHIRenderTarget>(std::move(renderer->GetRHIContext()->CreateRenderTarget()));
 
-		struct
-		{
-			std::shared_ptr<RHIPipelineState> pipeline = nullptr;
-			ShaderMeta                        meta;
-		} skinned_mesh_visibility_pipeline;
-
-		std::shared_ptr<RHIRenderTarget> render_target = nullptr;
-
-		render_target = std::shared_ptr<RHIRenderTarget>(std::move(renderer->GetRHIContext()->CreateRenderTarget()));
-
-		mesh_visibility_pipeline.pipeline         = std::shared_ptr<RHIPipelineState>(std::move(renderer->GetRHIContext()->CreatePipelineState()));
-		skinned_mesh_visibility_pipeline.pipeline = std::shared_ptr<RHIPipelineState>(std::move(renderer->GetRHIContext()->CreatePipelineState()));
-
-		// Mesh Pipeline
-		if (renderer->GetRHIContext()->IsFeatureSupport(RHIFeature::MeshShading))
-		{
-			auto *task_shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "ASmain", RHIShaderStage::Task);
-			auto *mesh_shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "MSmain", RHIShaderStage::Mesh);
-			auto *frag_shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "PSmain", RHIShaderStage::Fragment);
-
-			mesh_visibility_pipeline.pipeline->SetShader(RHIShaderStage::Task, task_shader);
-			mesh_visibility_pipeline.pipeline->SetShader(RHIShaderStage::Mesh, mesh_shader);
-			mesh_visibility_pipeline.pipeline->SetShader(RHIShaderStage::Fragment, frag_shader);
-
-			BlendState blend_state;
-			blend_state.attachment_states.resize(1);
-			mesh_visibility_pipeline.pipeline->SetBlendState(blend_state);
-
-			RasterizationState rasterization_state;
-			rasterization_state.cull_mode  = RHICullMode::None;
-			rasterization_state.front_face = RHIFrontFace::Clockwise;
-			mesh_visibility_pipeline.pipeline->SetRasterizationState(rasterization_state);
-
-			DepthStencilState depth_stencil_state  = {};
-			depth_stencil_state.depth_write_enable = false;
-			depth_stencil_state.depth_test_enable  = true;
-			depth_stencil_state.compare  = RHICompareOp::Equal;
-			mesh_visibility_pipeline.pipeline->SetDepthStencilState(depth_stencil_state);
-
-			mesh_visibility_pipeline.meta = renderer->RequireShaderMeta(task_shader);
-			mesh_visibility_pipeline.meta += renderer->RequireShaderMeta(mesh_shader);
-			mesh_visibility_pipeline.meta += renderer->RequireShaderMeta(frag_shader);
-		}
-		else
-		{
-			auto *vertex_shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "VSmain", RHIShaderStage::Vertex);
-			auto *frag_shader   = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "FSmain", RHIShaderStage::Fragment);
-
-			mesh_visibility_pipeline.pipeline->SetShader(RHIShaderStage::Vertex, vertex_shader);
-			mesh_visibility_pipeline.pipeline->SetShader(RHIShaderStage::Fragment, frag_shader);
-
-			BlendState blend_state;
-			blend_state.attachment_states.resize(1);
-			mesh_visibility_pipeline.pipeline->SetBlendState(blend_state);
-
-			RasterizationState rasterization_state;
-			rasterization_state.cull_mode  = RHICullMode::None;
-			rasterization_state.front_face = RHIFrontFace::Clockwise;
-			mesh_visibility_pipeline.pipeline->SetRasterizationState(rasterization_state);
-
-			DepthStencilState depth_stencil_state  = {};
-			depth_stencil_state.depth_write_enable = false;
-			depth_stencil_state.depth_test_enable  = true;
-			depth_stencil_state.compare  = RHICompareOp::Equal;
-			mesh_visibility_pipeline.pipeline->SetDepthStencilState(depth_stencil_state);
-
-			VertexInputState vertex_input_state = {};
-			vertex_input_state.input_bindings   = {
-                VertexInputState::InputBinding{0, sizeof(Resource<ResourceType::Mesh>::Vertex), RHIVertexInputRate::Vertex}};
-			vertex_input_state.input_attributes = {
-			    VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, position)},
-			    VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 3, 0, RHIFormat::R32G32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, texcoord0)},
-			};
-			mesh_visibility_pipeline.pipeline->SetVertexInputState(vertex_input_state);
-
-			mesh_visibility_pipeline.meta = renderer->RequireShaderMeta(vertex_shader);
-			mesh_visibility_pipeline.meta += renderer->RequireShaderMeta(frag_shader);
-		}
-
-		// Skinned Mesh Pipeline
-		if (renderer->GetRHIContext()->IsFeatureSupport(RHIFeature::MeshShading))
-		{
-			auto *task_shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "ASmain", RHIShaderStage::Task, {"HAS_SKINNED"});
-			auto *mesh_shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "MSmain", RHIShaderStage::Mesh, {"HAS_SKINNED"});
-			auto *frag_shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "PSmain", RHIShaderStage::Fragment, {"HAS_SKINNED"});
-
-			skinned_mesh_visibility_pipeline.pipeline->SetShader(RHIShaderStage::Task, task_shader);
-			skinned_mesh_visibility_pipeline.pipeline->SetShader(RHIShaderStage::Mesh, mesh_shader);
-			skinned_mesh_visibility_pipeline.pipeline->SetShader(RHIShaderStage::Fragment, frag_shader);
-
-			BlendState blend_state;
-			blend_state.attachment_states.resize(1);
-			skinned_mesh_visibility_pipeline.pipeline->SetBlendState(blend_state);
-
-			RasterizationState rasterization_state;
-			rasterization_state.cull_mode  = RHICullMode::None;
-			rasterization_state.front_face = RHIFrontFace::Clockwise;
-			skinned_mesh_visibility_pipeline.pipeline->SetRasterizationState(rasterization_state);
-
-			DepthStencilState depth_stencil_state  = {};
-			depth_stencil_state.depth_write_enable = false;
-			depth_stencil_state.depth_test_enable  = true;
-			depth_stencil_state.compare  = RHICompareOp::Equal;
-			skinned_mesh_visibility_pipeline.pipeline->SetDepthStencilState(depth_stencil_state);
-
-			skinned_mesh_visibility_pipeline.meta = renderer->RequireShaderMeta(task_shader);
-			skinned_mesh_visibility_pipeline.meta += renderer->RequireShaderMeta(mesh_shader);
-			skinned_mesh_visibility_pipeline.meta += renderer->RequireShaderMeta(frag_shader);
-		}
-		else
-		{
-			auto *vertex_shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "VSmain", RHIShaderStage::Vertex, {"HAS_SKINNED"});
-			auto *frag_shader   = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "FSmain", RHIShaderStage::Fragment, {"HAS_SKINNED"});
-
-			skinned_mesh_visibility_pipeline.pipeline->SetShader(RHIShaderStage::Vertex, vertex_shader);
-			skinned_mesh_visibility_pipeline.pipeline->SetShader(RHIShaderStage::Fragment, frag_shader);
-
-			BlendState blend_state;
-			blend_state.attachment_states.resize(1);
-			skinned_mesh_visibility_pipeline.pipeline->SetBlendState(blend_state);
-
-			RasterizationState rasterization_state;
-			rasterization_state.cull_mode  = RHICullMode::None;
-			rasterization_state.front_face = RHIFrontFace::Clockwise;
-			skinned_mesh_visibility_pipeline.pipeline->SetRasterizationState(rasterization_state);
-
-			DepthStencilState depth_stencil_state  = {};
-			depth_stencil_state.depth_write_enable = false;
-			depth_stencil_state.depth_test_enable  = true;
-			depth_stencil_state.compare  = RHICompareOp::Equal;
-			skinned_mesh_visibility_pipeline.pipeline->SetDepthStencilState(depth_stencil_state);
-
-			VertexInputState vertex_input_state = {};
-			vertex_input_state.input_bindings   = {
-                VertexInputState::InputBinding{0, sizeof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex), RHIVertexInputRate::Vertex}};
-			vertex_input_state.input_attributes = {
-			    VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, position)},
-			    VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 3, 0, RHIFormat::R32G32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, texcoord0)},
-			    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Indices, 5, 0, RHIFormat::R32G32B32A32_SINT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, bones[0])},
-			    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Indices, 6, 0, RHIFormat::R32G32B32A32_SINT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, bones[4])},
-			    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Weights, 7, 0, RHIFormat::R32G32B32A32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, weights[0])},
-			    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Weights, 8, 0, RHIFormat::R32G32B32A32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, weights[4])},
-			};
-			skinned_mesh_visibility_pipeline.pipeline->SetVertexInputState(vertex_input_state);
-
-			skinned_mesh_visibility_pipeline.meta = renderer->RequireShaderMeta(vertex_shader);
-			skinned_mesh_visibility_pipeline.meta += renderer->RequireShaderMeta(frag_shader);
-		}
+		auto mesh_pipeline = CreatePipeline(renderer, false);
+		auto skinned_mesh_pipeline = CreatePipeline(renderer, true);
 
 		*task = [=](RenderGraph &render_graph, RHICommand *cmd_buffer, Variant &config, RenderGraphBlackboard &black_board) {
 			auto  visibility_buffer = render_graph.GetTexture(desc.GetPin("Visibility Buffer").handle);
@@ -191,7 +47,7 @@ class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 
 			render_target->Clear();
 			render_target->Set(0, visibility_buffer, TextureRange{}, ColorAttachment{});
-			render_target->Set(depth_stencil, TextureRange{}, DepthStencilAttachment{RHILoadAction::Load});
+			render_target->Set(depth_stencil, TextureRange{}, DepthStencilAttachment{});
 
 			// Mesh Shading
 			if (rhi_context->IsFeatureSupport(RHIFeature::MeshShading))
@@ -203,7 +59,7 @@ class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 				// Draw Mesh
 				if (gpu_scene->mesh_buffer.instance_count > 0)
 				{
-					auto *descriptor = rhi_context->CreateDescriptor(mesh_visibility_pipeline.meta);
+					auto *descriptor = rhi_context->CreateDescriptor(mesh_pipeline.meta);
 					descriptor->BindBuffer("InstanceBuffer", gpu_scene->mesh_buffer.instances.get())
 					    .BindBuffer("ViewBuffer", view->buffer.get())
 					    .BindBuffer("VertexBuffer", gpu_scene->mesh_buffer.vertex_buffers)
@@ -212,14 +68,14 @@ class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 					    .BindBuffer("MeshletDataBuffer", gpu_scene->mesh_buffer.meshlet_data_buffers);
 
 					cmd_buffer->BindDescriptor(descriptor);
-					cmd_buffer->BindPipelineState(mesh_visibility_pipeline.pipeline.get());
+					cmd_buffer->BindPipelineState(mesh_pipeline.pipeline.get());
 					cmd_buffer->DrawMeshTask(gpu_scene->mesh_buffer.max_meshlet_count, gpu_scene->mesh_buffer.instance_count, 1, 32, 1, 1);
 				}
 
 				// Draw Skinned Mesh
 				if (gpu_scene->skinned_mesh_buffer.instance_count > 0)
 				{
-					auto *descriptor = rhi_context->CreateDescriptor(skinned_mesh_visibility_pipeline.meta);
+					auto *descriptor = rhi_context->CreateDescriptor(skinned_mesh_pipeline.meta);
 					descriptor->BindBuffer("InstanceBuffer", gpu_scene->skinned_mesh_buffer.instances.get())
 					    .BindBuffer("ViewBuffer", view->buffer.get())
 					    .BindBuffer("BoneMatrices", gpu_scene->animation_buffer.bone_matrics)
@@ -229,7 +85,7 @@ class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 					    .BindBuffer("MeshletDataBuffer", gpu_scene->skinned_mesh_buffer.meshlet_data_buffers);
 
 					cmd_buffer->BindDescriptor(descriptor);
-					cmd_buffer->BindPipelineState(skinned_mesh_visibility_pipeline.pipeline.get());
+					cmd_buffer->BindPipelineState(skinned_mesh_pipeline.pipeline.get());
 					cmd_buffer->DrawMeshTask(gpu_scene->skinned_mesh_buffer.max_meshlet_count, gpu_scene->skinned_mesh_buffer.instance_count, 1, 32, 1, 1);
 				}
 
@@ -246,12 +102,12 @@ class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 				{
 					auto meshes = renderer->GetScene()->GetComponents<Cmpt::MeshRenderer>();
 
-					auto *descriptor = rhi_context->CreateDescriptor(mesh_visibility_pipeline.meta);
+					auto *descriptor = rhi_context->CreateDescriptor(mesh_pipeline.meta);
 					descriptor->BindBuffer("InstanceBuffer", gpu_scene->mesh_buffer.instances.get())
 					    .BindBuffer("ViewBuffer", view->buffer.get());
 
 					cmd_buffer->BindDescriptor(descriptor);
-					cmd_buffer->BindPipelineState(mesh_visibility_pipeline.pipeline.get());
+					cmd_buffer->BindPipelineState(mesh_pipeline.pipeline.get());
 
 					uint32_t instance_id = 0;
 					for (auto &mesh : meshes)
@@ -276,13 +132,13 @@ class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 				{
 					auto skinned_meshes = renderer->GetScene()->GetComponents<Cmpt::SkinnedMeshRenderer>();
 
-					auto *descriptor = rhi_context->CreateDescriptor(skinned_mesh_visibility_pipeline.meta);
+					auto *descriptor = rhi_context->CreateDescriptor(skinned_mesh_pipeline.meta);
 					descriptor->BindBuffer("InstanceBuffer", gpu_scene->skinned_mesh_buffer.instances.get())
 					    .BindBuffer("ViewBuffer", view->buffer.get())
 					    .BindBuffer("BoneMatrices", gpu_scene->animation_buffer.bone_matrics);
 
 					cmd_buffer->BindDescriptor(descriptor);
-					cmd_buffer->BindPipelineState(skinned_mesh_visibility_pipeline.pipeline.get());
+					cmd_buffer->BindPipelineState(skinned_mesh_pipeline.pipeline.get());
 
 					uint32_t instance_id = 0;
 					for (auto &skinned_mesh : skinned_meshes)
@@ -309,6 +165,95 @@ class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 
 	virtual void OnImGui(Variant *config)
 	{
+	}
+
+	PipelineDesc CreatePipeline(Renderer *renderer, bool has_skinned)
+	{
+		auto *rhi_context = renderer->GetRHIContext();
+
+		PipelineDesc pipeline_desc;
+		pipeline_desc.pipeline = std::shared_ptr<RHIPipelineState>(std::move(rhi_context->CreatePipelineState()));
+
+		if (rhi_context->IsFeatureSupport(RHIFeature::MeshShading))
+		{
+			auto *task_shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "ASmain", RHIShaderStage::Task, {has_skinned ? "HAS_SKINNED" : "NO_SKINNED"});
+			auto *mesh_shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "MSmain", RHIShaderStage::Mesh, {has_skinned ? "HAS_SKINNED" : "NO_SKINNED"});
+			auto *frag_shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "PSmain", RHIShaderStage::Fragment, {has_skinned ? "HAS_SKINNED" : "NO_SKINNED"});
+
+			pipeline_desc.pipeline->SetShader(RHIShaderStage::Task, task_shader);
+			pipeline_desc.pipeline->SetShader(RHIShaderStage::Mesh, mesh_shader);
+			pipeline_desc.pipeline->SetShader(RHIShaderStage::Fragment, frag_shader);
+
+			BlendState blend_state;
+			blend_state.attachment_states.resize(1);
+			pipeline_desc.pipeline->SetBlendState(blend_state);
+
+			RasterizationState rasterization_state;
+			rasterization_state.cull_mode  = RHICullMode::None;
+			rasterization_state.front_face = RHIFrontFace::Clockwise;
+			pipeline_desc.pipeline->SetRasterizationState(rasterization_state);
+
+			DepthStencilState depth_stencil_state  = {};
+			depth_stencil_state.depth_write_enable = true;
+			depth_stencil_state.depth_test_enable  = true;
+			pipeline_desc.pipeline->SetDepthStencilState(depth_stencil_state);
+
+			pipeline_desc.meta += renderer->RequireShaderMeta(task_shader);
+			pipeline_desc.meta += renderer->RequireShaderMeta(mesh_shader);
+			pipeline_desc.meta += renderer->RequireShaderMeta(frag_shader);
+		}
+		else
+		{
+			auto *vertex_shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "VSmain", RHIShaderStage::Vertex, {has_skinned ? "HAS_SKINNED" : "NO_SKINNED"});
+			auto *frag_shader   = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityGeometryPass.hlsl", "FSmain", RHIShaderStage::Fragment, {has_skinned ? "HAS_SKINNED" : "NO_SKINNED"});
+
+			pipeline_desc.pipeline->SetShader(RHIShaderStage::Vertex, vertex_shader);
+			pipeline_desc.pipeline->SetShader(RHIShaderStage::Fragment, frag_shader);
+
+			BlendState blend_state;
+			blend_state.attachment_states.resize(1);
+			pipeline_desc.pipeline->SetBlendState(blend_state);
+
+			RasterizationState rasterization_state;
+			rasterization_state.cull_mode  = RHICullMode::None;
+			rasterization_state.front_face = RHIFrontFace::Clockwise;
+			pipeline_desc.pipeline->SetRasterizationState(rasterization_state);
+
+			DepthStencilState depth_stencil_state  = {};
+			depth_stencil_state.depth_write_enable = true;
+			depth_stencil_state.depth_test_enable  = true;
+			pipeline_desc.pipeline->SetDepthStencilState(depth_stencil_state);
+
+			VertexInputState vertex_input_state = {};
+			if (has_skinned)
+			{
+				vertex_input_state.input_bindings = {
+				    VertexInputState::InputBinding{0, sizeof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex), RHIVertexInputRate::Vertex}};
+				vertex_input_state.input_attributes = {
+				    VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, position)},
+				    VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 3, 0, RHIFormat::R32G32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, texcoord0)},
+				    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Indices, 5, 0, RHIFormat::R32G32B32A32_SINT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, bones[0])},
+				    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Indices, 6, 0, RHIFormat::R32G32B32A32_SINT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, bones[4])},
+				    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Weights, 7, 0, RHIFormat::R32G32B32A32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, weights[0])},
+				    VertexInputState::InputAttribute{RHIVertexSemantics::Blend_Weights, 8, 0, RHIFormat::R32G32B32A32_FLOAT, offsetof(Resource<ResourceType::SkinnedMesh>::SkinnedVertex, weights[4])},
+				};
+			}
+			else
+			{
+				vertex_input_state.input_bindings = {
+				    VertexInputState::InputBinding{0, sizeof(Resource<ResourceType::Mesh>::Vertex), RHIVertexInputRate::Vertex}};
+				vertex_input_state.input_attributes = {
+				    VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, position)},
+				    VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 3, 0, RHIFormat::R32G32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, texcoord0)},
+				};
+			}
+
+			pipeline_desc.pipeline->SetVertexInputState(vertex_input_state);
+			pipeline_desc.meta += renderer->RequireShaderMeta(vertex_shader);
+			pipeline_desc.meta += renderer->RequireShaderMeta(frag_shader);
+		}
+
+		return pipeline_desc;
 	}
 };
 
