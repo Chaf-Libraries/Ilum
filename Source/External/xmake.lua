@@ -5,6 +5,7 @@ add_requires("stb")
 add_requires("glm")
 add_requires("glslang")
 add_requires("spirv-cross")
+add_requires("spirv-reflect master")
 add_requires("directxshadercompiler")
 add_requires("assimp", {configs = {shared = true}})
 add_requires("imgui docking")
@@ -43,32 +44,6 @@ target("ImGui-Tools")
 
     set_group("External")
 target_end()
-
-target("spirv-reflect")
-    set_kind("static")
-
-    add_files("spirv_reflect/**.c")
-    add_headerfiles("spirv_reflect/**.h")
-    add_includedirs("spirv_reflect", {public  = true})
-
-    set_group("External")
-target_end()
-
-package("meshoptimizer")
-    on_load(function (package)
-        package:set("installdir", path.join(os.scriptdir(), "meshoptimizer"))
-    end)
-
-    on_fetch(function (package)
-        package:addenv("PATH", package:installdir("bin"))
-
-        local result = {}
-        result.links = "meshoptimizer"
-        result.linkdirs = package:installdir("lib")
-        result.includedirs = package:installdir("include")
-        return result
-    end)
-package_end()
 
 package("mustache")
     on_load(function (package)
