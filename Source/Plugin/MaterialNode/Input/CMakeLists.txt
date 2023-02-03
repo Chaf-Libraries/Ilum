@@ -1,2 +1,0 @@
-add_material_node(Input RGB)
-add_material_node(Input SurfaceInteraction)

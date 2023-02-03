@@ -1,1 +1,0 @@
-add_material_node(Output MaterialOutput)
