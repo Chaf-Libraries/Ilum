@@ -485,9 +485,29 @@ void Command::BlitTexture(RHITexture *src_texture, const TextureRange &src_range
 	}
 }
 
-void Command::FillBuffer(RHIBuffer *buffer, size_t size, size_t offset, uint32_t data)
+void Command::FillBuffer(RHIBuffer *buffer, RHIResourceState state, size_t size, size_t offset, uint32_t data)
 {
+	if (state != RHIResourceState::TransferDest)
+	{
+		ResourceStateTransition(
+		    {},
+		    {BufferStateTransition{
+		        buffer,
+		        RHIResourceState::UnorderedAccess,
+		        RHIResourceState::TransferDest}});
+	}
+
 	vkCmdFillBuffer(m_handle, static_cast<Buffer *>(buffer)->GetHandle(), offset, size, data);
+
+	if (state != RHIResourceState::TransferDest)
+	{
+		ResourceStateTransition(
+		    {},
+		    {BufferStateTransition{
+		        buffer,
+		        RHIResourceState::TransferDest,
+		        RHIResourceState::UnorderedAccess}});
+	}
 }
 
 void Command::FillTexture(RHITexture *texture, RHIResourceState state, const TextureRange &range, const glm::vec4 &color)
@@ -504,8 +524,7 @@ void Command::FillTexture(RHITexture *texture, RHIResourceState state, const Tex
 	vk_range.layerCount              = range.layer_count;
 	vk_range.levelCount              = range.mip_count;
 
-	if (vk_state.layout != VK_IMAGE_LAYOUT_GENERAL &&
-	    vk_state.layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+	if (state != RHIResourceState::TransferDest)
 	{
 		ResourceStateTransition({TextureStateTransition{
 		                            texture,
@@ -514,10 +533,9 @@ void Command::FillTexture(RHITexture *texture, RHIResourceState state, const Tex
 		                        {});
 	}
 
-	vkCmdClearColorImage(m_handle, static_cast<Texture *>(texture)->GetHandle(), vk_state.layout, &clear_color, 1, &vk_range);
+	vkCmdClearColorImage(m_handle, static_cast<Texture *>(texture)->GetHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clear_color, 1, &vk_range);
 
-	if (vk_state.layout != VK_IMAGE_LAYOUT_GENERAL &&
-	    vk_state.layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+	if (state != RHIResourceState::TransferDest)
 	{
 		ResourceStateTransition({TextureStateTransition{
 		                            texture,
@@ -554,10 +572,6 @@ void Command::ResourceStateTransition(const std::vector<TextureStateTransition> 
 	{
 		BufferState vk_buffer_state_src = BufferState::Create(buffer_transitions[i].src);
 		BufferState vk_buffer_state_dst = BufferState::Create(buffer_transitions[i].dst);
-		if (vk_buffer_state_src == vk_buffer_state_dst)
-		{
-			continue;
-		}
 
 		VkBufferMemoryBarrier buffer_barrier = {};
 
@@ -578,10 +592,6 @@ void Command::ResourceStateTransition(const std::vector<TextureStateTransition> 
 	{
 		TextureState vk_texture_state_src = TextureState::Create(texture_transitions[i].src);
 		TextureState vk_texture_state_dst = TextureState::Create(texture_transitions[i].dst);
-		if (vk_texture_state_src == vk_texture_state_dst)
-		{
-			continue;
-		}
 
 		VkImageMemoryBarrier image_barrier = {};
 

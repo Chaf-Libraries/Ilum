@@ -77,25 +77,58 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 			    pass_data->indirect_command_buffer->GetDesc().size != material_count * sizeof(RHIDispatchIndirectCommand))
 			{
 				pass_data->indirect_command_buffer = rhi_context->CreateBuffer<RHIDispatchIndirectCommand>(material_count, RHIBufferUsage::Indirect | RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
-				cmd_buffer->ResourceStateTransition({}, {BufferStateTransition{
-				                                            pass_data->indirect_command_buffer.get(),
-				                                            RHIResourceState::Undefined,
-				                                            RHIResourceState::UnorderedAccess}});
-			}
-			else
-			{
-				cmd_buffer->ResourceStateTransition({}, {BufferStateTransition{
-				                                            pass_data->indirect_command_buffer.get(),
-				                                            RHIResourceState::IndirectBuffer,
-				                                            RHIResourceState::UnorderedAccess}});
+				cmd_buffer->ResourceStateTransition(
+				    {},
+				    {BufferStateTransition{
+				        pass_data->indirect_command_buffer.get(),
+				        RHIResourceState::Undefined,
+				        RHIResourceState::IndirectBuffer}});
 			}
 
-			cmd_buffer->FillTexture(output, RHIResourceState::UnorderedAccess, TextureRange{}, glm::vec4(0.f));
+			cmd_buffer->ResourceStateTransition(
+			    {TextureStateTransition{
+			        output,
+			        RHIResourceState::UnorderedAccess,
+			        RHIResourceState::TransferDest}},
+			    {BufferStateTransition{
+			         pass_data->indirect_command_buffer.get(),
+			         RHIResourceState::IndirectBuffer,
+			         RHIResourceState::TransferDest},
+			     BufferStateTransition{
+			         pass_data->material_offset_buffer.get(),
+			         RHIResourceState::UnorderedAccess,
+			         RHIResourceState::TransferDest},
+			     BufferStateTransition{
+			         pass_data->material_count_buffer.get(),
+			         RHIResourceState::UnorderedAccess,
+			         RHIResourceState::TransferDest}});
+
+			cmd_buffer->FillTexture(output, RHIResourceState::TransferDest, TextureRange{}, glm::vec4(0.f));
+			cmd_buffer->FillBuffer(pass_data->material_offset_buffer.get(), RHIResourceState::TransferDest, pass_data->material_offset_buffer->GetDesc().size);
+			cmd_buffer->FillBuffer(pass_data->material_count_buffer.get(), RHIResourceState::TransferDest, pass_data->material_count_buffer->GetDesc().size);
+			cmd_buffer->FillBuffer(pass_data->indirect_command_buffer.get(), RHIResourceState::UnorderedAccess, pass_data->indirect_command_buffer->GetDesc().size);
+
+			cmd_buffer->ResourceStateTransition(
+			    {TextureStateTransition{
+			        output,
+			        RHIResourceState::TransferDest,
+			        RHIResourceState::UnorderedAccess}},
+			    {BufferStateTransition{
+			         pass_data->material_offset_buffer.get(),
+			         RHIResourceState::TransferDest,
+			         RHIResourceState::UnorderedAccess},
+			     BufferStateTransition{
+			         pass_data->indirect_command_buffer.get(),
+			         RHIResourceState::TransferDest,
+			         RHIResourceState::UnorderedAccess},
+			     BufferStateTransition{
+			         pass_data->material_count_buffer.get(),
+			         RHIResourceState::TransferDest,
+			         RHIResourceState::UnorderedAccess}});
 
 			// Collect material count
 			{
 				cmd_buffer->BeginMarker("Collect Material Count");
-				cmd_buffer->FillBuffer(pass_data->material_count_buffer.get(), pass_data->material_count_buffer->GetDesc().size);
 				auto *shader = renderer->RequireShader(
 				    "Source/Shaders/RenderPath/VisibilityLightingPass.hlsl",
 				    "CollectMaterialCount",
@@ -121,7 +154,6 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 			// Calculate material offset
 			{
 				cmd_buffer->BeginMarker("Calculate Material Offset");
-				cmd_buffer->FillBuffer(pass_data->material_offset_buffer.get(), pass_data->material_offset_buffer->GetDesc().size);
 				auto *shader = renderer->RequireShader(
 				    "Source/Shaders/RenderPath/VisibilityLightingPass.hlsl",
 				    "CalculateMaterialOffset",
@@ -137,10 +169,23 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 				cmd_buffer->EndMarker();
 			}
 
+			// Write -> Read
+			{
+				cmd_buffer->ResourceStateTransition(
+				    {},
+				    {BufferStateTransition{
+				         pass_data->material_offset_buffer.get(),
+				         RHIResourceState::UnorderedAccess,
+				         RHIResourceState::ShaderResource},
+				     BufferStateTransition{
+				         pass_data->material_count_buffer.get(),
+				         RHIResourceState::UnorderedAccess,
+				         RHIResourceState::ShaderResource}});
+			}
+
 			// Calculate pixel buffer
 			{
 				cmd_buffer->BeginMarker("Calculate Pixel Buffer");
-				cmd_buffer->FillBuffer(pass_data->indirect_command_buffer.get(), pass_data->indirect_command_buffer->GetDesc().size);
 				auto *shader = renderer->RequireShader(
 				    "Source/Shaders/RenderPath/VisibilityLightingPass.hlsl",
 				    "CalculatePixelBuffer",
@@ -166,6 +211,16 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 				cmd_buffer->EndMarker();
 			}
 
+			{
+				cmd_buffer->ResourceStateTransition(
+				    {},
+				    {
+				     BufferStateTransition{
+				         pass_data->indirect_command_buffer.get(),
+				         RHIResourceState::UnorderedAccess,
+				        RHIResourceState::UnorderedAccess}});
+			}
+
 			// Calculate indirect argument
 			{
 				cmd_buffer->BeginMarker("Calculate Indirect Argument");
@@ -183,13 +238,23 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 				cmd_buffer->EndMarker();
 			}
 
+			// Write -> Read
+			{
+				cmd_buffer->ResourceStateTransition(
+				    {},
+				    {BufferStateTransition{
+				         pass_data->material_pixel_buffer.get(),
+				         RHIResourceState::UnorderedAccess,
+				         RHIResourceState::ShaderResource},
+				     BufferStateTransition{
+				         pass_data->indirect_command_buffer.get(),
+				         RHIResourceState::UnorderedAccess,
+				         RHIResourceState::IndirectBuffer}});
+			}
+
 			// Dispatch
 			{
 				cmd_buffer->BeginMarker("Dispatch Indirect");
-				cmd_buffer->ResourceStateTransition({}, {BufferStateTransition{
-				                                            pass_data->indirect_command_buffer.get(),
-				                                            RHIResourceState::UnorderedAccess,
-				                                            RHIResourceState::IndirectBuffer}});
 				for (size_t i = 0; i < material_count; i++)
 				{
 					auto *shader = renderer->RequireShader(
@@ -238,7 +303,8 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 		};
 	}
 
-	virtual void OnImGui(Variant *config)
+	virtual void
+	    OnImGui(Variant *config)
 	{
 	}
 };

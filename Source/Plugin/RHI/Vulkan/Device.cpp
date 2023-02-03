@@ -35,6 +35,15 @@ static const std::vector<const char *> ValidationLayers =
     {};
 #endif        // DEBUG
 
+const std::vector<VkValidationFeatureEnableEXT> ValidationExtensions =
+#ifdef DEBUG
+    {VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
+     VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+     VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT};
+#else
+    {};
+#endif        // DEBUG
+
 static const std::vector<const char *> DeviceExtensions = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
@@ -300,6 +309,10 @@ void Device::CreateInstance()
 
 	// Enable validation layers
 #ifdef DEBUG
+	VkValidationFeaturesEXT validation_features{VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT};
+	validation_features.enabledValidationFeatureCount = static_cast<uint32_t>(ValidationExtensions.size());
+	validation_features.pEnabledValidationFeatures    = ValidationExtensions.data();
+
 	// Enable validation layer
 	for (auto &layer : ValidationLayers)
 	{
@@ -307,6 +320,7 @@ void Device::CreateInstance()
 		{
 			create_info.enabledLayerCount   = static_cast<uint32_t>(ValidationLayers.size());
 			create_info.ppEnabledLayerNames = ValidationLayers.data();
+			create_info.pNext               = &validation_features;
 			break;
 		}
 		else

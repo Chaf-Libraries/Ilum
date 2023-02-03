@@ -179,7 +179,7 @@ void Command::BlitTexture(RHITexture *src_texture, const TextureRange &src_range
 {
 }
 
-void Command::FillBuffer(RHIBuffer *buffer, size_t size, size_t offset, uint32_t data)
+void Command::FillBuffer(RHIBuffer *buffer, RHIResourceState state, size_t size, size_t offset, uint32_t data)
 {
 }
 

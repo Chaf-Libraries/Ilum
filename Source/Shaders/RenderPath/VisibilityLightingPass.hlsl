@@ -28,12 +28,8 @@ void CollectMaterialCount(CSParam param)
     VisibilityBuffer.GetDimensions(extent.x, extent.y);
     
     if (dispatch_id.x >= extent.x ||
-        dispatch_id.y >= extent.y)
-    {
-        return;
-    }
-    
-    if (DepthBuffer.Load(int3(dispatch_id, 0)).r > 3e38f)
+        dispatch_id.y >= extent.y ||
+        DepthBuffer.Load(int3(dispatch_id, 0)).r > 3e38f)
     {
         return;
     }
@@ -57,7 +53,8 @@ void CollectMaterialCount(CSParam param)
     
     if (material_id != ~0)
     {
-        InterlockedAdd(MaterialCountBuffer[material_id], 1);
+        uint temp = 0;
+        InterlockedAdd(MaterialCountBuffer[material_id], 1, temp);
     }
 }
 
@@ -137,9 +134,9 @@ void CalculatePixelBuffer(CSParam param)
     }
 #endif
     
-    uint temp;
-    InterlockedAdd(IndirectCommandBuffer[material_id].x, 1, temp);
-    MaterialPixelBuffer[temp + MaterialOffsetBuffer[material_id]] = PackXY(dispatch_id.x, dispatch_id.y);
+    uint idx;
+    InterlockedAdd(IndirectCommandBuffer[material_id].x, 1, idx);
+    MaterialPixelBuffer[idx + MaterialOffsetBuffer[material_id]] = PackXY(dispatch_id.x, dispatch_id.y);
 }
 
 [numthreads(8, 1, 1)]
@@ -325,10 +322,4 @@ void DispatchIndirect(CSParam param)
 #endif
     
     Output[pixel] = float4(radiance, 1.f);
-    
-    //Material material;
-    //material.Init(interaction);
-    
-    //Output[pixel] = float4(material.bsdf.Eval(1, 1, TransportMode_Radiance), 1);
-    //Output[pixel] = 1.f;
 }

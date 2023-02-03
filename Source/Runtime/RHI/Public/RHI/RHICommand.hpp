@@ -114,7 +114,7 @@ class RHICommand
 	virtual void BlitTexture(RHITexture *src_texture, const TextureRange &src_range, const RHIResourceState &src_state, RHITexture *dst_texture, const TextureRange &dst_range, const RHIResourceState &dst_state, RHIFilter filter = RHIFilter::Linear) = 0;
 
 	// Resource Reset
-	virtual void FillBuffer(RHIBuffer *buffer, size_t size, size_t offset = 0, uint32_t data = 0)    = 0;
+	virtual void FillBuffer(RHIBuffer *buffer, RHIResourceState state, size_t size, size_t offset = 0, uint32_t data = 0)    = 0;
 	virtual void FillTexture(RHITexture *texture, RHIResourceState state, const TextureRange &range, const glm::vec4 &color) = 0;
 	virtual void FillTexture(RHITexture *texture, RHIResourceState state, const TextureRange &range, float depth) = 0;
 

@@ -40,11 +40,11 @@ BufferState BufferState::Create(RHIResourceState state)
 			break;
 		case RHIResourceState::ShaderResource:
 			vk_state.access_mask = VK_ACCESS_SHADER_READ_BIT;
-			vk_state.stage       = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+			vk_state.stage       = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 			break;
 		case RHIResourceState::UnorderedAccess:
-			vk_state.access_mask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-			vk_state.stage       = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+			vk_state.access_mask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+			vk_state.stage       = VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 			break;
 		case RHIResourceState::ConstantBuffer:
 			vk_state.access_mask = VK_ACCESS_SHADER_READ_BIT;
