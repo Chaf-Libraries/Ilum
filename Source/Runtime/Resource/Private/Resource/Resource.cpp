@@ -69,7 +69,7 @@ void IResource::UpdateThumbnail(RHIContext *rhi_context, const std::vector<uint8
 	        TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
 	    {});
 	cmd_buffer->CopyBufferToTexture(staging_buffer.get(), m_thumbnail.get(), 0, 0, 1);
-	cmd_buffer->GenerateMipmaps(m_thumbnail.get(), RHIResourceState::Undefined, RHIFilter::Linear);
+	cmd_buffer->GenerateMipmaps(m_thumbnail.get(), RHIResourceState::TransferDest, RHIFilter::Linear);
 	cmd_buffer->ResourceStateTransition(
 	    {TextureStateTransition{
 	        m_thumbnail.get(),
