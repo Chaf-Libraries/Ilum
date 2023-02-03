@@ -257,9 +257,24 @@ void Command::Dispatch(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, 
 	vkCmdDispatch(m_handle, (thread_x + block_x - 1) / block_x, (thread_y + block_y - 1) / block_y, (thread_z + block_z - 1) / block_z);
 }
 
+void Command::DispatchIndirect(RHIBuffer *buffer, size_t offset)
+{
+	vkCmdDispatchIndirect(m_handle, static_cast<Buffer *>(buffer)->GetHandle(), offset);
+}
+
 void Command::Draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance)
 {
 	vkCmdDraw(m_handle, vertex_count, instance_count, first_vertex, first_instance);
+}
+
+void Command::DrawIndirect(RHIBuffer *buffer, size_t offset, uint32_t draw_count, uint32_t stride)
+{
+	vkCmdDrawIndirect(m_handle, static_cast<Buffer *>(buffer)->GetHandle(), offset, draw_count, stride);
+}
+
+void Command::DrawIndirectCount(RHIBuffer *buffer, size_t offset, RHIBuffer *count_buffer, size_t count_buffer_offset, uint32_t max_draw_count, uint32_t stride)
+{
+	vkCmdDrawIndirectCount(m_handle, static_cast<Buffer *>(buffer)->GetHandle(), offset, static_cast<Buffer *>(count_buffer)->GetHandle(), count_buffer_offset, max_draw_count, stride);
 }
 
 void Command::DrawIndexed(uint32_t index_count, uint32_t instance_count, uint32_t first_index, uint32_t vertex_offset, uint32_t first_instance)
@@ -267,14 +282,29 @@ void Command::DrawIndexed(uint32_t index_count, uint32_t instance_count, uint32_
 	vkCmdDrawIndexed(m_handle, index_count, instance_count, first_index, vertex_offset, first_instance);
 }
 
+void Command::DrawIndexedIndirect(RHIBuffer *buffer, size_t offset, uint32_t draw_count, uint32_t stride)
+{
+	vkCmdDrawIndexedIndirect(m_handle, static_cast<Buffer *>(buffer)->GetHandle(), offset, draw_count, stride);
+}
+
+void Command::DrawIndexedIndirectCount(RHIBuffer *buffer, size_t offset, RHIBuffer *count_buffer, size_t count_buffer_offset, uint32_t max_draw_count, uint32_t stride)
+{
+	vkCmdDrawIndexedIndirectCount(m_handle, static_cast<Buffer *>(buffer)->GetHandle(), offset, static_cast<Buffer *>(count_buffer)->GetHandle(), count_buffer_offset, max_draw_count, stride);
+}
+
 void Command::DrawMeshTask(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, uint32_t block_x, uint32_t block_y, uint32_t block_z)
 {
 	vkCmdDrawMeshTasksEXT(m_handle, (thread_x + block_x - 1) / block_x, (thread_y + block_y - 1) / block_y, (thread_z + block_z - 1) / block_z);
 }
 
-void Command::DrawMeshTask(uint32_t thread_count, uint32_t block_size, uint32_t task_offset)
+void Command::DrawMeshTasksIndirect(RHIBuffer *buffer, size_t offset, uint32_t draw_count, uint32_t stride)
 {
-	vkCmdDrawMeshTasksNV(m_handle, (thread_count + block_size - 1) / block_size, task_offset);
+	vkCmdDrawMeshTasksIndirectEXT(m_handle, static_cast<Buffer *>(buffer)->GetHandle(), offset, draw_count, stride);
+}
+
+void Command::DrawMeshTasksIndirectCount(RHIBuffer *buffer, size_t offset, RHIBuffer *count_buffer, size_t count_buffer_offset, uint32_t max_draw_count, uint32_t stride)
+{
+	vkCmdDrawMeshTasksIndirectCountEXT(m_handle, static_cast<Buffer *>(buffer)->GetHandle(), offset, static_cast<Buffer *>(count_buffer)->GetHandle(), count_buffer_offset, max_draw_count, stride);
 }
 
 void Command::TraceRay(uint32_t width, uint32_t height, uint32_t depth)

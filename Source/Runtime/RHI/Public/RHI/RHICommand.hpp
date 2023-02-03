@@ -80,11 +80,20 @@ class RHICommand
 	virtual void SetDepthBias(float constant, float clamp, float slope) = 0;
 
 	// Drawcall
-	virtual void Dispatch(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, uint32_t block_x, uint32_t block_y, uint32_t block_z)                           = 0;
-	virtual void Draw(uint32_t vertex_count, uint32_t instance_count = 1, uint32_t first_vertex = 0, uint32_t first_instance = 0)                                  = 0;
-	virtual void DrawIndexed(uint32_t index_count, uint32_t instance_count = 1, uint32_t first_index = 0, uint32_t vertex_offset = 0, uint32_t first_instance = 0) = 0;
-	virtual void DrawMeshTask(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, uint32_t block_x, uint32_t block_y, uint32_t block_z)                       = 0;
-	virtual void DrawMeshTask(uint32_t thread_count, uint32_t block_size, uint32_t task_offset = 0)                                                                = 0;
+	virtual void Dispatch(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, uint32_t block_x, uint32_t block_y, uint32_t block_z) = 0;
+	virtual void DispatchIndirect(RHIBuffer *buffer, size_t offset)                                                                      = 0;
+
+	virtual void Draw(uint32_t vertex_count, uint32_t instance_count = 1, uint32_t first_vertex = 0, uint32_t first_instance = 0)                                   = 0;
+	virtual void DrawIndirect(RHIBuffer *buffer, size_t offset, uint32_t draw_count, uint32_t stride)                                                               = 0;
+	virtual void DrawIndirectCount(RHIBuffer *buffer, size_t offset, RHIBuffer *count_buffer, size_t count_buffer_offset, uint32_t max_draw_count, uint32_t stride) = 0;
+
+	virtual void DrawIndexed(uint32_t index_count, uint32_t instance_count = 1, uint32_t first_index = 0, uint32_t vertex_offset = 0, uint32_t first_instance = 0)         = 0;
+	virtual void DrawIndexedIndirect(RHIBuffer *buffer, size_t offset, uint32_t draw_count, uint32_t stride)                                                               = 0;
+	virtual void DrawIndexedIndirectCount(RHIBuffer *buffer, size_t offset, RHIBuffer *count_buffer, size_t count_buffer_offset, uint32_t max_draw_count, uint32_t stride) = 0;
+
+	virtual void DrawMeshTask(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, uint32_t block_x, uint32_t block_y, uint32_t block_z)                                 = 0;
+	virtual void DrawMeshTasksIndirect(RHIBuffer *buffer, size_t offset, uint32_t draw_count, uint32_t stride)                                                               = 0;
+	virtual void DrawMeshTasksIndirectCount(RHIBuffer *buffer, size_t offset, RHIBuffer *count_buffer, size_t count_buffer_offset, uint32_t max_draw_count, uint32_t stride) = 0;
 
 	// RayTracing
 	virtual void TraceRay(uint32_t width, uint32_t height, uint32_t depth) = 0;

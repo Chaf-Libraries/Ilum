@@ -44,10 +44,20 @@ class Command : public RHICommand
 	virtual void SetDepthBias(float constant, float clamp, float slope) override;
 
 	virtual void Dispatch(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, uint32_t block_x, uint32_t block_y, uint32_t block_z) override;
+	virtual void DispatchIndirect(RHIBuffer *buffer, size_t offset) override;
+	
 	virtual void Draw(uint32_t vertex_count, uint32_t instance_count, uint32_t first_vertex, uint32_t first_instance) override;
+	virtual void DrawIndirect(RHIBuffer *buffer, size_t offset, uint32_t draw_count, uint32_t stride) override;
+	virtual void DrawIndirectCount(RHIBuffer *buffer, size_t offset, RHIBuffer *count_buffer, size_t count_buffer_offset, uint32_t max_draw_count, uint32_t stride) override;
+
 	virtual void DrawIndexed(uint32_t index_count, uint32_t instance_count, uint32_t first_index, uint32_t vertex_offset, uint32_t first_instance) override;
+	virtual void DrawIndexedIndirect(RHIBuffer *buffer, size_t offset, uint32_t draw_count, uint32_t stride) override;
+	virtual void DrawIndexedIndirectCount(RHIBuffer *buffer, size_t offset, RHIBuffer *count_buffer, size_t count_buffer_offset, uint32_t max_draw_count, uint32_t stride) override;
+
 	virtual void DrawMeshTask(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, uint32_t block_x, uint32_t block_y, uint32_t block_z) override;
-	virtual void DrawMeshTask(uint32_t thread_count, uint32_t block_size, uint32_t task_offset) override;
+	virtual void DrawMeshTasksIndirect(RHIBuffer *buffer, size_t offset, uint32_t draw_count, uint32_t stride) override;
+	virtual void DrawMeshTasksIndirectCount(RHIBuffer *buffer, size_t offset, RHIBuffer *count_buffer, size_t count_buffer_offset, uint32_t max_draw_count, uint32_t stride) override;
+
 	virtual void TraceRay(uint32_t width, uint32_t height, uint32_t depth) override;
 
 	virtual void CopyBufferToTexture(RHIBuffer *src_buffer, RHITexture *dst_texture, uint32_t mip_level, uint32_t base_layer, uint32_t layer_count) override;
