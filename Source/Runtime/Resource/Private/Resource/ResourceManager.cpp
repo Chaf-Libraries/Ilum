@@ -307,7 +307,7 @@ IResource *ResourceManager::Get(ResourceType type, size_t uuid)
 	return m_impl->managers.at(type)->Get(uuid);
 }
 
-size_t ResourceManager::GetValidResourceCount(ResourceType type)
+size_t ResourceManager::GetValidResourceCount(ResourceType type) const
 {
 	return m_impl->managers.at(type)->GetValidResourceCount();
 }

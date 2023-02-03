@@ -37,8 +37,9 @@ void CSmain(CSParam param)
     uint vbuffer = VisibilityBuffer.Load(int3(param.DispatchThreadID.xy, 0));
     uint instance_id = 0;
     uint primitive_id = 0;
+    uint mesh_type = 0;
     
-    UnPackVisibilityBuffer(vbuffer, instance_id, primitive_id);
+    UnPackVisibilityBuffer(vbuffer, mesh_type, instance_id, primitive_id);
     
     uint mhash = hash(instance_id);
     InstanceID[param.DispatchThreadID.xy] = float4(float3(float(mhash & 255), float((mhash >> 8) & 255), float((mhash >> 16) & 255)) / 255.0, 1.0);

@@ -90,7 +90,7 @@ class ResourceManager
   private:
 	IResource *Get(ResourceType type, size_t uuid);
 
-	size_t GetValidResourceCount(ResourceType type);
+	size_t GetValidResourceCount(ResourceType type) const;
 
 	RHITexture* GetThumbnail(ResourceType type, size_t uuid);
 

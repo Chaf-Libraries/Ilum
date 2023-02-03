@@ -39,6 +39,13 @@ struct RHIDispatchIndirectCommand
 	uint32_t z;
 };
 
+struct RHIDrawMeshTasksIndirectCommand
+{
+	uint32_t group_count_x;
+	uint32_t group_count_y;
+	uint32_t group_count_z;
+};
+
 class RHICommand
 {
   public:
@@ -105,6 +112,11 @@ class RHICommand
 
 	virtual void GenerateMipmaps(RHITexture *texture, RHIResourceState initial_state, RHIFilter filter)                                                                                                                                                  = 0;
 	virtual void BlitTexture(RHITexture *src_texture, const TextureRange &src_range, const RHIResourceState &src_state, RHITexture *dst_texture, const TextureRange &dst_range, const RHIResourceState &dst_state, RHIFilter filter = RHIFilter::Linear) = 0;
+
+	// Resource Reset
+	virtual void FillBuffer(RHIBuffer *buffer, size_t size, size_t offset = 0, uint32_t data = 0)    = 0;
+	virtual void FillTexture(RHITexture *texture, RHIResourceState state, const TextureRange &range, const glm::vec4 &color) = 0;
+	virtual void FillTexture(RHITexture *texture, RHIResourceState state, const TextureRange &range, float depth) = 0;
 
 	// Resource Barrier
 	virtual void ResourceStateTransition(const std::vector<TextureStateTransition> &texture_transitions, const std::vector<BufferStateTransition> &buffer_transitions) = 0;

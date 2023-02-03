@@ -179,6 +179,18 @@ void Command::BlitTexture(RHITexture *src_texture, const TextureRange &src_range
 {
 }
 
+void Command::FillBuffer(RHIBuffer *buffer, size_t size, size_t offset, uint32_t data)
+{
+}
+
+void Command::FillTexture(RHITexture *texture, RHIResourceState state, const TextureRange &range, const glm::vec4 &color)
+{
+}
+
+void Command::FillTexture(RHITexture *texture, RHIResourceState state, const TextureRange &range, float depth)
+{
+}
+
 void Command::ResourceStateTransition(const std::vector<TextureStateTransition> &texture_transitions, const std::vector<BufferStateTransition> &buffer_transitions)
 {
 }

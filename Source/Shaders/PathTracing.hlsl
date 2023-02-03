@@ -3,7 +3,6 @@
 #include "Common.hlsli"
 #include "Light.hlsli"
 #include "Random.hlsli"
-#include "Material/BSDF/BSDF.hlsli"
 
 struct Config
 {

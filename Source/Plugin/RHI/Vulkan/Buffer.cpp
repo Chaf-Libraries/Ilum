@@ -135,13 +135,13 @@ Buffer::Buffer(RHIDevice *device, const BufferDesc &desc) :
 	switch (desc.memory)
 	{
 		case RHIMemoryUsage::CPU_TO_GPU:
-			properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+			properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 			break;
 		case RHIMemoryUsage::GPU_Only:
 			properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 			break;
 		case RHIMemoryUsage::GPU_TO_CPU:
-			properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+			properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
 			break;
 		default:
 			break;
@@ -216,8 +216,8 @@ void Buffer::CopyToDevice(const void *data, size_t size, size_t offset)
 	{
 		void *mapped = Map();
 		std::memcpy((uint8_t *) mapped + offset, data, size);
-		Unmap();
 		Flush(offset, size);
+		Unmap();
 	}
 	else
 	{
@@ -259,7 +259,6 @@ void Buffer::CopyToHost(void *data, size_t size, size_t offset)
 		void *mapped = Map();
 		std::memcpy(data, (uint8_t *) mapped + offset, size);
 		Unmap();
-		Flush(offset, size);
 	}
 	else
 	{
@@ -305,7 +304,7 @@ void *Buffer::Map()
 		}
 		else
 		{
-			vkMapMemory(static_cast<Device *>(p_device)->GetDevice(), m_memory, 0, m_desc.size, 0, &m_mapped);
+			vkMapMemory(static_cast<Device *>(p_device)->GetDevice(), m_memory, 0, VK_WHOLE_SIZE, 0, &m_mapped);
 		}
 	}
 	return m_mapped;
@@ -341,10 +340,10 @@ void Buffer::Flush(size_t offset, size_t size)
 		range.memory = m_memory;
 		range.sType  = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
 		range.offset = 0;
-		range.size   = m_desc.size;
+		range.size   = VK_WHOLE_SIZE;
 		range.pNext  = nullptr;
 
-		//vkFlushMappedMemoryRanges(static_cast<Device *>(p_device)->GetDevice(), 1, &range);
+		vkFlushMappedMemoryRanges(static_cast<Device *>(p_device)->GetDevice(), 1, &range);
 	}
 }
 

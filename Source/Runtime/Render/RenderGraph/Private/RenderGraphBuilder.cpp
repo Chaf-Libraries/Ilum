@@ -168,11 +168,11 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 					auto &resource = desc.GetPass(resource_pin).GetPin(resource_pin);
 					if (resource.type == RenderPassPin::Type::Texture)
 					{
-						resource.texture.usage |= ResourceStateToTextureUsage(resource_state.rhi_state);
+						resource.texture.usage |= ResourceStateToTextureUsage(resource_state.rhi_state) | RHITextureUsage::Transfer;
 					}
 					else
 					{
-						resource.buffer.usage |= ResourceStateToBufferUsage(resource_state.rhi_state);
+						resource.buffer.usage |= ResourceStateToBufferUsage(resource_state.rhi_state) | RHIBufferUsage::Transfer;
 					}
 				}
 

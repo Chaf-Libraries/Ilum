@@ -176,7 +176,14 @@ void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut v
 
 uint PSmain(VertexOut vert, PrimitiveOut prim) : SV_TARGET0
 {
-    return PackVisibilityBuffer(prim.InstanceID, prim.PrimitiveID);
+    return PackVisibilityBuffer(
+#ifdef HAS_SKINNED
+        SKINNED_MESH_TYPE,
+#else
+        MESH_TYPE,
+#endif
+        prim.InstanceID, 
+        prim.PrimitiveID);
 }
 
 void VSmain(in VertexIn vert_in, out VertexOut vert_out, out PrimitiveOut prim)
@@ -236,5 +243,12 @@ void VSmain(in VertexIn vert_in, out VertexOut vert_out, out PrimitiveOut prim)
 
 uint FSmain(VertexOut vert, uint PrimitiveID : SV_PrimitiveID) : SV_Target0
 {
-    return PackVisibilityBuffer(vert.InstanceID, PrimitiveID);
+    return PackVisibilityBuffer(
+#ifdef HAS_SKINNED
+        SKINNED_MESH_TYPE,
+#else
+        MESH_TYPE,
+#endif
+        vert.InstanceID,
+        PrimitiveID);
 }

@@ -83,9 +83,10 @@ RHIPipelineState &RHIPipelineState::SetInputAssemblyState(const InputAssemblySta
 	return *this;
 }
 
-void RHIPipelineState::ClearShader()
+RHIPipelineState& RHIPipelineState::ClearShader()
 {
 	m_shaders.clear();
+	return *this;
 }
 
 const std::vector<std::pair<RHIShaderStage, RHIShader *>> &RHIPipelineState::GetShaders() const

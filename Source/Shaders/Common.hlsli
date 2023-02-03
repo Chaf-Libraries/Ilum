@@ -5,6 +5,40 @@
 
 #define MAX_BONE_INFLUENCE 8
 
+#define MESH_TYPE 0
+#define SKINNED_MESH_TYPE 1
+
+struct DrawIndirectCommand
+{
+    uint vertex_count;
+    uint instance_count;
+    uint vertex_offset;
+    uint instance_offset;
+};
+
+struct DrawIndexedIndirectCommand
+{
+    uint index_count;
+    uint instance_count;
+    uint index_offset;
+    int vertex_offset;
+    uint instance_offset;
+};
+
+struct DispatchIndirectCommand
+{
+    uint x;
+    uint y;
+    uint z;
+};
+
+struct DrawMeshTasksIndirectCommand
+{
+    uint group_count_x;
+    uint group_count_y;
+    uint group_count_z;
+};
+
 struct Vertex
 {
     float3 position;
@@ -163,22 +197,37 @@ void UnPackTriangle(uint encode, out uint v0, out uint v1, out uint v2)
     v2 = (encode >> 16) & 0xff;
 }
 
-uint PackVisibilityBuffer(uint instance_id, uint primitive_id)
+uint PackVisibilityBuffer(uint mesh_type, uint instance_id, uint primitive_id)
 {
+    // Mesh Type 1
     // Instance ID 8
-    // Primitive ID 24
+    // Primitive ID 23
     uint vbuffer = 0;
-    vbuffer += instance_id & 0xff;
-    vbuffer += (primitive_id & 0xffffff) << 8;
+    vbuffer += mesh_type & 0x1;
+    vbuffer += (instance_id & 0xff) << 1;
+    vbuffer += (primitive_id & 0x7fffff) << 9;
     return vbuffer;
 }
 
-void UnPackVisibilityBuffer(uint visibility_buffer, out uint instance_id, out uint primitive_id)
+void UnPackVisibilityBuffer(uint visibility_buffer, out uint mesh_type, out uint instance_id, out uint primitive_id)
 {
+    // Mesh Type 1
     // Instance ID 8
-    // Primitive ID 24
-    instance_id = visibility_buffer & 0xff;
-    primitive_id = (visibility_buffer >> 8) & 0xffffff;
+    // Primitive ID 23
+    mesh_type = visibility_buffer & 0x1;
+    instance_id = (visibility_buffer >> 1) & 0xff;
+    primitive_id = (visibility_buffer >> 9) & 0x7fffff;
+}
+
+uint PackXY(uint x, uint y)
+{
+    return (x & 0xffff) + ((y & 0xffff) << 16);
+}
+
+void UnpackXY(uint xy, out uint x, out uint y)
+{
+    x = xy & 0xffff;
+    y = (xy >> 16) & 0xffff;
 }
 
 #endif

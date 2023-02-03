@@ -59,6 +59,10 @@ class Command : public RHICommand
 	virtual void GenerateMipmaps(RHITexture *texture, RHIResourceState initial_state, RHIFilter filter) override;
 	virtual void BlitTexture(RHITexture *src_texture, const TextureRange &src_range, const RHIResourceState &src_state, RHITexture *dst_texture, const TextureRange &dst_range, const RHIResourceState &dst_state, RHIFilter filter = RHIFilter::Linear) override;
 
+	virtual void FillBuffer(RHIBuffer *buffer, size_t size, size_t offset, uint32_t data) override;
+	virtual void FillTexture(RHITexture *texture, RHIResourceState state, const TextureRange &range, const glm::vec4 &color) override;
+	virtual void FillTexture(RHITexture *texture, RHIResourceState state, const TextureRange &range, float depth) override;
+
 	// Resource Barrier
 	virtual void ResourceStateTransition(const std::vector<TextureStateTransition> &texture_transitions, const std::vector<BufferStateTransition> &buffer_transitions) override;
 

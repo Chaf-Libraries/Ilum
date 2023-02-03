@@ -1,5 +1,8 @@
 #include "IPass.hpp"
 
+#include <Material/MaterialData.hpp>
+#include <Resource/ResourceManager.hpp>
+
 using namespace Ilum;
 
 class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
@@ -16,32 +19,222 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 		    .SetName("VisibilityLightingPass")
 		    .SetCategory("RenderPath")
 		    .ReadTexture2D(handle++, "Visibility Buffer", RHIResourceState::ShaderResource)
-		    .ReadTexture2D(handle++, "Depth Buffer", RHIResourceState::ShaderResource);
+		    .ReadTexture2D(handle++, "Depth Buffer", RHIResourceState::ShaderResource)
+		    .WriteTexture2D(handle++, "Direct Illumination", 0, 0, RHIFormat::R16G16B16A16_FLOAT, RHIResourceState::UnorderedAccess);
 	}
 
 	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
 	{
-		ShaderMeta meta;
-
-		auto *shader = renderer->RequireShader("Source/Shaders/RenderPath/VisibilityLightingPass.hlsl", "CSmain", RHIShaderStage::Compute);
-		meta += renderer->RequireShaderMeta(shader);
-
 		std::shared_ptr<RHIPipelineState> pipeline_state = std::move(renderer->GetRHIContext()->CreatePipelineState());
 
-		pipeline_state->SetShader(RHIShaderStage::Compute, shader);
+		struct LightingPassData
+		{
+			std::unique_ptr<RHIBuffer> material_count_buffer   = nullptr;
+			std::unique_ptr<RHIBuffer> material_offset_buffer  = nullptr;
+			std::unique_ptr<RHIBuffer> material_pixel_buffer   = nullptr;
+			std::unique_ptr<RHIBuffer> indirect_command_buffer = nullptr;
+		};
 
 		*task = [=](RenderGraph &render_graph, RHICommand *cmd_buffer, Variant &config, RenderGraphBlackboard &black_board) {
-			auto *visibility_buffer   = render_graph.GetTexture(desc.GetPin("Visibility Buffer").handle);
-			auto *depth_buffer        = render_graph.GetTexture(desc.GetPin("Depth Buffer").handle);
+			auto *visibility_buffer = render_graph.GetTexture(desc.GetPin("Visibility Buffer").handle);
+			auto *depth_buffer      = render_graph.GetTexture(desc.GetPin("Depth Buffer").handle);
+			auto *output            = render_graph.GetTexture(desc.GetPin("Direct Illumination").handle);
 
-			auto *descriptor = renderer->GetRHIContext()->CreateDescriptor(meta);
+			GPUScene   *gpu_scene   = black_board.Get<GPUScene>();
+			View       *view        = black_board.Get<View>();
+			RHIContext *rhi_context = renderer->GetRHIContext();
 
-			descriptor->BindTexture("VisibilityBuffer", visibility_buffer, RHITextureDimension::Texture2D)
-			    .BindTexture("DepthBuffer", depth_buffer, RHITextureDimension::Texture2D);
+			LightingPassData *pass_data = black_board.Has<LightingPassData>() ? black_board.Get<LightingPassData>() : black_board.Add<LightingPassData>();
 
-			cmd_buffer->BindDescriptor(descriptor);
-			cmd_buffer->BindPipelineState(pipeline_state.get());
-			cmd_buffer->Dispatch(visibility_buffer->GetDesc().width, visibility_buffer->GetDesc().height, 1, 32, 32, 1);
+			size_t material_count = renderer->GetResourceManager()->GetValidResourceCount<ResourceType::Material>() + 1;
+
+			bool has_mesh              = gpu_scene->mesh_buffer.instance_count != 0;
+			bool has_skinned_mesh      = gpu_scene->skinned_mesh_buffer.instance_count != 0;
+			bool has_point_light       = gpu_scene->light.info.point_light_count != 0;
+			bool has_spot_light        = gpu_scene->light.info.spot_light_count != 0;
+			bool has_directional_light = gpu_scene->light.info.directional_light_count != 0;
+			bool has_rect_light        = gpu_scene->light.info.rect_light_count != 0;
+
+			if (!pass_data->material_count_buffer ||
+			    pass_data->material_count_buffer->GetDesc().size != material_count * sizeof(uint32_t))
+			{
+				pass_data->material_count_buffer = rhi_context->CreateBuffer<uint32_t>(material_count, RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
+			}
+
+			if (!pass_data->material_offset_buffer ||
+			    pass_data->material_offset_buffer->GetDesc().size != material_count * sizeof(uint32_t))
+			{
+				pass_data->material_offset_buffer = rhi_context->CreateBuffer<uint32_t>(material_count, RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
+			}
+
+			if (!pass_data->material_pixel_buffer ||
+			    pass_data->material_pixel_buffer->GetDesc().size != static_cast<size_t>(visibility_buffer->GetDesc().width * visibility_buffer->GetDesc().height) * sizeof(uint32_t))
+			{
+				pass_data->material_pixel_buffer = rhi_context->CreateBuffer<uint32_t>(visibility_buffer->GetDesc().width * visibility_buffer->GetDesc().height, RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
+			}
+
+			if (!pass_data->indirect_command_buffer ||
+			    pass_data->indirect_command_buffer->GetDesc().size != material_count * sizeof(RHIDispatchIndirectCommand))
+			{
+				pass_data->indirect_command_buffer = rhi_context->CreateBuffer<RHIDispatchIndirectCommand>(material_count, RHIBufferUsage::Indirect | RHIBufferUsage::UnorderedAccess | RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_Only);
+				cmd_buffer->ResourceStateTransition({}, {BufferStateTransition{
+				                                            pass_data->indirect_command_buffer.get(),
+				                                            RHIResourceState::Undefined,
+				                                            RHIResourceState::UnorderedAccess}});
+			}
+			else
+			{
+				cmd_buffer->ResourceStateTransition({}, {BufferStateTransition{
+				                                            pass_data->indirect_command_buffer.get(),
+				                                            RHIResourceState::IndirectBuffer,
+				                                            RHIResourceState::UnorderedAccess}});
+			}
+
+			cmd_buffer->FillTexture(output, RHIResourceState::UnorderedAccess, TextureRange{}, glm::vec4(0.f));
+
+			// Collect material count
+			{
+				cmd_buffer->BeginMarker("Collect Material Count");
+				cmd_buffer->FillBuffer(pass_data->material_count_buffer.get(), pass_data->material_count_buffer->GetDesc().size);
+				auto *shader = renderer->RequireShader(
+				    "Source/Shaders/RenderPath/VisibilityLightingPass.hlsl",
+				    "CollectMaterialCount",
+				    RHIShaderStage::Compute,
+				    {
+				        has_mesh ? "HAS_MESH" : "NO_MESH",
+				        has_skinned_mesh ? "HAS_SKINNED_MESH" : "NO_SKINNED_MESH",
+				    });
+				auto meta = renderer->RequireShaderMeta(shader);
+				pipeline_state->ClearShader().SetShader(RHIShaderStage::Compute, shader);
+				auto descriptor = rhi_context->CreateDescriptor(meta);
+				descriptor->BindTexture("VisibilityBuffer", visibility_buffer, RHITextureDimension::Texture2D)
+				    .BindTexture("DepthBuffer", depth_buffer, RHITextureDimension::Texture2D)
+				    .BindBuffer("MeshInstanceBuffer", gpu_scene->mesh_buffer.instances.get())
+				    .BindBuffer("SkinnedMeshInstanceBuffer", gpu_scene->skinned_mesh_buffer.instances.get())
+				    .BindBuffer("MaterialCountBuffer", pass_data->material_count_buffer.get());
+				cmd_buffer->BindDescriptor(descriptor);
+				cmd_buffer->BindPipelineState(pipeline_state.get());
+				cmd_buffer->Dispatch(visibility_buffer->GetDesc().width, visibility_buffer->GetDesc().height, 1, 8, 8, 1);
+				cmd_buffer->EndMarker();
+			}
+
+			// Calculate material offset
+			{
+				cmd_buffer->BeginMarker("Calculate Material Offset");
+				cmd_buffer->FillBuffer(pass_data->material_offset_buffer.get(), pass_data->material_offset_buffer->GetDesc().size);
+				auto *shader = renderer->RequireShader(
+				    "Source/Shaders/RenderPath/VisibilityLightingPass.hlsl",
+				    "CalculateMaterialOffset",
+				    RHIShaderStage::Compute);
+				auto meta = renderer->RequireShaderMeta(shader);
+				pipeline_state->ClearShader().SetShader(RHIShaderStage::Compute, shader);
+				auto descriptor = rhi_context->CreateDescriptor(meta);
+				descriptor->BindBuffer("MaterialCountBuffer", pass_data->material_count_buffer.get())
+				    .BindBuffer("MaterialOffsetBuffer", pass_data->material_offset_buffer.get());
+				cmd_buffer->BindDescriptor(descriptor);
+				cmd_buffer->BindPipelineState(pipeline_state.get());
+				cmd_buffer->Dispatch(static_cast<uint32_t>(material_count), 1, 1, 128, 1, 1);
+				cmd_buffer->EndMarker();
+			}
+
+			// Calculate pixel buffer
+			{
+				cmd_buffer->BeginMarker("Calculate Pixel Buffer");
+				cmd_buffer->FillBuffer(pass_data->indirect_command_buffer.get(), pass_data->indirect_command_buffer->GetDesc().size);
+				auto *shader = renderer->RequireShader(
+				    "Source/Shaders/RenderPath/VisibilityLightingPass.hlsl",
+				    "CalculatePixelBuffer",
+				    RHIShaderStage::Compute,
+				    {
+				        has_mesh ? "HAS_MESH" : "NO_MESH",
+				        has_skinned_mesh ? "HAS_SKINNED_MESH" : "NO_SKINNED_MESH",
+				    });
+				auto meta = renderer->RequireShaderMeta(shader);
+				pipeline_state->ClearShader().SetShader(RHIShaderStage::Compute, shader);
+				auto descriptor = rhi_context->CreateDescriptor(meta);
+				descriptor->BindTexture("VisibilityBuffer", visibility_buffer, RHITextureDimension::Texture2D)
+				    .BindTexture("DepthBuffer", depth_buffer, RHITextureDimension::Texture2D)
+				    .BindBuffer("MeshInstanceBuffer", gpu_scene->mesh_buffer.instances.get())
+				    .BindBuffer("SkinnedMeshInstanceBuffer", gpu_scene->skinned_mesh_buffer.instances.get())
+				    .BindBuffer("MaterialCountBuffer", pass_data->material_count_buffer.get())
+				    .BindBuffer("MaterialOffsetBuffer", pass_data->material_offset_buffer.get())
+				    .BindBuffer("MaterialPixelBuffer", pass_data->material_pixel_buffer.get())
+				    .BindBuffer("IndirectCommandBuffer", pass_data->indirect_command_buffer.get());
+				cmd_buffer->BindDescriptor(descriptor);
+				cmd_buffer->BindPipelineState(pipeline_state.get());
+				cmd_buffer->Dispatch(visibility_buffer->GetDesc().width, visibility_buffer->GetDesc().height, 1, 8, 8, 1);
+				cmd_buffer->EndMarker();
+			}
+
+			// Calculate indirect argument
+			{
+				cmd_buffer->BeginMarker("Calculate Indirect Argument");
+				auto *shader = renderer->RequireShader(
+				    "Source/Shaders/RenderPath/VisibilityLightingPass.hlsl",
+				    "CalculateIndirectArgument",
+				    RHIShaderStage::Compute);
+				auto meta = renderer->RequireShaderMeta(shader);
+				pipeline_state->ClearShader().SetShader(RHIShaderStage::Compute, shader);
+				auto descriptor = rhi_context->CreateDescriptor(meta);
+				descriptor->BindBuffer("IndirectCommandBuffer", pass_data->indirect_command_buffer.get());
+				cmd_buffer->BindDescriptor(descriptor);
+				cmd_buffer->BindPipelineState(pipeline_state.get());
+				cmd_buffer->Dispatch(static_cast<uint32_t>(material_count), 1, 1, 8, 1, 1);
+				cmd_buffer->EndMarker();
+			}
+
+			// Dispatch
+			{
+				cmd_buffer->BeginMarker("Dispatch Indirect");
+				cmd_buffer->ResourceStateTransition({}, {BufferStateTransition{
+				                                            pass_data->indirect_command_buffer.get(),
+				                                            RHIResourceState::UnorderedAccess,
+				                                            RHIResourceState::IndirectBuffer}});
+				for (size_t i = 0; i < material_count; i++)
+				{
+					auto *shader = renderer->RequireShader(
+					    "Source/Shaders/RenderPath/VisibilityLightingPass.hlsl",
+					    "DispatchIndirect",
+					    RHIShaderStage::Compute,
+					    {
+					        has_mesh ? "HAS_MESH" : "NO_MESH",
+					        has_skinned_mesh ? "HAS_SKINNED_MESH" : "NO_SKINNED_MESH",
+					        has_point_light ? "HAS_POINT_LIGHT" : "NO_POINT_LIGHT",
+					        has_spot_light ? "HAS_SPOT_LIGHT" : "NO_SPOT_LIGHT",
+					        has_directional_light ? "HAS_DIRECTIONAL_LIGHT" : "NO_DIRECTIONAL_LIGHT",
+					        has_rect_light ? "HAS_RECT_LIGHT" : "NO_RECT_LIGHT",
+					        "DISPATCH_INDIRECT",
+					        "MATERIAL_ID=" + std::to_string(i),
+					        i == 0 ? "DEFAULT_MATERIAL" : gpu_scene->material.data[i - 1]->signature,
+					    },
+					    {
+					        i == 0 ? "../Material/Material.hlsli" : gpu_scene->material.data[i - 1]->shader,
+					    });
+					auto meta = renderer->RequireShaderMeta(shader);
+					pipeline_state->ClearShader().SetShader(RHIShaderStage::Compute, shader);
+					auto descriptor = rhi_context->CreateDescriptor(meta);
+					descriptor->BindTexture("VisibilityBuffer", visibility_buffer, RHITextureDimension::Texture2D)
+					    .BindBuffer("ViewBuffer", view->buffer.get())
+					    .BindBuffer("LightInfoBuffer", gpu_scene->light.light_info_buffer.get())
+					    .BindBuffer("PointLightBuffer", gpu_scene->light.point_light_buffer.get())
+					    .BindBuffer("MeshVertexBuffer", gpu_scene->mesh_buffer.vertex_buffers)
+					    .BindBuffer("MeshIndexBuffer", gpu_scene->mesh_buffer.index_buffers)
+					    .BindBuffer("MeshInstanceBuffer", gpu_scene->mesh_buffer.instances.get())
+					    .BindBuffer("SkinnedMeshVertexBuffer", gpu_scene->skinned_mesh_buffer.vertex_buffers)
+					    .BindBuffer("SkinnedMeshIndexBuffer", gpu_scene->skinned_mesh_buffer.index_buffers)
+					    .BindBuffer("SkinnedMeshInstanceBuffer", gpu_scene->skinned_mesh_buffer.instances.get())
+					    .BindBuffer("MaterialPixelBuffer", pass_data->material_pixel_buffer.get())
+					    .BindBuffer("MaterialCountBuffer", pass_data->material_count_buffer.get())
+					    .BindBuffer("MaterialOffsetBuffer", pass_data->material_offset_buffer.get())
+					    .BindBuffer("MaterialOffsets", gpu_scene->material.material_offset.get())
+					    .BindBuffer("MaterialBuffer", gpu_scene->material.material_buffer.get())
+					    .BindTexture("Output", output, RHITextureDimension::Texture2D);
+					cmd_buffer->BindDescriptor(descriptor);
+					cmd_buffer->BindPipelineState(pipeline_state.get());
+					cmd_buffer->DispatchIndirect(pass_data->indirect_command_buffer.get(), i * sizeof(RHIDispatchIndirectCommand));
+				}
+				cmd_buffer->EndMarker();
+			}
 		};
 	}
 

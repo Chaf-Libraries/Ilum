@@ -485,6 +485,52 @@ void Command::BlitTexture(RHITexture *src_texture, const TextureRange &src_range
 	}
 }
 
+void Command::FillBuffer(RHIBuffer *buffer, size_t size, size_t offset, uint32_t data)
+{
+	vkCmdFillBuffer(m_handle, static_cast<Buffer *>(buffer)->GetHandle(), offset, size, data);
+}
+
+void Command::FillTexture(RHITexture *texture, RHIResourceState state, const TextureRange &range, const glm::vec4 &color)
+{
+	auto vk_state = TextureState::Create(state);
+
+	VkClearColorValue clear_color = {};
+	std::memcpy(clear_color.float32, &color.x, sizeof(float) * 4);
+
+	VkImageSubresourceRange vk_range = {};
+	vk_range.aspectMask              = VK_IMAGE_ASPECT_COLOR_BIT;
+	vk_range.baseArrayLayer          = range.base_layer;
+	vk_range.baseMipLevel            = range.base_mip;
+	vk_range.layerCount              = range.layer_count;
+	vk_range.levelCount              = range.mip_count;
+
+	if (vk_state.layout != VK_IMAGE_LAYOUT_GENERAL &&
+	    vk_state.layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+	{
+		ResourceStateTransition({TextureStateTransition{
+		                            texture,
+		                            state,
+		                            RHIResourceState::TransferDest}},
+		                        {});
+	}
+
+	vkCmdClearColorImage(m_handle, static_cast<Texture *>(texture)->GetHandle(), vk_state.layout, &clear_color, 1, &vk_range);
+
+	if (vk_state.layout != VK_IMAGE_LAYOUT_GENERAL &&
+	    vk_state.layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+	{
+		ResourceStateTransition({TextureStateTransition{
+		                            texture,
+		                            RHIResourceState::TransferDest,
+		                            state}},
+		                        {});
+	}
+}
+
+void Command::FillTexture(RHITexture *texture, RHIResourceState state, const TextureRange &range, float depth)
+{
+}
+
 void Command::ResourceStateTransition(const std::vector<TextureStateTransition> &texture_transitions, const std::vector<BufferStateTransition> &buffer_transitions)
 {
 	// TODO:

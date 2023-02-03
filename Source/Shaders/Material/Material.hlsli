@@ -31,6 +31,17 @@ struct BSDF
         BSDFSample sample_;
         return sample_;
     }
+    
+    // For GBuffer generation
+    float GetRoughness()
+    {
+        return 0.f;
+    }
+    
+    float3 GetNormal()
+    {
+        return 0.f;
+    }
 };
 
 struct Material
