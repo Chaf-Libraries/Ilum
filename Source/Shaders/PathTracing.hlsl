@@ -100,7 +100,7 @@ struct Light
         else if (light_id < light_count)
         {
             light_type = RECT_LIGHT;
-            point_light = PointLightBuffer[light_id - rectangle_light_offset];
+            rect_light = RectLightBuffer[light_id - rectangle_light_offset];
             return;
         }
     }
@@ -115,6 +115,8 @@ struct Light
                 return spot_light.SampleLi(ctx, u);
             case DIRECTIONAL_LIGHT:
                 return directional_light.SampleLi(ctx, u);
+            case RECT_LIGHT:
+                return rect_light.SampleLi(ctx, u);
         }
         
         LightLiSample light_sample;
@@ -320,7 +322,6 @@ float3 SampleLd(PayLoad pay_load, Material material)
         
         if (light.IsDelta())
         {
-            //return f;
             return light_sample.L * f / p_l;
         }
         else

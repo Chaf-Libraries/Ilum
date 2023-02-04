@@ -127,21 +127,6 @@ struct PointLight
     {
         return true;
     }
-    
-    float3 SampleLi(SurfaceInteraction interaction, float2 u, out float3 wi, out float pdf, out VisibilityTester visibility)
-    {
-        wi = normalize(position - interaction.isect.p);
-        pdf = 1.0;
-
-        float d = length(position - interaction.isect.p);
-        float attenuation = max(min(1.0 - pow(d, 4.0), 1.0), 0.0) / (d * d);
-        
-        visibility.from = interaction;
-        visibility.dir = normalize(position - interaction.isect.p);
-        visibility.dist = length(position - interaction.isect.p);
-        
-        return color.rgb * intensity * attenuation;
-    }
 };
 
 struct SpotLight
@@ -206,37 +191,10 @@ struct SpotLight
     {
         return 0.f;
     }
-
-    float3 Li(float3 p, out float3 wi)
-    {
-        wi = normalize(position - p);
-        float light_angle_scale = 1.0 / max(0.001, cos(inner_angle) - cos(outer_angle));
-        float light_angle_offset = -cos(outer_angle) * light_angle_scale;
-        float cd = max(dot(direction, wi), 0.0);
-        float angular_attenuation = saturate(cd * light_angle_scale + light_angle_offset);
-        return color.rgb * intensity * angular_attenuation * angular_attenuation;
-    }
     
     bool IsDelta()
     {
         return true;
-    }
-    
-    float3 SampleLi(SurfaceInteraction interaction, float2 u, out float3 wi, out float pdf, out VisibilityTester visibility)
-    {
-        wi = normalize(position - interaction.isect.p);
-        pdf = 1.0;
-
-        float light_angle_scale = 1.0 / max(0.001, cos(inner_angle) - cos(outer_angle));
-        float light_angle_offset = -cos(outer_angle) * light_angle_scale;
-        float cd = max(dot(direction, wi), 0.0);
-        float angular_attenuation = saturate(cd * light_angle_scale + light_angle_offset);
-
-        visibility.from = interaction;
-        visibility.dir = normalize(position - interaction.isect.p);
-        visibility.dist = length(position - interaction.isect.p);
-        
-        return color.rgb * intensity * angular_attenuation * angular_attenuation;
     }
 };
 
@@ -256,38 +214,21 @@ struct DirectionalLight
     LightLiSample SampleLi(LightSampleContext ctx, float2 u)
     {
         float3 wi = normalize(-direction);
-        float3 L = color.rgb * intensity;
         
         Interaction isect;
         isect.p = ctx.p + Infinity * normalize(direction);
+        
+        float3 L = color.rgb * intensity;
         
         LightLiSample li_sample;
         li_sample.Create(L, wi, 1, isect);
         
         return li_sample;
     }
-
-    float3 Li(float3 p, out float3 wi)
-    {
-        wi = normalize(-direction);
-        return color.rgb * intensity;
-    }
     
     bool IsDelta()
     {
         return true;
-    }
-    
-    float3 SampleLi(SurfaceInteraction interaction, float2 u, out float3 wi, out float pdf, out VisibilityTester visibility)
-    {
-        wi = normalize(-direction);
-        pdf = 1.0;
-
-        visibility.from = interaction;
-        visibility.dir = -direction;
-        visibility.dist = Infinity;
-        
-        return color.rgb * intensity;
     }
 };
 
@@ -295,20 +236,31 @@ struct RectLight
 {
     float3 color;
     float intensity;
+    float4 corner[4];
+    uint texture_id;
 
-    float3 Li(float3 p, out float3 wi)
+    LightLiSample SampleLi(LightSampleContext ctx, float2 u)
     {
-        return 0.f;
+        float3 v0 = (corner[1] - corner[0]).xyz;
+        float3 v1 = (corner[3] - corner[0]).xyz;
+        
+        float area = length(cross(v0, v1));
+        
+        Interaction isect;
+        isect.p = corner[0].xyz + v0 * u.x + v1 * u.y;
+        
+        float3 wi = normalize(isect.p - ctx.p);
+        float3 L = color.rgb * intensity / DistanceSquared(isect.p, ctx.p) / area;
+        
+        LightLiSample li_sample;
+        li_sample.Create(L, wi, 1.f / area, isect);
+        
+        return li_sample;
     }
     
     bool IsDelta()
     {
-        return false;
-    }
-    
-    float3 SampleLi(SurfaceInteraction interaction, float2 u, out float3 wi, out float pdf, out VisibilityTester visibility)
-    {
-        return 0.f;
+        return true;
     }
 };
 

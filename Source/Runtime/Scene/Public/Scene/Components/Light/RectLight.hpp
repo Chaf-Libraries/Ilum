@@ -33,6 +33,10 @@ class RectLight : public Light
 		glm::vec3 color = glm::vec3(1.f);
 
 		float intensity = 100.f;
+
+		glm::vec4 corner[4];
+
+		alignas(16) uint32_t texture_id = ~0U;
 	} m_data;
 };
 }        // namespace Cmpt
