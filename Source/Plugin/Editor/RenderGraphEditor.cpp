@@ -33,7 +33,7 @@ class RenderGraphEditor : public Widget
 
 	virtual void Tick() override
 	{
-		if (!ImGui::Begin(m_name.c_str(), nullptr, ImGuiWindowFlags_MenuBar))
+		if (!ImGui::Begin(m_name.c_str(), nullptr))
 		{
 			ImGui::End();
 			return;
