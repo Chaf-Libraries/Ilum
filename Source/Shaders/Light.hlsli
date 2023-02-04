@@ -73,7 +73,10 @@ struct PointLight
     float3 color;
     float intensity;
     float3 position;
-    float radius;
+    
+    float filter_scale;
+    float light_scale;
+    uint filter_sample;
     
     LightLeSample SampleLe(float2 u1, float2 u2, float time)
     {
@@ -150,6 +153,10 @@ struct SpotLight
     float3 direction;
     float outer_angle;
     float4x4 view_projection;
+    
+    float filter_scale;
+    float light_scale;
+    uint filter_sample;
     
     float3 EvalL(float3 p, out float3 wi)
     {
@@ -241,6 +248,10 @@ struct DirectionalLight
     float4x4 view_projection[4];
     float4 shadow_cam_pos[4];
     float3 direction;
+    
+    float filter_scale;
+    float light_scale;
+    uint filter_sample;
     
     LightLiSample SampleLi(LightSampleContext ctx, float2 u)
     {

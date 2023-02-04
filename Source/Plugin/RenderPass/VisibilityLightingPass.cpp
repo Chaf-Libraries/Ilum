@@ -8,6 +8,26 @@ using namespace Ilum;
 
 class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 {
+	enum class ShadowFilterMode
+	{
+		None,
+		Hard,
+		PCF,
+		PCSS
+	};
+
+	struct Config
+	{
+		ShadowFilterMode shadow_filter_mode = ShadowFilterMode::PCF;
+	};
+
+	std::unordered_map<ShadowFilterMode, const char *> shadow_filter_modes = {
+	    {ShadowFilterMode::None, "SHADOW_FILTER_NONE"},
+	    {ShadowFilterMode::Hard, "SHADOW_FILTER_HARD"},
+	    {ShadowFilterMode::PCF, "SHADOW_FILTER_PCF"},
+	    {ShadowFilterMode::PCSS, "SHADOW_FILTER_PCSS"},
+	};
+
   public:
 	VisibilityLightingPass() = default;
 
@@ -19,6 +39,7 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 		return desc.SetBindPoint(BindPoint::Compute)
 		    .SetName("VisibilityLightingPass")
 		    .SetCategory("RenderPath")
+		    .SetConfig(Config())
 		    .ReadTexture2D(handle++, "Visibility Buffer", RHIResourceState::ShaderResource)
 		    .ReadTexture2D(handle++, "Depth Buffer", RHIResourceState::ShaderResource)
 		    .WriteTexture2D(handle++, "Direct Illumination", 0, 0, RHIFormat::R16G16B16A16_FLOAT, RHIResourceState::UnorderedAccess);
@@ -37,9 +58,10 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 		};
 
 		*task = [=](RenderGraph &render_graph, RHICommand *cmd_buffer, Variant &config, RenderGraphBlackboard &black_board) {
-			auto *visibility_buffer = render_graph.GetTexture(desc.GetPin("Visibility Buffer").handle);
-			auto *depth_buffer      = render_graph.GetTexture(desc.GetPin("Depth Buffer").handle);
-			auto *output            = render_graph.GetTexture(desc.GetPin("Direct Illumination").handle);
+			auto   *visibility_buffer = render_graph.GetTexture(desc.GetPin("Visibility Buffer").handle);
+			auto   *depth_buffer      = render_graph.GetTexture(desc.GetPin("Depth Buffer").handle);
+			auto   *output            = render_graph.GetTexture(desc.GetPin("Direct Illumination").handle);
+			Config *config_data       = config.Convert<Config>();
 
 			GPUScene   *gpu_scene   = black_board.Get<GPUScene>();
 			View       *view        = black_board.Get<View>();
@@ -129,14 +151,14 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 			         RHIResourceState::TransferDest,
 			         RHIResourceState::UnorderedAccess}});
 
-			//std::vector<uint32_t> debug_data(material_count);
-			//pass_data->material_count_buffer->CopyToHost(debug_data.data(), debug_data.size() * sizeof(uint32_t));
-			//std::cout << "Material Count Buffer: ";
-			//for (auto data : debug_data)
+			// std::vector<uint32_t> debug_data(material_count);
+			// pass_data->material_count_buffer->CopyToHost(debug_data.data(), debug_data.size() * sizeof(uint32_t));
+			// std::cout << "Material Count Buffer: ";
+			// for (auto data : debug_data)
 			//{
 			//	std::cout << data << " ";
-			//}
-			//std::cout << std::endl;
+			// }
+			// std::cout << std::endl;
 
 			// Collect material count
 			{
@@ -280,6 +302,7 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 					        has_directional_light ? "HAS_DIRECTIONAL_LIGHT" : "NO_DIRECTIONAL_LIGHT",
 					        has_rect_light ? "HAS_RECT_LIGHT" : "NO_RECT_LIGHT",
 					        has_shadow ? "HAS_SHADOW" : "NO_SHADOW",
+					        shadow_filter_modes.at(config_data->shadow_filter_mode),
 					        "DISPATCH_INDIRECT",
 					        "MATERIAL_ID=" + std::to_string(i),
 					        i == 0 ? "DEFAULT_MATERIAL" : gpu_scene->material.data[i - 1]->signature,
@@ -375,9 +398,12 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 		};
 	}
 
-	virtual void
-	    OnImGui(Variant *config)
+	virtual void OnImGui(Variant *config)
 	{
+		Config *config_data = config->Convert<Config>();
+
+		const char *const shadow_filter_modes[] = {"None", "Hard", "PCF", "PCSS"};
+		ImGui::Combo("Shadow Filter Mode", reinterpret_cast<int32_t *>(&config_data->shadow_filter_mode), shadow_filter_modes, 4);
 	}
 };
 

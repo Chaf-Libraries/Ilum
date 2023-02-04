@@ -16,21 +16,21 @@ PointLight::PointLight(Node *node) :
 void PointLight::OnImGui()
 {
 	m_update |= ImGui::ColorEdit3("Color", &m_data.color.x);
-	 if (ImGui::DragFloat("Intensity", &m_data.intensity, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f"))
-	{
-		m_update |= true;
-	}
-	m_update |= ImGui::DragFloat("Radius", &m_data.radius, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
+	m_update |= ImGui::DragFloat("Intensity", &m_data.intensity, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
+	ImGui::Text("Shadow Map Setting");
+	m_update |= ImGui::SliderInt("Filter Sample", reinterpret_cast<int32_t *>(&m_data.filter_sample), 1, 100);
+	m_update |= ImGui::DragFloat("Filter Scale", &m_data.filter_scale, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
+	m_update |= ImGui::DragFloat("Light Scale", &m_data.light_scale, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
 }
 
 void PointLight::Save(OutputArchive &archive) const
 {
-	archive(m_data.color, m_data.intensity, m_data.position, m_data.radius);
+	archive(m_data.color, m_data.intensity, m_data.position, m_data.filter_sample, m_data.filter_scale, m_data.light_scale);
 }
 
 void PointLight::Load(InputArchive &archive)
 {
-	archive(m_data.color, m_data.intensity, m_data.position, m_data.radius);
+	archive(m_data.color, m_data.intensity, m_data.position, m_data.filter_sample, m_data.filter_scale, m_data.light_scale);
 	m_update = true;
 }
 

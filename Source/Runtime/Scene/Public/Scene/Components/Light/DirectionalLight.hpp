@@ -38,7 +38,11 @@ class DirectionalLight : public Light
 		glm::mat4 view_projection[4];
 		glm::vec4 shadow_cam_pos[4];
 
-		alignas(16) glm::vec3 direction = glm::vec3(1.f);
+		glm::vec3 direction = glm::vec3(1.f);
+
+		float filter_scale = 2.f;
+		alignas(16) float light_scale = 1.f;
+		uint32_t filter_sample        = 10;
 	} m_data;
 };
 }        // namespace Cmpt

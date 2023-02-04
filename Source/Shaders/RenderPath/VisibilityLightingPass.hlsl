@@ -1,4 +1,5 @@
 #include "../Common.hlsli"
+#include "../Random.hlsli"
 
 #ifndef RUNTIME
 #define HAS_MESH
@@ -8,6 +9,10 @@
 #define HAS_DIRECTIONAL_LIGHT
 #define HAS_RECT_LIGHT
 #define HAS_SHADOW
+#define SHADOW_FILTER_NONE
+#define SHADOW_FILTER_HARD
+#define SHADOW_FILTER_PCF
+#define SHADOW_FILTER_PCSS
 #endif
 
 Texture2D<uint> VisibilityBuffer;
@@ -272,51 +277,274 @@ void CalculateBarycentre(float4x4 transform, float2 pixel, uint2 extent, float3 
     bary_ddy = (G_dy * H - G * H_dy) * (rcpH * rcpH) * (-2.0f / float(extent.y));
 }
 
-#ifdef HAS_POINT_LIGHT
-float CalculatePointLightShadow(PointLight light, uint idx, SurfaceInteraction interaction)
+#ifdef HAS_SHADOW
+float LinearizeDepth(float depth, float znear, float zfar)
+{
+    float z = depth * 2.0 - 1.0;
+    return znear * zfar / (zfar + depth * (znear - zfar));
+}
+
+float FindBlock(Texture2DArray<float> shadowmap, float4 shadow_coord, float layer, float filter_scale, uint filter_sample)
+{
+    uint2 tex_dim;
+    uint layers;
+    shadowmap.GetDimensions(tex_dim.x, tex_dim.y, layers);
+
+	// Find blocker
+    float z_blocker = 0.0;
+    float num_blockers = 0.0;
+    float2 offset = float2(0.0, 0.0);
+    for (int i = 0; i < filter_sample; i++)
+    {
+        offset = PoissonDiskSamples2D(shadow_coord.xy + offset, filter_sample, 10, i);
+        offset = offset * filter_scale / float2(tex_dim);
+        float dist = shadowmap.SampleLevel(ShadowMapSampler, float3(shadow_coord.xy + offset, layer), 0.0).r;
+        if (dist < shadow_coord.z)
+        {
+            num_blockers += 1.0;
+            z_blocker += dist;
+        }
+    }
+
+    if (num_blockers == 0.0)
+    {
+        return 0.0;
+    }
+
+    return num_blockers == 0.0 ? 0.0 : z_blocker / num_blockers;
+}
+
+float FindBlockCube(TextureCubeArray<float> shadowmap, float3 L, float layer, float filter_scale, uint filter_sample)
+{
+    uint2 tex_dim;
+    uint layers;
+    shadowmap.GetDimensions(tex_dim.x, tex_dim.y, layers);
+
+    float light_depth = length(L);
+
+	// Find blocker
+    float z_blocker = 0.0;
+    float num_blockers = 0.0;
+    float disk_radius = filter_scale / float(max(tex_dim.x, tex_dim.y));
+    float3 offset = float3(0.0, 0.0, 0.0);
+    
+    int x = int(sqrt(filter_sample));
+    int y = filter_sample / x;
+    for (int i = 0; i < x; i++)
+    {
+        for (int j = 0; j < y; j++)
+        {
+            // Poisson sampling
+            offset = PoissonDiskSamples3D(L + offset, x * y, 10, float2(i, j)) * disk_radius;
+            float dist = shadowmap.SampleLevel(ShadowMapSampler, float4(L + offset, layer), 0.0).r;
+            if (light_depth > dist)
+            {
+                num_blockers += 1.0;
+                z_blocker += dist;
+            }
+        }
+    }
+
+    if (num_blockers == 0.0)
+    {
+        return 0.0;
+    }
+
+    return num_blockers == 0.0 ? 0.0 : z_blocker / num_blockers;
+}
+
+// Sample shadow map
+float SampleShadowmap(Texture2DArray<float> shadowmap, float4 shadow_coord, float layer, float2 offset)
 {
     float shadow = 1.0;
-    
-#ifdef HAS_SHADOW
-    //PointLightShadow
-    float3 L = interaction.isect.p - light.position;
+
+    if (shadow_coord.z > -1.0 && shadow_coord.z < 1.0)
+    {
+        float dist = shadowmap.SampleLevel(ShadowMapSampler, float3(shadow_coord.xy + offset, layer), 0.0).r;
+        if (shadow_coord.w > 0.0 && dist < shadow_coord.z)
+        {
+            shadow = 0.0;
+        }
+    }
+    return shadow;
+}
+
+// Sample shadow map via PCF
+float SampleShadowmapPCF(Texture2DArray<float> shadowmap, float4 shadow_coord, float layer, uint filter_sample, float filter_scale)
+{
+    uint2 tex_dim;
+    uint layers;
+    shadowmap.GetDimensions(tex_dim.x, tex_dim.y, layers);
+
+    float shadow_factor = 0.0;
+
+    float2 offset = float2(0.0, 0.0);
+    for (int i = 0; i < filter_sample; i++)
+    {
+        offset = PoissonDiskSamples2D(shadow_coord.xy + offset, filter_sample, 10, i);
+        offset = offset * filter_scale / float2(tex_dim);
+        shadow_factor += SampleShadowmap(shadowmap, shadow_coord, layer, offset);
+    }
+
+    return shadow_factor / float(filter_sample);
+}
+
+// Sample shadow map via PCSS
+float SampleShadowmapPCSS(Texture2DArray<float> shadowmap, float4 shadow_coord, float layer, uint filter_sample, float filter_scale, float light_scale)
+{
+    uint2 tex_dim;
+    uint layers;
+    shadowmap.GetDimensions(tex_dim.x, tex_dim.y, layers);
+
+    float z_receiver = shadow_coord.z * shadow_coord.w;
+
+	// Penumbra size
+    float z_blocker = LinearizeDepth(FindBlock(shadowmap, shadow_coord, layer, filter_scale, filter_sample), 0.01, 1000.0);
+    float w_light = 0.1;
+    float w_penumbra = (z_receiver - z_blocker) * light_scale / z_blocker;
+
+	// Filtering
+    float shadow_factor = 0.0;
+    float2 offset = float2(0.0, 0.0);
+    for (int i = 0; i < filter_sample; i++)
+    {
+        offset = PoissonDiskSamples2D(shadow_coord.xy + offset, filter_sample, 10, i);
+        offset = offset * w_penumbra / float2(tex_dim);
+        shadow_factor += SampleShadowmap(shadowmap, shadow_coord, layer, offset);
+    }
+
+    return shadow_factor / float(filter_sample);
+}
+
+// Sample shadow cubemap
+float SampleShadowmapCube(TextureCubeArray<float> shadowmap, float3 L, float layer, float3 offset)
+{
+    float shadow = 1.0;
     float light_depth = length(L);
     L.z = -L.z;
-    
-    // Reconstruct depth
-    float dist = PointLightShadow.SampleLevel(ShadowMapSampler, float4(L, idx), 0.0).r * 100.f;
+	// Reconstruct depth
+    float dist = shadowmap.SampleLevel(ShadowMapSampler, float4(L + offset, layer), 0.0).r;
+    dist *= 100.0;
 
     if (light_depth > dist)
     {
-        shadow = 0.f;
+        shadow = 0.0;
     }
+
+    return shadow;
+}
+
+// Sample shadow cubemap via PCF
+float SampleShadowmapCubePCF(TextureCubeArray<float> shadowmap, float3 L, float layer, float filter_scale, uint filter_sample)
+{
+    uint2 tex_dim;
+    uint layers;
+    shadowmap.GetDimensions(tex_dim.x, tex_dim.y, layers);
+
+    float shadow_factor = 0.0;
+    float light_depth = length(L);
+
+    float disk_radius = filter_scale / float(max(tex_dim.x, tex_dim.y));
+
+    float3 offset = float3(0.0, 0.0, 0.0);
+    int count = 0;
+    int x = int(sqrt(filter_sample));
+    int y = filter_sample / x;
+    count = x * y;
+    for (int i = 0; i < x; i++)
+    {
+        for (int j = 0; j < y; j++)
+        {
+            // Poisson sampling
+            offset = PoissonDiskSamples3D(L + offset, count, 10, float2(i, j)) * disk_radius;
+            shadow_factor += SampleShadowmapCube(shadowmap, L, layer, offset);
+        }
+    }
+    return shadow_factor / float(count);
+}
+
+// Sample shadow cubemap via PCSS
+float SampleShadowmapCubePCSS(TextureCubeArray<float> shadowmap, float3 L, float layer, float filter_scale, uint filter_sample, float light_scale)
+{
+    uint2 tex_dim;
+    uint layers;
+    shadowmap.GetDimensions(tex_dim.x, tex_dim.y, layers);
+
+    float light_depth = length(L);
+    float z_receiver = light_depth;
+
+	// Penumbra size
+    float z_blocker = LinearizeDepth(FindBlockCube(shadowmap, L, layer, filter_scale, filter_sample), 0.01, 1000.0);
+    float w_light = 0.1;
+    float w_penumbra = (z_receiver - z_blocker) * light_scale / z_blocker;
+
+	// Filtering
+    float shadow_factor = 0.0;
+    float3 offset = float3(0.0, 0.0, 0.0);
+    float disk_radius = filter_scale / float(max(tex_dim.x, tex_dim.y));
+    int count = 0;
+    int x = int(sqrt(filter_sample));
+    int y = filter_sample / x;
+    count = x * y;
+    for (int i = 0; i < x; i++)
+    {
+        for (int j = 0; j < y; j++)
+        {
+            // Poisson sampling
+            offset = PoissonDiskSamples3D(L + offset, count, 10, float2(i, j)) * w_penumbra / float(tex_dim.x);
+            shadow_factor += SampleShadowmapCube(shadowmap, L, layer, offset);
+        }
+    }
+    return shadow_factor / float(filter_sample);
+}
+#endif
+
+#ifdef HAS_POINT_LIGHT
+float CalculatePointLightShadow(PointLight light, uint idx, SurfaceInteraction interaction)
+{
+    float3 L = interaction.isect.p - light.position;
+    
+#ifdef SHADOW_FILTER_NONE
+    return 1.f;
 #endif
     
-    return shadow;
+#ifdef SHADOW_FILTER_HARD
+    return SampleShadowmapCube(PointLightShadow, L, idx, float3(0.0, 0.0, 0.0));
+#endif
+    
+#ifdef SHADOW_FILTER_PCF
+    return SampleShadowmapCubePCF(PointLightShadow, L, idx, light.filter_scale, light.filter_sample);
+#endif
+    
+#ifdef SHADOW_FILTER_PCSS
+    return SampleShadowmapCubePCSS(PointLightShadow, L, idx, light.filter_scale, light.filter_sample, light.light_scale);
+#endif
 }
 #endif
 
 #ifdef HAS_SPOT_LIGHT
 float CalculateSpotLightShadow(SpotLight light, uint idx, SurfaceInteraction interaction)
 {
-    float shadow = 1.f;
-    
-#ifdef HAS_SHADOW
     float4 shadow_clip = mul(light.view_projection, float4(interaction.isect.p, 1.0));
     float4 shadow_coord = float4(shadow_clip.xyz / shadow_clip.w, shadow_clip.w);
     shadow_coord.xy = shadow_coord.xy * 0.5 + 0.5;
     shadow_coord.y = 1.0 - shadow_coord.y;
-    if (shadow_coord.z > -1.0 && shadow_coord.z < 1.0)
-    {
-        float dist = SpotLightShadow.SampleLevel(ShadowMapSampler, float3(shadow_coord.xy + 0, idx), 0.0).r;
-        if (shadow_coord.w > 0.0 && dist < shadow_coord.z)
-        {
-            shadow = 0.0;
-        }
-    }
+
+#ifdef SHADOW_FILTER_NONE
+    return 1.f;
 #endif
     
-    return shadow;
+#ifdef SHADOW_FILTER_HARD
+    return SampleShadowmap(SpotLightShadow, shadow_coord, idx, float2(0.0, 0.0));
+#endif
+    
+#ifdef SHADOW_FILTER_PCF
+    return SampleShadowmapPCF(SpotLightShadow, shadow_coord, idx, light.filter_sample, light.filter_scale);
+#endif
+    
+#ifdef SHADOW_FILTER_PCSS
+    return SampleShadowmapPCSS(SpotLightShadow, shadow_coord, idx, light.filter_sample, light.filter_scale, light.light_scale);
+#endif
 }
 #endif
 
@@ -327,9 +555,8 @@ float CalculateDirectionalLightShadow(DirectionalLight light, uint idx, SurfaceI
     
     linear_z = mul(ViewBuffer.view_projection_matrix, float4(interaction.isect.p, 1.f)).z;
     
-#ifdef HAS_SHADOW
     uint cascade_index = 0;
-	    // Select cascade
+	// Select cascade
     for (uint i = 0; i < 3; ++i)
     {
         if (light.split_depth[i] > -linear_z)
@@ -344,18 +571,22 @@ float CalculateDirectionalLightShadow(DirectionalLight light, uint idx, SurfaceI
     shadow_coord.y = 1.0 - shadow_coord.y;
 
     uint layer = idx * 4 + cascade_index;
-        
-    if (shadow_coord.z > -1.0 && shadow_coord.z < 1.0)
-    {
-        float dist = DirectionalLightShadow.SampleLevel(ShadowMapSampler, float3(shadow_coord.xy + 0, layer), 0.0).r;
-        if (shadow_coord.w > 0.0 && dist < shadow_coord.z)
-        {
-            shadow = 0.0;
-        }
-    }
+    
+#ifdef SHADOW_FILTER_NONE
+    return 1.f;
 #endif
     
-    return shadow;
+#ifdef SHADOW_FILTER_HARD
+    return SampleShadowmap(DirectionalLightShadow, shadow_coord, idx * 4 + cascade_index, float2(0.0, 0.0));
+#endif
+    
+#ifdef SHADOW_FILTER_PCF
+    return SampleShadowmapPCF(DirectionalLightShadow, shadow_coord, idx * 4 + cascade_index, light.filter_sample, light.filter_scale);
+#endif
+    
+#ifdef SHADOW_FILTER_PCSS
+    return SampleShadowmapPCSS(DirectionalLightShadow, shadow_coord, idx * 4 + cascade_index, light.filter_sample, light.filter_scale, light.light_scale);
+#endif
 }
 #endif
 

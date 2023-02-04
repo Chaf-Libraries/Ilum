@@ -36,7 +36,9 @@ class PointLight : public Light
 
 		glm::vec3 position = glm::vec3(0.f);
 
-		float radius = 1.f;
+		float filter_scale            = 2.f;
+		alignas(16) float light_scale = 1.f;
+		uint32_t filter_sample        = 10;
 	} m_data;
 };
 }        // namespace Cmpt

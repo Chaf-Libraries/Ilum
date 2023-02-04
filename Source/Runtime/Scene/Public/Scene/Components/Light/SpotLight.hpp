@@ -43,6 +43,11 @@ class SpotLight : public Light
 		float outer_angle = glm::radians(60.f);
 
 		glm::mat4 view_projection = glm::mat4(1.f);
+
+		// Shadow map setting
+		alignas(16) float filter_scale = 2.f;
+		float    light_scale           = 1.f;
+		uint32_t filter_sample         = 10;
 	} m_data;
 };
 }        // namespace Cmpt
