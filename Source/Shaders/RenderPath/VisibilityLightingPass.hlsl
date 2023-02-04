@@ -4,6 +4,10 @@
 #define HAS_MESH
 #define HAS_SKINNED_MESH
 #define HAS_POINT_LIGHT
+#define HAS_SPOT_LIGHT
+#define HAS_DIRECTIONAL_LIGHT
+#define HAS_RECT_LIGHT
+#define HAS_SHADOW
 #endif
 
 Texture2D<uint> VisibilityBuffer;
@@ -167,8 +171,33 @@ void CalculateIndirectArgument(CSParam param)
 ConstantBuffer<View> ViewBuffer;
 ConstantBuffer<LightInfo> LightInfoBuffer;
 
+#ifdef HAS_SHADOW
+SamplerState ShadowMapSampler;
+#endif
+
 #ifdef HAS_POINT_LIGHT
 StructuredBuffer<PointLight> PointLightBuffer;
+#ifdef HAS_SHADOW
+TextureCubeArray<float> PointLightShadow;
+#endif
+#endif
+
+#ifdef HAS_SPOT_LIGHT
+StructuredBuffer<SpotLight> SpotLightBuffer;
+#ifdef HAS_SHADOW
+Texture2DArray<float> SpotLightShadow;
+#endif
+#endif
+
+#ifdef HAS_DIRECTIONAL_LIGHT
+StructuredBuffer<DirectionalLight> DirectionalLightBuffer;
+#ifdef HAS_SHADOW
+Texture2DArray<float> DirectionalLightShadow;
+#endif
+#endif
+
+#ifdef HAS_RECT_LIGHT
+StructuredBuffer<RectLight> RectLightBuffer;
 #endif
 
 #ifdef HAS_MESH
@@ -243,6 +272,93 @@ void CalculateBarycentre(float4x4 transform, float2 pixel, uint2 extent, float3 
     bary_ddy = (G_dy * H - G * H_dy) * (rcpH * rcpH) * (-2.0f / float(extent.y));
 }
 
+#ifdef HAS_POINT_LIGHT
+float CalculatePointLightShadow(PointLight light, uint idx, SurfaceInteraction interaction)
+{
+    float shadow = 1.0;
+    
+#ifdef HAS_SHADOW
+    //PointLightShadow
+    float3 L = interaction.isect.p - light.position;
+    float light_depth = length(L);
+    L.z = -L.z;
+    
+    // Reconstruct depth
+    float dist = PointLightShadow.SampleLevel(ShadowMapSampler, float4(L, idx), 0.0).r * 100.f;
+
+    if (light_depth > dist)
+    {
+        shadow = 0.f;
+    }
+#endif
+    
+    return shadow;
+}
+#endif
+
+#ifdef HAS_SPOT_LIGHT
+float CalculateSpotLightShadow(SpotLight light, uint idx, SurfaceInteraction interaction)
+{
+    float shadow = 1.f;
+    
+#ifdef HAS_SHADOW
+    float4 shadow_clip = mul(light.view_projection, float4(interaction.isect.p, 1.0));
+    float4 shadow_coord = float4(shadow_clip.xyz / shadow_clip.w, shadow_clip.w);
+    shadow_coord.xy = shadow_coord.xy * 0.5 + 0.5;
+    shadow_coord.y = 1.0 - shadow_coord.y;
+    if (shadow_coord.z > -1.0 && shadow_coord.z < 1.0)
+    {
+        float dist = SpotLightShadow.SampleLevel(ShadowMapSampler, float3(shadow_coord.xy + 0, idx), 0.0).r;
+        if (shadow_coord.w > 0.0 && dist < shadow_coord.z)
+        {
+            shadow = 0.0;
+        }
+    }
+#endif
+    
+    return shadow;
+}
+#endif
+
+#ifdef HAS_DIRECTIONAL_LIGHT
+float CalculateDirectionalLightShadow(DirectionalLight light, uint idx, SurfaceInteraction interaction, float linear_z)
+{
+    float shadow = 1.f;
+    
+    linear_z = mul(ViewBuffer.view_projection_matrix, float4(interaction.isect.p, 1.f)).z;
+    
+#ifdef HAS_SHADOW
+    uint cascade_index = 0;
+	    // Select cascade
+    for (uint i = 0; i < 3; ++i)
+    {
+        if (light.split_depth[i] > -linear_z)
+        {
+            cascade_index = i + 1;
+        }
+    }
+
+    float4 shadow_clip = mul(light.view_projection[cascade_index], float4(interaction.isect.p, 1.0));
+    float4 shadow_coord = float4(shadow_clip.xyz / shadow_clip.w, shadow_clip.w);
+    shadow_coord.xy = shadow_coord.xy * 0.5 + 0.5;
+    shadow_coord.y = 1.0 - shadow_coord.y;
+
+    uint layer = idx * 4 + cascade_index;
+        
+    if (shadow_coord.z > -1.0 && shadow_coord.z < 1.0)
+    {
+        float dist = DirectionalLightShadow.SampleLevel(ShadowMapSampler, float3(shadow_coord.xy + 0, layer), 0.0).r;
+        if (shadow_coord.w > 0.0 && dist < shadow_coord.z)
+        {
+            shadow = 0.0;
+        }
+    }
+#endif
+    
+    return shadow;
+}
+#endif
+
 [numthreads(8, 1, 1)]
 void DispatchIndirect(CSParam param)
 {
@@ -268,6 +384,8 @@ void DispatchIndirect(CSParam param)
     
     float3 bary, bary_ddx, bary_ddy;
     
+    float linear_z = 0.f;
+    
 #ifdef HAS_MESH
     if (mesh_type == MESH_TYPE)
     {
@@ -281,9 +399,11 @@ void DispatchIndirect(CSParam param)
         CalculateBarycentre(instance.transform, pixel, extent, v0.position, v1.position, v2.position, bary, bary_ddx, bary_ddy);
         
         interaction.isect.p = v0.position.xyz * bary.x + v1.position.xyz * bary.y + v2.position.xyz * bary.z;
+        linear_z = mul(ViewBuffer.view_projection_matrix, mul(instance.transform, float4(interaction.isect.p, 1.0))).z;
+        interaction.isect.p = mul(instance.transform, float4(interaction.isect.p, 1.0)).xyz;
         interaction.isect.uv = v0.texcoord0.xy * bary.x + v1.texcoord0.xy * bary.y + v2.texcoord0.xy * bary.z;
         interaction.isect.n = v0.normal.xyz * bary.x + v1.normal.xyz * bary.y + v2.normal.xyz * bary.z;
-        interaction.isect.n = normalize(mul((float4x3) instance.transform, normalize(interaction.isect.n)).xyz);
+        interaction.isect.n = normalize(mul((float3x3) instance.transform, normalize(interaction.isect.n)));
         interaction.isect.wo = normalize(ViewBuffer.position - interaction.isect.p);
         interaction.shading_n = dot(interaction.isect.n, interaction.isect.wo) <= 0 ? -interaction.isect.n : interaction.isect.n;
         interaction.isect.t = length(ViewBuffer.position - interaction.isect.p);
@@ -311,13 +431,32 @@ void DispatchIndirect(CSParam param)
     li_ctx.p = interaction.isect.p;
     
 #ifdef HAS_POINT_LIGHT
-    for (uint i = 0; i < LightInfoBuffer.point_light_count; i++)
+    for (uint point_light_id = 0; point_light_id < LightInfoBuffer.point_light_count; point_light_id++)
     {
-        PointLight light = PointLightBuffer.Load(i);
+        PointLight light = PointLightBuffer.Load(point_light_id);
         LightLiSample light_sample = light.SampleLi(li_ctx, 0.f);
-        
         float3 f = material.bsdf.Eval(interaction.isect.wo, light_sample.wi, TransportMode_Radiance) * abs(dot(light_sample.wi, interaction.shading_n));
-        radiance += f * light_sample.L;
+        radiance += f * light_sample.L * CalculatePointLightShadow(light, point_light_id, interaction);
+    }
+#endif
+    
+#ifdef HAS_SPOT_LIGHT
+    for (uint spot_light_id = 0; spot_light_id < LightInfoBuffer.spot_light_count; spot_light_id++)
+    {
+        SpotLight light = SpotLightBuffer.Load(spot_light_id);
+        LightLiSample light_sample = light.SampleLi(li_ctx, 0.f);
+        float3 f = material.bsdf.Eval(interaction.isect.wo, light_sample.wi, TransportMode_Radiance) * abs(dot(light_sample.wi, interaction.shading_n));
+        radiance += f * light_sample.L * CalculateSpotLightShadow(light, spot_light_id, interaction);
+    }
+#endif
+    
+#ifdef HAS_DIRECTIONAL_LIGHT
+    for (uint directional_light_id = 0; directional_light_id < LightInfoBuffer.directional_light_count; directional_light_id++)
+    {
+        DirectionalLight light = DirectionalLightBuffer.Load(directional_light_id);
+        LightLiSample light_sample = light.SampleLi(li_ctx, 0.f);
+        float3 f = material.bsdf.Eval(interaction.isect.wo, light_sample.wi, TransportMode_Radiance) * abs(dot(light_sample.wi, interaction.shading_n));
+        radiance += f * light_sample.L * CalculateDirectionalLightShadow(light, directional_light_id, interaction, linear_z);
     }
 #endif
     

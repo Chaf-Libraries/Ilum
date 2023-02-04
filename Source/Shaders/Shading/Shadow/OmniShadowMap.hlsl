@@ -82,6 +82,8 @@ struct VertexIn
 struct VertexOut
 {
     float4 Position : SV_Position;
+    float3 Pos : POSITION0;
+    float3 LightPos : POSITION1;
     uint InstanceID : COLOR0;
 };
 
@@ -167,6 +169,8 @@ void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut v
     {
         uint vertex_id = MeshletDataBuffer[instance.mesh_id][meshlet.data_offset + i];
         
+        verts[i].LightPos = light.position;
+        
 #ifdef HAS_SKINNED
         SkinnedVertex vertex = VertexBuffer[instance.mesh_id][vertex_id];
         
@@ -191,14 +195,17 @@ void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut v
                 float4 local_position = mul(BoneMatrices[instance.animation_id][vertex.bones[i]], float4(vertex.position, 1.0f));
                 total_position += local_position * vertex.weights[i];
             }
+            verts[i].Pos = mul(instance.transform, float4(total_position.xyz, 1.0)).xyz;
             verts[i].Position = mul(transpose(ViewProjection[layer_id % 6]), float4(mul(instance.transform, float4(total_position.xyz, 1.0)).xyz - light.position, 1.f));
         }
         else
         {
+            verts[i].Pos = mul(instance.transform, float4(vertex.position.xyz, 1.0)).xyz;
             verts[i].Position = mul(transpose(ViewProjection[layer_id % 6]), float4(mul(instance.transform, float4(vertex.position.xyz, 1.0)).xyz - light.position, 1.f));
         }
 #else
         Vertex vertex = VertexBuffer[instance.mesh_id][vertex_id];
+        verts[i].Pos = mul(instance.transform, float4(vertex.position.xyz, 1.0)).xyz;
         verts[i].Position = mul(transpose(ViewProjection[layer_id % 6]), float4(mul(instance.transform, float4(vertex.position.xyz, 1.0)).xyz - light.position, 1.f));
 #endif
     }
@@ -213,8 +220,9 @@ void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut v
     }
 }
 
-void PSmain(VertexOut vert)
+float PSmain(VertexOut vert) : SV_Depth
 {
+    return (length(vert.Pos.xyz - vert.LightPos.xyz) + 0.01) / 100.0;
 }
 
 void VSmain(in VertexIn vert_in, out VertexOut vert_out)

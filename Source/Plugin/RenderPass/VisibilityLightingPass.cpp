@@ -1,4 +1,5 @@
 #include "IPass.hpp"
+#include "PassData.hpp"
 
 #include <Material/MaterialData.hpp>
 #include <Resource/ResourceManager.hpp>
@@ -44,7 +45,8 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 			View       *view        = black_board.Get<View>();
 			RHIContext *rhi_context = renderer->GetRHIContext();
 
-			LightingPassData *pass_data = black_board.Has<LightingPassData>() ? black_board.Get<LightingPassData>() : black_board.Add<LightingPassData>();
+			LightingPassData *pass_data   = black_board.Has<LightingPassData>() ? black_board.Get<LightingPassData>() : black_board.Add<LightingPassData>();
+			ShadowMapData    *shadow_data = black_board.Has<ShadowMapData>() ? black_board.Get<ShadowMapData>() : nullptr;
 
 			size_t material_count = renderer->GetResourceManager()->GetValidResourceCount<ResourceType::Material>() + 1;
 
@@ -54,6 +56,7 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 			bool has_spot_light        = gpu_scene->light.info.spot_light_count != 0;
 			bool has_directional_light = gpu_scene->light.info.directional_light_count != 0;
 			bool has_rect_light        = gpu_scene->light.info.rect_light_count != 0;
+			bool has_shadow            = gpu_scene->light.has_shadow;
 
 			if (!pass_data->material_count_buffer ||
 			    pass_data->material_count_buffer->GetDesc().size != material_count * sizeof(uint32_t))
@@ -125,6 +128,15 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 			         pass_data->material_count_buffer.get(),
 			         RHIResourceState::TransferDest,
 			         RHIResourceState::UnorderedAccess}});
+
+			//std::vector<uint32_t> debug_data(material_count);
+			//pass_data->material_count_buffer->CopyToHost(debug_data.data(), debug_data.size() * sizeof(uint32_t));
+			//std::cout << "Material Count Buffer: ";
+			//for (auto data : debug_data)
+			//{
+			//	std::cout << data << " ";
+			//}
+			//std::cout << std::endl;
 
 			// Collect material count
 			{
@@ -214,10 +226,9 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 			{
 				cmd_buffer->ResourceStateTransition(
 				    {},
-				    {
-				     BufferStateTransition{
-				         pass_data->indirect_command_buffer.get(),
-				         RHIResourceState::UnorderedAccess,
+				    {BufferStateTransition{
+				        pass_data->indirect_command_buffer.get(),
+				        RHIResourceState::UnorderedAccess,
 				        RHIResourceState::UnorderedAccess}});
 			}
 
@@ -268,6 +279,7 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 					        has_spot_light ? "HAS_SPOT_LIGHT" : "NO_SPOT_LIGHT",
 					        has_directional_light ? "HAS_DIRECTIONAL_LIGHT" : "NO_DIRECTIONAL_LIGHT",
 					        has_rect_light ? "HAS_RECT_LIGHT" : "NO_RECT_LIGHT",
+					        has_shadow ? "HAS_SHADOW" : "NO_SHADOW",
 					        "DISPATCH_INDIRECT",
 					        "MATERIAL_ID=" + std::to_string(i),
 					        i == 0 ? "DEFAULT_MATERIAL" : gpu_scene->material.data[i - 1]->signature,
@@ -281,25 +293,85 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 					descriptor->BindTexture("VisibilityBuffer", visibility_buffer, RHITextureDimension::Texture2D)
 					    .BindBuffer("ViewBuffer", view->buffer.get())
 					    .BindBuffer("LightInfoBuffer", gpu_scene->light.light_info_buffer.get())
-					    .BindBuffer("PointLightBuffer", gpu_scene->light.point_light_buffer.get())
-					    .BindBuffer("MeshVertexBuffer", gpu_scene->mesh_buffer.vertex_buffers)
-					    .BindBuffer("MeshIndexBuffer", gpu_scene->mesh_buffer.index_buffers)
-					    .BindBuffer("MeshInstanceBuffer", gpu_scene->mesh_buffer.instances.get())
-					    .BindBuffer("SkinnedMeshVertexBuffer", gpu_scene->skinned_mesh_buffer.vertex_buffers)
-					    .BindBuffer("SkinnedMeshIndexBuffer", gpu_scene->skinned_mesh_buffer.index_buffers)
-					    .BindBuffer("SkinnedMeshInstanceBuffer", gpu_scene->skinned_mesh_buffer.instances.get())
+					    .BindSampler("ShadowMapSampler", rhi_context->CreateSampler(SamplerDesc::LinearClamp()))
 					    .BindBuffer("MaterialPixelBuffer", pass_data->material_pixel_buffer.get())
 					    .BindBuffer("MaterialCountBuffer", pass_data->material_count_buffer.get())
 					    .BindBuffer("MaterialOffsetBuffer", pass_data->material_offset_buffer.get())
 					    .BindBuffer("MaterialOffsets", gpu_scene->material.material_offset.get())
 					    .BindBuffer("MaterialBuffer", gpu_scene->material.material_buffer.get())
 					    .BindTexture("Output", output, RHITextureDimension::Texture2D);
+
+					if (has_mesh)
+					{
+						descriptor->BindBuffer("MeshVertexBuffer", gpu_scene->mesh_buffer.vertex_buffers)
+						    .BindBuffer("MeshIndexBuffer", gpu_scene->mesh_buffer.index_buffers)
+						    .BindBuffer("MeshInstanceBuffer", gpu_scene->mesh_buffer.instances.get());
+					}
+
+					if (has_skinned_mesh)
+					{
+						descriptor->BindBuffer("SkinnedMeshVertexBuffer", gpu_scene->skinned_mesh_buffer.vertex_buffers)
+						    .BindBuffer("SkinnedMeshIndexBuffer", gpu_scene->skinned_mesh_buffer.index_buffers)
+						    .BindBuffer("SkinnedMeshInstanceBuffer", gpu_scene->skinned_mesh_buffer.instances.get());
+					}
+
+					if (has_point_light)
+					{
+						descriptor->BindBuffer("PointLightBuffer", gpu_scene->light.point_light_buffer.get());
+						if (has_shadow)
+						{
+							descriptor->BindTexture("PointLightShadow", shadow_data->omni_shadow_map.get(), RHITextureDimension::TextureCubeArray);
+						}
+					}
+
+					if (has_spot_light)
+					{
+						descriptor->BindBuffer("SpotLightBuffer", gpu_scene->light.spot_light_buffer.get());
+						if (has_shadow)
+						{
+							descriptor->BindTexture("SpotLightShadow", shadow_data->shadow_map.get(), RHITextureDimension::Texture2DArray);
+						}
+					}
+
+					if (has_directional_light)
+					{
+						descriptor->BindBuffer("DirectionalLightBuffer", gpu_scene->light.directional_light_buffer.get());
+						if (has_shadow)
+						{
+							descriptor->BindTexture("DirectionalLightShadow", shadow_data->cascade_shadow_map.get(), RHITextureDimension::Texture2DArray);
+						}
+					}
+
+					if (has_rect_light)
+					{
+						descriptor->BindBuffer("RectLightBuffer", gpu_scene->light.rect_light_buffer.get());
+					}
+
 					cmd_buffer->BindDescriptor(descriptor);
 					cmd_buffer->BindPipelineState(pipeline_state.get());
 					cmd_buffer->DispatchIndirect(pass_data->indirect_command_buffer.get(), i * sizeof(RHIDispatchIndirectCommand));
 				}
 				cmd_buffer->EndMarker();
 			}
+
+			cmd_buffer->ResourceStateTransition(
+			    {},
+			    {BufferStateTransition{
+			         pass_data->indirect_command_buffer.get(),
+			         RHIResourceState::IndirectBuffer,
+			         RHIResourceState::UnorderedAccess},
+			     BufferStateTransition{
+			         pass_data->material_offset_buffer.get(),
+			         RHIResourceState::ShaderResource,
+			         RHIResourceState::UnorderedAccess},
+			     BufferStateTransition{
+			         pass_data->material_pixel_buffer.get(),
+			         RHIResourceState::ShaderResource,
+			         RHIResourceState::UnorderedAccess},
+			     BufferStateTransition{
+			         pass_data->material_count_buffer.get(),
+			         RHIResourceState::ShaderResource,
+			         RHIResourceState::UnorderedAccess}});
 		};
 	}
 

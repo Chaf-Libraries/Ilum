@@ -247,11 +247,6 @@ void Command::SetScissor(uint32_t width, uint32_t height, int32_t offset_x, int3
 	vkCmdSetScissor(m_handle, 0, 1, &rect);
 }
 
-void Command::SetDepthBias(float constant, float clamp, float slope)
-{
-	vkCmdSetDepthBias(m_handle, constant, clamp, slope);
-}
-
 void Command::Dispatch(uint32_t thread_x, uint32_t thread_y, uint32_t thread_z, uint32_t block_x, uint32_t block_y, uint32_t block_z)
 {
 	vkCmdDispatch(m_handle, (thread_x + block_x - 1) / block_x, (thread_y + block_y - 1) / block_y, (thread_z + block_z - 1) / block_z);

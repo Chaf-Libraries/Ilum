@@ -27,23 +27,23 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 		VeryHigh
 	};
 
-	const std::unordered_map<ShadowMapResolution, uint32_t> shadow_map_resolution = 
-	{
+	const std::unordered_map<ShadowMapResolution, uint32_t> shadow_map_resolution =
+	    {
 	        {ShadowMapResolution::VeryHigh, 1024},
 	        {ShadowMapResolution::High, 768},
 	        {ShadowMapResolution::Medium, 512},
 	        {ShadowMapResolution::Low, 384},
 	        {ShadowMapResolution::VeryLow, 256},
-	};
+	    };
 
 	struct Config
 	{
-		ShadowMapResolution shadow_map_resolution = ShadowMapResolution::Medium;
+		ShadowMapResolution shadow_map_resolution         = ShadowMapResolution::Medium;
 		ShadowMapResolution cascade_shadow_map_resolution = ShadowMapResolution::Medium;
-		ShadowMapResolution omni_map_resolution = ShadowMapResolution::Medium;
+		ShadowMapResolution omni_map_resolution           = ShadowMapResolution::Medium;
 
-		float bias = 0.1f;
-		float slope = 0.1f;
+		float bias  = 16.f;
+		float slope = 4.5f;
 	};
 
   public:
@@ -55,6 +55,7 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 	{
 		RenderPassDesc desc;
 		return desc.SetBindPoint(BindPoint::Rasterization)
+		    .SetConfig(Config())
 		    .SetName("ShadowMapPass")
 		    .SetCategory("Shading");
 	}
@@ -73,18 +74,18 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 		std::shared_ptr<RHIRenderTarget> omni_shadowmap_render_target    = std::shared_ptr<RHIRenderTarget>(std::move(renderer->GetRHIContext()->CreateRenderTarget()));
 
 		*task = [=](RenderGraph &render_graph, RHICommand *cmd_buffer, Variant &config, RenderGraphBlackboard &black_board) {
-			auto *rhi_context = renderer->GetRHIContext();
-			auto *scene       = renderer->GetScene();
-			auto *gpu_scene   = black_board.Get<GPUScene>();
+			auto   *rhi_context = renderer->GetRHIContext();
+			auto   *scene       = renderer->GetScene();
+			auto   *gpu_scene   = black_board.Get<GPUScene>();
+			Config *config_data = config.Convert<Config>();
+
+			gpu_scene->light.has_shadow = true;
 
 			auto shadow_map_data = black_board.Has<ShadowMapData>() ? black_board.Add<ShadowMapData>() : black_board.Get<ShadowMapData>();
 
-			if (Component::IsUpdate())
-			{
-				RenderShadowMap(cmd_buffer, mesh_shadow_pipeline, skinned_mesh_shadow_pipeline, renderer, scene, gpu_scene, shadow_map_data, shadowmap_render_target.get());
-				RenderCascadeShadowMap(cmd_buffer, mesh_cascade_shadow_pipeline, skinned_mesh_cascade_shadow_pipeline, renderer, scene, gpu_scene, shadow_map_data, cascade_shadowmap_render_target.get());
-				RenderOmniShadowMap(cmd_buffer, mesh_omni_shadow_pipeline, skinned_mesh_omni_shadow_pipeline, renderer, scene, gpu_scene, shadow_map_data, omni_shadowmap_render_target.get());
-			}
+			RenderShadowMap(cmd_buffer, mesh_shadow_pipeline, skinned_mesh_shadow_pipeline, renderer, scene, gpu_scene, config_data, shadow_map_data, shadowmap_render_target.get());
+			RenderCascadeShadowMap(cmd_buffer, mesh_cascade_shadow_pipeline, skinned_mesh_cascade_shadow_pipeline, renderer, scene, gpu_scene, config_data, shadow_map_data, cascade_shadowmap_render_target.get());
+			RenderOmniShadowMap(cmd_buffer, mesh_omni_shadow_pipeline, skinned_mesh_omni_shadow_pipeline, renderer, scene, gpu_scene, config_data, shadow_map_data, omni_shadowmap_render_target.get());
 		};
 	}
 
@@ -93,6 +94,16 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 		PipelineDesc pipeline_desc;
 
 		pipeline_desc.pipeline = std::shared_ptr<RHIPipelineState>(std::move(renderer->GetRHIContext()->CreatePipelineState()));
+
+		RasterizationState rasterization_state;
+		rasterization_state.cull_mode  = RHICullMode::None;
+		rasterization_state.front_face = RHIFrontFace::Clockwise;
+		pipeline_desc.pipeline->SetRasterizationState(rasterization_state);
+
+		DepthStencilState depth_stencil_state  = {};
+		depth_stencil_state.depth_write_enable = true;
+		depth_stencil_state.depth_test_enable  = true;
+		pipeline_desc.pipeline->SetDepthStencilState(depth_stencil_state);
 
 		if (renderer->GetRHIContext()->IsFeatureSupport(RHIFeature::MeshShading))
 		{
@@ -103,16 +114,6 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 			pipeline_desc.pipeline->SetShader(RHIShaderStage::Task, task_shader);
 			pipeline_desc.pipeline->SetShader(RHIShaderStage::Mesh, mesh_shader);
 			pipeline_desc.pipeline->SetShader(RHIShaderStage::Fragment, frag_shader);
-
-			RasterizationState rasterization_state;
-			rasterization_state.cull_mode  = RHICullMode::None;
-			rasterization_state.front_face = RHIFrontFace::Clockwise;
-			pipeline_desc.pipeline->SetRasterizationState(rasterization_state);
-
-			DepthStencilState depth_stencil_state  = {};
-			depth_stencil_state.depth_write_enable = true;
-			depth_stencil_state.depth_test_enable  = true;
-			pipeline_desc.pipeline->SetDepthStencilState(depth_stencil_state);
 
 			pipeline_desc.meta = renderer->RequireShaderMeta(task_shader);
 			pipeline_desc.meta += renderer->RequireShaderMeta(mesh_shader);
@@ -125,16 +126,6 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 
 			pipeline_desc.pipeline->SetShader(RHIShaderStage::Vertex, vertex_shader);
 			pipeline_desc.pipeline->SetShader(RHIShaderStage::Fragment, frag_shader);
-
-			RasterizationState rasterization_state;
-			rasterization_state.cull_mode  = RHICullMode::None;
-			rasterization_state.front_face = RHIFrontFace::Clockwise;
-			pipeline_desc.pipeline->SetRasterizationState(rasterization_state);
-
-			DepthStencilState depth_stencil_state  = {};
-			depth_stencil_state.depth_write_enable = true;
-			depth_stencil_state.depth_test_enable  = true;
-			pipeline_desc.pipeline->SetDepthStencilState(depth_stencil_state);
 
 			if (has_skinned)
 			{
@@ -179,6 +170,7 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 	    Renderer           *renderer,
 	    Scene              *scene,
 	    GPUScene           *gpu_scene,
+	    Config             *config,
 	    ShadowMapData      *shadow_map_data,
 	    RHIRenderTarget    *render_target)
 	{
@@ -186,10 +178,22 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 		auto     spot_lights = scene->GetComponents<Cmpt::SpotLight>();
 		uint32_t layers      = glm::max(static_cast<uint32_t>(spot_lights.size()), 1u);
 
+		RasterizationState rasterization_state;
+		rasterization_state.cull_mode         = RHICullMode::None;
+		rasterization_state.front_face        = RHIFrontFace::Clockwise;
+		rasterization_state.depth_bias_enable = true;
+		rasterization_state.depth_bias        = config->bias;
+		rasterization_state.depth_bias_slope  = config->slope;
+		mesh_pipeline.pipeline->SetRasterizationState(rasterization_state);
+		skinned_mesh_pipeline.pipeline->SetRasterizationState(rasterization_state);
+
+		uint32_t size = shadow_map_resolution.at(config->shadow_map_resolution);
+
 		if (!shadow_map_data->shadow_map ||
+		    shadow_map_data->shadow_map->GetDesc().width != size ||
 		    shadow_map_data->shadow_map->GetDesc().layers < spot_lights.size())
 		{
-			shadow_map_data->shadow_map = rhi_context->CreateTexture2DArray(512, 512, layers, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false);
+			shadow_map_data->shadow_map = rhi_context->CreateTexture2DArray(size, size, layers, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false);
 			cmd_buffer->ResourceStateTransition({TextureStateTransition{
 			                                        shadow_map_data->shadow_map.get(),
 			                                        RHIResourceState::Undefined,
@@ -342,6 +346,7 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 	    Renderer           *renderer,
 	    Scene              *scene,
 	    GPUScene           *gpu_scene,
+	    Config             *config,
 	    ShadowMapData      *shadow_map_data,
 	    RHIRenderTarget    *render_target)
 	{
@@ -349,10 +354,22 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 		auto     directional_lights = scene->GetComponents<Cmpt::DirectionalLight>();
 		uint32_t layers             = glm::max(static_cast<uint32_t>(directional_lights.size() * 4ull), 1u);
 
+		RasterizationState rasterization_state;
+		rasterization_state.cull_mode         = RHICullMode::None;
+		rasterization_state.front_face        = RHIFrontFace::Clockwise;
+		rasterization_state.depth_bias_enable = true;
+		rasterization_state.depth_bias        = config->bias;
+		rasterization_state.depth_bias_slope  = config->slope;
+		mesh_pipeline.pipeline->SetRasterizationState(rasterization_state);
+		skinned_mesh_pipeline.pipeline->SetRasterizationState(rasterization_state);
+
+		uint32_t size = shadow_map_resolution.at(config->cascade_shadow_map_resolution);
+
 		if (!shadow_map_data->cascade_shadow_map ||
+		    shadow_map_data->cascade_shadow_map->GetDesc().width != size ||
 		    shadow_map_data->cascade_shadow_map->GetDesc().layers < directional_lights.size() * 4)
 		{
-			shadow_map_data->cascade_shadow_map = rhi_context->CreateTexture2DArray(512, 512, layers, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false);
+			shadow_map_data->cascade_shadow_map = rhi_context->CreateTexture2DArray(size, size, layers, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false);
 			cmd_buffer->ResourceStateTransition({TextureStateTransition{
 			                                        shadow_map_data->cascade_shadow_map.get(),
 			                                        RHIResourceState::Undefined,
@@ -505,6 +522,7 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 	    Renderer           *renderer,
 	    Scene              *scene,
 	    GPUScene           *gpu_scene,
+	    Config             *config,
 	    ShadowMapData      *shadow_map_data,
 	    RHIRenderTarget    *render_target)
 	{
@@ -512,10 +530,13 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 		auto     point_lights = scene->GetComponents<Cmpt::PointLight>();
 		uint32_t layers       = glm::max(static_cast<uint32_t>(point_lights.size() * 6ull), 1u);
 
+		uint32_t size = shadow_map_resolution.at(config->omni_map_resolution);
+
 		if (!shadow_map_data->omni_shadow_map ||
+		    shadow_map_data->omni_shadow_map->GetDesc().width != size ||
 		    shadow_map_data->omni_shadow_map->GetDesc().layers < point_lights.size() * 6)
 		{
-			shadow_map_data->omni_shadow_map = rhi_context->CreateTexture2DArray(512, 512, layers, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false);
+			shadow_map_data->omni_shadow_map = rhi_context->CreateTexture2DArray(size, size, layers, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false);
 			cmd_buffer->ResourceStateTransition({TextureStateTransition{
 			                                        shadow_map_data->omni_shadow_map.get(),
 			                                        RHIResourceState::Undefined,
@@ -663,6 +684,19 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 
 	virtual void OnImGui(Variant *config)
 	{
+		Config *config_data = config->Convert<Config>();
+
+		ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x / 2.f);
+		ImGui::DragFloat("Depth Bias", &config_data->bias, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
+		ImGui::DragFloat("Depth Slope", &config_data->slope, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
+
+		const char *resolution[] = {"VeryLow", "Low", "Medium", "High", "VeryHigh"};
+		ImGui::Text("Shadow Map Resolution");
+		ImGui::Combo("Spot Light", reinterpret_cast<int32_t *>(&config_data->shadow_map_resolution), resolution, 5);
+		ImGui::Combo("Point Light", reinterpret_cast<int32_t *>(&config_data->omni_map_resolution), resolution, 5);
+		ImGui::Combo("Directional Light", reinterpret_cast<int32_t *>(&config_data->cascade_shadow_map_resolution), resolution, 5);
+
+		ImGui::PopItemWidth();
 	}
 };
 

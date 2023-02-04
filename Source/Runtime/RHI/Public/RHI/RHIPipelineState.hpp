@@ -97,13 +97,15 @@ struct BlendState
 
 struct RasterizationState
 {
-	RHICullMode    cull_mode        = RHICullMode::Back;
-	RHIFrontFace   front_face       = RHIFrontFace::Counter_Clockwise;
-	RHIPolygonMode polygon_mode     = RHIPolygonMode::Solid;
-	float          line_width       = 1.f;
-	float          depth_bias       = 0.f;
-	float          depth_bias_clamp = 0.f;
-	float          depth_bias_slope = 0.f;
+	RHICullMode    cull_mode         = RHICullMode::Back;
+	RHIFrontFace   front_face        = RHIFrontFace::Counter_Clockwise;
+	RHIPolygonMode polygon_mode      = RHIPolygonMode::Solid;
+	bool           depth_bias_enable = false;
+	bool           depth_clamp_enable  = false;
+	float          line_width        = 1.f;
+	float          depth_bias        = 0.f;
+	float          depth_bias_clamp  = 0.f;
+	float          depth_bias_slope  = 0.f;
 
 	inline bool operator==(const RasterizationState &state) const
 	{
@@ -111,6 +113,8 @@ struct RasterizationState
 		       front_face == state.front_face &&
 		       polygon_mode == state.polygon_mode &&
 		       line_width == state.line_width &&
+		       depth_bias_enable == state.depth_bias_enable &&
+		       depth_clamp_enable == state.depth_clamp_enable &&
 		       depth_bias == state.depth_bias &&
 		       depth_bias_clamp == state.depth_bias_clamp &&
 		       depth_bias_slope == state.depth_bias_slope;

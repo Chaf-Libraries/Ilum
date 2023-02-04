@@ -32,8 +32,8 @@ void RenderGraphDesc::ErasePass(size_t handle)
 	{
 		if (pins.find(iter->first) != pins.end() ||
 		    pins.find(iter->second) != pins.end() ||
-		    m_passes.find(iter->first) != m_passes.end() ||
-		    m_passes.find(iter->second) != m_passes.end())
+		    iter->first == handle ||
+		    iter->second == handle)
 		{
 			iter = m_edges.erase(iter);
 		}

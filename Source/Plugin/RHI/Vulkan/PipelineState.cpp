@@ -315,9 +315,13 @@ VkPipeline PipelineState::CreateGraphicsPipeline(Descriptor *descriptor, RenderT
 	rasterization_state_create_info.polygonMode                            = ToVulkanPolygonMode[m_rasterization_state.polygon_mode];
 	rasterization_state_create_info.cullMode                               = ToVulkanCullMode[m_rasterization_state.cull_mode];
 	rasterization_state_create_info.frontFace                              = ToVulkanFrontFace[m_rasterization_state.front_face];
-	rasterization_state_create_info.flags                                  = 0;
-	rasterization_state_create_info.depthBiasEnable                        = VK_TRUE;
 	rasterization_state_create_info.lineWidth                              = m_rasterization_state.line_width;
+	rasterization_state_create_info.depthBiasEnable                        = m_rasterization_state.depth_bias_enable;
+	rasterization_state_create_info.depthClampEnable                       = m_rasterization_state.depth_clamp_enable;
+	rasterization_state_create_info.depthBiasConstantFactor                = m_rasterization_state.depth_bias;
+	rasterization_state_create_info.depthBiasSlopeFactor                   = m_rasterization_state.depth_bias_slope;
+	rasterization_state_create_info.depthBiasClamp                         = m_rasterization_state.depth_bias_clamp;
+	rasterization_state_create_info.flags                                  = 0;
 
 	// Color Blend State
 	std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachment_states(m_blend_state.attachment_states.size());

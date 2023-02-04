@@ -4,7 +4,7 @@ function add_runtime_moulde(name, group, pcxxheader, deps, pkgs)
             add_defines("DEBUG")
             set_kind("shared")
             add_rules("utils.symbols.export_all", {export_classes = true})
-        elseif is_mode("release") then
+        elseif is_mode("release", "releasedbg") then
             set_kind("static")
         end
 

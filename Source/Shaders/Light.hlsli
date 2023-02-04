@@ -244,7 +244,7 @@ struct DirectionalLight
     
     LightLiSample SampleLi(LightSampleContext ctx, float2 u)
     {
-        float3 wi;
+        float3 wi = normalize(-direction);
         float3 L = color.rgb * intensity;
         
         Interaction isect;

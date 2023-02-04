@@ -6,7 +6,7 @@ set_xmakever("2.7.5")
 set_warnings("all")
 set_languages("c++17")
 
-add_rules("mode.debug", "mode.release")
+add_rules("mode.debug", "mode.release", "mode.releasedbg")
 
 set_runtimes("MD")
 add_defines("NOMINMAX")

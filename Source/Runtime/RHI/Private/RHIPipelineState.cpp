@@ -162,6 +162,8 @@ size_t RHIPipelineState::GetHash()
 		            m_rasterization_state.cull_mode,
 		            m_rasterization_state.front_face,
 		            m_rasterization_state.polygon_mode,
+		            m_rasterization_state.depth_bias_enable,
+		            m_rasterization_state.depth_clamp_enable,
 		            m_rasterization_state.depth_bias,
 		            m_rasterization_state.depth_bias_clamp,
 		            m_rasterization_state.depth_bias_slope);
