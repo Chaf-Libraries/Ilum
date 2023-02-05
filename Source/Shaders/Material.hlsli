@@ -8,6 +8,7 @@
 
 #include "Material/BSDF/BSDF.hlsli"
 #include "Material/BSDF/DiffuseBSDF.hlsli"
+#include "Material/BSDF/MirrorBSDF.hlsli"
 #include "Material/BSDF/DiffuseTransmissionBSDF.hlsli"
 #include "Material/BSDF/DielectricBSDF.hlsli"
 #include "Material/BSDF/ConductorBSDF.hlsli"

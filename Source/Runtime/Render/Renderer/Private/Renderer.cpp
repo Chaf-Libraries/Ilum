@@ -556,7 +556,7 @@ void Renderer::UpdateGPUScene()
 		auto resources = m_impl->resource_manager->GetResources<ResourceType::Material>();
 
 		std::vector<uint32_t> material_data;
-		std::vector<uint32_t> material_offset;
+		std::vector<uint32_t> material_offset = {0};
 
 		for (auto &resource : resources)
 		{
