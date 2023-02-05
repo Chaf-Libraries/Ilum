@@ -13,7 +13,7 @@ class SkinnedMeshRenderer : public Renderable
 
 	virtual ~SkinnedMeshRenderer() = default;
 
-	virtual void OnImGui() override;
+	virtual bool OnImGui() override;
 
 	virtual std::type_index GetType() const override;
 };

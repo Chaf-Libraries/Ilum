@@ -17,7 +17,7 @@ class Transform : public Component
 
 	~Transform() = default;
 
-	virtual void OnImGui() override;
+	virtual bool OnImGui() override;
 
 	virtual std::type_index GetType() const override;
 

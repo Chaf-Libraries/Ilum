@@ -9,7 +9,7 @@ EnvironmentLight::EnvironmentLight(Node *node) :
 {
 }
 
-void EnvironmentLight::OnImGui()
+bool EnvironmentLight::OnImGui()
 {
 	if (ImGui::Button(m_texture.c_str(), ImVec2(ImGui::GetContentRegionAvail().x * 0.8f, 30.f)))
 	{
@@ -31,6 +31,8 @@ void EnvironmentLight::OnImGui()
 			m_update = true;
 		}
 	}
+
+	return m_update;
 }
 
 void EnvironmentLight::Save(OutputArchive &archive) const

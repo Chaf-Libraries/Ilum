@@ -54,7 +54,7 @@ class PathTracing : public RenderPass<PathTracing>
 
 			config_buffer->CopyToDevice(config_data, sizeof(Config));
 
-			if (Component::IsUpdate())
+			if (renderer->GetScene()->IsUpdate())
 			{
 				config_data->frame_count = 0;
 			}

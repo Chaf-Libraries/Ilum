@@ -20,6 +20,8 @@ struct Scene::Impl
 	std::vector<std::unique_ptr<Node>> nodes;
 
 	std::unordered_map<std::type_index, std::vector<std::unique_ptr<Component>>> components;
+
+	bool update = false;
 };
 
 Scene::Scene(const std::string &name)
@@ -171,10 +173,12 @@ void Scene::Load(InputArchive &archive)
 	// Components
 	{
 		const std::unordered_map<std::string, std::function<void(Node *&, InputArchive &)>> load_component_map = {
-#define LOAD_COMPONENT(Cmpt) \
-	{typeid(Cmpt).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt>(std::make_unique<Cmpt>(node))->Load(archive); }}
+#define LOAD_COMPONENT(Cmpt)                                                                                                                   \
+	{                                                                                                                                          \
+		typeid(Cmpt).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt>(std::make_unique<Cmpt>(node))->Load(archive); } \
+	}
 
-			LOAD_COMPONENT(Cmpt::Transform),
+		    LOAD_COMPONENT(Cmpt::Transform),
 		    LOAD_COMPONENT(Cmpt::PerspectiveCamera),
 		    LOAD_COMPONENT(Cmpt::OrthographicCamera),
 		    LOAD_COMPONENT(Cmpt::MeshRenderer),
@@ -184,15 +188,6 @@ void Scene::Load(InputArchive &archive)
 		    LOAD_COMPONENT(Cmpt::DirectionalLight),
 		    LOAD_COMPONENT(Cmpt::RectLight),
 		    LOAD_COMPONENT(Cmpt::EnvironmentLight),
-		   /* {typeid(Cmpt::Transform).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::Transform>(std::make_unique<Cmpt::Transform>(node))->Load(archive); }},
-		    {typeid(Cmpt::PerspectiveCamera).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::PerspectiveCamera>(std::make_unique<Cmpt::PerspectiveCamera>(node))->Load(archive); }},
-		    {typeid(Cmpt::OrthographicCamera).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::OrthographicCamera>(std::make_unique<Cmpt::OrthographicCamera>(node))->Load(archive); }},
-		    {typeid(Cmpt::MeshRenderer).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::MeshRenderer>(std::make_unique<Cmpt::MeshRenderer>(node))->Load(archive); }},
-		    {typeid(Cmpt::SkinnedMeshRenderer).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::SkinnedMeshRenderer>(std::make_unique<Cmpt::SkinnedMeshRenderer>(node))->Load(archive); }},
-		    {typeid(Cmpt::SpotLight).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::SpotLight>(std::make_unique<Cmpt::SpotLight>(node))->Load(archive); }},
-		    {typeid(Cmpt::PointLight).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::PointLight>(std::make_unique<Cmpt::PointLight>(node))->Load(archive); }},
-		    {typeid(Cmpt::DirectionalLight).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::DirectionalLight>(std::make_unique<Cmpt::DirectionalLight>(node))->Load(archive); }},
-		    {typeid(Cmpt::RectLight).name(), [](Node *&node, InputArchive &archive) { node->AddComponent<Cmpt::RectLight>(std::make_unique<Cmpt::RectLight>(node))->Load(archive); }},*/
 		};
 
 		size_t component_type_count = 0;
@@ -221,5 +216,34 @@ void Scene::Clear()
 	{
 		EraseNode(root);
 	}
+}
+
+bool Scene::IsUpdate() const
+{
+	return m_impl->update;
+}
+
+void Scene::Update(bool update)
+{
+	if (update)
+	{
+		m_impl->update = true;
+	}
+	else
+	{
+		for (auto &[type, cmpts] : m_impl->components)
+		{
+			for (auto &cmpt : cmpts)
+			{
+				m_impl->update |= cmpt->IsUpdate();
+				cmpt->SetUpdate(false);
+			}
+		}
+	}
+}
+
+void Scene::Reset()
+{
+	m_impl->update = false;
 }
 }        // namespace Ilum

@@ -66,6 +66,12 @@ class Scene
 
 	void Clear();
 
+	bool IsUpdate() const;
+
+	void Update(bool update = false);
+
+	void Reset();
+
   private:
 	std::unordered_map<std::type_index, std::vector<std::unique_ptr<Component>>> &GetComponents();
 

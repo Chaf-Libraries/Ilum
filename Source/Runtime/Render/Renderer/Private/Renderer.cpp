@@ -135,6 +135,8 @@ void Renderer::Tick()
 {
 	m_impl->present_texture = nullptr;
 
+	m_impl->scene->Update();
+
 	UpdateGPUScene();
 
 	if (m_impl->new_render_graph)
@@ -149,7 +151,7 @@ void Renderer::Tick()
 		m_impl->render_graph->Execute(m_impl->black_board);
 	}
 
-	Component::Update(false);
+	m_impl->scene->Reset();
 }
 
 void Renderer::SetRenderGraph(std::unique_ptr<RenderGraph> &&render_graph)
@@ -288,7 +290,7 @@ void Renderer::UpdateGPUScene()
 		size_t offset       = 0;                                                                                                                  \
 		for (auto &light : DATA)                                                                                                                  \
 		{                                                                                                                                         \
-			std::memcpy((uint8_t *) light_buffer + offset, light->GetData(m_impl->main_camera), light->GetDataSize());                                               \
+			std::memcpy((uint8_t *) light_buffer + offset, light->GetData(m_impl->main_camera), light->GetDataSize());                            \
 			offset += light->GetDataSize();                                                                                                       \
 		}                                                                                                                                         \
 		gpu_scene->light.BUFFER->Unmap();                                                                                                         \
@@ -473,7 +475,7 @@ void Renderer::UpdateGPUScene()
 	// Update Mesh Buffer
 	if (m_impl->resource_manager->Update<ResourceType::Mesh>())
 	{
-		Component::Update(true);
+		m_impl->scene->Update(true);
 
 		gpu_scene->mesh_buffer.vertex_buffers.clear();
 		gpu_scene->mesh_buffer.index_buffers.clear();
@@ -494,7 +496,7 @@ void Renderer::UpdateGPUScene()
 	{
 		if (m_impl->resource_manager->Update<ResourceType::SkinnedMesh>())
 		{
-			Component::Update(true);
+			m_impl->scene->Update(true);
 
 			gpu_scene->skinned_mesh_buffer.vertex_buffers.clear();
 			gpu_scene->skinned_mesh_buffer.index_buffers.clear();
@@ -516,7 +518,7 @@ void Renderer::UpdateGPUScene()
 	{
 		if (m_impl->resource_manager->Update<ResourceType::Animation>())
 		{
-			Component::Update(true);
+			m_impl->scene->Update(true);
 
 			gpu_scene->animation_buffer.bone_matrics.clear();
 			gpu_scene->animation_buffer.skinned_matrics.clear();
@@ -539,7 +541,7 @@ void Renderer::UpdateGPUScene()
 	// Update Sampler
 	if (m_impl->rhi_context->GetSamplerCount() != gpu_scene->samplers.size())
 	{
-		Component::Update(true);
+		m_impl->scene->Update(true);
 
 		gpu_scene->samplers = m_impl->rhi_context->GetSamplers();
 	}
@@ -548,7 +550,7 @@ void Renderer::UpdateGPUScene()
 	if (m_impl->resource_manager->Update<ResourceType::Material>() ||
 	    m_impl->resource_manager->Update<ResourceType::Texture2D>())
 	{
-		Component::Update(true);
+		m_impl->scene->Update(true);
 
 		gpu_scene->material.data.clear();
 		auto resources = m_impl->resource_manager->GetResources<ResourceType::Material>();
@@ -594,7 +596,7 @@ void Renderer::UpdateGPUScene()
 	// Update 2D Textures
 	if (m_impl->resource_manager->Update<ResourceType::Texture2D>())
 	{
-		Component::Update(true);
+		m_impl->scene->Update(true);
 
 		gpu_scene->textures.texture_2d.clear();
 

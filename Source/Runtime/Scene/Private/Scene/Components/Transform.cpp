@@ -17,7 +17,7 @@ Transform::Transform(Node *node) :
 {
 }
 
-void Transform::OnImGui()
+bool Transform::OnImGui()
 {
 	auto draw_vec3 =
 	    [&](const std::string &label, glm::vec3 &values, float resetValue = 0.0f, float columnWidth = 100.0f) -> bool {
@@ -107,6 +107,8 @@ void Transform::OnImGui()
 	{
 		SetDirty();
 	}
+
+	return update;
 }
 
 std::type_index Transform::GetType() const

@@ -15,7 +15,7 @@ class Light : public Component
 
 	virtual ~Light() = default;
 
-	virtual void OnImGui() = 0;
+	virtual bool OnImGui() = 0;
 
 	virtual std::type_index GetType() const = 0;
 

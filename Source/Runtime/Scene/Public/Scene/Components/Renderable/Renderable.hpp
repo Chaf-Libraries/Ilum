@@ -13,7 +13,7 @@ class Renderable : public Component
 
 	virtual ~Renderable() = default;
 
-	virtual void OnImGui() override;
+	virtual bool OnImGui() override;
 
 	virtual std::type_index GetType() const = 0;
 

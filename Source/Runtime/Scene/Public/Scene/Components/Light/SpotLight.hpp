@@ -15,7 +15,7 @@ class SpotLight : public Light
 
 	virtual ~SpotLight() = default;
 
-	virtual void OnImGui() override;
+	virtual bool OnImGui() override;
 
 	virtual void Save(OutputArchive &archive) const override;
 

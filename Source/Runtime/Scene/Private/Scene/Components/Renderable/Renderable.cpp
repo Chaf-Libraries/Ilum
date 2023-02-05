@@ -14,7 +14,7 @@ Renderable::Renderable(const char *name, Node *node) :
 {
 }
 
-void Renderable::OnImGui()
+bool Renderable::OnImGui()
 {
 	if (ImGui::TreeNode("Material"))
 	{
@@ -62,6 +62,8 @@ void Renderable::OnImGui()
 
 		ImGui::TreePop();
 	}
+
+	return m_update;
 }
 
 void Renderable::Save(OutputArchive &archive) const

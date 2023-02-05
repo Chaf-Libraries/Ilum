@@ -3,8 +3,6 @@
 
 namespace Ilum
 {
- //bool Component::m_update = false;
-
 Component::Component(const char *name, Node *node) :
     m_name(name), p_node(node)
 {
@@ -31,7 +29,7 @@ bool Component::IsUpdate()
 	return m_update;
 }
 
-void Component::Update(bool update)
+void Component::SetUpdate(bool update)
 {
 	m_update = update;
 }

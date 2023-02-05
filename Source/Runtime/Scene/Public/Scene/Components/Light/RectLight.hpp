@@ -15,7 +15,7 @@ class RectLight : public Light
 
 	virtual ~RectLight() = default;
 
-	virtual void OnImGui() override;
+	virtual bool OnImGui() override;
 
 	virtual void Save(OutputArchive &archive) const override;
 

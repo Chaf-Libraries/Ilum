@@ -13,7 +13,7 @@ class OrthographicCamera : public Camera
 
 	virtual ~OrthographicCamera() = default;
 
-	virtual void OnImGui() override;
+	virtual bool OnImGui() override;
 
 	virtual std::type_index GetType() const override;
 

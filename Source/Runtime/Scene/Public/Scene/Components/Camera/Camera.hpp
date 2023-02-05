@@ -15,7 +15,7 @@ class Camera : public Component
 
 	virtual ~Camera() = default;
 
-	virtual void OnImGui() override = 0;
+	virtual bool OnImGui() override = 0;
 
 	virtual std::type_index GetType() const = 0;
 

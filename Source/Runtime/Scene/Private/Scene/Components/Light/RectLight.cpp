@@ -13,10 +13,12 @@ RectLight::RectLight(Node *node) :
 {
 }
 
-void RectLight::OnImGui()
+bool RectLight::OnImGui()
 {
 	m_update |= ImGui::ColorEdit3("Color", &m_data.color.x);
 	m_update |= ImGui::DragFloat("Intensity", &m_data.intensity, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
+	
+	return m_update;
 }
 
 void RectLight::Save(OutputArchive &archive) const

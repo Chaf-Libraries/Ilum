@@ -15,7 +15,7 @@ class EnvironmentLight : public Light
 
 	virtual ~EnvironmentLight() = default;
 
-	virtual void OnImGui() override;
+	virtual bool OnImGui() override;
 
 	virtual void Save(OutputArchive &archive) const override;
 

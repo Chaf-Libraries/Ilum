@@ -16,7 +16,7 @@ OrthographicCamera::OrthographicCamera(Node *node) :
 {
 }
 
-void OrthographicCamera::OnImGui()
+bool OrthographicCamera::OnImGui()
 {
 	m_update |= ImGui::DragFloat("Aspect", &m_aspect, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 	m_update |= ImGui::DragFloat("Scale", &m_scale, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
@@ -24,6 +24,8 @@ void OrthographicCamera::OnImGui()
 	m_update |= ImGui::DragFloat("Offset Y", &m_offset_y, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 	m_update |= ImGui::DragFloat("Near Plane", &m_near, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 	m_update |= ImGui::DragFloat("Far Plane", &m_far, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	
+	return m_update;
 }
 
 std::type_index OrthographicCamera::GetType() const

@@ -16,12 +16,14 @@ PerspectiveCamera::PerspectiveCamera(Node *node) :
 {
 }
 
-void PerspectiveCamera::OnImGui()
+bool PerspectiveCamera::OnImGui()
 {
 	m_update |= ImGui::DragFloat("Aspect", &m_aspect, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 	m_update |= ImGui::DragFloat("Fov", &m_fov, 0.01f, 0.f, 90.f, "%.3f");
 	m_update |= ImGui::DragFloat("Near Plane", &m_near, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
 	m_update |= ImGui::DragFloat("Far Plane", &m_far, 0.01f, 0.f, std::numeric_limits<float>::max(), "%.3f");
+	
+	return m_update;
 }
 
 void PerspectiveCamera::Save(OutputArchive &archive) const

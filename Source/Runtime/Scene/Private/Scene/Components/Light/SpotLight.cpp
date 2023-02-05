@@ -13,7 +13,7 @@ SpotLight::SpotLight(Node *node) :
 {
 }
 
-void SpotLight::OnImGui()
+bool SpotLight::OnImGui()
 {
 	float inner_angle = glm::degrees(m_data.inner_angle);
 	float outer_angle = glm::degrees(m_data.outer_angle);
@@ -29,6 +29,8 @@ void SpotLight::OnImGui()
 
 	m_data.inner_angle = glm::radians(inner_angle);
 	m_data.outer_angle = glm::radians(outer_angle);
+
+	return m_update;
 }
 
 void SpotLight::Save(OutputArchive &archive) const

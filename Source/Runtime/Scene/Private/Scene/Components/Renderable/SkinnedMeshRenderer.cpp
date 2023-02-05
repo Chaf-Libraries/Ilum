@@ -12,7 +12,7 @@ SkinnedMeshRenderer::SkinnedMeshRenderer(Node *node) :
 {
 }
 
-void SkinnedMeshRenderer::OnImGui()
+bool SkinnedMeshRenderer::OnImGui()
 {
 	if (ImGui::TreeNode("Submesh"))
 	{
@@ -22,7 +22,7 @@ void SkinnedMeshRenderer::OnImGui()
 
 			if (ImGui::Button(submesh.c_str(), ImVec2(ImGui::GetContentRegionAvail().x * 0.8f, 30.f)))
 			{
-				submesh = "";
+				submesh  = "";
 				m_update = true;
 			}
 
@@ -36,7 +36,7 @@ void SkinnedMeshRenderer::OnImGui()
 			{
 				if (const auto *pay_load = ImGui::AcceptDragDropPayload("SkinnedMesh"))
 				{
-					submesh = static_cast<const char *>(pay_load->Data);
+					submesh  = static_cast<const char *>(pay_load->Data);
 					m_update = true;
 				}
 			}
@@ -108,7 +108,9 @@ void SkinnedMeshRenderer::OnImGui()
 		ImGui::TreePop();
 	}
 
-	Renderable::OnImGui();
+	m_update |= Renderable::OnImGui();
+
+	return m_update;
 }
 
 std::type_index SkinnedMeshRenderer::GetType() const

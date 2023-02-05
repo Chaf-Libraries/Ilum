@@ -9,7 +9,7 @@ namespace Ilum
 {
 class Node;
 
-class Component
+class EXPORT_API Component
 {
   public:
 	Component(const char *name, Node *node);
@@ -18,7 +18,7 @@ class Component
 
 	virtual ~Component();
 
-	virtual void OnImGui() = 0;
+	virtual bool OnImGui() = 0;
 
 	virtual std::type_index GetType() const = 0;
 
@@ -30,14 +30,14 @@ class Component
 
 	virtual void Load(InputArchive &archive) = 0;
 
-	static bool IsUpdate();
+	bool IsUpdate();
 
-	static void Update(bool update);
+	void SetUpdate(bool update);
 
   protected:
 	const char *m_name;
 
-	static inline bool m_update = false;
+	bool m_update = false;
 
 	Node *p_node = nullptr;
 };
