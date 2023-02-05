@@ -131,7 +131,7 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 			cmd_buffer->FillTexture(output, RHIResourceState::TransferDest, TextureRange{}, glm::vec4(0.f));
 			cmd_buffer->FillBuffer(pass_data->material_offset_buffer.get(), RHIResourceState::TransferDest, pass_data->material_offset_buffer->GetDesc().size);
 			cmd_buffer->FillBuffer(pass_data->material_count_buffer.get(), RHIResourceState::TransferDest, pass_data->material_count_buffer->GetDesc().size);
-			cmd_buffer->FillBuffer(pass_data->indirect_command_buffer.get(), RHIResourceState::UnorderedAccess, pass_data->indirect_command_buffer->GetDesc().size);
+			cmd_buffer->FillBuffer(pass_data->indirect_command_buffer.get(), RHIResourceState::TransferDest, pass_data->indirect_command_buffer->GetDesc().size);
 
 			cmd_buffer->ResourceStateTransition(
 			    {TextureStateTransition{

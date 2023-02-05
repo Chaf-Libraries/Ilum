@@ -74,36 +74,43 @@ groupshared uint shared_data[256];
 [numthreads(128, 1, 1)]
 void CalculateMaterialOffset(CSParam param)
 {
-    uint dispatch_id = param.DispatchThreadID.x;
+    uint id = param.GroupThreadID.x;
     
     uint material_count, temp;
     MaterialCountBuffer.GetDimensions(material_count, temp);
     
-    if (dispatch_id * 2 + 1 >= material_count)
+    uint range = (1u << (uint(log2(material_count)) + 1u));
+    
+    if (id < material_count)
+    {
+        shared_data[id] = MaterialCountBuffer[id];
+    }
+    else
+    {
+        shared_data[id] = 0;
+    }
+    
+    GroupMemoryBarrierWithGroupSync();
+    
+    if (id >= range - 1)
     {
         return;
     }
     
-    uint rd_id, wr_id, mask;
-    const uint steps = uint(log2(dispatch_id)) + 1;
-    
-    shared_data[dispatch_id * 2] = MaterialCountBuffer[dispatch_id * 2];
-    shared_data[dispatch_id * 2 + 1] = MaterialCountBuffer[dispatch_id * 2 + 1];
-    
-    GroupMemoryBarrierWithGroupSync();
+    uint steps = uint(log2(id + 1)) + 1u;
     
     for (uint step = 0; step < steps; step++)
     {
-        mask = (1u << step) - 1u;
-        rd_id = ((dispatch_id >> step) << (step + 1u)) + mask;
-        wr_id = rd_id + 1u + (dispatch_id & mask);
-        shared_data[wr_id] += shared_data[rd_id];
-        
+        uint rd_id = range - 2u - id;
+        uint wd_id = range - 2u - id + (1u << step);
+        shared_data[wd_id] += shared_data[rd_id];
         GroupMemoryBarrierWithGroupSync();
     }
     
-    MaterialOffsetBuffer[dispatch_id * 2 + 1] = shared_data[dispatch_id * 2];
-    MaterialOffsetBuffer[dispatch_id * 2 + 2] = shared_data[dispatch_id * 2 + 1];
+    if (id < material_count - 1)
+    {
+        MaterialOffsetBuffer[id + 1] = shared_data[id];
+    }
 }
 
 RWStructuredBuffer<DispatchIndirectCommand> IndirectCommandBuffer;
