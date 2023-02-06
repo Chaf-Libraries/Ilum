@@ -319,10 +319,10 @@ class MaterialGraphEditor : public Widget
 		switch (pin.type)
 		{
 			case MaterialNodePin::Type::Float:
-				ImGui::DragFloat("", pin.variant.Convert<float>(), 0.01f, 0.f, 0.f, "%.1f");
+				ImGui::DragFloat("", pin.variant.Convert<float>(), 0.001f, 0.f, 0.f, "%.2f");
 				break;
 			case MaterialNodePin::Type::Float3:
-				ImGui::DragFloat3("", glm::value_ptr(*pin.variant.Convert<glm::vec3>()), 0.01f, 0.f, 0.f, "%.1f");
+				ImGui::DragFloat3("", glm::value_ptr(*pin.variant.Convert<glm::vec3>()), 0.001f, 0.f, 0.f, "%.2f");
 				break;
 			case MaterialNodePin::Type::RGB:
 				ImGui::ColorEdit3("", glm::value_ptr(*pin.variant.Convert<glm::vec3>()), ImGuiColorEditFlags_NoInputs);

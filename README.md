@@ -32,6 +32,12 @@ xmake project -k vsxmake
 ### Cross-Platform RHI
 
 * Vulkan
+  * Mesh Shading
+  * Dynamic Rendering
+  * Ray Tracing Pipeline
+  * Draw/Dispatch Indirect
+  * Bindless Resource
+
 * CUDA
 
 ### Resource Manager
@@ -41,6 +47,7 @@ xmake project -k vsxmake
 * Mesh
 * Skinned Mesh
 * Texture2D
+* TextureCube
 * Material
 * Render Pipeline
 * Prefab
@@ -76,18 +83,49 @@ xmake project -k vsxmake
 
 **Render Pass**
 
-* Visibility Buffer Rendering
-  * Mesh shading with meshlet frustum culling (if GPU support `mesh_shader`)
-  * Usual rasterization without optimization
+* Visibility Deferred Shading Pipeline
 
-* Visibility Buffer Visualization
+  * Visibility Geometry Pass
+    * Mesh shading with meshlet frustum culling (if device support `mesh_shader`)
+    * Usual rasterization without optimization
+
+  * Visibility Buffer Visualization
+    * Visualize visibility buffer: instance and primitive
+  * Visibility Buffer Lighting Pass
+    * Indirect dispatch to support multiple material graphs
+    * Generate lighting result and GBuffers
+
+* Shadow Map Pass
+
+  * Classic Shadow Map (Spot Light)
+  * Omnidirectional Shadow Map (Point Light)
+  * Cascade Shadow Map (Directional Light)
+
 * Path Tracing
+  * Next Event Estimation
+  * Multiple Importance Sampling
+* Post Process
+  * Tonemapping
 
 **TODO**
 
 * Resource Pool
 * Runtime compilation maybe
-* Multi-thread command recording
+* Multi-threading
+
+### Shader Compilation Chain
+
+**Shader Compilation**
+
+* *hlsl* -> **dxc** -> *spirv*
+* *hlsl* -> **dxc** -> *dxil*
+* *hlsl* -> **dxc** -> *spirv* -> **spirv-cross** -> *hlsl* -> **slang** -> *ptx*
+* *glsl* -> **glslang** -> *spirv*
+
+**SPIR-V Reflection**
+
+* spirv-reflect
+  * [#PR: Adding `VK_EXT_mesh_shader ` support](https://github.com/KhronosGroup/SPIRV-Reflect/pull/166)
 
 ### Material Graph
 
