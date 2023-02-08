@@ -4,12 +4,6 @@
 
 Ilum Graphics Playground, name after *Planet Ilum* from [star wars]()
 
-
-
-### Shader Compilation
-
-![shader](Doc/Img/shader.png)
-
 ## Install
 
 **Platform**
