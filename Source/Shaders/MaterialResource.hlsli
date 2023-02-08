@@ -33,14 +33,22 @@ T GetMaterialData(uint material_id)
     return MaterialBuffer.Load<T>(MaterialOffsets[material_id]);
 }
 
-void SetNormalMap(inout SurfaceInteraction interaction, float3 normal_vector)
+float3 ExtractNormalMap(SurfaceInteraction interaction, float3 normal_vector)
 {
-    Frame frame;
-    frame.FromZ(interaction.isect.n);
-    float3x3 TBN = float3x3(frame.x, frame.y, frame.z);
-    normal_vector = normalize(normal_vector * 2.0 - 1.0);
-    float3 normal = normalize(mul(normal_vector, TBN));
-    interaction.isect.n = dot(interaction.isect.n, normal) <= 0.0 ? normal : -normal;
+    float3 T, B;
+    CreateCoordinateSystem(interaction.isect.n, T, B);
+    float3x3 TBN = float3x3(T, B, interaction.isect.n);
+    normal_vector = normal_vector * 2.0 - 1.0;
+    normal_vector = normalize(normal_vector);
+    return normalize(mul(normal_vector, TBN));
+    
+    
+    //Frame frame;
+    //frame.FromZ(interaction.isect.n);
+    //float3x3 TBN = float3x3(frame.x, frame.y, frame.z);
+    //normal_vector = normalize(normal_vector * 2.0 - 1.0);
+    //float3 normal = normalize(mul(normal_vector, TBN));
+    //interaction.isect.n = dot(interaction.isect.n, normal) <= 0.0 ? normal : -normal;
 }
 
 #endif

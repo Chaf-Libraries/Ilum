@@ -3,81 +3,83 @@
 
 #include "BSDF.hlsli"
 #include "../Scattering.hlsli"
+#include "../Fresnel.hlsli"
 #include "../../Math.hlsli"
 #include "../../Interaction.hlsli"
 
 struct DielectricBSDF
 {
-    TrowbridgeReitzDistribution distrib;
+    float3 R;
+    float3 T;
     float eta;
+    TrowbridgeReitzDistribution distribution;
     Frame frame;
 
-    void Init(float roughness, float anisotropic, float eta_, float3 normal_)
+    void Init(float3 R_, float3 T_, float ior_, float roughness, float3 normal)
     {
-        float aspect = sqrt(1.0 - anisotropic * 0.9);
-        float urough = max(0.001, roughness / aspect);
-        float vrough = max(0.001, roughness * aspect);
-        
-        distrib.Init((urough), (vrough));
-        eta = eta_;
-        frame.FromZ(normal_);
+        R = R_;
+        T = T_;
+        eta = ior_;
+
+        distribution.alpha_x = roughness;
+        distribution.alpha_y = roughness;
+        distribution.sample_visible_area = true;
+
+        frame.FromZ(normal);
     }
-    
+
     uint Flags()
     {
-        uint flags = (eta == 1) ? BSDF_Transmission :
-            (BSDF_Reflection | BSDF_Transmission);
-        return flags | (distrib.EffectivelySmooth() ? BSDF_Specular : BSDF_Glossy);
+        uint flags = (eta == 1.f? BSDF_Transmission : BSDF_Reflection | BSDF_Transmission);
+        return flags | (distribution.EffectivelySmooth()? BSDF_Specular : BSDF_Glossy);
     }
 
     float3 Eval(float3 woW, float3 wiW, TransportMode mode)
     {
         float3 wo = frame.ToLocal(woW);
         float3 wi = frame.ToLocal(wiW);
-        
-        if (eta == 1 || distrib.EffectivelySmooth())
+
+        if(eta == 1.f || distribution.EffectivelySmooth())
         {
             return 0.f;
         }
-        
-        // Evaluate rough dielectric BSDF
-        float cosTheta_o = CosTheta(wo);
-        float cosTheta_i = CosTheta(wi);
-        bool reflect = cosTheta_i * cosTheta_o > 0;
+
+        float cos_theta_o = CosTheta(wo);
+        float cos_theta_i = CosTheta(wi);
+        bool reflection = cos_theta_o * cos_theta_i > 0;
         float etap = 1;
-        
-        if (!reflect)
+        if(!reflection)
         {
-            etap = cosTheta_o > 0 ? 1 / eta : eta;
+            etap = cos_theta_o > 0.f ? eta : (1 / eta);
         }
-        
-        float3 wm = wo + wi * etap;
-        if (cosTheta_i == 0 || cosTheta_o == 0 || LengthSquared(wm) == 0)
+
+        float3 wm = wi * etap + wo;
+
+        if(cos_theta_i == 0 || cos_theta_o == 0 || LengthSquared(wm) == 0)
         {
             return 0.f;
         }
-        
+
         wm = FaceForward(normalize(wm), float3(0, 0, 1));
-        
-        // Discard backfacing microfacets
-        if (dot(wm, wi) * cosTheta_i < 0 || dot(wm, wo) * cosTheta_o < 0)
+
+        if(dot(wm, wi) * cos_theta_i < 0 || dot(wm, wo) * cos_theta_o < 0)
         {
             return 0.f;
         }
-        
+
         float F = FresnelDielectric(dot(wo, wm), eta);
-        if (reflect)
+
+        if(reflection)
         {
-             // Compute reflection at rough dielectric interface
-            return distrib.D(wm) * distrib.G(wo, wi) * F / abs(4 * cosTheta_i * cosTheta_o);
+            return R * distribution.D(wm) * distribution.G(wo, wi) * F / 
+                abs(4 * cos_theta_i * cos_theta_o);            
         }
         else
         {
-            // Compute transmission at rough dielectric interface
-            float denom = Sqr(dot(wo, wm) + dot(wi, wm) * etap) * cosTheta_i * cosTheta_o;
-            float ft = distrib.D(wm) * (1 - F) * distrib.G(wo, wi) * abs(dot(wi, wm) * dot(wo, wm) / denom);
-            // Account for non-symmetry with transmission to different medium
-            if (mode == TransportMode_Radiance)
+            float denom = Sqr(dot(wi, wm) + dot(wo, wm) * etap) * cos_theta_i * cos_theta_o;
+            float3 ft = T * distribution.D(wm) * (1.f - F) * distribution.G(wo, wi) * 
+                abs(dot(wi, wm) * dot(wo, wm) / denom);
+            if(mode == TransportMode_Radiance)
             {
                 ft /= Sqr(etap);
             }
@@ -89,67 +91,63 @@ struct DielectricBSDF
     {
         float3 wo = frame.ToLocal(woW);
         float3 wi = frame.ToLocal(wiW);
-        
-        if (eta == 1 || distrib.EffectivelySmooth())
-        {
-            return 0;
-        }
-        
-        // Evaluate sampling PDF of rough dielectric BSDF
-        // Compute generalized half vector _wm_
-        float cosTheta_o = CosTheta(wo), cosTheta_i = CosTheta(wi);
-        bool reflect = cosTheta_i * cosTheta_o > 0;
-        float etap = 1;
-        if (!reflect)
-        {
-            etap = cosTheta_o > 0 ? eta : (1 / eta);
-        }
-        float3 wm = wi * etap + wo;
-        if (cosTheta_i == 0 || cosTheta_o == 0 || LengthSquared(wm) == 0)
+
+        if(eta == 1.f || distribution.EffectivelySmooth())
         {
             return 0.f;
         }
+
+        float cos_theta_o = CosTheta(wo);
+        float cos_theta_i = CosTheta(wi);
+        bool reflection = cos_theta_o * cos_theta_i > 0;
+        float etap = 1;
+        if(!reflection)
+        {
+            etap = cos_theta_o > 0.f ? eta : 1 / eta;
+        }
+
+        float3 wm = wi * etap + wo;
+
+        if(cos_theta_i == 0 || cos_theta_o == 0 || LengthSquared(wm) == 0)
+        {
+            return 0.f;
+        }
+
         wm = FaceForward(normalize(wm), float3(0, 0, 1));
 
-        // Discard backfacing microfacets
-        if (dot(wm, wi) * cosTheta_i < 0 || dot(wm, wo) * cosTheta_o < 0)
+        if(dot(wm, wi) * cos_theta_i < 0 || dot(wm, wo) * cos_theta_o < 0)
         {
             return 0.f;
         }
 
-        // Determine Fresnel reflectance of rough dielectric boundary
-        float R = FresnelDielectric(dot(wo, wm), eta);
-        float T = 1 - R;
+        float pr = FresnelDielectric(dot(wo, wm), eta);
+        float pt = 1.f - pr;
 
-        // Compute probabilities _pr_ and _pt_ for sampling reflection and transmission
-        float pr = R, pt = T;
-        if (!(flags & BSDF_Reflection))
+        if(!(flags & SampleFlags_Reflection))
         {
-            pr = 0.f;
+            pr = 0;
         }
-        if (!(flags & BSDF_Transmission))
+        if(!(flags & SampleFlags_Transmission))
         {
-            pt = 0.f;
+            pt = 0;
         }
-        if (pr == 0 && pt == 0)
+        if(pr == 0 && pt == 0)
         {
             return 0.f;
         }
 
-        // Return PDF for rough dielectric
-        float pdf;
-        if (reflect)
+        float pdf = 0.f;
+        if(reflection)
         {
-            // Compute PDF of rough dielectric reflection
-            pdf = distrib.PDF(wo, wm) / (4 * abs(dot(wo, wm))) * pr / (pr + pt);
+            pdf = distribution.Pdf(wo, wm) / (4.0 * abs(dot(wo, wm))) * pr / (pr + pt);
         }
         else
         {
-            // Compute PDF of rough dielectric transmission
             float denom = Sqr(dot(wi, wm) + dot(wo, wm) / etap);
             float dwm_dwi = abs(dot(wi, wm)) / denom;
-            pdf = distrib.PDF(wo, wm) * dwm_dwi * pt / (pr + pt);
+            pdf = distribution.Pdf(wo, wm) * dwm_dwi * pt / (pr + pt);
         }
+
         return pdf;
     }
 
@@ -158,133 +156,131 @@ struct DielectricBSDF
         float3 wo = frame.ToLocal(woW);
         
         BSDFSample bsdf_sample;
-        
         bsdf_sample.Init();
-        
-        if (eta == 1 || distrib.EffectivelySmooth())
+
+        if(eta == 1 || distribution.EffectivelySmooth())
         {
-            // Sample perfect specular dielectric BSDF
-            float R = FresnelDielectric(CosTheta(wo), eta), T = 1 - R;
-            // Compute probabilities _pr_ and _pt_ for sampling reflection and transmission
-            float pr = R, pt = T;
-            if (!(flags & BSDF_Reflection))
+            // Smooth Dielectric
+            float F = FresnelDielectric(CosTheta(wo), eta);
+            float pr = F;
+            float pt = 1.f - F;
+            if(!(flags & SampleFlags_Reflection))
             {
                 pr = 0.f;
             }
-            if (!(flags & BSDF_Transmission))
+            if(!(flags & SampleFlags_Transmission))
             {
                 pt = 0.f;
             }
-            if (pr == 0 && pt == 0)
+            if(pr == 0.f && pt == 0.f)
             {
                 return bsdf_sample;
             }
-        
-            if (uc < pr / (pr + pt))
+
+            if(uc < pr / (pr + pt))
             {
-                // Sample perfect specular dielectric BRDF
                 float3 wi = float3(-wo.x, -wo.y, wo.z);
-                float3 fr = R / AbsCosTheta(wi);
+                float3 fr = R * F / abs(CosTheta(wi));
                 
                 bsdf_sample.f = fr;
                 bsdf_sample.wiW = frame.ToWorld(wi);
                 bsdf_sample.pdf = pr / (pr + pt);
                 bsdf_sample.flags = BSDF_SpecularReflection;
+                bsdf_sample.eta = 1;
+
                 return bsdf_sample;
             }
             else
             {
-                // Sample perfect specular dielectric BTDF
-                // Compute ray direction for specular transmission
+                float etap = 0.f;
                 float3 wi;
-                float etap;
-                if (!Refract(wo, float3(0, 0, 1), eta, etap, wi))
+                if (!Refract(wo, float3(0.0, 0.0, 1.0), eta, etap, wi))
                 {
                     return bsdf_sample;
                 }
-                
-                float3 ft = T / AbsCosTheta(wi);
-                // Account for non-symmetry with transmission to different medium
-                if (mode == TransportMode_Radiance)
+
+                float3 ft = (1.f - F) * T / abs(CosTheta(wi));
+                if(mode == TransportMode_Radiance)
                 {
                     ft /= Sqr(etap);
                 }
-                
+
                 bsdf_sample.f = ft;
                 bsdf_sample.wiW = frame.ToWorld(wi);
                 bsdf_sample.pdf = pt / (pr + pt);
                 bsdf_sample.flags = BSDF_SpecularTransmission;
                 bsdf_sample.eta = etap;
+
                 return bsdf_sample;
             }
         }
         else
         {
-            // Sample rough dielectric BSDF
-            float3 wm = distrib.Sample_wm(Faceforward(wo, float3(0, 0, 1)), u);
-            float R = FresnelDielectric(dot(wo, wm), eta);
-            float T = 1 - R;
-            // Compute probabilities _pr_ and _pt_ for sampling reflection and transmission
-            float pr = R, pt = T;
-            if (!(flags & BSDF_Reflection))
+            // Rough Dielectric
+            float3 wm = distribution.SampleWm(wo, u);
+            float F = FresnelDielectric(CosTheta(wo), eta);
+            float pr = F;
+            float pt = 1.f - F;
+
+            if(!(flags & SampleFlags_Reflection))
             {
                 pr = 0.f;
             }
-            if (!(flags & BSDF_Transmission))
+            if(!(flags & SampleFlags_Transmission))
             {
                 pt = 0.f;
             }
-            if (pr == 0 && pt == 0)
+            if(pr == 0.f && pt == 0.f)
             {
                 return bsdf_sample;
             }
 
             if (uc < pr / (pr + pt))
             {
-                // Sample reflection at rough dielectric interface
                 float3 wi = Reflect(wo, wm);
-                if (!SameHemisphere(wo, wi))
+                if(!SameHemisphere(wo, wi))
                 {
                     return bsdf_sample;
                 }
-            
-                bsdf_sample.f = distrib.D(wm) * distrib.G(wo, wi) * R / (4 * CosTheta(wi) * CosTheta(wo));
+
+                bsdf_sample.f = distribution.D(wm) * distribution.G(wo, wi) * R * F / (4.f * CosTheta(wi) * CosTheta(wo));
                 bsdf_sample.wiW = frame.ToWorld(wi);
-                bsdf_sample.pdf = distrib.PDF(wo, wm) / (4 * abs(dot(wo, wm))) * pr / (pr + pt);
+                bsdf_sample.pdf = distribution.Pdf(wo, wm) / (4.f * abs(dot(wo, wm))) * pr / (pr + pt);
                 bsdf_sample.flags = BSDF_GlossyReflection;
+                bsdf_sample.eta = 1.f;
+
                 return bsdf_sample;
             }
             else
             {
-               // Sample transmission at rough dielectric interface
                 float etap;
                 float3 wi;
-                bool tir = !Refract(wo, wm, eta, etap, wi);
-                if (SameHemisphere(wo, wi) || wi.z == 0 || tir)
+                if(!Refract(wo, Faceforward(wm, float3(0, 0, 1)), eta, etap, wi))
                 {
                     return bsdf_sample;
                 }
-               // Compute PDF of rough dielectric transmission
+
                 float denom = Sqr(dot(wi, wm) + dot(wo, wm) / etap);
                 float dwm_dwi = abs(dot(wi, wm)) / denom;
-            
-               // Evaluate BRDF and return _BSDFSample_ for rough transmission
-                float3 ft = T * distrib.D(wm) * distrib.G(wo, wi) * abs(dot(wi, wm) * dot(wo, wm) / (CosTheta(wi) * CosTheta(wo) * denom));
-               // Account for non-symmetry with transmission to different medium
-                if (mode == TransportMode_Radiance)
+                float3 ft = T * (1.f - F) * distribution.D(wm) * distribution.G(wo, wi) * 
+                        abs(dot(wi, wm) * dot(wo, wm) / 
+                        (CosTheta(wi) * CosTheta(wo) * denom));
+
+                if(mode == TransportMode_Radiance)
                 {
                     ft /= Sqr(etap);
                 }
-               
+
                 bsdf_sample.f = ft;
                 bsdf_sample.wiW = frame.ToWorld(wi);
-                bsdf_sample.pdf = distrib.PDF(wo, wm) * dwm_dwi * pt / (pr + pt);
+                bsdf_sample.pdf = distribution.Pdf(wo, wm) * dwm_dwi * pt / (pr + pt);
                 bsdf_sample.flags = BSDF_GlossyTransmission;
                 bsdf_sample.eta = etap;
+
                 return bsdf_sample;
             }
         }
-       
+
         return bsdf_sample;
     }
 };

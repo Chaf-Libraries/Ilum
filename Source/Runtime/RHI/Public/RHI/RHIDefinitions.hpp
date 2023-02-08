@@ -67,6 +67,50 @@ ENUM(RHIFormat, Enable){
 
 DEFINE_ENUMCLASS_OPERATION(RHIFormat);
 
+inline uint32_t GetFormatStride(RHIFormat format)
+{
+	switch (format)
+	{
+		case RHIFormat::Undefined:
+			return 0;
+		case RHIFormat::R16_UINT:
+		case RHIFormat::R16_SINT:
+		case RHIFormat::R16_FLOAT:
+			return 2;
+		case RHIFormat::R32_UINT:
+		case RHIFormat::R32_SINT:
+		case RHIFormat::R32_FLOAT:
+		case RHIFormat::D32_FLOAT:
+		case RHIFormat::R16G16_UINT:
+		case RHIFormat::R16G16_SINT:
+		case RHIFormat::R16G16_FLOAT:
+		case RHIFormat::R8G8B8A8_UNORM:
+		case RHIFormat::B8G8R8A8_UNORM:
+		case RHIFormat::D24_UNORM_S8_UINT:
+		case RHIFormat::R10G10B10A2_UNORM:
+		case RHIFormat::R10G10B10A2_UINT:
+		case RHIFormat::R11G11B10_FLOAT:
+			return 4;
+		case RHIFormat::R16G16B16A16_UINT:
+		case RHIFormat::R16G16B16A16_SINT:
+		case RHIFormat::R16G16B16A16_FLOAT:
+		case RHIFormat::R32G32_UINT:
+		case RHIFormat::R32G32_SINT:
+		case RHIFormat::R32G32_FLOAT:
+			return 8;
+		case RHIFormat::R32G32B32_UINT:
+		case RHIFormat::R32G32B32_SINT:
+		case RHIFormat::R32G32B32_FLOAT:
+			return 12;
+		case RHIFormat::R32G32B32A32_UINT:
+		case RHIFormat::R32G32B32A32_SINT:
+		case RHIFormat::R32G32B32A32_FLOAT:
+			return 16;
+		default:
+			return 0;
+	}
+}
+
 inline bool IsDepthFormat(RHIFormat format)
 {
 	return format == RHIFormat::D32_FLOAT ||

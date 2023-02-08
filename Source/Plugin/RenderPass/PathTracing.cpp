@@ -17,6 +17,7 @@ class PathTracing : public RenderPass<PathTracing>
 		uint32_t max_spp         = 100;
 		uint32_t frame_count     = 0;
 		float    clamp_threshold = 4.f;
+		uint32_t     anti_aliasing   = 1;
 	};
 
   public:
@@ -138,10 +139,11 @@ class PathTracing : public RenderPass<PathTracing>
 
 		ImGui::Text("SPP: %d", config_data->frame_count);
 
-		// if (ImGui::Checkbox("Anti-Aliasing", reinterpret_cast<bool *>(&m_push_block.anti_alias)))
-		//{
-		//	camera->frame_count = 0;
-		// }
+		 if (ImGui::Checkbox("Anti-Aliasing", reinterpret_cast<bool *>(&config_data->anti_aliasing)))
+		{
+			config_data->frame_count = 0;
+		 }
+
 		if (ImGui::SliderInt("Max Bounce", reinterpret_cast<int32_t *>(&config_data->max_bounce), 1, 100))
 		{
 			config_data->frame_count = 0;

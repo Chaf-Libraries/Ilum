@@ -4,108 +4,108 @@
 #include "../Math.hlsli"
 #include "../Interaction.hlsli"
 
-bool Refract(float3 wi, float3 n, float eta, out float3 wt)
-{
-    float cos_theta_i = dot(wi, n);
-    float sin_2_theta_i = max(0.0, 1.0 - cos_theta_i * cos_theta_i);
-    float sin_2_theta_t = eta * eta * sin_2_theta_i;
-
-    if (sin_2_theta_t >= 1.0)
-    {
-        return false;
-    }
-
-    float cos_theta_t = sqrt(1.0 - sin_2_theta_t);
-
-    wt = eta * (-wi) + (eta * cos_theta_i - cos_theta_t) * n;
-
-    return true;
-}
-
-//bool Refract(float3 wi, float3 n, float eta, out float etap, out float3 wt)
+//bool Refract(float3 wi, float3 n, float eta, out float3 wt)
 //{
-//    float cosTheta_i = dot(n, wi);
-//    // Potentially flip interface orientation for Snell's law
-//    if (cosTheta_i < 0)
-//    {
-//        eta = 1 / eta;
-//        cosTheta_i = -cosTheta_i;
-//        n = -n;
-//    }
+//    float cos_theta_i = dot(wi, n);
+//    float sin_2_theta_i = max(0.0, 1.0 - cos_theta_i * cos_theta_i);
+//    float sin_2_theta_t = eta * eta * sin_2_theta_i;
 //
-//    // Compute $\cos\,\theta_\roman{t}$ using Snell's law
-//    float sin2Theta_i = max(0, 1 - Sqr(cosTheta_i));
-//    float sin2Theta_t = sin2Theta_i / Sqr(eta);
-//    // Handle total internal reflection case
-//    if (sin2Theta_t >= 1)
+//    if (sin_2_theta_t >= 1.0)
 //    {
 //        return false;
 //    }
-//    
-//    float cosTheta_t = sqrt(1 - sin2Theta_t);
 //
-//    wt = -wi / eta + (cosTheta_i / eta - cosTheta_t) * n;
-//    // Provide relative IOR along ray to caller
-//    etap = eta;
-//    
+//    float cos_theta_t = sqrt(1.0 - sin_2_theta_t);
+//
+//    wt = eta * (-wi) + (eta * cos_theta_i - cos_theta_t) * n;
+//
 //    return true;
 //}
+
+bool Refract(float3 wi, float3 n, float eta, out float etap, out float3 wt)
+{
+    float cos_theta_i = dot(n, wi);
+    // Potentially flip interface orientation for Snell's law
+    if (cos_theta_i < 0)
+    {
+        eta = 1 / eta;
+        cos_theta_i = -cos_theta_i;
+        n = -n;
+    }
+
+    // Compute $\cos\,\theta_\roman{t}$ using Snell's law
+    float sin2Theta_i = max(0, 1 - Sqr(cos_theta_i));
+    float sin2Theta_t = sin2Theta_i / Sqr(eta);
+    // Handle total internal reflection case
+    if (sin2Theta_t >= 1)
+    {
+        return false;
+    }
+    
+    float cos_theta_t = sqrt(1 - sin2Theta_t);
+
+    wt = -wi / eta + (cos_theta_i / eta - cos_theta_t) * n;
+    // Provide relative IOR along ray to caller
+    etap = eta;
+    
+    return true;
+}
 
 float3 Reflect(float3 wo, float3 n)
 {
     return -wo + 2 * dot(wo, n) * n;
 }
 
-float HenyeyGreenstein(float cos_theta, float g)
-{
-    float denom = 1 + Sqr(g) + 2 * g * cos_theta;
-    return Inv4PI * (1 - Sqr(g)) / (denom * sqrt(denom));
-}
-
-//float FresnelDielectric(float cosTheta_i, float eta)
+//float HenyeyGreenstein(float cos_theta, float g)
 //{
-//    cosTheta_i = clamp(cosTheta_i, -1, 1);
+//    float denom = 1 + Sqr(g) + 2 * g * cos_theta;
+//    return Inv4PI * (1 - Sqr(g)) / (denom * sqrt(denom));
+//}
+
+//float FresnelDielectric(float cos_theta_i, float eta)
+//{
+//    cos_theta_i = clamp(cos_theta_i, -1, 1);
 //    // Potentially flip interface orientation for Fresnel equations
-//    if (cosTheta_i < 0)
+//    if (cos_theta_i < 0)
 //    {
 //        eta = 1 / eta;
-//        cosTheta_i = -cosTheta_i;
+//        cos_theta_i = -cos_theta_i;
 //    }
 //
 //    // Compute $\cos\,\theta_\roman{t}$ for Fresnel equations using Snell's law
-//    float sin2Theta_i = 1 - Sqr(cosTheta_i);
+//    float sin2Theta_i = 1 - Sqr(cos_theta_i);
 //    float sin2Theta_t = sin2Theta_i / Sqr(eta);
 //    if (sin2Theta_t >= 1)
 //    {
 //        return 1.f;
 //    }
-//    float cosTheta_t = sqrt(1 - sin2Theta_t);
+//    float cos_theta_t = sqrt(1 - sin2Theta_t);
 //
-//    float r_parl = (eta * cosTheta_i - cosTheta_t) / (eta * cosTheta_i + cosTheta_t);
-//    float r_perp = (cosTheta_i - eta * cosTheta_t) / (cosTheta_i + eta * cosTheta_t);
+//    float r_parl = (eta * cos_theta_i - cos_theta_t) / (eta * cos_theta_i + cos_theta_t);
+//    float r_perp = (cos_theta_i - eta * cos_theta_t) / (cos_theta_i + eta * cos_theta_t);
 //    return (Sqr(r_parl) + Sqr(r_perp)) / 2;
 //}
 //
-//float FresnelComplex(float cosTheta_i, Complex eta)
+//float FresnelComplex(float cos_theta_i, Complex eta)
 //{
-//    Complex cosTheta_i_ = ComplexFromReal(clamp(cosTheta_i, 0, 1));
+//    Complex cos_theta_i_ = ComplexFromReal(clamp(cos_theta_i, 0, 1));
 //    // Compute complex $\cos\,\theta_\roman{t}$ for Fresnel equations using Snell's law
-//    Complex sin2Theta_i = Sub(ComplexFromReal(1), Mul(cosTheta_i_, cosTheta_i_));
+//    Complex sin2Theta_i = Sub(ComplexFromReal(1), Mul(cos_theta_i_, cos_theta_i_));
 //    Complex sin2Theta_t = Div(sin2Theta_i, Mul(eta, eta));
-//    Complex cosTheta_t = Sqrt(Sub(ComplexFromReal(1), sin2Theta_t));
+//    Complex cos_theta_t = Sqrt(Sub(ComplexFromReal(1), sin2Theta_t));
 //    
-//    Complex r_parl = Div(Sub(Mul(eta, cosTheta_i_), cosTheta_t), Add(Mul(eta, cosTheta_i_), cosTheta_t));
-//    Complex r_perp = Div(Sub(cosTheta_i_, Mul(eta, cosTheta_t)), Add(Mul(eta, cosTheta_t), cosTheta_i_));
+//    Complex r_parl = Div(Sub(Mul(eta, cos_theta_i_), cos_theta_t), Add(Mul(eta, cos_theta_i_), cos_theta_t));
+//    Complex r_perp = Div(Sub(cos_theta_i_, Mul(eta, cos_theta_t)), Add(Mul(eta, cos_theta_t), cos_theta_i_));
 //
 //    return (Norm(r_parl) + Norm(r_perp)) / 2;
 //}
 //
-//float3 FresnelComplex(float cosTheta_i, float3 eta, float3 k)
+//float3 FresnelComplex(float cos_theta_i, float3 eta, float3 k)
 //{
 //    float3 result;
-//    result.x = FresnelComplex(cosTheta_i, CreateComplex(eta.x, k.x));
-//    result.y = FresnelComplex(cosTheta_i, CreateComplex(eta.y, k.y));
-//    result.z = FresnelComplex(cosTheta_i, CreateComplex(eta.z, k.z));
+//    result.x = FresnelComplex(cos_theta_i, CreateComplex(eta.x, k.x));
+//    result.y = FresnelComplex(cos_theta_i, CreateComplex(eta.y, k.y));
+//    result.z = FresnelComplex(cos_theta_i, CreateComplex(eta.z, k.z));
 //    return result;
 //}
 
@@ -299,6 +299,11 @@ struct BeckmannDistribution
     float alpha_x;
     float alpha_y;
     bool sample_visible_area;
+
+    bool EffectivelySmooth() 
+    { 
+        return max(alpha_x, alpha_y) < 1e-3f; 
+    }
     
     float D(float3 wm)
     {
@@ -479,6 +484,23 @@ struct TrowbridgeReitzDistribution
     float alpha_x;
     float alpha_y;
     bool sample_visible_area;
+
+    bool EffectivelySmooth() 
+    { 
+        return max(alpha_x, alpha_y) < 1e-3f; 
+    }
+    
+    static float RoughnessToAlpha(float roughness)
+    {
+        if(roughness <= float(1e-3))
+        {
+            return roughness;
+        }
+        roughness = max(roughness, (float) 1e-3);
+        float x = log(roughness);
+        return 1.62142f + 0.819955f * x + 0.1734f * x * x + 0.0171201f * x * x * x +
+           0.000640711f * x * x * x * x;
+    }
     
     float D(float3 wm)
     {
@@ -585,6 +607,11 @@ struct DisneyMicrofacetDistribution
     float alpha_x;
     float alpha_y;
     bool sample_visible_area;
+
+    bool EffectivelySmooth() 
+    { 
+        return max(alpha_x, alpha_y) < 1e-3f; 
+    }
     
     float D(float3 wh)
     {

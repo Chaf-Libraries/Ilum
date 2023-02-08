@@ -2,74 +2,79 @@
 #define DIFFUSE_BSDF_HLSLI
 
 #include "BSDF.hlsli"
-#include "BlendBSDF.hlsli"
-#include "LambertianReflectionBSDF.hlsli"
-#include "OrenNayarBSDF.hlsli"
 #include "../../Math.hlsli"
 #include "../../Interaction.hlsli"
 
 struct DiffuseBSDF
 {
-    LambertianReflectionBSDF lambertian;
-    OrenNayarBSDF oren_nayar;
-    float sigma;
-    
-    void Init(float3 R_, float sigma_, float3 normal_)
+    float3 R;
+    Frame frame;
+
+    void Init(float3 R_, float3 normal_)
     {
-        sigma = sigma_;
-        if(sigma==0.0)
-        {
-            lambertian.Init(R_, normal_);
-        }
-        else
-        {
-            oren_nayar.Init(R_, sigma, normal_);
-        }
+        R = R_;
+        frame.FromZ(normal_);
     }
     
     uint Flags()
     {
         return BSDF_DiffuseReflection;
     }
-    
+
     float3 Eval(float3 woW, float3 wiW, TransportMode mode)
     {
-        if (sigma == 0.0)
+        float3 wo = frame.ToLocal(woW);
+        float3 wi = frame.ToLocal(wiW);
+        
+        if (!SameHemisphere(wo, wi))
         {
-            return lambertian.Eval(woW, wiW, mode);
+            return 0.f;
         }
-        else
-        {
-            return oren_nayar.Eval(woW, wiW, mode);
-        }
-        return 0.f;
+        
+        return R * InvPI;
     }
-    
+
     float PDF(float3 woW, float3 wiW, TransportMode mode, SampleFlags flags)
     {
-        if (sigma == 0.0)
+        float3 wo = frame.ToLocal(woW);
+        float3 wi = frame.ToLocal(wiW);
+        
+        if (!(flags & SampleFlags_Reflection) || !SameHemisphere(wo, wi))
         {
-            return lambertian.PDF(woW, wiW, mode, flags);
+            return 0.f;
         }
-        else
-        {
-            return oren_nayar.PDF(woW, wiW, mode, flags);
-        }
-        return 0.f;
+        
+        return AbsCosTheta(wi) * InvPI;
     }
-    
+
     BSDFSample Samplef(float3 woW, float uc, float2 u, TransportMode mode, SampleFlags flags)
     {
+        float3 wo = frame.ToLocal(woW);
+        
         BSDFSample bsdf_sample;
-        if (sigma == 0.0)
-        {
-            return lambertian.Samplef(woW, uc, u, mode, flags);
-        }
-        else
-        {
-            return oren_nayar.Samplef(woW, uc, u, mode, flags);
-        }
+        
         bsdf_sample.Init();
+        
+        if (!(flags & SampleFlags_Reflection))
+        {
+            return bsdf_sample;
+        }
+
+        float3 wi = SampleCosineHemisphere(u);
+        
+        if (wo.z < 0.f)
+        {
+            wi.z *= -1.f;
+        }
+
+        float3 wiW = frame.ToWorld(wi);
+        
+        bsdf_sample.f = Eval(woW, wiW, mode);
+        bsdf_sample.wiW = wiW;
+        bsdf_sample.pdf = PDF(woW, wiW, mode, flags);
+        bsdf_sample.flags = BSDF_DiffuseReflection;
+        bsdf_sample.eta = 1;
+
         return bsdf_sample;
     }
 };

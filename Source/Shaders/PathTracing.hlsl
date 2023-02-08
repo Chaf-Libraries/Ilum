@@ -10,6 +10,7 @@ struct Config
     uint max_spp;
     uint frame_count;
     float clamp_threshold;
+    uint anti_aliasing;
 };
 
 RaytracingAccelerationStructure TopLevelAS;
@@ -206,12 +207,12 @@ void RayGenMain()
     uint2 launch_index = DispatchRaysIndex().xy;
     uint2 launch_dims = DispatchRaysDimensions().xy;
     
-    const float2 pixel_pos = float2(launch_index.xy) + 0.5;
-    const float2 scene_uv = pixel_pos / float2(launch_dims.xy) * 2.0 - 1.0;
-    
     PayLoad pay_load;
     pay_load.rng.Init(launch_dims, launch_index, ConfigBuffer.frame_count);
     pay_load.Init();
+    
+    const float2 pixel_pos = float2(launch_index.xy) + (pay_load.rng.Get2D() - float2(0.5, 0.5)) * ConfigBuffer.anti_aliasing + 0.5;
+    const float2 scene_uv = pixel_pos / float2(launch_dims.xy) * 2.0 - 1.0;
     
     RayDesc ray;
     ViewBuffer.CastRay(scene_uv, (float2) launch_dims, ray, pay_load.ray_diff);

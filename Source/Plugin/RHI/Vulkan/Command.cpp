@@ -346,8 +346,6 @@ void Command::CopyTextureToBuffer(RHITexture *src_texture, RHIBuffer *dst_buffer
 
 	VkBufferImageCopy copy_info = {};
 	copy_info.bufferOffset      = 0;
-	copy_info.bufferImageHeight = width;
-	copy_info.bufferRowLength   = height;
 	copy_info.imageSubresource  = subresource;
 	copy_info.imageOffset       = {0, 0, 0};
 	copy_info.imageExtent       = {width, height, 1};

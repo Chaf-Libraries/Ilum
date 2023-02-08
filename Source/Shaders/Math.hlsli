@@ -374,4 +374,31 @@ float3 CalculateCubemapDirection(uint face_idx, uint face_x, uint face_y, uint w
     return normalize(float3(x, y, z));
 }
 
+uint HashCombine(uint hash1, uint hash2)
+{
+	hash1 ^= hash2 + 0x9e3779b9 + (hash1 << 6) + (hash1 >> 2);
+    return hash1;
+}
+
+uint Hash(uint a)
+{
+    a = (a + 0x7ed55d16) + (a << 12);
+    a = (a ^ 0xc761c23c) ^ (a >> 19);
+    a = (a + 0x165667b1) + (a << 5);
+    a = (a + 0xd3a2646c) ^ (a << 9);
+    a = (a + 0xfd7046c5) + (a << 3);
+    a = (a ^ 0xb55a4f09) ^ (a >> 16);
+    return a;
+}
+
+uint Hash(float a)
+{
+    return Hash(asuint(a));
+}
+
+uint Hash(float3 a)
+{
+    return HashCombine(HashCombine(Hash(a.x), Hash(a.y)), Hash(a.z));
+}
+
 #endif
