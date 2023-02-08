@@ -16,7 +16,7 @@ function add_editor_plugin(name, deps, pkgs)
     target_end()
 end
 
-add_editor_plugin("SceneView", {"Resource", "Scene", "RenderGraph"}, {})
+add_editor_plugin("SceneView", {"Resource", "Scene", "RenderGraph"}, {"stb", "nativefiledialog"})
 add_editor_plugin("Hierarchy", {"Scene"}, {})
 add_editor_plugin("Inspector", {"Scene", "RenderGraph"}, {})
 add_editor_plugin("MainMenu", {"Scene"}, {"nativefiledialog"})

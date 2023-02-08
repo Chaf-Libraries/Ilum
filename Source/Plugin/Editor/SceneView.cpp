@@ -26,6 +26,11 @@
 
 #include <GLFW/glfw3.h>
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb/stb_image_write.h>
+
+#include <nfd.h>
+
 using namespace Ilum;
 
 inline glm::vec3 SmoothStep(const glm::vec3 &v1, const glm::vec3 &v2, float t)
@@ -238,9 +243,9 @@ class SceneView : public Widget
 
 		if (resource)
 		{
-			auto *rhi_context = editor->GetRHIContext();
-			auto *renderer    = editor->GetRenderer();
-			auto render_graph    = resource->Compile(rhi_context, renderer, m_camera_config.viewport);
+			auto *rhi_context  = editor->GetRHIContext();
+			auto *renderer     = editor->GetRenderer();
+			auto  render_graph = resource->Compile(rhi_context, renderer, m_camera_config.viewport);
 
 			if (render_graph)
 			{
@@ -468,6 +473,40 @@ class SceneView : public Widget
 
 		if (ImGui::Button(ICON_FA_SAVE, ImVec2(20.f, 20.f)))
 		{
+			auto *present_texture = p_editor->GetRenderer()->GetPresentTexture();
+			auto *rhi_context     = p_editor->GetRHIContext();
+			 char *path            = nullptr;
+
+			if (present_texture && NFD_SaveDialog("png", Path::GetInstance().GetCurrent(false).c_str(), &path) == NFD_OKAY)
+			{
+				auto  staging_texture = rhi_context->CreateTexture2D(present_texture->GetDesc().width, present_texture->GetDesc().height, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::Transfer, false);
+				auto  staging_buffer  = rhi_context->CreateBuffer(GetFormatStride(staging_texture->GetDesc().format) * staging_texture->GetDesc().width * staging_texture->GetDesc().height, RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_TO_CPU);
+				auto *cmd_buffer      = rhi_context->CreateCommand(RHIQueueFamily::Graphics);
+				cmd_buffer->Begin();
+				cmd_buffer->ResourceStateTransition(
+				    {TextureStateTransition{present_texture, RHIResourceState::ShaderResource, RHIResourceState::TransferSource},
+				     TextureStateTransition{staging_texture.get(), RHIResourceState::Undefined, RHIResourceState::TransferDest}},
+				    {});
+				cmd_buffer->BlitTexture(present_texture, {}, RHIResourceState::TransferSource, staging_texture.get(), {}, RHIResourceState::TransferDest);
+				cmd_buffer->ResourceStateTransition(
+				    {TextureStateTransition{staging_texture.get(), RHIResourceState::TransferDest, RHIResourceState::TransferSource}},
+				    {});
+				cmd_buffer->CopyTextureToBuffer(staging_texture.get(), staging_buffer.get(), 0, 0, 1);
+				cmd_buffer->ResourceStateTransition(
+				    {TextureStateTransition{present_texture, RHIResourceState::TransferSource, RHIResourceState::ShaderResource}}, {});
+				cmd_buffer->End();
+				rhi_context->Execute(cmd_buffer);
+
+				std::vector<uint8_t> staging_data(staging_buffer->GetDesc().size);
+				staging_buffer->CopyToHost(staging_data.data(), staging_buffer->GetDesc().size);
+
+
+				stbi_write_png(
+				    (Path::GetInstance().GetFileName(path, false) + ".png").c_str(),
+				    static_cast<int32_t>(staging_texture->GetDesc().width),
+				    static_cast<int32_t>(staging_texture->GetDesc().height),
+				    4, staging_data.data(), static_cast<int32_t>(staging_texture->GetDesc().width) * 4);
+			}
 		}
 
 		SHOW_TIPS("Save");
