@@ -35,18 +35,18 @@ struct MixBSDF
         {
             return bsdf2.Eval(woW, wiW, mode);
         }
-        // return lerp(bsdf1.Eval(woW, wiW, mode), bsdf2.Eval(woW, wiW, mode), weight);
-        PCGSampler rng;
-        rng.seed = HashCombine(Hash(woW), Hash(wiW));
+        return lerp(bsdf1.Eval(woW, wiW, mode), bsdf2.Eval(woW, wiW, mode), weight);
+        // PCGSampler rng;
+        // rng.seed = HashCombine(Hash(woW), Hash(wiW));
 
-        if(rng.Get1D() < weight)
-        {
-            return bsdf1.Eval(woW, wiW, mode);
-        }
-        else
-        {
-            return bsdf2.Eval(woW, wiW, mode);
-        }
+        // if(rng.Get1D() < weight)
+        // {
+        //     return bsdf1.Eval(woW, wiW, mode);
+        // }
+        // else
+        // {
+        //     return bsdf2.Eval(woW, wiW, mode);
+        // }
     }
 
     float PDF(float3 woW, float3 wiW, TransportMode mode, SampleFlags flags)
@@ -59,19 +59,19 @@ struct MixBSDF
         {
             return bsdf2.PDF(woW, wiW, mode, flags);
         }
-        // return lerp(bsdf1.PDF(woW, wiW, mode, flags), bsdf2.PDF(woW, wiW, mode, flags), weight);
+        return lerp(bsdf1.PDF(woW, wiW, mode, flags), bsdf2.PDF(woW, wiW, mode, flags), weight);
 
-        PCGSampler rng;
-        rng.seed = HashCombine(Hash(woW), Hash(wiW));
+        // PCGSampler rng;
+        // rng.seed = HashCombine(Hash(woW), Hash(wiW));
 
-        if(rng.Get1D() < weight)
-        {
-            return bsdf1.PDF(woW, wiW, mode, flags);
-        }
-        else
-        {
-            return bsdf2.PDF(woW, wiW, mode, flags);
-        }
+        // if(rng.Get1D() < weight)
+        // {
+        //     return bsdf1.PDF(woW, wiW, mode, flags);
+        // }
+        // else
+        // {
+        //     return bsdf2.PDF(woW, wiW, mode, flags);
+        // }
     }
 
     BSDFSample Samplef(float3 woW, float uc, float2 u, TransportMode mode, SampleFlags flags)
