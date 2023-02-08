@@ -113,19 +113,9 @@ xmake project -k vsxmake
 * Runtime compilation maybe
 * Multi-threading
 
-### Shader Compilation Chain
+### Shader Compilation
 
-**Shader Compilation**
-
-* *hlsl* -> **dxc** -> *spirv*
-* *hlsl* -> **dxc** -> *dxil*
-* *hlsl* -> **dxc** -> *spirv* -> **spirv-cross** -> *hlsl* -> **slang** -> *ptx*
-* *glsl* -> **glslang** -> *spirv*
-
-**SPIR-V Reflection**
-
-* spirv-reflect
-  * [#PR: Adding `VK_EXT_mesh_shader ` support](https://github.com/KhronosGroup/SPIRV-Reflect/pull/166)
+![shader](Doc/Img/shader.png)
 
 ### Material Graph
 
