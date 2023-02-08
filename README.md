@@ -4,6 +4,12 @@
 
 Ilum Graphics Playground, name after *Planet Ilum* from [star wars]()
 
+
+
+### Shader Compilation
+
+![shader](Doc/Img/shader.png)
+
 ## Install
 
 **Platform**
@@ -39,41 +45,22 @@ xmake project -k vsxmake
   * Bindless Resource
 
 * CUDA
+  * CUDA & Vulkan Interop
+
 
 ### Resource Manager
 
-**Resource**
-
-* Mesh
-* Skinned Mesh
-* Texture2D
-* TextureCube
-* Material
-* Render Pipeline
-* Prefab
-* Scene
-* Animation
+![](./Doc/Img/Resource.png)
 
 ### Scene Graph
 
-**Component**
+![](./Doc/Img/Scene.png)
 
-* Transform
-* Camera
-  * Perspective Camera
-  * Orthographic Camera
-* Light
-  * Spot Light
-  * Point Light
-  * Directional Light
-  * Rectangle Light
-* Renderable
-  * Mesh Renderer
-  * Skinned Mesh Renderer
+### Shader Compilation
+
+![shader](Doc/Img/shader.png)
 
 ### Render Graph
-
-**Feature**
 
 * Static compilation
 * Automatic resource state tracking and transition
@@ -113,10 +100,6 @@ xmake project -k vsxmake
 * Runtime compilation maybe
 * Multi-threading
 
-### Shader Compilation
-
-![shader](Doc/Img/shader.png)
-
 ### Material Graph
 
 **Feature**
@@ -124,34 +107,6 @@ xmake project -k vsxmake
 * Static compilation and HLSL generation
 * Easy to customize material node
 * Support usual BSDF models
-
-**Material Node**
-
-* Input
-  * RGB
-* Output
-  * Material Output
-* Converter
-  * Scalar Calculation
-  * Vector Calculation
-  * Vector Merge
-  * Vector Split
-* Texture
-  * Image Texture
-* BSDF
-  * Diffuse BSDF
-  * Diffuse Transmission BSDF
-  * Dielectric BSDF
-  * Conductor BSDF
-  * Blend BSDF
-
-**TODO**
-
-* More BSDF models
-* Measured BSDF
-* Volumetric material
-* Spectrum rendering for ray tracing
-* Bump/Displacement Mapping
 
 ### Plugins
 
@@ -164,6 +119,8 @@ You can extend the renderer features by adding these plugins:
 * Editor
 
 #### Add new RHI
+
+* [ ] TODO
 
 #### Add new render pass
 
