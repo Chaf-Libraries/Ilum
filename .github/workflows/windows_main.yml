@@ -1,4 +1,4 @@
-name: Windows_refactor
+name: Windows_main
 
 on:
   pull_request:
