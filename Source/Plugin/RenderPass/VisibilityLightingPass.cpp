@@ -320,6 +320,8 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 					    .BindBuffer("MaterialPixelBuffer", pass_data->material_pixel_buffer.get())
 					    .BindBuffer("MaterialCountBuffer", pass_data->material_count_buffer.get())
 					    .BindBuffer("MaterialOffsetBuffer", pass_data->material_offset_buffer.get())
+					    .BindTexture("Textures", gpu_scene->textures.texture_2d, RHITextureDimension::Texture2D)
+					    .BindSampler("Samplers", gpu_scene->samplers)
 					    .BindBuffer("MaterialOffsets", gpu_scene->material.material_offset.get())
 					    .BindBuffer("MaterialBuffer", gpu_scene->material.material_buffer.get())
 					    .BindTexture("Output", output, RHITextureDimension::Texture2D);
