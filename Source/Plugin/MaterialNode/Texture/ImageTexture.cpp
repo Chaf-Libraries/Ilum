@@ -47,6 +47,7 @@ class ImageTexture : public MaterialNode<ImageTexture>
 
 		auto edit_filter = [&](const std::string &name, size_t *filter) {
 			ImGui::PushID(name.c_str());
+			bool update = false;
 			if (ImGui::BeginCombo("", name.c_str()))
 			{
 				for (size_t i = 0; i < filters.size(); i++)
@@ -55,6 +56,7 @@ class ImageTexture : public MaterialNode<ImageTexture>
 					if (ImGui::Selectable(filters[i], is_selected))
 					{
 						*filter = i;
+						update  = true;
 					}
 					if (is_selected)
 					{
@@ -64,10 +66,12 @@ class ImageTexture : public MaterialNode<ImageTexture>
 				ImGui::EndCombo();
 			}
 			ImGui::PopID();
+			return update;
 		};
 
 		auto edit_address_mode = [&](const std::string &name, size_t *address_mode) {
 			ImGui::PushID(name.c_str());
+			bool update = false;
 			if (ImGui::BeginCombo("", name.c_str()))
 			{
 				for (size_t i = 0; i < address_modes.size(); i++)
@@ -76,6 +80,7 @@ class ImageTexture : public MaterialNode<ImageTexture>
 					if (ImGui::Selectable(address_modes[i], is_selected))
 					{
 						*address_mode = i;
+						update        = true;
 					}
 					if (is_selected)
 					{
@@ -85,14 +90,25 @@ class ImageTexture : public MaterialNode<ImageTexture>
 				ImGui::EndCombo();
 			}
 			ImGui::PopID();
+			return update;
 		};
 
-		edit_filter("Min Filter", (size_t *) (&config.sampler.min_filter));
-		edit_filter("Mag Filter", (size_t *) (&config.sampler.mag_filter));
-		edit_filter("Mipmap", (size_t *) (&config.sampler.mipmap_mode));
-		edit_address_mode("Address U", (size_t *) (&config.sampler.address_mode_u));
-		edit_address_mode("Address V", (size_t *) (&config.sampler.address_mode_v));
-		edit_address_mode("Address W", (size_t *) (&config.sampler.address_mode_w));
+		RHIFilter filter = config.sampler.min_filter;
+		RHIAddressMode address_mode = config.sampler.address_mode_u;
+
+		if (edit_filter("Filter", (size_t*)(&filter)))
+		{
+			config.sampler.min_filter = filter;
+			config.sampler.mag_filter = filter;
+			config.sampler.mipmap_mode = static_cast<RHIMipmapMode>(filter);
+		}
+
+		if (edit_address_mode("Address", (size_t *) (&address_mode)))
+		{
+			config.sampler.address_mode_u = address_mode;
+			config.sampler.address_mode_v = address_mode;
+			config.sampler.address_mode_w = address_mode;
+		}
 
 		auto *resource_manager = editor->GetRenderer()->GetResourceManager();
 		if (resource_manager->Has<ResourceType::Texture2D>(config.filename))

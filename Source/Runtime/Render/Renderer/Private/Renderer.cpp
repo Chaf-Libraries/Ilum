@@ -2,6 +2,7 @@
 #include "RenderData.hpp"
 
 #include <Core/Path.hpp>
+#include <Material/MaterialCompiler.hpp>
 #include <Material/MaterialData.hpp>
 #include <RHI/RHIContext.hpp>
 #include <RenderGraph/RenderGraph.hpp>
@@ -546,61 +547,36 @@ void Renderer::UpdateGPUScene()
 		gpu_scene->samplers = m_impl->rhi_context->GetSamplers();
 	}
 
-	// Update Material
+	// Update 2D Textures
+	if (m_impl->resource_manager->Update<ResourceType::Texture2D>())
+	{
+		m_impl->scene->Update(true);
+	}
+
+	// Update Material & Texture
 	if (m_impl->resource_manager->Update<ResourceType::Material>() ||
 	    m_impl->resource_manager->Update<ResourceType::Texture2D>())
 	{
 		m_impl->scene->Update(true);
 
-		gpu_scene->material.data.clear();
-		auto resources = m_impl->resource_manager->GetResources<ResourceType::Material>();
-
-		std::vector<uint32_t> material_data;
-		std::vector<uint32_t> material_offset = {0};
-
-		for (auto &resource : resources)
+		// Flush Texture
+		if (m_impl->resource_manager->Update<ResourceType::Material>())
 		{
-			auto *material = m_impl->resource_manager->Get<ResourceType::Material>(resource);
-			material->Update(m_impl->rhi_context, m_impl->resource_manager, m_impl->black_board.Get<DummyTexture>()->black_opaque.get());
-
-			const auto &data = material->GetMaterialData();
-
-			material_offset.push_back(static_cast<uint32_t>(material_data.size() * sizeof(uint32_t)));
-			material_data.insert(material_data.end(), data.textures.begin(), data.textures.end());
-			material_data.insert(material_data.end(), data.samplers.begin(), data.samplers.end());
-
-			gpu_scene->material.data.push_back(&data);
-		}
-
-		if (!material_data.empty())
-		{
-			if (!gpu_scene->material.material_buffer ||
-			    material_data.size() * sizeof(uint32_t) != gpu_scene->material.material_buffer->GetDesc().size)
+			auto resources = m_impl->resource_manager->GetResources<ResourceType::Material>();
+			for (auto &resource : resources)
 			{
-				gpu_scene->material.material_buffer = m_impl->rhi_context->CreateBuffer<uint32_t>(material_data.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+				auto *material = m_impl->resource_manager->Get<ResourceType::Material>(resource);
+				for (auto &[texture, texture_name] : material->GetCompilationContext().textures)
+				{
+					m_impl->resource_manager->Index<ResourceType::Texture2D>(texture_name);
+				}
 			}
-			gpu_scene->material.material_buffer->CopyToDevice(material_data.data(), material_data.size() * sizeof(uint32_t));
 		}
 
-		if (!material_offset.empty())
+		// Update Texture
+		if (m_impl->resource_manager->Update<ResourceType::Texture2D>())
 		{
-			if (!gpu_scene->material.material_offset ||
-			    material_offset.size() * sizeof(uint32_t) != gpu_scene->material.material_offset->GetDesc().size)
-			{
-				gpu_scene->material.material_offset = m_impl->rhi_context->CreateBuffer<uint32_t>(material_offset.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
-			}
-			gpu_scene->material.material_offset->CopyToDevice(material_offset.data(), material_offset.size() * sizeof(uint32_t));
-		}
-	}
-
-	// Update 2D Textures
-	if (m_impl->resource_manager->Update<ResourceType::Texture2D>())
-	{
-		m_impl->scene->Update(true);
-
-		gpu_scene->textures.texture_2d.clear();
-
-		{
+			gpu_scene->textures.texture_2d.clear();
 			auto resources = m_impl->resource_manager->GetResources<ResourceType::Texture2D>();
 			for (auto &resource : resources)
 			{
@@ -609,11 +585,75 @@ void Renderer::UpdateGPUScene()
 			}
 		}
 
+		// Update Material
+		if (m_impl->resource_manager->Update<ResourceType::Material>())
 		{
+			gpu_scene->material.data.clear();
 			auto resources = m_impl->resource_manager->GetResources<ResourceType::Material>();
+
+			std::vector<uint32_t> material_data;
+			std::vector<uint32_t> material_offset = {0};
+
 			for (auto &resource : resources)
 			{
 				auto *material = m_impl->resource_manager->Get<ResourceType::Material>(resource);
+
+				DummyTexture *dummy_texture = m_impl->black_board.Get<DummyTexture>();
+
+				material->Update(
+				    m_impl->rhi_context,
+				    m_impl->resource_manager,
+				    dummy_texture->black_opaque.get());
+
+				const auto &data = material->GetMaterialData();
+
+				material_offset.push_back(static_cast<uint32_t>(material_data.size() * sizeof(uint32_t)));
+				material_data.insert(material_data.end(), data.textures.begin(), data.textures.end());
+				material_data.insert(material_data.end(), data.samplers.begin(), data.samplers.end());
+
+				gpu_scene->material.data.push_back(&data);
+			}
+
+			if (!material_data.empty())
+			{
+				if (!gpu_scene->material.material_buffer ||
+				    material_data.size() * sizeof(uint32_t) != gpu_scene->material.material_buffer->GetDesc().size)
+				{
+					gpu_scene->material.material_buffer = m_impl->rhi_context->CreateBuffer<uint32_t>(material_data.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+				}
+				gpu_scene->material.material_buffer->CopyToDevice(material_data.data(), material_data.size() * sizeof(uint32_t));
+			}
+			else if (!gpu_scene->material.material_buffer)
+			{
+				gpu_scene->material.material_buffer = m_impl->rhi_context->CreateBuffer<uint32_t>(1, RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+			}
+
+			if (!material_offset.empty())
+			{
+				if (!gpu_scene->material.material_offset ||
+				    material_offset.size() * sizeof(uint32_t) != gpu_scene->material.material_offset->GetDesc().size)
+				{
+					gpu_scene->material.material_offset = m_impl->rhi_context->CreateBuffer<uint32_t>(material_offset.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+				}
+				gpu_scene->material.material_offset->CopyToDevice(material_offset.data(), material_offset.size() * sizeof(uint32_t));
+			}
+			else if (!gpu_scene->material.material_offset)
+			{
+				gpu_scene->material.material_offset = m_impl->rhi_context->CreateBuffer<uint32_t>(1, RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+			}
+
+			for (auto &resource : resources)
+			{
+				auto *material = m_impl->resource_manager->Get<ResourceType::Material>(resource);
+
+				GPUScene *gpu_scene = m_impl->black_board.Get<GPUScene>();
+
+				material->PostUpdate(
+				    m_impl->rhi_context,
+				    gpu_scene->textures.texture_2d,
+				    gpu_scene->samplers,
+				    gpu_scene->material.material_buffer.get(),
+				    gpu_scene->material.material_offset.get());
 			}
 		}
 	}

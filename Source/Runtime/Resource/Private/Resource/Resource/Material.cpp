@@ -22,6 +22,8 @@ struct Resource<ResourceType::Material>::Impl
 	MaterialData data;
 
 	bool valid = false;
+
+	bool dirty = false;
 };
 
 Resource<ResourceType::Material>::Resource(RHIContext *rhi_context, const std::string &name) :
@@ -38,7 +40,7 @@ Resource<ResourceType::Material>::Resource(RHIContext *rhi_context, const std::s
 
 	std::vector<uint8_t> thumbnail_data;
 
-	SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Material), thumbnail_data, m_impl->desc, m_impl->layout, m_impl->context);
+	SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Material), thumbnail_data, m_impl->desc, m_impl->layout, m_impl->context, m_impl->data);
 }
 
 Resource<ResourceType::Material>::~Resource()
@@ -56,7 +58,7 @@ void Resource<ResourceType::Material>::Load(RHIContext *rhi_context)
 	m_impl = new Impl;
 
 	std::vector<uint8_t> thumbnail_data;
-	DESERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Material), thumbnail_data, m_impl->desc, m_impl->layout, m_impl->context);
+	DESERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Material), thumbnail_data, m_impl->desc, m_impl->layout, m_impl->context, m_impl->data);
 
 	m_impl->valid = Path::GetInstance().IsExist(fmt::format("Asset/Material/{}", m_impl->data.shader));
 }
@@ -136,11 +138,8 @@ void Resource<ResourceType::Material>::Compile(RHIContext *rhi_context, Resource
 		Path::GetInstance().Save(fmt::format("Asset/Material/{}", m_impl->data.shader), shader_data);
 	}
 
-	std::vector<uint8_t> thumbnail_data = RenderPreview(rhi_context);
-
-	SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Material), thumbnail_data, m_impl->desc, m_impl->layout, m_impl->context);
-
 	m_impl->valid = true;
+	m_impl->dirty = true;
 
 	Update(rhi_context, manager, dummy_texture);
 }
@@ -169,9 +168,24 @@ void Resource<ResourceType::Material>::Update(RHIContext *rhi_context, ResourceM
 	}
 }
 
+void Resource<ResourceType::Material>::PostUpdate(RHIContext *rhi_context, const std::vector<RHITexture *> &scene_texture_2d, const std::vector<RHISampler *> &samplers, RHIBuffer *material_buffers, RHIBuffer *material_offsets)
+{
+	if (m_impl->dirty)
+	{
+		std::vector<uint8_t> thumbnail_data = RenderPreview(rhi_context, scene_texture_2d, samplers, material_buffers, material_offsets);
+		SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Material), thumbnail_data, m_impl->desc, m_impl->layout, m_impl->context, m_impl->data);
+		m_impl->dirty = false;
+	}
+}
+
 const MaterialData &Resource<ResourceType::Material>::GetMaterialData() const
 {
 	return m_impl->data;
+}
+
+const MaterialCompilationContext &Resource<ResourceType::Material>::GetCompilationContext() const
+{
+	return m_impl->context;
 }
 
 const std::string &Resource<ResourceType::Material>::GetLayout() const
@@ -189,7 +203,7 @@ bool Resource<ResourceType::Material>::IsValid() const
 	return m_impl->valid;
 }
 
-std::vector<uint8_t> Resource<ResourceType::Material>::RenderPreview(RHIContext *rhi_context)
+std::vector<uint8_t> Resource<ResourceType::Material>::RenderPreview(RHIContext *rhi_context, const std::vector<RHITexture *> &scene_texture_2d, const std::vector<RHISampler *> &samplers, RHIBuffer *material_buffers, RHIBuffer *material_offsets)
 {
 	std::vector<Resource<ResourceType::Mesh>::Vertex> vertices;
 
@@ -248,16 +262,30 @@ std::vector<uint8_t> Resource<ResourceType::Material>::RenderPreview(RHIContext 
 	depth_stencil_state.depth_test_enable  = true;
 	depth_stencil_state.depth_write_enable = true;
 
+	auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Graphics);
+	cmd_buffer->Begin();
+
 	if (!m_thumbnail)
 	{
 		m_thumbnail = rhi_context->CreateTexture2D(128, 128, RHIFormat::R8G8B8A8_UNORM, RHITextureUsage::ShaderResource | RHITextureUsage::Transfer | RHITextureUsage::RenderTarget, false);
+		cmd_buffer->ResourceStateTransition({
+		                                        TextureStateTransition{m_thumbnail.get(), RHIResourceState::Undefined, RHIResourceState::RenderTarget},
+		                                    },
+		                                    {});
+	}
+	else
+	{
+		cmd_buffer->ResourceStateTransition({
+		                                        TextureStateTransition{m_thumbnail.get(), RHIResourceState::ShaderResource, RHIResourceState::RenderTarget},
+		                                    },
+		                                    {});
 	}
 
-	auto depth_buffer    = rhi_context->CreateTexture2D(128, 128, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget, false);
-	auto uniform_buffer  = rhi_context->CreateBuffer<glm::mat4>(2, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
-	auto staging_buffer  = rhi_context->CreateBuffer(128ull * 128ull * 4ull * sizeof(uint8_t), RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_TO_CPU);
-	auto render_target   = rhi_context->CreateRenderTarget();
-	auto pipeline_state  = rhi_context->CreatePipelineState();
+	auto depth_buffer   = rhi_context->CreateTexture2D(128, 128, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget, false);
+	auto uniform_buffer = rhi_context->CreateBuffer<glm::mat4>(2, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
+	auto staging_buffer = rhi_context->CreateBuffer(128ull * 128ull * 4ull * sizeof(uint8_t), RHIBufferUsage::Transfer, RHIMemoryUsage::GPU_TO_CPU);
+	auto render_target  = rhi_context->CreateRenderTarget();
+	auto pipeline_state = rhi_context->CreatePipelineState();
 
 	pipeline_state->SetBlendState(blend_state);
 	pipeline_state->SetDepthStencilState(depth_stencil_state);
@@ -292,15 +320,16 @@ std::vector<uint8_t> Resource<ResourceType::Material>::RenderPreview(RHIContext 
 	}
 
 	auto descriptor = rhi_context->CreateDescriptor(shader_meta);
-	descriptor->BindBuffer("UniformBuffer", uniform_buffer.get());
+	descriptor->BindBuffer("UniformBuffer", uniform_buffer.get())
+	    .BindTexture("Textures", scene_texture_2d, RHITextureDimension::Texture2D)
+	    .BindSampler("Samplers", samplers)
+	    .BindBuffer("MaterialOffsets", material_offsets)
+	    .BindBuffer("MaterialBuffer", material_buffers);
 
 	render_target->Set(0, m_thumbnail.get(), TextureRange{}, ColorAttachment{RHILoadAction::Clear, RHIStoreAction::Store, {0.1f, 0.1f, 0.1f, 1.f}});
 	render_target->Set(depth_buffer.get(), TextureRange{}, DepthStencilAttachment{});
 
-	auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Graphics);
-	cmd_buffer->Begin();
 	cmd_buffer->ResourceStateTransition({
-	                                        TextureStateTransition{m_thumbnail.get(), RHIResourceState::Undefined, RHIResourceState::RenderTarget},
 	                                        TextureStateTransition{depth_buffer.get(), RHIResourceState::Undefined, RHIResourceState::DepthWrite},
 	                                    },
 	                                    {});
@@ -318,6 +347,10 @@ std::vector<uint8_t> Resource<ResourceType::Material>::RenderPreview(RHIContext 
 	                                    },
 	                                    {});
 	cmd_buffer->CopyTextureToBuffer(m_thumbnail.get(), staging_buffer.get(), 0, 0, 1);
+	cmd_buffer->ResourceStateTransition({
+	                                        TextureStateTransition{m_thumbnail.get(), RHIResourceState::TransferSource, RHIResourceState::ShaderResource},
+	                                    },
+	                                    {});
 	cmd_buffer->End();
 	rhi_context->Execute(cmd_buffer);
 

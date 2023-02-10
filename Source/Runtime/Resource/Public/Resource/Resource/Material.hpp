@@ -29,7 +29,11 @@ class Resource<ResourceType::Material> final : public IResource
 
 	void Update(RHIContext *rhi_context, ResourceManager *manager, RHITexture *dummy_texture);
 
+	void PostUpdate(RHIContext *rhi_context, const std::vector<RHITexture *> &scene_texture_2d, const std::vector<RHISampler *> &samplers, RHIBuffer *material_buffers, RHIBuffer *material_offsets);
+
 	const MaterialData &GetMaterialData() const;
+
+	const MaterialCompilationContext &GetCompilationContext() const;
 
 	const std::string &GetLayout() const;
 
@@ -38,7 +42,7 @@ class Resource<ResourceType::Material> final : public IResource
 	bool IsValid() const;
 
   private:
-	std::vector<uint8_t> RenderPreview(RHIContext *rhi_context);
+	std::vector<uint8_t> RenderPreview(RHIContext *rhi_context, const std::vector<RHITexture *> &scene_texture_2d, const std::vector<RHISampler *> &samplers, RHIBuffer *material_buffers, RHIBuffer *material_offsets);
 
   private:
 	struct Impl;

@@ -1,10 +1,13 @@
 #include <Resource/Importer.hpp>
 #include <Resource/Resource/Animation.hpp>
+#include <Resource/Resource/Material.hpp>
 #include <Resource/Resource/Mesh.hpp>
 #include <Resource/Resource/Prefab.hpp>
 #include <Resource/Resource/SkinnedMesh.hpp>
 #include <Resource/Resource/Texture2D.hpp>
 #include <Resource/ResourceManager.hpp>
+
+#include <Material/MaterialGraph.hpp>
 
 #include <Geometry/Meshlet.hpp>
 
@@ -443,8 +446,23 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 		std::string material_name   = fmt::format("{}.material.{}", Path::GetInstance().ValidFileName(path), material_id);
 		aiMaterial *assimp_material = assimp_scene->mMaterials[material_id];
 
-		float roughness          = 0.f;
-		float emissive_intensity = 0.f;
+		MaterialGraphDesc desc;
+
+		auto create_material_node = [](size_t &handle, const std::string &category, const std::string &name) {
+			MaterialNodeDesc desc;
+			PluginManager::GetInstance().Call(fmt::format("shared/Material/Material.{}.{}.dll", category, name), "Create", &desc, &handle);
+			return desc;
+		};
+
+		size_t current_handle = 0;
+
+		desc.AddNode(current_handle++, create_material_node(current_handle, "BSDF", "PrincipledMaterial"));
+		desc.AddNode(current_handle++, create_material_node(current_handle, "Output", "MaterialOutput"));
+
+		MaterialNodeDesc principled_bsdf_node = desc.GetNode(0);
+		MaterialNodeDesc output_node = desc.GetNode(1);
+
+		desc.Link(principled_bsdf_node.GetPin("Out").handle, output_node.GetPin("Surface").handle);
 
 		// Base Color
 		{
@@ -476,16 +494,73 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			ProcessTexture(manager, rhi_context, path, assimp_scene, roughness_texture.C_Str());
 		}
 
-		assimp_material->Get(AI_MATKEY_EMISSIVE_INTENSITY, emissive_intensity);
+		// Normal
+		{
+			aiString normal_texture;
+			assimp_material->GetTexture(aiTextureType_NORMALS, 0, &normal_texture);
+			ProcessTexture(manager, rhi_context, path, assimp_scene, normal_texture.C_Str());
+		}
+
+		// Emissive
+		{
+			float     emissive           = 0.f;
+			float     emissive_intensity = 0.f;
+			glm::vec3 emissive_color     = glm::vec3(0.f);
+			aiString  emissive_texture;
+
+			assimp_material->Get(AI_MATKEY_COLOR_EMISSIVE, emissive_color.x);
+			assimp_material->Get(AI_MATKEY_EMISSIVE_INTENSITY, emissive_intensity);
+			assimp_material->GetTexture(aiTextureType_EMISSIVE, 0, &emissive_texture);
+			ProcessTexture(manager, rhi_context, path, assimp_scene, emissive_texture.C_Str());
+		}
+
+		// Anisotropic
+		{
+			float anisotropic = 0.f;
+			assimp_material->Get(AI_MATKEY_ANISOTROPY_FACTOR, anisotropic);
+		}
+
+		// Sheen
+		{
+			aiString sheen_texture;
+			assimp_material->GetTexture(AI_MATKEY_SHEEN_COLOR_TEXTURE, &sheen_texture);
+			ProcessTexture(manager, rhi_context, path, assimp_scene, sheen_texture.C_Str());
+		}
+
+		// Clearcoat
+		{
+			float    clearcoat_factor = 0.f;
+			aiString clearcoat_texture;
+			assimp_material->Get(AI_MATKEY_CLEARCOAT_FACTOR, clearcoat_factor);
+			assimp_material->GetTexture(AI_MATKEY_SHEEN_COLOR_TEXTURE, &clearcoat_texture);
+			ProcessTexture(manager, rhi_context, path, assimp_scene, clearcoat_texture.C_Str());
+		}
+
+		// Transmission
+		{
+			float transmission_factor = 0.f;
+			assimp_material->Get(AI_MATKEY_TRANSMISSION_FACTOR, transmission_factor);
+		}
+
+		// Volume
+		{
+		    // TODO
+		}
+
+		// Displacement
+		{
+			float displace_ment = 0.f;
+			assimp_material->Get(AI_MATKEY_TEXTURE_DISPLACEMENT(0), displace_ment);
+		}
 	}
 
-	void ProcessTexture(ResourceManager *manager, RHIContext *rhi_context, const std::string &path, const aiScene *assimp_scene, const std::string &filename)
+	bool ProcessTexture(ResourceManager *manager, RHIContext *rhi_context, const std::string &path, const aiScene *assimp_scene, const std::string &filename)
 	{
 		auto [assimp_texture, texture_id] = assimp_scene->GetEmbeddedTextureAndIndex(filename.c_str());
 		if (texture_id < 0 && filename.empty())
 		{
-			return;
-		}
+			return false;
+		} 
 
 		if (texture_id < 0)
 		{
@@ -494,6 +569,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			if (importer)
 			{
 				importer->Import(manager, Path::GetInstance().GetFileDirectory(path) + filename, rhi_context);
+				return true;
 			}
 		}
 		else
@@ -501,7 +577,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			std::string texture_name = fmt::format("{}.texture.{}", Path::GetInstance().ValidFileName(path), texture_id);
 			if (manager->Has<ResourceType::Texture2D>(texture_name))
 			{
-				return;
+				return false;
 			}
 
 			TextureDesc desc = {};
@@ -554,7 +630,11 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			stbi_image_free(raw_data);
 
 			manager->Add<ResourceType::Texture2D>(rhi_context, std::move(data), desc);
+
+			return true;
 		}
+
+		return false;
 	}
 
   protected:

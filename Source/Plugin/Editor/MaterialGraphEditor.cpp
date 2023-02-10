@@ -274,10 +274,13 @@ class MaterialGraphEditor : public Widget
 
 			if (ImGui::MenuItem("Compile"))
 			{
+				DummyTexture *dummy_texture = p_editor->GetRenderer()->GetRenderGraphBlackboard().Get<DummyTexture>();
+				GPUScene     *gpu_scene     = p_editor->GetRenderer()->GetRenderGraphBlackboard().Get<GPUScene>();
+
 				resource->Compile(
 				    p_editor->GetRenderer()->GetRHIContext(),
 				    p_editor->GetRenderer()->GetResourceManager(),
-				    p_editor->GetRenderer()->GetRenderGraphBlackboard().Get<DummyTexture>()->black_opaque.get(),
+				    dummy_texture->black_opaque.get(),
 				    ImNodes::SaveCurrentEditorStateToIniString());
 			}
 
