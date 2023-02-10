@@ -2,7 +2,11 @@
 
 [![Windows](https://github.com/Chaf-Libraries/Ilum/actions/workflows/windows.yml/badge.svg)](https://github.com/Chaf-Libraries/Ilum/actions/workflows/windows.yml) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/b0cb3a2729ee4be783dd5feb2cc67eb6)](https://www.codacy.com/gh/Chaf-Libraries/IlumEngine/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Chaf-Libraries/IlumEngine&amp;utm_campaign=Badge_Grade)
 
-Ilum Graphics Playground, name after *Planet Ilum* from [star wars]()
+Ilum Graphics Playground, name after *Planet Ilum* from [star wars](https://starwars.fandom.com/wiki/Ilum).
+
+A framework for computer graphics learning and practice (It's not a game engine!)
+
+![image-20230210192957599](./Doc/Img/image-20230210192957599.png)
 
 ## Install
 
@@ -15,7 +19,7 @@ Ilum Graphics Playground, name after *Planet Ilum* from [star wars]()
 
 **Build**
 
-Ilum uses [xmake](https://xmake.io/#/) for cross-platform building. You can compile the whole project by simply run command:
+Ilum uses [xmake](https://xmake.io/#/) for building. You can compile the whole project by simply run command:
 
 ```shell
 xmake -y
@@ -229,34 +233,17 @@ CONFIGURATION_PASS(MyRenderPass)
 
 ## Gallery
 
+### Render Graph Editor
+
+![image-20230210193225994](./Doc/Img/image-20230210193225994.png)
+
+### Material Graph Editor
+
+![image-20230210194028080](./Doc/Img/image-20230210194028080.png)
+
+### Path Tracing
+
 ![](./Doc/Img/material.png)
-
-
-
-
-
-
-
-## Dependencies
-
-* [ImFileDialog](https://github.com/dfranx/ImFileDialog)
-* [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo)
-* [assimp](https://github.com/assimp/assimp)
-* [cereal](https://github.com/USCiLab/cereal)
-* [DirectXCompiler](https://github.com/microsoft/DirectXShaderCompiler)
-* [eigen](https://gitlab.com/libeigen/eigen)
-* [entt](https://github.com/skypjack/entt)
-* [glm](https://github.com/g-truc/glm)
-* [glslang](https://github.com/KhronosGroup/glslang)
-* [imgui](https://github.com/ocornut/imgui)
-* [imgui-node-editor](https://github.com/thedmd/imgui-node-editor)
-* [stb](https://github.com/nothings/stb)
-* [VulkanMemoryAllocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
-* [volk](https://github.com/zeux/volk)
-* [Vulkan-Headers](https://github.com/KhronosGroup/Vulkan-Headers)
-* [meshoptimizer](https://github.com/zeux/meshoptimizer)
-* [spdlog](https://github.com/gabime/spdlog)
-* [SPIRV-Cross](https://github.com/KhronosGroup/SPIRV-Cross)
 
 ## Reference
 
