@@ -35,3 +35,13 @@
 /build/*
 /bin/*
 /lib/*
+/shared/*
+
+**/Archive/*
+
+*.meta
+
+.vscode
+.xmake/
+build/
+vsxmake**

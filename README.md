@@ -2,201 +2,260 @@
 
 [![Windows](https://github.com/Chaf-Libraries/Ilum/actions/workflows/windows.yml/badge.svg)](https://github.com/Chaf-Libraries/Ilum/actions/workflows/windows.yml) [![Codacy Badge](https://app.codacy.com/project/badge/Grade/b0cb3a2729ee4be783dd5feb2cc67eb6)](https://www.codacy.com/gh/Chaf-Libraries/IlumEngine/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=Chaf-Libraries/IlumEngine&amp;utm_campaign=Badge_Grade)
 
-Ilum Graphics Playground, name after *Planet Ilum* from [Star Wars](https://starwars.fandom.com/es/wiki/Ilum)
+Ilum Graphics Playground, name after *Planet Ilum* from [star wars](https://starwars.fandom.com/wiki/Ilum).
 
-![image-20220313211708122](README/image-20220313211708122.png)
+A framework for computer graphics learning and practice (It's not a game engine!)
 
-## Build
+![image-20230210192957599](./Doc/Img/image-20230210192957599.png)
+
+## Install
+
+**Platform**
 
 * Windows 10
-* Visual Studio 2019
-* C++17
-* CMake 3.14+
+* Visual Studio 2022
+* xmake >= v2.7.5
+* [optional] CUDA >= 11.7
 
-Run:
+**Build**
+
+Ilum uses [xmake](https://xmake.io/#/) for building. You can compile the whole project by simply run command:
 
 ```shell
-git clone https://github.com/Chaf-Libraries/Ilum --recursive
-mkdir build
-cd build
-cmake ..
-cmake --build ./ --target ALL_BUILD --config Release
+xmake -y
 ```
 
-## Vulkan Requirement
+or you can open the project in Visual Studio by generating `.sln` file:
 
-* Instance Extension
-  * `VK_KHR_surface`
-  * `VK_KHR_win32_surface`
-  * `VK_EXT_debug_report`
-  * `VK_EXT_debug_utils`
-* Validation Layers
-  * `VK_LAYER_KHRONOS_validation`
-* Device Extension
-  * `VK_KHR_swapchain`
-  * `VK_KHR_acceleration_structure`
-  * `VK_KHR_ray_tracing_pipeline`
+```shell
+xmake project -k vsxmake
+```
 
 ## Feature
 
-* Architecture
-  * Render Graph
-    * Customize Render Pass (Graphics, Compute, Ray Tracing)
-    * Auto Resource Transition
-    * Render Passes Visualization
-    * Render Pass Setting
-  * Runtime Shader Compilation
-    * GLSL -> `glslang` -> SPIR-V
-    * HLSL -> `DXC` -> SPIR-V
-  * Entity Component System
-  * Asynchronous Resource Loading
-  * Scene Loading/Saving
-* Rendering Feature For Performance
-  * Multi-Draw Indirect
-  * Bindless Texture
-  * Vertex/Index Buffer Packing
-  * GPU Frustum Culling
-  * GPU Back-Face Cone Culling
-  * GPU Hierarchy Z Buffer Occlusion Culling
-* Geometry
-  * Curve Modeling
-    * Bézier Curve
-    * Cubic Spline Curve
-    * B Spline Curve
-    * Rational Bézier Curve
-    * Rational B Spline Curve
-  * Tensor Product Surface Modeling
-    * Bézier Surface
-    * B Spline Surface
-    * Rational Bézier Surface
-    * Rational B Spline Surface
-  * Triangle Mesh Processing
-    * Data Structure
-      * Face Based Mesh
-      * Edge Based Mesh
-      * Half-Edge Mesh
-    * Subdivision
-      * Loop Subdivision
-* Lighting Model
-  * PBR
-    * Cook-Torrance BRDF
-    * Kulla-Conty Approximation
-    * IBL
-  * Shadow
-    * Shadow Map -> Spot Light
-    * Cascade Shadow Map -> Directional Light
-    * Omnidirectional Shadow Map -> Point Light
-* Post Processing
-  * Temporal Anti-Alias
-  * Blooming
+### Cross-Platform RHI
+
+* Vulkan
+  * Mesh Shading
+  * Dynamic Rendering
+  * Ray Tracing Pipeline
+  * Draw/Dispatch Indirect
+  * Bindless Resource
+
+* CUDA
+  * CUDA & Vulkan Interop
 
 
-## Demo
+### Resource Manager
 
-### Cook-Torrance BRDF
+![](./Doc/Img/Resource.png)
 
-![image-20211120113603895](README/image-20211120113603895.png)
+### Scene Graph
 
-### Kulla-Conty Mutli-Bounce Approximation
+![](./Doc/Img/Scene.png)
 
-| Multi-Bounce OFF                               | Multi-Bounce ON                              |
-| ---------------------------------------------- | -------------------------------------------- |
-| ![kulla_conty_off](README/kulla_conty_off.png) | ![kulla_conty_on](README/kulla_conty_on.png) |
+### Shader Compilation
 
-### Render Passes Visualization
+![shader](Doc/Img/shader.png)
 
-![image-20211120113259237](README/image-20211120113259237.png)
+### Render Graph
 
-### Meshlet
+* Static compilation
+* Automatic resource state tracking and transition
+* Texture memory aliasing
+* Seamless interoperation between Graphics API and CUDA
+* Easy to customize render pass
 
-![image-20211130105935862](README/image-20211130105935862.png)
+**Render Pass**
 
-### Hierarchy Z Buffer Generation
+* Visibility Deferred Shading Pipeline
 
-![image-20211210113933024](README/image-20211210113933024.png)
+  * Visibility Geometry Pass
+    * Mesh shading with meshlet frustum culling (if device support `mesh_shader`)
+    * Usual rasterization without optimization
 
-### Massive Scene Rendering
+  * Visibility Buffer Visualization
+    * Visualize visibility buffer: instance and primitive
+  * Visibility Buffer Lighting Pass
+    * Indirect dispatch to support multiple material graphs
+    * Generate lighting result and GBuffers
 
-![image-20220302110444007](README/image-20220302110444007.png)
+* Shadow Map Pass
 
-### Temporal Anti-Alias
+  * Classic Shadow Map (Spot Light)
+  * Omnidirectional Shadow Map (Point Light)
+  * Cascade Shadow Map (Directional Light)
 
-|           TAA OFF            |         TAA ON         |
-| :--------------------------: | :--------------------: |
-| ![no_taa](README/no_taa.png) | ![taa](README/taa.png) |
+* Path Tracing
+  * Next Event Estimation
+  * Multiple Importance Sampling
+* Post Process
+  * Tonemapping
 
-### Blooming
+**TODO**
 
-| Blooming OFF                       | Blooming ON                      |
-| ---------------------------------- | -------------------------------- |
-| ![bloom_off](README/bloom_off.png) | ![bloom_on](README/bloom_on.png) |
+* Resource Pool
+* Runtime compilation maybe
+* Multi-threading
 
-### Shadow Map(Spot Light Shadow)
+### Material Graph
 
-![spot_light_shadow](README/spot_light_shadow.png)
+**Feature**
 
-### Cascade Shadow Map(Directional Light Shadow)
+* Static compilation and HLSL generation
+* Easy to customize material node
+* Support usual BSDF models
 
-#### Frustum Split
+### Plugins
 
-![frustum_split](README/frustum_split.png)
+You can extend the renderer features by adding these plugins:
 
-#### Directional Light Shadow
+* RHI
+* Render Pass
+* Material Node
+* Importer
+* Editor
 
-![directional_light_shadow](README/directional_light_shadow.png)
+#### Add new RHI
 
-### Omnidirectional Shadow Map(Point Light Shadow)
+* [ ] TODO
 
-![point_light_shadow](README/point_light_shadow.png)
+#### Add new render pass
 
-### Soft Shadow Filter
+```c++
+#include "IPass.hpp"
 
-#### PCF
+using namespace Ilum;
 
-|           PCF OFF            |            Uniform Sampling            |            Poisson Sampling            |
-| :--------------------------: | :------------------------------------: | :------------------------------------: |
-| ![no_pcf](README/no_pcf.png) | ![uniform_pcf](README/uniform_pcf.png) | ![poisson_pcf](README/poisson_pcf.png) |
+class MyRenderPass : public RenderPass<MyRenderPass>
+{
+	struct Config
+	{
+		float a = 1.f;
+	}
 
-#### PCSS
+  public:
+	MyRenderPass() = default;
 
-|           PCSS OFF           |             Uniform Sampling             |             Poisson Sampling             |
-| :--------------------------: | :--------------------------------------: | :--------------------------------------: |
-| ![no_pcf](README/no_pcf.png) | ![uniform_pcss](README/uniform_pcss.png) | ![poisson_pcss](README/poisson_pcss.png) |
+	~MyRenderPass() = default;
 
-### Image Based Lighting (Spherical Harmonic Diffuse + Split Sum Specular)
+	// Initialization
+	// It will decide how your pass node looks like
+	virtual RenderPassDesc Create(size_t &handle)
+	{
+		RenderPassDesc desc;
+		return desc
+			// Set bind point
+			// - Rasterization
+			// - Compute
+			// - RayTracing
+			// - CUDA
+			.SetBindPoint(BindPoint::Rasterization)
+			// Set render pass name
+			.SetName("MyRenderPass")
+			// Set render pass category
+			.SetCategory("MyRenderPassCategory")
+			// Set config (Optional)
+			// Allow you to modify some value in runtime
+			.SetConfig(Config())
+			// Set resource dependency
+			.ReadTexture2D(handle++, "Input", 
+				RHIResourceState::TransferSource)
+			.WriteTexture2D(handle++, "Output",
+			// set w/h = 0 will use viewport size
+			0/*width*/, 0/*height*/, 
+			RHIFormat::R16G16B16A16_FLOAT, 
+			RHIResourceState::TransferDest);
+	}
 
-![IBL](README/IBL.png)
+	// Execution callback
+	virtual void CreateCallback(
+		RenderGraph::RenderTask *task, 
+		const RenderPassDesc &desc, 
+		RenderGraphBuilder &builder, 
+		Renderer *renderer)
+	{
+		// Do some initialization here
+		// Note: they will pass to lambda by value,
+		// 		 use value or shared_ptr
+		*task = [=](
+			RenderGraph &render_graph, 
+			RHICommand *cmd_buffer, 
+			Variant &config, 
+			RenderGraphBlackboard &black_board) 
+		{
+			// Acquire resource by name
+			auto input = render_graph.GetTexture(desc.GetPin("Input").handle);
+			auto output = render_graph.GetTexture(desc.GetPin("Output").handle);
+			// Do some stuff here, like:
+			// - Bind pipeline_state/descriptor/render_target
+			// - Set viewport/scissor
+			// - Draw/Dispatch
+			// - Resource copy/blit/state_transition
+			// ...
+			// Example:
+			// cmd_buffer->BlitTexture(
+			// 	input, TextureRange{}, RHIResourceState::TransferSource,
+			// 	output, TextureRange{}, RHIResourceState::TransferDest);
+		};
+	}
 
-### Curve Modeling
+	// UI for the config
+	virtual void OnImGui(Variant *config)
+	{
+		auto *config_data = config->Convert<Config>();
+		// Do some imgui editing stuff here
+		// ...
+	}
+};
 
-![image-20220108150839809](README/image-20220108150839809.png)
+// Configuration
+CONFIGURATION_PASS(MyRenderPass)
+```
 
-### Surface Modeling
+#### Add new material node
 
-![image-20220108151149909](README/image-20220108151149909.png)
+```c++
 
-### Loop Subdivision
+```
 
-|           Origin           |        Iteration #1        |        Iteration #2        |        Iteration #3        |        Iteration #4        |
-| :------------------------: | :------------------------: | :------------------------: | :------------------------: | :------------------------: |
-| ![loop0](README/loop0.png) | ![loop1](README/loop1.png) | ![loop2](README/loop2.png) | ![loop3](README/loop3.png) | ![loop4](README/loop4.png) |
+#### Add new importer
 
-### Minimum Surface
+```c++
 
-|          Origin          |             Minimum Surface              |
-| :----------------------: | :--------------------------------------: |
-| ![face](README/face.png) | ![mini_surface](README/mini_surface.png) |
+```
 
-### Tutte Parameterization
+#### Add new editor widget
 
-**Origin Mesh**
+```c++
 
-<img src="README/origin.png" alt="origin" style="zoom:50%;" />
+```
 
-|                                       |                       UV Visualization                       |              Parameterization Visualization              |
-| :-----------------------------------: | :----------------------------------------------------------: | :------------------------------------------------------: |
-|   Circle Boundary + Uniform Weight    |         ![uniform_circle](README/uniform_circle.png)         |   ![uniform_circle_vis](README/uniform_circle_vis.png)   |
-|  Rectangle Boundary + Uniform Weight  |       ![uniform_rectange](README/uniform_rectange.png)       | ![uniform_rectange_vis](README/uniform_rectange_vis.png) |
-|  Circle Boundary + Cotangent Weight   |       ![cotangent_circle](README/cotangent_circle.png)       | ![cotangent_circle_vis](README/cotangent_circle_vis.png) |
-| Rectangle Boundary + Cotangent Weight | ![cotangent_rectange_vis](README/cotangent_rectange_vis.png) |   ![cotangent_rectange](README/cotangent_rectange.png)   |
+## Gallery
+
+### Render Graph Editor
+
+![image-20230210193225994](./Doc/Img/image-20230210193225994.png)
+
+### Material Graph Editor
+
+![image-20230210194028080](./Doc/Img/image-20230210194028080.png)
+
+### Path Tracing
+
+![](./Doc/Img/material.png)
+
+## Reference
+
+* [https://www.pbr-book.org/](https://www.pbr-book.org/)
+* [http://www.realtimerendering.com/](http://www.realtimerendering.com/)
+* [https://learnopengl-cn.github.io/](https://learnopengl-cn.github.io/)
+* [https://hazelengine.com/](https://hazelengine.com/)
+* [https://advances.realtimerendering.com/s2015/aaltonenhaar_siggraph2015_combined_final_footer_220dpi.pdf](https://advances.realtimerendering.com/s2015/aaltonenhaar_siggraph2015_combined_final_footer_220dpi.pdf)
+* [https://www.gdcvault.com/play/1024612/FrameGraph-Extensible-Rendering-Architecture-in](https://www.gdcvault.com/play/1024612/FrameGraph-Extensible-Rendering-Architecture-in)
+* [https://github.com/SaschaWillems/Vulkan](https://github.com/SaschaWillems/Vulkan)
+* [https://github.com/KhronosGroup/Vulkan-Samples](https://github.com/KhronosGroup/Vulkan-Samples)
+* [https://github.com/wdas/brdf](https://github.com/wdas/brdf)
+* [http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf.](http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf.)
+* [https://www.froyok.fr/blog/2021-12-ue4-custom-bloom/](https://www.froyok.fr/blog/2021-12-ue4-custom-bloom/)
 

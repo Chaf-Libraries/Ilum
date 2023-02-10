@@ -1,0 +1,46 @@
+﻿gViewToClip,"[1.0000, 0.0000, 0.0000, 0.0000]
+[0.0000, 1.7778, 0.0000, 0.0000]
+[-0.0000, -0.0000, 1.0000, 1.0000]
+[0.0000, 0.0000, -0.0010, 0.0000]"
+gViewToWorld,"[-0.9997, -0.0236, -0.0000, 0.0000]
+[0.0031, -0.1315, 0.9913, 0.0000]
+[0.0234, -0.9910, -0.1315, 0.0000]
+[0.0000, 0.0000, 0.0000, 1.0000]"
+gFrustum,"[-1.0000, 0.5625, 2.0000, -1.1250]"
+gHitDistParams,"[3.0000, 0.1000, 20.0000, -25.0000]"
+gViewVectorWorld,"[-0.0234, 0.9910, 0.1315, 0.0000]"
+gViewVectorWorldPrev,"[-0.0234, 0.9910, 0.1315, 0.0000]"
+gInvScreenSize,"[0.0008, 0.0014]"
+gScreenSize,"[1280.0000, 720.0000]"
+gInvRectSize,"[0.0008, 0.0014]"
+gRectSize,"[1280.0000, 720.0000]"
+gRectSizePrev,"[1280.0000, 720.0000]"
+gResolutionScale,"[1.0000, 1.0000]"
+gRectOffset,"[0.0000, 0.0000]"
+gSensitivityToDarkness,"[0.0100, 0.1000]"
+gRectOrigin,"[0, 0]"
+gReference,0.0000
+gOrthoMode,0.0000
+gUnproject,0.0016
+gDebug,0.0000
+gDenoisingRange,60.6960
+gPlaneDistSensitivity,0.0050
+gFramerateScale,0.5000
+gBlurRadius,30.0000
+gMaxAccumulatedFrameNum,1.0000
+gMaxFastAccumulatedFrameNum,0.0000
+gAntiFirefly,0.0000
+gMinConvergedStateBaseRadiusScale,0.2500
+gLobeAngleFraction,0.1000
+gRoughnessFraction,0.0500
+gResponsiveAccumulationRoughnessThreshold,0.0000
+gDiffPrepassBlurRadius,30.0000
+gSpecPrepassBlurRadius,50.0000
+gIsWorldSpaceMotionEnabled,1
+gFrameIndex,42372
+gResetHistory,0
+gDiffMaterialMask,1
+gSpecMaterialMask,0
+gRotator,"[0.2651, -0.9642, 0.9642, 0.2651]"
+gSpecLobeTrimmingParams,"[0.9500, 0.0400, 0.1100]"
+gBlurRadiusScale,5.0000

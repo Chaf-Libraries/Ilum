@@ -1,0 +1,34 @@
+{{#Header}}
+{{&Include}}
+{{/Header}}
+
+namespace Ilum_{{Hash}}
+{
+RTTR_REGISTRATION
+{
+    {{#Enum}}
+    rttr::registration::enumeration<{{EnumQualifiedName}}>("{{EnumName}}")
+    (
+        {{#EnumValue}}
+        rttr::value("{{EnumValueName}}", {{EnumValueQualifiedName}}){{^IsLast}},{{/IsLast}}
+        {{/EnumValue}}  
+    );
+    {{/Enum}}
+    {{#Class}}
+    rttr::registration::class_<{{ClassQualifiedName}}>("{{ClassName}}"){{#Meta}}({{#MetaData}}rttr::metadata("{{&Key}}", {{&Value}}){{^IsLast}}, {{/IsLast}}{{/MetaData}}){{/Meta}}
+    {{#Field}}
+        .property("{{FieldName}}", &{{FieldQualifiedName}}, rttr::registration::{{#Public}}public_access{{/Public}}{{#Private}}private_access{{/Private}}{{#Protected}}protected_access{{/Protected}}){{#Meta}}({{#MetaData}}rttr::metadata("{{&Key}}", {{&Value}}){{^IsLast}}, {{/IsLast}}{{/MetaData}}){{/Meta}}
+    {{/Field}}
+    {{#Constructor}}
+        {{^Static}}.constructor<{{#Params}}{{&Param}}{{^IsLast}}, {{/IsLast}}{{/Params}}>(){{/Static}}{{#Static}}.constructor(&{{MethodQualifiedName}}){{/Static}}(rttr::policy::ctor::as_object)
+    {{/Constructor}}
+    {{#NoConstructor}}
+        .constructor<>()(rttr::policy::ctor::as_object)
+    {{/NoConstructor}}
+    {{#Method}}
+        .method("{{&MethodName}}", {{^Overload}}&{{&MethodQualifiedName}}{{/Overload}}{{#Overload}}{{^Const}}rttr::select_overload<{{&ReturnType}}({{#Params}}{{&Param}}{{^IsLast}}, {{/IsLast}}{{/Params}})>{{/Const}}{{#Const}}rttr::select_const<{{&ClassQualifiedName}}, {{&ReturnType}}, {{#Params}}{{&Param}}{{^IsLast}}, {{/IsLast}}{{/Params}}>{{/Const}}(&{{&MethodQualifiedName}}){{/Overload}}, rttr::registration::{{#Public}}public_access{{/Public}}{{#Private}}private_access{{/Private}}{{#Protected}}protected_access{{/Protected}}){{#Meta}}({{#MetaData}}rttr::metadata("{{&Key}}", {{&Value}}){{^IsLast}}, {{/IsLast}}{{/MetaData}}){{/Meta}}
+    {{/Method}}
+    ;
+    {{/Class}}
+}
+}

@@ -1,0 +1,8 @@
+﻿gViewToClip,gViewToWorld,gFrustum,gHitDistParams,gViewVectorWorld,gViewVectorWorldPrev,gInvScreenSize,gScreenSize,gInvRectSize,gRectSize,gRectSizePrev,gResolutionScale,gRectOffset,gSensitivityToDarkness,gRectOrigin,gReference,gOrthoMode,gUnproject,gDebug,gDenoisingRange,gPlaneDistSensitivity,gFramerateScale,gBlurRadius,gMaxAccumulatedFrameNum,gMaxFastAccumulatedFrameNum,gAntiFirefly,gMinConvergedStateBaseRadiusScale,gLobeAngleFraction,gRoughnessFraction,gResponsiveAccumulationRoughnessThreshold,gDiffPrepassBlurRadius,gSpecPrepassBlurRadius,gIsWorldSpaceMotionEnabled,gFrameIndex,gResetHistory,gDiffMaterialMask,gSpecMaterialMask,gRotator,gSpecLobeTrimmingParams,gBlurRadiusScale
+"[1.0000, 0.0000, 0.0000, 0.0000]
+[0.0000, 1.7778, 0.0000, 0.0000]
+[-0.0000, -0.0000, 1.0000, 1.0000]
+[0.0000, 0.0000, -0.0010, 0.0000]","[-0.9997, -0.0236, -0.0000, 0.0000]
+[0.0031, -0.1315, 0.9913, 0.0000]
+[0.0234, -0.9910, -0.1315, 0.0000]
+[0.0000, 0.0000, 0.0000, 1.0000]","[-1.0000, 0.5625, 2.0000, -1.1250]","[3.0000, 0.1000, 20.0000, -25.0000]","[-0.0234, 0.9910, 0.1315, 0.0000]","[-0.0234, 0.9910, 0.1315, 0.0000]","[0.0008, 0.0014]","[1280.0000, 720.0000]","[0.0008, 0.0014]","[1280.0000, 720.0000]","[1280.0000, 720.0000]","[1.0000, 1.0000]","[0.0000, 0.0000]","[0.0100, 0.1000]","[0, 0]",0.0000,0.0000,0.0016,0.0000,60.6960,0.0050,0.5000,30.0000,1.0000,0.0000,0.0000,0.2500,0.1000,0.0500,0.0000,30.0000,50.0000,1,42372,0,1,0,"[-0.9642, -0.2651, 0.2651, -0.9642]","[0.9500, 0.0400, 0.1100]",5.0000

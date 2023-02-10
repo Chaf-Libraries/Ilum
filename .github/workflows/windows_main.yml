@@ -1,0 +1,29 @@
+name: Windows_refactor
+
+on:
+  pull_request:
+    types: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: "windows-latest"
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: "recursive"
+      
+      - uses: Jimver/cuda-toolkit@v0.2.8
+        id: cuda-toolkit
+        with:
+          cuda: '11.7.0'
+          sub-packages: '["nvcc", "visual_studio_integration", "cudart"]'
+
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+          actions-cache-folder: ".xmake-cache"
+
+      - name: Build
+        run: xmake -y
