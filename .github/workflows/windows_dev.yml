@@ -1,4 +1,4 @@
-name: Windows_dev
+name: Windows_refactor
 
 on:
   pull_request:
@@ -8,21 +8,22 @@ on:
 
 jobs:
   build:
-    name: "Build ${{ matrix.platform }} in ${{ matrix.build_type }}"
-    strategy:
-      matrix:
-        platform: [windows]
-        build_type: [Release]
-    env:
-      PARALLEL: -j 2
-    runs-on: "${{ matrix.platform }}-latest"
+    runs-on: "windows-latest"
     steps:
       - uses: actions/checkout@v2
         with:
           submodules: "recursive"
+      
+      - uses: Jimver/cuda-toolkit@v0.2.8
+        id: cuda-toolkit
+        with:
+          cuda: '11.7.0'
+          sub-packages: '["nvcc", "visual_studio_integration", "cudart"]'
 
-      - name: Configure
-        run: cmake -H"." -B"build/${{ matrix.platform }}" -DBuild_Test_IlumEngine=OFF
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: latest
+          actions-cache-folder: ".xmake-cache"
 
-      - name: "Build ${{ matrix.platform }} in ${{ matrix.build_type }}"
-        run: cmake --build "build/${{ matrix.platform }}" --config Release --target App
+      - name: Build
+        run: xmake -y

@@ -2,9 +2,9 @@ name: Windows_refactor
 
 on:
   pull_request:
-    types: [refactor.deps]
+    types: [main]
   push:
-    branches: [refactor.deps]
+    branches: [main]
 
 jobs:
   build:
