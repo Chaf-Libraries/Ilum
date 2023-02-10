@@ -2,7 +2,7 @@
 
 using namespace Ilum;
 
-class MixBSDF : public MaterialNode<MixBSDF>
+class MixMaterial : public MaterialNode<MixMaterial>
 {
   public:
 	virtual MaterialNodeDesc Create(size_t &handle) override
@@ -10,7 +10,7 @@ class MixBSDF : public MaterialNode<MixBSDF>
 		MaterialNodeDesc desc;
 		return desc
 		    .SetHandle(handle++)
-		    .SetName("MixBSDF")
+		    .SetName("MixMaterial")
 		    .SetCategory("BSDF")
 		    .Input(handle++, "X", MaterialNodePin::Type::BSDF, MaterialNodePin::Type::BSDF)
 		    .Input(handle++, "Y", MaterialNodePin::Type::BSDF, MaterialNodePin::Type::BSDF)
@@ -82,11 +82,11 @@ class MixBSDF : public MaterialNode<MixBSDF>
 
 				context->bsdfs.emplace_back(MaterialCompilationContext::BSDF{
 				    fmt::format("S_{}", node_desc.GetPin("Out").handle),
-				    fmt::format("MixBSDF< {}, {} >", bsdf1_type, bsdf2_type),
+				    fmt::format("MixMaterial< {}, {} >", bsdf1_type, bsdf2_type),
 				    fmt::format("S_{}.Init(S_{}, S_{}, {});", node_desc.GetPin("Out").handle, bsdf1, bsdf2, parameters["Weight"])});
 			}
 		}
 	}
 };
 
-CONFIGURATION_MATERIAL_NODE(MixBSDF)
+CONFIGURATION_MATERIAL_NODE(MixMaterial)

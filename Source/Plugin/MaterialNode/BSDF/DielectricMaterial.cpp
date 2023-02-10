@@ -2,7 +2,7 @@
 
 using namespace Ilum;
 
-class DielectricBSDF : public MaterialNode<DielectricBSDF>
+class DielectricMaterial : public MaterialNode<DielectricMaterial>
 {
   public:
 	virtual MaterialNodeDesc Create(size_t &handle) override
@@ -10,7 +10,7 @@ class DielectricBSDF : public MaterialNode<DielectricBSDF>
 		MaterialNodeDesc desc;
 		return desc
 		    .SetHandle(handle++)
-		    .SetName("DielectricBSDF")
+		    .SetName("DielectricMaterial")
 		    .SetCategory("BSDF")
 		    .Input(handle++, "Reflectance", MaterialNodePin::Type::RGB, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, glm::vec3(1.f))
 		    .Input(handle++, "Transmittance", MaterialNodePin::Type::RGB, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, glm::vec3(1.f))
@@ -49,7 +49,7 @@ class DielectricBSDF : public MaterialNode<DielectricBSDF>
 
 		context->bsdfs.emplace_back(MaterialCompilationContext::BSDF{
 		    fmt::format("S_{}", node_desc.GetPin("Out").handle),
-		    "DielectricBSDF",
+		    "DielectricMaterial",
 		    fmt::format("S_{}.Init({}, {}, {}, {}, {});", node_desc.GetPin("Out").handle,
 		                parameters["Reflectance"],
 		                parameters["Transmittance"],
@@ -59,4 +59,4 @@ class DielectricBSDF : public MaterialNode<DielectricBSDF>
 	}
 };
 
-CONFIGURATION_MATERIAL_NODE(DielectricBSDF)
+CONFIGURATION_MATERIAL_NODE(DielectricMaterial)

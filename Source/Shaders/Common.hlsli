@@ -230,4 +230,9 @@ void UnpackXY(uint xy, out uint x, out uint y)
     y = (xy >> 16) & 0xffff;
 }
 
+float Luminance(float3 color)
+{
+    return dot(color, float3(0.2126f, 0.7152f, 0.0722f)); //color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
+}
+
 #endif

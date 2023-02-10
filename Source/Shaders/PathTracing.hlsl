@@ -195,11 +195,6 @@ bool Unoccluded(SurfaceInteraction surface_interaction, Interaction isect)
     return !pay_load.visible;
 }
 
-float Luminance(float3 color)
-{
-    return dot(color, float3(0.2126f, 0.7152f, 0.0722f)); //color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
-}
-
 #ifdef RAYGEN_SHADER
 [shader("raygeneration")]
 void RayGenMain()
@@ -227,7 +222,7 @@ void RayGenMain()
             // See:  https://arxiv.org/pdf/1901.05423.pdf
             float pdf = 1.0;
             float3 wi = normalize(ray.Direction);
-            pay_load.radiance += float4(Skybox.SampleLevel(SkyboxSampler, wi, 0.0).rgb * pay_load.throughout, 1.0);
+            pay_load.radiance += Skybox.SampleLevel(SkyboxSampler, wi, 0.0).rgb * pay_load.throughout;
 #else
             float pdf = 1.0;
             //pay_load.radiance += 0.2f * pay_load.throughout;
@@ -267,7 +262,7 @@ void RayGenMain()
     }
     else
     {
-        float3 prev_color = Output.Load(int3(launch_id.x, launch_id.y, 0)).rgb;
+        float3 prev_color = Output[launch_id].rgb;
         float4 accumulated_color = 0.f;
         if ((isnan(prev_color.x) || isnan(prev_color.y) || isnan(prev_color.z)))
         {

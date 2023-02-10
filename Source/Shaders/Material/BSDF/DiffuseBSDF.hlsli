@@ -8,12 +8,10 @@
 struct DiffuseBSDF
 {
     float3 R;
-    Frame frame;
 
-    void Init(float3 R_, float3 normal_)
+    void Init(float3 R_)
     {
         R = R_;
-        frame.FromZ(normal_);
     }
     
     uint Flags()
@@ -21,11 +19,8 @@ struct DiffuseBSDF
         return BSDF_DiffuseReflection;
     }
 
-    float3 Eval(float3 woW, float3 wiW, TransportMode mode)
+    float3 Eval(float3 wo, float3 wi, TransportMode mode)
     {
-        float3 wo = frame.ToLocal(woW);
-        float3 wi = frame.ToLocal(wiW);
-        
         if (!SameHemisphere(wo, wi))
         {
             return 0.f;
@@ -34,11 +29,8 @@ struct DiffuseBSDF
         return R * InvPI;
     }
 
-    float PDF(float3 woW, float3 wiW, TransportMode mode, SampleFlags flags)
+    float PDF(float3 wo, float3 wi, TransportMode mode, SampleFlags flags)
     {
-        float3 wo = frame.ToLocal(woW);
-        float3 wi = frame.ToLocal(wiW);
-        
         if (!(flags & SampleFlags_Reflection) || !SameHemisphere(wo, wi))
         {
             return 0.f;
@@ -47,10 +39,8 @@ struct DiffuseBSDF
         return AbsCosTheta(wi) * InvPI;
     }
 
-    BSDFSample Samplef(float3 woW, float uc, float2 u, TransportMode mode, SampleFlags flags)
+    BSDFSample Samplef(float3 wo, float uc, float2 u, TransportMode mode, SampleFlags flags)
     {
-        float3 wo = frame.ToLocal(woW);
-        
         BSDFSample bsdf_sample;
         
         bsdf_sample.Init();
@@ -67,11 +57,9 @@ struct DiffuseBSDF
             wi.z *= -1.f;
         }
 
-        float3 wiW = frame.ToWorld(wi);
-        
-        bsdf_sample.f = Eval(woW, wiW, mode);
-        bsdf_sample.wiW = wiW;
-        bsdf_sample.pdf = PDF(woW, wiW, mode, flags);
+        bsdf_sample.f = Eval(wo, wi, mode);
+        bsdf_sample.wi = wi;
+        bsdf_sample.pdf = PDF(wo, wi, mode, flags);
         bsdf_sample.flags = BSDF_DiffuseReflection;
         bsdf_sample.eta = 1;
 

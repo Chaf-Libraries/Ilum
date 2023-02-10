@@ -22,7 +22,7 @@ static uint SampleFlags_Transmission = 1 << 1;
 static uint SampleFlags_All = SampleFlags_Reflection | SampleFlags_Transmission;
 
 // Transport Mode
-static uint TransportMode_Radiance = 1;
+static uint TransportMode_Radiance = 0;
 static uint TransportMode_Importance = 1;
 
 #define SampleFlags uint
@@ -63,6 +63,7 @@ struct BSDFSample
 {
     float3 f;
     float3 wiW;
+    float3 wi;
     float pdf;
     BxDFFlags flags;
     float eta;
@@ -72,20 +73,12 @@ struct BSDFSample
     {
         f = 0.f;
         wiW = 0.f;
+        wi = 0.f;
         pdf = 0.f;
         flags = 0.f;
         eta = 1.f;
         pdfIsProportional = false;
 
-    }
-    
-    void Init(float3 f_, float3 wiW_, float pdf_, BxDFFlags flags_, float eta_)
-    {
-        f = f_;
-        wiW = wiW_;
-        pdf = pdf_;
-        flags = flags_;
-        eta = eta_;
     }
     
     bool IsReflection()
@@ -113,6 +106,17 @@ struct BSDFSample
         return flags & BSDF_Specular;
     }
 };
+
+float3 SRGBtoLINEAR(float3 srgb_in)
+{
+#ifdef SRGB_FAST_APPROXIMATION
+  float3 linOut = pow(srgbIn, vec3(2.2));
+#else  //SRGB_FAST_APPROXIMATION
+  float3 bLess  = step(0.04045, srgb_in);
+  float3 linOut = lerp(srgb_in.xyz / 12.92, pow((srgb_in + 0.055) / 1.055, 2.4), bLess);
+#endif  //SRGB_FAST_APPROXIMATION
+  return linOut;
+}
 
 // struct BSDF
 // {

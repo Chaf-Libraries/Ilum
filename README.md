@@ -229,11 +229,11 @@ CONFIGURATION_PASS(MyRenderPass)
 
 ## Gallery
 
-### Editor
+![](./Doc/Img/material.png)
 
 
 
-### Demo
+
 
 
 

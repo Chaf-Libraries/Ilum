@@ -2,7 +2,7 @@
 
 using namespace Ilum;
 
-class PlasticBSDF : public MaterialNode<PlasticBSDF>
+class ThinDielectricMaterial : public MaterialNode<ThinDielectricMaterial>
 {
   public:
 	virtual MaterialNodeDesc Create(size_t &handle) override
@@ -10,11 +10,11 @@ class PlasticBSDF : public MaterialNode<PlasticBSDF>
 		MaterialNodeDesc desc;
 		return desc
 		    .SetHandle(handle++)
-		    .SetName("PlasticBSDF")
+		    .SetName("ThinDielectricMaterial")
 		    .SetCategory("BSDF")
 		    .Input(handle++, "Reflectance", MaterialNodePin::Type::RGB, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, glm::vec3(1.f))
-		    .Input(handle++, "Roughness", MaterialNodePin::Type::Float, MaterialNodePin::Type::Float, float(0.5f))
-		    .Input(handle++, "Anisotropic", MaterialNodePin::Type::Float, MaterialNodePin::Type::Float, float(0.f))
+		    .Input(handle++, "Transmittance", MaterialNodePin::Type::RGB, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, glm::vec3(1.f))
+		    .Input(handle++, "IOR", MaterialNodePin::Type::Float, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, float(1.45f))
 		    .Input(handle++, "Normal", MaterialNodePin::Type::Float3, MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3)
 		    .Output(handle++, "Out", MaterialNodePin::Type::BSDF);
 	}
@@ -36,16 +36,24 @@ class PlasticBSDF : public MaterialNode<PlasticBSDF>
 		{
 			parameters["Normal"] = "surface_interaction.isect.n";
 		}
+		else
+		{
+			parameters["Normal"] = fmt::format("ExtractNormalMap(surface_interaction, {})", parameters["Normal"]);
+		}
 
 		context->SetParameter<glm::vec3>(parameters, node_desc.GetPin("Reflectance"), graph_desc, manager, context);
-		context->SetParameter<float>(parameters, node_desc.GetPin("Roughness"), graph_desc, manager, context);
-		context->SetParameter<float>(parameters, node_desc.GetPin("Anisotropic"), graph_desc, manager, context);
+		context->SetParameter<glm::vec3>(parameters, node_desc.GetPin("Transmittance"), graph_desc, manager, context);
+		context->SetParameter<float>(parameters, node_desc.GetPin("IOR"), graph_desc, manager, context);
 
 		context->bsdfs.emplace_back(MaterialCompilationContext::BSDF{
 		    fmt::format("S_{}", node_desc.GetPin("Out").handle),
-		    "PlasticBSDF",
-		    fmt::format("S_{}.Init({}, {}, {}, {});", node_desc.GetPin("Out").handle, parameters["Reflectance"], parameters["Roughness"], parameters["Anisotropic"], parameters["Normal"])});
+		    "ThinDielectricMaterial",
+		    fmt::format("S_{}.Init({}, {}, {}, {});", node_desc.GetPin("Out").handle,
+		                parameters["Reflectance"],
+		                parameters["Transmittance"],
+		                parameters["IOR"],
+		                parameters["Normal"])});
 	}
 };
 
-CONFIGURATION_MATERIAL_NODE(PlasticBSDF)
+CONFIGURATION_MATERIAL_NODE(ThinDielectricMaterial)

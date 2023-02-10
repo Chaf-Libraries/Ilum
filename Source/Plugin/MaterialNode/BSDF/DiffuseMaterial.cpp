@@ -2,7 +2,7 @@
 
 using namespace Ilum;
 
-class DisneyBSDF : public MaterialNode<DisneyBSDF>
+class DiffuseMaterial : public MaterialNode<DiffuseMaterial>
 {
   public:
 	virtual MaterialNodeDesc Create(size_t &handle) override
@@ -10,7 +10,7 @@ class DisneyBSDF : public MaterialNode<DisneyBSDF>
 		MaterialNodeDesc desc;
 		return desc
 		    .SetHandle(handle++)
-		    .SetName("DisneyBSDF")
+		    .SetName("DiffuseMaterial")
 		    .SetCategory("BSDF")
 		    .Input(handle++, "Normal", MaterialNodePin::Type::Float3, MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3)
 		    .Input(handle++, "Reflectance", MaterialNodePin::Type::RGB, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, glm::vec3(1.f))
@@ -34,14 +34,18 @@ class DisneyBSDF : public MaterialNode<DisneyBSDF>
 		{
 			parameters["Normal"] = "surface_interaction.isect.n";
 		}
+		else
+		{
+			parameters["Normal"] = fmt::format("ExtractNormalMap(surface_interaction, {})", parameters["Normal"]);
+		}
 
 		context->SetParameter<glm::vec3>(parameters, node_desc.GetPin("Reflectance"), graph_desc, manager, context);
 
 		context->bsdfs.emplace_back(MaterialCompilationContext::BSDF{
 		    fmt::format("S_{}", node_desc.GetPin("Out").handle),
-		    "DisneyBSDF",
+		    "DiffuseMaterial",
 		    fmt::format("S_{}.Init({}, {});", node_desc.GetPin("Out").handle, parameters["Reflectance"], parameters["Normal"])});
 	}
 };
 
-CONFIGURATION_MATERIAL_NODE(DisneyBSDF)
+CONFIGURATION_MATERIAL_NODE(DiffuseMaterial)

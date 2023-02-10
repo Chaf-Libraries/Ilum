@@ -3,7 +3,7 @@
 
 using namespace Ilum;
 
-class MetalBSDF : public MaterialNode<MetalBSDF>
+class ConductorMaterial : public MaterialNode<ConductorMaterial>
 {
 	const std::vector<const char *> m_materials = {
 	    "a-C", "Ag", "Al", "AlAs", "AlSb", "a-SiH", "Au", "Be", "Cr", "Csl", "Cu",
@@ -17,12 +17,11 @@ class MetalBSDF : public MaterialNode<MetalBSDF>
 		MaterialNodeDesc desc;
 		return desc
 		    .SetHandle(handle++)
-		    .SetName("MetalBSDF")
+		    .SetName("ConductorMaterial")
 		    .SetCategory("BSDF")
 		    .SetVariant(int32_t(1))
 		    .Input(handle++, "Reflectance", MaterialNodePin::Type::RGB, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, glm::vec3(1.f))
 		    .Input(handle++, "Roughness", MaterialNodePin::Type::Float, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, float(0.1f))
-		    .Input(handle++, "Anisotropic", MaterialNodePin::Type::Float, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, float(0.f))
 		    .Input(handle++, "Normal", MaterialNodePin::Type::Float3, MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3)
 		    .Output(handle++, "Out", MaterialNodePin::Type::BSDF);
 	}
@@ -66,25 +65,27 @@ class MetalBSDF : public MaterialNode<MetalBSDF>
 		{
 			parameters["Normal"] = "surface_interaction.isect.n";
 		}
+		else
+		{
+			parameters["Normal"] = fmt::format("ExtractNormalMap(surface_interaction, {})", parameters["Normal"]);
+		}
 
-		context->SetParameter<float>(parameters, node_desc.GetPin("Reflectance"), graph_desc, manager, context);
+		context->SetParameter<glm::vec3>(parameters, node_desc.GetPin("Reflectance"), graph_desc, manager, context);
 		context->SetParameter<float>(parameters, node_desc.GetPin("Roughness"), graph_desc, manager, context);
-		context->SetParameter<float>(parameters, node_desc.GetPin("Anisotropic"), graph_desc, manager, context);
 
 		glm::vec3 eta = SPDLoader::Load(fmt::format("Asset/SPD/metals/{}.eta.spd", m_materials[material_type]));
 		glm::vec3 k   = SPDLoader::Load(fmt::format("Asset/SPD/metals/{}.k.spd", m_materials[material_type]));
 
 		context->bsdfs.emplace_back(MaterialCompilationContext::BSDF{
 		    fmt::format("S_{}", node_desc.GetPin("Out").handle),
-		    "MetalBSDF",
-		    fmt::format("S_{}.Init({}, {}, float3({}, {}, {}),  float3({}, {}, {}), {}, {});", node_desc.GetPin("Out").handle,
+		    "ConductorMaterial",
+		    fmt::format("S_{}.Init({}, {}, float3({}, {}, {}),  float3({}, {}, {}), {});", node_desc.GetPin("Out").handle,
 		                parameters["Reflectance"],
 		                parameters["Roughness"],
 		                eta.x, eta.y, eta.z,
 		                k.x, k.y, k.z,
-		                parameters["Anisotropic"],
 		                parameters["Normal"])});
 	}
 };
 
-CONFIGURATION_MATERIAL_NODE(MetalBSDF)
+CONFIGURATION_MATERIAL_NODE(ConductorMaterial)

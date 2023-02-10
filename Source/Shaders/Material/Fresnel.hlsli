@@ -3,28 +3,6 @@
 
 #include "../Math.hlsli"
 
-// Schlick Fresnel Approximation
-float SchlickWeight(float cos_theta)
-{
-    float m = clamp(1 - cos_theta, 0.0, 1.0);
-    return pow(m, 5.0);
-}
-
-float FrSchlick(float R0, float cos_theta)
-{
-    return lerp(R0, 1.0, SchlickWeight(cos_theta));
-}
-
-float3 FrSchlick(float3 R0, float cos_theta)
-{
-    return lerp(R0, float3(1.0, 1.0, 1.0), SchlickWeight(cos_theta));
-}
-
-float SchlickR0FromEta(float eta)
-{
-    return ((eta - 1.0) * (eta - 1.0)) / ((eta + 1.0) * (eta + 1.0));
-}
-
 struct FresnelOp
 {
     float3 Eval(float cos_theta_i)
@@ -149,17 +127,5 @@ float3 FresnelConductor(float cos_theta_i, float3 eta, float3 k)
 //        return 0.5 * (Rp + Rs);
 //    }
 //};
-
-struct FresnelDisney
-{
-    float3 R0;
-    float metallic;
-    float eta;
-    
-    float3 Eval(float cos_i)
-    {
-        return lerp(FresnelDielectric(cos_i, eta), FrSchlick(R0, cos_i), metallic);
-    }
-};
 
 #endif

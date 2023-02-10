@@ -13,9 +13,8 @@ struct DielectricBSDF
     float3 T;
     float eta;
     TrowbridgeReitzDistribution distribution;
-    Frame frame;
 
-    void Init(float3 R_, float3 T_, float ior_, float roughness, float3 normal)
+    void Init(float3 R_, float3 T_, float ior_, float roughness)
     {
         R = R_;
         T = T_;
@@ -24,8 +23,6 @@ struct DielectricBSDF
         distribution.alpha_x = roughness;
         distribution.alpha_y = roughness;
         distribution.sample_visible_area = true;
-
-        frame.FromZ(normal);
     }
 
     uint Flags()
@@ -34,11 +31,8 @@ struct DielectricBSDF
         return flags | (distribution.EffectivelySmooth()? BSDF_Specular : BSDF_Glossy);
     }
 
-    float3 Eval(float3 woW, float3 wiW, TransportMode mode)
+    float3 Eval(float3 wo, float3 wi, TransportMode mode)
     {
-        float3 wo = frame.ToLocal(woW);
-        float3 wi = frame.ToLocal(wiW);
-
         if(eta == 1.f || distribution.EffectivelySmooth())
         {
             return 0.f;
@@ -76,7 +70,7 @@ struct DielectricBSDF
         }
         else
         {
-            float denom = Sqr(dot(wi, wm) + dot(wo, wm) * etap) * cos_theta_i * cos_theta_o;
+            float denom = Sqr(dot(wi, wm) + dot(wo, wm) / etap) * cos_theta_i * cos_theta_o;
             float3 ft = T * distribution.D(wm) * (1.f - F) * distribution.G(wo, wi) * 
                 abs(dot(wi, wm) * dot(wo, wm) / denom);
             if(mode == TransportMode_Radiance)
@@ -87,11 +81,8 @@ struct DielectricBSDF
         }
     }
 
-    float PDF(float3 woW, float3 wiW, TransportMode mode, SampleFlags flags)
+    float PDF(float3 wo, float3 wi, TransportMode mode, SampleFlags flags)
     {
-        float3 wo = frame.ToLocal(woW);
-        float3 wi = frame.ToLocal(wiW);
-
         if(eta == 1.f || distribution.EffectivelySmooth())
         {
             return 0.f;
@@ -151,10 +142,8 @@ struct DielectricBSDF
         return pdf;
     }
 
-    BSDFSample Samplef(float3 woW, float uc, float2 u, TransportMode mode, SampleFlags flags)
+    BSDFSample Samplef(float3 wo, float uc, float2 u, TransportMode mode, SampleFlags flags)
     {
-        float3 wo = frame.ToLocal(woW);
-        
         BSDFSample bsdf_sample;
         bsdf_sample.Init();
 
@@ -183,7 +172,7 @@ struct DielectricBSDF
                 float3 fr = R * F / abs(CosTheta(wi));
                 
                 bsdf_sample.f = fr;
-                bsdf_sample.wiW = frame.ToWorld(wi);
+                bsdf_sample.wi = wi;
                 bsdf_sample.pdf = pr / (pr + pt);
                 bsdf_sample.flags = BSDF_SpecularReflection;
                 bsdf_sample.eta = 1;
@@ -206,7 +195,7 @@ struct DielectricBSDF
                 }
 
                 bsdf_sample.f = ft;
-                bsdf_sample.wiW = frame.ToWorld(wi);
+                bsdf_sample.wi = wi;
                 bsdf_sample.pdf = pt / (pr + pt);
                 bsdf_sample.flags = BSDF_SpecularTransmission;
                 bsdf_sample.eta = etap;
@@ -244,7 +233,7 @@ struct DielectricBSDF
                 }
 
                 bsdf_sample.f = distribution.D(wm) * distribution.G(wo, wi) * R * F / (4.f * CosTheta(wi) * CosTheta(wo));
-                bsdf_sample.wiW = frame.ToWorld(wi);
+                bsdf_sample.wi = wi;
                 bsdf_sample.pdf = distribution.Pdf(wo, wm) / (4.f * abs(dot(wo, wm))) * pr / (pr + pt);
                 bsdf_sample.flags = BSDF_GlossyReflection;
                 bsdf_sample.eta = 1.f;
@@ -272,7 +261,7 @@ struct DielectricBSDF
                 }
 
                 bsdf_sample.f = ft;
-                bsdf_sample.wiW = frame.ToWorld(wi);
+                bsdf_sample.wi = wi;
                 bsdf_sample.pdf = distribution.Pdf(wo, wm) * dwm_dwi * pt / (pr + pt);
                 bsdf_sample.flags = BSDF_GlossyTransmission;
                 bsdf_sample.eta = etap;

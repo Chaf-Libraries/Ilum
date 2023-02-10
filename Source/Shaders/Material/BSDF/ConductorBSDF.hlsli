@@ -13,9 +13,8 @@ struct ConductorBSDF
     float3 eta;
     float3 k;
     float3 R;
-    Frame frame;
     
-    void Init(float3 R_, float roughness, float3 eta_, float3 k_, float3 normal)
+    void Init(float3 R_, float roughness, float3 eta_, float3 k_)
     {
         R = R_;
         eta = eta_;
@@ -23,7 +22,6 @@ struct ConductorBSDF
         distribution.alpha_x = roughness;
         distribution.alpha_y = roughness;
         distribution.sample_visible_area = true;
-        frame.FromZ(normal);
     }
 
     uint Flags()
@@ -31,11 +29,8 @@ struct ConductorBSDF
         return distribution.EffectivelySmooth() ? BSDF_SpecularReflection : BSDF_GlossyReflection;
     }
 
-    float3 Eval(float3 woW, float3 wiW, TransportMode mode)
+    float3 Eval(float3 wo, float3 wi, TransportMode mode)
     {
-        float3 wo = frame.ToLocal(woW);
-        float3 wi = frame.ToLocal(wiW);
-
         if(!SameHemisphere(wo, wi))
         {
             return 0.f;
@@ -68,11 +63,8 @@ struct ConductorBSDF
         return R * distribution.D(wm) * F * distribution.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);
     }
 
-    float PDF(float3 woW, float3 wiW, TransportMode mode, SampleFlags flags)
+    float PDF(float3 wo, float3 wi, TransportMode mode, SampleFlags flags)
     {
-        float3 wo = frame.ToLocal(woW);
-        float3 wi = frame.ToLocal(wiW);
-
         if(!(flags & SampleFlags_Reflection))
         {
             return 0.f;
@@ -97,10 +89,8 @@ struct ConductorBSDF
         return distribution.Pdf(wo, wm) / (4 * abs(dot(wo, wm)));
     }
 
-    BSDFSample Samplef(float3 woW, float uc, float2 u, TransportMode mode, SampleFlags flags)
+    BSDFSample Samplef(float3 wo, float uc, float2 u, TransportMode mode, SampleFlags flags)
     {
-        float3 wo = frame.ToLocal(woW);
-
         BSDFSample bsdf_sample;
         bsdf_sample.Init();
 
@@ -114,7 +104,7 @@ struct ConductorBSDF
             float3 wi = float3(-wo.x, -wo.y, wo.z);
             
             bsdf_sample.f = R * FresnelConductor(AbsCosTheta(wi), eta, k) / AbsCosTheta(wi);
-            bsdf_sample.wiW = frame.ToWorld(wi);
+            bsdf_sample.wi = wi;
             bsdf_sample.pdf = 1;
             bsdf_sample.flags = BSDF_SpecularReflection;
             bsdf_sample.eta = 1;
@@ -145,7 +135,7 @@ struct ConductorBSDF
         float3 F = FresnelConductor(abs(dot(wo, wm)), eta, k);
 
         bsdf_sample.f = R * distribution.D(wm) * F * distribution.G(wo, wi) / (4 * cos_theta_i * cos_theta_o);
-        bsdf_sample.wiW = frame.ToWorld(wi);
+        bsdf_sample.wi = wi;
         bsdf_sample.pdf = distribution.Pdf(wo, wm) / (4 * abs(dot(wo, wm)));
         bsdf_sample.flags = BSDF_GlossyReflection;
         bsdf_sample.eta = 1;
