@@ -8,7 +8,7 @@ MaterialGraphDesc &MaterialGraphDesc::SetName(const std::string &name)
 	return *this;
 }
 
-MaterialGraphDesc &MaterialGraphDesc::AddNode(size_t handle, MaterialNodeDesc &&desc)
+MaterialNodeDesc &MaterialGraphDesc::AddNode(size_t handle, MaterialNodeDesc &&desc)
 {
 	for (auto &[pin_handle, pin] : desc.GetPins())
 	{
@@ -18,7 +18,7 @@ MaterialGraphDesc &MaterialGraphDesc::AddNode(size_t handle, MaterialNodeDesc &&
 	m_node_lookup[handle] = handle;
 	desc.SetHandle(handle);
 	m_nodes.emplace(handle, std::move(desc));
-	return *this;
+	return m_nodes.at(handle);
 }
 
 void MaterialGraphDesc::EraseNode(size_t handle)

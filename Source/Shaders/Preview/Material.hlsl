@@ -2,6 +2,10 @@
 #include "../Material/Material.hlsli"
 #endif
 
+#ifndef RUNTIME
+#define MATERIAL_ID 0
+#endif
+
 struct VSInput
 {
     float3 Position : POSITION0;
@@ -53,6 +57,7 @@ float4 PSmain(PSInput input) : SV_TARGET
     surface_interaction.isect.uv = input.Texcoord;
     surface_interaction.duvdx = ddx(input.Texcoord);
     surface_interaction.duvdy = ddy(input.Texcoord);
+    surface_interaction.material = MATERIAL_ID;
     
     Material material;
     material.Init(surface_interaction);

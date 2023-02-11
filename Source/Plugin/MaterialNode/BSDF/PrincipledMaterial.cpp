@@ -25,7 +25,9 @@ class PrincipledMaterial : public MaterialNode<PrincipledMaterial>
 		    .Input(handle++, "Flatness", MaterialNodePin::Type::Float, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, float(0.f))
 		    .Input(handle++, "SpecTrans", MaterialNodePin::Type::Float, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, float(0.f))
 		    .Input(handle++, "IOR", MaterialNodePin::Type::Float, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, float(1.45f))
-		    .Input(handle++, "Normal", MaterialNodePin::Type::Float3, MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3)
+		    .Input(handle++, "Emissive", MaterialNodePin::Type::RGB, MaterialNodePin::Type::Float | MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, glm::vec3(0.f))
+		    .Input(handle++, "TwoSide", MaterialNodePin::Type::Bool, MaterialNodePin::Type::Bool, true)
+			.Input(handle++, "Normal", MaterialNodePin::Type::Float3, MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3)
 		    .Output(handle++, "Out", MaterialNodePin::Type::BSDF);
 	}
 
@@ -64,11 +66,13 @@ class PrincipledMaterial : public MaterialNode<PrincipledMaterial>
 		context->SetParameter<float>(parameters, node_desc.GetPin("Flatness"), graph_desc, manager, context);
 		context->SetParameter<float>(parameters, node_desc.GetPin("SpecTrans"), graph_desc, manager, context);
 		context->SetParameter<float>(parameters, node_desc.GetPin("IOR"), graph_desc, manager, context);
+		context->SetParameter<float>(parameters, node_desc.GetPin("Emissive"), graph_desc, manager, context);
+		context->SetParameter<bool>(parameters, node_desc.GetPin("TwoSide"), graph_desc, manager, context);
 
 		context->bsdfs.emplace_back(MaterialCompilationContext::BSDF{
 		    fmt::format("S_{}", node_desc.GetPin("Out").handle),
 		    "PrincipledMaterial",
-		    fmt::format("S_{}.Init({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {});", node_desc.GetPin("Out").handle,
+		    fmt::format("S_{}.Init({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {});", node_desc.GetPin("Out").handle,
 		                parameters["BaseColor"],
 		                parameters["Metallic"],
 		                parameters["Roughness"],
@@ -82,6 +86,8 @@ class PrincipledMaterial : public MaterialNode<PrincipledMaterial>
 		                parameters["Flatness"],
 		                parameters["SpecTrans"],
 		                parameters["IOR"],
+		                parameters["Emissive"],
+		                parameters["TwoSide"],
 		                parameters["Normal"])});
 	}
 };

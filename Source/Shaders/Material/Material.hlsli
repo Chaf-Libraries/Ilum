@@ -38,7 +38,7 @@ struct BSDF
         return 0.f;
     }
     
-    float3 GetNormal()
+    float3 GetEmissive()
     {
         return 0.f;
     }

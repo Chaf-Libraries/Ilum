@@ -15,18 +15,9 @@ static const float ShadowEpsilon = 0.0001f;
 
 static const float Infinity = 1e32;
 
-void CreateCoordinateSystem(in float3 N, out float3 Nt, out float3 Nb)
-{
-    const float3 ref = abs(dot(N, float3(0, 1, 0))) > 0.99f ? float3(0, 0, 1) : float3(0, 1, 0);
-
-    Nt = normalize(cross(ref, N));
-    Nb = cross(N, Nt);
-}
-
 void CoordinateSystem(float3 v1, out float3 v2, out float3 v3)
 {
     const float3 ref = abs(dot(v1, float3(0, 1, 0))) > 0.99f ? float3(0, 0, 1) : float3(0, 1, 0);
-
     v2 = normalize(cross(ref, v1));
     v3 = cross(v1, v2);
     //float sign = v1.z / abs(v1.z);

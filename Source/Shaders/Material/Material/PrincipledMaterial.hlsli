@@ -27,13 +27,21 @@ struct PrincipledMaterial
         float flatness,
         float spec_trans,
         float eta,
+        float3 emissive,
+        bool twoside,
         float3 normal)
     {
         frame.FromZ(normal);
-        principled.Init(SRGBtoLINEAR(base_color), roughness, anisotropic, 
+        principled.Init(base_color, roughness, anisotropic, 
             spec_trans, eta, sheen, sheen_tint, specular, spec_tint, metallic, clearcoat,
-            clearcoat_gloss, flatness);
+            clearcoat_gloss, flatness, emissive, twoside);
     }
+
+    float3 GetEmissive()
+    {
+        return principled.GetEmissive();
+    }
+
 
     uint Flags()
     {

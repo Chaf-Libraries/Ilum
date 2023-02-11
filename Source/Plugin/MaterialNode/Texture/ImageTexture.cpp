@@ -34,7 +34,7 @@ class ImageTexture : public MaterialNode<ImageTexture>
 		    .SetName("ImageTexture")
 		    .SetCategory("Texture")
 		    .SetVariant(ImageConfig{})
-		    .Input(handle++, "UV", MaterialNodePin::Type::RGB, MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3)
+		    .Input(handle++, "UV", MaterialNodePin::Type::RGB, MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, glm::vec3(0.f))
 		    .Input(handle++, "dUVdx", MaterialNodePin::Type::RGB, MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, glm::vec3(0.f))
 		    .Input(handle++, "dUVdy", MaterialNodePin::Type::RGB, MaterialNodePin::Type::RGB | MaterialNodePin::Type::Float3, glm::vec3(0.f))
 		    .Output(handle++, "Color", MaterialNodePin::Type::RGB)

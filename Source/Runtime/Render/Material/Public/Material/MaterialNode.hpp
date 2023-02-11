@@ -14,11 +14,12 @@ struct MaterialNodePin
 	enum class Type : uint64_t
 	{
 		Unknown = 0,
-		Float   = 1,
-		Float3  = 1 << 1,
-		RGB     = 1 << 2,
-		BSDF    = 1 << 4,
-		Media    = 1 << 5,
+		Bool    = 1,
+		Float   = 1 << 2,
+		Float3  = 1 << 3,
+		RGB     = 1 << 4,
+		BSDF    = 1 << 5,
+		Media   = 1 << 6,
 	};
 
 	enum class Attribute
@@ -101,6 +102,5 @@ class MaterialNodeDesc
 
 	Variant m_variant;
 };
-
 
 }        // namespace Ilum

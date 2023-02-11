@@ -419,8 +419,9 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 
 		for (uint32_t i = 0; i < assimp_node->mNumMeshes; i++)
 		{
-			aiMesh     *assimp_mesh = assimp_scene->mMeshes[assimp_node->mMeshes[i]];
-			std::string mesh_name   = fmt::format("{}.mesh.{}", Path::GetInstance().ValidFileName(path), assimp_node->mMeshes[i]);
+			aiMesh     *assimp_mesh   = assimp_scene->mMeshes[assimp_node->mMeshes[i]];
+			std::string mesh_name     = fmt::format("{}.mesh.{}", Path::GetInstance().ValidFileName(path), assimp_node->mMeshes[i]);
+			std::string material_name = fmt::format("{}.material.{}", Path::GetInstance().ValidFileName(path), assimp_mesh->mMaterialIndex);
 
 			if (assimp_mesh->HasBones())
 			{
@@ -430,6 +431,8 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			{
 				node.resources.emplace_back(std::make_pair(ResourceType::Mesh, mesh_name));
 			}
+
+			node.resources.emplace_back(std::make_pair(ResourceType::Material, material_name));
 		}
 
 		for (uint32_t i = 0; i < assimp_node->mNumChildren; i++)
@@ -443,10 +446,23 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 
 	void ProcessMaterial(ResourceManager *manager, RHIContext *rhi_context, const std::string &path, uint32_t material_id, const aiScene *assimp_scene)
 	{
-		std::string material_name   = fmt::format("{}.material.{}", Path::GetInstance().ValidFileName(path), material_id);
+		std::string material_name = fmt::format("{}.material.{}", Path::GetInstance().ValidFileName(path), material_id);
+
+		if (manager->Has<ResourceType::Material>(material_name))
+		{
+			return;
+		}
+
 		aiMaterial *assimp_material = assimp_scene->mMaterials[material_id];
 
 		MaterialGraphDesc desc;
+		desc.SetName(material_name);
+
+		struct ImageConfig
+		{
+			SamplerDesc sampler;
+			char        filename[200];
+		};
 
 		auto create_material_node = [](size_t &handle, const std::string &category, const std::string &name) {
 			MaterialNodeDesc desc;
@@ -456,42 +472,174 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 
 		size_t current_handle = 0;
 
-		desc.AddNode(current_handle++, create_material_node(current_handle, "BSDF", "PrincipledMaterial"));
-		desc.AddNode(current_handle++, create_material_node(current_handle, "Output", "MaterialOutput"));
+		MaterialNodeDesc &principled_bsdf_node     = desc.AddNode(current_handle++, create_material_node(current_handle, "BSDF", "PrincipledMaterial"));
+		MaterialNodeDesc &output_node              = desc.AddNode(current_handle++, create_material_node(current_handle, "Output", "MaterialOutput"));
+		MaterialNodeDesc *surface_interaction_node = nullptr;
 
-		MaterialNodeDesc principled_bsdf_node = desc.GetNode(0);
-		MaterialNodeDesc output_node = desc.GetNode(1);
+		auto set_image_texture = [&](MaterialNodeDesc &texture_node, const std::string &path) {
+			if (!surface_interaction_node)
+			{
+				surface_interaction_node = &desc.AddNode(current_handle++, create_material_node(current_handle, "Input", "SurfaceInteraction"));
+			}
+			Variant      variant  = texture_node.GetVariant();
+			std::string  filename = Path::GetInstance().ValidFileName(path);
+			ImageConfig *config   = variant.Convert<ImageConfig>();
+			std::memset(config->filename, '\0', 200);
+			std::memcpy(config->filename, filename.data(), filename.length());
+			desc.Link(surface_interaction_node->GetPin("UV").handle, texture_node.GetPin("UV").handle);
+			desc.Link(surface_interaction_node->GetPin("dUVdx").handle, texture_node.GetPin("dUVdx").handle);
+			desc.Link(surface_interaction_node->GetPin("dUVdy").handle, texture_node.GetPin("dUVdy").handle);
+		};
 
 		desc.Link(principled_bsdf_node.GetPin("Out").handle, output_node.GetPin("Surface").handle);
 
 		// Base Color
 		{
-			glm::vec4 base_color = glm::vec4(0.f);
+			glm::vec3 base_color = glm::vec3(0.f);
 			aiString  color_texture;
 
 			assimp_material->Get(AI_MATKEY_BASE_COLOR, base_color.x);
 			assimp_material->GetTexture(AI_MATKEY_BASE_COLOR_TEXTURE, &color_texture);
-			ProcessTexture(manager, rhi_context, path, assimp_scene, color_texture.C_Str());
+
+			if (ProcessTexture(manager, rhi_context, path, assimp_scene, color_texture.C_Str()))
+			{
+				MaterialNodeDesc &texture_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Texture", "ImageTexture"));
+				set_image_texture(texture_node, Path::GetInstance().GetFileDirectory(path) + color_texture.C_Str());
+
+				if (base_color != glm::vec3(1.f))
+				{
+					MaterialNodeDesc &multiply_node   = desc.AddNode(current_handle++, create_material_node(current_handle, "Converter", "VectorCalculate"));
+					multiply_node.GetPin("X").variant = base_color;
+					multiply_node.SetVariant(7);
+					desc.Link(texture_node.GetPin("Color").handle, multiply_node.GetPin("Y").handle);
+
+					MaterialNodeDesc &srgb2linear_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Converter", "SRGBToLinear"));
+					desc.Link(multiply_node.GetPin("Out").handle, srgb2linear_node.GetPin("In").handle);
+					desc.Link(srgb2linear_node.GetPin("Out").handle, principled_bsdf_node.GetPin("BaseColor").handle);
+				}
+				else
+				{
+					MaterialNodeDesc &srgb2linear_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Converter", "SRGBToLinear"));
+					desc.Link(texture_node.GetPin("Color").handle, srgb2linear_node.GetPin("In").handle);
+					desc.Link(srgb2linear_node.GetPin("Out").handle, principled_bsdf_node.GetPin("BaseColor").handle);
+				}
+			}
+			else
+			{
+				principled_bsdf_node.GetPin("BaseColor").variant = base_color;
+			}
 		}
 
-		// Metallic
+		// Metallic & Roughness & Occlusion
 		{
-			float    metallic = 0.f;
+			float    metallic  = 0.f;
+			float    roughness = 0.f;
 			aiString metallic_texture;
+			aiString roughness_texture;
+			aiString occlusion_texture;
 
 			assimp_material->Get(AI_MATKEY_METALLIC_FACTOR, metallic);
 			assimp_material->GetTexture(AI_MATKEY_METALLIC_TEXTURE, &metallic_texture);
-			ProcessTexture(manager, rhi_context, path, assimp_scene, metallic_texture.C_Str());
-		}
-
-		// Roughness
-		{
-			float    roughness = 0.f;
-			aiString roughness_texture;
-
 			assimp_material->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness);
 			assimp_material->GetTexture(AI_MATKEY_ROUGHNESS_TEXTURE, &roughness_texture);
-			ProcessTexture(manager, rhi_context, path, assimp_scene, roughness_texture.C_Str());
+			assimp_material->GetTexture(aiTextureType_LIGHTMAP, 0, &occlusion_texture);
+
+			bool pack_metallic_roughness = (metallic_texture == roughness_texture);
+			bool pack_occlusion          = (occlusion_texture.length == 0 || metallic_texture == occlusion_texture);
+
+			if (pack_metallic_roughness)
+			{
+				// Pack Texture: Occlusion (R) [optional] + Roughness G + Metallic B
+				std::string texture = metallic_texture.C_Str();
+				if (ProcessTexture(manager, rhi_context, path, assimp_scene, texture))
+				{
+					MaterialNodeDesc &texture_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Texture", "ImageTexture"));
+					set_image_texture(texture_node, Path::GetInstance().GetFileDirectory(path) + metallic_texture.C_Str());
+
+					MaterialNodeDesc &split_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Converter", "VectorSplit"));
+
+					desc.Link(texture_node.GetPin("Color").handle, split_node.GetPin("In").handle);
+
+					if (metallic == 1.f && roughness == 1.f)
+					{
+						// TODO : AO Map
+						desc.Link(split_node.GetPin("Y").handle, principled_bsdf_node.GetPin("Roughness").handle);
+						desc.Link(split_node.GetPin("Z").handle, principled_bsdf_node.GetPin("Metallic").handle);
+					}
+					else
+					{
+						MaterialNodeDesc &metallic_scale_node   = desc.AddNode(current_handle++, create_material_node(current_handle, "Converter", "Calculate"));
+						metallic_scale_node.GetPin("X").variant = metallic;
+						metallic_scale_node.SetVariant(2);
+
+						MaterialNodeDesc &roughness_scale_node   = desc.AddNode(current_handle++, create_material_node(current_handle, "Converter", "Calculate"));
+						roughness_scale_node.GetPin("X").variant = roughness;
+						roughness_scale_node.SetVariant(2);
+
+						desc.Link(split_node.GetPin("Y").handle, roughness_scale_node.GetPin("Y").handle);
+						desc.Link(roughness_scale_node.GetPin("Out").handle, principled_bsdf_node.GetPin("Roughness").handle);
+
+						desc.Link(split_node.GetPin("Z").handle, metallic_scale_node.GetPin("Y").handle);
+						desc.Link(metallic_scale_node.GetPin("Out").handle, principled_bsdf_node.GetPin("Metallic").handle);
+					}
+				}
+			}
+			else
+			{
+				// Separated Texture
+				// Metallic
+				if (ProcessTexture(manager, rhi_context, path, assimp_scene, metallic_texture.C_Str()))
+				{
+					MaterialNodeDesc &texture_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Texture", "ImageTexture"));
+					set_image_texture(texture_node, Path::GetInstance().GetFileDirectory(path) + metallic_texture.C_Str());
+
+					if (metallic == 1.f)
+					{
+						desc.Link(texture_node.GetPin("Color").handle, principled_bsdf_node.GetPin("Metallic").handle);
+					}
+					else
+					{
+						MaterialNodeDesc &scale_node   = desc.AddNode(current_handle++, create_material_node(current_handle, "Converter", "Calculate"));
+						scale_node.GetPin("X").variant = metallic;
+						scale_node.SetVariant(2);
+						desc.Link(texture_node.GetPin("Color").handle, scale_node.GetPin("Y").handle);
+						desc.Link(scale_node.GetPin("Out").handle, principled_bsdf_node.GetPin("Metallic").handle);
+					}
+				}
+				else
+				{
+					principled_bsdf_node.GetPin("Metallic").variant = metallic;
+				}
+
+				// Roughness
+				if (ProcessTexture(manager, rhi_context, path, assimp_scene, roughness_texture.C_Str()))
+				{
+					MaterialNodeDesc &texture_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Texture", "ImageTexture"));
+					set_image_texture(texture_node, Path::GetInstance().GetFileDirectory(path) + roughness_texture.C_Str());
+
+					if (roughness == 1.f)
+					{
+						desc.Link(texture_node.GetPin("Color").handle, principled_bsdf_node.GetPin("Roughness").handle);
+					}
+					else
+					{
+						MaterialNodeDesc &scale_node   = desc.AddNode(current_handle++, create_material_node(current_handle, "Converter", "Calculate"));
+						scale_node.GetPin("X").variant = roughness;
+						scale_node.SetVariant(2);
+						desc.Link(texture_node.GetPin("Color").handle, scale_node.GetPin("Y").handle);
+						desc.Link(scale_node.GetPin("Out").handle, principled_bsdf_node.GetPin("Roughness").handle);
+					}
+				}
+				else
+				{
+					principled_bsdf_node.GetPin("Roughness").variant = roughness;
+				}
+			}
+
+			if (!pack_occlusion)
+			{
+				// TODO: AO Map
+			}
 		}
 
 		// Normal
@@ -499,47 +647,115 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			aiString normal_texture;
 			assimp_material->GetTexture(aiTextureType_NORMALS, 0, &normal_texture);
 			ProcessTexture(manager, rhi_context, path, assimp_scene, normal_texture.C_Str());
+
+			if (ProcessTexture(manager, rhi_context, path, assimp_scene, normal_texture.C_Str()))
+			{
+				MaterialNodeDesc &texture_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Texture", "ImageTexture"));
+				set_image_texture(texture_node, Path::GetInstance().GetFileDirectory(path) + normal_texture.C_Str());
+				desc.Link(texture_node.GetPin("Color").handle, principled_bsdf_node.GetPin("Normal").handle);
+			}
 		}
 
 		// Emissive
 		{
-			float     emissive           = 0.f;
-			float     emissive_intensity = 0.f;
-			glm::vec3 emissive_color     = glm::vec3(0.f);
+			glm::vec3 emissive_color = glm::vec3(0.f);
 			aiString  emissive_texture;
 
 			assimp_material->Get(AI_MATKEY_COLOR_EMISSIVE, emissive_color.x);
-			assimp_material->Get(AI_MATKEY_EMISSIVE_INTENSITY, emissive_intensity);
 			assimp_material->GetTexture(aiTextureType_EMISSIVE, 0, &emissive_texture);
-			ProcessTexture(manager, rhi_context, path, assimp_scene, emissive_texture.C_Str());
+			if (ProcessTexture(manager, rhi_context, path, assimp_scene, emissive_texture.C_Str()))
+			{
+				MaterialNodeDesc &texture_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Texture", "ImageTexture"));
+				set_image_texture(texture_node, Path::GetInstance().GetFileDirectory(path) + emissive_texture.C_Str());
+
+				if (emissive_color == glm::vec3(1.f))
+				{
+					MaterialNodeDesc &srgb2linear_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Converter", "SRGBToLinear"));
+					desc.Link(texture_node.GetPin("Color").handle, srgb2linear_node.GetPin("In").handle);
+					desc.Link(srgb2linear_node.GetPin("Out").handle, principled_bsdf_node.GetPin("Emissive").handle);
+				}
+				else
+				{
+					MaterialNodeDesc &multiply_node   = desc.AddNode(current_handle++, create_material_node(current_handle, "Converter", "VectorCalculate"));
+					multiply_node.GetPin("X").variant = emissive_color;
+					multiply_node.SetVariant(7);
+					desc.Link(texture_node.GetPin("Color").handle, multiply_node.GetPin("Y").handle);
+
+					MaterialNodeDesc &srgb2linear_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Converter", "SRGBToLinear"));
+					desc.Link(texture_node.GetPin("Color").handle, srgb2linear_node.GetPin("In").handle);
+					desc.Link(srgb2linear_node.GetPin("Out").handle, principled_bsdf_node.GetPin("Emissive").handle);
+				}
+			}
+			else
+			{
+				principled_bsdf_node.GetPin("Emissive").variant = emissive_color;
+			}
 		}
 
 		// Anisotropic
 		{
 			float anisotropic = 0.f;
 			assimp_material->Get(AI_MATKEY_ANISOTROPY_FACTOR, anisotropic);
+			principled_bsdf_node.GetPin("Anisotropic").variant = anisotropic;
 		}
 
 		// Sheen
 		{
-			aiString sheen_texture;
-			assimp_material->GetTexture(AI_MATKEY_SHEEN_COLOR_TEXTURE, &sheen_texture);
-			ProcessTexture(manager, rhi_context, path, assimp_scene, sheen_texture.C_Str());
+			glm::vec3 sheen_color     = glm::vec3(0.f);
+			float     sheen_roughness = 0.f;
+			aiString  sheen_color_texture;
+			aiString  sheen_roughness_texture;
+			assimp_material->Get(AI_MATKEY_SHEEN_COLOR_FACTOR, sheen_color.x);
+			assimp_material->Get(AI_MATKEY_SHEEN_ROUGHNESS_FACTOR, sheen_roughness);
+			assimp_material->GetTexture(AI_MATKEY_SHEEN_COLOR_TEXTURE, &sheen_color_texture);
+			assimp_material->GetTexture(AI_MATKEY_SHEEN_ROUGHNESS_TEXTURE, &sheen_roughness_texture);
+			ProcessTexture(manager, rhi_context, path, assimp_scene, sheen_color_texture.C_Str());
+			ProcessTexture(manager, rhi_context, path, assimp_scene, sheen_roughness_texture.C_Str());
 		}
 
 		// Clearcoat
 		{
-			float    clearcoat_factor = 0.f;
+			float    clearcoat_factor    = 0.f;
+			float    clearcoat_roughness = 0.f;
 			aiString clearcoat_texture;
+			aiString clearcoat_roughness_texture;
+			aiString clearcoat_normal_texture;
+
 			assimp_material->Get(AI_MATKEY_CLEARCOAT_FACTOR, clearcoat_factor);
+			assimp_material->Get(AI_MATKEY_CLEARCOAT_FACTOR, clearcoat_roughness);
 			assimp_material->GetTexture(AI_MATKEY_SHEEN_COLOR_TEXTURE, &clearcoat_texture);
+			assimp_material->GetTexture(AI_MATKEY_SHEEN_COLOR_TEXTURE, &clearcoat_roughness_texture);
+			assimp_material->GetTexture(AI_MATKEY_SHEEN_COLOR_TEXTURE, &clearcoat_normal_texture);
 			ProcessTexture(manager, rhi_context, path, assimp_scene, clearcoat_texture.C_Str());
+			ProcessTexture(manager, rhi_context, path, assimp_scene, clearcoat_roughness_texture.C_Str());
+			ProcessTexture(manager, rhi_context, path, assimp_scene, clearcoat_normal_texture.C_Str());
 		}
 
 		// Transmission
 		{
-			float transmission_factor = 0.f;
+			float    transmission_factor = 0.f;
+			aiString transmission_texture;
 			assimp_material->Get(AI_MATKEY_TRANSMISSION_FACTOR, transmission_factor);
+			assimp_material->GetTexture(AI_MATKEY_TRANSMISSION_TEXTURE, &transmission_texture);
+
+			if (ProcessTexture(manager, rhi_context, path, assimp_scene, transmission_texture.C_Str()))
+			{
+				MaterialNodeDesc &texture_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Texture", "ImageTexture"));
+				set_image_texture(texture_node, Path::GetInstance().GetFileDirectory(path) + transmission_texture.C_Str());
+
+				if (transmission_factor == 1.f)
+				{
+					desc.Link(texture_node.GetPin("Color").handle, principled_bsdf_node.GetPin("SpecTrans").handle);
+				}
+				else
+				{
+					MaterialNodeDesc &scale_node   = desc.AddNode(current_handle++, create_material_node(current_handle, "Converter", "Calculate"));
+					scale_node.GetPin("X").variant = transmission_factor;
+					scale_node.SetVariant(2);
+					desc.Link(texture_node.GetPin("Color").handle, scale_node.GetPin("Y").handle);
+					desc.Link(scale_node.GetPin("Out").handle, principled_bsdf_node.GetPin("SpecTrans").handle);
+				}
+			}
 		}
 
 		// Volume
@@ -549,9 +765,12 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 
 		// Displacement
 		{
-			float displace_ment = 0.f;
-			assimp_material->Get(AI_MATKEY_TEXTURE_DISPLACEMENT(0), displace_ment);
+			aiString displacement_texture;
+			assimp_material->GetTexture(aiTextureType_DISPLACEMENT, 0, &displacement_texture);
+			ProcessTexture(manager, rhi_context, path, assimp_scene, displacement_texture.C_Str());
 		}
+
+		manager->Add<ResourceType::Material>(rhi_context, material_name, std::move(desc));
 	}
 
 	bool ProcessTexture(ResourceManager *manager, RHIContext *rhi_context, const std::string &path, const aiScene *assimp_scene, const std::string &filename)
@@ -560,7 +779,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 		if (texture_id < 0 && filename.empty())
 		{
 			return false;
-		} 
+		}
 
 		if (texture_id < 0)
 		{
@@ -659,11 +878,8 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 				{
 					ProcessMesh(manager, rhi_context, path, i, assimp_scene, data);
 				}
-			}
 
-			for (uint32_t i = 0; i < assimp_scene->mNumMaterials; i++)
-			{
-				ProcessMaterial(manager, rhi_context, path, i, assimp_scene);
+				ProcessMaterial(manager, rhi_context, path, assimp_mesh->mMaterialIndex, assimp_scene);
 			}
 
 			aiMatrix4x4 identity;

@@ -10,6 +10,8 @@ struct DiffuseMaterial
     DiffuseBSDF diffuse;
     Frame frame;
 
+    HAS_NO_EMISSIVE
+
     void Init(float3 R, float3 normal)
     {
         diffuse.Init(SRGBtoLINEAR(R));

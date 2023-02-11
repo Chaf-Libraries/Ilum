@@ -37,6 +37,7 @@ class RectLight : public Light
 		glm::vec4 corner[4];
 
 		alignas(16) uint32_t texture_id = ~0U;
+		uint32_t two_side               = 0;
 	} m_data;
 };
 }        // namespace Cmpt

@@ -13,7 +13,7 @@ class MaterialGraphDesc
 
 	MaterialGraphDesc &SetName(const std::string &name);
 
-	MaterialGraphDesc &AddNode(size_t handle, MaterialNodeDesc &&desc);
+	MaterialNodeDesc &AddNode(size_t handle, MaterialNodeDesc &&desc);
 
 	void EraseNode(size_t handle);
 

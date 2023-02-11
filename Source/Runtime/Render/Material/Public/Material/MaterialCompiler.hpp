@@ -17,8 +17,8 @@ struct MaterialCompilationContext
 
 		std::string initialization = "";
 
-		template<typename Archive>
-		void serialize(Archive& archive)
+		template <typename Archive>
+		void serialize(Archive &archive)
 		{
 			archive(name, type, initialization);
 		}
@@ -35,12 +35,12 @@ struct MaterialCompilationContext
 	struct
 	{
 		std::string bsdf = "";
-	}output;
+	} output;
 
 	std::unordered_set<size_t> finish_nodes;
 
 	template <typename Archive>
-	void serialize(Archive& archive)
+	void serialize(Archive &archive)
 	{
 		archive(variables, textures, samplers, bsdfs, output.bsdf, finish_nodes);
 	}
@@ -76,13 +76,19 @@ struct MaterialCompilationContext
 	}
 
 	template <>
+	inline void SetParameter(const std::string &name, std::map<std::string, std::string> &parameters, bool var)
+	{
+		parameters[name] = fmt::format("{}", var);
+	}
+
+	template <>
 	inline void SetParameter(const std::string &name, std::map<std::string, std::string> &parameters, glm::vec3 var)
 	{
 		parameters[name] = fmt::format("float3({}, {}, {})", var.x, var.y, var.z);
 	}
 
 	template <typename T>
-	inline bool HasParameter(std::map<std::string, std::string>& parameters, const MaterialNodePin& node_pin, const MaterialGraphDesc& graph_desc, ResourceManager* manager, MaterialCompilationContext* context)
+	inline bool HasParameter(std::map<std::string, std::string> &parameters, const MaterialNodePin &node_pin, const MaterialGraphDesc &graph_desc, ResourceManager *manager, MaterialCompilationContext *context)
 	{
 		if (graph_desc.HasLink(node_pin.handle))
 		{

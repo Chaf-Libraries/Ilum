@@ -330,6 +330,9 @@ class MaterialGraphEditor : public Widget
 			case MaterialNodePin::Type::RGB:
 				ImGui::ColorEdit3("", glm::value_ptr(*pin.variant.Convert<glm::vec3>()), ImGuiColorEditFlags_NoInputs);
 				break;
+			case MaterialNodePin::Type::Bool:
+				ImGui::Checkbox("", pin.variant.Convert<bool>());
+				break;
 			default:
 				break;
 		}
