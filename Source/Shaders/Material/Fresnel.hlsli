@@ -91,7 +91,6 @@ float3 FresnelConductor(float cos_theta_i, float3 eta, float3 k)
     float3 t4 = t2 * sin_theta_i2;
     float3 Rp = Rs * (t3 - t4) / (t3 + t4);
 
-    return 1;
     return 0.5 * (Rp + Rs);
 }
 

@@ -10,6 +10,8 @@ struct ConductorMaterial
     ConductorBSDF conductor;
     Frame frame;
 
+    HAS_NO_EMISSIVE
+
     void Init(float3 R, float roughness, float3 eta, float3 k, float3 normal)
     {
         conductor.Init(SRGBtoLINEAR(R), roughness, eta, k);

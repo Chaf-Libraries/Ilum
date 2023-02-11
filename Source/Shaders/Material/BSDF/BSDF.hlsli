@@ -127,6 +127,11 @@ float3 SRGBtoLINEAR(float3 srgb_in)
 //     float PDF(float3 wo, float3 wi, TransportMode mode, SampleFlags flags);
 
 //     BSDFSample Samplef(float3 wo, float uc, float2 u, TransportMode mode, SampleFlags flags);
+
+//     float3 GetEmissive();
+
 // };
+
+#define HAS_NO_EMISSIVE float3 GetEmissive(){ return 0.f; }
 
 #endif

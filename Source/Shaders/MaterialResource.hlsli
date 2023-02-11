@@ -36,11 +36,18 @@ T GetMaterialData(uint material_id)
 float3 ExtractNormalMap(SurfaceInteraction interaction, float3 normal_vector)
 {
     float3 T, B;
-    CreateCoordinateSystem(interaction.isect.n, T, B);
-    float3x3 TBN = float3x3(T, B, interaction.isect.n);
+    Frame frame;
+    if(IsBlack(interaction.isect.nt))
+    {
+        frame.FromZ(interaction.isect.n);
+    }
+    else
+    {
+        frame.FromXZ(interaction.isect.nt, interaction.isect.n);
+    }
     normal_vector = normal_vector * 2.0 - 1.0;
     normal_vector = normalize(normal_vector);
-    return normalize(mul(normal_vector, TBN));
+    return normalize(frame.ToWorld(normal_vector));
     
     
     //Frame frame;

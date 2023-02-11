@@ -13,6 +13,11 @@ struct MixMaterial
     T2 material2;
     float weight;
 
+    float3 GetEmissive()
+    {
+        return lerp(material1.GetEmissive(), material2.GetEmissive(), weight);
+    }
+
     void Init(T1 material1_, T2 material2_, float weight_)
     {
         material1 = material1_;

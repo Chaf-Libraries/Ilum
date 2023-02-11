@@ -39,22 +39,27 @@ struct BSDF
         
      uint Flags()
      {
-            return {{&BxDFName}}.Flags();
+        return {{&BxDFName}}.Flags();
     }
 
-    float3 Eval(float3 wo, float3 wi, TransportMode mode)
+    float3 Eval(float3 woW, float3 wiW, TransportMode mode)
     {
-        return {{&BxDFName}}.Eval(wo, wi, mode);
+        return {{&BxDFName}}.Eval(woW, wiW, mode);
     }
 
-    float PDF(float3 wo, float3 wi, TransportMode mode, SampleFlags flags)
+    float PDF(float3 woW, float3 wiW, TransportMode mode, SampleFlags flags)
     {
-        return {{&BxDFName}}.PDF(wo, wi, mode, flags);
+        return {{&BxDFName}}.PDF(woW, wiW, mode, flags);
     }
 
-    BSDFSample Samplef(float3 wo, float uc, float2 u, TransportMode mode, SampleFlags flags)
+    BSDFSample Samplef(float3 woW, float uc, float2 u, TransportMode mode, SampleFlags flags)
     {
-        return {{&BxDFName}}.Samplef(wo, uc, u, mode, flags);
+        return {{&BxDFName}}.Samplef(woW, uc, u, mode, flags);
+    }
+
+    float3 GetEmissive()
+    {
+        return {{&BxDFName}}.GetEmissive();
     }
 };
 

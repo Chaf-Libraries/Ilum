@@ -351,6 +351,8 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
     surface_interaction.isect.uv = v0.texcoord0.xy * bary.x + v1.texcoord0.xy * bary.y + v2.texcoord0.xy * bary.z;
     surface_interaction.isect.n = v0.normal.xyz * bary.x + v1.normal.xyz * bary.y + v2.normal.xyz * bary.z;
     surface_interaction.isect.n = normalize(mul(WorldToObject4x3(), normalize(surface_interaction.isect.n)).xyz);
+    surface_interaction.isect.nt = v0.tangent.xyz * bary.x + v1.tangent.xyz * bary.y + v2.tangent.xyz * bary.z;
+    surface_interaction.isect.nt = normalize(mul(WorldToObject4x3(), normalize(surface_interaction.isect.nt)).xyz);
     surface_interaction.shading_n = dot(surface_interaction.isect.n, -WorldRayDirection()) <= 0 ? -surface_interaction.isect.n : surface_interaction.isect.n;
     surface_interaction.isect.wo = -normalize(WorldRayDirection());
     surface_interaction.isect.t = RayTCurrent();
@@ -395,6 +397,9 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
     
     Material material;
     material.Init(surface_interaction);
+
+    // Sample emissive
+    pay_load.radiance += material.bsdf.GetEmissive() * pay_load.throughout;
     
     pay_load.interaction = surface_interaction;
     float3 wo = surface_interaction.isect.wo;
@@ -423,6 +428,7 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
     {
         pay_load.eta *= Sqr(bs.eta);
     }
+
     pay_load.wi = bs.wiW;
    //Frame frame;
  // frame.FromZ(surface_interaction.isect.n);

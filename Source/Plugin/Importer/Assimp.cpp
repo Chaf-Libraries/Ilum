@@ -511,13 +511,17 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 					MaterialNodeDesc &multiply_node   = desc.AddNode(current_handle++, create_material_node(current_handle, "Converter", "VectorCalculate"));
 					multiply_node.GetPin("X").variant = base_color;
 					multiply_node.SetVariant(7);
-
 					desc.Link(texture_node.GetPin("Color").handle, multiply_node.GetPin("Y").handle);
-					desc.Link(multiply_node.GetPin("Out").handle, principled_bsdf_node.GetPin("BaseColor").handle);
+
+					MaterialNodeDesc &srgb2linear_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Converter", "SRGBToLinear"));
+					desc.Link(multiply_node.GetPin("Out").handle, srgb2linear_node.GetPin("In").handle);
+					desc.Link(srgb2linear_node.GetPin("Out").handle, principled_bsdf_node.GetPin("BaseColor").handle);
 				}
 				else
 				{
-					desc.Link(texture_node.GetPin("Color").handle, principled_bsdf_node.GetPin("BaseColor").handle);
+					MaterialNodeDesc &srgb2linear_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Converter", "SRGBToLinear"));
+					desc.Link(texture_node.GetPin("Color").handle, srgb2linear_node.GetPin("In").handle);
+					desc.Link(srgb2linear_node.GetPin("Out").handle, principled_bsdf_node.GetPin("BaseColor").handle);
 				}
 			}
 			else
@@ -654,17 +658,37 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 
 		// Emissive
 		{
-			float     emissive           = 0.f;
-			float     emissive_intensity = 0.f;
-			glm::vec3 emissive_color     = glm::vec3(0.f);
+			glm::vec3 emissive_color = glm::vec3(0.f);
 			aiString  emissive_texture;
 
 			assimp_material->Get(AI_MATKEY_COLOR_EMISSIVE, emissive_color.x);
-			assimp_material->Get(AI_MATKEY_EMISSIVE_INTENSITY, emissive_intensity);
 			assimp_material->GetTexture(aiTextureType_EMISSIVE, 0, &emissive_texture);
 			if (ProcessTexture(manager, rhi_context, path, assimp_scene, emissive_texture.C_Str()))
 			{
-				// TODO
+				MaterialNodeDesc &texture_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Texture", "ImageTexture"));
+				set_image_texture(texture_node, Path::GetInstance().GetFileDirectory(path) + emissive_texture.C_Str());
+
+				if (emissive_color == glm::vec3(1.f))
+				{
+					MaterialNodeDesc &srgb2linear_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Converter", "SRGBToLinear"));
+					desc.Link(texture_node.GetPin("Color").handle, srgb2linear_node.GetPin("In").handle);
+					desc.Link(srgb2linear_node.GetPin("Out").handle, principled_bsdf_node.GetPin("Emissive").handle);
+				}
+				else
+				{
+					MaterialNodeDesc &multiply_node   = desc.AddNode(current_handle++, create_material_node(current_handle, "Converter", "VectorCalculate"));
+					multiply_node.GetPin("X").variant = emissive_color;
+					multiply_node.SetVariant(7);
+					desc.Link(texture_node.GetPin("Color").handle, multiply_node.GetPin("Y").handle);
+
+					MaterialNodeDesc &srgb2linear_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Converter", "SRGBToLinear"));
+					desc.Link(texture_node.GetPin("Color").handle, srgb2linear_node.GetPin("In").handle);
+					desc.Link(srgb2linear_node.GetPin("Out").handle, principled_bsdf_node.GetPin("Emissive").handle);
+				}
+			}
+			else
+			{
+				principled_bsdf_node.GetPin("Emissive").variant = emissive_color;
 			}
 		}
 

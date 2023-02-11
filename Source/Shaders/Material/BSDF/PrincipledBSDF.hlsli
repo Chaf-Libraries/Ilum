@@ -183,6 +183,8 @@ struct PrincipledBSDF
     float clearcoat;
     float clearcoat_gloss;
     float subsurface;
+    float3 emissive;
+    bool twoside;
 
     void Init(
         float3 base_color_,
@@ -197,7 +199,9 @@ struct PrincipledBSDF
         float metallic_,
         float clearcoat_,
         float clearcoat_gloss_,
-        float subsurface_)
+        float subsurface_,
+        float3 emissive_,
+        bool twoside_)
     {
         base_color = base_color_;
         roughness = roughness_;
@@ -212,6 +216,13 @@ struct PrincipledBSDF
         clearcoat = clearcoat_;
         clearcoat_gloss = clearcoat_gloss_;
         subsurface = subsurface_;
+        emissive = emissive_;
+        twoside = twoside_;
+    }
+
+    float3 GetEmissive()
+    {
+        return emissive;
     }
 
     uint Flags()
@@ -247,7 +258,7 @@ struct PrincipledBSDF
 
         wm = FaceForward(normalize(wm), float3(0, 0, 1));
 
-        bool front_side = cos_theta_o > 0.f;
+        bool front_side = cos_theta_o > 0.f || twoside;
 
         float F_dielectric = FresnelDielectric(CosTheta(wo), eta);
 
@@ -358,7 +369,7 @@ struct PrincipledBSDF
 
         wm = FaceForward(normalize(wm), float3(0, 0, 1));
 
-        bool front_side = cos_theta_o > 0.f;
+        bool front_side = cos_theta_o > 0.f || twoside;
 
         float F_dielectric = FresnelDielectric(CosTheta(wo), eta);
 
@@ -432,7 +443,7 @@ struct PrincipledBSDF
         bool has_reflect = (flags & SampleFlags_Reflection);
         bool has_refract = (flags & SampleFlags_Transmission);
 
-        bool front_side = cos_theta_o > 0.f;
+        bool front_side = cos_theta_o > 0.f || twoside;
 
         float F_dielectric = FresnelDielectric(CosTheta(wo), eta);
 

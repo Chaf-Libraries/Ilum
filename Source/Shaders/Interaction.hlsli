@@ -71,6 +71,7 @@ struct Interaction
 {
     float3 p;
     float3 n;
+    float3 nt;
     float2 uv;
     float3 wo;
     float t;
@@ -88,7 +89,7 @@ struct Interaction
     {
         RayDesc ray;
         ray.Direction = dir;
-        ray.Origin = OffsetRayOrigin(p, dot(dir, n) > 0.0 ? n : -n);
+        ray.Origin = OffsetRayOrigin(p, FaceForward(n, dir));
         return ray;
     }
     

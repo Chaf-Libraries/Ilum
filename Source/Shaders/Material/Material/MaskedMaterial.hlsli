@@ -14,6 +14,11 @@ struct MaskedMaterial
     float alpha;
     float threshold;
 
+    float3 GetEmissive()
+    {
+        return material.GetEmissive();
+    }
+
     void Init(T material_, float alpha_, float threshold_)
     {
         material = material_;

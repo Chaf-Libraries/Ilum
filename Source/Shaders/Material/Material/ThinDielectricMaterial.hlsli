@@ -8,6 +8,8 @@ struct ThinDielectricMaterial
     ThinDielectricBSDF thin_dielectric;
     Frame frame;
 
+    HAS_NO_EMISSIVE
+
     void Init(float3 R, float3 T, float eta, float3 normal)
     {
         thin_dielectric.Init(SRGBtoLINEAR(R), SRGBtoLINEAR(T), eta);
