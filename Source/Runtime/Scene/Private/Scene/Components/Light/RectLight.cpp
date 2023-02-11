@@ -17,7 +17,7 @@ bool RectLight::OnImGui()
 {
 	m_update |= ImGui::ColorEdit3("Color", &m_data.color.x);
 	m_update |= ImGui::DragFloat("Intensity", &m_data.intensity, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
-	
+	m_update |= ImGui::Checkbox("Two Side", reinterpret_cast<bool *>(&m_data.two_side));
 	return m_update;
 }
 

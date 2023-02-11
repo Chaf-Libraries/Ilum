@@ -238,11 +238,14 @@ struct RectLight
     float intensity;
     float4 corner[4];
     uint texture_id;
+    uint two_side;
 
     LightLiSample SampleLi(LightSampleContext ctx, float2 u)
     {
         float3 v0 = (corner[1] - corner[0]).xyz;
         float3 v1 = (corner[3] - corner[0]).xyz;
+        
+        float3 n = cross(v0, v1);
         
         float area = length(cross(v0, v1));
         
@@ -250,7 +253,7 @@ struct RectLight
         isect.p = corner[0].xyz + v0 * u.x + v1 * u.y;
         
         float3 wi = normalize(isect.p - ctx.p);
-        float3 L = color.rgb * intensity / DistanceSquared(isect.p, ctx.p) / area;
+        float3 L = (two_side || dot(wi, n)) > 0 ? color.rgb * intensity / DistanceSquared(isect.p, ctx.p) / area : 0.f;
         
         LightLiSample li_sample;
         li_sample.Create(L, wi, 1.f / area, isect);
