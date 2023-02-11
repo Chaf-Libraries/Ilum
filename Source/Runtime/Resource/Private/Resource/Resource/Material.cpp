@@ -41,6 +41,9 @@ Resource<ResourceType::Material>::Resource(RHIContext *rhi_context, const std::s
 	std::vector<uint8_t> thumbnail_data;
 
 	SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Material), thumbnail_data, m_impl->desc, m_impl->layout, m_impl->context, m_impl->data);
+
+	m_impl->dirty = true;
+	m_impl->valid = false;
 }
 
 Resource<ResourceType::Material>::~Resource()
@@ -168,11 +171,11 @@ void Resource<ResourceType::Material>::Update(RHIContext *rhi_context, ResourceM
 	}
 }
 
-void Resource<ResourceType::Material>::PostUpdate(RHIContext *rhi_context, const std::vector<RHITexture *> &scene_texture_2d, const std::vector<RHISampler *> &samplers, RHIBuffer *material_buffers, RHIBuffer *material_offsets)
+void Resource<ResourceType::Material>::PostUpdate(RHIContext *rhi_context, uint32_t material_id, const std::vector<RHITexture *> &scene_texture_2d, const std::vector<RHISampler *> &samplers, RHIBuffer *material_buffers, RHIBuffer *material_offsets)
 {
 	if (m_impl->dirty)
 	{
-		std::vector<uint8_t> thumbnail_data = RenderPreview(rhi_context, scene_texture_2d, samplers, material_buffers, material_offsets);
+		std::vector<uint8_t> thumbnail_data = RenderPreview(rhi_context, material_id, scene_texture_2d, samplers, material_buffers, material_offsets);
 		SERIALIZE(fmt::format("Asset/Meta/{}.{}.asset", m_name, (uint32_t) ResourceType::Material), thumbnail_data, m_impl->desc, m_impl->layout, m_impl->context, m_impl->data);
 		m_impl->dirty = false;
 	}
@@ -203,7 +206,7 @@ bool Resource<ResourceType::Material>::IsValid() const
 	return m_impl->valid;
 }
 
-std::vector<uint8_t> Resource<ResourceType::Material>::RenderPreview(RHIContext *rhi_context, const std::vector<RHITexture *> &scene_texture_2d, const std::vector<RHISampler *> &samplers, RHIBuffer *material_buffers, RHIBuffer *material_offsets)
+std::vector<uint8_t> Resource<ResourceType::Material>::RenderPreview(RHIContext *rhi_context, uint32_t material_id, const std::vector<RHITexture *> &scene_texture_2d, const std::vector<RHISampler *> &samplers, RHIBuffer *material_buffers, RHIBuffer *material_offsets)
 {
 	std::vector<Resource<ResourceType::Mesh>::Vertex> vertices;
 
@@ -232,7 +235,7 @@ std::vector<uint8_t> Resource<ResourceType::Material>::RenderPreview(RHIContext 
 	vertex_shader_desc.source      = ShaderSource::HLSL;
 	vertex_shader_desc.target      = ShaderTarget::SPIRV;
 	vertex_shader_desc.code        = fmt::format("#include \"{}\"\n", m_impl->data.shader) + shader_source;
-	vertex_shader_desc.macros      = {"USE_MATERIAL", m_impl->data.signature};
+	vertex_shader_desc.macros      = {"USE_MATERIAL", m_impl->data.signature, "MATERIAL_ID = " + std::to_string(material_id)};
 
 	ShaderDesc fragment_shader_desc  = {};
 	fragment_shader_desc.path        = "./Source/Shaders/Preview/Material.hlsl";
@@ -241,7 +244,7 @@ std::vector<uint8_t> Resource<ResourceType::Material>::RenderPreview(RHIContext 
 	fragment_shader_desc.source      = ShaderSource::HLSL;
 	fragment_shader_desc.target      = ShaderTarget::SPIRV;
 	fragment_shader_desc.code        = fmt::format("#include \"{}\"\n", m_impl->data.shader) + shader_source;
-	fragment_shader_desc.macros      = {"USE_MATERIAL", m_impl->data.signature};
+	fragment_shader_desc.macros      = {"USE_MATERIAL", m_impl->data.signature, "MATERIAL_ID = " + std::to_string(material_id)};
 
 	ShaderMeta vertex_meta   = {};
 	ShaderMeta fragment_meta = {};

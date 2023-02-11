@@ -566,6 +566,13 @@ void Renderer::UpdateGPUScene()
 			for (auto &resource : resources)
 			{
 				auto *material = m_impl->resource_manager->Get<ResourceType::Material>(resource);
+				if (!material->IsValid())
+				{
+					material->Compile(
+					    m_impl->rhi_context,
+					    m_impl->resource_manager,
+					    m_impl->black_board.Get<DummyTexture>()->black_opaque.get());
+				}
 				for (auto &[texture, texture_name] : material->GetCompilationContext().textures)
 				{
 					m_impl->resource_manager->Index<ResourceType::Texture2D>(texture_name);
@@ -598,12 +605,10 @@ void Renderer::UpdateGPUScene()
 			{
 				auto *material = m_impl->resource_manager->Get<ResourceType::Material>(resource);
 
-				DummyTexture *dummy_texture = m_impl->black_board.Get<DummyTexture>();
-
 				material->Update(
 				    m_impl->rhi_context,
 				    m_impl->resource_manager,
-				    dummy_texture->black_opaque.get());
+				    m_impl->black_board.Get<DummyTexture>()->black_opaque.get());
 
 				const auto &data = material->GetMaterialData();
 
@@ -650,6 +655,7 @@ void Renderer::UpdateGPUScene()
 
 				material->PostUpdate(
 				    m_impl->rhi_context,
+				    static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Material>(resource)),
 				    gpu_scene->textures.texture_2d,
 				    gpu_scene->samplers,
 				    gpu_scene->material.material_buffer.get(),
