@@ -6,7 +6,7 @@ Ilum Graphics Playground, name after *Planet Ilum* from [star wars](https://star
 
 A framework for computer graphics learning and practice (It's not a game engine!)
 
-![image-20230210192957599](./Doc/Img/image-20230210192957599.png)
+![image-20230212023548756](Doc/Img/image-20230212023548756.png)
 
 ## Install
 
@@ -259,3 +259,4 @@ CONFIGURATION_PASS(MyRenderPass)
 * [http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf.](http://blog.selfshadow.com/publications/s2015-shading-course/burley/s2015_pbs_disney_bsdf_notes.pdf.)
 * [https://www.froyok.fr/blog/2021-12-ue4-custom-bloom/](https://www.froyok.fr/blog/2021-12-ue4-custom-bloom/)
 
+* [https://filmicworlds.com/blog/visibility-buffer-rendering-with-material-graphs](https://filmicworlds.com/blog/visibility-buffer-rendering-with-material-graphs)
