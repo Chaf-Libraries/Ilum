@@ -1,5 +1,5 @@
-#ifndef PRINCIPLED_BSDF_HLSLI
-#define PRINCIPLED_BSDF_HLSLI
+#ifndef DISNEY_BSDF_HLSLI
+#define DISNEY_BSDF_HLSLI
 
 #include "BSDF.hlsli"
 #include "../Scattering.hlsli"
@@ -168,7 +168,7 @@ float3 DisneyClearcoatSample(float gloss, float3 wo, float2 u)
     return wi;
 }
 
-struct PrincipledBSDF
+struct DisneyBSDF
 {
     float3 base_color;
     float roughness;

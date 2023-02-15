@@ -93,6 +93,7 @@ void Resource<ResourceType::Material>::Compile(RHIContext *rhi_context, Resource
 		kainjow::mustache::data     mustache_data{kainjow::mustache::data::type::object};
 
 		{
+			kainjow::mustache::data headers{kainjow::mustache::data::type::list};
 			kainjow::mustache::data initializations{kainjow::mustache::data::type::list};
 			kainjow::mustache::data textures{kainjow::mustache::data::type::list};
 			kainjow::mustache::data samplers{kainjow::mustache::data::type::list};
@@ -108,6 +109,7 @@ void Resource<ResourceType::Material>::Compile(RHIContext *rhi_context, Resource
 			{
 				samplers << kainjow::mustache::data{"Sampler", sampler};
 			}
+			std::unordered_set<std::string> bsdf_types;
 			for (auto &bsdf : m_impl->context.bsdfs)
 			{
 				if (bsdf.name != m_impl->context.output.bsdf)
@@ -120,9 +122,16 @@ void Resource<ResourceType::Material>::Compile(RHIContext *rhi_context, Resource
 					mustache_data.set("BxDFType", bsdf.type);
 					mustache_data.set("BxDFName", bsdf.name);
 				}
+				bsdf_types.insert(bsdf.type);
 			}
 			initializations << kainjow::mustache::data{"Initialization", m_impl->context.bsdfs.back().initialization};
 
+			for (auto& bsdf_type : bsdf_types)
+			{
+				headers << kainjow::mustache::data{"MaterialHeader", fmt::format("#include \"Material/Material/{}.hlsli\"", bsdf_type)};
+			}
+
+			mustache_data.set("MaterialHeaders", headers);
 			mustache_data.set("Initializations", initializations);
 			mustache_data.set("Textures", textures);
 			mustache_data.set("Samplers", samplers);
@@ -298,6 +307,7 @@ std::vector<uint8_t> Resource<ResourceType::Material>::RenderPreview(RHIContext 
 	    {
 	        VertexInputState::InputAttribute{RHIVertexSemantics::Position, 0, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, position)},
 	        VertexInputState::InputAttribute{RHIVertexSemantics::Normal, 1, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, normal)},
+	        VertexInputState::InputAttribute{RHIVertexSemantics::Tangent, 2, 0, RHIFormat::R32G32B32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, tangent)},
 	        VertexInputState::InputAttribute{RHIVertexSemantics::Texcoord, 3, 0, RHIFormat::R32G32_FLOAT, offsetof(Resource<ResourceType::Mesh>::Vertex, texcoord0)},
 	    },
 	    {

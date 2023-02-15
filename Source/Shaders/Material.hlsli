@@ -7,13 +7,10 @@
 #include "MaterialResource.hlsli"
 
 #include "Material/BSDF/BSDF.hlsli"
-#include "Material/Material/DiffuseMaterial.hlsli"
-#include "Material/Material/ConductorMaterial.hlsli"
-#include "Material/Material/DielectricMaterial.hlsli"
-#include "Material/Material/ThinDielectricMaterial.hlsli"
-#include "Material/Material/MixMaterial.hlsli"
-#include "Material/Material/MaskedMaterial.hlsli"
-#include "Material/Material/PrincipledMaterial.hlsli"
+
+{{#MaterialHeaders}}
+{{&MaterialHeader}}
+{{/MaterialHeaders}}
 
 struct MaterialData
 {

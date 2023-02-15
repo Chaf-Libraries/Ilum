@@ -1,16 +1,16 @@
 #ifndef PRINCIPLED_MATERIAL_HLSLI
 #define PRINCIPLED_MATERIAL_HLSLI
 
-#include "../BSDF/PrincipledBSDF.hlsli"
+#include "../BSDF/DisneyBSDF.hlsli"
 #include "../Scattering.hlsli"
 #include "../Fresnel.hlsli"
 #include "../../Math.hlsli"
 #include "../../Common.hlsli"
 #include "../../Interaction.hlsli"
 
-struct PrincipledMaterial
+struct DisneyMaterial
 {
-    PrincipledBSDF principled;
+    DisneyBSDF disney;
     Frame frame;
 
     void Init(
@@ -32,35 +32,35 @@ struct PrincipledMaterial
         float3 normal)
     {
         frame.FromZ(normal);
-        principled.Init(base_color, roughness, anisotropic, 
+        disney.Init(base_color, roughness, anisotropic, 
             spec_trans, eta, sheen, sheen_tint, specular, spec_tint, metallic, clearcoat,
             clearcoat_gloss, flatness, emissive, twoside);
     }
 
     float3 GetEmissive()
     {
-        return principled.GetEmissive();
+        return disney.GetEmissive();
     }
 
 
     uint Flags()
     {
-        return principled.Flags();
+        return disney.Flags();
     }
 
     float3 Eval(float3 woW, float3 wiW, TransportMode mode)
     {
-        return principled.Eval(frame.ToLocal(woW), frame.ToLocal(wiW), mode);
+        return disney.Eval(frame.ToLocal(woW), frame.ToLocal(wiW), mode);
     }
 
     float PDF(float3 woW, float3 wiW, TransportMode mode, SampleFlags flags)
     {
-        return principled.PDF(frame.ToLocal(woW), frame.ToLocal(wiW), mode, flags);
+        return disney.PDF(frame.ToLocal(woW), frame.ToLocal(wiW), mode, flags);
     }
 
     BSDFSample Samplef(float3 woW, float uc, float2 u, TransportMode mode, SampleFlags flags)
     {
-        BSDFSample bsdf_sample = principled.Samplef(frame.ToLocal(woW), uc, u, mode, flags);
+        BSDFSample bsdf_sample = disney.Samplef(frame.ToLocal(woW), uc, u, mode, flags);
         bsdf_sample.wiW = frame.ToWorld(bsdf_sample.wi);
         return bsdf_sample;
     }

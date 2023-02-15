@@ -511,6 +511,7 @@ float CalculatePointLightShadow(PointLight light, uint idx, SurfaceInteraction i
 {
     float3 L = interaction.isect.p - light.position;
     
+#ifdef HAS_SHADOW
 #ifdef SHADOW_FILTER_NONE
     return 1.f;
 #endif
@@ -526,6 +527,10 @@ float CalculatePointLightShadow(PointLight light, uint idx, SurfaceInteraction i
 #ifdef SHADOW_FILTER_PCSS
     return SampleShadowmapCubePCSS(PointLightShadow, L, idx, light.filter_scale, light.filter_sample, light.light_scale);
 #endif
+    
+#else
+    return 1.f;
+#endif
 }
 #endif
 
@@ -537,6 +542,7 @@ float CalculateSpotLightShadow(SpotLight light, uint idx, SurfaceInteraction int
     shadow_coord.xy = shadow_coord.xy * 0.5 + 0.5;
     shadow_coord.y = 1.0 - shadow_coord.y;
 
+#ifdef HAS_SHADOW
 #ifdef SHADOW_FILTER_NONE
     return 1.f;
 #endif
@@ -551,6 +557,10 @@ float CalculateSpotLightShadow(SpotLight light, uint idx, SurfaceInteraction int
     
 #ifdef SHADOW_FILTER_PCSS
     return SampleShadowmapPCSS(SpotLightShadow, shadow_coord, idx, light.filter_sample, light.filter_scale, light.light_scale);
+#endif
+    
+#else
+    return 1.f;
 #endif
 }
 #endif
@@ -579,6 +589,7 @@ float CalculateDirectionalLightShadow(DirectionalLight light, uint idx, SurfaceI
 
     uint layer = idx * 4 + cascade_index;
     
+#ifdef HAS_SHADOW
 #ifdef SHADOW_FILTER_NONE
     return 1.f;
 #endif
@@ -593,6 +604,10 @@ float CalculateDirectionalLightShadow(DirectionalLight light, uint idx, SurfaceI
     
 #ifdef SHADOW_FILTER_PCSS
     return SampleShadowmapPCSS(DirectionalLightShadow, shadow_coord, idx * 4 + cascade_index, light.filter_sample, light.filter_scale, light.light_scale);
+#endif
+
+#else
+    return 1.f;
 #endif
 }
 #endif
@@ -642,6 +657,8 @@ void DispatchIndirect(CSParam param)
         interaction.isect.uv = v0.texcoord0.xy * bary.x + v1.texcoord0.xy * bary.y + v2.texcoord0.xy * bary.z;
         interaction.isect.n = v0.normal.xyz * bary.x + v1.normal.xyz * bary.y + v2.normal.xyz * bary.z;
         interaction.isect.n = normalize(mul((float3x3) instance.transform, normalize(interaction.isect.n)));
+        interaction.isect.nt = v0.tangent.xyz * bary.x + v1.tangent.xyz * bary.y + v2.tangent.xyz * bary.z;
+        interaction.isect.nt = normalize(mul((float3x3) instance.transform, normalize(interaction.isect.nt)).xyz);
         interaction.isect.wo = normalize(ViewBuffer.position - interaction.isect.p);
         interaction.shading_n = dot(interaction.isect.n, interaction.isect.wo) <= 0 ? -interaction.isect.n : interaction.isect.n;
         interaction.isect.t = length(ViewBuffer.position - interaction.isect.p);
@@ -661,7 +678,7 @@ void DispatchIndirect(CSParam param)
     Material material;
     material.Init(interaction);
     
-    float3 radiance = 0.f;
+    float3 radiance = material.bsdf.GetEmissive();
     
     LightSampleContext li_ctx;
     li_ctx.n = interaction.isect.n;

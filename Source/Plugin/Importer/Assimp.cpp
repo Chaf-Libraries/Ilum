@@ -472,7 +472,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 
 		size_t current_handle = 0;
 
-		MaterialNodeDesc &principled_bsdf_node     = desc.AddNode(current_handle++, create_material_node(current_handle, "BSDF", "PrincipledMaterial"));
+		MaterialNodeDesc &principled_bsdf_node     = desc.AddNode(current_handle++, create_material_node(current_handle, "BSDF", "DisneyMaterial"));
 		MaterialNodeDesc &output_node              = desc.AddNode(current_handle++, create_material_node(current_handle, "Output", "MaterialOutput"));
 		MaterialNodeDesc *surface_interaction_node = nullptr;
 
