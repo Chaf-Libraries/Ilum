@@ -75,7 +75,7 @@ class Tonemapping : public RenderPass<Tonemapping>
 
 		bool auto_exposure = b.test(0);
 
-		ImGui::Checkbox("Auto Exposure", &auto_exposure);
+		//ImGui::Checkbox("Auto Exposure", &auto_exposure);
 		ImGui::SliderFloat("Exposure", &config_data->avg_lum, 0.001f, 5.0f, "%.3f");
 		ImGui::SliderFloat("Brightness", &config_data->brightness, 0.0f, 2.0f, "%.3f");
 		ImGui::SliderFloat("Contrast", &config_data->contrast, 0.0f, 2.0f, "%.3f");
