@@ -24,7 +24,7 @@ void CSmain(CSParam param)
     SkinnedMatrics.GetDimensions(0, bone_count, frame_count, level_count);
     bone_count /= 3;
         
-    if (bone_id > bone_count)
+    if (bone_id >= bone_count)
     {
         return;
     }

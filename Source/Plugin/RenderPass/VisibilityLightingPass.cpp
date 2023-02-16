@@ -337,6 +337,7 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 					{
 						descriptor->BindBuffer("SkinnedMeshVertexBuffer", gpu_scene->skinned_mesh_buffer.vertex_buffers)
 						    .BindBuffer("SkinnedMeshIndexBuffer", gpu_scene->skinned_mesh_buffer.index_buffers)
+						    .BindBuffer("BoneMatrices", gpu_scene->animation_buffer.bone_matrics)
 						    .BindBuffer("SkinnedMeshInstanceBuffer", gpu_scene->skinned_mesh_buffer.instances.get());
 					}
 

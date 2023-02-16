@@ -625,7 +625,6 @@ class SceneView : public Widget
 			for (auto &animation_name : animation_names)
 			{
 				auto *animation = resource_manager->Get<ResourceType::Animation>(animation_name);
-				animation;
 			}
 		}
 	}

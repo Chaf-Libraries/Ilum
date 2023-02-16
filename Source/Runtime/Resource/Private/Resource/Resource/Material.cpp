@@ -122,11 +122,11 @@ void Resource<ResourceType::Material>::Compile(RHIContext *rhi_context, Resource
 					mustache_data.set("BxDFType", bsdf.type);
 					mustache_data.set("BxDFName", bsdf.name);
 				}
-				bsdf_types.insert(bsdf.type);
+				bsdf_types.insert(bsdf.type.substr(0, std::min(bsdf.type.find_first_of('<'), bsdf.type.find_first_of(' '))));
 			}
 			initializations << kainjow::mustache::data{"Initialization", m_impl->context.bsdfs.back().initialization};
 
-			for (auto& bsdf_type : bsdf_types)
+			for (auto &bsdf_type : bsdf_types)
 			{
 				headers << kainjow::mustache::data{"MaterialHeader", fmt::format("#include \"Material/Material/{}.hlsli\"", bsdf_type)};
 			}

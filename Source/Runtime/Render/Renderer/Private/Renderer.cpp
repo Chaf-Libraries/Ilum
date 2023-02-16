@@ -361,10 +361,6 @@ void Renderer::UpdateGPUScene()
 					{
 						instance.material_id = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Material>(materials[i])) + 1;
 					}
-					else
-					{
-						instance.material_id = 0;
-					}
 
 					instances.push_back(instance);
 
@@ -398,6 +394,7 @@ void Renderer::UpdateGPUScene()
 		{
 			auto &submeshes  = skinned_mesh->GetSubmeshes();
 			auto &animations = skinned_mesh->GetAnimations();
+			auto &materials  = skinned_mesh->GetMaterials();
 			for (uint32_t i = 0; i < submeshes.size(); i++)
 			{
 				auto *resource = m_impl->resource_manager->Get<ResourceType::SkinnedMesh>(submeshes[i]);
@@ -407,10 +404,18 @@ void Renderer::UpdateGPUScene()
 					GPUScene::Instance instance = {};
 					instance.transform          = skinned_mesh->GetNode()->GetComponent<Cmpt::Transform>()->GetWorldTransform();
 					instance.mesh_id            = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::SkinnedMesh>(submeshes[i]));
-					if (animations.size() > i)
+					instance.material_id        = 0;
+
+					if (i < materials.size())
+					{
+						instance.material_id = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Material>(materials[i])) + 1;
+					}
+
+					if (i < animations.size())
 					{
 						instance.animation_id = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Animation>(animations[i]));
 					}
+
 					instances.push_back(instance);
 					gpu_scene->skinned_mesh_buffer.max_meshlet_count = glm::max(gpu_scene->skinned_mesh_buffer.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
 				}
@@ -443,10 +448,20 @@ void Renderer::UpdateGPUScene()
 				gpu_scene->animation_buffer.update_info->CopyToDevice(&update_info, sizeof(update_info));
 			}
 
+			std::vector<BufferStateTransition> begin_transitions(gpu_scene->animation_buffer.bone_matrics.size());
+			std::vector<BufferStateTransition> end_transitions(gpu_scene->animation_buffer.bone_matrics.size());
+
+			for (size_t i = 0; i < gpu_scene->animation_buffer.bone_matrics.size(); i++)
+			{
+				begin_transitions[i] = BufferStateTransition{gpu_scene->animation_buffer.bone_matrics[i], RHIResourceState::ShaderResource, RHIResourceState::UnorderedAccess};
+				end_transitions[i]   = BufferStateTransition{gpu_scene->animation_buffer.bone_matrics[i], RHIResourceState::UnorderedAccess, RHIResourceState::ShaderResource};
+			}
+
 			auto *descriptor = m_impl->rhi_context->CreateDescriptor(m_impl->gpu_skinning_shader_meta);
 			descriptor->BindBuffer("UpdateInfo", gpu_scene->animation_buffer.update_info.get());
 			auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Compute);
 			cmd_buffer->Begin();
+			cmd_buffer->ResourceStateTransition({}, begin_transitions);
 			for (size_t i = 0; i < gpu_scene->animation_buffer.bone_matrics.size(); i++)
 			{
 				descriptor->BindBuffer("BoneMatrics", gpu_scene->animation_buffer.bone_matrics[i])
@@ -455,6 +470,7 @@ void Renderer::UpdateGPUScene()
 				cmd_buffer->BindPipelineState(m_impl->gpu_skinning_pipeline.get());
 				cmd_buffer->Dispatch(gpu_scene->animation_buffer.max_bone_count, 1, 1, 8, 1, 1);
 			}
+			cmd_buffer->ResourceStateTransition({}, end_transitions);
 			cmd_buffer->End();
 			m_impl->rhi_context->Submit({cmd_buffer});
 			m_impl->update_animation = false;

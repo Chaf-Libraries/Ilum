@@ -220,6 +220,7 @@ StructuredBuffer<uint> MeshIndexBuffer[];
 #ifdef HAS_SKINNED_MESH
 StructuredBuffer<SkinnedVertex> SkinnedMeshVertexBuffer[];
 StructuredBuffer<uint> SkinnedMeshIndexBuffer[];
+StructuredBuffer<float4x4> BoneMatrices[];
 #endif
 
 uint hash(uint a)
@@ -632,7 +633,6 @@ void DispatchIndirect(CSParam param)
     
     uint instance_id, primitive_id, mesh_type;
     UnPackVisibilityBuffer(VisibilityBuffer.Load(uint3(pixel, 0)), mesh_type, instance_id, primitive_id);
-    mesh_type = 0;
     SurfaceInteraction interaction;
     
     float3 bary, bary_ddx, bary_ddy;
@@ -672,6 +672,80 @@ void DispatchIndirect(CSParam param)
     if (mesh_type == SKINNED_MESH_TYPE)
     {
         Instance instance = SkinnedMeshInstanceBuffer.Load(instance_id);
+        uint mesh_id = instance.mesh_id;
+        
+        SkinnedVertex v[3];
+        
+        v[0] = SkinnedMeshVertexBuffer[mesh_id][SkinnedMeshIndexBuffer[mesh_id][primitive_id * 3]];
+        v[1] = SkinnedMeshVertexBuffer[mesh_id][SkinnedMeshIndexBuffer[mesh_id][primitive_id * 3 + 1]];
+        v[2] = SkinnedMeshVertexBuffer[mesh_id][SkinnedMeshIndexBuffer[mesh_id][primitive_id * 3 + 2]];
+        
+        float3 position[3];
+        float3 normal[3];
+        float3 tangent[3];
+        
+        if (instance.animation_id != ~0U)
+        {
+            uint bone_count = 0;
+            uint bone_stride = 0;
+            BoneMatrices[instance.animation_id].GetDimensions(bone_count, bone_stride);
+            
+            for (uint v_idx = 0; v_idx < 3; v_idx++)
+            {
+                position[v_idx] = 0.f;
+                normal[v_idx] = 0.f;
+                tangent[v_idx] = 0.f;
+                
+                for (uint bone_idx = 0; bone_idx < MAX_BONE_INFLUENCE; bone_idx++)
+                {
+                    int bone = v[v_idx].bones[bone_idx];
+                    float weight = v[v_idx].weights[bone_idx];
+            
+                    if (bone == -1)
+                    {
+                        continue;
+                    }
+                    
+                    if (bone >= bone_count)
+                    {
+                        position[v_idx] = v[v_idx].position;
+                        normal[v_idx] = v[v_idx].normal;
+                        tangent[v_idx] = v[v_idx].tangent;
+                        break;
+                    }
+
+                    position[v_idx] += mul(BoneMatrices[instance.animation_id][bone], float4(v[v_idx].position, 1.0f)).xyz * weight;
+                    normal[v_idx] += mul((float3x3) BoneMatrices[instance.animation_id][bone], v[v_idx].normal) * weight;
+                    tangent[v_idx] += mul((float3x3) BoneMatrices[instance.animation_id][bone], v[v_idx].tangent) * weight;
+                }
+            }
+        }
+        else
+        {
+            for (uint v_idx = 0; v_idx < 3; v_idx++)
+            {
+                position[v_idx] = v[v_idx].position;
+                normal[v_idx] = v[v_idx].normal;
+                tangent[v_idx] = v[v_idx].tangent;
+            }
+        }
+        
+        CalculateBarycentre(instance.transform, pixel, extent, position[0], position[1], position[2], bary, bary_ddx, bary_ddy);
+        
+        interaction.isect.p = position[0].xyz * bary.x + position[1].xyz * bary.y + position[2].xyz * bary.z;
+        linear_z = mul(ViewBuffer.view_projection_matrix, mul(instance.transform, float4(interaction.isect.p, 1.0))).z;
+        interaction.isect.p = mul(instance.transform, float4(interaction.isect.p, 1.0)).xyz;
+        interaction.isect.uv = v[0].texcoord0.xy * bary.x + v[1].texcoord0.xy * bary.y + v[2].texcoord0.xy * bary.z;
+        interaction.isect.n = normal[0].xyz * bary.x + normal[1].xyz * bary.y + normal[2].xyz * bary.z;
+        interaction.isect.n = normalize(mul((float3x3) instance.transform, normalize(interaction.isect.n)));
+        interaction.isect.nt = tangent[0].xyz * bary.x + tangent[1].xyz * bary.y + tangent[2].xyz * bary.z;
+        interaction.isect.nt = normalize(mul((float3x3) instance.transform, normalize(interaction.isect.nt)).xyz);
+        interaction.isect.wo = normalize(ViewBuffer.position - interaction.isect.p);
+        interaction.shading_n = dot(interaction.isect.n, interaction.isect.wo) <= 0 ? -interaction.isect.n : interaction.isect.n;
+        interaction.isect.t = length(ViewBuffer.position - interaction.isect.p);
+        interaction.material = instance.material_id;
+        interaction.duvdx = v[0].texcoord0.xy * bary_ddx.x + v[1].texcoord0.xy * bary_ddx.y + v[2].texcoord0.xy * bary_ddx.z;
+        interaction.duvdy = v[0].texcoord0.xy * bary_ddy.x + v[1].texcoord0.xy * bary_ddy.y + v[2].texcoord0.xy * bary_ddy.z;
     }
 #endif
     
