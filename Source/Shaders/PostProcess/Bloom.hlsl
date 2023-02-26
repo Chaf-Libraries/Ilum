@@ -151,7 +151,6 @@ void BloomBlur(CSParam param)
 ///////////////////////// Bloom Up Sampling /////////////////////////////
 
 Texture2D BloomUpSamplingLow;
-SamplerState BloomUpSamplingSampler;
 Texture2D BloomUpSamplingHigh;
 RWTexture2D<float4> BloomUpSamplingOutput;
 
@@ -172,13 +171,13 @@ void BloomUpSampling(CSParam param)
     Store2Pixels(
         start + 0,
         lerp(
-            BloomUpSamplingHigh.SampleLevel(BloomUpSamplingSampler, (float2(ThreadUL + uint2(0, 0)) + float2(0.5, 0.5)) * pixel_size, 0.0).rgb,
-            BloomUpSamplingLow.SampleLevel(BloomUpSamplingSampler, (float2(ThreadUL + uint2(0, 0)) + float2(0.5, 0.5)) * pixel_size, 0.0).rgb,
+            BloomUpSamplingHigh.Load(uint3(ThreadUL + uint2(0, 0), 0), 0.0).rgb,
+            BloomUpSamplingLow.Load(uint3((ThreadUL + uint2(0, 0)) / 2, 0), 0.0).rgb,
             ConfigBuffer.radius
         ),
         lerp(
-            BloomUpSamplingHigh.SampleLevel(BloomUpSamplingSampler, (float2(ThreadUL + uint2(1, 0)) + float2(0.5, 0.5)) * pixel_size, 0.0).rgb,
-            BloomUpSamplingLow.SampleLevel(BloomUpSamplingSampler, (float2(ThreadUL + uint2(1, 0)) + float2(0.5, 0.5)) * pixel_size, 0.0).rgb,
+            BloomUpSamplingHigh.Load(uint3(ThreadUL + uint2(1, 0), 0), 0.0).rgb,
+            BloomUpSamplingLow.Load(uint3((ThreadUL + uint2(1, 0)) / 2, 0), 0.0).rgb,
             ConfigBuffer.radius
         )
     );
@@ -186,13 +185,13 @@ void BloomUpSampling(CSParam param)
     Store2Pixels(
         start + 8,
         lerp(
-            BloomUpSamplingHigh.SampleLevel(BloomUpSamplingSampler, (float2(ThreadUL + uint2(0, 1)) + float2(0.5, 0.5)) * pixel_size, 0.0).rgb,
-            BloomUpSamplingLow.SampleLevel(BloomUpSamplingSampler, (float2(ThreadUL + uint2(0, 1)) + float2(0.5, 0.5)) * pixel_size, 0.0).rgb,
+            BloomUpSamplingHigh.Load(uint3(ThreadUL + uint2(0, 1), 0), 0.0).rgb,
+            BloomUpSamplingLow.Load(uint3((ThreadUL + uint2(0, 1)) / 2, 0), 0.0).rgb,
             ConfigBuffer.radius
         ),
         lerp(
-            BloomUpSamplingHigh.SampleLevel(BloomUpSamplingSampler, (float2(ThreadUL + uint2(1, 1)) + float2(0.5, 0.5)) * pixel_size, 0.0).rgb,
-            BloomUpSamplingLow.SampleLevel(BloomUpSamplingSampler, (float2(ThreadUL + uint2(1, 1)) + float2(0.5, 0.5)) * pixel_size, 0.0).rgb,
+            BloomUpSamplingHigh.Load(uint3(ThreadUL + uint2(1, 1), 0), 0.0).rgb,
+            BloomUpSamplingLow.Load(uint3((ThreadUL + uint2(1, 1)) / 2, 0), 0.0).rgb,
             ConfigBuffer.radius
         )
     );
@@ -210,7 +209,6 @@ void BloomUpSampling(CSParam param)
 ///////////////////////// Bloom Blend /////////////////////////////
 
 Texture2D BloomBlendBloom;
-SamplerState BloomBlendSampler;
 Texture2D BloomBlendInput;
 RWTexture2D<float4> BloomBlendOutput;
 
@@ -227,5 +225,5 @@ void BloomBlend(CSParam param)
     
     float2 uv = (float2(param.DispatchThreadID.xy) + float2(0.5, 0.5)) / float2(extent);
     
-    BloomBlendOutput[param.DispatchThreadID.xy] = float4(BloomBlendInput.SampleLevel(BloomBlendSampler, uv, 0.0).rgb + ConfigBuffer.intensity * BloomBlendBloom.SampleLevel(BloomBlendSampler, uv, 0.0).rgb, 1.0);
+    BloomBlendOutput[param.DispatchThreadID.xy] = float4(BloomBlendInput.Load(uint3(param.DispatchThreadID.xy, 0), 0.0).rgb + ConfigBuffer.intensity * BloomBlendBloom.Load(uint3(param.DispatchThreadID.xy / 2, 0), 0.0).rgb, 1.0);
 }

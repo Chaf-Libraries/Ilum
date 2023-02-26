@@ -182,7 +182,6 @@ class Bloom : public RenderPass<Bloom>
 					cmd_buffer->BeginMarker(fmt::format("Bloom Up Sampling - {}", i));
 					auto descriptor = rhi_context->CreateDescriptor(bloom_up_sampling.shader_meta);
 					descriptor->BindTexture("BloomUpSamplingLow", i == 3 ? bloom_data->blur[i].get() : bloom_data->level[i].get(), RHITextureDimension::Texture2D)
-					    .BindSampler("BloomUpSamplingSampler", rhi_context->CreateSampler(SamplerDesc::LinearClamp()))
 					    .BindTexture("BloomUpSamplingHigh", bloom_data->blur[i - 1].get(), RHITextureDimension::Texture2D)
 					    .BindTexture("BloomUpSamplingOutput", bloom_data->level[i - 1].get(), RHITextureDimension::Texture2D)
 					    .BindBuffer("ConfigBuffer", uniform_buffer.get());
@@ -200,7 +199,6 @@ class Bloom : public RenderPass<Bloom>
 				cmd_buffer->BeginMarker("Bloom Blend");
 				auto descriptor = rhi_context->CreateDescriptor(bloom_blend.shader_meta);
 				descriptor->BindTexture("BloomBlendBloom", bloom_data->level[0].get(), RHITextureDimension::Texture2D)
-				    .BindSampler("BloomBlendSampler", rhi_context->CreateSampler(SamplerDesc::LinearClamp()))
 				    .BindTexture("BloomBlendInput", input, RHITextureDimension::Texture2D)
 				    .BindTexture("BloomBlendOutput", output, RHITextureDimension::Texture2D)
 				    .BindBuffer("ConfigBuffer", uniform_buffer.get());
@@ -233,7 +231,7 @@ class Bloom : public RenderPass<Bloom>
 		auto *config_data = config->Convert<Config>();
 
 		ImGui::DragFloat("Threshold", &config_data->threshold, 0.01f, 0.f, std::numeric_limits<float>::max());
-		ImGui::DragFloat("Radius", &config_data->radius, 0.01f, 0.f, std::numeric_limits<float>::max());
+		ImGui::DragFloat("Radius", &config_data->radius, 0.01f, 1.f, std::numeric_limits<float>::max());
 		ImGui::DragFloat("Intensity", &config_data->intensity, 0.01f, 0.f, std::numeric_limits<float>::max());
 	}
 
