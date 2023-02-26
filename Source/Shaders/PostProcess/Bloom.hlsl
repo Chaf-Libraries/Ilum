@@ -158,6 +158,7 @@ RWTexture2D<float4> BloomUpSamplingOutput;
 [numthreads(8, 8, 1)]
 void BloomUpSampling(CSParam param)
 {
+    // TODO : Some bug here
     uint2 extent;
     BloomUpSamplingHigh.GetDimensions(extent.x, extent.y);
     

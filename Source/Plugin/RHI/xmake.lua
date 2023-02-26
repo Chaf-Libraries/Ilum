@@ -26,7 +26,7 @@ target("RHI.Vulkan")
     set_group("Plugin/RHI")
 target_end()
 
-if has_config("CUDA_ENABLE") then
+if has_config("CUDA_ENABLE") and is_plat("windows")  then
     target("RHI.CUDA")
         set_kind("shared")
 
