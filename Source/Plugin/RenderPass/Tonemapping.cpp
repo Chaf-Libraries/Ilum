@@ -31,7 +31,7 @@ class Tonemapping : public RenderPass<Tonemapping>
 		    .SetCategory("PostProcess")
 		    .SetConfig(Config())
 		    .ReadTexture2D(handle++, "Input", RHIResourceState::ShaderResource)
-		    .WriteTexture2D(handle++, "Output", 0, 0, RHIFormat::R16G16B16A16_FLOAT, RHIResourceState::UnorderedAccess);
+		    .WriteTexture2D(handle++, "Output", 0, 0, RHIFormat::R32G32B32A32_FLOAT, RHIResourceState::UnorderedAccess);
 	}
 
 	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
@@ -58,7 +58,7 @@ class Tonemapping : public RenderPass<Tonemapping>
 
 			descriptor->BindTexture("Input", input, RHITextureDimension::Texture2D)
 			    .BindTexture("Output", output, RHITextureDimension::Texture2D)
-			    .BindSampler("TexSampler", rhi_context->CreateSampler(SamplerDesc::NearestClamp()))
+			    .BindSampler("TexSampler", rhi_context->CreateSampler(SamplerDesc::LinearClamp()))
 				.BindBuffer("UniformBuffer", uniform_buffer.get());
 
 			cmd_buffer->BindDescriptor(descriptor);
