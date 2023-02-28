@@ -68,6 +68,8 @@ class Descriptor : public RHIDescriptor
 	const std::map<std::string, ConstantResolve> &GetConstantResolve() const;
 
   private:
+	VkDescriptorPool CreateDescriptorPool(const std::thread::id &thread_id);
+
 	VkDescriptorSetLayout CreateDescriptorSetLayout(const ShaderMeta &meta);
 
   private:
@@ -84,5 +86,7 @@ class Descriptor : public RHIDescriptor
 	std::unordered_map<std::string, size_t> m_binding_hash;
 
 	std::unordered_map<uint32_t, bool> m_binding_dirty;
+
+	std::mutex m_mutex;
 };
 }        // namespace Ilum::Vulkan

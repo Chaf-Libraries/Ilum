@@ -272,7 +272,6 @@ void Renderer::UpdateGPUScene()
 
 	// Update Light
 	{
-		gpu_scene->light.has_shadow                   = false;
 		gpu_scene->light.has_point_light_shadow       = false;
 		gpu_scene->light.has_spot_light_shadow        = false;
 		gpu_scene->light.has_directional_light_shadow = false;

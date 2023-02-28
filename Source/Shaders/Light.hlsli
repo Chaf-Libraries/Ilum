@@ -216,7 +216,7 @@ struct DirectionalLight
         float3 wi = normalize(-direction);
         
         Interaction isect;
-        isect.p = ctx.p + Infinity * normalize(direction);
+        isect.p = ctx.p + 1e16 * wi;
         
         float3 L = color.rgb * intensity;
         

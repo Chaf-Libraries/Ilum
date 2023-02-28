@@ -1,8 +1,10 @@
 #include <Editor/Editor.hpp>
 #include <Editor/Widget.hpp>
 #include <RenderGraph/RenderGraph.hpp>
+#include <RenderGraph/RenderGraphBlackboard.hpp>
 #include <RenderGraph/RenderGraphBuilder.hpp>
 #include <RenderGraph/RenderPass.hpp>
+#include <Renderer/RenderData.hpp>
 #include <Renderer/Renderer.hpp>
 #include <Resource/Resource/RenderPipeline.hpp>
 #include <Resource/ResourceManager.hpp>
@@ -40,7 +42,7 @@ class RenderGraphEditor : public Widget
 		}
 
 		auto *resource_manager = p_editor->GetRenderer()->GetResourceManager();
-		auto *resource = resource_manager->Get<ResourceType::RenderPipeline>(m_pipeline_name);
+		auto *resource         = resource_manager->Get<ResourceType::RenderPipeline>(m_pipeline_name);
 
 		ImGui::Columns(2);
 
@@ -214,9 +216,13 @@ class RenderGraphEditor : public Widget
 
 			if (ImGui::MenuItem("Compile"))
 			{
-				auto *rhi_context  = p_editor->GetRHIContext();
-				auto *renderer     = p_editor->GetRenderer();
-				auto  render_graph = resource->Compile(rhi_context, renderer, renderer->GetViewport(), ImNodes::SaveCurrentEditorStateToIniString());
+				auto *rhi_context = p_editor->GetRHIContext();
+				auto *renderer    = p_editor->GetRenderer();
+
+				// TODO: Optimize
+				renderer->GetRenderGraphBlackboard().Get<GPUScene>()->light.has_shadow = false;
+
+				auto render_graph = resource->Compile(rhi_context, renderer, renderer->GetViewport(), ImNodes::SaveCurrentEditorStateToIniString());
 
 				if (render_graph)
 				{

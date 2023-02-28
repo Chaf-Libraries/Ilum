@@ -8,12 +8,12 @@
 
 namespace Ilum::Vulkan
 {
-inline static VkDescriptorPool                                  DescriptorPool = VK_NULL_HANDLE;
-inline static std::unordered_map<size_t, VkDescriptorSetLayout> DescriptorSetLayouts;
-inline static std::unordered_map<size_t, VkDescriptorSet>       DescriptorSet;
+inline static std::unordered_map<std::thread::id, VkDescriptorPool> DescriptorPools;
+inline static std::unordered_map<size_t, VkDescriptorSetLayout>     DescriptorSetLayouts;
+inline static std::unordered_map<size_t, VkDescriptorSet>           DescriptorSet;
 
 inline static std::atomic<uint32_t> DescriptorCount    = 0;
-inline static uint32_t MaxDescriptorCount = 0;
+inline static uint32_t              MaxDescriptorCount = 16384ul;
 
 inline static std::unordered_map<DescriptorType, VkDescriptorType> DescriptorTypeMap = {
     {DescriptorType::Sampler, VK_DESCRIPTOR_TYPE_SAMPLER},
@@ -27,33 +27,6 @@ inline static std::unordered_map<DescriptorType, VkDescriptorType> DescriptorTyp
 Descriptor::Descriptor(RHIDevice *device, const ShaderMeta &meta) :
     RHIDescriptor(device, meta)
 {
-	if (DescriptorCount == 0)
-	{
-		VkPhysicalDeviceProperties properties = {};
-		vkGetPhysicalDeviceProperties(static_cast<Device *>(p_device)->GetPhysicalDevice(), &properties);
-
-		MaxDescriptorCount = 16384ul;
-
-		VkDescriptorPoolSize pool_sizes[] =
-		    {
-		        {VK_DESCRIPTOR_TYPE_SAMPLER, properties.limits.maxDescriptorSetSamplers},
-		        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, properties.limits.maxDescriptorSetSampledImages},
-		        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, properties.limits.maxDescriptorSetStorageImages},
-		        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, properties.limits.maxDescriptorSetUniformBuffers},
-		        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, properties.limits.maxDescriptorSetStorageBuffers},
-		        {VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1024},
-		    };
-		// Create descriptor pool
-		VkDescriptorPoolCreateInfo descriptor_pool_create_info = {};
-		descriptor_pool_create_info.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-		descriptor_pool_create_info.pPoolSizes                 = pool_sizes;
-		descriptor_pool_create_info.poolSizeCount              = 6;
-		descriptor_pool_create_info.maxSets                    = MaxDescriptorCount;
-		descriptor_pool_create_info.flags                      = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
-
-		vkCreateDescriptorPool(static_cast<Device *>(p_device)->GetDevice(), &descriptor_pool_create_info, nullptr, &DescriptorPool);
-	}
-
 	DescriptorCount.fetch_add(1);
 
 	std::unordered_map<uint32_t, ShaderMeta> set_meta;
@@ -114,6 +87,7 @@ Descriptor::Descriptor(RHIDevice *device, const ShaderMeta &meta) :
 
 	for (auto &[set, meta] : set_meta)
 	{
+		std::lock_guard<std::mutex> lock(m_mutex);
 		// Create descriptor set layout
 		VkDescriptorSetLayout layout = VK_NULL_HANDLE;
 		if (DescriptorSetLayouts.find(meta.hash) == DescriptorSetLayouts.end())
@@ -140,10 +114,10 @@ Descriptor ::~Descriptor()
 
 	if (DescriptorCount == 0)
 	{
-		if (DescriptorPool)
+		for (auto &[thread_id, descriptor_pool] : DescriptorPools)
 		{
-			vkDestroyDescriptorPool(static_cast<Device *>(p_device)->GetDevice(), DescriptorPool, nullptr);
-			DescriptorPool = VK_NULL_HANDLE;
+			vkDestroyDescriptorPool(static_cast<Device *>(p_device)->GetDevice(), descriptor_pool, nullptr);
+			descriptor_pool = VK_NULL_HANDLE;
 		}
 		for (auto &[hash, layout] : DescriptorSetLayouts)
 		{
@@ -361,7 +335,7 @@ RHIDescriptor &Descriptor::BindAccelerationStructure(const std::string &name, RH
 		return *this;
 	}
 
-	size_t hash = Hash(static_cast<AccelerationStructure*>(acceleration_structure)->GetHandle());
+	size_t hash = Hash(static_cast<AccelerationStructure *>(acceleration_structure)->GetHandle());
 	if (m_binding_hash[name] != hash)
 	{
 		m_acceleration_structure_resolves[name].acceleration_structures = {static_cast<AccelerationStructure *>(acceleration_structure)->GetHandle()};
@@ -377,7 +351,7 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 	// Check update
 	for (auto &[set, dirty] : m_binding_dirty)
 	{
-		size_t hash = Hash(m_descriptor_set_layouts.at(set));
+		size_t hash = Hash(m_descriptor_set_layouts.at(set), std::this_thread::get_id());
 		for (auto &[name, binding_hash] : m_binding_hash)
 		{
 			if (m_descriptor_lookup[name].first == set)
@@ -396,26 +370,29 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 		if (DescriptorSet.size() >= MaxDescriptorCount)
 		{
 			p_device->WaitIdle();
-			vkResetDescriptorPool(static_cast<Device *>(p_device)->GetDevice(), DescriptorPool, 0);
+			vkResetDescriptorPool(static_cast<Device *>(p_device)->GetDevice(), CreateDescriptorPool(std::this_thread::get_id()), 0);
 			DescriptorSet.clear();
 		}
 
 		// Allocate descriptor set
 		VkDescriptorSetAllocateInfo allocate_info = {};
 		allocate_info.sType                       = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-		allocate_info.descriptorPool              = DescriptorPool;
+		allocate_info.descriptorPool              = CreateDescriptorPool(std::this_thread::get_id());
 		allocate_info.descriptorSetCount          = 1;
 		allocate_info.pSetLayouts                 = &m_descriptor_set_layouts.at(set);
 
 		VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
 		vkAllocateDescriptorSets(static_cast<Device *>(p_device)->GetDevice(), &allocate_info, &descriptor_set);
 
-		DescriptorSet.emplace(hash, descriptor_set);
-		m_descriptor_sets[set] = descriptor_set;
+		{
+			std::lock_guard<std::mutex> lock(m_mutex);
+			DescriptorSet.emplace(hash, descriptor_set);
+			m_descriptor_sets[set] = descriptor_set;
+		}
 
-		std::vector<VkWriteDescriptorSet>                write_sets;
-		std::vector<std::vector<VkDescriptorImageInfo>>  image_infos  = {};
-		std::vector<std::vector<VkDescriptorBufferInfo>> buffer_infos = {};
+		std::vector<VkWriteDescriptorSet>                         write_sets;
+		std::vector<std::vector<VkDescriptorImageInfo>>           image_infos                                  = {};
+		std::vector<std::vector<VkDescriptorBufferInfo>>          buffer_infos                                 = {};
 		std::vector<VkWriteDescriptorSetAccelerationStructureKHR> write_descriptor_set_acceleration_structures = {};
 		for (auto &descriptor : m_meta.descriptors)
 		{
@@ -479,9 +456,9 @@ const std::unordered_map<uint32_t, VkDescriptorSet> &Descriptor::GetDescriptorSe
 					is_as = true;
 
 					VkWriteDescriptorSetAccelerationStructureKHR write_set_as = {};
-					write_set_as.sType                      = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
-					write_set_as.accelerationStructureCount = static_cast<uint32_t>(m_acceleration_structure_resolves[descriptor.name].acceleration_structures.size());
-					write_set_as.pAccelerationStructures    = m_acceleration_structure_resolves[descriptor.name].acceleration_structures.data();
+					write_set_as.sType                                        = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+					write_set_as.accelerationStructureCount                   = static_cast<uint32_t>(m_acceleration_structure_resolves[descriptor.name].acceleration_structures.size());
+					write_set_as.pAccelerationStructures                      = m_acceleration_structure_resolves[descriptor.name].acceleration_structures.data();
 					write_descriptor_set_acceleration_structures.push_back(write_set_as);
 
 					descriptor_count = static_cast<uint32_t>(m_acceleration_structure_resolves[descriptor.name].acceleration_structures.size());
@@ -516,6 +493,42 @@ const std::unordered_map<uint32_t, VkDescriptorSetLayout> &Descriptor::GetDescri
 const std::map<std::string, ConstantResolve> &Descriptor::GetConstantResolve() const
 {
 	return m_constant_resolves;
+}
+
+VkDescriptorPool Descriptor::CreateDescriptorPool(const std::thread::id &thread_id)
+{
+	if (DescriptorPools.find(thread_id) != DescriptorPools.end())
+	{
+		return DescriptorPools.at(thread_id);
+	}
+
+	VkPhysicalDeviceProperties properties = {};
+	vkGetPhysicalDeviceProperties(static_cast<Device *>(p_device)->GetPhysicalDevice(), &properties);
+
+	VkDescriptorPoolSize pool_sizes[] =
+	    {
+	        {VK_DESCRIPTOR_TYPE_SAMPLER, properties.limits.maxDescriptorSetSamplers},
+	        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, properties.limits.maxDescriptorSetSampledImages},
+	        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, properties.limits.maxDescriptorSetStorageImages},
+	        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, properties.limits.maxDescriptorSetUniformBuffers},
+	        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, properties.limits.maxDescriptorSetStorageBuffers},
+	        {VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1024},
+	    };
+	// Create descriptor pool
+	VkDescriptorPoolCreateInfo descriptor_pool_create_info = {};
+	descriptor_pool_create_info.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	descriptor_pool_create_info.pPoolSizes                 = pool_sizes;
+	descriptor_pool_create_info.poolSizeCount              = 6;
+	descriptor_pool_create_info.maxSets                    = MaxDescriptorCount;
+	descriptor_pool_create_info.flags                      = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+
+	{
+		std::lock_guard<std::mutex> lock(m_mutex);
+		DescriptorPools[thread_id] = VK_NULL_HANDLE;
+		vkCreateDescriptorPool(static_cast<Device *>(p_device)->GetDevice(), &descriptor_pool_create_info, nullptr, &DescriptorPools[thread_id]);
+	}
+
+	return DescriptorPools[thread_id];
 }
 
 VkDescriptorSetLayout Descriptor::CreateDescriptorSetLayout(const ShaderMeta &meta)

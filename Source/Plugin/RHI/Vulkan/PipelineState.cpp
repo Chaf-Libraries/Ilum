@@ -95,30 +95,25 @@ struct ShaderBindingTableInfos
 	std::unique_ptr<ShaderBindingTableInfo> callable = nullptr;
 };
 
-static VkPipelineCache                                                          PipelineCache;
+static std::unordered_map<std::thread::id, VkPipelineCache>                     PipelineCaches;
 static std::unordered_map<size_t, VkPipeline>                                   Pipelines;
 static std::unordered_map<size_t, VkPipelineLayout>                             PipelineLayouts;
 static std::unordered_map<VkPipeline, std::unique_ptr<ShaderBindingTableInfos>> ShaderBindingTables;
+static std::mutex                                                               Mutex;
 
-static uint32_t PipelineCount = 0;
+static std::atomic<uint32_t> PipelineCount = 0;
 
 PipelineState::PipelineState(RHIDevice *device) :
     RHIPipelineState(device)
 {
-	if (PipelineCount++ == 0)
-	{
-		if (!PipelineCache)
-		{
-			VkPipelineCacheCreateInfo create_info = {};
-			create_info.sType                     = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
-			vkCreatePipelineCache(static_cast<Device *>(p_device)->GetDevice(), &create_info, nullptr, &PipelineCache);
-		}
-	}
+	PipelineCount.fetch_add(1);
 }
 
 PipelineState ::~PipelineState()
 {
-	if (--PipelineCount == 0)
+	PipelineCount.fetch_sub(1);
+
+	if (PipelineCount == 0)
 	{
 		for (auto &[hash, pipeline] : Pipelines)
 		{
@@ -134,10 +129,10 @@ PipelineState ::~PipelineState()
 		Pipelines.clear();
 		PipelineLayouts.clear();
 
-		if (PipelineCache)
+		for (auto &[thread_id, pipeline_cache] : PipelineCaches)
 		{
-			vkDestroyPipelineCache(static_cast<Device *>(p_device)->GetDevice(), PipelineCache, nullptr);
-			PipelineCache = VK_NULL_HANDLE;
+			vkDestroyPipelineCache(static_cast<Device *>(p_device)->GetDevice(), pipeline_cache, nullptr);
+			pipeline_cache = VK_NULL_HANDLE;
 		}
 	}
 }
@@ -209,6 +204,19 @@ VkPipelineBindPoint PipelineState::GetPipelineBindPoint() const
 		}
 	}
 	return VK_PIPELINE_BIND_POINT_GRAPHICS;
+}
+
+VkPipelineCache PipelineState::CreatePipelineCache(const std::thread::id &thread_id)
+{
+	if (PipelineCaches.find(thread_id) == PipelineCaches.end())
+	{
+		std::lock_guard<std::mutex> lock(Mutex);
+		PipelineCaches[thread_id]             = VK_NULL_HANDLE;
+		VkPipelineCacheCreateInfo create_info = {};
+		create_info.sType                     = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+		vkCreatePipelineCache(static_cast<Device *>(p_device)->GetDevice(), &create_info, nullptr, &PipelineCaches[thread_id]);
+	}
+	return PipelineCaches.at(thread_id);
 }
 
 VkPipelineLayout PipelineState::CreatePipelineLayout(Descriptor *descriptor)
@@ -463,9 +471,12 @@ VkPipeline PipelineState::CreateGraphicsPipeline(Descriptor *descriptor, RenderT
 	}
 
 	VkPipeline pipeline = VK_NULL_HANDLE;
-	vkCreateGraphicsPipelines(static_cast<Device *>(p_device)->GetDevice(), PipelineCache, 1, &graphics_pipeline_create_info, nullptr, &pipeline);
+	vkCreateGraphicsPipelines(static_cast<Device *>(p_device)->GetDevice(), CreatePipelineCache(std::this_thread::get_id()), 1, &graphics_pipeline_create_info, nullptr, &pipeline);
 
-	Pipelines.emplace(hash, pipeline);
+	{
+		std::lock_guard<std::mutex> lock(Mutex);
+		Pipelines.emplace(hash, pipeline);
+	}
 
 	return pipeline;
 }
@@ -501,9 +512,12 @@ VkPipeline PipelineState::CreateComputePipeline(Descriptor *descriptor)
 	compute_pipeline_create_info.basePipelineHandle          = VK_NULL_HANDLE;
 
 	VkPipeline pipeline = VK_NULL_HANDLE;
-	vkCreateComputePipelines(static_cast<Device *>(p_device)->GetDevice(), PipelineCache, 1, &compute_pipeline_create_info, nullptr, &pipeline);
+	vkCreateComputePipelines(static_cast<Device *>(p_device)->GetDevice(), CreatePipelineCache(std::this_thread::get_id()), 1, &compute_pipeline_create_info, nullptr, &pipeline);
 
-	Pipelines.emplace(hash, pipeline);
+	{
+		std::lock_guard<std::mutex> lock(Mutex);
+		Pipelines.emplace(hash, pipeline);
+	}
 
 	return pipeline;
 }
@@ -699,9 +713,12 @@ VkPipeline PipelineState::CreateRayTracingPipeline(Descriptor *descriptor)
 	raytracing_pipeline_create_info.maxPipelineRayRecursionDepth      = 4;
 	raytracing_pipeline_create_info.layout                            = GetPipelineLayout(descriptor);
 
-	vkCreateRayTracingPipelinesKHR(static_cast<Device *>(p_device)->GetDevice(), VK_NULL_HANDLE, PipelineCache, 1, &raytracing_pipeline_create_info, nullptr, &pipeline);
+	vkCreateRayTracingPipelinesKHR(static_cast<Device *>(p_device)->GetDevice(), VK_NULL_HANDLE, CreatePipelineCache(std::this_thread::get_id()), 1, &raytracing_pipeline_create_info, nullptr, &pipeline);
 
-	Pipelines.emplace(hash, pipeline);
+	{
+		std::lock_guard<std::mutex> lock(Mutex);
+		Pipelines.emplace(hash, pipeline);
+	}
 
 	// Create shader binding table
 	/*
@@ -767,7 +784,10 @@ VkPipeline PipelineState::CreateRayTracingPipeline(Descriptor *descriptor)
 		handle_offset += callable_count * handle_size_aligned;
 	}
 
-	ShaderBindingTables.emplace(pipeline, std::move(sbt));
+	{
+		std::lock_guard<std::mutex> lock(Mutex);
+		ShaderBindingTables.emplace(pipeline, std::move(sbt));
+	}
 
 	return pipeline;
 }

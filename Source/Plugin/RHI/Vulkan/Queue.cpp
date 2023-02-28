@@ -113,7 +113,7 @@ void Queue::Execute(RHIQueueFamily family, const std::vector<SubmitInfo> &submit
 		          submit_info.queue_family == RHIQueueFamily::Compute ?
 		              VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT :
 		              (submit_info.queue_family == RHIQueueFamily::Graphics ?
-		                   VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT :
+		                   VK_PIPELINE_STAGE_VERTEX_INPUT_BIT :
 		                   VK_PIPELINE_STAGE_ALL_COMMANDS_BIT));
 
 		cmd_buffers[i].reserve(submit_info.cmd_buffers.size());

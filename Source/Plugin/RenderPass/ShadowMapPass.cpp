@@ -73,6 +73,8 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 		std::shared_ptr<RHIRenderTarget> cascade_shadowmap_render_target = std::shared_ptr<RHIRenderTarget>(std::move(renderer->GetRHIContext()->CreateRenderTarget()));
 		std::shared_ptr<RHIRenderTarget> omni_shadowmap_render_target    = std::shared_ptr<RHIRenderTarget>(std::move(renderer->GetRHIContext()->CreateRenderTarget()));
 
+		renderer->GetRenderGraphBlackboard().Get<GPUScene>()->light.has_shadow = true;
+
 		*task = [=](RenderGraph &render_graph, RHICommand *cmd_buffer, Variant &config, RenderGraphBlackboard &black_board) {
 			auto   *rhi_context = renderer->GetRHIContext();
 			auto   *scene       = renderer->GetScene();
@@ -80,8 +82,6 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 			Config *config_data = config.Convert<Config>();
 
 			auto shadow_map_data = !black_board.Has<ShadowMapData>() ? black_board.Add<ShadowMapData>() : black_board.Get<ShadowMapData>();
-
-			gpu_scene->light.has_shadow = true;
 
 			RenderShadowMap(cmd_buffer, mesh_shadow_pipeline, skinned_mesh_shadow_pipeline, renderer, scene, gpu_scene, config_data, shadow_map_data, shadowmap_render_target.get());
 			RenderCascadeShadowMap(cmd_buffer, mesh_cascade_shadow_pipeline, skinned_mesh_cascade_shadow_pipeline, renderer, scene, gpu_scene, config_data, shadow_map_data, cascade_shadowmap_render_target.get());

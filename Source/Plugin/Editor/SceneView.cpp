@@ -259,6 +259,7 @@ class SceneView : public Widget
 	{
 		auto *resource = editor->GetRenderer()->GetResourceManager()->Get<ResourceType::Scene>(name);
 		auto *scene    = editor->GetRenderer()->GetScene();
+		editor->SelectNode();
 
 		if (resource)
 		{

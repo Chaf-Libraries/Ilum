@@ -31,6 +31,7 @@ class PipelineState : public RHIPipelineState
 	VkPipelineBindPoint GetPipelineBindPoint() const;
 
   private:
+	VkPipelineCache  CreatePipelineCache(const std::thread::id &thread_id);
 	VkPipelineLayout CreatePipelineLayout(Descriptor *descriptor);
 	VkPipeline       CreateGraphicsPipeline(Descriptor *descriptor, RenderTarget *render_target);
 	VkPipeline       CreateComputePipeline(Descriptor *descriptor);

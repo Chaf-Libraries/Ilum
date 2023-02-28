@@ -57,13 +57,11 @@ RHIShader *ShaderBuilder::RequireShader(const std::string &filename, const std::
 
 		if (last_write == std::filesystem::last_write_time(filename).time_since_epoch().count() && !shader_bin.empty())
 		{
-			LOG_INFO("Load shader {} with entry point \"{}\" from cache", filename, entry_point);
 			std::unique_ptr<RHIShader> shader = p_rhi_context->CreateShader(entry_point, shader_bin, cuda);
 			m_impl->shader_meta_cache.emplace(shader.get(), std::move(meta));
 			m_impl->shader_cache.emplace(hash, std::move(shader));
 			return m_impl->shader_cache.at(hash).get();
 		}
-		LOG_INFO("Cache of shader {} with entry point \"{}\" is out of date, recompile it", filename, entry_point);
 	}
 
 	{
@@ -100,16 +98,12 @@ RHIShader *ShaderBuilder::RequireShader(const std::string &filename, const std::
 			}
 		}
 
-		LOG_INFO("Compiling shader {} with entry point \"{}\"...", filename, entry_point);
 		shader_bin = ShaderCompiler::GetInstance().Compile(desc, meta);
 
 		if (shader_bin.empty())
 		{
-			LOG_ERROR("Shader {} with entry point \"{}\" compiled failed!", filename, entry_point);
 			return nullptr;
 		}
-
-		LOG_ERROR("Shader {} with entry point \"{}\" compiled successfully, caching it...", filename, entry_point);
 
 		SERIALIZE(
 		    cache_path,
