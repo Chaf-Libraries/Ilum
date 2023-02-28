@@ -68,6 +68,8 @@ RHICommand *Frame::AllocateCommand(RHIQueueFamily family)
 
 	if (m_command_pools.find(hash) == m_command_pools.end())
 	{
+		std::lock_guard<std::mutex> lock(m_mutex);
+
 		VkCommandPoolCreateInfo create_info = {};
 		create_info.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		create_info.flags                   = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
@@ -81,20 +83,22 @@ RHICommand *Frame::AllocateCommand(RHIQueueFamily family)
 
 	if (m_commands.find(hash) == m_commands.end())
 	{
+		std::lock_guard<std::mutex> lock(m_mutex);
 		m_commands.emplace(hash, std::vector<std::unique_ptr<Command>>{});
 		m_active_cmd_index[hash] = 0;
 	}
 
-	if (m_commands[hash].size() > m_active_cmd_index[hash])
+	if (m_commands.at(hash).size() > m_active_cmd_index.at(hash))
 	{
-		auto &cmd = m_commands[hash][m_active_cmd_index[hash]];
+		auto &cmd = m_commands.at(hash).at(m_active_cmd_index.at(hash));
 		cmd->Init();
 		m_active_cmd_index[hash]++;
 		return cmd.get();
 	}
 
-	while (m_commands[hash].size() <= m_active_cmd_index[hash])
+	while (m_commands.at(hash).size() <= m_active_cmd_index.at(hash))
 	{
+		std::lock_guard<std::mutex> lock(m_mutex);
 		m_commands[hash].emplace_back(std::make_unique<Command>(p_device, m_command_pools[hash], family));
 	}
 
@@ -107,27 +111,32 @@ RHICommand *Frame::AllocateCommand(RHIQueueFamily family)
 
 RHIDescriptor *Frame::AllocateDescriptor(const ShaderMeta &meta)
 {
-	if (m_descriptors.find(meta.hash) == m_descriptors.end())
+	size_t hash = 0;
+	HashCombine(hash, meta.hash, std::this_thread::get_id());
+
+	if (m_descriptors.find(hash) == m_descriptors.end())
 	{
-		m_descriptors.emplace(meta.hash, std::vector<std::unique_ptr<Descriptor>>{});
-		m_active_descriptor_index[meta.hash] = 0;
+		std::lock_guard<std::mutex> lock(m_mutex);
+		m_descriptors.emplace(hash, std::vector<std::unique_ptr<Descriptor>>{});
+		m_active_descriptor_index[hash] = 0;
 	}
 
-	if (m_descriptors[meta.hash].size() > m_active_descriptor_index[meta.hash])
+	if (m_descriptors[hash].size() > m_active_descriptor_index[hash])
 	{
-		auto &descriptor = m_descriptors[meta.hash][m_active_descriptor_index[meta.hash]];
-		m_active_descriptor_index[meta.hash]++;
+		auto &descriptor = m_descriptors[hash][m_active_descriptor_index[hash]];
+		m_active_descriptor_index[hash]++;
 		return descriptor.get();
 	}
 
-	while (m_descriptors[meta.hash].size() <= m_active_descriptor_index[meta.hash])
+	while (m_descriptors[hash].size() <= m_active_descriptor_index[hash])
 	{
-		m_descriptors[meta.hash].emplace_back(std::make_unique<Descriptor>(p_device, meta));
+		std::lock_guard<std::mutex> lock(m_mutex);
+		m_descriptors[hash].emplace_back(std::make_unique<Descriptor>(p_device, meta));
 	}
 
-	m_active_descriptor_index[meta.hash]++;
+	m_active_descriptor_index[hash]++;
 
-	auto &descriptor = m_descriptors[meta.hash].back();
+	auto &descriptor = m_descriptors[hash].back();
 	return descriptor.get();
 }
 

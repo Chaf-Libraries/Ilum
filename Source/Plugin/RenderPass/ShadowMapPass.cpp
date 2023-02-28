@@ -79,9 +79,9 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 			auto   *gpu_scene   = black_board.Get<GPUScene>();
 			Config *config_data = config.Convert<Config>();
 
-			gpu_scene->light.has_shadow = true;
+			auto shadow_map_data = !black_board.Has<ShadowMapData>() ? black_board.Add<ShadowMapData>() : black_board.Get<ShadowMapData>();
 
-			auto shadow_map_data = black_board.Has<ShadowMapData>() ? black_board.Add<ShadowMapData>() : black_board.Get<ShadowMapData>();
+			gpu_scene->light.has_shadow = true;
 
 			RenderShadowMap(cmd_buffer, mesh_shadow_pipeline, skinned_mesh_shadow_pipeline, renderer, scene, gpu_scene, config_data, shadow_map_data, shadowmap_render_target.get());
 			RenderCascadeShadowMap(cmd_buffer, mesh_cascade_shadow_pipeline, skinned_mesh_cascade_shadow_pipeline, renderer, scene, gpu_scene, config_data, shadow_map_data, cascade_shadowmap_render_target.get());
@@ -193,7 +193,8 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 		    shadow_map_data->shadow_map->GetDesc().width != size ||
 		    shadow_map_data->shadow_map->GetDesc().layers < spot_lights.size())
 		{
-			shadow_map_data->shadow_map = rhi_context->CreateTexture2DArray(size, size, layers, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false);
+			gpu_scene->light.has_spot_light_shadow = false;
+			shadow_map_data->shadow_map            = rhi_context->CreateTexture2DArray(size, size, layers, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false);
 			cmd_buffer->ResourceStateTransition({TextureStateTransition{
 			                                        shadow_map_data->shadow_map.get(),
 			                                        RHIResourceState::Undefined,
@@ -210,6 +211,8 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 			                                        TextureRange{RHITextureDimension::Texture2DArray, 0, 1, 0, layers}}},
 			                                    {});
 		}
+
+		gpu_scene->light.has_spot_light_shadow = true;
 
 		render_target->Clear();
 		render_target->Set(shadow_map_data->shadow_map.get(), RHITextureDimension::Texture2DArray, DepthStencilAttachment{});
@@ -369,7 +372,8 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 		    shadow_map_data->cascade_shadow_map->GetDesc().width != size ||
 		    shadow_map_data->cascade_shadow_map->GetDesc().layers < directional_lights.size() * 4)
 		{
-			shadow_map_data->cascade_shadow_map = rhi_context->CreateTexture2DArray(size, size, layers, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false);
+			gpu_scene->light.has_directional_light_shadow = false;
+			shadow_map_data->cascade_shadow_map           = rhi_context->CreateTexture2DArray(size, size, layers, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false);
 			cmd_buffer->ResourceStateTransition({TextureStateTransition{
 			                                        shadow_map_data->cascade_shadow_map.get(),
 			                                        RHIResourceState::Undefined,
@@ -386,6 +390,8 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 			                                        TextureRange{RHITextureDimension::Texture2DArray, 0, 1, 0, layers}}},
 			                                    {});
 		}
+
+		gpu_scene->light.has_directional_light_shadow = true;
 
 		render_target->Clear();
 		render_target->Set(shadow_map_data->cascade_shadow_map.get(), RHITextureDimension::Texture2DArray, DepthStencilAttachment{});
@@ -536,7 +542,8 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 		    shadow_map_data->omni_shadow_map->GetDesc().width != size ||
 		    shadow_map_data->omni_shadow_map->GetDesc().layers < point_lights.size() * 6)
 		{
-			shadow_map_data->omni_shadow_map = rhi_context->CreateTexture2DArray(size, size, layers, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false);
+			gpu_scene->light.has_point_light_shadow = false;
+			shadow_map_data->omni_shadow_map        = rhi_context->CreateTexture2DArray(size, size, layers, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false);
 			cmd_buffer->ResourceStateTransition({TextureStateTransition{
 			                                        shadow_map_data->omni_shadow_map.get(),
 			                                        RHIResourceState::Undefined,
@@ -553,6 +560,8 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 			                                        TextureRange{RHITextureDimension::Texture2DArray, 0, 1, 0, layers}}},
 			                                    {});
 		}
+
+		gpu_scene->light.has_point_light_shadow = true;
 
 		render_target->Clear();
 		render_target->Set(shadow_map_data->omni_shadow_map.get(), RHITextureDimension::Texture2DArray, DepthStencilAttachment{});

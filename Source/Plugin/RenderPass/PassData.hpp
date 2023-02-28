@@ -14,5 +14,9 @@ struct ShadowMapData
 
 	// TextureCube Array
 	std::unique_ptr<RHITexture> omni_shadow_map = nullptr;
+
+	bool shadow_map_ready = false;
+	bool cascade_shadow_map_ready = false;
+	bool omni_shadow_map_ready    = false;
 };
 }        // namespace Ilum

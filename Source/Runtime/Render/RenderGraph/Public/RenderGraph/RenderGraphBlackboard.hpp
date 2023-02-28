@@ -4,7 +4,7 @@
 
 namespace Ilum
 {
-class  RenderGraphBlackboard
+class RenderGraphBlackboard
 {
   public:
 	RenderGraphBlackboard() = default;
@@ -28,8 +28,9 @@ class  RenderGraphBlackboard
 	{
 		if (!Has<_Ty>())
 		{
-			Add<_Ty>();
+			return nullptr;
 		}
+
 		return std::static_pointer_cast<_Ty>(Get(typeid(_Ty))).get();
 	}
 
@@ -50,5 +51,7 @@ class  RenderGraphBlackboard
 
   private:
 	std::unordered_map<std::type_index, std::shared_ptr<void>> m_data;
+
+	std::mutex m_mutex;
 };
 }        // namespace Ilum

@@ -96,7 +96,10 @@ struct GPUScene
 			uint32_t rect_light_count         = 0;
 		}info;
 
-		bool has_shadow = false;
+		bool has_shadow                   = false;
+		bool has_point_light_shadow = false;
+		bool has_spot_light_shadow  = false;
+		bool has_directional_light_shadow = false;
 
 		std::unique_ptr<RHIBuffer> point_light_buffer = nullptr;
 		std::unique_ptr<RHIBuffer> spot_light_buffer = nullptr;

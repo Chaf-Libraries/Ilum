@@ -8,7 +8,9 @@ namespace Ilum
 struct ShaderBuilder::Impl
 {
 	std::unordered_map<size_t, std::unique_ptr<RHIShader>> shader_cache;
-	std::unordered_map<RHIShader *, ShaderMeta> shader_meta_cache;
+	std::unordered_map<RHIShader *, ShaderMeta>            shader_meta_cache;
+
+	std::mutex mutex;
 };
 
 ShaderBuilder::ShaderBuilder(RHIContext *context) :
@@ -116,8 +118,12 @@ RHIShader *ShaderBuilder::RequireShader(const std::string &filename, const std::
 		    meta);
 
 		std::unique_ptr<RHIShader> shader = p_rhi_context->CreateShader(entry_point, shader_bin, cuda);
-		m_impl->shader_meta_cache.emplace(shader.get(), std::move(meta));
-		m_impl->shader_cache.emplace(hash, std::move(shader));
+
+		{
+			std::lock_guard<std::mutex> lock(m_impl->mutex);
+			m_impl->shader_meta_cache.emplace(shader.get(), std::move(meta));
+			m_impl->shader_cache.emplace(hash, std::move(shader));
+		}
 		return m_impl->shader_cache.at(hash).get();
 	}
 

@@ -12,7 +12,7 @@ inline static VkDescriptorPool                                  DescriptorPool =
 inline static std::unordered_map<size_t, VkDescriptorSetLayout> DescriptorSetLayouts;
 inline static std::unordered_map<size_t, VkDescriptorSet>       DescriptorSet;
 
-inline static uint32_t DescriptorCount    = 0;
+inline static std::atomic<uint32_t> DescriptorCount    = 0;
 inline static uint32_t MaxDescriptorCount = 0;
 
 inline static std::unordered_map<DescriptorType, VkDescriptorType> DescriptorTypeMap = {
@@ -27,7 +27,7 @@ inline static std::unordered_map<DescriptorType, VkDescriptorType> DescriptorTyp
 Descriptor::Descriptor(RHIDevice *device, const ShaderMeta &meta) :
     RHIDescriptor(device, meta)
 {
-	if (DescriptorCount++ == 0)
+	if (DescriptorCount == 0)
 	{
 		VkPhysicalDeviceProperties properties = {};
 		vkGetPhysicalDeviceProperties(static_cast<Device *>(p_device)->GetPhysicalDevice(), &properties);
@@ -53,6 +53,8 @@ Descriptor::Descriptor(RHIDevice *device, const ShaderMeta &meta) :
 
 		vkCreateDescriptorPool(static_cast<Device *>(p_device)->GetDevice(), &descriptor_pool_create_info, nullptr, &DescriptorPool);
 	}
+
+	DescriptorCount.fetch_add(1);
 
 	std::unordered_map<uint32_t, ShaderMeta> set_meta;
 	for (auto &descriptor : m_meta.descriptors)
@@ -134,7 +136,9 @@ Descriptor ::~Descriptor()
 	m_descriptor_set_layouts.clear();
 	m_descriptor_sets.clear();
 
-	if (--DescriptorCount == 0)
+	DescriptorCount.fetch_sub(1);
+
+	if (DescriptorCount == 0)
 	{
 		if (DescriptorPool)
 		{

@@ -78,5 +78,7 @@ class Command : public RHICommand
 	Descriptor    *p_descriptor     = nullptr;
 	PipelineState *p_pipeline_state = nullptr;
 	RenderTarget  *p_render_target  = nullptr;
+
+	std::mutex m_mutex;
 };
 }        // namespace Ilum::Vulkan

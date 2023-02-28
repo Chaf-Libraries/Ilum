@@ -11,12 +11,13 @@ namespace Ilum::Vulkan
 static std::unordered_map<size_t, VkCommandPool>          CommandPools;
 static std::unordered_map<size_t, std::vector<Command *>> CommandBuffers;
 
-static uint32_t CommandCount = 0;
+static std::atomic<uint32_t> CommandCount = 0;
 
 Command::Command(RHIDevice *device, RHIQueueFamily family) :
     RHICommand(device, family)
 {
-	CommandCount++;
+	std::lock_guard<std::mutex> lock(m_mutex);
+	CommandCount.fetch_add(1);
 
 	// Register Command Buffer
 	size_t hash = 0;
@@ -49,7 +50,7 @@ Command::Command(RHIDevice *device, RHIQueueFamily family) :
 Command::Command(RHIDevice *device, VkCommandPool pool, RHIQueueFamily family) :
     RHICommand(device, family), m_pool(pool)
 {
-	CommandCount++;
+	CommandCount.fetch_add(1);
 
 	VkCommandBufferAllocateInfo allocate_info = {};
 	allocate_info.sType                       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -61,12 +62,16 @@ Command::Command(RHIDevice *device, VkCommandPool pool, RHIQueueFamily family) :
 
 Command::~Command()
 {
+	std::lock_guard<std::mutex> lock(m_mutex);
+
+	CommandCount.fetch_sub(1);
+
 	if (m_handle)
 	{
 		vkFreeCommandBuffers(static_cast<Device *>(p_device)->GetDevice(), m_pool, 1, &m_handle);
 	}
 
-	if (--CommandCount == 0)
+	if (CommandCount == 0)
 	{
 		for (auto &[hash, pool] : CommandPools)
 		{

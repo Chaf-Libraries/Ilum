@@ -109,7 +109,12 @@ void Queue::Execute(RHIQueueFamily family, const std::vector<SubmitInfo> &submit
 		const auto &submit_info = submit_infos[i];
 
 		pipeline_stage_flags[i].resize(submit_info.wait_semaphores.size());
-		std::fill(pipeline_stage_flags[i].begin(), pipeline_stage_flags[i].end(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+		std::fill(pipeline_stage_flags[i].begin(), pipeline_stage_flags[i].end(),
+		          submit_info.queue_family == RHIQueueFamily::Compute ?
+		              VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT :
+		              (submit_info.queue_family == RHIQueueFamily::Graphics ?
+		                   VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT :
+		                   VK_PIPELINE_STAGE_ALL_COMMANDS_BIT));
 
 		cmd_buffers[i].reserve(submit_info.cmd_buffers.size());
 		for (auto &cmd_buffer : submit_info.cmd_buffers)

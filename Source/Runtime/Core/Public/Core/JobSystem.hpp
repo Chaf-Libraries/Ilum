@@ -24,10 +24,10 @@ class RingBuffer
 	RingBuffer()  = default;
 	~RingBuffer() = default;
 
-	RingBuffer(const RingBuffer &) = delete;
+	RingBuffer(const RingBuffer &)            = delete;
 	RingBuffer &operator=(const RingBuffer &) = delete;
 	RingBuffer(RingBuffer &&)                 = delete;
-	RingBuffer &operator=(RingBuffer &&) = delete;
+	RingBuffer &operator=(RingBuffer &&)      = delete;
 
 	void Push(const T &data)
 	{
@@ -73,10 +73,10 @@ class ThreadPool
 	ThreadPool(uint32_t max_threads_num);
 	~ThreadPool();
 
-	ThreadPool(const ThreadPool &) = delete;
+	ThreadPool(const ThreadPool &)            = delete;
 	ThreadPool &operator=(const ThreadPool &) = delete;
 	ThreadPool(ThreadPool &&)                 = delete;
-	ThreadPool &operator=(ThreadPool &&) = delete;
+	ThreadPool &operator=(ThreadPool &&)      = delete;
 
 	size_t GetThreadCount() const;
 
@@ -177,7 +177,7 @@ class JobHandle
 	std::atomic<uint32_t> m_counter = 0;
 };
 
-class  JobSystem
+class JobSystem
 {
   public:
 	JobSystem();
@@ -194,15 +194,20 @@ class  JobSystem
 
 	// Async execute, can be used in resource loading
 	template <typename Task, typename... Args>
-	inline auto Execute(JobHandle &handle, Task &&task, Args &&...args)
+	inline auto ExecuteAsync(Task &&task, Args &&...args)
 	    -> std::future<decltype(task(args...))>
 	{
-		handle.m_counter.fetch_add(1);
+		return m_thread_pool->AddTask([task, args...]() {
+			return task(std::forward<Args>(args)...);
+		});
+	}
 
-		return m_thread_pool->AddTask([task, &handle, args...]() {
-			auto result = task(std::forward<Args>(args)...);
-			handle.m_counter.fetch_sub(1);
-			return result;
+	template <typename Task>
+	inline auto ExecuteAsync(Task &&task)
+	    -> std::future<decltype(task())>
+	{
+		return m_thread_pool->AddTask([task]() {
+			return task();
 		});
 	}
 

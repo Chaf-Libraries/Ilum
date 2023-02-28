@@ -4,10 +4,15 @@ namespace Ilum
 {
 std::shared_ptr<void> &RenderGraphBlackboard::Add(std::type_index type, std::shared_ptr<void> &&ptr)
 {
-	if (m_data.find(type) == m_data.end())
 	{
-		m_data.emplace(type, std::move(ptr));
+		std::lock_guard<std::mutex> lock(m_mutex);
+
+		if (m_data.find(type) == m_data.end())
+		{
+			m_data.emplace(type, std::move(ptr));
+		}
 	}
+
 	return m_data.at(type);
 }
 

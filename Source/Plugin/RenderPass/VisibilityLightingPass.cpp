@@ -151,15 +151,6 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 			         RHIResourceState::TransferDest,
 			         RHIResourceState::UnorderedAccess}});
 
-			// std::vector<uint32_t> debug_data(material_count);
-			// pass_data->material_count_buffer->CopyToHost(debug_data.data(), debug_data.size() * sizeof(uint32_t));
-			// std::cout << "Material Count Buffer: ";
-			// for (auto data : debug_data)
-			//{
-			//	std::cout << data << " ";
-			// }
-			// std::cout << std::endl;
-
 			// Collect material count
 			{
 				cmd_buffer->BeginMarker("Collect Material Count");
@@ -346,6 +337,8 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 						descriptor->BindBuffer("PointLightBuffer", gpu_scene->light.point_light_buffer.get());
 						if (has_shadow)
 						{
+							while (!gpu_scene->light.has_point_light_shadow)
+							{}
 							descriptor->BindTexture("PointLightShadow", shadow_data->omni_shadow_map.get(), RHITextureDimension::TextureCubeArray);
 						}
 					}
@@ -355,6 +348,8 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 						descriptor->BindBuffer("SpotLightBuffer", gpu_scene->light.spot_light_buffer.get());
 						if (has_shadow)
 						{
+							while (!gpu_scene->light.has_spot_light_shadow)
+							{}
 							descriptor->BindTexture("SpotLightShadow", shadow_data->shadow_map.get(), RHITextureDimension::Texture2DArray);
 						}
 					}
@@ -364,6 +359,8 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 						descriptor->BindBuffer("DirectionalLightBuffer", gpu_scene->light.directional_light_buffer.get());
 						if (has_shadow)
 						{
+							while (!gpu_scene->light.has_directional_light_shadow)
+							{}
 							descriptor->BindTexture("DirectionalLightShadow", shadow_data->cascade_shadow_map.get(), RHITextureDimension::Texture2DArray);
 						}
 					}

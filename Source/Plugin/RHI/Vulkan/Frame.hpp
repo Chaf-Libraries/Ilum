@@ -40,5 +40,7 @@ class Frame : public RHIFrame
 
 	std::unordered_map<size_t, uint32_t> m_active_cmd_index;
 	std::unordered_map<size_t, uint32_t> m_active_descriptor_index;
+
+	std::mutex m_mutex;
 };
 }        // namespace Ilum::Vulkan
