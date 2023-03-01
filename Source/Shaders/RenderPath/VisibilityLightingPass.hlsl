@@ -633,6 +633,7 @@ void DispatchIndirect(CSParam param)
     
     uint instance_id, primitive_id, mesh_type;
     UnPackVisibilityBuffer(VisibilityBuffer.Load(uint3(pixel, 0)), mesh_type, instance_id, primitive_id);
+    
     SurfaceInteraction interaction;
     
     float3 bary, bary_ddx, bary_ddy;

@@ -176,6 +176,15 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 				cmd_buffer->EndMarker();
 			}
 
+			{
+				cmd_buffer->ResourceStateTransition(
+				    {},
+				    {BufferStateTransition{
+				        pass_data->material_count_buffer.get(),
+				        RHIResourceState::UnorderedAccess,
+				        RHIResourceState::ShaderResource}});
+			}
+
 			// Calculate material offset
 			{
 				cmd_buffer->BeginMarker("Calculate Material Offset");
@@ -200,10 +209,6 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 				    {},
 				    {BufferStateTransition{
 				         pass_data->material_offset_buffer.get(),
-				         RHIResourceState::UnorderedAccess,
-				         RHIResourceState::ShaderResource},
-				     BufferStateTransition{
-				         pass_data->material_count_buffer.get(),
 				         RHIResourceState::UnorderedAccess,
 				         RHIResourceState::ShaderResource}});
 			}
