@@ -29,11 +29,11 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 
 	const std::unordered_map<ShadowMapResolution, uint32_t> shadow_map_resolution =
 	    {
-	        {ShadowMapResolution::VeryHigh, 1024},
-	        {ShadowMapResolution::High, 768},
-	        {ShadowMapResolution::Medium, 512},
-	        {ShadowMapResolution::Low, 384},
-	        {ShadowMapResolution::VeryLow, 256},
+	        {ShadowMapResolution::VeryHigh, 2048},
+	        {ShadowMapResolution::High, 1536},
+	        {ShadowMapResolution::Medium, 1024},
+	        {ShadowMapResolution::Low, 682},
+	        {ShadowMapResolution::VeryLow, 341},
 	    };
 
 	struct Config

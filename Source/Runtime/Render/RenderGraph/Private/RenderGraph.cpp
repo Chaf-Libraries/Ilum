@@ -227,53 +227,122 @@ void RenderGraph::Execute(RenderGraphBlackboard &black_board)
 	}
 
 	// Collect cmd buffers
-	std::vector<std::future<RHICommand *>> cmd_buffer_futures;
+	/*std::vector<std::future<RHICommand *>> cmd_buffer_futures;
 	for (auto &pass : m_impl->render_passes)
 	{
-		auto future = JobSystem::GetInstance().ExecuteAsync([&]() {
-			if (pass.bind_point == BindPoint::CUDA)
-			{
-				auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Compute, true);
-				cmd_buffer->Begin();
-				pass.profiler->Begin(cmd_buffer, m_impl->rhi_context->GetSwapchain()->GetCurrentFrameIndex());
-				pass.execute(*this, cmd_buffer, pass.config, black_board);
-				pass.profiler->End(cmd_buffer);
-				cmd_buffer->End();
-				return cmd_buffer;
-			}
-			else
-			{
-				RHIQueueFamily family = RHIQueueFamily::Graphics;
-				if (pass.bind_point == BindPoint::Rasterization)
-				{
-					family = RHIQueueFamily::Graphics;
-				}
-				else
-				{
-					family = RHIQueueFamily::Compute;
-				}
+	    auto future = JobSystem::GetInstance().ExecuteAsync([&]() {
+	        if (pass.bind_point == BindPoint::CUDA)
+	        {
+	            auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Compute, true);
+	            cmd_buffer->Begin();
+	            pass.profiler->Begin(cmd_buffer, m_impl->rhi_context->GetSwapchain()->GetCurrentFrameIndex());
+	            pass.execute(*this, cmd_buffer, pass.config, black_board);
+	            pass.profiler->End(cmd_buffer);
+	            cmd_buffer->End();
+	            return cmd_buffer;
+	        }
+	        else
+	        {
+	            RHIQueueFamily family = RHIQueueFamily::Graphics;
+	            if (pass.bind_point == BindPoint::Rasterization)
+	            {
+	                family = RHIQueueFamily::Graphics;
+	            }
+	            else
+	            {
+	                family = RHIQueueFamily::Compute;
+	            }
 
-				auto *cmd_buffer = m_impl->rhi_context->CreateCommand(family);
-				cmd_buffer->SetName(pass.name);
-				cmd_buffer->Begin();
-				cmd_buffer->BeginMarker(pass.name);
-				pass.profiler->Begin(cmd_buffer, m_impl->rhi_context->GetSwapchain()->GetCurrentFrameIndex());
-				pass.barrier(*this, cmd_buffer);
-				pass.execute(*this, cmd_buffer, pass.config, black_board);
-				pass.profiler->End(cmd_buffer);
-				cmd_buffer->EndMarker();
-				cmd_buffer->End();
-				return cmd_buffer;
-			}
-		});
-		cmd_buffer_futures.emplace_back(std::move(future));
+	            auto *cmd_buffer = m_impl->rhi_context->CreateCommand(family);
+	            cmd_buffer->SetName(pass.name);
+	            cmd_buffer->Begin();
+	            cmd_buffer->BeginMarker(pass.name);
+	            pass.profiler->Begin(cmd_buffer, m_impl->rhi_context->GetSwapchain()->GetCurrentFrameIndex());
+	            pass.barrier(*this, cmd_buffer);
+	            pass.execute(*this, cmd_buffer, pass.config, black_board);
+	            pass.profiler->End(cmd_buffer);
+	            cmd_buffer->EndMarker();
+	            cmd_buffer->End();
+	            return cmd_buffer;
+	        }
+	    });
+	    cmd_buffer_futures.emplace_back(std::move(future));
 	}
 
 	if (!cmd_buffer_futures.empty())
 	{
-		std::vector<RHICommand *> cmd_buffers(cmd_buffer_futures.size());
-		std::transform(cmd_buffer_futures.begin(), cmd_buffer_futures.end(), cmd_buffers.begin(), [](std::future<RHICommand *> &iter) { return iter.get(); });
+	    std::vector<RHICommand *> cmd_buffers(cmd_buffer_futures.size());
+	    std::transform(cmd_buffer_futures.begin(), cmd_buffer_futures.end(), cmd_buffers.begin(), [](std::future<RHICommand *> &iter) { return iter.get(); });
 
+	    RHIQueueFamily            last_queue_family = cmd_buffers[0]->GetQueueFamily();
+	    std::string               last_backend      = cmd_buffers[0]->GetBackend();
+	    RHISemaphore             *last_semaphore    = nullptr;
+	    std::vector<RHICommand *> submit_cmd_buffers;
+	    for (auto &cmd_buffer : cmd_buffers)
+	    {
+	        if (last_queue_family != cmd_buffer->GetQueueFamily() ||
+	            cmd_buffer->GetBackend() != last_backend &&
+	                !submit_cmd_buffers.empty())
+	        {
+	            RHISemaphore *pass_semaphore   = m_impl->rhi_context->CreateFrameSemaphore();
+	            RHISemaphore *signal_semaphore = last_backend == "CUDA" ? MapToCUDASemaphore(pass_semaphore) : pass_semaphore;
+	            RHISemaphore *wait_semaphore   = last_semaphore ? last_backend == "CUDA" ? MapToCUDASemaphore(last_semaphore) : last_semaphore : nullptr;
+
+	            m_impl->rhi_context->Submit(std::move(submit_cmd_buffers), wait_semaphore ? std::vector<RHISemaphore *>{wait_semaphore} : std::vector<RHISemaphore *>{}, {signal_semaphore});
+	            submit_cmd_buffers.clear();
+	            last_semaphore    = pass_semaphore;
+	            last_queue_family = cmd_buffer->GetQueueFamily();
+	        }
+
+	        submit_cmd_buffers.push_back(cmd_buffer);
+	    }
+	    if (!submit_cmd_buffers.empty())
+	    {
+	        m_impl->rhi_context->Submit(std::move(submit_cmd_buffers), last_semaphore ? std::vector<RHISemaphore *>{last_semaphore} : std::vector<RHISemaphore *>{}, {});
+	    }
+	}*/
+
+	std::vector<RHICommand *> cmd_buffers;
+	for (auto &pass : m_impl->render_passes)
+	{
+		if (pass.bind_point == BindPoint::CUDA)
+		{
+			auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Compute, true);
+			cmd_buffer->Begin();
+			pass.profiler->Begin(cmd_buffer, m_impl->rhi_context->GetSwapchain()->GetCurrentFrameIndex());
+			pass.execute(*this, cmd_buffer, pass.config, black_board);
+			pass.profiler->End(cmd_buffer);
+			cmd_buffer->End();
+			cmd_buffers.emplace_back(cmd_buffer);
+		}
+		else
+		{
+			RHIQueueFamily family = RHIQueueFamily::Graphics;
+			if (pass.bind_point == BindPoint::Rasterization)
+			{
+				family = RHIQueueFamily::Graphics;
+			}
+			else
+			{
+				family = RHIQueueFamily::Compute;
+			}
+
+			auto *cmd_buffer = m_impl->rhi_context->CreateCommand(family);
+			cmd_buffer->SetName(pass.name);
+			cmd_buffer->Begin();
+			cmd_buffer->BeginMarker(pass.name);
+			pass.profiler->Begin(cmd_buffer, m_impl->rhi_context->GetSwapchain()->GetCurrentFrameIndex());
+			pass.barrier(*this, cmd_buffer);
+			pass.execute(*this, cmd_buffer, pass.config, black_board);
+			pass.profiler->End(cmd_buffer);
+			cmd_buffer->EndMarker();
+			cmd_buffer->End();
+			cmd_buffers.emplace_back(cmd_buffer);
+		}
+	}
+
+	if (!cmd_buffers.empty())
+	{
 		RHIQueueFamily            last_queue_family = cmd_buffers[0]->GetQueueFamily();
 		std::string               last_backend      = cmd_buffers[0]->GetBackend();
 		RHISemaphore             *last_semaphore    = nullptr;

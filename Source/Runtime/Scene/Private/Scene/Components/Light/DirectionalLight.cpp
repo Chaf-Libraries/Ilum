@@ -129,6 +129,8 @@ void *DirectionalLight::GetData(Camera *camera)
 			glm::vec3 max_extents = glm::vec3(radius);
 			glm::vec3 min_extents = -max_extents;
 
+			max_extents.z = 1000.f;
+
 			glm::vec3 light_dir = glm::normalize(m_data.direction);
 
 			m_data.shadow_cam_pos[i] = glm::vec4(frustum_center - light_dir * max_extents.z, 1.0);
@@ -141,17 +143,17 @@ void *DirectionalLight::GetData(Camera *camera)
 			m_data.view_projection[i] = light_ortho_matrix * light_view_matrix;
 
 			// Stablize
-			glm::vec3 shadow_origin = glm::vec3(0.0f);
-			shadow_origin           = (m_data.view_projection[i] * glm::vec4(shadow_origin, 1.0f));
-			shadow_origin *= 512.f;
+			//glm::vec3 shadow_origin = glm::vec3(0.0f);
+			//shadow_origin           = (m_data.view_projection[i] * glm::vec4(shadow_origin, 1.0f));
+			//shadow_origin *= 512.f;
 
-			glm::vec3 rounded_origin = glm::round(shadow_origin);
-			glm::vec3 round_offset   = rounded_origin - shadow_origin;
-			round_offset             = round_offset / 512.f;
-			round_offset.z           = 0.0f;
+			//glm::vec3 rounded_origin = glm::round(shadow_origin);
+			//glm::vec3 round_offset   = rounded_origin - shadow_origin;
+			//round_offset             = round_offset / 512.f;
+			//round_offset.z           = 0.0f;
 
-			m_data.view_projection[i][3][0] += round_offset.x;
-			m_data.view_projection[i][3][1] += round_offset.y;
+			//m_data.view_projection[i][3][0] += round_offset.x;
+			//m_data.view_projection[i][3][1] += round_offset.y;
 
 			last_split_dist = cascade_splits[i];
 		}

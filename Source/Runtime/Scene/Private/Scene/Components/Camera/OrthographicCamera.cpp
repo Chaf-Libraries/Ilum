@@ -79,14 +79,12 @@ void OrthographicCamera::UpdateProjection()
 		return;
 	}
 
-	auto *transform = p_node->GetComponent<Cmpt::Transform>();
-
 	float left   = m_offset_x - m_scale * m_aspect * 0.5f;
 	float right  = m_offset_x + m_scale * m_aspect * 0.5f;
 	float top    = m_offset_y + m_scale * 0.5f;
 	float bottom = m_offset_y - m_scale * 0.5f;
 
-	m_projection     = glm::ortho(left, right, bottom, top);
+	m_projection     = glm::ortho(left, right, bottom, top, m_near, m_far);
 	m_inv_projection = glm::inverse(m_projection);
 }
 }        // namespace Cmpt

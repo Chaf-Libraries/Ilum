@@ -56,8 +56,8 @@ class Camera : public Component
 
   protected:
 	float m_aspect = 1.f;
-	float m_near   = 0.01f;
-	float m_far    = 1000.f;
+	float m_near   = 0.1f;
+	float m_far    = 500.f;
 
 	std::array<glm::vec4, 6> m_frustum_planes;
 

@@ -60,8 +60,6 @@ void PerspectiveCamera::UpdateProjection()
 		return;
 	}
 
-	auto *transform = p_node->GetComponent<Cmpt::Transform>();
-
 	m_projection     = glm::perspective(glm::radians(m_fov), m_aspect, m_near, m_far);
 	m_inv_projection = glm::inverse(m_projection);
 }

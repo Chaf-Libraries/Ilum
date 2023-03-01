@@ -161,7 +161,6 @@ void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut v
         Vertex vertex = VertexBuffer[instance.mesh_id][vertex_id];
         
         verts[i].Position = mul(light.view_projection[layer_id % 4], mul(instance.transform, float4(vertex.position.xyz, 1.0)));
-        //verts[i].Position = mul(ViewBuffer.view_projection_matrix, mul(instance.transform, float4(vertex.position.xyz, 1.0)));
 #endif
     }
     
