@@ -765,7 +765,7 @@ void DispatchIndirect(CSParam param)
     {
         PointLight light = PointLightBuffer.Load(point_light_id);
         LightLiSample light_sample = light.SampleLi(li_ctx, 0.f);
-        float3 f = material.bsdf.Eval(interaction.isect.wo, light_sample.wi, TransportMode_Radiance) * abs(dot(light_sample.wi, interaction.shading_n));
+        float3 f = material.bsdf.Eval(interaction.isect.wo, light_sample.wi, TransportMode_Radiance);
         radiance += f * light_sample.L * CalculatePointLightShadow(light, point_light_id, interaction);
     }
 #endif
@@ -775,7 +775,7 @@ void DispatchIndirect(CSParam param)
     {
         SpotLight light = SpotLightBuffer.Load(spot_light_id);
         LightLiSample light_sample = light.SampleLi(li_ctx, 0.f);
-        float3 f = material.bsdf.Eval(interaction.isect.wo, light_sample.wi, TransportMode_Radiance) * abs(dot(light_sample.wi, interaction.shading_n));
+        float3 f = material.bsdf.Eval(interaction.isect.wo, light_sample.wi, TransportMode_Radiance);
         radiance += f * light_sample.L * CalculateSpotLightShadow(light, spot_light_id, interaction);
     }
 #endif
@@ -785,7 +785,7 @@ void DispatchIndirect(CSParam param)
     {
         DirectionalLight light = DirectionalLightBuffer.Load(directional_light_id);
         LightLiSample light_sample = light.SampleLi(li_ctx, 0.f);
-        float3 f = material.bsdf.Eval(interaction.isect.wo, light_sample.wi, TransportMode_Radiance) * abs(dot(light_sample.wi, interaction.shading_n));
+        float3 f = material.bsdf.Eval(interaction.isect.wo, light_sample.wi, TransportMode_Radiance);
         radiance += f * light_sample.L * CalculateDirectionalLightShadow(light, directional_light_id, interaction, linear_z);
     }
 #endif

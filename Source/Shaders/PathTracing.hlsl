@@ -307,7 +307,7 @@ float3 SampleLd(PayLoad pay_load, Material material)
         LightLiSample light_sample = light.SampleLi(sample_context, pay_load.rng.Get2D());
         
         float3 wo = pay_load.interaction.isect.wo;
-        float3 f = material.bsdf.Eval(wo, light_sample.wi, TransportMode_Radiance) * abs(dot(light_sample.wi, pay_load.interaction.shading_n));
+        float3 f = material.bsdf.Eval(wo, light_sample.wi, TransportMode_Radiance);
         
         if (IsBlack(light_sample.L) || IsBlack(f) || !Unoccluded(pay_load.interaction, light_sample.isect))
         {
@@ -421,7 +421,7 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
         return;
     }
     
-    pay_load.throughout *= bs.f * abs(dot(bs.wiW, pay_load.interaction.shading_n)) / bs.pdf;
+    pay_load.throughout *= bs.f / bs.pdf;
     pay_load.pdf = bs.pdfIsProportional ? material.bsdf.PDF(wo, bs.wiW, TransportMode_Radiance, BSDF_All) : bs.pdf;
     bool specular_bounce = bs.IsSpecular();
     if (bs.IsTransmission())

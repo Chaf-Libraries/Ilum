@@ -25,7 +25,8 @@ struct DiffuseMaterial
 
     float3 Eval(float3 woW, float3 wiW, TransportMode mode)
     {
-        return diffuse.Eval(frame.ToLocal(woW), frame.ToLocal(wiW), mode);
+      //  return frame.z;
+        return diffuse.Eval(frame.ToLocal(woW), frame.ToLocal(wiW), mode) * abs(dot(wiW, frame.z));
     }
 
     float PDF(float3 woW, float3 wiW, TransportMode mode, SampleFlags flags)
@@ -37,6 +38,7 @@ struct DiffuseMaterial
     {
         BSDFSample bsdf_sample = diffuse.Samplef(frame.ToLocal(woW), uc, u, mode, flags);
         bsdf_sample.wiW = frame.ToWorld(bsdf_sample.wi);
+        bsdf_sample.f *= abs(dot(bsdf_sample.wiW, frame.z));
         return bsdf_sample;
     }
 };

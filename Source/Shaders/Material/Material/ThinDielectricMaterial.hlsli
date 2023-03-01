@@ -23,7 +23,7 @@ struct ThinDielectricMaterial
 
     float3 Eval(float3 woW, float3 wiW, TransportMode mode)
     {
-        return thin_dielectric.Eval(frame.ToLocal(woW), frame.ToLocal(wiW), mode);
+        return thin_dielectric.Eval(frame.ToLocal(woW), frame.ToLocal(wiW), mode) * abs(dot(wiW, frame.z));
     }
 
     float PDF(float3 woW, float3 wiW, TransportMode mode, SampleFlags flags)
@@ -35,6 +35,7 @@ struct ThinDielectricMaterial
     {
         BSDFSample bsdf_sample = thin_dielectric.Samplef(frame.ToLocal(woW), uc, u, mode, flags);
         bsdf_sample.wiW = frame.ToWorld(bsdf_sample.wi);
+        bsdf_sample.f *= abs(dot(bsdf_sample.wiW, frame.z));
         return bsdf_sample;
     }
 };
