@@ -27,8 +27,8 @@ class VisibilityGeometryPass : public RenderPass<VisibilityGeometryPass>
 		return desc.SetBindPoint(BindPoint::Rasterization)
 		    .SetName("VisibilityGeometryPass")
 		    .SetCategory("RenderPath")
-		    .WriteTexture2D(handle++, "Visibility Buffer", 0, 0, RHIFormat::R32_UINT, RHIResourceState::RenderTarget)
-		    .WriteTexture2D(handle++, "Depth Buffer", 0, 0, RHIFormat::D32_FLOAT, RHIResourceState::DepthWrite);
+		    .WriteTexture2D(handle++, "Visibility Buffer", RHIFormat::R32_UINT, RHIResourceState::RenderTarget)
+		    .WriteTexture2D(handle++, "Depth Buffer", RHIFormat::D32_FLOAT, RHIResourceState::DepthWrite);
 	}
 
 	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)

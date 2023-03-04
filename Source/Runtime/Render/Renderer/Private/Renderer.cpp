@@ -125,6 +125,39 @@ Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resou
 		cmd_buffer->End();
 		m_impl->rhi_context->Execute(cmd_buffer);
 	}
+
+	// LUT
+	{
+		auto *lut = m_impl->black_board.Add<LUT>();
+		lut->ggx  = rhi_context->CreateTexture2D(512, 512, RHIFormat::R16G16_FLOAT, RHITextureUsage::ShaderResource | RHITextureUsage::UnorderedAccess, false);
+
+		{
+			std::unique_ptr<RHIPipelineState> ggx_preintegration = rhi_context->CreatePipelineState();
+
+			RHIShader *shader = RequireShader("Source/Shaders/LUT/GGXBRDF.hlsl", "CSmain", RHIShaderStage::Compute);
+			ggx_preintegration->SetShader(RHIShaderStage::Compute, shader);
+			ShaderMeta meta = RequireShaderMeta(shader);
+
+			auto *descriptor = rhi_context->CreateDescriptor(meta);
+			descriptor->BindTexture("Output", lut->ggx.get(), RHITextureDimension::Texture2D);
+
+			auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Compute);
+			cmd_buffer->Begin();
+			cmd_buffer->ResourceStateTransition({
+			                                        TextureStateTransition{lut->ggx.get(), RHIResourceState::Undefined, RHIResourceState::UnorderedAccess},
+			                                    },
+			                                    {});
+			cmd_buffer->BindDescriptor(descriptor);
+			cmd_buffer->BindPipelineState(ggx_preintegration.get());
+			cmd_buffer->Dispatch(512, 512, 1, 8, 8, 1);
+			cmd_buffer->ResourceStateTransition({
+			                                        TextureStateTransition{lut->ggx.get(), RHIResourceState::UnorderedAccess, RHIResourceState::ShaderResource},
+			                                    },
+			                                    {});
+			cmd_buffer->End();
+			m_impl->rhi_context->Execute(cmd_buffer);
+		}
+	}
 }
 
 Renderer::~Renderer()

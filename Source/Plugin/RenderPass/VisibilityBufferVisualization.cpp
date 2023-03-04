@@ -17,8 +17,8 @@ class VisibilityBufferVisualization : public RenderPass<VisibilityBufferVisualiz
 		    .SetCategory("RenderPath")
 		    .ReadTexture2D(handle++, "Visibility Buffer", RHIResourceState::ShaderResource)
 		    .ReadTexture2D(handle++, "Depth Buffer", RHIResourceState::ShaderResource)
-		    .WriteTexture2D(handle++, "Instance ID", 0, 0, RHIFormat::R8G8B8A8_UNORM, RHIResourceState::UnorderedAccess)
-		    .WriteTexture2D(handle++, "Primitive ID", 0, 0, RHIFormat::R8G8B8A8_UNORM, RHIResourceState::UnorderedAccess);
+		    .WriteTexture2D(handle++, "Instance ID", RHIFormat::R8G8B8A8_UNORM, RHIResourceState::UnorderedAccess)
+		    .WriteTexture2D(handle++, "Primitive ID", RHIFormat::R8G8B8A8_UNORM, RHIResourceState::UnorderedAccess);
 	}
 
 	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)

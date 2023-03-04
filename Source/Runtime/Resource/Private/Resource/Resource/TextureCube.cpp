@@ -28,6 +28,7 @@ Resource<ResourceType::TextureCube>::Resource(RHIContext *rhi_context, std::vect
 	cubemap_desc.width       = 512;
 	cubemap_desc.height      = 512;
 	cubemap_desc.depth       = 1;
+	cubemap_desc.mips        = 5;
 	cubemap_desc.layers      = 6;
 	cubemap_desc.format      = RHIFormat::R32G32B32A32_FLOAT;
 	cubemap_desc.usage |= RHITextureUsage::RenderTarget;
@@ -40,43 +41,43 @@ Resource<ResourceType::TextureCube>::Resource(RHIContext *rhi_context, std::vect
 	staging_buffer->CopyToDevice(data.data(), staging_buffer->GetDesc().size);
 
 	// Convert equirectangular to cubemap
-	//std::vector<uint8_t> raw_shader;
-	//Path::GetInstance().Read("./Source/Shaders/PreProcess/EquirectangularToCubemap.hlsl", raw_shader);
+	// std::vector<uint8_t> raw_shader;
+	// Path::GetInstance().Read("./Source/Shaders/PreProcess/EquirectangularToCubemap.hlsl", raw_shader);
 
-	//std::string shader_source;
-	//shader_source.resize(raw_shader.size());
-	//std::memcpy(shader_source.data(), raw_shader.data(), raw_shader.size());
-	//shader_source += "\n";
+	// std::string shader_source;
+	// shader_source.resize(raw_shader.size());
+	// std::memcpy(shader_source.data(), raw_shader.data(), raw_shader.size());
+	// shader_source += "\n";
 
-	//ShaderDesc vertex_shader_desc  = {};
-	//vertex_shader_desc.path = "./Source/Shaders/PreProcess/EquirectangularToCubemap.hlsl";
-	//vertex_shader_desc.entry_point = "VSmain";
-	//vertex_shader_desc.stage       = RHIShaderStage::Vertex;
-	//vertex_shader_desc.source      = ShaderSource::HLSL;
-	//vertex_shader_desc.target      = ShaderTarget::SPIRV;
-	//vertex_shader_desc.code        = shader_source;
+	// ShaderDesc vertex_shader_desc  = {};
+	// vertex_shader_desc.path = "./Source/Shaders/PreProcess/EquirectangularToCubemap.hlsl";
+	// vertex_shader_desc.entry_point = "VSmain";
+	// vertex_shader_desc.stage       = RHIShaderStage::Vertex;
+	// vertex_shader_desc.source      = ShaderSource::HLSL;
+	// vertex_shader_desc.target      = ShaderTarget::SPIRV;
+	// vertex_shader_desc.code        = shader_source;
 
-	//ShaderDesc fragment_shader_desc  = {};
-	//fragment_shader_desc.path = "./Source/Shaders/PreProcess/EquirectangularToCubemap.hlsl";
-	//fragment_shader_desc.entry_point = "PSmain";
-	//fragment_shader_desc.stage       = RHIShaderStage::Fragment;
-	//fragment_shader_desc.source      = ShaderSource::HLSL;
-	//fragment_shader_desc.target      = ShaderTarget::SPIRV;
-	//fragment_shader_desc.code        = shader_source;
+	// ShaderDesc fragment_shader_desc  = {};
+	// fragment_shader_desc.path = "./Source/Shaders/PreProcess/EquirectangularToCubemap.hlsl";
+	// fragment_shader_desc.entry_point = "PSmain";
+	// fragment_shader_desc.stage       = RHIShaderStage::Fragment;
+	// fragment_shader_desc.source      = ShaderSource::HLSL;
+	// fragment_shader_desc.target      = ShaderTarget::SPIRV;
+	// fragment_shader_desc.code        = shader_source;
 
-	//ShaderMeta vertex_meta   = {};
-	//ShaderMeta fragment_meta = {};
+	// ShaderMeta vertex_meta   = {};
+	// ShaderMeta fragment_meta = {};
 
-	//auto vertex_shader_spirv   = ShaderCompiler::GetInstance().Compile(vertex_shader_desc, vertex_meta);
-	//auto fragment_shader_spirv = ShaderCompiler::GetInstance().Compile(fragment_shader_desc, fragment_meta);
+	// auto vertex_shader_spirv   = ShaderCompiler::GetInstance().Compile(vertex_shader_desc, vertex_meta);
+	// auto fragment_shader_spirv = ShaderCompiler::GetInstance().Compile(fragment_shader_desc, fragment_meta);
 
-	//auto vertex_shader   = rhi_context->CreateShader("VSmain", vertex_shader_spirv);
-	//auto fragment_shader = rhi_context->CreateShader("PSmain", fragment_shader_spirv);
+	// auto vertex_shader   = rhi_context->CreateShader("VSmain", vertex_shader_spirv);
+	// auto fragment_shader = rhi_context->CreateShader("PSmain", fragment_shader_spirv);
 
-	//ShaderMeta shader_meta = vertex_meta;
-	//shader_meta += fragment_meta;
+	// ShaderMeta shader_meta = vertex_meta;
+	// shader_meta += fragment_meta;
 
-	//SERIALIZE("Asset/BuildIn/equirectangular_to_cubemap.shader.asset", vertex_shader_spirv, fragment_shader_spirv, shader_meta);
+	// SERIALIZE("Asset/BuildIn/equirectangular_to_cubemap.shader.asset", vertex_shader_spirv, fragment_shader_spirv, shader_meta);
 
 	std::vector<uint8_t> vertex_shader_spirv, fragment_shader_spirv;
 	ShaderMeta           shader_meta;
@@ -121,6 +122,7 @@ Resource<ResourceType::TextureCube>::Resource(RHIContext *rhi_context, std::vect
 	         RHIResourceState::TransferDest,
 	         TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
 	    {});
+	// Copy to thumbail
 	cmd_buffer->CopyBufferToTexture(staging_buffer.get(), cubemap2d.get(), 0, 0, 1);
 	cmd_buffer->BlitTexture(cubemap2d.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::TransferDest,
 	                        m_thumbnail.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::TransferDest);
@@ -139,8 +141,10 @@ Resource<ResourceType::TextureCube>::Resource(RHIContext *rhi_context, std::vect
 	         m_impl->texture.get(),
 	         RHIResourceState::Undefined,
 	         RHIResourceState::RenderTarget,
-	         TextureRange{RHITextureDimension::Texture2DArray, 0, 1, 0, 6}}},
+	         TextureRange{RHITextureDimension::Texture2DArray, 0, 5, 0, 6}}},
 	    {});
+
+	// Generate cubemap
 	cmd_buffer->BeginRenderPass(render_target.get());
 	cmd_buffer->SetViewport(512.f, 512.f);
 	cmd_buffer->SetScissor(512, 512);
@@ -148,13 +152,17 @@ Resource<ResourceType::TextureCube>::Resource(RHIContext *rhi_context, std::vect
 	cmd_buffer->BindPipelineState(pipeline_state.get());
 	cmd_buffer->Draw(3, 6);
 	cmd_buffer->EndRenderPass();
+
+	// Generate mipmap
+	cmd_buffer->GenerateMipmaps(m_impl->texture.get(), RHIResourceState::RenderTarget, RHIFilter::Linear);
+
 	cmd_buffer->CopyTextureToBuffer(m_thumbnail.get(), staging_buffer.get(), 0, 0, 1);
 	cmd_buffer->ResourceStateTransition(
 	    {TextureStateTransition{
 	        m_impl->texture.get(),
-	        RHIResourceState::RenderTarget,
+	        RHIResourceState::TransferDest,
 	        RHIResourceState::TransferSource,
-	        TextureRange{RHITextureDimension::TextureCube, 0, 1, 0, 6}}},
+	        TextureRange{RHITextureDimension::TextureCube, 0, 5, 0, 6}}},
 	    {});
 	cmd_buffer->CopyTextureToBuffer(m_impl->texture.get(), cubemap_buffer.get(), 0, 0, 6);
 	cmd_buffer->ResourceStateTransition(
@@ -162,7 +170,7 @@ Resource<ResourceType::TextureCube>::Resource(RHIContext *rhi_context, std::vect
 	        m_impl->texture.get(),
 	        RHIResourceState::TransferSource,
 	        RHIResourceState::ShaderResource,
-	        TextureRange{RHITextureDimension::TextureCube, 0, 1, 0, 6}}},
+	        TextureRange{RHITextureDimension::TextureCube, 0, 5, 0, 6}}},
 	    {});
 	cmd_buffer->End();
 
@@ -211,6 +219,7 @@ void Resource<ResourceType::TextureCube>::Load(RHIContext *rhi_context)
 	        TextureRange{RHITextureDimension::TextureCube, 0, m_impl->texture.get()->GetDesc().mips, 0, m_impl->texture.get()->GetDesc().layers}}},
 	    {});
 	cmd_buffer->CopyBufferToTexture(staging_buffer.get(), m_impl->texture.get(), 0, 0, m_impl->texture.get()->GetDesc().layers);
+	cmd_buffer->GenerateMipmaps(m_impl->texture.get(), RHIResourceState::TransferDest, RHIFilter::Linear);
 	cmd_buffer->ResourceStateTransition(
 	    {TextureStateTransition{
 	        m_impl->texture.get(),

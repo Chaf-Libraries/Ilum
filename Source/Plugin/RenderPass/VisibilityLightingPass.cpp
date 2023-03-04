@@ -46,7 +46,8 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 		    .ReadTexture2D(handle++, "CascadeShadowMap", RHIResourceState::ShaderResource)
 		    .ReadTexture2D(handle++, "OmniShadowMap", RHIResourceState::ShaderResource)
 		    .ReadTexture2D(handle++, "IrradianceSH", RHIResourceState::ShaderResource)
-		    .WriteTexture2D(handle++, "Direct Illumination", 0, 0, RHIFormat::R16G16B16A16_FLOAT, RHIResourceState::UnorderedAccess);
+		    .ReadTexture2D(handle++, "PrefilterMap", RHIResourceState::ShaderResource)
+		    .WriteTexture2D(handle++, "Direct Illumination", RHIFormat::R16G16B16A16_FLOAT, RHIResourceState::UnorderedAccess);
 	}
 
 	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
@@ -68,6 +69,7 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 			auto *cascade_shadow_map = render_graph.GetTexture(desc.GetPin("CascadeShadowMap").handle);
 			auto *omni_shadow_map    = render_graph.GetTexture(desc.GetPin("OmniShadowMap").handle);
 			auto *irradiance_sh      = render_graph.GetTexture(desc.GetPin("IrradianceSH").handle);
+			auto *prefilter_map      = render_graph.GetTexture(desc.GetPin("PrefilterMap").handle);
 			auto *output             = render_graph.GetTexture(desc.GetPin("Direct Illumination").handle);
 
 			Config *config_data = config.Convert<Config>();
@@ -305,10 +307,12 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 					        has_spot_light ? "HAS_SPOT_LIGHT" : "NO_SPOT_LIGHT",
 					        has_directional_light ? "HAS_DIRECTIONAL_LIGHT" : "NO_DIRECTIONAL_LIGHT",
 					        has_rect_light ? "HAS_RECT_LIGHT" : "NO_RECT_LIGHT",
+					        has_env_light ? "HAS_ENV_LIGHT" : "NO_ENV_LIGHT",
 					        shadow_map ? "HAS_SHADOW_MAP" : "NO_SHADOW_MAP",
 					        cascade_shadow_map ? "HAS_CASCADE_SHADOW_MAP" : "NO_CASCADE_SHADOW_MAP",
 					        omni_shadow_map ? "HAS_OMNI_SHADOW_MAP" : "NO_OMNI_SHADOW_MAP",
 					        irradiance_sh ? "HAS_IRRADIANCE_SH" : "NO_IRRADIANCE_SH",
+					        prefilter_map ? "HAS_PREFILTER_MAP" : "NO_PREFILTER_MAP",
 					        shadow_filter_modes.at(config_data->shadow_filter_mode),
 					        "DISPATCH_INDIRECT",
 					        "MATERIAL_ID=" + std::to_string(i),
@@ -384,8 +388,13 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 					{
 						if (irradiance_sh)
 						{
-							// Diffuse
 							descriptor->BindTexture("IrradianceSH", irradiance_sh, RHITextureDimension::Texture2D);
+						}
+						if (prefilter_map)
+						{
+							descriptor->BindTexture("PrefilterMap", prefilter_map, RHITextureDimension::TextureCube)
+							    .BindSampler("PrefilterMapSampler", rhi_context->CreateSampler(SamplerDesc::LinearClamp()))
+							    .BindTexture("GGXPreintegration", black_board.Get<LUT>()->ggx.get(), RHITextureDimension::Texture2D);
 						}
 					}
 

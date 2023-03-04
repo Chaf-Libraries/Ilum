@@ -370,16 +370,20 @@ void Command::CopyBufferToBuffer(RHIBuffer *src_buffer, RHIBuffer *dst_buffer, s
 
 void Command::GenerateMipmaps(RHITexture *texture, RHIResourceState initial_state, RHIFilter filter)
 {
-	if (texture->GetDesc().mips == 1)
+	if (initial_state != RHIResourceState::TransferDest)
 	{
 		ResourceStateTransition({TextureStateTransition{texture, initial_state, RHIResourceState::TransferDest, TextureRange{RHITextureDimension::Texture2D, 0, texture->GetDesc().mips, 0, texture->GetDesc().layers}}}, {});
+	}
+
+	if (texture->GetDesc().mips == 1)
+	{
 		return;
 	}
 
 	TextureRange             src_range  = {RHITextureDimension::Texture2D, 0, texture->GetDesc().mips, 0, texture->GetDesc().layers};
 	TextureRange             dst_range  = {RHITextureDimension::Texture2D, 0, texture->GetDesc().mips, 0, texture->GetDesc().layers};
-	VkImageSubresourceLayers src_layers = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
-	VkImageSubresourceLayers dst_layers = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
+	VkImageSubresourceLayers src_layers = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, texture->GetDesc().layers};
+	VkImageSubresourceLayers dst_layers = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, texture->GetDesc().layers};
 	RHIResourceState         src_state  = RHIResourceState::TransferDest;
 
 	uint32_t src_width  = texture->GetDesc().width;

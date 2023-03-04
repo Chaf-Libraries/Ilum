@@ -12,6 +12,9 @@
 
 #define SH_INTERMEDIATE_SIZE 128 / 8
 #define CUBEMAP_FACE_NUM 6
+#define PREFILTER_MAP_SIZE 256
+#define PREFILTER_MIP_LEVELS 5
+#define SAMPLE_COUNT 1024
 
 struct Config
 {
@@ -137,4 +140,160 @@ void CubemapSHAdd(CSParam param)
 
         IrradianceSH[int2(param.DispatchThreadID.x, 0)] = float4(add_shared_sh_coeffs[0][0] * scale, add_shared_weights[0][0]);
     }
+}
+
+RWTexture2DArray<float4> PrefilterMap;
+
+float3 CalculateDirection(uint face_idx, uint face_x, uint face_y, uint2 extent)
+{
+    float u = 2.0 * (float(face_x) + 0.5) / float(extent.x) - 1.0;
+    float v = 2.0 * (float(face_y) + 0.5) / float(extent.y) - 1.0;
+    float x, y, z;
+
+    switch (face_idx)
+    {
+        case POSITIVE_X:
+            x = 1;
+            y = -v;
+            z = -u;
+            break;
+        case NEGATIVE_X:
+            x = -1;
+            y = -v;
+            z = u;
+            break;
+        case POSITIVE_Y:
+            x = u;
+            y = 1;
+            z = v;
+            break;
+        case NEGATIVE_Y:
+            x = u;
+            y = -1;
+            z = -v;
+            break;
+        case POSITIVE_Z:
+            x = u;
+            y = -v;
+            z = 1;
+            break;
+        case NEGATIVE_Z:
+            x = -u;
+            y = -v;
+            z = -1;
+            break;
+    }
+	
+    return normalize(float3(x, y, z));
+}
+
+float GGX(float3 N, float3 H, float roughness)
+{
+    float a = roughness * roughness;
+    float a2 = a * a;
+    float NoH = max(dot(N, H), 0.f);
+    float NoH2 = NoH * NoH;
+    float nom = a2;
+    float denom = (NoH2 * (a2 - 1.f) + 1.f);
+    denom = PI * denom * denom;
+    return nom / denom;
+}
+
+float3 GGXImportanceSampling(float2 Xi, float3 N, float roughness)
+{
+    float a = roughness * roughness;
+
+    float phi = 2.0 * PI * Xi.x;
+    float cos_theta = sqrt((1.f - Xi.y) / (1.f + (a * a - 1.f) * Xi.y));
+    float sin_theta = sqrt(1.f - cos_theta * cos_theta);
+
+    float3 H = float3(
+        cos(phi) * sin_theta,
+        sin(phi) * sin_theta,
+        cos_theta);
+
+    float3 Up = N.z > 0.999 ? float3(0.0, 1.0, 0.0) : float3(0.0, 0.0, 1.0);
+    float3 T = normalize(cross(N, Up));
+    float3 B = normalize(cross(N, T));
+
+    return T * H.x + B * H.y + N * H.z;
+}
+
+float RadicalInverse_VdC(uint bits)
+{
+    bits = (bits << 16u) | (bits >> 16u);
+    bits = ((bits & 0x55555555u) << 1u) | ((bits & 0xAAAAAAAAu) >> 1u);
+    bits = ((bits & 0x33333333u) << 2u) | ((bits & 0xCCCCCCCCu) >> 2u);
+    bits = ((bits & 0x0F0F0F0Fu) << 4u) | ((bits & 0xF0F0F0F0u) >> 4u);
+    bits = ((bits & 0x00FF00FFu) << 8u) | ((bits & 0xFF00FF00u) >> 8u);
+    return float(bits) * 2.3283064365386963e-10; // / 0x100000000
+}
+
+float2 Hammersley(uint i, uint N)
+{
+    return float2(float(i) / float(N), RadicalInverse_VdC(i));
+}
+
+[numthreads(LOCAL_SIZE, LOCAL_SIZE, 1)]
+void CubmapPrefilter(CSParam param)
+{
+    uint2 extent;
+    uint layers;
+    PrefilterMap.GetDimensions(extent.x, extent.y, layers);
+    
+    float3 colors[5] = {
+        float3(0, 0, 0),
+        float3(1, 0, 0),
+        float3(0, 1, 0),
+        float3(0, 0, 1),
+        float3(1, 1, 1),
+    };
+    
+    uint level = log2(PREFILTER_MAP_SIZE / extent.x);
+    float roughness = float(level) / float(PREFILTER_MIP_LEVELS - 1);
+    
+    if (param.DispatchThreadID.x >= extent.x ||
+        param.DispatchThreadID.y >= extent.y)
+    {
+        return;
+    }
+    
+    uint2 size;
+    Skybox.GetDimensions(size.x, size.y);
+    uint resolution = size.x;
+    
+    float3 N = CalculateDirection(param.DispatchThreadID.z, param.DispatchThreadID.x, param.DispatchThreadID.y, extent);
+    float3 R = N;
+    float3 V = R;
+
+    float3 prefilter_color = float3(0.0, 0.0, 0.0);
+    float total_weight = 0.0;
+
+    for (uint i = 0; i < SAMPLE_COUNT; i++)
+    {
+        float2 Xi = Hammersley(i, SAMPLE_COUNT);
+        float3 H = GGXImportanceSampling(Xi, N, roughness);
+        float3 L = normalize(2.0 * dot(V, H) * H - V);
+
+        float NoL = max(dot(N, L), 0.0);
+        if (NoL > 0.0)
+        {
+            float D = GGX(N, H, roughness);
+            float NoH = max(dot(N, H), 0.f);
+            float HoV = max(dot(H, V), 0.f);
+            float pdf = D * NoH / (4 * HoV) + 0.0001;
+            
+            float texel_ = 4.f * PI / (6.f * resolution * resolution);
+            float sample_ = 1.f / (float(SAMPLE_COUNT) * pdf + 0.0001f);
+            
+            float mip_level = (roughness == 0.0 ? 0.0 : 0.5f * log2(sample_ / texel_));
+            
+            prefilter_color += Skybox.SampleLevel(SkyboxSampler, L, mip_level).rgb * NoL;
+            total_weight += NoL;
+        }
+    }
+
+    prefilter_color /= total_weight;
+    PrefilterMap[int3(param.DispatchThreadID.xyz)] = float4(prefilter_color, 1.0);
+    //PrefilterMap[int3(param.DispatchThreadID.xyz)] = float4(colors[level], 1.0);
 }

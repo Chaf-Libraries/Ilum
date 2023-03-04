@@ -23,7 +23,7 @@ class CopyImageRGBA16 : public RenderPass<CopyImageRGBA16>
 		    .SetName("CopyImageRGBA16")
 		    .SetCategory("Transfer")
 		    .ReadTexture2D(handle++, "Input", RHIResourceState::TransferSource)
-		    .WriteTexture2D(handle++, "Output",0, 0, RHIFormat::R16G16B16A16_FLOAT, RHIResourceState::TransferDest);
+		    .WriteTexture2D(handle++, "Output", RHIFormat::R16G16B16A16_FLOAT, RHIResourceState::TransferDest);
 	}
 
 	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)

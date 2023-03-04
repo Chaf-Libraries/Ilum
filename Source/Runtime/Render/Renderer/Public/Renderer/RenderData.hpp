@@ -13,6 +13,11 @@ struct DummyTexture
 	std::unique_ptr<RHITexture> black_transparent = nullptr;
 };
 
+struct LUT
+{
+	std::unique_ptr<RHITexture> ggx = nullptr;
+};
+
 struct View
 {
 	struct Info

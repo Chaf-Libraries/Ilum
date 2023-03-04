@@ -17,7 +17,7 @@ enum class BindPoint
 	CUDA
 };
 
-struct  RenderPassPin
+struct RenderPassPin
 {
 	enum class Type
 	{
@@ -51,7 +51,7 @@ struct  RenderPassPin
 	}
 };
 
-class  RenderPassDesc
+class RenderPassDesc
 {
   public:
 	RenderPassDesc() = default;
@@ -64,9 +64,7 @@ class  RenderPassDesc
 
 	RenderPassDesc &SetHandle(size_t handle);
 
-	RenderPassDesc &WriteTexture2D(size_t handle, const std::string &name, uint32_t width, uint32_t height, RHIFormat format, RHIResourceState resource_state);
-
-	RenderPassDesc &WriteTexture2D(size_t handle, const std::string &name, uint32_t width, uint32_t height, uint32_t layer, RHIFormat format, RHIResourceState resource_state);
+	RenderPassDesc &WriteTexture2D(size_t handle, const std::string &name, RHIFormat format, RHIResourceState resource_state, uint32_t width = 0, uint32_t height = 0, uint32_t layer = 1, uint32_t mips = 1);
 
 	RenderPassDesc &ReadTexture2D(size_t handle, const std::string &name, RHIResourceState resource_state);
 

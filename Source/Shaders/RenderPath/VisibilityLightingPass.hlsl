@@ -2,6 +2,8 @@
 #include "../Random.hlsli"
 #include "../SphericalHarmonic.hlsli"
 
+#define PREFILTER_MIP_LEVELS 5
+
 #ifndef RUNTIME
 #define HAS_MESH
 #define HAS_SKINNED_MESH
@@ -9,10 +11,12 @@
 #define HAS_SPOT_LIGHT
 #define HAS_DIRECTIONAL_LIGHT
 #define HAS_RECT_LIGHT
+#define HAS_ENV_LIGHT
 #define HAS_SHADOW_MAP
 #define HAS_CASCADE_SHADOW_MAP
 #define HAS_OMNI_SHADOW_MAP
 #define HAS_IRRADIANCE_SH
+#define HAS_PREFILTER_MAP
 #define SHADOW_FILTER_NONE
 #define SHADOW_FILTER_HARD
 #define SHADOW_FILTER_PCF
@@ -187,10 +191,6 @@ void CalculateIndirectArgument(CSParam param)
 ConstantBuffer<View> ViewBuffer;
 ConstantBuffer<LightInfo> LightInfoBuffer;
 
-//#define HAS_SHADOW_MAP
-//#define HAS_CASCADE_SHADOW_MAP
-//#define HAS_OMNI_SHADOW_MAP
-
 #if defined(HAS_SHADOW_MAP) || defined(HAS_CASCADE_SHADOW_MAP) || defined(HAS_OMNI_SHADOW_MAP)
 SamplerState ShadowMapSampler;
 #endif
@@ -231,8 +231,15 @@ StructuredBuffer<uint> SkinnedMeshIndexBuffer[];
 StructuredBuffer<float4x4> BoneMatrices[];
 #endif
 
+#ifdef HAS_ENV_LIGHT
 #ifdef HAS_IRRADIANCE_SH
 RWTexture2D<float4> IrradianceSH;
+#endif
+#ifdef HAS_PREFILTER_MAP
+SamplerState PrefilterMapSampler;
+TextureCube<float4> PrefilterMap;
+Texture2D<float2> GGXPreintegration;
+#endif
 #endif
 
 uint hash(uint a)
@@ -829,8 +836,11 @@ void DispatchIndirect(CSParam param)
     }
 #endif
     
-#ifdef HAS_IRRADIANCE_SH
+#ifdef HAS_ENV_LIGHT
     {
+        float3 ambient = 0.f;
+        
+#ifdef HAS_IRRADIANCE_SH
         float3 F0 = float3(0.0, 0.0, 0.0);
         F0 = lerp(F0, g_buffer_data.albedo.rgb, g_buffer_data.metallic);
         float3 F = F0 + (max(float3(1.0 - g_buffer_data.roughness, 1.0 - g_buffer_data.roughness, 1.0 - g_buffer_data.roughness), F0) * pow(1.0 - max(dot(g_buffer_data.normal, interaction.isect.wo), 0.0), 5.0));
@@ -845,17 +855,19 @@ void DispatchIndirect(CSParam param)
         irradiance = max(float3(0.0, 0.0, 0.0), irradiance) * InvPI;
         
         float3 diffuse = irradiance * g_buffer_data.albedo.rgb;
+        ambient += Kd * diffuse;
+#endif
 
-        //const float MAX_PREFILTER_MAP_LOD = 4.0;
-        //float3 prefiltered_color = PrefilterMap.SampleLevel(TextureSampler, reflect(-V, N), material.roughness * MAX_PREFILTER_MAP_LOD).rgb;
-        //float2 brdf = BRDFPreIntegrate.SampleLevel(TextureSampler, float2(clamp(dot(N, V), 0.0, 1.0), material.roughness), 0.0).rg;
-        //float3 specular = prefiltered_color * (F * brdf.x + brdf.y);
-
-        float3 ambient = Kd * diffuse;
+#ifdef  HAS_PREFILTER_MAP
+        float3 prefiltered_color = PrefilterMap.SampleLevel(PrefilterMapSampler, reflect(-interaction.isect.wo, g_buffer_data.normal), g_buffer_data.roughness * PREFILTER_MIP_LEVELS).rgb;
+        float2 brdf = GGXPreintegration.SampleLevel(PrefilterMapSampler, float2(clamp(dot(g_buffer_data.normal, interaction.isect.wo), 0.0, 1.0), g_buffer_data.roughness), 0.0).rg;
+        float3 specular = prefiltered_color * (F * brdf.x + brdf.y);
+        ambient += specular;
+#endif
+        
         radiance += ambient;
     }
 #endif
-    
     
     Output[pixel] = float4(radiance, 1.f);
 }

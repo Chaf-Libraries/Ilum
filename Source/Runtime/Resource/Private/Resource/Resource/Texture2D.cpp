@@ -48,7 +48,7 @@ Resource<ResourceType::Texture2D>::Resource(RHIContext *rhi_context, std::vector
 	         TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}}},
 	    {});
 	cmd_buffer->CopyBufferToTexture(staging_buffer.get(), m_impl->texture.get(), 0, 0, 1);
-	cmd_buffer->GenerateMipmaps(m_impl->texture.get(), RHIResourceState::Undefined, RHIFilter::Linear);
+	cmd_buffer->GenerateMipmaps(m_impl->texture.get(), RHIResourceState::TransferDest, RHIFilter::Linear);
 	cmd_buffer->BlitTexture(m_impl->texture.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::TransferDest,
 	                        m_thumbnail.get(), TextureRange{RHITextureDimension::Texture2D, 0, 1, 0, 1}, RHIResourceState::TransferDest);
 	cmd_buffer->ResourceStateTransition(
@@ -115,7 +115,7 @@ void Resource<ResourceType::Texture2D>::Load(RHIContext *rhi_context)
 	        TextureRange{RHITextureDimension::Texture2D, 0, m_impl->texture.get()->GetDesc().mips, 0, 1}}},
 	    {});
 	cmd_buffer->CopyBufferToTexture(staging_buffer.get(), m_impl->texture.get(), 0, 0, 1);
-	cmd_buffer->GenerateMipmaps(m_impl->texture.get(), RHIResourceState::Undefined, RHIFilter::Linear);
+	cmd_buffer->GenerateMipmaps(m_impl->texture.get(), RHIResourceState::TransferDest, RHIFilter::Linear);
 	cmd_buffer->ResourceStateTransition(
 	    {TextureStateTransition{
 	        m_impl->texture.get(),

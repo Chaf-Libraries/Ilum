@@ -57,9 +57,9 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 		return desc.SetBindPoint(BindPoint::Rasterization)
 		    .SetConfig(Config())
 		    .SetName("ShadowMapPass")
-		    .WriteTexture2D(handle++, "ShadowMap", 1024, 1024, RHIFormat::D32_FLOAT, RHIResourceState::DepthWrite)
-		    .WriteTexture2D(handle++, "CascadeShadowMap", 1024, 1024, 4, RHIFormat::D32_FLOAT, RHIResourceState::DepthWrite)
-		    .WriteTexture2D(handle++, "OmniShadowMap", 1024, 1024, 6, RHIFormat::D32_FLOAT, RHIResourceState::DepthWrite)
+		    .WriteTexture2D(handle++, "ShadowMap", RHIFormat::D32_FLOAT, RHIResourceState::DepthWrite, 1024, 1024)
+		    .WriteTexture2D(handle++, "CascadeShadowMap", RHIFormat::D32_FLOAT, RHIResourceState::DepthWrite, 1024, 1024, 4)
+		    .WriteTexture2D(handle++, "OmniShadowMap", RHIFormat::D32_FLOAT, RHIResourceState::DepthWrite, 1024, 1024, 6)
 		    .SetCategory("Shading");
 	}
 

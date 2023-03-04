@@ -31,7 +31,7 @@ class Tonemapping : public RenderPass<Tonemapping>
 		    .SetCategory("PostProcess")
 		    .SetConfig(Config())
 		    .ReadTexture2D(handle++, "Input", RHIResourceState::ShaderResource)
-		    .WriteTexture2D(handle++, "Output", 0, 0, RHIFormat::R32G32B32A32_FLOAT, RHIResourceState::UnorderedAccess);
+		    .WriteTexture2D(handle++, "Output", RHIFormat::R32G32B32A32_FLOAT, RHIResourceState::UnorderedAccess);
 	}
 
 	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)

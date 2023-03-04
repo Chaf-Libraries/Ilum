@@ -18,7 +18,7 @@ class SkyboxPass : public RenderPass<SkyboxPass>
 		    .SetName("SkyboxPass")
 		    .SetCategory("Shading")
 		    .ReadTexture2D(handle++, "Depth", RHIResourceState::DepthRead)
-		    .WriteTexture2D(handle++, "Output", 0, 0, RHIFormat::R16G16B16A16_FLOAT, RHIResourceState::RenderTarget);
+		    .WriteTexture2D(handle++, "Output", RHIFormat::R16G16B16A16_FLOAT, RHIResourceState::RenderTarget);
 	}
 
 	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
