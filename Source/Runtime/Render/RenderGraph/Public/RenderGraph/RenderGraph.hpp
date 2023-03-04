@@ -89,6 +89,9 @@ class  RenderGraph
 
 	~RenderGraph();
 
+	// Return the old one
+	std::unique_ptr<RHITexture> SetTexture(size_t handle, std::unique_ptr<RHITexture> &&texture);
+
 	RHITexture *GetTexture(size_t handle);
 
 	RHIBuffer *GetBuffer(size_t handle);

@@ -218,10 +218,6 @@ class RenderGraphEditor : public Widget
 			{
 				auto *rhi_context = p_editor->GetRHIContext();
 				auto *renderer    = p_editor->GetRenderer();
-
-				// TODO: Optimize
-				renderer->GetRenderGraphBlackboard().Get<GPUScene>()->light.has_shadow = false;
-
 				auto render_graph = resource->Compile(rhi_context, renderer, renderer->GetViewport(), ImNodes::SaveCurrentEditorStateToIniString());
 
 				if (render_graph)
@@ -250,7 +246,7 @@ class RenderGraphEditor : public Widget
 	{
 		for (auto &[node_handle, node_desc] : resource->GetDesc().GetPasses())
 		{
-			const float node_width = glm::max(ImGui::CalcTextSize(node_desc.GetName().c_str()).x, 120.f);
+			const float node_width = glm::max(ImGui::CalcTextSize(node_desc.GetName().c_str()).x, 150.f);
 
 			ImNodes::BeginNode(static_cast<int32_t>(node_handle));
 			ImNodes::BeginNodeTitleBar();

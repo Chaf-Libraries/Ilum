@@ -111,6 +111,70 @@ struct RayDiff
     }
 };
 
+bool IsInsideFrustum(Meshlet meshlet, float4x4 model, float4 frustum[6], float3 eye)
+{
+    float sx = length(float3(model[0][0], model[0][1], model[0][2]));
+    float sy = length(float3(model[1][0], model[1][1], model[1][2]));
+    float sz = length(float3(model[2][0], model[2][1], model[2][2]));
+        
+    float3 radius = meshlet.radius * float3(sx, sy, sz);
+    float3 center = mul(model, float4(meshlet.center, 1.0)).xyz;
+        
+        // Frustum Culling
+    for (uint i = 0; i < 6; i++)
+    {
+        if (dot(frustum[i], float4(center, 1)) + length(radius) < 0.0)
+        {
+            return false;
+        }
+    }
+        
+    // Cone Culling
+    float3 cone_apex = mul(model, float4(meshlet.cone_apex, 1.0)).xyz;
+        
+    float3x3 rotation = float3x3(
+            model[0].xyz / sx,
+            model[1].xyz / sy,
+            model[2].xyz / sz
+        );
+
+    float3 cone_axis = mul(rotation, meshlet.cone_axis);
+    float result = dot(normalize(mul(model, float4(meshlet.cone_apex, 1.0)).xyz - eye), cone_axis);
+    return result < meshlet.cone_cutoff || result > 0.f;
+}
+
+bool IsInsideFrustum(Meshlet meshlet, float4x4 model, float4 frustum[6], float3 eye, float3 offset)
+{
+    float sx = length(float3(model[0][0], model[0][1], model[0][2]));
+    float sy = length(float3(model[1][0], model[1][1], model[1][2]));
+    float sz = length(float3(model[2][0], model[2][1], model[2][2]));
+        
+    float3 radius = meshlet.radius * float3(sx, sy, sz);
+    float3 center = mul(model, float4(meshlet.center, 1.0)).xyz - offset;
+        
+        // Frustum Culling
+    for (uint i = 0; i < 6; i++)
+    {
+        if (dot(frustum[i], float4(center, 1)) + length(radius) < 0.0)
+        {
+            return false;
+        }
+    }
+        
+    // Cone Culling
+    float3 cone_apex = mul(model, float4(meshlet.cone_apex, 1.0)).xyz - offset;
+        
+    float3x3 rotation = float3x3(
+            model[0].xyz / sx,
+            model[1].xyz / sy,
+            model[2].xyz / sz
+        );
+
+    float3 cone_axis = mul(rotation, meshlet.cone_axis);
+    float result = dot(normalize(mul(model, float4(meshlet.cone_apex, 1.0)).xyz - eye) - offset, cone_axis);
+    return result < meshlet.cone_cutoff || result > 0.f;
+}
+
 struct View
 {
     float4 frustum[6];
@@ -124,36 +188,9 @@ struct View
     uint frame_count;
     float2 viewport;
     
-    bool IsInsideFrustum(Meshlet meshlet, float4x4 model)
+    bool IsVisible(Meshlet meshlet, float4x4 model)
     {
-        float sx = length(float3(model[0][0], model[0][1], model[0][2]));
-        float sy = length(float3(model[1][0], model[1][1], model[1][2]));
-        float sz = length(float3(model[2][0], model[2][1], model[2][2]));
-        
-        float3 radius = meshlet.radius * float3(sx, sy, sz);
-        float3 center = mul(model, float4(meshlet.center, 1.0)).xyz;
-        
-        // Frustum Culling
-        for (uint i = 0; i < 6; i++)
-        {
-            if (dot(frustum[i], float4(center, 1)) + length(radius) < 0.0)
-            {
-                return false;
-            }
-        }
-        
-        // Cone Culling
-        float3 cone_apex = mul(model, float4(meshlet.cone_apex, 1.0)).xyz;
-        
-        float3x3 rotation = float3x3(
-            model[0].xyz / sx,
-            model[1].xyz / sy,
-            model[2].xyz / sz
-        );
-
-        float3 cone_axis = mul(rotation, meshlet.cone_axis);
-        float result = dot(normalize(cone_apex - position), cone_axis);
-        return result < meshlet.cone_cutoff || result > 0.f;
+        return IsInsideFrustum(meshlet, model, frustum, position);
     }
     
     void CastRay(float2 scene_uv, float2 frame_dim, out RayDesc ray, out RayDiff ray_diff)
@@ -233,6 +270,53 @@ void UnpackXY(uint xy, out uint x, out uint y)
 float Luminance(float3 color)
 {
     return dot(color, float3(0.2126f, 0.7152f, 0.0722f)); //color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722;
+}
+
+void CalculateFrustum(float4x4 view_projection, out float4 frustum[6])
+{
+    view_projection = transpose(view_projection);
+    
+	// Left
+    frustum[0].x = view_projection[0].w + view_projection[0].x;
+    frustum[0].y = view_projection[1].w + view_projection[1].x;
+    frustum[0].z = view_projection[2].w + view_projection[2].x;
+    frustum[0].w = view_projection[3].w + view_projection[3].x;
+
+	// Right
+    frustum[1].x = view_projection[0].w - view_projection[0].x;
+    frustum[1].y = view_projection[1].w - view_projection[1].x;
+    frustum[1].z = view_projection[2].w - view_projection[2].x;
+    frustum[1].w = view_projection[3].w - view_projection[3].x;
+
+	// Top
+    frustum[2].x = view_projection[0].w - view_projection[0].y;
+    frustum[2].y = view_projection[1].w - view_projection[1].y;
+    frustum[2].z = view_projection[2].w - view_projection[2].y;
+    frustum[2].w = view_projection[3].w - view_projection[3].y;
+
+	// Bottom
+    frustum[3].x = view_projection[0].w + view_projection[0].y;
+    frustum[3].y = view_projection[1].w + view_projection[1].y;
+    frustum[3].z = view_projection[2].w + view_projection[2].y;
+    frustum[3].w = view_projection[3].w + view_projection[3].y;
+
+	// Near
+    frustum[4].x = view_projection[0].w + view_projection[0].z;
+    frustum[4].y = view_projection[1].w + view_projection[1].z;
+    frustum[4].z = view_projection[2].w + view_projection[2].z;
+    frustum[4].w = view_projection[3].w + view_projection[3].z;
+
+	// Far
+    frustum[5].x = view_projection[0].w - view_projection[0].z;
+    frustum[5].y = view_projection[1].w - view_projection[1].z;
+    frustum[5].z = view_projection[2].w - view_projection[2].z;
+    frustum[5].w = view_projection[3].w - view_projection[3].z;
+
+    for (uint i = 0; i < 6; i++)
+    {
+        float len = length(frustum[i].xyz);
+        frustum[i] /= len;
+    }
 }
 
 #endif

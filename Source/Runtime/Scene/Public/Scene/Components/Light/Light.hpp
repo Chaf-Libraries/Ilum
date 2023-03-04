@@ -23,11 +23,18 @@ class Light : public Component
 
 	virtual void Load(InputArchive &archive) = 0;
 
+	virtual bool CastShadow() const;
+
+	virtual void SetShadowID(uint32_t &shadow_id);
+
 	// GPU data size
 	virtual size_t GetDataSize() const = 0;
 
 	// GPU data info
 	virtual void *GetData(Camera *camera = nullptr) = 0;
+
+  protected:
+	void CalculateFrustum(const glm::mat4 &view_projection, std::array<glm::vec4, 6> &frustum);
 
   private:
 	// Shadow

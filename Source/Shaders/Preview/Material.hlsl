@@ -1,6 +1,7 @@
 #ifndef USE_MATERIAL
 #include "../Material/Material.hlsli"
 #endif
+#include "../Tonemapper.hlsli"
 
 #ifndef RUNTIME
 #define MATERIAL_ID 0
@@ -71,5 +72,6 @@ float4 PSmain(PSInput input) : SV_TARGET
     float3 wi = normalize(float3(0.f, 1.f, 3.f) - surface_interaction.isect.p);
     float intensity = 1.5f;
     
-    return float4((material.bsdf.Eval(wo, wi, TransportMode_Radiance) * abs(dot(wo, input.Normal)) + material.bsdf.GetEmissive()) * intensity, 1.f);
+    float3 color = (material.bsdf.Eval(wo, wi, TransportMode_Radiance) * abs(dot(wo, input.Normal)) + material.bsdf.GetEmissive()) * intensity;
+    return float4(ToneMapUncharted(color), 1.f);
 }

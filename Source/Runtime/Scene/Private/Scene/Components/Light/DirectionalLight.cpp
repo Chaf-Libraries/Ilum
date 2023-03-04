@@ -19,10 +19,11 @@ bool DirectionalLight::OnImGui()
 	m_update |= ImGui::ColorEdit3("Color", &m_data.color.x);
 	m_update |= ImGui::DragFloat("Intensity", &m_data.intensity, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
 	ImGui::Text("Shadow Map Setting");
+	m_update |= ImGui::Checkbox("Cast Shadow", reinterpret_cast<bool *>(&m_data.cast_shadow));
 	m_update |= ImGui::SliderInt("Filter Sample", reinterpret_cast<int32_t *>(&m_data.filter_sample), 1, 100);
 	m_update |= ImGui::DragFloat("Filter Scale", &m_data.filter_scale, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
 	m_update |= ImGui::DragFloat("Light Scale", &m_data.light_scale, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
-	
+
 	return m_update;
 }
 
@@ -40,6 +41,16 @@ void DirectionalLight::Load(InputArchive &archive)
 std::type_index DirectionalLight::GetType() const
 {
 	return typeid(DirectionalLight);
+}
+
+bool DirectionalLight::CastShadow() const
+{
+	return m_data.cast_shadow;
+}
+
+void DirectionalLight::SetShadowID(uint32_t &shadow_id)
+{
+	m_data.shadow_id = m_data.cast_shadow ? shadow_id++ : ~0u;
 }
 
 size_t DirectionalLight::GetDataSize() const
@@ -139,21 +150,21 @@ void *DirectionalLight::GetData(Camera *camera)
 			glm::mat4 light_ortho_matrix = glm::ortho(min_extents.x, max_extents.x, min_extents.y, max_extents.y, -2.f * (max_extents.z - min_extents.z), max_extents.z - min_extents.z);
 
 			// Store split distance and matrix in cascade
-			m_data.split_depth[i]    = -(near_clip + split_dist * clip_range);
+			m_data.split_depth[i]     = -(near_clip + split_dist * clip_range);
 			m_data.view_projection[i] = light_ortho_matrix * light_view_matrix;
 
 			// Stablize
-			//glm::vec3 shadow_origin = glm::vec3(0.0f);
-			//shadow_origin           = (m_data.view_projection[i] * glm::vec4(shadow_origin, 1.0f));
-			//shadow_origin *= 512.f;
+			// glm::vec3 shadow_origin = glm::vec3(0.0f);
+			// shadow_origin           = (m_data.view_projection[i] * glm::vec4(shadow_origin, 1.0f));
+			// shadow_origin *= 512.f;
 
-			//glm::vec3 rounded_origin = glm::round(shadow_origin);
-			//glm::vec3 round_offset   = rounded_origin - shadow_origin;
-			//round_offset             = round_offset / 512.f;
-			//round_offset.z           = 0.0f;
+			// glm::vec3 rounded_origin = glm::round(shadow_origin);
+			// glm::vec3 round_offset   = rounded_origin - shadow_origin;
+			// round_offset             = round_offset / 512.f;
+			// round_offset.z           = 0.0f;
 
-			//m_data.view_projection[i][3][0] += round_offset.x;
-			//m_data.view_projection[i][3][1] += round_offset.y;
+			// m_data.view_projection[i][3][0] += round_offset.x;
+			// m_data.view_projection[i][3][1] += round_offset.y;
 
 			last_split_dist = cascade_splits[i];
 		}

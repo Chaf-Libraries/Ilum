@@ -68,6 +68,18 @@ void ASmain(CSParam param)
     uint instance_id = param.DispatchThreadID.y;
     uint light_id = param.DispatchThreadID.z;
     
+    if (light_id >= LightInfoBuffer.spot_light_count)
+    {
+        return;
+    }
+    
+    SpotLight light = SpotLightBuffer[light_id];
+    
+    if(!light.cast_shadow)
+    {
+        return;
+    }
+    
     uint instance_count = 0;
     uint instance_stride = 0;
     InstanceBuffer.GetDimensions(instance_count, instance_stride);
@@ -85,9 +97,11 @@ void ASmain(CSParam param)
 #ifdef HAS_SKINNED
             visible = true;
 #else
-           // Meshlet meshlet = MeshletBuffer[instance.mesh_id][meshlet_id];
-           // visible = ViewBuffer.IsInsideFrustum(meshlet, instance.transform);
-            visible = true;
+            Meshlet meshlet = MeshletBuffer[instance.mesh_id][meshlet_id];
+            float4 frustum[6];
+            CalculateFrustum(light.view_projection, frustum);
+            visible = IsInsideFrustum(meshlet, instance.transform, frustum, light.position);
+           // visible = true;
 #endif
         }
     }
@@ -169,7 +183,7 @@ void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut v
         UnPackTriangle(MeshletDataBuffer[instance.mesh_id][meshlet.data_offset + meshlet.vertex_count + meshlet.triangle_count + i], v0, v1, v2);
         
         tris[i] = uint3(v0, v1, v2);
-        prims[i].Layer = light_id;
+        prims[i].Layer = light.shadow_id;
     }
 }
 

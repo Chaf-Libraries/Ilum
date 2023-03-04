@@ -66,6 +66,8 @@ class  RenderPassDesc
 
 	RenderPassDesc &WriteTexture2D(size_t handle, const std::string &name, uint32_t width, uint32_t height, RHIFormat format, RHIResourceState resource_state);
 
+	RenderPassDesc &WriteTexture2D(size_t handle, const std::string &name, uint32_t width, uint32_t height, uint32_t layer, RHIFormat format, RHIResourceState resource_state);
+
 	RenderPassDesc &ReadTexture2D(size_t handle, const std::string &name, RHIResourceState resource_state);
 
 	RenderPassDesc &WriteBuffer(size_t handle, const std::string &name, size_t size, RHIResourceState resource_state);

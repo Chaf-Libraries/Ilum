@@ -77,6 +77,8 @@ struct PointLight
     float filter_scale;
     float light_scale;
     uint filter_sample;
+    uint cast_shadow;
+    uint shadow_id;
     
     LightLeSample SampleLe(float2 u1, float2 u2, float time)
     {
@@ -142,6 +144,8 @@ struct SpotLight
     float filter_scale;
     float light_scale;
     uint filter_sample;
+    uint cast_shadow;
+    uint shadow_id;
     
     float3 EvalL(float3 p, out float3 wi)
     {
@@ -210,6 +214,8 @@ struct DirectionalLight
     float filter_scale;
     float light_scale;
     uint filter_sample;
+    uint cast_shadow;
+    uint shadow_id;
     
     LightLiSample SampleLi(LightSampleContext ctx, float2 u)
     {

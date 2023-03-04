@@ -66,11 +66,11 @@ bool RenderGraphBuilder::Validate(RenderGraphDesc &desc)
 
 std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, Renderer *renderer)
 {
-	if (!Validate(desc))
-	{
-		LOG_ERROR("Render graph compilation failed!");
-		return nullptr;
-	}
+	// if (!Validate(desc))
+	//{
+	//	LOG_ERROR("Render graph compilation failed!");
+	//	return nullptr;
+	// }
 
 	const std::unordered_map<BindPoint, RHIQueueFamily> queue_family_map = {
 	    {BindPoint::None, RHIQueueFamily::Graphics},
@@ -145,7 +145,11 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 
 				for (auto &[pin_handle, pin] : pass.GetPins())
 				{
-					size_t resource_pin = (pin.attribute == RenderPassPin::Attribute::Output) ? pin_handle : desc.LinkFrom(pin_handle);
+					size_t resource_pin = (pin.attribute == RenderPassPin::Attribute::Output) ? pin_handle : (desc.HasLink(pin_handle) ? desc.LinkFrom(pin_handle) : ~0ull);
+					if (resource_pin == ~0ull)
+					{
+						continue;
+					}
 
 					ResourceState resource_state = ResourceState{pin.resource_state, queue_family_map.at(pass.GetBindPoint())};
 
@@ -333,12 +337,19 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 		});
 	}
 
+	struct ResourceStateTransitionInfo
+	{
+		size_t           handle;
+		RHIResourceState src_state;
+		RHIResourceState dst_state;
+	};
+
 	for (uint32_t i = 0; i < ordered_passes.size(); i++)
 	{
 		const auto &pass = desc.GetPass(ordered_passes[i]);
 
-		std::vector<BufferStateTransition>  buffer_state_transitions;
-		std::vector<TextureStateTransition> texture_state_transitions;
+		std::vector<ResourceStateTransitionInfo> buffer_state_transition_infos;
+		std::vector<ResourceStateTransitionInfo> texture_state_transition_infos;
 
 		for (auto &[handle, resource_transition] : resource_states[i])
 		{
@@ -351,11 +362,12 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 
 			if (resource.type == RenderPassPin::Type::Texture)
 			{
-				auto *texture = render_graph->GetTexture(handle);
+				texture_state_transition_infos.push_back(ResourceStateTransitionInfo{
+				    handle,
+				    resource_transition.first.rhi_state,
+				    resource_transition.second.rhi_state});
 
-				const auto &texture_desc = texture->GetDesc();
-
-				texture_state_transitions.push_back(TextureStateTransition{
+				/*texture_state_transitions.push_back(TextureStateTransition{
 				    texture,
 				    resource_transition.first.rhi_state,
 				    resource_transition.second.rhi_state,
@@ -366,18 +378,19 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 				        0,
 				        texture_desc.layers},
 				    i == 0 ? resource_transition.second.family : resource_transition.first.family,
-				    resource_transition.second.family});
+				    resource_transition.second.family});*/
 			}
 			else
 			{
-				auto *buffer = render_graph->GetBuffer(handle);
-
-				const auto &buffer_desc = buffer->GetDesc();
-
-				buffer_state_transitions.push_back(BufferStateTransition{
-				    buffer,
+				buffer_state_transition_infos.push_back(ResourceStateTransitionInfo{
+				    handle,
 				    resource_transition.first.rhi_state,
 				    resource_transition.second.rhi_state});
+
+				// buffer_state_transitions.push_back(BufferStateTransition{
+				//     buffer,
+				//     resource_transition.first.rhi_state,
+				//     resource_transition.second.rhi_state});
 			}
 		}
 
@@ -392,6 +405,41 @@ std::unique_ptr<RenderGraph> RenderGraphBuilder::Compile(RenderGraphDesc &desc, 
 		    pass.GetConfig(),
 		    std::move(render_task),
 		    [=](RenderGraph &render_graph, RHICommand *cmd_buffer) {
+			    std::vector<BufferStateTransition>  buffer_state_transitions(buffer_state_transition_infos.size());
+			    std::vector<TextureStateTransition> texture_state_transitions(texture_state_transition_infos.size());
+
+			    std::transform(
+			        texture_state_transition_infos.begin(),
+			        texture_state_transition_infos.end(),
+			        texture_state_transitions.begin(),
+			        [&](const ResourceStateTransitionInfo &info) {
+				        auto       *texture = render_graph.GetTexture(info.handle);
+				        const auto &desc    = texture->GetDesc();
+				        return TextureStateTransition{
+				            texture,
+				            info.src_state,
+				            info.dst_state,
+				            TextureRange{
+				                GetTextureDimension(desc.width, desc.height, desc.depth, desc.layers),
+				                0,
+				                desc.mips,
+				                0,
+				                desc.layers}};
+			        });
+
+			    std::transform(
+			        buffer_state_transition_infos.begin(),
+			        buffer_state_transition_infos.end(),
+			        buffer_state_transitions.begin(),
+			        [&](const ResourceStateTransitionInfo &info) {
+				        auto       *buffer = render_graph.GetBuffer(info.handle);
+				        const auto &desc   = buffer->GetDesc();
+				        return BufferStateTransition{
+				            buffer,
+				            info.src_state,
+				            info.dst_state};
+			        });
+
 			    cmd_buffer->ResourceStateTransition(texture_state_transitions, buffer_state_transitions);
 		    });
 	}

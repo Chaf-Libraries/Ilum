@@ -23,6 +23,10 @@ class DirectionalLight : public Light
 
 	virtual std::type_index GetType() const override;
 
+	bool CastShadow() const;
+
+	void SetShadowID(uint32_t &shadow_id);
+
 	virtual size_t GetDataSize() const override;
 
 	virtual void *GetData(Camera *camera = nullptr) override;
@@ -40,9 +44,11 @@ class DirectionalLight : public Light
 
 		glm::vec3 direction = glm::vec3(1.f);
 
-		float filter_scale            = 2.f;
-		alignas(16) float light_scale = 1.f;
-		uint32_t filter_sample        = 10;
+		float    filter_scale  = 2.f;
+		float    light_scale   = 1.f;
+		uint32_t filter_sample = 10;
+		uint32_t cast_shadow   = 1;
+		uint32_t shadow_id     = ~0u;
 	} m_data;
 };
 }        // namespace Cmpt

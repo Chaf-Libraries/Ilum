@@ -179,6 +179,70 @@ RenderGraph::~RenderGraph()
 	delete m_impl;
 }
 
+std::unique_ptr<RHITexture> RenderGraph::SetTexture(size_t handle, std::unique_ptr<RHITexture> &&texture)
+{
+	if (texture->GetBackend() == "CUDA")
+	{
+		if (m_impl->cuda_textures.find(handle) != m_impl->cuda_textures.end())
+		{
+			size_t idx    = 0;
+			auto  *target = m_impl->cuda_textures.at(handle);
+
+			for (auto &it : m_impl->textures)
+			{
+				if (it.get() == target)
+				{
+					break;
+				}
+				idx++;
+			}
+
+			for (auto &[handle, tex] : m_impl->cuda_textures)
+			{
+				if (tex == target)
+				{
+					tex = texture.get();
+				}
+			}
+
+			std::unique_ptr<RHITexture> old = std::move(m_impl->textures[idx]);
+			m_impl->textures[idx] = std::move(texture);
+			return old;
+		}
+	}
+	else
+	{
+		if (m_impl->texture_lookup.find(handle) != m_impl->texture_lookup.end())
+		{
+			size_t idx    = 0;
+			auto  *target = m_impl->texture_lookup.at(handle);
+
+			for (auto &it : m_impl->textures)
+			{
+				if (it.get() == target)
+				{
+					break;
+				}
+				idx++;
+			}
+
+			for (auto &[handle, tex] : m_impl->texture_lookup)
+			{
+				if (tex == target)
+				{
+					tex = texture.get();
+				}
+			}
+
+			std::unique_ptr<RHITexture> old = std::move(m_impl->textures[idx]);
+			m_impl->textures[idx]           = std::move(texture);
+			return old;
+		}
+	}
+
+	return nullptr;
+}
+
 RHITexture *RenderGraph::GetTexture(size_t handle)
 {
 	auto iter = m_impl->texture_lookup.find(handle);

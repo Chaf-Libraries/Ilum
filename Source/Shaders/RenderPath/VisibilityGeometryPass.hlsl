@@ -84,7 +84,7 @@ void ASmain(CSParam param)
             visible = true;
 #else
             Meshlet meshlet = MeshletBuffer[instance.mesh_id][meshlet_id];
-            visible = ViewBuffer.IsInsideFrustum(meshlet, instance.transform);
+            visible = ViewBuffer.IsVisible(meshlet, instance.transform);
 #endif
         }
     }

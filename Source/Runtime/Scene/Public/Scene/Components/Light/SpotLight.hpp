@@ -23,6 +23,10 @@ class SpotLight : public Light
 
 	virtual std::type_index GetType() const override;
 
+	bool CastShadow() const;
+
+	void SetShadowID(uint32_t &shadow_id);
+
 	virtual size_t GetDataSize() const override;
 
 	virtual void *GetData(Camera *camera = nullptr) override;
@@ -45,9 +49,12 @@ class SpotLight : public Light
 		glm::mat4 view_projection = glm::mat4(1.f);
 
 		// Shadow map setting
-		alignas(16) float filter_scale = 2.f;
-		float    light_scale           = 1.f;
-		uint32_t filter_sample         = 10;
+		float    filter_scale  = 2.f;
+		float    light_scale   = 1.f;
+		uint32_t filter_sample = 10;
+		uint32_t cast_shadow   = 1;
+
+		alignas(16) uint32_t shadow_id = ~0u;
 	} m_data;
 };
 }        // namespace Cmpt

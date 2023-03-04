@@ -35,6 +35,21 @@ RenderPassDesc &RenderPassDesc::WriteTexture2D(size_t handle, const std::string 
 	return *this;
 }
 
+RenderPassDesc &RenderPassDesc::WriteTexture2D(size_t handle, const std::string &name, uint32_t width, uint32_t height, uint32_t layer, RHIFormat format, RHIResourceState resource_state)
+{
+	RenderPassPin pin;
+	pin.type           = RenderPassPin::Type::Texture;
+	pin.attribute      = RenderPassPin::Attribute::Output;
+	pin.name           = name;
+	pin.handle         = handle;
+	pin.texture        = TextureDesc{name, width, height, 1, 1, layer, 1, format, RHITextureUsage::Undefined};
+	pin.resource_state = resource_state;
+
+	m_pins.emplace(handle, pin);
+	m_pin_indices.emplace(name, handle);
+	return *this;
+}
+
 RenderPassDesc &RenderPassDesc::ReadTexture2D(size_t handle, const std::string &name, RHIResourceState resource_state)
 {
 	RenderPassPin pin;

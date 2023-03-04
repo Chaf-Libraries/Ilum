@@ -42,6 +42,9 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 		    .SetConfig(Config())
 		    .ReadTexture2D(handle++, "Visibility Buffer", RHIResourceState::ShaderResource)
 		    .ReadTexture2D(handle++, "Depth Buffer", RHIResourceState::ShaderResource)
+		    .ReadTexture2D(handle++, "ShadowMap", RHIResourceState::ShaderResource)
+		    .ReadTexture2D(handle++, "CascadeShadowMap", RHIResourceState::ShaderResource)
+		    .ReadTexture2D(handle++, "OmniShadowMap", RHIResourceState::ShaderResource)
 		    .WriteTexture2D(handle++, "Direct Illumination", 0, 0, RHIFormat::R16G16B16A16_FLOAT, RHIResourceState::UnorderedAccess);
 	}
 
@@ -60,7 +63,11 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 		*task = [=](RenderGraph &render_graph, RHICommand *cmd_buffer, Variant &config, RenderGraphBlackboard &black_board) {
 			auto   *visibility_buffer = render_graph.GetTexture(desc.GetPin("Visibility Buffer").handle);
 			auto   *depth_buffer      = render_graph.GetTexture(desc.GetPin("Depth Buffer").handle);
+			auto   *shadow_map = render_graph.GetTexture(desc.GetPin("ShadowMap").handle);
+			auto   *cascade_shadow_map = render_graph.GetTexture(desc.GetPin("CascadeShadowMap").handle);
+			auto   *omni_shadow_map = render_graph.GetTexture(desc.GetPin("OmniShadowMap").handle);
 			auto   *output            = render_graph.GetTexture(desc.GetPin("Direct Illumination").handle);
+
 			Config *config_data       = config.Convert<Config>();
 
 			GPUScene   *gpu_scene   = black_board.Get<GPUScene>();
@@ -68,7 +75,10 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 			RHIContext *rhi_context = renderer->GetRHIContext();
 
 			LightingPassData *pass_data   = black_board.Has<LightingPassData>() ? black_board.Get<LightingPassData>() : black_board.Add<LightingPassData>();
-			ShadowMapData    *shadow_data = black_board.Has<ShadowMapData>() ? black_board.Get<ShadowMapData>() : nullptr;
+
+
+
+			//ShadowMapData    *shadow_data = black_board.Has<ShadowMapData>() ? black_board.Get<ShadowMapData>() : nullptr;
 
 			size_t material_count = renderer->GetResourceManager()->GetValidResourceCount<ResourceType::Material>() + 1;
 
@@ -78,7 +88,7 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 			bool has_spot_light        = gpu_scene->light.info.spot_light_count != 0;
 			bool has_directional_light = gpu_scene->light.info.directional_light_count != 0;
 			bool has_rect_light        = gpu_scene->light.info.rect_light_count != 0;
-			bool has_shadow            = gpu_scene->light.has_shadow;
+			//bool has_shadow            = gpu_scene->light.has_shadow;
 
 			if (!pass_data->material_count_buffer ||
 			    pass_data->material_count_buffer->GetDesc().size != material_count * sizeof(uint32_t))
@@ -297,7 +307,9 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 					        has_spot_light ? "HAS_SPOT_LIGHT" : "NO_SPOT_LIGHT",
 					        has_directional_light ? "HAS_DIRECTIONAL_LIGHT" : "NO_DIRECTIONAL_LIGHT",
 					        has_rect_light ? "HAS_RECT_LIGHT" : "NO_RECT_LIGHT",
-					        has_shadow ? "HAS_SHADOW" : "NO_SHADOW",
+					        shadow_map ? "HAS_SHADOW_MAP" : "NO_SHADOW_MAP",
+					        cascade_shadow_map ? "HAS_CASCADE_SHADOW_MAP" : "NO_CASCADE_SHADOW_MAP",
+					        omni_shadow_map ? "HAS_OMNI_SHADOW_MAP" : "NO_OMNI_SHADOW_MAP",
 					        shadow_filter_modes.at(config_data->shadow_filter_mode),
 					        "DISPATCH_INDIRECT",
 					        "MATERIAL_ID=" + std::to_string(i),
@@ -340,33 +352,27 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 					if (has_point_light)
 					{
 						descriptor->BindBuffer("PointLightBuffer", gpu_scene->light.point_light_buffer.get());
-						if (has_shadow)
+						if (omni_shadow_map)
 						{
-							while (!gpu_scene->light.has_point_light_shadow)
-							{}
-							descriptor->BindTexture("PointLightShadow", shadow_data->omni_shadow_map.get(), RHITextureDimension::TextureCubeArray);
+							descriptor->BindTexture("PointLightShadow", omni_shadow_map, RHITextureDimension::TextureCubeArray);
 						}
 					}
 
 					if (has_spot_light)
 					{
 						descriptor->BindBuffer("SpotLightBuffer", gpu_scene->light.spot_light_buffer.get());
-						if (has_shadow)
+						if (shadow_map)
 						{
-							while (!gpu_scene->light.has_spot_light_shadow)
-							{}
-							descriptor->BindTexture("SpotLightShadow", shadow_data->shadow_map.get(), RHITextureDimension::Texture2DArray);
+							descriptor->BindTexture("SpotLightShadow", shadow_map, RHITextureDimension::Texture2DArray);
 						}
 					}
 
 					if (has_directional_light)
 					{
 						descriptor->BindBuffer("DirectionalLightBuffer", gpu_scene->light.directional_light_buffer.get());
-						if (has_shadow)
+						if (cascade_shadow_map)
 						{
-							while (!gpu_scene->light.has_directional_light_shadow)
-							{}
-							descriptor->BindTexture("DirectionalLightShadow", shadow_data->cascade_shadow_map.get(), RHITextureDimension::Texture2DArray);
+							descriptor->BindTexture("DirectionalLightShadow", cascade_shadow_map, RHITextureDimension::Texture2DArray);
 						}
 					}
 

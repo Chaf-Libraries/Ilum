@@ -23,6 +23,7 @@ bool SpotLight::OnImGui()
 	m_update |= ImGui::DragFloat("Inner Angle", &inner_angle, 0.1f, 0.f, outer_angle, "%.1f");
 	m_update |= ImGui::DragFloat("Outer Angle", &outer_angle, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
 	ImGui::Text("Shadow Map Setting");
+	m_update |= ImGui::Checkbox("Cast Shadow", reinterpret_cast<bool *>(&m_data.cast_shadow));
 	m_update |= ImGui::SliderInt("Filter Sample", reinterpret_cast<int32_t *>(&m_data.filter_sample), 1, 100);
 	m_update |= ImGui::DragFloat("Filter Scale", &m_data.filter_scale, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
 	m_update |= ImGui::DragFloat("Light Scale", &m_data.light_scale, 0.1f, 0.f, std::numeric_limits<float>::max(), "%.1f");
@@ -47,6 +48,16 @@ void SpotLight::Load(InputArchive &archive)
 std::type_index SpotLight::GetType() const
 {
 	return typeid(SpotLight);
+}
+
+bool SpotLight::CastShadow() const
+{
+	return m_data.cast_shadow;
+}
+
+void SpotLight::SetShadowID(uint32_t &shadow_id)
+{
+	m_data.shadow_id = m_data.cast_shadow ? shadow_id++ : ~0u;
 }
 
 size_t SpotLight::GetDataSize() const

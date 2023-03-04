@@ -272,10 +272,6 @@ void Renderer::UpdateGPUScene()
 
 	// Update Light
 	{
-		gpu_scene->light.has_point_light_shadow       = false;
-		gpu_scene->light.has_spot_light_shadow        = false;
-		gpu_scene->light.has_directional_light_shadow = false;
-
 		if (!gpu_scene->light.light_info_buffer)
 		{
 			gpu_scene->light.light_info_buffer = m_impl->rhi_context->CreateBuffer<GPUScene::LightBuffer::Info>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
@@ -289,10 +285,12 @@ void Renderer::UpdateGPUScene()
 		{                                                                                                                                         \
 			gpu_scene->light.BUFFER = m_impl->rhi_context->CreateBuffer(light_size, RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU); \
 		}                                                                                                                                         \
-		auto  *light_buffer = gpu_scene->light.BUFFER->Map();                                                                                     \
-		size_t offset       = 0;                                                                                                                  \
+		auto    *light_buffer = gpu_scene->light.BUFFER->Map();                                                                                   \
+		size_t   offset       = 0;                                                                                                                \
+		uint32_t shadow_id    = 0;                                                                                                                \
 		for (auto &light : DATA)                                                                                                                  \
 		{                                                                                                                                         \
+			light->SetShadowID(shadow_id);                                                                                                        \
 			std::memcpy((uint8_t *) light_buffer + offset, light->GetData(m_impl->main_camera), light->GetDataSize());                            \
 			offset += light->GetDataSize();                                                                                                       \
 		}                                                                                                                                         \
