@@ -37,11 +37,17 @@ struct DisneyMaterial
             clearcoat_gloss, flatness, emissive, twoside);
     }
 
-    float3 GetEmissive()
+    GBufferData GetGBufferData()
     {
-        return disney.GetEmissive();
+        GBufferData data;
+        data.albedo = disney.base_color;
+        data.metallic = disney.metallic;
+        data.roughness = disney.roughness;
+        data.anisotropic = disney.anisotropic;
+        data.normal = frame.z;
+        data.emissive = disney.emissive;
+        return data;
     }
-
 
     uint Flags()
     {

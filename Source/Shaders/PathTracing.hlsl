@@ -399,7 +399,7 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
     material.Init(surface_interaction);
 
     // Sample emissive
-    pay_load.radiance += material.bsdf.GetEmissive() * pay_load.throughout;
+    pay_load.radiance += material.bsdf.GetGBufferData().emissive * pay_load.throughout;
     
     pay_load.interaction = surface_interaction;
     float3 wo = surface_interaction.isect.wo;

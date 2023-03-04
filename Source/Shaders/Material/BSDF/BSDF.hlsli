@@ -112,11 +112,21 @@ float3 SRGBtoLINEAR(float3 srgb_in)
 #ifdef SRGB_FAST_APPROXIMATION
   float3 linOut = pow(srgbIn, vec3(2.2));
 #else  //SRGB_FAST_APPROXIMATION
-  float3 bLess  = step(0.04045, srgb_in);
-  float3 linOut = lerp(srgb_in.xyz / 12.92, pow((srgb_in + 0.055) / 1.055, 2.4), bLess);
+    float3 bLess = step(0.04045, srgb_in);
+    float3 linOut = lerp(srgb_in.xyz / 12.92, pow((srgb_in + 0.055) / 1.055, 2.4), bLess);
 #endif  //SRGB_FAST_APPROXIMATION
-  return linOut;
+    return linOut;
 }
+
+struct GBufferData
+{
+    float3 normal;
+    float3 albedo;
+    float3 emissive;
+    float metallic;
+    float roughness;
+    float anisotropic;
+};
 
 // struct BSDF
 // {
@@ -128,10 +138,8 @@ float3 SRGBtoLINEAR(float3 srgb_in)
 
 //     BSDFSample Samplef(float3 wo, float uc, float2 u, TransportMode mode, SampleFlags flags);
 
-//     float3 GetEmissive();
+//     GBufferData GetGBufferData();
 
 // };
-
-#define HAS_NO_EMISSIVE float3 GetEmissive(){ return 0.f; }
 
 #endif

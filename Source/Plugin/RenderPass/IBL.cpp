@@ -2,6 +2,11 @@
 
 using namespace Ilum;
 
+#define IRRADIANCE_CUBEMAP_SIZE 128
+#define IRRADIANCE_WORK_GROUP_SIZE 8
+#define SH_INTERMEDIATE_SIZE (IRRADIANCE_CUBEMAP_SIZE / IRRADIANCE_WORK_GROUP_SIZE)
+#define CUBEMAP_FACE_NUM 6
+
 class IBL : public RenderPass<IBL>
 {
 	enum class EnvironmentMapType
@@ -12,6 +17,8 @@ class IBL : public RenderPass<IBL>
 
 	struct Config
 	{
+		glm::uvec2 extent;
+
 		EnvironmentMapType type = EnvironmentMapType::Skybox;
 	};
 
@@ -23,65 +30,125 @@ class IBL : public RenderPass<IBL>
 		    .SetName("IBL")
 		    .SetCategory("Shading")
 		    .SetConfig(Config())
-		    .WriteTexture2D(handle++, "Output", 0, 0, RHIFormat::R16G16B16A16_FLOAT, RHIResourceState::RenderTarget);
+		    .WriteTexture2D(handle++, "IrradianceSH", 9, 1, RHIFormat::R32G32B32A32_FLOAT, RHIResourceState::UnorderedAccess);
 	}
 
 	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
 	{
-		auto *rhi_context    = renderer->GetRHIContext();
-		auto  pipeline_state = std::shared_ptr<RHIPipelineState>(std::move(rhi_context->CreatePipelineState()));
-		auto  render_target  = std::shared_ptr<RHIRenderTarget>(std::move(rhi_context->CreateRenderTarget()));
+		auto *rhi_context = renderer->GetRHIContext();
 
-		auto vertex_shader   = renderer->RequireShader("Source/Shaders/Shading/Skybox.hlsl", "VSmain", RHIShaderStage::Vertex);
-		auto fragment_shader = renderer->RequireShader("Source/Shaders/Shading/Skybox.hlsl", "PSmain", RHIShaderStage::Fragment);
+		struct PipelineInfo
+		{
+			std::shared_ptr<RHIPipelineState> pipeline_state = nullptr;
 
-		ShaderMeta shader_meta = renderer->RequireShaderMeta(vertex_shader);
-		shader_meta += renderer->RequireShaderMeta(fragment_shader);
+			ShaderMeta shader_meta;
+		};
 
-		BlendState blend_state;
-		blend_state.attachment_states.resize(1);
+		PipelineInfo cubemap_sh_projection;
+		PipelineInfo cubemap_sh_add;
 
-		DepthStencilState depth_stencil_state;
-		depth_stencil_state.depth_test_enable  = true;
-		depth_stencil_state.depth_write_enable = false;
-		depth_stencil_state.compare            = RHICompareOp::Less;
+		{
+			auto shader = renderer->RequireShader("Source/Shaders/Shading/IBL.hlsl", "CubemapSHProjection", RHIShaderStage::Compute);
 
-		RasterizationState rasterization_state;
-		rasterization_state.cull_mode  = RHICullMode::None;
-		rasterization_state.front_face = RHIFrontFace::Clockwise;
+			cubemap_sh_projection.pipeline_state = std::shared_ptr<RHIPipelineState>(std::move(rhi_context->CreatePipelineState()));
+			cubemap_sh_projection.pipeline_state->SetShader(RHIShaderStage::Compute, shader);
+			cubemap_sh_projection.shader_meta = renderer->RequireShaderMeta(shader);
+		}
 
-		pipeline_state->SetShader(RHIShaderStage::Vertex, vertex_shader);
-		pipeline_state->SetShader(RHIShaderStage::Fragment, fragment_shader);
-		pipeline_state->SetBlendState(blend_state);
-		pipeline_state->SetDepthStencilState(depth_stencil_state);
-		pipeline_state->SetRasterizationState(rasterization_state);
+		{
+			auto shader = renderer->RequireShader("Source/Shaders/Shading/IBL.hlsl", "CubemapSHAdd", RHIShaderStage::Compute);
+
+			cubemap_sh_add.pipeline_state = std::shared_ptr<RHIPipelineState>(std::move(rhi_context->CreatePipelineState()));
+			cubemap_sh_add.pipeline_state->SetShader(RHIShaderStage::Compute, shader);
+			cubemap_sh_add.shader_meta = renderer->RequireShaderMeta(shader);
+		}
+
+		std::shared_ptr<RHIBuffer>  config_buffer   = std::move(rhi_context->CreateBuffer<Config>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU));
+		std::shared_ptr<RHITexture> sh_intermediate = std::move(rhi_context->CreateTexture2DArray(SH_INTERMEDIATE_SIZE * 9, SH_INTERMEDIATE_SIZE, 6, RHIFormat::R32G32B32A32_FLOAT, RHITextureUsage::UnorderedAccess | RHITextureUsage::ShaderResource, false));
+
+		{
+			auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Compute);
+			cmd_buffer->Begin();
+			cmd_buffer->ResourceStateTransition({
+			                                        TextureStateTransition{
+			                                            sh_intermediate.get(),
+			                                            RHIResourceState::Undefined,
+			                                            RHIResourceState::ShaderResource,
+			                                        },
+			                                    },
+			                                    {});
+			cmd_buffer->End();
+			rhi_context->Execute(cmd_buffer);
+		}
 
 		*task = [=](RenderGraph &render_graph, RHICommand *cmd_buffer, Variant &config, RenderGraphBlackboard &black_board) {
-			auto depth  = render_graph.GetTexture(desc.GetPin("Depth").handle);
-			auto output = render_graph.GetTexture(desc.GetPin("Output").handle);
+			auto irradiance_sh = render_graph.GetTexture(desc.GetPin("IrradianceSH").handle);
 
-			auto *gpu_scene = black_board.Get<GPUScene>();
-			auto *view      = black_board.Get<View>();
+			auto   *gpu_scene   = black_board.Get<GPUScene>();
+			auto   *view        = black_board.Get<View>();
+			Config *config_data = config.Convert<Config>();
 
-			render_target->Clear();
-			render_target->Set(0, output, TextureRange{}, ColorAttachment{});
-			render_target->Set(depth, TextureRange{}, DepthStencilAttachment{RHILoadAction::Load});
+			config_data->extent = {1024, 1024};
 
 			if (gpu_scene->textures.texture_cube)
 			{
-				auto descriptor = rhi_context->CreateDescriptor(shader_meta);
+				config_buffer->CopyToDevice(config_data, sizeof(Config));
 
-				descriptor->BindTexture("Skybox", gpu_scene->textures.texture_cube, RHITextureDimension::TextureCube)
-				    .BindSampler("SkyboxSampler", rhi_context->CreateSampler(SamplerDesc::LinearClamp()))
-				    .BindBuffer("ViewBuffer", view->buffer.get());
+				// Diffuse Environment PRT
+				{
+					cmd_buffer->BeginMarker("Diffuse Environment PRT");
 
-				cmd_buffer->SetViewport(static_cast<float>(render_target->GetWidth()), static_cast<float>(render_target->GetHeight()));
-				cmd_buffer->SetScissor(render_target->GetWidth(), render_target->GetHeight());
-				cmd_buffer->BeginRenderPass(render_target.get());
-				cmd_buffer->BindDescriptor(descriptor);
-				cmd_buffer->BindPipelineState(pipeline_state.get());
-				cmd_buffer->Draw(36);
-				cmd_buffer->EndRenderPass();
+					// Resource Transition
+					{
+						cmd_buffer->ResourceStateTransition({
+						                                        TextureStateTransition{
+						                                            sh_intermediate.get(),
+						                                            RHIResourceState::ShaderResource,
+						                                            RHIResourceState::UnorderedAccess,
+						                                        },
+						                                    },
+						                                    {});
+					}
+
+					// Cubemap SH Projection
+					{
+						cmd_buffer->BeginMarker("Cubemap SH Projection");
+						auto descriptor = rhi_context->CreateDescriptor(cubemap_sh_projection.shader_meta);
+						descriptor->BindTexture("Skybox", gpu_scene->textures.texture_cube, RHITextureDimension::TextureCube)
+						    .BindSampler("SkyboxSampler", rhi_context->CreateSampler(SamplerDesc::LinearClamp()))
+						    .BindTexture("SHIntermediate", sh_intermediate.get(), RHITextureDimension::Texture2DArray)
+						    .BindBuffer("ConfigBuffer", config_buffer.get());
+						cmd_buffer->BindDescriptor(descriptor);
+						cmd_buffer->BindPipelineState(cubemap_sh_projection.pipeline_state.get());
+						cmd_buffer->Dispatch(IRRADIANCE_CUBEMAP_SIZE, IRRADIANCE_CUBEMAP_SIZE, 6, IRRADIANCE_WORK_GROUP_SIZE, IRRADIANCE_WORK_GROUP_SIZE, 1);
+						cmd_buffer->EndMarker();
+					}
+
+					// Resource Transition
+					{
+						cmd_buffer->ResourceStateTransition({
+						                                        TextureStateTransition{
+						                                            sh_intermediate.get(),
+						                                            RHIResourceState::UnorderedAccess,
+						                                            RHIResourceState::ShaderResource,
+						                                        },
+						                                    },
+						                                    {});
+					}
+
+					// Cubemap SH Add
+					{
+						cmd_buffer->BeginMarker("Cubemap SH Add");
+						auto descriptor = rhi_context->CreateDescriptor(cubemap_sh_add.shader_meta);
+						descriptor->BindTexture("IrradianceSH", irradiance_sh, RHITextureDimension::Texture2D)
+						    .BindTexture("SHIntermediate", sh_intermediate.get(), RHITextureDimension::Texture2DArray);
+						cmd_buffer->BindDescriptor(descriptor);
+						cmd_buffer->BindPipelineState(cubemap_sh_add.pipeline_state.get());
+						cmd_buffer->Dispatch(9, SH_INTERMEDIATE_SIZE, CUBEMAP_FACE_NUM, 1, SH_INTERMEDIATE_SIZE, CUBEMAP_FACE_NUM);
+						cmd_buffer->EndMarker();
+					}
+					cmd_buffer->EndMarker();
+				}
 			}
 		};
 	}

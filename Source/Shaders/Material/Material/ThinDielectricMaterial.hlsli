@@ -8,7 +8,17 @@ struct ThinDielectricMaterial
     ThinDielectricBSDF thin_dielectric;
     Frame frame;
 
-    HAS_NO_EMISSIVE
+    GBufferData GetGBufferData()
+    {
+        GBufferData data;
+        data.albedo = thin_dielectric.R;
+        data.metallic = 0.f;
+        data.roughness = 0.f;
+        data.anisotropic = 0.f;
+        data.normal = frame.z;
+        data.emissive = 0.f;
+        return data;
+    }
 
     void Init(float3 R, float3 T, float eta, float3 normal)
     {

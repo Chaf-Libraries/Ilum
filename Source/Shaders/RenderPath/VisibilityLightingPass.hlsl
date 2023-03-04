@@ -1,5 +1,6 @@
 #include "../Common.hlsli"
 #include "../Random.hlsli"
+#include "../SphericalHarmonic.hlsli"
 
 #ifndef RUNTIME
 #define HAS_MESH
@@ -11,6 +12,7 @@
 #define HAS_SHADOW_MAP
 #define HAS_CASCADE_SHADOW_MAP
 #define HAS_OMNI_SHADOW_MAP
+#define HAS_IRRADIANCE_SH
 #define SHADOW_FILTER_NONE
 #define SHADOW_FILTER_HARD
 #define SHADOW_FILTER_PCF
@@ -227,6 +229,10 @@ StructuredBuffer<uint> MeshIndexBuffer[];
 StructuredBuffer<SkinnedVertex> SkinnedMeshVertexBuffer[];
 StructuredBuffer<uint> SkinnedMeshIndexBuffer[];
 StructuredBuffer<float4x4> BoneMatrices[];
+#endif
+
+#ifdef HAS_IRRADIANCE_SH
+RWTexture2D<float4> IrradianceSH;
 #endif
 
 uint hash(uint a)
@@ -759,13 +765,16 @@ void DispatchIndirect(CSParam param)
     Material material;
     material.Init(interaction);
     
-    float3 radiance = material.bsdf.GetEmissive();
+    GBufferData g_buffer_data = material.bsdf.GetGBufferData();
+    
+    float3 radiance = g_buffer_data.emissive;
     
     LightSampleContext li_ctx;
     li_ctx.n = interaction.isect.n;
     li_ctx.ns = interaction.shading_n;
     li_ctx.p = interaction.isect.p;
     
+    // Handle point light DI
 #ifdef HAS_POINT_LIGHT
     uint point_light_id = 0;
     for (uint i = 0; i < LightInfoBuffer.point_light_count; i++)
@@ -784,6 +793,7 @@ void DispatchIndirect(CSParam param)
     }
 #endif
     
+    // Handle spot light DI
 #ifdef HAS_SPOT_LIGHT
     uint spot_light_id = 0;
     for (uint i = 0; i < LightInfoBuffer.spot_light_count; i++)
@@ -792,7 +802,7 @@ void DispatchIndirect(CSParam param)
         LightLiSample light_sample = light.SampleLi(li_ctx, 0.f);
         float3 f = material.bsdf.Eval(interaction.isect.wo, light_sample.wi, TransportMode_Radiance);
         float3 color = f * light_sample.L;
-        if(light.cast_shadow)
+        if (light.cast_shadow)
         {
             color *= CalculateSpotLightShadow(light, light.shadow_id, interaction);
             spot_light_id++;
@@ -801,6 +811,7 @@ void DispatchIndirect(CSParam param)
     }
 #endif
     
+    // Handle directional light DI
 #ifdef HAS_DIRECTIONAL_LIGHT
     uint directional_light_id = 0;
     for (uint i = 0; i < LightInfoBuffer.directional_light_count; i++)
@@ -817,6 +828,34 @@ void DispatchIndirect(CSParam param)
         radiance += color;
     }
 #endif
+    
+#ifdef HAS_IRRADIANCE_SH
+    {
+        float3 F0 = float3(0.0, 0.0, 0.0);
+        F0 = lerp(F0, g_buffer_data.albedo.rgb, g_buffer_data.metallic);
+        float3 F = F0 + (max(float3(1.0 - g_buffer_data.roughness, 1.0 - g_buffer_data.roughness, 1.0 - g_buffer_data.roughness), F0) * pow(1.0 - max(dot(g_buffer_data.normal, interaction.isect.wo), 0.0), 5.0));
+        float3 Kd = (1.0 - F) * (1.0 - g_buffer_data.metallic);
+
+        float3 irradiance = float3(0.0, 0.0, 0.0);
+        SH9 basis = EvaluateSH(g_buffer_data.normal);
+        for (uint i = 0; i < 9; i++)
+        {
+            irradiance += IrradianceSH[uint2(i, 0)].rgb * basis.weights[i];
+        }
+        irradiance = max(float3(0.0, 0.0, 0.0), irradiance) * InvPI;
+        
+        float3 diffuse = irradiance * g_buffer_data.albedo.rgb;
+
+        //const float MAX_PREFILTER_MAP_LOD = 4.0;
+        //float3 prefiltered_color = PrefilterMap.SampleLevel(TextureSampler, reflect(-V, N), material.roughness * MAX_PREFILTER_MAP_LOD).rgb;
+        //float2 brdf = BRDFPreIntegrate.SampleLevel(TextureSampler, float2(clamp(dot(N, V), 0.0, 1.0), material.roughness), 0.0).rg;
+        //float3 specular = prefiltered_color * (F * brdf.x + brdf.y);
+
+        float3 ambient = Kd * diffuse;
+        radiance += ambient;
+    }
+#endif
+    
     
     Output[pixel] = float4(radiance, 1.f);
 }

@@ -45,6 +45,7 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 		    .ReadTexture2D(handle++, "ShadowMap", RHIResourceState::ShaderResource)
 		    .ReadTexture2D(handle++, "CascadeShadowMap", RHIResourceState::ShaderResource)
 		    .ReadTexture2D(handle++, "OmniShadowMap", RHIResourceState::ShaderResource)
+		    .ReadTexture2D(handle++, "IrradianceSH", RHIResourceState::ShaderResource)
 		    .WriteTexture2D(handle++, "Direct Illumination", 0, 0, RHIFormat::R16G16B16A16_FLOAT, RHIResourceState::UnorderedAccess);
 	}
 
@@ -61,24 +62,21 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 		};
 
 		*task = [=](RenderGraph &render_graph, RHICommand *cmd_buffer, Variant &config, RenderGraphBlackboard &black_board) {
-			auto   *visibility_buffer = render_graph.GetTexture(desc.GetPin("Visibility Buffer").handle);
-			auto   *depth_buffer      = render_graph.GetTexture(desc.GetPin("Depth Buffer").handle);
-			auto   *shadow_map = render_graph.GetTexture(desc.GetPin("ShadowMap").handle);
-			auto   *cascade_shadow_map = render_graph.GetTexture(desc.GetPin("CascadeShadowMap").handle);
-			auto   *omni_shadow_map = render_graph.GetTexture(desc.GetPin("OmniShadowMap").handle);
-			auto   *output            = render_graph.GetTexture(desc.GetPin("Direct Illumination").handle);
+			auto *visibility_buffer  = render_graph.GetTexture(desc.GetPin("Visibility Buffer").handle);
+			auto *depth_buffer       = render_graph.GetTexture(desc.GetPin("Depth Buffer").handle);
+			auto *shadow_map         = render_graph.GetTexture(desc.GetPin("ShadowMap").handle);
+			auto *cascade_shadow_map = render_graph.GetTexture(desc.GetPin("CascadeShadowMap").handle);
+			auto *omni_shadow_map    = render_graph.GetTexture(desc.GetPin("OmniShadowMap").handle);
+			auto *irradiance_sh      = render_graph.GetTexture(desc.GetPin("IrradianceSH").handle);
+			auto *output             = render_graph.GetTexture(desc.GetPin("Direct Illumination").handle);
 
-			Config *config_data       = config.Convert<Config>();
+			Config *config_data = config.Convert<Config>();
 
 			GPUScene   *gpu_scene   = black_board.Get<GPUScene>();
 			View       *view        = black_board.Get<View>();
 			RHIContext *rhi_context = renderer->GetRHIContext();
 
-			LightingPassData *pass_data   = black_board.Has<LightingPassData>() ? black_board.Get<LightingPassData>() : black_board.Add<LightingPassData>();
-
-
-
-			//ShadowMapData    *shadow_data = black_board.Has<ShadowMapData>() ? black_board.Get<ShadowMapData>() : nullptr;
+			LightingPassData *pass_data = black_board.Has<LightingPassData>() ? black_board.Get<LightingPassData>() : black_board.Add<LightingPassData>();
 
 			size_t material_count = renderer->GetResourceManager()->GetValidResourceCount<ResourceType::Material>() + 1;
 
@@ -88,7 +86,7 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 			bool has_spot_light        = gpu_scene->light.info.spot_light_count != 0;
 			bool has_directional_light = gpu_scene->light.info.directional_light_count != 0;
 			bool has_rect_light        = gpu_scene->light.info.rect_light_count != 0;
-			//bool has_shadow            = gpu_scene->light.has_shadow;
+			bool has_env_light         = gpu_scene->textures.texture_cube != nullptr;
 
 			if (!pass_data->material_count_buffer ||
 			    pass_data->material_count_buffer->GetDesc().size != material_count * sizeof(uint32_t))
@@ -218,9 +216,9 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 				cmd_buffer->ResourceStateTransition(
 				    {},
 				    {BufferStateTransition{
-				         pass_data->material_offset_buffer.get(),
-				         RHIResourceState::UnorderedAccess,
-				         RHIResourceState::ShaderResource}});
+				        pass_data->material_offset_buffer.get(),
+				        RHIResourceState::UnorderedAccess,
+				        RHIResourceState::ShaderResource}});
 			}
 
 			// Calculate pixel buffer
@@ -310,6 +308,7 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 					        shadow_map ? "HAS_SHADOW_MAP" : "NO_SHADOW_MAP",
 					        cascade_shadow_map ? "HAS_CASCADE_SHADOW_MAP" : "NO_CASCADE_SHADOW_MAP",
 					        omni_shadow_map ? "HAS_OMNI_SHADOW_MAP" : "NO_OMNI_SHADOW_MAP",
+					        irradiance_sh ? "HAS_IRRADIANCE_SH" : "NO_IRRADIANCE_SH",
 					        shadow_filter_modes.at(config_data->shadow_filter_mode),
 					        "DISPATCH_INDIRECT",
 					        "MATERIAL_ID=" + std::to_string(i),
@@ -379,6 +378,15 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 					if (has_rect_light)
 					{
 						descriptor->BindBuffer("RectLightBuffer", gpu_scene->light.rect_light_buffer.get());
+					}
+
+					if (has_env_light)
+					{
+						if (irradiance_sh)
+						{
+							// Diffuse
+							descriptor->BindTexture("IrradianceSH", irradiance_sh, RHITextureDimension::Texture2D);
+						}
 					}
 
 					cmd_buffer->BindDescriptor(descriptor);

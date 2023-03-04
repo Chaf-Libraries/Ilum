@@ -25,8 +25,8 @@ Resource<ResourceType::TextureCube>::Resource(RHIContext *rhi_context, std::vect
 	auto cubemap2d = rhi_context->CreateTexture(desc);
 
 	TextureDesc cubemap_desc = desc;
-	cubemap_desc.width       = 1024;
-	cubemap_desc.height      = 1024;
+	cubemap_desc.width       = 512;
+	cubemap_desc.height      = 512;
 	cubemap_desc.depth       = 1;
 	cubemap_desc.layers      = 6;
 	cubemap_desc.format      = RHIFormat::R32G32B32A32_FLOAT;
@@ -142,8 +142,8 @@ Resource<ResourceType::TextureCube>::Resource(RHIContext *rhi_context, std::vect
 	         TextureRange{RHITextureDimension::Texture2DArray, 0, 1, 0, 6}}},
 	    {});
 	cmd_buffer->BeginRenderPass(render_target.get());
-	cmd_buffer->SetViewport(1024.f, 1024.f);
-	cmd_buffer->SetScissor(1024, 1024);
+	cmd_buffer->SetViewport(512.f, 512.f);
+	cmd_buffer->SetScissor(512, 512);
 	cmd_buffer->BindDescriptor(descriptor);
 	cmd_buffer->BindPipelineState(pipeline_state.get());
 	cmd_buffer->Draw(3, 6);

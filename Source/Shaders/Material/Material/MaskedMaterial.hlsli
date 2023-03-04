@@ -13,10 +13,10 @@ struct MaskedMaterial
     T material;
     float alpha;
     float threshold;
-
-    float3 GetEmissive()
+    
+    GBufferData GetGBufferData()
     {
-        return material.GetEmissive();
+        return material.GetGBufferData();
     }
 
     void Init(T material_, float alpha_, float threshold_)

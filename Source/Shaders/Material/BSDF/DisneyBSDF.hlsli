@@ -11,7 +11,7 @@
 float2 CalculateAnisotropicRoughness(float anisotropic, float roughness)
 {
     float rough2 = Sqr(roughness);
-    if(anisotropic == 0)
+    if (anisotropic == 0)
     {
         float a = max(0.001, rough2);
         return a;
@@ -54,7 +54,7 @@ float3 DisneyDiffuse(float3 base_color, float3 wo, float3 wi)
 float3 DisneyFakeSS(float3 base_color, float roughness, float3 wo, float3 wi)
 {
     float3 wh = wi + wo;
-    if(IsBlack(wh))
+    if (IsBlack(wh))
     {
         return 0.f;
     }
@@ -73,7 +73,7 @@ float3 DisneyFakeSS(float3 base_color, float roughness, float3 wo, float3 wi)
 float3 DisneyRetro(float3 base_color, float roughness, float3 wo, float3 wi)
 {
     float3 wh = wi + wo;
-    if(IsBlack(wh))
+    if (IsBlack(wh))
     {
         return 0.f;
     }
@@ -90,7 +90,7 @@ float3 DisneyRetro(float3 base_color, float roughness, float3 wo, float3 wi)
 float3 DisneySheen(float3 base_color, float lum, float sheen_tint, float3 wo, float3 wi)
 {
     float3 wh = wi + wo;
-    if(IsBlack(wh))
+    if (IsBlack(wh))
     {
         return 0.f;
     }
@@ -120,7 +120,7 @@ float SmithG_GGX(float cos_theta, float alpha)
 float3 DisneyClearcoat(float gloss, float3 wo, float3 wi)
 {
     float3 wh = wi + wo;
-    if(IsBlack(wh))
+    if (IsBlack(wh))
     {
         return 0.f;
     }
@@ -137,7 +137,7 @@ float3 DisneyClearcoat(float gloss, float3 wo, float3 wi)
 float DisneyClearcoatPdf(float gloss, float3 wo, float3 wi)
 {
     float3 wh = wi + wo;
-    if(IsBlack(wh))
+    if (IsBlack(wh))
     {
         return 0.f;
     }
@@ -148,7 +148,7 @@ float DisneyClearcoatPdf(float gloss, float3 wo, float3 wi)
 
 float3 DisneyClearcoatSample(float gloss, float3 wo, float2 u)
 {
-    if(wo.z == 0)
+    if (wo.z == 0)
     {
         return 0.f;
     }
@@ -158,7 +158,7 @@ float3 DisneyClearcoatSample(float gloss, float3 wo, float2 u)
     float sin_theta = sqrt(max(0, 1 - cos_theta * cos_theta));
     float phi = 2 * PI * u.y;
     float3 wh = SphericalDirection(sin_theta, cos_theta, phi);
-    if(!SameHemisphere(wo, wh))
+    if (!SameHemisphere(wo, wh))
     {
         wh = -wh;
     }
@@ -185,6 +185,7 @@ struct DisneyBSDF
     float subsurface;
     float3 emissive;
     bool twoside;
+    float2 alpha;
 
     void Init(
         float3 base_color_,
@@ -220,11 +221,6 @@ struct DisneyBSDF
         twoside = twoside_;
     }
 
-    float3 GetEmissive()
-    {
-        return emissive;
-    }
-
     uint Flags()
     {
         return BSDF_DiffuseReflection;
@@ -244,14 +240,14 @@ struct DisneyBSDF
         bool has_refract = (cos_theta_i * cos_theta_o < 0.f);
 
         float etap = 1;
-        if(has_refract)
+        if (has_refract)
         {
             etap = cos_theta_o > 0.f ? eta : (1 / eta);
         }
 
         float3 wm = wi * etap + wo;
 
-        if(cos_theta_i == 0 || cos_theta_o == 0 || LengthSquared(wm) == 0)
+        if (cos_theta_i == 0 || cos_theta_o == 0 || LengthSquared(wm) == 0)
         {
             return 0.f;
         }
@@ -269,8 +265,8 @@ struct DisneyBSDF
         bool has_spec_trans = (bsdf > 0.f) && has_refract && (F_dielectric < 1.f);
 
         float roughness2 = Sqr(roughness);
-        float2 alpha = max(0.001, roughness2);
-        if(anisotropic > 0)
+        alpha = max(0.001, roughness2);
+        if (anisotropic > 0)
         {
             float aspect = sqrt(1.f - 0.9f * anisotropic);
             alpha.x = max(0.001, roughness2 / aspect);
@@ -285,12 +281,12 @@ struct DisneyBSDF
         float G = spec_dist.G1(wo) * spec_dist.G1(wi);
         float lum = Luminance(base_color);
 
-        if(has_diffuse)
+        if (has_diffuse)
         {
             float3 f_diff = DisneyDiffuse(base_color, wo, wi);
             float3 f_retro = DisneyRetro(base_color, roughness, wo, wi);
 
-            if(subsurface > 0)
+            if (subsurface > 0)
             {
                 float3 f_ss = DisneyFakeSS(base_color, roughness, wo, wi);
                 f += brdf * lerp(f_diff + f_retro, f_ss, subsurface);
@@ -301,39 +297,39 @@ struct DisneyBSDF
             }
         }
 
-        if(has_sheen)
+        if (has_sheen)
         {
             f += sheen * (1.f - metallic) * DisneySheen(base_color, lum, sheen_tint, wo, wi);
         }
 
-        if(has_clearcoat)
+        if (has_clearcoat)
         {
             f += 0.25 * clearcoat * DisneyClearcoat(clearcoat_gloss, wo, wi);
         }
 
-        if(has_spec_reflect)
+        if (has_spec_reflect)
         {
             float3 F_schlick = 0.f;
-            if(metallic > 0)
+            if (metallic > 0)
             {
                 F_schlick += metallic * FrSchlick(base_color, cos_theta_o);
             }
-            if(spec_tint > 0)
+            if (spec_tint > 0)
             {
                 float3 c_tint = lum > 0.f ? base_color / lum : 1.f;
                 float3 F0_spec_tint = c_tint * SchlickR0FromEta(etap);
             }
-            float3 F = front_side ? 
+            float3 F = front_side ?
                 (1.f - metallic) * (1.f - spec_tint) * F_dielectric + F_schlick :
                 bsdf * F_dielectric;
             f += F * D * G / abs(4.f * cos_theta_i * cos_theta_o);
         }
 
-        if(has_spec_trans)
+        if (has_spec_trans)
         {
             float denom = Sqr(dot(wi, wm) + dot(wo, wm) / etap) * cos_theta_i * cos_theta_o;
             float3 ft = sqrt(base_color) * bsdf * D * (1.f - F_dielectric) * G * abs(dot(wi, wm) * dot(wo, wm) / denom);
-            if(mode == TransportMode_Radiance)
+            if (mode == TransportMode_Radiance)
             {
                 ft /= Sqr(etap);
             }
@@ -355,14 +351,14 @@ struct DisneyBSDF
         bool has_refract = (cos_theta_i * cos_theta_o < 0.f);
 
         float etap = 1;
-        if(has_refract)
+        if (has_refract)
         {
             etap = cos_theta_o > 0.f ? eta : (1 / eta);
         }
 
         float3 wm = wi * etap + wo;
 
-        if(cos_theta_i == 0 || cos_theta_o == 0 || LengthSquared(wm) == 0)
+        if (cos_theta_i == 0 || cos_theta_o == 0 || LengthSquared(wm) == 0)
         {
             return 0.f;
         }
@@ -392,7 +388,7 @@ struct DisneyBSDF
 
         float roughness2 = Sqr(roughness);
         float2 alpha = max(0.001, roughness2);
-        if(anisotropic > 0)
+        if (anisotropic > 0)
         {
             float aspect = sqrt(1.f - 0.9f * anisotropic);
             alpha.x = max(0.001, roughness2 / aspect);
@@ -405,27 +401,27 @@ struct DisneyBSDF
 
         float pdf = 0.f;
 
-        if(has_diffuse)
+        if (has_diffuse)
         {
             pdf += prob_diffuse * AbsCosTheta(wi) * InvPI;
         }
 
-        if(has_clearcoat)
+        if (has_clearcoat)
         {
             pdf += prob_clearcoat * DisneyClearcoatPdf(clearcoat_gloss, wo, wi);
         }
 
-        if(has_spec_reflect)
+        if (has_spec_reflect)
         {
             pdf += prob_spec_reflect * spec_dist.Pdf(wo, wm) / (4.0 * abs(dot(wo, wm)));
         }
 
-        if(has_spec_trans)
+        if (has_spec_trans)
         {
             float denom = Sqr(dot(wi, wm) + dot(wo, wm) / etap);
             float dwm_dwi = abs(dot(wi, wm)) / denom;
             pdf += prob_spec_trans * spec_dist.Pdf(wo, wm) * dwm_dwi;
-        }        
+        }
         
         return pdf;
     }
@@ -464,11 +460,11 @@ struct DisneyBSDF
         prob_clearcoat *= rcp_tot_prob;
         prob_diffuse *= rcp_tot_prob;
 
-        if(uc < prob_spec_reflect)
+        if (uc < prob_spec_reflect)
         {
             float roughness2 = Sqr(roughness);
             float2 alpha = max(0.001, roughness2);
-            if(anisotropic > 0)
+            if (anisotropic > 0)
             {
                 float aspect = sqrt(1.f - 0.9f * anisotropic);
                 alpha.x = max(0.001, roughness2 / aspect);
@@ -486,12 +482,12 @@ struct DisneyBSDF
             bsdf_sample.flags = BSDF_GlossyReflection;
             bsdf_sample.eta = 1;
         }
-        else if(uc < prob_spec_reflect + prob_spec_trans)
+        else if (uc < prob_spec_reflect + prob_spec_trans)
         {
             // Sample specular transmission
             float roughness2 = Sqr(roughness);
             float2 alpha = max(0.001, roughness2);
-            if(anisotropic > 0)
+            if (anisotropic > 0)
             {
                 float aspect = sqrt(1.f - 0.9f * anisotropic);
                 alpha.x = max(0.001, roughness2 / aspect);
@@ -514,7 +510,7 @@ struct DisneyBSDF
             bsdf_sample.flags = BSDF_GlossyReflection;
             bsdf_sample.eta = etap;
         }
-        else if(uc < prob_spec_reflect + prob_spec_trans + prob_clearcoat)
+        else if (uc < prob_spec_reflect + prob_spec_trans + prob_clearcoat)
         {
             // Sample clearcoat
             bsdf_sample.wi = DisneyClearcoatSample(clearcoat_gloss, wo, u);

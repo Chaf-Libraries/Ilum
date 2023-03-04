@@ -13,9 +13,19 @@ struct MixMaterial
     T2 material2;
     float weight;
 
-    float3 GetEmissive()
+    GBufferData GetGBufferData()
     {
-        return lerp(material1.GetEmissive(), material2.GetEmissive(), weight);
+        GBufferData data1 = material1.GetGBufferData();
+        GBufferData data2 = material2.GetGBufferData();
+        GBufferData data;
+        data.normal = lerp(data1.normal, data2.normal, weight);
+        data.albedo = lerp(data1.albedo, data2.albedo, weight);
+        data.emissive = lerp(data1.emissive, data2.emissive, weight);
+        data.metallic = lerp(data1.metallic, data2.metallic, weight);
+        data.roughness = lerp(data1.roughness, data2.roughness, weight);
+        data.anisotropic = lerp(data1.anisotropic, data2.anisotropic, weight);
+        return data;
+
     }
 
     void Init(T1 material1_, T2 material2_, float weight_)

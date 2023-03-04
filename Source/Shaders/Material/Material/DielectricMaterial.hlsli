@@ -8,7 +8,17 @@ struct DielectricMaterial
     DielectricBSDF dielectric;
     Frame frame;
 
-    HAS_NO_EMISSIVE
+    GBufferData GetGBufferData()
+    {
+        GBufferData data;
+        data.albedo = dielectric.R;
+        data.metallic = 0.f;
+        data.roughness = dielectric.distribution.alpha_x;
+        data.anisotropic = 0.f;
+        data.normal = frame.z;
+        data.emissive = 0.f;
+        return data;
+    }
 
     void Init(float3 R, float3 T, float ior, float roughness, float3 normal)
     {

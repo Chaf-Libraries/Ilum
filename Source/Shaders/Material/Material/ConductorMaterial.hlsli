@@ -10,7 +10,17 @@ struct ConductorMaterial
     ConductorBSDF conductor;
     Frame frame;
 
-    HAS_NO_EMISSIVE
+    GBufferData GetGBufferData()
+    {
+        GBufferData data;
+        data.albedo = conductor.R;
+        data.metallic = 1.f;
+        data.roughness = conductor.distribution.alpha_x;
+        data.anisotropic = 0.f;
+        data.normal = frame.z;
+        data.emissive = 0.f;
+        return data;
+    }
 
     void Init(float3 R, float roughness, float3 eta, float3 k, float3 normal)
     {

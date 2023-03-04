@@ -54,9 +54,9 @@ struct BSDF
         return {{&BxDFName}}.Samplef(woW, uc, u, mode, flags);
     }
 
-    float3 GetEmissive()
+    GBufferData GetGBufferData()
     {
-        return {{&BxDFName}}.GetEmissive();
+        return {{&BxDFName}}.GetGBufferData();
     }
 };
 

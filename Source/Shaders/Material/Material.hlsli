@@ -33,14 +33,16 @@ struct BSDF
     }
     
     // For GBuffer generation
-    float GetRoughness()
+    GBufferData GetGBufferData()
     {
-        return 0.f;
-    }
-    
-    float3 GetEmissive()
-    {
-        return 0.f;
+        GBufferData data;
+        data.normal = 0.f;
+        data.albedo = 0.f;
+        data.emissive = 0.f;
+        data.metallic = 0.f;
+        data.roughness = 0.f;
+        data.anisotropic = 0.f;
+        return data;
     }
 };
 

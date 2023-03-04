@@ -60,7 +60,7 @@ class Bloom : public RenderPass<Bloom>
 
 			auto *gpu_scene  = black_board.Get<GPUScene>();
 			auto *view       = black_board.Get<View>();
-			auto *bloom_data = black_board.Get<BloomPassData>();
+			auto *bloom_data = black_board.Has<BloomPassData>() ? black_board.Get<BloomPassData>() : black_board.Add<BloomPassData>();
 
 			if (!bloom_data->mask ||
 			    (bloom_data->mask->GetDesc().width != input->GetDesc().width ||
@@ -231,7 +231,7 @@ class Bloom : public RenderPass<Bloom>
 		auto *config_data = config->Convert<Config>();
 
 		ImGui::DragFloat("Threshold", &config_data->threshold, 0.01f, 0.f, std::numeric_limits<float>::max());
-		ImGui::DragFloat("Radius", &config_data->radius, 0.01f, 1.f, std::numeric_limits<float>::max());
+		ImGui::DragFloat("Radius", &config_data->radius, 0.01f, 0.f, 1.f);
 		ImGui::DragFloat("Intensity", &config_data->intensity, 0.01f, 0.f, std::numeric_limits<float>::max());
 	}
 

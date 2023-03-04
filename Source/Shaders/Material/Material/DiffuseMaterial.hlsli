@@ -10,8 +10,18 @@ struct DiffuseMaterial
     DiffuseBSDF diffuse;
     Frame frame;
 
-    HAS_NO_EMISSIVE
-
+    GBufferData GetGBufferData()
+    {
+        GBufferData data;
+        data.albedo = diffuse.R;
+        data.metallic = 0.f;
+        data.roughness = 1.f;
+        data.anisotropic = 0.f;
+        data.normal = frame.z;
+        data.emissive = 0.f;
+        return data;
+    }
+    
     void Init(float3 R, float3 normal)
     {
         diffuse.Init(SRGBtoLINEAR(R));
