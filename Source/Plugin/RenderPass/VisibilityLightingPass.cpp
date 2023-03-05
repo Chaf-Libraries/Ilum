@@ -47,7 +47,11 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 		    .ReadTexture2D(handle++, "OmniShadowMap", RHIResourceState::ShaderResource)
 		    .ReadTexture2D(handle++, "IrradianceSH", RHIResourceState::ShaderResource)
 		    .ReadTexture2D(handle++, "PrefilterMap", RHIResourceState::ShaderResource)
-		    .WriteTexture2D(handle++, "Direct Illumination", RHIFormat::R16G16B16A16_FLOAT, RHIResourceState::UnorderedAccess);
+		    .WriteTexture2D(handle++, "Position Depth", RHIFormat::R32G32B32A32_FLOAT, RHIResourceState::UnorderedAccess)
+		    .WriteTexture2D(handle++, "Normal Roughness", RHIFormat::R8G8B8A8_UNORM, RHIResourceState::UnorderedAccess)
+		    .WriteTexture2D(handle++, "Albedo Metallic", RHIFormat::R8G8B8A8_UNORM, RHIResourceState::UnorderedAccess)
+		    .WriteTexture2D(handle++, "Env DI", RHIFormat::R16G16B16A16_FLOAT, RHIResourceState::UnorderedAccess)
+		    .WriteTexture2D(handle++, "Light DI", RHIFormat::R16G16B16A16_FLOAT, RHIResourceState::UnorderedAccess);
 	}
 
 	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
@@ -63,14 +67,18 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 		};
 
 		*task = [=](RenderGraph &render_graph, RHICommand *cmd_buffer, Variant &config, RenderGraphBlackboard &black_board) {
-			auto *visibility_buffer  = render_graph.GetTexture(desc.GetPin("Visibility Buffer").handle);
-			auto *depth_buffer       = render_graph.GetTexture(desc.GetPin("Depth Buffer").handle);
-			auto *shadow_map         = render_graph.GetTexture(desc.GetPin("ShadowMap").handle);
-			auto *cascade_shadow_map = render_graph.GetTexture(desc.GetPin("CascadeShadowMap").handle);
-			auto *omni_shadow_map    = render_graph.GetTexture(desc.GetPin("OmniShadowMap").handle);
-			auto *irradiance_sh      = render_graph.GetTexture(desc.GetPin("IrradianceSH").handle);
-			auto *prefilter_map      = render_graph.GetTexture(desc.GetPin("PrefilterMap").handle);
-			auto *output             = render_graph.GetTexture(desc.GetPin("Direct Illumination").handle);
+			auto *visibility_buffer         = render_graph.GetTexture(desc.GetPin("Visibility Buffer").handle);
+			auto *depth_buffer              = render_graph.GetTexture(desc.GetPin("Depth Buffer").handle);
+			auto *shadow_map                = render_graph.GetTexture(desc.GetPin("ShadowMap").handle);
+			auto *cascade_shadow_map        = render_graph.GetTexture(desc.GetPin("CascadeShadowMap").handle);
+			auto *omni_shadow_map           = render_graph.GetTexture(desc.GetPin("OmniShadowMap").handle);
+			auto *irradiance_sh             = render_graph.GetTexture(desc.GetPin("IrradianceSH").handle);
+			auto *prefilter_map             = render_graph.GetTexture(desc.GetPin("PrefilterMap").handle);
+			auto *env_direct_illumination   = render_graph.GetTexture(desc.GetPin("Env DI").handle);
+			auto *light_direct_illumination = render_graph.GetTexture(desc.GetPin("Light DI").handle);
+			auto *position_depth            = render_graph.GetTexture(desc.GetPin("Position Depth").handle);
+			auto *normal_roughness          = render_graph.GetTexture(desc.GetPin("Normal Roughness").handle);
+			auto *albedo_metallic           = render_graph.GetTexture(desc.GetPin("Albedo Metallic").handle);
 
 			Config *config_data = config.Convert<Config>();
 
@@ -122,9 +130,21 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 
 			cmd_buffer->ResourceStateTransition(
 			    {TextureStateTransition{
-			        output,
-			        RHIResourceState::UnorderedAccess,
-			        RHIResourceState::TransferDest}},
+			         light_direct_illumination,
+			         RHIResourceState::UnorderedAccess,
+			         RHIResourceState::TransferDest},
+			     TextureStateTransition{
+			         position_depth,
+			         RHIResourceState::UnorderedAccess,
+			         RHIResourceState::TransferDest},
+			     TextureStateTransition{
+			         normal_roughness,
+			         RHIResourceState::UnorderedAccess,
+			         RHIResourceState::TransferDest},
+			     TextureStateTransition{
+			         albedo_metallic,
+			         RHIResourceState::UnorderedAccess,
+			         RHIResourceState::TransferDest}},
 			    {BufferStateTransition{
 			         pass_data->indirect_command_buffer.get(),
 			         RHIResourceState::IndirectBuffer,
@@ -138,16 +158,31 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 			         RHIResourceState::UnorderedAccess,
 			         RHIResourceState::TransferDest}});
 
-			cmd_buffer->FillTexture(output, RHIResourceState::TransferDest, TextureRange{}, glm::vec4(0.f));
+			cmd_buffer->FillTexture(light_direct_illumination, RHIResourceState::TransferDest, TextureRange{}, glm::vec4(0.f));
+			cmd_buffer->FillTexture(position_depth, RHIResourceState::TransferDest, TextureRange{}, glm::vec4(0.f));
+			cmd_buffer->FillTexture(normal_roughness, RHIResourceState::TransferDest, TextureRange{}, glm::vec4(0.f));
+			cmd_buffer->FillTexture(albedo_metallic, RHIResourceState::TransferDest, TextureRange{}, glm::vec4(0.f));
 			cmd_buffer->FillBuffer(pass_data->material_offset_buffer.get(), RHIResourceState::TransferDest, pass_data->material_offset_buffer->GetDesc().size);
 			cmd_buffer->FillBuffer(pass_data->material_count_buffer.get(), RHIResourceState::TransferDest, pass_data->material_count_buffer->GetDesc().size);
 			cmd_buffer->FillBuffer(pass_data->indirect_command_buffer.get(), RHIResourceState::TransferDest, pass_data->indirect_command_buffer->GetDesc().size);
 
 			cmd_buffer->ResourceStateTransition(
 			    {TextureStateTransition{
-			        output,
-			        RHIResourceState::TransferDest,
-			        RHIResourceState::UnorderedAccess}},
+			         light_direct_illumination,
+			         RHIResourceState::TransferDest,
+			         RHIResourceState::UnorderedAccess},
+			     TextureStateTransition{
+			         position_depth,
+			         RHIResourceState::TransferDest,
+			         RHIResourceState::UnorderedAccess},
+			     TextureStateTransition{
+			         normal_roughness,
+			         RHIResourceState::TransferDest,
+			         RHIResourceState::UnorderedAccess},
+			     TextureStateTransition{
+			         albedo_metallic,
+			         RHIResourceState::TransferDest,
+			         RHIResourceState::UnorderedAccess}},
 			    {BufferStateTransition{
 			         pass_data->material_offset_buffer.get(),
 			         RHIResourceState::TransferDest,
@@ -335,7 +370,11 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 					    .BindSampler("Samplers", gpu_scene->samplers)
 					    .BindBuffer("MaterialOffsets", gpu_scene->material.material_offset.get())
 					    .BindBuffer("MaterialBuffer", gpu_scene->material.material_buffer.get())
-					    .BindTexture("Output", output, RHITextureDimension::Texture2D);
+					    .BindTexture("LightDirectIllumination", light_direct_illumination, RHITextureDimension::Texture2D)
+					    .BindTexture("EnvDirectIllumination", env_direct_illumination, RHITextureDimension::Texture2D)
+					    .BindTexture("PositionDepth", position_depth, RHITextureDimension::Texture2D)
+					    .BindTexture("NormalRoughness", normal_roughness, RHITextureDimension::Texture2D)
+					    .BindTexture("AlbedoMetallic", albedo_metallic, RHITextureDimension::Texture2D);
 
 					if (has_mesh)
 					{

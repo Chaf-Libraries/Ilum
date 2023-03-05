@@ -25,7 +25,6 @@
 
 Texture2D<uint> VisibilityBuffer;
 Texture2D<float> DepthBuffer;
-RWTexture2D<float4> Output;
 
 #ifdef HAS_MESH
 StructuredBuffer<Instance> MeshInstanceBuffer;
@@ -187,6 +186,12 @@ void CalculateIndirectArgument(CSParam param)
 #endif
 
 #include "../Light.hlsli"
+
+RWTexture2D<float4> LightDirectIllumination;
+RWTexture2D<float4> EnvDirectIllumination;
+RWTexture2D<float4> PositionDepth;
+RWTexture2D<float4> NormalRoughness;
+RWTexture2D<float4> AlbedoMetallic;
 
 ConstantBuffer<View> ViewBuffer;
 ConstantBuffer<LightInfo> LightInfoBuffer;
@@ -672,7 +677,7 @@ void DispatchIndirect(CSParam param)
         CalculateBarycentre(instance.transform, pixel, extent, v0.position, v1.position, v2.position, bary, bary_ddx, bary_ddy);
         
         interaction.isect.p = v0.position.xyz * bary.x + v1.position.xyz * bary.y + v2.position.xyz * bary.z;
-        linear_z = mul(ViewBuffer.view_projection_matrix, mul(instance.transform, float4(interaction.isect.p, 1.0))).z;
+        linear_z = mul(ViewBuffer.view_matrix, mul(instance.transform, float4(interaction.isect.p, 1.0))).z;
         interaction.isect.p = mul(instance.transform, float4(interaction.isect.p, 1.0)).xyz;
         interaction.isect.uv = v0.texcoord0.xy * bary.x + v1.texcoord0.xy * bary.y + v2.texcoord0.xy * bary.z;
         interaction.isect.n = v0.normal.xyz * bary.x + v1.normal.xyz * bary.y + v2.normal.xyz * bary.z;
@@ -753,7 +758,7 @@ void DispatchIndirect(CSParam param)
         CalculateBarycentre(instance.transform, pixel, extent, position[0], position[1], position[2], bary, bary_ddx, bary_ddy);
         
         interaction.isect.p = position[0].xyz * bary.x + position[1].xyz * bary.y + position[2].xyz * bary.z;
-        linear_z = mul(ViewBuffer.view_projection_matrix, mul(instance.transform, float4(interaction.isect.p, 1.0))).z;
+        linear_z = mul(ViewBuffer.view_matrix, mul(instance.transform, float4(interaction.isect.p, 1.0))).z;
         interaction.isect.p = mul(instance.transform, float4(interaction.isect.p, 1.0)).xyz;
         interaction.isect.uv = v[0].texcoord0.xy * bary.x + v[1].texcoord0.xy * bary.y + v[2].texcoord0.xy * bary.z;
         interaction.isect.n = normal[0].xyz * bary.x + normal[1].xyz * bary.y + normal[2].xyz * bary.z;
@@ -775,6 +780,7 @@ void DispatchIndirect(CSParam param)
     GBufferData g_buffer_data = material.bsdf.GetGBufferData();
     
     float3 radiance = g_buffer_data.emissive;
+    float3 ambient = 0.f;
     
     LightSampleContext li_ctx;
     li_ctx.n = interaction.isect.n;
@@ -838,8 +844,6 @@ void DispatchIndirect(CSParam param)
     
 #ifdef HAS_ENV_LIGHT
     {
-        float3 ambient = 0.f;
-        
 #ifdef HAS_IRRADIANCE_SH
         float3 F0 = float3(0.0, 0.0, 0.0);
         F0 = lerp(F0, g_buffer_data.albedo.rgb, g_buffer_data.metallic);
@@ -864,10 +868,12 @@ void DispatchIndirect(CSParam param)
         float3 specular = prefiltered_color * (F * brdf.x + brdf.y);
         ambient += specular;
 #endif
-        
-        radiance += ambient;
     }
 #endif
     
-    Output[pixel] = float4(radiance, 1.f);
+    EnvDirectIllumination[pixel] = float4(ambient, 1.f);
+    LightDirectIllumination[pixel] = float4(radiance, 1.f);
+    PositionDepth[pixel] = float4(interaction.isect.p, linear_z);
+    NormalRoughness[pixel] = float4(g_buffer_data.normal * 0.5f + 0.5f, g_buffer_data.roughness);
+    AlbedoMetallic[pixel] = float4(g_buffer_data.albedo, g_buffer_data.metallic);
 }

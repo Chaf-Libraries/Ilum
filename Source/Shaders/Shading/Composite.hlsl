@@ -3,12 +3,22 @@
 RWTexture2D<float4> Output;
 
 #ifndef RUNTIME
-#define HAS_DIRECT_ILLUMINATION
+#define HAS_LIGHT_DIRECT_ILLUMINATION
+#define HAS_ENV_DIRECT_ILLUMINATION
+#define HAS_AMBIENT_OCCLUSION
 #define HAS_ENVIRONMENT
 #endif
 
-#ifdef HAS_DIRECT_ILLUMINATION
-Texture2D<float4> DirectIllumination;
+#ifdef HAS_AMBIENT_OCCLUSION
+Texture2D<float> AmbientOcclusion;
+#endif
+
+#ifdef HAS_LIGHT_DIRECT_ILLUMINATION
+Texture2D<float4> LightDirectIllumination;
+#endif
+
+#ifdef HAS_ENV_DIRECT_ILLUMINATION
+Texture2D<float4> EnvDirectIllumination;
 #endif
 
 #ifdef HAS_ENVIRONMENT
@@ -28,15 +38,23 @@ void CSmain(CSParam param)
     }
     
     float3 result = 0.f;
-    
+    float3 environment = 0.f;
 #ifdef HAS_ENVIRONMENT
-    float3 environment = Environment[param.DispatchThreadID.xy].xyz;
+    environment = Environment[param.DispatchThreadID.xy].xyz;
 #endif
     
     if (IsBlack(environment))
     {
-#ifdef HAS_DIRECT_ILLUMINATION
-        result += DirectIllumination[param.DispatchThreadID.xy].xyz;
+#ifdef HAS_LIGHT_DIRECT_ILLUMINATION
+        result += LightDirectIllumination[param.DispatchThreadID.xy].xyz;
+#endif
+        
+#ifdef HAS_ENV_DIRECT_ILLUMINATION
+        float3 env_direct_illumination = EnvDirectIllumination[param.DispatchThreadID.xy].xyz;
+#ifdef HAS_AMBIENT_OCCLUSION
+        env_direct_illumination *= AmbientOcclusion[param.DispatchThreadID.xy].r;
+#endif
+        result += env_direct_illumination;
 #endif
     }
     else

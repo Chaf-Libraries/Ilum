@@ -30,7 +30,7 @@ Resource<ResourceType::Texture2D>::Resource(RHIContext *rhi_context, std::vector
 	buffer_desc.memory     = RHIMemoryUsage::CPU_TO_GPU;
 
 	auto staging_buffer = rhi_context->CreateBuffer(buffer_desc);
-	std::memcpy(staging_buffer->Map(), data.data(), buffer_desc.size);
+	std::memcpy(staging_buffer->Map(), data.data(), data.size());
 	staging_buffer->Unmap();
 
 	auto *cmd_buffer = rhi_context->CreateCommand(RHIQueueFamily::Graphics);
