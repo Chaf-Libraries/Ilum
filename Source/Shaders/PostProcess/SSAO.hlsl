@@ -12,17 +12,17 @@ struct Sample
 
 Texture2D<float4> Normal;
 Texture2D<float4> PositionDepth;
-RWTexture2D<float> Output;
+RWTexture2D<float> SSAOMap;
 SamplerState TexSampler;
 ConstantBuffer<View> ViewBuffer;
 Texture2D<float4> NoiseTexture;
 ConstantBuffer<Sample> SampleBuffer;
 
 [numthreads(8, 8, 1)]
-void CSmain(CSParam param)
+void SSAO(CSParam param)
 {
     uint2 extent;
-    Output.GetDimensions(extent.x, extent.y);
+    SSAOMap.GetDimensions(extent.x, extent.y);
     
     if (param.DispatchThreadID.x >= extent.x ||
         param.DispatchThreadID.y >= extent.y)
@@ -36,7 +36,7 @@ void CSmain(CSParam param)
     
     if (IsBlack(position))
     {
-        Output[param.DispatchThreadID.xy] = 1.f;
+        SSAOMap[param.DispatchThreadID.xy] = 1.f;
         return;
     }
     
@@ -78,5 +78,40 @@ void CSmain(CSParam param)
         occlusion += (sample_depth >= sample_pos.z ? 1.0f : 0.0f) * range;
     }
     occlusion = 1.f - (occlusion / float(KERNAL_SIZE));
-    Output[param.DispatchThreadID.xy] = occlusion;
+    SSAOMap[param.DispatchThreadID.xy] = occlusion;
+}
+
+groupshared float cache[8][8][9];
+
+[numthreads(8, 8, 1)]
+void SSAOBlur(CSParam param)
+{
+    uint2 extent;
+    SSAOMap.GetDimensions(extent.x, extent.y);
+    
+    if (param.DispatchThreadID.x >= extent.x ||
+        param.DispatchThreadID.y >= extent.y)
+    {
+        return;
+    }
+    
+    uint idx = 0;
+    for (int i = -1; i <= 1; i++)
+    {
+        for (int j = -1; j <= 1; j++)
+        {
+            cache[param.GroupThreadID.x][param.GroupThreadID.y][idx] = SSAOMap[int2(clamp(param.DispatchThreadID.x + i, 0, extent.x), clamp(param.DispatchThreadID.y + j, 0, extent.y))];
+        }
+    }
+    
+    GroupMemoryBarrierWithGroupSync();
+
+    // Mean filter
+    float ssao = 0.f;
+    for (int i = 0; i < 9; i++)
+    {
+        ssao += cache[param.GroupThreadID.x][param.GroupThreadID.y][i];
+    }
+    
+    SSAOMap[param.GroupThreadID.xy] = ssao / 9.f;
 }

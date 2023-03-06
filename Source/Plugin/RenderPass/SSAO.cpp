@@ -27,12 +27,32 @@ class SSAO : public RenderPass<SSAO>
 
 	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
 	{
-		auto      *rhi_context = renderer->GetRHIContext();
-		auto       shader      = renderer->RequireShader("Source/Shaders/PostProcess/SSAO.hlsl", "CSmain", RHIShaderStage::Compute);
-		ShaderMeta shader_meta = renderer->RequireShaderMeta(shader);
+		auto *rhi_context = renderer->GetRHIContext();
 
-		auto pipeline_state = std::shared_ptr<RHIPipelineState>(std::move(rhi_context->CreatePipelineState()));
-		pipeline_state->SetShader(RHIShaderStage::Compute, shader);
+		struct PipelineInfo
+		{
+			std::shared_ptr<RHIPipelineState> pipeline_state = nullptr;
+			ShaderMeta                        shader_meta;
+		};
+
+		PipelineInfo ssao_pipeline;
+		PipelineInfo blur_pipeline;
+
+		{
+			auto shader = renderer->RequireShader("Source/Shaders/PostProcess/SSAO.hlsl", "SSAO", RHIShaderStage::Compute);
+
+			ssao_pipeline.shader_meta    = renderer->RequireShaderMeta(shader);
+			ssao_pipeline.pipeline_state = std::shared_ptr<RHIPipelineState>(std::move(rhi_context->CreatePipelineState()));
+			ssao_pipeline.pipeline_state->SetShader(RHIShaderStage::Compute, shader);
+		}
+
+		{
+			auto shader = renderer->RequireShader("Source/Shaders/PostProcess/SSAO.hlsl", "SSAOBlur", RHIShaderStage::Compute);
+
+			blur_pipeline.shader_meta    = renderer->RequireShaderMeta(shader);
+			blur_pipeline.pipeline_state = std::shared_ptr<RHIPipelineState>(std::move(rhi_context->CreatePipelineState()));
+			blur_pipeline.pipeline_state->SetShader(RHIShaderStage::Compute, shader);
+		}
 
 		std::default_random_engine            rnd_engine(0);
 		std::uniform_real_distribution<float> rnd_dist(0.0f, 1.0f);
@@ -87,19 +107,41 @@ class SSAO : public RenderPass<SSAO>
 
 			auto *view = black_board.Get<View>();
 
-			auto descriptor = rhi_context->CreateDescriptor(shader_meta);
+			// SSAO
+			{
+				cmd_buffer->BeginMarker("SSAO");
+				auto descriptor = rhi_context->CreateDescriptor(ssao_pipeline.shader_meta);
+				descriptor->BindTexture("Normal", normal, RHITextureDimension::Texture2D)
+				    .BindTexture("PositionDepth", position_depth, RHITextureDimension::Texture2D)
+				    .BindTexture("NoiseTexture", noise_texture.get(), RHITextureDimension::Texture2D)
+				    .BindTexture("SSAOMap", output, RHITextureDimension::Texture2D)
+				    .BindBuffer("SampleBuffer", sample_buffer.get())
+				    .BindBuffer("ViewBuffer", view->buffer.get())
+				    .BindSampler("TexSampler", rhi_context->CreateSampler(SamplerDesc::LinearClamp()));
+				cmd_buffer->BindDescriptor(descriptor);
+				cmd_buffer->BindPipelineState(ssao_pipeline.pipeline_state.get());
+				cmd_buffer->Dispatch(output->GetDesc().width, output->GetDesc().height, 1, 8, 8, 1);
+				cmd_buffer->EndMarker();
+			}
 
-			descriptor->BindTexture("Normal", normal, RHITextureDimension::Texture2D)
-			    .BindTexture("PositionDepth", position_depth, RHITextureDimension::Texture2D)
-			    .BindTexture("NoiseTexture", noise_texture.get(), RHITextureDimension::Texture2D)
-			    .BindTexture("Output", output, RHITextureDimension::Texture2D)
-			    .BindBuffer("SampleBuffer", sample_buffer.get())
-			    .BindBuffer("ViewBuffer", view->buffer.get())
-			    .BindSampler("TexSampler", rhi_context->CreateSampler(SamplerDesc::LinearClamp()));
+			// Sync
+			{
+				cmd_buffer->ResourceStateTransition({
+				                                        TextureStateTransition{output, RHIResourceState::UnorderedAccess, RHIResourceState::UnorderedAccess},
+				                                    },
+				                                    {});
+			}
 
-			cmd_buffer->BindDescriptor(descriptor);
-			cmd_buffer->BindPipelineState(pipeline_state.get());
-			cmd_buffer->Dispatch(output->GetDesc().width, output->GetDesc().height, 1, 8, 8, 1);
+			// SSAO Blur
+			{
+				cmd_buffer->BeginMarker("SSAO Blur");
+				auto descriptor = rhi_context->CreateDescriptor(blur_pipeline.shader_meta);
+				descriptor->BindTexture("SSAOMap", output, RHITextureDimension::Texture2D);
+				cmd_buffer->BindDescriptor(descriptor);
+				cmd_buffer->BindPipelineState(blur_pipeline.pipeline_state.get());
+				cmd_buffer->Dispatch(output->GetDesc().width, output->GetDesc().height, 1, 8, 8, 1);
+				cmd_buffer->EndMarker();
+			}
 		};
 	}
 

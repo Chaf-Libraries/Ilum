@@ -135,13 +135,13 @@ Buffer::Buffer(RHIDevice *device, const BufferDesc &desc) :
 	switch (desc.memory)
 	{
 		case RHIMemoryUsage::CPU_TO_GPU:
-			properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+			properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 			break;
 		case RHIMemoryUsage::GPU_Only:
 			properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 			break;
 		case RHIMemoryUsage::GPU_TO_CPU:
-			properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT;
+			properties = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 			break;
 		default:
 			break;
@@ -258,6 +258,7 @@ void Buffer::CopyToHost(void *data, size_t size, size_t offset)
 	{
 		void *mapped = Map();
 		std::memcpy(data, (uint8_t *) mapped + offset, size);
+		Flush(offset, size);
 		Unmap();
 	}
 	else
