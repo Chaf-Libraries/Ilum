@@ -278,8 +278,8 @@ class MeshEditor : public Widget
 		{
 			const char *shading_macros[] = {"NONE", "SHADING", "DRAW_NORMAL", "DRAW_UV", "DRAW_TEXTURE"};
 
-			auto *vertex_shader   = p_editor->GetRenderer()->RequireShader("./Source/Shaders/MeshEditor.hlsl", "VSmain", RHIShaderStage::Vertex, {shading_macros[(size_t) m_shading_mode]});
-			auto *fragment_shader = p_editor->GetRenderer()->RequireShader("./Source/Shaders/MeshEditor.hlsl", "PSmain", RHIShaderStage::Fragment, {shading_macros[(size_t) m_shading_mode]});
+			auto *vertex_shader   = p_editor->GetRenderer()->RequireShader("./Source/Shaders/Editor/MeshEditor.hlsl", "VSmain", RHIShaderStage::Vertex, {shading_macros[(size_t) m_shading_mode]});
+			auto *fragment_shader = p_editor->GetRenderer()->RequireShader("./Source/Shaders/Editor/MeshEditor.hlsl", "PSmain", RHIShaderStage::Fragment, {shading_macros[(size_t) m_shading_mode]});
 
 			m_pipeline_state->ClearShader();
 			m_pipeline_state->SetShader(RHIShaderStage::Vertex, vertex_shader);
@@ -341,8 +341,8 @@ class MeshEditor : public Widget
 
 		if (m_wireframe)
 		{
-			auto *vertex_shader   = p_editor->GetRenderer()->RequireShader("./Source/Shaders/MeshEditor.hlsl", "VSmain", RHIShaderStage::Vertex, {"WIREFRAME"});
-			auto *fragment_shader = p_editor->GetRenderer()->RequireShader("./Source/Shaders/MeshEditor.hlsl", "PSmain", RHIShaderStage::Fragment, {"WIREFRAME"});
+			auto *vertex_shader   = p_editor->GetRenderer()->RequireShader("./Source/Shaders/Editor/MeshEditor.hlsl", "VSmain", RHIShaderStage::Vertex, {"WIREFRAME"});
+			auto *fragment_shader = p_editor->GetRenderer()->RequireShader("./Source/Shaders/Editor/MeshEditor.hlsl", "PSmain", RHIShaderStage::Fragment, {"WIREFRAME"});
 
 			m_pipeline_state->ClearShader();
 			m_pipeline_state->SetShader(RHIShaderStage::Vertex, vertex_shader);

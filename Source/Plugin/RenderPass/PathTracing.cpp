@@ -74,9 +74,9 @@ class PathTracing : public RenderPass<PathTracing>
 			{
 				pipeline.pipeline->ClearShader();
 
-				auto *raygen_shader     = renderer->RequireShader("Source/Shaders/PathTracing.hlsl", "RayGenMain", RHIShaderStage::RayGen, {"RAYGEN_SHADER", "RAYTRACING_PIPELINE", gpu_scene->textures.texture_cube ? "USE_SKYBOX" : "NO_SKYBOX"});
-				auto *closesthit_shader = renderer->RequireShader("Source/Shaders/PathTracing.hlsl", "ClosesthitMain", RHIShaderStage::ClosestHit, {"CLOSESTHIT_SHADER", "RAYTRACING_PIPELINE"}, {"Material/Material.hlsli"});
-				auto *miss_shader       = renderer->RequireShader("Source/Shaders/PathTracing.hlsl", "MissMain", RHIShaderStage::Miss, {"MISS_SHADER", "RAYTRACING_PIPELINE"});
+				auto *raygen_shader     = renderer->RequireShader("Source/Shaders/RayTracing/PathTracing.hlsl", "RayGenMain", RHIShaderStage::RayGen, {"RAYGEN_SHADER", "RAYTRACING_PIPELINE", gpu_scene->textures.texture_cube ? "USE_SKYBOX" : "NO_SKYBOX"});
+				auto *closesthit_shader = renderer->RequireShader("Source/Shaders/RayTracing/PathTracing.hlsl", "ClosesthitMain", RHIShaderStage::ClosestHit, {"CLOSESTHIT_SHADER", "RAYTRACING_PIPELINE"}, {"Material/Material.hlsli"});
+				auto *miss_shader       = renderer->RequireShader("Source/Shaders/RayTracing/PathTracing.hlsl", "MissMain", RHIShaderStage::Miss, {"MISS_SHADER", "RAYTRACING_PIPELINE"});
 
 				meta += renderer->RequireShaderMeta(raygen_shader);
 				meta += renderer->RequireShaderMeta(closesthit_shader);
@@ -88,7 +88,7 @@ class PathTracing : public RenderPass<PathTracing>
 
 				for (const auto &data : gpu_scene->material.data)
 				{
-					auto *material_closesthit_shader = renderer->RequireShader("Source/Shaders/PathTracing.hlsl", "ClosesthitMain", RHIShaderStage::ClosestHit, {"CLOSESTHIT_SHADER", "RAYTRACING_PIPELINE", data->signature}, {data->shader});
+					auto *material_closesthit_shader = renderer->RequireShader("Source/Shaders/RayTracing/PathTracing.hlsl", "ClosesthitMain", RHIShaderStage::ClosestHit, {"CLOSESTHIT_SHADER", "RAYTRACING_PIPELINE", data->signature}, {data->shader});
 					pipeline.pipeline->SetShader(RHIShaderStage::ClosestHit, material_closesthit_shader);
 					meta += renderer->RequireShaderMeta(material_closesthit_shader);
 				}

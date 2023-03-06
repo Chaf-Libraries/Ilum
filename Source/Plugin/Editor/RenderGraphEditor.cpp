@@ -95,7 +95,7 @@ class RenderGraphEditor : public Widget
 			{
 				for (auto &new_node : m_new_nodes)
 				{
-					ImNodes::SetNodeScreenSpacePos(new_node, ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y));
+					ImNodes::SetNodeScreenSpacePos(new_node, ImGui::GetMousePos());
 				}
 				m_new_nodes.clear();
 

@@ -1,5 +1,5 @@
-#include "../../Common.hlsli"
-#include "../../Light.hlsli"
+#include "../Common.hlsli"
+#include "../Light.hlsli"
 
 StructuredBuffer<Instance> InstanceBuffer;
 StructuredBuffer<Meshlet> MeshletBuffer[];

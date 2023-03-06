@@ -468,8 +468,8 @@ class MaterialGraphEditor : public Widget
 		ShaderMeta meta;
 
 		{
-			auto *vertex_shader = renderer->RequireShader("Source/Shaders/MaterialEditor.hlsl", "VSmain", RHIShaderStage::Vertex, {"USE_MATERIAL", material_data.signature}, {material_data.shader});
-			auto *frag_shader   = renderer->RequireShader("Source/Shaders/MaterialEditor.hlsl", "PSmain", RHIShaderStage::Fragment, {"USE_MATERIAL", material_data.signature}, {material_data.shader});
+			auto *vertex_shader = renderer->RequireShader("Source/Shaders/Editor/MaterialEditor.hlsl", "VSmain", RHIShaderStage::Vertex, {"USE_MATERIAL", material_data.signature}, {material_data.shader});
+			auto *frag_shader   = renderer->RequireShader("Source/Shaders/Editor/MaterialEditor.hlsl", "PSmain", RHIShaderStage::Fragment, {"USE_MATERIAL", material_data.signature}, {material_data.shader});
 
 			m_preview.pipeline->ClearShader();
 			m_preview.pipeline->SetShader(RHIShaderStage::Vertex, vertex_shader);

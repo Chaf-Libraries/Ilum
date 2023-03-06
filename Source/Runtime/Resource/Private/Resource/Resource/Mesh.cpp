@@ -148,7 +148,7 @@ std::vector<uint8_t> Resource<ResourceType::Mesh>::RenderPreview(RHIContext *rhi
 {
 	/*{
 	    std::vector<uint8_t> raw_shader;
-	    Path::GetInstance().Read("./Source/Shaders/Preview/Mesh.hlsl", raw_shader);
+	    Path::GetInstance().Read("./Source/Shaders/Preview/Editor/Mesh.hlsl", raw_shader);
 
 	    std::string shader_source;
 	    shader_source.resize(raw_shader.size());
@@ -156,7 +156,7 @@ std::vector<uint8_t> Resource<ResourceType::Mesh>::RenderPreview(RHIContext *rhi
 	    shader_source += "\n";
 
 	    ShaderDesc vertex_shader_desc  = {};
-	    vertex_shader_desc.path = "./Source/Shaders/Preview/Mesh.hlsl";
+	    vertex_shader_desc.path = "./Source/Shaders/Preview/Editor/Mesh.hlsl";
 	    vertex_shader_desc.entry_point = "VSmain";
 	    vertex_shader_desc.stage       = RHIShaderStage::Vertex;
 	    vertex_shader_desc.source      = ShaderSource::HLSL;
@@ -164,7 +164,7 @@ std::vector<uint8_t> Resource<ResourceType::Mesh>::RenderPreview(RHIContext *rhi
 	    vertex_shader_desc.code        = shader_source;
 
 	    ShaderDesc fragment_shader_desc  = {};
-	    fragment_shader_desc.path = "./Source/Shaders/Preview/Mesh.hlsl";
+	    fragment_shader_desc.path = "./Source/Shaders/Preview/Editor/Mesh.hlsl";
 	    fragment_shader_desc.entry_point = "PSmain";
 	    fragment_shader_desc.stage       = RHIShaderStage::Fragment;
 	    fragment_shader_desc.source      = ShaderSource::HLSL;

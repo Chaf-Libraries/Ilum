@@ -57,20 +57,20 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 		return desc.SetBindPoint(BindPoint::Rasterization)
 		    .SetConfig(Config())
 		    .SetName("ShadowMapPass")
+		    .SetCategory("Shadow")
 		    .WriteTexture2D(handle++, "ShadowMap", RHIFormat::D32_FLOAT, RHIResourceState::DepthWrite, 1024, 1024)
 		    .WriteTexture2D(handle++, "CascadeShadowMap", RHIFormat::D32_FLOAT, RHIResourceState::DepthWrite, 1024, 1024, 4)
-		    .WriteTexture2D(handle++, "OmniShadowMap", RHIFormat::D32_FLOAT, RHIResourceState::DepthWrite, 1024, 1024, 6)
-		    .SetCategory("Shading");
+		    .WriteTexture2D(handle++, "OmniShadowMap", RHIFormat::D32_FLOAT, RHIResourceState::DepthWrite, 1024, 1024, 6);
 	}
 
 	virtual void CreateCallback(RenderGraph::RenderTask *task, const RenderPassDesc &desc, RenderGraphBuilder &builder, Renderer *renderer)
 	{
-		auto mesh_shadow_pipeline                 = CreatePipeline("Source/Shaders/Shading/Shadow/ShadowMap.hlsl", renderer, false);
-		auto skinned_mesh_shadow_pipeline         = CreatePipeline("Source/Shaders/Shading/Shadow/ShadowMap.hlsl", renderer, true);
-		auto mesh_cascade_shadow_pipeline         = CreatePipeline("Source/Shaders/Shading/Shadow/CascadeShadowMap.hlsl", renderer, false);
-		auto skinned_mesh_cascade_shadow_pipeline = CreatePipeline("Source/Shaders/Shading/Shadow/CascadeShadowMap.hlsl", renderer, true);
-		auto mesh_omni_shadow_pipeline            = CreatePipeline("Source/Shaders/Shading/Shadow/OmniShadowMap.hlsl", renderer, false);
-		auto skinned_mesh_omni_shadow_pipeline    = CreatePipeline("Source/Shaders/Shading/Shadow/OmniShadowMap.hlsl", renderer, true);
+		auto mesh_shadow_pipeline                 = CreatePipeline("Source/Shaders/Shadow/ShadowMap.hlsl", renderer, false);
+		auto skinned_mesh_shadow_pipeline         = CreatePipeline("Source/Shaders/Shadow/ShadowMap.hlsl", renderer, true);
+		auto mesh_cascade_shadow_pipeline         = CreatePipeline("Source/Shaders/Shadow/CascadeShadowMap.hlsl", renderer, false);
+		auto skinned_mesh_cascade_shadow_pipeline = CreatePipeline("Source/Shaders/Shadow/CascadeShadowMap.hlsl", renderer, true);
+		auto mesh_omni_shadow_pipeline            = CreatePipeline("Source/Shaders/Shadow/OmniShadowMap.hlsl", renderer, false);
+		auto skinned_mesh_omni_shadow_pipeline    = CreatePipeline("Source/Shaders/Shadow/OmniShadowMap.hlsl", renderer, true);
 
 		std::shared_ptr<RHIRenderTarget> shadowmap_render_target         = std::shared_ptr<RHIRenderTarget>(std::move(renderer->GetRHIContext()->CreateRenderTarget()));
 		std::shared_ptr<RHIRenderTarget> cascade_shadowmap_render_target = std::shared_ptr<RHIRenderTarget>(std::move(renderer->GetRHIContext()->CreateRenderTarget()));
@@ -121,7 +121,7 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 				    shadow_map->GetDesc().layers < spot_lights.size())
 				{
 					shadow_map_cache->shadow_map = render_graph.SetTexture(desc.GetPin("ShadowMap").handle, std::move(rhi_context->CreateTexture2DArray(size, size, layers, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false)));
-					shadow_map = render_graph.GetTexture(desc.GetPin("ShadowMap").handle);
+					shadow_map                   = render_graph.GetTexture(desc.GetPin("ShadowMap").handle);
 
 					cmd_buffer->ResourceStateTransition({TextureStateTransition{
 					                                        shadow_map,
@@ -145,7 +145,7 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 				    cascade_shadow_map->GetDesc().layers < directional_lights.size() * 4)
 				{
 					shadow_map_cache->cascade_shadow_map = render_graph.SetTexture(desc.GetPin("CascadeShadowMap").handle, std::move(rhi_context->CreateTexture2DArray(size, size, layers, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false)));
-					cascade_shadow_map = render_graph.GetTexture(desc.GetPin("CascadeShadowMap").handle);
+					cascade_shadow_map                   = render_graph.GetTexture(desc.GetPin("CascadeShadowMap").handle);
 					cmd_buffer->ResourceStateTransition({TextureStateTransition{
 					                                        cascade_shadow_map,
 					                                        RHIResourceState::Undefined,
@@ -168,7 +168,7 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 				    omni_shadow_map->GetDesc().layers < point_lights.size() * 6)
 				{
 					shadow_map_cache->omni_shadow_map = render_graph.SetTexture(desc.GetPin("OmniShadowMap").handle, std::move(rhi_context->CreateTexture2DArray(size, size, layers, RHIFormat::D32_FLOAT, RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource, false)));
-					omni_shadow_map = render_graph.GetTexture(desc.GetPin("OmniShadowMap").handle);
+					omni_shadow_map                   = render_graph.GetTexture(desc.GetPin("OmniShadowMap").handle);
 					cmd_buffer->ResourceStateTransition({TextureStateTransition{
 					                                        omni_shadow_map,
 					                                        RHIResourceState::Undefined,

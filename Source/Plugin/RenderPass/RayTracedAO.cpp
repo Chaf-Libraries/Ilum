@@ -30,7 +30,7 @@ class RayTracedAO : public RenderPass<RayTracedAO>
 		RenderPassDesc desc;
 		return desc.SetBindPoint(BindPoint::RayTracing)
 		    .SetName("RayTracedAO")
-		    .SetCategory("RayTracing")
+		    .SetCategory("AO")
 		    .SetConfig(Config())
 		    .WriteTexture2D(handle++, "Output", RHIFormat::R32G32B32A32_FLOAT, RHIResourceState::UnorderedAccess);
 	}

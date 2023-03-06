@@ -392,8 +392,8 @@ class AnimationEditor : public Widget
 			m_pipeline_state->SetInputAssemblyState(input_assembly_state);
 			m_pipeline_state->SetRasterizationState(rasterization_state);
 
-			auto *vertex_shader   = p_editor->GetRenderer()->RequireShader("./Source/Shaders/AnimationEditor/DrawSkinnedMesh.hlsl", "VSmain", RHIShaderStage::Vertex);
-			auto *fragment_shader = p_editor->GetRenderer()->RequireShader("./Source/Shaders/AnimationEditor/DrawSkinnedMesh.hlsl", "PSmain", RHIShaderStage::Fragment);
+			auto *vertex_shader   = p_editor->GetRenderer()->RequireShader("./Source/Shaders/Editor/AnimationEditor.hlsl", "VSmain", RHIShaderStage::Vertex);
+			auto *fragment_shader = p_editor->GetRenderer()->RequireShader("./Source/Shaders/Editor/AnimationEditor.hlsl", "PSmain", RHIShaderStage::Fragment);
 
 			m_pipeline_state->ClearShader();
 			m_pipeline_state->SetShader(RHIShaderStage::Vertex, vertex_shader);

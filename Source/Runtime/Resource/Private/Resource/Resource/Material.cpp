@@ -230,7 +230,7 @@ std::vector<uint8_t> Resource<ResourceType::Material>::RenderPreview(RHIContext 
 	index_buffer->CopyToDevice(indices.data(), indices.size() * sizeof(uint32_t));
 
 	std::vector<uint8_t> raw_shader;
-	Path::GetInstance().Read("./Source/Shaders/Preview/Material.hlsl", raw_shader);
+	Path::GetInstance().Read("./Source/Shaders/Editor/Preview/Material.hlsl", raw_shader);
 
 	std::string shader_source;
 	shader_source.resize(raw_shader.size());
@@ -238,7 +238,7 @@ std::vector<uint8_t> Resource<ResourceType::Material>::RenderPreview(RHIContext 
 	shader_source += "\n";
 
 	ShaderDesc vertex_shader_desc  = {};
-	vertex_shader_desc.path        = "./Source/Shaders/Preview/Material.hlsl";
+	vertex_shader_desc.path        = "./Source/Shaders/Editor/Preview/Material.hlsl";
 	vertex_shader_desc.entry_point = "VSmain";
 	vertex_shader_desc.stage       = RHIShaderStage::Vertex;
 	vertex_shader_desc.source      = ShaderSource::HLSL;
@@ -247,7 +247,7 @@ std::vector<uint8_t> Resource<ResourceType::Material>::RenderPreview(RHIContext 
 	vertex_shader_desc.macros      = {"USE_MATERIAL", m_impl->data.signature, "MATERIAL_ID = " + std::to_string(material_id)};
 
 	ShaderDesc fragment_shader_desc  = {};
-	fragment_shader_desc.path        = "./Source/Shaders/Preview/Material.hlsl";
+	fragment_shader_desc.path        = "./Source/Shaders/Editor/Preview/Material.hlsl";
 	fragment_shader_desc.entry_point = "PSmain";
 	fragment_shader_desc.stage       = RHIShaderStage::Fragment;
 	fragment_shader_desc.source      = ShaderSource::HLSL;

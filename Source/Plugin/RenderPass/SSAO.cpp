@@ -19,7 +19,7 @@ class SSAO : public RenderPass<SSAO>
 		RenderPassDesc desc;
 		return desc.SetBindPoint(BindPoint::Compute)
 		    .SetName("SSAO")
-		    .SetCategory("PostProcess")
+		    .SetCategory("AO")
 		    .ReadTexture2D(handle++, "PositionDepth", RHIResourceState::ShaderResource)
 		    .ReadTexture2D(handle++, "Normal", RHIResourceState::ShaderResource)
 		    .WriteTexture2D(handle++, "Output", RHIFormat::R32_FLOAT, RHIResourceState::UnorderedAccess);
@@ -39,7 +39,7 @@ class SSAO : public RenderPass<SSAO>
 		PipelineInfo blur_pipeline;
 
 		{
-			auto shader = renderer->RequireShader("Source/Shaders/PostProcess/SSAO.hlsl", "SSAO", RHIShaderStage::Compute);
+			auto shader = renderer->RequireShader("Source/Shaders/AmbientOcclusion/SSAO.hlsl", "SSAO", RHIShaderStage::Compute);
 
 			ssao_pipeline.shader_meta    = renderer->RequireShaderMeta(shader);
 			ssao_pipeline.pipeline_state = std::shared_ptr<RHIPipelineState>(std::move(rhi_context->CreatePipelineState()));
@@ -47,7 +47,7 @@ class SSAO : public RenderPass<SSAO>
 		}
 
 		{
-			auto shader = renderer->RequireShader("Source/Shaders/PostProcess/SSAO.hlsl", "SSAOBlur", RHIShaderStage::Compute);
+			auto shader = renderer->RequireShader("Source/Shaders/AmbientOcclusion/SSAO.hlsl", "SSAOBlur", RHIShaderStage::Compute);
 
 			blur_pipeline.shader_meta    = renderer->RequireShaderMeta(shader);
 			blur_pipeline.pipeline_state = std::shared_ptr<RHIPipelineState>(std::move(rhi_context->CreatePipelineState()));

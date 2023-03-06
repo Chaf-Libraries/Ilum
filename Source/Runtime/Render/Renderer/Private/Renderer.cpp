@@ -134,7 +134,7 @@ Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resou
 		{
 			std::unique_ptr<RHIPipelineState> ggx_preintegration = rhi_context->CreatePipelineState();
 
-			RHIShader *shader = RequireShader("Source/Shaders/LUT/GGXBRDF.hlsl", "CSmain", RHIShaderStage::Compute);
+			RHIShader *shader = RequireShader("Source/Shaders/PreProcess/GGXBRDFLUT.hlsl", "CSmain", RHIShaderStage::Compute);
 			ggx_preintegration->SetShader(RHIShaderStage::Compute, shader);
 			ShaderMeta meta = RequireShaderMeta(shader);
 

@@ -1,11 +1,11 @@
-#include "../../Common.hlsli"
-#include "../../Light.hlsli"
+#include "../Common.hlsli"
+#include "../Light.hlsli"
 
 StructuredBuffer<Instance> InstanceBuffer;
 StructuredBuffer<Meshlet> MeshletBuffer[];
 StructuredBuffer<uint> MeshletDataBuffer[];
 StructuredBuffer<uint> IndexBuffer[];
-StructuredBuffer<SpotLight> SpotLightBuffer;
+StructuredBuffer<DirectionalLight> DirectionalLightBuffer;
 ConstantBuffer<LightInfo> LightInfoBuffer;
 
 #ifdef HAS_SKINNED
@@ -54,7 +54,7 @@ struct PayLoad
 {
     uint MeshletIndices[32];
     uint InstanceIndices[32];
-    uint LightIndices[32];
+    uint LayerIndices[32];
 };
 
 groupshared PayLoad s_payload;
@@ -66,23 +66,23 @@ void ASmain(CSParam param)
     
     uint meshlet_id = param.DispatchThreadID.x;
     uint instance_id = param.DispatchThreadID.y;
-    uint light_id = param.DispatchThreadID.z;
-    
-    if (light_id >= LightInfoBuffer.spot_light_count)
-    {
-        return;
-    }
-    
-    SpotLight light = SpotLightBuffer[light_id];
-    
-    if(!light.cast_shadow)
-    {
-        return;
-    }
+    uint layer_id = param.DispatchThreadID.z;
     
     uint instance_count = 0;
     uint instance_stride = 0;
     InstanceBuffer.GetDimensions(instance_count, instance_stride);
+    
+    if (layer_id / 4 >= LightInfoBuffer.directional_light_count)
+    {
+        return;
+    }
+    
+    DirectionalLight light = DirectionalLightBuffer[layer_id / 4];
+    
+    if (!light.cast_shadow)
+    {
+        return;
+    }
     
     if (instance_id < instance_count)
     {
@@ -99,9 +99,8 @@ void ASmain(CSParam param)
 #else
             Meshlet meshlet = MeshletBuffer[instance.mesh_id][meshlet_id];
             float4 frustum[6];
-            CalculateFrustum(light.view_projection, frustum);
-            visible = IsInsideFrustum(meshlet, instance.transform, frustum, light.position);
-           // visible = true;
+            CalculateFrustum(light.view_projection[layer_id % 4], frustum);
+            visible = IsInsideFrustum(meshlet, instance.transform, frustum, meshlet.center - light.direction);
 #endif
         }
     }
@@ -111,7 +110,7 @@ void ASmain(CSParam param)
         uint index = WavePrefixCountBits(visible);
         s_payload.InstanceIndices[index] = instance_id;
         s_payload.MeshletIndices[index] = meshlet_id;
-        s_payload.LightIndices[index] = light_id;
+        s_payload.LayerIndices[index] = layer_id;
     }
     
     uint visible_count = WaveActiveCountBits(visible);
@@ -125,11 +124,12 @@ void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut v
 {
     uint instance_id = pay_load.InstanceIndices[param.GroupID.x];
     uint meshlet_id = pay_load.MeshletIndices[param.GroupID.x];
-    uint light_id = pay_load.LightIndices[param.GroupID.x];
+    uint layer_id = pay_load.LayerIndices[param.GroupID.x];
+    uint light_id = layer_id / 4;
     
     Instance instance = InstanceBuffer[instance_id];
     Meshlet meshlet = MeshletBuffer[instance.mesh_id][meshlet_id];
-    SpotLight light = SpotLightBuffer[light_id];
+    DirectionalLight light = DirectionalLightBuffer[light_id];
     
     uint meshlet_vertices_count = meshlet.vertex_count;
     uint meshlet_triangle_count = meshlet.triangle_count;
@@ -164,16 +164,16 @@ void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut v
                 float4 local_position = mul(BoneMatrices[instance.animation_id][vertex.bones[i]], float4(vertex.position, 1.0f));
                 total_position += local_position * vertex.weights[i];
             }
-            verts[i].Position = mul(light.view_projection, mul(instance.transform, float4(total_position.xyz, 1.0)));
+            verts[i].Position = mul(light.view_projection[layer_id % 4], mul(instance.transform, float4(total_position.xyz, 1.0)));
         }
         else
         {
-            verts[i].Position = mul(light.view_projection, mul(instance.transform, float4(vertex.position.xyz, 1.0)));
+            verts[i].Position = mul(light.view_projection[layer_id % 4], mul(instance.transform, float4(vertex.position.xyz, 1.0)));
         }
 #else
         Vertex vertex = VertexBuffer[instance.mesh_id][vertex_id];
         
-        verts[i].Position = mul(light.view_projection, mul(instance.transform, float4(vertex.position.xyz, 1.0)));
+        verts[i].Position = mul(light.view_projection[layer_id % 4], mul(instance.transform, float4(vertex.position.xyz, 1.0)));
 #endif
     }
     
@@ -183,7 +183,7 @@ void MSmain(CSParam param, in payload PayLoad pay_load, out vertices VertexOut v
         UnPackTriangle(MeshletDataBuffer[instance.mesh_id][meshlet.data_offset + meshlet.vertex_count + meshlet.triangle_count + i], v0, v1, v2);
         
         tris[i] = uint3(v0, v1, v2);
-        prims[i].Layer = light.shadow_id;
+        prims[i].Layer = light.shadow_id * 4 + layer_id % 4;
     }
 }
 

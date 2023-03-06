@@ -78,19 +78,27 @@ xmake project -k vsxmake
     * Visualize visibility buffer: instance and primitive
   * Visibility Buffer Lighting Pass
     * Indirect dispatch to support multiple material graphs
-    * Generate lighting result and GBuffers
+    * Generate lighting result and GBuffer
 
-* Shadow Map Pass
+* Shadow
 
   * Classic Shadow Map (Spot Light)
   * Omnidirectional Shadow Map (Point Light)
   * Cascade Shadow Map (Directional Light)
 
-* Path Tracing
-  * Next Event Estimation
-  * Multiple Importance Sampling
+* Ambient Occlusion
+  * SSAO
+
+* IBL
+  * Spherical Harmonic Encoding Diffuse
+  * Pre-Filter For Specular
+
+* Ray Tracing
+  * Path Tracing
 * Post Process
-  * Tonemapping
+  * Tone Mapping
+  * Bloom
+  * FXAA
 
 **TODO**
 
@@ -118,7 +126,11 @@ You can extend the renderer features by adding these plugins:
 
 #### Customize Render Pass
 
+
+
 #### Customize Material Node
+
+
 
 ## Gallery
 
