@@ -1,8 +1,8 @@
-#include "Interaction.hlsli"
-#include "Math.hlsli"
-#include "Common.hlsli"
-#include "Light.hlsli"
-#include "Random.hlsli"
+#include "../Interaction.hlsli"
+#include "../Math.hlsli"
+#include "../Common.hlsli"
+#include "../Light.hlsli"
+#include "../Random.hlsli"
 
 struct Config
 {
@@ -30,7 +30,7 @@ RWTexture2D<float4> Output;
 #define RAYGEN_SHADER
 #define CLOSESTHIT_SHADER
 #define MISS_SHADER
-#include "Material/Material.hlsli"
+#include "../Material/Material.hlsli"
 #endif
 
 #ifdef USE_SKYBOX
@@ -329,7 +329,7 @@ float3 SampleLd(PayLoad pay_load, Material material)
     }
     return 0.f;
 }
-#include "Material/Scattering.hlsli"
+#include "../Material/Scattering.hlsli"
 [shader("closesthit")]
 void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleIntersectionAttributes attributes)
 {

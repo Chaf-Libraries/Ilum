@@ -1,7 +1,7 @@
 #ifndef USE_MATERIAL
-#include "../Material/Material.hlsli"
+#include "../../Material/Material.hlsli"
 #endif
-#include "../Tonemapper.hlsli"
+#include "../../Tonemapper.hlsli"
 
 #ifndef RUNTIME
 #define MATERIAL_ID 0

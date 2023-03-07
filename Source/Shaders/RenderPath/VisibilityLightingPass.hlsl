@@ -871,6 +871,13 @@ void DispatchIndirect(CSParam param)
     }
 #endif
     
+    // Clamp toxic pixel
+    float lum = Luminance(radiance);
+    if (lum > 4.f)
+    {
+        radiance *= 4.f / lum;
+    }
+    
     EnvDirectIllumination[pixel] = float4(ambient, 1.f);
     LightDirectIllumination[pixel] = float4(radiance, 1.f);
     PositionDepth[pixel] = float4(interaction.isect.p, linear_z);

@@ -57,9 +57,7 @@ void SSAO(CSParam param)
     float3 bitangent = cross(tangent, normal);
     float3x3 TBN = transpose(float3x3(tangent, bitangent, normal));
     
-    const float bias = 0.025f;
     float occlusion = 0.f;
-    float3 color = 0.f;
     
     for (uint i = 0; i < KERNAL_SIZE; i++)
     {
@@ -81,7 +79,7 @@ void SSAO(CSParam param)
     SSAOMap[param.DispatchThreadID.xy] = occlusion;
 }
 
-groupshared float cache[8][8][9];
+groupshared float cache[8][8];
 
 [numthreads(8, 8, 1)]
 void SSAOBlur(CSParam param)
@@ -95,23 +93,20 @@ void SSAOBlur(CSParam param)
         return;
     }
     
+    float sum = 0;
     uint idx = 0;
     for (int i = -1; i <= 1; i++)
     {
         for (int j = -1; j <= 1; j++)
         {
-            cache[param.GroupThreadID.x][param.GroupThreadID.y][idx] = SSAOMap[int2(clamp(param.DispatchThreadID.x + i, 0, extent.x), clamp(param.DispatchThreadID.y + j, 0, extent.y))];
+            sum += SSAOMap[int2(clamp(param.DispatchThreadID.x + i, 0, extent.x), clamp(param.DispatchThreadID.y + j, 0, extent.y))];
         }
     }
+    
+    cache[param.GroupThreadID.x][param.GroupThreadID.y] = sum;
     
     GroupMemoryBarrierWithGroupSync();
 
     // Mean filter
-    float ssao = 0.f;
-    for (int i = 0; i < 9; i++)
-    {
-        ssao += cache[param.GroupThreadID.x][param.GroupThreadID.y][i];
-    }
-    
-    SSAOMap[param.GroupThreadID.xy] = ssao / 9.f;
+    SSAOMap[param.GroupThreadID.xy] = cache[param.GroupThreadID.x][param.GroupThreadID.y] / 9.f;
 }
