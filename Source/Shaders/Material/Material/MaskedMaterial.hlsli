@@ -35,14 +35,14 @@ struct MaskedMaterial
     {
         return threshold < alpha ?
             material.Eval(woW, wiW, mode) :
-            0.f;
+            1.f;
     }
 
     float PDF(float3 woW, float3 wiW, TransportMode mode, SampleFlags flags)
     {
         return threshold < alpha ?
             material.PDF(woW, wiW, mode, flags) :
-            0.f;
+            1.f;
     }
 
     BSDFSample Samplef(float3 woW, float uc, float2 u, TransportMode mode, SampleFlags flags)
@@ -55,7 +55,7 @@ struct MaskedMaterial
         else
         {
             float3 wi = material.frame.ToLocal(-woW);
-            bsdf_sample.f = 1.f / abs(CosTheta(wi));
+            bsdf_sample.f = 1.f;
             bsdf_sample.wiW = -woW;
             bsdf_sample.pdf = 1.f;
             bsdf_sample.flags = BSDF_SpecularTransmission;

@@ -195,6 +195,23 @@ bool Unoccluded(SurfaceInteraction surface_interaction, Interaction isect)
     return !pay_load.visible;
 }
 
+uint hash(uint a)
+{
+    a = (a + 0x7ed55d16) + (a << 12);
+    a = (a ^ 0xc761c23c) ^ (a >> 19);
+    a = (a + 0x165667b1) + (a << 5);
+    a = (a + 0xd3a2646c) ^ (a << 9);
+    a = (a + 0xfd7046c5) + (a << 3);
+    a = (a ^ 0xb55a4f09) ^ (a >> 16);
+    return a;
+}
+
+float3 GetColor(uint v)
+{
+    uint mhash = hash(v);
+    return float3(float(mhash & 255), float((mhash >> 8) & 255), float((mhash >> 16) & 255)) / 255.0;
+}
+
 #ifdef RAYGEN_SHADER
 [shader("raygeneration")]
 void RayGenMain()
@@ -212,7 +229,9 @@ void RayGenMain()
     RayDesc ray;
     ViewBuffer.CastRay(scene_uv, (float2) launch_dims, ray, pay_load.ray_diff);
     
-    for (uint bounce = 0; bounce < ConfigBuffer.max_bounce && !pay_load.terminate; bounce++)
+    uint bounce = 0;
+    
+    for (bounce = 0; bounce < ConfigBuffer.max_bounce && !pay_load.terminate; bounce++)
     {
         if (!SceneIntersection(ray, pay_load))
         {
@@ -225,7 +244,6 @@ void RayGenMain()
             pay_load.radiance += Skybox.SampleLevel(SkyboxSampler, wi, 0.0).rgb * pay_load.throughout;
 #else
             float pdf = 1.0;
-            //pay_load.radiance += 0.2f * pay_load.throughout;
 #endif
             break;
         }
@@ -235,9 +253,9 @@ void RayGenMain()
         // Russian roulette
         float3 rrBeta = pay_load.throughout * pay_load.eta;
         float max_cmpt = max(rrBeta.x, max(rrBeta.y, rrBeta.z));
-        if (max_cmpt < 1.0 && bounce > 3)
+        if (max_cmpt < 1.0 && bounce > 1)
         {
-            float q = max(0.05, 1.0 - max_cmpt);
+            float q = max(0.0, 1.0 - max_cmpt);
             if (pay_load.rng.Get1D() < q)
             {
                 break;

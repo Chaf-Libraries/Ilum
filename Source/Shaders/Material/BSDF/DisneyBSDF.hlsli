@@ -320,7 +320,7 @@ struct DisneyBSDF
                 float3 F0_spec_tint = c_tint * SchlickR0FromEta(etap);
             }
             float3 F = front_side ?
-                (1.f - metallic) * (1.f - spec_tint) * F_dielectric + F_schlick :
+                base_color * (1.f - metallic) * (1.f - spec_tint) * F_dielectric + F_schlick :
                 bsdf * F_dielectric;
             f += F * D * G / abs(4.f * cos_theta_i * cos_theta_o);
         }
