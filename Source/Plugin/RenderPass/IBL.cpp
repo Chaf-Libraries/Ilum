@@ -101,11 +101,11 @@ class IBL : public RenderPass<IBL>
 			auto   *view        = black_board.Get<View>();
 			Config *config_data = config.Convert<Config>();
 
-			if (gpu_scene->textures.texture_cube)
+			if (gpu_scene->texture.texture_cube)
 			{
-				if (config_data->hash != Hash(gpu_scene->textures.texture_cube, irradiance_sh, prefilter_map))
+				if (config_data->hash != Hash(gpu_scene->texture.texture_cube, irradiance_sh, prefilter_map))
 				{
-					config_data->hash = Hash(gpu_scene->textures.texture_cube, irradiance_sh, prefilter_map);
+					config_data->hash = Hash(gpu_scene->texture.texture_cube, irradiance_sh, prefilter_map);
 				}
 				else
 				{
@@ -132,7 +132,7 @@ class IBL : public RenderPass<IBL>
 					{
 						cmd_buffer->BeginMarker("Cubemap SH Projection");
 						auto descriptor = rhi_context->CreateDescriptor(cubemap_sh_projection.shader_meta);
-						descriptor->BindTexture("Skybox", gpu_scene->textures.texture_cube, RHITextureDimension::TextureCube)
+						descriptor->BindTexture("Skybox", gpu_scene->texture.texture_cube, RHITextureDimension::TextureCube)
 						    .BindSampler("SkyboxSampler", rhi_context->CreateSampler(SamplerDesc::LinearClamp()))
 						    .BindTexture("SHIntermediate", sh_intermediate.get(), RHITextureDimension::Texture2DArray);
 						cmd_buffer->BindDescriptor(descriptor);
@@ -173,7 +173,7 @@ class IBL : public RenderPass<IBL>
 					for (uint32_t i = 0; i < PREFILTER_MIP_LEVELS; i++)
 					{
 						auto *descriptor = rhi_context->CreateDescriptor(cubemap_prefilter.shader_meta);
-						descriptor->BindTexture("Skybox", gpu_scene->textures.texture_cube, RHITextureDimension::TextureCube)
+						descriptor->BindTexture("Skybox", gpu_scene->texture.texture_cube, RHITextureDimension::TextureCube)
 						    .BindSampler("SkyboxSampler", rhi_context->CreateSampler(SamplerDesc::LinearClamp()))
 						    .BindTexture("PrefilterMap", prefilter_map, TextureRange{RHITextureDimension::Texture2DArray, i, 1, 0, 6});
 						cmd_buffer->BindDescriptor(descriptor);

@@ -223,7 +223,7 @@ struct DisneyBSDF
 
     uint Flags()
     {
-        return BSDF_DiffuseReflection;
+        return BSDF_Diffuse | BSDF_Glossy | BSDF_Specular | BSDF_Reflection | BSDF_Transmission;
     }
 
     float3 Eval(float3 wo, float3 wi, TransportMode mode)

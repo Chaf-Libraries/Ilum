@@ -77,10 +77,11 @@ Renderer::Renderer(RHIContext *rhi_context, Scene *scene, ResourceManager *resou
 
 	// GPU Scene
 	{
-		auto *gpu_scene = m_impl->black_board.Add<GPUScene>();
-		gpu_scene->TLAS = m_impl->rhi_context->CreateAcccelerationStructure();
+		auto *gpu_scene            = m_impl->black_board.Add<GPUScene>();
+		gpu_scene->opaque_tlas     = m_impl->rhi_context->CreateAcccelerationStructure();
+		gpu_scene->non_opaque_tlas = m_impl->rhi_context->CreateAcccelerationStructure();
 
-		gpu_scene->animation_buffer.update_info = m_impl->rhi_context->CreateBuffer<GPUScene::AnimationBuffer::UpdateInfo>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
+		gpu_scene->animation.update_info = m_impl->rhi_context->CreateBuffer<GPUScene::AnimationBuffer::UpdateInfo>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
 	}
 
 	// Dummy Textures
@@ -241,7 +242,7 @@ RHITexture *Renderer::GetPresentTexture() const
 
 float Renderer::GetMaxAnimationTime() const
 {
-	return static_cast<float>(m_impl->black_board.Get<GPUScene>()->animation_buffer.max_frame_count) / 30.f;
+	return static_cast<float>(m_impl->black_board.Get<GPUScene>()->animation.max_frame_count) / 30.f;
 }
 
 void Renderer::UpdateView(Cmpt::Camera *camera)
@@ -288,27 +289,20 @@ ShaderMeta Renderer::RequireShaderMeta(RHIShader *shader) const
 	return m_impl->shader_builder->RequireShaderMeta(shader);
 }
 
-void Renderer::UpdateGPUScene()
+void Renderer::UpdateLight()
 {
 	auto *gpu_scene = m_impl->black_board.Get<GPUScene>();
 
-	TLASDesc tlas_desc = {};
-	tlas_desc.name     = m_impl->scene->GetName();
-
-	auto meshes             = m_impl->scene->GetComponents<Cmpt::MeshRenderer>();
-	auto skinned_meshes     = m_impl->scene->GetComponents<Cmpt::SkinnedMeshRenderer>();
 	auto point_lights       = m_impl->scene->GetComponents<Cmpt::PointLight>();
 	auto spot_lights        = m_impl->scene->GetComponents<Cmpt::SpotLight>();
 	auto directional_lights = m_impl->scene->GetComponents<Cmpt::DirectionalLight>();
 	auto rectangle_lights   = m_impl->scene->GetComponents<Cmpt::RectLight>();
 	auto environment_lights = m_impl->scene->GetComponents<Cmpt::EnvironmentLight>();
 
-	// Update Light
+	if (!gpu_scene->light.light_info_buffer)
 	{
-		if (!gpu_scene->light.light_info_buffer)
-		{
-			gpu_scene->light.light_info_buffer = m_impl->rhi_context->CreateBuffer<GPUScene::LightBuffer::Info>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
-		}
+		gpu_scene->light.light_info_buffer = m_impl->rhi_context->CreateBuffer<GPUScene::LightBuffer::Info>(1, RHIBufferUsage::ConstantBuffer, RHIMemoryUsage::CPU_TO_GPU);
+	}
 
 #define COPY_LIGHT_DATA(DATA, BUFFER)                                                                                                             \
 	if (!DATA.empty())                                                                                                                            \
@@ -337,42 +331,119 @@ void Renderer::UpdateGPUScene()
 		}                                                                                                                                         \
 	}
 
-		COPY_LIGHT_DATA(point_lights, point_light_buffer);
-		COPY_LIGHT_DATA(spot_lights, spot_light_buffer);
-		COPY_LIGHT_DATA(directional_lights, directional_light_buffer);
-		COPY_LIGHT_DATA(rectangle_lights, rect_light_buffer);
+	COPY_LIGHT_DATA(point_lights, point_light_buffer);
+	COPY_LIGHT_DATA(spot_lights, spot_light_buffer);
+	COPY_LIGHT_DATA(directional_lights, directional_light_buffer);
+	COPY_LIGHT_DATA(rectangle_lights, rect_light_buffer);
 
-		gpu_scene->light.info.point_light_count       = static_cast<uint32_t>(point_lights.size());
-		gpu_scene->light.info.spot_light_count        = static_cast<uint32_t>(spot_lights.size());
-		gpu_scene->light.info.directional_light_count = static_cast<uint32_t>(directional_lights.size());
-		gpu_scene->light.info.rect_light_count        = static_cast<uint32_t>(rectangle_lights.size());
-		gpu_scene->light.light_info_buffer->CopyToDevice(&gpu_scene->light.info, sizeof(gpu_scene->light.info));
+	gpu_scene->light.info.point_light_count       = static_cast<uint32_t>(point_lights.size());
+	gpu_scene->light.info.spot_light_count        = static_cast<uint32_t>(spot_lights.size());
+	gpu_scene->light.info.directional_light_count = static_cast<uint32_t>(directional_lights.size());
+	gpu_scene->light.info.rect_light_count        = static_cast<uint32_t>(rectangle_lights.size());
+	gpu_scene->light.light_info_buffer->CopyToDevice(&gpu_scene->light.info, sizeof(gpu_scene->light.info));
 
-		// Copy environment light data
-		if (environment_lights.empty())
+	// Copy environment light data
+	if (environment_lights.empty())
+	{
+		gpu_scene->texture.texture_cube = nullptr;
+	}
+	else
+	{
+		auto resource = m_impl->resource_manager->Get<ResourceType::TextureCube>(static_cast<const char *>(environment_lights.back()->GetData()));
+		if (resource)
 		{
-			gpu_scene->textures.texture_cube = nullptr;
+			gpu_scene->texture.texture_cube = resource->GetTexture();
 		}
 		else
 		{
-			auto resource = m_impl->resource_manager->Get<ResourceType::TextureCube>(static_cast<const char *>(environment_lights.back()->GetData()));
-			if (resource)
-			{
-				gpu_scene->textures.texture_cube = resource->GetTexture();
-			}
-			else
-			{
-				gpu_scene->textures.texture_cube = nullptr;
-			}
+			gpu_scene->texture.texture_cube = nullptr;
 		}
 	}
+}
 
-	// Update Mesh
+void Renderer::UpdateAnimation()
+{
+	auto *gpu_scene = m_impl->black_board.Get<GPUScene>();
+
+	// Update animation
+	if (gpu_scene->animation.max_bone_count > 0 && m_impl->update_animation)
 	{
-		std::vector<GPUScene::Instance> instances;
+		{
+			GPUScene::AnimationBuffer::UpdateInfo update_info = {};
 
-		gpu_scene->mesh_buffer.max_meshlet_count = 0;
+			update_info.count = static_cast<uint32_t>(gpu_scene->animation.bone_matrics.size());
+			update_info.time  = m_impl->animation_time;
+			gpu_scene->animation.update_info->CopyToDevice(&update_info, sizeof(update_info));
+		}
 
+		std::vector<BufferStateTransition> begin_transitions(gpu_scene->animation.bone_matrics.size());
+		std::vector<BufferStateTransition> end_transitions(gpu_scene->animation.bone_matrics.size());
+
+		for (size_t i = 0; i < gpu_scene->animation.bone_matrics.size(); i++)
+		{
+			begin_transitions[i] = BufferStateTransition{gpu_scene->animation.bone_matrics[i], RHIResourceState::ShaderResource, RHIResourceState::UnorderedAccess};
+			end_transitions[i]   = BufferStateTransition{gpu_scene->animation.bone_matrics[i], RHIResourceState::UnorderedAccess, RHIResourceState::ShaderResource};
+		}
+
+		auto *descriptor = m_impl->rhi_context->CreateDescriptor(m_impl->gpu_skinning_shader_meta);
+		descriptor->BindBuffer("UpdateInfo", gpu_scene->animation.update_info.get());
+		auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Compute);
+		cmd_buffer->Begin();
+		cmd_buffer->ResourceStateTransition({}, begin_transitions);
+		for (size_t i = 0; i < gpu_scene->animation.bone_matrics.size(); i++)
+		{
+			descriptor->BindBuffer("BoneMatrics", gpu_scene->animation.bone_matrics[i])
+			    .BindTexture("SkinnedMatrics", gpu_scene->animation.skinned_matrics[i], RHITextureDimension::Texture2D);
+			cmd_buffer->BindDescriptor(descriptor);
+			cmd_buffer->BindPipelineState(m_impl->gpu_skinning_pipeline.get());
+			cmd_buffer->Dispatch(gpu_scene->animation.max_bone_count, 1, 1, 8, 1, 1);
+		}
+		cmd_buffer->ResourceStateTransition({}, end_transitions);
+		cmd_buffer->End();
+		m_impl->rhi_context->Submit({cmd_buffer});
+		m_impl->update_animation = false;
+	}
+
+	// Update resource
+	if (m_impl->resource_manager->Update<ResourceType::Animation>())
+	{
+		m_impl->scene->Update(true);
+
+		gpu_scene->animation.bone_matrics.clear();
+		gpu_scene->animation.skinned_matrics.clear();
+
+		auto resources = m_impl->resource_manager->GetResources<ResourceType::Animation>();
+
+		gpu_scene->animation.max_bone_count  = 0;
+		gpu_scene->animation.max_frame_count = 0;
+		for (auto &resource : resources)
+		{
+			auto *animation = m_impl->resource_manager->Get<ResourceType::Animation>(resource);
+			gpu_scene->animation.skinned_matrics.push_back(animation->GetSkinnedMatrics());
+			gpu_scene->animation.bone_matrics.push_back(animation->GetBoneMatrics());
+			gpu_scene->animation.max_bone_count  = glm::max(gpu_scene->animation.max_bone_count, animation->GetBoneCount());
+			gpu_scene->animation.max_frame_count = glm::max(gpu_scene->animation.max_frame_count, animation->GetFrameCount());
+		}
+	}
+}
+
+void Renderer::UpdateMesh()
+{
+	auto *gpu_scene = m_impl->black_board.Get<GPUScene>();
+
+	auto meshes = m_impl->scene->GetComponents<Cmpt::MeshRenderer>();
+
+	TLASDesc opaque_tlas_desc     = {fmt::format("{} - Opaque", m_impl->scene->GetName())};
+	TLASDesc non_opaque_tlas_desc = {fmt::format("{} - Non Opaque", m_impl->scene->GetName())};
+
+	std::vector<GPUScene::Instance> opaque_instances;
+	std::vector<GPUScene::Instance> non_opaque_instances;
+
+	gpu_scene->opaque_mesh.max_meshlet_count     = 0;
+	gpu_scene->non_opaque_mesh.max_meshlet_count = 0;
+
+	// Update mesh instances
+	{
 		for (auto &mesh : meshes)
 		{
 			auto &submeshes = mesh->GetSubmeshes();
@@ -393,136 +464,79 @@ void Renderer::UpdateGPUScene()
 					if (i < materials.size())
 					{
 						instance.material_id = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Material>(materials[i])) + 1;
+						auto *material       = m_impl->resource_manager->Get<ResourceType::Material>(materials[i]);
+						if (material->GetMaterialData().blend_mode == BlendMode::Opaque)
+						{
+							opaque_instances.push_back(instance);
+							opaque_tlas_desc.instances.push_back(TLASDesc::InstanceInfo{instance.transform, instance.material_id, resource->GetBLAS()});
+							gpu_scene->opaque_mesh.max_meshlet_count = glm::max(gpu_scene->opaque_mesh.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
+						}
+						else
+						{
+							non_opaque_instances.push_back(instance);
+							non_opaque_tlas_desc.instances.push_back(TLASDesc::InstanceInfo{instance.transform, instance.material_id, resource->GetBLAS()});
+							gpu_scene->non_opaque_mesh.max_meshlet_count = glm::max(gpu_scene->non_opaque_mesh.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
+						}
 					}
-
-					instances.push_back(instance);
-
-					tlas_desc.instances.push_back(TLASDesc::InstanceInfo{instance.transform, instance.material_id, resource->GetBLAS()});
-					gpu_scene->mesh_buffer.max_meshlet_count = glm::max(gpu_scene->mesh_buffer.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
+					else
+					{
+						opaque_instances.push_back(instance);
+						opaque_tlas_desc.instances.push_back(TLASDesc::InstanceInfo{instance.transform, instance.material_id, resource->GetBLAS()});
+						gpu_scene->opaque_mesh.max_meshlet_count = glm::max(gpu_scene->opaque_mesh.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
+					}
 				}
 			}
 		}
 
-		gpu_scene->mesh_buffer.instance_count = static_cast<uint32_t>(instances.size());
-
-		if (!instances.empty())
-		{
-			if (!gpu_scene->mesh_buffer.instances ||
-			    gpu_scene->mesh_buffer.instances->GetDesc().size < instances.size() * sizeof(GPUScene::Instance))
-			{
-				gpu_scene->mesh_buffer.instances = m_impl->rhi_context->CreateBuffer<GPUScene::Instance>(instances.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
-			}
-
-			gpu_scene->mesh_buffer.instances->CopyToDevice(instances.data(), instances.size() * sizeof(GPUScene::Instance));
-		}
+		gpu_scene->opaque_mesh.instance_count     = static_cast<uint32_t>(opaque_instances.size());
+		gpu_scene->non_opaque_mesh.instance_count = static_cast<uint32_t>(non_opaque_instances.size());
 	}
 
-	// Update Skinned Mesh
+	// Copy to device
 	{
-		std::vector<GPUScene::Instance> instances;
-
-		gpu_scene->skinned_mesh_buffer.max_meshlet_count = 0;
-
-		for (auto &skinned_mesh : skinned_meshes)
+		if (!opaque_instances.empty())
 		{
-			auto &submeshes  = skinned_mesh->GetSubmeshes();
-			auto &animations = skinned_mesh->GetAnimations();
-			auto &materials  = skinned_mesh->GetMaterials();
-			for (uint32_t i = 0; i < submeshes.size(); i++)
+			if (!gpu_scene->opaque_mesh.instances ||
+			    gpu_scene->opaque_mesh.instances->GetDesc().size < opaque_instances.size() * sizeof(GPUScene::Instance))
 			{
-				auto *resource = m_impl->resource_manager->Get<ResourceType::SkinnedMesh>(submeshes[i]);
-
-				if (resource)
-				{
-					GPUScene::Instance instance = {};
-					instance.transform          = skinned_mesh->GetNode()->GetComponent<Cmpt::Transform>()->GetWorldTransform();
-					instance.mesh_id            = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::SkinnedMesh>(submeshes[i]));
-					instance.material_id        = 0;
-
-					if (i < materials.size())
-					{
-						instance.material_id = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Material>(materials[i])) + 1;
-					}
-
-					if (i < animations.size())
-					{
-						instance.animation_id = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Animation>(animations[i]));
-					}
-
-					instances.push_back(instance);
-					gpu_scene->skinned_mesh_buffer.max_meshlet_count = glm::max(gpu_scene->skinned_mesh_buffer.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
-				}
+				gpu_scene->opaque_mesh.instances = m_impl->rhi_context->CreateBuffer<GPUScene::Instance>(opaque_instances.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
 			}
+			gpu_scene->opaque_mesh.instances->CopyToDevice(opaque_instances.data(), opaque_instances.size() * sizeof(GPUScene::Instance));
 		}
 
-		gpu_scene->skinned_mesh_buffer.instance_count = static_cast<uint32_t>(instances.size());
-
-		if (!instances.empty())
+		if (!non_opaque_instances.empty())
 		{
-			if (!gpu_scene->skinned_mesh_buffer.instances ||
-			    gpu_scene->skinned_mesh_buffer.instances->GetDesc().size < instances.size() * sizeof(GPUScene::Instance))
+			if (!gpu_scene->non_opaque_mesh.instances ||
+			    gpu_scene->non_opaque_mesh.instances->GetDesc().size < non_opaque_instances.size() * sizeof(GPUScene::Instance))
 			{
-				gpu_scene->skinned_mesh_buffer.instances = m_impl->rhi_context->CreateBuffer<GPUScene::Instance>(instances.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+				gpu_scene->non_opaque_mesh.instances = m_impl->rhi_context->CreateBuffer<GPUScene::Instance>(non_opaque_instances.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
 			}
-
-			gpu_scene->skinned_mesh_buffer.instances->CopyToDevice(instances.data(), instances.size() * sizeof(GPUScene::Instance));
-		}
-	}
-
-	// Update Animation
-	{
-		if (gpu_scene->animation_buffer.max_bone_count > 0 && m_impl->update_animation)
-		{
-			{
-				GPUScene::AnimationBuffer::UpdateInfo update_info = {};
-
-				update_info.count = static_cast<uint32_t>(gpu_scene->animation_buffer.bone_matrics.size());
-				update_info.time  = m_impl->animation_time;
-				gpu_scene->animation_buffer.update_info->CopyToDevice(&update_info, sizeof(update_info));
-			}
-
-			std::vector<BufferStateTransition> begin_transitions(gpu_scene->animation_buffer.bone_matrics.size());
-			std::vector<BufferStateTransition> end_transitions(gpu_scene->animation_buffer.bone_matrics.size());
-
-			for (size_t i = 0; i < gpu_scene->animation_buffer.bone_matrics.size(); i++)
-			{
-				begin_transitions[i] = BufferStateTransition{gpu_scene->animation_buffer.bone_matrics[i], RHIResourceState::ShaderResource, RHIResourceState::UnorderedAccess};
-				end_transitions[i]   = BufferStateTransition{gpu_scene->animation_buffer.bone_matrics[i], RHIResourceState::UnorderedAccess, RHIResourceState::ShaderResource};
-			}
-
-			auto *descriptor = m_impl->rhi_context->CreateDescriptor(m_impl->gpu_skinning_shader_meta);
-			descriptor->BindBuffer("UpdateInfo", gpu_scene->animation_buffer.update_info.get());
-			auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Compute);
-			cmd_buffer->Begin();
-			cmd_buffer->ResourceStateTransition({}, begin_transitions);
-			for (size_t i = 0; i < gpu_scene->animation_buffer.bone_matrics.size(); i++)
-			{
-				descriptor->BindBuffer("BoneMatrics", gpu_scene->animation_buffer.bone_matrics[i])
-				    .BindTexture("SkinnedMatrics", gpu_scene->animation_buffer.skinned_matrics[i], RHITextureDimension::Texture2D);
-				cmd_buffer->BindDescriptor(descriptor);
-				cmd_buffer->BindPipelineState(m_impl->gpu_skinning_pipeline.get());
-				cmd_buffer->Dispatch(gpu_scene->animation_buffer.max_bone_count, 1, 1, 8, 1, 1);
-			}
-			cmd_buffer->ResourceStateTransition({}, end_transitions);
-			cmd_buffer->End();
-			m_impl->rhi_context->Submit({cmd_buffer});
-			m_impl->update_animation = false;
+			gpu_scene->non_opaque_mesh.instances->CopyToDevice(non_opaque_instances.data(), non_opaque_instances.size() * sizeof(GPUScene::Instance));
 		}
 	}
 
 	// Update TLAS
 	{
-		if (!tlas_desc.instances.empty())
+		if (!opaque_tlas_desc.instances.empty())
 		{
 			auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Compute);
 			cmd_buffer->Begin();
-			gpu_scene->TLAS->Update(cmd_buffer, tlas_desc);
+			gpu_scene->opaque_tlas->Update(cmd_buffer, opaque_tlas_desc);
+			cmd_buffer->End();
+			m_impl->rhi_context->Submit({cmd_buffer});
+		}
+
+		if (!non_opaque_tlas_desc.instances.empty())
+		{
+			auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Compute);
+			cmd_buffer->Begin();
+			gpu_scene->non_opaque_tlas->Update(cmd_buffer, non_opaque_tlas_desc);
 			cmd_buffer->End();
 			m_impl->rhi_context->Submit({cmd_buffer});
 		}
 	}
 
-	// Update Mesh Buffer
+	// Update resource
 	if (m_impl->resource_manager->Update<ResourceType::Mesh>())
 	{
 		m_impl->scene->Update(true);
@@ -541,52 +555,117 @@ void Renderer::UpdateGPUScene()
 			gpu_scene->mesh_buffer.meshlet_data_buffers.push_back(mesh->GetMeshletDataBuffer());
 		}
 	}
+}
 
-	// Update Skinned Mesh Buffer
+void Renderer::UpdateSkinnedMesh()
+{
+	auto *gpu_scene      = m_impl->black_board.Get<GPUScene>();
+	auto  skinned_meshes = m_impl->scene->GetComponents<Cmpt::SkinnedMeshRenderer>();
+
+	std::vector<GPUScene::Instance> opaque_instances;
+	std::vector<GPUScene::Instance> non_opaque_instances;
+
+	gpu_scene->opaque_skinned_mesh.max_meshlet_count     = 0;
+	gpu_scene->non_opaque_skinned_mesh.max_meshlet_count = 0;
+
+	// Update skinned mesh instances
 	{
-		if (m_impl->resource_manager->Update<ResourceType::SkinnedMesh>())
+		for (auto &skinned_mesh : skinned_meshes)
 		{
-			m_impl->scene->Update(true);
-
-			gpu_scene->skinned_mesh_buffer.vertex_buffers.clear();
-			gpu_scene->skinned_mesh_buffer.index_buffers.clear();
-			gpu_scene->skinned_mesh_buffer.meshlet_buffers.clear();
-			gpu_scene->skinned_mesh_buffer.meshlet_data_buffers.clear();
-			auto resources = m_impl->resource_manager->GetResources<ResourceType::SkinnedMesh>();
-			for (auto &resource : resources)
+			auto &submeshes  = skinned_mesh->GetSubmeshes();
+			auto &animations = skinned_mesh->GetAnimations();
+			auto &materials  = skinned_mesh->GetMaterials();
+			for (uint32_t i = 0; i < submeshes.size(); i++)
 			{
-				auto *skinned_mesh = m_impl->resource_manager->Get<ResourceType::SkinnedMesh>(resource);
-				gpu_scene->skinned_mesh_buffer.vertex_buffers.push_back(skinned_mesh->GetVertexBuffer());
-				gpu_scene->skinned_mesh_buffer.index_buffers.push_back(skinned_mesh->GetIndexBuffer());
-				gpu_scene->skinned_mesh_buffer.meshlet_buffers.push_back(skinned_mesh->GetMeshletBuffer());
-				gpu_scene->skinned_mesh_buffer.meshlet_data_buffers.push_back(skinned_mesh->GetMeshletDataBuffer());
+				auto *resource = m_impl->resource_manager->Get<ResourceType::SkinnedMesh>(submeshes[i]);
+
+				if (resource)
+				{
+					GPUScene::Instance instance = {};
+					instance.transform          = skinned_mesh->GetNode()->GetComponent<Cmpt::Transform>()->GetWorldTransform();
+					instance.mesh_id            = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::SkinnedMesh>(submeshes[i]));
+					instance.material_id        = 0;
+
+					if (i < animations.size())
+					{
+						instance.animation_id = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Animation>(animations[i]));
+					}
+
+					if (i < materials.size())
+					{
+						instance.material_id = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Material>(materials[i])) + 1;
+						auto *material       = m_impl->resource_manager->Get<ResourceType::Material>(materials[i]);
+						if (material->GetMaterialData().blend_mode == BlendMode::Opaque)
+						{
+							opaque_instances.push_back(instance);
+							gpu_scene->opaque_mesh.max_meshlet_count = glm::max(gpu_scene->opaque_mesh.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
+						}
+						else
+						{
+							non_opaque_instances.push_back(instance);
+							gpu_scene->non_opaque_mesh.max_meshlet_count = glm::max(gpu_scene->non_opaque_mesh.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
+						}
+					}
+					else
+					{
+						opaque_instances.push_back(instance);
+						gpu_scene->opaque_mesh.max_meshlet_count = glm::max(gpu_scene->opaque_mesh.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
+					}
+				}
 			}
+		}
+
+		gpu_scene->opaque_skinned_mesh.instance_count     = static_cast<uint32_t>(opaque_instances.size());
+		gpu_scene->non_opaque_skinned_mesh.instance_count = static_cast<uint32_t>(non_opaque_instances.size());
+	}
+
+	// Copy to device
+	{
+		if (!opaque_instances.empty())
+		{
+			if (!gpu_scene->opaque_skinned_mesh.instances ||
+			    gpu_scene->opaque_skinned_mesh.instances->GetDesc().size < opaque_instances.size() * sizeof(GPUScene::Instance))
+			{
+				gpu_scene->opaque_skinned_mesh.instances = m_impl->rhi_context->CreateBuffer<GPUScene::Instance>(opaque_instances.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+			}
+			gpu_scene->opaque_skinned_mesh.instances->CopyToDevice(opaque_instances.data(), opaque_instances.size() * sizeof(GPUScene::Instance));
+		}
+
+		if (!non_opaque_instances.empty())
+		{
+			if (!gpu_scene->non_opaque_skinned_mesh.instances ||
+			    gpu_scene->non_opaque_skinned_mesh.instances->GetDesc().size < non_opaque_instances.size() * sizeof(GPUScene::Instance))
+			{
+				gpu_scene->non_opaque_skinned_mesh.instances = m_impl->rhi_context->CreateBuffer<GPUScene::Instance>(non_opaque_instances.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+			}
+			gpu_scene->non_opaque_skinned_mesh.instances->CopyToDevice(non_opaque_instances.data(), non_opaque_instances.size() * sizeof(GPUScene::Instance));
 		}
 	}
 
-	// Update Animation Buffer
+	// Update resource
+	if (m_impl->resource_manager->Update<ResourceType::SkinnedMesh>())
 	{
-		if (m_impl->resource_manager->Update<ResourceType::Animation>())
+		m_impl->scene->Update(true);
+
+		gpu_scene->skinned_mesh_buffer.vertex_buffers.clear();
+		gpu_scene->skinned_mesh_buffer.index_buffers.clear();
+		gpu_scene->skinned_mesh_buffer.meshlet_buffers.clear();
+		gpu_scene->skinned_mesh_buffer.meshlet_data_buffers.clear();
+		auto resources = m_impl->resource_manager->GetResources<ResourceType::SkinnedMesh>();
+		for (auto &resource : resources)
 		{
-			m_impl->scene->Update(true);
-
-			gpu_scene->animation_buffer.bone_matrics.clear();
-			gpu_scene->animation_buffer.skinned_matrics.clear();
-
-			auto resources = m_impl->resource_manager->GetResources<ResourceType::Animation>();
-
-			gpu_scene->animation_buffer.max_bone_count  = 0;
-			gpu_scene->animation_buffer.max_frame_count = 0;
-			for (auto &resource : resources)
-			{
-				auto *animation = m_impl->resource_manager->Get<ResourceType::Animation>(resource);
-				gpu_scene->animation_buffer.skinned_matrics.push_back(animation->GetSkinnedMatrics());
-				gpu_scene->animation_buffer.bone_matrics.push_back(animation->GetBoneMatrics());
-				gpu_scene->animation_buffer.max_bone_count  = glm::max(gpu_scene->animation_buffer.max_bone_count, animation->GetBoneCount());
-				gpu_scene->animation_buffer.max_frame_count = glm::max(gpu_scene->animation_buffer.max_frame_count, animation->GetFrameCount());
-			}
+			auto *skinned_mesh = m_impl->resource_manager->Get<ResourceType::SkinnedMesh>(resource);
+			gpu_scene->skinned_mesh_buffer.vertex_buffers.push_back(skinned_mesh->GetVertexBuffer());
+			gpu_scene->skinned_mesh_buffer.index_buffers.push_back(skinned_mesh->GetIndexBuffer());
+			gpu_scene->skinned_mesh_buffer.meshlet_buffers.push_back(skinned_mesh->GetMeshletBuffer());
+			gpu_scene->skinned_mesh_buffer.meshlet_data_buffers.push_back(skinned_mesh->GetMeshletDataBuffer());
 		}
 	}
+}
+
+void Renderer::UpdateMaterial()
+{
+	auto *gpu_scene = m_impl->black_board.Get<GPUScene>();
 
 	// Update Sampler
 	if (m_impl->rhi_context->GetSamplerCount() != gpu_scene->samplers.size())
@@ -632,12 +711,12 @@ void Renderer::UpdateGPUScene()
 		// Update Texture
 		if (m_impl->resource_manager->Update<ResourceType::Texture2D>())
 		{
-			gpu_scene->textures.texture_2d.clear();
+			gpu_scene->texture.texture_2d.clear();
 			auto resources = m_impl->resource_manager->GetResources<ResourceType::Texture2D>();
 			for (auto &resource : resources)
 			{
 				auto *texture2d = m_impl->resource_manager->Get<ResourceType::Texture2D>(resource);
-				gpu_scene->textures.texture_2d.push_back(texture2d->GetTexture());
+				gpu_scene->texture.texture_2d.push_back(texture2d->GetTexture());
 			}
 		}
 
@@ -705,12 +784,287 @@ void Renderer::UpdateGPUScene()
 				material->PostUpdate(
 				    m_impl->rhi_context,
 				    static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Material>(resource)),
-				    gpu_scene->textures.texture_2d,
+				    gpu_scene->texture.texture_2d,
 				    gpu_scene->samplers,
 				    gpu_scene->material.material_buffer.get(),
 				    gpu_scene->material.material_offset.get());
 			}
 		}
 	}
+}
+
+void Renderer::UpdateGPUScene()
+{
+	auto *gpu_scene = m_impl->black_board.Get<GPUScene>();
+
+	TLASDesc tlas_desc = {};
+	tlas_desc.name     = m_impl->scene->GetName();
+
+	auto meshes         = m_impl->scene->GetComponents<Cmpt::MeshRenderer>();
+	auto skinned_meshes = m_impl->scene->GetComponents<Cmpt::SkinnedMeshRenderer>();
+
+	UpdateLight();
+	UpdateAnimation();
+	UpdateMesh();
+	UpdateSkinnedMesh();
+	UpdateMaterial();
+
+	// Update Mesh
+	/*{
+	    std::vector<GPUScene::Instance> instances;
+
+	    gpu_scene->mesh_buffer.max_meshlet_count = 0;
+
+	    for (auto &mesh : meshes)
+	    {
+	        auto &submeshes = mesh->GetSubmeshes();
+	        auto &materials = mesh->GetMaterials();
+	        for (uint32_t i = 0; i < submeshes.size(); i++)
+	        {
+	            auto &submesh = submeshes[i];
+
+	            auto *resource = m_impl->resource_manager->Get<ResourceType::Mesh>(submesh);
+
+	            if (resource)
+	            {
+	                GPUScene::Instance instance = {};
+	                instance.transform          = mesh->GetNode()->GetComponent<Cmpt::Transform>()->GetWorldTransform();
+	                instance.mesh_id            = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Mesh>(submesh));
+	                instance.material_id        = 0;
+
+	                if (i < materials.size())
+	                {
+	                    instance.material_id = static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Material>(materials[i])) + 1;
+	                }
+
+	                instances.push_back(instance);
+
+	                tlas_desc.instances.push_back(TLASDesc::InstanceInfo{instance.transform, instance.material_id, resource->GetBLAS()});
+	                gpu_scene->mesh_buffer.max_meshlet_count = glm::max(gpu_scene->mesh_buffer.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
+	            }
+	        }
+	    }
+
+	    gpu_scene->mesh_buffer.instance_count = static_cast<uint32_t>(instances.size());
+
+	    if (!instances.empty())
+	    {
+	        if (!gpu_scene->mesh_buffer.instances ||
+	            gpu_scene->mesh_buffer.instances->GetDesc().size < instances.size() * sizeof(GPUScene::Instance))
+	        {
+	            gpu_scene->mesh_buffer.instances = m_impl->rhi_context->CreateBuffer<GPUScene::Instance>(instances.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+	        }
+
+	        gpu_scene->mesh_buffer.instances->CopyToDevice(instances.data(), instances.size() * sizeof(GPUScene::Instance));
+	    }
+	}*/
+
+	// Update Skinned Mesh
+	{
+
+	}
+
+	// Update TLAS
+	//{
+	//	if (!tlas_desc.instances.empty())
+	//	{
+	//		auto *cmd_buffer = m_impl->rhi_context->CreateCommand(RHIQueueFamily::Compute);
+	//		cmd_buffer->Begin();
+	//		gpu_scene->TLAS->Update(cmd_buffer, tlas_desc);
+	//		cmd_buffer->End();
+	//		m_impl->rhi_context->Submit({cmd_buffer});
+	//	}
+	//}
+
+	// Update Mesh Buffer
+	// if (m_impl->resource_manager->Update<ResourceType::Mesh>())
+	//{
+	//	m_impl->scene->Update(true);
+
+	//	gpu_scene->mesh_buffer.vertex_buffers.clear();
+	//	gpu_scene->mesh_buffer.index_buffers.clear();
+	//	gpu_scene->mesh_buffer.meshlet_buffers.clear();
+	//	gpu_scene->mesh_buffer.meshlet_data_buffers.clear();
+	//	auto resources = m_impl->resource_manager->GetResources<ResourceType::Mesh>();
+	//	for (auto &resource : resources)
+	//	{
+	//		auto *mesh = m_impl->resource_manager->Get<ResourceType::Mesh>(resource);
+	//		gpu_scene->mesh_buffer.vertex_buffers.push_back(mesh->GetVertexBuffer());
+	//		gpu_scene->mesh_buffer.index_buffers.push_back(mesh->GetIndexBuffer());
+	//		gpu_scene->mesh_buffer.meshlet_buffers.push_back(mesh->GetMeshletBuffer());
+	//		gpu_scene->mesh_buffer.meshlet_data_buffers.push_back(mesh->GetMeshletDataBuffer());
+	//	}
+	//}
+
+	// Update Skinned Mesh Buffer
+	//{
+	//	if (m_impl->resource_manager->Update<ResourceType::SkinnedMesh>())
+	//	{
+	//		m_impl->scene->Update(true);
+
+	//		gpu_scene->skinned_mesh_buffer.vertex_buffers.clear();
+	//		gpu_scene->skinned_mesh_buffer.index_buffers.clear();
+	//		gpu_scene->skinned_mesh_buffer.meshlet_buffers.clear();
+	//		gpu_scene->skinned_mesh_buffer.meshlet_data_buffers.clear();
+	//		auto resources = m_impl->resource_manager->GetResources<ResourceType::SkinnedMesh>();
+	//		for (auto &resource : resources)
+	//		{
+	//			auto *skinned_mesh = m_impl->resource_manager->Get<ResourceType::SkinnedMesh>(resource);
+	//			gpu_scene->skinned_mesh_buffer.vertex_buffers.push_back(skinned_mesh->GetVertexBuffer());
+	//			gpu_scene->skinned_mesh_buffer.index_buffers.push_back(skinned_mesh->GetIndexBuffer());
+	//			gpu_scene->skinned_mesh_buffer.meshlet_buffers.push_back(skinned_mesh->GetMeshletBuffer());
+	//			gpu_scene->skinned_mesh_buffer.meshlet_data_buffers.push_back(skinned_mesh->GetMeshletDataBuffer());
+	//		}
+	//	}
+	//}
+
+	//// Update Animation Buffer
+	////{
+	////	if (m_impl->resource_manager->Update<ResourceType::Animation>())
+	////	{
+	////		m_impl->scene->Update(true);
+
+	////		gpu_scene->animation_buffer.bone_matrics.clear();
+	////		gpu_scene->animation_buffer.skinned_matrics.clear();
+
+	////		auto resources = m_impl->resource_manager->GetResources<ResourceType::Animation>();
+
+	////		gpu_scene->animation_buffer.max_bone_count  = 0;
+	////		gpu_scene->animation_buffer.max_frame_count = 0;
+	////		for (auto &resource : resources)
+	////		{
+	////			auto *animation = m_impl->resource_manager->Get<ResourceType::Animation>(resource);
+	////			gpu_scene->animation_buffer.skinned_matrics.push_back(animation->GetSkinnedMatrics());
+	////			gpu_scene->animation_buffer.bone_matrics.push_back(animation->GetBoneMatrics());
+	////			gpu_scene->animation_buffer.max_bone_count  = glm::max(gpu_scene->animation_buffer.max_bone_count, animation->GetBoneCount());
+	////			gpu_scene->animation_buffer.max_frame_count = glm::max(gpu_scene->animation_buffer.max_frame_count, animation->GetFrameCount());
+	////		}
+	////	}
+	////}
+
+	//// Update Sampler
+	//if (m_impl->rhi_context->GetSamplerCount() != gpu_scene->samplers.size())
+	//{
+	//	m_impl->scene->Update(true);
+
+	//	gpu_scene->samplers = m_impl->rhi_context->GetSamplers();
+	//}
+
+	//// Update 2D Textures
+	//if (m_impl->resource_manager->Update<ResourceType::Texture2D>())
+	//{
+	//	m_impl->scene->Update(true);
+	//}
+
+	//// Update Material & Texture
+	//if (m_impl->resource_manager->Update<ResourceType::Material>() ||
+	//    m_impl->resource_manager->Update<ResourceType::Texture2D>())
+	//{
+	//	m_impl->scene->Update(true);
+
+	//	// Flush Texture
+	//	if (m_impl->resource_manager->Update<ResourceType::Material>())
+	//	{
+	//		auto resources = m_impl->resource_manager->GetResources<ResourceType::Material>();
+	//		for (auto &resource : resources)
+	//		{
+	//			auto *material = m_impl->resource_manager->Get<ResourceType::Material>(resource);
+	//			if (!material->IsValid())
+	//			{
+	//				material->Compile(
+	//				    m_impl->rhi_context,
+	//				    m_impl->resource_manager,
+	//				    m_impl->black_board.Get<DummyTexture>()->black_opaque.get());
+	//			}
+	//			for (auto &[texture, texture_name] : material->GetCompilationContext().textures)
+	//			{
+	//				m_impl->resource_manager->Index<ResourceType::Texture2D>(texture_name);
+	//			}
+	//		}
+	//	}
+
+	//	// Update Texture
+	//	if (m_impl->resource_manager->Update<ResourceType::Texture2D>())
+	//	{
+	//		gpu_scene->textures.texture_2d.clear();
+	//		auto resources = m_impl->resource_manager->GetResources<ResourceType::Texture2D>();
+	//		for (auto &resource : resources)
+	//		{
+	//			auto *texture2d = m_impl->resource_manager->Get<ResourceType::Texture2D>(resource);
+	//			gpu_scene->textures.texture_2d.push_back(texture2d->GetTexture());
+	//		}
+	//	}
+
+	//	// Update Material
+	//	if (m_impl->resource_manager->Update<ResourceType::Material>())
+	//	{
+	//		gpu_scene->material.data.clear();
+	//		auto resources = m_impl->resource_manager->GetResources<ResourceType::Material>();
+
+	//		std::vector<uint32_t> material_data;
+	//		std::vector<uint32_t> material_offset = {0};
+
+	//		for (auto &resource : resources)
+	//		{
+	//			auto *material = m_impl->resource_manager->Get<ResourceType::Material>(resource);
+
+	//			material->Update(
+	//			    m_impl->rhi_context,
+	//			    m_impl->resource_manager,
+	//			    m_impl->black_board.Get<DummyTexture>()->black_opaque.get());
+
+	//			const auto &data = material->GetMaterialData();
+
+	//			material_offset.push_back(static_cast<uint32_t>(material_data.size() * sizeof(uint32_t)));
+	//			material_data.insert(material_data.end(), data.textures.begin(), data.textures.end());
+	//			material_data.insert(material_data.end(), data.samplers.begin(), data.samplers.end());
+
+	//			gpu_scene->material.data.push_back(&data);
+	//		}
+
+	//		if (!material_data.empty())
+	//		{
+	//			if (!gpu_scene->material.material_buffer ||
+	//			    material_data.size() * sizeof(uint32_t) != gpu_scene->material.material_buffer->GetDesc().size)
+	//			{
+	//				gpu_scene->material.material_buffer = m_impl->rhi_context->CreateBuffer<uint32_t>(material_data.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+	//			}
+	//			gpu_scene->material.material_buffer->CopyToDevice(material_data.data(), material_data.size() * sizeof(uint32_t));
+	//		}
+	//		else if (!gpu_scene->material.material_buffer)
+	//		{
+	//			gpu_scene->material.material_buffer = m_impl->rhi_context->CreateBuffer<uint32_t>(1, RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+	//		}
+
+	//		if (!material_offset.empty())
+	//		{
+	//			if (!gpu_scene->material.material_offset ||
+	//			    material_offset.size() * sizeof(uint32_t) != gpu_scene->material.material_offset->GetDesc().size)
+	//			{
+	//				gpu_scene->material.material_offset = m_impl->rhi_context->CreateBuffer<uint32_t>(material_offset.size(), RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+	//			}
+	//			gpu_scene->material.material_offset->CopyToDevice(material_offset.data(), material_offset.size() * sizeof(uint32_t));
+	//		}
+	//		else if (!gpu_scene->material.material_offset)
+	//		{
+	//			gpu_scene->material.material_offset = m_impl->rhi_context->CreateBuffer<uint32_t>(1, RHIBufferUsage::UnorderedAccess, RHIMemoryUsage::CPU_TO_GPU);
+	//		}
+
+	//		for (auto &resource : resources)
+	//		{
+	//			auto *material = m_impl->resource_manager->Get<ResourceType::Material>(resource);
+
+	//			GPUScene *gpu_scene = m_impl->black_board.Get<GPUScene>();
+
+	//			material->PostUpdate(
+	//			    m_impl->rhi_context,
+	//			    static_cast<uint32_t>(m_impl->resource_manager->Index<ResourceType::Material>(resource)),
+	//			    gpu_scene->textures.texture_2d,
+	//			    gpu_scene->samplers,
+	//			    gpu_scene->material.material_buffer.get(),
+	//			    gpu_scene->material.material_offset.get());
+	//		}
+	//	}
+	//}
 }
 }        // namespace Ilum

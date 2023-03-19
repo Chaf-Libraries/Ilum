@@ -397,22 +397,6 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
     surface_interaction.duvdx = dBarydx.x * deltaUV1 + dBarydx.y * deltaUV2;
     surface_interaction.duvdy = dBarydy.x * deltaUV1 + dBarydy.y * deltaUV2;
     
-    ///////////////////////////
-   //Frame frame;
-   //frame.FromZ(surface_interaction.isect.n);
-   //pay_load.radiance = float4(frame.z, 1.f);
-   //pay_load.terminate = true;
-   //return;
-    //Frame frame;
-    //frame.FromZ(surface_interaction.isect.n);
-    //TrowbridgeReitzDistribution distrib;
-    //distrib.Init(distrib.RoughnessToAlpha(0.9), distrib.RoughnessToAlpha(0.9));
-    //float3 wo_ = frame.ToLocal(surface_interaction.isect.wo);
-    //pay_load.radiance = float4(distrib.Sample_wm(wo_, pay_load.rng.Get2D()), 1.f);
-    //pay_load.terminate = true;
-    //return;
-    ////////////////////////
-    
     Material material;
     material.Init(surface_interaction);
 
@@ -448,10 +432,6 @@ void ClosesthitMain(inout PayLoad pay_load : SV_RayPayload, BuiltInTriangleInter
     }
 
     pay_load.wi = bs.wiW;
-   //Frame frame;
- // frame.FromZ(surface_interaction.isect.n);
-    //float3 a = dot(frame.y, frame.x);
-    //pay_load.radiance = float4(bs.f, 1.f);
 }
 #endif
 

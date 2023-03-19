@@ -62,11 +62,11 @@ class SkyboxPass : public RenderPass<SkyboxPass>
 			render_target->Set(0, output, TextureRange{}, ColorAttachment{});
 			render_target->Set(depth, TextureRange{}, DepthStencilAttachment{RHILoadAction::Load});
 
-			if (gpu_scene->textures.texture_cube)
+			if (gpu_scene->texture.texture_cube)
 			{
 				auto descriptor = rhi_context->CreateDescriptor(shader_meta);
 
-				descriptor->BindTexture("Skybox", gpu_scene->textures.texture_cube, RHITextureDimension::TextureCube)
+				descriptor->BindTexture("Skybox", gpu_scene->texture.texture_cube, RHITextureDimension::TextureCube)
 				    .BindSampler("SkyboxSampler", rhi_context->CreateSampler(SamplerDesc::LinearClamp()))
 					.BindBuffer("ViewBuffer", view->buffer.get());
 

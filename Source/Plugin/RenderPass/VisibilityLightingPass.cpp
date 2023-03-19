@@ -90,13 +90,13 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 
 			size_t material_count = renderer->GetResourceManager()->GetValidResourceCount<ResourceType::Material>() + 1;
 
-			bool has_mesh              = gpu_scene->mesh_buffer.instance_count != 0;
-			bool has_skinned_mesh      = gpu_scene->skinned_mesh_buffer.instance_count != 0;
+			bool has_mesh              = gpu_scene->opaque_mesh.instance_count != 0;
+			bool has_skinned_mesh      = gpu_scene->opaque_skinned_mesh.instance_count != 0;
 			bool has_point_light       = gpu_scene->light.info.point_light_count != 0;
 			bool has_spot_light        = gpu_scene->light.info.spot_light_count != 0;
 			bool has_directional_light = gpu_scene->light.info.directional_light_count != 0;
 			bool has_rect_light        = gpu_scene->light.info.rect_light_count != 0;
-			bool has_env_light         = gpu_scene->textures.texture_cube != nullptr;
+			bool has_env_light         = gpu_scene->texture.texture_cube != nullptr;
 
 			if (!pass_data->material_count_buffer ||
 			    pass_data->material_count_buffer->GetDesc().size != material_count * sizeof(uint32_t))
@@ -212,8 +212,8 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 				auto descriptor = rhi_context->CreateDescriptor(meta);
 				descriptor->BindTexture("VisibilityBuffer", visibility_buffer, RHITextureDimension::Texture2D)
 				    .BindTexture("DepthBuffer", depth_buffer, RHITextureDimension::Texture2D)
-				    .BindBuffer("MeshInstanceBuffer", gpu_scene->mesh_buffer.instances.get())
-				    .BindBuffer("SkinnedMeshInstanceBuffer", gpu_scene->skinned_mesh_buffer.instances.get())
+				    .BindBuffer("MeshInstanceBuffer", gpu_scene->opaque_mesh.instances.get())
+				    .BindBuffer("SkinnedMeshInstanceBuffer", gpu_scene->opaque_skinned_mesh.instances.get())
 				    .BindBuffer("MaterialCountBuffer", pass_data->material_count_buffer.get());
 				cmd_buffer->BindDescriptor(descriptor);
 				cmd_buffer->BindPipelineState(pipeline_state.get());
@@ -274,8 +274,8 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 				auto descriptor = rhi_context->CreateDescriptor(meta);
 				descriptor->BindTexture("VisibilityBuffer", visibility_buffer, RHITextureDimension::Texture2D)
 				    .BindTexture("DepthBuffer", depth_buffer, RHITextureDimension::Texture2D)
-				    .BindBuffer("MeshInstanceBuffer", gpu_scene->mesh_buffer.instances.get())
-				    .BindBuffer("SkinnedMeshInstanceBuffer", gpu_scene->skinned_mesh_buffer.instances.get())
+				    .BindBuffer("MeshInstanceBuffer", gpu_scene->opaque_mesh.instances.get())
+				    .BindBuffer("SkinnedMeshInstanceBuffer", gpu_scene->opaque_skinned_mesh.instances.get())
 				    .BindBuffer("MaterialCountBuffer", pass_data->material_count_buffer.get())
 				    .BindBuffer("MaterialOffsetBuffer", pass_data->material_offset_buffer.get())
 				    .BindBuffer("MaterialPixelBuffer", pass_data->material_pixel_buffer.get())
@@ -366,7 +366,7 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 					    .BindBuffer("MaterialPixelBuffer", pass_data->material_pixel_buffer.get())
 					    .BindBuffer("MaterialCountBuffer", pass_data->material_count_buffer.get())
 					    .BindBuffer("MaterialOffsetBuffer", pass_data->material_offset_buffer.get())
-					    .BindTexture("Textures", gpu_scene->textures.texture_2d, RHITextureDimension::Texture2D)
+					    .BindTexture("Textures", gpu_scene->texture.texture_2d, RHITextureDimension::Texture2D)
 					    .BindSampler("Samplers", gpu_scene->samplers)
 					    .BindBuffer("MaterialOffsets", gpu_scene->material.material_offset.get())
 					    .BindBuffer("MaterialBuffer", gpu_scene->material.material_buffer.get())
@@ -380,15 +380,15 @@ class VisibilityLightingPass : public RenderPass<VisibilityLightingPass>
 					{
 						descriptor->BindBuffer("MeshVertexBuffer", gpu_scene->mesh_buffer.vertex_buffers)
 						    .BindBuffer("MeshIndexBuffer", gpu_scene->mesh_buffer.index_buffers)
-						    .BindBuffer("MeshInstanceBuffer", gpu_scene->mesh_buffer.instances.get());
+						    .BindBuffer("MeshInstanceBuffer", gpu_scene->opaque_mesh.instances.get());
 					}
 
 					if (has_skinned_mesh)
 					{
 						descriptor->BindBuffer("SkinnedMeshVertexBuffer", gpu_scene->skinned_mesh_buffer.vertex_buffers)
 						    .BindBuffer("SkinnedMeshIndexBuffer", gpu_scene->skinned_mesh_buffer.index_buffers)
-						    .BindBuffer("BoneMatrices", gpu_scene->animation_buffer.bone_matrics)
-						    .BindBuffer("SkinnedMeshInstanceBuffer", gpu_scene->skinned_mesh_buffer.instances.get());
+						    .BindBuffer("BoneMatrices", gpu_scene->animation.bone_matrics)
+						    .BindBuffer("SkinnedMeshInstanceBuffer", gpu_scene->opaque_skinned_mesh.instances.get());
 					}
 
 					if (has_point_light)

@@ -291,11 +291,11 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 
 			cmd_buffer->BeginRenderPass(render_target);
 
-			// Draw Mesh
-			if (gpu_scene->mesh_buffer.instance_count > 0)
+			// Draw Opaque Mesh
+			if (gpu_scene->opaque_mesh.instance_count > 0)
 			{
 				auto *descriptor = rhi_context->CreateDescriptor(mesh_pipeline.meta);
-				descriptor->BindBuffer("InstanceBuffer", gpu_scene->mesh_buffer.instances.get())
+				descriptor->BindBuffer("InstanceBuffer", gpu_scene->opaque_mesh.instances.get())
 				    .BindBuffer("VertexBuffer", gpu_scene->mesh_buffer.vertex_buffers)
 				    .BindBuffer("IndexBuffer", gpu_scene->mesh_buffer.index_buffers)
 				    .BindBuffer("MeshletBuffer", gpu_scene->mesh_buffer.meshlet_buffers)
@@ -305,15 +305,15 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 
 				cmd_buffer->BindDescriptor(descriptor);
 				cmd_buffer->BindPipelineState(mesh_pipeline.pipeline.get());
-				cmd_buffer->DrawMeshTask(gpu_scene->mesh_buffer.max_meshlet_count, gpu_scene->mesh_buffer.instance_count, static_cast<uint32_t>(spot_lights.size()), 32, 1, 1);
+				cmd_buffer->DrawMeshTask(gpu_scene->opaque_mesh.max_meshlet_count, gpu_scene->opaque_mesh.instance_count, static_cast<uint32_t>(spot_lights.size()), 32, 1, 1);
 			}
 
 			// Draw Skinned Mesh
-			if (gpu_scene->skinned_mesh_buffer.instance_count > 0)
+			if (gpu_scene->opaque_skinned_mesh.instance_count > 0)
 			{
 				auto *descriptor = rhi_context->CreateDescriptor(skinned_mesh_pipeline.meta);
-				descriptor->BindBuffer("InstanceBuffer", gpu_scene->skinned_mesh_buffer.instances.get())
-				    .BindBuffer("BoneMatrices", gpu_scene->animation_buffer.bone_matrics)
+				descriptor->BindBuffer("InstanceBuffer", gpu_scene->opaque_skinned_mesh.instances.get())
+				    .BindBuffer("BoneMatrices", gpu_scene->animation.bone_matrics)
 				    .BindBuffer("VertexBuffer", gpu_scene->skinned_mesh_buffer.vertex_buffers)
 				    .BindBuffer("IndexBuffer", gpu_scene->skinned_mesh_buffer.index_buffers)
 				    .BindBuffer("MeshletBuffer", gpu_scene->skinned_mesh_buffer.meshlet_buffers)
@@ -323,7 +323,7 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 
 				cmd_buffer->BindDescriptor(descriptor);
 				cmd_buffer->BindPipelineState(skinned_mesh_pipeline.pipeline.get());
-				cmd_buffer->DrawMeshTask(gpu_scene->skinned_mesh_buffer.max_meshlet_count, gpu_scene->skinned_mesh_buffer.instance_count, static_cast<uint32_t>(spot_lights.size()), 32, 1, 1);
+				cmd_buffer->DrawMeshTask(gpu_scene->opaque_skinned_mesh.max_meshlet_count, gpu_scene->opaque_skinned_mesh.instance_count, static_cast<uint32_t>(spot_lights.size()), 32, 1, 1);
 			}
 
 			cmd_buffer->EndRenderPass();
@@ -437,10 +437,10 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 			cmd_buffer->BeginRenderPass(render_target);
 
 			// Draw Mesh
-			if (gpu_scene->mesh_buffer.instance_count > 0)
+			if (gpu_scene->opaque_mesh.instance_count > 0)
 			{
 				auto *descriptor = rhi_context->CreateDescriptor(mesh_pipeline.meta);
-				descriptor->BindBuffer("InstanceBuffer", gpu_scene->mesh_buffer.instances.get())
+				descriptor->BindBuffer("InstanceBuffer", gpu_scene->opaque_mesh.instances.get())
 				    .BindBuffer("VertexBuffer", gpu_scene->mesh_buffer.vertex_buffers)
 				    .BindBuffer("IndexBuffer", gpu_scene->mesh_buffer.index_buffers)
 				    .BindBuffer("MeshletBuffer", gpu_scene->mesh_buffer.meshlet_buffers)
@@ -450,15 +450,15 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 
 				cmd_buffer->BindDescriptor(descriptor);
 				cmd_buffer->BindPipelineState(mesh_pipeline.pipeline.get());
-				cmd_buffer->DrawMeshTask(gpu_scene->mesh_buffer.max_meshlet_count, gpu_scene->mesh_buffer.instance_count, static_cast<uint32_t>(directional_lights.size() * 4), 32, 1, 1);
+				cmd_buffer->DrawMeshTask(gpu_scene->opaque_mesh.max_meshlet_count, gpu_scene->opaque_mesh.instance_count, static_cast<uint32_t>(directional_lights.size() * 4), 32, 1, 1);
 			}
 
-			// Draw Skinned Mesh
-			if (gpu_scene->skinned_mesh_buffer.instance_count > 0)
+			// Draw Opaque Skinned Mesh
+			if (gpu_scene->opaque_skinned_mesh.instance_count > 0)
 			{
 				auto *descriptor = rhi_context->CreateDescriptor(skinned_mesh_pipeline.meta);
-				descriptor->BindBuffer("InstanceBuffer", gpu_scene->skinned_mesh_buffer.instances.get())
-				    .BindBuffer("BoneMatrices", gpu_scene->animation_buffer.bone_matrics)
+				descriptor->BindBuffer("InstanceBuffer", gpu_scene->opaque_skinned_mesh.instances.get())
+				    .BindBuffer("BoneMatrices", gpu_scene->animation.bone_matrics)
 				    .BindBuffer("VertexBuffer", gpu_scene->skinned_mesh_buffer.vertex_buffers)
 				    .BindBuffer("IndexBuffer", gpu_scene->skinned_mesh_buffer.index_buffers)
 				    .BindBuffer("MeshletBuffer", gpu_scene->skinned_mesh_buffer.meshlet_buffers)
@@ -468,7 +468,7 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 
 				cmd_buffer->BindDescriptor(descriptor);
 				cmd_buffer->BindPipelineState(skinned_mesh_pipeline.pipeline.get());
-				cmd_buffer->DrawMeshTask(gpu_scene->skinned_mesh_buffer.max_meshlet_count, gpu_scene->skinned_mesh_buffer.instance_count, static_cast<uint32_t>(directional_lights.size() * 4), 32, 1, 1);
+				cmd_buffer->DrawMeshTask(gpu_scene->opaque_skinned_mesh.max_meshlet_count, gpu_scene->opaque_skinned_mesh.instance_count, static_cast<uint32_t>(directional_lights.size() * 4), 32, 1, 1);
 			}
 
 			cmd_buffer->EndRenderPass();
@@ -578,11 +578,11 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 
 			cmd_buffer->BeginRenderPass(render_target);
 
-			// Draw Mesh
-			if (gpu_scene->mesh_buffer.instance_count > 0)
+			// Draw Opaque Mesh
+			if (gpu_scene->opaque_mesh.instance_count > 0)
 			{
 				auto *descriptor = rhi_context->CreateDescriptor(mesh_pipeline.meta);
-				descriptor->BindBuffer("InstanceBuffer", gpu_scene->mesh_buffer.instances.get())
+				descriptor->BindBuffer("InstanceBuffer", gpu_scene->opaque_mesh.instances.get())
 				    .BindBuffer("VertexBuffer", gpu_scene->mesh_buffer.vertex_buffers)
 				    .BindBuffer("IndexBuffer", gpu_scene->mesh_buffer.index_buffers)
 				    .BindBuffer("MeshletBuffer", gpu_scene->mesh_buffer.meshlet_buffers)
@@ -592,15 +592,15 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 
 				cmd_buffer->BindDescriptor(descriptor);
 				cmd_buffer->BindPipelineState(mesh_pipeline.pipeline.get());
-				cmd_buffer->DrawMeshTask(gpu_scene->mesh_buffer.max_meshlet_count, gpu_scene->mesh_buffer.instance_count, static_cast<uint32_t>(point_lights.size() * 6), 32, 1, 1);
+				cmd_buffer->DrawMeshTask(gpu_scene->opaque_mesh.max_meshlet_count, gpu_scene->opaque_mesh.instance_count, static_cast<uint32_t>(point_lights.size() * 6), 32, 1, 1);
 			}
 
-			// Draw Skinned Mesh
-			if (gpu_scene->skinned_mesh_buffer.instance_count > 0)
+			// Draw Opaque Skinned Mesh
+			if (gpu_scene->opaque_skinned_mesh.instance_count > 0)
 			{
 				auto *descriptor = rhi_context->CreateDescriptor(skinned_mesh_pipeline.meta);
-				descriptor->BindBuffer("InstanceBuffer", gpu_scene->skinned_mesh_buffer.instances.get())
-				    .BindBuffer("BoneMatrices", gpu_scene->animation_buffer.bone_matrics)
+				descriptor->BindBuffer("InstanceBuffer", gpu_scene->opaque_skinned_mesh.instances.get())
+				    .BindBuffer("BoneMatrices", gpu_scene->animation.bone_matrics)
 				    .BindBuffer("VertexBuffer", gpu_scene->skinned_mesh_buffer.vertex_buffers)
 				    .BindBuffer("IndexBuffer", gpu_scene->skinned_mesh_buffer.index_buffers)
 				    .BindBuffer("MeshletBuffer", gpu_scene->skinned_mesh_buffer.meshlet_buffers)
@@ -610,7 +610,7 @@ class ShadowMapPass : public RenderPass<ShadowMapPass>
 
 				cmd_buffer->BindDescriptor(descriptor);
 				cmd_buffer->BindPipelineState(skinned_mesh_pipeline.pipeline.get());
-				cmd_buffer->DrawMeshTask(gpu_scene->skinned_mesh_buffer.max_meshlet_count, gpu_scene->skinned_mesh_buffer.instance_count, static_cast<uint32_t>(point_lights.size() * 6), 32, 1, 1);
+				cmd_buffer->DrawMeshTask(gpu_scene->opaque_skinned_mesh.max_meshlet_count, gpu_scene->opaque_skinned_mesh.instance_count, static_cast<uint32_t>(point_lights.size() * 6), 32, 1, 1);
 			}
 
 			cmd_buffer->EndRenderPass();

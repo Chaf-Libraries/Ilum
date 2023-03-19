@@ -481,7 +481,7 @@ class MaterialGraphEditor : public Widget
 
 		auto *descriptor = rhi_context->CreateDescriptor(meta);
 		descriptor->BindBuffer("UniformBuffer", m_view.buffer.get())
-		    .BindTexture("Textures", gpu_scene->textures.texture_2d, RHITextureDimension::Texture2D)
+		    .BindTexture("Textures", gpu_scene->texture.texture_2d, RHITextureDimension::Texture2D)
 		    .BindSampler("Samplers", gpu_scene->samplers)
 		    .BindBuffer("MaterialOffsets", gpu_scene->material.material_offset.get())
 		    .BindBuffer("MaterialBuffer", gpu_scene->material.material_buffer.get());

@@ -74,7 +74,7 @@ class RayTracedAO : public RenderPass<RayTracedAO>
 			{
 				pipeline.pipeline->ClearShader();
 
-				auto *raygen_shader     = renderer->RequireShader("Source/Shaders/RayTracedAO.hlsl", "RayGenMain", RHIShaderStage::RayGen, {"RAYGEN_SHADER", "RAYTRACING_PIPELINE", gpu_scene->textures.texture_cube ? "USE_SKYBOX" : "NO_SKYBOX"});
+				auto *raygen_shader     = renderer->RequireShader("Source/Shaders/RayTracedAO.hlsl", "RayGenMain", RHIShaderStage::RayGen, {"RAYGEN_SHADER", "RAYTRACING_PIPELINE", gpu_scene->texture.texture_cube ? "USE_SKYBOX" : "NO_SKYBOX"});
 				auto *closesthit_shader = renderer->RequireShader("Source/Shaders/RayTracedAO.hlsl", "ClosesthitMain", RHIShaderStage::ClosestHit, {"CLOSESTHIT_SHADER", "RAYTRACING_PIPELINE"}, {"Material/Material.hlsli"});
 				auto *miss_shader       = renderer->RequireShader("Source/Shaders/RayTracedAO.hlsl", "MissMain", RHIShaderStage::Miss, {"MISS_SHADER", "RAYTRACING_PIPELINE"});
 
@@ -94,17 +94,17 @@ class RayTracedAO : public RenderPass<RayTracedAO>
 				}
 			}
 
-			if (gpu_scene->mesh_buffer.instance_count > 0)
+			if (gpu_scene->opaque_mesh.instance_count > 0)
 			{
 				auto *descriptor = rhi_context->CreateDescriptor(meta);
-				descriptor->BindAccelerationStructure("TopLevelAS", gpu_scene->TLAS.get())
+				descriptor->BindAccelerationStructure("TopLevelAS", gpu_scene->opaque_tlas.get())
 				    .BindTexture("Output", output, RHITextureDimension::Texture2D)
 				    .BindBuffer("ConfigBuffer", config_buffer.get())
-				    .BindBuffer("InstanceBuffer", gpu_scene->mesh_buffer.instances.get())
+				    .BindBuffer("InstanceBuffer", gpu_scene->opaque_mesh.instances.get())
 				    .BindBuffer("ViewBuffer", view->buffer.get())
 				    .BindBuffer("VertexBuffer", gpu_scene->mesh_buffer.vertex_buffers)
 				    .BindBuffer("IndexBuffer", gpu_scene->mesh_buffer.index_buffers)
-				    .BindTexture("Textures", gpu_scene->textures.texture_2d, RHITextureDimension::Texture2D)
+				    .BindTexture("Textures", gpu_scene->texture.texture_2d, RHITextureDimension::Texture2D)
 				    .BindSampler("Samplers", gpu_scene->samplers)
 				    .BindBuffer("MaterialOffsets", gpu_scene->material.material_offset.get())
 				    .BindBuffer("MaterialBuffer", gpu_scene->material.material_buffer.get())
@@ -114,9 +114,9 @@ class RayTracedAO : public RenderPass<RayTracedAO>
 				    .BindBuffer("RectLightBuffer", gpu_scene->light.rect_light_buffer.get())
 				    .BindBuffer("LightInfoBuffer", gpu_scene->light.light_info_buffer.get());
 
-				if (gpu_scene->textures.texture_cube)
+				if (gpu_scene->texture.texture_cube)
 				{
-					descriptor->BindTexture("Skybox", gpu_scene->textures.texture_cube, RHITextureDimension::TextureCube)
+					descriptor->BindTexture("Skybox", gpu_scene->texture.texture_cube, RHITextureDimension::TextureCube)
 					    .BindSampler("SkyboxSampler", rhi_context->CreateSampler(SamplerDesc::LinearClamp()));
 				}
 

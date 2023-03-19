@@ -4,6 +4,13 @@
 
 namespace Ilum
 {
+enum class BlendMode
+{
+	Opaque,
+	Mask,
+	Blend
+};
+
 struct MaterialData
 {
 	std::vector<uint32_t> textures;
@@ -11,6 +18,8 @@ struct MaterialData
 
 	std::string shader    = "Material/Material.hlsli";
 	std::string signature = "Signature_0";
+
+	BlendMode blend_mode = BlendMode::Opaque;
 
 	void Reset()
 	{
@@ -20,10 +29,10 @@ struct MaterialData
 		signature = "Signature_0";
 	}
 
-	template<typename Archive>
-	void serialize(Archive& archive)
+	template <typename Archive>
+	void serialize(Archive &archive)
 	{
-		archive(textures, samplers, shader, signature);
+		archive(textures, samplers, shader, signature, blend_mode);
 	}
 };
 }        // namespace Ilum

@@ -48,18 +48,29 @@ struct GPUScene
 		uint32_t  visible      = 0U;
 	};
 
+	struct MeshInstance
+	{
+		std::unique_ptr<RHIBuffer> instances = nullptr;
+
+		uint32_t max_meshlet_count = 0;
+		uint32_t instance_count    = 0;
+	};
+
 	struct MeshBuffer
 	{
 		std::vector<RHIBuffer *> vertex_buffers;
 		std::vector<RHIBuffer *> index_buffers;
 		std::vector<RHIBuffer *> meshlet_data_buffers;
 		std::vector<RHIBuffer *> meshlet_buffers;
+	};
 
+	struct SkinnedMeshInstance
+	{
 		std::unique_ptr<RHIBuffer> instances = nullptr;
 
 		uint32_t max_meshlet_count = 0;
 		uint32_t instance_count    = 0;
-	} mesh_buffer;
+	};
 
 	struct SkinnedMeshBuffer
 	{
@@ -67,12 +78,7 @@ struct GPUScene
 		std::vector<RHIBuffer *> index_buffers;
 		std::vector<RHIBuffer *> meshlet_data_buffers;
 		std::vector<RHIBuffer *> meshlet_buffers;
-
-		std::unique_ptr<RHIBuffer> instances = nullptr;
-
-		uint32_t max_meshlet_count = 0;
-		uint32_t instance_count    = 0;
-	} skinned_mesh_buffer;
+	};
 
 	struct AnimationBuffer
 	{
@@ -89,42 +95,54 @@ struct GPUScene
 
 		uint32_t max_frame_count = 0;
 		uint32_t max_bone_count  = 0;
-	} animation_buffer;
+	};
 
 	struct LightBuffer
 	{
 		struct Info
 		{
-			uint32_t point_light_count = 0;
-			uint32_t spot_light_count         = 0;
+			uint32_t point_light_count       = 0;
+			uint32_t spot_light_count        = 0;
 			uint32_t directional_light_count = 0;
-			uint32_t rect_light_count         = 0;
-		}info;
+			uint32_t rect_light_count        = 0;
+		} info;
 
-		std::unique_ptr<RHIBuffer> point_light_buffer = nullptr;
-		std::unique_ptr<RHIBuffer> spot_light_buffer = nullptr;
+		std::unique_ptr<RHIBuffer> point_light_buffer       = nullptr;
+		std::unique_ptr<RHIBuffer> spot_light_buffer        = nullptr;
 		std::unique_ptr<RHIBuffer> directional_light_buffer = nullptr;
 		std::unique_ptr<RHIBuffer> rect_light_buffer        = nullptr;
 		std::unique_ptr<RHIBuffer> light_info_buffer        = nullptr;
-	} light;
+	};
 
-	struct Texture
+	struct TextureBuffer
 	{
 		std::vector<RHITexture *> texture_2d;
 
 		RHITexture *texture_cube = nullptr;
-	} textures;
+	};
 
-	struct
+	struct MaterialBuffer
 	{
 		std::vector<const MaterialData *> data;
 
 		std::unique_ptr<RHIBuffer> material_buffer = nullptr;
 		std::unique_ptr<RHIBuffer> material_offset = nullptr;
-	} material;
+	};
 
 	std::vector<RHISampler *> samplers;
 
-	std::unique_ptr<RHIAccelerationStructure> TLAS = nullptr;
+	MeshInstance      opaque_mesh;
+	MeshInstance      non_opaque_mesh;
+	MeshBuffer        mesh_buffer;
+	SkinnedMeshInstance opaque_skinned_mesh;
+	SkinnedMeshInstance non_opaque_skinned_mesh;
+	SkinnedMeshBuffer   skinned_mesh_buffer;
+	AnimationBuffer   animation;
+	MaterialBuffer    material;
+	LightBuffer       light;
+	TextureBuffer     texture;
+
+	std::unique_ptr<RHIAccelerationStructure> opaque_tlas     = nullptr;
+	std::unique_ptr<RHIAccelerationStructure> non_opaque_tlas = nullptr;
 };
 }        // namespace Ilum
