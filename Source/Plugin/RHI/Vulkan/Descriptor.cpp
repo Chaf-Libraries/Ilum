@@ -544,7 +544,7 @@ VkDescriptorSetLayout Descriptor::CreateDescriptorSetLayout(const ShaderMeta &me
 		layout_binding.binding                      = descriptor.binding;
 		layout_binding.descriptorType               = DescriptorTypeMap[descriptor.type];
 		layout_binding.stageFlags                   = ToVulkanShaderStages(descriptor.stage);
-		layout_binding.descriptorCount              = descriptor.array_size == 0 ? 1024 : descriptor.array_size;
+		layout_binding.descriptorCount              = descriptor.array_size == 0 ? 16384 : descriptor.array_size;
 		descriptor_set_layout_bindings.push_back(layout_binding);
 		if (descriptor.type != DescriptorType::AccelerationStructure)
 		{

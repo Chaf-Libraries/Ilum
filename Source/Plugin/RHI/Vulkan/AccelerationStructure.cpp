@@ -1,10 +1,15 @@
 #include "AccelerationStructure.hpp"
-#include "Device.hpp"
 #include "Buffer.hpp"
 #include "Command.hpp"
+#include "Device.hpp"
 
 namespace Ilum::Vulkan
 {
+static inline size_t Align(size_t x, size_t alignment)
+{
+	return (x + (alignment - 1)) & ~(alignment - 1);
+}
+
 AccelerationStructure::AccelerationStructure(RHIDevice *device) :
     RHIAccelerationStructure(device)
 {
@@ -189,7 +194,7 @@ void AccelerationStructure::Update(RHICommand *cmd_buffer, const VkAccelerationS
 	acceleration_device_address_info.accelerationStructure                       = m_handle;
 	m_device_address                                                             = vkGetAccelerationStructureDeviceAddressKHR(static_cast<Device *>(p_device)->GetDevice(), &acceleration_device_address_info);
 
-	if (!m_scratch_buffer || m_scratch_buffer->GetDesc().size < build_sizes_info.buildScratchSize)
+	if (!m_scratch_buffer || m_scratch_buffer->GetDesc().size != build_sizes_info.buildScratchSize)
 	{
 		m_scratch_buffer = std::make_unique<Buffer>(
 		    p_device,
@@ -200,7 +205,19 @@ void AccelerationStructure::Update(RHICommand *cmd_buffer, const VkAccelerationS
 		        build_sizes_info.buildScratchSize});
 	}
 
-	build_geometry_info.scratchData.deviceAddress = m_scratch_buffer->GetDeviceAddress();
+	VkPhysicalDeviceAccelerationStructurePropertiesKHR properties = {};
+
+	properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR;
+	properties.pNext = NULL;
+
+	VkPhysicalDeviceProperties2 dev_props2 = {};
+
+	dev_props2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+	dev_props2.pNext = &properties;
+
+	vkGetPhysicalDeviceProperties2(static_cast<Device *>(p_device)->GetPhysicalDevice(), &dev_props2);
+
+	build_geometry_info.scratchData.deviceAddress = Align(m_scratch_buffer->GetDeviceAddress(), properties.minAccelerationStructureScratchOffsetAlignment);
 	build_geometry_info.dstAccelerationStructure  = m_handle;
 
 	VkAccelerationStructureBuildRangeInfoKHR *as_build_range_infos = const_cast<VkAccelerationStructureBuildRangeInfoKHR *>(&range_info);
