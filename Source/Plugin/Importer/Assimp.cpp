@@ -476,16 +476,16 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 		MaterialNodeDesc &output_node              = desc.AddNode(current_handle++, create_material_node(current_handle, "Output", "MaterialOutput"));
 		MaterialNodeDesc *surface_interaction_node = nullptr;
 
-		auto set_image_texture = [&](MaterialNodeDesc &texture_node, const std::string &path) {
+		auto set_image_texture = [&](MaterialNodeDesc &texture_node, const std::string &name) {
 			if (!surface_interaction_node)
 			{
 				surface_interaction_node = &desc.AddNode(current_handle++, create_material_node(current_handle, "Input", "SurfaceInteraction"));
 			}
 			Variant      variant  = texture_node.GetVariant();
-			std::string  filename = Path::GetInstance().ValidFileName(path);
+			//std::string  filename = Path::GetInstance().ValidFileName(path);
 			ImageConfig *config   = variant.Convert<ImageConfig>();
 			std::memset(config->filename, '\0', 200);
-			std::memcpy(config->filename, filename.data(), filename.length());
+			std::memcpy(config->filename, name.data(), name.length());
 			desc.Link(surface_interaction_node->GetPin("UV").handle, texture_node.GetPin("UV").handle);
 			desc.Link(surface_interaction_node->GetPin("dUVdx").handle, texture_node.GetPin("dUVdx").handle);
 			desc.Link(surface_interaction_node->GetPin("dUVdy").handle, texture_node.GetPin("dUVdy").handle);
@@ -501,10 +501,11 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			assimp_material->Get(AI_MATKEY_BASE_COLOR, base_color.x);
 			assimp_material->GetTexture(AI_MATKEY_BASE_COLOR_TEXTURE, &color_texture);
 
-			if (ProcessTexture(manager, rhi_context, path, assimp_scene, color_texture.C_Str()))
+			std::string color_texture_name = ProcessTexture(manager, rhi_context, path, assimp_scene, color_texture.C_Str());
+			if (!color_texture_name.empty())
 			{
 				MaterialNodeDesc &texture_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Texture", "ImageTexture"));
-				set_image_texture(texture_node, Path::GetInstance().GetFileDirectory(path) + color_texture.C_Str());
+				set_image_texture(texture_node, color_texture_name);
 
 				if (base_color != glm::vec3(1.f))
 				{
@@ -550,11 +551,11 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			if (pack_metallic_roughness)
 			{
 				// Pack Texture: Occlusion (R) [optional] + Roughness G + Metallic B
-				std::string texture = metallic_texture.C_Str();
-				if (ProcessTexture(manager, rhi_context, path, assimp_scene, texture))
+				std::string texture_name = ProcessTexture(manager, rhi_context, path, assimp_scene, metallic_texture.C_Str());
+				if (!texture_name.empty())
 				{
 					MaterialNodeDesc &texture_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Texture", "ImageTexture"));
-					set_image_texture(texture_node, Path::GetInstance().GetFileDirectory(path) + metallic_texture.C_Str());
+					set_image_texture(texture_node, texture_name);
 
 					MaterialNodeDesc &split_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Converter", "VectorSplit"));
 
@@ -588,10 +589,11 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			{
 				// Separated Texture
 				// Metallic
-				if (ProcessTexture(manager, rhi_context, path, assimp_scene, metallic_texture.C_Str()))
+				std::string metallic_texture_name = ProcessTexture(manager, rhi_context, path, assimp_scene, metallic_texture.C_Str());
+				if (!metallic_texture_name.empty())
 				{
 					MaterialNodeDesc &texture_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Texture", "ImageTexture"));
-					set_image_texture(texture_node, Path::GetInstance().GetFileDirectory(path) + metallic_texture.C_Str());
+					set_image_texture(texture_node, metallic_texture_name);
 
 					if (metallic == 1.f)
 					{
@@ -612,10 +614,11 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 				}
 
 				// Roughness
-				if (ProcessTexture(manager, rhi_context, path, assimp_scene, roughness_texture.C_Str()))
+				std::string roughness_texture_name = ProcessTexture(manager, rhi_context, path, assimp_scene, roughness_texture.C_Str());
+				if (!roughness_texture_name.empty())
 				{
 					MaterialNodeDesc &texture_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Texture", "ImageTexture"));
-					set_image_texture(texture_node, Path::GetInstance().GetFileDirectory(path) + roughness_texture.C_Str());
+					set_image_texture(texture_node, roughness_texture_name);
 
 					if (roughness == 1.f)
 					{
@@ -646,12 +649,12 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 		{
 			aiString normal_texture;
 			assimp_material->GetTexture(aiTextureType_NORMALS, 0, &normal_texture);
-			ProcessTexture(manager, rhi_context, path, assimp_scene, normal_texture.C_Str());
 
-			if (ProcessTexture(manager, rhi_context, path, assimp_scene, normal_texture.C_Str()))
+			std::string normal_texture_name = ProcessTexture(manager, rhi_context, path, assimp_scene, normal_texture.C_Str());
+			if (!normal_texture_name.empty())
 			{
 				MaterialNodeDesc &texture_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Texture", "ImageTexture"));
-				set_image_texture(texture_node, Path::GetInstance().GetFileDirectory(path) + normal_texture.C_Str());
+				set_image_texture(texture_node, normal_texture_name);
 				desc.Link(texture_node.GetPin("Color").handle, principled_bsdf_node.GetPin("Normal").handle);
 			}
 		}
@@ -663,10 +666,12 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 
 			assimp_material->Get(AI_MATKEY_COLOR_EMISSIVE, emissive_color.x);
 			assimp_material->GetTexture(aiTextureType_EMISSIVE, 0, &emissive_texture);
-			if (ProcessTexture(manager, rhi_context, path, assimp_scene, emissive_texture.C_Str()))
+
+			std::string emissive_texture_name = ProcessTexture(manager, rhi_context, path, assimp_scene, emissive_texture.C_Str());
+			if (!emissive_texture_name.empty())
 			{
 				MaterialNodeDesc &texture_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Texture", "ImageTexture"));
-				set_image_texture(texture_node, Path::GetInstance().GetFileDirectory(path) + emissive_texture.C_Str());
+				set_image_texture(texture_node, emissive_texture_name);
 
 				if (emissive_color == glm::vec3(1.f))
 				{
@@ -738,10 +743,11 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			assimp_material->Get(AI_MATKEY_TRANSMISSION_FACTOR, transmission_factor);
 			assimp_material->GetTexture(AI_MATKEY_TRANSMISSION_TEXTURE, &transmission_texture);
 
-			if (ProcessTexture(manager, rhi_context, path, assimp_scene, transmission_texture.C_Str()))
+			std::string transmission_texture_name = ProcessTexture(manager, rhi_context, path, assimp_scene, transmission_texture.C_Str());
+			if (!transmission_texture_name.empty())
 			{
 				MaterialNodeDesc &texture_node = desc.AddNode(current_handle++, create_material_node(current_handle, "Texture", "ImageTexture"));
-				set_image_texture(texture_node, Path::GetInstance().GetFileDirectory(path) + transmission_texture.C_Str());
+				set_image_texture(texture_node, transmission_texture_name);
 
 				if (transmission_factor == 1.f)
 				{
@@ -773,12 +779,12 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 		manager->Add<ResourceType::Material>(rhi_context, material_name, std::move(desc));
 	}
 
-	bool ProcessTexture(ResourceManager *manager, RHIContext *rhi_context, const std::string &path, const aiScene *assimp_scene, const std::string &filename)
+	std::string ProcessTexture(ResourceManager *manager, RHIContext *rhi_context, const std::string &path, const aiScene *assimp_scene, const std::string &filename)
 	{
 		auto [assimp_texture, texture_id] = assimp_scene->GetEmbeddedTextureAndIndex(filename.c_str());
 		if (texture_id < 0 && filename.empty())
 		{
-			return false;
+			return "";
 		}
 
 		if (texture_id < 0)
@@ -788,7 +794,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			if (importer)
 			{
 				importer->Import(manager, Path::GetInstance().GetFileDirectory(path) + filename, rhi_context);
-				return true;
+				return Path::GetInstance().GetFileDirectory(path) + filename;
 			}
 		}
 		else
@@ -796,7 +802,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			std::string texture_name = fmt::format("{}.texture.{}", Path::GetInstance().ValidFileName(path), texture_id);
 			if (manager->Has<ResourceType::Texture2D>(texture_name))
 			{
-				return false;
+				return "";
 			}
 
 			TextureDesc desc = {};
@@ -850,7 +856,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 
 			manager->Add<ResourceType::Texture2D>(rhi_context, std::move(data), desc);
 
-			return true;
+			return desc.name;
 		}
 
 		return false;
