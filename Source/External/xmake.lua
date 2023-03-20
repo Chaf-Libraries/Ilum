@@ -17,22 +17,22 @@ add_requires("volk", {configs = {header_only = true}})
 add_requires("vulkan-headers")
 add_requires("vulkan-memory-allocator")
 
-option("CUDA_ENABLE")
-    on_check(function (option)
-        import("detect.sdks.find_cuda")
-        local cuda = find_cuda()
-        if cuda then
-            option:enable(true)
-            option:add("defines", "CUDA_ENABLE")
-        else
-            option:enable(false)
-        end
-    end)
-option_end()
+-- option("CUDA_ENABLE")
+--     on_check(function (option)
+--         import("detect.sdks.find_cuda")
+--         local cuda = find_cuda()
+--         if cuda then
+--             option:enable(true)
+--             option:add("defines", "CUDA_ENABLE")
+--         else
+--             option:enable(false)
+--         end
+--     end)
+-- option_end()
 
-if has_config("CUDA_ENABLE") then
-    add_requires("cuda")
-end
+-- if has_config("CUDA_ENABLE") then
+--     add_requires("cuda")
+-- end
 
 target("ImGui-Tools")
     set_kind("static")

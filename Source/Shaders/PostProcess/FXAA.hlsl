@@ -1,3 +1,5 @@
+#include "../Common.hlsli"
+
 struct Config
 {
     float fixed_threshold;
@@ -9,11 +11,6 @@ Texture2D Input;
 SamplerState Sampler;
 RWTexture2D<float4> Output;
 ConstantBuffer<Config> ConfigBuffer;
-
-struct CSParam
-{
-    uint3 DispatchThreadID : SV_DispatchThreadID;
-};
 
 #ifdef FXAA_QUALITY_LOW
 #define EXTRA_EDGE_STEPS 3
@@ -34,7 +31,7 @@ static const float edgeStepSizes[EXTRA_EDGE_STEPS] = { EDGE_STEP_SIZES };
 float GetLuma(float2 uv, float2 offset, float2 texel_size)
 {
     uv += float2(offset) * texel_size;
-    return Input.SampleLevel(Sampler, uv, 0.0).a;
+    return sqrt(Luminance(Input.SampleLevel(Sampler, uv, 0.0).rgb));
 }
 
 // +1  NW   N     NE
@@ -248,5 +245,4 @@ void CSmain(CSParam param)
     }
     
     Output[param.DispatchThreadID.xy] = float4(Input.SampleLevel(Sampler, uv, 0.0).rgb, 1.0);
-    //Output[param.DispatchThreadID.xy] = float4(blend_factor, blend_factor, blend_factor, 1.0);
 }
