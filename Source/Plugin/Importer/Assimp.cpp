@@ -481,9 +481,9 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			{
 				surface_interaction_node = &desc.AddNode(current_handle++, create_material_node(current_handle, "Input", "SurfaceInteraction"));
 			}
-			Variant      variant  = texture_node.GetVariant();
-			//std::string  filename = Path::GetInstance().ValidFileName(path);
-			ImageConfig *config   = variant.Convert<ImageConfig>();
+			Variant variant = texture_node.GetVariant();
+			// std::string  filename = Path::GetInstance().ValidFileName(path);
+			ImageConfig *config = variant.Convert<ImageConfig>();
 			std::memset(config->filename, '\0', 200);
 			std::memcpy(config->filename, name.data(), name.length());
 			desc.Link(surface_interaction_node->GetPin("UV").handle, texture_node.GetPin("UV").handle);
@@ -583,6 +583,11 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 						desc.Link(split_node.GetPin("Z").handle, metallic_scale_node.GetPin("Y").handle);
 						desc.Link(metallic_scale_node.GetPin("Out").handle, principled_bsdf_node.GetPin("Metallic").handle);
 					}
+				}
+				else
+				{
+					principled_bsdf_node.GetPin("Metallic").variant = metallic;
+					principled_bsdf_node.GetPin("Roughness").variant = roughness;
 				}
 			}
 			else
@@ -762,6 +767,10 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 					desc.Link(scale_node.GetPin("Out").handle, principled_bsdf_node.GetPin("SpecTrans").handle);
 				}
 			}
+			else
+			{
+				principled_bsdf_node.GetPin("SpecTrans").variant = transmission_factor;
+			}
 		}
 
 		// Volume
@@ -793,8 +802,9 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			auto &importer = Importer<ResourceType::Texture2D>::GetInstance("STB");
 			if (importer)
 			{
-				importer->Import(manager, Path::GetInstance().GetFileDirectory(path) + filename, rhi_context);
-				return Path::GetInstance().GetFileDirectory(path) + filename;
+				std::string file_path = Path::GetInstance().GetFileDirectory(path) + filename;
+				importer->Import(manager, file_path, rhi_context);
+				return Path::GetInstance().ValidFileName(file_path);
 			}
 		}
 		else
@@ -859,7 +869,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			return desc.name;
 		}
 
-		return false;
+		return "";
 	}
 
   protected:
