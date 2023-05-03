@@ -5,6 +5,7 @@
 Ilum Graphics Playground, name after *Planet Ilum* from [star wars](https://starwars.fandom.com/wiki/Ilum).
 
 A framework for computer graphics learning and practice (It's not a game engine!)
+* [bilibili: Project demo video](https://www.bilibili.com/video/BV1Zy4y1f7PX/?spm_id_from=333.1007.top_right_bar_window_history.content.click&vd_source=80dfe42ae16a11fb93eda40958202849)
 
 ![image-20230212023548756](Doc/Img/image-20230212023548756.png)
 
