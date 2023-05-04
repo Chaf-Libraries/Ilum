@@ -28,7 +28,7 @@ target_end()
 
 target("Engine")
     set_kind("binary")
-    set_default(true)
+    set_default(true,1)
     set_rundir("$(projectdir)")
     set_pcxxheader("Engine/Precompile.hpp")
 
