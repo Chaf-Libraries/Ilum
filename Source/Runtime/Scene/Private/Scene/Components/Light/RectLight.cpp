@@ -9,7 +9,7 @@ namespace Ilum
 namespace Cmpt
 {
 RectLight::RectLight(Node *node) :
-    Light("Point Light", node)
+    Light("Rect Light", node)
 {
 }
 
