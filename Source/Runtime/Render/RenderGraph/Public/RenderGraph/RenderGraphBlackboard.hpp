@@ -28,7 +28,7 @@ class RenderGraphBlackboard
 	{
 		if (!Has<_Ty>())
 		{
-			return nullptr;
+			Add<_Ty>();
 		}
 
 		return std::static_pointer_cast<_Ty>(Get(typeid(_Ty))).get();

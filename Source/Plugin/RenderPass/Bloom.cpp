@@ -21,9 +21,9 @@ class Bloom : public RenderPass<Bloom>
 
 	struct BloomPassData
 	{
-		std::unique_ptr<RHITexture> mask     = nullptr;
-		std::unique_ptr<RHITexture> level[4] = {nullptr};
-		std::unique_ptr<RHITexture> blur[4]  = {nullptr};
+		std::unique_ptr<RHITexture>                mask = nullptr;
+		std::array<std::unique_ptr<RHITexture>, 4> level{nullptr};
+		std::array<std::unique_ptr<RHITexture>, 4> blur{nullptr};
 	};
 
   public:
@@ -60,7 +60,7 @@ class Bloom : public RenderPass<Bloom>
 
 			auto *gpu_scene  = black_board.Get<GPUScene>();
 			auto *view       = black_board.Get<View>();
-			auto *bloom_data = black_board.Has<BloomPassData>() ? black_board.Get<BloomPassData>() : black_board.Add<BloomPassData>();
+			auto *bloom_data = black_board.Get<BloomPassData>();
 
 			if (!bloom_data->mask ||
 			    (bloom_data->mask->GetDesc().width != input->GetDesc().width ||

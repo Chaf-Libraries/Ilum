@@ -16,7 +16,7 @@ add_requires("mustache")
 add_requires("slang")
 add_requires("volk", {configs = {header_only = true}})
 add_requires("vulkan-headers")
-add_requires("vulkan-memory-allocator")
+add_requires("vulkan-memory-allocator v3.0.0")
 
 -- option("CUDA_ENABLE")
 --     on_check(function (option)

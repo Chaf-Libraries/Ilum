@@ -210,6 +210,7 @@ std::unique_ptr<RHITexture> Texture::Alias(const TextureDesc &desc)
 	create_info.usage             = ToVulkanImageUsage(desc.usage);
 	create_info.sharingMode       = VK_SHARING_MODE_EXCLUSIVE;
 	create_info.initialLayout     = VK_IMAGE_LAYOUT_UNDEFINED;
+	create_info.flags             = VK_IMAGE_CREATE_ALIAS_BIT;
 
 	// Render Target Setting
 	if (desc.usage & RHITextureUsage::RenderTarget)
@@ -222,11 +223,14 @@ std::unique_ptr<RHITexture> Texture::Alias(const TextureDesc &desc)
 	// Cubemap Setting
 	if (desc.layers % 6 == 0 && desc.width == desc.height && desc.depth == 1)
 	{
-		create_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+		create_info.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 	}
 
 	VkImage image = VK_NULL_HANDLE;
-	vkCreateImage(static_cast<Device *>(p_device)->GetDevice(), &create_info, nullptr, &image);
+	vmaCreateAliasingImage(static_cast<Device *>(p_device)->GetAllocator(), m_allocation, &create_info, &image);
+	return std::make_unique<Texture>(p_device, desc, image, false);
+
+	/*vkCreateImage(static_cast<Device *>(p_device)->GetDevice(), &create_info, nullptr, &image);
 
 	VkMemoryRequirements memory_req = {};
 	vkGetImageMemoryRequirements(static_cast<Device *>(p_device)->GetDevice(), image, &memory_req);
@@ -243,7 +247,7 @@ std::unique_ptr<RHITexture> Texture::Alias(const TextureDesc &desc)
 	{
 		vkDestroyImage(static_cast<Device *>(p_device)->GetDevice(), image, nullptr);
 		return std::make_unique<Texture>(p_device, desc);
-	}
+	}*/
 }
 
 Texture::~Texture()
