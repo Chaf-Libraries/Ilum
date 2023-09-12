@@ -19,3 +19,4 @@ end
 add_importer_plugin("STB", {}, {"stb"})
 add_importer_plugin("DDS", {}, {})
 add_importer_plugin("Assimp", {"Geometry"}, {"assimp", "stb", "meshoptimizer"})
+add_importer_plugin("USD", {"Geometry"}, {"usd", "stb", "meshoptimizer"})

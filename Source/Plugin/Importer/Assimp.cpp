@@ -482,10 +482,10 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 				surface_interaction_node = &desc.AddNode(current_handle++, create_material_node(current_handle, "Input", "SurfaceInteraction"));
 			}
 			Variant      variant  = texture_node.GetVariant();
-			//std::string  filename = Path::GetInstance().ValidFileName(path);
+			std::string  filename = Path::GetInstance().ValidFileName(name);
 			ImageConfig *config   = variant.Convert<ImageConfig>();
 			std::memset(config->filename, '\0', 200);
-			std::memcpy(config->filename, name.data(), name.length());
+			std::memcpy(config->filename, filename.data(), filename.length());
 			desc.Link(surface_interaction_node->GetPin("UV").handle, texture_node.GetPin("UV").handle);
 			desc.Link(surface_interaction_node->GetPin("dUVdx").handle, texture_node.GetPin("dUVdx").handle);
 			desc.Link(surface_interaction_node->GetPin("dUVdy").handle, texture_node.GetPin("dUVdy").handle);

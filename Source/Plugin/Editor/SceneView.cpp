@@ -331,7 +331,7 @@ class SceneView : public Widget
 			ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 
 			float yaw   = std::atan2f(-view_matrix[2][2], -view_matrix[0][2]);
-			float pitch = std::asinf(-glm::clamp(view_matrix[1][2], -1.f, 1.f));
+			float pitch = std::asinf(-glm::clamp(view_matrix[1][2], -0.99f, 0.99f));
 
 			if (delta_pos.x != 0.f)
 			{
