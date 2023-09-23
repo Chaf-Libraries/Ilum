@@ -508,14 +508,15 @@ RenderGraph &RenderGraph::RegisterTexture(const std::vector<TextureCreateInfo> &
 		pool_desc.format  = (RHIFormat) std::max((uint64_t) pool_desc.format, (uint64_t) info.desc.format);
 	}
 
-	m_impl->textures.emplace_back(m_impl->rhi_context->CreateTexture(pool_desc));
-	auto pool_texture = m_impl->textures.back().get();
+	//m_impl->textures.emplace_back(m_impl->rhi_context->CreateTexture(pool_desc));
+	//auto pool_texture = m_impl->textures.back().get();
 
 	for (auto &info : create_infos)
 	{
 		TextureDesc desc = info.desc;
 		desc.usage |= RHITextureUsage::ShaderResource | RHITextureUsage::Transfer;
-		auto &texture = m_impl->textures.emplace_back(pool_texture->Alias(desc));
+		auto &texture = m_impl->textures.emplace_back(m_impl->rhi_context->CreateTexture(desc));
+		//auto &texture = m_impl->textures.emplace_back(pool_texture->Alias(desc));
 		for (auto &handle : info.handles)
 		{
 			m_impl->texture_lookup.emplace(handle, texture.get());

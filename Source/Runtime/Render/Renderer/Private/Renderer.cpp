@@ -598,18 +598,18 @@ void Renderer::UpdateSkinnedMesh()
 						if (material->GetMaterialData().blend_mode == BlendMode::Opaque)
 						{
 							opaque_instances.push_back(instance);
-							gpu_scene->opaque_mesh.max_meshlet_count = glm::max(gpu_scene->opaque_mesh.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
+							gpu_scene->opaque_skinned_mesh.max_meshlet_count = glm::max(gpu_scene->opaque_skinned_mesh.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
 						}
 						else
 						{
 							non_opaque_instances.push_back(instance);
-							gpu_scene->non_opaque_mesh.max_meshlet_count = glm::max(gpu_scene->non_opaque_mesh.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
+							gpu_scene->non_opaque_skinned_mesh.max_meshlet_count = glm::max(gpu_scene->non_opaque_skinned_mesh.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
 						}
 					}
 					else
 					{
 						opaque_instances.push_back(instance);
-						gpu_scene->opaque_mesh.max_meshlet_count = glm::max(gpu_scene->opaque_mesh.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
+						gpu_scene->opaque_skinned_mesh.max_meshlet_count = glm::max(gpu_scene->opaque_skinned_mesh.max_meshlet_count, static_cast<uint32_t>(resource->GetMeshletCount()));
 					}
 				}
 			}
@@ -804,9 +804,9 @@ void Renderer::UpdateGPUScene()
 	auto skinned_meshes = m_impl->scene->GetComponents<Cmpt::SkinnedMeshRenderer>();
 
 	UpdateLight();
-	UpdateAnimation();
 	UpdateMesh();
 	UpdateSkinnedMesh();
+	UpdateAnimation();
 	UpdateMaterial();
 }
 }        // namespace Ilum
