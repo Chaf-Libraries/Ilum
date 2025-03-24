@@ -584,6 +584,11 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 						desc.Link(metallic_scale_node.GetPin("Out").handle, principled_bsdf_node.GetPin("Metallic").handle);
 					}
 				}
+				else
+				{
+					principled_bsdf_node.GetPin("Metallic").variant = metallic;
+					principled_bsdf_node.GetPin("Roughness").variant = roughness;
+				}
 			}
 			else
 			{
@@ -762,6 +767,10 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 					desc.Link(scale_node.GetPin("Out").handle, principled_bsdf_node.GetPin("SpecTrans").handle);
 				}
 			}
+			else
+			{
+				principled_bsdf_node.GetPin("SpecTrans").variant = transmission_factor;
+			}
 		}
 
 		// Volume
@@ -793,8 +802,9 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			auto &importer = Importer<ResourceType::Texture2D>::GetInstance("STB");
 			if (importer)
 			{
-				importer->Import(manager, Path::GetInstance().GetFileDirectory(path) + filename, rhi_context);
-				return Path::GetInstance().GetFileDirectory(path) + filename;
+				std::string file_path = Path::GetInstance().GetFileDirectory(path) + filename;
+				importer->Import(manager, file_path, rhi_context);
+				return Path::GetInstance().ValidFileName(file_path);
 			}
 		}
 		else
@@ -859,7 +869,7 @@ class AssimpImporter : public Importer<ResourceType::Prefab>
 			return desc.name;
 		}
 
-		return false;
+		return "";
 	}
 
   protected:

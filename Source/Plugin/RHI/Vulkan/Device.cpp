@@ -1,12 +1,5 @@
 #include "Device.hpp"
 
-#ifdef _WIN64
-#	include <VersionHelpers.h>
-#	include <aclapi.h>
-#	include <dxgi1_2.h>
-#	include <windows.h>
-#endif
-
 namespace Ilum::Vulkan
 {
 // Extension Function
@@ -25,7 +18,7 @@ static const std::vector<const char *> InstanceExtensions =
 #ifdef DEBUG
     {"VK_KHR_surface", "VK_KHR_win32_surface", "VK_EXT_debug_report", "VK_EXT_debug_utils"};
 #else
-    {"VK_KHR_surface", "VK_KHR_win32_surface", "VK_EXT_debug_utils"};
+    {"VK_KHR_surface", "VK_KHR_win32_surface"};
 #endif
 
 static const std::vector<const char *> ValidationLayers =
@@ -37,9 +30,7 @@ static const std::vector<const char *> ValidationLayers =
 
 const std::vector<VkValidationFeatureEnableEXT> ValidationExtensions =
 #ifdef DEBUG
-    {VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_RESERVE_BINDING_SLOT_EXT,
-     VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
-     VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT};
+    {VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT};
 #else
     {};
 #endif        // DEBUG
@@ -822,17 +813,23 @@ uint32_t Device::GetQueueCount(RHIQueueFamily family)
 
 void Device::SetVulkanObjectName(const VkDebugUtilsObjectNameInfoEXT &info)
 {
+#ifdef DEBUG
 	vkSetDebugUtilsObjectNameEXT(m_logical_device, &info);
+#endif        // DEBUG
 }
 
 void Device::BeginDebugUtilsLabel(VkCommandBuffer cmd_buffer, const VkDebugUtilsLabelEXT &label)
 {
+#ifdef DEBUG
 	vkCmdBeginDebugUtilsLabelEXT(cmd_buffer, &label);
+#endif        // DEBUG
 }
 
 void Device::EndDebugUtilsLabel(VkCommandBuffer cmd_buffer)
 {
+#ifdef DEBUG
 	vkCmdEndDebugUtilsLabelEXT(cmd_buffer);
+#endif        // DEBUG
 }
 
 void Device::GetSemaphoreWin32Handle(const VkSemaphoreGetWin32HandleInfoKHR *handle_info, HANDLE *handle)

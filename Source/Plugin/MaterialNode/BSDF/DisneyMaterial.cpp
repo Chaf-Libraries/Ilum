@@ -66,7 +66,7 @@ class DisneyMaterial : public MaterialNode<DisneyMaterial>
 		context->SetParameter<float>(parameters, node_desc.GetPin("Flatness"), graph_desc, manager, context);
 		context->SetParameter<float>(parameters, node_desc.GetPin("SpecTrans"), graph_desc, manager, context);
 		context->SetParameter<float>(parameters, node_desc.GetPin("IOR"), graph_desc, manager, context);
-		context->SetParameter<float>(parameters, node_desc.GetPin("Emissive"), graph_desc, manager, context);
+		context->SetParameter<glm::vec3>(parameters, node_desc.GetPin("Emissive"), graph_desc, manager, context);
 		context->SetParameter<bool>(parameters, node_desc.GetPin("TwoSide"), graph_desc, manager, context);
 
 		context->bsdfs.emplace_back(MaterialCompilationContext::BSDF{
